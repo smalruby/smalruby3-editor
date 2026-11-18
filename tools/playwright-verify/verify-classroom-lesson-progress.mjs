@@ -219,10 +219,12 @@ try {
     });
     record('12+ seat rows visible at 1300x600', visibleRows >= 12, `visible rows=${visibleRows}`);
     record(
-        'assignment name and retention line fold away, join code is one line',
-        !(await page.$(tid('classroom-detail-assignment-name'))) &&
-            !(await page.$(tid('classroom-detail-expires-at'))) &&
-            !!(await page.$(tid('classroom-detail-compact-code'))),
+        'retention line folds away; name and join code are in the ✕ row (#2089)',
+        !(await page.$(tid('classroom-detail-expires-at'))) &&
+            (await page.$$eval(
+                '[data-testid="classroom-close-row"] [data-testid="classroom-detail-join-code"]',
+                (els) => els.length,
+            )) === 1,
     );
     await shot('progress', '0248-detail-lesson-progress.png');
     // Scroll the frame: header and the「できた人」row stay.

@@ -1479,8 +1479,8 @@ const mapStateToProps = state => ({
     selectedBlocks: state.scratchGui.blockDisplay.selectedBlocks,
     // === Smalruby: End of toolbox filters ===
     // === Smalruby: Start of lesson mode ===
-    // レッスンモードのチャレンジの allowedBlocks をチュートリアルより優先する
-    tutorialAllowedBlocks: getLessonAllowedBlocks(state) || state.scratchGui.cards.tutorialAllowedBlocks,
+    // レッスンモードのチャレンジの allowedBlocks でパレットを絞る（チュートリアルは上流のまま絞らない）
+    tutorialAllowedBlocks: getLessonAllowedBlocks(state),
     // === Smalruby: End of lesson mode ===
     toolboxXML: state.scratchGui.toolbox.toolboxXML,
     // === Smalruby: Start of ruby tab ===

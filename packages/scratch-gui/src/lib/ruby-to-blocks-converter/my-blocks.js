@@ -1,6 +1,7 @@
 import _ from 'lodash';
 import { defineMessages } from 'react-intl';
 import * as Blockly from 'scratch-blocks';
+import { rubyMethodNameOfProccode } from '../ruby-method-name';
 import { RubyToBlocksConverterError } from './errors';
 import Primitive from './primitive';
 
@@ -42,7 +43,7 @@ const MyBlocksConverter = {
                     children: [],
                     proccode: procedure.procCode.join(' '),
                     tagName: 'mutation',
-                    warp: 'false',
+                    warp: procedure.warp ? 'true' : 'false',
                 },
             });
 
@@ -218,6 +219,8 @@ const MyBlocksConverter = {
                 topLevel: true,
             });
             const procedure = converter._createProcedure(procedureName);
+            // `without_screen_refresh def` (issue #2114, unwrapped by the parse stage)
+            procedure.warp = converter._context.warpDefNodes.has(node);
 
             const customBlock = converter._createBlock('procedures_prototype', 'statement', {
                 shadow: true,
@@ -332,10 +335,7 @@ const MyBlocksConverter = {
                     !lastCommentText.includes('@ruby:syntax:return')
                 ) {
                     const calledProccode = last.mutation.proccode;
-                    const calledProcName = calledProccode
-                        .split(' ')
-                        .filter((i) => !/^%[sb]$/.test(i))
-                        .join('_');
+                    const calledProcName = rubyMethodNameOfProccode(calledProccode);
                     const sourceVariable = converter._lookupOrCreateVariable(`@_return_${calledProcName}_`);
                     const targetVariable = converter._lookupOrCreateVariable(`@_return_${procedureName}_`);
 
@@ -526,7 +526,7 @@ const MyBlocksConverter = {
                 children: [],
                 proccode: procedure.procCode.join(' '),
                 tagName: 'mutation',
-                warp: 'false',
+                warp: procedure.warp ? 'true' : 'false',
             };
 
             return block;

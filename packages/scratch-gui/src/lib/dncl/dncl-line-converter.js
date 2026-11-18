@@ -179,8 +179,8 @@ const convertLine = (line) => {
         return `${indent}def ${funcMatch[1]}(${funcMatch[2]})`;
     }
 
-    // 返す expr → return expr
-    const returnMatch = trimmed.match(/^返す\s+(.+)$/);
+    // 返す expr / expr を返す (standard form, Issue #1754) → return expr
+    const returnMatch = trimmed.match(/^返す\s+(.+)$/) || trimmed.match(/^(.+?)\s+を返す$/);
     if (returnMatch) {
         let expr = convertJapaneseStrings(convertArrow(returnMatch[1]));
         expr = convertBuiltinFunctions(expr);
@@ -189,7 +189,7 @@ const convertLine = (line) => {
     }
 
     // Handle ← assignment → =
-    converted = converted.replace(/\s*←\s*/g, ' = ');
+    converted = convertArrow(converted);
 
     // Handle 【外部からの入力】 and the 共通テスト forms 【整数を入力】 /
     // 【文字列を入力】 (Issue #1186). The integer form converts the answer.

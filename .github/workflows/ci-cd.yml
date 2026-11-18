@@ -245,6 +245,13 @@ jobs:
 
   build-and-deploy:
     runs-on: ubuntu-26.04
+    # Job-level permissions replace the workflow-level ones, so restate them and add
+    # id-token for the S3 + CloudFront deploy (AssumeRole with GitHub OIDC, #2002).
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      id-token: write
     env:
       NODE_OPTIONS: --max-old-space-size=4000
     steps:
@@ -341,6 +348,96 @@ jobs:
           keep_files: true
           full_commit_message: "Admin build for ${{ github.sha }}"
           external_repository: smalruby/smalruby.app
+
+      # The same build also goes to the production S3 + CloudFront (EPIC #1931, #2002), next to
+      # GitHub Pages, so the two can be compared before smalruby.app is switched over
+      # (docs/hosting/README.md). GitHub Pages stays the live site until then.
+      - name: Check the S3 site settings
+        id: site
+        if: github.ref == 'refs/heads/develop'
+        env:
+          SITE_DEPLOY_ROLE_ARN: ${{ vars.SITE_DEPLOY_ROLE_ARN }}
+          SITE_BUCKET_NAME: ${{ vars.SITE_BUCKET_NAME }}
+          SITE_DISTRIBUTION_ID: ${{ vars.SITE_DISTRIBUTION_ID }}
+        run: |
+          missing=()
+          [ -n "${SITE_DEPLOY_ROLE_ARN}" ] || missing+=(SITE_DEPLOY_ROLE_ARN)
+          [ -n "${SITE_BUCKET_NAME}" ] || missing+=(SITE_BUCKET_NAME)
+          [ -n "${SITE_DISTRIBUTION_ID}" ] || missing+=(SITE_DISTRIBUTION_ID)
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::warning::repo の Variables に ${missing[*]} が未設定のため、S3 + CloudFront への配置を飛ばします（docs/hosting/README.md）。"
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        if: steps.site.outputs.enabled == 'true'
+        with:
+          role-to-assume: ${{ vars.SITE_DEPLOY_ROLE_ARN }}
+          aws-region: ap-northeast-1
+      - name: Upload to the S3 site bucket
+        if: steps.site.outputs.enabled == 'true'
+        env:
+          BUCKET: ${{ vars.SITE_BUCKET_NAME }}
+        run: |
+          set -euo pipefail
+          # upload <src dir> <s3 prefix> <extra sync options...>
+          # Same cache rules as the preview (docs/infra/smalruby-web-hosting.md): file names with a
+          # hash are immutable, the rest (index.html, service-worker.js, version.json, .well-known,
+          # auth-redirect.*) are re-checked on every load. Types aws s3 may guess wrong (.wasm /
+          # .mjs / .hex) are uploaded with an explicit Content-Type.
+          upload() {
+            local src="$1" dest="$2"
+            shift 2
+            local hashed plain
+            hashed="$(mktemp -d)"
+            plain="$(mktemp -d)"
+            (cd "${src}" && find . -type f ! -name '.DS_Store' ! -name '.nojekyll' ! -name 'CNAME' -print0) |
+              while IFS= read -r -d '' f; do
+                if printf '%s' "${f}" | grep -qE '\.[0-9a-f]{8,}\.'; then
+                  to="${hashed}"
+                else
+                  to="${plain}"
+                fi
+                mkdir -p "${to}/$(dirname "${f}")"
+                cp -p "${src}/${f}" "${to}/${f}"
+              done
+            local typed=(--exclude '*.wasm' --exclude '*.mjs' --exclude '*.hex')
+            aws s3 sync "${hashed}" "${dest}" --only-show-errors "${typed[@]}" \
+              --cache-control 'public, max-age=31536000, immutable'
+            aws s3 sync "${plain}" "${dest}" --only-show-errors "${typed[@]}" \
+              --cache-control 'max-age=0, s-maxage=60'
+            local ext type dir cache
+            for spec in 'wasm:application/wasm' 'mjs:text/javascript' 'hex:application/octet-stream'; do
+              ext="${spec%%:*}"
+              type="${spec#*:}"
+              for dir in "${hashed}" "${plain}"; do
+                if [ "${dir}" = "${hashed}" ]; then
+                  cache='public, max-age=31536000, immutable'
+                else
+                  cache='max-age=0, s-maxage=60'
+                fi
+                aws s3 sync "${dir}" "${dest}" --only-show-errors \
+                  --exclude '*' --include "*.${ext}" \
+                  --content-type "${type}" --cache-control "${cache}"
+              done
+            done
+            # Remove what the new build no longer has. Everything left was just uploaded, so
+            # --size-only keeps sync from re-uploading it (which would drop the Cache-Control).
+            aws s3 sync "${src}" "${dest}" --delete --size-only --only-show-errors \
+              --exclude '.DS_Store' --exclude '.nojekyll' --exclude 'CNAME' "$@"
+          }
+          # The editor at the root. admin/ is its own deploy below, so --delete must not touch it.
+          upload packages/scratch-gui/dist "s3://${BUCKET}/" --exclude 'admin/*'
+          # Admin SPA at /admin/ (--delete stays inside admin/).
+          upload packages/admin/build "s3://${BUCKET}/admin/"
+      - name: Invalidate the S3 site
+        if: steps.site.outputs.enabled == 'true'
+        env:
+          DISTRIBUTION_ID: ${{ vars.SITE_DISTRIBUTION_ID }}
+        run: |
+          aws cloudfront create-invalidation --distribution-id "${DISTRIBUTION_ID}" \
+            --paths '/*' --query 'Invalidation.Id' --output text
 
   # Branch previews on https://preview.smalruby.app/<slug>/ (#1344), built with the stg values
   # so a preview never touches production data. These replace the GitHub Pages previews

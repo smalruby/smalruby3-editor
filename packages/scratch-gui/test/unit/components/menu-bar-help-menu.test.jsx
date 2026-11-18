@@ -46,8 +46,13 @@ const buildStore = ({ aboutMenuOpen = false } = {}) =>
         },
     });
 
-// gui.jsx passes the "?" menu as an array of {title, onClick}; mirror that here.
-const aboutItems = [{ title: 'About Smalruby', onClick: () => {} }];
+// gui.jsx passes the "?" menu as an array of {id, title, onClick}; mirror that here.
+const aboutItems = [{ id: 'about', title: 'About Smalruby', onClick: () => {} }];
+const allAboutItems = [
+    { id: 'about', title: 'About Smalruby', onClick: () => {} },
+    { id: 'welcome', title: 'Show welcome again', onClick: () => {} },
+    { id: 'bugReport', title: 'Report a bug', onClick: () => {} },
+];
 
 const renderMenuBar = (storeOptions, props = {}) => {
     const store = buildStore(storeOptions);
@@ -93,5 +98,55 @@ describe('MenuBar help ("?") menu', () => {
         const { container, store } = renderMenuBar({ aboutMenuOpen: true });
         container.querySelector('[data-testid="menu-bar-help-debug"]').click();
         expect(store.getActions()).toContainEqual(openDebugModal());
+    });
+
+    test('orders the items as help, bug report, then about Smalruby with the version last', () => {
+        const { container } = renderMenuBar({ aboutMenuOpen: true }, { onClickAbout: allAboutItems });
+        const items = [...container.querySelectorAll('[data-testid="menu-bar-about"] li')];
+        const texts = items.map((li) => li.textContent);
+        expect(texts.slice(0, 5)).toEqual([
+            'Tutorials',
+            'Debug',
+            'Report a bug',
+            'Show welcome again',
+            'About Smalruby',
+        ]);
+        expect(texts[5]).toMatch(/^Version/);
+        // the sections (and their dividers) come from HELP_MENU_SECTIONS (test/unit/lib/help-menu.test.js)
+        expect(texts).toHaveLength(6);
+    });
+
+    test('shows that a local build has no version', () => {
+        const { container } = renderMenuBar({ aboutMenuOpen: true });
+        expect(container.querySelector('[data-testid="menu-bar-help-version"]').textContent).toBe(
+            'Version: development build',
+        );
+    });
+
+    describe('with a commit sha in the build', () => {
+        const savedSha = process.env.COMMIT_SHA;
+        const savedFetch = global.fetch;
+        beforeEach(() => {
+            process.env.COMMIT_SHA = '0123456789abcdef0123456789abcdef01234567';
+            global.fetch = jest.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve({}) }));
+        });
+        afterEach(() => {
+            if (typeof savedSha === 'undefined') delete process.env.COMMIT_SHA;
+            else process.env.COMMIT_SHA = savedSha;
+            global.fetch = savedFetch;
+        });
+
+        test('shows the short commit sha as the version', () => {
+            const { container } = renderMenuBar({ aboutMenuOpen: true });
+            expect(container.querySelector('[data-testid="menu-bar-help-version"]').textContent).toBe(
+                'Version: 0123456',
+            );
+        });
+
+        test('checks for a newer version when the version is clicked', () => {
+            const { container } = renderMenuBar({ aboutMenuOpen: true });
+            container.querySelector('[data-testid="menu-bar-help-version"]').click();
+            expect(global.fetch).toHaveBeenCalledWith('./version.json', { cache: 'no-store' });
+        });
     });
 });

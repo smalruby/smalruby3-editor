@@ -3,1228 +3,2187 @@ import {FormattedMessage} from 'react-intl';
 
 // Tutorial thumbnails: Avoid using any text that would need to be
 // translated in thumbnails.
-// Chat App tutorials
-import libraryChat1Basic1 from './thumbnails/chat-1-basic-1.jpg';
-import libraryChat1Basic2 from './thumbnails/chat-1-basic-2.jpg';
-import libraryChat1Basic3 from './thumbnails/chat-1-basic-3.jpg';
-import libraryChat2Sprites1 from './thumbnails/chat-2-sprites-1.jpg';
-import libraryChat2Sprites2 from './thumbnails/chat-2-sprites-2.jpg';
-import libraryChat2Sprites3 from './thumbnails/chat-2-sprites-3.jpg';
-// Chat Tutorial 3 Mesh 1: メッシュでつながろう
-import libraryChat3Mesh1 from './thumbnails/chat-3-mesh-1.jpg';
-import libraryChat3Mesh2 from './thumbnails/chat-3-mesh-2.jpg';
-import libraryChat3Mesh3 from './thumbnails/chat-3-mesh-3.jpg';
-import libraryChat3Mesh1ExternalKairyudo from './thumbnails/chat3-mesh1-external-kairyudo.png';
-import {CATEGORIES} from '../tutorial-tags';
+// Intro
+import libraryIntro from './thumbnails/getting-started.jpg';
 
-import GreenFlagIcon from './green-flag-icon.jsx';
+// Getting Started ASL
+import libraryGettingStartedASL from './thumbnails/getting-started-asl.png';
 
-// Deck definitions are split into per-category modules so that
-// concurrent tutorial work doesn't collide on this file (issue #932).
-// block-series.jsx / dncl.jsx are empty stubs for Phase 3 (#680) / Phase 4
-// (#681) — they're wired in ahead of time so those phases only need to
-// edit their own category file.
-import gettingStarted from './categories/getting-started.jsx';
-import rubyBasics from './categories/ruby-basics.jsx';
-import blockSeries from './categories/block-series.jsx';
-import dncl from './categories/dncl.jsx';
+// Text to Speech
+import libraryTXTSpeech from './thumbnails/text-to-speech.jpg';
 
-const decks = {
-    ...gettingStarted,
+// Cartoon Network
+import libraryCartoonNetwork from './thumbnails/cartoon-network.jpg';
 
-    // ─── Chat App Tutorial 1-Basic-1: メッセージを送ってみよう（コード入力版） ──
-    'chat-1-basic-1': {
-        name: (
-            <FormattedMessage
-                defaultMessage="メッセージを送ってみよう！"
-                description="Name for Chat Tutorial 1 Basic 1: send a message by inserting code"
-                id="gui.howtos.chat-1-basic-1.name"
-            />
-        ),
-        tags: ['mesh'],
-        category: CATEGORIES.meshStep1,
-        img: libraryChat1Basic1,
-        nameMessageId: 'gui.howtos.chat-1-basic-1.name',
-        allowedBlocks: {
-            motion: [],
-            looks: ['looks_sayforsecs', 'looks_say'],
-            sound: [],
-            event: ['event_whenflagclicked', 'event_whenbroadcastreceived', 'event_broadcast'],
-            control: [],
-            sensing: [],
-            operators: [],
-            // 変数を使うので、変数のカテゴリを出す（allowedBlocks に無いカテゴリは出ない）
-            data: ['data_variable', 'data_setvariableto', 'data_changevariableby', 'data_showvariable', 'data_hidevariable']
-        },
-        steps: [
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="離れたブロックにメッセージを送ってみよう！"
-                        description="Chat1 Basic1 Step 1: Intro - send message to remote block"
-                        id="gui.howtos.chat-1-basic-1.step1.title"
-                    />
-                ),
-                image: 'chat1Basic1Step1',
-                startTutorial: true,
-                animationTarget: 'startTutorialButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="まずはコードを入力してプログラムを実行してみよう"
-                        description="Chat1 Basic1 Step 2: Insert code and run"
-                        id="gui.howtos.chat-1-basic-1.step2.title"
-                    />
-                ),
-                image: 'chat1Basic1Step2',
-                code: `when_flag_clicked do
-  say("送信中...", 1)
-  broadcast("メッセージが来た")
-end
+// Add sprite
+import libraryAddSprite from './thumbnails/add-sprite.jpg';
 
-when_receive("メッセージが来た") do
-  say("こんにちは！元気ですか？")
-end`,
-                codeType: 'blocks',
-                animationTarget: 'insertCodeButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="「◯◯を送る」は離れたところにある命令を実行できる"
-                        description="Chat1 Basic1 Step 3: broadcast block explanation"
-                        id="gui.howtos.chat-1-basic-1.step3.title"
-                    />
-                ),
-                image: 'chat1Basic1Step3',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="「送信中...」って本当かな？きちんと送るようにするよ"
-                        description="Chat1 Basic1 Step 4: Use variable for message content"
-                        id="gui.howtos.chat-1-basic-1.step4.title"
-                    />
-                ),
-                image: 'chat1Basic1Step4',
-                code: `when_flag_clicked do
-  $送信メッセージ = "こんにちは！元気ですか？"
-  say("送信中...", 1)
-  broadcast("メッセージが来た")
-end
+// Animate a name
+import libraryAnimate from './thumbnails/animate-a-name.jpg';
 
-when_receive("メッセージが来た") do
-  say($送信メッセージ)
-end`,
-                codeType: 'blocks',
-                animationTarget: 'insertCodeButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="変数「送信メッセージ」の作り方"
-                        description="Chat1 Basic1 Step 5: How to create a variable"
-                        id="gui.howtos.chat-1-basic-1.step5.title"
-                    />
-                ),
-                image: 'chat1Basic1Step5',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="大事なこと『変数を◯◯にする、◯◯を送る、〇〇を受け取ったとき』"
-                        description="Chat1 Basic1 Step 6: Key concepts recap"
-                        id="gui.howtos.chat-1-basic-1.step6.title"
-                    />
-                ),
-                image: 'chat1Basic1Step6',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="しゃべる内容を変えてみよう"
-                        description="Chat1 Basic1 Step 7: Customize the message"
-                        id="gui.howtos.chat-1-basic-1.step7.title"
-                    />
-                ),
-                image: 'chat1Basic1Step7',
-                animationTarget: 'nextButton'
-            },
-            {
-                deckIds: [
-                    'chat-1-basic-2',
-                    'chat-2-sprites-1'
-                ]
-            }
-        ],
-        urlId: 'chat1Basic1'
-    },
+// Make-Music
+import libraryMakeMusic from './thumbnails/make-music.jpg';
 
-    // ─── Chat App Tutorial 1-Basic-2: ブロックを自分で組み立ててみよう ──
-    'chat-1-basic-2': {
-        name: (
-            <FormattedMessage
-                defaultMessage="メッセージを送ってみよう！Lv2"
-                description="Name for Chat Tutorial 1 Basic 2: build blocks manually"
-                id="gui.howtos.chat-1-basic-2.name"
-            />
-        ),
-        tags: ['mesh'],
-        category: CATEGORIES.meshStep1,
-        img: libraryChat1Basic2,
-        nameMessageId: 'gui.howtos.chat-1-basic-2.name',
-        allowedBlocks: {
-            motion: [],
-            looks: ['looks_sayforsecs', 'looks_say'],
-            sound: [],
-            event: ['event_whenflagclicked', 'event_whenbroadcastreceived', 'event_broadcast'],
-            control: [],
-            sensing: [],
-            operators: [],
-            // 変数を使うので、変数のカテゴリを出す（allowedBlocks に無いカテゴリは出ない）
-            data: ['data_variable', 'data_setvariableto', 'data_changevariableby', 'data_showvariable', 'data_hidevariable']
-        },
-        steps: [
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="今度はブロックを自分で組み立ててみよう！"
-                        description="Chat1 Basic2 Step 1: Intro - build blocks manually"
-                        id="gui.howtos.chat-1-basic-2.step1.title"
-                    />
-                ),
-                image: 'chat1Basic2Step1',
-                startTutorial: true,
-                animationTarget: 'startTutorialButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="変数「送信メッセージ」を作り、「{greenFlag}が押されたとき」と「送信メッセージを◯◯にする」を配置しよう"
-                        description="Chat1 Basic2 Step 2: Create variable and place flag + set blocks"
-                        id="gui.howtos.chat-1-basic-2.step2.title"
-                        values={{greenFlag: <GreenFlagIcon />}}
-                    />
-                ),
-                image: 'chat1Basic2Step2',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="「◯◯と◯秒言う」を追加して「送信中...」と入力しよう"
-                        description="Chat1 Basic2 Step 3: Add say-for-secs block"
-                        id="gui.howtos.chat-1-basic-2.step3.title"
-                    />
-                ),
-                image: 'chat1Basic2Step3',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="★「◯◯を送る」を追加しよう — 離れたブロックを実行できるよ"
-                        description="Chat1 Basic2 Step 4: Add broadcast block - key concept"
-                        id="gui.howtos.chat-1-basic-2.step4.title"
-                    />
-                ),
-                image: 'chat1Basic2Step4',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="★「◯◯を受け取ったとき」を新しく配置しよう — 送ったメッセージを受け取るよ"
-                        description="Chat1 Basic2 Step 5: Place when-receive block - key concept"
-                        id="gui.howtos.chat-1-basic-2.step5.title"
-                    />
-                ),
-                image: 'chat1Basic2Step5',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="★「◯◯と言う」に「送信メッセージ」変数をはめよう — 変数で値を渡すよ"
-                        description="Chat1 Basic2 Step 6: Insert variable into say block - key concept"
-                        id="gui.howtos.chat-1-basic-2.step6.title"
-                    />
-                ),
-                image: 'chat1Basic2Step6',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="{greenFlag}を押して実行！しゃべる内容も変えてみよう"
-                        description="Chat1 Basic2 Step 7: Run and customize"
-                        id="gui.howtos.chat-1-basic-2.step7.title"
-                        values={{greenFlag: <GreenFlagIcon />}}
-                    />
-                ),
-                image: 'chat1Basic2Step7',
-                animationTarget: 'nextButton'
-            },
-            {
-                deckIds: [
-                    'chat-1-basic-3',
-                    'chat-2-sprites-1'
-                ]
-            }
-        ],
-        urlId: 'chat1Basic2'
-    },
+// Chase-Game
+import libraryChaseGame from './thumbnails/chase-game.jpg';
 
-    // ─── Chat App Tutorial 1-Basic-3: Rubyで同じプログラムを作ろう ──
-    'chat-1-basic-3': {
-        name: (
-            <FormattedMessage
-                defaultMessage="メッセージを送ってみよう！Lv3"
-                description="Name for Chat Tutorial 1 Basic 3: build with Ruby"
-                id="gui.howtos.chat-1-basic-3.name"
-            />
-        ),
-        tags: ['mesh'],
-        category: CATEGORIES.meshStep1,
-        img: libraryChat1Basic3,
-        nameMessageId: 'gui.howtos.chat-1-basic-3.name',
-        allowedBlocks: {
-            motion: [],
-            looks: ['looks_sayforsecs', 'looks_say'],
-            sound: [],
-            event: ['event_whenflagclicked', 'event_whenbroadcastreceived', 'event_broadcast'],
-            control: [],
-            sensing: [],
-            operators: [],
-            // 変数を使うので、変数のカテゴリを出す（allowedBlocks に無いカテゴリは出ない）
-            data: ['data_variable', 'data_setvariableto', 'data_changevariableby', 'data_showvariable', 'data_hidevariable']
-        },
-        steps: [
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="今度はRubyで同じプログラムを作ろう！"
-                        description="Chat1 Basic3 Step 1: Intro - build with Ruby"
-                        id="gui.howtos.chat-1-basic-3.step1.title"
-                    />
-                ),
-                image: 'chat1Basic3Step1',
-                startTutorial: true,
-                animationTarget: 'startTutorialButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="ルビータブに切り替えよう"
-                        description="Chat1 Basic3 Step 2: Switch to Ruby tab"
-                        id="gui.howtos.chat-1-basic-3.step2.title"
-                    />
-                ),
-                image: 'chat1Basic3Step2',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="「ルビーを入力する」を押して、お手本を入力しよう"
-                        description="Chat1 Basic3 Step 3: Insert base code"
-                        id="gui.howtos.chat-1-basic-3.step3.title"
-                    />
-                ),
-                image: 'chat1Basic3Step3',
-                code: `when_flag_clicked do
-  say("送信中...", 1)
-  broadcast("メッセージが来た")
-end
+// Make-A-Game
+import libraryMakeAGame from './thumbnails/pop-game.jpg';
 
-when_receive("メッセージが来た") do
-  say("ここを変えるよ")
-end`,
-                animationTarget: 'insertCodeButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="★ 2行目に $送信メッセージ = &quot;こんにちは！元気ですか？&quot; を入力しよう — $で始まる変数は全体で使えるよ"
-                        description="Chat1 Basic3 Step 4: Type variable assignment - key concept"
-                        id="gui.howtos.chat-1-basic-3.step4.title"
-                    />
-                ),
-                image: 'chat1Basic3Step4',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="★ say(&quot;ここを変えるよ&quot;) を say($送信メッセージ) に変えよう — 変数で値を渡すよ"
-                        description="Chat1 Basic3 Step 5: Change say to use variable - key concept"
-                        id="gui.howtos.chat-1-basic-3.step5.title"
-                    />
-                ),
-                image: 'chat1Basic3Step5',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="{greenFlag}を押して実行しよう！"
-                        description="Chat1 Basic3 Step 6: Run the program"
-                        id="gui.howtos.chat-1-basic-3.step6.title"
-                        values={{greenFlag: <GreenFlagIcon />}}
-                    />
-                ),
-                image: 'chat1Basic3Step6',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="大事なこと：Rubyでも「送る」「受け取ったとき」「変数」は同じ考え方"
-                        description="Chat1 Basic3 Step 7: Key concepts - same in Ruby"
-                        id="gui.howtos.chat-1-basic-3.step7.title"
-                    />
-                ),
-                image: 'chat1Basic3Step7',
-                animationTarget: 'nextButton'
-            },
-            {
-                deckIds: [
-                    'chat-2-sprites-1'
-                ]
-            }
-        ],
-        urlId: 'chat1Basic3'
-    },
+// Animate A Character
+import libraryAnimateChar from './thumbnails/animate-a-character.jpg';
 
-    // ─── Chat Tutorial 2 Sprites 1: ネコとペンギンで会話しよう ──────────────
-    'chat-2-sprites-1': {
-        name: (
-            <FormattedMessage
-                defaultMessage="ネコとペンギンで会話しよう"
-                description="Name for Chat Tutorial 2 Sprites 1"
-                id="gui.howtos.chat-2-sprites-1.name"
-            />
-        ),
-        tags: ['mesh'],
-        category: CATEGORIES.meshStep2,
-        img: libraryChat2Sprites1,
-        nameMessageId: 'gui.howtos.chat-2-sprites-1.name',
-        allowedBlocks: {
-            motion: [],
-            looks: ['looks_sayforsecs'],
-            sound: [],
-            event: ['event_whenthisspriteclicked', 'event_whenbroadcastreceived', 'event_broadcast'],
-            control: [],
-            sensing: [],
-            operators: [],
-            // 変数を使うので、変数のカテゴリを出す（allowedBlocks に無いカテゴリは出ない）
-            data: ['data_variable', 'data_setvariableto', 'data_changevariableby', 'data_showvariable', 'data_hidevariable']
-        },
-        steps: [
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="ネコとペンギンの会話"
-                        description="Chat2 Sprites1 Step 1: Intro - cat and penguin conversation"
-                        id="gui.howtos.chat-2-sprites-1.step1.title"
-                    />
-                ),
-                image: 'chat2Sprites1Step1',
-                startTutorial: true,
-                animationTarget: 'startTutorialButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="ネコのコードを入力する"
-                        description="Chat2 Sprites1 Step 2: Insert cat code"
-                        id="gui.howtos.chat-2-sprites-1.step2.title"
-                    />
-                ),
-                image: 'chat2Sprites1Step2',
-                code: `when_clicked do
-  $送信メッセージ = "ネコ：こんにちは"
-  say("送信中...", 1)
-  broadcast("ネコからのメッセージ")
-end
+// Tell A Story
+import libraryStory from './thumbnails/tell-a-story.jpg';
 
-when_receive("ペンギンからのメッセージ") do
-  @受信メッセージ = $送信メッセージ
-  say(@受信メッセージ, 3)
-end`,
-                codeType: 'blocks',
-                animationTarget: 'insertCodeButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="大事なこと：変数「受信メッセージ」は「このスプライトのみ」になっています"
-                        description="Chat2 Sprites1 Step 3: Instance variable is sprite-local"
-                        id="gui.howtos.chat-2-sprites-1.step3.title"
-                    />
-                ),
-                image: 'chat2Sprites1Step3',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="大事なこと：「ネコからのメッセージ」を送り、「ペンギンからのメッセージ」を受け取る"
-                        description="Chat2 Sprites1 Step 4: Cat sends, receives from Penguin"
-                        id="gui.howtos.chat-2-sprites-1.step4.title"
-                    />
-                ),
-                image: 'chat2Sprites1Step4',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="ペンギンのスプライトを追加します"
-                        description="Chat2 Sprites1 Step 5: Add penguin sprite"
-                        id="gui.howtos.chat-2-sprites-1.step5.title"
-                    />
-                ),
-                image: 'chat2Sprites1Step5',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="ペンギンの位置と向きを調整します"
-                        description="Chat2 Sprites1 Step 6: Adjust penguin position and direction"
-                        id="gui.howtos.chat-2-sprites-1.step6.title"
-                    />
-                ),
-                image: 'chat2Sprites1Step6',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="ペンギンのコードを入力すると完成。ネコやペンギンを押してみよう！"
-                        description="Chat2 Sprites1 Step 7: Insert penguin code and run"
-                        id="gui.howtos.chat-2-sprites-1.step7.title"
-                    />
-                ),
-                image: 'chat2Sprites1Step7',
-                code: `when_clicked do
-  $送信メッセージ = "ペンギン：こんにちは"
-  say("送信中...", 1)
-  broadcast("ペンギンからのメッセージ")
-end
+// Video Sensing
+import libraryVideoSens from './thumbnails/video-sensing.jpg';
 
-when_receive("ネコからのメッセージ") do
-  @受信メッセージ = $送信メッセージ
-  say(@受信メッセージ, 3)
-end`,
-                codeType: 'blocks',
-                animationTarget: 'insertCodeButton'
-            },
-            {
-                deckIds: [
-                    'chat-2-sprites-2',
-                    'chat-3-mesh-1'
-                ]
-            }
-        ],
-        urlId: 'chat2Sprites1'
-    },
+// Face Sensing
+import libraryFaceSens from './thumbnails/face-sensing.png';
 
-    // ─── Chat App Tutorial 2-Sprites-2: ブロックを自分で組み立ててみよう（2スプライト版） ──
-    'chat-2-sprites-2': {
-        name: (
-            <FormattedMessage
-                defaultMessage="ネコとペンギンで会話しよう！Lv2"
-                description="Name for Chat Tutorial 2 Sprites 2: build blocks manually with two sprites"
-                id="gui.howtos.chat-2-sprites-2.name"
-            />
-        ),
-        tags: ['mesh'],
-        category: CATEGORIES.meshStep2,
-        img: libraryChat2Sprites2,
-        nameMessageId: 'gui.howtos.chat-2-sprites-2.name',
-        allowedBlocks: {
-            motion: [],
-            looks: ['looks_sayforsecs'],
-            sound: [],
-            event: ['event_whenthisspriteclicked', 'event_whenbroadcastreceived', 'event_broadcast'],
-            control: [],
-            sensing: [],
-            operators: [],
-            // 変数を使うので、変数のカテゴリを出す（allowedBlocks に無いカテゴリは出ない）
-            data: ['data_variable', 'data_setvariableto', 'data_changevariableby', 'data_showvariable', 'data_hidevariable']
-        },
-        steps: [
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="今度はブロックを自分で組み立ててみよう！"
-                        description="Chat2 Sprites2 Step 1: Intro - build blocks manually"
-                        id="gui.howtos.chat-2-sprites-2.step1.title"
-                    />
-                ),
-                image: 'chat2Sprites1Step1',
-                startTutorial: true,
-                animationTarget: 'startTutorialButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="ネコ：変数「送信メッセージ」を作り、「このスプライトが押されたとき」と「送信メッセージを◯◯にする」を配置しよう"
-                        description="Chat2 Sprites2 Step 2: Create variable and place when-clicked + set blocks"
-                        id="gui.howtos.chat-2-sprites-2.step2.title"
-                    />
-                ),
-                image: 'chat2Sprites2Step2',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="ネコ：「◯◯と◯秒言う」と★「◯◯を送る」を追加しよう — 離れたブロックを実行できるよ"
-                        description="Chat2 Sprites2 Step 3: Add say-for-secs and broadcast blocks"
-                        id="gui.howtos.chat-2-sprites-2.step3.title"
-                    />
-                ),
-                image: 'chat2Sprites2Step3',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="★ ネコ：「ペンギンからのメッセージを受け取ったとき」を配置し、変数「受信メッセージ」(このスプライトのみ)を使おう — @変数はスプライト専用だよ"
-                        description="Chat2 Sprites2 Step 4: Place when-receive and use instance variable"
-                        id="gui.howtos.chat-2-sprites-2.step4.title"
-                    />
-                ),
-                image: 'chat2Sprites2Step4',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="ペンギンのスプライトを追加します"
-                        description="Chat2 Sprites2 Step 5: Add penguin sprite"
-                        id="gui.howtos.chat-2-sprites-2.step5.title"
-                    />
-                ),
-                image: 'chat2Sprites1Step5',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="ペンギンの位置と向きを調整します"
-                        description="Chat2 Sprites2 Step 6: Adjust penguin position and direction"
-                        id="gui.howtos.chat-2-sprites-2.step6.title"
-                    />
-                ),
-                image: 'chat2Sprites1Step6',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="★ ペンギンも同じ構造でブロックを組み立てよう — メッセージ名がネコと逆になるよ"
-                        description="Chat2 Sprites2 Step 7: Build penguin blocks with reversed message names"
-                        id="gui.howtos.chat-2-sprites-2.step7.title"
-                    />
-                ),
-                image: 'chat2Sprites2Step7',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="ネコやペンギンを押して実行！しゃべる内容も変えてみよう"
-                        description="Chat2 Sprites2 Step 8: Run and customize"
-                        id="gui.howtos.chat-2-sprites-2.step8.title"
-                    />
-                ),
-                image: 'chat2Sprites1Step1',
-                animationTarget: 'nextButton'
-            },
-            {
-                deckIds: [
-                    'chat-2-sprites-3',
-                    'chat-3-mesh-1'
-                ]
-            }
-        ],
-        urlId: 'chat2Sprites2'
-    },
+// Make-it-Fly
+import libraryMakeFly from './thumbnails/make-it-fly.jpg';
 
-    // ─── Chat App Tutorial 2-Sprites-3: Rubyで同じプログラムを作ろう（2スプライト版） ──
-    'chat-2-sprites-3': {
-        name: (
-            <FormattedMessage
-                defaultMessage="ネコとペンギンで会話しよう！Lv3"
-                description="Name for Chat Tutorial 2 Sprites 3: build with Ruby with two sprites"
-                id="gui.howtos.chat-2-sprites-3.name"
-            />
-        ),
-        tags: ['mesh'],
-        category: CATEGORIES.meshStep2,
-        img: libraryChat2Sprites3,
-        nameMessageId: 'gui.howtos.chat-2-sprites-3.name',
-        allowedBlocks: {
-            motion: [],
-            looks: ['looks_sayforsecs'],
-            sound: [],
-            event: ['event_whenthisspriteclicked', 'event_whenbroadcastreceived', 'event_broadcast'],
-            control: [],
-            sensing: [],
-            operators: [],
-            // 変数を使うので、変数のカテゴリを出す（allowedBlocks に無いカテゴリは出ない）
-            data: ['data_variable', 'data_setvariableto', 'data_changevariableby', 'data_showvariable', 'data_hidevariable']
-        },
-        steps: [
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="今度はRubyで同じプログラムを作ろう！"
-                        description="Chat2 Sprites3 Step 1: Intro - build with Ruby"
-                        id="gui.howtos.chat-2-sprites-3.step1.title"
-                    />
-                ),
-                image: 'chat2Sprites1Step1',
-                startTutorial: true,
-                animationTarget: 'startTutorialButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="ルビータブに切り替えよう"
-                        description="Chat2 Sprites3 Step 2: Switch to Ruby tab"
-                        id="gui.howtos.chat-2-sprites-3.step2.title"
-                    />
-                ),
-                image: 'chat2Sprites3Step2',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="「ルビーを入力する」を押して、ネコのお手本を入力しよう"
-                        description="Chat2 Sprites3 Step 3: Insert cat base code"
-                        id="gui.howtos.chat-2-sprites-3.step3.title"
-                    />
-                ),
-                image: 'chat2Sprites3Step3',
-                code: `when_clicked do
-  $送信メッセージ = "ネコ：こんにちは"
-  say("送信中...", 1)
-  broadcast("ネコからのメッセージ")
-end
+// Pong
+import libraryPong from './thumbnails/pong.jpg';
 
-when_receive("ペンギンからのメッセージ") do
-  @受信メッセージ = $送信メッセージ
-  say("ここを変えるよ", 3)
-end`,
-                animationTarget: 'insertCodeButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="★ say(&quot;ここを変えるよ&quot;, 3) を say(@受信メッセージ, 3) に変えよう — @で始まる変数はこのスプライトだけで使えるよ"
-                        description="Chat2 Sprites3 Step 4: Change say to use instance variable"
-                        id="gui.howtos.chat-2-sprites-3.step4.title"
-                    />
-                ),
-                image: 'chat2Sprites3Step4',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="ペンギンのスプライトを追加します"
-                        description="Chat2 Sprites3 Step 5: Add penguin sprite"
-                        id="gui.howtos.chat-2-sprites-3.step5.title"
-                    />
-                ),
-                image: 'chat2Sprites1Step5',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="ペンギンの位置と向きを調整します"
-                        description="Chat2 Sprites3 Step 6: Adjust penguin position and direction"
-                        id="gui.howtos.chat-2-sprites-3.step6.title"
-                    />
-                ),
-                image: 'chat2Sprites1Step6',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="ペンギンのRubyコードを「ルビーを入力する」で入力しよう — メッセージ名がネコと逆になっているよ"
-                        description="Chat2 Sprites3 Step 7: Insert penguin Ruby code"
-                        id="gui.howtos.chat-2-sprites-3.step7.title"
-                    />
-                ),
-                image: 'chat2Sprites3Step7',
-                code: `when_clicked do
-  $送信メッセージ = "ペンギン：こんにちは"
-  say("送信中...", 1)
-  broadcast("ペンギンからのメッセージ")
-end
+// Imagine a World
+import libraryImagine from './thumbnails/imagine.jpg';
 
-when_receive("ネコからのメッセージ") do
-  @受信メッセージ = $送信メッセージ
-  say(@受信メッセージ, 3)
-end`,
-                codeType: 'blocks',
-                animationTarget: 'insertCodeButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="ネコやペンギンを押して実行しよう！"
-                        description="Chat2 Sprites3 Step 8: Run the program"
-                        id="gui.howtos.chat-2-sprites-3.step8.title"
-                    />
-                ),
-                image: 'chat2Sprites1Step1',
-                animationTarget: 'nextButton'
-            },
-            {
-                deckIds: [
-                    'chat-3-mesh-1'
-                ]
-            }
-        ],
-        urlId: 'chat2Sprites3'
-    },
+// Code a Cartoon
+import libraryCodeCartoon from './thumbnails/code-a-cartoon.jpg';
 
-    // ─── Chat Tutorial 3 Mesh 1: メッシュでつながろう ───────────────
-    'chat-3-mesh-1': {
-        name: (
-            <FormattedMessage
-                defaultMessage="メッシュでつながろう"
-                description="Name for Chat Tutorial 3 Mesh 1"
-                id="gui.howtos.chat-3-mesh-1.name"
-            />
-        ),
-        tags: ['mesh'],
-        category: CATEGORIES.meshStep3,
-        img: libraryChat3Mesh1,
-        nameMessageId: 'gui.howtos.chat-3-mesh-1.name',
-        allowedBlocks: {
-            motion: [],
-            looks: ['looks_sayforsecs'],
-            sound: [],
-            event: ['event_whenthisspriteclicked', 'event_whenbroadcastreceived', 'event_broadcast'],
-            control: [],
-            sensing: [],
-            operators: [],
-            // 変数を使うので、変数のカテゴリを出す（allowedBlocks に無いカテゴリは出ない）
-            data: ['data_variable', 'data_setvariableto', 'data_changevariableby', 'data_showvariable', 'data_hidevariable']
-        },
-        steps: [
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="メッシュ拡張機能を使って他の人のスモウルビーとつながろう"
-                        description="Chat3 Mesh1 Step 1: Intro - connect via Mesh extension"
-                        id="gui.howtos.chat-3-mesh-1.step1.title"
-                    />
-                ),
-                image: 'chat3Mesh1Step1',
-                startTutorial: true,
-                animationTarget: 'startTutorialButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="2人以上のグループをつくってメッシュ拡張機能を選ぶ（1人でも2つのスモウルビーを使えばできる）"
-                        description="Chat3 Mesh1 Step 2: Select Mesh extension"
-                        id="gui.howtos.chat-3-mesh-1.step2.title"
-                    />
-                ),
-                image: 'chat3Mesh1Step2',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="1人目はホストになる。他の人はメッシュに参加する"
-                        description="Chat3 Mesh1 Step 3: Host and join"
-                        id="gui.howtos.chat-3-mesh-1.step3.title"
-                    />
-                ),
-                image: 'chat3Mesh1Step3',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="スプライトのコスチュームを変えてみよう"
-                        description="Chat3 Mesh1 Step 4: Change sprite costume"
-                        id="gui.howtos.chat-3-mesh-1.step4.title"
-                    />
-                ),
-                image: 'chat3Mesh1Step4',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="ホストとそれ以外でコードが違うよ。まずはホストのコードを入力する"
-                        description="Chat3 Mesh1 Step 5: Host code"
-                        id="gui.howtos.chat-3-mesh-1.step5.title"
-                    />
-                ),
-                image: 'chat3Mesh1Step5',
-                code: `when_clicked do
-  $送信メッセージ = "ネコ：こんにちは"
-  say("送信中...", 1)
-  broadcast("ネコからのメッセージ")
-end
+// Talking Tales
+import libraryTalking from './thumbnails/talking.png';
 
-when_receive("ペンギンからのメッセージ") do
-  @受信メッセージ = mesh.sensor_value("送信メッセージ")
-  say(@受信メッセージ, 3)
-end`,
-                codeType: 'blocks',
-                animationTarget: 'insertCodeButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="次にメッシュに参加した人のコードを入力する"
-                        description="Chat3 Mesh1 Step 6: Member code"
-                        id="gui.howtos.chat-3-mesh-1.step6.title"
-                    />
-                ),
-                image: 'chat3Mesh1Step6',
-                code: `when_clicked do
-  $送信メッセージ = "ペンギン：こんにちは"
-  say("送信中...", 1)
-  broadcast("ペンギンからのメッセージ")
-end
+// Videos
+import recordASound from './thumbnails/record-a-sound.jpg';
+import glideAroundThumb from './thumbnails/glide-around.jpg';
+import changeSizeThumb from './thumbnails/change-size.jpg';
+import switchCostumeThumb from './thumbnails/animate-sprite.jpg';
+import hideAndShowThumb from './thumbnails/hide-and-show.jpg';
+import addBackdropThumb from './thumbnails/add-backdrop.jpg';
+import addEffectsThumb from './thumbnails/add-effects.jpg';
+import moveArrowKeysThumb from './thumbnails/move-arrow-keys.jpg';
+import spinThumb from './thumbnails/spin.jpg';
 
-when_receive("ネコからのメッセージ") do
-  @受信メッセージ = mesh.sensor_value("送信メッセージ")
-  say(@受信メッセージ, 3)
-end`,
-                codeType: 'blocks',
-                animationTarget: 'insertCodeButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="自分のスプライトを押してメッセージを送ってみよう"
-                        description="Chat3 Mesh1 Step 7: Send message by clicking sprite"
-                        id="gui.howtos.chat-3-mesh-1.step7.title"
-                    />
-                ),
-                image: 'chat3Mesh1Step1',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="大事なこと：他の人の「送信メッセージ」は「センサーの値」で取り出せるよ"
-                        description="Chat3 Mesh1 Step 8: Key concept - sensor_value"
-                        id="gui.howtos.chat-3-mesh-1.step8.title"
-                    />
-                ),
-                image: 'chat3Mesh1Step8',
-                animationTarget: 'nextButton'
-            },
-            {
-                deckIds: [
-                    'chat-3-mesh-2'
-                ]
-            }
-        ],
-        urlId: 'chat3Mesh1'
-    },
-    'chat-3-mesh-2': {
-        name: (
-            <FormattedMessage
-                defaultMessage="メッシュでつながろう Lv2"
-                description="Name for Chat Tutorial 3 Mesh 2"
-                id="gui.howtos.chat-3-mesh-2.name"
-            />
-        ),
-        tags: ['mesh'],
-        category: CATEGORIES.meshStep3,
-        img: libraryChat3Mesh2,
-        nameMessageId: 'gui.howtos.chat-3-mesh-2.name',
-        allowedBlocks: {
-            motion: [],
-            looks: ['looks_sayforsecs'],
-            sound: [],
-            event: ['event_whenthisspriteclicked', 'event_whenbroadcastreceived', 'event_broadcast'],
-            control: [],
-            sensing: [],
-            operators: [],
-            // 変数を使うので、変数のカテゴリを出す（allowedBlocks に無いカテゴリは出ない）
-            data: ['data_variable', 'data_setvariableto', 'data_changevariableby', 'data_showvariable', 'data_hidevariable']
-        },
-        steps: [
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="メッシュ拡張機能を使った会話プログラムを、ブロックを自分で組み立てて作ってみよう"
-                        description="Chat3 Mesh2 Step 1: Intro"
-                        id="gui.howtos.chat-3-mesh-2.step1.title"
-                    />
-                ),
-                image: 'chat3Mesh1Step1',
-                startTutorial: true,
-                animationTarget: 'startTutorialButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="2人以上のグループをつくってメッシュ拡張機能を選ぶ"
-                        description="Chat3 Mesh2 Step 2: Select Mesh extension"
-                        id="gui.howtos.chat-3-mesh-2.step2.title"
-                    />
-                ),
-                image: 'chat3Mesh1Step2',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="1人目はホストになる。他の人はメッシュに参加する"
-                        description="Chat3 Mesh2 Step 3: Host and join"
-                        id="gui.howtos.chat-3-mesh-2.step3.title"
-                    />
-                ),
-                image: 'chat3Mesh1Step3',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="スプライトのコスチュームを変えてみよう"
-                        description="Chat3 Mesh2 Step 4: Change sprite costume"
-                        id="gui.howtos.chat-3-mesh-2.step4.title"
-                    />
-                ),
-                image: 'chat3Mesh1Step4',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="ホスト：「このスプライトが押されたとき」に変数をセットして「送信中...」と言い、メッセージを送るブロックを作ろう"
-                        description="Chat3 Mesh2 Step 5: Host clicked blocks"
-                        id="gui.howtos.chat-3-mesh-2.step5.title"
-                    />
-                ),
-                image: 'chat3Mesh2Step5',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="★ ホスト：「受け取ったとき」に「送信メッセージのセンサーの値」を使おう — 他の人の変数はセンサーの値で取り出すよ！"
-                        description="Chat3 Mesh2 Step 6: Host receive blocks with sensor_value"
-                        id="gui.howtos.chat-3-mesh-2.step6.title"
-                    />
-                ),
-                image: 'chat3Mesh1Step5',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="★ メンバーも同じ構造のブロックを作ろう — メッセージの名前が逆になるよ！"
-                        description="Chat3 Mesh2 Step 7: Member blocks"
-                        id="gui.howtos.chat-3-mesh-2.step7.title"
-                    />
-                ),
-                image: 'chat3Mesh1Step6',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="自分のスプライトを押して実行！他の人の「送信メッセージ」は「センサーの値」で取り出せるよ"
-                        description="Chat3 Mesh2 Step 8: Run and key concept"
-                        id="gui.howtos.chat-3-mesh-2.step8.title"
-                    />
-                ),
-                image: 'chat3Mesh1Step8',
-                animationTarget: 'nextButton'
-            },
-            {
-                deckIds: [
-                    'chat-3-mesh-3'
-                ]
-            }
-        ],
-        urlId: 'chat3Mesh2'
-    },
-    'chat-3-mesh-3': {
-        name: (
-            <FormattedMessage
-                defaultMessage="メッシュでつながろう Lv3"
-                description="Name for Chat Tutorial 3 Mesh 3"
-                id="gui.howtos.chat-3-mesh-3.name"
-            />
-        ),
-        tags: ['mesh'],
-        category: CATEGORIES.meshStep3,
-        img: libraryChat3Mesh3,
-        nameMessageId: 'gui.howtos.chat-3-mesh-3.name',
-        allowedBlocks: {
-            motion: [],
-            looks: ['looks_sayforsecs'],
-            sound: [],
-            event: ['event_whenthisspriteclicked', 'event_whenbroadcastreceived', 'event_broadcast'],
-            control: [],
-            sensing: [],
-            operators: [],
-            // 変数を使うので、変数のカテゴリを出す（allowedBlocks に無いカテゴリは出ない）
-            data: ['data_variable', 'data_setvariableto', 'data_changevariableby', 'data_showvariable', 'data_hidevariable']
-        },
-        steps: [
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="メッシュ拡張機能を使った会話プログラムを、Rubyで作ってみよう"
-                        description="Chat3 Mesh3 Step 1: Intro"
-                        id="gui.howtos.chat-3-mesh-3.step1.title"
-                    />
-                ),
-                image: 'chat3Mesh1Step1',
-                startTutorial: true,
-                animationTarget: 'startTutorialButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="2人以上のグループをつくってメッシュ拡張機能を選ぶ"
-                        description="Chat3 Mesh3 Step 2: Select Mesh extension"
-                        id="gui.howtos.chat-3-mesh-3.step2.title"
-                    />
-                ),
-                image: 'chat3Mesh1Step2',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="1人目はホストになる。他の人はメッシュに参加する"
-                        description="Chat3 Mesh3 Step 3: Host and join"
-                        id="gui.howtos.chat-3-mesh-3.step3.title"
-                    />
-                ),
-                image: 'chat3Mesh1Step3',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="スプライトのコスチュームを変えてみよう"
-                        description="Chat3 Mesh3 Step 4: Change sprite costume"
-                        id="gui.howtos.chat-3-mesh-3.step4.title"
-                    />
-                ),
-                image: 'chat3Mesh1Step4',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="ルビータブに切り替えて「Rubyコードを挿入」でホストのベースコードを入力する"
-                        description="Chat3 Mesh3 Step 5: Insert host base code"
-                        id="gui.howtos.chat-3-mesh-3.step5.title"
-                    />
-                ),
-                image: 'chat3Mesh3Step5',
-                code: `when_clicked do
-  $送信メッセージ = "ネコ：こんにちは"
-  say("送信中...", 1)
-  broadcast("ネコからのメッセージ")
-end
+// Extrernal Resources
+import codingCards from './thumbnails/coding-cards.png';
+import faceSensingGame from './thumbnails/face-sensing-game.png';
 
-when_receive("ペンギンからのメッセージ") do
-  @受信メッセージ = "ここを変えるよ"
-  say(@受信メッセージ, 3)
-end`,
-                animationTarget: 'insertCodeButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                         
-                        defaultMessage={'★ @受信メッセージ = "ここを変えるよ" を @受信メッセージ = mesh.sensor_value("送信メッセージ") に変えよう — 他の人の変数はmesh.sensor_valueで取り出すよ！'}
-                        description="Chat3 Mesh3 Step 6: Change to sensor_value"
-                        id="gui.howtos.chat-3-mesh-3.step6.title"
-                    />
-                ),
-                image: 'chat3Mesh3Step6',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="メンバーのコードを入力する — メッセージの名前が逆になるよ！"
-                        description="Chat3 Mesh3 Step 7: Insert member code"
-                        id="gui.howtos.chat-3-mesh-3.step7.title"
-                    />
-                ),
-                image: 'chat3Mesh3Step7',
-                code: `when_clicked do
-  $送信メッセージ = "ペンギン：こんにちは"
-  say("送信中...", 1)
-  broadcast("ペンギンからのメッセージ")
-end
-
-when_receive("ネコからのメッセージ") do
-  @受信メッセージ = mesh.sensor_value("送信メッセージ")
-  say(@受信メッセージ, 3)
-end`,
-                codeType: 'blocks',
-                animationTarget: 'insertCodeButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="自分のスプライトを押して実行！他の人の「送信メッセージ」は「センサーの値」で取り出せるよ"
-                        description="Chat3 Mesh3 Step 8: Run and key concept"
-                        id="gui.howtos.chat-3-mesh-3.step8.title"
-                    />
-                ),
-                image: 'chat3Mesh1Step8',
-                animationTarget: 'nextButton'
-            },
-            {
-                externalResources: {
-                    kairyudo: {
-                        url: 'https://app3.pasoken.or.jp/practical_example/example_1/',
-                        img: libraryChat3Mesh1ExternalKairyudo,
-                        name: (
-                            <FormattedMessage
-                                defaultMessage="開隆堂 やってみよう！プログラミング「チャットアプリを制作しよう」"
-                                description="External resource: Kairyudo chat app programming"
-                                id="gui.howtos.chat-3-mesh-3.external.kairyudo.name"
-                            />
-                        )
-                    }
-                }
-            }
-        ],
-        urlId: 'chat3Mesh3'
-    },
-
-    ...rubyBasics,
-    ...blockSeries,
-    ...dncl
+export const CATEGORIES = {
+    gettingStarted: 'gettingStarted',
+    basics: 'basics',
+    intermediate: 'intermediate',
+    prompts: 'prompts'
 };
 
-export default decks;
+export default {
+
+    'intro-move-sayhello': {
+        name: (
+            <FormattedMessage
+                defaultMessage="Getting Started"
+                description="Name for the 'Getting Started' how-to"
+                id="gui.howtos.intro-move-sayhello-hat.name"
+            />
+        ),
+        tags: ['help', 'stuck', 'how', 'can', 'say'],
+        category: CATEGORIES.gettingStarted,
+        img: libraryIntro,
+        steps: [{
+            video: 'intro-move-sayhello'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Add a move block"
+                    description="Step name for 'Add a move block' step"
+                    id="gui.howtos.intro-move.step_stepMove"
+                />
+            ),
+            image: 'introMove'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Add a say block"
+                    description="Step name for 'Add A Say Block' step"
+                    id="gui.howtos.add-a-move-block.step_stepSay"
+                />
+            ),
+            image: 'introSay'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Click the green flag to start"
+                    description="Step name for 'Add A Green Flag' step"
+                    id="gui.howtos.add-a-move-block.step_stepGreenFlag"
+                />
+            ),
+            image: 'introGreenFlag'
+        }, {
+            deckIds: [
+                'add-a-backdrop',
+                'add-sprite'
+            ]
+        }
+        ],
+        urlId: 'getStarted'
+    },
+
+    'intro-getting-started-ASL': {
+        name: (
+            <FormattedMessage
+                defaultMessage="Getting Started - ASL"
+                description="Name for the 'Getting Started ASL (American Sign Language)' how-to"
+                id="gui.howtos.intro-getting-started-ASL.name"
+            />
+        ),
+        tags: ['help', 'stuck', 'how', 'can', 'say', 'asl', 'deaf', 'accessibile', 'hear'],
+        category: CATEGORIES.gettingStarted,
+        img: libraryGettingStartedASL,
+        steps: [{
+            video: 'intro-getting-started-ASL'
+        }, {
+            deckIds: [
+                'add-a-backdrop',
+                'add-sprite'
+            ]
+        }
+        ],
+        urlId: 'getting-started-ASL'
+    },
+
+    'animate-a-name': {
+        name: (
+            <FormattedMessage
+                defaultMessage="Animate a Name"
+                description="Name for the 'Animate a Name' how-to"
+                id="gui.howtos.animate-a-name.name"
+            />
+        ),
+        img: libraryAnimate,
+        tags: ['animation', 'art', 'spin', 'grow'],
+        category: CATEGORIES.prompts,
+        steps: [{
+            video: 'animate-a-name'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Pick a Letter Sprite"
+                    description="Step name for 'Pick a Letter Sprite' step"
+                    id="gui.howtos.animate-a-name.step_AnimatePickLetter"
+                />
+            ),
+            image: 'namePickLetter'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Play a Sound When Clicked"
+                    description="Step name for 'Play a Sound When Clicked' step"
+                    id="gui.howtos.animate-a-name.step_AnimatePlaySound"
+                />
+            ),
+            image: 'namePlaySound'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Pick Another Letter Sprite"
+                    description="Step name for 'Pick Another Letter Sprite"
+                    id="gui.howtos.animate-a-name.step_AnimatePickLetter2"
+                />
+            ),
+            image: 'namePickLetter2'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Change color"
+                    description="Step name for 'Change color' step"
+                    id="gui.howtos.animate-a-name.step_AnimateChangeColor"
+                />
+            ),
+            image: 'nameChangeColor'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Pick Another Letter Sprite & Make It Spin"
+                    description="Step name for 'Pick Another Letter Sprite & Make It Spin' step"
+                    id="gui.howtos.animate-a-name.step_AnimateSpin"
+                />
+            ),
+            image: 'nameSpin'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Pick Another Letter Sprite & Make It Grow"
+                    description="Step name for 'Pick Another Letter Sprite & Make It Grow!' step"
+                    id="gui.howtos.animate-a-name.step_AnimateGrow"
+                />
+            ),
+            image: 'nameGrow'
+        }, {
+            deckIds: [
+                'add-a-backdrop',
+                'glide-around'
+            ]
+        }
+        ],
+        urlId: 'name'
+    },
+
+    'Animate-A-Character': {
+        name: (
+            <FormattedMessage
+                defaultMessage="Animate A Character"
+                description="Name for the 'Animate A Character' how-to"
+                id="gui.howtos.animate-char.name"
+            />
+        ),
+        img: libraryAnimateChar,
+        category: CATEGORIES.prompts,
+        steps: [{
+            video: 's228u3g5u9'
+        },
+        {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Add a Backdrop"
+                    description="Step name for 'Add a Backdrop' step"
+                    id="gui.howtos.animate-char.step_addbg"
+                />
+            ),
+            image: 'animateCharPickBackdrop'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Add a Sprite"
+                    description="Step name for 'Add a Sprite' step"
+                    id="gui.howtos.animate-char.step_addsprite"
+                />
+            ),
+            image: 'animateCharPickSprite'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Say Something"
+                    description="Step name for 'Say Something' step"
+                    id="gui.howtos.animate-char.step_saysomething"
+                />
+            ),
+            image: 'animateCharSaySomething'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Add Sound"
+                    description="Step name for 'Add Sound' step"
+                    id="gui.howtos.animate-char.step_addsound"
+                />
+            ),
+            image: 'animateCharAddSound'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Animate Talking"
+                    description="Step name for 'Animate Talking' step"
+                    id="gui.howtos.animate-char.step_animatetalking"
+                />
+            ),
+            image: 'animateCharTalk'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Move Using Arrow Keys"
+                    description="Step name for 'Move Using Arrow Keys' step"
+                    id="gui.howtos.animate-char.step_arrowkeys"
+                />
+            ),
+            image: 'animateCharMove'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Jump"
+                    description="Step name for 'Jump' step"
+                    id="gui.howtos.animate-char.step_jump"
+                />
+            ),
+            image: 'animateCharJump'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Change Color"
+                    description="Step name for 'Change Color' step"
+                    id="gui.howtos.animate-char.step_changecolor"
+                />
+            ),
+            image: 'animateCharChangeColor'
+        }, {
+            deckIds: [
+                'code-cartoon',
+                'Tell-A-Story'
+            ]
+        }
+        ],
+        urlId: 'animate-a-character'
+    },
+
+    'Tell-A-Story': {
+        name: (
+            <FormattedMessage
+                defaultMessage="Create A Story"
+                description="Name for the 'Create A Story' how-to"
+                id="gui.howtos.story.name"
+            />
+        ),
+        img: libraryStory,
+        category: CATEGORIES.prompts,
+        steps: [{
+            video: 'stah7jjorp'
+        },
+        {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Add a Backdrop"
+                    description="Step name for 'Add a Backdrop' step"
+                    id="gui.howtos.story.step_addbg"
+                />
+            ),
+            image: 'storyPickBackdrop'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Add a Character"
+                    description="Step name for 'Add a Character' step"
+                    id="gui.howtos.story.step_addsprite"
+                />
+            ),
+            image: 'storyPickSprite'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Say Something"
+                    description="Step name for 'Say Something' step"
+                    id="gui.howtos.story.step_saysomething"
+                />
+            ),
+            image: 'storySaySomething'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Add Another Character"
+                    description="Step name for 'Add Another Character' step"
+                    id="gui.howtos.story.step_addanothersprite"
+                />
+            ),
+            image: 'storyPickSprite2'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Flip Direction"
+                    description="Flip Direction' step"
+                    id="gui.howtos.story.step_flip"
+                />
+            ),
+            image: 'storyFlip'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Have A Conversation"
+                    description="Step name for 'Have A Conversation' step"
+                    id="gui.howtos.story.step_conversation"
+                />
+            ),
+            image: 'storyConversation'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Add Another Backdrop"
+                    description="Step name for 'Add Another Backdrop' step"
+                    id="gui.howtos.story.addanotherbg"
+                />
+            ),
+            image: 'storyPickBackdrop2'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Switch Backdrops"
+                    description="Step name for 'Switch Backdrops' step"
+                    id="gui.howtos.story.step_swithbg"
+                />
+            ),
+            image: 'storySwitchBackdrop'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Hide a Character"
+                    description="Step name for 'Hide the Wizard' step"
+                    id="gui.howtos.story.step_hidewizard"
+                />
+            ),
+            image: 'storyHideCharacter'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Show a Character"
+                    description="Step name for 'Show the Wizard' step"
+                    id="gui.howtos.story.step_showwizard"
+                />
+            ),
+            image: 'storyShowCharacter'
+        },
+        {
+            deckIds: [
+                'say-it-out-loud',
+                'record-a-sound'
+            ]
+        }
+        ],
+        urlId: 'tell-a-story'
+    },
+
+    'say-it-out-loud': {
+        name: (
+            <FormattedMessage
+                defaultMessage="Create Animations That Talk"
+                description="Name for the 'Create Animations That Talk' how-to"
+                id="gui.howtos.say-it-out-loud"
+            />
+        ),
+        img: libraryTXTSpeech,
+        category: CATEGORIES.prompts,
+        steps: [{
+            video: 'k54n8uwcty',
+            trackingPixel: (
+                <img src="https://code.org/api/hour/begin_scratch_talk.png" />
+            )
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Add the Text to Speech blocks"
+                    description="Step name for 'Add the Text to Speech blocks' step"
+                    id="gui.howtos.say-it-out-loud.step_AddTXTextension"
+                />
+            ),
+            image: 'speechAddExtension'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Say Something"
+                    description="Step name for 'Say Something' step"
+                    id="gui.howtos.say-it-out-loud.step_TXTSpeech"
+                />
+            ),
+            image: 'speechSaySomething'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Set a Voice"
+                    description="Step name for 'Set a Voice"
+                    id="gui.howtos.say-it-out-loud_TXTSetVoice"
+                />
+            ),
+            image: 'speechSetVoice'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Move Around"
+                    description="Step name for 'Move Around' step"
+                    id="gui.howtos.say-it-out-loud.step_TXTMove"
+                />
+            ),
+            image: 'speechMoveAround'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Add a Backdrop"
+                    description="Step name for 'Add a Backdrop' step"
+                    id="gui.howtos.say-it-out-loud.step_TXTBackdrop"
+                />
+            ),
+            image: 'speechAddBackdrop'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Add Another Character"
+                    description="Step name for 'Add Another Character' step"
+                    id="gui.howtos.say-it-out-loud.step_TXTAddSprite"
+                />
+            ),
+            image: 'speechAddSprite'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Perform a Song"
+                    description="Step name for 'Perform a Song' step"
+                    id="gui.howtos.say-it-out-loud.step_TXTSong"
+                />
+            ),
+            image: 'speechSong'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Change Color"
+                    description="Step name for 'Change Color' step"
+                    id="gui.howtos.say-it-out-loud.step_TXTColor"
+                />
+            ),
+            image: 'speechChangeColor'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Spin Around"
+                    description="Step name for 'Spin Around"
+                    id="gui.howtos.say-it-out-loud.step_TXTSpin"
+                />
+            ),
+            image: 'speechSpin'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Grow and Shrink"
+                    description="Step name for 'Grow and Shrink' step"
+                    id="gui.howtos.say-it-out-loud.step_TXTGrow"
+                />
+            ),
+            image: 'speechGrowShrink'
+        }, {
+            deckIds: [
+                'animate-a-name',
+                'talking'
+            ]
+        }
+        ],
+        urlId: 'animations-that-talk'
+    },
+
+    'imagine': {
+        name: (
+            <FormattedMessage
+                defaultMessage="Imagine a World"
+                description="Name for the 'Imagine a World' how-to"
+                id="gui.howtos.imagine"
+            />
+        ),
+        tags: ['imagine'],
+        img: libraryImagine,
+        category: CATEGORIES.prompts,
+        steps: [{
+            video: 'imagine'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Type What You Want to Say"
+                    description="Step name for 'Type What You Want to Say' step"
+                    id="gui.howtos.imagine.step_imagineTypeWhatYouWant"
+                />
+            ),
+            image: 'imagineTypeWhatYouWant'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Click the Green Flag to Start"
+                    description="Step name for 'Click the Green Flag to Start' step"
+                    id="gui.howtos.imagine.step_imagineClickGreenFlag"
+                />
+            ),
+            image: 'imagineClickGreenFlag'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Choose Any Backdrop"
+                    description="Step name for 'Choose Any Backdrop' step"
+                    id="gui.howtos.imagine.step_imagineChooseBackdrop"
+                />
+            ),
+            image: 'imagineChooseBackdrop'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Choose Any Sprite"
+                    description="Step name for 'Choose Any Sprite' step"
+                    id="gui.howtos.imagine.step_imagineChooseSprite"
+                />
+            ),
+            image: 'imagineChooseSprite'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Press the Space Key to Glide"
+                    description="Step name for 'Press the Space Key to Glide' step"
+                    id="gui.howtos.imagine.step_imagineFlyAround"
+                />
+            ),
+            image: 'imagineFlyAround'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Choose Another Sprite"
+                    description="Step name for 'Choose Another Sprite' step"
+                    id="gui.howtos.imagine.step_imagineChooseAnotherSprite"
+                />
+            ),
+            image: 'imagineChooseAnotherSprite'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Move Left-Right"
+                    description="Step name for 'Move Left-Right' step"
+                    id="gui.howtos.imagine.step_imagineLeftRight"
+                />
+            ),
+            image: 'imagineLeftRight'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Move Up-Down"
+                    description="Step name for 'Move Up-Down' step"
+                    id="gui.howtos.imagine.step_imagineUpDown"
+                />
+            ),
+            image: 'imagineUpDown'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Change Costumes"
+                    description="Step name for 'Change Costumes' step"
+                    id="gui.howtos.imagine.step_imagineChangeCostumes"
+                />
+            ),
+            image: 'imagineChangeCostumes'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Glide to a Point"
+                    description="Step name for 'Glide to a Point' step"
+                    id="gui.howtos.imagine.step_imagineGlideToPoint"
+                />
+            ),
+            image: 'imagineGlideToPoint'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Grow and Shrink"
+                    description="Step name for 'Grow and Shrink' step"
+                    id="gui.howtos.imagine.step_imagineGrowShrink"
+                />
+            ),
+            image: 'imagineGrowShrink'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Choose Another Backdrop"
+                    description="Step name for 'Choose Another Backdrop' step"
+                    id="gui.howtos.imagine.step_imagineChooseAnotherBackdrop"
+                />
+            ),
+            image: 'imagineChooseAnotherBackdrop'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Switch Backdrops"
+                    description="Step name for 'Switch Backdrops' step"
+                    id="gui.howtos.imagine.step_imagineSwitchBackdrops"
+                />
+            ),
+            image: 'imagineSwitchBackdrops'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Add a Sound"
+                    description="Step name for 'Add a Sound' step"
+                    id="gui.howtos.imagine.step_imagineRecordASound"
+                />
+            ),
+            image: 'imagineRecordASound'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Choose Your Sound"
+                    description="Step name for 'Choose Your Sound' step"
+                    id="gui.howtos.imagine.step_imagineChooseSound"
+                />
+            ),
+            image: 'imagineChooseSound'
+        }, {
+            deckIds: [
+                'hide-and-show',
+                'Chase-Game'
+            ]
+        }
+        ],
+        urlId: 'imagine'
+    },
+
+    'add-effects': {
+        name: (
+            <FormattedMessage
+                defaultMessage="Add Effects"
+                description="Name for the 'Add Effects' how-to"
+                id="gui.howtos.add-effects.name"
+            />
+        ),
+        tags: ['animation', 'art', 'games', 'stories', '8-bit', 'brightness', 'ghost', 'transparency', 'opacity',
+            'fx', 'color', 'fisheye', 'whirl', 'twist', 'pixelate', 'mosaic', '8bit'],
+        category: CATEGORIES.intermediate,
+        img: addEffectsThumb,
+        steps: [{
+            video: 'add-effects'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Add Effects"
+                    description="Step name for 'Add Effects' step"
+                    id="gui.howtos.videosens.step_addEffects"
+                />
+            ),
+            image: 'addEffects'
+        }, {
+            deckIds: [
+                'add-a-backdrop',
+                'code-cartoon'
+            ]
+        }],
+        urlId: 'add-effects'
+    },
+    
+
+    'make-it-fly': {
+        name: (
+            <FormattedMessage
+                defaultMessage="Make it Fly"
+                description="Name for the 'Make it Fly' Make it Fly"
+                id="gui.howtos.make-it-fly.name"
+            />
+        ),
+        tags: ['game', 'fly', 'how', 'can', 'animation'],
+        category: CATEGORIES.intermediate,
+        img: libraryMakeFly,
+        steps: [{
+            video: 'zbtdx2dem9'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Choose a Sky Background"
+                    description="Step name for 'Choose a Sky Background' step"
+                    id="gui.howtos.fly.step_stepflyChooseBackdrop"
+                />
+            ),
+            image: 'flyChooseBackdrop'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Choose a Character"
+                    description="Step name for 'Choose a Character' step"
+                    id="gui.howtos.add-a-move-block.step_stepflyChooseCharacter"
+                />
+            ),
+            image: 'flyChooseCharacter'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Say Something"
+                    description="Step name for 'Say Something' step"
+                    id="gui.howtos.fly.step_stepflySaySomething"
+                />
+            ),
+            image: 'flySaySomething'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Move With Arrow Keys"
+                    description="Step name for 'Move With Arrow Keys' step"
+                    id="gui.howtos.add-a-move-block.step_stepflyMoveArrows"
+                />
+            ),
+            image: 'flyMoveArrows'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Choose an Object to Collect"
+                    description="Step name for 'Choose an Object to Collect' step"
+                    id="gui.howtos.fly.step_stepflyChooseObject"
+                />
+            ),
+            image: 'flyChooseObject'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Make the Object Move"
+                    description="Step name for 'Make the Object Move' step"
+                    id="gui.howtos.add-a-move-block.step_stepflyFlyingObject"
+                />
+            ),
+            image: 'flyFlyingObject'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Select Your Character"
+                    description="Step name for 'Select Your Character' step"
+                    id="gui.howtos.add-a-move-block.step_stepflySelectFlyingSprite"
+                />
+            ),
+            image: 'flySelectFlyingSprite'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Add a Score"
+                    description="Step name for 'Add a Score' step"
+                    id="gui.howtos.add-a-move-block.step_stepflyAddScore"
+                />
+            ),
+            image: 'flyAddScore'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Keep Score"
+                    description="Step name for 'Keep Score' step"
+                    id="gui.howtos.add-a-move-block.step_stepflyKeepScore"
+                />
+            ),
+            image: 'flyKeepScore'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Add Scenery"
+                    description="Step name for 'Add Scenery' step"
+                    id="gui.howtos.add-a-move-block.step_stepflyAddScenery"
+                />
+            ),
+            image: 'flyAddScenery'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Move the Scenery"
+                    description="Step name for 'Move the Scenery' step"
+                    id="gui.howtos.add-a-move-block.step_stepflyMoveScenery"
+                />
+            ),
+            image: 'flyMoveScenery'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Next Costume"
+                    description="Step name for 'Change the Scenery' step"
+                    id="gui.howtos.add-a-move-block.step_stepflySwitchLooks"
+                />
+            ),
+            image: 'flySwitchLooks'
+        }, {
+            deckIds: [
+                'change-size',
+                'spin-video'
+            ]
+        }
+        ],
+        urlId: 'make-it-fly'
+    },
+    
+    'Make-Music': {
+        name: (
+            <FormattedMessage
+                defaultMessage="Make Music"
+                description="Name for the 'Make Music' how-to"
+                id="gui.howtos.make-music.name"
+            />
+        ),
+        img: libraryMakeMusic,
+        tags: ['music', 'sound', 'instrument', 'play', 'song', 'band'],
+        category: CATEGORIES.intermediate,
+        steps: [{
+            video: 'Make-Music'
+        },
+        {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Pick an Instrument Sprite "
+                    description="Step name for 'Pick an Instrument Sprite' step"
+                    id="gui.howtos.Make-Music.step_PickInstrument"
+                />
+            ),
+            image: 'musicPickInstrument'
+        },
+        {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Play Sound When Clicked"
+                    description="Step name for 'Play Sound When Clicked' step"
+                    id="gui.howtos.Make-Music.step_PlaySoundClick"
+                />
+            ),
+            image: 'musicPlaySound'
+        },
+        {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Create a Song"
+                    description="Step name for 'Create a Song' step"
+                    id="gui.howtos.Make-Music.step_MakeSong"
+                />
+            ),
+            image: 'musicMakeSong'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Choose a Drum & Make a Beat"
+                    description="Step name for 'Choose a Drum & Make a Beat' step"
+                    id="gui.howtos.make-music.step_MakeBeat"
+                />
+            ),
+            image: 'musicMakeBeat'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Choose the Microphone Sprite & Surprise Beatbox"
+                    description="Step name for 'Choose the Microphone Sprite & Surprise Beatbox' step"
+                    id="gui.howtos.make-music.step_MakeBeatBox"
+                />
+            ),
+            image: 'musicMakeBeatbox'
+        }, {
+            deckIds: [
+                'add-a-backdrop',
+                'add-sprite'
+            ]
+        }
+        ],
+        urlId: 'music'
+    },
+    
+    'pong': {
+        name: (
+            <FormattedMessage
+                defaultMessage="Pong Game"
+                description="Name for the 'Pong Game' how-to"
+                id="gui.howtos.pong"
+            />
+        ),
+        tags: ['pong', 'game'],
+        img: libraryPong,
+        category: CATEGORIES.prompts,
+        steps: [{
+            video: 'pong-game'
+        },
+        {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Add a Backdrop"
+                    description="Step name for 'Add a Backdrop' step"
+                    id="gui.howtos.pong.step_pongAddBackdrop"
+                />
+            ),
+            image: 'pongAddBackdrop'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Add a Ball Sprite"
+                    description="Step name for 'Add a Ball Sprite' step"
+                    id="gui.howtos.pong.step_pongAddBallSprite"
+                />
+            ),
+            image: 'pongAddBallSprite'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Bounce Around"
+                    description="Step name for 'Bounce Around' step"
+                    id="gui.howtos.pong.step_pongBounceAround"
+                />
+            ),
+            image: 'pongBounceAround'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Add a Paddle"
+                    description="Step name for 'Add a Paddle' step"
+                    id="gui.howtos.pong.step_pongAddPaddle"
+                />
+            ),
+            image: 'pongAddPaddle'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Move the Paddle"
+                    description="Step name for 'Move the Paddle' step"
+                    id="gui.howtos.pong.step_pongMoveThePaddle"
+                />
+            ),
+            image: 'pongMoveThePaddle'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Select the Ball Sprite"
+                    description="Step name for 'Select the Ball Sprite' step"
+                    id="gui.howtos.pong.step_pongSelectBallSprite"
+                />
+            ),
+            image: 'pongSelectBallSprite'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Add Code to Bounce the Ball Off the Paddle"
+                    description="Step name for 'Add Code to Bounce the Ball Off the Paddle' step"
+                    id="gui.howtos.pong.step_pongAddMoreCodeToBall"
+                />
+            ),
+            image: 'pongAddMoreCodeToBall'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Add a Score"
+                    description="Step name for 'Add a Score' step"
+                    id="gui.howtos.pong.step_pongAddAScore"
+                />
+            ),
+            image: 'pongAddAScore'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Choose 'Score' from the Menu"
+                    description="Step name for 'Choose 'Score' from the Menu' step"
+                    id="gui.howtos.pong.step_pongChooseScoreFromMenu"
+                />
+            ),
+            image: 'pongChooseScoreFromMenu'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Insert the 'Change Score' Block"
+                    description="Step name for 'Insert the 'Change Score' Block' step"
+                    id="gui.howtos.pong.step_pongInsertChangeScoreBlock"
+                />
+            ),
+            image: 'pongInsertChangeScoreBlock'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Reset Score"
+                    description="Step name for 'Reset Score' step"
+                    id="gui.howtos.pong.step_pongResetScore"
+                />
+            ),
+            image: 'pongResetScore'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Add the Line Sprite"
+                    description="Step name for 'Add the Line Sprite' step"
+                    id="gui.howtos.pong.step_pongAddLineSprite"
+                />
+            ),
+            image: 'pongAddLineSprite'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Game Over"
+                    description="Step name for 'Game Over' step"
+                    id="gui.howtos.pong.step_pongGameOver"
+                />
+            ),
+            image: 'pongGameOver'
+        }, {
+            deckIds: [
+                'add-effects',
+                'Video-Sensing'
+            ]
+        }
+        ],
+        urlId: 'pong'
+    },
+    
+    'Make-A-Game': {
+        name: (
+            <FormattedMessage
+                defaultMessage="Make a Clicker Game"
+                description="Name for the 'Make a Clicker Game' how-to"
+                id="gui.howtos.make-a-game.name"
+            />
+        ),
+        img: libraryMakeAGame,
+        tags: ['games', 'click', 'clicked', 'score'],
+        category: CATEGORIES.prompts,
+        steps: [{
+            video: 'Make-A-Game'
+        },
+        {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Pick A Sprite"
+                    description="Step name for 'Pick A Sprite' step"
+                    id="gui.howtos.Make-A-Game.step_GamePickSprite"
+                />
+            ),
+            image: 'popGamePickSprite'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Play Sound When Clicked"
+                    description="Play Sound When Clicked' step"
+                    id="gui.howtos.make-a-game.step_GamePlaySound"
+                />
+            ),
+            image: 'popGamePlaySound'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Create Score Variable"
+                    description="Step name for 'Create Score Variable' step"
+                    id="gui.howtos.make-a-game.step_GameAddScore"
+                />
+            ),
+            image: 'popGameAddScore'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="When Clicked Increase Score"
+                    description="Step name for 'When Clicked Increase Score' step"
+                    id="gui.howtos.make-a-game.step_GameChangeScore"
+                />
+            ),
+
+            image: 'popGameChangeScore'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Go to a random position"
+                    description="Step name for 'Go to a random position' step"
+                    id="gui.howtos.make-a-game.step_Random"
+                />
+            ),
+            image: 'popGameRandomPosition'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Change Color"
+                    description="Step name for 'Change Color' step"
+                    id="gui.howtos.make-music.step_GameChangeColor"
+                />
+            ),
+            image: 'popGameChangeColor'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Reset Score"
+                    description="Step name for 'Reset Score' step"
+                    id="gui.howtos.make-music.step_ResetScore"
+                />
+            ),
+            image: 'popGameResetScore'
+        }, {
+            deckIds: [
+                'add-a-backdrop',
+                'move-around-with-arrow-keys'
+            ]
+        }
+        ],
+        urlId: 'clicker-game'
+    },
+
+    'Chase-Game': {
+        name: (
+            <FormattedMessage
+                defaultMessage="Make a Chase Game"
+                description="Name for the 'Make a Chase Game' how-to"
+                id="gui.howtos.make-a-chase-game.name"
+            />
+        ),
+        img: libraryChaseGame,
+        tags: ['games', 'arrow', 'keyboard', 'score'],
+        category: CATEGORIES.prompts,
+        steps: [{
+            video: 'Chase-Game'
+        },
+        {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Add a Backdrop"
+                    description="Step name for 'Add a Backdrop' step"
+                    id="gui.howtos.Chase-Game.step_BG"
+                />
+            ),
+            image: 'chaseGameAddBackdrop'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Add a Sprite"
+                    description="Step name for 'Add a Sprite' step"
+                    id="gui.howtos.chase-game.step_AddOcto"
+                />
+            ),
+            image: 'chaseGameAddSprite1'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Move Right & Left With Arrow Keys"
+                    description="Step name for 'Move Right & Left With Arrow Keys' step"
+                    id="gui.howtos.make-music.step_LeftRight"
+                />
+            ),
+            image: 'chaseGameRightLeft'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Move Up & Down With Arrow Keys"
+                    description="Step name for 'Move Up & Down With Arrow Keys' step"
+                    id="gui.howtos.Chase-Game.step_UpDown"
+                />
+            ),
+            image: 'chaseGameUpDown'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Add Another Sprite"
+                    description="Step name for 'Add Another Sprite' step"
+                    id="gui.howtos.Chase-Game.step_AddStar"
+                />
+            ),
+            image: 'chaseGameAddSprite2'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Move Randomly"
+                    description="Step name for 'Move Randomly' step"
+                    id="gui.howtos.Chase-Game.step_MoveRandom"
+                />
+            ),
+            image: 'chaseGameMoveRandomly'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="In Octopus Sprite, When Touching Play Sound"
+                    description="Step name for 'In Octopus Sprite, When Touching Play Sound' step"
+                    id="gui.howtos.Chase-Game.step_WhenTouch"
+                />
+            ),
+            image: 'chaseGamePlaySound'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Create Score Variable"
+                    description="Step name for 'Create Score Variable"
+                    id="gui.howtos.Chase-Game.step_ScoreVariable"
+                />
+            ),
+            image: 'chaseGameAddVariable'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="In Octopus Sprite, When Touching Add Score"
+                    description="Step name for 'In Octopus Sprite, When Touching Add Score step"
+                    id="gui.howtos.Chase-Game.ScoreWhenTouch"
+                />
+            ),
+            image: 'chaseGameChangeScore'
+        }, {
+            deckIds: [
+                'add-effects',
+                'move-around-with-arrow-keys'
+            ]
+        }
+        ],
+        urlId: 'chase-game'
+    },
+
+    'code-cartoon': {
+        name: (
+            <FormattedMessage
+                defaultMessage="Code a Cartoon"
+                description="Name for the 'Code a Cartoon' how-to"
+                id="gui.howtos.code-cartoon"
+            />
+        ),
+        tags: ['code-cartoon'],
+        requiredProjectId: '331474033',
+        img: libraryCodeCartoon,
+        category: CATEGORIES.prompts,
+        steps: [{
+            video: 'code-cartoon'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Say Something When You Click the Green Flag"
+                    description="Step name for 'Say Something When You Click the Green Flag' step"
+                    id="gui.howtos.code-cartoon.step_codeCartoonSaySomething"
+                />
+            ),
+            image: 'codeCartoonSaySomething'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Animate a Character When You Click It"
+                    description="Step name for 'Animate a Character When You Click It' step"
+                    id="gui.howtos.code-cartoon.step_codeCartoonAnimate"
+                />
+            ),
+            image: 'codeCartoonAnimate'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Select a Different Character"
+                    description="Step name for 'Select a Different Character' step"
+                    id="gui.howtos.code-cartoon.step_codeCartoonSelectDifferentCharacter"
+                />
+            ),
+            image: 'codeCartoonSelectDifferentCharacter'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Use a Minus Sign to Get Smaller"
+                    description="Step name for 'Use a Minus Sign to Get Smaller' step"
+                    id="gui.howtos.code-cartoon.step_codeCartoonUseMinusSign"
+                />
+            ),
+            image: 'codeCartoonUseMinusSign'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Make a Character Grow and Shrink"
+                    description="Step name for 'Make a Character Grow and Shrink' step"
+                    id="gui.howtos.code-cartoon.step_codeCartoonGrowShrink"
+                />
+            ),
+            image: 'codeCartoonGrowShrink'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Select a Different Character"
+                    description="Step name for 'Select a Different Character' step"
+                    id="gui.howtos.code-cartoon.step_codeCartoonSelectDifferentCharacter2"
+                />
+            ),
+            image: 'codeCartoonSelectDifferentCharacter2'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Jump Up and Down"
+                    description="Step name for 'Jump Up and Down' step"
+                    id="gui.howtos.code-cartoon.step_codeCartoonJump"
+                />
+            ),
+            image: 'codeCartoonJump'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Click a Character to Change Scenes"
+                    description="Step name for 'Click a Character to Change Scenes' step"
+                    id="gui.howtos.code-cartoon.step_codeCartoonChangeScenes"
+                />
+            ),
+            image: 'codeCartoonChangeScenes'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Glide Around"
+                    description="Step name for 'Glide Around' step"
+                    id="gui.howtos.code-cartoon.step_codeCartoonGlideAround"
+                />
+            ),
+            image: 'codeCartoonGlideAround'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Change Costumes"
+                    description="Step name for 'Change Costumes' step"
+                    id="gui.howtos.code-cartoon.step_codeCartoonChangeCostumes"
+                />
+            ),
+            image: 'codeCartoonChangeCostumes'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Choose More Characters to Add to Your Cartoon"
+                    description="Step name for 'Choose More Characters to Add to Your Cartoon' step"
+                    id="gui.howtos.code-cartoon.step_codeCartoonChooseMoreCharacters"
+                />
+            ),
+            image: 'codeCartoonChooseMoreCharacters'
+        }, {
+            deckIds: [
+                'Chase-Game',
+                'Tell-A-Story'
+            ]
+        }
+        ],
+        urlId: 'code-cartoon'
+    },
+    
+    'cartoon-network': {
+        name: (
+            <FormattedMessage
+                defaultMessage="Animate an Adventure Game"
+                description="Animate an Adventure Game' how-to"
+                id="gui.howtos.cartoon-network"
+            />
+        ),
+        requiredProjectId: '249143200',
+        img: libraryCartoonNetwork,
+        category: CATEGORIES.prompts,
+        steps: [{
+            video: 'uz5oz5h9yg',
+            trackingPixel: (
+                <img src="https://code.org/api/hour/begin_scratch_adventure.png" />
+            )
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Choose a Character to Show"
+                    description="Step name for 'Choose a Character to Show' step"
+                    id="gui.howtos.cartoon-network.step_CNcharacter"
+                />
+            ),
+            image: 'cnShowCharacter'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Say Something"
+                    description="Step name for 'Say Something' step"
+                    id="gui.howtos.cartoon-network.step_CNsay"
+                />
+            ),
+            image: 'cnSay'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Glide Around"
+                    description="Step name for 'Glide Around' step"
+                    id="gui.howtos.cartoon-network.step_CNglide"
+                />
+            ),
+            image: 'cnGlide'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage=" Choose an Object to Chase "
+                    description="Step name for 'Choose an Object to Chase' step"
+                    id="gui.howtos.cartoon-network.step_CNpicksprite"
+                />
+            ),
+            image: 'cnPickSprite'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Collect Objects"
+                    description="Step name for 'Collect Objects' step"
+                    id="gui.howtos.cartoon-network.step_CNcollect"
+                />
+            ),
+            image: 'cnCollect'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Make a Score Variable"
+                    description="Step name for 'Make a Score Variable' step"
+                    id="gui.howtos.cartoon-network.step_CNvariable"
+                />
+            ),
+            image: 'cnVariable'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Keep Score"
+                    description="Step name for 'Keep Score' step"
+                    id="gui.howtos.cartoon-network.step_CNscore"
+                />
+            ),
+            image: 'cnScore'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Level Up: Change Backdrop"
+                    description="Step name for 'Level Up: Change Backdrop' step"
+                    id="gui.howtos.cartoon-network.step_CNbackdrop"
+                />
+            ),
+            image: 'cnBackdrop'
+        },
+        {
+            video: '6o76f5ivo1'
+        },
+        {
+            deckIds: [
+                'switch-costume',
+                'add-effects'
+            ]
+        }
+        ],
+        urlId: 'animate-an-adventure-game'
+    },
+
+    'Video-Sensing': {
+        name: (
+            <FormattedMessage
+                defaultMessage="Video Sensing"
+                description="Name for the 'Video Sensing' how-to"
+                id="gui.howtos.videosens.name"
+            />
+        ),
+        img: libraryVideoSens,
+        category: CATEGORIES.intermediate,
+        steps: [{
+            video: '3pd1z110d6'
+        },
+        {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Add Extension"
+                    description="Step name for 'Add Extension' step"
+                    id="gui.howtos.videosens.step_addextension"
+                />
+            ),
+            image: 'videoAddExtension'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Pet the Cat"
+                    description="Step name for 'Pet the Cat' step"
+                    id="gui.howtos.videosens.step_pet"
+                />
+            ),
+            image: 'videoPet'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Animate"
+                    description="Step name for 'Animate' step"
+                    id="gui.howtos.videosens.step_animate"
+                />
+            ),
+            image: 'videoAnimate'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Pop a Balloon"
+                    description="Step name for 'Pop a Balloon' step"
+                    id="gui.howtos.videosens.step_pop"
+                />
+            ),
+            image: 'videoPop'
+        }, {
+            deckIds: [
+                'Make-Music',
+                'add-effects'
+            ]
+        }
+        ],
+        urlId: 'video-sensing'
+    },
+    'Face-Sensing': {
+        name: (
+            <FormattedMessage
+                defaultMessage="Face Sensing"
+                description="Name for the 'Face Sensing' how-to"
+                id="gui.howtos.facesens.name"
+            />
+        ),
+        img: libraryFaceSens,
+        category: CATEGORIES.intermediate,
+        steps: [{
+            video: 'fnjds1cjei'
+        },
+        {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Add the “Face Sensing” Extension"
+                    description="Step name for 'Add the “Face Sensing” Extension' step"
+                    id="gui.howtos.facesens.step_addExtension"
+                />
+            ),
+            image: 'faceAddExtension'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Allow Access to Your Camera (Your Video Is Private)"
+                    description="Step name for 'Allow Access to Your Camera' step"
+                    id="gui.howtos.facesens.step_allowCamera"
+                />
+            ),
+            image: 'faceAllowCamera'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Select a “Fashion” Accessory Sprite"
+                    description="Step name for 'Select a “Fashion” Accessory Sprite' step"
+                    id="gui.howtos.facesens.step_addFashionSprite"
+                />
+            ),
+            image: 'faceAddFashionSprite'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Go to Top of Head"
+                    description="Step name for 'Go to Top of Head' step"
+                    id="gui.howtos.facesens.step_goToTopHead"
+                />
+            ),
+            image: 'faceGoToTopHead'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Forever Go to Top of Head"
+                    description="Step name for 'Forever Go to Top of Head' step"
+                    id="gui.howtos.facesens.step_goToTopHeadForever"
+                />
+            ),
+            image: 'faceGoToTopHeadForever'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Use Blocks or Paint Editor to Adjust Size and Placement"
+                    description="Step name for 'Use Blocks or Paint Editor to Adjust Size and Placement' step"
+                    id="gui.howtos.facesens.step_adjustSize"
+                />
+            ),
+            image: 'faceAdjustSize'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Add Another Sprite or Try Additional Blocks"
+                    description="Step name for 'Add Another Sprite or Try Additional Blocks' step"
+                    id="gui.howtos.facesens.step_addAnotherSprite"
+                />
+            ),
+            image: 'faceAddAnotherSprite'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Or Convert a Clicker Game to Use Parts of Your Face"
+                    description="Step name for 'Or Convert a Clicker Game to Use Parts of Your Face' step"
+                    id="gui.howtos.facesens.step_clickerGame"
+                />
+            ),
+            image: 'faceClickerGame'
+        }, {
+            externalResources: {
+                'Face-Sensing-Game': {
+                    name: (
+                        <FormattedMessage
+                            defaultMessage="Starter Project | Face Sensing Game"
+                            description="Name for the 'Starter Project | Face Sensing Game' resource"
+                            id="gui.howtos.externalResources.faceSensingGame"
+                        />
+                    ),
+                    img: faceSensingGame,
+                    url: 'https://scratch.mit.edu/projects/1210061611'
+                },
+                'Coding-Cards': {
+                    name: (
+                        <FormattedMessage
+                            defaultMessage="Coding Cards | Face Sensing"
+                            description="Name for the 'Coding Cards | Face Sensing' how-to"
+                            id="gui.howtos.externalResources.codingCards"
+                        />
+                    ),
+                    img: codingCards,
+                    url: 'https://scratchfoundation.org/learn/learning-library/face-sensing'
+                }
+            }
+        }],
+        urlId: 'face-sensing'
+    },
+    'talking': {
+        name: (
+            <FormattedMessage
+                defaultMessage="Talking Tales"
+                description="Name for the 'Talking Tales' how-to"
+                id="gui.howtos.talking"
+            />
+        ),
+        tags: ['talking'],
+        category: CATEGORIES.intermediate,
+        img: libraryTalking,
+        steps: [{
+            video: 'talking'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Click to Add the Text-to-Speech Blocks"
+                    description="Step name for 'Click to Add the Text-to-Speech Blocks' step"
+                    id="gui.howtos.talking.step_talesAddExtension"
+                />
+            ),
+            image: 'talesAddExtension'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Choose a Sprite"
+                    description="Step name for 'Choose a Sprite' step"
+                    id="gui.howtos.talking.step_talesChooseSprite"
+                />
+            ),
+            image: 'talesChooseSprite'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Make a Character Speak"
+                    description="Step name for 'Make a Character Speak' step"
+                    id="gui.howtos.talking.step_talesSaySomething"
+                />
+            ),
+            image: 'talesSaySomething'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Choose a Backdrop"
+                    description="Step name for 'Choose a Backdrop' step"
+                    id="gui.howtos.talking.step_talesChooseBackdrop"
+                />
+            ),
+            image: 'talesChooseBackdrop'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Click a Character to Go to the Next Backdrop"
+                    description="Step name for 'Click a Character to Go to the Next Backdrop' step"
+                    id="gui.howtos.talking.step_talesSwitchBackdrop"
+                />
+            ),
+            image: 'talesSwitchBackdrop'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Choose Another Sprite"
+                    description="Step name for 'Choose Another Sprite' step"
+                    id="gui.howtos.talking.step_talesChooseAnotherSprite"
+                />
+            ),
+            image: 'talesChooseAnotherSprite'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Move Around"
+                    description="Step name for 'Move Around' step"
+                    id="gui.howtos.talking.step_talesMoveAround"
+                />
+            ),
+            image: 'talesMoveAround'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Choose Another Backdrop"
+                    description="Step name for 'Choose Another Backdrop' step"
+                    id="gui.howtos.talking.step_talesChooseAnotherBackdrop"
+                />
+            ),
+            image: 'talesChooseAnotherBackdrop'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Animate Talking"
+                    description="Step name for 'Animate Talking' step"
+                    id="gui.howtos.talking.step_talesAnimateTalking"
+                />
+            ),
+            image: 'talesAnimateTalking'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Choose Another Backdrop"
+                    description="Step name for 'Choose Another Backdrop' step"
+                    id="gui.howtos.talking.step_talesChooseThirdBackdrop"
+                />
+            ),
+            image: 'talesChooseThirdBackdrop'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Choose a Song to Dance To"
+                    description="Step name for 'Choose a Song to Dance To' step"
+                    id="gui.howtos.talking.step_talesChooseSound"
+                />
+            ),
+            image: 'talesChooseSound'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Dance Moves"
+                    description="Step name for 'Dance Moves' step"
+                    id="gui.howtos.talking.step_talesDanceMoves"
+                />
+            ),
+            image: 'talesDanceMoves'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Get the Ask and Answer Blocks from the Sensing Category"
+                    description="Step name for 'Get the Ask and Answer Blocks from the Sensing Category' step"
+                    id="gui.howtos.talking.step_talesAskAnswer"
+                />
+            ),
+            image: 'talesAskAnswer'
+        }, {
+            deckIds: [
+                'Tell-A-Story',
+                'Animate-A-Character'
+            ]
+        }
+        ],
+        urlId: 'talking'
+    },
+
+    'add-sprite': {
+        name: (
+            <FormattedMessage
+                defaultMessage="Add a Sprite"
+                description="Name for the 'Add a Sprite' how-to"
+                id="gui.howtos.add-sprite.name"
+            />
+        ),
+        img: libraryAddSprite,
+        tags: ['art', 'games', 'stories', 'character'],
+        category: CATEGORIES.gettingStarted,
+        steps: [
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="Add a Sprite"
+                        description="Step name for 'Add a new sprite' step"
+                        id="gui.howtos.add-sprite.step_addSprite"
+                    />
+                ),
+                image: 'addSprite'
+            },
+            {
+                deckIds: [
+                    'add-a-backdrop',
+                    'switch-costume'
+                ]
+            }
+        ],
+        urlId: 'add-a-sprite'
+    },
+
+    'add-a-backdrop': {
+        name: (
+            <FormattedMessage
+                defaultMessage="Add a Backdrop"
+                description="Name for the 'Add a Backdrop' how-to"
+                id="gui.howtos.add-a-backdrop.name"
+            />
+        ),
+        img: addBackdropThumb,
+        tags: ['art', 'games', 'stories', 'background'],
+        category: CATEGORIES.gettingStarted,
+        steps: [{
+            video: 'add-a-backdrop'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Add a Backdrop"
+                    description="Step name for 'Add a Backdrop' step"
+                    id="gui.howtos.add-a-backdrop.step_addBackdrop"
+                />
+            ),
+            image: 'addBackdrop'
+        },
+
+        {
+            deckIds: [
+                'change-size',
+                'switch-costume'
+            ]
+        }],
+        urlId: 'add-a-backdrop'
+    },
+
+    'move-around-with-arrow-keys': {
+        name: (
+            <FormattedMessage
+                defaultMessage="Use Arrow Keys"
+                description="Name for the 'Use Arrow Keys' how-to"
+                id="gui.howtos.move-around-with-arrow-keys.name"
+            />
+        ),
+        img: moveArrowKeysThumb,
+        tags: ['games', 'keyboard'],
+        category: CATEGORIES.basics,
+        steps: [{
+            video: 'move-around-with-arrow-keys'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Move Left and Right"
+                    description="Step name for 'Move Left and Right' step"
+                    id="gui.howtos.add-a-backdrop.step_moveArrowKeysLeftRight"
+                />
+            ),
+            image: 'moveArrowKeysLeftRight'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Move Up and Down"
+                    description="Step name for 'Move Up and Down' step"
+                    id="gui.howtos.add-a-backdrop.step_moveArrowKeysUpDown"
+                />
+            ),
+            image: 'moveArrowKeysUpDown'
+        }, {
+            deckIds: [
+                'make-it-fly',
+                'switch-costume'
+            ]
+        }],
+        urlId: 'arrow-keys'
+    },
+
+    'change-size': {
+        name: (
+            <FormattedMessage
+                defaultMessage="Change Size"
+                description="Name for the 'Change Size' how-to"
+                id="gui.howtos.change-size.name"
+            />
+        ),
+        img: changeSizeThumb,
+        category: CATEGORIES.basics,
+        scale: ['art', 'animation', 'scale'],
+        steps: [{
+            video: 'change-size'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Change Size"
+                    description="Step name for 'Change Size' step"
+                    id="gui.howtos.change-size.step_changeSize"
+                />
+            ),
+            image: 'changeSize'
+        }, {
+            deckIds: [
+                'glide-around',
+                'spin-video'
+            ]
+        }],
+        urlId: 'change-size'
+    },
+
+    'glide-around': {
+        name: (
+            <FormattedMessage
+                defaultMessage="Glide Around"
+                description="Name for the 'Glide Around' how-to"
+                id="gui.howtos.glide-around.name"
+            />
+        ),
+        img: glideAroundThumb,
+        tags: ['animation', 'stories', 'music', 'instrument', 'play', 'song', 'band'],
+        category: CATEGORIES.basics,
+        steps: [{
+            video: 'glide-around'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Glide Around"
+                    description="Step name for 'Glide Around' step"
+                    id="gui.howtos.change-size.step_glideAroundBackAndForth"
+                />
+            ),
+            image: 'glideAroundBackAndForth'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Glide to a Point"
+                    description="Step name for 'Glide to a Point' step"
+                    id="gui.howtos.change-size.step_glideAroundPoint"
+                />
+            ),
+            image: 'glideAroundPoint'
+        }, {
+            deckIds: [
+                'Tell-A-Story',
+                'switch-costume'
+            ]
+        }],
+        urlId: 'glide-around'
+    },
+
+    'spin-video': {
+        name: (
+            <FormattedMessage
+                defaultMessage="Make It Spin"
+                description="Name for the 'Make It Spin' how-to"
+                id="gui.howtos.spin-video.name"
+            />
+        ),
+        img: spinThumb,
+        tags: ['animation', 'rotate', 'rotation'],
+        category: CATEGORIES.basics,
+        steps: [{
+            video: 'spin-video'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Turn"
+                    description="Step name for 'Turn' step"
+                    id="gui.howtos.change-size.step_spinTurn"
+                />
+            ),
+            image: 'spinTurn'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Set Direction"
+                    description="Step name for 'Set Direction' step"
+                    id="gui.howtos.change-size.step_spinPointInDirection"
+                />
+            ),
+            image: 'spinPointInDirection'
+        }, {
+            deckIds: [
+                'add-a-backdrop',
+                'switch-costume'
+            ]
+        }],
+        urlId: 'make-it-spin'
+    },
+
+    'record-a-sound': {
+        name: (
+            <FormattedMessage
+                defaultMessage="Record a Sound"
+                description="Record A Sound' how-to"
+                id="gui.howtos.record-a-sound.name"
+            />
+        ),
+        tags: ['music', 'games', 'stories'],
+        category: CATEGORIES.basics,
+        img: recordASound,
+        steps: [{
+            video: 'record-a-sound'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Click on the 'Sounds' Tab"
+                    description="Step name for 'Click on the Sounds Tab' step"
+                    id="gui.howtos.change-size.step_recordASoundSoundsTab"
+                />
+            ),
+            image: 'recordASoundSoundsTab'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Click 'Record'"
+                    description="Step name for 'Click Record' step"
+                    id="gui.howtos.change-size.step_recordASoundClickRecord"
+                />
+            ),
+            image: 'recordASoundClickRecord'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Press the Record Button"
+                    description="Step name for 'Press the Record Button' step"
+                    id="gui.howtos.change-size.step_recordASoundPressRecordButton"
+                />
+            ),
+            image: 'recordASoundPressRecordButton'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Choose Your Sound"
+                    description="Step name for 'Choose Your Sound' step"
+                    id="gui.howtos.change-size.step_recordASoundChooseSound"
+                />
+            ),
+            image: 'recordASoundChooseSound'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Play Your Sound"
+                    description="Step name for 'Play Your Sound' step"
+                    id="gui.howtos.change-size.step_recordASoundPlayYourSound"
+                />
+            ),
+            image: 'recordASoundPlayYourSound'
+        }, {
+            deckIds: [
+                'Make-Music',
+                'switch-costume'
+            ]
+        }],
+        urlId: 'record-a-sound'
+    },
+
+    'hide-and-show': {
+        name: (
+            <FormattedMessage
+                defaultMessage="Hide and Show"
+                description="Name for the 'Hide and Show' how-to"
+                id="gui.howtos.hide-and-show.name"
+            />
+        ),
+        img: hideAndShowThumb,
+        tags: ['stories', 'appear', 'disappear'],
+        category: CATEGORIES.basics,
+        steps: [{
+            video: 'hide-and-show'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Hide and Show"
+                    description="Step name for 'Hide and Show' step"
+                    id="gui.howtos.change-size.step_hideAndShow"
+                />
+            ),
+            image: 'hideAndShow'
+        }, {
+            deckIds: [
+                'add-a-backdrop',
+                'switch-costume'
+            ]
+        }],
+        urlId: 'hide'
+    },
+
+    'switch-costume': {
+        name: (
+            <FormattedMessage
+                defaultMessage="Animate a Sprite"
+                description="Name for the 'Animate a Sprite' how-to"
+                id="gui.howtos.switch-costume.name"
+            />
+        ),
+        img: switchCostumeThumb,
+        tags: ['animation', 'art', 'games', 'stories', 'paint', 'edit', 'change', 'character', 'sprite'],
+        category: CATEGORIES.gettingStarted,
+        steps: [{
+            video: 'switch-costume'
+        }, {
+            title: (
+                <FormattedMessage
+                    defaultMessage="Animate a Sprite"
+                    description="Step name for 'Animate a Sprite' step"
+                    id="gui.howtos.change-size.step_switchCostumes"
+                />
+            ),
+            image: 'switchCostumes'
+        }, {
+            deckIds: [
+                'imagine',
+                'add-effects'
+            ]
+        }],
+        urlId: 'animate-a-sprite'
+    },
+
+    'wedo2-getting-started': {
+        steps: [{
+            video: '4im7iizv47'
+        }],
+        urlId: 'wedo',
+        hidden: true
+    },
+
+    'ev3-getting-started': {
+        steps: [{
+            video: 'qgu78c5y7d'
+        }],
+        urlId: 'ev3',
+        hidden: true
+    },
+
+    'whats-new': {
+        steps: [{
+            video: 'mtqymxg0qq'
+        }],
+        urlId: 'whatsnew',
+        hidden: true
+    }
+};

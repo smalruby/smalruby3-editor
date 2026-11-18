@@ -1,11 +1,5 @@
-// Tutorial category locale strings are split into per-category modules
-// (issue #932) so tutorial categories can be developed independently.
 import { jaHira as activityDiagramMessages } from '../lib/lessons/activity-diagram/activity-diagram.locale.js';
 import { jaHira as lessonsMessages } from '../lib/lessons/lessons.locale.js';
-import { jaHira as blockSeriesHowtos } from '../lib/libraries/decks/categories/block-series.locale.js';
-import { jaHira as dnclHowtos } from '../lib/libraries/decks/categories/dncl.locale.js';
-import { jaHira as gettingStartedHowtos } from '../lib/libraries/decks/categories/getting-started.locale.js';
-import { jaHira as rubyBasicsHowtos } from '../lib/libraries/decks/categories/ruby-basics.locale.js';
 
 export default {
     'gui.modal.reload': 'さいよみこみ',
@@ -112,6 +106,9 @@ export default {
     'gui.classroom.submitReminder.text': 'そろそろ さくひんを ていしゅつして みよう（とちゅうでも だしなおせるよ）',
     'gui.classroom.submitReminder.close': 'とじる',
     'gui.menuBar.aboutSmalruby': 'スモウルビーについて',
+    'gui.menuBar.reportBug': 'ふぐあいをしらせる',
+    'gui.menuBar.version': 'バージョン: {version}',
+    'gui.menuBar.versionDevelopment': 'かいはつばん',
     'gui.menuBar.debug': 'デバッグ',
     'gui.menuBar.tutorials': 'チュートリアル',
     'gui.menuBar.showWelcomeAgain': 'ウェルカムをもういちどみる',
@@ -451,6 +448,13 @@ export default {
     'gui.classroom.board.tabClasswork': 'じゅぎょう',
     'gui.classroom.board.tabGrading': 'さいてん',
     'gui.classroom.board.classSettings': 'クラスのせってい',
+    'gui.classroom.closeRow.backToAssignments': 'かだいいちらんにもどる',
+    'gui.classroom.closeRow.backToClass': 'クラスにもどる',
+    'gui.classroom.closeRow.backToClassList': 'クラスいちらんにもどる',
+    'gui.classroom.closeRow.backToAssignment': 'かだいにもどる',
+    'gui.classroom.closeRow.discardQuestion': 'へんこうをはきしますか？ほぞんしていないへんこうはきえます。',
+    'gui.classroom.closeRow.discard': 'はき',
+    'gui.classroom.closeRow.cancel': 'キャンセル',
     'gui.classroom.board.streamEmpty': 'まだなにもありません。さくせいしたかだいがここにでます。',
     'gui.classroom.board.streamCreated': 'かだい「{name}」をさくせいしました',
     'gui.classroom.board.streamArchived': 'かだい「{name}」をアーカイブしました',
@@ -1798,131 +1802,6 @@ export default {
     'gui.autoCorrectModal.fullwidthSpace': 'ぜんかくスペース → はんかくスペース',
     'gui.autoCorrectModal.replaceInStrings': 'もじれつもおきかえる',
 
-    // Tutorials
-    ...gettingStartedHowtos,
-    // Chat Tutorial 1 Basic 1
-    'gui.howtos.chat-1-basic-1.name': 'メッセージをおくってみよう！',
-    'gui.howtos.chat-1-basic-1.step1.title': 'はなれたブロックにメッセージをおくってみよう！',
-    'gui.howtos.chat-1-basic-1.step2.title': 'まずはコードをにゅうりょくしてプログラムをじっこうしてみよう',
-    'gui.howtos.chat-1-basic-1.step3.title': '「◯◯をおくる」ははなれたところにあるめいれいをじっこうできる',
-    'gui.howtos.chat-1-basic-1.step4.title': '「そうしんちゅう...」ってほんとうかな？きちんとおくるようにするよ',
-    'gui.howtos.chat-1-basic-1.step5.title': 'へんすう「そうしんメッセージ」のつくりかた',
-    'gui.howtos.chat-1-basic-1.step6.title': 'だいじなこと『へんすうを◯◯にする、◯◯をおくる、〇〇をうけとったとき』',
-    'gui.howtos.chat-1-basic-1.step7.title': 'しゃべるないようをかえてみよう',
-    // Chat Tutorial 1 Basic 2
-    'gui.howtos.chat-1-basic-2.name': 'メッセージをおくってみよう！Lv2',
-    'gui.howtos.chat-1-basic-2.step1.title': 'こんどはブロックをじぶんでくみたててみよう！',
-    'gui.howtos.chat-1-basic-2.step2.title':
-        'へんすう「そうしんメッセージ」をつくり、「{greenFlag}がおされたとき」と「そうしんメッセージを◯◯にする」をはいちしよう',
-    'gui.howtos.chat-1-basic-2.step3.title':
-        '「◯◯と◯びょういう」をついかして「そうしんちゅう...」とにゅうりょくしよう',
-    'gui.howtos.chat-1-basic-2.step4.title': '★「◯◯をおくる」をついかしよう — はなれたブロックをじっこうできるよ',
-    'gui.howtos.chat-1-basic-2.step5.title':
-        '★「◯◯をうけとったとき」をあたらしくはいちしよう — おくったメッセージをうけとるよ',
-    'gui.howtos.chat-1-basic-2.step6.title':
-        '★「◯◯という」に「そうしんメッセージ」へんすうをはめよう — へんすうであたいをわたすよ',
-    'gui.howtos.chat-1-basic-2.step7.title': '{greenFlag}をおしてじっこう！しゃべるないようもかえてみよう',
-    // Chat Tutorial 1 Basic 3
-    'gui.howtos.chat-1-basic-3.name': 'メッセージをおくってみよう！Lv3',
-    'gui.howtos.chat-1-basic-3.step1.title': 'こんどはRubyでおなじプログラムをつくろう！',
-    'gui.howtos.chat-1-basic-3.step2.title': 'ルビータブにきりかえよう',
-    'gui.howtos.chat-1-basic-3.step3.title': '「ルビーをにゅうりょくする」をおして、おてほんをにゅうりょくしよう',
-    'gui.howtos.chat-1-basic-3.step4.title':
-        '★ 2ぎょうめに $そうしんメッセージ = "こんにちは！げんきですか？" をにゅうりょくしよう — $ではじまるへんすうはぜんたいでつかえるよ',
-    'gui.howtos.chat-1-basic-3.step5.title':
-        '★ say("ここをかえるよ") を say($そうしんメッセージ) にかえよう — へんすうであたいをわたすよ',
-    'gui.howtos.chat-1-basic-3.step6.title': '{greenFlag}をおしてじっこうしよう！',
-    'gui.howtos.chat-1-basic-3.step7.title':
-        'だいじなこと：Rubyでも「おくる」「うけとったとき」「へんすう」はおなじかんがえかた',
-    // Chat Tutorial 2 Sprites 1
-    'gui.howtos.chat-2-sprites-1.name': 'ネコとペンギンでかいわしよう',
-    'gui.howtos.chat-2-sprites-1.step1.title': 'ネコとペンギンのかいわ',
-    'gui.howtos.chat-2-sprites-1.step2.title': 'ネコのコードをにゅうりょくする',
-    'gui.howtos.chat-2-sprites-1.step3.title':
-        'だいじなこと：へんすう「じゅしんメッセージ」は「このスプライトのみ」になっています',
-    'gui.howtos.chat-2-sprites-1.step4.title':
-        'だいじなこと：「ネコからのメッセージ」をおくり、「ペンギンからのメッセージ」をうけとる',
-    'gui.howtos.chat-2-sprites-1.step5.title': 'ペンギンのスプライトをついかします',
-    'gui.howtos.chat-2-sprites-1.step6.title': 'ペンギンのいちとむきをちょうせいします',
-    'gui.howtos.chat-2-sprites-1.step7.title':
-        'ペンギンのコードをにゅうりょくするとかんせい。ネコやペンギンをおしてみよう！',
-    // Chat Tutorial 2 Sprites 2
-    'gui.howtos.chat-2-sprites-2.name': 'ネコとペンギンでかいわしよう！Lv2',
-    'gui.howtos.chat-2-sprites-2.step1.title': 'こんどはブロックをじぶんでくみたててみよう！',
-    'gui.howtos.chat-2-sprites-2.step2.title':
-        'ネコ：へんすう「そうしんメッセージ」をつくり、「このスプライトがおされたとき」と「そうしんメッセージを◯◯にする」をはいちしよう',
-    'gui.howtos.chat-2-sprites-2.step3.title':
-        'ネコ：「◯◯と◯びょういう」と★「◯◯をおくる」をついかしよう — はなれたブロックをじっこうできるよ',
-    'gui.howtos.chat-2-sprites-2.step4.title':
-        '★ ネコ：「ペンギンからのメッセージをうけとったとき」をはいちし、へんすう「じゅしんメッセージ」(このスプライトのみ)をつかおう — @へんすうはスプライトせんようだよ',
-    'gui.howtos.chat-2-sprites-2.step5.title': 'ペンギンのスプライトをついかします',
-    'gui.howtos.chat-2-sprites-2.step6.title': 'ペンギンのいちとむきをちょうせいします',
-    'gui.howtos.chat-2-sprites-2.step7.title':
-        '★ ペンギンもおなじこうぞうでブロックをくみたてよう — メッセージめいがネコとぎゃくになるよ',
-    'gui.howtos.chat-2-sprites-2.step8.title': 'ネコやペンギンをおしてじっこう！しゃべるないようもかえてみよう',
-    // Chat Tutorial 2 Sprites 3
-    'gui.howtos.chat-2-sprites-3.name': 'ネコとペンギンでかいわしよう！Lv3',
-    'gui.howtos.chat-2-sprites-3.step1.title': 'こんどはRubyでおなじプログラムをつくろう！',
-    'gui.howtos.chat-2-sprites-3.step2.title': 'ルビータブにきりかえよう',
-    'gui.howtos.chat-2-sprites-3.step3.title':
-        '「ルビーをにゅうりょくする」をおして、ネコのおてほんをにゅうりょくしよう',
-    'gui.howtos.chat-2-sprites-3.step4.title':
-        '★ say("ここをかえるよ", 3) を say(@じゅしんメッセージ, 3) にかえよう — @ではじまるへんすうはこのスプライトだけでつかえるよ',
-    'gui.howtos.chat-2-sprites-3.step5.title': 'ペンギンのスプライトをついかします',
-    'gui.howtos.chat-2-sprites-3.step6.title': 'ペンギンのいちとむきをちょうせいします',
-    'gui.howtos.chat-2-sprites-3.step7.title':
-        'ペンギンのRubyコードを「ルビーをにゅうりょくする」でにゅうりょくしよう — メッセージめいがネコとぎゃくになっているよ',
-    'gui.howtos.chat-2-sprites-3.step8.title': 'ネコやペンギンをおしてじっこうしよう！',
-    // Chat Tutorial 3 Mesh 1
-    'gui.howtos.chat-3-mesh-1.name': 'メッシュでつながろう',
-    'gui.howtos.chat-3-mesh-1.step1.title': 'メッシュかくちょうきのうをつかってほかのひとのスモウルビーとつながろう',
-    'gui.howtos.chat-3-mesh-1.step2.title':
-        '2にんいじょうのグループをつくってメッシュかくちょうきのうをえらぶ（1にんでも2つのスモウルビーをつかえばできる）',
-    'gui.howtos.chat-3-mesh-1.step3.title': '1にんめはホストになる。ほかのひとはメッシュにさんかする',
-    'gui.howtos.chat-3-mesh-1.step4.title': 'スプライトのコスチュームをかえてみよう',
-    'gui.howtos.chat-3-mesh-1.step5.title':
-        'ホストとそれいがいでコードがちがうよ。まずはホストのコードをにゅうりょくする',
-    'gui.howtos.chat-3-mesh-1.step6.title': 'つぎにメッシュにさんかしたひとのコードをにゅうりょくする',
-    'gui.howtos.chat-3-mesh-1.step7.title': 'じぶんのスプライトをおしてメッセージをおくってみよう',
-    'gui.howtos.chat-3-mesh-1.step8.title':
-        'だいじなこと：ほかのひとの「そうしんメッセージ」は「センサーのあたい」でとりだせるよ',
-    'gui.howtos.chat-3-mesh-1.external.kairyudo.name':
-        'かいりゅうどう やってみよう！プログラミング「チャットアプリをせいさくしよう」',
-    // Chat Tutorial 3 Mesh 2
-    'gui.howtos.chat-3-mesh-2.name': 'メッシュでつながろう Lv2',
-    'gui.howtos.chat-3-mesh-2.step1.title':
-        'メッシュかくちょうきのうをつかったかいわプログラムを、ブロックをじぶんでくみたてて つくってみよう',
-    'gui.howtos.chat-3-mesh-2.step2.title': '2にんいじょうのグループをつくってメッシュかくちょうきのうをえらぶ',
-    'gui.howtos.chat-3-mesh-2.step3.title': '1にんめはホストになる。ほかのひとはメッシュにさんかする',
-    'gui.howtos.chat-3-mesh-2.step4.title': 'スプライトのコスチュームをかえてみよう',
-    'gui.howtos.chat-3-mesh-2.step5.title':
-        'ホスト：「このスプライトがおされたとき」にへんすうをセットして「そうしんちゅう...」といい、メッセージをおくるブロックをつくろう',
-    'gui.howtos.chat-3-mesh-2.step6.title':
-        '★ ホスト：「うけとったとき」に「そうしんメッセージのセンサーのあたい」をつかおう — ほかのひとのへんすうはセンサーのあたいでとりだすよ！',
-    'gui.howtos.chat-3-mesh-2.step7.title':
-        '★ メンバーもおなじこうぞうのブロックをつくろう — メッセージのなまえがぎゃくになるよ！',
-    'gui.howtos.chat-3-mesh-2.step8.title':
-        'じぶんのスプライトをおしてじっこう！ほかのひとの「そうしんメッセージ」は「センサーのあたい」でとりだせるよ',
-    // Chat Tutorial 3 Mesh 3
-    'gui.howtos.chat-3-mesh-3.name': 'メッシュでつながろう Lv3',
-    'gui.howtos.chat-3-mesh-3.step1.title':
-        'メッシュかくちょうきのうをつかったかいわプログラムを、Rubyでつくってみよう',
-    'gui.howtos.chat-3-mesh-3.step2.title': '2にんいじょうのグループをつくってメッシュかくちょうきのうをえらぶ',
-    'gui.howtos.chat-3-mesh-3.step3.title': '1にんめはホストになる。ほかのひとはメッシュにさんかする',
-    'gui.howtos.chat-3-mesh-3.step4.title': 'スプライトのコスチュームをかえてみよう',
-    'gui.howtos.chat-3-mesh-3.step5.title':
-        'ルビータブにきりかえて「Rubyコードをそうにゅう」でホストのベースコードをにゅうりょくする',
-    'gui.howtos.chat-3-mesh-3.step6.title':
-        '★ @じゅしんメッセージ = "ここをかえるよ" を @じゅしんメッセージ = mesh.sensor_value("そうしんメッセージ") にかえよう — ほかのひとのへんすうはmesh.sensor_valueでとりだすよ！',
-    'gui.howtos.chat-3-mesh-3.step7.title':
-        'メンバーのコードをにゅうりょくする — メッセージのなまえがぎゃくになるよ！',
-    'gui.howtos.chat-3-mesh-3.step8.title':
-        'じぶんのスプライトをおしてじっこう！ほかのひとの「そうしんメッセージ」は「センサーのあたい」でとりだせるよ',
-    'gui.howtos.chat-3-mesh-3.external.kairyudo.name':
-        'かいりゅうどう やってみよう！プログラミング「チャットアプリをせいさくしよう」',
-    // Ruby Basics 1: putsでけいさんしてみよう
-    'gui.library.rubyBasics': 'Ruby のきほん',
-    ...rubyBasicsHowtos,
     ...lessonsMessages,
     ...activityDiagramMessages,
     'gui.lessonTaskBar.ariaLabel': 'レッスンのかだい',
@@ -1930,6 +1809,38 @@ export default {
     'gui.lessonTaskBar.hint': 'ヒント',
     'gui.lessonTaskBar.another': 'ほかのチャレンジへ',
     'gui.lessonTaskBar.end': 'レッスンをおえる',
+    'gui.lessonTaskBar.partNames': 'ガイド',
+    'gui.lessonPartNames.taskBar': 'かだいバー',
+    'gui.lessonPartNames.hint': 'ヒント',
+    'gui.lessonPartNames.codeTab': 'コードタブ',
+    'gui.lessonPartNames.costumesTab': 'コスチュームタブ',
+    'gui.lessonPartNames.soundsTab': 'おとタブ',
+    'gui.lessonPartNames.rubyTab': 'ルビータブ',
+    'gui.lessonPartNames.greenFlag': 'みどりのはた',
+    'gui.lessonPartNames.stop': 'ていしボタン',
+    'gui.lessonPartNames.palette': 'ブロックパレット',
+    'gui.lessonPartNames.codeArea': 'スクリプトエリア',
+    'gui.lessonPartNames.stage': 'ステージ',
+    'gui.lessonPartNames.spriteList': 'スプライトペイン（スプライトをえらぶところ）',
+    'gui.lessonPartNames.backdrop': 'はいけい',
+    'gui.lessonPartQuiz.title': 'どこでしょう？ {number} / {count}',
+    'gui.lessonPartQuiz.question': '「{name}」は どこ？ クリックしよう',
+    'gui.lessonPartQuiz.correct': 'せいかい！',
+    'gui.lessonPartQuiz.wrong': 'ちがうよ。ひかっている ところを みて、もう いちど',
+    'gui.lessonPartQuiz.done': '{count} もん ぜんぶ せいかい！',
+    'gui.lessonPartQuiz.part.taskBar': 'かだいバー',
+    'gui.lessonPartQuiz.part.hint': 'ヒント',
+    'gui.lessonPartQuiz.part.codeTab': 'コードタブ',
+    'gui.lessonPartQuiz.part.costumesTab': 'コスチュームタブ',
+    'gui.lessonPartQuiz.part.soundsTab': 'おとタブ',
+    'gui.lessonPartQuiz.part.rubyTab': 'ルビータブ',
+    'gui.lessonPartQuiz.part.greenFlag': 'みどりのはた',
+    'gui.lessonPartQuiz.part.stop': 'ていしボタン',
+    'gui.lessonPartQuiz.part.palette': 'ブロックパレット',
+    'gui.lessonPartQuiz.part.codeArea': 'スクリプトエリア',
+    'gui.lessonPartQuiz.part.stage': 'ステージ',
+    'gui.lessonPartQuiz.part.spriteList': 'スプライトペイン',
+    'gui.lessonPartQuiz.part.backdrop': 'はいけい',
     'gui.lessonTaskBar.readDiagram': 'よんでつくる',
     'gui.lessonTaskBar.role': 'あなたの やく',
     'gui.lessonTaskBar.roleShimaraby': 'シマラビの やく',
@@ -1944,13 +1855,16 @@ export default {
     'gui.lessonPracticePartner.receivedHeading': '{name}に とどいた',
     'gui.lessonPracticePartner.variableName': '← {name}',
     'gui.lessonPracticePartner.nothingReceived': '（まだ なにも とどいていない）',
-    'gui.lessonPracticePartner.missingVariable': '「{name}」が まだ から。さきに はたを おして いれよう。',
+    'gui.lessonPracticePartner.missingVariable': '「{name}」が まだ から。さきに みどりのはたを おして いれよう。',
     'gui.lessonPracticePartner.open': 'れんしゅうあいて',
     'gui.lessonHint.ariaLabel': 'ヒント',
     'gui.lessonHint.position': 'ヒント {number} / {count}',
     'gui.lessonHint.prev': 'もどる',
     'gui.lessonHint.next': 'すすめる',
-    'gui.lessonHint.close': 'とじる',
+    'gui.lessonHint.minimize': 'ヒントをちいさくする',
+    'gui.lessonHint.minimizedPosition': 'ヒント {number}/{count}',
+    'gui.lessonHint.restore': 'ヒントをもういちどみる',
+    'gui.lessonHint.nudge': 'ヒントをみてみよう',
     'gui.lessonHint.debugTitle': 'うまくうごかないときは',
     'gui.lessonHint.checkAnswer': 'せいかいのプログラムをかくにんする',
     'gui.lessonHint.checkAnswerConfirm':
@@ -1977,6 +1891,11 @@ export default {
     'gui.lessonsLibrary.tab.dncl': 'にほんご',
     'gui.lessonsLibrary.lessonNumber': 'レッスン {number}',
     'gui.lessonsLibrary.courseProgress': '{completed} / {total}',
+    'gui.lessonsLibrary.lessonProgress': '{completed} / {total}',
+    'gui.lessonsLibrary.openLesson': 'チャレンジを みる',
+    'gui.lessonsLibrary.closeLesson': 'チャレンジを しまう',
+    'gui.lessonsLibrary.openCourse': 'レッスンを みる',
+    'gui.lessonsLibrary.closeCourse': 'レッスンを しまう',
     'gui.lessonsLibrary.done': 'できた',
     'gui.lessonsLibrary.next': 'つぎはこれ！',
     'gui.lessonsLibrary.required': 'ひっす',
@@ -1999,22 +1918,11 @@ export default {
     'gui.lessonsLibrary.category.variables': 'へんすう',
     'gui.lessonsLibrary.category.lists': 'リスト',
     'gui.lessonsLibrary.category.extensions': 'かくちょうきのう',
-    ...blockSeriesHowtos,
-    ...dnclHowtos,
     // Mesh tag
     'gui.libraryTags.mesh': 'メッシュ',
-    'gui.cards.insert-ruby': 'ルビーをにゅうりょくする',
-    'gui.cards.insert-blocks': 'コードをにゅうりょくする',
-    'gui.cards.start-tutorial': 'チュートリアルをはじめる',
-    'gui.cards.open-external-link': 'がいぶサイトをひらく',
     'gui.libraryTags.ruby': 'ルビー',
     'gui.libraryTags.firstTime': 'はじめて',
     'gui.libraryCategories.gettingStarted': 'はじめましょう',
-    'gui.library.blockBasics': 'ブロックのきほん：はじめてのそうさ',
-    'gui.library.blockGames': 'ブロックでゲーム：シューティング',
-    'gui.library.meshStep1': 'つうしんにゅうもん ① メッセージをおくってみよう',
-    'gui.library.meshStep2': 'つうしんにゅうもん ② ふたりでかいわしよう',
-    'gui.library.meshStep3': 'つうしんにゅうもん ③ みんなでかいわしよう (メッシュ)',
     'gui.menuBar.updateTooltip': 'あたらしいスモウルビーをつかってみよう！',
     'gui.menuBar.updateConfirm':
         'あたらしいバージョンのスモウルビーがりようかのうです。いますぐこうしんするばあいは「OK」を、あとにするばあいは「キャンセル」をおしてください。',

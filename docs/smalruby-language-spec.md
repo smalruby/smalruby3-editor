@@ -406,6 +406,18 @@ greet("hello")
 - Method overloading is not supported
 - Recursion is not supported
 
+**Run without screen refresh**: "Run without screen refresh" of a custom block is written `without_screen_refresh` before `def` (the same form as `private def foo`). Without it, the custom block refreshes the screen as usual.
+
+```ruby
+without_screen_refresh def learn(n)
+  n.times do
+    @length += 1
+  end
+end
+```
+
+**Custom block names that cannot be method names**: a name that starts with a digit ("1 pick letter") or is a reserved word of Ruby (`end`, `if`, ...) gets `_` in front in Ruby (`def _1_pick_letter`, called as `_1_pick_letter`). Back in the blocks the `_` is taken off ("1_pick_letter"). `_1` to `_9` are the numbered parameters of Ruby blocks, so a name that is one digit gets `__` ("1" is `__1`). A name of the same form that already starts with `_` ("_1x", "_end") gets one more `_` (`__1x`, `__end`). A space in a name becomes `_` (it stays `_` in the blocks).
+
 ### Return Values
 
 ```ruby
@@ -665,6 +677,7 @@ stage.variable("$var")
 | Method | Description | Example |
 |---|---|---|
 | `rand(range)` | Random number | `rand(1..10)` |
+| `rand(n)` | Random integer from 0 to n - 1 (n is an integer of 1 or more; the block is "pick random 0 to n - 1") | `rand(10)` |
 | `value.round` | Round | `3.7.round` |
 | `value.abs` | Absolute value | `(-5).abs` |
 | `value.floor` | Floor | `3.7.floor` |
@@ -739,6 +752,8 @@ show_list("@items")            # Show list
 hide_list("@items")            # Hide list
 say(@items)                    # Pass the list itself (the list reporter block) as a value
 ```
+
+A number counted from 1 in the blocks ("item (k) of (list)", "letter (k) of (string)") is written `@items[@k - 1]` / `@s[@k - 1]` in Ruby. When the index is `expression - 1` (the integer `1` subtracted from an expression), it comes back to the blocks as "item (expression) of" (`@items[@k - 1]` is "item (k)", `@items[rand(1..@n) - 1]` is "item (pick random 1 to n)"). It is the same for `[]` / `[]=` / `insert` / `delete_at`. Other indexes (`@items[@k]`, `@items[@k - 2]`, `@items[3 - 1]`) become "item (index + 1)".
 
 One name cannot be both a variable and a list (Scratch can have a variable and a list of the same name, but Ruby has one `@a`). Using a name as both, like `@a = 0` and `@a = []`, is an error that tells the lines when the code is turned into blocks. Only reading a list as a value (`say(@a)` after `@a = []`) is not an error. `length` / `include?` / `empty?` / `[i]` of a variable set to a string become string blocks and make no list. `index` has no string block, so `@a.index("x")` of a name set only to strings is an error that tells the line and says a string has no block for it (not the list error). When the code is rewritten from a list to a variable (`@a = []` → `@a = 0`), the list that the sprite (or the stage) already has stays, and the variable is made beside it: a list that this code does not use is not an error.
 

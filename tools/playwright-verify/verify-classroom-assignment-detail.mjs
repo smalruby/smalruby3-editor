@@ -12,6 +12,11 @@
 //   PREFIX=before node verify-classroom-assignment-detail.mjs   # name the tmp/ shots
 //   LOCALE=ja-Hira node verify-classroom-assignment-detail.mjs  # docs shots only with ja
 //
+// And the「✕ ＋ 見出し」row (#2089): ✕ of the create screen goes back to［授業］; the
+// detail's row holds ✕・name・join code (and［課題を保存］on the description tab); with
+// an unsaved change ✕ asks「変更を破棄しますか？」, and［破棄］goes back to［授業］with the
+// assignment's row open.
+//
 // Also the［⛶ 映す］screen (#1961): at 1300x600 and 1920x1080 the join code and all
 // 40 seats are inside the viewport, nothing scrolls, no student name is shown, and
 // Esc goes back. And the seat detail: ［返却］is the main button and is visible.
@@ -193,8 +198,14 @@ try {
     const meshAsked = !!(await page.$(tid('classroom-board-create-mesh-group-limit')));
     record('create screen (C1)', !meshAsked && m.bottom !== null && m.bottom <= m.vh && m.pageOk && m.bodyOk, `${describe(m)} meshField=${meshAsked}`);
     await shot('create', '0226-board-create-assignment.png');
-    await page.locator(tid('classroom-board-create-cancel')).click();
+    // #2089: ✕ of the create screen goes back to the assignments.
+    await page.locator(tid('classroom-close-row-close')).click();
     await page.waitForTimeout(300);
+    record(
+        'create screen: ✕ goes back to［授業］(#2089)',
+        !(await page.$(tid('classroom-board-create-view'))) && !!(await page.$(tid('classroom-board-list'))),
+        '',
+    );
 
     // Members tab (D1・D2・D3), far deadline.
     await openDetail('c1');
@@ -202,6 +213,26 @@ try {
     const red = await page.$(tid('classroom-retention-banner'));
     record('members tab (D1〜D3)', !red && m.bottom !== null && m.bottom <= m.vh && m.pageOk && m.bodyOk, `more-menu ${describe(m)} redBanner=${!!red}`);
     await shot('members', '0204-teacher-detail.png');
+    // #2089: the row on top of the detail: ✕・name・join code in one line.
+    {
+        const row = await page.evaluate(() => {
+            const q = (id) => document.querySelector(`[data-testid="${id}"]`);
+            const r = q('classroom-close-row');
+            const box = r && r.getBoundingClientRect();
+            return {
+                height: box ? Math.round(box.height) : null,
+                top: box ? Math.round(box.top) : null,
+                close: q('classroom-close-row-close')?.getAttribute('aria-label') ?? null,
+                name: !!(r && r.contains(q('classroom-detail-assignment-name'))),
+                code: !!(r && r.contains(q('classroom-detail-join-code'))),
+            };
+        });
+        record(
+            'detail: ✕ row with the name and the join code (#2089)',
+            row.close && row.name && row.code && row.height !== null && row.height <= 60,
+            JSON.stringify(row),
+        );
+    }
     if (await page.$(tid('classroom-detail-more-menu'))) {
         await page.locator(tid('classroom-detail-more-menu')).click();
         await page.waitForTimeout(300);
@@ -405,15 +436,77 @@ try {
         record('Escape closes the advanced panel only', panelGone && modalOpen, `panelGone=${panelGone} modalOpen=${modalOpen}`);
     }
 
+    // #2089: the peer view was changed and not saved — ✕ asks first.
+    const inRow = await page.evaluate(() => {
+        const r = document.querySelector('[data-testid="classroom-close-row"]');
+        return !!(r && r.contains(document.querySelector('[data-testid="classroom-assignment-save"]')));
+    });
+    record('description tab:［課題を保存］is in the ✕ row (#2089)', inRow, '');
+    await page.locator(tid('classroom-close-row-close')).click();
+    await page.waitForTimeout(300);
+    {
+        const ask = await page.evaluate(() => {
+            const q = (id) => document.querySelector(`[data-testid="${id}"]`);
+            const box = q('classroom-close-row-discard')?.getBoundingClientRect();
+            return {
+                message: q('classroom-close-row-discard-message')?.textContent ?? null,
+                bottom: box ? Math.round(box.bottom) : null,
+                stillDetail: !!q('classroom-phase-teacher-detail'),
+            };
+        });
+        record(
+            'unsaved change: ✕ asks to discard (#2089)',
+            !!ask.message && ask.stillDetail && ask.bottom !== null && ask.bottom <= 600,
+            JSON.stringify(ask),
+        );
+    }
+    await shot('close-discard', '0263-detail-close-discard.png');
+    await page.locator(tid('classroom-close-row-discard-cancel')).click();
+    await page.waitForTimeout(200);
+    record(
+        '［キャンセル］stays on the detail (#2089)',
+        !!(await page.$(tid('classroom-phase-teacher-detail'))) && !(await page.$(tid('classroom-close-row-discard-message'))),
+        '',
+    );
+    await page.locator(tid('classroom-close-row-close')).click();
+    await page.waitForTimeout(200);
+    await page.locator(tid('classroom-close-row-discard')).click();
+    await page.waitForSelector(tid('classroom-board'), { timeout: 20000 });
+    await page.waitForTimeout(800);
+    {
+        const back = await page.evaluate(() => {
+            const q = (id) => document.querySelector(`[data-testid="${id}"]`);
+            return {
+                classwork: q('classroom-board-tab-classwork')?.getAttribute('aria-selected'),
+                rowOpen: q('classroom-board-row-toggle-c1')?.getAttribute('aria-expanded'),
+                detail: !!q('classroom-board-row-detail-c1'),
+            };
+        });
+        record(
+            '［破棄］goes back to［授業］with the row open (#2089)',
+            back.classwork === 'true' && back.rowOpen === 'true' && back.detail,
+            JSON.stringify(back),
+        );
+    }
+    await shot('back-row-open', null);
+
     // Near deadline: red only within 7 days (D1 / R4).
-    await backToBoard();
     await openDetail('c2');
     const urgent = await page.$(tid('classroom-retention-banner'));
     record('near deadline is red (D1)', !!urgent, '');
     await shot('members-urgent', '0214-detail-retention-banner.png');
 
+    // #2089: nothing unsaved — ✕ goes back at once, with c2's row open.
+    await page.locator(tid('classroom-close-row-close')).click();
+    await page.waitForSelector(tid('classroom-board'), { timeout: 20000 });
+    await page.waitForTimeout(500);
+    record(
+        'no unsaved change: ✕ goes back at once (#2089)',
+        (await page.getAttribute(tid('classroom-board-row-toggle-c2'), 'aria-expanded')) === 'true',
+        '',
+    );
+
     // Empty description (E3).
-    await backToBoard();
     await openDetail('c3');
     await page.locator(tid('classroom-tab-description')).click();
     await page.waitForTimeout(800);

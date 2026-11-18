@@ -1,0 +1,34 @@
+@import '../../css/colors.css';
+
+/*
+    画面全体に重ねるが、pointer-events を通す（出したままでもドラッグ・クリックを邪魔しない）。
+    ヒントの吹き出し（$z-index-tooltip）と課題バー（$z-index-menu-bar）より下に描く（吹き出しを読みながら操作するため）。
+    札の置き場所は、吹き出しと練習相手のパネルをよけて決める（lib/lessons/part-names.js）
+*/
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 489;
+    pointer-events: none;
+}
+
+/* 部分を囲む枠。中が見えるよう、線だけ */
+.frame {
+    position: fixed;
+    box-sizing: border-box;
+    border: 2px dashed $data-primary;
+    border-radius: 0.25rem;
+}
+
+.label {
+    position: fixed;
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.75rem;
+    background-color: $data-primary;
+    color: $ui-white;
+    font-size: 0.875rem;
+    font-weight: bold;
+    line-height: 1.3;
+    white-space: nowrap;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}

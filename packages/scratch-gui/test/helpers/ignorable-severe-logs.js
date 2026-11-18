@@ -30,6 +30,11 @@
  *    （同じ手順でも毎回は出ない）。ドロップダウンが預かったフォーカスを返す `setTimeout` の
  *    `focusNode` から投げられており、Smalruby のコードは呼び出し経路に無いので Smalruby 側では
  *    直さない（#1499 で調査。upstream の scratch-blocks の更新を待つ）。動作には影響しない。
+ * 8. チュートリアルの一覧（`TipsLibrary`）の `LibraryItem` の `id` が `undefined` という propTypes の警告。
+ *    upstream の隠しチュートリアル（`wedo2-getting-started`・`ev3-getting-started`・`whats-new`）に
+ *    画像（`img`）が無く、`LibraryComponent#constructKey` が `undefined` を返すため。チュートリアルは
+ *    upstream のまま使う方針なので Smalruby 側では直さない。隠しチュートリアルは一覧に出ないので動作には
+ *    影響しない。`TipsLibrary` の中の警告だけを除く。
  *
  * ここが「既知の無害なログ」の唯一の一覧。各テストに同じ判定をコピーしないこと。
  * @param {string} message ブラウザログのメッセージ。
@@ -53,7 +58,9 @@ const isIgnorableSevereLog = (message) =>
     (/\[@formatjs\/intl Error MISSING_TRANSLATION\]/.test(message) &&
         !/for locale \\?"ja(?:-Hira)?\\?"/.test(message)) ||
     /WebSocket connection to 'wss:\/\/fake\.fake\/' failed/.test(message) ||
-    /Uncaught Error: Attempted to focus unregistered node/.test(message);
+    /Uncaught Error: Attempted to focus unregistered node/.test(message) ||
+    (/The prop `id` is marked as required in `LibraryItem`, but its value is `undefined`/.test(message) &&
+        /at TipsLibrary /.test(message));
 
 /**
  * ログのレベルを名前 (`'SEVERE'` など) にそろえる。

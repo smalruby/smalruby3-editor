@@ -21,6 +21,7 @@ import React from 'react';
 import styles from './classroom-modal.css';
 import ErrorDisplay from './error-display.jsx';
 import TeacherBreadcrumbs from './teacher-breadcrumbs.jsx';
+import TeacherCloseRow from './teacher-close-row.jsx';
 
 const breadcrumbItemsShape = PropTypes.arrayOf(
     PropTypes.shape({
@@ -70,17 +71,22 @@ TeacherScreen.propTypes = {
     title: PropTypes.node,
 };
 
-/* パネル内サブ画面。`as="form"` にすると `<form>` として描画し `onSubmit` を通す。 */
+/* パネル内サブ画面。`as="form"` にすると `<form>` として描画し `onSubmit` を通す。
+   `onClose` を渡すと、タイトルは「✕ ＋ 見出し」の行（`TeacherCloseRow`・#2089）になる。 */
 export const TeacherSubView = ({
     as = 'div',
     children,
     className,
+    closeLabel,
     error,
     errorTitle,
     footer,
     hint,
     testId,
     title,
+    titleEnd,
+    unsaved,
+    onClose,
     onSubmit,
 }) => {
     const Container = as;
@@ -88,7 +94,13 @@ export const TeacherSubView = ({
     const submitProps = as === 'form' ? { onSubmit } : {};
     return (
         <Container className={className || styles.panelInnerView} data-testid={testId} {...submitProps}>
-            {title ? <div className={styles.phaseTitle}>{title}</div> : null}
+            {onClose ? (
+                <TeacherCloseRow closeLabel={closeLabel} title={title} unsaved={unsaved} onClose={onClose}>
+                    {titleEnd}
+                </TeacherCloseRow>
+            ) : title ? (
+                <div className={styles.phaseTitle}>{title}</div>
+            ) : null}
             {/* サブ画面の説明文は .sub-view-hint (旧 .post-assignment-hint)。
                 トップレベル画面の .teacher-view-hint とは色・サイズが違う。 */}
             {hint ? <p className={styles.subViewHint}>{hint}</p> : null}
@@ -103,6 +115,8 @@ TeacherSubView.propTypes = {
     as: PropTypes.oneOf(['div', 'form']),
     children: PropTypes.node,
     className: PropTypes.string,
+    /** ✕ の名前（行き先。「課題一覧に戻る」など）。`onClose` と対で渡す。 */
+    closeLabel: PropTypes.string,
     error: PropTypes.string,
     errorTitle: PropTypes.string,
     /** セカンダリ左・プライマリ右で並べるボタン行。 */
@@ -110,5 +124,11 @@ TeacherSubView.propTypes = {
     hint: PropTypes.node,
     testId: PropTypes.string,
     title: PropTypes.node,
+    /** ✕ の行の右端に置くもの。 */
+    titleEnd: PropTypes.node,
+    /** 保存していない変更がある: ✕ は先に破棄してよいか聞く。 */
+    unsaved: PropTypes.bool,
+    /** ✕ で戻る先。渡すとタイトルが ✕ の行になる。 */
+    onClose: PropTypes.func,
     onSubmit: PropTypes.func,
 };

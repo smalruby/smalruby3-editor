@@ -98,9 +98,6 @@ body .card-container {
     box-shadow: 0px 5px 25px 5px $ui-black-transparent;
     align-items: center;
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-    /* === Smalruby: Start of tutorial card layout === */
-    max-width: 500px;
-    /* === Smalruby: End of tutorial card layout === */
 }
 
 .header-buttons {
@@ -162,11 +159,6 @@ body .card-container {
     text-align: center;
     font-weight: bold;
     color: $text-primary;
-    /* === Smalruby: Start of tutorial card layout === */
-    /* wrap long Japanese titles instead of widening the card */
-    word-break: break-word;
-    overflow-wrap: break-word;
-    /* === Smalruby: End of tutorial card layout === */
 }
 
 .step-body {
@@ -187,16 +179,9 @@ body .card-container {
     height: 256px;
 }
 
-/* === Smalruby: Start of insert-code button overlay === */
-.step-image-container {
-    position: relative;
-    display: flex;
-    justify-content: center;
-}
-
 .step-image {
-    max-width: 480px;
-    max-height: 360px;
+    max-width: 450px;
+    max-height: 200px;
     object-fit: contain;
     background: #F9F9F9;
     border: 1px solid #ddd;
@@ -204,14 +189,6 @@ body .card-container {
     overflow: hidden;
     margin: 0 0.5rem 0.5rem;
 }
-
-.insert-code-button-overlay {
-    position: absolute;
-    bottom: 0.75rem;
-    left: 50%;
-    transform: translateX(-50%);
-}
-/* === Smalruby: End of insert-code button overlay === */
 
 .decks, .resources {
     display: flex;
@@ -311,16 +288,13 @@ body .card-container {
     align-items: center;
 }
 
-/* === Smalruby: Start of step pip selector === */
-/* upstream: .inactiveStepPip (mixed-case class name in a kebab-case file) */
-.active-step-pip, .inactive-step-pip {
+.active-step-pip, .inactiveStepPip {
     width: 0.5rem;
     height: 0.5rem;
     margin: 0 0.25rem;
     border-radius: 100%;
     background: $ui-white-transparent;
 }
-/* === Smalruby: End of step pip selector === */
 
 .active-step-pip {
     background: $ui-white;
@@ -330,72 +304,3 @@ body .card-container {
 .hidden {
     display: none;
 }
-
-/* === Smalruby: Start of tutorial insert-code button === */
-/* Insert Code Button */
-.insert-code-button {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-top: 0.75rem;
-    padding: 0.5rem 1rem;
-    /* Darker green (#0B8E69) so the white label reaches 4.15:1 (#0DA57A was
-       3.14:1), and a bold label. Quick fix only: EPIC #1935 brings the
-       tutorial back to upstream and reverts this (#1933 Q4). */
-    background-color: $extensions-tertiary;
-    color: $ui-white;
-    border: none;
-    border-radius: 0.25rem;
-    font-size: 0.875rem;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-    white-space: nowrap;
-}
-
-.insert-code-button:hover {
-    background-color: $ui-green;
-}
-
-.insert-code-button .code-icon {
-    width: 1rem;
-    height: 1rem;
-    filter: brightness(0) invert(1);
-}
-/* === Smalruby: End of tutorial insert-code button === */
-
-/* === Smalruby: Start of tutorial glow animation === */
-/* Glow animation for tutorial hints */
-@keyframes glow-pulse-next {
-    0%, 100% {
-        box-shadow: 0 0 0 4px $extensions-transparent;
-    }
-    50% {
-        box-shadow: 0 0 14px 8px rgba(255, 220, 50, 0.85);
-    }
-}
-
-@keyframes glow-pulse-button {
-    0%, 100% {
-        box-shadow: none;
-    }
-    50% {
-        box-shadow: 0 0 14px 8px rgba(255, 220, 50, 0.85);
-    }
-}
-
-
-.left-button-glow {
-    animation: glow-pulse-next 1s ease-in-out infinite;
-}
-
-.right-button-glow {
-    animation: glow-pulse-next 1s ease-in-out infinite;
-}
-
-.insert-code-button-glow {
-    animation: glow-pulse-button 1s ease-in-out infinite;
-}
-/* === Smalruby: End of tutorial glow animation === */
-

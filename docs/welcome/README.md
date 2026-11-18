@@ -73,7 +73,7 @@ SP では `useIsNarrowScreen` で narrow 判定し、レイアウトを切り替
 
 ![About メニュー](screenshots/0201-about-menu-desktop.png)
 
-メニューバー右側の「ⓘ」アイコンから「スモウルビーについて」「ウェルカムをもう一度見る」にアクセスできる。
+メニューバー右端の「?」メニューに「ウェルカムをもう一度見る」「スモウルビーについて」がある（ほかの項目と並びは [`docs/menu-bar/`](../menu-bar/) の「「?」メニュー（ヘルプ）」）。
 
 ### MobileDrawer ヘルプセクション (SP)
 

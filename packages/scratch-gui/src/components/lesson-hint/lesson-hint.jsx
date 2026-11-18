@@ -8,6 +8,8 @@
 // ヘッダー（色の帯）をドラッグすると吹き出しを動かせる（マウス・タッチ。Pointer Events）。動かした位置は
 // ページを進めても保ち（じゃまだから動かした場所に、また戻ってこないように）、吹き出しを閉じると元の置き方に戻る。
 // 動かしたあとは指す場所から離れるので、しっぽは消す（スポットライトは指す場所を照らし続ける）。
+// ヘッダーの「－」は閉じずに小さくする（onClose。課題バーの近くに札が残り、押すと同じページで元にもどる・
+// lesson-hint-minimized.jsx）。子どもはヒントを読んで操作するときに閉じてしまい、手順を見失っていたため。
 // 枠・しっぽ・ヘッダー・ボタンの見た目は共通の吹き出し（components/balloon）を使う。
 // document.body に portal で出す（エディタの列のレイアウトに影響しない）。
 import PropTypes from 'prop-types';
@@ -68,10 +70,12 @@ const messages = defineMessages({
         description: 'Button that goes on to the next hint',
         defaultMessage: 'Next',
     },
-    close: {
-        id: 'gui.lessonHint.close',
-        description: 'Button that closes the hint balloon',
-        defaultMessage: 'Close',
+    minimize: {
+        id: 'gui.lessonHint.minimize',
+        description:
+            'Button in the header of the hint balloon that makes the balloon small (a small tag stays near the ' +
+            'lesson task bar, and pressing it shows the same hint page again)',
+        defaultMessage: 'Make the hint small',
     },
     debugTitle: {
         id: 'gui.lessonHint.debugTitle',
@@ -393,7 +397,9 @@ const LessonHint = ({
                     data-testid="lesson-hint-drag-handle"
                     title={intl.formatMessage(messages.dragLabel)}
                     onPointerDown={onPointerDown}
-                    closeLabel={intl.formatMessage(messages.close)}
+                    // 閉じずに小さくする（data-testid は前の「閉じる」のまま。押すと札が残る）
+                    closeIcon="－"
+                    closeLabel={intl.formatMessage(messages.minimize)}
                     closeTestId="lesson-hint-close"
                     onClose={onClose}
                 >
@@ -557,6 +563,7 @@ LessonHint.propTypes = {
     mediaPath: PropTypes.string,
     // 文言の下に添える一言（message descriptor）。読んで作るチャレンジの 1 ページ目の「答えは最後のページ」など
     note: PropTypes.object,
+    // ヘッダーの「－」で小さくする（reducers/lesson-mode.js の hideHint）
     onClose: PropTypes.func.isRequired,
     // 「おわり」で閉じる（無ければ onClose）
     onFinish: PropTypes.func,
@@ -570,4 +577,5 @@ LessonHint.propTypes = {
     title: PropTypes.object,
 };
 
+export { messages as lessonHintMessages };
 export default LessonHint;

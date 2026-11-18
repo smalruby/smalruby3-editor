@@ -16,7 +16,8 @@ Smalruby の Web フロントエンドを AWS（Route 53 / 今後 S3 + CloudFron
 - **プレビュー用の資源は stg ステージだけに作る**。`Deploy Infra` は develop へのマージで prod にも
   出すので、prod と stg2 などにはプレビュー用の資源を作らない（`if (stage !== 'stg') return`）。
   同じ名前のゾーンが複数あると、どれが委任先か分からなくなる。この分岐を外さない。
-- **prod には本番 smalruby.app の配信基盤だけを作る**（`createSiteDelivery()`。計画は
+- **prod には本番 smalruby.app の配信基盤とホストゾーン `smalruby.app` だけを作る**（`createSiteDelivery()` /
+  `createSiteZone()`。計画は
   `docs/hosting/README.md`）。本番は GitHub Pages から切り替える途中なので、**本番の DNS・配信の向き先を
   変える差分（apex のレコード、`smalruby.app` の代替ドメインなど）は、人間が夜間（21:00〜7:00）に
   マージする PR に分ける**。本番のバケットは**いまの版を期限で消さない**（プレビューのライフサイクルを
@@ -25,7 +26,11 @@ Smalruby の Web フロントエンドを AWS（Route 53 / 今後 S3 + CloudFron
   お名前.com に登録した委任（NS 4 本）と食い違って `preview.smalruby.app` が引けなくなる。
   このプロジェクトの RETAIN は「データ」ではなく「AWS の外に登録した値」を守るためのもの
   （`.claude/rules/infra/development.md` の「データ保持」）。
-- **ゾーンを作り直さない**。論理 ID（`PreviewHostedZone`）の変更・コンストラクトの移動・スタック名の
+- **ホストゾーン `smalruby.app`（prod）も `RemovalPolicy.RETAIN`**。レコードの値は
+  `lib/site-zone-records.ts` にまとめ、**お名前.com と同じ値**にする（ネームサーバーを変えた瞬間に答えが
+  変わらないように。apex の A の TTL だけ 300）。`_github-pages-challenge-smalruby` の TXT は消さない。
+  照合は `scripts/hosting/dns-compare.mjs`。
+- **ゾーンを作り直さない**。論理 ID（`PreviewHostedZone` / `SiteHostedZone`）の変更・コンストラクトの移動・スタック名の
   変更は、CloudFormation から見ると「削除 + 新規作成」になる。RETAIN なので古いゾーンは残り、
   **同名の 2 つ目のゾーン（別の NS）が黙ってできる**（Route 53 は同名ゾーンを許す）。
   レビューでは、ゾーンの論理 ID・スタック名・`zoneName` が変わる差分を **[Must]** で止める。

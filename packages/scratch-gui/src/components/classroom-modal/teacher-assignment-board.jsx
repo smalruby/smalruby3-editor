@@ -29,6 +29,7 @@ import { breadcrumbMessages } from './teacher-breadcrumbs.jsx';
 import { yearSectionLine } from './teacher-class-card.jsx';
 import { ClassSettingsForm } from './teacher-class-list.jsx';
 import TeacherClassTabs, { classTabMessages } from './teacher-class-tabs.jsx';
+import { closeRowMessages } from './teacher-close-row.jsx';
 import TeacherPasscodeImport from './teacher-passcode-import.jsx';
 import TeacherShareStep from './teacher-share-step.jsx';
 import { TeacherScreen, TeacherSubView } from './teacher-view-layout.jsx';
@@ -1032,6 +1033,7 @@ const TeacherAssignmentBoard = ({
     error,
     errorTitle,
     group,
+    initialOpenId,
     initialTab,
     isLoading,
     onCreateAssignmentInClass,
@@ -1042,6 +1044,7 @@ const TeacherAssignmentBoard = ({
     onSelectClassroom,
     onShowClassList,
     onShowGrading,
+    onInitialOpenUsed,
     onTabChange,
     onUpdateAssignmentMeta,
     onUpdateGroup,
@@ -1228,7 +1231,10 @@ const TeacherAssignmentBoard = ({
 
     // Accordion (B7): one open row at a time. Its counts and description are
     // loaded when it opens (not with the list) and kept for this board.
-    const [openId, setOpenId] = useState(null);
+    // The ✕ of the assignment detail comes back with that assignment's row open (#2089).
+    const [openId, setOpenId] = useState(
+        initialOpenId && classrooms.some((c) => c.classroomId === initialOpenId) ? initialOpenId : null,
+    );
     const [summaries, setSummaries] = useState({});
     const summariesRef = useRef(summaries);
     summariesRef.current = summaries;
@@ -1297,6 +1303,18 @@ const TeacherAssignmentBoard = ({
         if (el && typeof el.scrollIntoView === 'function') el.scrollIntoView({ block: 'nearest' });
         setScrollTargetId(null);
     }, [scrollTargetId]);
+    // Once on mount: load the reopened row's counts, bring it into view and tell the
+    // parent it was used (so the next visit from elsewhere does not open it again).
+    useEffect(() => {
+        if (!initialOpenId) return;
+        const classroom = classrooms.find((c) => c.classroomId === initialOpenId);
+        if (classroom) {
+            ensureSummary(classroom);
+            setScrollTargetId(`classroom-board-row-${initialOpenId}`);
+        }
+        if (onInitialOpenUsed) onInitialOpenUsed();
+        // Mount only: the row is opened once, not again when the props change.
+    }, []);
     const handleRenameTopic = useCallback(
         (name, to) => onUpdateGroupTopics(group.groupId, { action: 'rename', name, to }),
         [onUpdateGroupTopics, group.groupId],
@@ -1381,7 +1399,11 @@ const TeacherAssignmentBoard = ({
                 errorTitle={errorTitle}
                 testId="classroom-board-settings-view"
             >
-                <TeacherSubView title={formatClassLabel(group)}>
+                <TeacherSubView
+                    closeLabel={intl.formatMessage(closeRowMessages.backToClass)}
+                    title={intl.formatMessage(classTabMessages.settings)}
+                    onClose={handleCloseSettings}
+                >
                     <ClassSettingsForm
                         group={group}
                         isLoading={isLoading || archiving}
@@ -1680,6 +1702,7 @@ const TeacherAssignmentBoard = ({
                             </ClassroomButton>
                         </>
                     }
+                    closeLabel={intl.formatMessage(closeRowMessages.backToAssignments)}
                     testId="classroom-board-create-view"
                     title={
                         createLesson ? (
@@ -1696,6 +1719,7 @@ const TeacherAssignmentBoard = ({
                             />
                         )
                     }
+                    onClose={handleToggleInlineCreate}
                     onSubmit={handleSubmitInlineCreate}
                 >
                     <div className={styles.formGroup}>
@@ -1745,6 +1769,7 @@ const TeacherAssignmentBoard = ({
                             id="gui.classroom.board.reuseHint"
                         />
                     }
+                    closeLabel={intl.formatMessage(closeRowMessages.backToAssignments)}
                     testId="classroom-board-reuse-view"
                     title={
                         <FormattedMessage
@@ -1753,6 +1778,7 @@ const TeacherAssignmentBoard = ({
                             id="gui.classroom.board.reuse"
                         />
                     }
+                    onClose={handleToggleReuse}
                 >
                     <div className={styles.formGroup}>
                         <select
@@ -1933,6 +1959,8 @@ TeacherAssignmentBoard.propTypes = {
     error: PropTypes.string,
     errorTitle: PropTypes.string,
     group: PropTypes.object.isRequired,
+    /** The assignment row to open when the board mounts (back from its detail with ✕). */
+    initialOpenId: PropTypes.string,
     initialTab: PropTypes.oneOf(['stream', 'classwork']),
     isLoading: PropTypes.bool,
     onCreateAssignmentInClass: PropTypes.func.isRequired,
@@ -1944,6 +1972,8 @@ TeacherAssignmentBoard.propTypes = {
     onShowClassList: PropTypes.func.isRequired,
     /** ［採点］のタブ。このクラスの採点の画面を開く。 */
     onShowGrading: PropTypes.func,
+    /** Called once the row of `initialOpenId` was opened. */
+    onInitialOpenUsed: PropTypes.func,
     onTabChange: PropTypes.func,
     onUpdateAssignmentMeta: PropTypes.func.isRequired,
     /** ［⚙ クラスの設定］で保存する。渡さなければボタンを出さない。 */

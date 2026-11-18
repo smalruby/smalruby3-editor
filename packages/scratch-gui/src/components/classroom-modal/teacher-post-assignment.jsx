@@ -1,10 +1,11 @@
 import PropTypes from 'prop-types';
 import React, { useCallback, useState } from 'react';
-import { FormattedMessage } from 'react-intl';
+import { FormattedMessage, useIntl } from 'react-intl';
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
 import googleClassroomIcon from '../classroom-teacher-modal/google-classroom-icon.png';
 import styles from './classroom-modal.css';
 import ErrorDisplay from './error-display.jsx';
+import TeacherCloseRow, { closeRowMessages } from './teacher-close-row.jsx';
 
 const TeacherPostAssignment = ({
     error,
@@ -15,6 +16,7 @@ const TeacherPostAssignment = ({
     onBack,
     onPostAssignment,
 }) => {
+    const intl = useIntl();
     const defaultTitle = selectedClassroom?.assignmentName || '';
     const [title, setTitle] = useState(defaultTitle);
     const [description, setDescription] = useState('');
@@ -47,18 +49,33 @@ const TeacherPostAssignment = ({
 
     return (
         <div className={styles.postAssignmentContainer} data-testid="classroom-phase-teacher-post-assignment">
+            {/* 「✕ ＋ 見出し」の行（#2089）: ✕ で開いた元の課題詳細へ戻る（［キャンセル］と同じ）。 */}
+            <TeacherCloseRow
+                closeLabel={intl.formatMessage(closeRowMessages.backToAssignment)}
+                title={
+                    posted ? (
+                        <span className={styles.postAssignmentSuccessTitle}>
+                            {'✓ '}
+                            <FormattedMessage
+                                defaultMessage="Assignment posted!"
+                                description="Assignment posted successfully"
+                                id="gui.classroom.postAssignment.success"
+                            />
+                        </span>
+                    ) : (
+                        <FormattedMessage
+                            defaultMessage="Post assignment to Google Classroom"
+                            description="Post assignment page title"
+                            id="gui.classroom.postAssignment.pageTitle"
+                        />
+                    )
+                }
+                onClose={onBack}
+            />
             {posted ? (
                 // 配信後: タイトル(成功) + ヒント + フッター（左=戻る / 右=確認）。
                 // 基本レイアウト（プライマリー右下・キャンセル左下）に揃える。
                 <div data-testid="classroom-post-assignment-success">
-                    <div className={styles.postAssignmentSuccessTitle}>
-                        {'✓ '}
-                        <FormattedMessage
-                            defaultMessage="Assignment posted!"
-                            description="Assignment posted successfully"
-                            id="gui.classroom.postAssignment.success"
-                        />
-                    </div>
                     <p className={styles.subViewHint}>
                         <FormattedMessage
                             defaultMessage="You can edit or delete this assignment on Google Classroom."
@@ -99,13 +116,6 @@ const TeacherPostAssignment = ({
                 </div>
             ) : (
                 <>
-                    <div className={styles.phaseTitle}>
-                        <FormattedMessage
-                            defaultMessage="Post assignment to Google Classroom"
-                            description="Post assignment page title"
-                            id="gui.classroom.postAssignment.pageTitle"
-                        />
-                    </div>
                     {/* クラス名（対象ラベルなし・課題詳細と同じ表記） */}
                     <div className={styles.postAssignmentTarget}>{targetLabel}</div>
                     <div className={styles.formGroup}>
@@ -191,7 +201,7 @@ TeacherPostAssignment.propTypes = {
         section: PropTypes.string,
     }),
     isLoading: PropTypes.bool,
-    onBack: PropTypes.func,
+    onBack: PropTypes.func.isRequired,
     onPostAssignment: PropTypes.func.isRequired,
     selectedClassroom: PropTypes.shape({
         assignmentName: PropTypes.string,

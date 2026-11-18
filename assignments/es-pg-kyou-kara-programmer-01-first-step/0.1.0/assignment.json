@@ -1,0 +1,40 @@
+{
+    "schemaVersion": 1,
+    "id": "es-pg-kyou-kara-programmer-01-first-step",
+    "version": "0.1.0",
+    "series": "es-pg-kyou-kara-programmer",
+    "number": 1,
+    "title": "はじめの一歩（スモウルビーの地図と最初の 5 分）",
+    "goal": "スモウルビーの画面の部分の名前と、ヒントを見ながら進めるレッスンの進め方を知る。",
+    "schoolType": "es",
+    "subject": "教科を問わない（総合的な学習の時間・算数・理科などのプログラミング）",
+    "curriculum": "プログラミング体験（スモウルビーのレッスン「きょうからプログラマー」）",
+    "grade": 4,
+    "hours": 1,
+    "starter": null,
+    "license": "CC0-1.0",
+    "lessons": [
+        {
+            "course": "kyou-kara-programmer",
+            "lessons": [
+                "blocks-l1"
+            ]
+        }
+    ],
+    "submit": {
+        "project": null,
+        "worksheet": false
+    },
+    "files": [
+        {
+            "file": "map.pdf",
+            "kind": "map",
+            "audience": "student"
+        },
+        {
+            "file": "script.pdf",
+            "kind": "script",
+            "audience": "teacher"
+        }
+    ]
+}

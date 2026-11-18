@@ -56,6 +56,13 @@ module Smalruby3
         @_name = name
       end
 
+      # `without_screen_refresh def foo ... end` marks a custom block "run without screen
+      # refresh" in Smalruby's Ruby. The runtime runs the method as it is (a loop in it still
+      # refreshes the screen with `with_screen_refresh`); the mark is kept for the editor.
+      def without_screen_refresh(name)
+        name
+      end
+
       def set_sprite(name)
         @_sprite_name = name
       end
@@ -153,6 +160,13 @@ module Smalruby3
 
       def set_name(name)
         @_name = name
+      end
+
+      # `without_screen_refresh def foo ... end` marks a custom block "run without screen
+      # refresh" in Smalruby's Ruby. The runtime runs the method as it is (a loop in it still
+      # refreshes the screen with `with_screen_refresh`); the mark is kept for the editor.
+      def without_screen_refresh(name)
+        name
       end
 
       def set_backdrops(list)

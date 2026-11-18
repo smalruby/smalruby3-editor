@@ -1,0 +1,44 @@
+{
+    "schemaVersion": 1,
+    "id": "jhs-tech-d2-chat-02-input-output",
+    "version": "0.1.0",
+    "series": "jhs-tech-d2-chat",
+    "number": 2,
+    "title": "使用者の働きかけと応答",
+    "goal": "使用者の働きかけ（入力）を受け取って、応答（出力）を返すプログラムを作る。",
+    "schoolType": "jhs",
+    "subject": "技術・家庭科〈技術分野〉",
+    "curriculum": "D(2) 双方向性のあるコンテンツのプログラミングによる問題解決",
+    "grade": 2,
+    "hours": 1,
+    "starter": null,
+    "license": "CC0-1.0",
+    "worksheetPages": [
+        3
+    ],
+    "lessons": [
+        {
+            "course": "chat-wo-tsukurou",
+            "lessons": [
+                "chat-l1",
+                "chat-l2"
+            ]
+        }
+    ],
+    "submit": {
+        "project": "02_あいさつ",
+        "worksheet": true
+    },
+    "files": [
+        {
+            "file": "worksheet.pdf",
+            "kind": "worksheet",
+            "audience": "student"
+        },
+        {
+            "file": "worksheet-teacher.pdf",
+            "kind": "worksheet",
+            "audience": "teacher"
+        }
+    ]
+}

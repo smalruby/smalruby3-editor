@@ -54,6 +54,8 @@ const ContextUtils = {
             containerNodeRanges: [], // Store {startLine, endLine} for container nodes (block, begin, kwbegin)
             processDepth: 0,
             rootNode: null,
+            // The DefNodes of `without_screen_refresh def` (screen-refresh-defs.js)
+            warpDefNodes: new Set(),
             modules: Object.create(null),
             currentModuleName: null,
             superMethodMap: Object.create(null),

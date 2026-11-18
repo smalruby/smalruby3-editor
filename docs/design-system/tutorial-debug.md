@@ -7,7 +7,7 @@
 - 「色」の列は `hsla(...)` から計算した 16 進（ブラウザが描く色で、実測と同じ）。
 - 左右のページ送り（矢印）の比べた表と、独自の画面で使う形は [`components/pager.md`](components/pager.md)。
 - ほかのモーダル（ライブラリ・ダイアログ・拡張・接続）との色の比較は [`components/modal.md`](components/modal.md) の「モーダルの色の比較」。
-- 見本: [`0901-debug-modal.png`](screenshots/0901-debug-modal.png)（デバッグ。2 番目の話題）、[`0902-tutorial-card.png`](screenshots/0902-tutorial-card.png)（チュートリアルのカード。4 枚のうち 3 枚目）
+- 見本: [`0901-debug-modal.png`](screenshots/0901-debug-modal.png)（デバッグ。2 番目の話題）、[`0902-tutorial-card.png`](screenshots/0902-tutorial-card.png)（上流のチュートリアル「名前を動かしてみよう」のカード。8 枚のうち 3 枚目）
 
 ## 一覧
 
@@ -48,7 +48,7 @@
 | 何枚目かの点（ほか） | `cards/card.css` `.inactiveStepPip` | 地 `$ui-white-transparent` | `#FFFFFF` × 0.25 | 別名なし | 一致（`rgba(255, 255, 255, 0.25)`） |
 | 本文の地 | `cards/card.css` `.step-body` | `$ui-white` | `#FFFFFF` | `$color-surface` | 一致 |
 | 手順の題 | `cards/card.css` `.step-title` | `$text-primary` | `#575E75` | `$color-text` | 一致 |
-| 手順の絵の地と枠 | `cards/card.css` `.step-image` | `#F9F9F9`・`1px solid #ddd`（どちらも直書き） | `#F9F9F9`・`#DDDDDD` | 別名なし | （スモウルビーの手順は Ruby のエディターを写した絵が多い） |
+| 手順の絵の地と枠 | `cards/card.css` `.step-image` | `#F9F9F9`・`1px solid #ddd`（どちらも直書き） | `#F9F9F9`・`#DDDDDD` | 別名なし | 一致 |
 | **ページ送りの丸** | `cards/card.css` `.left-button`・`.right-button` | 地 `$extensions-primary`・輪 `0 0 0 4px $extensions-transparent` | `#0FBD8C`・`#0FBD8C` × 0.35 | 別名なし | 一致（`rgba(15, 189, 140, 0.35) 0 0 0 4px`） |
 | ページ送りのホバー | `cards/card.css` `:hover` | 輪が 6px・`scale(1.125)` | | | 一致 |
 | のぞき札 | `cards/card.css` `.left-card`・`.right-card`（`::after`） | 地 `$ui-white`（不透明度 0.9）・枠 `$ui-tertiary`・上の 2.5rem が `$extensions-primary` | `#FFFFFF`・`#D9E3F2`・`#0FBD8C` | 別名なし | 一致（上の帯 40px） |
@@ -59,13 +59,13 @@
 
 | 部分 | 値（上流） | トークン | 実測 |
 |---|---|---|---|
-| カードの置き場（`.card-container`） | 幅は 468px 以上・まわり `0.5rem 2rem`・重なり `$z-index-card`（480。モーダルの 510 より下） | | スモウルビーは幅 498px（下の「スモウルビーの追加」） |
+| カードの置き場（`.card-container`） | 幅は 468px 以上・まわり `0.5rem 2rem`・重なり `$z-index-card`（480。モーダルの 510 より下） | | 一致（カードの幅 468px） |
 | カード（`.card`） | 角丸 0.75rem・Helvetica Neue | | 一致（12px） |
 | ヘッダー | 文字 0.625rem 太字・ボタンの余白 0.75rem・アイコン 1.25rem | `$font-size-xsmall` | 一致（10px・700。高さ 63px） |
 | 何枚目かの点 | 0.5rem の丸・間 0.25rem | | 一致（8px） |
 | 手順の題 | 0.9rem 太字・まわり 0.9rem・中央ぞろえ | | 一致（14.4px） |
 | 本文 | 高さ 256px 以上（絵が替わっても高さが変わらないように） | | 一致（256px） |
-| 手順の絵 | 450×200px まで・角丸 0.5rem・下と左右 0.5rem | `$radius-medium` | スモウルビーは 480×360px まで |
+| 手順の絵 | 450×200px まで・角丸 0.5rem・下と左右 0.5rem | `$radius-medium` | 一致（`max-width: 450px`・`max-height: 200px`） |
 | ページ送りの丸 | 44px の丸・アイコン 1.75rem・カードのふちから 27px 外へ（丸の中心がふちのすぐ外）・上下は 50% から 15px 上 | | 一致（44px・28px・`left: -27px`） |
 | のぞき札 | 幅 .75rem・高さ 90%・上 5%・外側だけ角丸 0.75rem | | 一致（12px） |
 | 「もっと見る」 | 余白 `0.5rem 1rem`・角丸 0.25rem・.75rem 太字 | `$radius-small`・`$font-size-small` | （撮っていない） |
@@ -135,14 +135,11 @@
 
 ## スモウルビーの追加
 
-上流と違うところ。上の表の値には入れていない。
+上流と違うところ。チュートリアルの中身（`lib/libraries/decks/`）とカードの部品（`cards/`）は上流の v13.7.2 のまま使う（スモウルビーの変更は無い）。
 
 | 場所 | 中身 | 見た目への影響 |
 |---|---|---|
 | `menu-bar/menu-bar.jsx` | チュートリアルとデバッグを「?」のメニューの中へ移した（[`menu-bar.md`](menu-bar.md)） | 開く場所だけ |
-| `lib/libraries/decks/` | スモウルビーのチュートリアル（Ruby の書き方など）とカテゴリの名前 | カードの中身だけ |
-| `cards/cards.jsx`・`card.css`（マーカー付き） | 手順の絵の上の「ルビーを入力する」などのボタン（`.insert-code-button-overlay`）、次へ進む丸と押すボタンが黄色く光る演出（`.right-button-glow` など）、「チュートリアルを始める」・外のサイトを開くボタン | 見本 `0902` では光る演出を止めて撮った |
-| `cards/card.css`（マーカー付き） | カードの幅を 500px まで（`max-width`）、題の折り返し（`word-break`）、点のクラス名を `.inactive-step-pip` に変えた、`.insert-code-button`（地 `$extensions-tertiary`（`#0B8E69`）・太字の白い文字で 4.15:1・ホバー `$ui-green`（`#0DA57A`）。緑 = 手引き の意味を残して濃くした取りいそぎの修正で、チュートリアルを上流に戻す EPIC #1935 で revert する） | カードの幅 498px（上流は中身で決まり 468px 以上）。手順の絵は 480×360px まで（マーカーの中） |
 | `debug-modal/sections/messages.js`（**マーカー無し**） | 長い文の上の `// eslint-disable-next-line @stylistic/max-len` のコメントを消した（空白だけの行が残っている）。ほかの `debug-modal/` のファイルは変えていない | 見た目への影響は無い |
 
 ## 独自の画面で使うとき

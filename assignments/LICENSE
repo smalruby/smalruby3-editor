@@ -1,0 +1,14 @@
+CC0 1.0 Universal (CC0 1.0) Public Domain Dedication
+
+To the extent possible under law, the authors of the Smalruby standard
+assignments have waived all copyright and related or neighboring rights to the
+files in this directory (assignments/). This work is published from Japan.
+
+The full legal code is available at:
+https://creativecommons.org/publicdomain/zero/1.0/legalcode
+
+このディレクトリ（assignments/）の課題・ワークシート・評価規準は CC0 1.0
+（パブリックドメイン）です。自由にコピー・改変・配布できます（出典の表示は不要）。
+
+The rest of the smalruby3-editor repository keeps its own license (see the
+LICENSE file at the repository root).

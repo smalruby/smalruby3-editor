@@ -28,6 +28,7 @@ import ErrorDisplay from './error-display.jsx';
 import { breadcrumbMessages } from './teacher-breadcrumbs.jsx';
 import ClassCard, { ArchiveClassDialog } from './teacher-class-card.jsx';
 import { classTabMessages } from './teacher-class-tabs.jsx';
+import { closeRowMessages } from './teacher-close-row.jsx';
 import TeacherReviewBand from './teacher-review-band.jsx';
 import { TeacherScreen, TeacherSubView } from './teacher-view-layout.jsx';
 
@@ -752,7 +753,11 @@ const TeacherClassList = ({
                 errorTitle={errorTitle}
                 testId="classroom-phase-teacher-class-list"
             >
-                <TeacherSubView title={formatClassLabel(settingsGroup)}>
+                <TeacherSubView
+                    closeLabel={intl.formatMessage(closeRowMessages.backToClassList)}
+                    title={intl.formatMessage(classTabMessages.settings)}
+                    onClose={handleCloseSettings}
+                >
                     <ClassSettingsForm
                         group={settingsGroup}
                         isLoading={isLoading}

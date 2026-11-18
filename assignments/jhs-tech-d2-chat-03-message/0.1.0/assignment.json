@@ -1,0 +1,46 @@
+{
+    "schemaVersion": 1,
+    "id": "jhs-tech-d2-chat-03-message",
+    "version": "0.1.0",
+    "series": "jhs-tech-d2-chat",
+    "number": 3,
+    "title": "メッセージで 2 人がやりとりする",
+    "goal": "メッセージを使って、2 つのスプライトがやりとりするプログラムを作る。",
+    "schoolType": "jhs",
+    "subject": "技術・家庭科〈技術分野〉",
+    "curriculum": "D(2) 双方向性のあるコンテンツのプログラミングによる問題解決",
+    "grade": 2,
+    "hours": 1,
+    "starter": null,
+    "license": "CC0-1.0",
+    "worksheetPages": [
+        4
+    ],
+    "lessons": [
+        {
+            "course": "chat-wo-tsukurou",
+            "lessons": [
+                "chat-l3"
+            ],
+            "challenges": [
+                "chat-l3-local-message"
+            ]
+        }
+    ],
+    "submit": {
+        "project": "03_メッセージ",
+        "worksheet": false
+    },
+    "files": [
+        {
+            "file": "worksheet.pdf",
+            "kind": "worksheet",
+            "audience": "student"
+        },
+        {
+            "file": "worksheet-teacher.pdf",
+            "kind": "worksheet",
+            "audience": "teacher"
+        }
+    ]
+}

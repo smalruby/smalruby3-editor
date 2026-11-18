@@ -80,7 +80,7 @@ describe('LessonHint', () => {
         const balloon = getByTestId('lesson-hint');
         expect(balloon.parentElement).toBe(document.body);
         expect(getByTestId('lesson-hint-title')).toHaveTextContent(
-            'Go back to the "Code" tab and drag the "when this sprite clicked" block into the code area.',
+            'Go back to the Code tab and drag the "when this sprite clicked" block into the Code Area.',
         );
         expect(getByTestId('lesson-hint-position')).toHaveTextContent('Hint 2 of 7');
         expect(getByTestId('lesson-hint-prev')).not.toBeDisabled();
