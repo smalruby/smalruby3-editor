@@ -188,6 +188,15 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
             'PreviewViewerRequest',
             'Resolve /<slug>/ to index.html for branch previews',
         );
+        // 事前圧縮した gui の JS（`/<slug>/gui.js.br` / `.gz`）に `Vary: Accept-Encoding` を付ける。
+        // HSTS / nosniff は本番だけ（プレビューのヘッダはいまのまま）。
+        const viewerResponse = new cloudfront.Function(this, 'PreviewViewerResponse', {
+            runtime: cloudfront.FunctionRuntime.JS_2_0,
+            code: cloudfront.FunctionCode.fromFile({
+                filePath: path.join(__dirname, 'functions/preview-viewer-response.js'),
+            }),
+            comment: 'Add Vary: Accept-Encoding to pre-compressed branch preview responses',
+        });
         const cachePolicy = this.createCachePolicy(
             'PreviewCachePolicy',
             'Branch previews: short for index.html, honor Cache-Control for assets',
@@ -210,6 +219,10 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
                     {
                         function: viewerRequest,
                         eventType: cloudfront.FunctionEventType.VIEWER_REQUEST,
+                    },
+                    {
+                        function: viewerResponse,
+                        eventType: cloudfront.FunctionEventType.VIEWER_RESPONSE,
                     },
                 ],
             },
@@ -356,7 +369,8 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
         //
         // HSTS（365 日・includeSubDomains なし）と nosniff を付ける。管理ポリシー
         // Managed-SecurityHeadersPolicy は X-Frame-Options: SAMEORIGIN なども足し、smalruby.app を
-        // iframe に埋めている所を壊しうるので使わない。
+        // iframe に埋めている所を壊しうるので使わない。事前圧縮した gui の JS（viewer-request が
+        // `.br` / `.gz` に書きかえたもの）には `Vary: Accept-Encoding` も付ける。
         const viewerResponse = new cloudfront.Function(this, 'SiteViewerResponse', {
             runtime: cloudfront.FunctionRuntime.JS_2_0,
             code: cloudfront.FunctionCode.fromFile({
@@ -501,8 +515,9 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
     }
 
     /**
-     * ディレクトリの URL を index.html に解決する viewer-request 関数。S3 は REST
-     * エンドポイント（OAC）なので、ディレクトリの index.html を自分で解決しない。
+     * ディレクトリの URL を index.html に解決し、gui の JS を `Accept-Encoding` に応じて事前圧縮版
+     * （`.br` / `.gz`）へ書きかえる viewer-request 関数。S3 は REST エンドポイント（OAC）なので、
+     * ディレクトリの index.html を自分で解決しない。
      * 本番とプレビューで同じコードを使う（関数のリソースはそれぞれ作る）。
      */
     private createViewerRequestFunction(id: string, comment: string): cloudfront.Function {
