@@ -1,0 +1,14 @@
+; お名前.com のゾーンを書き写したサンプル（架空の値。example.com と文書用の IP だけを使う）
+; 1 行 1 レコード: 名前 TTL IN 型 値。名前の @ はゾーンの頂点。
+$ORIGIN example.com.
+$TTL 3600
+@                          3600 IN A     192.0.2.10
+@                          3600 IN A     192.0.2.11
+@                          3600 IN TXT   "site-verification=EXAMPLEONLY"
+@                          3600 IN CAA   0 issue "amazon.com"
+@                          3600 IN CAA   0 issuewild ";"
+@                          3600 IN NS    01.dns.example.net.
+_pages-challenge-example   3600 IN TXT   "0123456789abcdef"
+www                        3600 IN CNAME example.com.
+api                        3600 IN NS    ns-1.awsdns.example.org.
+api                        3600 IN NS    ns-2.awsdns.example.org.

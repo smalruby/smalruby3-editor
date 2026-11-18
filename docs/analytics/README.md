@@ -74,6 +74,7 @@ GA4（プロパティ smalruby.app / 測定 ID G-94VC8N0J4K）
 | `mesh_v2` / `smalrubot_s1` | `containers/connection-modal.jsx` | [`mesh-v2/`](../mesh-v2/)・[`extension-smalrubot-s1/`](../extension-smalrubot-s1/) | ✅ |
 | `lessons` | `lib/lessons/lesson-analytics.js`（右クリックのアクティビティ図 `activity_diagram_open` は `containers/block-activity-diagram.jsx` から） | [`lessons/README.md`](../lessons/README.md) の「GA の計測」 | ✅ |
 | `welcome` | `components/welcome-tooltip/`・`containers/welcome-modal-hoc.jsx` | [`welcome/README.md`](../welcome/README.md) の「GA4 イベント」 | ✅ |
+| `tutorial_url` | `lib/tutorial-url-analytics.js`（`lib/tutorial-from-url.js` から） | [`tutorial/README.md`](../tutorial/README.md) の「GA の計測」 | ❌（トリガーの正規表現に足す人間の作業待ち） |
 | `extensions` / `library` / `open_debug_modal` / `close_debug_modal` / `change_topic_debug_modal` | upstream のコード | — | ❌（upstream のイベント。数えていない） |
 
 ### 項目の一覧（データレイヤー変数 = タグのパラメータ = GA4 のカスタム定義）
@@ -81,7 +82,7 @@ GA4（プロパティ smalruby.app / 測定 ID G-94VC8N0J4K）
 | 項目 | 使う category | GA4 |
 |---|---|---|
 | `action` | すべて | ディメンション |
-| `label` | すべて（`lessons`・`welcome` などが使う。`classroom_student` は使わない） | ディメンション |
+| `label` | すべて（`lessons`・`welcome`・`tutorial_url` などが使う。`classroom_student` は使わない） | ディメンション |
 | `course_id` / `lesson_id` / `challenge_id` / `from_assignment` / `page` | `lessons` | ディメンション |
 | `seconds` | `lessons`・`classroom_student` | **指標**（秒） |
 | `minutes` | `classroom_student` | **指標**（分） |

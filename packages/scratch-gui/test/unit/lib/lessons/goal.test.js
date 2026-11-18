@@ -702,7 +702,7 @@ describe('validateGoal', () => {
             { type: 'extension' },
         ]);
         expect(errors).toEqual([
-            'goal[0]: type must be one of uses, said, variable, list, sprites, costumes, extension, ngram',
+            'goal[0]: type must be one of uses, said, variable, list, sprites, costumes, extension, ngram, moved, currentCostume, tab, partQuiz',
             'goal[1]: uses.blocks must be a non-empty array',
             'goal[2].blocks[0]: opcode is required',
             "goal[2]: trigger.target must be 'stage' or 'sprite'",
@@ -730,15 +730,10 @@ describe('lesson 1 goals can be written in this shape', () => {
                 {
                     type: 'uses',
                     trigger: { hat: 'event_whenkeypressed', key: 'space' },
-                    blocks: ['sound_playuntildone', 'sound_play'],
-                    order: ['sound_playuntildone', 'sound_play'],
+                    blocks: [{ opcode: ['sound_playuntildone', 'sound_play'] }],
                 },
             ],
-            play: (facts) =>
-                run(facts, key('space'), [
-                    ['sound_playuntildone', { SOUND_MENU: 'ニャー' }],
-                    ['sound_play', { SOUND_MENU: 'Owl' }],
-                ]),
+            play: (facts) => run(facts, key('space'), [['sound_playuntildone', { SOUND_MENU: 'ニャー' }]]),
         },
         {
             id: 'blocks-l1-arrow-move',
@@ -1121,5 +1116,150 @@ describe('the course 「ことばを予想する AI をつくろう」', () => {
             'goal[3]: said.startsWithAnswer must be true or false',
             'goal[3]: said.learned.after is required',
         ]);
+    });
+});
+
+describe('lesson 0 conditions: clicks, moved, currentCostume, tab, partQuiz (#2134)', () => {
+    const paletteClick = { hat: 'motion_movesteps', fields: {}, stackClick: true, palette: true };
+    const areaClick = { hat: 'motion_movesteps', fields: {}, stackClick: true };
+    const move = ['motion_movesteps', { STEPS: 10 }];
+    const turn = ['motion_turnright', { DEGREES: 15 }];
+
+    test('trigger.click: palette counts only the blocks clicked in the palette', () => {
+        const goal = [{ type: 'uses', trigger: { click: 'palette' }, blocks: ['motion_movesteps'] }];
+        const facts = createFacts();
+        run(facts, areaClick, [move]);
+        run(facts, flag, [move]);
+        expect(evaluateGoal(goal, facts, snapshot()).satisfied).toBe(false);
+        run(facts, paletteClick, [move]);
+        expect(evaluateGoal(goal, facts, snapshot()).satisfied).toBe(true);
+    });
+
+    test('trigger.click: codeArea counts only the scripts clicked in the code area', () => {
+        const goal = [{ type: 'uses', trigger: { click: 'codeArea' }, blocks: ['motion_movesteps'] }];
+        const facts = createFacts();
+        run(facts, paletteClick, [move]);
+        expect(evaluateGoal(goal, facts, snapshot()).satisfied).toBe(false);
+        run(facts, areaClick, [move]);
+        expect(evaluateGoal(goal, facts, snapshot()).satisfied).toBe(true);
+    });
+
+    test('trigger.click: any counts clicks and hat scripts; without click, clicks do not count', () => {
+        const any = [{ type: 'uses', trigger: { click: 'any' }, blocks: ['motion_movesteps'] }];
+        const none = [{ type: 'uses', blocks: ['motion_movesteps'] }];
+        const clicks = createFacts();
+        run(clicks, paletteClick, [move]);
+        expect(evaluateGoal(any, clicks, snapshot()).satisfied).toBe(true);
+        expect(evaluateGoal(none, clicks, snapshot()).satisfied).toBe(false);
+        const hats = createFacts();
+        run(hats, flag, [move]);
+        expect(evaluateGoal(any, hats, snapshot()).satisfied).toBe(true);
+    });
+
+    test('together: all the blocks ran in one run (they are snapped)', () => {
+        const goal = [
+            {
+                type: 'uses',
+                trigger: { click: 'codeArea' },
+                blocks: ['motion_movesteps', 'motion_turnright'],
+                together: true,
+            },
+        ];
+        const apart = createFacts();
+        run(apart, areaClick, [move]);
+        run(apart, { ...areaClick, hat: 'motion_turnright' }, [turn]);
+        expect(evaluateGoal(goal, apart, snapshot()).satisfied).toBe(false);
+        // together が無ければ、別々の実行でもよい（いまの決まり）
+        expect(evaluateGoal([{ ...goal[0], together: false }], apart, snapshot()).satisfied).toBe(true);
+        const snapped = createFacts();
+        run(snapped, areaClick, [move, turn]);
+        expect(evaluateGoal(goal, snapped, snapshot()).satisfied).toBe(true);
+    });
+
+    test('moved: a sprite is away from where it was when the watch began', () => {
+        const goal = [{ type: 'moved' }];
+        const base = { baselinePositions: { cat: { x: 0, y: 0 } } };
+        expect(
+            evaluateGoal(goal, createFacts(), snapshot({ ...base, positions: { cat: { x: 0, y: 0 } } })).satisfied,
+        ).toBe(false);
+        expect(
+            evaluateGoal(goal, createFacts(), snapshot({ ...base, positions: { cat: { x: 30, y: -40 } } })).satisfied,
+        ).toBe(true);
+        // 後から足したスプライトは見ない
+        expect(
+            evaluateGoal(
+                goal,
+                createFacts(),
+                snapshot({ ...base, positions: { cat: { x: 0, y: 0 }, dog: { x: 9, y: 9 } } }),
+            ).satisfied,
+        ).toBe(false);
+        expect(
+            evaluateGoal(
+                [{ type: 'moved', min: 60 }],
+                createFacts(),
+                snapshot({ ...base, positions: { cat: { x: 30, y: 40 } } }),
+            ).satisfied,
+        ).toBe(false);
+    });
+
+    test('currentCostume: number (1 from the first) and changed', () => {
+        const at = (cat, stage) =>
+            snapshot({
+                baselineCostumes: {
+                    cat: { isStage: false, count: 2, current: 0 },
+                    stage: { isStage: true, count: 1, current: 0 },
+                },
+                costumes: {
+                    cat: { isStage: false, count: 2, current: cat },
+                    stage: { isStage: true, count: 2, current: stage },
+                },
+            });
+        const second = [{ type: 'currentCostume', number: 2 }];
+        expect(evaluateGoal(second, createFacts(), at(0, 0)).satisfied).toBe(false);
+        expect(evaluateGoal(second, createFacts(), at(1, 0)).satisfied).toBe(true);
+        const backdrop = [{ type: 'currentCostume', target: 'stage', changed: true }];
+        expect(evaluateGoal(backdrop, createFacts(), at(1, 0)).satisfied).toBe(false);
+        expect(evaluateGoal(backdrop, createFacts(), at(0, 1)).satisfied).toBe(true);
+    });
+
+    test('tab and partQuiz look at the editor screen (snapshot.ui)', () => {
+        expect(evaluateGoal([{ type: 'tab', tab: 'code' }], createFacts(), snapshot()).satisfied).toBe(false);
+        expect(
+            evaluateGoal([{ type: 'tab', tab: 'code' }], createFacts(), snapshot({ ui: { activeTab: 'code' } }))
+                .satisfied,
+        ).toBe(true);
+        const quiz = [{ type: 'partQuiz', count: 5 }];
+        expect(evaluateGoal(quiz, createFacts(), snapshot({ ui: { partQuizSolved: 4 } })).satisfied).toBe(false);
+        expect(evaluateGoal(quiz, createFacts(), snapshot({ ui: { partQuizSolved: 5 } })).satisfied).toBe(true);
+    });
+
+    test('validateGoal checks the new conditions', () => {
+        expect(
+            validateGoal([
+                { type: 'uses', trigger: { click: 'menu' }, blocks: ['motion_movesteps'] },
+                { type: 'uses', blocks: ['motion_movesteps'], together: 'yes' },
+                { type: 'moved', min: 0 },
+                { type: 'currentCostume' },
+                { type: 'currentCostume', number: 0, changed: true },
+                { type: 'tab', tab: 'ruby' },
+                { type: 'partQuiz' },
+            ]),
+        ).toEqual([
+            'goal[0]: trigger.click must be one of palette, codeArea, any',
+            'goal[1]: uses.together must be true or false',
+            'goal[2]: moved.min must be a positive number',
+            'goal[3]: currentCostume needs number or changed',
+            'goal[4]: currentCostume.number must be a positive integer',
+            'goal[5]: tab.tab must be one of code, costumes, sounds',
+            'goal[6]: partQuiz.count must be a positive integer',
+        ]);
+        expect(
+            validateGoal([
+                { type: 'moved' },
+                { type: 'currentCostume', target: 'stage', changed: true },
+                { type: 'tab', tab: 'code' },
+                { type: 'partQuiz', count: 5 },
+            ]),
+        ).toEqual([]);
     });
 });

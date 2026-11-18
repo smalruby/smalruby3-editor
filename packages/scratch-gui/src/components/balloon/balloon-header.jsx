@@ -6,11 +6,17 @@ import React from 'react';
 import BalloonCloseButton from './balloon-close-button.jsx';
 import styles from './balloon.css';
 
-const BalloonHeader = ({ children, className, closeLabel, closeTestId, onClose, ...rest }) => (
+const BalloonHeader = ({ children, className, closeIcon, closeLabel, closeTestId, onClose, ...rest }) => (
     <div className={classNames(styles.header, className)} {...rest}>
         <span className={styles.headerTitle}>{children}</span>
         {onClose ? (
-            <BalloonCloseButton label={closeLabel || ''} title={closeLabel} testId={closeTestId} onClick={onClose} />
+            <BalloonCloseButton
+                icon={closeIcon}
+                label={closeLabel || ''}
+                title={closeLabel}
+                testId={closeTestId}
+                onClick={onClose}
+            />
         ) : null}
     </div>
 );
@@ -18,6 +24,8 @@ const BalloonHeader = ({ children, className, closeLabel, closeTestId, onClose, 
 BalloonHeader.propTypes = {
     children: PropTypes.node,
     className: PropTypes.string,
+    // 閉じるボタンの印（無ければ ×）
+    closeIcon: PropTypes.node,
     closeLabel: PropTypes.string,
     closeTestId: PropTypes.string,
     onClose: PropTypes.func,

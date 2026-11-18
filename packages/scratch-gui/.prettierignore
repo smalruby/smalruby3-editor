@@ -83,6 +83,10 @@ src/components/*
 !src/components/lesson-task-bar/**
 !src/components/lesson-hint/
 !src/components/lesson-hint/**
+!src/components/lesson-part-names/
+!src/components/lesson-part-names/**
+!src/components/lesson-part-quiz/
+!src/components/lesson-part-quiz/**
 !src/components/lesson-practice-partner/
 !src/components/lesson-practice-partner/**
 !src/components/block-activity-diagram/
@@ -262,7 +266,6 @@ src/lib/*
 !src/lib/bug-report-api.js
 !src/lib/koshien-mock-config.js
 !src/lib/koshien-test-url.js
-!src/lib/deck-setup.js
 !src/lib/avatar-initials.js
 !src/lib/classroom-api.js
 !src/lib/classroom-assignment-utils.js
@@ -365,6 +368,8 @@ src/lib/*
 !src/lib/use-display-mode.js
 !src/lib/use-is-narrow-screen.js
 !src/lib/version-checker.js
+!src/lib/tutorial-url-analytics.js
+!src/lib/help-menu.js
 
 # Level 3: src/lib/settings/*
 # color-mode/ and theme/ are upstream; only these are Smalruby-only.
@@ -377,7 +382,6 @@ src/lib/settings/*
 # Level 3: src/lib/libraries/*
 src/lib/libraries/*
 !src/lib/libraries/extensions/
-!src/lib/libraries/decks/
 
 # Level 4: src/lib/libraries/extensions/*
 src/lib/libraries/extensions/*
@@ -393,16 +397,6 @@ src/lib/libraries/extensions/*
 !src/lib/libraries/extensions/tm2scratch/
 !src/lib/libraries/extensions/tm2scratch/**
 
-# Level 4: src/lib/libraries/decks/*
-# index.jsx and the other pre-existing deck assets are upstream-derived and
-# not (yet) whitelisted; only the new per-category modules are Smalruby-only
-# (issue #932).
-src/lib/libraries/decks/*
-!src/lib/libraries/decks/categories/
-!src/lib/libraries/decks/categories/**
-!src/lib/libraries/decks/green-flag-icon.jsx
-
-# Level 5: src/lib/libraries/decks/categories/* — Smalruby-only (whole directory via `/**`)
 
 # ============================================================
 # Level 2: src/locales/*
@@ -455,6 +449,7 @@ test/helpers/*
 !test/helpers/menu-xpaths.js
 !test/helpers/ruby-helper.js
 !test/helpers/smalruby-mock-state.js
+!test/helpers/dynamic-category-opcodes.js
 
 # Level 2: test/integration/*
 test/integration/*
@@ -479,12 +474,12 @@ test/integration/*
 !test/integration/smalruby-lesson1-challenges-5-8.test.js
 !test/integration/smalruby-lesson1-challenges-9-11.test.js
 !test/integration/smalruby-help-menu.test.js
-!test/integration/smalruby-tutorials.test.js
 !test/integration/smalruby-lessons.test.js
 !test/integration/smalruby-lessons-hint.test.js
 !test/integration/smalruby-lesson-task-bar-full-text.test.js
 !test/integration/smalruby-lesson-task-bar-layout.test.js
 !test/integration/smalruby-lessons-first-time-balloons.test.js
+!test/integration/smalruby-lesson0.test.js
 !test/integration/smalruby-lesson1-challenges-1-4.test.js
 !test/integration/smalruby-lessons-library.test.js
 !test/integration/smalruby-lessons-en.test.js
@@ -531,9 +526,12 @@ test/unit/components/*
 !test/unit/components/url-loader-modal.test.jsx
 !test/unit/components/dncl-mode-notice.test.jsx
 !test/unit/components/lesson-task-bar.test.jsx
+!test/unit/components/lesson-part-names.test.jsx
+!test/unit/components/lesson-part-quiz.test.jsx
 !test/unit/components/sprite-info-compact.test.jsx
 !test/unit/components/stage-selector-compact.test.jsx
 !test/unit/components/lesson-hint.test.jsx
+!test/unit/components/lesson-hint-nudge.test.jsx
 !test/unit/containers/lesson-practice-partner.test.jsx
 !test/unit/components/balloon.test.jsx
 !test/unit/components/classroom-tutorial.test.jsx
@@ -609,7 +607,6 @@ test/unit/containers/*
 !test/unit/containers/block-activity-diagram.test.jsx
 !test/unit/containers/ruby-tab/**
 !test/unit/containers/backpack.test.jsx
-!test/unit/containers/cards.test.jsx
 !test/unit/containers/lesson-mode.test.jsx
 !test/unit/containers/lesson-hint.test.jsx
 !test/unit/containers/lessons-library.test.jsx
@@ -675,8 +672,6 @@ test/unit/lib/*
 !test/unit/lib/mesh-practice/
 !test/unit/lib/mesh-practice/**
 !test/unit/lib/dncl/**
-!test/unit/lib/libraries/
-!test/unit/lib/libraries/**
 !test/unit/lib/ruby-generator/
 !test/unit/lib/ruby-generator/**
 !test/unit/lib/ruby-roundtrip/
@@ -735,7 +730,6 @@ test/unit/lib/*
 !test/unit/lib/classroom-continue-options.test.js
 !test/unit/lib/classroom-welcome-back.test.js
 !test/unit/lib/classroom-mesh-connect.test.js
-!test/unit/lib/deck-setup.test.js
 !test/unit/lib/blocks-screenshot.test.js
 !test/unit/lib/download-blob.test.js
 !test/unit/lib/calculate-popup-position.test.js
@@ -755,7 +749,6 @@ test/unit/lib/*
 !test/unit/lib/legacy-storage.test.js
 !test/unit/lib/make-toolbox-xml.test.js
 !test/unit/lib/lesson-dynamic-categories.test.js
-!test/unit/lib/lesson-dynamic-categories-decks.test.js
 !test/unit/lib/mesh-v2-classroom-binding.test.js
 !test/unit/lib/mesh-v2-seat-connect.test.js
 !test/unit/lib/mesh-v2-seat-label.test.js
@@ -804,6 +797,9 @@ test/unit/lib/*
 !test/unit/lib/setup-prism.js
 !test/unit/lib/version-checker.test.js
 !test/unit/lib/audio-buffer-player.test.js
+!test/unit/lib/tutorial-from-url-analytics.test.js
+!test/unit/lib/tutorial-url-analytics.test.js
+!test/unit/lib/help-menu.test.js
 
 # Level 3: test/unit/reducers/*
 test/unit/reducers/*
