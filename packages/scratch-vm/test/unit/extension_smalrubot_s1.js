@@ -462,5 +462,323 @@ test('Smalrubot S1 Blocks', (t) => {
         });
     });
 
+    // #2191: the practice board (no real board connected).
+    const PRACTICE_EVENT = 'STUDUINO_PRACTICE_BOARD_STATE';
+
+    /**
+     * A runtime that records every event it sends.
+     * @returns {object} Mock runtime with `events`.
+     */
+    const createRecordingRuntime = () => {
+        const runtime = createMockRuntime();
+        runtime.events = [];
+        runtime.emit = (event, data) => {
+            runtime.events.push([event, data]);
+            runtime.lastEmittedEvent = event;
+            runtime.lastEmittedData = data;
+        };
+        return runtime;
+    };
+
+    /**
+     * A util for blocks with a stack frame (bendArm, actionAndStopAfter).
+     * @returns {object} Mock util.
+     */
+    const createUtil = () => ({
+        stackFrame: {},
+        yielded: 0,
+        yield() {
+            this.yielded++;
+        },
+    });
+
+    /**
+     * Put the real board in the connected state with a writer that records the serial messages.
+     * @param {object} blocks - the extension.
+     * @returns {Array<string>} - the serial messages written.
+     */
+    const connectWithRecordingWriter = (blocks) => {
+        const smalrubot = blocks.smalrubot;
+        const written = [];
+        const decoder = new TextDecoder();
+        smalrubot.writer = {
+            write: (bytes) => {
+                const message = decoder.decode(bytes);
+                written.push(message);
+                // The board answers a sensor read with "<pin>:<value>".
+                const read = message.match(/^!6\d(\d\d)/);
+                if (read) {
+                    const pin = Number(read[1]);
+                    smalrubot.sensorValues[pin] = { value: '77', updatedAt: Number(new Date()) + 1000 };
+                }
+                return Promise.resolve();
+            },
+            close: () => Promise.resolve(),
+        };
+        smalrubot.serialPort = createMockSerialPort();
+        smalrubot.armDegree = 90;
+        smalrubot.setConnectionState('connected');
+        return written;
+    };
+
+    t.test('practice board: the initial state', (st) => {
+        const runtime = createRecordingRuntime();
+        const blocks = new SmalrubotS1Blocks(runtime);
+        const expected = {
+            mode: 'practice',
+            leds: { A0: false, A1: false },
+            motors: { M1: { direction: 'stop', speed: 50 }, M2: { direction: 'stop', speed: 50 } },
+            servo: { D10: { degree: 90, calibration: 0 } },
+            sensors: { A2: 0, A4: 0, A5: 0, A6: 0, A7: 0 },
+        };
+        st.same(blocks.getPracticeBoardState(), expected);
+        st.same(runtime.studuinoPracticeBoardState, expected, 'the latest state is kept on the runtime');
+        st.equal(SmalrubotS1Blocks.PRACTICE_BOARD_STATE_EVENT, PRACTICE_EVENT);
+        st.equal(blocks.isConnected(), false);
+        st.end();
+    });
+
+    t.test('practice board: LEDs turn on and off', (st) => {
+        const runtime = createRecordingRuntime();
+        const blocks = new SmalrubotS1Blocks(runtime);
+        return blocks
+            .turnLedOn({ POSITION: 'left' })
+            .then(() => {
+                st.same(blocks.getPracticeBoardState().leds, { A0: true, A1: false });
+                const [event, state] = runtime.events[runtime.events.length - 1];
+                st.equal(event, PRACTICE_EVENT, 'a change is sent with the event');
+                st.same(state.leds, { A0: true, A1: false });
+                return blocks.turnLedOn({ POSITION: 'right' });
+            })
+            .then(() => blocks.turnLedOff({ POSITION: 'left' }))
+            .then(() => {
+                st.same(blocks.getPracticeBoardState().leds, { A0: false, A1: true });
+                st.end();
+            });
+    });
+
+    t.test('practice board: actions set the motor directions', (st) => {
+        const blocks = new SmalrubotS1Blocks(createRecordingRuntime());
+        const directions = () => {
+            const { motors } = blocks.getPracticeBoardState();
+            return [motors.M1.direction, motors.M2.direction];
+        };
+        const cases = [
+            ['forward', ['normal', 'normal']],
+            ['backward', ['reverse', 'reverse']],
+            ['left', ['reverse', 'normal']],
+            ['right', ['normal', 'reverse']],
+            ['stop', ['stop', 'stop']],
+        ];
+        cases.forEach(([action, expected]) => {
+            blocks.action({ ACTION: action });
+            st.same(directions(), expected, action);
+        });
+        st.end();
+    });
+
+    t.test('practice board: the speed is used from the next action', (st) => {
+        const blocks = new SmalrubotS1Blocks(createRecordingRuntime());
+        blocks.setMotorSpeed({ POSITION: 'left', SPEED: 120 });
+        blocks.setMotorSpeed({ POSITION: 'right', SPEED: '30' });
+        st.equal(blocks.getMotorSpeed({ POSITION: 'left' }), 100);
+        st.equal(blocks.getMotorSpeed({ POSITION: 'right' }), 30);
+        st.equal(blocks.getPracticeBoardState().motors.M1.speed, 50, 'not yet used');
+        blocks.action({ ACTION: 'forward' });
+        const { motors } = blocks.getPracticeBoardState();
+        st.same(motors, { M1: { direction: 'normal', speed: 100 }, M2: { direction: 'normal', speed: 30 } });
+        st.end();
+    });
+
+    t.test('practice board: actionAndStopAfter stops the motors at the end', (st) => {
+        const blocks = new SmalrubotS1Blocks(createRecordingRuntime());
+        let finished = false;
+        const util = {
+            stackTimerNeedsInit: () => !util.started,
+            startStackTimer: () => {
+                util.started = true;
+            },
+            stackTimerFinished: () => finished,
+            yield: () => {},
+        };
+        blocks.runtime.requestRedraw = () => {};
+        blocks.actionAndStopAfter({ ACTION: 'backward', SECS: 1 }, util);
+        st.equal(blocks.getPracticeBoardState().motors.M1.direction, 'reverse');
+        finished = true;
+        blocks.actionAndStopAfter({ ACTION: 'backward', SECS: 1 }, util);
+        st.equal(blocks.getPracticeBoardState().motors.M1.direction, 'stop');
+        st.end();
+    });
+
+    t.test('practice board: bendArm with 0 seconds', (st) => {
+        const blocks = new SmalrubotS1Blocks(createRecordingRuntime());
+        const util = createUtil();
+        blocks.bendArm({ DEGREE: 200, SECS: 0 }, util);
+        st.equal(blocks.getPracticeBoardState().servo.D10.degree, 180, 'clamped to 180');
+        st.equal(util.yielded, 0);
+        st.end();
+    });
+
+    t.test('practice board: bendArm moves the arm little by little', (st) => {
+        const blocks = new SmalrubotS1Blocks(createRecordingRuntime());
+        const util = createUtil();
+        blocks.bendArm({ DEGREE: 0, SECS: 1 }, util);
+        st.equal(util.yielded, 1);
+        st.equal(blocks.getPracticeBoardState().servo.D10.degree, 90, 'not moved yet');
+
+        util.stackFrame.timer = { timeElapsed: () => 500 };
+        blocks.bendArm({ DEGREE: 0, SECS: 1 }, util);
+        st.equal(blocks.getPracticeBoardState().servo.D10.degree, 45, 'half way after half the time');
+
+        util.stackFrame.timer = { timeElapsed: () => 1000 };
+        blocks.bendArm({ DEGREE: 0, SECS: 1 }, util);
+        st.equal(blocks.getPracticeBoardState().servo.D10.degree, 0);
+        st.equal(util.yielded, 2, 'finished');
+        st.end();
+    });
+
+    t.test('practice board: setArmCalibration keeps the value', (st) => {
+        const blocks = new SmalrubotS1Blocks(createRecordingRuntime());
+        return blocks.setArmCalibration({ DEGREE: -20 }).then(() => {
+            st.equal(blocks.getPracticeBoardState().servo.D10.calibration, -15);
+            st.end();
+        });
+    });
+
+    t.test('practice board: sensors return the values set from the panel', (st) => {
+        const runtime = createRecordingRuntime();
+        const blocks = new SmalrubotS1Blocks(runtime);
+        st.ok(blocks.setPracticeSensorValue('A6', 80), 'by port');
+        st.ok(blocks.setPracticeSensorValue('ir_a4', '15'), 'by menu value');
+        st.ok(blocks.setPracticeSensorValue('right', 3));
+        st.ok(blocks.setPracticeSensorValue('touch', 1));
+        st.ok(blocks.setPracticeSensorValue('sound', 42));
+        st.notOk(blocks.setPracticeSensorValue('A3', 1), 'an unknown port is refused');
+        st.notOk(blocks.setPracticeSensorValue('A6', 'abc'), 'a non-number is refused');
+        st.same(runtime.lastEmittedData.sensors, { A2: 1, A4: 15, A5: 3, A6: 80, A7: 42 });
+        const positions = ['light', 'ir_a4', 'left', 'ir_a5', 'right', 'touch', 'sound', 'unknown'];
+        return Promise.all(positions.map((position) => blocks.getSensorValue({ POSITION: position }))).then(
+            (values) => {
+                st.same(values, [80, 15, 15, 3, 3, 1, 42, 0]);
+                st.end();
+            },
+        );
+    });
+
+    t.test('practice board: stop turns the LEDs off and stops the motors', (st) => {
+        const blocks = new SmalrubotS1Blocks(createRecordingRuntime());
+        blocks.action({ ACTION: 'forward' });
+        return blocks
+            .turnLedOn({ POSITION: 'left' })
+            .then(() => blocks.stopAll())
+            .then(() => {
+                const state = blocks.getPracticeBoardState();
+                st.same(state.leds, { A0: false, A1: false });
+                st.equal(state.motors.M1.direction, 'stop');
+                st.equal(state.motors.M2.direction, 'stop');
+                st.end();
+            });
+    });
+
+    t.test('practice board: works without Web Serial', (st) => {
+        const saved = global._mockNavigator;
+        global._mockNavigator = {};
+        const runtime = createRecordingRuntime();
+        const blocks = new SmalrubotS1Blocks(runtime);
+        blocks.setPracticeSensorValue('light', 5);
+        return blocks
+            .getSensorValue({ POSITION: 'light' })
+            .then((value) => {
+                st.equal(value, 5);
+                return blocks.turnLedOn({ POSITION: 'left' });
+            })
+            .then(() => {
+                st.equal(blocks.getPracticeBoardState().leds.A0, true);
+                st.notOk(
+                    runtime.events.some(([event]) => event === 'PERIPHERAL_REQUEST_ERROR'),
+                    'no connection error is reported',
+                );
+                global._mockNavigator = saved;
+                st.end();
+            });
+    });
+
+    t.test('switching: connecting and disconnecting change the mode', (st) => {
+        const runtime = createRecordingRuntime();
+        const blocks = new SmalrubotS1Blocks(runtime);
+        connectWithRecordingWriter(blocks);
+        st.equal(blocks.getPracticeBoardState().mode, 'device');
+        st.equal(runtime.studuinoPracticeBoardState.mode, 'device');
+        st.ok(runtime.events.some(([event, state]) => event === PRACTICE_EVENT && state.mode === 'device'));
+        runtime.events = [];
+        return blocks.smalrubot.requestDisconnect().then(() => {
+            st.equal(blocks.getPracticeBoardState().mode, 'practice');
+            st.ok(runtime.events.some(([event, state]) => event === PRACTICE_EVENT && state.mode === 'practice'));
+            st.end();
+        });
+    });
+
+    t.test('switching: while connected, the blocks write the same serial commands as before', (st) => {
+        const blocks = new SmalrubotS1Blocks(createRecordingRuntime());
+        const written = connectWithRecordingWriter(blocks);
+        const before = blocks.getPracticeBoardState();
+        const util = createUtil();
+        return blocks
+            .turnLedOn({ POSITION: 'left' })
+            .then(() => blocks.turnLedOff({ POSITION: 'right' }))
+            .then(() => {
+                blocks.setMotorSpeed({ POSITION: 'right', SPEED: 20 });
+                blocks.action({ ACTION: 'forward' });
+                blocks.bendArm({ DEGREE: 45, SECS: 0 }, util);
+                return blocks.setArmCalibration({ DEGREE: 5 });
+            })
+            .then(() => blocks.getSensorValue({ POSITION: 'ir_a4' }))
+            .then((value) => {
+                st.equal(value, 77, 'the value read from the serial port');
+                // `action` does not wait for its writes, so compare without the order.
+                st.same(written.slice().sort(), [
+                    '!2105005.',
+                    '!4200128.',
+                    '!4201051.',
+                    '!4300000.',
+                    '!4301000.',
+                    '!4405045.',
+                    '!5100001.',
+                    '!5101000.',
+                    '!6404000.',
+                ]);
+                const after = blocks.getPracticeBoardState();
+                st.same(after.leds, before.leds, 'the practice board is not changed');
+                st.same(after.motors, before.motors);
+                st.same(after.servo, before.servo);
+                st.end();
+            });
+    });
+
+    t.test('switching: stop while connected writes the same commands and stops the practice board', (st) => {
+        const blocks = new SmalrubotS1Blocks(createRecordingRuntime());
+        const written = connectWithRecordingWriter(blocks);
+        blocks.practiceBoard.action('forward');
+        blocks.stopAll();
+        // stopAll of the real board is a chain of promises: wait for it.
+        return new Promise((resolve) => setTimeout(resolve, 10)).then(() => {
+            st.same(written, ['!5100000.', '!5101000.', '!4300003.', '!4301003.']);
+            st.equal(blocks.getPracticeBoardState().motors.M1.direction, 'stop');
+            st.end();
+        });
+    });
+
+    t.test('switching: the speed set before connecting is used by the real board', (st) => {
+        const blocks = new SmalrubotS1Blocks(createRecordingRuntime());
+        blocks.setMotorSpeed({ POSITION: 'left', SPEED: 10 });
+        const written = connectWithRecordingWriter(blocks);
+        st.equal(blocks.getMotorSpeed({ POSITION: 'left' }), 10);
+        blocks.action({ ACTION: 'backward' });
+        return new Promise((resolve) => setTimeout(resolve, 10)).then(() => {
+            st.equal(written[0], '!4200026.');
+            st.end();
+        });
+    });
+
     t.end();
 });
