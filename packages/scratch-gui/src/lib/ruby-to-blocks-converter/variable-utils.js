@@ -641,6 +641,22 @@ const VariableUtils = {
     },
 
     /**
+     * Whether `x + "..."` is the string `+` although nothing tells that `x` is a String: the right
+     * side is a string literal and the code sets `x` to nothing else (a number, a list or a hash).
+     * In Ruby `x + "..."` runs only when `x` is a String (a number raises a TypeError), so the join
+     * is the only block it can be. A name the code never sets, as `namae` of a program in the
+     * Japanese mode that shows a name, was the wrong instruction (issue #2168).
+     * @param {object} variable - The variable in the converter's stores.
+     * @param {object} operand - The right-hand side of `+` (a value or a block).
+     * @returns {boolean} true if `+` on the variable joins strings.
+     */
+    _isJoinedWithStringLiteral(variable, operand) {
+        if (!variable || variable.dataType || !this._isString(operand)) return false;
+        const use = this._variableUsesOf(variable);
+        return !use || (!use.notString && !use.list && !use.hash);
+    },
+
+    /**
      * Whether `x + operand` is the string `+` when `x` is a String only by `_isUsedOnlyAsString`
      * (issue #1659). The operand must be clearly a String: a string literal, a block of a String
      * (`to_s`, `join`) or a variable the converter has seen holding a String. After `a = gets`,

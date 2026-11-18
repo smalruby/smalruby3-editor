@@ -4098,15 +4098,13 @@
     "rubyLines": [
       1
     ],
-    "converterErrors": [
-      {
-        "row": 0,
-        "column": 0,
-        "type": "error",
-        "text": "\"puts(@namae + \"には「く」がある\")\" is the wrong instruction.\nCheck the spelling or use a supported block.",
-        "source": null
-      }
-    ]
+    "converterErrors": [],
+    "blocks": "looks_sayforsecs(MESSAGE: operator_join(STRING1: @namae, STRING2: \"には「く」がある\"), SECS: 1) #\"@ruby:method:puts\"",
+    "shown": {
+      "ruby": "puts(@namae + \"には「く」がある\")",
+      "ja": "表示する(namae + \"には「く」がある\")",
+      "errors": []
+    }
   },
   "ja-287e94eb6d": {
     "ruby": "puts(\"「く」がある\")",

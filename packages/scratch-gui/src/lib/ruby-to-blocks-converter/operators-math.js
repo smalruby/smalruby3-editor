@@ -48,12 +48,14 @@ const OperatorsMath = {
         converter.registerOnSend('variable', '+', 1, (params) => {
             const { receiver, args } = params;
             const variable = converter.lookupVariableFromVariableBlock(receiver);
-            if (!converter._isStringVariable(variable)) return null;
 
             let rh = args[0];
             if (_.isArray(rh)) {
                 if (rh.length !== 1) return null;
                 rh = rh[0];
+            }
+            if (!converter._isStringVariable(variable) && !converter._isJoinedWithStringLiteral(variable, rh)) {
+                return null;
             }
 
             // Boolean values are not valid operands for string concatenation

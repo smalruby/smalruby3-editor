@@ -37,13 +37,12 @@ const dnclLike = results.filter(({ entry }) => DNCL_LIKE_RE.test(entry.ja));
 const oldFails = (record) => record.ruby === null || record.converterErrors.length > 0;
 
 /**
- * Bugs found by the golden (J0). They are after the Ruby (the converter: #2167,
- * #2168), so the Ruby of ja-notation is the same as now and the golden keeps the
- * bug, until they are fixed. (#2166, blocks → Japanese, was fixed by J4.)
+ * Bugs found by the golden (J0). They are after the Ruby (the converter: #2167),
+ * so the Ruby of ja-notation is the same as now and the golden keeps the bug,
+ * until they are fixed. (#2166, blocks → Japanese, was fixed by J4, and #2168,
+ * `namae + "..."`, by the converter.)
  */
 const KNOWN_BUGS = {
-    // #2168: the converter cannot make blocks of the Ruby.
-    'ja-8d7923f4fc': 2168,
     // #2167: a call written before its function is not a block.
     'ja-e2e2f282bb': 2167,
     'ja-053fb08229': 2167,
