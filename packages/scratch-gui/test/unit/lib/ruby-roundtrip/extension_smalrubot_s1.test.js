@@ -41,6 +41,10 @@ describe('Ruby Roundtrip: Smalrubot S1 extension blocks', () => {
 
             smalrubot_s1.sensor_value("sound")
 
+            smalrubot_s1.sensor_value("ir_a4")
+
+            smalrubot_s1.sensor_value("ir_a5")
+
             smalrubot_s1.led("left", true)
             smalrubot_s1.led("right", true)
             smalrubot_s1.led("left", false)

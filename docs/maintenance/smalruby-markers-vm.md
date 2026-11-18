@@ -28,6 +28,7 @@ scratch-vm の **upstream ファイルに埋め込んだ Smalruby マーカー**
 | `src/virtual-machine.js` | mesh v1 to v2 migration | mesh v1→v2 移行の統合（**同名マーカー 4 ペア**）: ① `serialization/smalruby-migration.js` からの import、② プロジェクトロード時の `options.migrateMeshV1ToV2` 分岐、③ `hasMeshV1Project` / `hasKoshienProject` / `migrateMeshV1InBackpackBlocks` / `migrateMeshV1InBackpackSprite` メソッド群、④ `shareBlocksToTarget` での stray v1 opcode 書き換え。mesh v1 サービス廃止後もプロジェクト/バックパックを壊さないための後方互換 |
 | `src/virtual-machine.js` | mesh v1 to v2 migration on install | `installTargets` の先頭で、読み込んだターゲットの v1 opcode と拡張 ID `mesh` を v2 に書き換える（`migrateMeshV1InTargets`）。v1 の拡張機能本体を削除したので、`migrateMeshV1ToV2` を付けない読み込み（初期プロジェクト・スプライト追加など）でも `mesh` をロードしに行かないようにする |
 | `src/extension-support/extension-manager.js` | builtin extension entries | `builtinExtensions` オブジェクトリテラル内の直書き 2 行（`meshV2` / `smalrubotS1`）。新規拡張はこの形式ではなく `smalruby-extensions.js` 経由で登録する（`.claude/rules/scratch-vm/development.md`） |
+| `src/extension-support/block-type.js` / `src/extension-support/extension-manager.js` / `src/engine/runtime.js` | label block type | 拡張機能のパレットに見出しを出す `BlockType.LABEL`（各ファイル 1 ペア）。`block-type.js` に値 `label` を足し、`extension-manager.js` の `_prepareBlockInfo` で opcode 無しを許し、`runtime.js` の `_convertForScratchBlocks` で `<label text="..."/>`（Blockly のフライアウトの見出し。scratch-blocks v2 がそのまま描く）に変える。ブロックではないので sb3 には何も保存されない。Studuino の「ロボットカー」の見出しが使う。upstream に同じ機能が入ったら、そちらに合わせてマーカーを外す |
 
 ## 関連ファイル
 

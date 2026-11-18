@@ -6,7 +6,8 @@ const ACTIONS = ['forward', 'backward', 'left', 'right', 'stop'];
 
 const POSITIONS = ['left', 'right'];
 
-const SENSOR_POSITIONS = ['left', 'right', 'touch', 'light', 'sound'];
+// `ir_a4` / `ir_a5` are the textbook names of `left` / `right` (#2189). Only add values, never remove them.
+const SENSOR_POSITIONS = ['left', 'right', 'touch', 'light', 'sound', 'ir_a4', 'ir_a5'];
 
 /**
  * Smalrubot S1 extension converter

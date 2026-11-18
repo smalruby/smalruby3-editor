@@ -407,6 +407,13 @@ class ExtensionManager {
                 log.warn(`Ignoring opcode "${blockInfo.opcode}" for button with text: ${blockInfo.text}`);
             }
             break;
+        // === Smalruby: Start of label block type ===
+        case BlockType.LABEL:
+            if (blockInfo.opcode) {
+                log.warn(`Ignoring opcode "${blockInfo.opcode}" for label with text: ${blockInfo.text}`);
+            }
+            break;
+        // === Smalruby: End of label block type ===
         default: {
             if (!blockInfo.opcode) {
                 throw new Error('Missing opcode for block');

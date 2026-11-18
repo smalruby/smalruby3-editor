@@ -289,5 +289,178 @@ test('Smalrubot S1 Blocks', (t) => {
         );
     });
 
+    // #2189: menu values are saved in sb3 files. Only add values; never rename or remove them.
+    t.test('menus keep the saved names and values', (st) => {
+        const blocks = new SmalrubotS1Blocks(createMockRuntime());
+        const info = blocks.getInfo();
+        st.same(Object.keys(info.menus).sort(), ['actions', 'positions', 'sensorPositions']);
+        const values = (name) => info.menus[name].items.map((item) => item.value);
+        st.same(values('actions').sort(), ['backward', 'forward', 'left', 'right', 'stop']);
+        st.same(values('positions').sort(), ['left', 'right']);
+        ['left', 'right', 'touch', 'light', 'sound'].forEach((value) => {
+            st.ok(values('sensorPositions').includes(value), `sensorPositions keeps "${value}"`);
+        });
+        st.ok(values('sensorPositions').includes('ir_a4'), 'sensorPositions has "ir_a4"');
+        st.ok(values('sensorPositions').includes('ir_a5'), 'sensorPositions has "ir_a5"');
+        st.end();
+    });
+
+    t.test('blocks keep their opcodes and the robot car blocks come after the heading', (st) => {
+        const blocks = new SmalrubotS1Blocks(createMockRuntime());
+        const info = blocks.getInfo();
+        const opcodes = info.blocks.filter((b) => b.opcode).map((b) => b.opcode);
+        st.same(opcodes, [
+            'getSensorValue',
+            'turnLedOn',
+            'turnLedOff',
+            'getMotorSpeed',
+            'setMotorSpeed',
+            'action',
+            'actionAndStopAfter',
+            'bendArm',
+            'setArmCalibration',
+        ]);
+        const labelIndex = info.blocks.findIndex((b) => b.blockType === 'label');
+        st.ok(labelIndex > 0, 'has a heading label');
+        st.equal(info.blocks[labelIndex].text, 'Robot car');
+        st.equal(info.blocks[labelIndex + 1].opcode, 'action');
+        st.end();
+    });
+
+    t.test('getSensorValue reads the same port for old and new values', (st) => {
+        const blocks = new SmalrubotS1Blocks(createMockRuntime());
+        const calls = [];
+        blocks.smalrubot.readCommand = (commandName, pin) => {
+            calls.push([commandName, pin]);
+            return Promise.resolve('12');
+        };
+        const cases = [
+            ['left', 'get_ir_photoreflector_value', 4],
+            ['ir_a4', 'get_ir_photoreflector_value', 4],
+            ['right', 'get_ir_photoreflector_value', 5],
+            ['ir_a5', 'get_ir_photoreflector_value', 5],
+            ['touch', 'get_touch_sensor_value', 2],
+            ['light', 'get_light_sensor_value', 6],
+            ['sound', 'get_sound_sensor_value', 7],
+        ];
+        return Promise.all(cases.map(([position]) => blocks.smalrubot.getSensorValue(position))).then((results) => {
+            st.same(
+                results,
+                cases.map(() => 12),
+            );
+            st.same(
+                calls,
+                cases.map(([, commandName, pin]) => [commandName, pin]),
+            );
+            st.end();
+        });
+    });
+
+    // #2189: a project saved before the rename (old menu values) opens with the same blocks and values.
+    t.test('a saved project with the old menu values opens unchanged', (st) => {
+        const Runtime = require('../../src/engine/runtime');
+        const sb3 = require('../../src/serialization/sb3');
+        const block = (opcode, extra) =>
+            Object.assign(
+                { opcode, next: null, parent: null, inputs: {}, fields: {}, shadow: false, topLevel: false },
+                extra,
+            );
+        const blocks = {
+            sensor: block('smalrubotS1_getSensorValue', {
+                topLevel: true,
+                x: 0,
+                y: 0,
+                inputs: { POSITION: [1, 'sensorMenu'] },
+            }),
+            sensorMenu: block('smalrubotS1_menu_sensorPositions', {
+                parent: 'sensor',
+                shadow: true,
+                fields: { sensorPositions: ['left', null] },
+            }),
+            act: block('smalrubotS1_action', {
+                topLevel: true,
+                x: 0,
+                y: 100,
+                inputs: { ACTION: [1, 'actMenu'] },
+            }),
+            actMenu: block('smalrubotS1_menu_actions', {
+                parent: 'act',
+                shadow: true,
+                fields: { actions: ['backward', null] },
+            }),
+            led: block('smalrubotS1_turnLedOn', {
+                topLevel: true,
+                x: 0,
+                y: 200,
+                inputs: { POSITION: [1, 'ledMenu'] },
+            }),
+            ledMenu: block('smalrubotS1_menu_positions', {
+                parent: 'led',
+                shadow: true,
+                fields: { positions: ['right', null] },
+            }),
+        };
+        const project = {
+            targets: [
+                {
+                    isStage: true,
+                    name: 'Stage',
+                    variables: {},
+                    lists: {},
+                    broadcasts: {},
+                    blocks: {},
+                    comments: {},
+                    currentCostume: 0,
+                    costumes: [],
+                    sounds: [],
+                    volume: 100,
+                },
+                {
+                    isStage: false,
+                    name: 'Sprite1',
+                    variables: {},
+                    lists: {},
+                    broadcasts: {},
+                    blocks,
+                    comments: {},
+                    currentCostume: 0,
+                    costumes: [],
+                    sounds: [],
+                    volume: 100,
+                    visible: true,
+                    x: 0,
+                    y: 0,
+                    size: 100,
+                    direction: 90,
+                    draggable: false,
+                    rotationStyle: 'all around',
+                },
+            ],
+            monitors: [],
+            extensions: ['smalrubotS1'],
+            meta: { semver: '3.0.0' },
+        };
+        // Deserialize directly (no costume assets are needed to check the blocks).
+        const runtime = new Runtime();
+        return sb3.deserialize(project, runtime).then(({ targets, extensions }) => {
+            st.ok(extensions.extensionIDs.has('smalrubotS1'), 'the extension is required by the project');
+            const sprite = targets.find((target) => !target.isStage);
+            const loaded = sprite.blocks._blocks;
+            st.equal(loaded.sensor.opcode, 'smalrubotS1_getSensorValue');
+            st.equal(loaded.sensorMenu.opcode, 'smalrubotS1_menu_sensorPositions');
+            st.equal(loaded.sensorMenu.fields.sensorPositions.value, 'left');
+            st.equal(loaded.actMenu.fields.actions.value, 'backward');
+            st.equal(loaded.ledMenu.fields.positions.value, 'right');
+
+            // ... and every saved value is still a value of the extension's menus.
+            const info = new SmalrubotS1Blocks(createMockRuntime()).getInfo();
+            const has = (menu, value) => info.menus[menu].items.some((item) => item.value === value);
+            st.ok(has('sensorPositions', 'left'));
+            st.ok(has('actions', 'backward'));
+            st.ok(has('positions', 'right'));
+            st.end();
+        });
+    });
+
     t.end();
 });
