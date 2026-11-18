@@ -249,6 +249,8 @@ src/lib/*
 !src/lib/ruby-generator/
 !src/lib/ruby-generator/**
 !src/lib/dncl/
+!src/lib/ja-notation/
+!src/lib/ja-notation/**
 !src/lib/lessons/
 !src/lib/lessons/**
 !src/lib/lesson-dynamic-categories.js
