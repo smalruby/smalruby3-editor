@@ -1896,29 +1896,13 @@ export default {
     'gui.rubyTab.dnclStringArithmeticHint':
         '文字列と - * / を使うと、左から順に計算されます。"a" + x - 1 は、文字列 "a" + x から 1 を引きます。数の計算は "a" + (x - 1) のようにかっこで囲んでください。',
     'gui.rubyTab.dnclArrayIndexHint':
-        '{access} は配列の範囲外になります。スモウルビーの日本語では、配列の添字は 0 から始まります（最初の要素は {array}[0]、最後の要素は {array}[{last}]）。問題文で添字が 1 から始まるときは、{fixed} のように添字を 1 ずらして書いてください。',
-    'gui.rubyTab.dnclIndexShiftConfirm':
-        'スモウルビーの日本語では、配列の添字は 0 から始まります。貼り付けたプログラムの配列の添字を 1 ずつ減らしますか？',
-    'gui.rubyTab.dnclIndexShiftDone':
-        '{count} か所の配列の添字を 1 ずつ減らしました（緑の印）。\n繰り返しの範囲（「i を 1 から n まで」など）は書き換えていません。0 始まりに合わせて、必要なら自分で直してください。',
-    'gui.rubyTab.dnclIndexShiftChangedHeading': '書き換えた箇所:',
+        '{access} は配列の範囲外になります。スモウルビーの日本語では、配列の添字は 0 から始まります（最初の要素は {array}[0]、最後の要素は {array}[{last}]）。問題文で添字が 1 から始まるときは、{fixed} のように添字を 1 ずらして書くか、プログラムの冒頭に「すべての配列の添字は 1 から始まる。」と書いてください（メニューの「設定: 添字が 1 から始まる問題」で書けます）。',
     'gui.rubyTab.problemFormDone': 'できた',
     'gui.rubyToolbar.copyProblemForm': '問題の形でコピー',
-    'gui.rubyTab.dnclIndexShiftChangedItem': '{line} 行目: {before} → {after}',
-    'gui.rubyTab.dnclIndexShiftSuspectsHeading': 'もしかしたらここも直す必要があるかもしれません（黄色の印）:',
-    'gui.rubyTab.dnclIndexShiftSuspectItem': '{line} 行目: {text}（{reason}）',
-    'gui.rubyTab.dnclIndexShiftMore': '…ほか {count} か所',
-    'gui.rubyTab.dnclIndexShiftChangedHover': '添字を 1 減らしました: {before} → {after}',
-    'gui.rubyTab.dnclIndexShiftReasonAssignOne':
-        '変数に 1 を入れています。添字に使うなら 0 にする必要があるかもしれません',
-    'gui.rubyTab.dnclIndexShiftReasonLoopFromOne': '1 から始まる繰り返しです。0 から始める必要があるかもしれません',
-    'gui.rubyTab.dnclIndexShiftReasonLoopFromN':
-        '先頭の要素を飛ばす繰り返しです。始まりを 1 小さくする必要があるかもしれません',
-    'gui.rubyTab.dnclIndexShiftReasonLoopToLength': '要素数まで繰り返しています。0 始まりでは 要素数(X) - 1 までです',
-    'gui.rubyTab.dnclIndexShiftReasonLessEqual':
-        '添字に使う変数を <= で比べています。0 始まりでは < にする必要があるかもしれません',
-    'gui.rubyTab.dnclIndexShiftReasonNegativeIndex':
-        '添字が -1 になりました。ここはもともと 0 始まりだったかもしれないので、確かめてください',
+    'gui.rubyTab.dnclIndexSettingConfirm':
+        '貼り付けたプログラムには、配列の添字は 1 から始まると書いてあります。プログラムの冒頭に「すべての配列の添字は 1 から始まる。」と書いて、添字が 1 から始まる設定にしますか？',
+    'gui.rubyToolbar.settingsPatternExample': '設定: 例示の形（添字は 0 から）',
+    'gui.rubyToolbar.settingsPatternIndexFromOne': '設定: 添字が 1 から始まる問題',
     'gui.rubyTab.dnclForbiddenPrefixError': '日本語モードでは変数に「{name}」は使えません',
     'gui.rubyTab.dnclPostTestLoopError':
         '後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。',
@@ -2045,7 +2029,7 @@ export default {
     'gui.genaiConcierge.indexHintsTitle':
         '注意: 添字が 1 から始まっているかもしれません。スモウルビーの日本語では、配列の添字は 0 から始まります。',
     'gui.genaiConcierge.indexHint':
-        '{access} は配列の範囲外になります（最後の要素は {array}[{last}]）。問題文で添字が 1 から始まるときは、{fixed} のように添字を 1 ずらして書いてください。',
+        '{access} は配列の範囲外になります（最後の要素は {array}[{last}]）。問題文で添字が 1 から始まるときは、{fixed} のように添字を 1 ずらして書くか、プログラムの冒頭に「すべての配列の添字は 1 から始まる。」と書いてください（メニューの「設定: 添字が 1 から始まる問題」で書けます）。',
     'gui.genaiConcierge.lineOf': '{line} 行目',
     'gui.genaiConcierge.spriteLineOf': '「{sprite}」の {line} 行目',
     'gui.genaiConcierge.spriteOf': '「{sprite}」',

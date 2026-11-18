@@ -1557,30 +1557,13 @@ export default {
     'gui.rubyTab.dnclStringArithmeticHint':
         'With a string, - * / are worked out from the left, so "a" + x - 1 subtracts from the string "a" + x. Put the number part in parentheses, like "a" + (x - 1).',
     'gui.rubyTab.dnclArrayIndexHint':
-        '{access} reads past the end of the array. In Smalruby Japanese mode, array indices start at 0 (the first element is {array}[0] and the last is {array}[{last}]). If the problem counts from 1, shift the index by 1, like {fixed}.',
-    'gui.rubyTab.dnclIndexShiftConfirm':
-        'In Smalruby Japanese mode, array indices start at 0. Shift the array indices of the pasted program down by 1?',
-    'gui.rubyTab.dnclIndexShiftDone':
-        'Shifted {count} array indices down by 1 (marked in green).\nLoop ranges (such as "i を 1 から n まで") were not changed. Fix them yourself if they should start at 0.',
-    'gui.rubyTab.dnclIndexShiftChangedHeading': 'Changed:',
+        '{access} reads past the end of the array. In Smalruby Japanese mode, array indices start at 0 (the first element is {array}[0] and the last is {array}[{last}]). If the problem counts from 1, shift the index by 1, like {fixed}, or write "すべての配列の添字は 1 から始まる。" at the top of the program (the menu "Settings: a problem whose indices start at 1" writes it).',
     'gui.rubyTab.problemFormDone': 'Done',
     'gui.rubyToolbar.copyProblemForm': 'Copy in the form of the test questions',
-    'gui.rubyTab.dnclIndexShiftChangedItem': 'Line {line}: {before} → {after}',
-    'gui.rubyTab.dnclIndexShiftSuspectsHeading': 'These may also need fixing (marked in yellow):',
-    'gui.rubyTab.dnclIndexShiftSuspectItem': 'Line {line}: {text} ({reason})',
-    'gui.rubyTab.dnclIndexShiftMore': '…and {count} more',
-    'gui.rubyTab.dnclIndexShiftChangedHover': 'Index shifted down by 1: {before} → {after}',
-    'gui.rubyTab.dnclIndexShiftReasonAssignOne':
-        'sets a variable to 1; if it is used as an index, it may need to be 0',
-    'gui.rubyTab.dnclIndexShiftReasonLoopFromOne': 'the loop starts at 1; it may need to start at 0',
-    'gui.rubyTab.dnclIndexShiftReasonLoopFromN':
-        'the loop skips the first elements; its start may need to be 1 smaller',
-    'gui.rubyTab.dnclIndexShiftReasonLoopToLength':
-        'the loop runs up to the number of elements; with 0-based indices it ends at 要素数(X) - 1',
-    'gui.rubyTab.dnclIndexShiftReasonLessEqual':
-        'compares an index with <=; with 0-based indices it may need to be <',
-    'gui.rubyTab.dnclIndexShiftReasonNegativeIndex':
-        'the index became -1; this part was probably 0-based already, so check it',
+    'gui.rubyTab.dnclIndexSettingConfirm':
+        'The pasted program says that its array indices start at 1. Write "すべての配列の添字は 1 から始まる。" at the top of the program, so that the indices start at 1?',
+    'gui.rubyToolbar.settingsPatternExample': 'Settings: the form of the examples (indices from 0)',
+    'gui.rubyToolbar.settingsPatternIndexFromOne': 'Settings: a problem whose indices start at 1',
     'gui.rubyTab.dnclForbiddenPrefixError': '"{name}" cannot be used in a variable in Japanese mode.',
     'gui.rubyTab.dnclPostTestLoopError':
         'A post-test loop (a loop that runs once before it checks the condition) cannot be written in Japanese. Write the first run before the loop, then make it a "〜の間繰り返す" loop. You can write it in Ruby mode.',
@@ -1668,7 +1651,7 @@ export default {
     'gui.genaiConcierge.indexHintsTitle':
         'Note: the indexes may start at 1. In Smalruby Japanese mode, array indices start at 0.',
     'gui.genaiConcierge.indexHint':
-        '{access} reads past the end of the array (the last element is {array}[{last}]). If the problem counts from 1, shift the index by 1, like {fixed}.',
+        '{access} reads past the end of the array (the last element is {array}[{last}]). If the problem counts from 1, shift the index by 1, like {fixed}, or write "すべての配列の添字は 1 から始まる。" at the top of the program (the menu "Settings: a problem whose indices start at 1" writes it).',
     'gui.genaiConcierge.lineOf': 'Line {line}',
     'gui.genaiConcierge.spriteLineOf': '"{sprite}" line {line}',
     'gui.genaiConcierge.spriteOf': '"{sprite}"',

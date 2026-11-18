@@ -1,5 +1,5 @@
 {
-    "about": "The settings of a program (indexBase, commentMarker, logicNote). read: readSettings(comments). sentences: settingsSentences(settings), which readSettings reads back as the same settings. programs: parse(ja).program.settings. jaToRuby / rubyToJa: pairs with no table that go both ways (jaToRuby(ja).ruby is ruby, rubyToJa(ruby).ja is ja, with no errors).",
+    "about": "The settings of a program (indexBase, commentMarker, logicNote). read: readSettings(comments). sentences: settingsSentences(settings), which readSettings reads back as the same settings. programs: parse(ja).program.settings. jaToRuby / rubyToJa: pairs with no table that go both ways (jaToRuby(ja).ruby is ruby, rubyToJa(ruby).ja is ja, with no errors). withSettings: withSettings(source, settings) writes the sentences of the settings at the top of the source (the sentences of other settings at the top go away, other comments and the code stay). settingsOfSource: the settings of a source, read from its top.",
     "defaults": {
         "indexBase": 0,
         "commentMarker": "#",
@@ -234,6 +234,80 @@
         {
             "ruby": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[i + 1 - 1]",
             "ja": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[i + 1 - 1 + 1]"
+        }
+    ],
+    "withSettings": [
+        {
+            "title": "a program with no sentence gets the sentence of indexes from 1",
+            "source": "A = [1, 2]\n表示する(A[1])",
+            "settings": {
+                "indexBase": 1
+            },
+            "out": "# すべての配列の添字は 1 から始まる。\nA = [1, 2]\n表示する(A[1])"
+        },
+        {
+            "title": "the sentences of the pattern of indexes from 1",
+            "source": "A = [1, 2]",
+            "settings": {
+                "indexBase": 1,
+                "logicNote": true
+            },
+            "out": "# すべての配列の添字は 1 から始まる。\n# 「and」は「かつ」を意味する論理演算子であり，左右の式がともに真のときにだけ真となる。\n# 「or」は「または」を意味する論理演算子であり，左右の式の少なくとも一方が真のときに真となる。\n# 「not」は「でない」を意味する論理演算子であり，右の式が偽のときにだけ真となる。\nA = [1, 2]"
+        },
+        {
+            "title": "the default settings take the sentences away and keep the other comments",
+            "source": "# すべての配列の添字は 1 から始まる。\n# 問題 1\n# 「and」は「かつ」を意味する論理演算子であり，左右の式がともに真のときにだけ真となる。\n\nA = [1, 2]",
+            "settings": {},
+            "out": "# 問題 1\n\nA = [1, 2]"
+        },
+        {
+            "title": "a sentence after the first line of code is a plain comment and stays",
+            "source": "a = 1\n# すべての配列の添字は 1 から始まる。",
+            "settings": {},
+            "out": "a = 1\n# すべての配列の添字は 1 から始まる。"
+        },
+        {
+            "title": "the comment mark // is written with #, which is read as a comment too",
+            "source": "// 「//」から行の終わりまでは，処理の対象とならない。\na = 1 // c",
+            "settings": {
+                "commentMarker": "//",
+                "indexBase": 1
+            },
+            "out": "# すべての配列の添字は 1 から始まる。\n# 「//」から行の終わりまでは，処理の対象とならない。\na = 1 // c"
+        },
+        {
+            "title": "an empty program",
+            "source": "",
+            "settings": {
+                "indexBase": 1
+            },
+            "out": "# すべての配列の添字は 1 から始まる。\n"
+        }
+    ],
+    "settingsOfSource": [
+        {
+            "source": "",
+            "settings": {
+                "indexBase": 0,
+                "commentMarker": "#",
+                "logicNote": false
+            }
+        },
+        {
+            "source": "# 問題\n\n# すべての配列の添字は 1 から始まる。\nA = [1]",
+            "settings": {
+                "indexBase": 1,
+                "commentMarker": "#",
+                "logicNote": false
+            }
+        },
+        {
+            "source": "A = [1]\n# すべての配列の添字は 1 から始まる。",
+            "settings": {
+                "indexBase": 0,
+                "commentMarker": "#",
+                "logicNote": false
+            }
         }
     ]
 }

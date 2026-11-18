@@ -459,6 +459,7 @@ test/integration/*
 !test/integration/debug_defaults.test.js
 !test/integration/dncl-mode-validation.test.js
 !test/integration/dncl-problem-form.test.js
+!test/integration/dncl-settings-pattern.test.js
 !test/integration/feedback-link.test.js
 !test/integration/ruby-editor-actions.test.js
 !test/integration/ruby-module.test.js
@@ -597,6 +598,7 @@ test/unit/components/*
 !test/unit/components/ruby-toolbar-no-rubytee.test.jsx
 !test/unit/components/ruby-toolbar-keyboard.test.jsx
 !test/unit/components/ruby-toolbar-dncl-lock.test.jsx
+!test/unit/components/ruby-toolbar-settings-pattern.test.jsx
 !test/unit/components/scanning-step-name-search.test.js
 !test/unit/components/student-join-form.test.js
 !test/unit/components/student-previous-comment.test.jsx

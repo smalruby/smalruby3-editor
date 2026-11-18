@@ -142,6 +142,17 @@ const messages = defineMessages({
         defaultMessage: 'Copy in the form of the test questions',
         description: 'More menu item of the Japanese mode: copy the program with line numbers and rules',
     },
+    settingsPatternExample: {
+        id: 'gui.rubyToolbar.settingsPatternExample',
+        defaultMessage: 'Settings: the form of the examples (indices from 0)',
+        description: 'More menu item of the Japanese mode: write the program by the settings of the examples',
+    },
+    settingsPatternIndexFromOne: {
+        id: 'gui.rubyToolbar.settingsPatternIndexFromOne',
+        defaultMessage: 'Settings: a problem whose indices start at 1',
+        description:
+            'More menu item of the Japanese mode: write the program by the settings of a problem whose indices start at 1',
+    },
     previewRubyScript: {
         id: 'gui.rubyToolbar.previewRubyScript',
         defaultMessage: 'Preview Ruby script',

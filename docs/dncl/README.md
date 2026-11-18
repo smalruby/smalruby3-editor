@@ -107,12 +107,13 @@ DNCL の行に戻して見せる。詳しくは [`docs/genai-consult/README.md`]
 | `dncl-paste-tidy.js` | **貼り付け時の整形**（日本語モードのエディタに貼り付けた行番号付きのテキストの行番号を消し、`//` コメントを `#` に直す。下の「貼り付け時の整形」）と、`//` のある行の変換エラーに「`//` はコメントではない」と添える `withDoubleSlashHint` |
 | `dncl-string-arithmetic-hint.js` | **文字列と `-` `*` `/` の警告**（`stringArithmeticRows`）。文字列を `+` でつないだ後の `-` や、文字列に `-` `*` `/` を使う行を見つける。`ruby-tab.jsx` が警告マーカー（`gui.rubyTab.dnclStringArithmeticHint`）にして、数の計算をかっこで囲むよう表示する。下の「文字列と数の計算」 |
 | `dncl-array-index-hint.js` | **範囲外の添字の警告**（`findArrayIndexHints`）。1 から始まる添字で書いたときのように配列の範囲外を読む `X[i]` / `X[3]` を見つける。ja-notation の `parse` で読んだ構文木を見る（読めないプログラムには出さない）。`ruby-tab.jsx` が警告マーカー（`gui.rubyTab.dnclArrayIndexHint`）にして、添字が 0 から始まることと直し方を表示する。下の「配列の添字は 0 から」 |
-| `dncl-paste-index-shift.js` | **貼り付け時の添字の 0 始まりへの書き換え**（`hasOneBasedIndexNote` / `shiftArrayIndexes` / `findOneBasedSuspects`）。「添字は 1 から始まる」の注釈がある貼り付けテキストの配列の添字を 1 減らし、1 始まりを前提にしていそうな行を見つける。下の「貼り付け時の添字の書き換え」 |
+| `dncl-index-note.js` | **貼り付けたテキストの「添字は 1 から始まる」の注釈を見つける**（`hasOneBasedIndexNote`）。コメントだけを見る。下の「貼り付け時の添字の設定」 |
+| `dncl-settings.js` | **設定のパターン**（`dnclSettingsPatternId` / `dnclWithSettingsPattern` / `dnclWithIndexFromOne`）。冒頭の説明文からいまのパターンを読み、パターンの説明文を書いてプログラムをその設定で表し直す（Ruby を通るので意味は変わらない）。下の「設定（冒頭の説明文）」 |
 | `dncl-keywords.js` | DNCL キーワード定義（`もし`, `ならば`, `を繰り返す` など）|
 | `dncl-validator.js` | 日本語モードに無いことばの判定（`findUnsupportedCommands` / `isPostTestLoopLine`）と、その文言・id。ja-notation が読めない行の言いかえ（`ja-notation-errors.js`）が使う。文言と id は Ruby → 日本語の誤りにも使う |
 | `dncl-source-map.js` | DNCL 行 ↔ Ruby 行のマッピング（エラー位置表示用。詳細は下の「エラー行の対応（ソースマップ）」）|
 | `dncl-block-filter.js` | DNCL モードで使えるブロックのフィルタ |
-| `paren-utils.js` | 括弧と名前の文字の判定（`findMatchingClose` / `skipString` / `isNameChar` / `isWholeWordAt`、名前の正規表現の `NAME_PATTERN` / `NAME_CHAR_PATTERN`）。名前の文字は ja-notation の判定をそのまま使う（下の「名前に使える文字」）。`dncl-validator.js`・`dncl-paste-tidy.js`・`dncl-paste-index-shift.js` と文字列の計算の警告が使う |
+| `paren-utils.js` | 括弧と名前の文字の判定（`findMatchingClose` / `skipString` / `isNameChar` / `isWholeWordAt`、名前の正規表現の `NAME_PATTERN` / `NAME_CHAR_PATTERN`）。名前の文字は ja-notation の判定をそのまま使う（下の「名前に使える文字」）。`dncl-validator.js`・`dncl-paste-tidy.js`・`dncl-index-note.js` と文字列の計算の警告が使う |
 | `dncl-trailing-comment.js` | **行末の `# コメント` の切り分け**（`splitTrailingComment` / `codeOfLine`）。日本語の行の判定（貼り付けの整形、文字列の計算の警告、読めない行の言いかえ）が、行末のコメントを外してから行を見る。文字列（`"..."` / `'...'` / `「...」`）の中の `#` はコメントにしない |
 | `ruby-to-dncl.js` | Ruby → 日本語変換のエントリポイント（`rubyToDncl`）。prism で解析し、ja-notation（下の「Ruby → 日本語の変換」）で読んで標準の形で書き、誤りを `ja-notation-errors.js` で日本語モードの文言にする。prism を先に読みこんでおく（`loadPrism()`） |
 
@@ -186,7 +187,7 @@ prism の解析の関数は外から受けとり（`rubyToJa(source, { parse, ..
 | `ja-notation/prism-reader.js` | prism のノードを読むただ 1 つの場所（種類・欄・フラグ、バイト位置 → 行と列） |
 | `ja-notation/read-ruby.js` | prism の構文木 → JaAST（`readRuby`）。Ruby の名前と呼び出しが日本語で何になるかは外から受けとる表で決める |
 | `ja-notation/write-ja.js` | JaAST → 標準の形の日本語（`writeJa`） |
-| `ja-notation/settings.js` | 設定（添字の始まり・コメントの記号・論理演算子の説明）。冒頭のコメントの決まった文から読み（`readSettings`）、添字を組み立てで 1 ずらし・読むときに戻す（`indexToRuby` / `indexToJa`）。説明文を書く `settingsSentences`。下の「設定（冒頭の説明文）」 |
+| `ja-notation/settings.js` | 設定（添字の始まり・コメントの記号・論理演算子の説明）。冒頭のコメントの決まった文から読み（`readSettings`）、添字を組み立てで 1 ずらし・読むときに戻す（`indexToRuby` / `indexToJa`）。説明文を書く `settingsSentences`、テキストの冒頭から読む `settingsOfSource`、冒頭の説明文を書きかえる `withSettings`、よくある設定のパターン `SETTINGS_PATTERNS`。下の「設定（冒頭の説明文）」 |
 
 テスト: ライブラリだけのもの（表なしの読み方・書き方、式の括弧、設定の読み書きと両向き）は `packages/ja-notation/test/`（データは `test/data/*.json`）。スモウルビーの表を通したものは scratch-gui の `test/unit/lib/ja-notation/read-ruby-write-ja.test.js`（日本語 → Ruby → 日本語が安定すること）、`golden.test.js`（コーパスの出力）、`settings.test.js`（設定ごとの表。両向きと往復、ブロックを通ったとき）。
 
@@ -251,7 +252,8 @@ DNCL モードでは、DNCL を Ruby に変換してからブロックに変換�
 - `packages/scratch-gui/src/containers/ruby-tab/dncl-mode.js` — Monaco の DNCL 言語定義（トークナイザ、シンタックスハイライト）
 - `packages/scratch-gui/src/containers/ruby-tab/dncl-snippets.js` — DNCL コード補完スニペット。ブロックは標準の形（`もし 条件 ならば:` / `〜の間繰り返す:` / `関数 名前(引数):` と字下げ 4 つ。閉じのことばの行は入れない）で入れる
 - `packages/scratch-gui/src/containers/ruby-tab/dncl-problem-form-view.js` — 問題の形を Monaco に描く（罫線のデコレーション、行番号 `(01)` の `lineNumbers`、フォーカスでの切りかえ `createProblemFormView`）
-- `packages/scratch-gui/src/containers/ruby-tab/dncl-index-shift.js` — 貼り付け時の添字の書き換えの確認ダイアログ・書き換え（1 回の Undo）・印（Monaco デコレーション）・まとめの表示（`offerDnclIndexShift`）
+- `packages/scratch-gui/src/containers/ruby-tab/dncl-index-setting.js` — 貼り付け時の添字の設定の確認ダイアログと、冒頭への説明文の書きこみ（1 回の Undo。違うところだけを書きかえる `replaceEditorText`。設定のパターンのメニューも使う）（`offerDnclIndexSetting`）
+- `packages/scratch-gui/src/components/ruby-toolbar/ruby-toolbar.jsx` — その他メニューの設定のパターン（`ruby-toolbar-menu-settings-pattern-example` / `ruby-toolbar-menu-settings-pattern-index-from-one`。日本語モードのときだけ。いまのパターンに ✓）
 
 #### UI / 状態管理
 
@@ -290,7 +292,15 @@ DNCL モードは特定のブロックに紐づくものではなく、**Ruby �
 | コメントの記号（`commentMarker`） | `// 「//」から行の終わりまでは，処理の対象とならない。` | `#` | `//` のとき、`//` はコメント（整数の商は `÷`）。`#` もコメントとして読む。Ruby では `#`、日本語に戻すときは `//` で書く |
 | 論理演算子の説明（`logicNote`） | `# 「and」は「かつ」を意味する論理演算子であり，…` の型の文 | 書かない | 変換は変えない（書き方はいつも `and` / `or` / `not`）。説明文があるかどうかだけを持つ |
 
-- 説明文を書きかえるメニュー・貼り付けたときの取りこみは、まだ無い（いまは利用者が冒頭に文を書く）。
+- 説明文は手で書いてもよいし、その他メニュー（⋯）の**設定のパターン**から選んでもよい（日本語モードのときだけ出る）。
+
+  | パターン（メニュー） | 添字 | コメント | 論理演算子の説明 | data-testid |
+  |---|---|---|---|---|
+  | 設定: 例示の形（添字は 0 から） | 0 から | `#` | 書かない | `ruby-toolbar-menu-settings-pattern-example` |
+  | 設定: 添字が 1 から始まる問題 | 1 から | `#` | 書く（`and` / `or` / `not` の 3 文） | `ruby-toolbar-menu-settings-pattern-index-from-one` |
+
+  選ぶと、冒頭の設定の文を消してパターンの文を先頭に書き（ほかのコメントは残す）、プログラムを Ruby にしてからその設定で日本語に戻す（`dnclWithSettingsPattern`）。意味は変わらないので、添字は書きかわる（0 からで `A[0]` のプログラムを 1 からにすると `A[1]`）。Ruby にできないプログラムは、冒頭の文だけを書きかえる。1 回の Undo で戻る。メニューの ✓ は、冒頭の文がどちらかのパターンにちょうど合うときに付く（`//` をコメントにしたときなどはどちらにも付かない）。
+- 作品を保存して開き直しても設定は残る: 冒頭の文は Ruby のコメントになり、最初のブロックのコメントとして作品に保存される（`test/unit/lib/dncl/dncl-settings-project.test.js` が、ブロックにして保存し、開き直して日本語に戻すと同じ文と設定になることを確かめる）。
 - 添字が 1 から始まる設定のプログラムには、範囲外の添字の警告（`dncl-array-index-hint.js`）を出さない。
 
 ### localStorage
@@ -436,28 +446,15 @@ Smalruby は **DNCLv2 形式のプログラムをそのまま実行** できる�
 
 スモウルビーとスモウルビーの日本語は、配列の添字を 0 から始める（共通テストのプログラム表記の既定と同じ）。プログラムの冒頭に `# すべての配列の添字は 1 から始まる。` と書いたときだけ 1 から始まる（上の「設定（冒頭の説明文）」。Ruby は 0 から数えるので、Ruby にするときに添字を 1 ずらす）。
 
-冒頭の説明文を書かずに、問題文が「添字は 1 から始まる」と指定するプログラムを写すときは、利用者が添字を 1 ずらして書く（そのような注釈付きのプログラムを貼り付けたときは、下の「貼り付け時の添字の書き換え」で書き換えを提案する）。ずらさずに書くと配列の範囲外を読むが、Scratch VM は範囲外の要素を空の値として返すだけでエラーにならず、結果だけがずれる。そこで日本語モードのエディタは、範囲外になることが確実に分かる添字に警告マーカーを出す（`dncl-array-index-hint.js`。条件は [`docs/smalruby-dncl-spec.ja.md`](../smalruby-dncl-spec.ja.md) の「配列アクセス」）。警告は変換を止めない。マーカーの owner は `smalruby-dncl-index`（`ruby-tab/constants.js` の `DNCL_INDEX_HINT_OWNER`）で、変換エラーのマーカー（`smalruby`）を消しても残る。実行時（VM）で検知しないのは、upstream の VM の挙動を変えずに済ませるため。
+冒頭の説明文を書かずに、問題文が「添字は 1 から始まる」と指定するプログラムを写すときは、冒頭に説明文を書くか（メニューの「設定: 添字が 1 から始まる問題」でも書ける）、添字を 1 ずらして書く（そのような注釈付きのプログラムを貼り付けたときは、下の「貼り付け時の添字の設定」で説明文を書くことを提案する）。ずらさずに書くと配列の範囲外を読むが、Scratch VM は範囲外の要素を空の値として返すだけでエラーにならず、結果だけがずれる。そこで日本語モードのエディタは、範囲外になることが確実に分かる添字に警告マーカーを出す（`dncl-array-index-hint.js`。条件は [`docs/smalruby-dncl-spec.ja.md`](../smalruby-dncl-spec.ja.md) の「配列アクセス」）。警告は変換を止めない。マーカーの owner は `smalruby-dncl-index`（`ruby-tab/constants.js` の `DNCL_INDEX_HINT_OWNER`）で、変換エラーのマーカー（`smalruby`）を消しても残る。実行時（VM）で検知しないのは、upstream の VM の挙動を変えずに済ませるため。
 
-### 貼り付け時の添字の書き換え
+### 貼り付け時の添字の設定
 
-日本語モードの Ruby タブのエディタに貼り付けた（Ctrl+V / ⌘V と右クリックメニューの「貼り付け」の両方）テキストの**コメント**に、配列の添字が 1 から始まるという注釈（`# 配列の添字は1から始まる`、`# 添字は１から`、`#（添字は1から始まる．）`、`# 添え字は 1 から`、`# インデックスは1から` など。全角数字も可）があるときだけ、貼り付けたあとに確認ダイアログを出す（「スモウルビーの日本語では、配列の添字は 0 から始まります。貼り付けたプログラムの配列の添字を 1 ずつ減らしますか？」`gui.rubyTab.dnclIndexShiftConfirm`）。注釈が無いとき、貼り付けたテキストに配列の添字が 1 つも無いときは、何も出さずに普通に貼り付けるだけ。行番号付きのテキストは、先に上の「貼り付け時の整形」をしてから調べる。Ruby モード・ふりがなモードでは出さない。
+日本語モードのエディタに貼り付けた（Ctrl+V / ⌘V と右クリックメニューの「貼り付け」の両方）テキストの**コメント**に、配列の添字が 1 から始まるという注釈（`# 配列の添字は1から始まる`、`# 添字は１から`、`#（添字は1から始まる．）`、`# 添え字は 1 から`、`# インデックスは1から` など。全角数字も可）があり、プログラムの冒頭がまだ添字 1 からの設定でないときだけ、貼り付けたあとに確認ダイアログを出す（`gui.rubyTab.dnclIndexSettingConfirm`）。行番号付きのテキストは、先に上の「貼り付け時の整形」をしてから調べる。Ruby モード・ふりがなモードでは出さない。
 
-- **「はい」**: **貼り付けた範囲だけ**の配列の添字を 1 減らす（`shiftArrayIndexes`）。書き換えは 1 回の Undo（Ctrl+Z）で貼り付けた直後に戻る
-  - 数の添字は 1 引く（`Akibi[1]` → `Akibi[0]`）。`A[0]` は `A[-1]` になるが、DNCL で -1 の添字は誤りなので、緑ではなく黄色の印にして、まとめの要確認の箇所に「添字が -1 になった」として並べる（その部分はもともと 0 始まりだった可能性が高い）
-  - 式の添字は `- 1` を付ける（`Akibi[tantou]` → `Akibi[tantou - 1]`）。末尾が `+ 1` なら取り（`Nissu[i + 1]` → `Nissu[i]`）、`- k` なら `- (k + 1)` にまとめる（`Nissu[i - 1]` → `Nissu[i - 2]`）
-  - 2 次元配列は添字ごとに 1 減らす（`Data[i, j]` → `Data[i - 1, j - 1]`、`Data[i][j]` → `Data[i - 1][j - 1]`）。入れ子の添字（`A[B[i]]`）は両方
-  - 配列の初期化（`Nissu = [4, 1, 3]`）、文字列（`"..."` / `'...'` / `「...」`）と `#` コメントの中の `[` `]`、文字列の添字（`X["a"]`）は変えない
-  - 書き換えた添字に緑の印を付け（ホバーで「添字を 1 減らしました: 前 → 後」。ホバーは Markdown として描画されるので、`A[i*2]` の `*` などはエスケープして表示する）、まとめのダイアログで書き換えた箇所（「N 行目: 前 → 後」）と「**繰り返しの範囲は書き換えていない。0 始まりに合わせて、必要なら自分で直す**」ことを示す
-  - さらに、書き換えはしないが **1 始まりを前提にしていそうな行**に黄色の印を付け（ホバーで理由）、まとめに「もしかしたらここも直す必要があるかもしれません」として行と理由を並べる（`findOneBasedSuspects`）。添字と関係ない行（`count = 1` など）に印を付けないよう、`findOneBasedSuspects` の `usedAsIndex`（その変数が添字に使われているか）を見て、次の上 2 つは**変数が添字に使われているときだけ**出す:
-    - 変数に 1 を入れている（`tantou = 1`）
-    - 1 から始まる繰り返し（`kougeihin を 1 から kougeihinsu まで ...`）
-    - 2 以上から始まり、変数が添字に使われている繰り返し（`buin を 2 から buinsu まで ...`。先頭の要素を飛ばす）
-    - `要素数(X)` まで（`- 1` 無し）の繰り返し
-    - 添字に使う変数か `要素数(X)` を `<=` / `≦` で比べている（`i <= 要素数(X) の間`）
-  - 印は次に書き換えたとき、または日本語モードを抜けたときに消える
-- **「いいえ」**: 貼り付けたまま何もしない（印もまとめも出さない）
-
-制限: 添字以外（繰り返しの範囲、`i = 1` など）は正しく直すのが難しいため書き換えない。`+ 1` / `- 1` する変数の更新（`i = i + 1`）は 0 始まりでも普通に使うので、要確認の箇所には含めない。
+- **「はい」**: プログラムの冒頭に `# すべての配列の添字は 1 から始まる。` を書く（`dnclWithIndexFromOne`。ほかの設定はそのまま）。貼り付けた添字は**書きかえない**（設定で、問題文と同じ意味になる）。1 回の Undo で戻る。
+- **「いいえ」**: 貼り付けたまま何もしない。
+- 冒頭に `# 配列の添字は1から始まる` のような決まった文があるときは、それがもう設定なので、何も聞かない。
 
 ### 対応しない DNCLv2 機能
 
@@ -515,7 +512,8 @@ Smalruby は **DNCLv2 形式のプログラムをそのまま実行** できる�
   - `dncl-array-index-hint.test.js` — 範囲外の添字の警告（1 から数えたループ・数の添字・0 から数えたループは警告しない・二度代入した配列・要素を追加/削除する配列・関数の引数と同じ名前は推測しない）
   - `dncl-string-arithmetic-hint.test.js` — 文字列と `-` `*` `/` の警告（`+` でつないだ後の `-`・文字列の隣の `*` `/`・かっこの中・`,` や比較の後・符号・添字・文字列やコメントの中は警告しない）
   - `dncl-paste-tidy.test.js` — 貼り付け時の整形（行番号の削除と字下げの保持・`//` コメント → `#`・整数除算と文字列の `//` は不変）
-  - `dncl-paste-index-shift.test.js` — 貼り付け時の添字の書き換え（注釈の検出と表記の揺れ・数/式/2 次元/入れ子の添字・初期化/文字列/コメントは不変・書き換え位置・共通テスト例題の要確認の行）
+  - `dncl-index-note.test.js` — 貼り付けたテキストの「添字は 1 から始まる」の注釈の検出と表記の揺れ
+  - `dncl-settings.test.js` — 設定のパターン（いまのパターンの判定・パターンでの表し直し・Ruby にできないときは冒頭の文だけ・貼り付けの設定）、`dncl-settings-project.test.js` — 設定が作品の保存と開き直しで残ること
   - `dncl-display-multi-arg.test.js` — `表示する` 多引数 / `puts(... + ...)` round-trip
   - `dncl-to-ruby.test.js` — DNCL → Ruby 変換ユニットテスト
   - `dncl-japanese-quotes-in-string.test.js` — `"..."` / `'...'` の中の `「」` はそのまま残し、`「...」` の文字列だけを `"..."` に直すこと（round-trip を含む）
@@ -528,7 +526,7 @@ Smalruby は **DNCLv2 形式のプログラムをそのまま実行** できる�
   - `dncl-unsupported-command.test.js` — 日本語モードに無い命令（引数あり・なし・変数と同じ名前・式や条件の中・`xxx do` と `|x|`）がその行のエラーで止まり、定義した関数の呼び出しや組み込み関数は往復できること（DNCL → Ruby と Ruby → DNCL の両方）
   - `dncl-do-block.test.js` — 日本語にしない `xxx do ... end` が `を実行する` で閉じ、外側の `〜の間` / `もし` / `関数` の閉じのことばがずれないこと（入れ子・`until x do`・後判定の中・文字列やコメントの中の `do`）
   - `dncl-roundtrip.test.js` — DNCL ↔ Ruby round-trip 安定性
-- エディタ側の単体テスト: `packages/scratch-gui/test/unit/containers/ruby-tab/dncl-index-shift.test.js`（注釈なしでは聞かない・「いいえ」で何も変えない・「はい」で 1 回の編集と印とまとめ）、`dncl-problem-form-view.test.js`（罫線のデコレーションの位置・タブの字下げ・空の行の縦線・行番号の桁と欄の幅・フォーカスと日本語モードでの切りかえ）。統合テスト `test/integration/dncl-problem-form.test.js`（フォーカスでの切りかえ・「できた」・Ruby に戻すと行番号と空白の点が戻ること）
+- エディタ側の単体テスト: `packages/scratch-gui/test/unit/containers/ruby-tab/dncl-index-setting.test.js`（注釈なし・設定済みでは聞かない・「いいえ」で何も変えない・「はい」で冒頭に 1 回の編集、違うところだけの書きかえ）、`test/unit/components/ruby-toolbar-settings-pattern.test.jsx`（メニューのパターン・✓・選んだときの呼び出し）、`dncl-problem-form-view.test.js`（罫線のデコレーションの位置・タブの字下げ・空の行の縦線・行番号の桁と欄の幅・フォーカスと日本語モードでの切りかえ）。統合テスト `test/integration/dncl-problem-form.test.js`（フォーカスでの切りかえ・「できた」・Ruby に戻すと行番号と空白の点が戻ること）
 - 補完と色分けの単体テスト: `packages/scratch-gui/test/unit/containers/ruby-tab/dncl-snippets.test.js`（スニペットが標準の形（`:` と字下げ 4 つ・閉じのことばの行なし・`繰り返す:`）で、場所を埋めて入れたものがそのまま Ruby とブロックになり、Ruby から同じ日本語に戻ること）、`dncl-mode.test.js`（開始の行の後の字下げ・`and` / `or` / `not`・`繰り返す` の付いたことば・`を返す`・全角の `％` の色分け）
 - Round-trip テスト (左結合演算子の括弧除去): `packages/scratch-gui/test/unit/lib/ruby-roundtrip-puts-concat.test.js`
 - ブロック制限 UX の単体テスト:
