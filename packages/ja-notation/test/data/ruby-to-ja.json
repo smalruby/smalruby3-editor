@@ -1,0 +1,54 @@
+{
+    "about": "rubyToJa(ruby, {parse, ...table}): the Japanese in the standard form (written also when there are errors) and the errors (on Ruby lines). The Ruby is parsed with prism. \"none\" is no table of a Ruby system.",
+    "cases": [
+        {
+            "title": "local variables, blocks and operators are written in the standard form",
+            "table": "none",
+            "ruby": "x = 1\nwhile x < 10 && !(x == 5)\n  x += 2\nend",
+            "ja": "x = 1\nx < 10 and not (x == 5) の間繰り返す:\n    x += 2",
+            "errors": []
+        },
+        {
+            "title": "a call the table does not have is told as an error at its name",
+            "table": "none",
+            "ruby": "move(10)",
+            "ja": "move(10)",
+            "errors": [
+                {
+                    "code": "unknown-command",
+                    "message": "「move」は日本語では書けない命令です",
+                    "line": 1,
+                    "column": 0,
+                    "name": "move"
+                }
+            ]
+        },
+        {
+            "title": "the post-test loop is told on its begin and while lines",
+            "table": "none",
+            "ruby": "begin\n  x = 1\nend while x < 3",
+            "ja": "begin\n  x = 1\nend while x < 3",
+            "errors": [
+                {
+                    "code": "post-test-loop",
+                    "message": "後判定の繰り返しは日本語では書けません",
+                    "line": 1,
+                    "column": 0
+                },
+                {
+                    "code": "post-test-loop",
+                    "message": "後判定の繰り返しは日本語では書けません",
+                    "line": 3,
+                    "column": 4
+                }
+            ]
+        },
+        {
+            "title": "blank lines and comments are kept",
+            "table": "none",
+            "ruby": "# はじめ\nx = 1\n\nif x > 0 # x が正\n  x = 2\nend",
+            "ja": "# はじめ\nx = 1\n\nもし x > 0 ならば: # x が正\n    x = 2",
+            "errors": []
+        }
+    ]
+}

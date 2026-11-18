@@ -136,7 +136,7 @@ DNCL 風の形の読み方（切りかえる前の変換に合わせたもの）
 
 | ファイル | 役割 |
 |---|---|
-| `src/lib/ja-notation/`（MIT。`LICENSE` あり） | ライブラリ。外のモジュールを import しない（`test/unit/lib/ja-notation/boundary.test.js`） |
+| `packages/ja-notation/`（ワークスペースのパッケージ `@smalruby/ja-notation`。MIT。`LICENSE` あり） | ライブラリ。依存は無く、`src/` の外を import しない（`packages/ja-notation/test/boundary.test.js`）。使い方・JaAST の形・テストのデータは `packages/ja-notation/README.md`。下の `ja-notation/<ファイル>` は `packages/ja-notation/src/<ファイル>` |
 | `ja-notation/lexer.js` | 1 行を字句に分ける。全角の演算子・`≦` などは半角のものとして読む |
 | `ja-notation/parse.js` | 日本語を読む。標準の形（行番号・`｜` `⎿`・字下げ・`ならば:`・`and` / `or` / `not`）と DNCL 風の形（閉じる行・`←`・`かつ`・`でない`・「...」）。JaAST の形は `ja-notation/ja-ast.js` |
 | `ja-notation/build-ruby.js` | JaAST → Ruby の構文木（prism のノード名を使う小さな形）。変数の名前・関数・入力は外から受けとる表で決める |
@@ -144,7 +144,7 @@ DNCL 風の形の読み方（切りかえる前の変換に合わせたもの）
 
 誤りは `{code, message, line, column}` に、日本語モードの文言を作るための `name`（字句）・`opener` / `direction` / `colon` / `word`（ブロック）・`block`（`stray-closer` / `closer-indent` / `stray-branch`）を添えて返す。
 
-テスト: `test/unit/lib/ja-notation/corpus.test.js`（コーパスのゴールデンとの比較）、`parse.test.js`、`build-and-write-ruby.test.js`。
+テスト: ライブラリだけのもの（表なし・ほかの処理系の表）は `packages/ja-notation/test/`（データは `test/data/*.json`。`node --test`）。スモウルビーの表を通したものは scratch-gui の `test/unit/lib/ja-notation/corpus.test.js`（コーパスのゴールデンとの比較）と `build-and-write-ruby.test.js`。
 
 #### Ruby → 日本語の変換（ja-notation）
 
@@ -174,7 +174,7 @@ prism の解析の関数は外から受けとり（`rubyToJa(source, { parse, ..
 | `ja-notation/write-ja.js` | JaAST → 標準の形の日本語（`writeJa`） |
 | `ja-notation/settings.js` | 設定（添字の始まり・コメントの記号・論理演算子の説明）。冒頭のコメントの決まった文から読み（`readSettings`）、添字を組み立てで 1 ずらし・読むときに戻す（`indexToRuby` / `indexToJa`）。説明文を書く `settingsSentences`。下の「設定（冒頭の説明文）」 |
 
-テスト: `test/unit/lib/ja-notation/read-ruby-write-ja.test.js`（読み方・書き方の規則、日本語 → Ruby → 日本語が安定すること）、`golden.test.js`（コーパスの出力）、`settings.test.js`（設定ごとの表。両向きと往復、ブロックを通ったとき）。
+テスト: ライブラリだけのもの（表なしの読み方・書き方、式の括弧、設定の読み書きと両向き）は `packages/ja-notation/test/`（データは `test/data/*.json`）。スモウルビーの表を通したものは scratch-gui の `test/unit/lib/ja-notation/read-ruby-write-ja.test.js`（日本語 → Ruby → 日本語が安定すること）、`golden.test.js`（コーパスの出力）、`settings.test.js`（設定ごとの表。両向きと往復、ブロックを通ったとき）。
 
 #### 誤りの文言
 
@@ -478,6 +478,7 @@ Smalruby は **DNCLv2 形式のプログラムをそのまま実行** できる�
 
 ## テスト
 
+- ライブラリ（`packages/ja-notation/`）: `npm run test:unit --workspace=packages/ja-notation`（`node --test`。ルートの `npm run lint` からも流れる）。テストのデータは言語に依らない JSON（`packages/ja-notation/test/data/`）で、のちの Ruby の実装も同じデータを流す
 - 変換の作り直し（`ja-notation`）のための安全網:
   - `test/unit/lib/ruby-roundtrip/japanese-table.test.js` — 日本語 ⇔ Ruby ⇔ ブロックの表（表のテストの日本語の列。[`bridging-patterns.md`](../ruby-editor/bridging-patterns.md) の「表のテスト」）
   - `test/unit/lib/ja-notation/golden.test.js` — 日本語のプログラムのコーパスについて、`dnclToRuby` / `rubyToDncl` の出力（Ruby・日本語・ブロック・誤りの文と行）がゴールデンと同じこと。データと集め方は `packages/scratch-gui/test/fixtures/ja-notation/README.md`

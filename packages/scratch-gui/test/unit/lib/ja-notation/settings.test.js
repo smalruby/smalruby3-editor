@@ -2,12 +2,14 @@
  * The settings of a program (J5 of docs/ruby-editor/converter-roadmap.md, docs/dncl/design.md 4 章):
  * read from the sentences at the top, kept in the JaAST (`program.settings`), and done on the
  * syntax tree when the Ruby is built (`A[i]` → `@A[i - 1]` with indexes from 1) and read back.
- * Each table is checked in both ways and for the round trip, wherever the index is.
+ * Each table is checked in both ways and for the round trip, wherever the index is, with the
+ * table of Smalruby. Reading and writing the sentences, and the settings with no table, are
+ * tested in packages/ja-notation/ (its JSON test data).
  */
+import { jaToRuby } from '@smalruby/ja-notation';
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
 import { SMALRUBY_JA_NOTATION } from '../../../../src/lib/dncl/ja-notation-table';
 import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
-import { DEFAULT_SETTINGS, jaToRuby, parse, readSettings, settingsSentences } from '../../../../src/lib/ja-notation';
 import { loadPrism } from '../../../../src/lib/prism-parser';
 import { recordJa } from './golden-record';
 
@@ -18,39 +20,6 @@ const RUBY_ONE = ONE;
 const RUBY_SLASH = '# 「//」から行の終わりまでは，処理の対象とならない。';
 
 beforeAll(() => loadPrism());
-
-describe('readSettings: only the sentences of the settings are read', () => {
-    test.each([
-        [[], DEFAULT_SETTINGS],
-        [[ONE], { ...DEFAULT_SETTINGS, indexBase: 1 }],
-        [['# すべての配列の添字は０から始まる。'], DEFAULT_SETTINGS],
-        [['#配列の添え字は １ から始まる'], { ...DEFAULT_SETTINGS, indexBase: 1 }],
-        [[SLASH], { ...DEFAULT_SETTINGS, commentMarker: '//' }],
-        [['# 「#」から行の終わりまでは，処理の対象とならない。'], DEFAULT_SETTINGS],
-        [
-            ['# 「and」は「かつ」を意味する論理演算子であり，左右の式がともに真のときにだけ真となる。'],
-            { ...DEFAULT_SETTINGS, logicNote: true },
-        ],
-        // A comment that only talks about the indexes is a plain comment.
-        [['# 添字は 1 から始まる（Nissu[1] が 1 月）'], DEFAULT_SETTINGS],
-        [['# すべての配列の添字は 1 から始まる。と書く問題もある'], DEFAULT_SETTINGS],
-    ])('%j', (comments, settings) => {
-        expect(readSettings(comments)).toEqual(settings);
-    });
-
-    test('the settings are only read from the comments before the first line of code', () => {
-        expect(parse(lines('(01) x = 1', ONE)).program.settings.indexBase).toBe(0);
-        expect(parse(lines('', '(01) ' + ONE, '(02) x = 1')).program.settings.indexBase).toBe(1);
-    });
-
-    test('settingsSentences writes the sentences that read back as the same settings', () => {
-        const settings = { indexBase: 1, commentMarker: '//', logicNote: true };
-        const sentences = settingsSentences(settings);
-        expect(sentences[0]).toBe(ONE);
-        expect(readSettings(sentences)).toEqual(settings);
-        expect(settingsSentences(DEFAULT_SETTINGS)).toEqual([]);
-    });
-});
 
 describe('indexes from 1: Japanese → Ruby → Japanese', () => {
     // [the Japanese, the Ruby]: wherever the index is, the Ruby counts from 0.
@@ -129,13 +98,7 @@ describe('the comment mark `//`', () => {
     });
 });
 
-describe('the library without the table of Smalruby', () => {
-    test('the settings are in the JaAST', () => {
-        const { program, ruby } = jaToRuby(lines(ONE, 'A[i] = A[i + 1]'), {});
-        expect(program.settings).toEqual({ ...DEFAULT_SETTINGS, indexBase: 1 });
-        expect(ruby).toBe(lines(ONE, 'A[i - 1] = A[i]'));
-    });
-
+describe('the table of Smalruby and the settings', () => {
     test('the table of Smalruby gives no rule of its own about the settings', () => {
         expect(jaToRuby(lines(ONE, 'x = A[1]'), SMALRUBY_JA_NOTATION).ruby).toBe(lines(ONE, '@x = @_array_A_[0]'));
     });

@@ -11,10 +11,10 @@
  * of the converter on its Ruby) must not convert here either, and the first
  * error is on the same Japanese line.
  */
+import { jaToRuby } from '@smalruby/ja-notation';
 import fs from 'fs';
 import path from 'path';
 import { SMALRUBY_JA_NOTATION } from '../../../../src/lib/dncl/ja-notation-table';
-import { jaToRuby } from '../../../../src/lib/ja-notation';
 import { loadPrism } from '../../../../src/lib/prism-parser';
 import { rubyShape } from './ruby-shape';
 

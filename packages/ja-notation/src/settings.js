@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // ja-notation: the settings of a program (what the problem text promises:
-// where the array indexes start, the comment mark, ...). See ./LICENSE and
+// where the array indexes start, the comment mark, ...). See ../LICENSE and
 // docs/dncl/design.md (4 章).
 //
 // The settings are read from the sentences at the top of the program (its

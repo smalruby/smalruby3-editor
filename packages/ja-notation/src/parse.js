@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// ja-notation: read the Japanese into a JaAST (./ja-ast.js). See ./LICENSE.
+// ja-notation: read the Japanese into a JaAST (./ja-ast.js). See ../LICENSE.
 //
 // Both forms are read, into the same JaAST:
 // - the standard form (the form of the 共通テスト用プログラム表記): line
@@ -9,8 +9,8 @@
 //   `かつ` / `または`, a `でない` after what it negates, 「...」 and `X を返す`.
 // The two may be mixed: a block opened with `:` ends where the indentation
 // ends, one opened without `:` ends at its closing line (or a `⎿`).
-import { tokenize } from './lexer';
-import { readSettings } from './settings';
+import { tokenize } from './lexer.js';
+import { readSettings } from './settings.js';
 
 /** The label of a numbered line: `(1)`, `(01)` and `(00-1)` (a line put before `(01)`). */
 const LABEL_RE = /^\(\d+(?:-\d+)*\)/;

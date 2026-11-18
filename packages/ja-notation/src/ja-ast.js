@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// ja-notation: the shape of the Japanese syntax tree (JaAST). See ./LICENSE.
+// ja-notation: the shape of the Japanese syntax tree (JaAST). See ../LICENSE.
 //
 // A JaAST is plain JSON (no classes), so the Node and the Ruby implementations
 // can share test data. Every node has `type`, `line` (1-based line of the

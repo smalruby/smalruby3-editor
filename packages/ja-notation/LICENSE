@@ -2,7 +2,7 @@ MIT License
 
 This license applies to the ja-notation library, specifically:
 
-  - packages/scratch-gui/src/lib/ja-notation/**
+  - packages/ja-notation/** (the @smalruby/ja-notation package)
 
 These files are licensed under the MIT License below, which takes precedence
 over the repository's top-level AGPL-3.0 license (LICENSE) for this directory.

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // ja-notation: the one place that reads the nodes of prism (the Ruby parser).
-// See ./LICENSE and docs/ruby-editor/converter-roadmap.md (the risk of a new
+// See ../LICENSE and docs/ruby-editor/converter-roadmap.md (the risk of a new
 // version of prism).
 //
 // prism is not imported: its parse function is given by the caller. Of a node,
@@ -27,7 +27,7 @@ const fieldsOf = (node) => {
 
 /**
  * The kind of a prism node (`CallNode`, `IfNode`, ...), or null for anything else.
- * @param {*} node - A value.
+ * @param {unknown} node - A value.
  * @returns {?string} The kind.
  */
 const typeOf = (node) => (node && typeof node.toJSON === 'function' ? fieldsOf(node).type : null);
@@ -36,7 +36,7 @@ const typeOf = (node) => (node && typeof node.toJSON === 'function' ? fieldsOf(n
  * A field of a prism node.
  * @param {object} node - The node.
  * @param {string} name - The field (`receiver`, `statements`, ...).
- * @returns {*} Its value (null when the node has no such field).
+ * @returns {unknown} Its value (null when the node has no such field).
  */
 const field = (node, name) => {
     const value = fieldsOf(node)[name];

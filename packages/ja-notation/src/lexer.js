@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // ja-notation: the tokens of one line of Japanese (the standard form of the
-// 共通テスト用プログラム表記 and the DNCL-like form). See ./LICENSE.
+// 共通テスト用プログラム表記 and the DNCL-like form). See ../LICENSE.
 
 /** The first character of a name: ASCII letters, `_`, hiragana, katakana and kanji. */
 const NAME_HEAD_RE = /[A-Za-z_぀-ゟ゠-ヿ一-鿿]/;
@@ -200,7 +200,6 @@ const tokenize = (text, offset = 0, commentMarker = '#') => {
             // A Ruby predicate or bang method keeps its `?` / `!` (`stop!`,
             // `touching?(...)`), so it is told as a command, not as a name.
             if ((text[end] === '?' || text[end] === '!') && text[end + 1] !== '=') end++;
-            const word = text.substring(i, end);
             push('name', i, end);
             i = end;
             continue;

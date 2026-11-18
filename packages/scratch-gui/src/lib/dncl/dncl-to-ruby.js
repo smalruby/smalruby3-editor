@@ -1,5 +1,5 @@
 // === Smalruby: This file is Smalruby-specific (DNCL to Ruby transpiler) ===
-import { jaToRuby } from '../ja-notation';
+import { jaToRuby } from '@smalruby/ja-notation';
 import { DnclSourceMap } from './dncl-source-map';
 import { jaNotationErrors } from './ja-notation-errors';
 import { SMALRUBY_JA_NOTATION } from './ja-notation-table';
@@ -9,7 +9,7 @@ import { SMALRUBY_JA_NOTATION } from './ja-notation-table';
  * DNCL-like form or both mixed) to Ruby.
  *
  * The Japanese is read into a syntax tree and written as Ruby by ja-notation
- * (src/lib/ja-notation/, with the Smalruby table of ./ja-notation-table.js),
+ * (packages/ja-notation/, with the Smalruby table of ./ja-notation-table.js),
  * which also gives the Japanese line of each Ruby line. The errors are said
  * in the words of the Japanese mode (./ja-notation-errors.js). A program that
  * cannot be read makes no Ruby, so a missing or extra closing line is told

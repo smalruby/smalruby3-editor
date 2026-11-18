@@ -1,5 +1,5 @@
 // === Smalruby: This file is Smalruby-specific (Ruby to the Japanese of the Japanese mode) ===
-import { rubyToJa } from '../ja-notation';
+import { rubyToJa } from '@smalruby/ja-notation';
 import { getPrism } from '../prism-parser';
 import { rubyErrorWords } from './ja-notation-errors';
 import { SMALRUBY_RUBY_TO_JA } from './ja-notation-table';
@@ -9,7 +9,7 @@ import { SMALRUBY_RUBY_TO_JA } from './ja-notation-table';
  * of the editor) to the Japanese of the Japanese mode, in the standard form.
  *
  * The Ruby is parsed with prism, read into a syntax tree and written as
- * Japanese by ja-notation (src/lib/ja-notation/, with the Smalruby table of
+ * Japanese by ja-notation (packages/ja-notation/, with the Smalruby table of
  * ./ja-notation-table.js; J4 of docs/ruby-editor/converter-roadmap.md). Ruby
  * with no Japanese form is written as it is, and its errors are told on the
  * Ruby lines, in the words of the Japanese mode (./ja-notation-errors.js).

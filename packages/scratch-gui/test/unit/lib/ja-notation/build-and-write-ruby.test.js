@@ -1,11 +1,12 @@
 /**
  * Building the RubyAST from a JaAST and writing its Ruby (ja-notation, J1 and J2
- * of docs/ruby-editor/converter-roadmap.md), with the table of Smalruby and with
- * a table of another Ruby system, to see that the library has no rule of its own.
+ * of docs/ruby-editor/converter-roadmap.md) with the table of Smalruby. The
+ * library with no table and with a table of another Ruby system is tested in
+ * packages/ja-notation/ (its JSON test data).
  */
+import { jaToRuby } from '@smalruby/ja-notation';
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
 import { SMALRUBY_JA_NOTATION } from '../../../../src/lib/dncl/ja-notation-table';
-import { jaToRuby } from '../../../../src/lib/ja-notation';
 
 const smalruby = (source) => jaToRuby(source, SMALRUBY_JA_NOTATION);
 
@@ -86,24 +87,5 @@ describe('jaToRuby with the table of Smalruby', () => {
         ['#2168', '表示する(namae + "には「く」がある")'],
     ])('known bug %s: the Ruby is the same as the current conversion', (issue, ja) => {
         expect(smalruby(ja).ruby).toBe(dnclToRuby(ja).ruby);
-    });
-});
-
-describe('jaToRuby with another table', () => {
-    // A plain Ruby: local variables, `表示する` is `puts`, no input.
-    const PLAIN = {
-        functions: { 表示する: { build: (args, ruby) => ruby.send(null, 'puts', args) } },
-    };
-
-    test('the names and functions are what the table says', () => {
-        expect(jaToRuby('x = 1\n表示する(x, 2)', PLAIN).ruby).toBe('x = 1\nputs(x, 2)');
-    });
-
-    test('a function not in the table is an error', () => {
-        expect(jaToRuby('要素数(x)', PLAIN).errors[0]).toMatchObject({ code: 'unknown-command', line: 1 });
-    });
-
-    test('without a table of inputs, an input is an error', () => {
-        expect(jaToRuby('x = 【外部からの入力】', PLAIN).errors[0].code).toBe('syntax');
     });
 });
