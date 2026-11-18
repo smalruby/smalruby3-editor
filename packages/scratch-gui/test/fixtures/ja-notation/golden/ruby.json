@@ -4135,5 +4135,13 @@
       "ruby": "@a = 1\nif @a > 0 || @a < 3 || @a > 1\n  @a = 2\nend",
       "errors": []
     }
+  },
+  "ruby-18ab9115cf": {
+    "ja": "A = [1, 2]\nA[0], A[1] = A[1], A[0]",
+    "errors": [],
+    "back": {
+      "ruby": "@_array_A_ = [1, 2]\n@_array_A_[0], @_array_A_[1] = @_array_A_[1], @_array_A_[0]",
+      "errors": []
+    }
   }
 }

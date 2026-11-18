@@ -411,6 +411,13 @@ class RubyReader {
         const targets = lefts.map((left) => {
             const type = typeOf(left);
             if (/^(?:InstanceVariable|LocalVariable|Constant)TargetNode$/.test(type)) return this.target(left);
+            // `@a[0], @a[1] = @a[1], @a[0]`: an element of an array (Issue #2237).
+            if (type === 'IndexTargetNode') {
+                const args = field(left, 'arguments');
+                const indexes = args ? field(args, 'arguments') : [];
+                if (indexes.length !== 1 || field(left, 'block')) return null;
+                return this.indexOf(field(left, 'receiver'), indexes[0]);
+            }
             return null;
         });
         const plain =

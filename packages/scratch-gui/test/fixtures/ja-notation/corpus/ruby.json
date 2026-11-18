@@ -2738,5 +2738,12 @@
       "test/unit/lib/ruby-roundtrip/logical-chain.test.js › DNCL: a chain of かつ / または (issue #1634) a = 1\nもし a > 0 または a < 3 または a > 1 ならば\n  a = 2\nを実行する comes back as written through the blocks"
     ],
     "ruby": "@a = 1\nif @a > 0 || @a < 3 || @a > 1\n  @a = 2\nend"
+  },
+  {
+    "id": "ruby-18ab9115cf",
+    "from": [
+      "test/unit/lib/ruby-roundtrip/multiple-assignment.test.js › Ruby to blocks: multiple assignment (issue #1814) DNCL the swap of elements `A[0], A[1] = A[1], A[0]` is Ruby, and the error of a wrong instruction (issue #2237)"
+    ],
+    "ruby": "@_array_A_ = [1, 2]\n@_array_A_[0], @_array_A_[1] = @_array_A_[1], @_array_A_[0]"
   }
 ]

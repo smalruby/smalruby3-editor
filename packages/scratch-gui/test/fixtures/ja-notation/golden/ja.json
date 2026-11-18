@@ -9994,5 +9994,22 @@
         "source": null
       }
     ]
+  },
+  "ja-f2b9158734": {
+    "ruby": "@_array_A_ = [1, 2]\n@_array_A_[0], @_array_A_[1] = @_array_A_[1], @_array_A_[0]",
+    "errors": [],
+    "rubyLines": [
+      1,
+      2
+    ],
+    "converterErrors": [
+      {
+        "row": 1,
+        "column": 0,
+        "type": "error",
+        "text": "\"@_array_A_[0], @_array_A_[1] = @_array_A...\" is the wrong instruction.\nCheck the spelling or use a supported block.",
+        "source": null
+      }
+    ]
   }
 }
