@@ -18,6 +18,8 @@ const EXTENSION_HANDLER_MAP = {
     microbit: '_annotateMicrobitMethod',
     mesh_v1: '_annotateMeshV1Method',
     mesh: '_annotateMeshV2Method',
+    // `studuino.` is written by the generator; `smalrubot_s1.` is still read (#2190).
+    studuino: '_annotateSmalrubotS1Method',
     smalrubot_s1: '_annotateSmalrubotS1Method',
     koshien: '_annotateKoshienMethod',
     tm: '_annotateTmMethod',
@@ -41,6 +43,7 @@ const EXTENSION_RECEIVER_LABELS = {
     microbit: 'マイクロビット',
     mesh_v1: 'メッシュ(従来)',
     mesh: 'メッシュ',
+    studuino: 'スタディーノ',
     smalrubot_s1: 'スタディーノ',
     koshien: 'スモウルビー甲子園',
     tm: '機械学習',
@@ -181,6 +184,17 @@ const TM_VIDEO_STATE_LABELS = {
 };
 
 /**
+ * The string labels of the Studuino (Smalrubot S1) methods, shared by `studuino` and `smalrubot_s1`.
+ */
+const SMALRUBOT_S1_STRING_MAPS = {
+    action: SMALRUBOT_S1_ACTION_LABELS,
+    sensor_value: SMALRUBOT_S1_SENSOR_LABELS,
+    led: SMALRUBOT_S1_POSITION_LABELS,
+    get_motor_speed: SMALRUBOT_S1_POSITION_LABELS,
+    set_motor_speed: SMALRUBOT_S1_POSITION_LABELS,
+};
+
+/**
  * Maps extension receiver names → { methodName: stringLabelMap|function }.
  * Values can be plain objects (exact match) or functions (dynamic transform).
  * Used to set context-specific _stringLabelMap before walking arguments.
@@ -202,13 +216,8 @@ const EXTENSION_STRING_MAPS = {
         acceleration: MICROBIT_AXIS_LABELS,
         set_pin_to_input_pull: MICROBIT_PULL_MODE_LABELS,
     },
-    smalrubot_s1: {
-        action: SMALRUBOT_S1_ACTION_LABELS,
-        sensor_value: SMALRUBOT_S1_SENSOR_LABELS,
-        led: SMALRUBOT_S1_POSITION_LABELS,
-        get_motor_speed: SMALRUBOT_S1_POSITION_LABELS,
-        set_motor_speed: SMALRUBOT_S1_POSITION_LABELS,
-    },
+    studuino: SMALRUBOT_S1_STRING_MAPS,
+    smalrubot_s1: SMALRUBOT_S1_STRING_MAPS,
     tm: {
         toggle_classification: TM_CLASSIFICATION_STATE_LABELS,
         video_toggle: TM_VIDEO_STATE_LABELS,

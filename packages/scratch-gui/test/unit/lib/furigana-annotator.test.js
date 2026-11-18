@@ -1306,37 +1306,46 @@ describe('FuriganaAnnotator', () => {
         });
     });
 
-    describe('smalrubot_s1 extension (predefined receiver)', () => {
-        test('smalrubot_s1 receiver → スタディーノ', () => {
-            expect(labelsAt(annotate('smalrubot_s1.action("forward")'), 1)).toContain('スタディーノ');
+    // `studuino.` is written by the blocks; `smalrubot_s1.` is still read (#2190).
+    describe.each(['studuino', 'smalrubot_s1'])('%s extension (predefined receiver)', (receiver) => {
+        test('receiver → スタディーノ', () => {
+            expect(labelsAt(annotate(`${receiver}.action("forward")`), 1)).toContain('スタディーノ');
         });
-        test('smalrubot_s1.action("forward") → 動作する + 車を前進させる', () => {
-            const labels = labelsAt(annotate('smalrubot_s1.action("forward")'), 1);
+        test('.action("forward") → 動作する + 車を前進させる', () => {
+            const labels = labelsAt(annotate(`${receiver}.action("forward")`), 1);
             expect(labels).toContain('動作する');
             expect(labels).toContain('車を前進させる');
         });
-        test('smalrubot_s1.action("backward") → 車を後退させる', () => {
-            expect(labelsAt(annotate('smalrubot_s1.action("backward")'), 1)).toContain('車を後退させる');
+        test('.action("backward") → 車を後退させる', () => {
+            expect(labelsAt(annotate(`${receiver}.action("backward")`), 1)).toContain('車を後退させる');
         });
-        test('smalrubot_s1.action("left") → 車を左に曲げる', () => {
-            expect(labelsAt(annotate('smalrubot_s1.action("left")'), 1)).toContain('車を左に曲げる');
+        test('.action("left") → 車を左に曲げる', () => {
+            expect(labelsAt(annotate(`${receiver}.action("left")`), 1)).toContain('車を左に曲げる');
         });
-        test('smalrubot_s1.sensor_value("light") → 光センサー (A6)', () => {
-            expect(labelsAt(annotate('smalrubot_s1.sensor_value("light")'), 1)).toContain('光センサー (A6)');
+        test('.sensor_value("light") → 光センサー (A6)', () => {
+            expect(labelsAt(annotate(`${receiver}.sensor_value("light")`), 1)).toContain('光センサー (A6)');
         });
-        test('smalrubot_s1.sensor_value("ir_a4") → 赤外線センサー（フォトリフレクタ）(A4)', () => {
-            expect(labelsAt(annotate('smalrubot_s1.sensor_value("ir_a4")'), 1)).toContain(
+        test('.sensor_value("ir_a4") → 赤外線センサー（フォトリフレクタ）(A4)', () => {
+            expect(labelsAt(annotate(`${receiver}.sensor_value("ir_a4")`), 1)).toContain(
                 '赤外線センサー（フォトリフレクタ）(A4)',
             );
         });
-        test('smalrubot_s1.sensor_value("left") → センサーの値', () => {
-            expect(labelsAt(annotate('smalrubot_s1.sensor_value("left")'), 1)).toContain('センサーの値');
+        test('.sensor_value("left") → センサーの値', () => {
+            expect(labelsAt(annotate(`${receiver}.sensor_value("left")`), 1)).toContain('センサーの値');
         });
-        test('smalrubot_s1.bend_arm(90, 1) → アームを曲げる', () => {
-            expect(labelsAt(annotate('smalrubot_s1.bend_arm(90, 1)'), 1)).toContain('アームを曲げる');
+        test('.bend_arm(90, 1) → アームを曲げる', () => {
+            expect(labelsAt(annotate(`${receiver}.bend_arm(90, 1)`), 1)).toContain('アームを曲げる');
         });
-        test('smalrubot_s1.get_motor_speed("left") → モーター速度', () => {
-            expect(labelsAt(annotate('smalrubot_s1.get_motor_speed("left")'), 1)).toContain('モーター速度');
+        test('.set_motor_speed("left", 50) → モーター速度を設定 + 左', () => {
+            const labels = labelsAt(annotate(`${receiver}.set_motor_speed("left", 50)`), 1);
+            expect(labels).toContain('モーター速度を設定');
+            expect(labels).toContain('左');
+        });
+        test('.arm_calibration = 0 → アーム調整', () => {
+            expect(labelsAt(annotate(`${receiver}.arm_calibration = 0`), 1)).toContain('アーム調整');
+        });
+        test('.get_motor_speed("left") → モーター速度', () => {
+            expect(labelsAt(annotate(`${receiver}.get_motor_speed("left")`), 1)).toContain('モーター速度');
         });
     });
 

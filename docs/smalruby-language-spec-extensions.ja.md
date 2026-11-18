@@ -18,7 +18,7 @@
 5. [音声合成（Text to Speech）](#5-音声合成text-to-speech)
 6. [翻訳（Translate）](#6-翻訳translate)
 7. [メッシュ V2（Mesh V2）](#7-メッシュ-v2mesh-v2)
-8. [スモウルボット S1（Smalrubot S1）](#8-スモウルボット-s1smalrubot-s1)
+8. [Studuino（スタディーノ）（旧 スモウルボット S1）](#8-studuinoスタディーノ旧-スモウルボット-s1)
 9. [マイクロビット モア（Microbit More）](#9-マイクロビット-モアmicrobit-more)
 10. [甲子園（Koshien）](#10-甲子園koshien)
 11. [Ruby 文字列（Ruby String）](#11-ruby-文字列ruby-string)
@@ -155,27 +155,29 @@
 
 ---
 
-## 8. スモウルボット S1（Smalrubot S1）
+## 8. Studuino（スタディーノ）（旧 スモウルボット S1）
 
-スモウルボット S1 ロボットを制御します。
+アーテック社の Studuino（スタディーノ）の基板と、つないだ部品（センサー・LED・モーター・サーボ）を制御します。
+
+書き出しは `studuino.`。前の書き方の `smalrubot_s1.`（例: `smalrubot_s1.action("forward")`）も読みこめて、メソッド名と引数は同じです。
 
 ### コマンド
 
 | メソッド | 説明 | 例 |
 |---|---|---|
-| `smalrubot_s1.action(アクション)` | アクションを実行 | `smalrubot_s1.action("forward")` |
-| `smalrubot_s1.action(アクション, 秒数)` | 秒数だけアクションを実行 | `smalrubot_s1.action("forward", 1)` |
-| `smalrubot_s1.bend_arm(角度, 秒数)` | アームを曲げる | `smalrubot_s1.bend_arm(90, 1)` |
-| `smalrubot_s1.led(位置, true/false)` | LEDのオン/オフ | `smalrubot_s1.led("left", true)` |
-| `smalrubot_s1.set_motor_speed(位置, 速度)` | モーター速度を設定 | `smalrubot_s1.set_motor_speed("left", 100)` |
-| `smalrubot_s1.arm_calibration = 角度` | アームのキャリブレーション | `smalrubot_s1.arm_calibration = 0` |
+| `studuino.action(アクション)` | アクションを実行 | `studuino.action("forward")` |
+| `studuino.action(アクション, 秒数)` | 秒数だけアクションを実行 | `studuino.action("forward", 1)` |
+| `studuino.bend_arm(角度, 秒数)` | アームを曲げる | `studuino.bend_arm(90, 1)` |
+| `studuino.led(位置, true/false)` | LEDのオン/オフ | `studuino.led("left", true)` |
+| `studuino.set_motor_speed(位置, 速度)` | モーター速度を設定 | `studuino.set_motor_speed("left", 100)` |
+| `studuino.arm_calibration = 角度` | アームのキャリブレーション | `studuino.arm_calibration = 0` |
 
 ### レポーター
 
 | メソッド | 説明 | 例 |
 |---|---|---|
-| `smalrubot_s1.sensor_value(位置)` | センサー値を取得 | `smalrubot_s1.sensor_value("left")` |
-| `smalrubot_s1.get_motor_speed(位置)` | モーター速度を取得 | `smalrubot_s1.get_motor_speed("left")` |
+| `studuino.sensor_value(位置)` | センサー値を取得 | `studuino.sensor_value("left")` |
+| `studuino.get_motor_speed(位置)` | モーター速度を取得 | `studuino.get_motor_speed("left")` |
 
 **アクションの値**: `"forward"`（車を前進させる）, `"backward"`（車を後退させる）, `"left"`（車を左に曲げる）, `"right"`（車を右に曲げる）, `"stop"`（車を止める）
 
