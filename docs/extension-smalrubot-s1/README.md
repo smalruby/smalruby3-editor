@@ -185,8 +185,6 @@
 
 ## UI / 操作フロー
 
-> 接続ステップ・ファームウェアのモーダル・ブロックパレットのスクリーンショットは、名前を変える前（スモウルボットS1 の名前）のもの。
-
 ![拡張機能ライブラリの Studuino のカード](screenshots/0401-library-card-1280x800.png)
 
 ### 接続
@@ -194,7 +192,7 @@
 1. ブロックパレットの「拡張機能を追加」から **Studuino（スタディーノ）** を選ぶ
 2. 接続モーダルが専用フローで開く（`smalrubot-s1-*-step.jsx` 系）。**生徒用 (接続) / 先生用 (ファームウェア書き込み)** のいずれかを選択
 
-   ![Smalrubot S1 初期ステップ](screenshots/0101-initial-step-1280x800.png)
+   ![Studuino 初期ステップ](screenshots/0101-initial-step-1280x800.png)
 
 3. 「接続する（生徒用）」→ Web Serial のデバイス選択ダイアログ
 4. 基板を選んで承認
@@ -214,7 +212,7 @@
 
 接続後はブロックパレットの **Studuino** カテゴリに専用ブロックが表示される（ブロックの一覧は上の「ブロックと選択肢」）：
 
-![Smalrubot S1 ブロックパレット](screenshots/0301-block-palette-1280x800.png)
+![Studuino ブロックパレット](screenshots/0301-block-palette-1280x800.png)
 
 ## 主要ファイル
 
