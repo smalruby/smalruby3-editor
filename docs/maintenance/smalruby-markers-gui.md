@@ -143,6 +143,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/playground/render-gui.jsx` | no_beforeunload URL param | beforeunload 無効化 |
 | `src/playground/render-gui.jsx` | MobileGui dispatcher | ResponsiveGui import + GUI を ResponsiveGui に差し替え (issue #572 Phase 2-A) |
 | `src/playground/render-gui.jsx` | storage worker timeout HOC | scratch-storage の FetchWorkerTool に 5s タイムアウトを当てる HOC import と compose 配置 (subdir deploy + iOS Safari の Worker hang 対策) |
+| `src/playground/render-gui.jsx` | hide project tutorials | `WrappedGui`（Web の分岐）に upstream の `hideTutorialProjects` を渡し、スタータープロジェクト付きのチュートリアル（`requiredProjectId` を持つ「アニメ映画をコーディングしよう」「アドベンチャーゲーム」）を一覧から外す。選ぶと `/projects/<id>/editor` を開くが、smalruby.app にそのパスは無い（`docs/tutorial/README.md`） |
 | `src/components/gui/gui.jsx` | about menu | 「?」メニューの項目（`/about.html` を新規タブで開く・ウェルカムモーダル再表示・不具合の報告の画面を開く）の定義（並びの `id` と `testId` 付き）と MenuBar への注入、`aboutMenuMessages.reportBug` |
 | `src/components/sprite-info/sprite-info.jsx` | compact middle sprite info | 中サイズのステージ（`STAGE_DISPLAY_SIZES.middle`。Smalruby 独自）のときだけ別の形で描く: 「スプライト」の字なし・x / y は入力欄の左隣・大きさ / 向きはアイコン（`icon--size.svg` / direction-picker の `icon--all-around.svg`。`title` / `aria-label` は `gui.smalruby3.SpriteInfo.sizeIcon` / `directionIcon`）。icon の import・messages・render の分岐（`docs/sprite/README.md`）。x / y の Label の `above`（2 か所） |
 | `src/components/sprite-info/sprite-info.css` | compact middle sprite info | 上の詰めた形のスタイル（`.compact` / `.compact-name` / `.label-icon`） |
