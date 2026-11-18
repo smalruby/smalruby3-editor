@@ -23,6 +23,10 @@ describe('hasStringArithmetic (Issue #1465)', () => {
         ['a `-` after a call joined to a string', '表示する("a" + f(b) - 1)'],
         ['`.to_s` after a call', '表示する(f(a).to_s - 1)'],
         ['`.to_s` after a method', '表示する("残り" + a.length.to_s - 1)'],
+        // The standard form writes the remainder ％ and the return value `値 を返す` (Issue #1754).
+        ['the full-width remainder `％` on a string', 'x = "a" ％ 2'],
+        ['the value of `を返す`', '"残り" + a - 1 を返す'],
+        ['the condition of the standard form', 'もし "a" + x - 1 == "a0" ならば:'],
     ])('warns on %s', (_name, code) => {
         expect(hasStringArithmetic(code)).toBe(true);
     });
@@ -34,6 +38,9 @@ describe('hasStringArithmetic (Issue #1465)', () => {
         ['`*` inside the `+` chain', '表示する("残り" + a * 2)'],
         ['a new argument after `,`', '表示する("残り", a - 1)'],
         ['a new expression after a comparison', 'もし s == "a" かつ n - 1 > 0 ならば:'],
+        ['a new expression after `and`', 'もし s == "a" and n - 1 > 0 ならば:'],
+        ['a new expression after `or` / `not`', 'もし not s == "a" or n - 1 > 0 ならば:'],
+        ['the number part of `を返す`', '"残り" + (a - 1) を返す'],
         ['a sign after `+`', '表示する("残り" + -1)'],
         ['an index', '表示する(Data[n - 1] + "個")'],
         ['a `-` in a string', '表示する("a - b")'],
