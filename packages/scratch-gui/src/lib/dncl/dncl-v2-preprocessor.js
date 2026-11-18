@@ -508,6 +508,14 @@ const normalizeNot = (line) => {
 };
 
 /**
+ * The indent width one `｜` / `⎿` marker stands for. It is larger than any
+ * run of spaces, so a line with more markers is always deeper, and the
+ * spaces after the markers only compare lines with the same markers
+ * (Issue #1723).
+ */
+const MARKER_INDENT_WIDTH = 1000;
+
+/**
  * Process the leading indent zone of `body` to expand `｜` / `⎿`
  * markers. Each marker (with its surrounding whitespace) becomes 2
  * spaces of indent, so 1 marker = 1 indent level (= 2 spaces of Ruby
@@ -515,10 +523,15 @@ const normalizeNot = (line) => {
  *
  * Returns the rewritten line plus the count of `⎿` markers, which the
  * caller uses to decide how many block-closer lines to emit after the
- * current line.
+ * current line, and the width of its indent. On a line with markers, the
+ * spaces after the last marker are an indent inside the marked block
+ * (`｜ もし x ならば:` / `｜     y`), so the width counts the markers first
+ * and then those spaces; the spaces before the first marker are ignored
+ * (Issue #1723).
  * @param {string} body - The line content (already free of `(N)` prefix).
- * @returns {{ line: string, closeCount: number }} The processed line and
- *   the number of blocks the next outdent should close.
+ * @returns {{ line: string, closeCount: number, width: number }} The
+ *   processed line, the number of blocks the next outdent should close and
+ *   the width of the indent.
  */
 const processIndentMarkers = (body) => {
     // Find the prefix consisting of leading whitespace + indent markers.
@@ -528,14 +541,16 @@ const processIndentMarkers = (body) => {
     // reaches us may be either one. The hook character `⎿` (U+23BF, Box
     // Drawing) is in a Unicode block auto-correct doesn't touch.
     const m = body.match(/^([\s｜|⎿]*)(.*)$/);
-    if (!m) return { line: body, closeCount: 0 };
+    if (!m) return { line: body, closeCount: 0, width: 0 };
     const prefix = m[1];
     const rest = m[2];
     const markers = prefix.match(/[｜|⎿]/g) || [];
-    if (markers.length === 0) return { line: body, closeCount: 0 };
+    if (markers.length === 0) return { line: body, closeCount: 0, width: indentWidth(prefix) };
     const closeCount = markers.filter((c) => c === '⎿').length;
     const newPrefix = ' '.repeat(2 * markers.length);
-    return { line: `${newPrefix}${rest}`, closeCount };
+    const afterMarkers = prefix.match(/[^｜|⎿]*$/)[0];
+    const width = markers.length * MARKER_INDENT_WIDTH + indentWidth(afterMarkers);
+    return { line: `${newPrefix}${rest}`, closeCount, width };
 };
 
 /**
@@ -729,7 +744,7 @@ const dnclV2PreprocessWithLineMap = (source) => {
             !/[:：]\s*$/.test(splitTrailingComment(phase3).code);
         const pieces = phase3.split('\n');
         for (const [pieceIdx, line] of pieces.entries()) {
-            const { line: marked, closeCount: markerCloseCount } = processIndentMarkers(line);
+            const { line: marked, closeCount: markerCloseCount, width } = processIndentMarkers(line);
             // `⎿` markers on joined continuation lines close blocks after the
             // whole logical line, i.e. after its last piece.
             const closeCount = markerCloseCount + (pieceIdx === pieces.length - 1 ? extraCloseCount : 0);
@@ -739,7 +754,6 @@ const dnclV2PreprocessWithLineMap = (source) => {
             const indent = indentMatch ? indentMatch[1] : '';
             // Blocks are found from the code without its trailing comment.
             const body = splitTrailingComment(marked.substring(indent.length)).code.replace(/\s+$/, '');
-            const width = indentWidth(indent);
             const isCode = body !== '' && !body.startsWith('#');
             if (isCode) closeByIndent(width, body);
             // The Ruby indent is made from the block depth (2 spaces a level),
