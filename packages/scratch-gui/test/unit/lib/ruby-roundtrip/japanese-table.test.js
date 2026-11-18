@@ -116,6 +116,13 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
             STRING2: operator_join(STRING1: @x, STRING2: "") #"@ruby:method:to_s"), SECS: 1) ${PUTS}`,
     },
     {
+        name: 'a name joined with a string that has 「」 in it (issue #2168)',
+        ja: '表示する(namae + "には「く」がある")',
+        ruby: 'puts(@namae + "には「く」がある")',
+        blocks: `looks_sayforsecs(MESSAGE: operator_join(STRING1: @namae, STRING2: "には「く」がある"),
+            SECS: 1) ${PUTS}`,
+    },
+    {
         name: 'an input',
         ja: 'x = 【外部からの入力】',
         ruby: `

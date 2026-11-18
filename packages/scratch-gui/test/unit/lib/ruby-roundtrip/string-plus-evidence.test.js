@@ -95,6 +95,39 @@ describe('Ruby to blocks: string + from the evidence of the code (issue #1659)',
         });
     });
 
+    // `x + "..."` runs only when `x` is a String (a number raises a TypeError), so a name the code
+    // does not set to anything else is joined with a string literal (issue #2168).
+    describe('a name not set to a number + a string literal is joined (issue #2168)', () => {
+        test.each([
+            ['@a never set', 'say(@a + "x")'],
+            ['「」 in the string', 'puts(@namae + "には「く」がある")'],
+            ['a string of digits', 'say(@a + "1")'],
+            ['$a never set', 'say($a + "x")'],
+            ['two string literals', 'say(@a + "x" + "y")'],
+            [
+                'an argument of a method',
+                dedent`
+                    def f(name)
+                      say(name + "さん")
+                    end
+
+                    f("a")
+                `,
+            ],
+        ])('%s', async (_name, code) => {
+            await expectRoundTrip(converter, target, code);
+            expect(opcodesOf()).toContain('operator_join');
+            expect(opcodesOf()).not.toContain('operator_add');
+        });
+
+        test.each([
+            ['set to a number', '@a = 0\nsay(@a + "x")'],
+            ['a list', '@a = [1]\nsay(@a + "x")'],
+        ])('%s: not a String, so it stays an error', async (_name, code) => {
+            expect(await converter.targetCodeToBlocks(target, code)).toBe(false);
+        });
+    });
+
     test('@a += @b, both set by gets, stays the number change as before', async () => {
         await expectRoundTrip(converter, target, '@a = gets\n@b = gets\n@a += @b');
         expect(opcodesOf()).toContain('data_changevariableby');
