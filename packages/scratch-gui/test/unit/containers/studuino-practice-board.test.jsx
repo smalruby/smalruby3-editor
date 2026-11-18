@@ -74,7 +74,7 @@ describe('StuduinoPracticeBoard container', () => {
             runtime.emit(STATE_EVENT, makeState());
         });
         expect(screen.getByTestId('studuino-practice-board')).toBeInTheDocument();
-        expect(screen.getByTestId('studuino-practice-board-mode')).toHaveTextContent('Practice board (Studuino)');
+        expect(screen.getByTestId('studuino-practice-board-mode')).toHaveTextContent('Now: practice board');
     });
 
     test('is not shown on the costumes / sounds tabs', () => {

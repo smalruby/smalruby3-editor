@@ -17,7 +17,7 @@ const messages = defineMessages({
     practiceTitle: {
         id: 'gui.studuinoPracticeBoard.practiceTitle',
         description: 'Title of the Studuino practice board panel while no real board is connected',
-        defaultMessage: 'Practice board (Studuino)',
+        defaultMessage: 'Now: practice board',
     },
     practiceNote: {
         id: 'gui.studuinoPracticeBoard.practiceNote',
@@ -124,33 +124,37 @@ const messages = defineMessages({
     },
 });
 
-// センサーの名前は拡張機能の選択肢と同じ文言（#2189 の表示に合わせる。キーも同じものを使う）
+// センサーの名前は拡張機能の選択肢と同じ文言（#2189 の表示に合わせる）。拡張機能の翻訳キー（smalrubotS1.*）は
+// GUI の文言には入らないので、パネル用のキーを持つ
 const sensorMessages = defineMessages({
     A6: {
-        id: 'smalrubotS1.sensorPositionsMenu.light',
-        description: 'label for "light" sensor in sensor picker for Smalrubot S1 extension',
+        id: 'gui.studuinoPracticeBoard.sensorA6',
+        description:
+            'Name of a sensor in the Studuino practice board panel (same as the sensor menu of the extension)',
         defaultMessage: 'light sensor (A6)',
     },
     A4: {
-        id: 'smalrubotS1.sensorPositionsMenu.irA4',
+        id: 'gui.studuinoPracticeBoard.sensorA4',
         description:
-            'label for infrared sensor on A4 (same as "left") sensor in sensor picker for Smalrubot S1 extension',
+            'Name of a sensor in the Studuino practice board panel (same as the sensor menu of the extension)',
         defaultMessage: 'infrared sensor (photoreflector) (A4)',
     },
     A5: {
-        id: 'smalrubotS1.sensorPositionsMenu.irA5',
+        id: 'gui.studuinoPracticeBoard.sensorA5',
         description:
-            'label for infrared sensor on A5 (same as "right") sensor in sensor picker for Smalrubot S1 extension',
+            'Name of a sensor in the Studuino practice board panel (same as the sensor menu of the extension)',
         defaultMessage: 'infrared sensor (photoreflector) (A5)',
     },
     A7: {
-        id: 'smalrubotS1.sensorPositionsMenu.sound',
-        description: 'label for "sound" sensor in sensor picker for Smalrubot S1 extension',
+        id: 'gui.studuinoPracticeBoard.sensorA7',
+        description:
+            'Name of a sensor in the Studuino practice board panel (same as the sensor menu of the extension)',
         defaultMessage: 'sound sensor (A7)',
     },
     A2: {
-        id: 'smalrubotS1.sensorPositionsMenu.touch',
-        description: 'label for "touch" sensor in sensor picker for Smalrubot S1 extension',
+        id: 'gui.studuinoPracticeBoard.sensorA2',
+        description:
+            'Name of a sensor in the Studuino practice board panel (same as the sensor menu of the extension)',
         defaultMessage: 'touch sensor (A2)',
     },
 });
@@ -307,7 +311,11 @@ const StuduinoPracticeBoard = ({
             style={position || {}}
         >
             <div className={styles.header}>
-                <span className={styles.title} data-testid="studuino-practice-board-mode">
+                <span
+                    className={styles.title}
+                    data-testid="studuino-practice-board-mode"
+                    title={device ? null : intl.formatMessage(messages.practiceNote)}
+                >
                     {title}
                 </span>
                 <button
@@ -329,7 +337,6 @@ const StuduinoPracticeBoard = ({
                 </div>
             ) : (
                 <div className={styles.body}>
-                    <p className={styles.note}>{intl.formatMessage(messages.practiceNote)}</p>
                     <h3 className={styles.heading}>{intl.formatMessage(messages.sensorsHeading)}</h3>
                     <div className={styles.group}>
                         {ANALOG_SENSOR_PORTS.map((port) => {
@@ -363,27 +370,25 @@ const StuduinoPracticeBoard = ({
                                 </div>
                             );
                         })}
-                        <div className={styles.sensor}>
+                        <div className={styles.touchRow}>
                             <span className={styles.label} id={touchLabelId}>
                                 {intl.formatMessage(sensorMessages.A2)}
                             </span>
-                            <div className={styles.sliderRow}>
-                                <TouchButton
-                                    label={intl.formatMessage(messages.touchPress)}
-                                    labelledBy={touchLabelId}
-                                    onTouch={onTouch}
-                                    pressed={touchPressed}
-                                />
-                                <span
-                                    className={styles.number}
-                                    data-testid="studuino-practice-board-sensor-value-A2"
-                                    title={intl.formatMessage(
-                                        touchPressed ? messages.touchPressed : messages.touchReleased,
-                                    )}
-                                >
-                                    {Number(sensors.A2) || 0}
-                                </span>
-                            </div>
+                            <TouchButton
+                                label={intl.formatMessage(messages.touchPress)}
+                                labelledBy={touchLabelId}
+                                onTouch={onTouch}
+                                pressed={touchPressed}
+                            />
+                            <span
+                                className={styles.number}
+                                data-testid="studuino-practice-board-sensor-value-A2"
+                                title={intl.formatMessage(
+                                    touchPressed ? messages.touchPressed : messages.touchReleased,
+                                )}
+                            >
+                                {Number(sensors.A2) || 0}
+                            </span>
                         </div>
                     </div>
                     <h3 className={styles.heading}>{intl.formatMessage(messages.outputsHeading)}</h3>
