@@ -103,7 +103,7 @@ Scratch に無い Ruby の考え方（ローカル変数・戻り値・ハッシ
 ##### Monaco 本体の配信 (自前ホスト)
 
 Monaco 本体は **CDN からではなく自前で配信する**。学校ネットワークで汎用 CDN が塞がれている
-環境でもルビータブが動くようにするため、また PWA としてオフラインでも使えるようにするため。
+環境でもルビータブが動くようにするため。
 
 - `webpack.config.js` の `CopyWebpackPlugin` が `node_modules/monaco-editor/min/vs` を
   ビルド成果物の **`static/monaco/<版>/vs`**（例: `static/monaco/0.57.0/vs`）へコピーする
@@ -115,18 +115,13 @@ Monaco 本体は **CDN からではなく自前で配信する**。学校ネッ�
   runtime cache やブラウザの HTTP キャッシュに残った旧版の `editor.main.js` を新しい
   `gui.js` が読み、旧版のハッシュ付きチャンクを要求して 404 になったり、`gui.js` に
   バンドルした日本語 NLS（添字で引く配列）と本体の版がずれて文言が入れ違ったりする。
-  版ごとに URL が変われば旧版のエントリには当たらない。キャッシュ名は版を含めず固定にして、
-  旧版のエントリは `maxEntries` で追い出す（キャッシュ名に版を含めると、Workbox は
-  知らないキャッシュを消さないので旧版のキャッシュが残り続ける）
+  版ごとに URL が変われば旧版のエントリには当たらない
 - `monaco-i18n-helper.js` の `resolveMonacoVsPath()` が webpack の `publicPath` を前置して
   AMD ローダーへ渡す。`dist` の `publicPath: 'auto'`（scratch-desktop / scratch-android の
   相対解決）と、smalruby.app / GitHub Pages サブディレクトリ / ブランチプレビューの
   3 通りの base パスすべてに対応するため、絶対パスを直書きしない
 - バージョンは `packages/scratch-gui/package.json` の `monaco-editor` に自動的に揃う
   （URL の版はビルド時に決まり、直書きは無い）。日本語 NLS も同じ npm パッケージから読むのでズレない
-- `min/vs` は約 16MB あるため **PWA の precache からは除外**し、Workbox の
-  `runtimeCaching`（`StaleWhileRevalidate` / キャッシュ名 `smalruby-monaco-editor`）で扱う。
-  初回インストールを軽く保ちつつ、一度開けばオフラインでもルビータブが使える
 - コピー先を変えるときは `webpack.config.js` の `MONACO_VS_DEST` だけを変える
   （`monaco-i18n-helper.js` へは `DefinePlugin` 経由で伝わる）。統合テストのログ判定
   （`test/helpers/ignorable-severe-logs.js`）もパスの形を見ているので合わせて直す
