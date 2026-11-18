@@ -75,6 +75,15 @@ export const SITE_ACCESS_LOG_RETENTION_DAYS = 30;
 export const SITE_ACCESS_LOG_PREFIX = 'cloudfront/smalruby.app/';
 
 /**
+ * 存在しないファイル（S3 の 403 / 404）に返すページ。ビルド（packages/scratch-gui/pages/404.html）が
+ * トップレベルに置く。CDK からは置かない（CI の同期は --delete なので消える）。
+ */
+export const SITE_NOT_FOUND_PAGE_PATH = '/404.html';
+
+/** エラー応答をキャッシュする最短の秒数。後から置いたファイルがすぐ見えるよう短めにする。 */
+export const SITE_ERROR_CACHING_MIN_TTL_SECONDS = 60;
+
+/**
  * smalruby.app の配信に付いている WAF の Web ACL（us-east-1・CLOUDFRONT スコープ）。
  *
  * CloudFront の定額プラン（Pro）に配信を入れたときに、プランが作って配信に付けたもの。
@@ -333,12 +342,13 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
             ],
         });
 
-        // `/` → `/index.html`、`/admin` → `/admin/` への 301 に加えて、GitHub Pages と同じく
-        // `/about` → `/about.html` を返す（プレビューは `/<slug>` をディレクトリとして扱うので別の関数）。
+        // `/` → `/index.html`、`/admin` → `/admin/` への 301。拡張子の無い URL は、ディレクトリの一覧を
+        // 持たずに全部 `/<path>/` へ 301 する（`/about` は `/about/` → 404 ページ。サイト内のリンクは
+        // `.html` 付きにする）。プレビューと同じ規則なので同じコードを使うが、関数（リソース）は別にする
+        // （定額プランの配信は、ほかの配信に付いている CloudFront Functions を付けられない）。
         const viewerRequest = this.createViewerRequestFunction(
             'SiteViewerRequest',
             'Resolve directory URLs to index.html for smalruby.app',
-            'site-viewer-request.js',
         );
         // 配信は CloudFront の定額プラン（Pro）に入れる。定額プランはカスタムのキャッシュポリシーと
         // カスタムのレスポンスヘッダーポリシーを使えないので、配信には AWS 管理の CachingOptimized と
@@ -384,6 +394,15 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
             priceClass: cloudfront.PriceClass.PRICE_CLASS_ALL,
             // 定額プランが作った Web ACL（SITE_WEB_ACL_ARN の説明を参照）。
             webAclId: SITE_WEB_ACL_ARN,
+            // 存在しないファイルは S3（OAC）が 403 を返すので、404 と同じく 404 ページを 404 で返す。
+            // ページ /404.html はビルド（packages/scratch-gui/pages/404.html）が置く。エラーの応答は
+            // 短めにキャッシュし、あとから置いたファイルがすぐ見えるようにする。
+            errorResponses: [403, 404].map((httpStatus) => ({
+                httpStatus,
+                responseHttpStatus: 404,
+                responsePagePath: SITE_NOT_FOUND_PAGE_PATH,
+                ttl: cdk.Duration.seconds(SITE_ERROR_CACHING_MIN_TTL_SECONDS),
+            })),
             defaultBehavior: {
                 origin: origins.S3BucketOrigin.withOriginAccessControl(bucket),
                 viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
@@ -484,17 +503,13 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
     /**
      * ディレクトリの URL を index.html に解決する viewer-request 関数。S3 は REST
      * エンドポイント（OAC）なので、ディレクトリの index.html を自分で解決しない。
-     * `fileName` は `lib/functions/` の下の関数のコード（既定はプレビュー用）。
+     * 本番とプレビューで同じコードを使う（関数のリソースはそれぞれ作る）。
      */
-    private createViewerRequestFunction(
-        id: string,
-        comment: string,
-        fileName = 'preview-viewer-request.js',
-    ): cloudfront.Function {
+    private createViewerRequestFunction(id: string, comment: string): cloudfront.Function {
         return new cloudfront.Function(this, id, {
             runtime: cloudfront.FunctionRuntime.JS_2_0,
             code: cloudfront.FunctionCode.fromFile({
-                filePath: path.join(__dirname, 'functions', fileName),
+                filePath: path.join(__dirname, 'functions/preview-viewer-request.js'),
             }),
             comment,
         });

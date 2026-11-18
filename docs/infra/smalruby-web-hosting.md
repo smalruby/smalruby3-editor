@@ -175,7 +175,7 @@ aws s3 rm "s3://$BUCKET/test/index.html"
 | リソース | 内容 |
 |---|---|
 | S3 バケット `SiteBucket` | Block Public Access 全部 ON・`enforceSSL`・**バージョニングあり**。上書き・削除された古い版は 30 日で消し、残った削除マーカーも片付ける。**いまの版は期限で消さない**（プレビューとの違い）。`removalPolicy` は **`RETAIN`**（下の「本番のバケットを RETAIN にする理由」） |
-| CloudFront `SiteDistribution` | 代替ドメインは `smalruby.app` だけ（`www.smalruby.app` は今は無いので付けない）。証明書は `SiteCertificate`、TLS 1.2 以上（`TLSv1.2_2021`）・SNI。オリジンは S3 + OAC。viewer-request は本番専用の関数（`lib/functions/site-viewer-request.js`。`/` → `/index.html`、`/admin` → `/admin/` へ 301、`/about` → `/about.html` を返す。規則は `docs/hosting/README.md` の「拡張子の無い URL」）。CloudFront の定額プラン（Pro）に入れるため、カスタムのキャッシュポリシーと応答ヘッダポリシーは使わない（定額プランでは使えない）。キャッシュポリシーは AWS 管理の `CachingOptimized`（キーはプレビューと同じくクエリ文字列・ヘッダ・Cookie なし・gzip / br。TTL は CI が付ける `Cache-Control` に従う。**`Cache-Control` が無いと既定の 1 日**になる点がプレビューと違う）。HSTS（1 年・`includeSubDomains` なし）と `X-Content-Type-Options: nosniff` は viewer-response 関数（`lib/functions/site-viewer-response.js`）で付ける（関数はオリジンのエラー（4xx / 5xx）と viewer-request 関数が返す 301 では動かないので、それらには付かない）。HTTP/2 と HTTP/3、Price Class は All（定額プランは料金クラスを持たない）。配信は定額プラン Pro に入っている。WAF の Web ACL（`SITE_WEB_ACL_ARN`・`CreatedByCloudFront-...`）はプランが作って配信に付けたもので、CDK は作らず `webAclId` で ARN を参照するだけ（消さない・中身を変えない。外すとプランの条件から外れる。変えるときはコンソールでプランと付いている Web ACL を確かめてから定数を書き換える）。標準ログ（従来の S3 配信・Cookie なし）を `SiteLogBucket` の `cloudfront/smalruby.app/` に出す |
+| CloudFront `SiteDistribution` | 代替ドメインは `smalruby.app` だけ（`www.smalruby.app` は今は無いので付けない）。証明書は `SiteCertificate`、TLS 1.2 以上（`TLSv1.2_2021`）・SNI。オリジンは S3 + OAC。viewer-request はプレビューと同じコード（`lib/functions/preview-viewer-request.js`）の別の関数 `SiteViewerRequest`（定額プランの配信には、ほかの配信に付いている関数を付けられない）。`/` → `/index.html`、拡張子の無い URL（`/admin` など）は `/<path>/` へ 301（規則は `docs/hosting/README.md` の「拡張子の無い URL」）。存在しないファイル（S3 が返す 403 と 404）は、カスタムエラー応答で `/404.html` を応答コード 404 で返す（エラーのキャッシュは 60 秒。`SITE_NOT_FOUND_PAGE_PATH` / `SITE_ERROR_CACHING_MIN_TTL_SECONDS`。ページはビルドの `packages/scratch-gui/pages/404.html`）。CloudFront の定額プラン（Pro）に入れるため、カスタムのキャッシュポリシーと応答ヘッダポリシーは使わない（定額プランでは使えない）。キャッシュポリシーは AWS 管理の `CachingOptimized`（キーはプレビューと同じくクエリ文字列・ヘッダ・Cookie なし・gzip / br。TTL は CI が付ける `Cache-Control` に従う。**`Cache-Control` が無いと既定の 1 日**になる点がプレビューと違う）。HSTS（1 年・`includeSubDomains` なし）と `X-Content-Type-Options: nosniff` は viewer-response 関数（`lib/functions/site-viewer-response.js`）で付ける（関数はオリジンのエラー（4xx / 5xx）と viewer-request 関数が返す 301 では動かないので、それらには付かない）。HTTP/2 と HTTP/3、Price Class は All（定額プランは料金クラスを持たない）。配信は定額プラン Pro に入っている。WAF の Web ACL（`SITE_WEB_ACL_ARN`・`CreatedByCloudFront-...`）はプランが作って配信に付けたもので、CDK は作らず `webAclId` で ARN を参照するだけ（消さない・中身を変えない。外すとプランの条件から外れる。変えるときはコンソールでプランと付いている Web ACL を確かめてから定数を書き換える）。標準ログ（従来の S3 配信・Cookie なし）を `SiteLogBucket` の `cloudfront/smalruby.app/` に出す |
 | ACM 証明書 `SiteCertificate` | `smalruby.app`（SAN なし）。CloudFront 用なので us-east-1 に、`DnsValidatedCertificate` で作り、`SiteHostedZone` で DNS 検証する（検証の CNAME はこのゾーンに書かれる）。スタックは分けない。ネームサーバーを Route 53 に変えてから足した（変える前だと検証が終わらず、デプロイが証明書を待ち続けて失敗する。プレビューの「証明書を後から足した理由」と同じ） |
 | S3 バケット `SiteLogBucket` | アクセスログ専用。Block Public Access 全部 ON・SSE-S3・`enforceSSL`。標準ログは ACL で書き込まれるので Object Ownership は `BucketOwnerPreferred`（ACL を無効にしない）。`SITE_ACCESS_LOG_RETENTION_DAYS`（30 日）を過ぎたログは消す。バージョニングなし・`removalPolicy` は `DESTROY`（ログが無くても配信は止まらない。中身が残っている間は削除が失敗して止まる）。方式を選んだ理由と個人情報の扱いは [`docs/hosting/README.md`](../hosting/README.md) の「アクセスログ（段 5）」 |
 | CI 用ロール `SiteDeployRole` | 既存の GitHub OIDC プロバイダを参照。信頼は `repo:smalruby/smalruby3-editor:ref:refs/heads/develop` と `...:environment:prod` だけ（プレビューより狭い）。権限はこのバケットの `ListBucket` / `PutObject` / `DeleteObject` と、このディストリビューションの invalidation だけ |
@@ -397,9 +397,8 @@ npx cdk synth --context stage=prod
 独自ドメインも証明書も無い・develop だけを信頼するロール）と、アクセスログのバケット（非公開・暗号化・
 保持期間で消える・CI 用ロールから触れない）がある」「stg2 には何も作らない」を確かめる。`test/site-zone.test.ts` は「prod に `smalruby.app` のゾーンが 1 つあり `RETAIN`・論理 ID が変わらない」「写した
 レコードがお名前.com の値と同じ（apex の A だけ TTL 300）」「apex の NS / SOA・`everdiary`・ワイルドカードが無い」
-「stg / stg2 にはこのゾーンが無い」を確かめる。`test/preview-viewer-request.test.ts` と
-`test/site-viewer-request.test.ts` は CloudFront Function の実コードを評価して URI の書き換えを確かめる
-（後者は `index.html` を持つディレクトリの一覧がリポジトリの中身と合っているかも確かめる）。
+「stg / stg2 にはこのゾーンが無い」を確かめる。`test/preview-viewer-request.test.ts` は
+CloudFront Function の実コード（本番とプレビューで共用）を評価して URI の書き換えを確かめる。
 
 CI（`.github/workflows/ci-infra.yml` の `[web-hosting] Unit Tests` / `CDK Build & Synth` /
 `Security Audit`）が、`infra/**` を変える PR と push で同じテストと、stg / prod 両方の `cdk synth` を行う。
@@ -411,12 +410,10 @@ CI（`.github/workflows/ci-infra.yml` の `[web-hosting] Unit Tests` / `CDK Buil
 | `infra/smalruby-web-hosting/bin/smalruby-web-hosting.ts` | エントリポイント。stage とスタック名を決める |
 | `infra/smalruby-web-hosting/lib/web-hosting-stack.ts` | スタック本体（stg: ホストゾーン・プレビューの配信基盤・CI 用ロール / prod: 本番の配信基盤 `createSiteDelivery()`・ゾーン `createSiteZone()`） |
 | `infra/smalruby-web-hosting/lib/site-zone-records.ts` | `smalruby.app` のゾーンに写すレコードの値（お名前.com と同じ） |
-| `infra/smalruby-web-hosting/lib/functions/preview-viewer-request.js` | プレビューの CloudFront Function（ディレクトリの URL → `index.html`） |
-| `infra/smalruby-web-hosting/lib/functions/site-viewer-request.js` | 本番の CloudFront Function（ディレクトリの URL → `index.html`、`/about` → `/about.html`） |
+| `infra/smalruby-web-hosting/lib/functions/preview-viewer-request.js` | viewer-request の CloudFront Function のコード（ディレクトリの URL → `index.html`、拡張子の無い URL → `/<path>/` へ 301）。本番とプレビューで共用（関数のリソースは別） |
 | `infra/smalruby-web-hosting/test/web-hosting.test.ts` | スタックのテスト |
 | `infra/smalruby-web-hosting/test/site-zone.test.ts` | `smalruby.app` のゾーンのテスト（写したレコードの一覧・`RETAIN`・prod だけに作る） |
-| `infra/smalruby-web-hosting/test/preview-viewer-request.test.ts` | プレビューの CloudFront Function のテスト |
-| `infra/smalruby-web-hosting/test/site-viewer-request.test.ts` | 本番の CloudFront Function のテスト |
+| `infra/smalruby-web-hosting/test/preview-viewer-request.test.ts` | viewer-request の CloudFront Function のテスト（本番とプレビューで共用） |
 | `.github/workflows/ci-cd.yml`（`preview-deploy`） | プレビューを stg の値でビルドして置く |
 | `.github/workflows/preview-cleanup.yml` | プレビューの片付け |
 | `scripts/preview-slug.mjs` | ブランチ名 → slug |
