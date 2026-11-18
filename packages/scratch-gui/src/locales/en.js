@@ -899,10 +899,12 @@ export default {
     'gui.extensionLibrary.showAllExtensions': 'Show all extensions',
     'gui.smalruby3.rubyToBlocksConverter.cannotChangeArgument':
         '"{NAME}" is an argument, so it cannot be changed.\nCopy it to another variable and change that one (e.g. x = {NAME}).',
-    'gui.smalruby3.rubyToBlocksConverter.couldNotConvertPrimitive': '"{ SOURCE }" could not be converted the block.',
+    'gui.smalruby3.rubyToBlocksConverter.couldNotConvertPrimitive':
+        '"{ SOURCE }" could not be converted to a block.\nCheck the spelling or use a supported value.',
     'gui.smalruby3.rubyToBlocksConverter.variableAndListSameName':
         '"{NAME}" is used as a list on line {LIST_LINE} and as a variable on line {VARIABLE_LINE}.\nIn Ruby, one name cannot be both a variable and a list. Rename one of them.',
-    'gui.smalruby3.rubyToBlocksConverter.wrongInstruction': '"{ SOURCE }" is the wrong instruction.',
+    'gui.smalruby3.rubyToBlocksConverter.wrongInstruction':
+        '"{ SOURCE }" is the wrong instruction.\nCheck the spelling or use a supported block.',
     'gui.smalruby3.rubyToBlocksConverter.withScreenRefreshOutsideLoop':
         'with_screen_refresh do ... end can only be the only command in the body of until or while.\nPut it in a loop (until ... / while ...) with nothing else, or use 10.times.with_screen_refresh do / loop.with_screen_refresh do.',
     'gui.smalruby3.rubyToBlocksConverter.arrayLiteralReceiver':
