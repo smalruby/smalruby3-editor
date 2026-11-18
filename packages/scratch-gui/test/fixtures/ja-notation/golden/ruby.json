@@ -2610,6 +2610,159 @@
       "blockErrors": []
     }
   },
+  "ruby-4182ed5257": {
+    "ja": "表示する(\"\\\"x←1\")",
+    "errors": [],
+    "back": {
+      "ruby": "puts(\"\\\"x←1\")",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-68f02ecfe3": {
+    "ja": "b = \"a\\\"←c\"",
+    "errors": [],
+    "back": {
+      "ruby": "@b = \"a\\\"←c\"",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-aef6dd3674": {
+    "ja": "表示する(\"a\\\\b\")",
+    "errors": [],
+    "back": {
+      "ruby": "puts(\"a\\\\b\")",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-3767102b20": {
+    "ja": "x = 含む('a\\'b', c)",
+    "errors": [],
+    "back": {
+      "ruby": "@x = 'a\\'b'.include?(@c)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-145140ea18": {
+    "ja": "x = \"a\\\"b.include?(c)\"",
+    "errors": [],
+    "back": {
+      "ruby": "@x = \"a\\\"b.include?(c)\"",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-5144f49206": {
+    "ja": "x = 含む(\"a\\\"b\", c)",
+    "errors": [],
+    "back": {
+      "ruby": "@x = \"a\\\"b\".include?(@c)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-be2da8388b": {
+    "ja": "x = 含む(s, \"q\") # t.include?(u)",
+    "errors": [],
+    "back": {
+      "ruby": "@x = @s.include?(\"q\") # t.include?(u)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-aa8bbbfb3d": {
+    "ja": "a = 1 # s.include?(t)",
+    "errors": [],
+    "back": {
+      "ruby": "@a = 1 # s.include?(t)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-51f023929a": {
+    "ja": "表示する(含む(a, \"x.include?(y)\"))",
+    "errors": [],
+    "back": {
+      "ruby": "puts(@a.include?(\"x.include?(y)\"))",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-7c40a7dd98": {
+    "ja": "表示する(含む(\"abc\", \"b\"))",
+    "errors": [],
+    "back": {
+      "ruby": "puts(\"abc\".include?(\"b\"))",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-95efd5952e": {
+    "ja": "表示する('a.include?(b)')",
+    "errors": [],
+    "back": {
+      "ruby": "puts('a.include?(b)')",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-7c9cf205bc": {
+    "ja": "表示する(\"a && b || c\")",
+    "errors": [],
+    "back": {
+      "ruby": "puts(\"a && b || c\")",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-8b7144e773": {
+    "ja": "表示する(\"a.include?(b)\")",
+    "errors": [],
+    "back": {
+      "ruby": "puts(\"a.include?(b)\")",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-387f30b057": {
+    "ja": "表示する(\"rand(3)\")",
+    "errors": [],
+    "back": {
+      "ruby": "puts(\"rand(3)\")",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-880093b718": {
+    "ja": "表示する(\"true false\")",
+    "errors": [],
+    "back": {
+      "ruby": "puts(\"true false\")",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-2077d6f8a5": {
+    "ja": "表示する(\"x = 1\")",
+    "errors": [],
+    "back": {
+      "ruby": "puts(\"x = 1\")",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-e869f18661": {
+    "ja": "表示する(\"x.to_i\")",
+    "errors": [],
+    "back": {
+      "ruby": "puts(\"x.to_i\")",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
   "ruby-5cd44d0965": {
     "ja": "もし a == \"#\" ならば # c\n  表示する(a)\nを実行する",
     "errors": [],
@@ -4118,6 +4271,15 @@
     "errors": [],
     "back": {
       "ruby": "while @x < 3\n  @x = @x + 1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-b5f26ebfda": {
+    "ja": "x = 乱数(10)",
+    "errors": [],
+    "back": {
+      "ruby": "@x = rand(10)",
       "errors": [],
       "blockErrors": []
     }

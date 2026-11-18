@@ -1985,15 +1985,13 @@
       3,
       3
     ],
-    "converterErrors": [
-      {
-        "row": 0,
-        "column": 0,
-        "type": "error",
-        "text": "\"rand(10)\" is the wrong instruction.\nCheck the spelling or use a supported block.",
-        "source": null
-      }
-    ]
+    "converterErrors": [],
+    "blocks": "data_setvariableto(VARIABLE = @i, VALUE: \"1\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_lt(OPERAND1: @i, OPERAND2: operator_random(FROM: 0, TO: 9) #\"@ruby:rand:n\") #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @i, OPERAND2: operator_random(FROM: 0, TO: 9) #\"@ruby:rand:n\") #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\")) {\n  data_setvariableto(VARIABLE = @a, VALUE: @i)\n  data_changevariableby(VARIABLE = @i, VALUE: 1)\n} #\"@ruby:syntax:while\"",
+    "shown": {
+      "ruby": "@i = 1\nwhile @i <= rand(10)\n  @a = @i\n  @i += 1\nend",
+      "ja": "i を 1 から 乱数(10) まで 1 ずつ増やしながら\n  a = i\nを繰り返す",
+      "errors": []
+    }
   },
   "ja-3ae16f7d47": {
     "ruby": "@x = \"5\"\n@i = 1\nwhile @i <= @x.to_i\n  @a = @i\n  @i += 1\nend",
@@ -2026,15 +2024,13 @@
       3,
       3
     ],
-    "converterErrors": [
-      {
-        "row": 0,
-        "column": 0,
-        "type": "error",
-        "text": "\"rand(10)\" is the wrong instruction.\nCheck the spelling or use a supported block.",
-        "source": null
-      }
-    ]
+    "converterErrors": [],
+    "blocks": "data_setvariableto(VARIABLE = @i, VALUE: \"1\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_lt(OPERAND1: @i, OPERAND2: operator_mathop(OPERATOR = \"floor\", NUM: operator_random(FROM: 0, TO: 9) #\"@ruby:rand:n\") #\"@ruby:method:to_i\") #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @i, OPERAND2: operator_mathop(OPERATOR = \"floor\", NUM: operator_random(FROM: 0, TO: 9) #\"@ruby:rand:n\") #\"@ruby:method:to_i\") #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\")) {\n  data_setvariableto(VARIABLE = @a, VALUE: @i)\n  data_changevariableby(VARIABLE = @i, VALUE: 1)\n} #\"@ruby:syntax:while\"",
+    "shown": {
+      "ruby": "@i = 1\nwhile @i <= rand(10).to_i\n  @a = @i\n  @i += 1\nend",
+      "ja": "i を 1 から 整数(乱数(10)) まで 1 ずつ増やしながら\n  a = i\nを繰り返す",
+      "errors": []
+    }
   },
   "ja-30f6cbb584": {
     "ruby": "@_array_Data_ = [1, 2, 3]\n@i = @_array_Data_.length\nwhile @i >= 1\n  @a = @i\n  @i += -1\nend",
@@ -5914,6 +5910,646 @@
     ],
     "blockErrors": []
   },
+  "ja-9ad0457dd5": {
+    "ruby": "@b = \"a\\\"←c\"",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "data_setvariableto(VARIABLE = @b, VALUE: \"a\\\"←c\")",
+    "shown": {
+      "ruby": "@b = \"a\\\"←c\"",
+      "ja": "b = \"a\\\"←c\"",
+      "errors": []
+    }
+  },
+  "ja-dd837b5b7f": {
+    "ruby": "if @b == \"a\\\"←c\"\n  puts(@b)\nend",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1,
+      2,
+      3
+    ],
+    "converterErrors": [],
+    "blocks": "control_if(CONDITION: operator_equals(OPERAND1: @b, OPERAND2: \"a\\\"←c\")) {\n  looks_sayforsecs(MESSAGE: @b, SECS: 1) #\"@ruby:method:puts\"\n}",
+    "shown": {
+      "ruby": "if @b == \"a\\\"←c\"\n  puts(@b)\nend",
+      "ja": "もし b == \"a\\\"←c\" ならば\n  表示する(b)\nを実行する",
+      "errors": []
+    }
+  },
+  "ja-09797b81ec": {
+    "ruby": "@b = \"a\\\"←c\"",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "data_setvariableto(VARIABLE = @b, VALUE: \"a\\\"←c\")",
+    "shown": {
+      "ruby": "@b = \"a\\\"←c\"",
+      "ja": "b = \"a\\\"←c\"",
+      "errors": []
+    }
+  },
+  "ja-40746cbc03": {
+    "ruby": "puts(\"a\\\\b\")",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "looks_sayforsecs(MESSAGE: \"a\\\\b\", SECS: 1) #\"@ruby:method:puts\"",
+    "shown": {
+      "ruby": "puts(\"a\\\\b\")",
+      "ja": "表示する(\"a\\\\b\")",
+      "errors": []
+    }
+  },
+  "ja-ea2aae7190": {
+    "ruby": "puts(\"\\\"x←1\")",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "looks_sayforsecs(MESSAGE: \"\\\"x←1\", SECS: 1) #\"@ruby:method:puts\"",
+    "shown": {
+      "ruby": "puts(\"\\\"x←1\")",
+      "ja": "表示する(\"\\\"x←1\")",
+      "errors": []
+    }
+  },
+  "ja-60bb1e5c52": {
+    "ruby": "puts(\"\\\"x←1\")",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "looks_sayforsecs(MESSAGE: \"\\\"x←1\", SECS: 1) #\"@ruby:method:puts\"",
+    "shown": {
+      "ruby": "puts(\"\\\"x←1\")",
+      "ja": "表示する(\"\\\"x←1\")",
+      "errors": []
+    }
+  },
+  "ja-03902fb405": {
+    "ruby": "puts(\"a\\\\\\\"b\")",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "looks_sayforsecs(MESSAGE: \"a\\\\\\\"b\", SECS: 1) #\"@ruby:method:puts\"",
+    "shown": {
+      "ruby": "puts(\"a\\\\\\\"b\")",
+      "ja": "表示する(\"a\\\\\\\"b\")",
+      "errors": []
+    }
+  },
+  "ja-a34abf83cc": {
+    "ruby": "puts(\"a\\\\b\")",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "looks_sayforsecs(MESSAGE: \"a\\\\b\", SECS: 1) #\"@ruby:method:puts\"",
+    "shown": {
+      "ruby": "puts(\"a\\\\b\")",
+      "ja": "表示する(\"a\\\\b\")",
+      "errors": []
+    }
+  },
+  "ja-5b35498dbc": {
+    "ruby": "@a = 1 # x←1",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "data_setvariableto(VARIABLE = @a, VALUE: \"1\") #\"x←1\\n@ruby:comment_position:inline\"",
+    "shown": {
+      "ruby": "@a = 1 # x←1",
+      "ja": "a = 1 # x←1",
+      "errors": []
+    }
+  },
+  "ja-5ccd379470": {
+    "ruby": "puts(\"x←1\") # c←d",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "looks_sayforsecs(MESSAGE: \"x←1\", SECS: 1) #\"c←d\\n@ruby:comment_position:inline\\n@ruby:method:puts\"",
+    "shown": {
+      "ruby": "puts(\"x←1\") # c←d",
+      "ja": "表示する(\"x←1\") # c←d",
+      "errors": []
+    }
+  },
+  "ja-f47285acac": {
+    "ruby": "# x←1",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "#\"x←1\"",
+    "shown": {
+      "ruby": "# x←1",
+      "ja": "# x←1",
+      "errors": []
+    }
+  },
+  "ja-2b7c8cf3fb": {
+    "ruby": "@kekka = \"x←1\" + @a.to_s",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "data_setvariableto(VARIABLE = @kekka, VALUE: operator_join(STRING1: \"x←1\", STRING2: operator_join(STRING1: @a, STRING2: \"\") #\"@ruby:method:to_s\"))",
+    "shown": {
+      "ruby": "@kekka = \"x←1\" + @a.to_s",
+      "ja": "kekka = \"x←1\" + 文字列(a)",
+      "errors": []
+    }
+  },
+  "ja-b04a9a3995": {
+    "ruby": "@a = \"x\"",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "data_setvariableto(VARIABLE = @a, VALUE: \"x\")",
+    "shown": {
+      "ruby": "@a = \"x\"",
+      "ja": "a = \"x\"",
+      "errors": []
+    }
+  },
+  "ja-0ba0d248d4": {
+    "ruby": "@a = \"x←1\"",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "data_setvariableto(VARIABLE = @a, VALUE: \"x←1\")",
+    "shown": {
+      "ruby": "@a = \"x←1\"",
+      "ja": "a = \"x←1\"",
+      "errors": []
+    }
+  },
+  "ja-7a54ce9f60": {
+    "ruby": "@a = \"b ← c\"",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "data_setvariableto(VARIABLE = @a, VALUE: \"b ← c\")",
+    "shown": {
+      "ruby": "@a = \"b ← c\"",
+      "ja": "a = \"b ← c\"",
+      "errors": []
+    }
+  },
+  "ja-9ea91487cc": {
+    "ruby": "@a = \"x←1\"",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "data_setvariableto(VARIABLE = @a, VALUE: \"x←1\")",
+    "shown": {
+      "ruby": "@a = \"x←1\"",
+      "ja": "a = \"x←1\"",
+      "errors": []
+    }
+  },
+  "ja-a5f7082750": {
+    "ruby": "@x = \"a\" + \"←\"",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "data_setvariableto(VARIABLE = @x, VALUE: operator_join(STRING1: \"a\", STRING2: \"←\"))",
+    "shown": {
+      "ruby": "@x = \"a\" + \"←\"",
+      "ja": "x = \"a\" + \"←\"",
+      "errors": []
+    }
+  },
+  "ja-22ba8b5006": {
+    "ruby": "while @b != \"x←1\"\n  @b = \"x←1\"\nend",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1,
+      2,
+      3
+    ],
+    "converterErrors": [],
+    "blocks": "control_repeat_until(CONDITION: operator_not(OPERAND: operator_not(OPERAND: operator_equals(OPERAND1: @b, OPERAND2: \"x←1\") #\"@ruby:operator:!=:1\") #\"@ruby:operator:!=:1\")) {\n  data_setvariableto(VARIABLE = @b, VALUE: \"x←1\")\n} #\"@ruby:syntax:while\"",
+    "shown": {
+      "ruby": "while @b != \"x←1\"\n  @b = \"x←1\"\nend",
+      "ja": "b != \"x←1\" の間\n  b = \"x←1\"\nを繰り返す",
+      "errors": []
+    }
+  },
+  "ja-ac767add19": {
+    "ruby": "def shiki(x)\n  return \"x←1\"\nend",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1,
+      2,
+      3
+    ],
+    "converterErrors": [],
+    "blocks": "procedures_definition(custom_block: shadow procedures_prototype(arg1: shadow argument_reporter_string_number(VALUE = \"x\")))\ndata_setvariableto(VARIABLE = @_return_shiki_, VALUE: \"\") #\"@ruby:return:shiki:initialize\"\ndata_setvariableto(VARIABLE = @_return_shiki_, VALUE: \"x←1\") #\"@ruby:syntax:return @ruby:return:shiki\"\ncontrol_stop(STOP_OPTION = \"this script\") #\"@ruby:syntax:return\"",
+    "shown": {
+      "ruby": "def shiki(x)\n  return \"x←1\"\nend",
+      "ja": "関数 shiki(x)\n  返す \"x←1\"\nと定義する",
+      "errors": []
+    }
+  },
+  "ja-afce967c09": {
+    "ruby": "if @b == \"x←1\"\n  puts(@b)\nend",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1,
+      2,
+      3
+    ],
+    "converterErrors": [],
+    "blocks": "control_if(CONDITION: operator_equals(OPERAND1: @b, OPERAND2: \"x←1\")) {\n  looks_sayforsecs(MESSAGE: @b, SECS: 1) #\"@ruby:method:puts\"\n}",
+    "shown": {
+      "ruby": "if @b == \"x←1\"\n  puts(@b)\nend",
+      "ja": "もし b == \"x←1\" ならば\n  表示する(b)\nを実行する",
+      "errors": []
+    }
+  },
+  "ja-fa8fc1bdf4": {
+    "ruby": "elsif @b == \"x←1\"",
+    "errors": [],
+    "blockErrors": [
+      {
+        "line": 1,
+        "column": 1,
+        "message": "「そうでなくもし〜ならば」の前に「もし〜ならば」がありません"
+      }
+    ],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [
+      {
+        "row": 0,
+        "column": 0,
+        "type": "error",
+        "text": "unexpected 'elsif', ignoring it",
+        "source": null
+      }
+    ]
+  },
+  "ja-435588b53e": {
+    "ruby": "if @a > 1\n  puts(\"a←1\")\nend",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1,
+      2,
+      2
+    ],
+    "converterErrors": [],
+    "blocks": "control_if(CONDITION: operator_gt(OPERAND1: @a, OPERAND2: \"1\")) {\n  looks_sayforsecs(MESSAGE: \"a←1\", SECS: 1) #\"@ruby:method:puts\"\n}",
+    "shown": {
+      "ruby": "if @a > 1\n  puts(\"a←1\")\nend",
+      "ja": "もし a > 1 ならば\n  表示する(\"a←1\")\nを実行する",
+      "errors": []
+    }
+  },
+  "ja-6186dfe729": {
+    "ruby": "if @a > 1\n  @b = \"p←q\"\nend",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1,
+      2,
+      3
+    ],
+    "converterErrors": [],
+    "blocks": "control_if(CONDITION: operator_gt(OPERAND1: @a, OPERAND2: \"1\")) {\n  data_setvariableto(VARIABLE = @b, VALUE: \"p←q\")\n}",
+    "shown": {
+      "ruby": "if @a > 1\n  @b = \"p←q\"\nend",
+      "ja": "もし a > 1 ならば\n  b = \"p←q\"\nを実行する",
+      "errors": []
+    }
+  },
+  "ja-a3d0c94130": {
+    "ruby": "@a = 0\nwhile @a < 3\n  @b = \"i←i+1\"\n  @a = @a + 1\nend",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "converterErrors": [],
+    "blocks": "data_setvariableto(VARIABLE = @a, VALUE: \"0\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_lt(OPERAND1: @a, OPERAND2: \"3\"))) {\n  data_setvariableto(VARIABLE = @b, VALUE: \"i←i+1\")\n  data_setvariableto(VARIABLE = @a, VALUE: operator_add(NUM1: @a, NUM2: 1))\n} #\"@ruby:syntax:while\"",
+    "shown": {
+      "ruby": "@a = 0\nwhile @a < 3\n  @b = \"i←i+1\"\n  @a = @a + 1\nend",
+      "ja": "a = 0\na < 3 の間\n  b = \"i←i+1\"\n  a = a + 1\nを繰り返す",
+      "errors": []
+    }
+  },
+  "ja-9280d0cdb6": {
+    "ruby": "puts('x←1')",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "looks_sayforsecs(MESSAGE: \"x←1\", SECS: 1) #\"@ruby:method:puts\"",
+    "shown": {
+      "ruby": "puts(\"x←1\")",
+      "ja": "表示する(\"x←1\")",
+      "errors": []
+    }
+  },
+  "ja-90100936ab": {
+    "ruby": "puts(\"x←1\")",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "looks_sayforsecs(MESSAGE: \"x←1\", SECS: 1) #\"@ruby:method:puts\"",
+    "shown": {
+      "ruby": "puts(\"x←1\")",
+      "ja": "表示する(\"x←1\")",
+      "errors": []
+    }
+  },
+  "ja-8ca9026209": {
+    "ruby": "puts(\"a\" + \"x←1\")",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "looks_sayforsecs(MESSAGE: operator_join(STRING1: \"a\", STRING2: \"x←1\"), SECS: 1) #\"@ruby:method:puts\"",
+    "shown": {
+      "ruby": "puts(\"a\" + \"x←1\")",
+      "ja": "表示する(\"a\", \"x←1\")",
+      "errors": []
+    }
+  },
+  "ja-b99f21bdb4": {
+    "ruby": "puts(\"x ← 1\")",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "looks_sayforsecs(MESSAGE: \"x ← 1\", SECS: 1) #\"@ruby:method:puts\"",
+    "shown": {
+      "ruby": "puts(\"x ← 1\")",
+      "ja": "表示する(\"x ← 1\")",
+      "errors": []
+    }
+  },
+  "ja-931bd3d0f7": {
+    "ruby": "puts(\"x←1\")",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "looks_sayforsecs(MESSAGE: \"x←1\", SECS: 1) #\"@ruby:method:puts\"",
+    "shown": {
+      "ruby": "puts(\"x←1\")",
+      "ja": "表示する(\"x←1\")",
+      "errors": []
+    }
+  },
+  "ja-e38fa97bca": {
+    "ruby": "puts(\"名前\" + \"x←1\")",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "looks_sayforsecs(MESSAGE: operator_join(STRING1: \"名前\", STRING2: \"x←1\"), SECS: 1) #\"@ruby:method:puts\"",
+    "shown": {
+      "ruby": "puts(\"名前\" + \"x←1\")",
+      "ja": "表示する(\"名前\", \"x←1\")",
+      "errors": []
+    }
+  },
+  "ja-6b9260984c": {
+    "ruby": "@a = 1\n@b = \"c = 2, d = 3\"",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1,
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "data_setvariableto(VARIABLE = @a, VALUE: \"1\")\ndata_setvariableto(VARIABLE = @b, VALUE: \"c = 2, d = 3\")",
+    "shown": {
+      "ruby": "@a = 1\n@b = \"c = 2, d = 3\"",
+      "ja": "a = 1\nb = \"c = 2, d = 3\"",
+      "errors": []
+    }
+  },
+  "ja-291d4dd566": {
+    "ruby": "@a = 1 # ≦ かつ 真 7 ÷ 2",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "data_setvariableto(VARIABLE = @a, VALUE: \"1\") #\"≦ かつ 真 7 ÷ 2\\n@ruby:comment_position:inline\"",
+    "shown": {
+      "ruby": "@a = 1 # ≦ かつ 真 7 ÷ 2",
+      "ja": "a = 1 # ≦ かつ 真 7 ÷ 2",
+      "errors": []
+    }
+  },
+  "ja-ba343c75bb": {
+    "ruby": "puts(\"要素数(Tokuten)\")",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "looks_sayforsecs(MESSAGE: \"要素数(Tokuten)\", SECS: 1) #\"@ruby:method:puts\"",
+    "shown": {
+      "ruby": "puts(\"要素数(Tokuten)\")",
+      "ja": "表示する(\"要素数(Tokuten)\")",
+      "errors": []
+    }
+  },
+  "ja-6473c475aa": {
+    "ruby": "puts(\"7 // 2\")",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "looks_sayforsecs(MESSAGE: \"7 // 2\", SECS: 1) #\"@ruby:method:puts\"",
+    "shown": {
+      "ruby": "puts(\"7 // 2\")",
+      "ja": "表示する(\"7 // 2\")",
+      "errors": []
+    }
+  },
+  "ja-6d6b1af375": {
+    "ruby": "puts(\"7 ÷ 2\")",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "looks_sayforsecs(MESSAGE: \"7 ÷ 2\", SECS: 1) #\"@ruby:method:puts\"",
+    "shown": {
+      "ruby": "puts(\"7 ÷ 2\")",
+      "ja": "表示する(\"7 ÷ 2\")",
+      "errors": []
+    }
+  },
+  "ja-55f132b51f": {
+    "ruby": "puts(\"a ≦ b ≧ c\")",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "looks_sayforsecs(MESSAGE: \"a ≦ b ≧ c\", SECS: 1) #\"@ruby:method:puts\"",
+    "shown": {
+      "ruby": "puts(\"a ≦ b ≧ c\")",
+      "ja": "表示する(\"a ≦ b ≧ c\")",
+      "errors": []
+    }
+  },
+  "ja-535f788a51": {
+    "ruby": "puts(\"a and b or not c\")",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "looks_sayforsecs(MESSAGE: \"a and b or not c\", SECS: 1) #\"@ruby:method:puts\"",
+    "shown": {
+      "ruby": "puts(\"a and b or not c\")",
+      "ja": "表示する(\"a and b or not c\")",
+      "errors": []
+    }
+  },
+  "ja-25e18911db": {
+    "ruby": "puts(\"a かつ b または c\")",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "looks_sayforsecs(MESSAGE: \"a かつ b または c\", SECS: 1) #\"@ruby:method:puts\"",
+    "shown": {
+      "ruby": "puts(\"a かつ b または c\")",
+      "ja": "表示する(\"a かつ b または c\")",
+      "errors": []
+    }
+  },
+  "ja-58015da7c9": {
+    "ruby": "puts(\"x でない\")",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "looks_sayforsecs(MESSAGE: \"x でない\", SECS: 1) #\"@ruby:method:puts\"",
+    "shown": {
+      "ruby": "puts(\"x でない\")",
+      "ja": "表示する(\"x でない\")",
+      "errors": []
+    }
+  },
+  "ja-355ed235a9": {
+    "ruby": "puts(\"整数(3.5)\")",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "looks_sayforsecs(MESSAGE: \"整数(3.5)\", SECS: 1) #\"@ruby:method:puts\"",
+    "shown": {
+      "ruby": "puts(\"整数(3.5)\")",
+      "ja": "表示する(\"整数(3.5)\")",
+      "errors": []
+    }
+  },
+  "ja-10439a657c": {
+    "ruby": "puts(\"真 と 偽\")",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "looks_sayforsecs(MESSAGE: \"真 と 偽\", SECS: 1) #\"@ruby:method:puts\"",
+    "shown": {
+      "ruby": "puts(\"真 と 偽\")",
+      "ja": "表示する(\"真 と 偽\")",
+      "errors": []
+    }
+  },
   "ja-93124b521c": {
     "ruby": "@a = @_array_Kouka_[0]",
     "errors": [],
@@ -5966,15 +6602,13 @@
     "rubyLines": [
       1
     ],
-    "converterErrors": [
-      {
-        "row": 0,
-        "column": 0,
-        "type": "error",
-        "text": "\"@a = rand(10)\" is the wrong instruction.\nCheck the spelling or use a supported block.",
-        "source": null
-      }
-    ]
+    "converterErrors": [],
+    "blocks": "data_setvariableto(VARIABLE = @a, VALUE: operator_random(FROM: 0, TO: 9) #\"@ruby:rand:n\")",
+    "shown": {
+      "ruby": "@a = rand(10)",
+      "ja": "a = 乱数(10)",
+      "errors": []
+    }
   },
   "ja-c3ec3c7c0e": {
     "ruby": "@a = @x.ceil",
@@ -8175,6 +8809,99 @@
       "errors": []
     }
   },
+  "ja-e55de6eafe": {
+    "ruby": "@i = 1\nwhile @i <= 3\n  if @i > 1\n    puts(@i)\n  end\n  puts(0)\n  @i += 1\nend\nputs(9)",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1,
+      1,
+      2,
+      3,
+      3,
+      4,
+      4,
+      4,
+      5
+    ],
+    "converterErrors": [],
+    "blocks": "data_setvariableto(VARIABLE = @i, VALUE: \"1\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_lt(OPERAND1: @i, OPERAND2: \"3\") #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @i, OPERAND2: \"3\") #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\")) {\n  control_if(CONDITION: operator_gt(OPERAND1: @i, OPERAND2: \"1\")) {\n    looks_sayforsecs(MESSAGE: @i, SECS: 1) #\"@ruby:method:puts\"\n  }\n  looks_sayforsecs(MESSAGE: \"0\", SECS: 1) #\"@ruby:method:puts,@ruby:argument:1:type:Integer\"\n  data_changevariableby(VARIABLE = @i, VALUE: 1)\n} #\"@ruby:syntax:while\"\nlooks_sayforsecs(MESSAGE: \"9\", SECS: 1) #\"@ruby:method:puts,@ruby:argument:1:type:Integer\"",
+    "shown": {
+      "ruby": "@i = 1\nwhile @i <= 3\n  if @i > 1\n    puts(@i)\n  end\n  puts(0)\n  @i += 1\nend\nputs(9)",
+      "ja": "i を 1 から 3 まで 1 ずつ増やしながら\n  もし i > 1 ならば\n    表示する(i)\n  を実行する\n  表示する(0)\nを繰り返す\n表示する(9)",
+      "errors": []
+    }
+  },
+  "ja-f079dcbe7c": {
+    "ruby": "@i = 1\nwhile @i <= 3\n  if @i > 1\n    puts(@i)\n  end\n  puts(0)\n  puts(1)\n  @i += 1\nend",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1,
+      1,
+      2,
+      3,
+      3,
+      4,
+      5,
+      5,
+      5
+    ],
+    "converterErrors": [],
+    "blocks": "data_setvariableto(VARIABLE = @i, VALUE: \"1\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_lt(OPERAND1: @i, OPERAND2: \"3\") #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @i, OPERAND2: \"3\") #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\")) {\n  control_if(CONDITION: operator_gt(OPERAND1: @i, OPERAND2: \"1\")) {\n    looks_sayforsecs(MESSAGE: @i, SECS: 1) #\"@ruby:method:puts\"\n  }\n  looks_sayforsecs(MESSAGE: \"0\", SECS: 1) #\"@ruby:method:puts,@ruby:argument:1:type:Integer\"\n  looks_sayforsecs(MESSAGE: \"1\", SECS: 1) #\"@ruby:method:puts,@ruby:argument:1:type:Integer\"\n  data_changevariableby(VARIABLE = @i, VALUE: 1)\n} #\"@ruby:syntax:while\"",
+    "shown": {
+      "ruby": "@i = 1\nwhile @i <= 3\n  if @i > 1\n    puts(@i)\n  end\n  puts(0)\n  puts(1)\n  @i += 1\nend",
+      "ja": "i を 1 から 3 まで 1 ずつ増やしながら\n  もし i > 1 ならば\n    表示する(i)\n  を実行する\n  表示する(0)\n  表示する(1)\nを繰り返す",
+      "errors": []
+    }
+  },
+  "ja-95ec10d847": {
+    "ruby": "@i = 1\nwhile @i <= 3\n  if @i > 1\n    puts(@i)\n  else\n    puts(0)\n  end\n  puts(1)\n  @i += 1\nend",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1,
+      1,
+      2,
+      3,
+      4,
+      5,
+      5,
+      6,
+      6,
+      6
+    ],
+    "converterErrors": [],
+    "blocks": "data_setvariableto(VARIABLE = @i, VALUE: \"1\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_lt(OPERAND1: @i, OPERAND2: \"3\") #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @i, OPERAND2: \"3\") #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\")) {\n  control_if_else(CONDITION: operator_gt(OPERAND1: @i, OPERAND2: \"1\")) {\n    looks_sayforsecs(MESSAGE: @i, SECS: 1) #\"@ruby:method:puts\"\n  } {\n    looks_sayforsecs(MESSAGE: \"0\", SECS: 1) #\"@ruby:method:puts,@ruby:argument:1:type:Integer\"\n  }\n  looks_sayforsecs(MESSAGE: \"1\", SECS: 1) #\"@ruby:method:puts,@ruby:argument:1:type:Integer\"\n  data_changevariableby(VARIABLE = @i, VALUE: 1)\n} #\"@ruby:syntax:while\"",
+    "shown": {
+      "ruby": "@i = 1\nwhile @i <= 3\n  if @i > 1\n    puts(@i)\n  else\n    puts(0)\n  end\n  puts(1)\n  @i += 1\nend",
+      "ja": "i を 1 から 3 まで 1 ずつ増やしながら\n  もし i > 1 ならば\n    表示する(i)\n  そうでなければ\n    表示する(0)\n  を実行する\n  表示する(1)\nを繰り返す",
+      "errors": []
+    }
+  },
+  "ja-4aa279bc02": {
+    "ruby": "@i = 1\nwhile @i <= 3\n  if @i > 1\n    puts(@i)\n  end\n  puts(0)\n  @i += 1\nend\nputs(9)",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1,
+      1,
+      2,
+      3,
+      3,
+      4,
+      4,
+      4,
+      5
+    ],
+    "converterErrors": [],
+    "blocks": "data_setvariableto(VARIABLE = @i, VALUE: \"1\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_lt(OPERAND1: @i, OPERAND2: \"3\") #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @i, OPERAND2: \"3\") #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\")) {\n  control_if(CONDITION: operator_gt(OPERAND1: @i, OPERAND2: \"1\")) {\n    looks_sayforsecs(MESSAGE: @i, SECS: 1) #\"@ruby:method:puts\"\n  }\n  looks_sayforsecs(MESSAGE: \"0\", SECS: 1) #\"@ruby:method:puts,@ruby:argument:1:type:Integer\"\n  data_changevariableby(VARIABLE = @i, VALUE: 1)\n} #\"@ruby:syntax:while\"\nlooks_sayforsecs(MESSAGE: \"9\", SECS: 1) #\"@ruby:method:puts,@ruby:argument:1:type:Integer\"",
+    "shown": {
+      "ruby": "@i = 1\nwhile @i <= 3\n  if @i > 1\n    puts(@i)\n  end\n  puts(0)\n  @i += 1\nend\nputs(9)",
+      "ja": "i を 1 から 3 まで 1 ずつ増やしながら\n  もし i > 1 ならば\n    表示する(i)\n  を実行する\n  表示する(0)\nを繰り返す\n表示する(9)",
+      "errors": []
+    }
+  },
   "ja-9d5a3d70d5": {
     "ruby": "if @x > 0\n  @y = 1\nend\n@z = 2",
     "errors": [],
@@ -8849,7 +9576,7 @@
     }
   },
   "ja-e48c68c559": {
-    "ruby": "@a = 1, @b = 2\nif @a > 0\n  puts(@a)",
+    "ruby": "@a = 1\n@b = 2\nif @a > 0\n  puts(@a)",
     "errors": [],
     "blockErrors": [
       {
@@ -8859,6 +9586,7 @@
       }
     ],
     "rubyLines": [
+      1,
       1,
       2,
       3
@@ -9890,6 +10618,22 @@
       "errors": []
     }
   },
+  "ja-6b17a2e44b": {
+    "ruby": "@a = 1\n@b = 2",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1,
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "data_setvariableto(VARIABLE = @a, VALUE: \"1\")\ndata_setvariableto(VARIABLE = @b, VALUE: \"2\")",
+    "shown": {
+      "ruby": "@a = 1\n@b = 2",
+      "ja": "a = 1\nb = 2",
+      "errors": []
+    }
+  },
   "ja-bc25fc8218": {
     "ruby": "if @x > 0 && @x < 9\n  puts(@x)\nend",
     "errors": [],
@@ -9921,6 +10665,21 @@
     "shown": {
       "ruby": "while @x < 3\n  @x = @x + 1\nend",
       "ja": "x < 3 の間\n  x = x + 1\nを繰り返す",
+      "errors": []
+    }
+  },
+  "ja-faa60eeb22": {
+    "ruby": "@x = rand(10)",
+    "errors": [],
+    "blockErrors": [],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "data_setvariableto(VARIABLE = @x, VALUE: operator_random(FROM: 0, TO: 9) #\"@ruby:rand:n\")",
+    "shown": {
+      "ruby": "@x = rand(10)",
+      "ja": "x = 乱数(10)",
       "errors": []
     }
   },

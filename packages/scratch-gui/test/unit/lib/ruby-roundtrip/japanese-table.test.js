@@ -80,6 +80,25 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
         ruby: '@x = @y.to_i',
         blocks: 'data_setvariableto(VARIABLE = @x, VALUE: operator_mathop(OPERATOR = "floor", NUM: @y) #"@ruby:method:to_i")',
     },
+    {
+        name: '乱数(n) is from 0 to n - 1',
+        ja: 'x = 乱数(10)',
+        ruby: '@x = rand(10)',
+        blocks: 'data_setvariableto(VARIABLE = @x, VALUE: operator_random(FROM: 0, TO: 9) #"@ruby:rand:n")',
+    },
+    {
+        name: 'two assignments on a line (a fix of the Japanese mode)',
+        ja: 'a ← 1, b ← 2',
+        jaOnly: 'jaToBlocks',
+        ruby: `
+            @a = 1
+            @b = 2
+        `,
+        blocks: `
+            data_setvariableto(VARIABLE = @a, VALUE: "1")
+            data_setvariableto(VARIABLE = @b, VALUE: "2")
+        `,
+    },
     { ja: '表示する(x)', ruby: 'puts(@x)', blocks: `looks_sayforsecs(MESSAGE: @x, SECS: 1) ${PUTS}` },
     {
         name: '表示する with two values',

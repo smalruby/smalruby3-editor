@@ -82,7 +82,8 @@
   {
     "id": "ja-e34ce18557",
     "from": [
-      "docs/smalruby-dncl-spec.ja.md:481"
+      "docs/smalruby-dncl-spec.ja.md:481",
+      "docs/smalruby-dncl-spec.ja.md:482"
     ],
     "ja": "# 問題文: Nissu の添字は 1 から始まる（Nissu[1] が工芸品 1 の日数）\nNissu = [4, 1, 3]\nkougeihin を 1 から 3 まで 1 ずつ増やしながら\n  表示する(Nissu[kougeihin - 1])   # Nissu[kougeihin] と書くと最後に範囲外になる\nを繰り返す"
   },
@@ -96,28 +97,32 @@
   {
     "id": "ja-fcfa6c7c3f",
     "from": [
-      "docs/smalruby-dncl-spec.ja.md:652"
+      "docs/smalruby-dncl-spec.ja.md:652",
+      "docs/smalruby-dncl-spec.ja.md:653"
     ],
     "ja": "i を 1 から 30 まで 1 ずつ増やしながら\n  もし i % 15 == 0 ならば\n    表示する(\"FizzBuzz\")\n  そうでなくもし i % 3 == 0 ならば\n    表示する(\"Fizz\")\n  そうでなくもし i % 5 == 0 ならば\n    表示する(\"Buzz\")\n  そうでなければ\n    表示する(i)\n  を実行する\nを繰り返す"
   },
   {
     "id": "ja-80435d4568",
     "from": [
-      "docs/smalruby-dncl-spec.ja.md:668"
+      "docs/smalruby-dncl-spec.ja.md:668",
+      "docs/smalruby-dncl-spec.ja.md:669"
     ],
     "ja": "Data = [3, 1, 4, 1, 5, 9, 2, 6]\n合計 = 0\ni を 0 から 要素数(Data) - 1 まで 1 ずつ増やしながら\n  合計 = 合計 + Data[i]\nを繰り返す\n表示する(合計)"
   },
   {
     "id": "ja-d5d189510d",
     "from": [
-      "docs/smalruby-dncl-spec.ja.md:679"
+      "docs/smalruby-dncl-spec.ja.md:679",
+      "docs/smalruby-dncl-spec.ja.md:680"
     ],
     "ja": "関数 最大値(a, b)\n  もし a > b ならば\n    返す a\n  そうでなければ\n    返す b\n  を実行する\nと定義する\n\nx = 【外部からの入力】\ny = 【外部からの入力】\n表示する(最大値(整数(x), 整数(y)))"
   },
   {
     "id": "ja-5e15beaa3b",
     "from": [
-      "docs/smalruby-dncl-spec.ja.md:695"
+      "docs/smalruby-dncl-spec.ja.md:695",
+      "docs/smalruby-dncl-spec.ja.md:696"
     ],
     "ja": "Data = [5, 3, 8, 1, 9, 2, 7]\nkey = 【外部からの入力】\nkey = 整数(key)\nfound = 偽\ni を 0 から 要素数(Data) - 1 まで 1 ずつ増やしながら\n  もし Data[i] == key ならば\n    表示する(文字列(i) + \"番目に見つかりました\")\n    found = 真\n  を実行する\nを繰り返す\nもし found でない ならば\n  表示する(\"見つかりませんでした\")\nを実行する"
   },
@@ -2509,6 +2514,296 @@
     "ja": "(1) aa = 1\n(2) bb = (2 +\n      3)\n(3) @cc = 1"
   },
   {
+    "id": "ja-9ad0457dd5",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: \" and  inside 「...」 are escaped (Issue #2031) b ← 「a\"←c」",
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: \" and  inside 「...」 are escaped (Issue #2031) the Ruby goes back to the same text (Ruby → DNCL → Ruby)"
+    ],
+    "ja": "b ← 「a\"←c」"
+  },
+  {
+    "id": "ja-dd837b5b7f",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: \" and  inside 「...」 are escaped (Issue #2031) in a condition"
+    ],
+    "ja": "もし b == 「a\"←c」 ならば\n  表示する(b)\nを実行する"
+  },
+  {
+    "id": "ja-09797b81ec",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: \" and  inside 「...」 are escaped (Issue #2031) the Ruby goes back to the same text (Ruby → DNCL → Ruby)"
+    ],
+    "ja": "b = \"a\\\"←c\""
+  },
+  {
+    "id": "ja-40746cbc03",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: \" and  inside 「...」 are escaped (Issue #2031) the Ruby goes back to the same text (Ruby → DNCL → Ruby)"
+    ],
+    "ja": "表示する(\"a\\\\b\")"
+  },
+  {
+    "id": "ja-ea2aae7190",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: \" and  inside 「...」 are escaped (Issue #2031) the Ruby goes back to the same text (Ruby → DNCL → Ruby)"
+    ],
+    "ja": "表示する(\"\\\"x←1\")"
+  },
+  {
+    "id": "ja-60bb1e5c52",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: \" and  inside 「...」 are escaped (Issue #2031) 表示する(「\"x←1」)",
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: \" and  inside 「...」 are escaped (Issue #2031) the Ruby goes back to the same text (Ruby → DNCL → Ruby)"
+    ],
+    "ja": "表示する(「\"x←1」)"
+  },
+  {
+    "id": "ja-03902fb405",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: \" and  inside 「...」 are escaped (Issue #2031) 表示する(「a\\\"b」)"
+    ],
+    "ja": "表示する(「a\\\"b」)"
+  },
+  {
+    "id": "ja-a34abf83cc",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: \" and  inside 「...」 are escaped (Issue #2031) 表示する(「a\\b」)",
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: \" and  inside 「...」 are escaped (Issue #2031) the Ruby goes back to the same text (Ruby → DNCL → Ruby)"
+    ],
+    "ja": "表示する(「a\\b」)"
+  },
+  {
+    "id": "ja-5b35498dbc",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: ← inside a string is kept (Issue #2031) a ← in a comment is kept"
+    ],
+    "ja": "a ← 1 # x←1"
+  },
+  {
+    "id": "ja-5ccd379470",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: ← inside a string is kept (Issue #2031) a ← in a comment is kept"
+    ],
+    "ja": "表示する(「x←1」) # c←d"
+  },
+  {
+    "id": "ja-f47285acac",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: ← inside a string is kept (Issue #2031) a ← in a comment is kept"
+    ],
+    "ja": "# x←1"
+  },
+  {
+    "id": "ja-2b7c8cf3fb",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: ← inside a string is kept (Issue #2031) a ← outside a string next to one is still an assignment"
+    ],
+    "ja": "kekka ← 「x←1」 + 文字列(a)"
+  },
+  {
+    "id": "ja-b04a9a3995",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: ← inside a string is kept (Issue #2031) a ← outside a string next to one is still an assignment"
+    ],
+    "ja": "a←「x」"
+  },
+  {
+    "id": "ja-0ba0d248d4",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: ← inside a string is kept (Issue #2031) an assignment keeps the ← of its string and converts its own"
+    ],
+    "ja": "a = 「x←1」"
+  },
+  {
+    "id": "ja-7a54ce9f60",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: ← inside a string is kept (Issue #2031) an assignment keeps the ← of its string and converts its own"
+    ],
+    "ja": "a ← \"b ← c\""
+  },
+  {
+    "id": "ja-9ea91487cc",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: ← inside a string is kept (Issue #2031) an assignment keeps the ← of its string and converts its own"
+    ],
+    "ja": "a ← 「x←1」"
+  },
+  {
+    "id": "ja-a5f7082750",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: ← inside a string is kept (Issue #2031) an assignment keeps the ← of its string and converts its own"
+    ],
+    "ja": "x ← 「a」 + 「←」"
+  },
+  {
+    "id": "ja-22ba8b5006",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: ← inside a string is kept (Issue #2031) in a condition and a return value"
+    ],
+    "ja": "b != 「x←1」 の間\n  b ← 「x←1」\nを繰り返す"
+  },
+  {
+    "id": "ja-ac767add19",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: ← inside a string is kept (Issue #2031) in a condition and a return value"
+    ],
+    "ja": "関数 shiki(x)\n  返す 「x←1」\nと定義する"
+  },
+  {
+    "id": "ja-afce967c09",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: ← inside a string is kept (Issue #2031) in a condition and a return value"
+    ],
+    "ja": "もし b == 「x←1」 ならば\n  表示する(b)\nを実行する"
+  },
+  {
+    "id": "ja-fa8fc1bdf4",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: ← inside a string is kept (Issue #2031) in a condition and a return value"
+    ],
+    "ja": "そうでなくもし b == 「x←1」 ならば"
+  },
+  {
+    "id": "ja-435588b53e",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: ← inside a string is kept (Issue #2031) in the standard form (line numbers and 罫線)"
+    ],
+    "ja": "(1) もし a > 1 ならば:\n(2) ⎿ 表示する(「a←1」)"
+  },
+  {
+    "id": "ja-6186dfe729",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: ← inside a string is kept (Issue #2031) inside a block body"
+    ],
+    "ja": "もし a > 1 ならば\n  b ← 「p←q」\nを実行する"
+  },
+  {
+    "id": "ja-a3d0c94130",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: ← inside a string is kept (Issue #2031) inside a block body"
+    ],
+    "ja": "a ← 0\na < 3 の間\n  b ← 「i←i+1」\n  a ← a + 1\nを繰り返す"
+  },
+  {
+    "id": "ja-9280d0cdb6",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: ← inside a string is kept (Issue #2031) 表示する('x←1')"
+    ],
+    "ja": "表示する('x←1')"
+  },
+  {
+    "id": "ja-90100936ab",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: ← inside a string is kept (Issue #2031) 表示する(\"x←1\")"
+    ],
+    "ja": "表示する(\"x←1\")"
+  },
+  {
+    "id": "ja-8ca9026209",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: ← inside a string is kept (Issue #2031) 表示する(「a」 + \"x←1\")"
+    ],
+    "ja": "表示する(「a」 + \"x←1\")"
+  },
+  {
+    "id": "ja-b99f21bdb4",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: ← inside a string is kept (Issue #2031) 表示する(「x ← 1」)"
+    ],
+    "ja": "表示する(「x ← 1」)"
+  },
+  {
+    "id": "ja-931bd3d0f7",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: ← inside a string is kept (Issue #2031) 表示する(「x←1」)"
+    ],
+    "ja": "表示する(「x←1」)"
+  },
+  {
+    "id": "ja-e38fa97bca",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: ← inside a string is kept (Issue #2031) 表示する(「名前」, 「x←1」)"
+    ],
+    "ja": "表示する(「名前」, 「x←1」)"
+  },
+  {
+    "id": "ja-6b9260984c",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: the other symbols inside a string are kept (Issue #2031) a = 1, b = 「c = 2, d = 3」"
+    ],
+    "ja": "a = 1, b = 「c = 2, d = 3」"
+  },
+  {
+    "id": "ja-291d4dd566",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: the other symbols inside a string are kept (Issue #2031) symbols in a comment are kept"
+    ],
+    "ja": "a ← 1 # ≦ かつ 真 7 ÷ 2"
+  },
+  {
+    "id": "ja-ba343c75bb",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: the other symbols inside a string are kept (Issue #2031) 表示する(\"要素数(Tokuten)\")"
+    ],
+    "ja": "表示する(\"要素数(Tokuten)\")"
+  },
+  {
+    "id": "ja-6473c475aa",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: the other symbols inside a string are kept (Issue #2031) 表示する(「7 // 2」)"
+    ],
+    "ja": "表示する(「7 // 2」)"
+  },
+  {
+    "id": "ja-6d6b1af375",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: the other symbols inside a string are kept (Issue #2031) 表示する(「7 ÷ 2」)"
+    ],
+    "ja": "表示する(「7 ÷ 2」)"
+  },
+  {
+    "id": "ja-55f132b51f",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: the other symbols inside a string are kept (Issue #2031) 表示する(「a ≦ b ≧ c」)"
+    ],
+    "ja": "表示する(「a ≦ b ≧ c」)"
+  },
+  {
+    "id": "ja-535f788a51",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: the other symbols inside a string are kept (Issue #2031) 表示する(「a and b or not c」)"
+    ],
+    "ja": "表示する(「a and b or not c」)"
+  },
+  {
+    "id": "ja-25e18911db",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: the other symbols inside a string are kept (Issue #2031) 表示する(「a かつ b または c」)"
+    ],
+    "ja": "表示する(「a かつ b または c」)"
+  },
+  {
+    "id": "ja-58015da7c9",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: the other symbols inside a string are kept (Issue #2031) 表示する(「x でない」)"
+    ],
+    "ja": "表示する(「x でない」)"
+  },
+  {
+    "id": "ja-355ed235a9",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: the other symbols inside a string are kept (Issue #2031) 表示する(「整数(3.5)」)"
+    ],
+    "ja": "表示する(「整数(3.5)」)"
+  },
+  {
+    "id": "ja-10439a657c",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: the other symbols inside a string are kept (Issue #2031) 表示する(「真 と 偽」)"
+    ],
+    "ja": "表示する(「真 と 偽」)"
+  },
+  {
     "id": "ja-93124b521c",
     "from": [
       "test/unit/lib/dncl/dncl-to-ruby.test.js › dnclToRuby array operations array element access with uppercase name"
@@ -3548,6 +3843,34 @@
     "ja": "(a > 10) でない の間\nを繰り返す"
   },
   {
+    "id": "ja-e55de6eafe",
+    "from": [
+      "test/unit/lib/dncl/dncl-v2-indent-only-blocks.test.js › DNCLv2 indentation-only blocks inside `｜` / `⎿` (Issue #1723) `⎿` closes an indentation-only block opened on a `｜` line first"
+    ],
+    "ja": "i を 1 から 3 まで 1 ずつ増やしながら繰り返す:\n｜ もし i > 1 ならば:\n｜     表示する(i)\n⎿ 表示する(0)\n表示する(9)"
+  },
+  {
+    "id": "ja-f079dcbe7c",
+    "from": [
+      "test/unit/lib/dncl/dncl-v2-indent-only-blocks.test.js › DNCLv2 indentation-only blocks inside `｜` / `⎿` (Issue #1723) a `｜` line back at the opener closes the indentation-only block"
+    ],
+    "ja": "i を 1 から 3 まで 1 ずつ増やしながら繰り返す:\n｜ もし i > 1 ならば:\n｜     表示する(i)\n｜ 表示する(0)\n⎿ 表示する(1)"
+  },
+  {
+    "id": "ja-95ec10d847",
+    "from": [
+      "test/unit/lib/dncl/dncl-v2-indent-only-blocks.test.js › DNCLv2 indentation-only blocks inside `｜` / `⎿` (Issue #1723) else of an indentation-only block inside `｜` stays in the block"
+    ],
+    "ja": "i を 1 から 3 まで 1 ずつ増やしながら繰り返す:\n｜ もし i > 1 ならば:\n｜     表示する(i)\n｜ そうでなければ:\n｜     表示する(0)\n⎿ 表示する(1)"
+  },
+  {
+    "id": "ja-4aa279bc02",
+    "from": [
+      "test/unit/lib/dncl/dncl-v2-indent-only-blocks.test.js › DNCLv2 indentation-only blocks inside `｜` / `⎿` (Issue #1723) on numbered lines, too"
+    ],
+    "ja": "(1) i を 1 から 3 まで 1 ずつ増やしながら繰り返す:\n(2) ｜ もし i > 1 ならば:\n(3) ｜     表示する(i)\n(4) ⎿ 表示する(0)\n(5) 表示する(9)"
+  },
+  {
     "id": "ja-9d5a3d70d5",
     "from": [
       "test/unit/lib/dncl/dncl-v2-indent-only-blocks.test.js › DNCLv2 indentation-only blocks on numbered lines (Issue #1718) `｜` / `⎿` markers on numbered lines still work"
@@ -4137,21 +4460,24 @@
   {
     "id": "ja-10d6d35222",
     "from": [
-      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks 13: puts(@x) jaToBlocks"
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks 13: puts(@x) jaToBlocks",
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks 15: puts(@x) jaToBlocks"
     ],
     "ja": "表示する(x)"
   },
   {
     "id": "ja-3179fd9238",
     "from": [
-      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks 16: if @x > 0 jaToBlocks"
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks 16: if @x > 0 jaToBlocks",
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks 18: if @x > 0 jaToBlocks"
     ],
     "ja": "もし x > 0 ならば\n  表示する(x)\nを実行する"
   },
   {
     "id": "ja-285bc3c09c",
     "from": [
-      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks 18: if @x > 0 jaToBlocks"
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks 18: if @x > 0 jaToBlocks",
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks 20: if @x > 0 jaToBlocks"
     ],
     "ja": "もし x > 0 ならば\n  表示する(x)\nそうでなければ\n  表示する(y)\nを実行する"
   },
@@ -4240,6 +4566,13 @@
     "ja": "x = 真"
   },
   {
+    "id": "ja-6b17a2e44b",
+    "from": [
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks two assignments on a line (a fix of the Japanese mode) jaToBlocks"
+    ],
+    "ja": "a ← 1, b ← 2"
+  },
+  {
     "id": "ja-bc25fc8218",
     "from": [
       "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks かつ jaToBlocks"
@@ -4252,6 +4585,13 @@
       "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks の間 を繰り返す jaToBlocks"
     ],
     "ja": "x < 3 の間\n  x = x + 1\nを繰り返す"
+  },
+  {
+    "id": "ja-faa60eeb22",
+    "from": [
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks 乱数(n) is from 0 to n - 1 jaToBlocks"
+    ],
+    "ja": "x = 乱数(10)"
   },
   {
     "id": "ja-712445cad9",

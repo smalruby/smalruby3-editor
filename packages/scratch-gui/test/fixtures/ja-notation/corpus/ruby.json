@@ -1514,6 +1514,125 @@
     "ruby": "say(@a.to_s + \"x\" + @b.to_s, 3)"
   },
   {
+    "id": "ruby-4182ed5257",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: \" and  inside 「...」 are escaped (Issue #2031) the Ruby goes back to the same text (Ruby → DNCL → Ruby)"
+    ],
+    "ruby": "puts(\"\\\"x←1\")"
+  },
+  {
+    "id": "ruby-68f02ecfe3",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: \" and  inside 「...」 are escaped (Issue #2031) the Ruby goes back to the same text (Ruby → DNCL → Ruby)"
+    ],
+    "ruby": "@b = \"a\\\"←c\""
+  },
+  {
+    "id": "ruby-aef6dd3674",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › DNCL → Ruby: \" and  inside 「...」 are escaped (Issue #2031) the Ruby goes back to the same text (Ruby → DNCL → Ruby)"
+    ],
+    "ruby": "puts(\"a\\\\b\")"
+  },
+  {
+    "id": "ruby-3767102b20",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › Ruby → DNCL: include? on a string with an escaped quote (Issue #2031) x = 'a\\'b'.include?(@c)"
+    ],
+    "ruby": "x = 'a\\'b'.include?(@c)"
+  },
+  {
+    "id": "ruby-145140ea18",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › Ruby → DNCL: include? on a string with an escaped quote (Issue #2031) x = \"a\\\"b.include?(c)\""
+    ],
+    "ruby": "x = \"a\\\"b.include?(c)\""
+  },
+  {
+    "id": "ruby-5144f49206",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › Ruby → DNCL: include? on a string with an escaped quote (Issue #2031) x = \"a\\\"b\".include?(@c)"
+    ],
+    "ruby": "x = \"a\\\"b\".include?(@c)"
+  },
+  {
+    "id": "ruby-be2da8388b",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › Ruby → DNCL: include? on a string with an escaped quote (Issue #2031) x = @s.include?(\"q\") # t.include?(u)"
+    ],
+    "ruby": "x = @s.include?(\"q\") # t.include?(u)"
+  },
+  {
+    "id": "ruby-aa8bbbfb3d",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › Ruby → DNCL: symbols inside a string are kept (Issue #2031) include? in a comment is kept"
+    ],
+    "ruby": "@a = 1 # s.include?(t)"
+  },
+  {
+    "id": "ruby-51f023929a",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › Ruby → DNCL: symbols inside a string are kept (Issue #2031) include? outside the string is still converted"
+    ],
+    "ruby": "puts(@a.include?(\"x.include?(y)\"))"
+  },
+  {
+    "id": "ruby-7c40a7dd98",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › Ruby → DNCL: symbols inside a string are kept (Issue #2031) include? outside the string is still converted"
+    ],
+    "ruby": "puts(\"abc\".include?(\"b\"))"
+  },
+  {
+    "id": "ruby-95efd5952e",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › Ruby → DNCL: symbols inside a string are kept (Issue #2031) puts('a.include?(b)')"
+    ],
+    "ruby": "puts('a.include?(b)')"
+  },
+  {
+    "id": "ruby-7c9cf205bc",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › Ruby → DNCL: symbols inside a string are kept (Issue #2031) puts(\"a && b || c\")"
+    ],
+    "ruby": "puts(\"a && b || c\")"
+  },
+  {
+    "id": "ruby-8b7144e773",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › Ruby → DNCL: symbols inside a string are kept (Issue #2031) puts(\"a.include?(b)\")"
+    ],
+    "ruby": "puts(\"a.include?(b)\")"
+  },
+  {
+    "id": "ruby-387f30b057",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › Ruby → DNCL: symbols inside a string are kept (Issue #2031) puts(\"rand(3)\")"
+    ],
+    "ruby": "puts(\"rand(3)\")"
+  },
+  {
+    "id": "ruby-880093b718",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › Ruby → DNCL: symbols inside a string are kept (Issue #2031) puts(\"true false\")"
+    ],
+    "ruby": "puts(\"true false\")"
+  },
+  {
+    "id": "ruby-2077d6f8a5",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › Ruby → DNCL: symbols inside a string are kept (Issue #2031) puts(\"x = 1\")"
+    ],
+    "ruby": "puts(\"x = 1\")"
+  },
+  {
+    "id": "ruby-e869f18661",
+    "from": [
+      "test/unit/lib/dncl/dncl-symbols-in-string.test.js › Ruby → DNCL: symbols inside a string are kept (Issue #2031) puts(\"x.to_i\")"
+    ],
+    "ruby": "puts(\"x.to_i\")"
+  },
+  {
     "id": "ruby-5cd44d0965",
     "from": [
       "test/unit/lib/dncl/dncl-trailing-comment.test.js › trailing # comment on block lines (Issue #1696) a # inside a string is not a comment Ruby → DNCL keeps # inside a string"
@@ -2452,21 +2571,24 @@
   {
     "id": "ruby-54ff0e8e7d",
     "from": [
-      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks 13: puts(@x) toJa"
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks 13: puts(@x) toJa",
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks 15: puts(@x) toJa"
     ],
     "ruby": "puts(@x)"
   },
   {
     "id": "ruby-6ef00f586a",
     "from": [
-      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks 16: if @x > 0 toJa"
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks 16: if @x > 0 toJa",
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks 18: if @x > 0 toJa"
     ],
     "ruby": "if @x > 0\n  puts(@x)\nend"
   },
   {
     "id": "ruby-61c7f55e11",
     "from": [
-      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks 18: if @x > 0 toJa"
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks 18: if @x > 0 toJa",
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks 20: if @x > 0 toJa"
     ],
     "ruby": "if @x > 0\n  puts(@x)\nelse\n  puts(@y)\nend"
   },
@@ -2546,6 +2668,13 @@
       "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks の間 を繰り返す toJa"
     ],
     "ruby": "while @x < 3\n  @x = @x + 1\nend"
+  },
+  {
+    "id": "ruby-b5f26ebfda",
+    "from": [
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks 乱数(n) is from 0 to n - 1 toJa"
+    ],
+    "ruby": "@x = rand(10)"
   },
   {
     "id": "ruby-74967b1eaa",
