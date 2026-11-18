@@ -169,12 +169,12 @@ describe('DNCL → Ruby with a `-` before a built-in (Issue #1744)', () => {
 
     test.each([
         ['b = a - 絶対値(5)', '@b = @a - 5.abs'],
-        ['b = a -絶対値(5)', '@b = @a -5.abs'],
+        ['b = a -絶対値(5)', '@b = @a - 5.abs'],
         ['b = -x', '@b = -@x'],
         ['b = -(a + 1)', '@b = -(@a + 1)'],
         ['b = 絶対値(-5)', '@b = -5.abs'],
-        ['b = -乱数(1..10)', '@b = -rand(1..10)'],
-        ['b = -平方根(4)', '@b = -Math.sqrt(4)'],
+        ['b = -乱数(1..10)', '@b = -(rand(1..10))'],
+        ['b = -平方根(4)', '@b = -(Math.sqrt(4))'],
     ])('other `-` are left as they are: %s', (dncl, ruby) => {
         expect(toRuby(dncl)).toBe(ruby);
     });

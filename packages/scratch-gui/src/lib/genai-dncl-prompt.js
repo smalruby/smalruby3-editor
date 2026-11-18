@@ -1,7 +1,7 @@
 // The question of "生成AI に相談" in the Ruby tab's Japanese (DNCL) mode (#1402), for
 // the high school students practicing the DNCL of 共通テスト. The code in the editor goes
 // in as DNCL, and the answer comes back as DNCL (Smalruby reads DNCLv2 too). Pure functions.
-import { DNCL_BUILTIN_NAMES } from './dncl/dncl-builtins';
+import { DNCL_BUILTIN_NAMES } from './dncl/ja-notation-table';
 import { COPY_END, COPY_START, betweenCopyMarks } from './genai-prompt.js';
 
 // The kinds of trouble of DNCL mode, in order (labels in PROBLEM_KINDS of genai-prompt.js).
@@ -34,7 +34,7 @@ const SYNTAX_EXAMPLES = [
     },
 ];
 
-// One example per built-in function of dncl-builtins.js (the test checks none is missing).
+// One example per built-in function of ja-notation-table.js (the test checks none is missing).
 const BUILTIN_EXAMPLES = {
     表示する: { note: '表示する（いくつか並べるとつなげて表示）', code: 'ten = 80\n表示する(ten, "点")' },
     含む: {

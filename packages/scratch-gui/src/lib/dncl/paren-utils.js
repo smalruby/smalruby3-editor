@@ -147,8 +147,7 @@ const splitArgsAtTopLevel = (args) => {
 
 /**
  * Whether `ch` can be part of a DNCL name: a letter of any script (so kanji
- * and kana too), a digit or `_`. The same test as the DNCLv2 pre-processor's
- * `isIdentChar`. (Issue #1711)
+ * and kana too), a digit or `_`. (Issue #1711)
  * @param {string} ch - The character.
  * @returns {boolean} True for a name character.
  */
@@ -157,9 +156,8 @@ const isNameChar = (ch) => typeof ch === 'string' && /[\p{L}\p{N}_]/u.test(ch);
 /**
  * Whether `word` stands on its own at `line[i]`: no name character
  * (`isNameChar`) right before or after it, so it is not part of a name
- * (`bandwidth`, `フラグor`, `かつお`, `たかつき`). Shared by the DNCLv2
- * pre-processor (`and` / `or` / `not`) and the DNCL converter (`かつ` /
- * `または` / `でない`) so they agree on what a name is (Issue #1697).
+ * (`bandwidth`, `フラグor`, `かつお`, `たかつき`), so the conversions agree
+ * on what a name is (Issue #1697).
  * @param {string} line - The line.
  * @param {number} i - Index to test.
  * @param {string} word - The keyword.
@@ -167,260 +165,6 @@ const isNameChar = (ch) => typeof ch === 'string' && /[\p{L}\p{N}_]/u.test(ch);
  */
 const isWholeWordAt = (line, i, word) =>
     line.startsWith(word, i) && !isNameChar(line[i - 1]) && !isNameChar(line[i + word.length]);
-
-/**
- * Whether the name characters just before `i` are a number (`1`, `1.5`), not
- * a name. A name cannot start with a digit, so a digit run that touches a
- * keyword ends a number literal there (`a == 1かつ b`).
- * @param {string} line - The line.
- * @param {number} i - Index just past the characters to look at.
- * @returns {boolean} True when a number ends at `i`.
- */
-const numberEndsAt = (line, i) => {
-    let start = i;
-    while (start > 0 && isNameChar(line[start - 1])) start--;
-    return start < i && /^\p{Nd}+$/u.test(line.substring(start, i));
-};
-
-/**
- * Whether the DNCL logical word `word` (`かつ` / `または` / `でない`) is an
- * operator at `line[i]`, decided by whether it is part of a name — not by the
- * spaces around it (Issue #1697). It is an operator when no name character
- * follows it and no name character comes before it, or what comes before is a
- * number: `(a > 0)かつ(b > 0)`, `a[1]かつ b`, `「はい」かつ b` and `1かつ b`
- * are operators; `かつお`, `または2`, `しかつめ` and `たかつき` are names.
- * A name and a keyword that touch (`真かつ偽`) cannot be told apart, so the
- * whole run is one name, as `isNameChar` reads it. After `@` / `$` / `.`
- * the word is a variable or method name.
- * @param {string} line - The line (outside strings and comments).
- * @param {number} i - Index to test.
- * @param {string} word - The DNCL logical word.
- * @returns {boolean} True when `word` is the operator at `i`.
- */
-const isLogicalWordAt = (line, i, word) => {
-    if (!line.startsWith(word, i)) return false;
-    if (isNameChar(line[i + word.length])) return false;
-    const before = line[i - 1];
-    if (before === '@' || before === '$' || before === '.') return false;
-    return !isNameChar(before) || numberEndsAt(line, i);
-};
-
-/**
- * Whether `ch` can be part of an operand outside brackets: a name character,
- * `@` / `$` (Ruby variables) or `.` (`a.length`, `1.5`).
- * @param {string} ch - The character.
- * @returns {boolean} True for an operand character.
- */
-const isOperandChar = (ch) => isNameChar(ch) || ch === '@' || ch === '$' || ch === '.';
-
-/**
- * Turn every `÷` (the integer quotient of 共通テスト用プログラム表記) in
- * `line` into Ruby `(A / B).to_i`. `/` is the ordinary division and is left
- * as it is (Issue #1701). `÷` has the precedence of `*` / `/` / `%` and goes
- * left to right, so the left operand takes in a `*` / `/` / `%` chain before
- * it (`a * 3 ÷ 2` is `(a * 3) ÷ 2`), and the right operand is the next term.
- * Skips string literals. Operands are found by walking outward across
- * balanced parens / brackets and stopping at the other operators, commas,
- * assignment, spaces and the statement edges. A name in an operand may be
- * Japanese (`合計 ÷ 個数`): its characters are those of DNCL names
- * (`isNameChar`, Issue #1711).
- *
- * Examples:
- *   `a ÷ b`             → `(a / b).to_i`
- *   `(a + b) ÷ c`       → `((a + b) / c).to_i`
- *   `a + b ÷ c`         → `a + (b / c).to_i`
- *   `a * 3 ÷ 2`         → `(a * 3 / 2).to_i`
- *   `a ÷ b * c`         → `(a / b).to_i * c`
- *   `Data[i + 1] ÷ 2`   → `(Data[i + 1] / 2).to_i`
- *   `(a ÷ b).to_i`      → `(a / b).to_i` (from `整数(a ÷ b)`)
- *   `合計 ÷ 個数`       → `(合計 / 個数).to_i`
- * @param {string} line - A Ruby-form line (post DNCL transforms).
- * @returns {string} The line with every `÷` as a truncated division.
- */
-const wrapIntegerDivisions = (line) => {
-    // Operator characters that, if they appear as the FIRST char of the
-    // captured left operand, indicate we walked into a no-op sequence —
-    // skip wrapping in that case. `(` / `[` / `{` are NOT boundaries because
-    // a parenthesized / indexed expression is a valid left operand.
-    const INVALID_LEFT_FIRST = new Set([
-        '+',
-        '-',
-        '*',
-        '/',
-        '%',
-        '<',
-        '>',
-        '=',
-        '!',
-        '&',
-        '|',
-        '?',
-        ':',
-        ',',
-        ';',
-        '\n',
-    ]);
-
-    // Walk LEFT from `endExclusive - 1` in `s` to find the start of the
-    // operand. Skips balanced (), [], {} and string literals.
-    const findLeftOperandStart = (s, endExclusive) => {
-        let i = endExclusive - 1;
-        while (i >= 0 && /\s/.test(s[i])) i--;
-        if (i < 0) return null;
-        while (i >= 0) {
-            const ch = s[i];
-            if (ch === ')' || ch === ']' || ch === '}') {
-                const close = ch;
-                const open = close === ')' ? '(' : close === ']' ? '[' : '{';
-                let depth = 1;
-                i--;
-                while (i >= 0 && depth > 0) {
-                    const c = s[i];
-                    if (c === '"' || c === "'") {
-                        // Skip string backwards.
-                        i--;
-                        while (i >= 0 && s[i] !== c) {
-                            if (i > 0 && s[i - 1] === '\\') i--;
-                            i--;
-                        }
-                        i--;
-                        continue;
-                    }
-                    if (c === close) depth++;
-                    else if (c === open) depth--;
-                    i--;
-                }
-                // i is one before the matching open; continue back to absorb
-                // any preceding identifier (function/array name) or chained dot.
-                continue;
-            }
-            if (isOperandChar(ch)) {
-                i--;
-                continue;
-            }
-            // Stop at boundary or whitespace before boundary.
-            break;
-        }
-        // i is one before the operand's first char.
-        let start = i + 1;
-        // Trim leading whitespace.
-        while (start < endExclusive && /\s/.test(s[start])) start++;
-        return start;
-    };
-
-    // Walk RIGHT from `startInclusive` in `s` to find the index just past
-    // the end of the operand. Skips balanced parens / strings.
-    const findRightOperandEnd = (s, startInclusive) => {
-        let i = startInclusive;
-        while (i < s.length && /\s/.test(s[i])) i++;
-        if (i >= s.length) return null;
-        // Optional unary +/- sign.
-        if (s[i] === '+' || s[i] === '-') i++;
-        while (i < s.length) {
-            const ch = s[i];
-            if (ch === '(' || ch === '[' || ch === '{') {
-                const open = ch;
-                const close = open === '(' ? ')' : open === '[' ? ']' : '}';
-                let depth = 1;
-                i++;
-                while (i < s.length && depth > 0) {
-                    const c = s[i];
-                    if (c === '"' || c === "'") {
-                        i = skipString(s, i, c);
-                        continue;
-                    }
-                    if (c === open) depth++;
-                    else if (c === close) depth--;
-                    i++;
-                }
-                continue;
-            }
-            if (ch === '"' || ch === "'") {
-                i = skipString(s, i, ch);
-                continue;
-            }
-            if (isOperandChar(ch)) {
-                i++;
-                continue;
-            }
-            break;
-        }
-        return i;
-    };
-
-    // Extend the left operand over a `*` / `/` / `%` (and `**`) chain before
-    // it: they bind as tightly as `÷` and come first.
-    const findLeftChainStart = (s, endExclusive) => {
-        let start = findLeftOperandStart(s, endExclusive);
-        while (start !== null) {
-            let j = start - 1;
-            while (j >= 0 && /\s/.test(s[j])) j--;
-            if (j < 0 || !(s[j] === '*' || s[j] === '%' || (s[j] === '/' && s[j - 1] !== '/'))) break;
-            if (s[j] === '*' && s[j - 1] === '*') j--;
-            const prev = findLeftOperandStart(s, j);
-            if (prev === null || prev >= j || INVALID_LEFT_FIRST.has(s[prev])) break;
-            start = prev;
-        }
-        return start;
-    };
-
-    // Iteratively wrap each `÷` (left-to-right). After each wrap, the
-    // result string changes length so we re-scan from the start.
-    let s = line;
-    let i = 0;
-    while (i < s.length) {
-        const ch = s[i];
-        if (ch === '"' || ch === "'") {
-            i = skipString(s, i, ch);
-            continue;
-        }
-        if (ch === '#') {
-            // Rest of line is a comment.
-            break;
-        }
-        if (ch === '÷') {
-            const leftStart = findLeftChainStart(s, i);
-            const rightEnd = findRightOperandEnd(s, i + 1);
-            if (
-                leftStart === null ||
-                rightEnd === null ||
-                leftStart >= i ||
-                s.substring(i + 1, rightEnd).trim() === ''
-            ) {
-                i++;
-                continue;
-            }
-            const leftOperand = s.substring(leftStart, i).trimEnd();
-            const rightOperand = s.substring(i + 1, rightEnd).trimStart();
-            // Skip if leftOperand is empty or starts with a non-operand char.
-            if (!leftOperand || INVALID_LEFT_FIRST.has(leftOperand[0])) {
-                i++;
-                continue;
-            }
-            // `整数(a ÷ b)` is `(a ÷ b).to_i` by now: the group already
-            // truncates, so `÷` only becomes `/` (not `((a / b).to_i).to_i`).
-            const CLOSE_PAREN_TO_I = ').to_i';
-            if (
-                leftStart > 0 &&
-                s[leftStart - 1] === '(' &&
-                s.substring(rightEnd, rightEnd + CLOSE_PAREN_TO_I.length) === CLOSE_PAREN_TO_I
-            ) {
-                s = `${s.substring(0, i)}/${s.substring(i + 1)}`;
-                i++;
-                continue;
-            }
-            // The right operand may have quotients of its own (`a ÷ (b ÷ 2)`);
-            // scanning resumes after the replacement, so wrap them here.
-            const replacement = `(${leftOperand} / ${wrapIntegerDivisions(rightOperand)}).to_i`;
-            s = s.substring(0, leftStart) + replacement + s.substring(rightEnd);
-            // Resume scanning AFTER the inserted `.to_i`.
-            i = leftStart + replacement.length;
-            continue;
-        }
-        i++;
-    }
-    return s;
-};
 
 /**
  * Find the matching close bracket for the `[` / `{` / `(` at `openPos`.
@@ -614,7 +358,6 @@ const isSingleOperand = (text) => {
 };
 
 export {
-    isLogicalWordAt,
     isNameChar,
     isWholeWordAt,
     isSingleOperand,
@@ -623,6 +366,5 @@ export {
     findMatchingClose,
     replaceCall,
     splitArgsAtTopLevel,
-    wrapIntegerDivisions,
     stripIntegerDivisionToI,
 };

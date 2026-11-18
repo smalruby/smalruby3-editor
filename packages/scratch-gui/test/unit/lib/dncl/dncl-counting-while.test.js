@@ -21,12 +21,14 @@ const PLACEHOLDER = '__FOR_HEADER_PLACEHOLDER__';
  * @param {string} ruby - The Ruby source.
  * @param {string} dncl - The DNCL it becomes.
  */
-const expectBothWays = (ruby, dncl) => {
+// `rubyBack` is the Ruby the DNCL gives back when ja-notation writes it with
+// other parentheses than `ruby` (the same syntax tree).
+const expectBothWays = (ruby, dncl, rubyBack = ruby, dnclBack = dncl) => {
     const gotDncl = toDncl(ruby);
     expect(gotDncl).not.toContain(PLACEHOLDER);
     expect(gotDncl).toBe(dncl);
-    expect(toRuby(gotDncl)).toBe(ruby);
-    expect(toDncl(toRuby(dncl))).toBe(dncl);
+    expect(toRuby(gotDncl)).toBe(rubyBack);
+    expect(toDncl(toRuby(dncl))).toBe(dnclBack);
 };
 
 describe('counting while loop (Issue #1695)', () => {
@@ -90,6 +92,8 @@ describe('counting while loop (Issue #1695)', () => {
             expectBothWays(
                 ['@i = 10', 'while @i >= 1', '  puts(@i)', '  @i += -(@a) + 1', 'end'].join('\n'),
                 ['i = 10', 'i >= 1 の間', '  表示する(i)', '  i += -(a) + 1', 'を繰り返す'].join('\n'),
+                ['@i = 10', 'while @i >= 1', '  puts(@i)', '  @i += -@a + 1', 'end'].join('\n'),
+                ['i = 10', 'i >= 1 の間', '  表示する(i)', '  i += -a + 1', 'を繰り返す'].join('\n'),
             );
         });
 
@@ -177,6 +181,7 @@ describe('counting while loop (Issue #1695)', () => {
             expectBothWays(
                 ['@i = 10', 'while @i >= 0', '  puts(@i)', '  @i += -(@s / 2).to_i', 'end'].join('\n'),
                 ['i を 10 から 0 まで s ÷ 2 ずつ減らしながら', '  表示する(i)', 'を繰り返す'].join('\n'),
+                ['@i = 10', 'while @i >= 0', '  puts(@i)', '  @i += -((@s / 2).to_i)', 'end'].join('\n'),
             );
         });
 
@@ -209,7 +214,7 @@ describe('counting while loop (Issue #1695)', () => {
             ['-1', '-(-1)'],
             ['a', '-@a'],
             ['2', '-2'],
-            ['整数(a / 2)', '-(@a / 2).to_i'],
+            ['整数(a / 2)', '-((@a / 2).to_i)'],
         ])('%s ずつ減らしながら adds %s', (step, rubyStep) => {
             const dncl = [`i を 10 から 1 まで ${step} ずつ減らしながら`, '  表示する(i)', 'を繰り返す'].join('\n');
             expect(toRuby(dncl)).toBe(

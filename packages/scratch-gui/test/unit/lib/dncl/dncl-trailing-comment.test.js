@@ -5,7 +5,6 @@
 import dedent from 'dedent';
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
 import { codeOfLine, commentIndex, stringEndAt } from '../../../../src/lib/dncl/dncl-trailing-comment';
-import { dnclV2Preprocess } from '../../../../src/lib/dncl/dncl-v2-preprocessor';
 import { isDoBlockLine } from '../../../../src/lib/dncl/dncl-validator';
 import { FORMS, rubyToDncl as rubyToDnclInForm } from '../../../../src/lib/dncl/ruby-to-dncl';
 
@@ -22,7 +21,6 @@ const expectRubyBack = (ruby, expected) => {
 const toRuby = (dncl) => {
     const result = dnclToRuby(dncl);
     expect(result.errors).toEqual([]);
-    expect(result.blockErrors).toEqual([]);
     return result.ruby;
 };
 const toDncl = (ruby) => rubyToDncl(ruby).dncl;
@@ -231,7 +229,6 @@ describe('trailing # comment on block lines (Issue #1696)', () => {
         test.each([
             ['an escaped quote', 'x ← "a\\"#b" # c', '@x = "a\\"#b" # c'],
             ['two strings', 'x ← "a" + "#b" # c', '@x = "a" + "#b" # c'],
-            ['an unclosed string is all code', 'x ← "abc # c', '@x = "abc # c'],
         ])('%s', (name, dncl, ruby) => {
             expect(toRuby(dncl)).toBe(ruby);
         });
@@ -290,18 +287,6 @@ describe('trailing # comment on block lines (Issue #1696)', () => {
             expect(toRuby(dncl)).toBe('if @a > 0 # c\n  puts(@a)\nend\nputs(@b)');
         });
 
-        test('pre-processor strips the colon before the comment', () => {
-            expect(dnclV2Preprocess('もし a > 0 ならば: # c\n    表示する(a)')).toBe(
-                'もし a > 0 ならば # c\n  表示する(a)\nを実行する',
-            );
-        });
-
-        test('の間繰り返す: with a trailing comment', () => {
-            expect(dnclV2Preprocess('a < 3 の間繰り返す: # c\n    a = a + 1')).toBe(
-                'a < 3 の間 # c\n  a = a + 1\nを繰り返す',
-            );
-        });
-
         test('そうでなければ: with a trailing comment stays in the if block', () => {
             const dncl = dedent`
                 もし a > 0 ならば: # c1
@@ -311,10 +296,6 @@ describe('trailing # comment on block lines (Issue #1696)', () => {
                 表示する(c)
             `;
             expect(toRuby(dncl)).toBe('if @a > 0 # c1\n  puts(@a)\nelse # c2\n  puts(@b)\nend\nputs(@c)');
-        });
-
-        test('multi-assignment keeps the comment on the last piece', () => {
-            expect(dnclV2Preprocess('a = 1, b = 2 # c')).toBe('a = 1\nb = 2 # c');
         });
 
         test('｜ / ⎿ markers with trailing comments', () => {

@@ -123,10 +123,10 @@ describe('DNCL round trip: until', () => {
     // into the whole comparison on the way back (`でない` negates everything
     // before it up to かつ / または).
     describe.each([
-        ['@c = @a == !@b', 'c = a == (b でない)', '@c = @a == (!@b)'],
-        ['@c = @a > 1 && @b == !@d', 'c = a > 1 かつ b == (d でない)', '@c = @a > 1 && @b == (!@d)'],
-        ['if @a == !@b\nend', 'もし a == (b でない) ならば\nを実行する', 'if @a == (!@b)\nend'],
-        ['until @a == !@b\nend', 'a == (b でない) でない の間\nを繰り返す', 'until @a == (!@b)\nend'],
+        ['@c = @a == !@b', 'c = a == (b でない)', '@c = @a == !@b'],
+        ['@c = @a > 1 && @b == !@d', 'c = a > 1 かつ b == (d でない)', '@c = @a > 1 && @b == !@d'],
+        ['if @a == !@b\nend', 'もし a == (b でない) ならば\nを実行する', 'if @a == !@b\nend'],
+        ['until @a == !@b\nend', 'a == (b でない) でない の間\nを繰り返す', 'until @a == !@b\nend'],
     ])('a ! on the right of a comparison: %s', (ruby, dncl, back) => {
         test('Ruby → DNCL puts the negation in parentheses', () => {
             expect(toDncl(ruby)).toBe(dncl);
@@ -149,7 +149,7 @@ describe('DNCL round trip: until', () => {
     test('standard form: !@a == @b keeps its meaning with parentheses', () => {
         const standard = rubyToDnclInForm('@c = !@a == @b', { form: FORMS.STANDARD }).dncl;
         expect(standard).toBe('c = (not a) == b');
-        expect(toRuby(standard)).toBe('@c = (!@a) == @b');
+        expect(toRuby(standard)).toBe('@c = !@a == @b');
     });
 
     test('wait until @a > 10 keeps the same meaning', () => {

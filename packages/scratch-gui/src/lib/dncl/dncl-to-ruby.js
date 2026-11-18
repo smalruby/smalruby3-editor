@@ -1,96 +1,46 @@
 // === Smalruby: This file is Smalruby-specific (DNCL to Ruby transpiler) ===
-import { convertLine, resetForLoopStack } from './dncl-line-converter';
+import { jaToRuby } from '../ja-notation';
 import { DnclSourceMap } from './dncl-source-map';
-import { detectArrayNames, detectFunctionNames, resetFunctionScopes } from './dncl-state';
-import { splitTrailingComment } from './dncl-trailing-comment';
-import { dnclV2PreprocessWithLineMap } from './dncl-v2-preprocessor';
-import { findDnclBlockErrors, validateDncl } from './dncl-validator';
+import { jaNotationErrors } from './ja-notation-errors';
+import { SMALRUBY_JA_NOTATION } from './ja-notation-table';
 
 /**
- * Whether a source line ends with `:` / `：` before its comment, as the
- * opener of a block of the standard form does.
- * @param {string} [line] - The source line.
- * @returns {boolean} True when the line ends with a colon.
- */
-const endsWithColon = (line) => /[:：]\s*$/.test(splitTrailingComment(line || '').code);
-
-/**
- * Transpile DNCL source code to Ruby.
+ * Transpile the Japanese of the Japanese mode (the standard form, the
+ * DNCL-like form or both mixed) to Ruby.
  *
- * The source is first run through `dnclV2PreprocessWithLineMap` to normalize
- * any DNCLv2 syntax (line numbers, trailing colons, `繰り返す` suffix,
- * comma-separated multi-assignment, `and`/`or`, etc.) into the existing
- * Smalruby DNCL form. Pure Smalruby DNCL passes through unchanged.
- *
- * Both the pre-processor and the line converter may change the line count
- * (joined / split lines, added closers, 2-line input and counting loops), so
- * the line correspondence is tracked line by line instead of being guessed
- * from the sources afterwards.
- * @param {string} source - The DNCL source code.
- * @returns {object} An object with `ruby` (the transpiled Ruby code or
- *   `null` on validation error), `errors` (array of validation errors whose
- *   `line` is the DNCL source line), and `sourceMap` (a `DnclSourceMap`
- *   between `source` and `ruby`, or `null` on validation error), and
- *   `blockErrors` (a missing or extra closer said in the words of DNCL, on
- *   DNCL source lines; the Ruby is still made, and these are shown instead
- *   of the converter's missing / extra `end` when it fails — Issue #1419).
+ * The Japanese is read into a syntax tree and written as Ruby by ja-notation
+ * (src/lib/ja-notation/, with the Smalruby table of ./ja-notation-table.js),
+ * which also gives the Japanese line of each Ruby line. The errors are said
+ * in the words of the Japanese mode (./ja-notation-errors.js). A program that
+ * cannot be read makes no Ruby, so a missing or extra closing line is told
+ * here, on its Japanese line, and never as a missing `end` of the converter.
+ * @param {string} source - The Japanese source code.
+ * @returns {object} An object with `ruby` (the Ruby code, or `null` on
+ *   errors), `errors` (`{line, column, message}`, and `id` / `name` for the
+ *   errors the UI translates, on Japanese lines) and `sourceMap` (a
+ *   `DnclSourceMap` between `source` and `ruby`, or `null` on errors).
  */
 const dnclToRuby = (source) => {
-    const { source: preprocessed, lineMap, columnShift } = dnclV2PreprocessWithLineMap(source);
-    // Errors are found on the pre-processed lines, whose indent is made from
-    // the block depth (Issue #1718): put their columns back on the source.
-    const toSource = (err) => ({
-        ...err,
-        line: lineMap[err.line - 1] || err.line,
-        column: err.column + (columnShift[err.line - 1] || 0),
-    });
-    const sourceLines = source.split('\n');
-    const sourceLineCount = sourceLines.length;
-    // A `# comment` at the end of a line is taken off before the lines are
-    // checked and converted, so `もし a > 0 ならば # c` still opens a block,
-    // and put back at the end of the Ruby line (Issue #1696). Taking it off
-    // keeps the line count, so the line map still holds.
-    const parts = preprocessed.split('\n').map(splitTrailingComment);
-    const normalized = parts.map((part) => part.code).join('\n');
-
-    const errors = validateDncl(normalized);
-    if (errors.length > 0) {
+    let result;
+    try {
+        result = jaToRuby(source, SMALRUBY_JA_NOTATION);
+    } catch (e) {
+        // The syntax tree is as deep as the longest expression: one of thousands
+        // of terms is too deep to read, and must not stop the editor.
+        if (!(e instanceof RangeError)) throw e;
         return {
             ruby: null,
-            errors: errors.map(toSource),
+            errors: [{ line: 1, column: 1, message: 'プログラムが長すぎて読めません' }],
             sourceMap: null,
-            blockErrors: [],
         };
     }
-
-    detectArrayNames(normalized);
-    detectFunctionNames(normalized);
-    resetForLoopStack();
-    resetFunctionScopes();
-
-    const rubyLines = [];
-    const rubyToDncl = [];
-    parts.forEach(({ code, comment }, idx) => {
-        // A line may become several Ruby lines (a counting loop, an input);
-        // the comment goes after the last, which carries the block keyword.
-        for (const rubyLine of `${convertLine(code)}${comment}`.split('\n')) {
-            rubyLines.push(rubyLine);
-            rubyToDncl.push(lineMap[idx]);
-        }
-    });
-
+    if (result.ruby === null) {
+        return { ruby: null, errors: jaNotationErrors(source, result.errors), sourceMap: null };
+    }
     return {
-        ruby: rubyLines.join('\n'),
+        ruby: result.ruby,
         errors: [],
-        sourceMap: new DnclSourceMap(rubyToDncl, sourceLineCount),
-        blockErrors: findDnclBlockErrors(normalized, {
-            // The standard form ends the opener with `:` (taken off by the
-            // pre-processor); its block errors say the indent (Issue #2035).
-            isStandardLine: (line) => endsWithColon(sourceLines[(lineMap[line - 1] || line) - 1]),
-        }).map((err) => ({
-            ...err,
-            line: lineMap[err.line - 1] || err.line,
-        })),
+        sourceMap: new DnclSourceMap(result.jaLines, source.split('\n').length),
     };
 };
 

@@ -7,7 +7,8 @@
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
 
 const lines = (...ls) => ls.join('\n');
-const blockErrorsOf = (japanese) => dnclToRuby(japanese).blockErrors.map(({ line, message }) => ({ line, message }));
+// A program with a block error makes no Ruby; the error is one of its errors.
+const blockErrorsOf = (japanese) => dnclToRuby(japanese).errors.map(({ line, message }) => ({ line, message }));
 
 describe('block errors of the standard form: indent the inside (Issue #2035)', () => {
     test.each([

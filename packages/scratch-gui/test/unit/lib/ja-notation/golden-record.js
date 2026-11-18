@@ -65,7 +65,7 @@ const convertToBlocks = async (ruby) => {
 /**
  * The record of a Japanese program.
  *
- * - `ruby` / `errors` / `blockErrors`: what `dnclToRuby` returns (the errors on Japanese lines).
+ * - `ruby` / `errors`: what `dnclToRuby` returns (the errors on Japanese lines).
  * - `rubyLines`: for each Ruby line, its Japanese line (the source map).
  * - `converterErrors`: the converter's errors on the Ruby, moved to Japanese rows as the
  *   Japanese mode shows them. `blocks`: the blocks (block notation) when it converts.
@@ -76,7 +76,7 @@ const convertToBlocks = async (ruby) => {
  */
 const recordJa = async (ja) => {
     const result = dnclToRuby(ja);
-    const record = { ruby: result.ruby, errors: result.errors, blockErrors: result.blockErrors };
+    const record = { ruby: result.ruby, errors: result.errors };
     if (result.ruby === null) return plain(record);
     const rubyLineCount = result.ruby.split('\n').length;
     record.rubyLines = Array.from({ length: rubyLineCount }, (_, i) => result.sourceMap.rubyLineToDnclLine(i + 1));
@@ -102,7 +102,7 @@ const recordRuby = (ruby) => {
     return plain({
         ja: toJa.dncl,
         errors: toJa.errors,
-        back: { ruby: back.ruby, errors: back.errors, blockErrors: back.blockErrors },
+        back: { ruby: back.ruby, errors: back.errors },
     });
 };
 

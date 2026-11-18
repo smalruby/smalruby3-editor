@@ -319,19 +319,10 @@ const RubyTab = (props) => {
             // each error to its DNCL line. Ruby columns have no DNCL
             // counterpart, so the whole DNCL line is marked.
             const sourceMap = dnclModeRef.current ? dnclSourceMapRef.current : null;
+            // A missing or extra closer of DNCL makes no Ruby, so it is told
+            // on its DNCL line by the DNCL error markers below, never as a
+            // missing `end` of the converter (Issue #1419).
             let errors = sourceMap ? sourceMap.rubyErrorsToDncl(rawErrors) : rawErrors;
-            if (dnclModeRef.current && errors.length > 0) {
-                // A missing or extra closer makes the converter say a missing
-                // `end`; say it in the words of DNCL instead (Issue #1419).
-                const { blockErrors } = dnclToRuby(editorRef.current.getValue());
-                if (blockErrors.length > 0) {
-                    errors = blockErrors.map((err) => ({
-                        row: err.line - 1,
-                        column: err.column - 1,
-                        text: err.message,
-                    }));
-                }
-            }
             if (dnclModeRef.current) {
                 // `//` is integer division in Smalruby DNCL, never a comment,
                 // so a 共通テスト style `//` comment fails to convert. Tell
@@ -468,8 +459,13 @@ const RubyTab = (props) => {
             setDnclDisplayCode(code);
             const result = dnclToRuby(code);
             if (result.errors && result.errors.length > 0) {
-                // Show DNCL validation errors but don't dispatch invalid code
+                // Don't dispatch code that makes no Ruby: its errors are shown
+                // on their DNCL lines by the DNCL error markers, so the markers
+                // of the last conversion of the blocks are taken off.
                 dnclSourceMapRef.current = null;
+                if (editorRef.current && monacoRef.current) {
+                    monacoRef.current.editor.setModelMarkers(editorRef.current.getModel(), 'smalruby', []);
+                }
                 return;
             }
             dnclSourceMapRef.current = result.sourceMap;
@@ -1393,22 +1389,24 @@ const RubyTab = (props) => {
         monacoRef.current.editor.setModelMarkers(editorRef.current.getModel(), DNCL_STRING_ARITHMETIC_OWNER, markers);
     }, [dnclMode, dnclDisplayCode, intl]);
 
-    // The post-test loop (Issue #1626) and the Ruby commands (Issue #1679)
-    // cannot be written in DNCL. Such DNCL is not converted to Ruby (it would
-    // become `@begin` / `@move(2)`), so tell it on its lines whether it was
-    // typed or shown from blocks. The markers use their own owner so clearing
-    // conversion errors keeps them.
+    // DNCL that makes no Ruby is told on its lines, whether it was typed or
+    // shown from blocks: the post-test loop (Issue #1626), the Ruby commands
+    // (Issue #1679), the numbers of Ruby, a missing or extra closer (Issue
+    // #1419) and a line that cannot be read. The markers use their own owner
+    // so clearing conversion errors keeps them.
     useEffect(() => {
         if (!editorRef.current || !monacoRef.current) return;
-        const errors = dnclMode
-            ? dnclToRuby(dnclDisplayCode).errors.filter(
-                  (err) =>
-                      err.id === POST_TEST_LOOP_ERROR_ID ||
-                      err.id === UNSUPPORTED_COMMAND_ERROR_ID ||
-                      err.id === UNSUPPORTED_NUMBER_ERROR_ID,
-              )
-            : [];
+        const errors = dnclMode ? dnclToRuby(dnclDisplayCode).errors : [];
         const lines = dnclDisplayCode.split('\n');
+        const translated = (err) =>
+            err.id === POST_TEST_LOOP_ERROR_ID ||
+            err.id === UNSUPPORTED_COMMAND_ERROR_ID ||
+            err.id === UNSUPPORTED_NUMBER_ERROR_ID;
+        // `//` is integer division in Smalruby DNCL, never a comment (Issue #1192).
+        const doubleSlashHint = intl.formatMessage({
+            id: 'gui.rubyTab.dnclDoubleSlashHint',
+            defaultMessage: 'In Smalruby, // is not a comment (it is integer division). Use # for comments.',
+        });
         const markers = errors
             .filter((err) => err.line <= lines.length)
             .map((err) => {
@@ -1416,17 +1414,20 @@ const RubyTab = (props) => {
                 const command =
                     (err.id === UNSUPPORTED_COMMAND_ERROR_ID || err.id === UNSUPPORTED_NUMBER_ERROR_ID) &&
                     err.column + err.name.length <= lineEnd;
+                const [hinted] = translated(err)
+                    ? [{ text: dnclErrorText(err) }]
+                    : withDoubleSlashHint([{ row: err.line - 1, text: err.message }], lines, doubleSlashHint);
                 return {
                     startLineNumber: err.line,
                     startColumn: command ? err.column : 1,
                     endLineNumber: err.line,
                     endColumn: command ? err.column + err.name.length : lineEnd,
-                    message: dnclErrorText(err),
+                    message: hinted.text,
                     severity: monacoRef.current.MarkerSeverity.Error,
                 };
             });
         monacoRef.current.editor.setModelMarkers(editorRef.current.getModel(), DNCL_UNSUPPORTED_OWNER, markers);
-    }, [dnclMode, dnclDisplayCode, dnclErrorText]);
+    }, [dnclMode, dnclDisplayCode, dnclErrorText, intl]);
 
     // componentDidUpdate equivalent
     const prevPropsRef = useRef(null);

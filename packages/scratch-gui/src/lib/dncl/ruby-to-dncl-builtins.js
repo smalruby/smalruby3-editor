@@ -350,7 +350,7 @@ const isNegatedGroup = (text, open, close) => {
  * the method: a name, a number, a call like `rand(1..10)`, an index like
  * `Data[1]`, or a `( ... )` group, whose parentheses are dropped as they are
  * only there for the method (`(a + 1).to_i` → `整数(a + 1)`). DNCL → Ruby
- * puts them back (`toReceiver` in dncl-builtins.js). A string literal
+ * puts them back (ja-notation writes the Ruby from the syntax tree). A string literal
  * receiver (`"x".to_s`) is left as it is. A negative number receiver
  * (`-5.abs`, which Ruby reads as `(-5).abs`) keeps its `-` inside
  * (`絶対値(-5)`), as it is part of the number. (Issues #1686, #1700)

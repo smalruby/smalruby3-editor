@@ -2,9 +2,8 @@
 //
 // What the names and functions of the Japanese mode become in Smalruby's Ruby,
 // given to the ja-notation library (src/lib/ja-notation/, MIT), which has no
-// rule of its own. The output is the Ruby the current conversion
-// (`dnclToRuby`) makes, so the two can be compared (J1 of
-// docs/ruby-editor/converter-roadmap.md). Not used by the editor yet.
+// rule of its own. `dnclToRuby` (./dncl-to-ruby.js) converts the Japanese of the
+// editor with it (J3 of docs/ruby-editor/converter-roadmap.md).
 import { RUBY_LITERALS } from './dncl-keywords';
 
 /**
@@ -61,11 +60,11 @@ const functions = {
         },
     },
     文字列: methodOfArgument('to_s'),
+    乱数: { build: (args, ruby) => ruby.send(null, 'rand', args) },
     四捨五入: methodOfArgument('round'),
     切り捨て: methodOfArgument('floor'),
     切り上げ: methodOfArgument('ceil'),
     絶対値: methodOfArgument('abs'),
-    乱数: { build: (args, ruby) => ruby.send(null, 'rand', args) },
     平方根: { build: (args, ruby) => ruby.send(ruby.constant('Math'), 'sqrt', args) },
 };
 
@@ -92,4 +91,7 @@ const SMALRUBY_JA_NOTATION = {
     passthrough: RUBY_LITERALS,
 };
 
-export { SMALRUBY_JA_NOTATION };
+/** The names of the built-in functions of the Japanese mode, in the order the AI prompt shows them. */
+const DNCL_BUILTIN_NAMES = Object.keys(functions);
+
+export { DNCL_BUILTIN_NAMES, SMALRUBY_JA_NOTATION };

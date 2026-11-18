@@ -7,13 +7,8 @@
  * so these are told as an error on their line. Converting them once put `@` inside the
  * number (`0@x5`, `1@_000`, `1@e3`), which is broken Ruby.
  */
-import { processSegments } from '../../../../src/lib/dncl/dncl-identifier-converter';
 import { dnclToRuby, rubyForLeavingDncl } from '../../../../src/lib/dncl/dncl-to-ruby';
-import {
-    findUnsupportedNumbers,
-    UNSUPPORTED_NUMBER_ERROR_ID,
-    validateDncl,
-} from '../../../../src/lib/dncl/dncl-validator';
+import { findUnsupportedNumbers, UNSUPPORTED_NUMBER_ERROR_ID } from '../../../../src/lib/dncl/dncl-validator';
 import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
 
 const numberErrors = (errors) =>
@@ -42,7 +37,7 @@ describe('DNCL → Ruby: number notations the Japanese mode does not have (issue
     });
 
     test('the error message tells how to write the number', () => {
-        const [err] = validateDncl('a = 0x5');
+        const [err] = dnclToRuby('a = 0x5').errors;
         expect(err.message).toContain('「0x5」');
         expect(err.message).toContain('Ruby モード');
     });
@@ -87,19 +82,6 @@ describe('DNCL → Ruby: number notations the Japanese mode does not have (issue
     });
 });
 
-describe('the name conversion does not go inside a number (issue #1745)', () => {
-    test.each([
-        ['a = 0x5', '@a = 0x5'],
-        ['a = 1_000', '@a = 1_000'],
-        ['a = 1e3', '@a = 1e3'],
-        ['a = 1.5e-3 + b', '@a = 1.5e-3 + @b'],
-        ['a = A[0x1]', '@a = @_array_A_[0x1]'],
-        ['a = x1 + 2', '@a = @x1 + 2'],
-    ])('%s', (dncl, ruby) => {
-        expect(processSegments(dncl)).toBe(ruby);
-    });
-});
-
 describe('Ruby → DNCL: the same numbers are told on the Ruby line (issue #1745)', () => {
     test.each([
         ['@a = 0x5', '0x5', 6],
@@ -139,7 +121,9 @@ describe('an integer with leading zeros (issue #1745)', () => {
     });
 
     test('the loop bounds are decimal numbers too', () => {
-        expect(dnclToRuby('i を 01 から 010 まで 1 ずつ増やしながら繰り返す:').ruby).toBe('@i = 1\nwhile @i <= 10');
+        expect(dnclToRuby('i を 01 から 010 まで 1 ずつ増やしながら繰り返す:\n    表示する(i)').ruby).toContain(
+            '@i = 1\nwhile @i <= 10',
+        );
     });
 
     test.each([

@@ -11,7 +11,7 @@ Ruby タブで **日本語のプログラミング言語（DNCL モード）** �
 日本語モードが対応するのは、共通テスト「情報I」の共通テスト用プログラム表記で、その例題に合わせた書き方を**標準の形**、`を実行する` で閉じる・`かつ` を使う以前の書き方を **DNCL 風の形**と呼ぶ（[方針](./policy.md)）。Smalruby はこれを内部的に Ruby コードにトランスパイルしてから Scratch ブロックに変換して実行する。
 
 ```
-日本語のコード → (pre-processor) → DNCL 風の形 → Ruby コード → Scratch ブロック → 実行
+日本語のコード → (ja-notation: 日本語の構文木 → Ruby の構文木) → Ruby コード → Scratch ブロック → 実行
 ```
 
 **標準の形の貼り付け**: 共通テスト 例題サイト（[nodai2hitc.github.io/ictl_example](https://nodai2hitc.github.io/ictl_example/)）で公開されている形のプログラムを **そのままコピペして実行** できる。`(N) ` 行番号、`｜` / `⎿` インデントマーカー、`もし ... ならば:` 末尾コロン、`の間繰り返す:` / `増やしながら繰り返す:` 形式、`hidari = 0 , migi = kazu - 1` のような同一行複数代入、`and` / `or` / `not`、`NAME(ARGS) を定義する` 形式の関数定義などをサポート。詳細は「DNCLv2 互換」セクション参照。
@@ -84,7 +84,7 @@ Ruby タブを次に開いたとき、`exitDnclModeExternallyRequested` フラ�
 
 日本語モードでも、クラスで生成AI を使う生徒にはエディタの左下にルビティーの顔が出て、生成AI（Gemini など）に
 相談できる。質問文はエディタの DNCL のまま作り、答えも DNCL（共通テストの形でもよい・添字は 0 から）で
-もらう。貼り戻した答えは、DNCLv2 の pre-processor を通して Ruby に直してから確かめ、エラーはソースマップで
+もらう。貼り戻した答えは、エディタと同じ変換（ja-notation）で Ruby に直してから確かめ、エラーはソースマップで
 DNCL の行に戻して見せる。詳しくは [`docs/genai-consult/README.md`](../genai-consult/README.md) の
 「日本語 (DNCL) モード」。
 
@@ -98,41 +98,39 @@ DNCL の行に戻して見せる。詳しくは [`docs/genai-consult/README.md`]
 
 | ファイル | 役割 |
 |---|---|
-| `dncl-to-ruby.js` | DNCL → Ruby 変換のエントリポイント（pre-processor → validator → line converter） |
-| `dncl-v2-preprocessor.js` | **DNCLv2 → Smalruby DNCL 正規化**（行番号、コロン、`｜` / `⎿`、複数代入、`and` / `or` / `not`、関数定義 opener） |
-| `dncl-indent.js` | **字下げの幅の数え方**（`indentWidth`: タブは 4 桁・全角空白は 2 桁、`indentOffset`: ある幅の位置の字下げの文字）。`dncl-v2-preprocessor.js` と問題の形が使う |
+| `dncl-to-ruby.js` | 日本語 → Ruby 変換のエントリポイント（`dnclToRuby`）。ja-notation（下の「日本語 → Ruby の変換（ja-notation）」）で読んで Ruby と行の対応を作り、誤りを `ja-notation-errors.js` で日本語モードの文言にする |
+| `ja-notation-table.js` | ja-notation に渡すスモウルビーの表（`表示する` → `puts`、大文字の名前 → `@_var_X_` / `@_array_X_`、入力 → `ask` と `answer` など）。組み込み関数の一覧 `DNCL_BUILTIN_NAMES`（生成AI に相談の質問文の命令の例にも使う） |
+| `ja-notation-errors.js` | **ja-notation の誤りを、日本語モードで見せる文言にする対応表**（`jaNotationErrors`）。下の「誤りの文言」 |
+| `dncl-indent.js` | **字下げの幅の数え方**（`indentWidth`: タブは 4 桁・全角空白は 2 桁、`indentOffset`: ある幅の位置の字下げの文字）。問題の形が使う（ja-notation の読み方も同じ数え方） |
 | `dncl-problem-form.js` | **問題の形の配置**（`layoutProblemForm`: 行ごとの行番号 `(01)` と罫線の位置・種類、`problemFormText`: 行番号と罫線を文字で付けた形）。エディタの描画（`dncl-problem-form-view.js`）と「問題の形でコピー」が使う |
-| `dncl-line-number.js` | **行番号と本文の間の区切り**（`lineNumberSeparator`）。行番号の後ろの空白のうち、どこまでが区切りでどこからが字下げかを決める。`dncl-v2-preprocessor.js` と `dncl-paste-tidy.js` が使う |
+| `dncl-line-number.js` | **行番号と本文の間の区切り**（`lineNumberSeparator`）。行番号の後ろの空白のうち、どこまでが区切りでどこからが字下げかを決める。`dncl-paste-tidy.js` が使う |
 | `dncl-paste-tidy.js` | **貼り付け時の整形**（日本語モードのエディタに貼り付けた行番号付きのテキストの行番号を消し、`//` コメントを `#` に直す。下の「貼り付け時の整形」）と、`//` のある行の変換エラーに「`//` はコメントではない」と添える `withDoubleSlashHint` |
 | `dncl-string-arithmetic-hint.js` | **文字列と `-` `*` `/` の警告**（`stringArithmeticRows`）。文字列を `+` でつないだ後の `-` や、文字列に `-` `*` `/` を使う行を見つける。`ruby-tab.jsx` が警告マーカー（`gui.rubyTab.dnclStringArithmeticHint`）にして、数の計算をかっこで囲むよう表示する。下の「文字列と数の計算」 |
-| `dncl-array-index-hint.js` | **範囲外の添字の警告**（`findArrayIndexHints`）。1 から始まる添字で書いたときのように配列の範囲外を読む `X[i]` / `X[3]` を見つける。`ruby-tab.jsx` が警告マーカー（`gui.rubyTab.dnclArrayIndexHint`）にして、添字が 0 から始まることと直し方を表示する。下の「配列の添字は 0 から」 |
+| `dncl-array-index-hint.js` | **範囲外の添字の警告**（`findArrayIndexHints`）。1 から始まる添字で書いたときのように配列の範囲外を読む `X[i]` / `X[3]` を見つける。ja-notation の `parse` で読んだ構文木を見る（読めないプログラムには出さない）。`ruby-tab.jsx` が警告マーカー（`gui.rubyTab.dnclArrayIndexHint`）にして、添字が 0 から始まることと直し方を表示する。下の「配列の添字は 0 から」 |
 | `dncl-paste-index-shift.js` | **貼り付け時の添字の 0 始まりへの書き換え**（`hasOneBasedIndexNote` / `shiftArrayIndexes` / `findOneBasedSuspects`）。「添字は 1 から始まる」の注釈がある貼り付けテキストの配列の添字を 1 減らし、1 始まりを前提にしていそうな行を見つける。下の「貼り付け時の添字の書き換え」 |
-| `dncl-line-converter.js` | 行単位の DNCL → Ruby 変換 |
-| `dncl-identifier-converter.js` | 識別子（変数名）の変換 |
-| `dncl-builtins.js` | DNCL 組み込み関数の定義（`表示する`, `要素数` など）。`表示する` 多引数は `puts(... + ...)` に展開。関数の一覧 `DNCL_BUILTIN_NAMES` は生成AI に相談の質問文の命令の例にも使う |
 | `dncl-keywords.js` | DNCL キーワード定義（`もし`, `ならば`, `を繰り返す` など）|
-| `dncl-validator.js` | DNCL コードの構文検証（`validateDncl` = `@` / `$` の変数）と、**ブロックの閉じ忘れ・閉じすぎの検出**（`findDnclBlockErrors`。下の「閉じ忘れのエラー」） |
-| `dncl-state.js` | パーサー状態管理 |
+| `dncl-validator.js` | 日本語モードに無いことばの判定（`findUnsupportedCommands` / `findUnsupportedNumbers` / `isPostTestLoopLine` と、その文言・id）。Ruby → 日本語（`rubyToDncl`）と、ja-notation が読めない行の言いかえ（`ja-notation-errors.js`）が使う |
 | `dncl-source-map.js` | DNCL 行 ↔ Ruby 行のマッピング（エラー位置表示用。詳細は下の「エラー行の対応（ソースマップ）」）|
 | `dncl-block-filter.js` | DNCL モードで使えるブロックのフィルタ |
 | `paren-utils.js` | 括弧解析ユーティリティ |
-| `dncl-trailing-comment.js` | **行末の `# コメント` の切り分け**（`splitTrailingComment`）。`dncl-to-ruby.js` / `dncl-v2-preprocessor.js` / `ruby-to-dncl.js` が、行末のコメントを外してからブロックの開始・続き・終了（`もし〜ならば` / `〜の間` / `そうでなければ` / `関数` / `を実行する`、`if` / `end` など）を判定・変換し、変換した行の末尾にコメントを付け直す。文字列（`"..."` / `'...'` / `「...」`）の中の `#` はコメントにしない。コメントだけの行はそのまま |
+| `dncl-trailing-comment.js` | **行末の `# コメント` の切り分け**（`splitTrailingComment`）。`ruby-to-dncl.js` などが、行末のコメントを外してからブロックの開始・続き・終了（`もし〜ならば` / `〜の間` / `そうでなければ` / `関数` / `を実行する`、`if` / `end` など）を判定・変換し、変換した行の末尾にコメントを付け直す。文字列（`"..."` / `'...'` / `「...」`）の中の `#` はコメントにしない。コメントだけの行はそのまま |
 | `ruby-to-dncl.js` | Ruby → DNCL 逆変換のエントリポイント |
 | `ruby-to-dncl-line-converter.js` | 行単位の Ruby → DNCL 変換。`@i = 1` の次の `while @i <= 10`（`>=` も）を `i を 1 から 10 まで 1 ずつ増やしながら` にしてよいかを決める `findCountingLoopStep` もここ。数える繰り返しにするのは、本体の最後の行が `@i += 1` / `@i -= 1` / `@i += -1` / `@i = @i + 1` のように増分を足し、増分の向きが条件（`<=` は増やす、`>=` は減らす）と合い、増分が数か本体で変えない変数だけの式で、本体のほかの行が変数も増分も変えないときだけ。それ以外（増分が途中・2 回・`rand` などの呼び出し・入れ子の同じ変数など）は `i = 1` と `i <= 10 の間` のまま残す |
 | `ruby-to-dncl-identifier.js` | 識別子の逆変換 |
 | `ruby-to-dncl-builtins.js` | 組み込み関数の逆変換。`puts(... + ...)` の左寄せ `+` チェーンを `表示する(...)` 多引数にフラット化（display fragment 限定） |
 
-#### 新しい変換（ja-notation。作り直しの途中で、まだエディタからは使わない）
+#### 日本語 → Ruby の変換（ja-notation）
 
 日本語 → 日本語の構文木（JaAST）→ Ruby の構文木 → Ruby のテキストと行の対応、の順に変換するライブラリ。
 設計は [`../ruby-editor/converter-roadmap.md`](../ruby-editor/converter-roadmap.md) の 2 章・4 章。**標準の形と DNCL 風の形を同じ解析で読み**、
-JaAST では 1 つの形にする。テストの中でだけ動かして、いまの `dnclToRuby` と同じ Ruby（prism の構文木で比べる）・同じ行の対応になることを確かめている。
+JaAST では 1 つの形にする。エディタの日本語 → Ruby（`dnclToRuby`）はこれだけを使う（行ごとに書きかえる前の変換は残していない）。
+切りかえる前の変換と同じ Ruby（prism の構文木で比べる）・同じ行の対応になることを、コーパスのゴールデンで確かめている。
 
-DNCL 風の形の読み方（いまの `dnclToRuby` に合わせたもの）:
+DNCL 風の形の読み方（切りかえる前の変換に合わせたもの）:
 
 - `:` の無い開く行（`もし … ならば`、`… の間`、`… ずつ増やしながら`、`関数 名前(引数)`、`名前(引数) を定義する`）のブロックは、閉じる行
-  （`を実行する` / `を繰り返す` / `と定義する`。`end` も）か `⎿` で終わる。中の字下げは見ない。閉じる言葉とブロックの種類は照らし合わせない（いまと同じ）。
-  ただし数える繰り返しは、どの言葉で閉じても増分を足す（いまは `を繰り返す` で閉じたときだけ足すので、`を実行する` で閉じると終わらない）。
+  （`を実行する` / `を繰り返す` / `と定義する`。`end` も）か `⎿` で終わる。中の字下げは見ない。閉じる言葉とブロックの種類は照らし合わせない（前と同じ）。
+  ただし数える繰り返しは、どの言葉で閉じても増分を足す（前は `を繰り返す` で閉じたときだけ足したので、`を実行する` で閉じると終わらなかった）。
 - `:` のある行のブロックは字下げで終わる。同じ字下げの閉じる行はそのブロックを閉じる。`:` があっても次の行が深くないときは、閉じる行で終わるブロックになる。2 つの形は混ぜてよい。
 - `←` は `=`、`かつ` / `または` は `and` / `or`、後ろに付く `でない` は、前の `かつ` / `または`・`(`・`,`・`=` までをまとめて否定する（`a > 10 でない` は `not (a > 10)`）。
   `でない` の後に演算子が続くときは、否定したものがその左側になる（`a でない == b` は Ruby の `!a == b`）。
@@ -146,9 +144,28 @@ DNCL 風の形の読み方（いまの `dnclToRuby` に合わせたもの）:
 | `ja-notation/parse.js` | 日本語を読む。標準の形（行番号・`｜` `⎿`・字下げ・`ならば:`・`and` / `or` / `not`）と DNCL 風の形（閉じる行・`←`・`かつ`・`でない`・「...」）。JaAST の形は `ja-notation/ja-ast.js` |
 | `ja-notation/build-ruby.js` | JaAST → Ruby の構文木（prism のノード名を使う小さな形）。変数の名前・関数・入力は外から受けとる表で決める |
 | `ja-notation/write-ruby.js` | Ruby のテキストと、Ruby の行ごとの日本語の行を書く |
-| `src/lib/dncl/ja-notation-table.js` | スモウルビーの表（`表示する` → `puts`、大文字の名前 → `@_var_X_` / `@_array_X_` など） |
+
+誤りは `{code, message, line, column}` に、日本語モードの文言を作るための `name`（字句）・`opener` / `direction` / `colon` / `word`（ブロック）・`block`（`stray-closer` / `closer-indent` / `stray-branch`）を添えて返す。
 
 テスト: `test/unit/lib/ja-notation/corpus.test.js`（コーパスのゴールデンとの比較）、`parse.test.js`、`build-and-write-ruby.test.js`。
+
+#### 誤りの文言
+
+ja-notation の誤りは `ja-notation-errors.js` が、生徒に見えている文言にする（ことばは ja-notation ではなくスモウルビー側が持つ）。
+
+| ja-notation の誤り | 日本語モードの文言（id） |
+|---|---|
+| `forbidden`（`@` / `$`） | 「日本語モードでは変数に「@」は使えません」 |
+| `bad-number` | 「「0x5」は日本語モードでは書けない数の書き方です（…）」（`unsupportedNumber`） |
+| `post-test-loop` | 後判定の繰り返しの文（`postTestLoop`） |
+| `unknown-command` | 「「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。」、日本語の名前は「「差分」は定義されていない関数です。「関数 差分(…):」で定義してください。」（`unsupportedCommand`） |
+| `unclosed` / `empty-block` / `block`（閉じのことば・`そうでなければ`） | 下の「閉じ忘れのエラー」の文 |
+| そのほか（読めない字句・式が要る など） | ja-notation の文のまま（「「//」が読めません」など） |
+
+- ことばの誤り（上の表の上 4 つ）があれば、それだけを出す（ブロックの誤りは出さない。切りかえる前と同じ）。
+- 読めない行があるときは、Ruby → 日本語と同じ判定（`findUnsupportedCommands`）で Ruby の命令（`with_screen_refresh do`・`[1, 2].each do |x|`・`break if …`・`range(…)` など）を探し、あればその行に「書けない命令」を出す。読めない行が後判定の繰り返しの行なら後判定の文を出す。
+- 文言の列は 1 から数える（ブロックの誤りは 1）。
+
 
 #### エラー行の対応（ソースマップ）
 
@@ -165,11 +182,11 @@ DNCL モードでは、DNCL を Ruby に変換してからブロックに変換�
 | `【外部からの入力】` / `【整数を入力】` / `【文字列を入力】` を `ask` + 代入に展開 | 1 行 → 2 行 | 入力の行 |
 | `増やしながら` / `減らしながら` を初期化 + `while`、終了行を加算 + `end` に展開 | 1 行 → 2 行 | それぞれ元の行 |
 
-対応表は**変換しながら記録する**（行数の比較から推定しない）。`dnclV2PreprocessWithLineMap` が前処理後の各行の元の行番号（`lineMap`）を返し、`dnclToRuby` が行変換で出力した Ruby の各行にそれを引き継いで `sourceMap` として返す。`validateDncl` の検証エラーの行も `lineMap` で DNCL の行に戻す。
+対応表は**変換しながら記録する**（行数の比較から推定しない）。ja-notation の `writeRuby` が Ruby の各行の日本語の行（`jaLines`）を書き、`dnclToRuby` がそれを `sourceMap` として返す。日本語の誤りは、はじめから日本語の行で出る。
 
 #### 閉じ忘れのエラー
 
-`を実行する` / `を繰り返す` / `と定義する` はどれも Ruby の `end` になるので、閉じ忘れや閉じすぎがあると Ruby の変換器が「`end` が足りません」のような **Ruby のことば**のエラーを返す。日本語モードの生徒にも、答えを書き直す生成AI にも `end` は関係が無いので、`findDnclBlockErrors` が DNCL のことばで言いかえる。
+閉じ忘れや閉じすぎがあるプログラムは ja-notation が読めないので Ruby を作らず、その行に DNCL のことばで誤りを出す（`ja-notation-errors.js`）。Ruby の変換器の「`end` が足りません」のような **Ruby のことば**は出さない。日本語モードの生徒にも、答えを書き直す生成AI にも `end` は関係が無いため。
 
 | 書き方 | エラー（その行に付く） |
 |---|---|
@@ -179,11 +196,11 @@ DNCL モードでは、DNCL を Ruby に変換してからブロックに変換�
 | `もし` の外の `そうでなければ` / `そうでなくもし` | 「「そうでなければ」の前に「もし〜ならば」がありません」。標準の形（行の終わりが `:`）では、`もし` より浅く字下げしたときにこうなるので「「そうでなければ:」は、「もし〜ならば:」と同じ字下げで書いてください」 |
 | 種類の違う閉じのことば（ほかに合うブロックが無い） | 閉じのことばの行に「「もし〜ならば」は「を繰り返す」ではなく「を実行する」で閉じてください」 |
 
-- 標準の形か DNCL 風の形かは、エラーの行を書いた元の行の終わりに `:` / `：` があるか（行末のコメントを除く）で決める（`dncl-to-ruby.js` が `findDnclBlockErrors` に `isStandardLine` で渡す）。標準の形は字下げでブロックを示すので、閉じのことばを書くようには言わない。
-- 内側のブロックを閉じ忘れて外側の閉じのことばが来たとき（`〜の間` の中の `もし` を閉じ忘れて `を繰り返す`）は、外側ではなく**閉じ忘れた内側**の行に付ける。
-- 調べるのは **Ruby の `end` が合わなくなるときだけ**。種類の違う閉じのことばでも `end` の数が合えば Ruby は通り、エディタも受け付けるので、エラーにしない（`もし … を繰り返す` など）。
-- `with_screen_refresh do` / `loop do` / `when_flag_clicked do` / `list.each do |x|` など、日本語に書きかえるものが無い `xxx do`（`|x|` 付きも）は Ruby → 日本語でそのまま残し、その `end` は `を実行する` にする（`N.times do` と `(a..b).step(s) do |i|` は `〜ずつ増やしながら` に、`while x do` / `until x do` は `〜の間` になる）。外側のブロックの閉じのことばを取らないよう、`ruby-to-dncl-line-converter.js` はこの行もブロックとして積む。`findDnclBlockErrors` もこの行を `を実行する` で閉じるブロックとして数える（判定は `dncl-validator.js` の `isDoBlockLine`。行末のコメントを除いてから行末の `do` だけを見るので、文字列やコメントの中の `do` は数えない）。日本語モードにはこうした命令が無いので、ほかの対応していない命令と同じくその行に「「with_screen_refresh」は日本語モードでは書けない命令です。…」を出し、Ruby には変換しない（下の「日本語モードに無い命令」）。
-- `dnclToRuby` はこのエラーがあっても Ruby を作り、`blockErrors`（DNCL の行）として返す（エディタは入力のたびに Ruby を送るので、ここで止めると古い Ruby のまま変換されてしまうため）。変換器が失敗したときに、エディタのエラーの印（`ruby-tab.jsx` の `showErrors`）と生成AI に相談の確かめ（`genai-dncl-answer.js`）が、変換器のエラーの代わりにこれを出す。
+- 標準の形か DNCL 風の形かは、開いた行の終わりに `:` / `：` があるか（行末のコメントを除く）で決める（ja-notation の誤りの `colon`）。標準の形は字下げでブロックを示すので、閉じのことばを書くようには言わない。
+- ja-notation は閉じのことばの種類を見ずに、いちばん内側のブロックを閉じる（Ruby の `end` と同じ）。そのため、種類の違う閉じのことばでも数が合えばエラーにしない（`もし … を繰り返す` など）。
+- 数が合わずエラーになったときで、ブロックがすべて DNCL 風の形のときは、閉じのことばの種類を見て言う（`ja-notation-errors.js` の `closerFormBlockErrors`）。内側のブロックを閉じ忘れて外側の閉じのことばが来たとき（`〜の間` の中の `もし` を閉じ忘れて `を繰り返す`）は、外側ではなく**閉じ忘れた内側**の行に付ける。
+- `with_screen_refresh do` / `loop do` / `when_flag_clicked do` / `list.each do |x|` など、日本語に書きかえるものが無い `xxx do`（`|x|` 付きも）は Ruby → 日本語でそのまま残し、その `end` は `を実行する` にする（`N.times do` と `(a..b).step(s) do |i|` は `〜ずつ増やしながら` に、`while x do` / `until x do` は `〜の間` になる）。外側のブロックの閉じのことばを取らないよう、`ruby-to-dncl-line-converter.js` はこの行もブロックとして積む。判定は `dncl-validator.js` の `isDoBlockLine`（行末のコメントを除いてから行末の `do` だけを見るので、文字列やコメントの中の `do` は数えない）。日本語モードにはこうした命令が無いので、ほかの対応していない命令と同じくその行に「「with_screen_refresh」は日本語モードでは書けない命令です。…」を出し、Ruby には変換しない（下の「日本語モードに無い命令」）。
+- `dnclToRuby` はこのエラーを `errors`（日本語の行）として返し、Ruby は作らない。エディタは Ruby を送らず、エラーの印（`ruby-tab.jsx` の日本語の誤りのマーカー。owner は `DNCL_UNSUPPORTED_OWNER`）をその行に出し、前の変換の印（`smalruby`）は消す。生成AI に相談の確かめ（`genai-dncl-answer.js`）も、この誤りを問題として返す。
 
 #### Monaco Editor 言語定義
 
@@ -289,11 +306,11 @@ Smalruby の Ruby タブは **3 つのモード** (Ruby / DNCL / ふりがな) �
 
 ## DNCLv2 互換
 
-Smalruby は **DNCLv2 形式のプログラムをそのまま実行** できる。これは「pre-processor が DNCLv2 構文を Smalruby DNCL に正規化してから既存パイプラインに流す」設計で実現している（`dncl-v2-preprocessor.js`）。
+Smalruby は **DNCLv2 形式のプログラムをそのまま実行** できる。ja-notation の `parse` が標準の形と DNCL 風の形を同じ解析で読む（`src/lib/ja-notation/parse.js`）。下の表の右の列は、同じ意味の DNCL 風の形（または Ruby）。
 
 ### 対応する DNCLv2 構文
 
-| DNCLv2 構文 | 例 | 正規化後 |
+| DNCLv2 構文 | 例 | 同じ意味の書き方 |
 |---|---|---|
 | 行番号 | `(1) Data = [1, 2, 3]` / `(00-1) Data = [1]` | `Data = [1, 2, 3]` / `Data = [1]` |
 | 末尾コロン（半角 `:` / 全角 `：`） | `もし a > 0 ならば:` | `もし a > 0 ならば` |
@@ -387,11 +404,11 @@ Smalruby は **DNCLv2 形式のプログラムをそのまま実行** できる�
 - 例題中で定義されていない関数の呼び出し（`差分(...)` / `最大値(...)` / `枚数(...)` など。問題文で「用意されている」とされる関数）。下の「日本語モードに無い命令」と同じエラーになる
 - `変数 に 式 を入れる` 形式の自然言語代入
 - 全角ブラケット `［］`
-- 後判定の繰り返し（Ruby の `begin ... end while / until`、旧 DNCL の `繰り返し` … `を 〜 になるまで実行する`）。共通テスト用プログラム表記には前判定の繰り返し（`〜の間繰り返す` と `〜ずつ増やしながら繰り返す`）しか無く、後判定は旧課程「情報関係基礎」の旧 DNCL にしかないため、**対応しないことに決めている**（できないことはできないと伝える）。切りかえ・表示・入力のときにその行へエラー（`gui.rubyTab.dnclPostTestLoopError`）を出し、Ruby には変換しない。判定は `dncl-validator.js` の `isPostTestLoopLine`（`rubyToDncl` の `errors` と `validateDncl` の両方が使う）。書き直し方は最初の 1 回をループの前に書いて `〜の間` にする（`docs/smalruby-dncl-spec.ja.md`「後判定の繰り返しは書けない」）
+- 後判定の繰り返し（Ruby の `begin ... end while / until`、旧 DNCL の `繰り返し` … `を 〜 になるまで実行する`）。共通テスト用プログラム表記には前判定の繰り返し（`〜の間繰り返す` と `〜ずつ増やしながら繰り返す`）しか無く、後判定は旧課程「情報関係基礎」の旧 DNCL にしかないため、**対応しないことに決めている**（できないことはできないと伝える）。切りかえ・表示・入力のときにその行へエラー（`gui.rubyTab.dnclPostTestLoopError`）を出し、Ruby には変換しない。判定は `dncl-validator.js` の `isPostTestLoopLine`（`rubyToDncl` の `errors` と、ja-notation が読めない行の言いかえの両方が使う）。書き直し方は最初の 1 回をループの前に書いて `〜の間` にする（`docs/smalruby-dncl-spec.ja.md`「後判定の繰り返しは書けない」）
 
-- **日本語モードに無い命令**（Ruby の命令やメソッド呼び出し）。`move(2)` / `bounce_if_on_edge` / `with_screen_refresh do` / `[1, 2].each do |x|` のような名前は、DNCL → Ruby で変数と取られて `@move(2)` のような壊れた Ruby になっていたので、その行と名前を示すエラー（id は `unsupportedCommand`）を出して Ruby には変換しない。文言は名前で分ける（`dncl-validator.js` の `isRubyCommandName`）。英字で始まる名前（`move`）は Ruby の命令なので「Ruby モードでは書けます」（`gui.rubyTab.dnclUnsupportedCommandError`）、日本語の名前（定義し忘れた関数や、共通テストで「用意されている」とされる `差分(...)` など）は「「関数 名前(…)」で定義してください」（`gui.rubyTab.dnclUndefinedFunctionError`）にする。切りかえ（Ruby の行に出す）・表示（ブロックのタブからの同期）・入力のどれでも同じ。判定は `dncl-validator.js` の `findUnsupportedCommands`（`validateDncl` と `rubyToDncl` の `errors` の両方が使う）で、命令と取るのは (1) `(` の付いた名前（`.` の後のメソッドは除く）、(2) 1 行に名前だけで、大文字始まりでも、その日本語の中で代入・繰り返し・関数の引数として宣言された変数でもないもの、(3) `xxx do` の `xxx`、(4) 行の先頭の `break` / `next` / `redo` / `retry`（`break if i == 5` のような後置の `if` / `unless` 付きも。変数と取られて `@break if @i == 5` のように動きの変わる Ruby になっていたため。`next = 1` への代入・`next < 10 の間` のように演算子が続く形・`next を 1 から …` の数える繰り返しのように、同じ名前の変数は命令と取らない）。日本語モードにある名前（`dncl-keywords.js` の `DNCL_KEYWORDS` / `RUBY_LITERALS` と、その日本語の中の `関数` で定義した名前）は命令と取らない。変数は呼び出されない限り命令と取らないので、`move = 1` のように命令と同じ名前の変数は書ける
+- **日本語モードに無い命令**（Ruby の命令やメソッド呼び出し）。`move(2)` / `bounce_if_on_edge` / `with_screen_refresh do` / `[1, 2].each do |x|` のような名前は、DNCL → Ruby で変数と取られて `@move(2)` のような壊れた Ruby になっていたので、その行と名前を示すエラー（id は `unsupportedCommand`）を出して Ruby には変換しない。文言は名前で分ける（`dncl-validator.js` の `isRubyCommandName`）。英字で始まる名前（`move`）は Ruby の命令なので「Ruby モードでは書けます」（`gui.rubyTab.dnclUnsupportedCommandError`）、日本語の名前（定義し忘れた関数や、共通テストで「用意されている」とされる `差分(...)` など）は「「関数 名前(…)」で定義してください」（`gui.rubyTab.dnclUndefinedFunctionError`）にする。切りかえ（Ruby の行に出す）・表示（ブロックのタブからの同期）・入力のどれでも同じ。判定は `dncl-validator.js` の `findUnsupportedCommands`（`rubyToDncl` の `errors` と、ja-notation が読めない行の言いかえの両方が使う。日本語 → Ruby では ja-notation の `unknown-command` も同じ文言になる）で、命令と取るのは (1) `(` の付いた名前（`.` の後のメソッドは除く）、(2) 1 行に名前だけで、大文字始まりでも、その日本語の中で代入・繰り返し・関数の引数として宣言された変数でもないもの、(3) `xxx do` の `xxx`、(4) 行の先頭の `break` / `next` / `redo` / `retry`（`break if i == 5` のような後置の `if` / `unless` 付きも。変数と取られて `@break if @i == 5` のように動きの変わる Ruby になっていたため。`next = 1` への代入・`next < 10 の間` のように演算子が続く形・`next を 1 から …` の数える繰り返しのように、同じ名前の変数は命令と取らない）。日本語モードにある名前（`dncl-keywords.js` の `DNCL_KEYWORDS` / `RUBY_LITERALS` と、その日本語の中の `関数` で定義した名前）は命令と取らない。変数は呼び出されない限り命令と取らないので、`move = 1` のように命令と同じ名前の変数は書ける
   - **式の中の括弧の無いメソッド**（`@a = 1 + x_position`、`puts(costume_number)`）。日本語では変数と同じ形になり、Ruby に戻すと `@x_position` という変数になって、エラーにならないまま動きが変わっていた。日本語の側では変数と区別できないので、Ruby → 日本語（切りかえ・表示）のときだけ同じエラー（`unsupportedCommand`）にする。判定は `ruby-to-dncl.js` の `findBareMethods` で、`@` / `$` / `.` / `:` の後でも、`(` が続く・大文字始まりでもない名前のうち、日本語の行にそのまま残るものを取る。Ruby のローカル変数（代入した名前・ブロックとメソッドの引数）と `def` で定義したメソッド、Ruby のキーワード、日本語モードにある名前（`answer` / `rand` など）は取らない
-- **日本語モードに無い数の書き方**（`0x5` / `0b101` / `0o17` の 16 進・2 進・8 進、`1_000` の `_` の区切り、`1e3` / `1.5e-3` の指数表記、`3r` / `2i`）。共通テストの例題は数を `123` / `0.5` の形でしか書かず、読むための日本語モードには要らないので受け付けない。数の中の英字が名前と取られて `0@x5` のような壊れた Ruby になっていたので、その行と数を示すエラー（id は `unsupportedNumber`、文言は `gui.rubyTab.dnclUnsupportedNumberError`）を出して Ruby には変換しない。Ruby → 日本語（切りかえ）でも同じエラーを Ruby の行に出す。判定は `dncl-validator.js` の `findUnsupportedNumbers`（`validateDncl` と `rubyToDncl` が使う。文字列とコメントの中は見ない）。名前の変換（`@` を付ける処理）も、数字で始まる並びは英字ごと数として写すので、数の中に `@` は入らない
+- **日本語モードに無い数の書き方**（`0x5` / `0b101` / `0o17` の 16 進・2 進・8 進、`1_000` の `_` の区切り、`1e3` / `1.5e-3` の指数表記、`3r` / `2i`）。共通テストの例題は数を `123` / `0.5` の形でしか書かず、読むための日本語モードには要らないので受け付けない。数の中の英字が名前と取られて `0@x5` のような壊れた Ruby になっていたので、その行と数を示すエラー（id は `unsupportedNumber`、文言は `gui.rubyTab.dnclUnsupportedNumberError`）を出して Ruby には変換しない。Ruby → 日本語（切りかえ）でも同じエラーを Ruby の行に出す。判定は `dncl-validator.js` の `findUnsupportedNumbers`（`rubyToDncl` が使う。文字列とコメントの中は見ない。日本語 → Ruby では ja-notation の `bad-number` を同じ文言にする）。名前の変換（`@` を付ける処理）も、数字で始まる並びは英字ごと数として写すので、数の中に `@` は入らない
   - **0 で始まる整数**（`017`）。日本語では 10 進の 17 と読むが、Ruby では 8 進（15。`08` は文法エラー）になる。日本語 → Ruby では先頭の 0 を外して `17` にする（行番号の形と同じ見た目だけの揺れとして受け付け、書くときにそろえる）。`0` と `0.5` はそのまま。Ruby → 日本語では、Ruby の `017` は 8 進で値が変わるので同じエラー（`unsupportedNumber`）にする（`findUnsupportedNumbers` の `ruby` オプション）
 
 ### Smalruby 独自の差分
@@ -399,7 +416,7 @@ Smalruby は **DNCLv2 形式のプログラムをそのまま実行** できる�
 - **中身が空の `〜の間` は「〜まで待つ」になる**。DNCL → Ruby は中身が空の `条件 の間` ～ `を繰り返す` を `do` の無い `until` / `while` ～ `end` にし、Ruby → ブロックはそれを「〜まで待つ」（`control_wait_until`）にする。中身が空の「〜まで繰り返す」（Ruby の `until 条件 do` ～ `end`）も DNCL では同じ形になるので、日本語モードを通すと「〜まで待つ」に変わる。どちらも条件が成り立つまで何もしないで待つので動きは同じで、共通テスト用プログラム表記に無い書き方（「〜まで待つ」専用の書き方など）を足さないために、こう決めている（`docs/smalruby-dncl-spec.ja.md`「条件の間繰り返す」）。テストは `test/unit/lib/dncl/dncl-empty-loop-wait-until.test.js`
 - **書き出しは標準の形**。ブロックは字下げで表し、終端の行（`を実行する`, `を繰り返す`, `と定義する`）は書かない（下の「書き出しの形」）。DNCL 風の形の終端の行も読む
 - Scratch ブロックに変換されるため、**使える機能が Scratch の範囲に限定される**
-- 変数に `@`, `$` プレフィックスは使えない（Ruby の変数記法は自動処理）。`validateDncl` は文字列（`"..."` / `'...'` / `「...」`）と `#` コメントの中の `@` / `$` は数えない。文字列の中の `#` はコメントではないので、`x ← "#" + @y` の `@` もエラーになる
+- 変数に `@`, `$` プレフィックスは使えない（Ruby の変数記法は自動処理）。文字列（`"..."` / `'...'` / `「...」`）と `#` コメントの中の `@` / `$` は数えない。文字列の中の `#` はコメントではないので、`x ← "#" + @y` の `@` もエラーになる
 
 ### 動作確認用例題
 
@@ -421,9 +438,8 @@ Smalruby は **DNCLv2 形式のプログラムをそのまま実行** できる�
 
 - 変換の作り直し（`ja-notation`）のための安全網:
   - `test/unit/lib/ruby-roundtrip/japanese-table.test.js` — 日本語 ⇔ Ruby ⇔ ブロックの表（表のテストの日本語の列。[`bridging-patterns.md`](../ruby-editor/bridging-patterns.md) の「表のテスト」）
-  - `test/unit/lib/ja-notation/golden.test.js` — 日本語のプログラムのコーパスについて、いまの `dnclToRuby` / `rubyToDncl` の出力（Ruby・日本語・ブロック・誤りの文と行）がゴールデンと同じこと。データと集め方は `packages/scratch-gui/test/fixtures/ja-notation/README.md`
+  - `test/unit/lib/ja-notation/golden.test.js` — 日本語のプログラムのコーパスについて、`dnclToRuby` / `rubyToDncl` の出力（Ruby・日本語・ブロック・誤りの文と行）がゴールデンと同じこと。データと集め方は `packages/scratch-gui/test/fixtures/ja-notation/README.md`
 - 単体テスト: `packages/scratch-gui/test/unit/lib/dncl/`
-  - `dncl-v2-preprocessor.test.js` — DNCLv2 正規化テスト（53 cases）
   - `dncl-v2-example.test.js` — DNCLv2 例題の end-to-end 変換テスト
   - `dncl-v2-ictl-samples.test.js` — 共通テスト例題で使われる記法（`もし(`・`(00-1)`・全角コロン・継続行・`//` が常に整数除算であること・入力形式・インデントだけのブロック）と、例題プログラムが prism で構文エラーにならないことの検証
   - `dncl-v2-indent-only-blocks.test.js` — 字下げだけで書いたブロック（字下げの幅・全角空白・タブ・入れ子・`そうでなければ`・空行・行末コメント・日本語の関数名・行番号付き・桁をそろえた行番号）の Ruby の字下げと終了行、エラーの列が書いた DNCL の位置を指すこと、変換した Ruby がブロックに変換できること
@@ -437,7 +453,7 @@ Smalruby は **DNCLv2 形式のプログラムをそのまま実行** できる�
   - `dncl-display-multi-arg.test.js` — `表示する` 多引数 / `puts(... + ...)` round-trip
   - `dncl-to-ruby.test.js` — DNCL → Ruby 変換ユニットテスト
   - `dncl-japanese-quotes-in-string.test.js` — `"..."` / `'...'` の中の `「」` はそのまま残し、`「...」` の文字列だけを `"..."` に直すこと（round-trip を含む）
-  - `dncl-validator.test.js` — 閉じ忘れ・閉じすぎを DNCL のことばで言うこと（ブロックの種類ごとの閉じのことば・閉じ忘れた内側の行・`end` が合うときはエラーにしない・DNCLv2 の `⎿` / インデントの形）
+  - `dncl-validator.test.js` — 閉じ忘れ・閉じすぎを DNCL のことばで言うこと（ブロックの種類ごとの閉じのことば・閉じ忘れた内側の行・`end` が合うときはエラーにしない・DNCLv2 の `⎿` / インデントの形）と、文字列の中の `#` の後の `@` / `$`
   - `ruby-to-dncl.test.js` — Ruby → DNCL 逆変換ユニットテスト
   - `dncl-block-errors-standard-form.test.js` — 標準の形で書いたブロックの閉じ忘れが字下げのことばで出ること（`ならば:` / `繰り返す:` / `関数 〜(…):`・全角の `：`・行末コメント・行番号・浅く書いた `そうでなければ:`）と、DNCL 風の形では閉じのことばのままであること
   - `dncl-standard-form.test.js` — 書き出しの標準の形（字下げと `:`・`and` / `or` / `not`・`％`・`を返す`・終端の行を残す場合）と、DNCL 風の形も読むこと

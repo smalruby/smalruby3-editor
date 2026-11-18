@@ -5,7 +5,6 @@
 // the width of the DNCL indent, and it must be closed on numbered lines
 // too, where the indent comes after the line number.
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
-import { dnclV2Preprocess } from '../../../../src/lib/dncl/dncl-v2-preprocessor';
 import { loadPrism } from '../../../../src/lib/prism-parser';
 import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
 
@@ -71,15 +70,6 @@ describe('DNCLv2 indentation-only blocks: Ruby indent (Issue #1718)', () => {
         expect(ruby(['合計(a) を定義する:', '    もし a > 0 ならば:', '        表示する(a)', '表示する(1)'])).toBe(
             'def 合計(a)\n  if a > 0\n    puts(a)\n  end\nend\nputs(1)',
         );
-    });
-
-    test('the pre-processor re-indents by block depth', () => {
-        expect(dnclV2Preprocess(['もし a ならば:', '        a = 1', 'b = 2'].join('\n')).split('\n')).toEqual([
-            'もし a ならば',
-            '  a = 1',
-            'を実行する',
-            'b = 2',
-        ]);
     });
 });
 
