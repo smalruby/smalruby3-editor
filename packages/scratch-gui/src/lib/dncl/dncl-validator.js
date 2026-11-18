@@ -149,6 +149,14 @@ const unsupportedNumberMessage = (name) =>
     '「1000」「0.5」のように書いてください。Ruby モードでは書けます。';
 
 /**
+ * The id of the error for `@` / `$` written in the Japanese (issue #1674): the names of the
+ * Japanese have no `@` / `$` (the Ruby gets them), so such DNCL makes no Ruby. The editor
+ * shows the error in the language of the UI by this id and the `name` of the error (the
+ * character), at the character.
+ */
+const FORBIDDEN_PREFIX_ERROR_ID = 'forbiddenPrefix';
+
+/**
  * The id of the error for Ruby that has no form in the Japanese mode and is
  * not a command or a number (`case` / `when`, a hash `{}`, a symbol `:a`, a
  * modifier `unless`; issue #1740). Ruby → Japanese would keep it as Ruby,
@@ -306,6 +314,7 @@ const findUnsupportedCommands = (source) => {
 export {
     codeWithoutStrings,
     findUnsupportedCommands,
+    FORBIDDEN_PREFIX_ERROR_ID,
     isDoBlockLine,
     isPostTestLoopLine,
     isRubyCommandName,

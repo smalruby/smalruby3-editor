@@ -1963,6 +1963,7 @@ export default {
         'そえじにつかうへんすうを <= でくらべています。0 はじまりでは < にするひつようがあるかもしれません',
     'gui.rubyTab.dnclIndexShiftReasonNegativeIndex':
         'そえじが -1 になりました。ここはもともと 0 はじまりだったかもしれないので、たしかめてください',
+    'gui.rubyTab.dnclForbiddenPrefixError': 'にほんごモードでは、へんすうに「{name}」はつかえません',
     'gui.rubyTab.dnclPostTestLoopError':
         'あとではんていするくりかえし（さきに 1 かいうごかしてからじょうけんをたしかめるくりかえし）は、にほんごではかけません。さいしょの 1 かいをループのまえにかいてから、「〜のあいだくりかえす」にしてください。Ruby モードではかけます。',
     'gui.rubyTab.dnclUndefinedFunctionError':

@@ -5478,6 +5478,8 @@
       {
         "line": 4,
         "column": 5,
+        "id": "forbiddenPrefix",
+        "name": "@",
         "message": "日本語モードでは変数に「@」は使えません"
       }
     ]
@@ -6816,6 +6818,8 @@
       {
         "line": 1,
         "column": 1,
+        "id": "forbiddenPrefix",
+        "name": "@",
         "message": "日本語モードでは変数に「@」は使えません"
       }
     ]
@@ -6840,6 +6844,8 @@
       {
         "line": 1,
         "column": 1,
+        "id": "forbiddenPrefix",
+        "name": "$",
         "message": "日本語モードでは変数に「$」は使えません"
       }
     ]
@@ -8428,6 +8434,8 @@
       {
         "line": 2,
         "column": 13,
+        "id": "forbiddenPrefix",
+        "name": "@",
         "message": "日本語モードでは変数に「@」は使えません"
       }
     ]
@@ -8963,6 +8971,8 @@
       {
         "line": 1,
         "column": 11,
+        "id": "forbiddenPrefix",
+        "name": "@",
         "message": "日本語モードでは変数に「@」は使えません"
       }
     ]
@@ -9030,6 +9040,8 @@
       {
         "line": 2,
         "column": 1,
+        "id": "forbiddenPrefix",
+        "name": "@",
         "message": "日本語モードでは変数に「@」は使えません"
       }
     ]

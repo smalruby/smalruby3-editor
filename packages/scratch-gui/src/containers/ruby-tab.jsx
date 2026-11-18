@@ -18,6 +18,7 @@ import { problemFormText } from '../lib/dncl/dncl-problem-form';
 import { stringArithmeticRows } from '../lib/dncl/dncl-string-arithmetic-hint';
 import { dnclToRuby, rubyForLeavingDncl } from '../lib/dncl/dncl-to-ruby';
 import {
+    FORBIDDEN_PREFIX_ERROR_ID,
     isRubyCommandName,
     POST_TEST_LOOP_ERROR_ID,
     UNSUPPORTED_COMMAND_ERROR_ID,
@@ -784,6 +785,15 @@ const RubyTab = (props) => {
                     { name: err.name },
                 );
             }
+            if (err.id === FORBIDDEN_PREFIX_ERROR_ID) {
+                return intl.formatMessage(
+                    {
+                        id: 'gui.rubyTab.dnclForbiddenPrefixError',
+                        defaultMessage: '"{name}" cannot be used in a variable in Japanese mode.',
+                    },
+                    { name: err.name },
+                );
+            }
             if (err.id === UNSUPPORTED_NOTATION_ERROR_ID) {
                 return intl.formatMessage(
                     {
@@ -1426,7 +1436,8 @@ const RubyTab = (props) => {
         const translated = (err) =>
             err.id === POST_TEST_LOOP_ERROR_ID ||
             err.id === UNSUPPORTED_COMMAND_ERROR_ID ||
-            err.id === UNSUPPORTED_NUMBER_ERROR_ID;
+            err.id === UNSUPPORTED_NUMBER_ERROR_ID ||
+            err.id === FORBIDDEN_PREFIX_ERROR_ID;
         // `//` is integer division in Smalruby DNCL, never a comment (Issue #1192).
         const doubleSlashHint = intl.formatMessage({
             id: 'gui.rubyTab.dnclDoubleSlashHint',
@@ -1436,8 +1447,11 @@ const RubyTab = (props) => {
             .filter((err) => err.line <= lines.length)
             .map((err) => {
                 const lineEnd = lines[err.line - 1].length + 1;
+                // A command, a number and `@` / `$` (issue #1674) are marked where they are written.
                 const command =
-                    (err.id === UNSUPPORTED_COMMAND_ERROR_ID || err.id === UNSUPPORTED_NUMBER_ERROR_ID) &&
+                    (err.id === UNSUPPORTED_COMMAND_ERROR_ID ||
+                        err.id === UNSUPPORTED_NUMBER_ERROR_ID ||
+                        err.id === FORBIDDEN_PREFIX_ERROR_ID) &&
                     err.column + err.name.length <= lineEnd;
                 const [hinted] = translated(err)
                     ? [{ text: dnclErrorText(err) }]

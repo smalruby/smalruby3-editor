@@ -192,6 +192,22 @@ describe('DNCL mode validation on switch', () => {
         expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(false);
     });
 
+    // `@` / `$` typed in the Japanese mode are told while typing, at the character (issue #1674).
+    test('an @ typed in DNCL mode is marked at the @', async () => {
+        await loadUri(`${uri}?rubyMode=dncl&locale=ja&tab=ruby`);
+        await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', true);
+        await fillInRubyProgram('x = 1\ny = @z\n');
+        await waitForEditorValue(driver, 'y = @z');
+        await driver.wait(
+            async () => (await getErrors()).some((error) => error.line === 2),
+            10000,
+            'The error of @ did not appear',
+        );
+        const error = (await getErrors()).find((e) => e.line === 2);
+        expect(error.column).toBe(5);
+        expect(error.message).toBe('日本語モードでは変数に「@」は使えません');
+    });
+
     test('DNCL to Ruby switch is not affected', async () => {
         await loadUri(`${uri}?rubyMode=dncl&locale=ja&tab=ruby`);
         await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', true);
