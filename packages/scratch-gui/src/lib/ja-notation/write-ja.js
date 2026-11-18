@@ -15,6 +15,9 @@
 // - the closing line has a comment, so the comment keeps its place;
 // - a comment line follows it: a comment at a shallower indent would be read
 //   as a line of the block.
+//
+// The comments are written with the comment mark of the settings (`//` or `#`).
+import { settingsOf, writeComment } from './settings';
 
 /** The spaces of one level of indent. */
 const INDENT = '    ';
@@ -165,6 +168,7 @@ class JaWriter {
      */
     constructor(program) {
         this.blank = Array.isArray(program.blankLines) ? new Set(program.blankLines) : null;
+        this.settings = settingsOf(program);
         // `{kind: 'line' | 'blank' | 'close', text, keep, comment}` per line.
         this.entries = [];
     }
@@ -177,7 +181,8 @@ class JaWriter {
      * @param {object} [more] - More about the entry (`kind`, `keep`, `isComment`).
      */
     push(depth, text, comment, more = {}) {
-        const withComment = typeof comment === 'string' && comment !== '' ? `${text} ${comment}` : text;
+        const withComment =
+            typeof comment === 'string' && comment !== '' ? `${text} ${writeComment(comment, this.settings)}` : text;
         this.entries.push({ kind: 'line', text: `${INDENT.repeat(depth)}${withComment}`, ...more });
     }
 
@@ -235,7 +240,7 @@ class JaWriter {
                 this.block(s, depth, `関数 ${s.name}(${s.params.join(', ')}):`);
                 return;
             case 'Comment':
-                this.push(depth, s.text, null, { isComment: true });
+                this.push(depth, writeComment(s.text, this.settings), null, { isComment: true });
                 return;
             case 'RubyCode':
                 this.rubyCode(s, depth);

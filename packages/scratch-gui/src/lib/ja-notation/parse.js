@@ -10,6 +10,7 @@
 // The two may be mixed: a block opened with `:` ends where the indentation
 // ends, one opened without `:` ends at its closing line (or a `⎿`).
 import { tokenize } from './lexer';
+import { readSettings } from './settings';
 
 /** The label of a numbered line: `(1)`, `(01)` and `(00-1)` (a line put before `(01)`). */
 const LABEL_RE = /^\(\d+(?:-\d+)*\)/;
@@ -149,9 +150,10 @@ const openBrackets = (tokens) =>
  * off, and a numbered line whose brackets are still open goes on over the
  * unnumbered lines after it (as long statements are wrapped in the examples).
  * @param {string} source - The Japanese source.
+ * @param {string} commentMarker - The comment mark of the settings.
  * @returns {Array<object>} `{line, endLine, tokens, comment, width, marks, closeCount, blank}`.
  */
-const readLines = (source) => {
+const readLines = (source, commentMarker) => {
     const raw = source.split('\n');
     const labels = raw.map((text) => {
         const m = text.match(LABEL_RE);
@@ -179,7 +181,7 @@ const readLines = (source) => {
         const marks = prefix.match(/[｜|⎿]/g) || [];
         const afterMarks = prefix.match(/[^｜|⎿]*$/)[0];
         const width = marks.length === 0 ? indentWidth(prefix) : marks.length * MARK_WIDTH + indentWidth(afterMarks);
-        const tokens = tokenize(rest.substring(prefix.length), offset + prefix.length).map((t) => ({
+        const tokens = tokenize(rest.substring(prefix.length), offset + prefix.length, commentMarker).map((t) => ({
             ...t,
             line: i + 1,
         }));
@@ -217,6 +219,25 @@ const readLines = (source) => {
         i++;
     }
     return lines;
+};
+
+/**
+ * The comment lines at the top of the source, before its first line of code
+ * (with `#` or `//`, whatever the comment mark is: they say what it is).
+ * @param {string} source - The Japanese source.
+ * @returns {Array<string>} The comments.
+ */
+const headerComments = (source) => {
+    const comments = [];
+    for (const raw of source.split('\n')) {
+        const label = raw.match(LABEL_RE);
+        const rest = raw.substring(label ? label[0].length : 0);
+        const text = rest.substring(rest.match(PREFIX_RE)[0].length).trimEnd();
+        if (text === '') continue;
+        if (!text.startsWith('#') && !text.startsWith('//')) break;
+        comments.push(text);
+    }
+    return comments;
 };
 
 /** Reads an expression from tokens (recursive descent, lowest precedence first). */
@@ -842,13 +863,16 @@ const tokenError = (tokens) => {
  * line that is not deeper than it) or `closer` (it ends at a closing line or
  * a `⎿`; the indentation in it does not matter). A block opened with `:`
  * whose next line is not deeper is a `closer` block too.
+ * The settings (./settings.js) are read from the comments at the top first:
+ * the comment mark changes how the lines are read.
  * @param {string} source - The Japanese source.
  * @returns {{program: ?object, errors: Array<object>}} The program (null when
  *   there are errors) and the errors (`{code, message, line, column}`).
  */
 const parse = (source) => {
-    const lines = readLines(source);
-    const program = { type: 'Program', settings: {}, body: [], line: 1, column: 0 };
+    const settings = readSettings(headerComments(source));
+    const lines = readLines(source, settings.commentMarker);
+    const program = { type: 'Program', settings, body: [], line: 1, column: 0 };
     const errors = [];
     const stack = [];
     let lastCodeLine = 1;

@@ -12,8 +12,11 @@
 // kept as `RubyCode` (the Ruby as written), and the calls the Japanese does
 // not have are told as errors (`unknown-command`), with the numbers written
 // in a Ruby notation (`bad-number`) and the post-test loop (`post-test-loop`).
-// The lines of the JaAST are the lines of the Ruby.
+// The lines of the JaAST are the lines of the Ruby. The settings are read from
+// the comments at the top (./settings.js), and what they change is changed
+// back on the tree: with indexes from 1, `@A[i - 1]` is read as `A[i]`.
 import { callOf, childrenOf, field, hasFlag, SourceIndex, statementsOf, typeOf, unwrap } from './prism-reader';
+import { indexToJa, readSettings } from './settings';
 
 /** The binary operators of Ruby that are the same in the Japanese. */
 const BINARY_OPERATORS = new Set(['+', '-', '*', '/', '%', '==', '!=', '<', '<=', '>', '>=']);
@@ -58,6 +61,19 @@ class RubyReader {
         this.functions = new Set();
         this.collectFunctions(result.value);
         this.readComments(result.comments || []);
+        this.settings = this.readSettings(result);
+    }
+
+    /**
+     * The settings the comments at the top of the Ruby say (before its first
+     * statement), so the Japanese is written by them (./settings.js).
+     * @param {object} result - The result of the prism parse.
+     * @returns {object} The settings.
+     */
+    readSettings(result) {
+        const first = statementsOf(field(result.value, 'statements'))[0];
+        const before = first ? this.lineOf(first) : Infinity;
+        return readSettings(this.ownComments.filter((entry) => entry.line < before).map((entry) => entry.text));
     }
 
     /**
@@ -339,7 +355,8 @@ class RubyReader {
      */
     indexOf(receiver, index) {
         const target = this.expression(receiver);
-        return { type: 'Index', target, index: this.expression(index), line: target.line, column: target.column };
+        const ja = indexToJa(this.expression(index), this.settings);
+        return { type: 'Index', target, index: ja, line: target.line, column: target.column };
     }
 
     /**
@@ -1097,7 +1114,7 @@ class RubyReader {
         for (let line = 1; line <= lineCount; line++) {
             if (this.index.lineText(line).trim() === '') blankLines.push(line);
         }
-        return { type: 'Program', settings: {}, body, lineCount, blankLines };
+        return { type: 'Program', settings: this.settings, body, lineCount, blankLines };
     }
 }
 

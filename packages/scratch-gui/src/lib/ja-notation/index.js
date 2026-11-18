@@ -7,6 +7,7 @@
 import { buildRuby, RUBY } from './build-ruby';
 import { parse } from './parse';
 import { readRuby } from './read-ruby';
+import { DEFAULT_SETTINGS, readSettings, settingsSentences } from './settings';
 import { writeJa } from './write-ja';
 import { writeRuby } from './write-ruby';
 
@@ -43,4 +44,16 @@ const rubyToJa = (source, options) => {
     return { ja: writeJa(program), errors, program };
 };
 
-export { buildRuby, jaToRuby, parse, readRuby, RUBY, rubyToJa, writeJa, writeRuby };
+export {
+    buildRuby,
+    DEFAULT_SETTINGS,
+    jaToRuby,
+    parse,
+    readRuby,
+    readSettings,
+    RUBY,
+    rubyToJa,
+    settingsSentences,
+    writeJa,
+    writeRuby,
+};
