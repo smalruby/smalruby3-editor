@@ -30,7 +30,7 @@
     "clean": "npm run --workspaces clean",
     "lint": "npm run lint:secrets && npm run test:hosting-scripts && npm run lint --workspace=packages/scratch-vm --workspace=packages/scratch-gui",
     "lint:secrets": "node --test scripts/check-dev-bypass-token.test.mjs && node scripts/check-dev-bypass-token.mjs",
-    "test:hosting-scripts": "node --test scripts/hosting/dns-compare.test.mjs scripts/hosting/site-compare.test.mjs",
+    "test:hosting-scripts": "node --test scripts/hosting/dns-compare.test.mjs scripts/hosting/site-compare.test.mjs scripts/precompress-assets.test.mjs",
     "format": "npm run format --workspace=packages/scratch-vm --workspace=packages/scratch-gui",
     "format:check": "npm run format:check --workspace=packages/scratch-vm --workspace=packages/scratch-gui",
     "prepare": "husky install",
