@@ -344,31 +344,6 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
         // カスタムのレスポンスヘッダーポリシーを使えないので、配信には AWS 管理の CachingOptimized と
         // viewer-response 関数（ヘッダ）を付ける。
         //
-        // 下の SiteCachePolicy と SiteResponseHeaders は、もう配信から参照しないが定義を残す。
-        // 消すと cdk diff にリソースの削除が出て、Deploy Infra の prod 自動デプロイが安全装置で
-        // 止まるため（.claude/rules/infra/development.md）。配信が参照しなくなった版が prod に
-        // 出たあと、別の follow-up（人間が手元から出す Contract）で 2 つを消す。
-        this.createCachePolicy(
-            'SiteCachePolicy',
-            'smalruby.app: short for index.html, honor Cache-Control for assets',
-        );
-
-        // GitHub Pages が返している HSTS をそのまま引き継ぐ（.app は HSTS preload 済みなので
-        // ブラウザは常に HTTPS で来るが、ヘッダが消えると診断ツールで差分に見える）。
-        // いまは同じヘッダを viewer-response 関数（SiteViewerResponse）で付けており、これは
-        // 上と同じ理由で定義だけ残している（follow-up で消す）。
-        new cloudfront.ResponseHeadersPolicy(this, 'SiteResponseHeaders', {
-            comment: 'smalruby.app: HSTS and nosniff',
-            securityHeadersBehavior: {
-                strictTransportSecurity: {
-                    accessControlMaxAge: cdk.Duration.days(365),
-                    includeSubdomains: false,
-                    override: true,
-                },
-                contentTypeOptions: { override: true },
-            },
-        });
-
         // HSTS（365 日・includeSubDomains なし）と nosniff を付ける。管理ポリシー
         // Managed-SecurityHeadersPolicy は X-Frame-Options: SAMEORIGIN なども足し、smalruby.app を
         // iframe に埋めている所を壊しうるので使わない。
