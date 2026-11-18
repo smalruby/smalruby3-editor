@@ -63,7 +63,7 @@ smalruby3-editor の機能ドキュメントは **ユーザーストーリー単
 | [`extension-boost/`](extension-boost/) (`defaultHidden: true`) | ⬆️ そのまま | ✅ |
 | [`extension-wedo2/`](extension-wedo2/) (`defaultHidden: true`) | ⬆️ そのまま | ✅ |
 | [`extension-mesh-v2/`](extension-mesh-v2/) | 🆕 独自 | ✅ |
-| [`extension-smalrubot-s1/`](extension-smalrubot-s1/) | 🆕 独自 | ✅ |
+| [`extension-smalrubot-s1/`](extension-smalrubot-s1/)（Studuino／旧 スモウルボットS1） | 🆕 独自 | ✅ |
 | [`extension-koshien/`](extension-koshien/) | 🆕 独自 | ✅ |
 | [`extension-smalruby-ruby/`](extension-smalruby-ruby/) | 🆕 独自 | ✅ |
 | [`extension-tm2scratch/`](extension-tm2scratch/) | 🆕 独自 | ✅ |
