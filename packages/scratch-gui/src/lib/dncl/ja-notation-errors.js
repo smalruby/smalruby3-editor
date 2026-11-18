@@ -11,9 +11,11 @@ import {
     codeWithoutStrings,
     POST_TEST_LOOP_ERROR_ID,
     POST_TEST_LOOP_MESSAGE,
+    UNSUPPORTED_NOTATION_ERROR_ID,
     UNSUPPORTED_NUMBER_ERROR_ID,
     UNSUPPORTED_COMMAND_ERROR_ID,
     unsupportedCommandMessage,
+    unsupportedNotationMessage,
     unsupportedNumberMessage,
 } from './dncl-validator';
 
@@ -61,7 +63,8 @@ const blockMessage = (error) => {
  * the 1-based column, with `id` and `name` for the errors the UI translates).
  * @param {object} error - An error of ja-notation.
  * @returns {?object} The error, or null when it is not one of the words of
- *   the Japanese mode (a Ruby command, a number, `@`, the post-test loop).
+ *   the Japanese mode (a Ruby command, a number, Ruby with no Japanese form,
+ *   `@`, the post-test loop).
  */
 const wordError = (error) => {
     const at = { line: error.line, column: error.column + 1 };
@@ -77,6 +80,13 @@ const wordError = (error) => {
             };
         case 'post-test-loop':
             return { line: error.line, column: 1, id: POST_TEST_LOOP_ERROR_ID, message: POST_TEST_LOOP_MESSAGE };
+        case 'no-ja-form':
+            return {
+                ...at,
+                id: UNSUPPORTED_NOTATION_ERROR_ID,
+                name: error.name,
+                message: unsupportedNotationMessage(error.name),
+            };
         case 'unknown-command':
             return {
                 ...at,

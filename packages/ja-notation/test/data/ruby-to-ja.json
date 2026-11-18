@@ -56,6 +56,95 @@
             "ruby": "佐々木 = 7\n㐀〆 = 佐々木 + 2\nα = 佐々木",
             "ja": "佐々木 = 7\n㐀〆 = 佐々木 + 2\nα = 佐々木",
             "errors": []
+        },
+        {
+            "title": "case / when has no Japanese form: it is kept as it is and told at case (Issue #1740)",
+            "table": "none",
+            "ruby": "x = 1\ncase x\nwhen 1\n  y = 2\nend",
+            "ja": "x = 1\ncase x\nwhen 1\n  y = 2\nend",
+            "errors": [
+                {
+                    "code": "no-ja-form",
+                    "message": "「case」は日本語では書けません",
+                    "line": 2,
+                    "column": 0,
+                    "name": "case"
+                }
+            ]
+        },
+        {
+            "title": "a hash and a symbol are told where they are",
+            "table": "none",
+            "ruby": "h = {}\ny = h[:a]",
+            "ja": "h = {}\ny = h[:a]",
+            "errors": [
+                {
+                    "code": "no-ja-form",
+                    "message": "「{}」は日本語では書けません",
+                    "line": 1,
+                    "column": 4,
+                    "name": "{}"
+                },
+                {
+                    "code": "no-ja-form",
+                    "message": "「:a」は日本語では書けません",
+                    "line": 2,
+                    "column": 6,
+                    "name": ":a"
+                }
+            ]
+        },
+        {
+            "title": "a modifier unless is told at unless, and the Ruby inside it is not told again",
+            "table": "none",
+            "ruby": "x = 1\ny = 2 unless x == 1",
+            "ja": "x = 1\ny = 2 unless x == 1",
+            "errors": [
+                {
+                    "code": "no-ja-form",
+                    "message": "「unless」は日本語では書けません",
+                    "line": 2,
+                    "column": 6,
+                    "name": "unless"
+                }
+            ]
+        },
+        {
+            "title": "Ruby with no keyword is named by its text, cut at 20 characters",
+            "table": "none",
+            "ruby": "x = 1\ny = x == 1 ? 1234567890 : 2",
+            "ja": "x = 1\ny = x == 1 ? 1234567890 : 2",
+            "errors": [
+                {
+                    "code": "no-ja-form",
+                    "message": "「x == 1 ? 1234567890 …」は日本語では書けません",
+                    "line": 2,
+                    "column": 4,
+                    "name": "x == 1 ? 1234567890 …"
+                }
+            ]
+        },
+        {
+            "title": "a call the Japanese does not have is told once, as a command",
+            "table": "none",
+            "ruby": "x = [1]\nx.each { |v| v }",
+            "ja": "x = [1]\nx.each { |v| v }",
+            "errors": [
+                {
+                    "code": "unknown-command",
+                    "message": "「each」は日本語では書けない命令です",
+                    "line": 2,
+                    "column": 2,
+                    "name": "each"
+                }
+            ]
+        },
+        {
+            "title": "with no table, a name in capitals (a constant in Ruby) is a name",
+            "table": "none",
+            "ruby": "A = 3\nx = A + 1",
+            "ja": "A = 3\nx = A + 1",
+            "errors": []
         }
     ]
 }

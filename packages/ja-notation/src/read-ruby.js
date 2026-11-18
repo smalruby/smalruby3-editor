@@ -28,6 +28,7 @@ const OP_ASSIGN_OPERATORS = new Set(['+', '-', '*', '/', '%']);
 const VARIABLE_WRITES = {
     InstanceVariableWriteNode: 'instance',
     LocalVariableWriteNode: 'local',
+    ConstantWriteNode: 'constant',
 };
 
 /** The kinds of node that change a variable (to tell a counting loop). */
@@ -58,6 +59,11 @@ class RubyReader {
         this.calls = options.calls || {};
         this.passthrough = options.passthrough || new Set();
         this.errors = [];
+        // Where each error is (character index), to tell whether a RubyCode has one in it.
+        this.errorStarts = [];
+        // Ruby prism could not read has nodes of its recovery: only its first error is told.
+        this.hasSyntaxErrors = (result.errors || []).length > 0;
+        this.rawDepth = 0;
         this.functions = new Set();
         this.collectFunctions(result.value);
         this.readComments(result.comments || []);
@@ -181,15 +187,37 @@ class RubyReader {
 
     /**
      * Note an error at a node or a location.
-     * @param {string} code - `unknown-command`, `bad-number`, `post-test-loop` or `ruby-syntax`.
+     * @param {string} code - `unknown-command`, `bad-number`, `post-test-loop`, `no-ja-form` or `ruby-syntax`.
      * @param {string} message - The message.
      * @param {object} at - The node or location.
      * @param {object} [detail] - More (`name`).
      */
     fail(code, message, at, detail = {}) {
         const loc = typeof at.startOffset === 'number' ? at : field(at, 'location');
-        const { line, column } = this.index.place(this.index.charAt(loc.startOffset));
+        const start = this.index.charAt(loc.startOffset);
+        const { line, column } = this.index.place(start);
         this.errors.push({ code, message, line, column, ...detail });
+        this.errorStarts.push(start);
+    }
+
+    /**
+     * Note Ruby with no Japanese form that no other error tells (`case`, a
+     * hash, a symbol, a modifier `unless`; Issue #1740): kept as it is
+     * written, it would be read back as Japanese that makes no sense (`@`,
+     * `{`), so it is told where it is. A node led by a keyword is told at the
+     * keyword (`unless` of `puts(1) unless x`) and named by it; any other by
+     * its text (its first line, cut at 20 characters).
+     * @param {object} node - The node.
+     */
+    failNoForm(node) {
+        const fields = node.toJSON();
+        const keyword = Object.keys(fields)
+            .filter((key) => /(?:^k|K)eywordLoc$/.test(key) && !/^(?:end|then)/.test(key) && fields[key])
+            .map((key) => fields[key])
+            .sort((a, b) => a.startOffset - b.startOffset)[0];
+        const text = keyword ? this.index.text(keyword) : this.text(node).split('\n')[0].trimEnd();
+        const name = [...text].length > 20 ? `${[...text].slice(0, 20).join('')}…` : text;
+        this.fail('no-ja-form', `「${name}」は日本語では書けません`, keyword || node, { name });
     }
 
     /**
@@ -203,14 +231,22 @@ class RubyReader {
 
     /**
      * Ruby with no Japanese form, kept as it is written. Its parts are still
-     * read, so the calls and numbers in it are told.
+     * read, so the calls and numbers in it are told, and when none of them
+     * is, the Ruby itself is (`no-ja-form`).
      * @param {object} node - The node.
      * @returns {object} The RubyCode.
      */
     raw(node) {
         const { start, end } = this.span(node);
         this.useCommentsIn(start, end);
+        // An error already told at this Ruby (a call the Japanese does not
+        // have, `break`, the post-test loop) says why it is kept.
+        const told = this.errorStarts.some((at) => at >= start && at < end);
+        // The Ruby inside it is a part of it: only the outermost is told.
+        this.rawDepth += 1;
         this.scan(node);
+        this.rawDepth -= 1;
+        if (!told && this.rawDepth === 0 && !this.hasSyntaxErrors) this.failNoForm(node);
         const { line, column } = this.index.place(start);
         return { type: 'RubyCode', text: this.index.source.substring(start, end), line, column, indent: column };
     }
@@ -297,6 +333,7 @@ class RubyReader {
                 return this.multiAssign(node);
             case 'InstanceVariableOperatorWriteNode':
             case 'LocalVariableOperatorWriteNode':
+            case 'ConstantOperatorWriteNode':
             case 'IndexOperatorWriteNode':
                 return this.opAssign(node);
             default:
@@ -342,6 +379,10 @@ class RubyReader {
         const type = typeOf(node);
         const name = field(node, 'name');
         if (type.startsWith('Local')) return { type: 'Name', name, line: this.lineOf(node), column: 0 };
+        // With no table, a name in capitals is a constant (`A = 3`, as `buildRuby` writes it).
+        if (type.startsWith('Constant') && !this.options.variable) {
+            return { type: 'Name', name, line: this.lineOf(node), column: 0 };
+        }
         if (!type.startsWith('InstanceVariable')) return null;
         const ja = this.options.variable ? this.options.variable(name) : name;
         return ja ? { type: 'Name', name: ja, line: this.lineOf(node), column: 0 } : null;
@@ -369,7 +410,7 @@ class RubyReader {
         const value = field(node, 'value');
         const targets = lefts.map((left) => {
             const type = typeOf(left);
-            if (type === 'InstanceVariableTargetNode' || type === 'LocalVariableTargetNode') return this.target(left);
+            if (/^(?:InstanceVariable|LocalVariable|Constant)TargetNode$/.test(type)) return this.target(left);
             return null;
         });
         const plain =
@@ -914,6 +955,9 @@ class RubyReader {
             }
             case 'LocalVariableReadNode':
                 return { type: 'Name', name: field(node, 'name'), ...where };
+            case 'ConstantReadNode':
+                // With no table, a name in capitals is a constant (see `target`).
+                return this.options.variable ? this.raw(node) : { type: 'Name', name: field(node, 'name'), ...where };
             case 'ArrayNode':
                 if (field(node, 'openingLoc') === null || !/^\[/.test(this.text(node))) return this.raw(node);
                 return {
@@ -1124,7 +1168,8 @@ class RubyReader {
  * @param {string} source - The Ruby source.
  * @param {object} [options] - What the Ruby of a system is in the Japanese.
  * @param {function(string): ?string} [options.variable] - The Japanese name of
- *   an instance variable (`@x` → `x`), or null when it has none.
+ *   an instance variable (`@x` → `x`), or null when it has none. Without it,
+ *   the local variables and the constants (`A`) are the names.
  * @param {object} [options.calls] - `{method: (call, helpers) => ?JaAST}`: the
  *   Japanese of a call (`puts(x)` → `表示する(x)`), or null when it is not one.
  *   `call` is `{name, receiver, args, hasParens, node}` (prism nodes); the

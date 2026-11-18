@@ -21,6 +21,7 @@ import {
     isRubyCommandName,
     POST_TEST_LOOP_ERROR_ID,
     UNSUPPORTED_COMMAND_ERROR_ID,
+    UNSUPPORTED_NOTATION_ERROR_ID,
     UNSUPPORTED_NUMBER_ERROR_ID,
 } from '../lib/dncl/dncl-validator';
 import { rubyToDncl } from '../lib/dncl/ruby-to-dncl';
@@ -779,6 +780,15 @@ const RubyTab = (props) => {
                         id: 'gui.rubyTab.dnclUnsupportedNumberError',
                         defaultMessage:
                             '"{name}" is a way of writing a number that cannot be used in Japanese mode (a hex number, _ between digits, an exponent and so on). Write it like "1000" or "0.5". You can write it in Ruby mode.',
+                    },
+                    { name: err.name },
+                );
+            }
+            if (err.id === UNSUPPORTED_NOTATION_ERROR_ID) {
+                return intl.formatMessage(
+                    {
+                        id: 'gui.rubyTab.dnclUnsupportedNotationError',
+                        defaultMessage: '"{name}" cannot be written in Japanese mode. You can write it in Ruby mode.',
                     },
                     { name: err.name },
                 );

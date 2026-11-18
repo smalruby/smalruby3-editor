@@ -1251,6 +1251,34 @@
     "ruby": "@i = 0\nwhile @i < 10\n  redo if @i == 3\n  retry if @i == 4\nend"
   },
   {
+    "id": "ruby-9fcce08e32",
+    "from": [
+      "test/unit/lib/dncl/dncl-no-ja-form.test.js › Ruby → DNCL: Ruby with no Japanese form (issue #1740) a hash and a symbol are told where they are"
+    ],
+    "ruby": "@h = {}\nputs(@h[:a])"
+  },
+  {
+    "id": "ruby-6c853477e1",
+    "from": [
+      "test/unit/lib/dncl/dncl-no-ja-form.test.js › Ruby → DNCL: Ruby with no Japanese form (issue #1740) a modifier unless is told at unless"
+    ],
+    "ruby": "puts(1) unless @x"
+  },
+  {
+    "id": "ruby-4e120bf048",
+    "from": [
+      "test/unit/lib/dncl/dncl-no-ja-form.test.js › Ruby → DNCL: Ruby with no Japanese form (issue #1740) case / when is told at case"
+    ],
+    "ruby": "case @x\nwhen 1\n  puts(1)\nend"
+  },
+  {
+    "id": "ruby-8cd07fa1a1",
+    "from": [
+      "test/unit/lib/dncl/dncl-no-ja-form.test.js › Ruby → DNCL: Ruby with no Japanese form (issue #1740) the ternary operator is told by its text"
+    ],
+    "ruby": "@a = @x ? 1 : 2"
+  },
+  {
     "id": "ruby-e80730bcfe",
     "from": [
       "test/unit/lib/dncl/dncl-number-notation.test.js › an integer with leading zeros (issue #1745) Ruby @a = 0 has no number error"
