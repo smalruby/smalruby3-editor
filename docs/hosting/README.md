@@ -181,6 +181,23 @@ prod ステージのリソースは、`infra/smalruby-web-hosting/lib/web-hostin
 
 - CloudFront のキャッシュポリシーは AWS 管理の `CachingOptimized`（`Cache-Control` があれば従う・最長 1 年。クエリ文字列・ヘッダ・Cookie はキーに含めない）。定額プランはカスタムのキャッシュポリシーを使えないため。**`Cache-Control` が無いオブジェクトはエッジに 1 日残る**（プレビューの 60 秒と違う）ので、CI は上の表のとおり全ファイルに `Cache-Control` を付けて置く。
 - CI は置いたあとに `/*` を invalidation する（1 回 1 パスとして数えるので、月 1,000 パスの無料枠に十分収まる）。
+
+### 事前圧縮した gui の JS
+
+CloudFront は **1,000〜10,000,000 バイトのファイルしか自動で圧縮しない**（[Serving compressed files](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/ServingCompressedFiles.html)）。エディタ本体の `gui.<hash>.js` は約 25 MB あるので、そのままでは無圧縮で送られる（GitHub Pages は gzip で約 7.7 MB）。また CloudFront がその場でかける br は brotli の q1〜q2 程度と弱い。設計の出発点は #2198。
+
+そのため CI が、S3 に置く直前に gui の JS を事前に圧縮して、元のファイルの隣に置く:
+
+| 置くもの | 中身 | ヘッダ |
+|---|---|---|
+| `gui.<hash>.js.br`（プレビューは `gui.js.br`） | brotli quality 11（ウィンドウ 24 ビット） | `Content-Type: text/javascript`、`Content-Encoding: br`、`Cache-Control` は元と同じ |
+| `gui.<hash>.js.gz`（プレビューは `gui.js.gz`） | gzip -9 | `Content-Type: text/javascript`、`Content-Encoding: gzip`、`Cache-Control` は元と同じ |
+
+- 圧縮は `scripts/precompress-assets.mjs`（node の `zlib` だけ。依存なし）。解いて元と同じになることを確かめてから書く。テストは `scripts/precompress-assets.test.mjs`（CI の同じ段で流す）。
+- 対象は**トップレベルの `gui.js` / `gui.<hash>.js` だけ**。ほかのファイルは 10 MB 未満で CloudFront が圧縮するので、手間（br q11 は 25 MB で約 30 秒）をかけない。ほかに 10,000,000 バイトを超えるファイル（`.map` を除く。ソースマップは DevTools しか読まない）が出てきたら、CI が `::warning::` を出す。そのときは対象に足すか、ビルドで分ける。
+- `aws s3 sync` は拡張子からヘッダを推測するので、`.br` / `.gz` は `aws s3 cp` でヘッダを明示して置く。置く順番は「ハッシュ付きのファイル → `.br` / `.gz` → `index.html` などハッシュの無いもの」。
+- 圧縮版はビルドの出力（本番は `dist`、プレビューは `build`）の中に作る。本番では GitHub Pages へ出したあとに作るので、GitHub Pages には載らない。最後の `--delete --size-only` は、出力にある圧縮版を消さず（大きさが同じなので置き直しもしない）、古い gui の圧縮版は消す。
+- 圧縮版を `Accept-Encoding` に応じて返すのは viewer-request の CloudFront Function（URI を `.br` / `.gz` に書きかえる）。オリジンの応答に `Content-Encoding` があれば CloudFront は圧縮し直さないので、置いたものがそのまま返る。関数が書きかえるまでは誰も `.br` / `.gz` を読まないので、置くだけでは配信は変わらない。
 - S3 はバージョニングを有効にし、上書き・削除された古い版を 30 日残す（CI の誤りで消えたファイルを戻すため。日数は人間が決める値）。いまの版は期限で消さない（プレビューと違う点）。バケットは本番の配信元なので `RETAIN`（スタックを消しても残る）。
 
 ## アクセスログ（段 5）
@@ -268,5 +285,6 @@ prod ステージのリソースは、`infra/smalruby-web-hosting/lib/web-hostin
 | `infra/smalruby-web-hosting/lib/functions/preview-viewer-request.js` | viewer-request の CloudFront Function のコード（ディレクトリの URL を `index.html` に解決し、拡張子の無い URL を `/<path>/` へ 301）。本番とプレビューで共用（関数のリソースは別） |
 | `infra/smalruby-web-hosting/test/web-hosting.test.ts` | スタックのテスト |
 | `.github/workflows/ci-cd.yml`（`build-and-deploy`） | 本番のビルドと配置 |
+| `scripts/precompress-assets.mjs` | gui の JS の `.br` / `.gz` を作る（「事前圧縮した gui の JS」）。テストは `scripts/precompress-assets.test.mjs` |
 | `docs/infra/smalruby-web-hosting.md` | 配信基盤の CDK の詳細と運用 |
 | `docs/security/github-pages-subdomain-takeover.md` | GitHub Pages のサブドメイン乗っ取り対策（検証用 TXT は残す） |

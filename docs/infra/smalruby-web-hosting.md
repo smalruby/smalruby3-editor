@@ -118,6 +118,11 @@ ACM の DNS 検証は、公開 DNS から検証レコード（CNAME）が引け�
   `dontCacheBustURLsMatching` と同じ `/\.[0-9a-f]{8,}\./`）は
   `Cache-Control: public, max-age=31536000, immutable` を付ける。
 - 置き直したら `/<slug>/*` を invalidation する（すぐに反映させたいとき）。
+- gui の JS（プレビューは `gui.js`、本番は `gui.<hash>.js`）は、事前に圧縮した `.br`（brotli q11）と
+  `.gz`（gzip -9）も隣に置く。CloudFront は 10,000,000 バイトを超えるファイルを圧縮しないため。
+  `Content-Type: text/javascript`・`Content-Encoding: br` / `gzip`・元と同じ `Cache-Control` を
+  `aws s3 cp` で明示し、`index.html` より前に置く。作り方と理由は `docs/hosting/README.md` の
+  「事前圧縮した gui の JS」。
 
 ### Microsoft ログインの戻り先 `/auth-redirect.html`
 
@@ -235,7 +240,8 @@ aws s3 rm "s3://$BUCKET/index.html"
   `pull-requests` の write）も書き直している（ジョブに書くと workflow の分は引き継がれない）。
 - 置き方はプレビューと同じ「CI がアップロードするときの約束」: ハッシュ付きのファイルは
   `public, max-age=31536000, immutable`、それ以外は `max-age=0, s-maxage=60`。`.wasm` / `.mjs` / `.hex` は
-  `Content-Type` を明示する。最後に `--delete --size-only` で古いファイルを消す。
+  `Content-Type` を明示する。gui の JS の `.br` / `.gz` も置く（上の約束の最後の項目）。最後に
+  `--delete --size-only` で古いファイルを消す。
 - 本体（`packages/scratch-gui/dist`）はバケットの直下、管理 SPA（`packages/admin/build`）は `admin/` に置く。
   本体の `--delete` は `admin/*` を除き、管理 SPA の `--delete` は `admin/` の中だけに効く。
   `.well-known/` などドットで始まるものも置く。GitHub Pages 用の `.nojekyll` と `CNAME` は置かない。
@@ -330,7 +336,9 @@ aws route53 list-hosted-zones-by-name --dns-name smalruby.app \
    （ビルド自体は相対パスなので、置き場所を選ばない）。
 5. GitHub OIDC で `PreviewDeployRoleArn` を AssumeRole し、`s3://<bucket>/<slug>/` に置く。上の
    「CI がアップロードするときの約束」どおり、ハッシュ付きのファイルとそれ以外で `Cache-Control` を
-   分けて 2 回 sync し、最後に `--delete --size-only` で新しいビルドに無いものを消す。
+   分けて 2 回 sync し（その間に `gui.js.br` / `gui.js.gz` を `aws s3 cp` で置く）、最後に
+   `--delete --size-only` で新しいビルドに無いものを消す。その前に `postbuild.mjs` のあとで
+   `scripts/precompress-assets.mjs packages/scratch-gui/build` が `.br` / `.gz` を作る。
 6. **develop のときだけ**、バケットのルートに `auth-redirect.html` / `auth-redirect.js` を置く
    （全プレビューが共有するので、ブランチからは上書きしない）。
 7. `/<slug>/*` を invalidation し、PR なら 1 回だけ URL をコメントする。
