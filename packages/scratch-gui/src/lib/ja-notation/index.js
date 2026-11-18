@@ -5,11 +5,11 @@
 // The library has no dependency: it imports nothing outside this directory,
 // and the functions and names of a Ruby system are given by the caller.
 import { buildRuby, RUBY } from './build-ruby';
-import { parseStandard } from './parse-standard';
+import { parse } from './parse';
 import { writeRuby } from './write-ruby';
 
 /**
- * Japanese (the standard form) to Ruby: read (a), build (b) and write (c).
+ * Japanese (the standard form or the DNCL-like form) to Ruby: read (a), build (b) and write (c).
  * @param {string} source - The Japanese source.
  * @param {object} [options] - The table of names and functions (see `buildRuby`).
  * @returns {{ruby: ?string, jaLines: ?Array<number>, errors: Array<object>, program: ?object}}
@@ -17,7 +17,7 @@ import { writeRuby } from './write-ruby';
  *   errors (`{code, message, line, column}` on Japanese lines) and the JaAST.
  */
 const jaToRuby = (source, options = {}) => {
-    const parsed = parseStandard(source);
+    const parsed = parse(source);
     if (!parsed.program) return { ruby: null, jaLines: null, errors: parsed.errors, program: null };
     const built = buildRuby(parsed.program, options);
     if (!built.ruby) return { ruby: null, jaLines: null, errors: built.errors, program: parsed.program };
@@ -25,4 +25,4 @@ const jaToRuby = (source, options = {}) => {
     return { ruby, jaLines, errors: [], program: parsed.program };
 };
 
-export { buildRuby, jaToRuby, parseStandard, RUBY, writeRuby };
+export { buildRuby, jaToRuby, parse, RUBY, writeRuby };

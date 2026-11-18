@@ -139,6 +139,20 @@ const analyze = (program, functions) => {
     return { arrays, declared, functions: defined };
 };
 
+/**
+ * Where a block ends, from its JaAST statement: `closeLine` / `closeAfter`,
+ * and `closeOwnLine` / `closeComment` when a line of its own closes it (the
+ * DNCL-like form), so its `end` is on that line with the comment of the line.
+ * @param {object} s - The block statement.
+ * @returns {object} The fields.
+ */
+const closing = (s) => {
+    const out = { closeLine: s.closeLine, closeAfter: s.closeAfter };
+    if (s.closeOwnLine) out.closeOwnLine = true;
+    if (typeof s.closeComment !== 'undefined') out.closeComment = s.closeComment;
+    return out;
+};
+
 /** Builds the RubyAST of one program. */
 class RubyBuilder {
     /**
@@ -446,7 +460,7 @@ class RubyBuilder {
             if (i > 0 && typeof branch.comment !== 'undefined') node.comment = branch.comment;
             subsequent = node;
         }
-        return { ...subsequent, closeLine: s.closeLine, closeAfter: s.closeAfter };
+        return { ...subsequent, ...closing(s) };
     }
 
     /**
@@ -460,8 +474,7 @@ class RubyBuilder {
             type: negated ? 'UntilNode' : 'WhileNode',
             predicate: this.expression(negated ? s.condition.operand : s.condition),
             statements: this.statements(s.body),
-            closeLine: s.closeLine,
-            closeAfter: s.closeAfter,
+            ...closing(s),
         };
     }
 
@@ -478,8 +491,8 @@ class RubyBuilder {
         let step = this.expression(s.step);
         if (!up) {
             step =
-                step.type === 'IntegerNode' || step.type === 'FloatNode'
-                    ? { ...step, text: step.text.startsWith('-') ? step.text.substring(1) : `-${step.text}` }
+                (step.type === 'IntegerNode' || step.type === 'FloatNode') && !step.text.startsWith('-')
+                    ? { ...step, text: `-${step.text}` }
                     : call(step, '-@');
         }
         const init = this.write(variable, this.expression(s.from));
@@ -491,8 +504,7 @@ class RubyBuilder {
             type: 'WhileNode',
             predicate: call(this.read(variable.name), up ? '<=' : '>=', [this.expression(s.to)]),
             statements: body,
-            closeLine: s.closeLine,
-            closeAfter: s.closeAfter,
+            ...closing(s),
             jaLine: s.line,
             increment,
         };
@@ -515,15 +527,14 @@ class RubyBuilder {
             name: s.name,
             parameters: s.params,
             statements,
-            closeLine: s.closeLine,
-            closeAfter: s.closeAfter,
+            ...closing(s),
         };
     }
 }
 
 /**
  * Build the RubyAST of a JaAST.
- * @param {object} program - The JaAST (from `parseStandard`).
+ * @param {object} program - The JaAST (from `parse`).
  * @param {object} [options] - What the names and functions become.
  * @param {function(string, {array: boolean}): string} [options.variable] - The
  *   Ruby name of a variable (`@x` makes an instance variable). Plain by default.

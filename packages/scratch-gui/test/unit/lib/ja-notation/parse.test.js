@@ -1,9 +1,10 @@
 /**
- * Reading the standard form of the Japanese into a JaAST (ja-notation, J1 of
- * docs/ruby-editor/converter-roadmap.md). The programs are written for the
- * tests (no problem of the 大学入試センター).
+ * Reading the Japanese into a JaAST (ja-notation, J1 and J2 of
+ * docs/ruby-editor/converter-roadmap.md): the standard form, and the DNCL-like
+ * form into the same JaAST. The programs are written for the tests (no problem
+ * of the 大学入試センター).
  */
-import { parseStandard } from '../../../../src/lib/ja-notation/parse-standard';
+import { parse } from '../../../../src/lib/ja-notation/parse';
 
 /** The JaAST without positions, to compare shapes. */
 const shape = (node) => {
@@ -11,14 +12,15 @@ const shape = (node) => {
     if (!node || typeof node !== 'object') return node;
     const out = {};
     Object.entries(node).forEach(([key, value]) => {
-        if (['line', 'column', 'endLine', 'closeLine', 'closeAfter', 'elseLine'].includes(key)) return;
+        const positions = ['line', 'column', 'endLine', 'closeLine', 'closeAfter', 'elseLine', 'closeOwnLine'];
+        if (positions.includes(key)) return;
         out[key] = shape(value);
     });
     return out;
 };
 
 const body = (source) => {
-    const { program, errors } = parseStandard(source);
+    const { program, errors } = parse(source);
     expect(errors).toEqual([]);
     return shape(program.body);
 };
@@ -26,7 +28,7 @@ const body = (source) => {
 const name = (n) => ({ type: 'Name', name: n });
 const num = (v) => ({ type: 'Number', value: v });
 
-describe('parseStandard: statements', () => {
+describe('parse: statements', () => {
     test('an assignment', () => {
         expect(body('x = 1')).toEqual([{ type: 'Assign', target: name('x'), value: num('1') }]);
     });
@@ -66,7 +68,7 @@ describe('parseStandard: statements', () => {
     });
 });
 
-describe('parseStandard: expressions', () => {
+describe('parse: expressions', () => {
     const value = (source) => body(`x = ${source}`)[0].value;
 
     test('`not` is weaker than a comparison and stronger than `and`', () => {
@@ -109,7 +111,7 @@ describe('parseStandard: expressions', () => {
     });
 });
 
-describe('parseStandard: blocks', () => {
+describe('parse: blocks', () => {
     const PRINT = (arg) => ({
         type: 'ExpressionStatement',
         expression: { type: 'Call', name: '表示する', args: [arg] },
@@ -196,31 +198,36 @@ describe('parseStandard: blocks', () => {
     });
 
     test('a numbered line with an open bracket goes on to the next line', () => {
-        const { program } = parseStandard('(1) 表示する(a,\n        b)\n(2) c = 1');
+        const { program } = parse('(1) 表示する(a,\n        b)\n(2) c = 1');
         expect(program.body).toHaveLength(2);
         expect(program.body[0]).toMatchObject({ line: 1, endLine: 2 });
     });
 
     test('a block that ends by its indent ends at the last code line', () => {
-        const { program } = parseStandard('もし a > 0 ならば:\n    a = 1\n\nb = 2');
+        const { program } = parse('もし a > 0 ならば:\n    a = 1\n\nb = 2');
         expect(program.body[0]).toMatchObject({ closeLine: 2, closeAfter: 3 });
     });
 });
 
-describe('parseStandard: errors', () => {
+describe('parse: errors', () => {
     const errorOf = (source) => {
-        const { program, errors } = parseStandard(source);
+        const { program, errors } = parse(source);
         expect(program).toBeNull();
         return errors[0];
     };
 
     test.each([
-        ['もし a > 0 ならば\n  b = 1\nを実行する'],
-        ['a ← 1'],
-        ['x = a かつ b'],
-        ['表示する(「こんにちは」)'],
-    ])('the DNCL-like form is told apart: %s', (source) => {
-        expect(errorOf(source).code).toBe('dncl-like');
+        ['を実行する', 'syntax'],
+        ['もし a > 0 ならば:\n    b = 1\n        を実行する', 'syntax'],
+        ['もし a > 0 ならば:\n    b = 1\nend', 'syntax'],
+        ['もし a > 0 ならば\n  b = 1', 'unclosed'],
+        ['関数 f(a)\n  返す a', 'unclosed'],
+    ])('a closing line that does not match: %s (%s)', (source, code) => {
+        expect(errorOf(source).code).toBe(code);
+    });
+
+    test('a block not closed is an error on its opening line', () => {
+        expect(errorOf('x = 1\nx > 0 の間\n  x = x - 1')).toMatchObject({ line: 2, code: 'unclosed' });
     });
 
     test.each([
@@ -235,5 +242,72 @@ describe('parseStandard: errors', () => {
 
     test('the error is on the line it is on', () => {
         expect(errorOf('a = 1\nb = 1_000')).toMatchObject({ line: 2, column: 4 });
+    });
+});
+
+describe('parse: the DNCL-like form', () => {
+    test.each([
+        ['もし a > 0 ならば\n  b = 1\nを実行する', 'もし a > 0 ならば:\n  b = 1'],
+        [
+            'もし a > 0 ならば\n  b = 1\nそうでなくもし a < 0 ならば\n  b = 2\nそうでなければ\n  b = 3\nを実行する',
+            'もし a > 0 ならば:\n  b = 1\nそうでなくもし a < 0 ならば:\n  b = 2\nそうでなければ:\n  b = 3',
+        ],
+        ['x > 1 の間\n  x = x - 1\nを繰り返す', 'x > 1 の間繰り返す:\n  x = x - 1'],
+        [
+            'i を 1 から 3 まで 1 ずつ増やしながら\n  表示する(i)\nを繰り返す',
+            'i を 1 から 3 まで 1 ずつ増やしながら繰り返す:\n  表示する(i)',
+        ],
+        ['関数 f(a)\n  a + 1 を返す\nと定義する', '関数 f(a):\n  返す a + 1'],
+        ['f(a) を定義する:\n  返す a', '関数 f(a):\n  返す a'],
+        ['a ← 1', 'a = 1'],
+        ['a ← 1, b ← 2', 'a = 1, b = 2'],
+        ['x = a かつ b または c', 'x = a and b or c'],
+        ['x = a > 1 でない かつ b', 'x = not a > 1 and b'],
+        ['x = (a かつ b) でない', 'x = not (a and b)'],
+        ['表示する(「こんにちは」)', '表示する("こんにちは")'],
+        ['表示する(「a"b」)', '表示する("a\\"b")'],
+        ['表示する(「#」)', '表示する("#")'],
+    ])('%s is read as the standard form', (dnclLike, standard) => {
+        expect(body(dnclLike)).toEqual(body(standard));
+    });
+
+    test('the indentation inside a block closed by a line does not matter', () => {
+        expect(body('a > 0 の間\na = a - 1\n    b = 1\nを繰り返す')).toEqual(
+            body('a > 0 の間繰り返す:\n    a = a - 1\n    b = 1'),
+        );
+    });
+
+    test('the two forms mixed', () => {
+        const mixed = body('もし a > 0 ならば\n  x > 1 の間繰り返す:\n      x = x - 1\n  b = 1\nを実行する');
+        const standard = body('もし a > 0 ならば:\n  x > 1 の間繰り返す:\n      x = x - 1\n  b = 1');
+        expect(mixed).toEqual(standard);
+    });
+
+    test('a block opened with `:` whose next line is not deeper ends at a closing line', () => {
+        expect(body('もし a > 0 ならば:\nb = 1\nを実行する')).toEqual(body('もし a > 0 ならば:\n  b = 1'));
+    });
+
+    test('`end` closes a block opened without `:`', () => {
+        expect(body('もし a > 0 ならば\n  b = 1\nend')).toEqual(body('もし a > 0 ならば:\n  b = 1'));
+    });
+
+    test('a `でない` before an operator is the left side of it, as Ruby reads `!a == b`', () => {
+        expect(body('c = a でない == b')).toEqual([
+            {
+                type: 'Assign',
+                target: name('c'),
+                value: {
+                    type: 'Binary',
+                    operator: '==',
+                    left: { type: 'Unary', operator: 'not', operand: name('a') },
+                    right: name('b'),
+                },
+            },
+        ]);
+    });
+
+    test('a block closed by a line of its own ends on that line, with its comment', () => {
+        const { program } = parse('もし a > 0 ならば\n  b = 1\n\nを実行する # おわり');
+        expect(program.body[0]).toMatchObject({ closeLine: 4, closeOwnLine: true, closeComment: '# おわり' });
     });
 });

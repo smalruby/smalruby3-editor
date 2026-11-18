@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // ja-notation: the tokens of one line of Japanese (the standard form of the
-// 共通テスト用プログラム表記). See ./LICENSE.
+// 共通テスト用プログラム表記 and the DNCL-like form). See ./LICENSE.
 
 /** The first character of a name: ASCII letters, `_`, hiragana, katakana and kanji. */
 const NAME_HEAD_RE = /[A-Za-z_぀-ゟ゠-ヿ一-鿿]/;
@@ -34,6 +34,8 @@ const SAME_AS = {
     '］': ']',
     '，': ',',
     '：': ':',
+    // The DNCL-like form assigns with `←`.
+    '←': '=',
 };
 
 /** Operators of more than one character, longest first. */
@@ -48,13 +50,6 @@ const INPUTS = {
     整数を入力: 'integer',
     文字列を入力: 'string',
 };
-
-/**
- * Words of the DNCL-like form (`かつ` / `または` / `でない`). The standard form
- * writes `and` / `or` / `not`; the DNCL-like form is read by another step (J2
- * of docs/ruby-editor/converter-roadmap.md), so these are told apart here.
- */
-const DNCL_LIKE_WORDS = new Set(['かつ', 'または', 'でない']);
 
 /**
  * The end of a string literal that starts at `text[start]` (the index after
@@ -124,7 +119,9 @@ const longOperatorAt = (text, i) => LONG_OPERATORS.find((op) => text.startsWith(
  *   is the literal with its quotes), `name`, `op` (`value`: the operator, a
  *   full-width one read as its half-width one), `input` (`value`: `external` /
  *   `integer` / `string`), `comment` (`text` from `#` to the end).
- * - `dnclLike`: a mark of the DNCL-like form (`←`, `「...」`, `かつ` / `または` / `でない`).
+ *   The DNCL-like form is read too: `←` is the operator `=`, a 「...」 is a
+ *   `string` (its `text` is the `"..."` literal it is read as) and `かつ` /
+ *   `または` / `でない` are names.
  * - `forbidden`: `@` or `$`, which Japanese names do not have.
  * - `unknown`: any other character, and a string that is not closed.
  *
@@ -160,14 +157,14 @@ const tokenize = (text, offset = 0) => {
         }
         if (ch === '「') {
             const close = text.indexOf('」', i + 1);
-            const end = close === -1 ? i + 1 : close + 1;
-            push('dnclLike', i, end);
-            i = end;
-            continue;
-        }
-        if (ch === '←') {
-            push('dnclLike', i, i + 1);
-            i++;
+            if (close === -1) {
+                push('unknown', i, text.length);
+                break;
+            }
+            // The text is taken as it is: a `"` or `\` in it stays text.
+            const literal = `"${text.substring(i + 1, close).replace(/[\\"]/g, '\\$&')}"`;
+            tokens.push({ type: 'string', text: literal, column: i + offset });
+            i = close + 1;
             continue;
         }
         if (ch === '【') {
@@ -195,7 +192,7 @@ const tokenize = (text, offset = 0) => {
             // `touching?(...)`), so it is told as a command, not as a name.
             if ((text[end] === '?' || text[end] === '!') && text[end + 1] !== '=') end++;
             const word = text.substring(i, end);
-            push(DNCL_LIKE_WORDS.has(word) ? 'dnclLike' : 'name', i, end);
+            push('name', i, end);
             i = end;
             continue;
         }

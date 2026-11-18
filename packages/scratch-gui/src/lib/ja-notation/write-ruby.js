@@ -225,15 +225,21 @@ class LineWriter {
     /**
      * Write `end` (and what comes just before it) of a block.
      * @param {number} depth - The depth of the block.
-     * @param {object} node - The block (its `closeLine`).
+     * @param {object} node - The block (its `closeLine`, `closeOwnLine`, `closeComment`).
      * @param {Array<object>} [before] - Statements written just before `end`.
      */
     end(depth, node, before = []) {
-        // A block ends on its last line: the blank lines after its body come
-        // after its `end`, as the current reader (`dnclToRuby`) puts them.
-        this.fill(node.closeLine);
+        if (node.closeOwnLine) {
+            // The block is closed by a line of its own: `end` is that line.
+            this.fill(node.closeLine - 1);
+            this.lastJaLine = Math.max(this.lastJaLine, node.closeLine);
+        } else {
+            // A block ends on its last line: the blank lines after its body come
+            // after its `end`, as the current reader (`dnclToRuby`) puts them.
+            this.fill(node.closeLine);
+        }
         before.forEach((s) => this.line(depth + 1, TEXT.simpleStatement(s), node.closeLine, s.comment));
-        this.line(depth, 'end', node.closeLine);
+        this.line(depth, 'end', node.closeLine, node.closeComment);
     }
 }
 

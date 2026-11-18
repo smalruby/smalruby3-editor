@@ -125,20 +125,30 @@ DNCL の行に戻して見せる。詳しくは [`docs/genai-consult/README.md`]
 #### 新しい変換（ja-notation。作り直しの途中で、まだエディタからは使わない）
 
 日本語 → 日本語の構文木（JaAST）→ Ruby の構文木 → Ruby のテキストと行の対応、の順に変換するライブラリ。
-設計は [`../ruby-editor/converter-roadmap.md`](../ruby-editor/converter-roadmap.md) の 2 章・4 章。いまは **標準の形だけ** を読み、
-テストの中でだけ動かして、いまの `dnclToRuby` と同じ Ruby（prism の構文木で比べる）・同じ行の対応になることを確かめている。
-DNCL 風の形（`を実行する` などで閉じる行、`←`、`かつ`、「...」）は `dncl-like` の誤りにする（次の段で読む）。
+設計は [`../ruby-editor/converter-roadmap.md`](../ruby-editor/converter-roadmap.md) の 2 章・4 章。**標準の形と DNCL 風の形を同じ解析で読み**、
+JaAST では 1 つの形にする。テストの中でだけ動かして、いまの `dnclToRuby` と同じ Ruby（prism の構文木で比べる）・同じ行の対応になることを確かめている。
+
+DNCL 風の形の読み方（いまの `dnclToRuby` に合わせたもの）:
+
+- `:` の無い開く行（`もし … ならば`、`… の間`、`… ずつ増やしながら`、`関数 名前(引数)`、`名前(引数) を定義する`）のブロックは、閉じる行
+  （`を実行する` / `を繰り返す` / `と定義する`。`end` も）か `⎿` で終わる。中の字下げは見ない。閉じる言葉とブロックの種類は照らし合わせない（いまと同じ）。
+  ただし数える繰り返しは、どの言葉で閉じても増分を足す（いまは `を繰り返す` で閉じたときだけ足すので、`を実行する` で閉じると終わらない）。
+- `:` のある行のブロックは字下げで終わる。同じ字下げの閉じる行はそのブロックを閉じる。`:` があっても次の行が深くないときは、閉じる行で終わるブロックになる。2 つの形は混ぜてよい。
+- `←` は `=`、`かつ` / `または` は `and` / `or`、後ろに付く `でない` は、前の `かつ` / `または`・`(`・`,`・`=` までをまとめて否定する（`a > 10 でない` は `not (a > 10)`）。
+  `でない` の後に演算子が続くときは、否定したものがその左側になる（`a でない == b` は Ruby の `!a == b`）。
+- 「...」は `"..."` の文字列（中の `"` と `\` は文字のまま）。`X を返す` は `返す X`。
+- 閉じる行で閉じたブロックの `end` は、その行に置く（行の対応・行末のコメントもその行）。
 
 | ファイル | 役割 |
 |---|---|
 | `src/lib/ja-notation/`（MIT。`LICENSE` あり） | ライブラリ。外のモジュールを import しない（`test/unit/lib/ja-notation/boundary.test.js`） |
 | `ja-notation/lexer.js` | 1 行を字句に分ける。全角の演算子・`≦` などは半角のものとして読む |
-| `ja-notation/parse-standard.js` | 標準の形を読む（行番号・`｜` `⎿`・字下げ・`ならば:`・`and` / `or` / `not`）。JaAST の形は `ja-notation/ja-ast.js` |
+| `ja-notation/parse.js` | 日本語を読む。標準の形（行番号・`｜` `⎿`・字下げ・`ならば:`・`and` / `or` / `not`）と DNCL 風の形（閉じる行・`←`・`かつ`・`でない`・「...」）。JaAST の形は `ja-notation/ja-ast.js` |
 | `ja-notation/build-ruby.js` | JaAST → Ruby の構文木（prism のノード名を使う小さな形）。変数の名前・関数・入力は外から受けとる表で決める |
 | `ja-notation/write-ruby.js` | Ruby のテキストと、Ruby の行ごとの日本語の行を書く |
 | `src/lib/dncl/ja-notation-table.js` | スモウルビーの表（`表示する` → `puts`、大文字の名前 → `@_var_X_` / `@_array_X_` など） |
 
-テスト: `test/unit/lib/ja-notation/corpus.test.js`（コーパスのゴールデンとの比較）、`parse-standard.test.js`、`build-and-write-ruby.test.js`。
+テスト: `test/unit/lib/ja-notation/corpus.test.js`（コーパスのゴールデンとの比較）、`parse.test.js`、`build-and-write-ruby.test.js`。
 
 #### エラー行の対応（ソースマップ）
 
