@@ -7,6 +7,7 @@ import {
     SITE_ACCESS_LOG_PREFIX,
     SITE_ACCESS_LOG_RETENTION_DAYS,
     SITE_NONCURRENT_VERSION_EXPIRATION_DAYS,
+    SITE_WEB_ACL_ARN,
     SmalrubyWebHostingStack,
 } from '../lib/web-hosting-stack';
 
@@ -205,6 +206,17 @@ describe('SmalrubyWebHostingStack', () => {
                 template.hasResourceProperties('AWS::CloudFront::Distribution', {
                     DistributionConfig: Match.objectLike({ PriceClass: 'PriceClass_All' }),
                 });
+            });
+
+            // プランが作った Web ACL を参照するだけ。外すと次の deploy でプランの条件から外れる。
+            test('keeps the Web ACL the plan attached (and creates no Web ACL itself)', () => {
+                template.hasResourceProperties('AWS::CloudFront::Distribution', {
+                    DistributionConfig: Match.objectLike({ WebACLId: SITE_WEB_ACL_ARN }),
+                });
+                expect(SITE_WEB_ACL_ARN).toBe(
+                    'arn:aws:wafv2:us-east-1:007325983811:global/webacl/CreatedByCloudFront-086021c8/a34b81cf-b3e7-42f7-9c2c-6390e96e30d7',
+                );
+                template.resourceCountIs('AWS::WAFv2::WebACL', 0);
             });
 
             test('adds HSTS and nosniff with a viewer-response function', () => {
@@ -531,6 +543,7 @@ describe('SmalrubyWebHostingStack', () => {
             const config = Object.values(template.findResources('AWS::CloudFront::Distribution'))[0]
                 .Properties.DistributionConfig;
             expect(config.PriceClass).toBe('PriceClass_200');
+            expect(config.WebACLId).toBeUndefined();
             expect(config.DefaultCacheBehavior.CachePolicyId).toEqual({
                 Ref: expect.stringMatching(/^PreviewCachePolicy/),
             });
