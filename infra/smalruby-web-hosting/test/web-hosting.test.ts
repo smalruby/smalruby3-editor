@@ -1,11 +1,17 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import * as cdk from 'aws-cdk-lib/core';
 import { Match, Template } from 'aws-cdk-lib/assertions';
+import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import {
     PREVIEW_DEFAULT_TTL_SECONDS,
     PREVIEW_OBJECT_EXPIRATION_DAYS,
     SITE_ACCESS_LOG_PREFIX,
     SITE_ACCESS_LOG_RETENTION_DAYS,
     SITE_NONCURRENT_VERSION_EXPIRATION_DAYS,
+    SITE_WEB_ACL_ARN,
+    SITE_NOT_FOUND_PAGE_PATH,
+    SITE_ERROR_CACHING_MIN_TTL_SECONDS,
     SmalrubyWebHostingStack,
 } from '../lib/web-hosting-stack';
 
@@ -176,10 +182,107 @@ describe('SmalrubyWebHostingStack', () => {
                     ViewerProtocolPolicy: 'redirect-to-https',
                     FunctionAssociations: [
                         expect.objectContaining({ EventType: 'viewer-request' }),
+                        expect.objectContaining({ EventType: 'viewer-response' }),
                     ],
-                    ResponseHeadersPolicyId: expect.anything(),
                 }),
             );
+        });
+
+        // 拡張子の無い URL を `/<path>/` へ 301 する規則はプレビューと同じなので同じコードを使う。
+        // ただし関数のリソースは別にする（定額プランの配信は、ほかの配信に付いている
+        // CloudFront Functions を付けられない）。
+        test('uses its own viewer-request function with the shared directory rules', () => {
+            const behavior = Object.values(template.findResources('AWS::CloudFront::Distribution'))[0]
+                .Properties.DistributionConfig.DefaultCacheBehavior;
+            const assoc = behavior.FunctionAssociations.find(
+                (a: { EventType: string }) => a.EventType === 'viewer-request',
+            );
+            const fnId = assoc.FunctionARN['Fn::GetAtt'][0];
+            expect(fnId).toMatch(/^SiteViewerRequest/);
+            const fn = template.findResources('AWS::CloudFront::Function')[fnId];
+            expect(fn.Properties.FunctionConfig.Runtime).toBe('cloudfront-js-2.0');
+            expect(fn.Properties.FunctionCode).toBe(
+                fs.readFileSync(path.join(__dirname, '../lib/functions/preview-viewer-request.js'), 'utf8'),
+            );
+        });
+
+        // 存在しないファイルは S3（OAC）が 403 を返す。403 も 404 も 404 ページを 404 で返す。
+        test('returns the 404 page with status 404 for missing files (403 / 404 from S3)', () => {
+            template.hasResourceProperties('AWS::CloudFront::Distribution', {
+                DistributionConfig: Match.objectLike({
+                    CustomErrorResponses: [
+                        {
+                            ErrorCode: 403,
+                            ResponseCode: 404,
+                            ResponsePagePath: SITE_NOT_FOUND_PAGE_PATH,
+                            ErrorCachingMinTTL: SITE_ERROR_CACHING_MIN_TTL_SECONDS,
+                        },
+                        {
+                            ErrorCode: 404,
+                            ResponseCode: 404,
+                            ResponsePagePath: SITE_NOT_FOUND_PAGE_PATH,
+                            ErrorCachingMinTTL: SITE_ERROR_CACHING_MIN_TTL_SECONDS,
+                        },
+                    ],
+                }),
+            });
+            expect(SITE_NOT_FOUND_PAGE_PATH).toBe('/404.html');
+            expect(SITE_ERROR_CACHING_MIN_TTL_SECONDS).toBe(60);
+        });
+
+        // CloudFront の定額プラン（Pro）は、カスタムのキャッシュポリシー・レスポンスヘッダーポリシーを
+        // 使う配信を入れられず、料金クラスも持たない。
+        describe('fits the CloudFront flat-rate plan (Pro)', () => {
+            const behavior = () =>
+                Object.values(template.findResources('AWS::CloudFront::Distribution'))[0].Properties
+                    .DistributionConfig.DefaultCacheBehavior;
+
+            test('uses the AWS managed CachingOptimized cache policy', () => {
+                expect(behavior().CachePolicyId).toBe(
+                    cloudfront.CachePolicy.CACHING_OPTIMIZED.cachePolicyId,
+                );
+                expect(behavior().CachePolicyId).toBe('658327ea-f89d-4fab-a63d-7e88639e58f6');
+            });
+
+            test('attaches no response headers policy', () => {
+                expect(behavior().ResponseHeadersPolicyId).toBeUndefined();
+            });
+
+            test('uses PriceClass_All (flat-rate plans have no price class)', () => {
+                template.hasResourceProperties('AWS::CloudFront::Distribution', {
+                    DistributionConfig: Match.objectLike({ PriceClass: 'PriceClass_All' }),
+                });
+            });
+
+            // プランが作った Web ACL を参照するだけ。外すと次の deploy でプランの条件から外れる。
+            test('keeps the Web ACL the plan attached (and creates no Web ACL itself)', () => {
+                template.hasResourceProperties('AWS::CloudFront::Distribution', {
+                    DistributionConfig: Match.objectLike({ WebACLId: SITE_WEB_ACL_ARN }),
+                });
+                expect(SITE_WEB_ACL_ARN).toBe(
+                    'arn:aws:wafv2:us-east-1:007325983811:global/webacl/CreatedByCloudFront-086021c8/a34b81cf-b3e7-42f7-9c2c-6390e96e30d7',
+                );
+                template.resourceCountIs('AWS::WAFv2::WebACL', 0);
+            });
+
+            test('adds HSTS and nosniff with a viewer-response function', () => {
+                const assoc = behavior().FunctionAssociations.find(
+                    (a: { EventType: string }) => a.EventType === 'viewer-response',
+                );
+                const fnId = assoc.FunctionARN['Fn::GetAtt'][0];
+                expect(fnId).toMatch(/^SiteViewerResponse/);
+                const fn = template.findResources('AWS::CloudFront::Function')[fnId];
+                expect(fn.Properties.FunctionConfig.Runtime).toBe('cloudfront-js-2.0');
+                expect(fn.Properties.FunctionCode).toContain('strict-transport-security');
+                expect(fn.Properties.FunctionCode).toContain('x-content-type-options');
+                expect(fn.Properties.FunctionCode).toContain("'vary'");
+            });
+
+            // 定額プランはカスタムのポリシーを使えないので、配信から外したポリシーは定義も持たない。
+            test('has no custom cache policy or response headers policy', () => {
+                template.resourceCountIs('AWS::CloudFront::CachePolicy', 0);
+                template.resourceCountIs('AWS::CloudFront::ResponseHeadersPolicy', 0);
+            });
         });
 
         test('access log bucket is private, encrypted, SSL only and accepts CloudFront logs', () => {
@@ -281,43 +384,28 @@ describe('SmalrubyWebHostingStack', () => {
             expect(cert.Properties.SubjectAlternativeNames).toBeUndefined();
         });
 
-        test('apex still points to GitHub Pages (no alias to CloudFront yet)', () => {
+        test('apex A / AAAA are aliases to the site distribution (no GitHub Pages IPs)', () => {
             const records = Object.values(template.findResources('AWS::Route53::RecordSet'));
-            expect(records.filter((r) => r.Properties.AliasTarget)).toEqual([]);
-            const apexA = records.filter(
-                (r) => r.Properties.Type === 'A' && r.Properties.Name === 'smalruby.app.',
-            );
-            expect(apexA).toHaveLength(1);
-            expect([...apexA[0].Properties.ResourceRecords].sort()).toEqual([
-                '185.199.108.153',
-                '185.199.109.153',
-                '185.199.110.153',
-                '185.199.111.153',
-            ]);
-            expect(records.filter((r) => r.Properties.Type === 'AAAA')).toEqual([]);
-        });
-
-        test('cache policy keeps index.html short and lets hashed assets stay long', () => {
-            template.hasResourceProperties('AWS::CloudFront::CachePolicy', {
-                CachePolicyConfig: Match.objectLike({
-                    MinTTL: 0,
-                    DefaultTTL: PREVIEW_DEFAULT_TTL_SECONDS,
-                    MaxTTL: 365 * 24 * 60 * 60,
-                }),
-            });
-        });
-
-        test('response headers keep HSTS like GitHub Pages', () => {
-            template.hasResourceProperties('AWS::CloudFront::ResponseHeadersPolicy', {
-                ResponseHeadersPolicyConfig: Match.objectLike({
-                    SecurityHeadersConfig: Match.objectLike({
-                        StrictTransportSecurity: Match.objectLike({
-                            AccessControlMaxAgeSec: 365 * 24 * 60 * 60,
-                        }),
-                        ContentTypeOptions: Match.anyValue(),
-                    }),
-                }),
-            });
+            const distId = Object.keys(template.findResources('AWS::CloudFront::Distribution'))[0];
+            for (const type of ['A', 'AAAA']) {
+                const apex = records.filter(
+                    (r) => r.Properties.Type === type && r.Properties.Name === 'smalruby.app.',
+                );
+                expect(apex).toHaveLength(1);
+                const { AliasTarget, ResourceRecords, TTL } = apex[0].Properties;
+                expect(ResourceRecords).toBeUndefined();
+                expect(TTL).toBeUndefined();
+                // CloudFront の ALIAS はどのディストリビューションでも同じゾーン ID（Z2FDTNDATAQYW2）。
+                expect(AliasTarget.HostedZoneId).toEqual(
+                    expect.objectContaining({ 'Fn::FindInMap': expect.anything() }),
+                );
+                expect(AliasTarget.DNSName).toEqual({
+                    'Fn::GetAtt': [distId, 'DomainName'],
+                });
+            }
+            expect(JSON.stringify(records)).not.toContain('185.199.');
+            // ALIAS は apex の 2 つだけ（ワイルドカードや他の名前を CloudFront へ向けない）。
+            expect(records.filter((r) => r.Properties.AliasTarget)).toHaveLength(2);
         });
 
         test('deploy role trusts only develop (or the prod environment) of this repository', () => {
@@ -464,10 +552,52 @@ describe('SmalrubyWebHostingStack', () => {
                         ViewerProtocolPolicy: 'redirect-to-https',
                         FunctionAssociations: [
                             Match.objectLike({ EventType: 'viewer-request' }),
+                            Match.objectLike({ EventType: 'viewer-response' }),
                         ],
                     }),
                 }),
             });
+        });
+
+        test('preview keeps its own cache policy and Price Class 200 (not on a flat-rate plan)', () => {
+            const config = Object.values(template.findResources('AWS::CloudFront::Distribution'))[0]
+                .Properties.DistributionConfig;
+            expect(config.PriceClass).toBe('PriceClass_200');
+            expect(config.WebACLId).toBeUndefined();
+            expect(config.DefaultCacheBehavior.CachePolicyId).toEqual({
+                Ref: expect.stringMatching(/^PreviewCachePolicy/),
+            });
+            template.resourceCountIs('AWS::CloudFront::CachePolicy', 1);
+            template.resourceCountIs('AWS::CloudFront::ResponseHeadersPolicy', 0);
+            template.resourceCountIs('AWS::CloudFront::Function', 2);
+        });
+
+        const previewFunction = (eventType: string) => {
+            const behavior = Object.values(template.findResources('AWS::CloudFront::Distribution'))[0]
+                .Properties.DistributionConfig.DefaultCacheBehavior;
+            const assoc = behavior.FunctionAssociations.find(
+                (a: { EventType: string }) => a.EventType === eventType,
+            );
+            const fnId = assoc.FunctionARN['Fn::GetAtt'][0];
+            return { fnId, fn: template.findResources('AWS::CloudFront::Function')[fnId] };
+        };
+
+        test('preview keeps the preview viewer-request function (/<slug> is a directory)', () => {
+            const { fnId, fn } = previewFunction('viewer-request');
+            // 論理 ID を変えると関数が作り直しになる（削除を含む差分は Deploy Infra が止まる）。
+            expect(fnId).toMatch(/^PreviewViewerRequest/);
+            expect(fn.Properties.FunctionCode).toBe(
+                fs.readFileSync(path.join(__dirname, '../lib/functions/preview-viewer-request.js'), 'utf8'),
+            );
+        });
+
+        test('preview adds Vary to the pre-compressed gui JS with its own viewer-response function', () => {
+            const { fnId, fn } = previewFunction('viewer-response');
+            expect(fnId).toMatch(/^PreviewViewerResponse/);
+            expect(fn.Properties.FunctionConfig.Runtime).toBe('cloudfront-js-2.0');
+            expect(fn.Properties.FunctionCode).toBe(
+                fs.readFileSync(path.join(__dirname, '../lib/functions/preview-viewer-response.js'), 'utf8'),
+            );
         });
 
         test('cache policy keeps index.html short and lets hashed assets stay long', () => {

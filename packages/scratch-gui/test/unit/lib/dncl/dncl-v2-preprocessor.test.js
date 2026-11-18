@@ -154,6 +154,79 @@ describe('DNCLv2 pre-processor: comma-separated multi-assignment', () => {
         expect(dnclV2Preprocess('a = 0')).toBe('a = 0');
     });
 
+    // `←` is an assignment as `=` is (Issue #1819).
+    test('splits assignments written with ←', () => {
+        expect(dnclV2Preprocess('a ← 1, b ← 2')).toBe('a ← 1\nb ← 2');
+        expect(dnclToRuby('a ← 1, b ← 2').ruby).toBe('@a = 1\n@b = 2');
+    });
+
+    test('splits a mix of ← and =', () => {
+        expect(dnclToRuby('a ← 1, b = 2, c ← a + b').ruby).toBe('@a = 1\n@b = 2\n@c = @a + @b');
+    });
+
+    // The pieces after the first keep the `｜` markers, so they stay in the
+    // block; a `⎿` is kept on the last piece only (Issue #1819).
+    test.each([
+        ['←', 'a ← 1, b ← 2'],
+        ['=', 'a = 1, b = 2'],
+    ])('a split line inside `｜` / `⎿` stays in the block (%s)', (_name, assignments) => {
+        expect(
+            dnclToRuby(
+                ['i を 1 から 2 まで 1 ずつ増やしながら繰り返す:', `｜ ${assignments}`, '⎿ 表示する(a)'].join('\n'),
+            ).ruby,
+        ).toBe(['@i = 1', 'while @i <= 2', '  @a = 1', '  @b = 2', '  puts(@a)', '  @i += 1', 'end'].join('\n'));
+        expect(
+            dnclToRuby(
+                [
+                    'i を 1 から 2 まで 1 ずつ増やしながら繰り返す:',
+                    '｜ 表示する(i)',
+                    `⎿ ${assignments}`,
+                    '表示する(0)',
+                ].join('\n'),
+            ).ruby,
+        ).toBe(
+            ['@i = 1', 'while @i <= 2', '  puts(@i)', '  @a = 1', '  @b = 2', '  @i += 1', 'end', 'puts(0)'].join(
+                '\n',
+            ),
+        );
+    });
+
+    test('a split line in nested `｜` keeps every marker', () => {
+        expect(
+            dnclToRuby(
+                [
+                    'i を 1 から 2 まで 1 ずつ増やしながら繰り返す:',
+                    '｜ もし i > 1 ならば:',
+                    '｜ ⎿ a ← 1, b ← 2, c ← 3',
+                    '⎿ 表示する(c)',
+                ].join('\n'),
+            ).ruby,
+        ).toBe(
+            [
+                '@i = 1',
+                'while @i <= 2',
+                '  if @i > 1',
+                '    @a = 1',
+                '    @b = 2',
+                '    @c = 3',
+                '  end',
+                '  puts(@c)',
+                '  @i += 1',
+                'end',
+            ].join('\n'),
+        );
+    });
+
+    // Full-width characters are read as their half-width ones (docs/dncl/policy.md).
+    test('splits at a full-width comma', () => {
+        expect(dnclToRuby('a ← 1，b = 2').ruby).toBe('@a = 1\n@b = 2');
+        expect(dnclV2Preprocess('表示する(「a，b」)')).toBe('表示する(「a，b」)');
+    });
+
+    test('does not split when a part has ← only inside 「...」', () => {
+        expect(dnclV2Preprocess('a ← 「x←1」, 表示する(a)')).toBe('a ← 「x←1」, 表示する(a)');
+    });
+
     test('does not split when one part is not assignment', () => {
         // Don't trigger on `a = 1 , b` (no `=` in second part)
         expect(dnclV2Preprocess('a = 1 , b')).toBe('a = 1 , b');

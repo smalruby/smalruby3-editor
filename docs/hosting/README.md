@@ -37,9 +37,10 @@
                                        │  smalruby.app  A / AAAA（ALIAS）→ CloudFront
                                        ▼
                                    CloudFront ──(OAC)──▶ S3（非公開・バージョニングあり）
-                                       │  viewer-request: /  → /index.html、/admin → /admin/
+                                       │  viewer-request: /  → /index.html、/admin → /admin/（拡張子の無い URL は /<path>/ へ 301）
+                                       │                  /gui.<hash>.js → .br / .gz（Accept-Encoding による）
                                        │  証明書: ACM（us-east-1・DNS 検証）
-                                       └─ 応答ヘッダ: HSTS / nosniff
+                                       └─ viewer-response: HSTS / nosniff、圧縮版に Vary: Accept-Encoding
 ```
 
 | 項目 | 移した後 |
@@ -75,13 +76,28 @@ prod ステージのリソースは、`infra/smalruby-web-hosting/lib/web-hostin
 | `/admin/`（管理 SPA） | CI が `admin/` に置く。本体の `--delete` で消えないよう、本体の同期では `admin/` を除く |
 | `/.well-known/microsoft-identity-association.json` | `packages/scratch-gui/legal/.well-known/` からビルドに入る。ドットで始まるディレクトリも同期の対象にする（Microsoft のパブリッシャー検証に要る） |
 | `/auth-redirect.html`（Microsoft ログインの戻り先） | ビルドに入っている。オリジンが同じなので Microsoft / Google の設定は変えない |
-| `/about.html` などの静的ページ | ビルドに入っている。拡張子付きの URL はそのまま返す |
-| HSTS ヘッダ | CloudFront の応答ヘッダポリシーで付ける（`.app` は HSTS preload 済みなので、ブラウザはもともと HTTPS でしか来ない） |
+| `/about.html` などの静的ページ | ビルドに入っている。拡張子付きの URL はそのまま返す。`/about` のように拡張子を省いた URL は開けない（`/about/` へ 301 したあと 404 ページになる。下の「拡張子の無い URL」） |
+| `/404.html`（存在しないファイルのページ） | ビルドに入っている（`packages/scratch-gui/pages/404.html`）。CloudFront のエラー応答が中身に使う（下の「存在しないファイル」） |
+| HSTS ヘッダ | CloudFront の viewer-response 関数で付ける（定額プランは応答ヘッダポリシーを使えないため。`.app` は HSTS preload 済みなので、ブラウザはもともと HTTPS でしか来ない） |
 | `CNAME` / `.nojekyll` | GitHub Pages 専用なので S3 には要らない |
 
-URL の扱いで GitHub Pages と違う点: `/about` のように拡張子も末尾の `/` も無い URL は、GitHub Pages では `about.html` を返すが、CloudFront では `/about/` へ 301 になる（プレビューと同じ関数を使うため）。ビルドの中のリンクは拡張子付き（`about.html`）か、`/admin/` のように末尾が `/` なので、困る URL は今のところ無い。
+### 拡張子の無い URL
 
-存在しないファイルは S3 が 403 を返す（OAC では一覧を見せないため）。GitHub Pages も独自の 404 ページは置いていないので、困ることは無い。必要になったら CloudFront のエラー応答で 404 に変える。
+本番の viewer-request 関数は、どのディレクトリに `index.html` があるかの一覧を持たずに、URL の形だけで決める。
+
+| URL | 返すもの |
+|---|---|
+| `/`、`/admin/` のように末尾が `/` | `.../index.html` |
+| `/x.js`、`/about.html` のように最後の部分に拡張子がある | そのまま |
+| `/admin`、`/about`、`/assignments/LICENSE` のように最後の部分に拡張子が無い | `/<path>/` へ 301（クエリ文字列は保つ） |
+
+`/admin` → `/admin/` は管理 SPA のために要る（相対パスでアセットを読むので、`/` 無しのままだと 1 階層上を見てしまう）。一方、`/about` は `/about/` → `/about/index.html` を探して 404 ページになる。**拡張子の無いページの URL は使えない**ので、サイト内のリンクは `about.html` のように `.html` 付きで書く（GitHub Pages は `/about` に `about.html` を返していたが、CloudFront Functions からは S3 にファイルがあるかを問い合わせられず、そうするには `index.html` を持つディレクトリの一覧を関数に持つ必要があるため、持たないことにした）。`/assignments/LICENSE` のような拡張子の無いファイルも URL では開けない（サイトからはリンクしていない）。
+
+規則はプレビュー（`preview.smalruby.app/<slug>/`）と同じなので、関数のコードは同じファイル（`lib/functions/preview-viewer-request.js`）を使う。関数のリソースは本番とプレビューで別にする（定額プランの配信には、ほかの配信に付いている CloudFront Functions を付けられない）。
+
+### 存在しないファイル
+
+存在しないファイルは S3 が 403 を返す（OAC では一覧を見せないため。GitHub Pages は GitHub の 404 ページを返す）。これを 404 にするため、ビルドに 404 ページ `404.html` を入れてある（`packages/scratch-gui/pages/404.html`。ほかのページと同じく `pages/` からトップレベルにコピーされ、CI がハッシュ無しの規則で `Cache-Control: max-age=0, s-maxage=60` を付けて S3 に置く）。CDK からは置かない（CI の同期は `--delete` なので、ビルドに無いものは消える）。配信には CloudFront のカスタムエラー応答で、オリジンの 403 / 404 を応答コード 404・ページ `/404.html` にする。エラー応答のページが 403 にならないよう、**404 ページが本番に出てから（`https://smalruby.app/404.html` が 200 になってから）エラー応答を足す**。404 ページはどの階層の URL（`/a/b/c` など）にも返るので、中のアセットとリンクは `/` から始まる絶対パスで書く（相対パスにしない）。検索に載らないよう `noindex` を付けている。SPA は `/` の `index.html` だけでパスのルーティングを持たず、管理 SPA はハッシュのルーティングなので、403 を 404 に変えても壊れない。
 
 ## 進める順番
 
@@ -164,8 +180,59 @@ URL の扱いで GitHub Pages と違う点: `/about` のように拡張子も末
 | ファイル名にハッシュが付いたもの（`/\.[0-9a-f]{8,}\./`。Workbox の `dontCacheBustURLsMatching` と同じ） | `public, max-age=31536000, immutable` | 中身が変わると名前が変わる |
 | それ以外（`index.html`、`service-worker.js`、`version.json`、`auth-redirect.*`、`.well-known/*`、`admin/index.html` など） | `max-age=0, s-maxage=60` | ブラウザは毎回確かめ直し、CloudFront には 60 秒だけ置く |
 
-- CloudFront のキャッシュポリシーはプレビューと同じ（`Cache-Control` が無ければ 60 秒、あれば従う・最長 1 年。クエリ文字列・ヘッダ・Cookie はキーに含めない）。
+- CloudFront のキャッシュポリシーは AWS 管理の `CachingOptimized`（`Cache-Control` があれば従う・最長 1 年。クエリ文字列・ヘッダ・Cookie はキーに含めない）。定額プランはカスタムのキャッシュポリシーを使えないため。**`Cache-Control` が無いオブジェクトはエッジに 1 日残る**（プレビューの 60 秒と違う）ので、CI は上の表のとおり全ファイルに `Cache-Control` を付けて置く。
 - CI は置いたあとに `/*` を invalidation する（1 回 1 パスとして数えるので、月 1,000 パスの無料枠に十分収まる）。
+
+### 事前圧縮した gui の JS
+
+CloudFront は **1,000〜10,000,000 バイトのファイルしか自動で圧縮しない**（[Serving compressed files](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/ServingCompressedFiles.html)）。エディタ本体の `gui.<hash>.js` は約 25 MB あるので、そのままでは無圧縮で送られる（GitHub Pages は gzip で約 7.7 MB）。また CloudFront がその場でかける br は brotli の q1〜q2 程度と弱い。設計の出発点は #2198。
+
+そのため CI が、S3 に置く直前に gui の JS を事前に圧縮して、元のファイルの隣に置く:
+
+| 置くもの | 中身 | ヘッダ |
+|---|---|---|
+| `gui.<hash>.js.br`（プレビューは `gui.js.br`） | brotli quality 11（ウィンドウ 24 ビット） | `Content-Type: text/javascript`、`Content-Encoding: br`、`Cache-Control` は元と同じ |
+| `gui.<hash>.js.gz`（プレビューは `gui.js.gz`） | gzip -9 | `Content-Type: text/javascript`、`Content-Encoding: gzip`、`Cache-Control` は元と同じ |
+
+- 圧縮は `scripts/precompress-assets.mjs`（node の `zlib` だけ。依存なし）。解いて元と同じになることを確かめてから書く。テストは `scripts/precompress-assets.test.mjs`（CI の同じ段で流す）。
+- 対象は**トップレベルの `gui.js` / `gui.<hash>.js` だけ**。ほかのファイルは 10 MB 未満で CloudFront が圧縮するので、手間（br q11 は 25 MB で約 30 秒）をかけない。ほかに 10,000,000 バイトを超えるファイル（`.map` を除く。ソースマップは DevTools しか読まない）が出てきたら、CI が `::warning::` を出す。そのときは対象に足すか、ビルドで分ける。
+- `aws s3 sync` は拡張子からヘッダを推測するので、`.br` / `.gz` は `aws s3 cp` でヘッダを明示して置く。置く順番は「ハッシュ付きのファイル → `.br` / `.gz` → `index.html` などハッシュの無いもの」。
+- 圧縮版はビルドの出力（本番は `dist`、プレビューは `build`）の中に作る。本番では GitHub Pages へ出したあとに作るので、GitHub Pages には載らない。最後の `--delete --size-only` は、出力にある圧縮版を消さず（大きさが同じなので置き直しもしない）、古い gui の圧縮版は消す。
+- 圧縮版を `Accept-Encoding` に応じて返すのは viewer-request の CloudFront Function（URI を `.br` / `.gz` に書きかえる）。オリジンの応答に `Content-Encoding` があれば CloudFront は圧縮し直さないので、置いたものがそのまま返る。
+
+#### URI の書きかえと `Vary`
+
+viewer-request 関数（`infra/smalruby-web-hosting/lib/functions/preview-viewer-request.js`。本番とプレビューで同じコード）が、gui の JS の URI に `.br` / `.gz` を足す:
+
+| 条件 | 書きかえ |
+|---|---|
+| URI が gui の JS（`/gui.js`・`/gui.<hash>.js`、プレビューは `/<slug>/gui.js`・`/<slug>/gui.<hash>.js`。正規表現 `^/(?:[^/]+/)?gui(?:\.[0-9a-f]{8,})?\.js$`）で、`Accept-Encoding` に `br` がある | `<URI>.br` |
+| 同じく、`br` は無いが `gzip` がある | `<URI>.gz` |
+| `Accept-Encoding` が無い・`br` も `gzip` も無い（`identity` だけ、`*` だけを含む） | 書きかえない（無圧縮の元のファイル） |
+| ほかのファイル | 書きかえない（10 MB 未満なので CloudFront がその場で圧縮する） |
+
+- 並び順や `q` の大小にかかわらず br を優先する。`q=0`（`br;q=0` など）は「受け取らない」と読む。
+- 対象は `scripts/precompress-assets.mjs` が圧縮するもの（ビルドの出力のトップレベルの gui の JS）だけにしてある。**圧縮版が S3 に無い URI へ書きかえると 404 になる**ので、対象を広げるときはスクリプトと関数を一緒に変える。事前圧縮を入れる前のビルドのまま残っているプレビューは `gui.js.br` が無く、br / gzip を受け取るブラウザでは開かない。develop を取り込んで push し直せば直る。
+- `Accept-Encoding` を落とすプロキシ（SSL 検査つきのフィルタなど）経由では書きかえが起きないので、無圧縮の元のファイルが返る（壊れない）。
+- キャッシュは本番は `CachingOptimized`、プレビューは自前のポリシーのまま。キャッシュキーは URI と正規化した `Accept-Encoding` なので、書きかえた URI（`.br` / `.gz`）ごとに別にキャッシュされ、取り違えは起きない。
+- S3 も CloudFront も、事前圧縮した応答には `Vary` を付けない。途中のキャッシュが br をほかのクライアントへ渡さないよう、viewer-response 関数が **`Content-Encoding` のある応答に `Vary: Accept-Encoding` を付ける**（すでに含むなら足さない）。本番は `lib/functions/site-viewer-response.js`（HSTS / nosniff と一緒）、プレビューは `lib/functions/preview-viewer-response.js`（`Vary` だけ。関数のリソースは配信ごとに別）。
+
+確かめ方（CloudFront を直接たたく。DNS が CloudFront を向いていなくても使える）:
+
+```sh
+IP=$(dig +short d12gb4o1ln0uqd.cloudfront.net | head -1)
+GUI=$(curl -s --resolve smalruby.app:443:$IP https://smalruby.app/ | grep -o 'gui\.[0-9a-f]*\.js' | head -1)
+for ae in br gzip identity; do
+  curl -s -o /dev/null --resolve smalruby.app:443:$IP -H "Accept-Encoding: $ae" \
+    -D - -w "[$ae] %{http_code} %{size_download}\n" "https://smalruby.app/$GUI" |
+    grep -iE '^(content-encoding|vary|cache-control)|^\['
+done
+# 解いた中身が無圧縮と同じか
+curl -s --resolve smalruby.app:443:$IP -H 'Accept-Encoding: br' "https://smalruby.app/$GUI" | brotli -d | sha256sum
+curl -s --resolve smalruby.app:443:$IP -H 'Accept-Encoding: identity' "https://smalruby.app/$GUI" | sha256sum
+```
+
+プレビューは `https://preview.smalruby.app/<slug>/gui.js` を同じように取る。
 - S3 はバージョニングを有効にし、上書き・削除された古い版を 30 日残す（CI の誤りで消えたファイルを戻すため。日数は人間が決める値）。いまの版は期限で消さない（プレビューと違う点）。バケットは本番の配信元なので `RETAIN`（スタックを消しても残る）。
 
 ## アクセスログ（段 5）
@@ -193,7 +260,7 @@ URL の扱いで GitHub Pages と違う点: `/about` のように拡張子も末
 - ログは障害の調査と、転送量・利用の傾向をつかむためだけに使う。**ログを外へ出さない**（Issue・PR・チャットに IP アドレスや生のログを貼らない。集計した数だけを書く）。
 - 読めるのはこの AWS アカウントの管理者だけ（バケットは非公開、CI 用ロールの権限にも入れない）。
 - 保持期間を過ぎたものは S3 のライフサイクルで自動で消える。期間を延ばすときは、使い道と見合うかを人間が決める。
-- WAF（フィルタリング）は入れていない（費用がかかるので、必要になったら別に決める）。
+- `SiteDistribution` には WAF の Web ACL（`CreatedByCloudFront-...`）が付いている。CloudFront の定額プラン（Pro）が配信を入れたときに作ったもので、料金はプランに含まれる。CDK は作らず、ARN を `webAclId` で参照するだけ（`SITE_WEB_ACL_ARN`）。消したり中身を変えたりしない。ルールを足すなどのフィルタリングは、必要になったら別に決める。
 
 ## PWA / service worker
 
@@ -224,7 +291,9 @@ URL の扱いで GitHub Pages と違う点: `/about` のように拡張子も末
 | CloudFront のリクエストと関数 | 月 0〜30 | 毎月 1,000 万リクエスト・関数 200 万回までは無料。1 回の読み込みで数百のリクエストがあるので、無料枠を超えうる |
 | アクセスログ | 月 1 未満 | 標準ログ（従来）は届けるのが無料で、かかるのは S3 の保存と書き込みだけ。月 3,000 万リクエストでもログは gzip で月 数 GB、30 日分を置いて月 0.05〜0.2 程度 |
 
-- 従量課金の上限が読みにくいので、**CloudFront の定額プラン**（Pro は月 15 で転送量の上限が十分大きい）を使うかどうかを人間が決める。まず従量で 1〜2 週間動かし、CloudFront の使用量レポートで実際の転送量を見てから決めるのが安全。
+- 従量課金の上限が読みにくいので、`SiteDistribution`（smalruby.app）は **CloudFront の定額プラン Pro**（月 15 で転送量の上限が十分大きい）に入れてある。プレビューの配信は従量のまま。
+  - 定額プランはカスタムのキャッシュポリシー・応答ヘッダポリシーを使えないので、`SiteDistribution` は AWS 管理の `CachingOptimized` + viewer-response 関数・Price Class All にしてある。プランの選択・変更はコンソールで人間が行う（CDK にはプランの設定が無い）。
+  - プランに入れると CloudFront が WAF の Web ACL を作って配信に付ける。テンプレートに WebACLId が無いと次の deploy で外れる（またはプランの条件違反で失敗する）ので、CDK はその ARN を `webAclId` に書いている（`lib/web-hosting-stack.ts` の `SITE_WEB_ACL_ARN`）。プランを変える・入れ直すなどで Web ACL が変わったら、コンソールで配信に付いている Web ACL を確かめてから定数を書き換える。
 - **AWS Budgets の予算アラート**（例: 月 50 を超えたら通知）を切り替えの前に設定する。
 - GitHub Pages は無料なので、移すと費用は増える。理由（依存をなくす・ログ・調整のしやすさ）と見合うかを、転送量を見て判断する。
 
@@ -248,8 +317,10 @@ URL の扱いで GitHub Pages と違う点: `/about` のように拡張子も末
 | ファイル | 役割 |
 |---|---|
 | `infra/smalruby-web-hosting/lib/web-hosting-stack.ts` | 配信基盤の CDK。prod は `createSiteDelivery()`、stg はプレビュー |
-| `infra/smalruby-web-hosting/lib/functions/preview-viewer-request.js` | CloudFront Function（ディレクトリの URL を `index.html` に解決）。本番とプレビューで共用 |
+| `infra/smalruby-web-hosting/lib/functions/preview-viewer-request.js` | viewer-request の CloudFront Function のコード（ディレクトリの URL を `index.html` に解決し、拡張子の無い URL を `/<path>/` へ 301、gui の JS を `.br` / `.gz` へ書きかえる）。本番とプレビューで共用（関数のリソースは別） |
+| `infra/smalruby-web-hosting/lib/functions/site-viewer-response.js` / `preview-viewer-response.js` | viewer-response の CloudFront Function のコード（本番は HSTS / nosniff と `Vary`、プレビューは `Vary` だけ） |
 | `infra/smalruby-web-hosting/test/web-hosting.test.ts` | スタックのテスト |
 | `.github/workflows/ci-cd.yml`（`build-and-deploy`） | 本番のビルドと配置 |
+| `scripts/precompress-assets.mjs` | gui の JS の `.br` / `.gz` を作る（「事前圧縮した gui の JS」）。テストは `scripts/precompress-assets.test.mjs` |
 | `docs/infra/smalruby-web-hosting.md` | 配信基盤の CDK の詳細と運用 |
 | `docs/security/github-pages-subdomain-takeover.md` | GitHub Pages のサブドメイン乗っ取り対策（検証用 TXT は残す） |

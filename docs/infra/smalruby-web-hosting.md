@@ -16,7 +16,7 @@ stg ステージに、`preview.smalruby.app` のホストゾーン（お名前.c
 | Stage | スタック名 | リソース |
 |---|---|---|
 | stg | `SmalrubyWebHostingStack-stg` | パブリックホストゾーン `preview.smalruby.app`、S3 バケット、CloudFront、ACM 証明書（us-east-1）、A / AAAA（ALIAS）、CI 用 IAM ロール |
-| prod | `SmalrubyWebHostingStack` | 本番 smalruby.app の配信基盤（S3 バケット、CloudFront、ACM 証明書（us-east-1）、CI 用 IAM ロール）と、パブリックホストゾーン `smalruby.app`（お名前.com のレコードを写したもの）。CloudFront には代替ドメイン `smalruby.app` が付いているが、apex の A はまだ GitHub Pages を向いている（下の「本番の配信基盤（prod）」「ホストゾーン `smalruby.app`（prod）」） |
+| prod | `SmalrubyWebHostingStack` | 本番 smalruby.app の配信基盤（S3 バケット、CloudFront、ACM 証明書（us-east-1）、CI 用 IAM ロール）と、パブリックホストゾーン `smalruby.app`（お名前.com のレコードを写したもの）。CloudFront には代替ドメイン `smalruby.app` が付いており、apex の A / AAAA は CloudFront の ALIAS（下の「本番の配信基盤（prod）」「ホストゾーン `smalruby.app`（prod）」） |
 | その他（stg2 等） | `SmalrubyWebHostingStack-<stage>` | なし |
 
 - プレビューは stg の API を見るので、プレビュー用の資源は **stg ステージ**に置く。
@@ -79,7 +79,8 @@ ACM の DNS 検証は、公開 DNS から検証レコード（CNAME）が引け�
 
 ```
 ブラウザ ── https://preview.smalruby.app/<slug>/ ──▶ CloudFront ──(OAC)──▶ S3 (private)
-                                                    │  viewer-request: /<slug>/ → /<slug>/index.html
+                                                    │  viewer-request: /<slug>/ → /<slug>/index.html、/<slug>/gui.js → .br / .gz
+                                                    │  viewer-response: 圧縮版に Vary: Accept-Encoding
                                                     └─ 証明書: ACM (us-east-1)
 ```
 
@@ -103,7 +104,8 @@ ACM の DNS 検証は、公開 DNS から検証レコード（CNAME）が引け�
 |---|---|
 | 代替ドメイン | `preview.smalruby.app`（証明書は us-east-1 の ACM。`DnsValidatedCertificate` でこのゾーンを使って DNS 検証する） |
 | オリジン | S3 + OAC（Origin Access Control） |
-| viewer-request（CloudFront Functions） | `/<slug>/` や `/<slug>/x/` → `.../index.html`。`/<slug>` のように末尾 `/` も拡張子も無いものは `/<slug>/` へ 301（クエリ文字列は保つ）。それ以外はそのまま（`infra/smalruby-web-hosting/lib/functions/preview-viewer-request.js`） |
+| viewer-request（CloudFront Functions） | `/<slug>/` や `/<slug>/x/` → `.../index.html`。`/<slug>` のように末尾 `/` も拡張子も無いものは `/<slug>/` へ 301（クエリ文字列は保つ）。gui の JS（`/<slug>/gui.js`・`/<slug>/gui.<hash>.js`）は `Accept-Encoding` に応じて事前圧縮版の `.br`（優先）/ `.gz` へ書きかえる（ヘッダが無い・どちらも受け取らないときはそのまま）。それ以外はそのまま（`infra/smalruby-web-hosting/lib/functions/preview-viewer-request.js`。規則は `docs/hosting/README.md` の「URI の書きかえと `Vary`」） |
+| viewer-response（CloudFront Functions） | `Content-Encoding` のある応答（事前圧縮版）に `Vary: Accept-Encoding` を付ける（`lib/functions/preview-viewer-response.js`。HSTS などほかのヘッダは付けない） |
 | キャッシュ | `Cache-Control` の無いオブジェクトはエッジで **60 秒**、`Cache-Control` があればそれに従う（最長 1 年）。キャッシュキーにクエリ文字列・ヘッダ・Cookie を含めない |
 | その他 | HTTPS へリダイレクト、TLS 1.2 以上、HTTP/2 と HTTP/3、Price Class 200（日本を含む） |
 
@@ -118,6 +120,12 @@ ACM の DNS 検証は、公開 DNS から検証レコード（CNAME）が引け�
   `dontCacheBustURLsMatching` と同じ `/\.[0-9a-f]{8,}\./`）は
   `Cache-Control: public, max-age=31536000, immutable` を付ける。
 - 置き直したら `/<slug>/*` を invalidation する（すぐに反映させたいとき）。
+- gui の JS（プレビューは `gui.js`、本番は `gui.<hash>.js`）は、事前に圧縮した `.br`（brotli q11）と
+  `.gz`（gzip -9）も隣に置く。CloudFront は 10,000,000 バイトを超えるファイルを圧縮しないため。
+  `Content-Type: text/javascript`・`Content-Encoding: br` / `gzip`・元と同じ `Cache-Control` を
+  `aws s3 cp` で明示し、`index.html` より前に置く。作り方と理由は `docs/hosting/README.md` の
+  「事前圧縮した gui の JS」。viewer-request 関数が gui の JS をこの `.br` / `.gz` へ書きかえるので、
+  圧縮版が無いと br / gzip を受け取るブラウザには 404 になる（`scripts/precompress-assets.mjs` を通さずに置かない）。
 
 ### Microsoft ログインの戻り先 `/auth-redirect.html`
 
@@ -169,14 +177,13 @@ aws s3 rm "s3://$BUCKET/test/index.html"
 
 本番 `https://smalruby.app/` を GitHub Pages から移すための置き場所。計画・切り替えの手順・戻し方・費用は
 [`docs/hosting/README.md`](../hosting/README.md)。CloudFront には `smalruby.app` の証明書と代替ドメインを
-付けてあるが、**apex の A はまだ GitHub Pages を向いている**（段 9 で CloudFront へ向ける）。だから利用者のリクエストは CloudFront に
-来ず、いまの本番（GitHub Pages）には影響しない。CloudFront の既定のドメイン（`*.cloudfront.net`）か、
-`curl --resolve` で `smalruby.app` を CloudFront の IP に向けて確かめられる。
+付け、**apex の A / AAAA を CloudFront の ALIAS にしてある**（段 9）。この変更が prod に出た時点で、利用者の
+リクエストは GitHub Pages ではなく CloudFront に来る。戻し方は [`docs/hosting/README.md`](../hosting/README.md) の「戻し方」。
 
 | リソース | 内容 |
 |---|---|
 | S3 バケット `SiteBucket` | Block Public Access 全部 ON・`enforceSSL`・**バージョニングあり**。上書き・削除された古い版は 30 日で消し、残った削除マーカーも片付ける。**いまの版は期限で消さない**（プレビューとの違い）。`removalPolicy` は **`RETAIN`**（下の「本番のバケットを RETAIN にする理由」） |
-| CloudFront `SiteDistribution` | 代替ドメインは `smalruby.app` だけ（`www.smalruby.app` は今は無いので付けない）。証明書は `SiteCertificate`、TLS 1.2 以上（`TLSv1.2_2021`）・SNI。オリジンは S3 + OAC。viewer-request はプレビューと同じ関数（`/` → `/index.html`、`/admin` → `/admin/` へ 301）。キャッシュポリシーもプレビューと同じ値。応答ヘッダポリシーで HSTS（1 年）と `X-Content-Type-Options: nosniff` を付ける。HTTP/2 と HTTP/3、Price Class 200。標準ログ（従来の S3 配信・Cookie なし）を `SiteLogBucket` の `cloudfront/smalruby.app/` に出す |
+| CloudFront `SiteDistribution` | 代替ドメインは `smalruby.app` だけ（`www.smalruby.app` は今は無いので付けない）。証明書は `SiteCertificate`、TLS 1.2 以上（`TLSv1.2_2021`）・SNI。オリジンは S3 + OAC。viewer-request はプレビューと同じコード（`lib/functions/preview-viewer-request.js`）の別の関数 `SiteViewerRequest`（定額プランの配信には、ほかの配信に付いている関数を付けられない）。`/` → `/index.html`、拡張子の無い URL（`/admin` など）は `/<path>/` へ 301（規則は `docs/hosting/README.md` の「拡張子の無い URL」）。gui の JS（`/gui.<hash>.js`）は `Accept-Encoding` に応じて事前圧縮版の `.br` / `.gz` へ書きかえる（「URI の書きかえと `Vary`」）。存在しないファイル（S3 が返す 403 と 404）は、カスタムエラー応答で `/404.html` を応答コード 404 で返す（エラーのキャッシュは 60 秒。`SITE_NOT_FOUND_PAGE_PATH` / `SITE_ERROR_CACHING_MIN_TTL_SECONDS`。ページはビルドの `packages/scratch-gui/pages/404.html`）。CloudFront の定額プラン（Pro）に入れるため、カスタムのキャッシュポリシーと応答ヘッダポリシーは使わない（定額プランでは使えない）。キャッシュポリシーは AWS 管理の `CachingOptimized`（キーはプレビューと同じくクエリ文字列・ヘッダ・Cookie なし・gzip / br。TTL は CI が付ける `Cache-Control` に従う。**`Cache-Control` が無いと既定の 1 日**になる点がプレビューと違う）。HSTS（1 年・`includeSubDomains` なし）と `X-Content-Type-Options: nosniff` は viewer-response 関数（`lib/functions/site-viewer-response.js`）で付ける。同じ関数が、`Content-Encoding` のある応答（事前圧縮版）に `Vary: Accept-Encoding` も付ける（関数はオリジンのエラー（4xx / 5xx）と viewer-request 関数が返す 301 では動かないので、それらには付かない）。HTTP/2 と HTTP/3、Price Class は All（定額プランは料金クラスを持たない）。配信は定額プラン Pro に入っている。WAF の Web ACL（`SITE_WEB_ACL_ARN`・`CreatedByCloudFront-...`）はプランが作って配信に付けたもので、CDK は作らず `webAclId` で ARN を参照するだけ（消さない・中身を変えない。外すとプランの条件から外れる。変えるときはコンソールでプランと付いている Web ACL を確かめてから定数を書き換える）。標準ログ（従来の S3 配信・Cookie なし）を `SiteLogBucket` の `cloudfront/smalruby.app/` に出す |
 | ACM 証明書 `SiteCertificate` | `smalruby.app`（SAN なし）。CloudFront 用なので us-east-1 に、`DnsValidatedCertificate` で作り、`SiteHostedZone` で DNS 検証する（検証の CNAME はこのゾーンに書かれる）。スタックは分けない。ネームサーバーを Route 53 に変えてから足した（変える前だと検証が終わらず、デプロイが証明書を待ち続けて失敗する。プレビューの「証明書を後から足した理由」と同じ） |
 | S3 バケット `SiteLogBucket` | アクセスログ専用。Block Public Access 全部 ON・SSE-S3・`enforceSSL`。標準ログは ACL で書き込まれるので Object Ownership は `BucketOwnerPreferred`（ACL を無効にしない）。`SITE_ACCESS_LOG_RETENTION_DAYS`（30 日）を過ぎたログは消す。バージョニングなし・`removalPolicy` は `DESTROY`（ログが無くても配信は止まらない。中身が残っている間は削除が失敗して止まる）。方式を選んだ理由と個人情報の扱いは [`docs/hosting/README.md`](../hosting/README.md) の「アクセスログ（段 5）」 |
 | CI 用ロール `SiteDeployRole` | 既存の GitHub OIDC プロバイダを参照。信頼は `repo:smalruby/smalruby3-editor:ref:refs/heads/develop` と `...:environment:prod` だけ（プレビューより狭い）。権限はこのバケットの `ListBucket` / `PutObject` / `DeleteObject` と、このディストリビューションの invalidation だけ |
@@ -236,7 +243,8 @@ aws s3 rm "s3://$BUCKET/index.html"
   `pull-requests` の write）も書き直している（ジョブに書くと workflow の分は引き継がれない）。
 - 置き方はプレビューと同じ「CI がアップロードするときの約束」: ハッシュ付きのファイルは
   `public, max-age=31536000, immutable`、それ以外は `max-age=0, s-maxage=60`。`.wasm` / `.mjs` / `.hex` は
-  `Content-Type` を明示する。最後に `--delete --size-only` で古いファイルを消す。
+  `Content-Type` を明示する。gui の JS の `.br` / `.gz` も置く（上の約束の最後の項目）。最後に
+  `--delete --size-only` で古いファイルを消す。
 - 本体（`packages/scratch-gui/dist`）はバケットの直下、管理 SPA（`packages/admin/build`）は `admin/` に置く。
   本体の `--delete` は `admin/*` を除き、管理 SPA の `--delete` は `admin/` の中だけに効く。
   `.well-known/` などドットで始まるものも置く。GitHub Pages 用の `.nojekyll` と `CNAME` は置かない。
@@ -259,7 +267,8 @@ aws s3 rm "s3://$BUCKET/index.html"
 
 | 名前 | 型 | 数 | TTL | 内容 |
 |---|---|---|---|---|
-| `smalruby.app` | A | 4 | 300 | GitHub Pages（185.199.108〜111.153）。お名前.com は 3600 だが、切り替えと戻しを早く効かせるため 300 にする |
+| `smalruby.app` | A | ALIAS | — | CloudFront `SiteDistribution`（段 9）。論理 ID は GitHub Pages の IP（185.199.108〜111.153・TTL 300）を書いていたときと同じ `SiteApexA` のまま（置き換えではなく更新にするため。変えない） |
+| `smalruby.app` | AAAA | ALIAS | — | CloudFront `SiteDistribution`（段 9 で足した。論理 ID `SiteApexAAAA`） |
 | `smalruby.app` | TXT | 1 | 300 | `google-site-verification=...`（Search Console の所有確認） |
 | `_github-pages-challenge-smalruby.smalruby.app` | TXT | 1 | 3600 | GitHub の組織のドメイン検証。**消さない**（`docs/security/github-pages-subdomain-takeover.md`） |
 | `smalruby.app` | CAA | 6 | 3600 | `issue` amazon.com / amazonaws.com / amazontrust.com / awstrust.com / letsencrypt.org、`issuewild ";"` |
@@ -272,7 +281,8 @@ aws s3 rm "s3://$BUCKET/index.html"
   照合は `scripts/hosting/dns-compare.mjs`（`docs/hosting/verify-scripts.md`）で、お名前.com のエクスポートと
   `cdk synth` の結果、または両方のネームサーバーへの問い合わせを比べる。
 - NS の値は末尾に `.` を付けて書く（ゾーン名を足した相対名と読まれないように）。
-- apex の A を CloudFront の ALIAS に変えるのは別の変更（本番の向き先が変わるので、人間が夜間にマージする）。
+- apex の A / AAAA は CloudFront の ALIAS（段 9）。本番の向き先が変わる変更なので、PR は人間が夜間にマージした。
+  お名前.com のゾーンには ALIAS が書けないので、ここから先はお名前.com のエクスポートと apex の A が一致しない（照合では apex の A / AAAA を除いて見る）。
 
 NS はデプロイ後に次で確認する:
 
@@ -329,7 +339,9 @@ aws route53 list-hosted-zones-by-name --dns-name smalruby.app \
    （ビルド自体は相対パスなので、置き場所を選ばない）。
 5. GitHub OIDC で `PreviewDeployRoleArn` を AssumeRole し、`s3://<bucket>/<slug>/` に置く。上の
    「CI がアップロードするときの約束」どおり、ハッシュ付きのファイルとそれ以外で `Cache-Control` を
-   分けて 2 回 sync し、最後に `--delete --size-only` で新しいビルドに無いものを消す。
+   分けて 2 回 sync し（その間に `gui.js.br` / `gui.js.gz` を `aws s3 cp` で置く）、最後に
+   `--delete --size-only` で新しいビルドに無いものを消す。その前に `postbuild.mjs` のあとで
+   `scripts/precompress-assets.mjs packages/scratch-gui/build` が `.br` / `.gz` を作る。
 6. **develop のときだけ**、バケットのルートに `auth-redirect.html` / `auth-redirect.js` を置く
    （全プレビューが共有するので、ブランチからは上書きしない）。
 7. `/<slug>/*` を invalidation し、PR なら 1 回だけ URL をコメントする。
@@ -397,7 +409,8 @@ npx cdk synth --context stage=prod
 保持期間で消える・CI 用ロールから触れない）がある」「stg2 には何も作らない」を確かめる。`test/site-zone.test.ts` は「prod に `smalruby.app` のゾーンが 1 つあり `RETAIN`・論理 ID が変わらない」「写した
 レコードがお名前.com の値と同じ（apex の A だけ TTL 300）」「apex の NS / SOA・`everdiary`・ワイルドカードが無い」
 「stg / stg2 にはこのゾーンが無い」を確かめる。`test/preview-viewer-request.test.ts` は
-CloudFront Function の実コードを評価して URI の書き換えを確かめる。
+CloudFront Function の実コード（本番とプレビューで共用）を評価して URI の書き換え（gui の JS の `.br` / `.gz` を含む）を確かめる。
+`test/site-viewer-response.test.ts` / `test/preview-viewer-response.test.ts` は viewer-response 関数のヘッダ（HSTS / nosniff・`Vary`）を確かめる。
 
 CI（`.github/workflows/ci-infra.yml` の `[web-hosting] Unit Tests` / `CDK Build & Synth` /
 `Security Audit`）が、`infra/**` を変える PR と push で同じテストと、stg / prod 両方の `cdk synth` を行う。
@@ -409,10 +422,13 @@ CI（`.github/workflows/ci-infra.yml` の `[web-hosting] Unit Tests` / `CDK Buil
 | `infra/smalruby-web-hosting/bin/smalruby-web-hosting.ts` | エントリポイント。stage とスタック名を決める |
 | `infra/smalruby-web-hosting/lib/web-hosting-stack.ts` | スタック本体（stg: ホストゾーン・プレビューの配信基盤・CI 用ロール / prod: 本番の配信基盤 `createSiteDelivery()`・ゾーン `createSiteZone()`） |
 | `infra/smalruby-web-hosting/lib/site-zone-records.ts` | `smalruby.app` のゾーンに写すレコードの値（お名前.com と同じ） |
-| `infra/smalruby-web-hosting/lib/functions/preview-viewer-request.js` | CloudFront Function（ディレクトリの URL → `index.html`）。プレビューと本番で共用 |
+| `infra/smalruby-web-hosting/lib/functions/preview-viewer-request.js` | viewer-request の CloudFront Function のコード（ディレクトリの URL → `index.html`、拡張子の無い URL → `/<path>/` へ 301、gui の JS → `.br` / `.gz`）。本番とプレビューで共用（関数のリソースは別） |
+| `infra/smalruby-web-hosting/lib/functions/site-viewer-response.js` | 本番の viewer-response の CloudFront Function のコード（HSTS / nosniff・圧縮版に `Vary`） |
+| `infra/smalruby-web-hosting/lib/functions/preview-viewer-response.js` | プレビューの viewer-response の CloudFront Function のコード（圧縮版に `Vary` だけ） |
 | `infra/smalruby-web-hosting/test/web-hosting.test.ts` | スタックのテスト |
 | `infra/smalruby-web-hosting/test/site-zone.test.ts` | `smalruby.app` のゾーンのテスト（写したレコードの一覧・`RETAIN`・prod だけに作る） |
-| `infra/smalruby-web-hosting/test/preview-viewer-request.test.ts` | CloudFront Function のテスト |
+| `infra/smalruby-web-hosting/test/preview-viewer-request.test.ts` | viewer-request の CloudFront Function のテスト（本番とプレビューで共用） |
+| `infra/smalruby-web-hosting/test/site-viewer-response.test.ts` / `preview-viewer-response.test.ts` | viewer-response の CloudFront Function のテスト |
 | `.github/workflows/ci-cd.yml`（`preview-deploy`） | プレビューを stg の値でビルドして置く |
 | `.github/workflows/preview-cleanup.yml` | プレビューの片付け |
 | `scripts/preview-slug.mjs` | ブランチ名 → slug |

@@ -34,6 +34,15 @@ URL パラメータ `?tutorial=<urlId>`（例: `?tutorial=getStarted`）で直�
 
 上流（Scratch v13.7.2）のチュートリアルがそのまま並ぶ（スモウルビー独自のチュートリアルは無い。学習の入口は [`docs/lessons/`](../lessons/) のレッスン）。
 
+ただし、**スタータープロジェクト付きのチュートリアル 2 つは一覧に出さない**:「アニメ映画をコーディングしよう」（`code-cartoon`）と「アドベンチャーゲーム」（`cartoon-network`。`urlId` は `animate-an-adventure-game`）。この 2 つは `requiredProjectId` を持ち、一覧で選ぶと新しいタブで `/projects/<id>/editor?tutorial=<urlId>` を開く（scratch.mit.edu の作品ページの形）。smalruby.app にはこのパスが無く、開いても AccessDenied（または 404）になるため。隠し方は upstream にある `hideTutorialProjects`（Scratch Desktop 向けに同じ 2 つを隠すための prop）を `src/playground/render-gui.jsx` から渡すだけで、`tips-library.jsx` は upstream のまま。
+
+ほかの入口ではこの 2 つを消していない（upstream と同じ）。どちらも **カードだけを開き、作品は読み込まない**（上の新しいタブは開かないので AccessDenied にはならない）:
+
+- `?tutorial=code-cartoon` / `?tutorial=animate-an-adventure-game` で開いたとき
+- ほかのチュートリアルの最後のカードの「次のチュートリアル」に `code-cartoon` が出るとき（「キャラクターを動かそう」「効果の追加方法」のあと）
+
+カードの説明はスタータープロジェクトがある前提なので、手元の作品とは合わない。
+
 前にスモウルビーにあったチュートリアルの `?tutorial=<urlId>`（`chat1Basic1` など）はもう開かない。こうしたリンクが使われているかを数えるため、見つからない `urlId` で開かれたら GA に送る（下の「GA の計測」）。
 
 ### Ruby タブオンボーディング (Smalruby 独自)
@@ -58,7 +67,7 @@ Smalruby Classroom の各フェーズ（教師ログイン、クラス作成、�
 |---|---|
 | `packages/scratch-gui/src/containers/cards.jsx` | チュートリアルカードのコンテナ（上流のまま）|
 | `packages/scratch-gui/src/components/cards/` | カード UI |
-| `packages/scratch-gui/src/containers/tips-library.jsx` | ヒント / チュートリアル一覧（上流のまま）|
+| `packages/scratch-gui/src/containers/tips-library.jsx` | ヒント / チュートリアル一覧（上流のまま。スタータープロジェクト付きは `hideTutorialProjects` で外す）|
 | `packages/scratch-gui/src/lib/tutorial-from-url.js` | `?tutorial=<urlId>` からチュートリアルを開く（Smalruby: 見つからないときの GA 計測）|
 
 #### Smalruby 独自
@@ -74,6 +83,9 @@ Smalruby Classroom の各フェーズ（教師ログイン、クラス作成、�
 
 `src/lib/tutorial-from-url.js`:
 - "unknown tutorial url analytics" — 見つからない `?tutorial=` を GA に送る
+
+`src/playground/render-gui.jsx`:
+- "hide project tutorials" — `hideTutorialProjects` を渡し、スタータープロジェクト付きのチュートリアルを一覧から外す
 
 `webpack.config.js`:
 - "lazy tutorial images" — チュートリアルの画像を `gui.js` に埋めこまず、開いたときだけ読みこむ

@@ -105,6 +105,11 @@ export default appTarget => {
                 showComingSoon={false}
                 backpackHost={backpackHost}
                 canSave={false}
+                // === Smalruby: Start of hide project tutorials ===
+                // スタータープロジェクト付きのチュートリアル（requiredProjectId）は
+                // /projects/<id>/editor を開くが、smalruby.app にはそのパスが無いので出さない。
+                hideTutorialProjects
+                // === Smalruby: End of hide project tutorials ===
                 onClickLogo={onClickLogo}
             />
     );

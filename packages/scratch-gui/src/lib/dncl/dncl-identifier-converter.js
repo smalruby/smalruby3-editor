@@ -68,7 +68,10 @@ const convertJapaneseStrings = (line) => {
         if (ch === '「') {
             const close = line.indexOf('」', i + 1);
             if (close !== -1) {
-                result += `"${line.substring(i + 1, close)}"`;
+                // The text of 「...」 is taken as it is, so a `"` or `\` in it
+                // is escaped to stay text of the "..." string (Issue #2031).
+                const text = line.substring(i + 1, close).replace(/[\\"]/g, '\\$&');
+                result += `"${text}"`;
                 i = close + 1;
                 continue;
             }
@@ -80,11 +83,46 @@ const convertJapaneseStrings = (line) => {
 };
 
 /**
- * Convert arrow assignment ← to = in a string.
- * @param {string} str - The string to convert.
- * @returns {string} The string with arrows replaced.
+ * Convert the arrow assignment `←` to ` = `, with the spaces around it made
+ * one on each side. A `←` inside a string literal (「...」, "...", '...') or
+ * in the trailing comment is text, so it is kept: `表示する(「x←1」)` stays
+ * `表示する(「x←1」)` (Issue #2031).
+ * @param {string} str - A line (or part of one) of DNCL code.
+ * @returns {string} The code with its arrows replaced.
  */
-const convertArrow = (str) => str.replace(/\s*←\s*/g, ' = ');
+const convertArrow = (str) => {
+    // Pieces of the result, and how many of them come before the whitespace
+    // at its end, so the spaces before a `←` are dropped without trimming the
+    // whole result again at each arrow.
+    const out = [];
+    let codeEnd = 0;
+    let i = 0;
+    while (i < str.length) {
+        const end = stringEndAt(str, i);
+        if (end !== -1) {
+            out.push(str.substring(i, end));
+            codeEnd = out.length;
+            i = end;
+            continue;
+        }
+        if (str[i] === '#') {
+            out.push(str.substring(i));
+            break;
+        }
+        if (str[i] === '←') {
+            out.length = codeEnd;
+            out.push(' = ');
+            i++;
+            while (i < str.length && /\s/.test(str[i])) i++;
+            codeEnd = out.length;
+            continue;
+        }
+        out.push(str[i]);
+        if (!/\s/.test(str[i])) codeEnd = out.length;
+        i++;
+    }
+    return out.join('');
+};
 
 /** DNCL `かつ` / `または` and the Ruby operators they become. */
 const LOGICAL_OPERATORS = [
