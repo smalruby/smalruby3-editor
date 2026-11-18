@@ -1,3 +1,5 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import * as cdk from 'aws-cdk-lib/core';
 import { Match, Template } from 'aws-cdk-lib/assertions';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
@@ -181,6 +183,22 @@ describe('SmalrubyWebHostingStack', () => {
                         expect.objectContaining({ EventType: 'viewer-response' }),
                     ],
                 }),
+            );
+        });
+
+        // GitHub Pages と同じく `/about` に about.html を返す関数（プレビューの関数とは別のコード）。
+        test('resolves extensionless URLs with the smalruby.app viewer-request function', () => {
+            const behavior = Object.values(template.findResources('AWS::CloudFront::Distribution'))[0]
+                .Properties.DistributionConfig.DefaultCacheBehavior;
+            const assoc = behavior.FunctionAssociations.find(
+                (a: { EventType: string }) => a.EventType === 'viewer-request',
+            );
+            const fnId = assoc.FunctionARN['Fn::GetAtt'][0];
+            expect(fnId).toMatch(/^SiteViewerRequest/);
+            const fn = template.findResources('AWS::CloudFront::Function')[fnId];
+            expect(fn.Properties.FunctionConfig.Runtime).toBe('cloudfront-js-2.0');
+            expect(fn.Properties.FunctionCode).toBe(
+                fs.readFileSync(path.join(__dirname, '../lib/functions/site-viewer-request.js'), 'utf8'),
             );
         });
 
@@ -522,6 +540,13 @@ describe('SmalrubyWebHostingStack', () => {
             template.resourceCountIs('AWS::CloudFront::CachePolicy', 1);
             template.resourceCountIs('AWS::CloudFront::ResponseHeadersPolicy', 0);
             template.resourceCountIs('AWS::CloudFront::Function', 1);
+        });
+
+        test('preview keeps the preview viewer-request function (/<slug> is a directory)', () => {
+            const fn = Object.values(template.findResources('AWS::CloudFront::Function'))[0];
+            expect(fn.Properties.FunctionCode).toBe(
+                fs.readFileSync(path.join(__dirname, '../lib/functions/preview-viewer-request.js'), 'utf8'),
+            );
         });
 
         test('cache policy keeps index.html short and lets hashed assets stay long', () => {

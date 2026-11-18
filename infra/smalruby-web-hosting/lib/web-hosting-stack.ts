@@ -333,11 +333,12 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
             ],
         });
 
-        // `/` → `/index.html`、`/admin/` → `/admin/index.html`、`/admin` → `/admin/` への 301。
-        // プレビューと同じ規則で足りるので、同じ関数のコードを使う。
+        // `/` → `/index.html`、`/admin` → `/admin/` への 301 に加えて、GitHub Pages と同じく
+        // `/about` → `/about.html` を返す（プレビューは `/<slug>` をディレクトリとして扱うので別の関数）。
         const viewerRequest = this.createViewerRequestFunction(
             'SiteViewerRequest',
             'Resolve directory URLs to index.html for smalruby.app',
+            'site-viewer-request.js',
         );
         // 配信は CloudFront の定額プラン（Pro）に入れる。定額プランはカスタムのキャッシュポリシーと
         // カスタムのレスポンスヘッダーポリシーを使えないので、配信には AWS 管理の CachingOptimized と
@@ -483,12 +484,17 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
     /**
      * ディレクトリの URL を index.html に解決する viewer-request 関数。S3 は REST
      * エンドポイント（OAC）なので、ディレクトリの index.html を自分で解決しない。
+     * `fileName` は `lib/functions/` の下の関数のコード（既定はプレビュー用）。
      */
-    private createViewerRequestFunction(id: string, comment: string): cloudfront.Function {
+    private createViewerRequestFunction(
+        id: string,
+        comment: string,
+        fileName = 'preview-viewer-request.js',
+    ): cloudfront.Function {
         return new cloudfront.Function(this, id, {
             runtime: cloudfront.FunctionRuntime.JS_2_0,
             code: cloudfront.FunctionCode.fromFile({
-                filePath: path.join(__dirname, 'functions/preview-viewer-request.js'),
+                filePath: path.join(__dirname, 'functions', fileName),
             }),
             comment,
         });
