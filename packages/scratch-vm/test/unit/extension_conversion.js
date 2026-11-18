@@ -321,3 +321,25 @@ test('custom field types should be added to block and EXTENSION_FIELD_ADDED call
     t.equal(fieldAddedCallbacks, 2);
     t.end();
 });
+
+// Smalruby: BlockType.LABEL (#2189)
+test('a label needs no opcode and is converted to a flyout label', t => {
+    const ExtensionManager = require('../../src/extension-support/extension-manager');
+    const prepared = ExtensionManager.prototype._prepareBlockInfo.call(
+        {_sanitizeID: ExtensionManager.prototype._sanitizeID},
+        'test',
+        {blockType: BlockType.LABEL, text: 'Robot car'}
+    );
+    t.equal(prepared.blockType, BlockType.LABEL);
+    t.notOk(prepared.func, 'a label has no block function');
+
+    const runtime = new Runtime();
+    runtime._registerExtensionPrimitives({
+        id: 'labeltest',
+        name: 'label test',
+        blocks: [{blockType: BlockType.LABEL, text: 'Robot car'}]
+    });
+    const category = runtime._blockInfo.find(info => info.id === 'labeltest');
+    t.equal(category.blocks[0].xml, '<label text="Robot car"></label>');
+    t.end();
+});

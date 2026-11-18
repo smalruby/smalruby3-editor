@@ -1094,6 +1094,12 @@ class Runtime extends EventEmitter {
             return this._convertButtonForScratchBlocks(blockInfo);
         }
 
+        // === Smalruby: Start of label block type ===
+        if (blockInfo.blockType === BlockType.LABEL) {
+            return this._convertLabelForScratchBlocks(blockInfo);
+        }
+        // === Smalruby: End of label block type ===
+
         return this._convertBlockForScratchBlocks(blockInfo, categoryInfo);
     }
 
@@ -1261,6 +1267,23 @@ class Runtime extends EventEmitter {
             xml: '<sep gap="36"/>'
         };
     }
+
+    // === Smalruby: Start of label block type ===
+    /**
+     * Convert a heading label for scratch-blocks. A label has no opcode; it is shown as text in the flyout.
+     * @param {ExtensionBlockMetadata} labelInfo - the label to convert
+     * @returns {ConvertedBlockInfo} - the converted & original label information
+     * @private
+     */
+    _convertLabelForScratchBlocks (labelInfo) {
+        const extensionMessageContext = this.makeMessageContextForTarget();
+        const labelText = xmlEscape(maybeFormatMessage(labelInfo.text, extensionMessageContext));
+        return {
+            info: labelInfo,
+            xml: `<label text="${labelText}"></label>`
+        };
+    }
+    // === Smalruby: End of label block type ===
 
     /**
      * Convert a button for scratch-blocks. A button has no opcode but specifies a callback name in the `func` field.

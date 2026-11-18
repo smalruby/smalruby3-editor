@@ -117,7 +117,7 @@ describe('RubyToBlocksConverter/SmalrubotS1', () => {
     });
 
     test('smalrubotS1_getSensorValue', async () => {
-        const positions = ['left', 'right', 'touch'];
+        const positions = ['left', 'right', 'touch', 'light', 'sound', 'ir_a4', 'ir_a5'];
         for (const position of positions) {
             code = `smalrubot_s1.sensor_value("${position}")`;
             expected = [

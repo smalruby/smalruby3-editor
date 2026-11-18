@@ -837,11 +837,14 @@ class SmalrubotS1 extends Smalrubot {
                 commandName = 'get_touch_sensor_value';
                 pin = PORT_A2;
                 break;
+            // `ir_a4` / `ir_a5` are the textbook names of `left` / `right` (same sensors and ports, #2189).
             case 'left':
+            case 'ir_a4':
                 commandName = 'get_ir_photoreflector_value';
                 pin = PORT_A4;
                 break;
             case 'right':
+            case 'ir_a5':
                 commandName = 'get_ir_photoreflector_value';
                 pin = PORT_A5;
                 break;
@@ -931,7 +934,7 @@ class Scratch3SmalrubotS1Blocks {
             {
                 text: formatMessage({
                     id: 'smalrubotS1.actionMenu.forward',
-                    default: 'forward',
+                    default: 'move the car forward',
                     description: 'label for "forward" element in action picker for Smalrubot S1 extension',
                 }),
                 value: 'forward',
@@ -939,7 +942,7 @@ class Scratch3SmalrubotS1Blocks {
             {
                 text: formatMessage({
                     id: 'smalrubotS1.actionMenu.backward',
-                    default: 'backward',
+                    default: 'move the car backward',
                     description: 'label for "backward" element in action picker for Smalrubot S1 extension',
                 }),
                 value: 'backward',
@@ -947,7 +950,7 @@ class Scratch3SmalrubotS1Blocks {
             {
                 text: formatMessage({
                     id: 'smalrubotS1.actionMenu.turnLeft',
-                    default: 'turn left',
+                    default: 'turn the car left',
                     description: 'label for "turn left" element in action picker for Smalrubot S1 extension',
                 }),
                 value: 'left',
@@ -955,7 +958,7 @@ class Scratch3SmalrubotS1Blocks {
             {
                 text: formatMessage({
                     id: 'smalrubotS1.actionMenu.turnRight',
-                    default: 'turn right',
+                    default: 'turn the car right',
                     description: 'label for "turn right" element in action picker for Smalrubot S1 extension',
                 }),
                 value: 'right',
@@ -963,7 +966,7 @@ class Scratch3SmalrubotS1Blocks {
             {
                 text: formatMessage({
                     id: 'smalrubotS1.actionMenu.stop',
-                    default: 'stop',
+                    default: 'stop the car',
                     description: 'label for "stop" element in action picker for Smalrubot S1 extension',
                 }),
                 value: 'stop',
@@ -999,46 +1002,66 @@ class Scratch3SmalrubotS1Blocks {
      * @returns {Array} - text and values for each sensor positions menu element
      */
     get SENSOR_POSITIONS_MENU() {
+        // The textbook names come first (#2189). The values are saved in projects:
+        // never rename or remove them, only add new ones.
         return [
             {
                 text: formatMessage({
+                    id: 'smalrubotS1.sensorPositionsMenu.light',
+                    default: 'light sensor (A6)',
+                    description: 'label for "light" sensor in sensor picker for Smalrubot S1 extension',
+                }),
+                value: 'light',
+            },
+            {
+                text: formatMessage({
+                    id: 'smalrubotS1.sensorPositionsMenu.irA4',
+                    default: 'infrared sensor (photoreflector) (A4)',
+                    description:
+                        'label for infrared sensor on A4 (same as "left") sensor in sensor picker for Smalrubot S1 extension',
+                }),
+                value: 'ir_a4',
+            },
+            {
+                text: formatMessage({
+                    id: 'smalrubotS1.sensorPositionsMenu.irA5',
+                    default: 'infrared sensor (photoreflector) (A5)',
+                    description:
+                        'label for infrared sensor on A5 (same as "right") sensor in sensor picker for Smalrubot S1 extension',
+                }),
+                value: 'ir_a5',
+            },
+            {
+                text: formatMessage({
+                    id: 'smalrubotS1.sensorPositionsMenu.touch',
+                    default: 'touch sensor (A2)',
+                    description: 'label for "touch" sensor in sensor picker for Smalrubot S1 extension',
+                }),
+                value: 'touch',
+            },
+            {
+                text: formatMessage({
+                    id: 'smalrubotS1.sensorPositionsMenu.sound',
+                    default: 'sound sensor (A7)',
+                    description: 'label for "sound" sensor in sensor picker for Smalrubot S1 extension',
+                }),
+                value: 'sound',
+            },
+            {
+                text: formatMessage({
                     id: 'smalrubotS1.sensorPositionsMenu.left',
-                    default: 'left(A4)',
-                    description: 'label for "left" sensor in position picker for Smalrubot S1 extension',
+                    default: 'left sensor (A4)',
+                    description: 'label for "left" sensor in sensor picker for Smalrubot S1 extension',
                 }),
                 value: 'left',
             },
             {
                 text: formatMessage({
                     id: 'smalrubotS1.sensorPositionsMenu.right',
-                    default: 'right(A5)',
-                    description: 'label for "right" sensor in position picker for Smalrubot S1 extension',
+                    default: 'right sensor (A5)',
+                    description: 'label for "right" sensor in sensor picker for Smalrubot S1 extension',
                 }),
                 value: 'right',
-            },
-            {
-                text: formatMessage({
-                    id: 'smalrubotS1.sensorPositionsMenu.touch',
-                    default: 'touch(A2)',
-                    description: 'label for "touch" sensor in position picker for Smalrubot S1 extension',
-                }),
-                value: 'touch',
-            },
-            {
-                text: formatMessage({
-                    id: 'smalrubotS1.sensorPositionsMenu.light',
-                    default: 'light(A6)',
-                    description: 'label for "light" sensor in position picker for Smalrubot S1 extension',
-                }),
-                value: 'light',
-            },
-            {
-                text: formatMessage({
-                    id: 'smalrubotS1.sensorPositionsMenu.sound',
-                    default: 'sound(A7)',
-                    description: 'label for "sound" sensor in position picker for Smalrubot S1 extension',
-                }),
-                value: 'sound',
             },
         ];
     }
@@ -1078,65 +1101,10 @@ class Scratch3SmalrubotS1Blocks {
             showStatusButton: true,
             blocks: [
                 {
-                    opcode: 'action',
-                    text: formatMessage({
-                        id: 'smalrubotS1.action',
-                        default: '[ACTION]',
-                        description: 'action block text',
-                    }),
-                    blockType: BlockType.COMMAND,
-                    arguments: {
-                        ACTION: {
-                            type: ArgumentType.STRING,
-                            menu: 'actions',
-                            defaultValue: this.ACTIONS_MENU[0].value,
-                        },
-                    },
-                },
-                {
-                    opcode: 'actionAndStopAfter',
-                    text: formatMessage({
-                        id: 'smalrubotS1.actionAndStopAfter',
-                        default: '[ACTION] for [SECS] seconds',
-                        description: 'actionAndStopAfter block text',
-                    }),
-                    blockType: BlockType.COMMAND,
-                    arguments: {
-                        ACTION: {
-                            type: ArgumentType.STRING,
-                            menu: 'actions',
-                            defaultValue: this.ACTIONS_MENU[0].value,
-                        },
-                        SECS: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 0.5,
-                        },
-                    },
-                },
-                {
-                    opcode: 'bendArm',
-                    text: formatMessage({
-                        id: 'smalrubotS1.bendArm',
-                        default: 'bend arm [DEGREE] degrees in [SECS] seconds',
-                        description: 'bendArm block text',
-                    }),
-                    blockType: BlockType.COMMAND,
-                    arguments: {
-                        DEGREE: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 90,
-                        },
-                        SECS: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 1,
-                        },
-                    },
-                },
-                {
                     opcode: 'getSensorValue',
                     text: formatMessage({
                         id: 'smalrubotS1.getSensorValue',
-                        default: '[POSITION] sensor value',
+                        default: 'value of [POSITION]',
                         description: 'getSnsorValue block text',
                     }),
                     blockType: BlockType.REPORTER,
@@ -1213,6 +1181,71 @@ class Scratch3SmalrubotS1Blocks {
                         SPEED: {
                             type: ArgumentType.NUMBER,
                             defaultValue: DEFAULT_DC_MOTOR_POWER_RATIO,
+                        },
+                    },
+                },
+                '---',
+                {
+                    // A heading for the robot blocks (#2189). They stay in the palette for compatibility.
+                    blockType: BlockType.LABEL,
+                    text: formatMessage({
+                        id: 'smalrubotS1.robotCarLabel',
+                        default: 'Robot car',
+                        description: 'heading label for the robot car blocks in Smalrubot S1 extension',
+                    }),
+                },
+                {
+                    opcode: 'action',
+                    text: formatMessage({
+                        id: 'smalrubotS1.action',
+                        default: '[ACTION]',
+                        description: 'action block text',
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        ACTION: {
+                            type: ArgumentType.STRING,
+                            menu: 'actions',
+                            defaultValue: this.ACTIONS_MENU[0].value,
+                        },
+                    },
+                },
+                {
+                    opcode: 'actionAndStopAfter',
+                    text: formatMessage({
+                        id: 'smalrubotS1.actionAndStopAfter',
+                        default: '[ACTION] for [SECS] seconds',
+                        description: 'actionAndStopAfter block text',
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        ACTION: {
+                            type: ArgumentType.STRING,
+                            menu: 'actions',
+                            defaultValue: this.ACTIONS_MENU[0].value,
+                        },
+                        SECS: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 0.5,
+                        },
+                    },
+                },
+                {
+                    opcode: 'bendArm',
+                    text: formatMessage({
+                        id: 'smalrubotS1.bendArm',
+                        default: 'bend arm [DEGREE] degrees in [SECS] seconds',
+                        description: 'bendArm block text',
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        DEGREE: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 90,
+                        },
+                        SECS: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 1,
                         },
                     },
                 },

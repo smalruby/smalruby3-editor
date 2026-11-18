@@ -177,9 +177,11 @@
 | `smalrubot_s1.sensor_value(位置)` | センサー値を取得 | `smalrubot_s1.sensor_value("left")` |
 | `smalrubot_s1.get_motor_speed(位置)` | モーター速度を取得 | `smalrubot_s1.get_motor_speed("left")` |
 
-**アクションの値**: `"forward"`（前進）, `"backward"`（後退）, `"left"`（左旋回）, `"right"`（右旋回）, `"stop"`（停止）
+**アクションの値**: `"forward"`（車を前進させる）, `"backward"`（車を後退させる）, `"left"`（車を左に曲げる）, `"right"`（車を右に曲げる）, `"stop"`（車を止める）
 
-**位置の値**: `"left"`（左）, `"right"`（右）
+**位置の値**（`led` / `set_motor_speed` / `get_motor_speed`）: `"left"`（左。LED は A0・DC モーターは M1）, `"right"`（右。LED は A1・DC モーターは M2）
+
+**センサーの値**（`sensor_value`）: `"light"`（光センサー (A6)）, `"ir_a4"`（赤外線センサー（フォトリフレクタ）(A4)）, `"ir_a5"`（赤外線センサー（フォトリフレクタ）(A5)）, `"touch"`（タッチセンサー (A2)）, `"sound"`（音センサー (A7)）, `"left"`（左のセンサー (A4)。`"ir_a4"` と同じ）, `"right"`（右のセンサー (A5)。`"ir_a5"` と同じ）
 
 ---
 

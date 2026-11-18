@@ -100,17 +100,28 @@ const MICROBIT_PULL_MODE_LABELS = {
     none: 'なし',
 };
 
+// Keys are the menu values written in Ruby (`left` / `right` are the turn actions).
 const SMALRUBOT_S1_ACTION_LABELS = {
-    forward: '進める',
-    backward: 'バックさせる',
-    turnLeft: '左に曲げる',
-    turnRight: '右に曲げる',
-    stop: '止める',
+    forward: '車を前進させる',
+    backward: '車を後退させる',
+    left: '車を左に曲げる',
+    right: '車を右に曲げる',
+    stop: '車を止める',
 };
 
 const SMALRUBOT_S1_POSITION_LABELS = {
     left: '左',
     right: '右',
+};
+
+const SMALRUBOT_S1_SENSOR_LABELS = {
+    light: '光センサー (A6)',
+    ir_a4: '赤外線センサー（フォトリフレクタ）(A4)',
+    ir_a5: '赤外線センサー（フォトリフレクタ）(A5)',
+    touch: 'タッチセンサー (A2)',
+    sound: '音センサー (A7)',
+    left: '左のセンサー (A4)',
+    right: '右のセンサー (A5)',
 };
 
 /**
@@ -193,6 +204,10 @@ const EXTENSION_STRING_MAPS = {
     },
     smalrubot_s1: {
         action: SMALRUBOT_S1_ACTION_LABELS,
+        sensor_value: SMALRUBOT_S1_SENSOR_LABELS,
+        led: SMALRUBOT_S1_POSITION_LABELS,
+        get_motor_speed: SMALRUBOT_S1_POSITION_LABELS,
+        set_motor_speed: SMALRUBOT_S1_POSITION_LABELS,
     },
     tm: {
         toggle_classification: TM_CLASSIFICATION_STATE_LABELS,

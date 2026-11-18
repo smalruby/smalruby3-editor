@@ -179,7 +179,9 @@ Control the Smalrubot S1 robot.
 
 **Action values**: `"forward"`, `"backward"`, `"left"`, `"right"`, `"stop"`
 
-**Position values**: `"left"`, `"right"`
+**Position values** (`led` / `set_motor_speed` / `get_motor_speed`): `"left"` (LED A0, DC motor M1), `"right"` (LED A1, DC motor M2)
+
+**Sensor values** (`sensor_value`): `"light"` (A6), `"ir_a4"` (infrared / photoreflector A4), `"ir_a5"` (infrared / photoreflector A5), `"touch"` (A2), `"sound"` (A7), `"left"` (same as `"ir_a4"`), `"right"` (same as `"ir_a5"`)
 
 ---
 
