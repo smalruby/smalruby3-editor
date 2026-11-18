@@ -327,6 +327,9 @@ Smalruby は **DNCLv2 形式のプログラムをそのまま実行** できる�
 
 ## テスト
 
+- 変換の作り直し（`ja-notation`）のための安全網:
+  - `test/unit/lib/ruby-roundtrip/japanese-table.test.js` — 日本語 ⇔ Ruby ⇔ ブロックの表（表のテストの日本語の列。[`bridging-patterns.md`](../ruby-editor/bridging-patterns.md) の「表のテスト」）
+  - `test/unit/lib/ja-notation/golden.test.js` — 日本語のプログラムのコーパスについて、いまの `dnclToRuby` / `rubyToDncl` の出力（Ruby・日本語・ブロック・誤りの文と行）がゴールデンと同じこと。データと集め方は `packages/scratch-gui/test/fixtures/ja-notation/README.md`
 - 単体テスト: `packages/scratch-gui/test/unit/lib/dncl/`
   - `dncl-v2-preprocessor.test.js` — DNCLv2 正規化テスト（53 cases）
   - `dncl-v2-example.test.js` — DNCLv2 例題の end-to-end 変換テスト

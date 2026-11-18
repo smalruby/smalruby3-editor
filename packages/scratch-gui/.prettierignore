@@ -672,6 +672,8 @@ test/unit/lib/*
 !test/unit/lib/mesh-practice/
 !test/unit/lib/mesh-practice/**
 !test/unit/lib/dncl/**
+!test/unit/lib/ja-notation/
+!test/unit/lib/ja-notation/**
 !test/unit/lib/ruby-generator/
 !test/unit/lib/ruby-generator/**
 !test/unit/lib/ruby-roundtrip/
@@ -789,6 +791,9 @@ test/unit/lib/*
 !test/unit/lib/genai-ruby-prompt.test.js
 !test/genai-lab/
 !test/genai-lab/**
+# The corpus tools of the Japanese mode (the corpus and golden JSON in test/fixtures/ are generated)
+!test/ja-notation/
+!test/ja-notation/**
 !test/unit/lib/ruby-to-blocks-converter-version.test.js
 !test/unit/lib/screen-utils.test.js
 !test/unit/lib/stale-block-delete-guard.test.js
