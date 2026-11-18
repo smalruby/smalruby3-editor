@@ -168,6 +168,7 @@ end
 ```
 
 - ブロック: 定義に `_return_foo_ = ""`（`:initialize`）・`_return_foo_ = n + 1`・止める。呼び出し側は `foo(1)`（`@ruby:return:foo:1`）→ `_return_foo_1_ = _return_foo_`（控え）→ `foo(2)`（`@ruby:return:foo`）→ `say(_return_foo_1_ + _return_foo_)`。Ruby に戻すと同じコードになる。
+- **`def` より前の呼び出し**（`@a = foo(3)` のあとに `def foo(n)`）: 分析の段が `def` を先に集める（`procedures.definitions`）。ほかのブロックにならない呼び出しで、同じ名前の `def` が 1 つだけ・引数が必須だけで数が合い・`super` を使わず・module の中でないとき、変換器はその表から手続きを先に用意して、呼び出しを My Block の呼び出しにする（`_declareProcedureDefinedLater`）。値として使ったときは値を返すものとして変換し、`def` まで来て値を返さないとわかったら、`def` が先のときと同じ「命令がまちがっています」にする。引数が真偽値かどうかも `def` で決まり、それより前の呼び出しを直す（自分を呼ぶ呼び出しと同じ）。Ruby に戻すと、生成器は `def` を先に書く。`move(10)` のように、ほかのブロックになる呼び出しは今までどおり（`def` のあとに書いた `move(10)` だけが My Block の呼び出し）。
 
 **できないこと**（エラーになる形）:
 
@@ -175,7 +176,7 @@ end
 - 同じ行で値を控えたあとに、メソッドがそのメソッド自身を呼ぶ形（`return fib(n - 1) + fib(n - 2)`）。中の呼び出しが控えを上書きするので、Ruby と同じ値にならない。
 - 1 行の中で値として使う `super` が 2 つ以上ある形。
 
-**テスト**: `ruby-to-blocks-converter/method-return/method-return1.test.js`〜`method-return5.test.js`、`ruby-generator/method-return.test.js`、`ruby-roundtrip/my_blocks.test.js`、`ruby-roundtrip/method-return-value-shapes.test.js`、`ruby-roundtrip/return-literal-no-orphan.test.js`、`ruby-roundtrip/return-value-used-twice.test.js`、`ruby-roundtrip/return-call-paren-list-and-self-line.test.js`。
+**テスト**: `ruby-to-blocks-converter/method-return/method-return1.test.js`〜`method-return5.test.js`、`ruby-generator/method-return.test.js`、`ruby-roundtrip/my_blocks.test.js`、`ruby-roundtrip/method-return-value-shapes.test.js`、`ruby-roundtrip/return-literal-no-orphan.test.js`、`ruby-roundtrip/return-value-used-twice.test.js`、`ruby-roundtrip/return-call-paren-list-and-self-line.test.js`、`ruby-roundtrip/call-before-def.test.js`。
 
 ### P3. メソッドブロックの戻り値（文字列・配列・ハッシュのメソッド）
 
@@ -631,6 +632,7 @@ move(30) # うしろ
 - 変数の注釈は `@ruby:lvar` だけ（`@ruby:variable` という注釈は無い）。変数の名前と置き場所（スプライトかステージか）で種類がわかるので、インスタンス変数とグローバル変数には注釈を付けない。
 - 変換器は、コードがその名前をどう使っているか（`@a = []` や `push` ならリスト、`@a = 0` や `+= 1` なら変数）を変換の前に調べておく（分析の段 `analysis.js` の `variables.uses`）。
 - 1 つのスプライトのコードで同じ名前を `@a` と `$a` の両方に使うことはできない。
+- 右が文字列のリテラルの `+`（`@a + "さん"`）は、コードがその名前に数・リスト・ハッシュを入れていなければ「（ ）と（ ）」（`operator_join`）にする。Ruby では左が文字列のときだけ動く（数なら TypeError）ので、ほかのブロックにはならない。一度も代入しない名前（日本語モードの `表示する(namae + "…")`）もこれで変換できる（`variable-utils.js` の `_isJoinedWithStringLiteral`）。右が数や変数の `@a + 1`・`@a + @b` は今までどおりで、`gets` で入れた名前どうしは足し算のまま（`_isStringOperand`）。
 
 **往復の例**:
 
@@ -648,7 +650,7 @@ $a += 1
 
 **できないこと**（エラーになる形）: 同じ名前の変数の種類を変える（`@a = 1` と `$a = 2`、`cannotChangeVariableScope`）、定数への代入（`FOO = 1`）。
 
-**テスト**: `ruby-to-blocks-converter/variables/variables-instance1.test.js`、`variables-instance2.test.js`、`variables-global1.test.js`、`variables-global2.test.js`、`variables-scope.test.js`、`variables-data-type.test.js`、`ruby-roundtrip/variables.test.js`、`ruby-roundtrip/variable-or-list-kind.test.js`、`ruby-generator/variables.test.js`。
+**テスト**: `ruby-to-blocks-converter/variables/variables-instance1.test.js`、`variables-instance2.test.js`、`variables-global1.test.js`、`variables-global2.test.js`、`variables-scope.test.js`、`variables-data-type.test.js`、`ruby-roundtrip/variables.test.js`、`ruby-roundtrip/variable-or-list-kind.test.js`、`ruby-roundtrip/string-plus-evidence.test.js`、`ruby-generator/variables.test.js`。
 
 ### P16. 多重代入
 
