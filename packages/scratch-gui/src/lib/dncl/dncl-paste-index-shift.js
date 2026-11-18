@@ -273,7 +273,7 @@ const findOneBasedSuspects = (text) => {
     const indexNames = collectIndexNames(codes);
     const suspects = [];
     codes.forEach((code, idx) => {
-        const prefix = code.match(/^[\s｜|⎿]*/)[0];
+        const prefix = code.match(/^[\s｜|│⎿└]*/)[0];
         const stmt = code.substring(prefix.length).trimEnd();
         if (stmt === '') return;
         const reasons = [];

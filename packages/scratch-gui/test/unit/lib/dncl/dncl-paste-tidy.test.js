@@ -225,3 +225,47 @@ describe('tidyPastedDncl and 「...」', () => {
         expect(tidyPastedDncl('(00) 表示する(a,\n      # メモ\n      b)')).toBe('表示する(a, b) # メモ');
     });
 });
+
+// The ways other texts (a PDF, a web page, a textbook) write the line numbers and the marks
+// differ only in how they look, so a paste takes them all (Issue #1756).
+describe('tidyPastedDncl: the line numbers and the marks of other texts (Issue #1756)', () => {
+    test('removes line numbers with spaces in the parentheses (`( 1 )`)', () => {
+        expect(tidyPastedDncl('( 1 ) a = 1\n( 2 ) ｜ b = 2\n( 10 ) c = 3')).toBe('a = 1\n｜ b = 2\nc = 3');
+    });
+
+    test('removes bare line numbers (`01`, `1`) when every line has one', () => {
+        expect(tidyPastedDncl('01 a = 1\n02 もし a > 0 ならば:\n03     b = 2')).toBe(
+            'a = 1\nもし a > 0 ならば:\n    b = 2',
+        );
+        expect(tidyPastedDncl('1 a = 1\n2\n3 表示する(a,\n     2)')).toBe('a = 1\n\n表示する(a, 2)');
+    });
+
+    test('keeps a line that starts with a number when not every line has one', () => {
+        expect(tidyPastedDncl('a = 1\n10 回')).toBe('a = 1\n10 回');
+        expect(tidyPastedDncl('1 + 2')).toBe('1 + 2');
+    });
+
+    test('reads `L` as the L shape where it closes a block, never a variable `L`', () => {
+        expect(tidyPastedDncl('(1) もし x > 0 ならば:\n(2) | y = 1\n(3) L z = 2')).toBe(
+            'もし x > 0 ならば:\n| y = 1\n⎿ z = 2',
+        );
+        expect(tidyPastedDncl('もし x > 0 ならば:\nL y = 1')).toBe('もし x > 0 ならば:\n⎿ y = 1');
+        expect(tidyPastedDncl('もし x > 0 ならば:\n｜ もし y > 0 ならば:\n｜ L y = 1\nL z = 2')).toBe(
+            'もし x > 0 ならば:\n｜ もし y > 0 ならば:\n｜ ⎿ y = 1\n⎿ z = 2',
+        );
+        expect(tidyPastedDncl('L = 1\nL を 1 から 3 まで 1 ずつ増やしながら繰り返す:\n    表示する(L)')).toBe(
+            'L = 1\nL を 1 から 3 まで 1 ずつ増やしながら繰り返す:\n    表示する(L)',
+        );
+    });
+
+    test.each([
+        ['( 1 ) もし x > 0 ならば:\n( 2 ) │ y = 1\n( 3 ) └ z = 2'],
+        ['01 もし x > 0 ならば:\n02 | y = 1\n03 L z = 2'],
+        ['(01) もし x > 0 ならば:\n(02) ｜ y = 1\n(03) ⎿ z = 2'],
+        ['もし x ＞ ０ ならば：\n　　y ＝ １\n　　z ＝ ２'],
+    ])('the pasted program reads as the same Ruby: %s', (pasted) => {
+        const { ruby, errors } = dnclToRuby(tidyPastedDncl(pasted));
+        expect(errors).toEqual([]);
+        expect(ruby).toBe('if @x > 0\n  @y = 1\n  @z = 2\nend');
+    });
+});

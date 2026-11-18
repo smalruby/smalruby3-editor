@@ -109,7 +109,7 @@ const plainLines = (source) =>
     source.split('\n').map((line) => {
         const label = line.match(/^\s*\(\d+(?:-\d+)*\)/);
         const rest = label ? ' '.repeat(label[0].length) + line.substring(label[0].length) : line;
-        return rest.replace(/^[\s｜|⎿]*/, (prefix) => ' '.repeat(prefix.length));
+        return rest.replace(/^[\s｜|│⎿└]*/, (prefix) => ' '.repeat(prefix.length));
     });
 
 /**

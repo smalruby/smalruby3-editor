@@ -15,8 +15,21 @@ import { readSettings } from './settings.js';
 /** The label of a numbered line: `(1)`, `(01)` and `(00-1)` (a line put before `(01)`). */
 const LABEL_RE = /^\(\d+(?:-\d+)*\)/;
 
-/** The part before the code of a line: spaces and the `｜` / `⎿` marks. */
-const PREFIX_RE = /^[\s｜|⎿]*/;
+/**
+ * The part before the code of a line: spaces and the `｜` / `⎿` marks. The marks are
+ * also read as `|` / `│` and `└`, how they look in other texts (docs/dncl/policy.md:
+ * 見た目だけの揺れ; Issue #1756).
+ */
+const PREFIX_RE = /^[\s｜|│⎿└]*/;
+
+/** The marks of the left of a line. */
+const MARKS_RE = /[｜|│⎿└]/g;
+
+/** The spaces after the last mark of a line. */
+const AFTER_MARKS_RE = /[^｜|│⎿└]*$/;
+
+/** The marks that close a block (the L shape). */
+const CLOSE_MARKS = new Set(['⎿', '└']);
 
 /**
  * How wide one `｜` / `⎿` mark is. More than any run of spaces, so a line with
@@ -178,14 +191,14 @@ const readLines = (source, commentMarker) => {
             rest = text.substring(offset);
         }
         const prefix = rest.match(PREFIX_RE)[0];
-        const marks = prefix.match(/[｜|⎿]/g) || [];
-        const afterMarks = prefix.match(/[^｜|⎿]*$/)[0];
+        const marks = prefix.match(MARKS_RE) || [];
+        const afterMarks = prefix.match(AFTER_MARKS_RE)[0];
         const width = marks.length === 0 ? indentWidth(prefix) : marks.length * MARK_WIDTH + indentWidth(afterMarks);
         const tokens = tokenize(rest.substring(prefix.length), offset + prefix.length, commentMarker).map((t) => ({
             ...t,
             line: i + 1,
         }));
-        return { tokens, width, marks: marks.length, closeCount: marks.filter((c) => c === '⎿').length };
+        return { tokens, width, marks: marks.length, closeCount: marks.filter((c) => CLOSE_MARKS.has(c)).length };
     };
 
     const lines = [];
