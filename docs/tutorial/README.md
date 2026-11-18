@@ -1,18 +1,20 @@
 # チュートリアル
 
 > **🔧 upstream 改良** — upstream にあるが Smalruby で機能を改良・拡張している
-> **改良点**: ① **チュートリアル glow animation** をハイライト用に追加。② **Ruby タブの onboarding** を追加（初回 Ruby タブ訪問時のガイド）。③ **classroom-tutorial**（クラスルーム機能のチュートリアル）を追加。
+> **改良点**: カードのチュートリアルの中身と部品は **upstream（v13.7.2）のまま**。Smalruby が変えたのは、① 入口を「?」メニューに移したこと、② 前にあった Smalruby のチュートリアルへのリンク（`?tutorial=`）を GA で数えること、③ 画像を開いたときだけ読むこと。別に **classroom-tutorial**（クラスルーム機能のチュートリアル）がある。
+>
+> **学ぶ入口はレッスン**（[`docs/lessons/`](../lessons/)）。Smalruby 独自のチュートリアル（チャット・Ruby のきほん・ブロックの本の試食など）はレッスンに置きかえて消した。
 
 ## 概要
 
-新しいユーザーや特定の機能を初めて使うユーザー向けの**チュートリアル**機能。upstream Scratch には基本的な「カード」形式のチュートリアル (`cards`) と「ヒント」(`tips-library`) があり、Smalruby はそれを継承しつつ Smalruby 独自のオンボーディング（Ruby タブ・クラスルーム）を追加している。
+新しいユーザーや特定の機能を初めて使うユーザー向けの**チュートリアル**機能。upstream Scratch の「カード」形式のチュートリアル (`cards`) と一覧 (`tips-library`) を**そのまま**使う（上流の追従を楽にするため）。スモウルビーの学び方はレッスン（[`docs/lessons/`](../lessons/)）で、チュートリアルは「?」メニューの奥に置く。ほかに Smalruby 独自のオンボーディング（クラスルーム）がある。
 
 ## ユーザーストーリー
 
 - **初めて Smalruby を開いた小学生**として、簡単な作品例の作り方を順を追って教えてほしい
 - **Ruby タブを初めて開いた子**として、ブロックとの違いやどう使うかを画面上で学びたい
 - **Smalruby Classroom を初めて使う先生・生徒**として、操作方法をその場でガイドしてほしい
-- **教師**として、生徒に既存のチュートリアル（カード）を順番に見せていきたい
+- **Scratch に慣れた人**として、Scratch と同じチュートリアルを「?」メニューから開きたい
 
 ## UI / 操作フロー
 
@@ -22,13 +24,17 @@
 
 ![チュートリアル一覧](screenshots/0201-tips-library-1280x800.png)
 
-URL パラメータ `?tutorial=<urlId>`（例: `?tutorial=getStarted`）で直接チュートリアルを開く経路は「?」メニューとは独立に動く（`src/lib/tutorial-from-url.js`）。教科書や授業資料のリンクはこちらを使う。
+URL パラメータ `?tutorial=<urlId>`（例: `?tutorial=getStarted`）で直接チュートリアルを開く経路は「?」メニューとは独立に動く（`src/lib/tutorial-from-url.js`。`?tutorial=all` は一覧を開く）。
+
+![チュートリアルを選ぶ（上）](screenshots/0101-tutorials-modal.png)
 
 1. 全画面のチュートリアルカードが表示される
 2. 「次へ」「前へ」で進む
 3. 完了で閉じる
 
-Smalruby 独自のチュートリアル（「さあ、始めましょう」やメッセージ送信シリーズ）が並ぶ。タグで「ルビー」「メッシュ」フィルタが可能。
+上流（Scratch v13.7.2）のチュートリアルがそのまま並ぶ（スモウルビー独自のチュートリアルは無い。学習の入口は [`docs/lessons/`](../lessons/) のレッスン）。
+
+前にスモウルビーにあったチュートリアルの `?tutorial=<urlId>`（`chat1Basic1` など）はもう開かない。こうしたリンクが使われているかを数えるため、見つからない `urlId` で開かれたら GA に送る（下の「GA の計測」）。
 
 ### Ruby タブオンボーディング (Smalruby 独自)
 
@@ -50,9 +56,10 @@ Smalruby Classroom の各フェーズ（教師ログイン、クラス作成、�
 
 | ファイル | 役割 |
 |---|---|
-| `packages/scratch-gui/src/containers/cards.jsx` | チュートリアルカードのコンテナ（Smalruby: glow animation 追加）|
+| `packages/scratch-gui/src/containers/cards.jsx` | チュートリアルカードのコンテナ（上流のまま）|
 | `packages/scratch-gui/src/components/cards/` | カード UI |
-| `packages/scratch-gui/src/containers/tips-library.jsx` | ヒント / チュートリアル一覧 |
+| `packages/scratch-gui/src/containers/tips-library.jsx` | ヒント / チュートリアル一覧（上流のまま）|
+| `packages/scratch-gui/src/lib/tutorial-from-url.js` | `?tutorial=<urlId>` からチュートリアルを開く（Smalruby: 見つからないときの GA 計測）|
 
 #### Smalruby 独自
 
@@ -61,12 +68,15 @@ Smalruby Classroom の各フェーズ（教師ログイン、クラス作成、�
 | `packages/scratch-gui/src/reducers/tutorial-onboarding.js` | onboarding state（`MARK_TUTORIAL_SEEN`, `MARK_RUBY_TAB_USED`, `DISMISS_TOOLTIP`）。吹き出し UI は廃止済みで、現在は Ruby タブ訪問の記録に使う |
 | `packages/scratch-gui/src/components/classroom-tutorial/` | クラスルーム機能のチュートリアル UI（見た目のトークンと OK ボタンは `components/balloon/`） |
 | `packages/scratch-gui/src/reducers/classroom-tutorial.js` | クラスルームチュートリアル state |
-| `packages/scratch-gui/src/lib/libraries/decks/categories/book-promo.jsx` | Block 軸シリーズ共通の書籍プロモ要素（`BOOK` 書誌プレースホルダ / `BOOK_URL` / オープニング・クロージング step ファクトリ）。書誌確定後は `BOOK` 定数 1 箇所を差し替える（Phase 3, #956）。カテゴリは `blockBasics`（第1章）と `blockGames`（第4章）の 2 章のみ。第5章・第6章（`blockMath` / `blockScience`）は元となる書籍 PDF が提供されなかったため対象外（#962）|
+| `packages/scratch-gui/src/lib/tutorial-url-analytics.js` | 見つからない `?tutorial=` の GA 計測（送る値を決める純粋関数と送信） |
 
 #### Smalruby マーカー (upstream への埋め込み)
 
-`src/containers/cards.jsx`, `src/components/cards/cards.jsx`:
-- "tutorial glow animation" — チュートリアルのハイライト用アニメーション
+`src/lib/tutorial-from-url.js`:
+- "unknown tutorial url analytics" — 見つからない `?tutorial=` を GA に送る
+
+`webpack.config.js`:
+- "lazy tutorial images" — チュートリアルの画像を `gui.js` に埋めこまず、開いたときだけ読みこむ
 
 `src/components/menu-bar/menu-bar.jsx`, `src/containers/menu-bar-hoc.jsx`:
 - "help menu" — 「チュートリアル」「デバッグ」をメニューバーのボタンから「?」メニューの項目へ移す
@@ -97,12 +107,28 @@ Smalruby Classroom の各フェーズ（教師ログイン、クラス作成、�
 
 特定の onboarding 完了フラグは Redux state にあるが、永続化はプロジェクト state や `legacy-storage` 経由で扱われる場合がある。
 
+## GA の計測
+
+category は `tutorial_url`（`lib/tutorial-url-analytics.js`）。項目は `action` と `label` だけ。
+
+| action | いつ送るか | label |
+|---|---|---|
+| `not_found` | `?tutorial=<urlId>` で開いたのに、その `urlId` のチュートリアルが無いとき（`all` と上流のチュートリアルの `urlId` は送らない） | 前にスモウルビーにあったチュートリアルの `urlId`（`chat1Basic1`〜`chat3Mesh3`・`gettingStartedCostume`・`gettingStartedSprites`・`rubyBasics1Numbers`〜`rubyBasics7Next`）なら、その値。ほかは `unknown`（入力した文字かもしれないので送らない） |
+
+送られた数を見てから、古いリンクをレッスンへつなぎかえるかを決める。
+
+## 画像の読み込み
+
+上流のチュートリアルの画像（手順の絵とサムネイル。13 言語で約 1,500 枚・約 65 MB）は、**チュートリアルを開いたときだけ**読む。
+
+- 言語ごとの手順の絵は上流のとおり `*-steps.js` の動的 import（チャンク `<言語>-steps`）で、カードを開くまで読まない。
+- webpack（`webpack.config.js` のマーカー `lazy tutorial images`）で、`src/lib/libraries/decks/` の画像を `gui.js` に埋めこまず `static/assets/decks/` にファイルで出す。PWA の precache からも外し、開いたときだけ runtime caching（`smalruby-tutorial-images`）する。
+- そのため、最初にエディターを開いたときの読み込み（`gui.js` の大きさ・リクエストの数）は画像の分だけ増えることはない。
+
 ## 関連ドキュメント
 
 - [`docs/menu-bar/`](../menu-bar/) — 「?」メニュー（チュートリアル・デバッグの入口）
 - [`docs/classroom/`](../classroom/) — `classroom-tutorial` の対象機能
 - [`docs/ruby-editor/`](../ruby-editor/) — Ruby タブ onboarding の対象
 
-## 関連 Issue / PR
 
-主要 PR は履歴を参照（`feat:.*tutorial|feat:.*onboarding` で grep）。

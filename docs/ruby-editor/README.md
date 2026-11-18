@@ -144,8 +144,8 @@ opaque origin (`blob:null`) なので、`file://` で開いたページでは新
 
 - **本番配信（http/https）は同一オリジンなので影響しない**。worker は通常どおり読める
 - 影響を受けるのは **ビルド成果物を `file://` で開く統合テスト**のみ。エディタ本体は worker
-  無しでも動作するため、`test/integration/smalruby-tutorials.test.js` はこの SEVERE ログを
-  既知として除外している（`isIgnorableSevereLog`）
+  無しでも動作するため、統合テストの `getLogs()` はこの SEVERE ログを
+  既知として除外している（`test/helpers/ignorable-severe-logs.js` の `isIgnorableSevereLog`）
 
 #### ruby-toolbar
 

@@ -1,0 +1,30 @@
+{
+    "schemaVersion": 1,
+    "id": "jhs-tech-d2-chat",
+    "version": "0.1.0",
+    "title": "双方向性のあるコンテンツ（チャットを作ろう）",
+    "description": "中学校 技術・家庭科〈技術分野〉D(2) の 8 時間の単元。チャットを題材に、入力と応答・メッセージ・ネットワーク（メッシュ）を学び、問題の発見・設計・制作・評価・改善を一巡する。1 時間が 1 つの課題。",
+    "schoolType": "jhs",
+    "subject": "技術・家庭科〈技術分野〉",
+    "curriculum": "D(2) 双方向性のあるコンテンツのプログラミングによる問題解決",
+    "grade": 2,
+    "license": "CC0-1.0",
+    "hours": 8,
+    "assignments": [
+        "jhs-tech-d2-chat-01-intro",
+        "jhs-tech-d2-chat-02-input-output",
+        "jhs-tech-d2-chat-03-message",
+        "jhs-tech-d2-chat-04-mesh",
+        "jhs-tech-d2-chat-05-find-problems",
+        "jhs-tech-d2-chat-06-design",
+        "jhs-tech-d2-chat-07-build-debug",
+        "jhs-tech-d2-chat-08-evaluate-improve"
+    ],
+    "files": [
+        {
+            "file": "rubric.pdf",
+            "kind": "rubric",
+            "audience": "teacher"
+        }
+    ]
+}
