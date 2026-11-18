@@ -13,9 +13,23 @@ const CODE = ['A = [5, 6]', '表示する(A[0])'].join('\n');
 
 const clickByTestId = (d, testId) => d.executeScript(`document.querySelector('[data-testid="${testId}"]').click()`);
 
+const existsByTestId = (d, testId) =>
+    d.executeScript(`return document.querySelector('[data-testid="${testId}"]') !== null`);
+
 const editorValue = (d) => d.executeScript('return window.monacoEditor.getValue()');
 
 const waitFor = (d, check, message) => d.wait(check, 10000, message);
+
+/**
+ * Open the more menu and pick an item of it, once the menu shows it.
+ * @param {object} d - The driver.
+ * @param {string} testId - The item.
+ */
+const pickMenuItem = async (d, testId) => {
+    await clickByTestId(d, 'ruby-toolbar-more-menu');
+    await waitFor(d, () => existsByTestId(d, testId), `The menu did not show ${testId}`);
+    await clickByTestId(d, testId);
+};
 
 let driver;
 
@@ -40,8 +54,7 @@ describe('Japanese mode: the patterns of settings', () => {
         );
         await driver.executeScript(`window.monacoEditor.setValue(${JSON.stringify(CODE)});`);
 
-        await clickByTestId(driver, 'ruby-toolbar-more-menu');
-        await clickByTestId(driver, 'ruby-toolbar-menu-settings-pattern-index-from-one');
+        await pickMenuItem(driver, 'ruby-toolbar-menu-settings-pattern-index-from-one');
         await waitFor(
             driver,
             async () => (await editorValue(driver)).startsWith('# すべての配列の添字は 1 から始まる。'),
@@ -52,13 +65,23 @@ describe('Japanese mode: the patterns of settings', () => {
         expect(value.endsWith('A = [5, 6]\n表示する(A[1])')).toBe(true);
 
         await clickByTestId(driver, 'ruby-toolbar-more-menu');
+        await waitFor(
+            driver,
+            () => existsByTestId(driver, 'ruby-toolbar-menu-settings-pattern-example'),
+            'The menu did not open again',
+        );
         expect(
             await driver.executeScript(
                 'return document.querySelector(\'[data-testid="ruby-toolbar-menu-settings-pattern-index-from-one"]\').getAttribute("aria-checked")',
             ),
         ).toBe('true');
         await clickByTestId(driver, 'ruby-toolbar-menu-settings-pattern-example');
-        await waitFor(driver, async () => (await editorValue(driver)) === CODE, 'The form of 例示 did not come back');
+        await waitFor(
+            driver,
+            async () => !(await editorValue(driver)).includes('添字は 1 から始まる'),
+            'The sentences stayed',
+        );
+        expect(await editorValue(driver)).toBe(CODE);
 
         expect(await getLogs()).toEqual([]);
     });
