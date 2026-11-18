@@ -8,7 +8,7 @@
 
 - **mesh** リグレッション → `mesh-v2-classroom-binding.mjs` ほか（詳細は [`mesh.md`](mesh.md) の「準備済み E2E リグレッションスクリプト」）
 - classroom → `smoke-teacher-dashboard.mjs` / `verify-co-teacher.mjs`
-- Ruby 基礎 → `verify-ruby-basics-1.mjs` / iPad キーボード → `verify-issue-727-ipad-keyboard.mjs`
+- iPad キーボード → `verify-issue-727-ipad-keyboard.mjs`
 
 **コンテナ（devpod）は画面が無いので headless で実行**（`HEADLESS=false CHANNEL=chrome` はホスト側で目視するとき）。`xvfb-run` は使わない。Playwright MCP でホスト Chrome を直接操作する方法は memory `reference_host_playwright_mcp.md` 参照。
 

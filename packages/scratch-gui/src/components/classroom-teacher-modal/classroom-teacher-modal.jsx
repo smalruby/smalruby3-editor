@@ -123,6 +123,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         assignmentSavedSettings,
         assignmentLessonDraft,
         assignmentSavedLesson,
+        assignmentHasUnsavedChanges,
         onAssignmentAddPage,
         onAssignmentRemovePage,
         onAssignmentMovePage,
@@ -188,15 +189,23 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
     // A class opens on［ストリーム］(B5). Coming back from an assignment of the
     // same class returns to the tab the teacher left (e.g.［授業］); another
     // class or the class list starts on the stream again.
-    const [boardTab, setBoardTab] = useState({ groupId: null, tab: 'stream' });
+    // `openId`: the assignment row to open once when the board mounts — the ✕ of the
+    // assignment detail comes back to［授業］with that assignment's row open (#2089).
+    const [boardTab, setBoardTab] = useState({ groupId: null, tab: 'stream', openId: null });
     const selectedGroupId = selectedGroup ? selectedGroup.groupId : null;
+    const selectedClassroomId = selectedClassroom ? selectedClassroom.classroomId : null;
+    const handleCloseDetail = useCallback(() => {
+        setBoardTab({ groupId: selectedGroupId, tab: 'classwork', openId: selectedClassroomId });
+        onBackToDashboard();
+    }, [selectedGroupId, selectedClassroomId, onBackToDashboard]);
+    const handleBoardOpenRowUsed = useCallback(() => setBoardTab((prev) => ({ ...prev, openId: null })), []);
     const handleBoardTabChange = useCallback(
-        (tab) => setBoardTab({ groupId: selectedGroupId, tab }),
+        (tab) => setBoardTab({ groupId: selectedGroupId, tab, openId: null }),
         [selectedGroupId],
     );
     // Leaving the class (the class list clears selectedGroup) forgets the tab.
     useEffect(() => {
-        if (!selectedGroupId) setBoardTab({ groupId: null, tab: 'stream' });
+        if (!selectedGroupId) setBoardTab({ groupId: null, tab: 'stream', openId: null });
     }, [selectedGroupId]);
 
     // Opening a class scopes the board to its assignments (GC style).
@@ -231,7 +240,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
             if (!evaluation || !evalGroup || tab === 'grading') return;
             evaluation.handleRequestLeave(() => {
                 evaluation.handleBackFromEvaluation();
-                setBoardTab({ groupId: evalGroup.groupId, tab });
+                setBoardTab({ groupId: evalGroup.groupId, tab, openId: null });
                 onSelectGroup(evalGroup);
             }, 'leave');
         },
@@ -453,6 +462,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         errorTitle={errorTitle}
                         googleCourseAccess={googleCourseAccess}
                         group={selectedGroup}
+                        hasUnsavedChanges={Boolean(assignmentHasUnsavedChanges)}
                         isLoading={isLoading}
                         isVerifyingGoogleCourseAccess={isVerifyingGoogleCourseAccess}
                         kickRequestsBySeat={kickRequestsBySeat}
@@ -470,6 +480,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         memberCommentDrafts={memberCommentDrafts}
                         onChangeMemberCommentDraft={onChangeMemberCommentDraft}
                         onBackToBoard={onBackToDashboard}
+                        onClose={handleCloseDetail}
                         onProjectEntryUsed={onProjectEntryUsed}
                         onDetailTabChange={onDetailTabChange}
                         onDownloadAll={onDownloadAll}
@@ -557,6 +568,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         error={error}
                         errorTitle={errorTitle}
                         group={selectedGroup}
+                        initialOpenId={boardTab.groupId === selectedGroup.groupId ? boardTab.openId : null}
                         initialTab={boardTab.groupId === selectedGroup.groupId ? boardTab.tab : 'stream'}
                         isLoading={isLoading}
                         shared={shared}
@@ -568,6 +580,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         onSelectClassroom={onSelectClassroom}
                         onShowClassList={onShowClassList}
                         onShowGrading={evaluation ? handleShowGradingFromClass : null}
+                        onInitialOpenUsed={handleBoardOpenRowUsed}
                         onTabChange={handleBoardTabChange}
                         onUpdateAssignmentMeta={onUpdateAssignmentMeta}
                         onUpdateGroup={onUpdateGroup}

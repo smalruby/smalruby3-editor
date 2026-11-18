@@ -22,7 +22,12 @@ const LESSON_EVENTS = {
     ANSWER_VIEW: 'answer_view',
     OTHER_CHALLENGE: 'other_challenge',
     LESSON_END: 'lesson_end',
+    // ブロックを右クリック →「アクティビティ図」でパネルを開いた（#1647）。レッスンの外でも送る
+    ACTIVITY_DIAGRAM_OPEN: 'activity_diagram_open',
 };
+
+// activity_diagram_open の label: 図にしたスクリプトがスプライトのものかステージのものか（決めた値だけ）
+const ACTIVITY_DIAGRAM_TARGETS = ['sprite', 'stage'];
 
 const CLOSED_SNAPSHOT = {
     courseId: null,
@@ -208,6 +213,39 @@ const sendLessonEvent = (
 };
 
 /**
+ * 右クリックでアクティビティ図を開いたときのイベント（純粋関数）。label はスプライトかステージか。
+ * レッスンモードの中なら、いまのチャレンジの id（コース・レッスン・チャレンジ・課題からか）を入れる（レッスン中か
+ * どうかは challenge_id があるかで分かる）。外ではそれらを undefined にする。ブロックの文字・スプライトの名前・
+ * 個人を特定する値は入れない。先生がログイン中のとき・label が決めた値でないときは null（送らない）。
+ * @param {object} snapshot - lessonAnalyticsSnapshot の結果（レッスンモードの外なら challengeId が null）。
+ * @param {string} targetKind - 'sprite' / 'stage'。
+ * @returns {?object} イベント（analytics.event に渡す形）。
+ */
+const activityDiagramEvent = (snapshot, targetKind) => {
+    if (!snapshot || snapshot.teacherLoggedIn || !ACTIVITY_DIAGRAM_TARGETS.includes(targetKind)) return null;
+    const ids = snapshot.challengeId ? snapshotIds(snapshot) : {};
+    return {
+        ...buildLessonEvent(LESSON_EVENTS.ACTIVITY_DIAGRAM_OPEN, { ...EMPTY_PARAMS, ...ids }),
+        label: targetKind,
+    };
+};
+
+/**
+ * 右クリックでアクティビティ図を開いたことを送る。計測の失敗でエディタを止めない。
+ * @param {object} snapshot - lessonAnalyticsSnapshot の結果。
+ * @param {string} targetKind - 'sprite' / 'stage'。
+ * @param {Function} [send] - 送る関数（テスト用。既定は analytics.event）。
+ */
+const sendActivityDiagramEvent = (snapshot, targetKind, send = analytics.event) => {
+    try {
+        const event = activityDiagramEvent(snapshot, targetKind);
+        if (event) send(event);
+    } catch (_e) {
+        // 計測に失敗しても図は開く
+    }
+};
+
+/**
  * タブが裏にあった時間を引いた時計（ms）。hiddenSince は裏になった時刻（いま見えていれば null）。
  * @param {number} now - 今の時刻（ms）。
  * @param {number} hiddenTotal - これまでに裏にあった時間の合計（ms。いまの裏の分はふくまない）。
@@ -263,6 +301,9 @@ const resetSharedLessonAnalytics = () => {
 };
 
 export {
+    ACTIVITY_DIAGRAM_TARGETS,
+    activityDiagramEvent,
+    sendActivityDiagramEvent,
     LESSON_ANALYTICS_CATEGORY,
     LESSON_EVENTS,
     activeNow,

@@ -32,6 +32,8 @@ jest.mock('../../../src/lib/lessons/courses.js', () => {
     };
     return {
         COURSES: [course],
+        courseLessons: (c) => [...(c.warmupLessons || []), ...c.lessons],
+        lessonNumberOf: (c, l) => (l.warmup ? 0 : c.lessons.indexOf(l) + 1),
         findChallenge: (id) => {
             const challenge = lesson.challenges.find((c) => c.id === id);
             return challenge ? { course, lesson, challenge } : null;

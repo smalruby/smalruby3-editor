@@ -8,6 +8,20 @@ import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as targets from 'aws-cdk-lib/aws-route53-targets';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
+import {
+    SITE_APEX_A_TTL_SECONDS,
+    SITE_APEX_A_VALUES,
+    SITE_APEX_TXT_TTL_SECONDS,
+    SITE_APEX_TXT_VALUES,
+    SITE_CAA_TTL_SECONDS,
+    SITE_CAA_VALUES,
+    SITE_DELEGATION_TTL_SECONDS,
+    SITE_DELEGATIONS,
+    SITE_GITHUB_PAGES_CHALLENGE_NAME,
+    SITE_GITHUB_PAGES_CHALLENGE_TTL_SECONDS,
+    SITE_GITHUB_PAGES_CHALLENGE_VALUES,
+    SITE_ZONE_NAME,
+} from './site-zone-records';
 
 /** プレビュー配信用のゾーン名（お名前.com から NS を委任する）。 */
 export const PREVIEW_ZONE_NAME = 'preview.smalruby.app';
@@ -52,6 +66,16 @@ export const SITE_DEPLOY_SUBJECTS = [
  */
 export const SITE_NONCURRENT_VERSION_EXPIRATION_DAYS = 30;
 
+/**
+ * 本番 CloudFront のアクセスログを残す日数（人間が 30 日に決めた）。
+ * ログには利用者の IP アドレスが入るので、必要な間だけ残して消す（docs/hosting/README.md）。
+ * 変えるときはこの値だけを変える（バケットのライフサイクルが追従する）。
+ */
+export const SITE_ACCESS_LOG_RETENTION_DAYS = 30;
+
+/** アクセスログのオブジェクトキーの接頭辞（ログのバケットを後でほかの用途と分けられるように付ける）。 */
+export const SITE_ACCESS_LOG_PREFIX = 'cloudfront/smalruby.app/';
+
 /** GitHub Actions の OIDC プロバイダ（アカウントに 1 つだけ。Deploy Infra 用に作成済みのものを使う）。 */
 const GITHUB_OIDC_HOST = 'token.actions.githubusercontent.com';
 
@@ -61,6 +85,7 @@ export interface SmalrubyWebHostingStackProps extends cdk.StackProps {
 
 export class SmalrubyWebHostingStack extends cdk.Stack {
     public readonly previewZone?: route53.PublicHostedZone;
+    public readonly siteZone?: route53.PublicHostedZone;
 
     constructor(scope: Construct, id: string, props: SmalrubyWebHostingStackProps) {
         super(scope, id, props);
@@ -72,10 +97,13 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
         cdk.Tags.of(this).add('Service', 'Route53');
         cdk.Tags.of(this).add('ManagedBy', 'CDK');
 
-        // 本番（smalruby.app）の配信基盤は prod だけに作る。独自ドメインと DNS はまだ付けない
-        // （smalruby.app のゾーンを Route 53 に移してから、別の変更で足す）。
+        // 本番（smalruby.app）の配信基盤と DNS のゾーンは prod だけに作る。ゾーンにはいまの
+        // お名前.com のレコードを同じ値で写し、CloudFront には smalruby.app の証明書と代替ドメインを
+        // 付ける（ネームサーバーを Route 53 に変えたあとなので DNS 検証が終わる）。apex の A は
+        // まだ GitHub Pages のままで、CloudFront へ向けるのは別の変更。
         if (stage === SITE_STAGE) {
-            this.createSiteDelivery();
+            this.siteZone = this.createSiteZone();
+            this.createSiteDelivery(this.siteZone);
             return;
         }
 
@@ -202,15 +230,79 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
     }
 
     /**
-     * 本番（smalruby.app）の配信基盤（S3 + CloudFront + CI 用ロール）。
+     * 本番のパブリックホストゾーン `smalruby.app` と、お名前.com から写したレコード。
+     *
+     * お名前.com のネームサーバーを Route 53 の 4 本に変えるまで（人間が夜間に行う）、誰もこの
+     * ゾーンを引かないので、作っただけではいまの本番に何も起きない。変えた瞬間から答えが
+     * 変わらないよう、値はお名前.com と同じにする（site-zone-records.ts）。
+     */
+    private createSiteZone(): route53.PublicHostedZone {
+        const zone = new route53.PublicHostedZone(this, 'SiteHostedZone', {
+            zoneName: SITE_ZONE_NAME,
+            comment: 'Smalruby production (smalruby.app, copied from onamae.com)',
+        });
+        // 作り直すと NS が変わり、お名前.com に登録したネームサーバーと食い違うので残す
+        // （preview.smalruby.app と同じ扱い。論理 ID・スタック名・zoneName を変えない）。
+        zone.applyRemovalPolicy(cdk.RemovalPolicy.RETAIN);
+
+        // apex の A はいまの GitHub Pages。CloudFront の ALIAS に変えるのは別の変更。
+        new route53.ARecord(this, 'SiteApexA', {
+            zone,
+            target: route53.RecordTarget.fromIpAddresses(...SITE_APEX_A_VALUES),
+            ttl: cdk.Duration.seconds(SITE_APEX_A_TTL_SECONDS),
+        });
+        new route53.TxtRecord(this, 'SiteApexTxt', {
+            zone,
+            values: SITE_APEX_TXT_VALUES,
+            ttl: cdk.Duration.seconds(SITE_APEX_TXT_TTL_SECONDS),
+        });
+        // GitHub の組織のドメイン検証。消さない（docs/security/github-pages-subdomain-takeover.md）。
+        new route53.TxtRecord(this, 'SiteGitHubPagesChallenge', {
+            zone,
+            recordName: SITE_GITHUB_PAGES_CHALLENGE_NAME,
+            values: SITE_GITHUB_PAGES_CHALLENGE_VALUES,
+            ttl: cdk.Duration.seconds(SITE_GITHUB_PAGES_CHALLENGE_TTL_SECONDS),
+        });
+        new route53.CaaRecord(this, 'SiteApexCaa', {
+            zone,
+            values: SITE_CAA_VALUES.map(({ tag, value }) => ({
+                flag: 0,
+                tag: tag === 'issue' ? route53.CaaTag.ISSUE : route53.CaaTag.ISSUEWILD,
+                value,
+            })),
+            ttl: cdk.Duration.seconds(SITE_CAA_TTL_SECONDS),
+        });
+        // api. と preview. はそれぞれ別のゾーンへの委任を、いまの NS のまま写す。
+        for (const { name, id, nameServers } of SITE_DELEGATIONS) {
+            new route53.NsRecord(this, id, {
+                zone,
+                recordName: name,
+                values: nameServers,
+                ttl: cdk.Duration.seconds(SITE_DELEGATION_TTL_SECONDS),
+            });
+        }
+
+        new cdk.CfnOutput(this, 'SiteHostedZoneId', {
+            value: zone.hostedZoneId,
+            description: `Route 53 hosted zone id of ${SITE_ZONE_NAME}`,
+        });
+        new cdk.CfnOutput(this, 'SiteHostedZoneNameServers', {
+            value: cdk.Fn.join(',', zone.hostedZoneNameServers!),
+            description: `Name servers to register at onamae.com for ${SITE_ZONE_NAME}`,
+        });
+        return zone;
+    }
+
+    /**
+     * 本番（smalruby.app）の配信基盤（S3 + CloudFront + 証明書 + CI 用ロール）。
      *
      * いまの本番は GitHub Pages で配信しており、これは切り替え先として並べて作るだけ。
-     * 独自ドメイン（smalruby.app）・証明書・DNS はまだ付けないので、CloudFront の既定の
-     * ドメイン（`*.cloudfront.net`）でしか見えず、いまの本番には影響しない。
-     * 証明書は smalruby.app のゾーンを Route 53 に移してから足す（委任前だと DNS 検証が
-     * 終わらないのはプレビューと同じ）。
+     * CloudFront には `smalruby.app` の証明書と代替ドメインを付けるが、apex の A はまだ
+     * GitHub Pages を向いているので、いまの本番には影響しない（ALIAS へ変えるのは別の変更）。
+     * 証明書は、お名前.com のネームサーバーを `createSiteZone()` のゾーンに変えてから足した
+     * （変える前だと DNS 検証が終わらないのはプレビューと同じ）。
      */
-    private createSiteDelivery(): void {
+    private createSiteDelivery(zone: route53.IHostedZone): void {
         const bucket = new s3.Bucket(this, 'SiteBucket', {
             blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
             encryption: s3.BucketEncryption.S3_MANAGED,
@@ -265,10 +357,29 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
             },
         );
 
+        const logBucket = this.createSiteAccessLogBucket();
+
+        // CloudFront 用の証明書は us-east-1 に要る。プレビューと同じく DnsValidatedCertificate で
+        // us-east-1 に作り、smalruby.app のゾーンで検証する（スタックは分けない）。
+        // www.smalruby.app は今は無いので SAN に足さない。
+        const certificate = new acm.DnsValidatedCertificate(this, 'SiteCertificate', {
+            domainName: SITE_ZONE_NAME,
+            hostedZone: zone,
+            region: 'us-east-1',
+        });
+
         const distribution = new cloudfront.Distribution(this, 'SiteDistribution', {
-            comment: 'Smalruby production site (smalruby.app, not attached yet)',
-            // minimumProtocolVersion（TLS 1.2 以上）は既定の証明書では効かないので、
-            // smalruby.app の証明書を付けるときに一緒に足す。
+            comment: `Smalruby production site (${SITE_ZONE_NAME})`,
+            domainNames: [SITE_ZONE_NAME],
+            certificate,
+            minimumProtocolVersion: cloudfront.SecurityPolicyProtocol.TLS_V1_2_2021,
+            // 標準ログ（従来の S3 配信）。v2（CloudWatch Logs の配信）は S3 へ出すと 1 GB あたりの
+            // 料金がかかり、CloudFront の配信元の設定を us-east-1 に置く必要がある（このスタックは
+            // ap-northeast-1 で、スタックは分けない）。従来の方式は配信が無料で、プロパティを足すだけで済む。
+            enableLogging: true,
+            logBucket,
+            logFilePrefix: SITE_ACCESS_LOG_PREFIX,
+            logIncludesCookies: false,
             httpVersion: cloudfront.HttpVersion.HTTP2_AND_3,
             priceClass: cloudfront.PriceClass.PRICE_CLASS_200,
             defaultBehavior: {
@@ -311,6 +422,42 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
         new cdk.CfnOutput(this, 'SiteDistributionDomainName', {
             value: distribution.distributionDomainName,
             description: 'CloudFront domain name (check before attaching smalruby.app)',
+        });
+        new cdk.CfnOutput(this, 'SiteCertificateArn', {
+            value: certificate.certificateArn,
+            description: `ACM certificate (us-east-1) of ${SITE_ZONE_NAME} attached to CloudFront`,
+        });
+        new cdk.CfnOutput(this, 'SiteLogBucketName', {
+            value: logBucket.bucketName,
+            description: `S3 bucket that keeps CloudFront access logs of smalruby.app (${SITE_ACCESS_LOG_RETENTION_DAYS} days)`,
+        });
+    }
+
+    /**
+     * 本番 CloudFront のアクセスログ専用バケット。非公開・SSE-S3・SSL のみで、
+     * `SITE_ACCESS_LOG_RETENTION_DAYS` を過ぎたログは消す。
+     *
+     * 標準ログ（従来の S3 配信）は CloudFront（awslogsdelivery）がバケットの ACL で書き込むので、
+     * ACL を無効にする BUCKET_OWNER_ENFORCED は使えない。BUCKET_OWNER_PREFERRED にして、
+     * 書かれたログの持ち主をこのアカウントにする。ACL の付与は特定のアカウント宛てで公開ではないので、
+     * Block Public Access は全部 ON のまま使える。
+     * ログは取り戻せなくても配信は止まらないので RETAIN にしない（.claude/rules/infra/development.md の
+     * 「データ保持」）。autoDeleteObjects は付けないので、中身が残っている間は削除が失敗して止まる。
+     */
+    private createSiteAccessLogBucket(): s3.Bucket {
+        return new s3.Bucket(this, 'SiteLogBucket', {
+            blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+            encryption: s3.BucketEncryption.S3_MANAGED,
+            enforceSSL: true,
+            objectOwnership: s3.ObjectOwnership.BUCKET_OWNER_PREFERRED,
+            removalPolicy: cdk.RemovalPolicy.DESTROY,
+            lifecycleRules: [
+                {
+                    id: 'ExpireAccessLogs',
+                    expiration: cdk.Duration.days(SITE_ACCESS_LOG_RETENTION_DAYS),
+                    abortIncompleteMultipartUploadAfter: cdk.Duration.days(7),
+                },
+            ],
         });
     }
 

@@ -96,6 +96,7 @@ Scratch の変数・リストの名前で、Ruby の情報を持たせている�
 | `_symbols_`（ステージ） | 使われたシンボル | ステージのリスト | `variable-utils.js` の `_symbolToBlock` |
 | `__lit_<番号>__1_` | 何もしないリテラルだけの行（`"Jimmy"`） | スプライトの変数・リスト | `finish.js` の `_convertBareLiteralToAssignment` |
 | `_super_<メソッド>_<番号>_` | `super` で呼ばれる、module 側の同じ名前のメソッド | 定義ブロック（手続き名） | `class-visitor.js` |
+| `_<名前>`（`_1_文字えらぶ`・`_end`。1 けたの数字は `__1`） | 数字で始まる名前・予約語の名前の定義ブロック（「1 文字えらぶ」「end」） | 定義ブロック（Ruby のメソッド名だけ。ブロックの名前には `_` を付けない） | `src/lib/ruby-method-name.js`（P20） |
 
 生成器だけが使う、出力の途中の目印もある（Ruby には残らない）。
 
@@ -217,6 +218,7 @@ say(@_ret1.length + @_ret2.length)
 
 - **配列リテラルの代入**: 「すべて削除」（`@ruby:array:literal:<個数>`）と「追加する」を要素の数だけ（`@ruby:array:literal:element`）。生成器は `@ruby:array:literal:<個数>` から先の個数の「追加する」をまとめて `@a = [1, 2, 3]` に戻す。
 - **添字**: Ruby は 0 から、Scratch は 1 から数える。`@a[i]` は「`i + 1` 番目」にし、足し算に `@ruby:array:index` を付ける。生成器は `+ 1` を消して `@a[i]` に戻す。文字の位置（`"abc"[i]`）も同じ。
+- **添字が `x - 1` のとき**: ブロックで作った「(k) 番目」は、生成器が `@a[@k - 1]` と書く。変換器はこの形（引く数が整数の `1`、引かれる側が数でないブロック、`@ruby:` の注釈の無い引き算）を「`k` 番目」に戻し、`+ 1` も注釈も付けない（`variable-hash-ops.js` の `indexCountedFromOne`。`adjustIndex` が呼ぶので、`[]`・`[]=`・`insert`・`delete_at`・文字の位置 `"abc"[k - 1]` のどれにも効く）。これが無いと「((k - 1) + 1) 番目」になり、ブロックが読みにくくなっていた。ローカル変数・メソッドの引数・`rand(1..@n) - 1`・入れ子（`@a[@b[@k - 1] - 1]`）も同じ。`3 - 1` は戻さない（「3 番目」にすると生成器が `@a[2]` と書き、Ruby の文字が変わる）。`@k - 1.0`・`@k - 2` も今までどおり「`+ 1` 番目」。`@a.delete_at(@a.length - 1)` も戻さない（「（a の長さ）番目を削除する」は生成器が `delete_at(-1)` と書くので、Ruby の文字が変わる。`@a[@a.length - 1]` は「（a の長さ）番目」に戻す）。`@a.index(x)` は `@ruby:array:index` の付いた引き算なので戻さず、`@a[@a.index(x) - 1]` は外側の `- 1` だけを戻す。
 - **`delete_at(-1)`**: 「（リストの長さ）番目を削除する」にし、`@ruby:array:delete_at:last` を付ける。添字が「リストの長さ」なので、ブロックとして動かしても最後の項目が消える。生成器は、添字が同じリストの長さのブロックなら注釈が無くても `delete_at(-1)` と書く。注釈があって添字が `1` のもの（前の変換器が作った形）も `delete_at(-1)` と書く。利用者が添字をほかの数に書きかえたら、ふつうの `delete_at` として書く。Ruby v1（`list("$a").delete_at(-1)`）も同じで、v1 の `list("$a").delete_at(list("$a").length)` も `delete_at(-1)` に戻る（意味は同じ）。
 - **変数とリストが同じ名前のとき**: Scratch では変数 `a` とリスト `a` を同時に持てるが、Ruby の `@a` は 1 つ。生成器はリストの方を `@_a_list_`（それも使われていれば `@_a_list2_` ...）と書き、変換器は `@_a_list_` をリスト `a` に読む（`_listNameOfAlias`）。
 - **ブロック付きのメソッド**（`@a.each do |x|`）: `smalrubyRuby_arrayMethodWithBlock`。リストの ID と名前を隠しフィールド `LIST_ID` / `LIST_NAME` に持たせる（→ P13）。
@@ -250,7 +252,7 @@ say(@_a_list_[0])
 
 **できないこと**: 1 つの名前を変数とリストの両方に使う形（`@a = 0` と `@a.push(1)`）はエラー（`variableAndListSameName`）。配列リテラルに直接メソッドを使う形もエラー（`arrayLiteralReceiver`）。要素は数・文字列（式展開の文字列 `"a#{@x}"` は除く）・値のブロック（`@x`、`1 + 2`、`true` など）だけで、ほかの要素（代入などの命令 `[(@a = 1)]`、シンボル・`nil`・配列・ハッシュ・`self`、値を返すメソッドの呼び出し `[foo(1)]`）はその行の「命令がまちがっています」のエラー（`wrongInstruction`）。リストに入れられないので、黙って `0` にしない。保存済みのプロジェクトの前の形（添字 `1` に `@ruby:array:delete_at:last`）は、読みこんでもブロックは直らず、動かすと 1 番目の項目が消える（Ruby に戻すと `delete_at(-1)` なので、Ruby とブロックの動きが合わない）。Ruby タブで変換し直すと「（リストの長さ）番目」になる。`-1` 以外の負の添字（`@a[-1]`、`@a.delete_at(-2)`）は「`-1 + 1` 番目」のように数えるので、往復はするが、ブロックとして動かすと Ruby と同じ項目にならない。
 
-**テスト**: `ruby-to-blocks-converter/literal-element-not-a-value.test.js`、`ruby-to-blocks-converter/variables/variables-array-global.test.js`、`variables-array-local.test.js`、`ruby-roundtrip/variables-v2-array.test.js`、`ruby-roundtrip/list-index-parens.test.js`、`ruby-roundtrip/list-as-argument.test.js`、`ruby-roundtrip/variable-and-list-same-name.test.js`、`ruby-roundtrip/variable-or-list-kind.test.js`、`ruby-roundtrip/string-letter-index.test.js`、`ruby-roundtrip/list-delete-at-last-vm.test.js`、`ruby-generator/data.test.js`。
+**テスト**: `ruby-to-blocks-converter/literal-element-not-a-value.test.js`、`ruby-to-blocks-converter/variables/variables-array-global.test.js`、`variables-array-local.test.js`、`ruby-roundtrip/variables-v2-array.test.js`、`ruby-roundtrip/list-index-parens.test.js`、`ruby-roundtrip/list-as-argument.test.js`、`ruby-roundtrip/variable-and-list-same-name.test.js`、`ruby-roundtrip/variable-or-list-kind.test.js`、`ruby-roundtrip/string-letter-index.test.js`、`ruby-roundtrip/list-index-minus-one-table.test.js`、`ruby-roundtrip/list-delete-at-last-vm.test.js`、`ruby-generator/data.test.js`。
 
 ### P5. ハッシュ
 
@@ -738,6 +740,32 @@ say(mesh.message_value)
 **できないこと**: `mesh.broadcast("chat", 42)` は `mesh.broadcast("chat", "42")` に戻る（値は文字列で送るため）。引数の数がちがう（`mesh.broadcast("chat")`）、メッセージが数（`mesh.broadcast(1, "x")`）はエラー（P17）。
 
 **テスト**: `ruby-to-blocks-converter/mesh_v2.test.js`、`ruby-roundtrip/extension_mesh.test.js`、`furigana-annotator.test.js`。
+
+### P20. 定義ブロックの名前と「画面を再描画せずに実行する」
+
+**Ruby で書きたいこと**: 定義ブロック（ブロックを作る）の名前と設定を、Ruby の `def` で書く。名前が数字で始まる・予約語のものもある。
+
+**Scratch での表し方**: 定義ブロック（`procedures_definition` と `procedures_prototype`）。名前は `proccode` の言葉、「画面を再描画せずに実行する」は `procedures_prototype` の `mutation.warp`（`"true"` / `"false"`。読みこんだ作品では真偽値のこともある）。
+
+- **名前**: 生成器は `proccode` の言葉（`%s` / `%b` を除く）を `_` でつないでメソッド名にする（`'1 文字えらぶ %s'` → `1_文字えらぶ`）。名前が数字で始まるか予約語のときは前に `_` を付け、1 けたの数字（`_1`〜`_9` は番号指定パラメータ）には `__` を付ける。もとから `_` で始まる同じ形の名前には、もう 1 つ付ける（`_1x` → `__1x`）。変換器は逆に付けた分を取る。この対応は `src/lib/ruby-method-name.js` の 1 か所（`rubyMethodNameOfProccode` / `blockNameOfRubyMethodName`）にあり、生成器 `procedure.js` と、変換器が `proccode` からメソッド名を求める所（`variable-utils.js` の `_isProcedureCallWithReturnValue`・`my-blocks.js`・`return-value-temps.js` の `_procedureNameOfCall`）が使う。変換器の手続きの表（`_context.procedures`）と `_return_<メソッド>_`・`@ruby:return:<メソッド>` は Ruby のメソッド名（`_1_文字えらぶ`）のまま。
+- **注釈の名前**: `@ruby:return:<メソッド>` のメソッド名は日本語のこともあるので、生成器は `\w+` ではなく `[^:,\s]+` で読む（`\w` は日本語に当たらず、`return` のある日本語の名前のメソッドで、初期化と控えのブロックが Ruby に出ていた）。
+- **画面を再描画せずに実行する**: 生成器は `without_screen_refresh def foo ... end` と書く（Ruby の `private def foo` と同じ形。`def` はメソッド名のシンボルを返すので、Ruby として正しい）。変換器は解析の段（`parse-stage.js`）で、この呼び出しを中の `def` に置きかえ（`screen-refresh-defs.js` の `unwrapWithoutScreenRefreshDefs`）、`def` を `_context.warpDefNodes` に覚える。分析・class / module・コメント・ブロックの中の `def` の検査は、ふつうの `def` として見る。`my-blocks.js` が `warp` を `"true"` にする（呼び出しのブロックの `mutation.warp` も同じにする）。module のメソッド（ほかのスプライトの module を読むときも）も同じ。注釈は使わない（Ruby だけで書く人も書けるように、Ruby の形で表す）。smalruby3 gem では `without_screen_refresh` は名前を返すだけのクラスメソッドで、メソッドはふつうに動く。
+
+**往復の例**:
+
+```ruby
+without_screen_refresh def _1_文字えらぶ(n)
+  say(n)
+end
+
+_1_文字えらぶ(1)
+```
+
+- 定義ブロック「1_文字えらぶ (n)」（画面を再描画せずに実行する）と、その呼び出しになり、同じコードに戻る。
+
+**できないこと**: 名前の中の空白は `_` になり、ブロックに戻しても `_` のまま（「1 文字えらぶ」は「1_文字えらぶ」になる）。`-` などメソッド名に使えない記号の入った名前は、そのまま書くので Ruby の文法エラーになる。自分で `def without_screen_refresh` を定義したコードでは、`without_screen_refresh def foo` をその呼び出しとして読む（置きかえない）。日本語モードは `without_screen_refresh def` を読めない。
+
+**テスト**: `ruby-roundtrip/my-block-warp-and-name.test.js`、`ruby-roundtrip/my_blocks.test.js`。
 
 ## 注釈 `@ruby:*` の一覧（仕様）
 
