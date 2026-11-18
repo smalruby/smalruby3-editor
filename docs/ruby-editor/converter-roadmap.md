@@ -47,7 +47,7 @@ ConvertResult { blocks, variables, lists, comments, classInfo, extensionIds, err
 | 外れている所                               | いま                                                                | 約束の形                                                             |
 | ------------------------------------------ | ------------------------------------------------------------------- | -------------------------------------------------------------------- |
 | 拡張機能の呼び出し                         | pen 以外は `registerOnSend` の handler                              | 呼び出しの表（`send-table.js`）の行                                  |
-| `procedures.definitions`                   | 表はあるが、`my-blocks.js` がその場で `def` を調べている            | 変換は表を読む                                                       |
+| `procedures.definitions`                   | `def` より前の呼び出しだけが表を読む。`def` は `my-blocks.js` がその場で調べている | 変換は表を読む                                                       |
 | `symbols`                                  | 変換の途中で `_context.symbols` に集めている                        | 候補は分析、使われたものだけ `BlockStore` に入れる（いまの振る舞い） |
 | ローカル変数の範囲ごとの番号（`_x_1_`）    | 範囲は分析、番号は変換の途中で決める                                | 番号も分析で決める                                                   |
 | `BlockStore`                               | `_context` の表と巻き戻しの記録（`context-journal.js`）が別々にある | 1 つの入れ物にし、変換はそれを通してだけ書く                         |
