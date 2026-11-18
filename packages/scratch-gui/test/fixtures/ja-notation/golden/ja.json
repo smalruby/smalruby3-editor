@@ -335,6 +335,23 @@
       "errors": []
     }
   },
+  "ja-906fd1a488": {
+    "ruby": "@x〆 = 1\n@𠮷田 = @x〆 + 2\n@ｘ１ = (@𠮷田 / 2).to_i\nputs(@ｘ１)",
+    "errors": [],
+    "rubyLines": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "converterErrors": [],
+    "blocks": "data_setvariableto(VARIABLE = @x〆, VALUE: \"1\")\ndata_setvariableto(VARIABLE = @𠮷田, VALUE: operator_add(NUM1: @x〆, NUM2: 2))\ndata_setvariableto(VARIABLE = @ｘ１, VALUE: operator_mathop(OPERATOR = \"floor\", NUM: operator_divide(NUM1: @𠮷田, NUM2: 2)) #\"@ruby:method:to_i\")\nlooks_sayforsecs(MESSAGE: @ｘ１, SECS: 1) #\"@ruby:method:puts\"",
+    "shown": {
+      "ruby": "@x〆 = 1\n@𠮷田 = @x〆 + 2\n@ｘ１ = (@𠮷田 / 2).to_i\nputs(@ｘ１)",
+      "ja": "x〆 = 1\n𠮷田 = x〆 + 2\nｘ１ = 𠮷田 ÷ 2\n表示する(ｘ１)",
+      "errors": []
+    }
+  },
   "ja-80ddb38c57": {
     "ruby": "# 関数の引数に代入してしまったもの（引数は変えられない。ほかの変数に写してから使う）\ndef saidaikouyakusuu(a, b)\n  while b != 0\n    @amari = a % b\n    a = b\n    b = @amari\n  end\n  return a\nend\nputs(saidaikouyakusuu(12, 18))\n",
     "errors": [],
@@ -9491,6 +9508,35 @@
     "shown": {
       "ruby": "@x = 1\nputs(@x)",
       "ja": "x = 1\n表示する(x)",
+      "errors": []
+    }
+  },
+  "ja-25540a0107": {
+    "ruby": "@α = @㐀 + 1",
+    "errors": [],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "data_setvariableto(VARIABLE = @α, VALUE: operator_add(NUM1: @㐀, NUM2: 1))",
+    "shown": {
+      "ruby": "@α = @㐀 + 1",
+      "ja": "α = 㐀 + 1",
+      "errors": []
+    }
+  },
+  "ja-c2fd5fbf11": {
+    "ruby": "@佐々木 = 7\nputs(@佐々木)",
+    "errors": [],
+    "rubyLines": [
+      1,
+      2
+    ],
+    "converterErrors": [],
+    "blocks": "data_setvariableto(VARIABLE = @佐々木, VALUE: \"7\")\nlooks_sayforsecs(MESSAGE: @佐々木, SECS: 1) #\"@ruby:method:puts\"",
+    "shown": {
+      "ruby": "@佐々木 = 7\nputs(@佐々木)",
+      "ja": "佐々木 = 7\n表示する(佐々木)",
       "errors": []
     }
   },

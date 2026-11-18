@@ -6,11 +6,13 @@
 // shift every array index of the pasted text down by 1, show what it
 // rewrote, and point at the lines that probably assume 1-based indexes
 // (loop ranges, `i = 1`, ...) without rewriting them (Issue #1366).
+import { NAME_CHAR_PATTERN, NAME_PATTERN } from './paren-utils';
 
-const ID =
-    '[A-Za-z_\\u3040-\\u309F\\u30A0-\\u30FF\\u4E00-\\u9FFF][\\w\\u3040-\\u309F\\u30A0-\\u30FF\\u4E00-\\u9FFF]*';
-const ID_CHAR_RE = /[\w぀-ゟ゠-ヿ一-鿿]/;
-const ID_RE = new RegExp(ID, 'g');
+// A name as ja-notation reads it (`佐々木` is one name; Issue #1714). The
+// regular expressions with it have the `u` flag.
+const ID = NAME_PATTERN;
+const ID_CHAR_RE = new RegExp(NAME_CHAR_PATTERN, 'u');
+const ID_RE = new RegExp(ID, 'gu');
 
 /**
  * A note saying the indexes start at 1: `添字は1から始まる`, `添え字は１から`,
@@ -18,12 +20,12 @@ const ID_RE = new RegExp(ID, 'g');
  */
 const NOTE_RE = /(?:添え?字|インデックス)[^0-9\n]{0,15}?1\s*から/;
 
-const ASSIGN_ONE_RE = new RegExp(`^(${ID})\\s*(?:=|←)\\s*1$`);
-const LOOP_RE = new RegExp(`^(${ID})\\s*を\\s*(.+?)\\s*から\\s*(.+?)\\s*まで`);
-const LENGTH_RE = new RegExp(`^要素数\\(\\s*${ID}\\s*\\)$`);
+const ASSIGN_ONE_RE = new RegExp(`^(${ID})\\s*(?:=|←)\\s*1$`, 'u');
+const LOOP_RE = new RegExp(`^(${ID})\\s*を\\s*(.+?)\\s*から\\s*(.+?)\\s*まで`, 'u');
+const LENGTH_RE = new RegExp(`^要素数\\(\\s*${ID}\\s*\\)$`, 'u');
 const LESS_EQUAL_RE = new RegExp(
-    `(?<![\\w\\u3040-\\u309F\\u30A0-\\u30FF\\u4E00-\\u9FFF])(${ID})\\s*(?:<=|≦)\\s*(要素数\\(\\s*${ID}\\s*\\)|${ID})`,
-    'g',
+    `(?<!${NAME_CHAR_PATTERN})(${ID})\\s*(?:<=|≦)\\s*(要素数\\(\\s*${ID}\\s*\\)|${ID})`,
+    'gu',
 );
 
 /**

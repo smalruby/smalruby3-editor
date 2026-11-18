@@ -2,11 +2,68 @@
 // ja-notation: the tokens of one line of Japanese (the standard form of the
 // 共通テスト用プログラム表記 and the DNCL-like form). See ../LICENSE.
 
-/** The first character of a name: ASCII letters, `_`, hiragana, katakana and kanji. */
-const NAME_HEAD_RE = /[A-Za-z_぀-ゟ゠-ヿ一-鿿]/;
+/**
+ * The first character of a name: an ASCII letter, `_`, or a letter of any
+ * script (`\p{L}`: kana, kanji with the CJK extensions, `々`, `〆`, `ヶ`, full-width
+ * letters, Greek, ...), a letter number (`\p{Nl}`: `〇`, `Ⅱ`), and the marks of
+ * the kana blocks (`゛`, `・`). Ruby takes any of them in a name, and Ruby →
+ * Japanese writes the name as it is (`@佐々木` → `佐々木`), so the Japanese reads
+ * back every name it writes (Issue #1714). A full-width letter is a name of its
+ * own (`ｘ` is not `x`): Ruby has them as two variables.
+ */
+const NAME_HEAD_RE = /[A-Za-z_\p{L}\p{Nl}\u3040-\u309F\u30A0-\u30FF]/u;
 
-/** A character after the first one of a name: the same and the digits. */
-const NAME_TAIL_RE = /[A-Za-z0-9_぀-ゟ゠-ヿ一-鿿]/;
+/**
+ * A character after the first one of a name: the same, the digits (`\p{Nd}`,
+ * full-width ones too) and the combining marks (`\p{M}`: `か` and `゙`).
+ */
+const NAME_TAIL_RE = /[A-Za-z0-9_\p{L}\p{Nl}\p{Nd}\p{M}\u3040-\u309F\u30A0-\u30FF]/u;
+
+/**
+ * The length (in UTF-16 units) of the character at `text[i]` when it matches
+ * a class of the name, else 0: a kanji out of the BMP (`𠮷`) is two units.
+ * @param {string} text - The text.
+ * @param {number} i - The index.
+ * @param {RegExp} re - `NAME_HEAD_RE` or `NAME_TAIL_RE`.
+ * @returns {number} 0, 1 or 2.
+ */
+const nameCharAt = (text, i, re) => {
+    const point = text.codePointAt(i);
+    if (typeof point !== 'number') return 0;
+    const ch = String.fromCodePoint(point);
+    return re.test(ch) ? ch.length : 0;
+};
+
+/**
+ * Whether a character can start a name of the Japanese.
+ * @param {string} ch - One character (a code point).
+ * @returns {boolean} True if it can.
+ */
+const isNameHead = (ch) => typeof ch === 'string' && ch !== '' && nameCharAt(ch, 0, NAME_HEAD_RE) === ch.length;
+
+/**
+ * Whether a character can be in a name of the Japanese (after its first one).
+ * @param {string} ch - One character (a code point).
+ * @returns {boolean} True if it can.
+ */
+const isNameChar = (ch) => typeof ch === 'string' && ch !== '' && nameCharAt(ch, 0, NAME_TAIL_RE) === ch.length;
+
+/**
+ * Whether a text is one name of the Japanese (`佐々木`, `x1`), as the lexer reads it.
+ * @param {string} text - The text.
+ * @returns {boolean} True if it is.
+ */
+const isName = (text) => {
+    if (typeof text !== 'string') return false;
+    let i = nameCharAt(text, 0, NAME_HEAD_RE);
+    if (i === 0) return false;
+    while (i < text.length) {
+        const length = nameCharAt(text, i, NAME_TAIL_RE);
+        if (length === 0) return false;
+        i += length;
+    }
+    return true;
+};
 
 /**
  * Characters that are read as another one. Only how they look differs
@@ -194,9 +251,13 @@ const tokenize = (text, offset = 0, commentMarker = '#') => {
             i = end;
             continue;
         }
-        if (NAME_HEAD_RE.test(ch)) {
-            let end = i + 1;
-            while (end < text.length && NAME_TAIL_RE.test(text[end])) end++;
+        const head = nameCharAt(text, i, NAME_HEAD_RE);
+        if (head > 0) {
+            let end = i + head;
+            for (let length = nameCharAt(text, end, NAME_TAIL_RE); length > 0; ) {
+                end += length;
+                length = nameCharAt(text, end, NAME_TAIL_RE);
+            }
             // A Ruby predicate or bang method keeps its `?` / `!` (`stop!`,
             // `touching?(...)`), so it is told as a command, not as a name.
             if ((text[end] === '?' || text[end] === '!') && text[end + 1] !== '=') end++;
@@ -221,10 +282,12 @@ const tokenize = (text, offset = 0, commentMarker = '#') => {
             i++;
             continue;
         }
-        push('unknown', i, i + 1);
-        i++;
+        // A character out of the BMP (`😀`) is told whole, not half of it.
+        const width = String.fromCodePoint(text.codePointAt(i)).length;
+        push('unknown', i, i + width);
+        i += width;
     }
     return tokens;
 };
 
-export { tokenize };
+export { isName, isNameChar, isNameHead, NAME_HEAD_RE, NAME_TAIL_RE, tokenize };

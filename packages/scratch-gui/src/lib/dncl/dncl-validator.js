@@ -1,7 +1,7 @@
 // === Smalruby: This file is Smalruby-specific (the checks of the words of the Japanese mode) ===
 import { DNCL_KEYWORDS, RUBY_LITERALS } from './dncl-keywords';
 import { codeOfLine, commentIndex, stringEndAt } from './dncl-trailing-comment';
-import { findMatchingClose } from './paren-utils';
+import { findMatchingClose, NAME_PATTERN } from './paren-utils';
 
 /**
  * The id of the error for the post-test loop (issue #1626). The Japanese mode
@@ -96,13 +96,11 @@ const unsupportedCommandMessage = (name) =>
 const LOOP_JUMP_RE =
     /^(break|next|redo|retry)(?=$|\s+(?![-+*/%<>=!&|^]|←|を(?:\s|$)|(?:and|or|かつ|または)(?:\s|$)|の間$|でない(?:\s|$)))/;
 
-const IDENT_HEAD_RE = /[a-zA-Z_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/;
-const IDENT_TAIL_RE = /[a-zA-Z0-9_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/;
+// A name as ja-notation reads it (`佐々木` is one name; Issue #1714).
+const NAME_AT_RE = new RegExp(NAME_PATTERN, 'uy');
 // A trailing `?` / `!` is a Ruby predicate or bang method (`stop!`).
-const LONE_IDENT_RE =
-    /^[a-zA-Z_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF][a-zA-Z0-9_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]*[?!]?$/;
-const TRAILING_IDENT_RE =
-    /[a-zA-Z_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF][a-zA-Z0-9_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]*$/;
+const LONE_IDENT_RE = new RegExp(`^${NAME_PATTERN}[?!]?$`, 'u');
+const TRAILING_IDENT_RE = new RegExp(`${NAME_PATTERN}$`, 'u');
 
 /**
  * The code of a line before its comment, with every string (`"..."`,
@@ -179,9 +177,8 @@ const doBlockCommand = (code) => {
  * @returns {Set<string>} The function names.
  */
 const findFunctionNames = (source) => {
-    const ident =
-        '[a-zA-Z_\\u3040-\\u309F\\u30A0-\\u30FF\\u4E00-\\u9FFF][a-zA-Z0-9_\\u3040-\\u309F\\u30A0-\\u30FF\\u4E00-\\u9FFF]*';
-    const re = new RegExp(`^関数\\s+(${ident})\\s*\\(`);
+    const ident = NAME_PATTERN;
+    const re = new RegExp(`^関数\\s+(${ident})\\s*\\(`, 'u');
     const names = new Set();
     for (const line of source.split('\n')) {
         const m = line.trim().match(re);
@@ -198,11 +195,10 @@ const findFunctionNames = (source) => {
  */
 const findDeclaredNames = (source) => {
     const names = new Set();
-    const ident =
-        '[a-zA-Z_\\u3040-\\u309F\\u30A0-\\u30FF\\u4E00-\\u9FFF][a-zA-Z0-9_\\u3040-\\u309F\\u30A0-\\u30FF\\u4E00-\\u9FFF]*';
-    const assign = new RegExp(`^(${ident})\\s*(?:←|[-+*/]?=(?!=))`);
-    const loop = new RegExp(`^(${ident})\\s+を\\s`);
-    const params = new RegExp(`^関数\\s+${ident}\\s*\\(([^)]*)\\)`);
+    const ident = NAME_PATTERN;
+    const assign = new RegExp(`^(${ident})\\s*(?:←|[-+*/]?=(?!=))`, 'u');
+    const loop = new RegExp(`^(${ident})\\s+を\\s`, 'u');
+    const params = new RegExp(`^関数\\s+${ident}\\s*\\(([^)]*)\\)`, 'u');
     for (const line of source.split('\n')) {
         const trimmed = line.trim();
         const m = trimmed.match(assign) || trimmed.match(loop);
@@ -256,12 +252,14 @@ const findUnsupportedCommands = (source) => {
         }
         let i = 0;
         while (i < code.length) {
-            if (!IDENT_HEAD_RE.test(code[i])) {
+            NAME_AT_RE.lastIndex = i;
+            const name = NAME_AT_RE.exec(code);
+            if (!name) {
                 i++;
                 continue;
             }
             const start = i;
-            while (i < code.length && IDENT_TAIL_RE.test(code[i])) i++;
+            i += name[0].length;
             // A Ruby predicate or bang method keeps its `?` / `!`
             // (`key_pressed?("space")`, `touching?("_edge_")`).
             const end = (code[i] === '?' || code[i] === '!') && code[i + 1] === '(' ? i + 1 : i;

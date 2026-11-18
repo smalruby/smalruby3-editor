@@ -5,6 +5,7 @@
 // The library has no dependency: it imports nothing outside this directory,
 // and the functions and names of a Ruby system are given by the caller.
 import { buildRuby, RUBY } from './build-ruby.js';
+import { isName, isNameChar, isNameHead, NAME_HEAD_RE, NAME_TAIL_RE } from './lexer.js';
 import { parse } from './parse.js';
 import { readRuby } from './read-ruby.js';
 import { DEFAULT_SETTINGS, readSettings, settingsSentences } from './settings.js';
@@ -47,7 +48,12 @@ const rubyToJa = (source, options) => {
 export {
     buildRuby,
     DEFAULT_SETTINGS,
+    isName,
+    isNameChar,
+    isNameHead,
     jaToRuby,
+    NAME_HEAD_RE,
+    NAME_TAIL_RE,
     parse,
     readRuby,
     readSettings,

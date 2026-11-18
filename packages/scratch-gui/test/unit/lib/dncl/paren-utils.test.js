@@ -54,5 +54,10 @@ describe('paren-utils', () => {
         test('operators, spaces and brackets are not', () => {
             for (const ch of ['÷', '/', ' ', '(', ')', '[', ',', '、', undefined]) expect(isNameChar(ch)).toBe(false);
         });
+
+        test('the characters ja-notation reads in a name are name characters (issue #1714)', () => {
+            for (const ch of ['〆', 'ヶ', '㐀', '𠮷', 'α', 'ｘ', '１', '\u3099']) expect(isNameChar(ch)).toBe(true);
+            for (const ch of ['☆', '①', '＋', '「']) expect(isNameChar(ch)).toBe(false);
+        });
     });
 });

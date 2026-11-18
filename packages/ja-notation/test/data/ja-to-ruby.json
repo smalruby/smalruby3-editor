@@ -139,6 +139,46 @@
             "ja": "# すべての配列の添字は 1 から始まる。\nA[i] = A[i + 1]",
             "ruby": "# すべての配列の添字は 1 から始まる。\nA[i - 1] = A[i]",
             "jaLines": [1, 2]
+        },
+        {
+            "title": "a name with 々, 〆, ヶ, a kanji of the CJK extensions or one out of the BMP is one name (Issue #1714)",
+            "table": "plain",
+            "ja": "佐々木 = 7\nx〆 = 佐々木 + 2\n㐀ヶ = 1\n𠮷田 = 1\n表示する(佐々木)",
+            "ruby": "佐々木 = 7\nx〆 = 佐々木 + 2\n㐀ヶ = 1\n𠮷田 = 1\nputs(佐々木)",
+            "jaLines": [1, 2, 3, 4, 5]
+        },
+        {
+            "title": "a Greek or full-width letter is a name, of its own (ｘ is not x), and full-width digits are in a name after its first character",
+            "table": "none",
+            "ja": "α = 1\nｘ１ = α ÷ 2\nx = ｘ１",
+            "ruby": "α = 1\nｘ１ = (α / 2).to_i\nx = ｘ１",
+            "jaLines": [1, 2, 3]
+        },
+        {
+            "title": "a combining mark is in a name (か and ゙)",
+            "table": "none",
+            "ja": "が = 1",
+            "ruby": "が = 1",
+            "jaLines": [1]
+        },
+        {
+            "title": "a character that is not a letter is not read, and one out of the BMP is told whole",
+            "table": "none",
+            "ja": "a = 😀\nb☆ = 1",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「😀」が読めません",
+                    "line": 1,
+                    "column": 4
+                },
+                {
+                    "code": "syntax",
+                    "message": "「☆」が読めません",
+                    "line": 2,
+                    "column": 1
+                }
+            ]
         }
     ]
 }
