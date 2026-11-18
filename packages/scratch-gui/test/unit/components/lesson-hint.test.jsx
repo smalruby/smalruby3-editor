@@ -140,6 +140,26 @@ describe('LessonHint', () => {
         expect(second.queryByTestId('lesson-hint-activity-diagram')).toBeNull();
     });
 
+    // 「Ruby で読む」のページ（#2108）: ブロックの下に同じプログラムの Ruby を文で出す
+    test('shows the Ruby of the page only when it is given', () => {
+        const { queryByTestId, rerender } = renderHint({ ruby: 'when_clicked do\n  say(@文)\nend\n' });
+        expect(queryByTestId('lesson-hint-ruby').textContent).toBe('when_clicked do\n  say(@文)\nend\n');
+        rerender(
+            <IntlProvider locale="en" messages={en}>
+                <LessonHint
+                    count={7}
+                    index={1}
+                    target={HINT_TARGETS.PALETTE}
+                    title={title}
+                    onClose={jest.fn()}
+                    onNext={jest.fn()}
+                    onPrev={jest.fn()}
+                />
+            </IntlProvider>,
+        );
+        expect(queryByTestId('lesson-hint-ruby')).toBeNull();
+    });
+
     test('back is disabled on the first hint and next on the last', () => {
         const first = renderHint({ index: 0 });
         expect(first.getByTestId('lesson-hint-prev')).toBeDisabled();

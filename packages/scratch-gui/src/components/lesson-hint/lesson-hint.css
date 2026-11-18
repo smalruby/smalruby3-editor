@@ -116,6 +116,21 @@
     background-color: transparent;
 }
 
+/* 「Ruby で読む」のページの Ruby（ブロックの下に並べる。長い行は折り返さずに横へ送る） */
+.ruby {
+    margin: 0.5rem 0 0;
+    padding: 0.5rem 0.75rem;
+    overflow-x: auto;
+    font-family: Menlo, Consolas, 'Courier New', monospace;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    white-space: pre;
+    color: $color-text;
+    background-color: $ui-secondary;
+    border: 1px solid $color-border;
+    border-radius: 0.25rem;
+}
+
 .blocks-error {
     margin: 0.25rem 0 0;
     font-size: 0.75rem;
