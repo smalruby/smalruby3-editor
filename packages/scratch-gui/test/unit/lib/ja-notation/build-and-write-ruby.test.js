@@ -1,6 +1,6 @@
 /**
- * Building the RubyAST from a JaAST and writing its Ruby (ja-notation, J1 of
- * docs/ruby-editor/converter-roadmap.md), with the table of Smalruby and with
+ * Building the RubyAST from a JaAST and writing its Ruby (ja-notation, J1 and J2
+ * of docs/ruby-editor/converter-roadmap.md), with the table of Smalruby and with
  * a table of another Ruby system, to see that the library has no rule of its own.
  */
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
@@ -46,6 +46,26 @@ describe('jaToRuby with the table of Smalruby', () => {
         const { ruby, jaLines } = smalruby('もし a > 0 ならば:\n    a = 1\n\nb = 2');
         expect(ruby).toBe('if @a > 0\n  @a = 1\nend\n\n@b = 2');
         expect(jaLines).toEqual([1, 2, 2, 3, 4]);
+    });
+
+    test('a block closed by a line of its own has its end on that line', () => {
+        const { ruby, jaLines } = smalruby('もし a > 0 ならば\n  a = 1\n\nを実行する # c\nb = 2');
+        expect(ruby).toBe('if @a > 0\n  @a = 1\n\nend # c\n@b = 2');
+        expect(jaLines).toEqual([1, 2, 3, 4, 5]);
+    });
+
+    test('a counting loop closed by `を繰り返す` adds the step on that line', () => {
+        const { ruby, jaLines } = smalruby('i を 3 から 1 まで -1 ずつ減らしながら\n  表示する(i)\nを繰り返す');
+        expect(ruby).toBe('@i = 3\nwhile @i >= 1\n  puts(@i)\n  @i += -(-1)\nend');
+        expect(jaLines).toEqual([1, 1, 2, 3, 3]);
+    });
+
+    // The current conversion adds the step only at `を繰り返す`, so a counting
+    // loop closed by `を実行する` never ends there; here every closing line adds it.
+    test('a counting loop closed by another closing word adds the step too', () => {
+        expect(smalruby('i を 1 から 3 まで 1 ずつ増やしながら\n  表示する(i)\nを実行する').ruby).toBe(
+            '@i = 1\nwhile @i <= 3\n  puts(@i)\n  @i += 1\nend',
+        );
     });
 
     test.each([

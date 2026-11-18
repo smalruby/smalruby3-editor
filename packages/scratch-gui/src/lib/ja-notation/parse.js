@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: MIT
-// ja-notation: read the standard form of the Japanese (the form of the
-// 共通テスト用プログラム表記: line numbers, `｜` / `⎿` or indentation, `ならば:`,
-// `=`, `and` / `or` / `not`) into a JaAST (./ja-ast.js). See ./LICENSE.
+// ja-notation: read the Japanese into a JaAST (./ja-ast.js). See ./LICENSE.
 //
-// The DNCL-like form (`を実行する` / `を繰り返す` closing lines, `←`, `かつ`, 「...」)
-// is read by another step (J2 of docs/ruby-editor/converter-roadmap.md); here
-// it is reported as an error with the code `dncl-like`.
+// Both forms are read, into the same JaAST:
+// - the standard form (the form of the 共通テスト用プログラム表記): line
+//   numbers, `｜` / `⎿` or indentation, `ならば:`, `=`, `and` / `or` / `not`;
+// - the DNCL-like form: an opening line without `:` and a line of its own that
+//   closes the block (`を実行する` / `を繰り返す` / `と定義する`), `←`,
+//   `かつ` / `または`, a `でない` after what it negates, 「...」 and `X を返す`.
+// The two may be mixed: a block opened with `:` ends where the indentation
+// ends, one opened without `:` ends at its closing line (or a `⎿`).
 import { tokenize } from './lexer';
 
 /** The label of a numbered line: `(1)`, `(01)` and `(00-1)` (a line put before `(01)`). */
@@ -21,8 +24,27 @@ const PREFIX_RE = /^[\s｜|⎿]*/;
  */
 const MARK_WIDTH = 1000;
 
-/** Words that close a block in the DNCL-like form. */
-const DNCL_LIKE_CLOSERS = new Set(['を実行する', 'を繰り返す', 'と定義する', 'を定義する']);
+/** Words that close a block in the DNCL-like form (a line of their own). */
+const CLOSERS = new Set(['を実行する', 'を繰り返す', 'と定義する']);
+
+/** The words of `and` / `or` (the DNCL-like form writes `かつ` / `または`). */
+const AND_WORDS = new Set(['and', 'かつ']);
+const OR_WORDS = new Set(['or', 'または']);
+
+/** The `not` written after what it negates, in the DNCL-like form. */
+const POSTFIX_NOT = 'でない';
+
+/**
+ * The operators that go on after a `でない` with the negation as their left
+ * side (`a でない == b` is `(not a) == b`, as Ruby reads `!a == b`).
+ */
+const AFTER_NEGATION = new Set(['==', '!=', '<', '<=', '>', '>=', '+', '-', '*', '/', '÷', '%']);
+
+/**
+ * Words of a closing line. `end` (Ruby) is taken too in a block opened without
+ * `:`, as the current conversion takes it.
+ */
+const END_WORD = 'end';
 
 /** The comparison operators. */
 const COMPARISONS = new Set(['==', '!=', '<', '<=', '>', '>=']);
@@ -31,11 +53,26 @@ const COMPARISONS = new Set(['==', '!=', '<', '<=', '>', '>=']);
 const OP_ASSIGNS = { '+=': '+', '-=': '-', '*=': '*', '/=': '/', '%=': '%' };
 
 /** Names that are a part of the statement around an expression, never a value in it. */
-const STOP_NAMES = new Set(['を', 'から', 'まで', 'ならば', 'なら', 'の間', 'の間繰り返す', 'and', 'or', 'not']);
+const STOP_NAMES = new Set([
+    'を',
+    'から',
+    'まで',
+    'ならば',
+    'なら',
+    'の間',
+    'の間繰り返す',
+    'を返す',
+    'and',
+    'or',
+    'not',
+    'かつ',
+    'または',
+    POSTFIX_NOT,
+]);
 
 /**
  * An error of the reading.
- * @param {string} code - What kind of error it is (`syntax`, `dncl-like`, ...).
+ * @param {string} code - What kind of error it is (`syntax`, `unclosed`, ...).
  * @param {string} message - The message, in Japanese.
  * @param {number} line - The line (1-based).
  * @param {number} column - The column (0-based).
@@ -188,6 +225,8 @@ class ExpressionReader {
         this.tokens = tokens;
         this.pos = 0;
         this.line = line;
+        // A value already read (a negation) that the next primary is.
+        this.pending = null;
     }
 
     /**
@@ -263,6 +302,16 @@ class ExpressionReader {
     }
 
     /**
+     * Whether the token at the position is one of the names.
+     * @param {Set<string>} names - The names.
+     * @returns {boolean} True if it is.
+     */
+    isNameIn(names) {
+        const t = this.peek();
+        return Boolean(t) && t.type === 'name' && names.has(t.text);
+    }
+
+    /**
      * A binary node at the operator token.
      * @param {object} op - The operator token.
      * @param {object} left - The left side.
@@ -281,29 +330,51 @@ class ExpressionReader {
     }
 
     /**
-     * `or`.
+     * `or` (`または`).
      * @returns {object} The expression.
      */
     readOr() {
         let left = this.readAnd();
-        while (this.isName('or')) {
+        while (this.isNameIn(OR_WORDS)) {
             const op = this.tokens[this.pos++];
-            left = this.binary(op, left, this.readAnd());
+            left = { ...this.binary(op, left, this.readAnd()), operator: 'or' };
         }
         return left;
     }
 
     /**
-     * `and`.
+     * `and` (`かつ`).
      * @returns {object} The expression.
      */
     readAnd() {
-        let left = this.readNot();
-        while (this.isName('and')) {
+        let left = this.readNegated();
+        while (this.isNameIn(AND_WORDS)) {
             const op = this.tokens[this.pos++];
-            left = this.binary(op, left, this.readNot());
+            left = { ...this.binary(op, left, this.readNegated()), operator: 'and' };
         }
         return left;
+    }
+
+    /**
+     * A `でない` after what it negates: it takes all before it up to the
+     * nearest `かつ` / `または` (`a > 10 でない` is `not (a > 10)`), as `not`
+     * does after it.
+     * @returns {object} The expression.
+     */
+    readNegated() {
+        let operand = this.readNot();
+        while (this.isName(POSTFIX_NOT)) {
+            this.pos++;
+            const negated = { type: 'Unary', operator: 'not', operand, line: operand.line, column: operand.column };
+            const next = this.peek();
+            if (next && next.type === 'op' && AFTER_NEGATION.has(next.value)) {
+                this.pending = negated;
+                operand = this.readNot();
+            } else {
+                operand = negated;
+            }
+        }
+        return operand;
     }
 
     /**
@@ -311,7 +382,7 @@ class ExpressionReader {
      * @returns {object} The expression.
      */
     readNot() {
-        if (this.isName('not')) {
+        if (!this.pending && this.isName('not')) {
             const op = this.tokens[this.pos++];
             const operand = this.readNot();
             return { type: 'Unary', operator: 'not', operand, line: op.line, column: op.column };
@@ -364,7 +435,7 @@ class ExpressionReader {
      * @returns {object} The expression.
      */
     readUnary() {
-        if (this.isOp('-') || this.isOp('+')) {
+        if (!this.pending && (this.isOp('-') || this.isOp('+'))) {
             const op = this.tokens[this.pos++];
             const operand = this.readUnary();
             return { type: 'Unary', operator: op.value, operand, line: op.line, column: op.column };
@@ -413,6 +484,11 @@ class ExpressionReader {
      * @returns {object} The expression.
      */
     readPrimary() {
+        if (this.pending) {
+            const value = this.pending;
+            this.pending = null;
+            return value;
+        }
         const t = this.peek();
         if (!t) this.fail(t, '式が要ります');
         const at = { line: t.line, column: t.column };
@@ -548,10 +624,15 @@ const readAssignment = (tokens, at, line) => {
  */
 const readSimple = (tokens, line) => {
     const first = tokens[0];
+    const last = tokens[tokens.length - 1];
     const where = { line, column: first.column };
     if (first.type === 'name' && first.text === '返す') {
         const value = tokens.length > 1 ? readExpression(tokens.slice(1), line) : null;
         return [{ type: 'Return', value, ...where }];
+    }
+    // `X を返す` (the DNCL-like form).
+    if (tokens.length > 1 && last.type === 'name' && last.text === 'を返す') {
+        return [{ type: 'Return', value: readExpression(tokens.slice(0, -1), line), ...where }];
     }
     if (
         first.type === 'name' &&
@@ -625,10 +706,13 @@ const countingLoopEnd = (tokens) => {
 };
 
 /**
- * Read a line that opens or continues a block, or null when it is not one.
+ * Read a line that opens, continues or closes a block, or null when it is not
+ * one. `colon` says the line ends with `:` (the standard form): its block ends
+ * where the indentation ends. Without it (the DNCL-like form) the block ends
+ * at a closing line.
  * @param {Array<object>} tokens - The tokens of the line.
  * @param {number} line - The line.
- * @returns {?object} `{kind: 'open' | 'elsif' | 'else', node?, condition?}` or null.
+ * @returns {?object} `{kind: 'open' | 'elsif' | 'else' | 'close', colon, node?, condition?}` or null.
  */
 const readBlockLine = (tokens, line) => {
     const last = tokens[tokens.length - 1];
@@ -636,13 +720,6 @@ const readBlockLine = (tokens, line) => {
     const body = colon ? tokens.slice(0, -1) : tokens;
     const first = body[0];
     const where = { line, column: first ? first.column : 0 };
-    const needColon = () => {
-        if (!colon) {
-            throw new LineError(
-                makeError('dncl-like', 'ブロックを始める行の終わりに「:」が無い（DNCL 風の形）', line, where.column),
-            );
-        }
-    };
     if (!first) return null;
     const tail = body[body.length - 1];
 
@@ -650,30 +727,29 @@ const readBlockLine = (tokens, line) => {
         if (!isName(tail, 'ならば') && !isName(tail, 'なら')) {
             throw new LineError(makeError('syntax', '「もし」の後に「ならば」が要ります', line, where.column));
         }
-        needColon();
         const condition = readExpression(body.slice(1, -1), line);
-        if (first.text === 'そうでなくもし') return { kind: 'elsif', condition, line };
+        if (first.text === 'そうでなくもし') return { kind: 'elsif', colon, condition, line };
         return {
             kind: 'open',
+            colon,
             node: { type: 'If', branches: [{ condition, body: [], line }], elseBody: null, elseLine: null, ...where },
         };
     }
     if (isName(first, 'そうでなければ') && body.length === 1) {
-        needColon();
-        return { kind: 'else', line };
+        return { kind: 'else', colon, line };
     }
-    if (body.length === 1 && DNCL_LIKE_CLOSERS.has(first.text) && first.type === 'name') {
-        throw new LineError(makeError('dncl-like', `「${first.text}」で閉じる行（DNCL 風の形）`, line, where.column));
+    if (body.length === 1 && first.type === 'name' && (CLOSERS.has(first.text) || first.text === END_WORD)) {
+        return { kind: 'close', colon, word: first.text, line };
     }
     // A counting loop: `i を 1 から 10 まで 1 ずつ増やしながら繰り返す:`.
     const end = isName(body[1], 'を') && first.type === 'name' ? countingLoopEnd(body) : null;
     if (end) {
-        needColon();
         const from = nameAt(body, 'から', 2);
         const to = from === -1 ? -1 : nameAt(body, 'まで', from + 1);
         if (to === -1) throw new LineError(makeError('syntax', '「から」「まで」が要ります', line, where.column));
         return {
             kind: 'open',
+            colon,
             node: {
                 type: 'For',
                 variable: { type: 'Name', name: first.text, line, column: first.column },
@@ -691,15 +767,13 @@ const readBlockLine = (tokens, line) => {
     if (isName(tail, 'の間繰り返す') || isName(tail, 'の間')) whileWords = 1;
     else if (isName(tail, '繰り返す') && isName(body[body.length - 2], 'の間')) whileWords = 2;
     if (whileWords > 0 && body.length > whileWords) {
-        needColon();
         const condition = readExpression(body.slice(0, body.length - whileWords), line);
-        return { kind: 'open', node: { type: 'While', condition, body: [], ...where } };
+        return { kind: 'open', colon, node: { type: 'While', condition, body: [], ...where } };
     }
     // A function: `関数 名前(a, b):` or `名前(a, b) を定義する:`.
     const define = isName(tail, 'を定義する') && body.length > 1;
     const head = isName(first, '関数') ? body.slice(1) : define ? body.slice(0, -1) : null;
     if (head && head[0] && head[0].type === 'name' && head[1] && head[1].type === 'op' && head[1].value === '(') {
-        needColon();
         const close = head[head.length - 1];
         if (close.type !== 'op' || close.value !== ')') {
             throw new LineError(makeError('syntax', '関数の引数の「)」が要ります', line, where.column));
@@ -712,15 +786,18 @@ const readBlockLine = (tokens, line) => {
                 }
                 return piece[0].text;
             });
-        return { kind: 'open', node: { type: 'FunctionDef', name: head[0].text, params, body: [], ...where } };
+        return {
+            kind: 'open',
+            colon,
+            node: { type: 'FunctionDef', name: head[0].text, params, body: [], ...where },
+        };
     }
     return null;
 };
 
 /**
  * The first token of the line that marks something this reading does not take
- * (a mark of the DNCL-like form, `@` / `$`, a Ruby number, an unknown character),
- * as an error.
+ * (`@` / `$`, a Ruby number, an unknown character), as an error.
  * @param {Array<object>} tokens - The tokens of the line.
  * @returns {?object} The error, or null.
  */
@@ -742,7 +819,6 @@ const tokenError = (tokens) => {
     }
     for (const t of tokens) {
         const at = (code, message) => makeError(code, message, t.line, t.column);
-        if (t.type === 'dnclLike') return at('dncl-like', `「${t.text}」は DNCL 風の形の書き方`);
         if (t.type === 'forbidden') return at('forbidden', `日本語モードでは変数に「${t.text}」は使えません`);
         if (t.type === 'badNumber') return at('bad-number', `「${t.text}」は日本語モードでは書けない数の書き方です`);
         if (t.type === 'unknown') return at('syntax', `「${t.text}」が読めません`);
@@ -751,12 +827,18 @@ const tokenError = (tokens) => {
 };
 
 /**
- * Read the standard form of the Japanese into a JaAST.
+ * Read the Japanese (the standard form, the DNCL-like form or both mixed)
+ * into a JaAST.
+ *
+ * Each open block is `indent` (its line ends with `:`; it ends at the first
+ * line that is not deeper than it) or `closer` (it ends at a closing line or
+ * a `⎿`; the indentation in it does not matter). A block opened with `:`
+ * whose next line is not deeper is a `closer` block too.
  * @param {string} source - The Japanese source.
  * @returns {{program: ?object, errors: Array<object>}} The program (null when
  *   there are errors) and the errors (`{code, message, line, column}`).
  */
-const parseStandard = (source) => {
+const parse = (source) => {
     const lines = readLines(source);
     const program = { type: 'Program', settings: {}, body: [], line: 1, column: 0 };
     const errors = [];
@@ -792,27 +874,48 @@ const parseStandard = (source) => {
             return;
         }
         const continuesIf = block && (block.kind === 'elsif' || block.kind === 'else');
+        const closes = block && block.kind === 'close';
         // Blocks written with indentation end at the first line that is not deeper.
         while (stack.length > 0) {
             const top = stack[stack.length - 1];
+            if (top.mode === 'closer') break;
             if (!top.hasBody) {
                 if (entry.width > top.width) {
                     top.hasBody = true;
                     break;
                 }
-                emptyBlock(top);
-                stack.pop();
-                continue;
+                top.mode = 'closer';
+                break;
             }
             if (entry.width > top.width) break;
             if (entry.width === top.width && continuesIf && top.node.type === 'If') break;
+            // A closing line at the indent of a block opened with `:` closes it.
+            if (entry.width === top.width && closes && block.word !== END_WORD) break;
             close(top, lastCodeLine, entry.line - 1);
             stack.pop();
+        }
+        const column = entry.tokens[0].column;
+        if (closes) {
+            const top = stack[stack.length - 1];
+            if (!top) {
+                errors.push(makeError('syntax', `「${block.word}」で閉じるブロックがありません`, entry.line, column));
+                return;
+            }
+            if (top.mode === 'indent' && (entry.width > top.width || block.word === END_WORD)) {
+                errors.push(makeError('syntax', `「${block.word}」の字下げが合いません`, entry.line, column));
+                return;
+            }
+            stack.pop();
+            close(top, entry.line, entry.line);
+            top.node.closeOwnLine = true;
+            if (entry.comment !== null) top.node.closeComment = entry.comment;
+            lastCodeLine = entry.line;
+            return;
         }
         if (continuesIf) {
             const top = stack[stack.length - 1];
             if (!top || top.node.type !== 'If' || top.node.elseBody) {
-                errors.push(makeError('syntax', '対応する「もし」がありません', entry.line, entry.tokens[0].column));
+                errors.push(makeError('syntax', '対応する「もし」がありません', entry.line, column));
                 return;
             }
             top.hasBody = false;
@@ -834,6 +937,7 @@ const parseStandard = (source) => {
                 node: block.node,
                 body: block.node.body || block.node.branches[0].body,
                 width: entry.width,
+                mode: block.colon ? 'indent' : 'closer',
             });
         } else {
             if (entry.comment !== null) statements[statements.length - 1].comment = entry.comment;
@@ -849,10 +953,17 @@ const parseStandard = (source) => {
     });
     while (stack.length > 0) {
         const top = stack.pop();
-        if (top.hasBody) close(top, lastCodeLine, lines.length);
-        else emptyBlock(top);
+        if (top.mode === 'indent' && top.hasBody) {
+            close(top, lastCodeLine, lines.length);
+        } else if (top.mode === 'indent') {
+            emptyBlock(top);
+        } else {
+            const word =
+                top.node.type === 'If' ? 'を実行する' : top.node.type === 'FunctionDef' ? 'と定義する' : 'を繰り返す';
+            errors.push(makeError('unclosed', `「${word}」で閉じていません`, top.node.line, top.node.column));
+        }
     }
     return errors.length > 0 ? { program: null, errors } : { program, errors };
 };
 
-export { parseStandard };
+export { parse };

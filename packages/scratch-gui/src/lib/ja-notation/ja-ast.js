@@ -22,7 +22,9 @@
 //   Comment      { text }                       (a line that is only a comment)
 //   Block statements also have `closeLine` (the line the block ends on) and
 //   `closeAfter` (the last line before the code after the block); the Ruby
-//   writer uses them for the line map.
+//   writer uses them for the line map. A block closed by a line of its own
+//   (`を実行する`, the DNCL-like form) has `closeOwnLine: true`, and
+//   `closeComment` when that line has a comment.
 //   Any statement may have `comment` (the `# ...` at the end of its line).
 //
 // Expressions:
