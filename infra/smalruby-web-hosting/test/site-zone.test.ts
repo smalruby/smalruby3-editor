@@ -10,18 +10,24 @@ const synth = (stage: string): Template => {
     return Template.fromStack(stack);
 };
 
-/** レコードを `名前 型 TTL 値` の 1 行ずつに並べる（照合しやすい形）。 */
+/**
+ * レコードを `名前 型 TTL 値` の 1 行ずつに並べる（照合しやすい形）。ALIAS は TTL を持たないので
+ * `名前 型 ALIAS <向き先の論理 ID>` にする。
+ */
 const recordLines = (template: Template): string[] =>
     Object.values(template.findResources('AWS::Route53::RecordSet'))
-        .flatMap((r) =>
-            (r.Properties.ResourceRecords as string[]).map(
-                (v) => `${r.Properties.Name} ${r.Properties.Type} ${r.Properties.TTL} ${v}`,
-            ),
-        )
+        .flatMap((r) => {
+            const { Name, Type, TTL, ResourceRecords, AliasTarget } = r.Properties;
+            if (AliasTarget) {
+                const ref = JSON.stringify(AliasTarget.DNSName).match(/"(\w+?)[0-9A-F]{8}"/);
+                return [`${Name} ${Type} ALIAS ${ref ? ref[1] : '?'}`];
+            }
+            return (ResourceRecords as string[]).map((v) => `${Name} ${Type} ${TTL} ${v}`);
+        })
         .sort();
 
 // お名前.com のゾーンのエクスポートから、写すものだけを書き写した期待値（SOA・apex の NS・
-// everdiary は写さない。apex の A だけ TTL を 300 に下げる）。
+// everdiary は写さない）。apex の A / AAAA は CloudFront（SiteDistribution）の ALIAS（#2007）。
 const EXPECTED = [
     '_github-pages-challenge-smalruby.smalruby.app. TXT 3600 "a445b86bba88094e49c43b9af4b04d"',
     'api.smalruby.app. NS 900 ns-1254.awsdns-28.org.',
@@ -32,10 +38,8 @@ const EXPECTED = [
     'preview.smalruby.app. NS 900 ns-1984.awsdns-56.co.uk.',
     'preview.smalruby.app. NS 900 ns-233.awsdns-29.com.',
     'preview.smalruby.app. NS 900 ns-857.awsdns-43.net.',
-    'smalruby.app. A 300 185.199.108.153',
-    'smalruby.app. A 300 185.199.109.153',
-    'smalruby.app. A 300 185.199.110.153',
-    'smalruby.app. A 300 185.199.111.153',
+    'smalruby.app. A ALIAS SiteDistribution',
+    'smalruby.app. AAAA ALIAS SiteDistribution',
     'smalruby.app. CAA 3600 0 issue "amazon.com"',
     'smalruby.app. CAA 3600 0 issue "amazonaws.com"',
     'smalruby.app. CAA 3600 0 issue "amazontrust.com"',
@@ -68,6 +72,15 @@ describe('smalruby.app hosted zone (prod)', () => {
         const ids = Object.keys(template.findResources('AWS::Route53::HostedZone'));
         expect(ids).toHaveLength(1);
         expect(ids[0]).toMatch(/^SiteHostedZone[0-9A-F]{8}$/);
+    });
+
+    test('keeps the apex A logical id so switching to CloudFront is an update, not a replacement', () => {
+        // 論理 ID が変わると「新しい A を作る + 古い A を消す」になり、Deploy Infra が止まる
+        // （同じ名前・型のレコードは同時に 2 つ作れないので、作る側も失敗する）。
+        const ids = Object.entries(template.findResources('AWS::Route53::RecordSet'))
+            .filter(([, r]) => r.Properties.Name === 'smalruby.app.' && r.Properties.Type === 'A')
+            .map(([id]) => id);
+        expect(ids).toEqual(['SiteApexA70BFC777']);
     });
 
     test('copies the onamae.com records with the same values', () => {

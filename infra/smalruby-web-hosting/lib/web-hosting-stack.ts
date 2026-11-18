@@ -9,8 +9,6 @@ import * as targets from 'aws-cdk-lib/aws-route53-targets';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
 import {
-    SITE_APEX_A_TTL_SECONDS,
-    SITE_APEX_A_VALUES,
     SITE_APEX_TXT_TTL_SECONDS,
     SITE_APEX_TXT_VALUES,
     SITE_CAA_TTL_SECONDS,
@@ -97,10 +95,10 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
         cdk.Tags.of(this).add('Service', 'Route53');
         cdk.Tags.of(this).add('ManagedBy', 'CDK');
 
-        // 本番（smalruby.app）の配信基盤と DNS のゾーンは prod だけに作る。ゾーンにはいまの
-        // お名前.com のレコードを同じ値で写し、CloudFront には smalruby.app の証明書と代替ドメインを
-        // 付ける（ネームサーバーを Route 53 に変えたあとなので DNS 検証が終わる）。apex の A は
-        // まだ GitHub Pages のままで、CloudFront へ向けるのは別の変更。
+        // 本番（smalruby.app）の配信基盤と DNS のゾーンは prod だけに作る。ゾーンにはお名前.com の
+        // レコードを同じ値で写し、CloudFront には smalruby.app の証明書と代替ドメインを付ける
+        // （ネームサーバーを Route 53 に変えたあとなので DNS 検証が終わる）。apex の A / AAAA は
+        // CloudFront の ALIAS（#2007。GitHub Pages から切り替えた）。
         if (stage === SITE_STAGE) {
             this.siteZone = this.createSiteZone();
             this.createSiteDelivery(this.siteZone);
@@ -245,12 +243,7 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
         // （preview.smalruby.app と同じ扱い。論理 ID・スタック名・zoneName を変えない）。
         zone.applyRemovalPolicy(cdk.RemovalPolicy.RETAIN);
 
-        // apex の A はいまの GitHub Pages。CloudFront の ALIAS に変えるのは別の変更。
-        new route53.ARecord(this, 'SiteApexA', {
-            zone,
-            target: route53.RecordTarget.fromIpAddresses(...SITE_APEX_A_VALUES),
-            ttl: cdk.Duration.seconds(SITE_APEX_A_TTL_SECONDS),
-        });
+        // apex の A / AAAA は createSiteDelivery() で CloudFront の ALIAS として作る（#2007）。
         new route53.TxtRecord(this, 'SiteApexTxt', {
             zone,
             values: SITE_APEX_TXT_VALUES,
@@ -296,9 +289,8 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
     /**
      * 本番（smalruby.app）の配信基盤（S3 + CloudFront + 証明書 + CI 用ロール）。
      *
-     * いまの本番は GitHub Pages で配信しており、これは切り替え先として並べて作るだけ。
-     * CloudFront には `smalruby.app` の証明書と代替ドメインを付けるが、apex の A はまだ
-     * GitHub Pages を向いているので、いまの本番には影響しない（ALIAS へ変えるのは別の変更）。
+     * apex の A / AAAA を CloudFront の ALIAS にして、GitHub Pages から配信元を切り替える（#2007）。
+     * CloudFront には `smalruby.app` の証明書と代替ドメインを付ける。
      * 証明書は、お名前.com のネームサーバーを `createSiteZone()` のゾーンに変えてから足した
      * （変える前だと DNS 検証が終わらないのはプレビューと同じ）。
      */
@@ -397,6 +389,17 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
                 ],
             },
         });
+
+        // apex を CloudFront に向ける（段 9・#2007）。A は GitHub Pages の IP を書いていたときと
+        // **同じ論理 ID（SiteApexA）** のままにする。論理 ID が変わると CloudFormation は「新しい A を
+        // 作ってから古い A を消す」になり、同じ名前・型のレコードは 2 つ作れないので失敗する（Deploy
+        // Infra の安全装置でも止まる）。ResourceRecords / TTL → AliasTarget はその場の更新で済む。
+        // 戻すときは docs/hosting/README.md の「戻し方」。
+        const siteAliasTarget = route53.RecordTarget.fromAlias(
+            new targets.CloudFrontTarget(distribution),
+        );
+        new route53.ARecord(this, 'SiteApexA', { zone, target: siteAliasTarget });
+        new route53.AaaaRecord(this, 'SiteApexAAAA', { zone, target: siteAliasTarget });
 
         // 本番に出すのは develop への push だけなので、信頼する subject をプレビューより狭くする。
         const deployRole = this.createDeployRole(

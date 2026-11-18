@@ -15,17 +15,12 @@
 /** 本番のゾーン名。作り直すと NS が変わるので変えない。 */
 export const SITE_ZONE_NAME = 'smalruby.app';
 
-/**
- * apex の A（いまの GitHub Pages）。CloudFront へ向けるのは別の変更（#2007）。
- * お名前.com では TTL 3600 だが、切り替えや戻しを早く効かせるため Route 53 では 300 にする。
+/*
+ * apex の A / AAAA は CloudFront の ALIAS（#2007。web-hosting-stack.ts の createSiteDelivery()）。
+ * 切り替える前は GitHub Pages の 185.199.108.153 / 109 / 110 / 111 .153（TTL 300）を向いていた。
+ * 急いで戻すときは Route 53 のコンソールで A をこの 4 つ（TTL 300）に戻し、AAAA を消す
+ * （docs/hosting/README.md の「戻し方」）。
  */
-export const SITE_APEX_A_TTL_SECONDS = 300;
-export const SITE_APEX_A_VALUES = [
-    '185.199.108.153',
-    '185.199.109.153',
-    '185.199.110.153',
-    '185.199.111.153',
-];
 
 /** Google Search Console の所有確認（お名前.com では TTL 300）。 */
 export const SITE_APEX_TXT_TTL_SECONDS = 300;

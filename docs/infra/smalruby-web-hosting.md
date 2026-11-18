@@ -16,7 +16,7 @@ stg ステージに、`preview.smalruby.app` のホストゾーン（お名前.c
 | Stage | スタック名 | リソース |
 |---|---|---|
 | stg | `SmalrubyWebHostingStack-stg` | パブリックホストゾーン `preview.smalruby.app`、S3 バケット、CloudFront、ACM 証明書（us-east-1）、A / AAAA（ALIAS）、CI 用 IAM ロール |
-| prod | `SmalrubyWebHostingStack` | 本番 smalruby.app の配信基盤（S3 バケット、CloudFront、ACM 証明書（us-east-1）、CI 用 IAM ロール）と、パブリックホストゾーン `smalruby.app`（お名前.com のレコードを写したもの）。CloudFront には代替ドメイン `smalruby.app` が付いているが、apex の A はまだ GitHub Pages を向いている（下の「本番の配信基盤（prod）」「ホストゾーン `smalruby.app`（prod）」） |
+| prod | `SmalrubyWebHostingStack` | 本番 smalruby.app の配信基盤（S3 バケット、CloudFront、ACM 証明書（us-east-1）、CI 用 IAM ロール）と、パブリックホストゾーン `smalruby.app`（お名前.com のレコードを写したもの）。CloudFront には代替ドメイン `smalruby.app` が付いており、apex の A / AAAA は CloudFront の ALIAS（下の「本番の配信基盤（prod）」「ホストゾーン `smalruby.app`（prod）」） |
 | その他（stg2 等） | `SmalrubyWebHostingStack-<stage>` | なし |
 
 - プレビューは stg の API を見るので、プレビュー用の資源は **stg ステージ**に置く。
@@ -169,9 +169,8 @@ aws s3 rm "s3://$BUCKET/test/index.html"
 
 本番 `https://smalruby.app/` を GitHub Pages から移すための置き場所。計画・切り替えの手順・戻し方・費用は
 [`docs/hosting/README.md`](../hosting/README.md)。CloudFront には `smalruby.app` の証明書と代替ドメインを
-付けてあるが、**apex の A はまだ GitHub Pages を向いている**（段 9 で CloudFront へ向ける）。だから利用者のリクエストは CloudFront に
-来ず、いまの本番（GitHub Pages）には影響しない。CloudFront の既定のドメイン（`*.cloudfront.net`）か、
-`curl --resolve` で `smalruby.app` を CloudFront の IP に向けて確かめられる。
+付け、**apex の A / AAAA を CloudFront の ALIAS にしてある**（段 9）。この変更が prod に出た時点で、利用者の
+リクエストは GitHub Pages ではなく CloudFront に来る。戻し方は [`docs/hosting/README.md`](../hosting/README.md) の「戻し方」。
 
 | リソース | 内容 |
 |---|---|
@@ -259,7 +258,8 @@ aws s3 rm "s3://$BUCKET/index.html"
 
 | 名前 | 型 | 数 | TTL | 内容 |
 |---|---|---|---|---|
-| `smalruby.app` | A | 4 | 300 | GitHub Pages（185.199.108〜111.153）。お名前.com は 3600 だが、切り替えと戻しを早く効かせるため 300 にする |
+| `smalruby.app` | A | ALIAS | — | CloudFront `SiteDistribution`（段 9）。論理 ID は GitHub Pages の IP（185.199.108〜111.153・TTL 300）を書いていたときと同じ `SiteApexA` のまま（置き換えではなく更新にするため。変えない） |
+| `smalruby.app` | AAAA | ALIAS | — | CloudFront `SiteDistribution`（段 9 で足した。論理 ID `SiteApexAAAA`） |
 | `smalruby.app` | TXT | 1 | 300 | `google-site-verification=...`（Search Console の所有確認） |
 | `_github-pages-challenge-smalruby.smalruby.app` | TXT | 1 | 3600 | GitHub の組織のドメイン検証。**消さない**（`docs/security/github-pages-subdomain-takeover.md`） |
 | `smalruby.app` | CAA | 6 | 3600 | `issue` amazon.com / amazonaws.com / amazontrust.com / awstrust.com / letsencrypt.org、`issuewild ";"` |
@@ -272,7 +272,8 @@ aws s3 rm "s3://$BUCKET/index.html"
   照合は `scripts/hosting/dns-compare.mjs`（`docs/hosting/verify-scripts.md`）で、お名前.com のエクスポートと
   `cdk synth` の結果、または両方のネームサーバーへの問い合わせを比べる。
 - NS の値は末尾に `.` を付けて書く（ゾーン名を足した相対名と読まれないように）。
-- apex の A を CloudFront の ALIAS に変えるのは別の変更（本番の向き先が変わるので、人間が夜間にマージする）。
+- apex の A / AAAA は CloudFront の ALIAS（段 9）。本番の向き先が変わる変更なので、PR は人間が夜間にマージした。
+  お名前.com のゾーンには ALIAS が書けないので、ここから先はお名前.com のエクスポートと apex の A が一致しない（照合では apex の A / AAAA を除いて見る）。
 
 NS はデプロイ後に次で確認する:
 
