@@ -216,15 +216,16 @@ registerSendTable(converter, MOTION_SENDS);
 | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------- |
 | `numberArg(input, 既定値, 影の opcode)`                                                  | 数・値のブロック（`_isNumberOrBlock`）                                                  | 数の影つきの入力（`_addNumberInput`）                   |
 | `textArg(input, 既定値)`                                                                 | 文字列・値のブロック（`_isStringOrBlock`）                                              | 文字の影つきの入力（`_addTextInput`）                   |
-| `menuArg(input, メニューの opcode, field, { validate })`                                 | 文字列                                                                                  | メニューのブロックを入力に入れる（`_createFieldBlock`） |
+| `menuArg(input, メニューの opcode, field, { validate, number })`                         | 文字列（`number` なら数・値のブロック）                                                 | メニューのブロックを入力に入れる（`_createFieldBlock`） |
 | `menuInputArg(input, メニューの opcode, field, 既定値, { choices, validate, anyBlock })` | 文字列（`choices` があればその中のもの）・値のブロック（`anyBlock` ならどのブロックも） | メニューの影つきの入力（`_addFieldInput`）              |
+| `noteArg(input, 既定値)`                                                                 | 数・値のブロック（`_isNumberOrBlock`）                                                  | 音符の影つきの入力（`_addNoteInput`）                   |
 | `colorArg(input, 既定値)`                                                                | 色・値のブロック（`_isColorOrBlock`）                                                   | 色の入力（`_addColorFieldInput`）                       |
 | `fieldArg(field, 選べる値, { normalize })`                                               | 文字列（選べる値があれば、`normalize` したものがその中にあるもの）                      | ブロックのフィールド（`_addField`）                     |
 
 `validate(converter, arg, params)` は、すべての引数を受けつけたあと、ブロックを作る前に呼ぶ（衣装・背景・音が無いときのエラー。ブロックを作ってから断ると、作りかけのブロックが残る）。
 
 - 行の引数の種類に合わない呼び出しは `null` を返し、同じメソッドの次の登録に譲る（いまの `registerOnSend` の handler と同じ決まり）。
-- 表で書けない形（`go_to([x, y])` の配列、`glide(..., secs: 1)` のキーワード引数、引数で opcode を選ぶもの、`self.x += 1` のような演算代入、変数・リストを引く呼び出し）は、いまの handler のまま表の横に置く。
+- 表で書けない形（`go_to([x, y])` の配列、`glide(x, secs: 1)` のような位置の引数とキーワード引数がまざるもの、引数で opcode を選ぶもの、`self.x += 1` のような演算代入、変数・リストを引く呼び出し）は、いまの handler のまま表の横に置く。
 - 同じキー（レシーバー・名前・引数の数・ブロック引数の数）に handler がいくつかあると、登録した順に試す。表へ移すときは、同じキーの中の順番を変えない。キーの違う handler との前後は結果に関わらないので、表は `register` の中のどこで登録してもよい（sensing と control は先頭で登録している）。
 - 表はデータなので、テストが読める（`send-table.test.js` は「表の opcode にはすべて生成器がある」ことを確かめる）。同じ表から、補完の一覧やふりがなの一覧を作ることもできる。
 
@@ -241,20 +242,22 @@ registerSendTable(converter, MOTION_SENDS);
 | operators | 6      | `[]`・`empty?`・`+`・比べる演算・`=~`・算術（`operators-math.js`。`Math.sqrt` など、引数が配列のときがあるもの）                                                 |
 | data      | 0      | すべて（変数・リスト・ハッシュを引き、リストに変える。表の 1 行では書けない）                                                                                    |
 | pen       | 17     | `pen.color =`（数か色で opcode を選ぶ）、`pen.size += 1` の下ごしらえ、演算代入                                                                                  |
+| music     | 12     | `music`（Ruby の式のレシーバーを作る）、演算代入（`music.tempo += 20`）                                                                                          |
 
-拡張機能は pen だけ移した。残り（music・video・text2speech・translate・ev3・wedo2・microbit・micro:bit More・g2s・koshien・mesh など）は、同じ形（`changesReceiver` と `menus`）で 1 つずつ移す。
+拡張機能は pen と music を移した。残り（video・text2speech・translate・ev3・wedo2・microbit・micro:bit More・g2s・koshien・mesh など）は、同じ形（`changesReceiver` と `menus`）で 1 つずつ移す。
 
 ### 表の列
 
-| 列                                      | 使い道                                                                                                         | 例                        |
-| --------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------- |
-| `type`                                  | ブロックの形（`statement`・`value`・`value_boolean`・`terminate`）                                             | `x` → `value`             |
-| `fields: { NAME: 値 }`                  | 決まった値のフィールド                                                                                         | `go_to_front`             |
-| `menus: { INPUT: [opcode, field, 値] }` | 決まった値のメニューの入力                                                                                     | `pen.saturation = 50`     |
-| `receiverArg`                           | レシーバーを入力に入れる（チェックはしない。行の `receiver` が受けつけるものを決める）                         | `"apple".length`          |
-| `changesReceiver: true`                 | レシーバー（Ruby の式）をそのブロックに変える                                                                  | `pen.down`                |
-| `hat: true`                             | ハット。`do ... end`（ブロック引数なし）を取り、その中身を下につなぐ（`registerOnSendWithBlock(..., 0, ...)`） | `when_flag_clicked do`    |
-| `selfReceiver: true`（`onSelf(rows)`）  | `self.xxx` と `xxx` だけを受けつけ、同じ名前になる Ruby の式（`stage`）は受けつけない                          | `stage.volume` は sensing |
+| 列                                      | 使い道                                                                                                         | 例                                |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| `type`                                  | ブロックの形（`statement`・`value`・`value_boolean`・`terminate`）                                             | `x` → `value`                     |
+| `fields: { NAME: 値 }`                  | 決まった値のフィールド                                                                                         | `go_to_front`                     |
+| `menus: { INPUT: [opcode, field, 値] }` | 決まった値のメニューの入力                                                                                     | `pen.saturation = 50`             |
+| `keywords: [[キー, 引数の種類], ...]`   | キーワード引数だけの呼び出し。ちょうどそのキーのハッシュ 1 つを取り、値を行の順に引数として扱う                | `play_drum(drum: 1, beats: 0.25)` |
+| `receiverArg`                           | レシーバーを入力に入れる（チェックはしない。行の `receiver` が受けつけるものを決める）                         | `"apple".length`                  |
+| `changesReceiver: true`                 | レシーバー（Ruby の式）をそのブロックに変える                                                                  | `pen.down`                        |
+| `hat: true`                             | ハット。`do ... end`（ブロック引数なし）を取り、その中身を下につなぐ（`registerOnSendWithBlock(..., 0, ...)`） | `when_flag_clicked do`            |
+| `selfReceiver: true`（`onSelf(rows)`）  | `self.xxx` と `xxx` だけを受けつけ、同じ名前になる Ruby の式（`stage`）は受けつけない                          | `stage.volume` は sensing         |
 
 まだ足していない列（要る領域が出たら足す）:
 
