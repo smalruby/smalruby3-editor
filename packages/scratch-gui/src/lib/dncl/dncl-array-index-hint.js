@@ -181,7 +181,9 @@ const accessesOf = (node) => {
  * Only arrays assigned once by a literal (and bounds known statically) are
  * checked, and names that a function parameter shadows are not used, so the
  * hints never guess. The program is read as the conversion reads it
- * (ja-notation), so a program that cannot be read has no hints.
+ * (ja-notation), so a program that cannot be read has no hints, and one
+ * whose sentence at the top says the indexes start at 1 has none either (its
+ * indexes from 1 are right; ja-notation shifts them for the Ruby).
  * @param {string} source - The DNCL source code.
  * @returns {Array<object>} The hints, each with the 1-based DNCL source
  *   `line`, the `access` text (`Nissu[kougeihin]`), the `array` name, the
@@ -189,7 +191,7 @@ const accessesOf = (node) => {
  */
 const findArrayIndexHints = (source) => {
     const { program } = parse(source);
-    if (!program) return [];
+    if (!program || program.settings.indexBase === 1) return [];
     const fixed = collectFixedValues(program);
     const hints = [];
 

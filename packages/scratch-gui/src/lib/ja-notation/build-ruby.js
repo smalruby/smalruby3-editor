@@ -6,8 +6,12 @@
 // needs. What the names and functions become is not decided here: the caller
 // gives a table (`options`), so the library has no rule of one Ruby system.
 //
+// The settings of the program (./settings.js) are kept by changing the tree:
+// with indexes from 1, the index of `A[i]` is built as `i - 1`.
+//
 // Every Ruby statement has `jaLine` (the Japanese line it comes from) and may
 // have `comment`; a block has `closeLine` / `closeAfter` (see ./ja-ast.js).
+import { indexToRuby, settingsOf } from './settings';
 
 /**
  * A call: `receiver.name(args)`, an operator (`name` is `+`, `-@`, `!`, `[]`,
@@ -164,6 +168,7 @@ class RubyBuilder {
         this.functions = options.functions || {};
         this.passthrough = options.passthrough || new Set();
         this.names = analyze(program, this.functions);
+        this.settings = settingsOf(program);
         this.params = null;
         this.errors = [];
     }
@@ -202,6 +207,15 @@ class RubyBuilder {
     }
 
     /**
+     * The Ruby index of an element of an array (the arrays of Ruby start at 0).
+     * @param {object} index - The JaAST index.
+     * @returns {object} The RubyAST index.
+     */
+    index(index) {
+        return this.expression(indexToRuby(index, this.settings));
+    }
+
+    /**
      * An expression.
      * @param {object} e - The JaAST expression.
      * @returns {object} The RubyAST expression.
@@ -217,7 +231,7 @@ class RubyBuilder {
             case 'Name':
                 return this.name(e);
             case 'Index':
-                return call(this.expression(e.target), '[]', [this.expression(e.index)]);
+                return call(this.expression(e.target), '[]', [this.index(e.index)]);
             case 'ArrayLiteral':
                 return { type: 'ArrayNode', elements: e.elements.map((x) => this.expression(x)) };
             case 'Call':
@@ -313,7 +327,7 @@ class RubyBuilder {
      */
     write(target, value) {
         if (target.type === 'Index') {
-            return call(this.expression(target.target), '[]=', [this.expression(target.index), value]);
+            return call(this.expression(target.target), '[]=', [this.index(target.index), value]);
         }
         const name = this.variableName(target.name);
         return { type: name.startsWith('@') ? 'InstanceVariableWriteNode' : 'LocalVariableWriteNode', name, value };
@@ -392,7 +406,7 @@ class RubyBuilder {
             return {
                 type: 'IndexOperatorWriteNode',
                 receiver: this.expression(target.target),
-                index: this.expression(target.index),
+                index: this.index(target.index),
                 operator,
                 value,
             };

@@ -39,6 +39,10 @@ describe('findArrayIndexHints', () => {
         ]);
     });
 
+    test('says nothing when the sentence at the top says the indexes start at 1', () => {
+        expect(findArrayIndexHints(`# すべての配列の添字は 1 から始まる。\n${KOUGEIHIN}`)).toEqual([]);
+    });
+
     test('accepts a 0-based loop', () => {
         const src = [
             'Kouka = [1, 5, 10]',

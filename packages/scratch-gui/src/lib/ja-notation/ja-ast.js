@@ -7,6 +7,10 @@
 // have `endLine`.
 //
 // Program      { settings, body: [Statement], lineCount?, blankLines? }
+//   (`settings`: `{indexBase: 0 | 1, commentMarker: '#' | '//', logicNote}`,
+//   read from the sentences at the top of the program; see ./settings.js.
+//   The indexes in the JaAST are the indexes of the Japanese: `buildRuby`
+//   shifts them for the Ruby and `readRuby` shifts them back.)
 //   (`lineCount` / `blankLines`: the lines of the source and the ones with
 //   nothing on them, which `writeJa` keeps; `readRuby` gives them.)
 //
@@ -21,7 +25,8 @@
 //   For          { variable: Name, from, to, step, direction: 'up' | 'down', body }
 //   FunctionDef  { name, params: [string], body }
 //   Return       { value: Expression | null }
-//   Comment      { text }                       (a line that is only a comment)
+//   Comment      { text }                       (a line that is only a comment; `text`
+//                                               starts with `#` whatever the comment mark is)
 //   RubyCode     { text }                       (Ruby with no Japanese form, as written; `readRuby` only)
 //   Block statements also have `closeLine` (the line the block ends on) and
 //   `closeAfter` (the last line before the code after the block); the Ruby

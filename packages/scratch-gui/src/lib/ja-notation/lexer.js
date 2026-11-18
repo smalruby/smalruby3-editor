@@ -118,7 +118,8 @@ const longOperatorAt = (text, i) => LONG_OPERATORS.find((op) => text.startsWith(
  * - `number` (`value`: the number as written), `badNumber`, `string` (`text`
  *   is the literal with its quotes), `name`, `op` (`value`: the operator, a
  *   full-width one read as its half-width one), `input` (`value`: `external` /
- *   `integer` / `string`), `comment` (`text` from `#` to the end).
+ *   `integer` / `string`), `comment` (`text` from `#` to the end; a comment
+ *   started with `//` when it is the comment mark is read as one with `#`).
  *   The DNCL-like form is read too: `←` is the operator `=`, a 「...」 is a
  *   `string` (its `text` is the `"..."` literal it is read as) and `かつ` /
  *   `または` / `でない` are names.
@@ -128,9 +129,12 @@ const longOperatorAt = (text, i) => LONG_OPERATORS.find((op) => text.startsWith(
  * `column` is the 0-based index in `text` plus `offset`.
  * @param {string} text - The code of the line (without its line number and indent).
  * @param {number} [offset] - What to add to each column.
+ * @param {string} [commentMarker] - The comment mark of the settings (`#` or
+ *   `//`). With `//`, `//` starts a comment (and `#` still does) instead of
+ *   being the integer quotient.
  * @returns {Array<object>} The tokens.
  */
-const tokenize = (text, offset = 0) => {
+const tokenize = (text, offset = 0, commentMarker = '#') => {
     const tokens = [];
     const push = (type, start, end, extra = {}) =>
         tokens.push({ type, text: text.substring(start, end), column: start + offset, ...extra });
@@ -143,6 +147,11 @@ const tokenize = (text, offset = 0) => {
         }
         if (ch === '#') {
             push('comment', i, text.length);
+            break;
+        }
+        if (commentMarker === '//' && text.startsWith('//', i)) {
+            // The JaAST keeps every comment with `#` (one form); `writeJa` writes the mark back.
+            tokens.push({ type: 'comment', text: `#${text.substring(i + 2)}`, column: i + offset });
             break;
         }
         if (ch === '"' || ch === "'") {
