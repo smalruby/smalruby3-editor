@@ -134,22 +134,11 @@
     }
   },
   "ruby-07b0faa6ff": {
-    "ja": "def greet\n表示する(\"hi\")\nを実行する\na = greet",
+    "ja": "関数 greet():\n    表示する(\"hi\")\na = greet",
     "errors": [],
     "back": {
-      "ruby": null,
-      "errors": [
-        {
-          "line": 1,
-          "column": 5,
-          "message": "「greet」が読めません"
-        },
-        {
-          "line": 3,
-          "column": 1,
-          "message": "「を実行する」で閉じるものがありません"
-        }
-      ]
+      "ruby": "def greet()\n  puts(\"hi\")\nend\n@a = greet",
+      "errors": []
     }
   },
   "ruby-115bfe2a31": {
@@ -169,7 +158,7 @@
     }
   },
   "ruby-c86e6cfe97": {
-    "ja": "a = 【外部からの入力】\nb = 乱数(1..6)\nc = 整数(a) + 要素数(b)\n表示する(true and not false)",
+    "ja": "a = 【外部からの入力】\nb = 乱数(1..6)\nc = 整数(a) + 要素数(b)\n表示する(真 and not 偽)",
     "errors": [],
     "back": {
       "ruby": "ask(\"\")\n@a = answer\n@b = rand(1..6)\n@c = @a.to_i + @b.length\nputs(true && !false)",
@@ -471,7 +460,7 @@
     }
   },
   "ruby-00c33c7e07": {
-    "ja": "b = (絶対値(-5) + 1)",
+    "ja": "b = 絶対値(-5) + 1",
     "errors": [],
     "back": {
       "ruby": "@b = -5.abs + 1",
@@ -479,7 +468,7 @@
     }
   },
   "ruby-4be4df6e26": {
-    "ja": "b = (a > 0 or 文字列(-1) == \"x\")",
+    "ja": "b = a > 0 or 文字列(-1) == \"x\"",
     "errors": [],
     "back": {
       "ruby": "@b = @a > 0 || -1.to_s == \"x\"",
@@ -487,7 +476,7 @@
     }
   },
   "ruby-1ec9e1748e": {
-    "ja": "b = (a > 0 and 絶対値(-5) > 1)",
+    "ja": "b = a > 0 and 絶対値(-5) > 1",
     "errors": [],
     "back": {
       "ruby": "@b = @a > 0 && -5.abs > 1",
@@ -511,7 +500,7 @@
     }
   },
   "ruby-bbf7e1ad48": {
-    "ja": "b = - 絶対値(5)",
+    "ja": "b = -絶対値(5)",
     "errors": [],
     "back": {
       "ruby": "@b = -(5.abs)",
@@ -535,7 +524,7 @@
     }
   },
   "ruby-e3c310c737": {
-    "ja": "b = a -絶対値(5)",
+    "ja": "b = a - 絶対値(5)",
     "errors": [],
     "back": {
       "ruby": "@b = @a - 5.abs",
@@ -543,7 +532,7 @@
     }
   },
   "ruby-a4ef7aeb32": {
-    "ja": "b = 3 -絶対値(5)",
+    "ja": "b = 3 - 絶対値(5)",
     "errors": [],
     "back": {
       "ruby": "@b = 3 - 5.abs",
@@ -719,7 +708,7 @@
     }
   },
   "ruby-dd5f709880": {
-    "ja": "i = 10\ni >= 1 の間繰り返す:\n    表示する(i)\n    i += -(a) + 1",
+    "ja": "i = 10\ni >= 1 の間繰り返す:\n    表示する(i)\n    i += -a + 1",
     "errors": [],
     "back": {
       "ruby": "@i = 10\nwhile @i >= 1\n  puts(@i)\n  @i += -@a + 1\nend",
@@ -887,7 +876,7 @@
     }
   },
   "ruby-9d84e5391b": {
-    "ja": "a < 1 の間繰り返す:\n    [1, 2].each do |x, y|\n        move(2)\n    を実行する",
+    "ja": "a < 1 の間繰り返す:\n    [1, 2].each do |x, y|\n      move(2)\n    end",
     "errors": [
       {
         "line": 2,
@@ -916,7 +905,7 @@
         },
         {
           "line": 3,
-          "column": 9,
+          "column": 7,
           "id": "unsupportedCommand",
           "name": "move",
           "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
@@ -925,7 +914,7 @@
     }
   },
   "ruby-61a21afaf1": {
-    "ja": "a < 1 の間繰り返す:\n    list.each do |x|\n        move(2)\n    を実行する",
+    "ja": "a < 1 の間繰り返す:\n    @list.each do |x|\n      move(2)\n    end",
     "errors": [
       {
         "line": 2,
@@ -947,14 +936,19 @@
       "errors": [
         {
           "line": 2,
-          "column": 10,
+          "column": 5,
+          "message": "日本語モードでは変数に「@」は使えません"
+        },
+        {
+          "line": 2,
+          "column": 11,
           "id": "unsupportedCommand",
           "name": "each",
           "message": "「each」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
         },
         {
           "line": 3,
-          "column": 9,
+          "column": 7,
           "id": "unsupportedCommand",
           "name": "move",
           "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
@@ -971,7 +965,7 @@
     }
   },
   "ruby-0a32d06e0c": {
-    "ja": "a < 1 の間繰り返す:\n    loop do # forever\n        move(1)\n    を実行する",
+    "ja": "a < 1 の間繰り返す:\n    loop do # forever\n      move(1)\n    end",
     "errors": [
       {
         "line": 2,
@@ -1000,7 +994,7 @@
         },
         {
           "line": 3,
-          "column": 9,
+          "column": 7,
           "id": "unsupportedCommand",
           "name": "move",
           "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
@@ -1009,7 +1003,7 @@
     }
   },
   "ruby-6baae9610c": {
-    "ja": "when_flag_clicked do\n    move(2)\nを実行する",
+    "ja": "when_flag_clicked do\n  move(2)\nend",
     "errors": [
       {
         "line": 1,
@@ -1038,7 +1032,7 @@
         },
         {
           "line": 2,
-          "column": 5,
+          "column": 3,
           "id": "unsupportedCommand",
           "name": "move",
           "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
@@ -1047,7 +1041,7 @@
     }
   },
   "ruby-1983a2aeae": {
-    "ja": "begin\nwith_screen_refresh do\n    move(2)\nを実行する\nend while a < 1",
+    "ja": "begin\n  with_screen_refresh do\n    move(2)\n  end\nend while @a < 1",
     "errors": [
       {
         "line": 1,
@@ -1087,7 +1081,7 @@
         },
         {
           "line": 2,
-          "column": 1,
+          "column": 3,
           "id": "unsupportedCommand",
           "name": "with_screen_refresh",
           "message": "「with_screen_refresh」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
@@ -1141,7 +1135,7 @@
     }
   },
   "ruby-6da82361be": {
-    "ja": "関数 f(x):\n    a < 1 の間繰り返す:\n        loop do\n            [1, 2].each do |y|\n                もし a ならば:\n                    move(y)\n            を実行する\n        を実行する",
+    "ja": "関数 f(x):\n    a < 1 の間繰り返す:\n        loop do\n          [1, 2].each do |y|\n            if @a\n              move(y)\n            end\n          end\n        end",
     "errors": [
       {
         "line": 3,
@@ -1177,14 +1171,19 @@
         },
         {
           "line": 4,
-          "column": 20,
+          "column": 18,
           "id": "unsupportedCommand",
           "name": "each",
           "message": "「each」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
         },
         {
+          "line": 5,
+          "column": 16,
+          "message": "日本語モードでは変数に「@」は使えません"
+        },
+        {
           "line": 6,
-          "column": 21,
+          "column": 15,
           "id": "unsupportedCommand",
           "name": "move",
           "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
@@ -1193,7 +1192,7 @@
     }
   },
   "ruby-4aaad0975d": {
-    "ja": "a < 1 の間繰り返す:\n    self.when(:clicked) do\n        move(2)\n    を実行する",
+    "ja": "a < 1 の間繰り返す:\n    self.when(:clicked) do\n      move(2)\n    end",
     "errors": [
       {
         "line": 2,
@@ -1222,7 +1221,7 @@
         },
         {
           "line": 3,
-          "column": 9,
+          "column": 7,
           "id": "unsupportedCommand",
           "name": "move",
           "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
@@ -1231,7 +1230,7 @@
     }
   },
   "ruby-533fd2bdc7": {
-    "ja": "a < 1 の間繰り返す:\n    with_screen_refresh do\n        b = 1\n    を実行する",
+    "ja": "a < 1 の間繰り返す:\n    with_screen_refresh do\n      @b = 1\n    end",
     "errors": [
       {
         "line": 2,
@@ -1250,6 +1249,11 @@
           "id": "unsupportedCommand",
           "name": "with_screen_refresh",
           "message": "「with_screen_refresh」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        },
+        {
+          "line": 3,
+          "column": 7,
+          "message": "日本語モードでは変数に「@」は使えません"
         }
       ]
     }
@@ -1263,7 +1267,7 @@
     }
   },
   "ruby-6e43ecf036": {
-    "ja": "a < 1 の間繰り返す:\n    when_flag_clicked do\n        move(2)\n    を実行する",
+    "ja": "a < 1 の間繰り返す:\n    when_flag_clicked do\n      move(2)\n    end",
     "errors": [
       {
         "line": 2,
@@ -1292,7 +1296,7 @@
         },
         {
           "line": 3,
-          "column": 9,
+          "column": 7,
           "id": "unsupportedCommand",
           "name": "move",
           "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
@@ -1301,7 +1305,7 @@
     }
   },
   "ruby-2a0da5dba7": {
-    "ja": "a < 1 の間繰り返す:\n    when_key_pressed(\"space\") do\n        move(2)\n    を実行する",
+    "ja": "a < 1 の間繰り返す:\n    when_key_pressed(\"space\") do\n      move(2)\n    end",
     "errors": [
       {
         "line": 2,
@@ -1330,7 +1334,7 @@
         },
         {
           "line": 3,
-          "column": 9,
+          "column": 7,
           "id": "unsupportedCommand",
           "name": "move",
           "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
@@ -1371,7 +1375,7 @@
     }
   },
   "ruby-177d4d8586": {
-    "ja": "b = (a ÷ 2) * 3",
+    "ja": "b = a ÷ 2 * 3",
     "errors": [],
     "back": {
       "ruby": "@b = (@a / 2).to_i * 3",
@@ -1531,7 +1535,7 @@
     }
   },
   "ruby-cd28ae39bb": {
-    "ja": "b = 整数((a / 2) * 3)",
+    "ja": "b = 整数(a / 2 * 3)",
     "errors": [],
     "back": {
       "ruby": "@b = (@a / 2 * 3).to_i",
@@ -1539,7 +1543,7 @@
     }
   },
   "ruby-5f3a188d42": {
-    "ja": "b = (a / 2) ÷ 3",
+    "ja": "b = a / 2 ÷ 3",
     "errors": [],
     "back": {
       "ruby": "@b = (@a / 2 / 3).to_i",
@@ -1715,7 +1719,7 @@
     }
   },
   "ruby-26e711ac71": {
-    "ja": "x = (a > 0) and (b > 0)",
+    "ja": "x = a > 0 and b > 0",
     "errors": [],
     "back": {
       "ruby": "@x = @a > 0 && @b > 0",
@@ -1793,7 +1797,7 @@
     }
   },
   "ruby-5698d8ec93": {
-    "ja": "i を 1 から 10 まで 1 ずつ増やしながら繰り返す:\n    break if i == 5",
+    "ja": "i を 1 から 10 まで 1 ずつ増やしながら繰り返す:\n    break if @i == 5",
     "errors": [
       {
         "line": 3,
@@ -1808,16 +1812,14 @@
       "errors": [
         {
           "line": 2,
-          "column": 5,
-          "id": "unsupportedCommand",
-          "name": "break",
-          "message": "「break」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "column": 14,
+          "message": "日本語モードでは変数に「@」は使えません"
         }
       ]
     }
   },
   "ruby-f5152fd5b3": {
-    "ja": "i = 0\ni < 10 の間繰り返す:\n    i += 1\n    next unless i > 5\n    表示する(i)",
+    "ja": "i = 0\ni < 10 の間繰り返す:\n    i += 1\n    next unless @i > 5\n    表示する(i)",
     "errors": [
       {
         "line": 4,
@@ -1832,16 +1834,14 @@
       "errors": [
         {
           "line": 4,
-          "column": 5,
-          "id": "unsupportedCommand",
-          "name": "next",
-          "message": "「next」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "column": 17,
+          "message": "日本語モードでは変数に「@」は使えません"
         }
       ]
     }
   },
   "ruby-f712580d17": {
-    "ja": "i = 0\ni < 10 の間繰り返す:\n    redo if i == 3\n    retry if i == 4",
+    "ja": "i = 0\ni < 10 の間繰り返す:\n    redo if @i == 3\n    retry if @i == 4",
     "errors": [
       {
         "line": 3,
@@ -1849,6 +1849,11 @@
         "id": "unsupportedCommand",
         "name": "redo",
         "message": "「redo」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      },
+      {
+        "line": 4,
+        "column": 3,
+        "message": "Ruby のプログラムに誤りがあるので、日本語にできません（Invalid retry without rescue）"
       },
       {
         "line": 4,
@@ -1863,17 +1868,13 @@
       "errors": [
         {
           "line": 3,
-          "column": 5,
-          "id": "unsupportedCommand",
-          "name": "redo",
-          "message": "「redo」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "column": 13,
+          "message": "日本語モードでは変数に「@」は使えません"
         },
         {
           "line": 4,
-          "column": 5,
-          "id": "unsupportedCommand",
-          "name": "retry",
-          "message": "「retry」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "column": 14,
+          "message": "日本語モードでは変数に「@」は使えません"
         }
       ]
     }
@@ -1927,18 +1928,16 @@
     }
   },
   "ruby-17b0e00582": {
-    "ja": "a = 08",
+    "ja": "a = 0\n8",
     "errors": [
       {
         "line": 1,
-        "column": 6,
-        "id": "unsupportedNumber",
-        "name": "08",
-        "message": "「08」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
+        "column": 7,
+        "message": "Ruby のプログラムに誤りがあるので、日本語にできません（unexpected integer, expecting end-of-input）"
       }
     ],
     "back": {
-      "ruby": "@a = 8",
+      "ruby": "@a = 0\n8",
       "errors": []
     }
   },
@@ -2103,7 +2102,7 @@
     }
   },
   "ruby-57ccc4bb72": {
-    "ja": "begin\na = a + 1\nend until a >= 3",
+    "ja": "begin\n  @a = @a + 1\nend until @a >= 3",
     "errors": [
       {
         "line": 1,
@@ -2126,6 +2125,11 @@
           "column": 1,
           "id": "postTestLoop",
           "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+        },
+        {
+          "line": 2,
+          "column": 3,
+          "message": "日本語モードでは変数に「@」は使えません"
         },
         {
           "line": 3,
@@ -2137,7 +2141,7 @@
     }
   },
   "ruby-9273b49fc3": {
-    "ja": "a = 0\nbegin\na = a + 1\nend while a < 3",
+    "ja": "a = 0\nbegin\n  @a = @a + 1\nend while @a < 3",
     "errors": [
       {
         "line": 2,
@@ -2160,6 +2164,11 @@
           "column": 1,
           "id": "postTestLoop",
           "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+        },
+        {
+          "line": 3,
+          "column": 3,
+          "message": "日本語モードでは変数に「@」は使えません"
         },
         {
           "line": 4,
@@ -2171,7 +2180,7 @@
     }
   },
   "ruby-1e6667309e": {
-    "ja": "b < 2 の間繰り返す:\n    begin\n    a = a + 1\n    end until a >= 3\n    b = b + 1",
+    "ja": "b < 2 の間繰り返す:\n    begin\n      @a = @a + 1\n    end until @a >= 3\n    b = b + 1",
     "errors": [
       {
         "line": 2,
@@ -2196,6 +2205,11 @@
           "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
         },
         {
+          "line": 3,
+          "column": 7,
+          "message": "日本語モードでは変数に「@」は使えません"
+        },
+        {
           "line": 4,
           "column": 1,
           "id": "postTestLoop",
@@ -2205,7 +2219,7 @@
     }
   },
   "ruby-4d48589e0a": {
-    "ja": "begin\na = a + 1\nend while a < 3",
+    "ja": "begin\n  @a = @a + 1\nend while @a < 3",
     "errors": [
       {
         "line": 1,
@@ -2230,6 +2244,11 @@
           "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
         },
         {
+          "line": 2,
+          "column": 3,
+          "message": "日本語モードでは変数に「@」は使えません"
+        },
+        {
           "line": 3,
           "column": 1,
           "id": "postTestLoop",
@@ -2239,7 +2258,7 @@
     }
   },
   "ruby-2e9e8bada2": {
-    "ja": "x = ask(\"\")\nx = answer\nbegin\na = a + 1\nend until a >= 3",
+    "ja": "x = ask(\"\")\nx = answer\nbegin\n  @a = @a + 1\nend until @a >= 3",
     "errors": [
       {
         "line": 3,
@@ -2262,6 +2281,11 @@
           "column": 1,
           "id": "postTestLoop",
           "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+        },
+        {
+          "line": 4,
+          "column": 3,
+          "message": "日本語モードでは変数に「@」は使えません"
         },
         {
           "line": 5,
@@ -2767,7 +2791,7 @@
     }
   },
   "ruby-6fc08cddba": {
-    "ja": "a < 1 の間繰り返す:\n    with_screen_refresh do\n        move(2)\n    を実行する",
+    "ja": "a < 1 の間繰り返す:\n    with_screen_refresh do\n      move(2)\n    end",
     "errors": [
       {
         "line": 2,
@@ -2796,7 +2820,7 @@
         },
         {
           "line": 3,
-          "column": 9,
+          "column": 7,
           "id": "unsupportedCommand",
           "name": "move",
           "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
@@ -3021,7 +3045,7 @@
     }
   },
   "ruby-228ccff8b6": {
-    "ja": "a = 0\na < 1 の間繰り返す:\n    with_screen_refresh do\n        a = a + 1\n    を実行する\n",
+    "ja": "a = 0\na < 1 の間繰り返す:\n    with_screen_refresh do\n      @a = @a + 1\n    end\n",
     "errors": [
       {
         "line": 3,
@@ -3040,6 +3064,11 @@
           "id": "unsupportedCommand",
           "name": "with_screen_refresh",
           "message": "「with_screen_refresh」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        },
+        {
+          "line": 4,
+          "column": 7,
+          "message": "日本語モードでは変数に「@」は使えません"
         }
       ]
     }
@@ -3117,7 +3146,7 @@
     }
   },
   "ruby-4e7d4ef4ae": {
-    "ja": "when_clicked do\n    表示する(\"hello\")\nを実行する\n",
+    "ja": "when_clicked do\n  say(\"hello\", 1)\nend\n",
     "errors": [
       {
         "line": 1,
@@ -3141,7 +3170,7 @@
     }
   },
   "ruby-d37d936b3f": {
-    "ja": "when_flag_clicked do\n    表示する(\"hello\")\nを実行する\n",
+    "ja": "when_flag_clicked do\n  say(\"hello\", 1)\nend\n",
     "errors": [
       {
         "line": 1,
@@ -3165,7 +3194,7 @@
     }
   },
   "ruby-1783fd197f": {
-    "ja": "when_key_pressed(\"a\") do\n    表示する(\"hello\")\nを実行する\n",
+    "ja": "when_key_pressed(\"a\") do\n  say(\"hello\", 1)\nend\n",
     "errors": [
       {
         "line": 1,
@@ -3629,15 +3658,23 @@
     }
   },
   "ruby-c083bb251a": {
-    "ja": "a = arr.map(&:to_s)",
-    "errors": [],
+    "ja": "a = @arr.map(&:to_s)",
+    "errors": [
+      {
+        "line": 1,
+        "column": 11,
+        "id": "unsupportedCommand",
+        "name": "map",
+        "message": "「map」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      }
+    ],
     "back": {
       "ruby": null,
       "errors": [
         {
           "line": 1,
-          "column": 8,
-          "message": "「.」が読めません"
+          "column": 5,
+          "message": "日本語モードでは変数に「@」は使えません"
         }
       ]
     }

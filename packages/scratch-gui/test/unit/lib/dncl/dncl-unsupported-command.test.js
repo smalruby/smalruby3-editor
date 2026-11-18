@@ -8,11 +8,10 @@
  */
 import { dnclToRuby, rubyForLeavingDncl } from '../../../../src/lib/dncl/dncl-to-ruby';
 import { isRubyCommandName, UNSUPPORTED_COMMAND_ERROR_ID } from '../../../../src/lib/dncl/dncl-validator';
-import { FORMS, rubyToDncl as rubyToDnclInForm } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { loadPrism } from '../../../../src/lib/prism-parser';
 
-// These cases check the DNCL 風の形 the writer still has (Issue #1754);
-// the standard form is checked in dncl-standard-form.test.js.
-const rubyToDncl = (ruby) => rubyToDnclInForm(ruby, { form: FORMS.DNCL });
+beforeAll(() => loadPrism());
 
 const lines = (...ls) => ls.join('\n');
 
@@ -29,19 +28,19 @@ const commandErrors = (dncl) =>
 
 describe('DNCL → Ruby → DNCL: calls the Japanese mode has (issue #1679)', () => {
     test('a call of a defined function with arguments', () => {
-        const dncl = lines('関数 足す1(a)', '  返す a + 1', 'と定義する', 'b = 足す1(2)');
+        const dncl = lines('関数 足す1(a):', '    a + 1 を返す', 'b = 足す1(2)');
         expect(roundtrip(dncl)).toBe(dncl);
         expect(dnclToRuby(dncl).ruby).toContain('@b = 足す1(2)');
     });
 
     test('a call of a defined function without arguments', () => {
-        const dncl = lines('関数 あいさつ()', '  表示する("こんにちは")', 'と定義する', 'あいさつ()');
+        const dncl = lines('関数 あいさつ():', '    表示する("こんにちは")', 'あいさつ()');
         expect(roundtrip(dncl)).toBe(dncl);
         expect(dnclToRuby(dncl).ruby.split('\n')[3]).toBe('あいさつ()');
     });
 
     test('a call of a defined function without parentheses', () => {
-        const dncl = lines('関数 greet()', '  表示する("hi")', 'と定義する', 'greet');
+        const dncl = lines('関数 greet():', '    表示する("hi")', 'greet');
         expect(roundtrip(dncl)).toBe(dncl);
         expect(dnclToRuby(dncl).ruby.split('\n')[3]).toBe('greet');
     });
@@ -53,7 +52,7 @@ describe('DNCL → Ruby → DNCL: calls the Japanese mode has (issue #1679)', ()
     });
 
     test('calls in an expression', () => {
-        const dncl = lines('関数 f(a)', '  返す a * 2', 'と定義する', 'b = 1 + f(2) * 要素数(Kazu) + 整数(x)');
+        const dncl = lines('関数 f(a):', '    a * 2 を返す', 'b = 1 + f(2) * 要素数(Kazu) + 整数(x)');
         expect(roundtrip(dncl)).toBe(dncl);
         expect(commandErrors(dncl)).toEqual([]);
     });

@@ -8,8 +8,11 @@
  * number (`0@x5`, `1@_000`, `1@e3`), which is broken Ruby.
  */
 import { dnclToRuby, rubyForLeavingDncl } from '../../../../src/lib/dncl/dncl-to-ruby';
-import { findUnsupportedNumbers, UNSUPPORTED_NUMBER_ERROR_ID } from '../../../../src/lib/dncl/dncl-validator';
+import { UNSUPPORTED_NUMBER_ERROR_ID } from '../../../../src/lib/dncl/dncl-validator';
 import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { loadPrism } from '../../../../src/lib/prism-parser';
+
+beforeAll(() => loadPrism());
 
 const numberErrors = (errors) =>
     errors
@@ -48,9 +51,9 @@ describe('DNCL → Ruby: number notations the Japanese mode does not have (issue
     });
 
     test('several numbers on a line are each told', () => {
-        expect(findUnsupportedNumbers('a = 0x5 + 1e3').map(({ column, name }) => ({ column, name }))).toEqual([
-            { column: 5, name: '0x5' },
-            { column: 11, name: '1e3' },
+        expect(numberErrors(rubyToDncl('@a = 0x5 + 1e3').errors)).toEqual([
+            { line: 1, column: 6, name: '0x5' },
+            { line: 1, column: 12, name: '1e3' },
         ]);
     });
 
@@ -70,7 +73,7 @@ describe('DNCL → Ruby: number notations the Japanese mode does not have (issue
         'a = 1 # 0x5',
         'i を 1 から 10 まで 1 ずつ増やしながら',
     ])('%s has no number error', (dncl) => {
-        expect(findUnsupportedNumbers(dncl)).toEqual([]);
+        expect(numberErrors(dnclToRuby(dncl).errors)).toEqual([]);
     });
 
     test('decimal numbers still convert', () => {
@@ -128,7 +131,6 @@ describe('an integer with leading zeros (issue #1745)', () => {
 
     test.each([
         ['@a = 017', '017', 6],
-        ['@a = 08', '08', 6],
         ['@a = 017.to_s', '017', 6],
     ])('Ruby %s (octal) is an error on its line', (ruby, name, column) => {
         expect(numberErrors(rubyToDncl(ruby).errors)).toEqual([{ line: 1, column, name }]);
@@ -141,7 +143,14 @@ describe('an integer with leading zeros (issue #1745)', () => {
         },
     );
 
-    test('the DNCL check does not tell leading zeros (they become decimal)', () => {
-        expect(findUnsupportedNumbers('a = 017')).toEqual([]);
+    test('Ruby @a = 08 is not Ruby (8 is no octal digit): it is told as an error of the Ruby', () => {
+        const { errors } = rubyToDncl('@a = 08');
+        expect(errors).toHaveLength(1);
+        expect(errors[0].message).toContain('Ruby のプログラムに誤りがある');
+    });
+
+    test('the DNCL does not tell leading zeros (they become decimal)', () => {
+        expect(numberErrors(dnclToRuby('a = 017').errors)).toEqual([]);
+        expect(dnclToRuby('a = 017').ruby).toBe('@a = 17');
     });
 });

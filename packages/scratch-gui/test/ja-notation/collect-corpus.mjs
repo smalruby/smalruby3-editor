@@ -47,7 +47,7 @@ const RECORDED_TESTS = [
 
 // Tests whose programs come from sample pages outside Smalruby (they may hold programs of the
 // 大学入試センター): not recorded.
-const EXCLUDED_TESTS = ['dncl-v2-example.test.js', 'dncl-v2-ictl-samples.test.js', 'dncl-v2-preprocessor.test.js'];
+const EXCLUDED_TESTS = ['dncl-v2-example.test.js', 'dncl-v2-ictl-samples.test.js'];
 
 const DOCS = ['docs/smalruby-dncl-spec.ja.md'];
 const JA_KEYWORD = /←|ならば|を実行する|を繰り返す|の間|ずつ(増|減)やしながら|表示する\(|と定義する|【/;

@@ -3,6 +3,9 @@
 // 前処理の `isIdentChar` と同じ (`\p{L}` / `\p{N}` / `_`)。数値の直後は演算子。
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
 import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { loadPrism } from '../../../../src/lib/prism-parser';
+
+beforeAll(() => loadPrism());
 
 const toRuby = (dncl) => dnclToRuby(dncl).ruby;
 

@@ -8,6 +8,9 @@
 // comments too; these tests make sure of that in both directions.
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
 import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { loadPrism } from '../../../../src/lib/prism-parser';
+
+beforeAll(() => loadPrism());
 
 const dToR = (src) => dnclToRuby(src).ruby;
 const rToD = (src) => rubyToDncl(src).dncl;
@@ -145,10 +148,10 @@ describe('Ruby → DNCL: include? on a string with an escaped quote (Issue #2031
 
 describe('long lines are converted in linear time (Issue #2031)', () => {
     test('many ← and include? in one line', () => {
-        const n = 20000;
-        // The Japanese is read into a syntax tree as deep as the terms, so it is shorter.
+        // Both directions read a syntax tree as deep as the terms (the Ruby is parsed by
+        // prism, which itself cannot parse several thousand terms), so the lines are shorter.
         const dncl = `a ← ${Array.from({ length: 300 }, () => '「1 ← 2」').join(' + ')}`;
-        const ruby = `x = ${Array.from({ length: n }, () => '@s.include?("a")').join(' && ')}`;
+        const ruby = `x = ${Array.from({ length: 2000 }, () => '@s.include?("a")').join(' && ')}`;
         const start = Date.now();
         expect(dToR(dncl)).toContain('@a = "1 ← 2" + "1 ← 2"');
         expect(rToD(ruby)).toContain('含む(s, "a")');

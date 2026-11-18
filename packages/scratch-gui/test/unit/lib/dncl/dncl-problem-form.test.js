@@ -6,7 +6,10 @@ import {
     problemFormText,
 } from '../../../../src/lib/dncl/dncl-problem-form';
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
-import { FORMS, rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { loadPrism } from '../../../../src/lib/prism-parser';
+
+beforeAll(() => loadPrism());
 
 // The programs are written for these tests in the style of the 共通テスト
 // notation; no question of the test is used (docs/dncl/policy.md).
@@ -248,7 +251,6 @@ describe('problemFormText pasted back, more forms', () => {
     });
 
     const WHILE_IF_RUBY = [
-        '@x = 0',
         'while @x < 5',
         '  if @x == 1',
         '    @y = 1',
@@ -261,9 +263,21 @@ describe('problemFormText pasted back, more forms', () => {
         'end',
     ].join('\n');
 
-    test('the DNCL-like form made from Ruby (while, if / elsif / else, +=)', () => {
-        const { dncl } = rubyToDncl(WHILE_IF_RUBY, { form: FORMS.DNCL });
-        expect(dncl).toContain('を繰り返す');
+    test('the DNCL-like form of the same program (while, if / elsif / else, +=)', () => {
+        // The DNCL-like form is only read now (the writer writes the standard form).
+        const dncl = [
+            'x < 5 の間',
+            '  もし x == 1 ならば',
+            '    y = 1',
+            '  そうでなくもし x == 2 ならば',
+            '    y = 2',
+            '  そうでなければ',
+            '    y = 3',
+            '  を実行する',
+            '  x += 1',
+            'を繰り返す',
+        ].join('\n');
+        expect(dnclToRuby(dncl).ruby).toBe(WHILE_IF_RUBY);
         roundTrip(dncl);
         expect(dnclToRuby(tidyPastedDncl(problemFormText(dncl))).ruby).toContain('@x += 1');
     });

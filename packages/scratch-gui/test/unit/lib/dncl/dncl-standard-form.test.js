@@ -7,8 +7,11 @@
 // DNCL 風の形 is still read. The programs are made up for the tests (no
 // problem of 大学入試センター).
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
-import { FORMS, rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { loadPrism } from '../../../../src/lib/prism-parser';
 import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
+
+beforeAll(() => loadPrism());
 
 const lines = (...ls) => ls.join('\n');
 const toJapanese = (ruby) => rubyToDncl(ruby).dncl;
@@ -214,26 +217,20 @@ describe('the DNCL 風の形 is still read (Issue #1754)', () => {
     ])('%s', (_name, japanese, ruby) => {
         expect(toRuby(japanese)).toBe(ruby);
     });
-
-    test('the DNCL 風の形 is still written when asked for', () => {
-        expect(rubyToDncl(lines('if @a && !@b', '  return @a % 3', 'end'), { form: FORMS.DNCL }).dncl).toBe(
-            lines('もし a かつ b でない ならば', '  返す a % 3', 'を実行する'),
-        );
-    });
 });
 
 describe('the standard form: unless keeps the indent of its body (Issue #1754)', () => {
-    // `unless` has no Japanese form and stays as it is, as in the DNCL 風の形
+    // `unless` has no Japanese form and stays as the Ruby it is, `end` included
     // (reading it back is issue #1740); its body must not lose its indent.
-    test('the body is indented and the closer is kept', () => {
+    test('the body keeps its indent and its end', () => {
         expect(toJapanese(lines('unless @a', '  @b = 1', 'end', '@c = 1'))).toBe(
-            lines('unless a', '    b = 1', 'を実行する', 'c = 1'),
+            lines('unless @a', '  @b = 1', 'end', 'c = 1'),
         );
     });
 
     test('an unless in a loop does not take the closer of the loop', () => {
         expect(toJapanese(lines('while @x', '  unless @a', '    @b = 1', '  end', '  @c = 1', 'end'))).toBe(
-            lines('x の間繰り返す:', '    unless a', '        b = 1', '    を実行する', '    c = 1'),
+            lines('x の間繰り返す:', '    unless @a', '      @b = 1', '    end', '    c = 1'),
         );
     });
 });

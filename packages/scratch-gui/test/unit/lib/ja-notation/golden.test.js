@@ -10,7 +10,10 @@
  */
 import fs from 'fs';
 import path from 'path';
+import { loadPrism } from '../../../../src/lib/prism-parser';
 import { recordJa, recordRuby } from './golden-record';
+
+beforeAll(() => loadPrism());
 
 const FIXTURES = path.resolve(__dirname, '../../../fixtures/ja-notation');
 const UPDATE = process.env.UPDATE_JA_GOLDEN === '1';

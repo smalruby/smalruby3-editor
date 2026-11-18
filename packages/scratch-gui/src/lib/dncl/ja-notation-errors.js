@@ -252,4 +252,25 @@ const jaNotationErrors = (source, errors) => {
         .sort((a, b) => a.line - b.line || a.column - b.column);
 };
 
-export { jaNotationErrors };
+/**
+ * The errors of Ruby → Japanese (ja-notation's `rubyToJa`, on Ruby lines) in
+ * the words of the Japanese mode, as the Japanese → Ruby direction says them.
+ * @param {Array<object>} errors - The errors of `rubyToJa`.
+ * @returns {Array<object>} `{line, column, message}` (and `id` / `name`), sorted.
+ */
+const rubyErrorWords = (errors) =>
+    errors
+        .map((error) => {
+            if (error.code === 'ruby-syntax') {
+                return {
+                    line: error.line,
+                    column: error.column + 1,
+                    message: `Ruby のプログラムに誤りがあるので、日本語にできません（${error.message}）`,
+                };
+            }
+            return wordError(error);
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.line - b.line || a.column - b.column);
+
+export { jaNotationErrors, rubyErrorWords };

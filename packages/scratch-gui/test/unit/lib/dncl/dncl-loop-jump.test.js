@@ -10,6 +10,9 @@
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
 import { UNSUPPORTED_COMMAND_ERROR_ID } from '../../../../src/lib/dncl/dncl-validator';
 import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { loadPrism } from '../../../../src/lib/prism-parser';
+
+beforeAll(() => loadPrism());
 
 const lines = (...ls) => ls.join('\n');
 

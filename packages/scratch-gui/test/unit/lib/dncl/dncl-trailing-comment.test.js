@@ -6,16 +6,14 @@ import dedent from 'dedent';
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
 import { codeOfLine, commentIndex, stringEndAt } from '../../../../src/lib/dncl/dncl-trailing-comment';
 import { isDoBlockLine } from '../../../../src/lib/dncl/dncl-validator';
-import { FORMS, rubyToDncl as rubyToDnclInForm } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { loadPrism } from '../../../../src/lib/prism-parser';
 
-// These cases check the DNCL 風の形 the writer still has (Issue #1754);
-// the standard form is checked in dncl-standard-form.test.js.
-const rubyToDncl = (ruby) => rubyToDnclInForm(ruby, { form: FORMS.DNCL });
-// Ruby → Japanese → Ruby gives the same Ruby in both forms.
+beforeAll(() => loadPrism());
+
+// Ruby → Japanese → Ruby gives the same Ruby.
 const expectRubyBack = (ruby, expected) => {
-    [FORMS.DNCL, FORMS.STANDARD].forEach((form) => {
-        expect(dnclToRuby(rubyToDnclInForm(ruby, { form }).dncl).ruby).toBe(expected);
-    });
+    expect(dnclToRuby(rubyToDncl(ruby).dncl).ruby).toBe(expected);
 };
 
 const toRuby = (dncl) => {
@@ -30,9 +28,8 @@ const PAIRS = [
     [
         'if opener',
         dedent`
-            もし a > 0 ならば # c
-              表示する(a)
-            を実行する
+            もし a > 0 ならば: # c
+                表示する(a)
         `,
         dedent`
             if @a > 0 # c
@@ -43,8 +40,8 @@ const PAIRS = [
     [
         'if closer',
         dedent`
-            もし a > 0 ならば
-              表示する(a)
+            もし a > 0 ならば:
+                表示する(a)
             を実行する # c
         `,
         dedent`
@@ -56,12 +53,12 @@ const PAIRS = [
     [
         'else and elsif',
         dedent`
-            もし a > 0 ならば # c1
-              表示する(a)
-            そうでなくもし a < 0 ならば # c2
-              表示する(b)
-            そうでなければ # c3
-              表示する(c)
+            もし a > 0 ならば: # c1
+                表示する(a)
+            そうでなくもし a < 0 ならば: # c2
+                表示する(b)
+            そうでなければ: # c3
+                表示する(c)
             を実行する # c4
         `,
         dedent`
@@ -77,8 +74,8 @@ const PAIRS = [
     [
         'while loop',
         dedent`
-            a < 3 の間 # c
-              a = a + 1
+            a < 3 の間繰り返す: # c
+                a = a + 1
             を繰り返す # d
         `,
         dedent`
@@ -90,8 +87,8 @@ const PAIRS = [
     [
         'counting loop',
         dedent`
-            i を 1 から 3 まで 1 ずつ増やしながら # c
-              表示する(i)
+            i を 1 から 3 まで 1 ずつ増やしながら繰り返す: # c
+                表示する(i)
             を繰り返す # d
         `,
         dedent`
@@ -105,8 +102,8 @@ const PAIRS = [
     [
         'function',
         dedent`
-            関数 f(x) # c
-              返す x + 1
+            関数 f(x): # c
+                x + 1 を返す
             と定義する # d
         `,
         dedent`
@@ -118,11 +115,11 @@ const PAIRS = [
     [
         'nested blocks',
         dedent`
-            a < 3 の間 # loop
-              もし a > 1 ならば # if
-                表示する(a)
-              を実行する # end if
-              a = a + 1 # step
+            a < 3 の間繰り返す: # loop
+                もし a > 1 ならば: # if
+                    表示する(a)
+                を実行する # end if
+                a = a + 1 # step
             を繰り返す # end loop
         `,
         dedent`
@@ -138,9 +135,9 @@ const PAIRS = [
         'comment-only lines',
         dedent`
             # はじめ
-            もし a > 0 ならば # c
-              # なか
-              表示する(a)
+            もし a > 0 ならば: # c
+                # なか
+                表示する(a)
             を実行する
             # おわり
         `,
@@ -189,9 +186,7 @@ describe('trailing # comment on block lines (Issue #1696)', () => {
         });
 
         test('Ruby → DNCL keeps # inside a string', () => {
-            expect(toDncl('if @a == "#" # c\n  puts(@a)\nend')).toBe(
-                'もし a == "#" ならば # c\n  表示する(a)\nを実行する',
-            );
+            expect(toDncl('if @a == "#" # c\n  puts(@a)\nend')).toBe('もし a == "#" ならば: # c\n    表示する(a)');
         });
     });
 
@@ -208,7 +203,7 @@ describe('trailing # comment on block lines (Issue #1696)', () => {
             [
                 'counting loop',
                 '@i = 1 # a\nwhile @i <= 3 # b\n  puts(@i) # p\n  @i += 1 # inc\nend # e',
-                'i を 1 から 3 まで 1 ずつ増やしながら # a # b\n  表示する(i) # p\nを繰り返す # inc # e',
+                'i を 1 から 3 まで 1 ずつ増やしながら繰り返す: # a # b\n    表示する(i) # p\nを繰り返す # inc # e',
                 '@i = 1\nwhile @i <= 3 # a # b\n  puts(@i) # p\n  @i += 1\nend # inc # e',
             ],
             [
