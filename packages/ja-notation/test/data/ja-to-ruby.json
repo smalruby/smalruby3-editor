@@ -186,6 +186,39 @@
             "ja": "a = [1, 2]\na[0], a[1] = a[1], a[0]\nx, B[i + 1] = 1, 2",
             "ruby": "a = [1, 2]\na[0], a[1] = a[1], a[0]\nx, B[i + 1] = 1, 2",
             "jaLines": [1, 2, 3]
+        },
+        {
+            "title": "full-width digits are read as the digits (only how they look differs), and the Ruby has the half-width ones",
+            "table": "none",
+            "ja": "x = １２\ny = ３．５ + x１",
+            "ruby": "x = 12\ny = 3.5 + x１",
+            "jaLines": [1, 2]
+        },
+        {
+            "title": "a name right after a number is not read as a product: the error says to write an operator",
+            "table": "none",
+            "ja": "a = 2倍",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「2倍」は読めません。数と名前の間には、「2 * 倍」のように演算子を書いてください",
+                    "line": 1,
+                    "column": 5
+                }
+            ]
+        },
+        {
+            "title": "a name right after full-width digits is told the same way",
+            "table": "none",
+            "ja": "a = １０回",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「１０回」は読めません。数と名前の間には、「１０ * 回」のように演算子を書いてください",
+                    "line": 1,
+                    "column": 6
+                }
+            ]
         }
     ]
 }

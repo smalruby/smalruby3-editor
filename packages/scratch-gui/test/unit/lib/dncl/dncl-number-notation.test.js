@@ -154,3 +154,35 @@ describe('an integer with leading zeros (issue #1745)', () => {
         expect(dnclToRuby('a = 017').ruby).toBe('@a = 17');
     });
 });
+
+// Full-width digits differ only in how they look, so they are read as the digits; a name right
+// after a number is not read as a product but told on its line (issue #1752).
+describe('DNCL → Ruby: full-width digits and a name right after a number (issue #1752)', () => {
+    test.each([
+        ['a = １２', '@a = 12'],
+        ['a = ３．５', '@a = 3.5'],
+        ['a = 0１', '@a = 1'],
+        ['i を １ から １０ まで １ ずつ増やしながら繰り返す:\n    表示する(i)', null],
+    ])('%s is read with half-width digits', (dncl, ruby) => {
+        const result = dnclToRuby(dncl);
+        expect(result.errors).toEqual([]);
+        if (ruby) expect(result.ruby).toBe(ruby);
+        else expect(result.ruby).not.toMatch(/[０-９]/);
+    });
+
+    test('full-width digits in a name stay in the name', () => {
+        expect(dnclToRuby('x１ = 1').ruby).toBe('@x１ = 1');
+    });
+
+    test.each([
+        ['a = 2倍', '2倍', 6],
+        ['a = 10回', '10回', 7],
+        ['表示する(3個)', '3個', 7],
+    ])('%s makes no Ruby and tells to write an operator', (dncl, written, column) => {
+        const { ruby, errors } = dnclToRuby(dncl);
+        expect(ruby).toBeNull();
+        expect(errors).toHaveLength(1);
+        expect(errors[0]).toMatchObject({ line: 1, column });
+        expect(errors[0].message).toContain(`「${written}」は読めません。数と名前の間には`);
+    });
+});
