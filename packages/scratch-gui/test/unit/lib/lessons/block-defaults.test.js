@@ -164,13 +164,9 @@ describe('lessons/block-defaults', () => {
         const defaultsOf = (id, locale = 'ja') =>
             allowedBlockDefaults(findChallenge(id).challenge.allowedBlocks, locale);
         test.each([
-            [
-                'blocks-l1-key-sound',
-                'ja',
-                { sound_playuntildone: { SOUND_MENU: 'ニャー' }, sound_play: { SOUND_MENU: 'ニャー' } },
-            ],
-            ['blocks-l1-key-sound', 'ja-Hira', { sound_play: { SOUND_MENU: 'Meow' } }],
-            ['blocks-l1-key-sound', 'en', { sound_play: { SOUND_MENU: 'Meow' } }],
+            ['blocks-l1-key-sound', 'ja', { sound_playuntildone: { SOUND_MENU: 'ニャー' } }],
+            ['blocks-l1-key-sound', 'ja-Hira', { sound_playuntildone: { SOUND_MENU: 'Meow' } }],
+            ['blocks-l1-key-sound', 'en', { sound_playuntildone: { SOUND_MENU: 'Meow' } }],
             [
                 'blocks-l1-repeat',
                 'ja',

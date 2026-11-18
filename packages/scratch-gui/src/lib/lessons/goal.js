@@ -12,6 +12,10 @@
 //   sprites   スプライトの数
 //   costumes  コスチューム（背景）の数が始めより増えた
 //   extension 拡張機能を読み込んだ
+//   moved     スプライトの位置が、見張りを始めたときから変わった（ステージでつかんで動かした・#2134）
+//   currentCostume いまのコスチューム（背景）の番号・始めから変わったか
+//   tab       いま開いているタブ（コード・コスチューム・音）。エディタの画面の状態（snapshot.ui）
+//   partQuiz  画面の部分をクリックして答えるクイズ（「どこでしょう？」）に、決めた数だけ正しく答えた（snapshot.ui）
 //
 // プログラムの形は見ない（ブロックの並びや個数は条件にしない）。
 
@@ -23,7 +27,17 @@ export const CONDITION_TYPES = Object.freeze([
     'sprites',
     'costumes',
     'extension',
+    'moved',
+    'currentCostume',
+    'tab',
+    'partQuiz',
 ]);
+
+/** `tab` の条件のタブ（エディタのタブの並び。reducers/editor-tab.js の index と同じ順）。 */
+export const EDITOR_TABS = Object.freeze(['code', 'costumes', 'sounds']);
+
+/** `uses` の `trigger.click`: コードエリア・パレットでスクリプトを押して動かしたもの（#2134）。 */
+export const CLICK_PLACES = Object.freeze(['palette', 'codeArea', 'any']);
 
 // facts の上限（ずっと動くプログラムでも際限なく増えないように）
 const MAX_RUNS = 200;
@@ -113,8 +127,9 @@ const upper = (value) => String(value).toUpperCase();
 /**
  * スクリプトの実行（スレッド）を 1 つ始める。
  * @param {object} facts - facts。
- * @param {object} info - `{trigger: {hat, fields, stackClick}, targetId, isStage}`。
- *   `fields` はハットのフィールド名 → 値（例: `{KEY_OPTION: 'space'}`）。
+ * @param {object} info - `{trigger: {hat, fields, stackClick, palette}, targetId, isStage}`。
+ *   `fields` はハットのフィールド名 → 値（例: `{KEY_OPTION: 'space'}`）。`palette` はパレット（ブロックを
+ *   置かずに）でブロックを押して動かしたか（stackClick のときだけ意味がある）。
  * @returns {object} run（recordExecution に渡す）。
  */
 export const startRun = (facts, info) => {
@@ -124,6 +139,7 @@ export const startRun = (facts, info) => {
             hat: (info.trigger && info.trigger.hat) || null,
             fields,
             stackClick: Boolean(info.trigger && info.trigger.stackClick),
+            palette: Boolean(info.trigger && info.trigger.palette),
         },
         targetId: isUnset(info.targetId) ? null : info.targetId,
         isStage: Boolean(info.isStage),
@@ -212,8 +228,19 @@ const sameKey = (fieldKey, key) => {
     return String(fieldKey).toLowerCase() === String(key).toLowerCase();
 };
 
+// 押して動かしたスクリプト（stackClick）が `trigger.click` に合うか。`click` を書いていなければ、押して動かしたものは
+// 数えない（きっかけが違う）。'palette' = パレットで押した、'codeArea' = コードエリアで押した、'any' = どちらでも
+// （'any' はハットから始まった実行も数える）
+const clickMatches = (click, run) => {
+    if (!run.trigger.stackClick) return isUnset(click) || click === 'any';
+    if (click === 'any') return true;
+    if (click === 'palette') return run.trigger.palette;
+    if (click === 'codeArea') return !run.trigger.palette;
+    return false;
+};
+
 const triggerMatches = (trigger, run) => {
-    if (run.trigger.stackClick) return false;
+    if (!clickMatches(trigger ? trigger.click : null, run)) return false;
     if (!trigger) return true;
     if (trigger.hat && run.trigger.hat !== trigger.hat) return false;
     if (!isUnset(trigger.key) && !sameKey(run.trigger.fields.KEY_OPTION, trigger.key)) return false;
@@ -277,6 +304,14 @@ const orderSatisfiedByRun = (order, run) => {
 const usesSatisfiedByRuns = (condition, runs) => {
     if (runs.length === 0) return false;
     const entries = (condition.blocks || []).map(normalizeBlockEntry);
+    // together: 全部のブロックが 1 回の実行（スレッド 1 本）の中で動いた（= つながっている）
+    if (condition.together) {
+        return runs.some(
+            (run) =>
+                entries.every((entry) => blockEntrySatisfiedByRun(entry, run)) &&
+                (!condition.order || condition.order.length < 2 || orderSatisfiedByRun(condition.order, run)),
+        );
+    }
     if (!entries.every((entry) => runs.some((run) => blockEntrySatisfiedByRun(entry, run)))) return false;
     if (condition.order && condition.order.length > 1) {
         return runs.some((run) => orderSatisfiedByRun(condition.order, run));
@@ -420,6 +455,37 @@ const evaluateCostumes = (condition, snapshot) => {
 const evaluateExtension = (condition, snapshot) =>
     typeof snapshot.isExtensionLoaded === 'function' && Boolean(snapshot.isExtensionLoaded(condition.id));
 
+// 見張りを始めたときにあったスプライトの位置が、`min` 以上（既定 1）動いた
+const evaluateMoved = (condition, snapshot) => {
+    const min = isUnset(condition.min) ? 1 : condition.min;
+    const baseline = snapshot.baselinePositions || {};
+    return Object.entries(baseline).some(([targetId, before]) => {
+        const now = (snapshot.positions || {})[targetId];
+        return Boolean(now) && Math.hypot(now.x - before.x, now.y - before.y) >= min;
+    });
+};
+
+// いまのコスチューム（`target: 'stage'` なら背景）。`number` = 何番め（1 から）、`changed: true` = 見張りを始めた
+// ときと別のコスチュームになった。後から足したスプライトは見ない（始めにいたものだけ）
+const evaluateCurrentCostume = (condition, snapshot) => {
+    const wantStage = condition.target === 'stage';
+    const baseline = snapshot.baselineCostumes || {};
+    return Object.entries(baseline).some(([targetId, before]) => {
+        if (Boolean(before.isStage) !== wantStage) return false;
+        const now = (snapshot.costumes || {})[targetId];
+        if (!now || isUnset(now.current)) return false;
+        if (!isUnset(condition.number) && now.current !== condition.number - 1) return false;
+        if (condition.changed && now.current === before.current) return false;
+        return true;
+    });
+};
+
+const uiOf = (snapshot) => snapshot.ui || {};
+
+const evaluateTab = (condition, snapshot) => uiOf(snapshot).activeTab === condition.tab;
+
+const evaluatePartQuiz = (condition, snapshot) => (uiOf(snapshot).partQuizSolved || 0) >= condition.count;
+
 /**
  * 条件 1 つを判定する。
  * @param {object} condition - 条件。
@@ -443,6 +509,14 @@ export const evaluateCondition = (condition, facts, snapshot) => {
             return evaluateCostumes(condition, snapshot);
         case 'extension':
             return evaluateExtension(condition, snapshot);
+        case 'moved':
+            return evaluateMoved(condition, snapshot);
+        case 'currentCostume':
+            return evaluateCurrentCostume(condition, snapshot);
+        case 'tab':
+            return evaluateTab(condition, snapshot);
+        case 'partQuiz':
+            return evaluatePartQuiz(condition, snapshot);
         default:
             return false;
     }
@@ -484,6 +558,9 @@ const validateTrigger = (trigger, at) => {
     }
     if (!isUnset(trigger.message) && !isVariableName(trigger.message)) {
         errors.push(`${at}: trigger.message must be a message name or an array of names`);
+    }
+    if (!isUnset(trigger.click) && !CLICK_PLACES.includes(trigger.click)) {
+        errors.push(`${at}: trigger.click must be one of ${CLICK_PLACES.join(', ')}`);
     }
     return errors;
 };
@@ -544,6 +621,9 @@ export const validateGoal = (goal) => {
                 }
                 if (!isUnset(condition.not) && typeof condition.not !== 'boolean') {
                     errors.push(`${at}: uses.not must be true or false`);
+                }
+                if (!isUnset(condition.together) && typeof condition.together !== 'boolean') {
+                    errors.push(`${at}: uses.together must be true or false`);
                 }
                 errors.push(...validateTrigger(condition.trigger, at));
                 break;
@@ -615,6 +695,35 @@ export const validateGoal = (goal) => {
             case 'extension':
                 if (typeof condition.id !== 'string' || condition.id === '')
                     errors.push(`${at}: extension.id is required`);
+                break;
+            case 'moved':
+                if (!isUnset(condition.min) && !(typeof condition.min === 'number' && condition.min > 0)) {
+                    errors.push(`${at}: moved.min must be a positive number`);
+                }
+                break;
+            case 'currentCostume':
+                if (!isUnset(condition.target) && !['stage', 'sprite'].includes(condition.target)) {
+                    errors.push(`${at}: currentCostume.target must be 'stage' or 'sprite'`);
+                }
+                if (!isUnset(condition.number) && !(Number.isInteger(condition.number) && condition.number >= 1)) {
+                    errors.push(`${at}: currentCostume.number must be a positive integer`);
+                }
+                if (!isUnset(condition.changed) && typeof condition.changed !== 'boolean') {
+                    errors.push(`${at}: currentCostume.changed must be true or false`);
+                }
+                if (isUnset(condition.number) && !condition.changed) {
+                    errors.push(`${at}: currentCostume needs number or changed`);
+                }
+                break;
+            case 'tab':
+                if (!EDITOR_TABS.includes(condition.tab)) {
+                    errors.push(`${at}: tab.tab must be one of ${EDITOR_TABS.join(', ')}`);
+                }
+                break;
+            case 'partQuiz':
+                if (!(Number.isInteger(condition.count) && condition.count >= 1)) {
+                    errors.push(`${at}: partQuiz.count must be a positive integer`);
+                }
                 break;
             default:
                 break;

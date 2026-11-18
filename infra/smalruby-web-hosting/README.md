@@ -12,7 +12,7 @@ Route 53 ホストゾーン、S3（非公開）+ CloudFront（OAC）、ACM 証�
 | Stage | Stack | 作るもの |
 |-------|-------|----------|
 | stg | `SmalrubyWebHostingStack-stg` | `preview.smalruby.app` のホストゾーン（`RETAIN`）と配信基盤。NS・ゾーン ID・CI 用ロール ARN・バケット名・ディストリビューション ID を Output |
-| prod | `SmalrubyWebHostingStack` | 何も作らない（空のスタック） |
+| prod | `SmalrubyWebHostingStack` | 本番 smalruby.app の配信基盤（S3 + CloudFront + CI 用ロール。独自ドメインはまだ無い）と、ホストゾーン `smalruby.app`（`RETAIN`。お名前.com のレコードを写したもの）。ゾーン ID・NS も Output |
 
 ## Commands
 

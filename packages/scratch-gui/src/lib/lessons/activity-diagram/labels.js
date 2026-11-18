@@ -55,7 +55,8 @@ const SYMBOL_OPERATORS = {
  * @param {string} opcode - opcode。
  * @returns {boolean} 帽子か。
  */
-export const isHatOpcode = (opcode) => /^event_when/.test(opcode) || opcode === 'control_start_as_clone';
+export const isHatOpcode = (opcode) =>
+    /^event_when/.test(opcode) || opcode === 'control_start_as_clone' || opcode === 'procedures_definition';
 
 const firstFieldValue = (block) => {
     const names = Object.keys(block.fields || {});
@@ -67,9 +68,14 @@ const firstFieldValue = (block) => {
  * @param {object} options - 作り方。
  * @param {function(string, object=): string} options.format - 文言を引く関数（id は接頭辞を除いた名前でなく完全な id）。
  * @param {?function(string): ?string} [options.blockName] - 対応していないブロックの名前のテンプレート（%1 などの穴つき）。
+ * @param {?function(object): ?string} [options.blockText] - 対応していないブロックの文（ワークスペースに出ている
+ *   ブロックの文そのもの。右クリックで描く図・#1647）。あればテンプレートより先に使う（拡張機能のブロックの文は
+ *   scratch-blocks の Msg に無いため）。null を返せばテンプレートを使う。
+ * @param {?function(object): boolean} [options.isHat] - opcode では帽子と分からないブロック（拡張機能の
+ *   「〜とき」など）を帽子として扱うか（右クリックで描く図では、上につながらないブロックを帽子とみなす）。
  * @returns {object} `{hat, statement, value, condition}`。どれも `(blocks, id)` を受ける。
  */
-export const createBlockLabeler = ({ format, blockName = null }) => {
+export const createBlockLabeler = ({ format, blockName = null, blockText = null, isHat = null }) => {
     const f = (key, values) => format(`${P}${key}`, values);
     const empty = () => f('empty');
     const literal = (text) => f('literal', { text });
@@ -115,6 +121,8 @@ export const createBlockLabeler = ({ format, blockName = null }) => {
                 return f('touching', { object: input('TOUCHINGOBJECTMENU') });
             case 'sensing_keypressed':
                 return f('keyPressed', { key: input('KEY_OPTION') });
+            case 'procedures_prototype':
+                return procedureText(blocks, block, 'argumentnames');
             default:
                 break;
         }
@@ -136,10 +144,34 @@ export const createBlockLabeler = ({ format, blockName = null }) => {
         return value(blocks, input.block || input.shadow);
     };
 
+    // 自分で作ったブロック（定義の見本・呼び出し）の文: proccode「ジャンプ %s」の穴に、呼び出しなら入っている値、
+    // 見本なら引数の名前を入れる。mutation の argumentids / argumentnames は JSON の文字列
+    const procedureText = (blocks, block, argsKey) => {
+        const mutation = block.mutation || {};
+        let args = [];
+        try {
+            args = JSON.parse(mutation[argsKey] || '[]');
+        } catch (e) {
+            args = [];
+        }
+        let i = 0;
+        return String(mutation.proccode || block.opcode)
+            .replace(/%[snb]/g, () => {
+                const arg = args[i++];
+                if (typeof arg !== 'string') return empty();
+                return argsKey === 'argumentids' ? inputValue(blocks, block, arg) : `(${arg})`;
+            })
+            .replace(/\s+/g, ' ')
+            .trim();
+    };
+
     const keyName = (raw) => (KEY_MESSAGES[raw] ? f(KEY_MESSAGES[raw]) : raw);
 
-    // 対応していないブロック: テンプレートの %n に穴（入力 → フィールドの順）の値を入れる
+    // 対応していないブロック: ブロックの文（blockText）があればそれを、無ければテンプレートの %n に
+    // 穴（入力 → フィールドの順）の値を入れる
     const generic = (blocks, block) => {
+        const text = blockText ? blockText(block) : null;
+        if (text) return text;
         const template = blockName ? blockName(block.opcode) : null;
         if (!template) return block.opcode;
         const args = [
@@ -162,7 +194,7 @@ export const createBlockLabeler = ({ format, blockName = null }) => {
     // 帽子のブロックの文。帽子でなければ null
     const hat = (blocks, id) => {
         const block = blocks[id];
-        if (!block || !isHatOpcode(block.opcode)) return null;
+        if (!block || !(isHatOpcode(block.opcode) || (isHat && isHat(block)))) return null;
         switch (block.opcode) {
             case 'event_whenflagclicked':
                 return f('hat.flag');
@@ -176,6 +208,8 @@ export const createBlockLabeler = ({ format, blockName = null }) => {
                 return f('hat.receive', { name: literal(fieldValue(block, 'BROADCAST_OPTION')) });
             case 'control_start_as_clone':
                 return f('hat.clone');
+            case 'procedures_definition':
+                return f('hat.define', { name: inputValue(blocks, block, 'custom_block') });
             case 'event_whenbackdropswitchesto':
                 return f('hat.backdrop', { name: literal(fieldValue(block, 'BACKDROP')) });
             default:
@@ -210,6 +244,8 @@ export const createBlockLabeler = ({ format, blockName = null }) => {
                 return f('wait', { secs: input('DURATION') });
             case 'control_wait_until':
                 return f('waitUntil', { condition: input('CONDITION') });
+            case 'procedures_call':
+                return procedureText(blocks, block, 'argumentids');
             default:
                 return generic(blocks, block);
         }

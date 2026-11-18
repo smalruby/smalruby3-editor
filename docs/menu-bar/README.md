@@ -31,7 +31,7 @@
 | 共有 / 見る ボタン | upstream の Scratch アカウント機能（Smalruby では削減）|
 | バージョン更新通知 | 新バージョン検出時にバナー表示（Smalruby 独自）|
 | レッスン ボタン | レッスン表を開く（Smalruby 独自。upstream の「チュートリアル」ボタンの場所。[`docs/lessons/`](../lessons/)）|
-| 「?」メニュー（右端） | チュートリアル / デバッグ / スモウルビーについて / ウェルカムをもう一度見る（Smalruby 独自構成。upstream はチュートリアル・デバッグをメニューバーのボタンとして出す）|
+| 「?」メニュー（右端） | チュートリアル / デバッグ / 不具合を知らせる / ウェルカムをもう一度見る / スモウルビーについて / バージョン（Smalruby 独自構成。upstream はチュートリアル・デバッグをメニューバーのボタンとして出す）|
 
 ### 設定メニュー
 
@@ -43,7 +43,22 @@
 
 ![「?」メニュー展開](screenshots/0102-help-menu-1280x800.png)
 
-右上の「?」を押すと **チュートリアル / デバッグ** と、区切り線をはさんで **スモウルビーについて / ウェルカムをもう一度見る** が並ぶ。
+右上の「?」を押すと、区切り線で分けた 3 つのまとまりが並ぶ。
+
+| まとまり | 項目 | 押したとき |
+|---|---|---|
+| 1. 困ったとき | チュートリアル | チュートリアル一覧（upstream の `tips-library`）を開く |
+| | デバッグ | デバッグ画面（upstream の `debug-modal`）を開く |
+| 2. 知らせる | 不具合を知らせる | 不具合の報告の画面を開く（`BUG_REPORT_API_ENDPOINT` のあるビルドだけ。タブの右の「不具合を報告」と同じ） |
+| 3. スモウルビーのこと | ウェルカムをもう一度見る | はじめのウェルカムをもう一度出す |
+| | スモウルビーについて | `about.html` を新しいタブで開く |
+| | バージョン | このビルドのコミット（7 文字。手元のビルドは「開発版」）を出す。押すと新しい版があるかを確かめ、あればロゴで知らせる |
+
+並べ方の考え（並びと区切りは `src/lib/help-menu.js` の `HELP_MENU_SECTIONS` だけで決まる。並べかえるときはそこを書きかえる）:
+
+- **よく使うヘルプを上に**: 「?」を開く人は困っていることが多いので、チュートリアル・デバッグを一番上に置く。
+- **不具合を知らせるは別のまとまり**: ヘルプとは目的が違い、押しまちがえると画面が開くので、区切り線で分ける。
+- **スモウルビーのことは下に、バージョンは一番下**: ふだんは使わない情報なので下にまとめる。バージョンは不具合を知らせるときに見る情報なので、ほかのアプリと同じく一番下に置く。
 upstream ではチュートリアルとデバッグはメニューバーのボタン（「編集」の右）だが、Smalruby はふだん目に入らないよう「?」の中に置く（レッスン機能がチュートリアルの役目を引き継ぐため。`docs/lessons/` 参照）。押したときの動きは upstream のボタンと同じ（チュートリアル一覧 `tips-library` / デバッグ画面 `debug-modal` を開く）。
 
 - `?tutorial=<urlId>` で直接チュートリアルを開く経路はそのまま動く（[`docs/tutorial/`](../tutorial/)）。
@@ -57,6 +72,10 @@ upstream ではチュートリアルとデバッグはメニューバーのボ�
 | `menu-bar-about` | div | 「?」ボタン（押すとメニューが開く） |
 | `menu-bar-help-tutorials` | li (`MenuItem`) | チュートリアル一覧を開く |
 | `menu-bar-help-debug` | li (`MenuItem`) | デバッグ画面を開く |
+| `menu-bar-help-bug-report` | li (`MenuItem`) | 不具合の報告の画面を開く（報告の API があるビルドだけ） |
+| `menu-bar-help-welcome` | li (`MenuItem`) | ウェルカムをもう一度出す |
+| `menu-bar-help-about` | li (`MenuItem`) | `about.html` を開く |
+| `menu-bar-help-version` | li (`MenuItem`) | バージョンを出す・新しい版を確かめる |
 
 ## 主要ファイル
 
@@ -68,7 +87,8 @@ upstream ではチュートリアルとデバッグはメニューバーのボ�
 | `packages/scratch-gui/src/components/menu-bar/menu-bar.css` | スタイル（mobile-ui 用 `max-height: 800px` 圧縮も含む）|
 | `packages/scratch-gui/src/components/menu-bar/settings-menu.jsx` | 設定メニュー（Smalruby のクラスルーム管理を含む）|
 | `packages/scratch-gui/src/containers/menu-bar-hoc.jsx` | メニューバー HOC（「?」メニューのチュートリアル項目用 `onOpenTipsLibrary`、「レッスン」ボタン用 `onOpenLessonsLibrary` / `lessonModeActive` を供給）|
-| `packages/scratch-gui/src/components/gui/gui.jsx` | 「?」メニューの「スモウルビーについて」「ウェルカムをもう一度見る」の定義（about menu マーカー）|
+| `packages/scratch-gui/src/components/gui/gui.jsx` | 「?」メニューの「スモウルビーについて」「ウェルカムをもう一度見る」「不具合を知らせる」の定義（about menu マーカー）|
+| `packages/scratch-gui/src/lib/help-menu.js` | 「?」メニューの並びと区切り（`HELP_MENU_SECTIONS`）・バージョンの表示（`shortVersion`）|
 | `packages/scratch-gui/src/components/language-selector/` | 言語選択 |
 | `packages/scratch-gui/src/lib/version-checker.js` | バージョン更新確認（Smalruby 独自）|
 
@@ -80,7 +100,7 @@ upstream ではチュートリアルとデバッグはメニューバーのボ�
 - classroom button — クラスルームボタン
 - replace Scratch logos with Smalruby logo — ロゴ置換
 - version update notification — バージョン更新通知
-- help menu — チュートリアル / デバッグを「?」メニューへ移動（menu-bar.jsx / menu-bar-hoc.jsx）
+- help menu — チュートリアル / デバッグ / バージョンを「?」メニューの項目にし、`HELP_MENU_SECTIONS` の並びで描く（menu-bar.jsx / menu-bar-hoc.jsx）
 - welcome tooltip / about menu — 「?」まわりのウェルカム吹き出しとメニュー項目
 
 ### scratch-vm

@@ -5,6 +5,7 @@ import {
     MAX_ASSIGNMENT_PAGE_TEXT_LENGTH,
     PEER_VIEW_VALUES,
     buildAssignmentPayload,
+    hasUnsavedAssignmentChanges,
     normalizeMeshGroupLimit,
     normalizePeerView,
     isEmptyAssignment,
@@ -194,5 +195,46 @@ describe('summarizeAssignmentRow (#1301: counts of an opened board row)', () => 
 
     test('missing data gives zeros and an empty description', () => {
         expect(summarizeAssignmentRow({})).toEqual({ submitted: 0, joined: 0, capacity: 0, descriptionLine: '' });
+    });
+});
+
+describe('hasUnsavedAssignmentChanges (#2089 N3)', () => {
+    const base = {
+        pages: [{ text: 'p', imageKey: 'k1', imageUrl: 'https://x/1' }],
+        savedPages: [{ text: 'p', imageKey: 'k1', imageUrl: 'https://x/1' }],
+        starterMode: 'keep',
+        savedStarterMode: 'keep',
+        peerView: 'none',
+        savedPeerView: 'none',
+        meshGroupLimit: 6,
+        savedMeshGroupLimit: 6,
+        lessonChanged: false,
+    };
+
+    test('nothing changed', () => {
+        expect(hasUnsavedAssignmentChanges(base)).toBe(false);
+    });
+
+    test('a page text, a new image, a removed image, or another number of pages', () => {
+        expect(hasUnsavedAssignmentChanges({ ...base, pages: [{ text: 'q', imageKey: 'k1' }] })).toBe(true);
+        expect(
+            hasUnsavedAssignmentChanges({ ...base, pages: [{ text: 'p', newImageBlob: {}, previewUrl: 'blob:x' }] }),
+        ).toBe(true);
+        expect(hasUnsavedAssignmentChanges({ ...base, pages: [{ text: 'p' }] })).toBe(true);
+        expect(hasUnsavedAssignmentChanges({ ...base, pages: [...base.pages, { text: '' }] })).toBe(true);
+    });
+
+    test('the starter, the advanced settings or the lesson', () => {
+        expect(hasUnsavedAssignmentChanges({ ...base, starterMode: 'none' })).toBe(true);
+        expect(hasUnsavedAssignmentChanges({ ...base, starterMode: 'new' })).toBe(true);
+        expect(hasUnsavedAssignmentChanges({ ...base, peerView: 'always' })).toBe(true);
+        expect(hasUnsavedAssignmentChanges({ ...base, meshGroupLimit: 0 })).toBe(true);
+        expect(hasUnsavedAssignmentChanges({ ...base, lessonChanged: true })).toBe(true);
+    });
+
+    test('a signed URL that changed is not a change (only what saving sends counts)', () => {
+        expect(
+            hasUnsavedAssignmentChanges({ ...base, pages: [{ text: 'p', imageKey: 'k1', imageUrl: 'https://x/2' }] }),
+        ).toBe(false);
     });
 });

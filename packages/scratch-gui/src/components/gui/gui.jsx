@@ -76,6 +76,9 @@ import MeshStatusPopup from '../../containers/mesh-status-popup.jsx';
 // === Smalruby: Start of lesson goal watcher ===
 import LessonGoalWatcher from '../../containers/lesson-goal-watcher.jsx';
 // === Smalruby: End of lesson goal watcher ===
+// === Smalruby: Start of block activity diagram ===
+import BlockActivityDiagram from '../../containers/block-activity-diagram.jsx';
+// === Smalruby: End of block activity diagram ===
 // === Smalruby: Start of welcome modal ===
 import WelcomeModalHOC from '../../containers/welcome-modal-hoc.jsx';
 // === Smalruby: End of welcome modal ===
@@ -123,6 +126,11 @@ const aboutMenuMessages = defineMessages({
         id: 'gui.menuBar.showWelcomeAgain',
         defaultMessage: 'Show welcome again',
         description: 'Menu item that re-opens the first-visit welcome modal'
+    },
+    reportBug: {
+        id: 'gui.menuBar.reportBug',
+        defaultMessage: 'Report a bug',
+        description: 'Menu item in the "?" menu that opens the bug report window'
     }
 });
 // === Smalruby: End of about menu ===
@@ -587,6 +595,9 @@ const GUIComponent = props => {
                     {/* === Smalruby: Start of lesson goal watcher === */}
                     <LessonGoalWatcher />
                     {/* === Smalruby: End of lesson goal watcher === */}
+                    {/* === Smalruby: Start of block activity diagram === */}
+                    <BlockActivityDiagram />
+                    {/* === Smalruby: End of block activity diagram === */}
                     {/* === Smalruby: End of smalrubot firmware modal === */}
                     {/* === Smalruby: Start of welcome modal === */}
                     <WelcomeModalHOC />
@@ -622,17 +633,28 @@ const GUIComponent = props => {
                         showComingSoon={showComingSoon}
                         // === Smalruby: Start of about menu ===
                         // title は文字列にする — menu-bar.jsx が title を React の key に使うため。
+                        // id / testId は「?」メニューの並び（lib/help-menu.js の HELP_MENU_SECTIONS）と data-testid。
                         onClickAbout={onClickAbout || [
                             {
+                                id: 'about',
+                                testId: 'menu-bar-help-about',
                                 title: intl.formatMessage(aboutMenuMessages.aboutSmalruby),
                                 onClick: () => {
                                     window.open('about.html', '_blank', 'noopener,noreferrer');
                                 }
                             },
                             {
+                                id: 'welcome',
+                                testId: 'menu-bar-help-welcome',
                                 title: intl.formatMessage(aboutMenuMessages.showWelcomeAgain),
                                 onClick: onShowWelcomeModal
-                            }
+                            },
+                            ...(isBugReportConfigured() && onOpenBugReportModal ? [{
+                                id: 'bugReport',
+                                testId: 'menu-bar-help-bug-report',
+                                title: intl.formatMessage(aboutMenuMessages.reportBug),
+                                onClick: onOpenBugReportModal
+                            }] : [])
                         ]}
                         // === Smalruby: End of about menu ===
                         onClickAccountNav={onClickAccountNav}

@@ -127,8 +127,9 @@ const NO_COURSE = '';
 /**
  * Where the open panel goes. At 1300x600 the editor's columns are only about
  * 200px tall, too short for the challenge list, so the panel reaches up over
- * the assignment name and tabs (to the top of the scrolling body) and stops
- * left of［課題を保存］so the save button stays visible (R6).
+ * the tabs. It stops under the「✕ ＋ 課題名」row (#2089), which holds［課題を保存］,
+ * so ✕ and the save button stay visible (R6). Without that row it reaches the
+ * top of the scrolling body and stops left of［課題を保存］.
  * @param {HTMLElement} root - the lesson section
  * @returns {?{top: number, right: number, maxHeight: number}} offsets from the positioned columns
  */
@@ -137,9 +138,12 @@ const panelPlacement = (root) => {
     if (!base) return null;
     const baseRect = base.getBoundingClientRect();
     const editor = root.closest('[data-testid="classroom-description-editor"]');
-    const save = editor && editor.querySelector('[data-testid="classroom-assignment-save"]');
+    const detail = root.closest('[data-testid="classroom-phase-teacher-detail"]');
+    const closeRow = detail && detail.querySelector('[data-testid="classroom-close-row"]');
+    const save = closeRow ? null : editor && editor.querySelector('[data-testid="classroom-assignment-save"]');
     const scroller = root.closest('main') || editor;
-    const topLimit = scroller ? scroller.getBoundingClientRect().top + 8 : baseRect.top;
+    let topLimit = scroller ? scroller.getBoundingClientRect().top + 8 : baseRect.top;
+    if (closeRow) topLimit = Math.max(topLimit, closeRow.getBoundingClientRect().bottom + 4);
     const right = save ? baseRect.right - save.getBoundingClientRect().left + 12 : 0;
     const top = Math.min(0, Math.round(topLimit - baseRect.top));
     // The panel is as tall as its content (#1770) but never taller than the

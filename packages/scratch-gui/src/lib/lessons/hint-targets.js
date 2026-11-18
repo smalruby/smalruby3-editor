@@ -13,16 +13,25 @@ export const HINT_TARGETS = Object.freeze({
     BACKDROP: 'backdrop',
     EXTENSION_BUTTON: 'extension-button',
     GREEN_FLAG: 'green-flag',
+    // 名前の札（「ガイド」）（lib/lessons/part-names.js）でも使う場所。停止ボタン・コードタブ・ルビータブ・課題バー・ヒントのボタン（#2133）
+    STOP_BUTTON: 'stop-button',
+    CODE_TAB: 'code-tab',
+    RUBY_TAB: 'ruby-tab',
+    TASK_BAR: 'task-bar',
+    HINT_BUTTON: 'hint-button',
     // メッシュの練習相手のパネル（閉じているときは小さな「練習相手」のボタン）
     PRACTICE_PARTNER: 'practice-partner',
     // 課題バーの役のボタン（役のあるチャレンジの「役を決めよう」のページ）
     ROLE_PICKER: 'role-picker',
+    // 「どこでしょう？」のクイズの問い（components/lesson-part-quiz/・#2134）
+    PART_QUIZ: 'part-quiz',
     KEYBOARD: 'keyboard',
 });
 
 // 吹き出しをかぶせない部品（出ているときだけ）。練習相手のパネルはボタンを押しながらヒントを読むので、
-// 吹き出しで隠さない（#1643）
-const AVOID_SELECTORS = ['[data-testid="lesson-practice-partner"]'];
+// 吹き出しで隠さない（#1643）。コスチュームタブ・音タブの左の一覧（components/asset-panel/selector.jsx）も、
+// ヒントを読みながら絵や音をえらぶので隠さない（タブの下に置くと一覧にかぶり、2 つめの絵が見えなかった・#2146）
+const AVOID_SELECTORS = ['[data-testid="lesson-practice-partner"]', '[class*="selector_wrapper_"]'];
 
 /** 吹き出しを置く側。`inside` は指す場所の中、`center` は画面の真ん中（矢印なし）。 */
 export const HINT_SIDES = Object.freeze({
@@ -55,6 +64,10 @@ const TARGET_SPECS = {
         // ワークスペースの svg はパレットの下にも広がっているので、パレットの右だけにする
         subtract: [`${BLOCKS} .blocklyFlyout`, `${BLOCKS} .blocklyToolbox`],
         sides: [HINT_SIDES.INSIDE],
+        // スクリプトエリアに置いてあるスクリプト（いちばん上のブロックの組）にはかぶせない。「「15 度回す」の数を
+        // 変えよう」のように、置いてあるブロックを指して操作させるヒントで、そのブロックが吹き出しに隠れないように
+        // （#2146）。パレットのブロックは別の svg（.blocklyFlyout）なので入らない
+        avoid: [`${BLOCKS} .blocklySvg > .blocklyWorkspace > .blocklyBlockCanvas > .blocklyBlock`],
     },
     [HINT_TARGETS.STAGE]: {
         selectors: ['[class*="stage_stage-wrapper_"]'],
@@ -84,6 +97,32 @@ const TARGET_SPECS = {
     [HINT_TARGETS.GREEN_FLAG]: {
         selectors: ['[data-testid="mobile-side-rail-play"]', '[class*="green-flag_green-flag_"]'],
         sides: [HINT_SIDES.BOTTOM, HINT_SIDES.LEFT],
+    },
+    [HINT_TARGETS.STOP_BUTTON]: {
+        // SP のサイドレールには止めるボタンが無い（再生ボタンが全画面のあいだだけ止めるになる）
+        selectors: ['[class*="stop-all_stop-all_"]'],
+        sides: [HINT_SIDES.BOTTOM, HINT_SIDES.LEFT],
+    },
+    [HINT_TARGETS.CODE_TAB]: {
+        selectors: ['[data-testid="mobile-side-rail-code"]', '[class*="gui_tab_"]:nth-child(1)'],
+        sides: [HINT_SIDES.BOTTOM, HINT_SIDES.RIGHT],
+    },
+    [HINT_TARGETS.RUBY_TAB]: {
+        // ルビータブは Smalruby が足した 4 つめのタブ（gui.jsx の「Start of ruby tab」）。SP はサイドレールのボタン
+        selectors: ['[data-testid="mobile-side-rail-ruby"]', '[class*="gui_tab_"]:nth-child(4)'],
+        sides: [HINT_SIDES.BOTTOM, HINT_SIDES.RIGHT],
+    },
+    [HINT_TARGETS.TASK_BAR]: {
+        selectors: ['[data-testid="lesson-task-bar"]'],
+        sides: [HINT_SIDES.BOTTOM],
+    },
+    [HINT_TARGETS.HINT_BUTTON]: {
+        selectors: ['[data-testid="lesson-task-bar-hint"]'],
+        sides: [HINT_SIDES.BOTTOM],
+    },
+    [HINT_TARGETS.PART_QUIZ]: {
+        selectors: ['[data-testid="lesson-part-quiz-panel"]'],
+        sides: [HINT_SIDES.TOP, HINT_SIDES.RIGHT],
     },
     [HINT_TARGETS.PRACTICE_PARTNER]: {
         selectors: ['[data-testid="lesson-practice-partner"]', '[data-testid="lesson-practice-partner-open"]'],
@@ -160,7 +199,7 @@ export const findHintTargetRect = (target, doc) => {
 export const findHintAvoidRects = (doc, target) => {
     const spec = target ? TARGET_SPECS[target] : null;
     if (!doc || (spec && spec.coverAvoid)) return [];
-    return visibleRects(doc, AVOID_SELECTORS);
+    return visibleRects(doc, [...AVOID_SELECTORS, ...((spec && spec.avoid) || [])]);
 };
 
 /**

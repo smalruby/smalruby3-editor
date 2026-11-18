@@ -149,23 +149,15 @@ describe('Smalruby Lessons in the English UI', () => {
         await openChallenge('blocks-l1-key-sound');
         expect(await textByTestId('lesson-task-bar-position')).toBe('1 of 4');
 
-        // 「Owl」を足す（音タブで足したのと同じ VM の状態。複製は元の次 = index 1 に入る）
-        await driver.executeScript(`const vm = window.smalruby.vm;
-            return vm.duplicateSound(0).then(() => vm.renameSound(1, 'Owl'));`);
-
-        await insertProgramFromHints(6);
-        await waitForSpriteOpcode('Sprite1', 'sound_play');
+        await insertProgramFromHints(4);
+        await waitForSpriteOpcode('Sprite1', 'sound_playuntildone');
         expect(await countInsertErrors()).toBe(0);
-        expect((await spriteOpcodes()).Sprite1).toEqual([
-            'event_whenkeypressed',
-            'sound_play',
-            'sound_playuntildone',
-        ]);
+        expect((await spriteOpcodes()).Sprite1).toEqual(['event_whenkeypressed', 'sound_playuntildone']);
         // 入ったのは en の code（ネコの音は "Meow"）
         const soundMenus = await driver.executeScript(`
             return Object.values(window.smalruby.vm.editingTarget.blocks._blocks)
                 .filter(b => b.opcode === 'sound_sounds_menu').map(b => b.fields.SOUND_MENU.value).sort();`);
-        expect(soundMenus).toEqual(['Meow', 'Owl']);
+        expect(soundMenus).toEqual(['Meow']);
 
         await focusCodeArea();
         await pressKey(Key.SPACE);

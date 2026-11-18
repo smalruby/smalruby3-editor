@@ -65,7 +65,7 @@ const messages = defineMessages({
         description:
             'Shown in the practice partner panel when a button needs a value the student has not entered yet ' +
             '(e.g. "DM to you" needs the student name). {name} = the variable name',
-        defaultMessage: '"{name}" is still empty. Click the flag and enter it first.',
+        defaultMessage: '"{name}" is still empty. Click the Green Flag and enter it first.',
     },
     open: {
         id: 'gui.lessonPracticePartner.open',

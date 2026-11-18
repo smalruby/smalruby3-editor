@@ -164,19 +164,36 @@ describe('Smalruby Lessons: hint balloon', () => {
         expect(await countByTestId(driver, 'lesson-hint-spotlight')).toBe(0);
         await waitForHintBlocks(driver);
 
-        // 閉じる
+        // 「－」で小さくする（閉じない）。課題バーの近くに、いまのページの番号の札が残る（#2131）
         await clickByTestId(driver, 'lesson-hint-close');
         expect(await countByTestId(driver, 'lesson-hint')).toBe(0);
-        // ×で閉じたときは、課題バーの「ヒント」で開き直すと同じページ（#1528）
+        await findByXpath(byTestId('lesson-hint-minimized'));
+        expect(await textByTestId(driver, 'lesson-hint-minimized-position')).toBe('Hint 2/7');
+        // 札は課題バーのすぐ下で、画面の中
+        const tag = await driver.executeScript(`
+            const t = document.querySelector('[data-testid="lesson-hint-minimized"]').getBoundingClientRect();
+            const bar = document.querySelector('[data-testid="lesson-task-bar"]').getBoundingClientRect();
+            return {top: t.top, right: t.right, barBottom: bar.bottom, vw: window.innerWidth};`);
+        expect(tag.top).toBeGreaterThanOrEqual(tag.barBottom);
+        expect(tag.top - tag.barBottom).toBeLessThan(20);
+        expect(tag.right).toBeLessThanOrEqual(tag.vw);
+        // 札を押すと同じページで元の大きさにもどる
+        await clickByTestId(driver, 'lesson-hint-minimized');
+        await findByXpath(byTestId('lesson-hint'));
+        expect(await textByTestId(driver, 'lesson-hint-position')).toBe('Hint 2 of 7');
+        expect(await countByTestId(driver, 'lesson-hint-minimized')).toBe(0);
+        // 課題バーの「ヒント」でも同じページで開き直せる（#1528）
+        await clickByTestId(driver, 'lesson-hint-close');
         await clickByTestId(driver, 'lesson-task-bar-hint');
         await findByXpath(byTestId('lesson-hint'));
         expect(await textByTestId(driver, 'lesson-hint-position')).toBe('Hint 2 of 7');
         await clickByTestId(driver, 'lesson-hint-close');
         expect(await countByTestId(driver, 'lesson-hint')).toBe(0);
-        // やめると吹き出しの状態も消える
+        // やめると吹き出しの状態も、小さくした札も消える
         await clickByTestId(driver, 'lesson-task-bar-quit');
         await driver.sleep(500);
         expect(await countByTestId(driver, 'lesson-hint')).toBe(0);
+        expect(await countByTestId(driver, 'lesson-hint-minimized')).toBe(0);
 
         // 既知の無害なログ (Google Drive の初期化失敗など) は getLogs() が除く
         expect(await getLogs()).toEqual([]);
@@ -256,6 +273,8 @@ describe('Smalruby Lessons: hint balloon', () => {
         await clickByTestId(driver, 'lesson-hint-finish');
         await driver.sleep(300);
         expect(await countByTestId(driver, 'lesson-hint')).toBe(0);
+        // 「おわり」では札も残らない
+        expect(await countByTestId(driver, 'lesson-hint-minimized')).toBe(0);
         await clickByTestId(driver, 'lesson-task-bar-hint');
         await findByXpath(byTestId('lesson-hint'));
         expect(await attrByTestId(driver, 'lesson-hint', 'data-dragged')).toBe('false');

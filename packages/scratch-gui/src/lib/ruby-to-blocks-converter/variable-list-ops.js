@@ -190,7 +190,16 @@ export const registerListOperations = function (
             return block;
         }
 
-        const index = adjustIndex(converter, args[0], converted);
+        // `@a.delete_at(@a.length - 1)` keeps its form: "delete (length of a)" is written `delete_at(-1)`,
+        // and the Ruby would change (issue #2115).
+        const isLengthOfThisList = (minuend) =>
+            minuend.opcode === 'data_lengthoflist' &&
+            !!recv.fields &&
+            !!recv.fields.LIST &&
+            !!minuend.fields &&
+            !!minuend.fields.LIST &&
+            minuend.fields.LIST.id === recv.fields.LIST.id;
+        const index = adjustIndex(converter, args[0], converted, isLengthOfThisList);
 
         const block = converter._changeBlock(recv, 'data_deleteoflist', 'statement');
         converter._addNumberInput(block, 'INDEX', 'math_integer', index, 1);

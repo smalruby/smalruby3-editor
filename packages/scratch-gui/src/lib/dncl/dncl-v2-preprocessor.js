@@ -18,6 +18,7 @@
 // the implicit `end` insertion based on `⎿` count.
 //
 // See Issue #640.
+import { indentWidth } from './dncl-indent';
 import { lineNumberSeparator } from './dncl-line-number';
 import { codeOfLine, splitTrailingComment, stringEndAt } from './dncl-trailing-comment';
 import { isLogicalWordAt, isNameChar, isWholeWordAt } from './paren-utils';
@@ -135,7 +136,9 @@ const stripTrailingColon = (line) => {
         'を実行する',
         'を繰り返す',
     ];
-    if (!triggers.some((t) => beforeColon.endsWith(t))) return line;
+    // `関数 名前(引数):` is how the standard form opens a function (Issue #1754).
+    const funcOpener = /^[\s｜|⎿]*関数\s+[\p{L}_][\p{L}\p{N}_]*\s*\([^)]*\)$/u.test(beforeColon);
+    if (!funcOpener && !triggers.some((t) => beforeColon.endsWith(t))) return line;
     // Preserve any whitespace that followed the original colon.
     const trailing = line.substring(trimmed.length);
     return `${beforeColon}${trailing}`;
@@ -269,15 +272,17 @@ const joinContinuationLines = (source) => {
  *
  * Only splits when:
  *   - There is at least one top-level comma (depth 0, outside strings)
- *   - Every comma-separated piece contains a top-level `=`
+ *   - Every comma-separated piece contains a top-level `=` or `←`
  *
- * The leading indent is preserved on every output line.
+ * The leading indent and `｜` markers are kept on every output line; a `⎿`
+ * is kept on the last one only.
  * @param {string} line - The line to inspect.
  * @returns {string} The original line, or multiple lines joined with `\n`.
  */
 const splitMultiAssignment = (line) => {
-    const indentMatch = line.match(/^(\s*)/);
-    const indent = indentMatch ? indentMatch[1] : '';
+    // The indent includes the `｜` / `⎿` markers, so that every piece stays in
+    // the block the line is in (Issue #1819).
+    const indent = line.match(/^[\s｜|⎿]*/)[0];
     const body = line.substring(indent.length);
     if (body.length === 0) return line;
 
@@ -307,7 +312,8 @@ const splitMultiAssignment = (line) => {
             i++;
             continue;
         }
-        if (ch === ',' && depth === 0) {
+        // A full-width comma is read as `,` (docs/dncl/policy.md).
+        if ((ch === ',' || ch === '，') && depth === 0) {
             parts.push(current);
             current = '';
             i++;
@@ -320,7 +326,7 @@ const splitMultiAssignment = (line) => {
 
     if (parts.length < 2) return line;
 
-    // Every part must contain a top-level `=` (depth 0, outside strings).
+    // Every part must contain a top-level `=` or `←` (depth 0, outside strings).
     // Otherwise we likely have a function call or a single expression with
     // top-level commas, and shouldn't split.
     const hasTopLevelEquals = (part) => {
@@ -343,6 +349,8 @@ const splitMultiAssignment = (line) => {
                 j++;
                 continue;
             }
+            // `←` is an assignment as `=` is (Issue #1819).
+            if (c === '←' && d === 0) return true;
             if (c === '=' && d === 0) {
                 // Make sure this is `=` (assignment) not `==`, `<=`, `>=`, `!=`.
                 const prev = part[j - 1];
@@ -357,7 +365,10 @@ const splitMultiAssignment = (line) => {
     };
     if (!parts.every(hasTopLevelEquals)) return line;
 
-    return parts.map((p) => `${indent}${p.trim()}`).join('\n');
+    // A `⎿` closes the block after the line, so only the last piece keeps it;
+    // the pieces before it are still in the block (`｜`).
+    const openIndent = indent.replace(/⎿/g, '｜');
+    return parts.map((p, idx) => `${idx === parts.length - 1 ? indent : openIndent}${p.trim()}`).join('\n');
 };
 
 // If a string literal starts at `line[i]`, the index just past it, or -1.
@@ -412,10 +423,11 @@ const normalizeAndOr = (line) => {
 };
 
 /**
- * Keywords that close a condition (`もし … ならば`, `… の間`) and so end the
- * operand of a `not`, when written after whitespace.
+ * Keywords that close a condition (`もし … ならば`, `… の間`) or a return
+ * value (`… を返す`, Issue #1754) and so end the operand of a `not`, when
+ * written after whitespace.
  */
-const NOT_OPERAND_END_RE = /^\s+(?:ならば|なら|の間)(?=\s|$)/;
+const NOT_OPERAND_END_RE = /^\s+(?:ならば|なら|の間|を返す)(?=\s|$)/;
 
 /**
  * Whether the operand of a `not` ends at `line[i]` because a `かつ` /
@@ -508,6 +520,14 @@ const normalizeNot = (line) => {
 };
 
 /**
+ * The indent width one `｜` / `⎿` marker stands for. It is larger than any
+ * run of spaces, so a line with more markers is always deeper, and the
+ * spaces after the markers only compare lines with the same markers
+ * (Issue #1723).
+ */
+const MARKER_INDENT_WIDTH = 1000;
+
+/**
  * Process the leading indent zone of `body` to expand `｜` / `⎿`
  * markers. Each marker (with its surrounding whitespace) becomes 2
  * spaces of indent, so 1 marker = 1 indent level (= 2 spaces of Ruby
@@ -515,10 +535,15 @@ const normalizeNot = (line) => {
  *
  * Returns the rewritten line plus the count of `⎿` markers, which the
  * caller uses to decide how many block-closer lines to emit after the
- * current line.
+ * current line, and the width of its indent. On a line with markers, the
+ * spaces after the last marker are an indent inside the marked block
+ * (`｜ もし x ならば:` / `｜     y`), so the width counts the markers first
+ * and then those spaces; the spaces before the first marker are ignored
+ * (Issue #1723).
  * @param {string} body - The line content (already free of `(N)` prefix).
- * @returns {{ line: string, closeCount: number }} The processed line and
- *   the number of blocks the next outdent should close.
+ * @returns {{ line: string, closeCount: number, width: number }} The
+ *   processed line, the number of blocks the next outdent should close and
+ *   the width of the indent.
  */
 const processIndentMarkers = (body) => {
     // Find the prefix consisting of leading whitespace + indent markers.
@@ -528,14 +553,16 @@ const processIndentMarkers = (body) => {
     // reaches us may be either one. The hook character `⎿` (U+23BF, Box
     // Drawing) is in a Unicode block auto-correct doesn't touch.
     const m = body.match(/^([\s｜|⎿]*)(.*)$/);
-    if (!m) return { line: body, closeCount: 0 };
+    if (!m) return { line: body, closeCount: 0, width: 0 };
     const prefix = m[1];
     const rest = m[2];
     const markers = prefix.match(/[｜|⎿]/g) || [];
-    if (markers.length === 0) return { line: body, closeCount: 0 };
+    if (markers.length === 0) return { line: body, closeCount: 0, width: indentWidth(prefix) };
     const closeCount = markers.filter((c) => c === '⎿').length;
     const newPrefix = ' '.repeat(2 * markers.length);
-    return { line: `${newPrefix}${rest}`, closeCount };
+    const afterMarkers = prefix.match(/[^｜|⎿]*$/)[0];
+    const width = markers.length * MARKER_INDENT_WIDTH + indentWidth(afterMarkers);
+    return { line: `${newPrefix}${rest}`, closeCount, width };
 };
 
 /**
@@ -586,22 +613,6 @@ const EXPLICIT_CLOSERS = new Set(['を実行する', 'を繰り返す', 'と定�
  * @returns {boolean} True for an else / else-if line.
  */
 const isIfContinuation = (body) => body === 'そうでなければ' || /^そうでなくもし\s/.test(body);
-
-/**
- * Visual width of a leading indent. A tab counts as 4 columns and the
- * full-width space (U+3000) as 2, so mixed indentation still compares sensibly.
- * @param {string} indent - Leading whitespace.
- * @returns {number} The indent width in columns.
- */
-const indentWidth = (indent) => {
-    let width = 0;
-    for (const ch of indent) {
-        if (ch === '\t') width += 4;
-        else if (ch === '\u3000') width += 2;
-        else width += 1;
-    }
-    return width;
-};
 
 /**
  * Convert a DNCLv2 function-definition opener to the Smalruby form:
@@ -681,12 +692,24 @@ const dnclV2PreprocessWithLineMap = (source) => {
     // Source line of the last code (non-blank, non-comment) line emitted,
     // i.e. where an indentation-style block ends.
     let lastCodeLine = 1;
+    // Where the output stood after the last line that is not blank: a block
+    // closed by the indent ends there, so blank lines after its body stay
+    // after its closer (`もし …:` + body + blank → `end` + blank, Issue #1754).
+    let afterLastText = 0;
     const emit = (text, lineNumber, shift = 0) => {
         out.push(text);
         lineMap.push(lineNumber);
         columnShift.push(shift);
     };
     const emitCloser = (block, lineNumber) => emit(`${block.indent}${closerForBlockType(block.type)}`, lineNumber);
+    // A closer made from the indent, put before the blank lines after the body.
+    const emitIndentCloser = (block) => {
+        const at = afterLastText;
+        out.splice(at, 0, `${block.indent}${closerForBlockType(block.type)}`);
+        lineMap.splice(at, 0, lastCodeLine);
+        columnShift.splice(at, 0, 0);
+        afterLastText = at + 1;
+    };
     // Close indentation-style blocks (opener ends with `:`, body indented, no
     // `⎿` and no closer line, as in 共通テスト code typed without the `｜` /
     // `⎿` markers) once a line at the opener's indent or shallower appears.
@@ -714,7 +737,7 @@ const dnclV2PreprocessWithLineMap = (source) => {
             if (width === top.width && top.type === 'if' && isIfContinuation(body)) {
                 return;
             }
-            emitCloser(stack.pop(), lastCodeLine);
+            emitIndentCloser(stack.pop());
         }
     };
     const logicalLines = joinContinuationLines(source);
@@ -729,7 +752,7 @@ const dnclV2PreprocessWithLineMap = (source) => {
             !/[:：]\s*$/.test(splitTrailingComment(phase3).code);
         const pieces = phase3.split('\n');
         for (const [pieceIdx, line] of pieces.entries()) {
-            const { line: marked, closeCount: markerCloseCount } = processIndentMarkers(line);
+            const { line: marked, closeCount: markerCloseCount, width } = processIndentMarkers(line);
             // `⎿` markers on joined continuation lines close blocks after the
             // whole logical line, i.e. after its last piece.
             const closeCount = markerCloseCount + (pieceIdx === pieces.length - 1 ? extraCloseCount : 0);
@@ -739,7 +762,6 @@ const dnclV2PreprocessWithLineMap = (source) => {
             const indent = indentMatch ? indentMatch[1] : '';
             // Blocks are found from the code without its trailing comment.
             const body = splitTrailingComment(marked.substring(indent.length)).code.replace(/\s+$/, '');
-            const width = indentWidth(indent);
             const isCode = body !== '' && !body.startsWith('#');
             if (isCode) closeByIndent(width, body);
             // The Ruby indent is made from the block depth (2 spaces a level),
@@ -756,6 +778,7 @@ const dnclV2PreprocessWithLineMap = (source) => {
             const shift = pieceIdx === 0 ? codeStart - depthIndent.length : 0;
             emit(rest === '' ? '' : `${depthIndent}${rest}`, lineNumber, shift);
             if (isCode) lastCodeLine = lineNumber;
+            if (rest.trim() !== '') afterLastText = out.length;
             const type = detectBlockType(body);
             if (type) {
                 stack.push({ type, indent: depthIndent, width, colon: colonOpener, hasBody: false });
@@ -765,6 +788,7 @@ const dnclV2PreprocessWithLineMap = (source) => {
                 const popped = stack.pop();
                 if (!popped) break;
                 emitCloser(popped, lineNumber);
+                afterLastText = out.length;
             }
         }
     }
@@ -772,7 +796,7 @@ const dnclV2PreprocessWithLineMap = (source) => {
     while (stack.length > 0) {
         const top = stack[stack.length - 1];
         if (!top.colon || !top.hasBody) break;
-        emitCloser(stack.pop(), lastCodeLine);
+        emitIndentCloser(stack.pop());
     }
     return { source: out.join('\n'), lineMap, columnShift };
 };

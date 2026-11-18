@@ -5,12 +5,15 @@
  */
 import PropTypes from 'prop-types';
 import React, { useCallback, useState } from 'react';
-import { FormattedMessage } from 'react-intl';
+import { FormattedMessage, useIntl } from 'react-intl';
 import ClassroomButton from './classroom-button.jsx';
 import styles from './classroom-modal.css';
+import { closeRowMessages } from './teacher-close-row.jsx';
 import { TeacherSubView } from './teacher-view-layout.jsx';
 
 const TeacherPasscodeImport = ({ group, isLoading, lookup, error, onLookup, onImport, onCancel }) => {
+    const intl = useIntl();
+    const backLabel = intl.formatMessage(closeRowMessages.backToAssignments);
     const [passcode, setPasscode] = useState('');
 
     const handleChange = useCallback((e) => {
@@ -65,6 +68,8 @@ const TeacherPasscodeImport = ({ group, isLoading, lookup, error, onLookup, onIm
 
     return (
         <TeacherSubView
+            closeLabel={backLabel}
+            onClose={onCancel}
             footer={footer}
             hint={
                 <FormattedMessage

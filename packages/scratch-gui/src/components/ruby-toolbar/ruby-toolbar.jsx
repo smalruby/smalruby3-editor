@@ -199,6 +199,11 @@ const RubyToolbar = (props) => {
         if (props.onOpenAutoCorrectSettings) props.onOpenAutoCorrectSettings();
     }, [props]);
 
+    const handleCopyProblemForm = useCallback(() => {
+        setShowMoreMenu(false);
+        if (props.onCopyProblemForm) props.onCopyProblemForm();
+    }, [props]);
+
     const handlePreviewRubyScript = useCallback(() => {
         setShowMoreMenu(false);
         if (props.onDismissBubble) props.onDismissBubble();
@@ -412,6 +417,16 @@ const RubyToolbar = (props) => {
                                 <span className={styles.moreMenuIcon}>{'</>'}</span>
                                 {intl.formatMessage(messages.previewRubyScript)}
                             </div>
+                            {props.dnclMode && (
+                                <div
+                                    className={styles.moreMenuItem}
+                                    data-testid="ruby-toolbar-menu-copy-problem-form"
+                                    onClick={handleCopyProblemForm}
+                                >
+                                    <span className={styles.moreMenuIcon}>{'(01)'}</span>
+                                    {intl.formatMessage(messages.copyProblemForm)}
+                                </div>
+                            )}
                             <div
                                 className={styles.moreMenuItem}
                                 data-testid="ruby-toolbar-menu-auto-correct-settings"
@@ -450,6 +465,7 @@ RubyToolbar.propTypes = {
     onToggleAutoCorrect: PropTypes.func,
     onOpenAutoCorrectSettings: PropTypes.func,
     onPreviewRubyScript: PropTypes.func,
+    onCopyProblemForm: PropTypes.func,
     locale: PropTypes.string,
 };
 

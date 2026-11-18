@@ -146,6 +146,11 @@ export const defineChallenge = (def) =>
         // answer は choices の何番目が正解か（0 から）。「できた！」の中に出す（「できた」の判定には入れない）。
         // ふつうは challengeQuiz(id, answer) で書く。形は validateQuiz
         quiz: null,
+        // 「どこでしょう？」のクイズ（任意・#2134）: {questions: [label, ...]}。label は名前の札（「ガイド」）の名前
+        // （lib/lessons/part-names.js の PART_NAMES の label）。画面の部分をクリックして答え、全部正しく答えたら
+        // goal の `partQuiz` を満たす（lib/lessons/part-quiz.js・components/lesson-part-quiz/）。クイズのあいだは
+        // 画面のクリックをクイズが受ける（下の部品は動かない）・名前の札は出さない
+        partQuiz: null,
         // チャレンジの形。null = ふつう、'readDiagram' = 読んで作る（説明とアクティビティ図だけで指示する。
         // 図は必ず出し、ヒントは「図と説明 → 試す → 答えを見る」の 3 ページに置き換える。`steps` は使わない。
         // 「正解のプログラムを確認する」（置き換え）は置かない。lib/lessons/read-diagram.js）
@@ -178,21 +183,39 @@ export const defineChallenge = (def) =>
  *   ブロックが出なくなるため・#1741）。setup で日本語モードにするレッスン（DNCL のコースなど）は true にする。
  * @param {number} [def.checkCount] - レッスンの ✓ に要るできた数。書いていなければチャレンジの数（全部）。
  *   テーマを 1 つ以上選んでやるレッスンは 1（#1616 の Q17）。
+ * @param {boolean} [def.showPartNames] - チャレンジを開いたときから画面の部分の名前の札を出しておくか
+ *   （「ガイド」ボタンで消せる。画面の部分の名前を覚えるレッスン 0 で使う・#2133）。書いていなければ出さない。
+ * @param {boolean} [def.warmup] - コースの数に入れない、はじめのレッスン（レッスン 0・#2134）か。レッスン表では
+ *   コースの最初に「レッスン 0」として出すが、コースの数（進みぐあい・クラスの課題・先生の表）には入れない
+ *   （defineCourse が `lessons` から分けて `warmupLessons` に置く）。書いていなければ数えるレッスン。
  * @returns {object} レッスン。
  */
-export const defineLesson = ({ id, challenges, allowDnclMode = false, checkCount = null }) => ({
+export const defineLesson = ({
+    id,
+    challenges,
+    allowDnclMode = false,
+    checkCount = null,
+    showPartNames = false,
+    warmup = false,
+}) => ({
     id,
     name: message(`gui.lessons.lesson.${id}.name`),
     allowDnclMode: Boolean(allowDnclMode),
+    showPartNames: Boolean(showPartNames),
+    warmup: Boolean(warmup),
     checkCount: checkCount === null ? challenges.length : Math.min(checkCount, challenges.length),
     challenges: challenges.map((def, index) => defineChallenge({ ...def, number: index + 1 })),
 });
 
 /**
+ * コースを定義する。はじめのレッスン（`warmup: true` のレッスン 0）は `lessons` から外して `warmupLessons` に置く。
+ * `lessons` はコースの数（レッスン表の進みぐあい・クラスの課題のチャレンジ・先生の進みぐあいの表・ウェルカムの案内）
+ * に使うので、レッスン 0 を足してもそれらの数は変わらない（#2134。「きょうからプログラマー」は 11 のまま）。
+ * レッスン表・チャレンジの検索・「次のレッスン」は `courseLessons`（レッスン 0 が先頭）を使う。
  * @param {object} def - コースの定義。
  * @param {string} def.id - コース id。
  * @param {string} def.language - 言語（`LANGUAGES`）。
- * @param {Array<object>} def.lessons - レッスン（並び順）。
+ * @param {Array<object>} def.lessons - レッスン（並び順。レッスン 0 も入れてよい）。
  * @returns {object} コース。
  */
 export const defineCourse = ({ id, language, lessons }) => ({
@@ -201,8 +224,26 @@ export const defineCourse = ({ id, language, lessons }) => ({
     name: message(`gui.lessons.course.${id}.name`),
     // そのコースで学べること（1〜2 文）。クラス管理の課題のページに入れるレッスンの説明文で使う
     description: message(`gui.lessons.course.${id}.description`),
-    lessons,
+    // 数えるレッスン（並び順）
+    lessons: lessons.filter((lesson) => !lesson.warmup),
+    // 数えない、はじめのレッスン（レッスン 0）
+    warmupLessons: lessons.filter((lesson) => lesson.warmup),
 });
+
+/**
+ * コースの全部のレッスン（レッスン表に出す順。レッスン 0 が先頭）。
+ * @param {object} course - コース。
+ * @returns {Array<object>} レッスン。
+ */
+export const courseLessons = (course) => [...(course.warmupLessons || []), ...course.lessons];
+
+/**
+ * コースの中のレッスンの番号（レッスン表の「レッスン n」・「できた！」の「レッスン n」）。レッスン 0 は 0。
+ * @param {object} course - コース。
+ * @param {object} lesson - レッスン。
+ * @returns {number} 番号。
+ */
+export const lessonNumberOf = (course, lesson) => (lesson.warmup ? 0 : course.lessons.indexOf(lesson) + 1);
 
 // チャレンジの文言（task / stepN / debugN）を id から引く
 const challengeMessage = (challengeId, field) => message(`gui.lessons.challenge.${challengeId}.${field}`);
@@ -277,6 +318,163 @@ const SAY_HELLO = { MESSAGE: { ja: 'こんにちは！', 'ja-Hira': 'こんに�
 const debugTips = (challengeId, count) =>
     Array.from({ length: count }, (_, i) => challengeMessage(challengeId, `debug${i + 1}`));
 
+// レッスン 0「スモウルビーをたんけんしよう」（#2134）。画面の部分の名前とレッスンの進め方（ヒントを見ながら操作する）を、
+// 1 チャレンジで 1〜2 個ずつさわって覚える（docs/lessons/design.md の「はじめの一歩」）。どのブロックも使える
+// （パレットをしぼらない）。コースの数には入れない（`warmup`。レッスン表の「レッスン 0」・課題・進みぐあいの 11 は変えない）。
+// 判定は結果で見る（タブを開いたことは見ない）
+const L0_MOVE_TURN = 'move(10)\nturn_right(15)\n';
+const L0_FLAG_MOVE_TURN = 'when_flag_clicked do\n  move(10)\n  turn_right(15)\nend\n';
+// 0-5 は「数を変える」ブロック（15 度回す）と「▼ を変える」ブロック（マウスのポインターへ行く）を最初から置いておく。
+// 「歩動かす」には ▼ で選ぶ相手のブロックが無く、ヒント 2 が置いていないブロックを指していたため（#2146）
+const L0_FLAG_TURN_GOTO = 'when_flag_clicked do\n  turn_right(15)\n  go_to("_mouse_")\nend\n';
+const L0_FLAG_TURN_GOTO_CHANGED = 'when_flag_clicked do\n  turn_right(90)\n  go_to("_random_")\nend\n';
+// 「どこでしょう？」の 5 問（名前の札（「ガイド」）の名前・lib/lessons/part-names.js）。9 つの名前から、手で操作した場所をえらぶ
+export const LESSON0_QUIZ_PARTS = Object.freeze(['palette', 'codeArea', 'soundsTab', 'greenFlag', 'spriteList']);
+
+const blocksLesson0 = defineLesson({
+    id: 'blocks-l0',
+    warmup: true,
+    showPartNames: true,
+    challenges: [
+        // 0-1 ネコをつかんで動かそう（ステージ・スプライト）: ネコの位置が最初と変わった
+        {
+            id: 'blocks-l0-drag-cat',
+            card: { category: CATEGORIES.MOTION, main: CATEGORIES.MOTION },
+            task: challengeMessage('blocks-l0-drag-cat', 'task'),
+            steps: withTitles('blocks-l0-drag-cat', [{ target: HINT_TARGETS.STAGE, spotlight: true }]),
+            debug: debugTips('blocks-l0-drag-cat', 1),
+            goal: [{ type: 'moved' }],
+        },
+        // 0-2 ブロックを押してみよう（パレット）: ブロックを置かずに、パレットで押して動いた（コードエリアで押したものや、
+        // ネコをつかんで動かしたものは数えない）
+        {
+            id: 'blocks-l0-click-block',
+            card: { category: CATEGORIES.MOTION, main: CATEGORIES.MOTION },
+            task: challengeMessage('blocks-l0-click-block', 'task'),
+            steps: withTitles('blocks-l0-click-block', [
+                { target: HINT_TARGETS.PALETTE, blocks: 'move(10)\n', spotlight: true },
+                { target: HINT_TARGETS.STAGE },
+            ]),
+            debug: debugTips('blocks-l0-click-block', 1),
+            goal: [{ type: 'uses', trigger: { click: 'palette' }, blocks: ['motion_movesteps'] }],
+        },
+        // 0-3 置いて、くっつけよう（コードエリア・ドラッグ・くっつける）: コードエリアで押した 1 つの実行で 2 つとも動いた
+        // （= つながっている）
+        {
+            id: 'blocks-l0-snap',
+            card: { category: CATEGORIES.MOTION, main: CATEGORIES.MOTION },
+            task: challengeMessage('blocks-l0-snap', 'task'),
+            steps: withTitles('blocks-l0-snap', [
+                { target: HINT_TARGETS.PALETTE, blocks: 'move(10)\n', spotlight: true },
+                { target: HINT_TARGETS.PALETTE, blocks: L0_MOVE_TURN, spotlight: true },
+                { target: HINT_TARGETS.CODE_AREA, spotlight: true },
+            ]),
+            debug: debugTips('blocks-l0-snap', 2),
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { click: 'codeArea' },
+                    blocks: ['motion_movesteps', 'motion_turnright'],
+                    together: true,
+                },
+            ],
+            code: L0_MOVE_TURN,
+        },
+        // 0-4 旗で動かそう・止めよう（旗・止める）: 前の答え（くっつけた 2 つ）から始める。旗のスクリプトで動いた
+        {
+            id: 'blocks-l0-flag',
+            card: { category: CATEGORIES.MOTION, main: CATEGORIES.EVENTS },
+            task: challengeMessage('blocks-l0-flag', 'task'),
+            setup: { code: L0_MOVE_TURN },
+            steps: withTitles('blocks-l0-flag', [
+                { target: HINT_TARGETS.PALETTE, blocks: L0_FLAG_MOVE_TURN },
+                // 止めるボタンは、試すヒント（旗）より前（できたら吹き出しが閉じて見られない・#1576）
+                { target: HINT_TARGETS.STOP_BUTTON },
+                { target: HINT_TARGETS.GREEN_FLAG, spotlight: true },
+            ]),
+            debug: debugTips('blocks-l0-flag', 1),
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenflagclicked' },
+                    blocks: [{ opcode: ['motion_movesteps', 'motion_turnright', 'motion_turnleft'] }],
+                },
+            ],
+            code: L0_FLAG_MOVE_TURN,
+        },
+        // 0-5 数と ▼ を変えよう（白いところ・▼・消す）: 「15 度回す」と「マウスのポインターへ行く」の旗のスクリプトから
+        // 始める。15 でない数の「度回す」と、▼ でマウスのポインター以外をえらんだ「へ行く」が動いた（旗でも、押してでも。
+        // 別々の実行でもよい）
+        {
+            id: 'blocks-l0-change-number',
+            card: { category: CATEGORIES.MOTION, main: CATEGORIES.MOTION },
+            task: challengeMessage('blocks-l0-change-number', 'task'),
+            setup: { code: L0_FLAG_TURN_GOTO },
+            steps: withTitles('blocks-l0-change-number', [
+                { target: HINT_TARGETS.CODE_AREA, blocks: 'turn_right(90)\n' },
+                // ▼ とブロックの消し方は、試すヒントより前（#1576）
+                { target: HINT_TARGETS.CODE_AREA, blocks: 'go_to("_random_")\n', spotlight: true },
+                { target: HINT_TARGETS.GREEN_FLAG },
+            ]),
+            debug: debugTips('blocks-l0-change-number', 1),
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { click: 'any' },
+                    blocks: [
+                        { opcode: 'motion_turnright', args: { DEGREES: { ne: 15 } } },
+                        { opcode: 'motion_goto', args: { TO: { ne: '_mouse_' } } },
+                    ],
+                },
+            ],
+            code: L0_FLAG_TURN_GOTO_CHANGED,
+        },
+        // 0-6 タブをめぐろう（タブ）: 絵（コスチューム）が 2 つあるシマラビで始める（スモウルビーのネコは絵が 1 つで、
+        // 絵を足す操作が要った・#2146）。2 つめの絵をえらんでコスチュームが変わり、コードタブにもどった（音の再生は
+        // 判定しない）。シマラビはこのチャレンジだけ（ほかのレッスン 0 と レッスン 1 の課題・ヒントはネコで書いている）
+        {
+            id: 'blocks-l0-tabs',
+            card: { category: CATEGORIES.LOOKS, main: CATEGORIES.LOOKS },
+            task: challengeMessage('blocks-l0-tabs', 'task'),
+            setup: { sprites: ['Shimaraby'] },
+            steps: withTitles('blocks-l0-tabs', [
+                { target: HINT_TARGETS.COSTUMES_TAB },
+                { target: HINT_TARGETS.SOUNDS_TAB },
+                { target: HINT_TARGETS.CODE_TAB },
+            ]),
+            debug: debugTips('blocks-l0-tabs', 1),
+            goal: [
+                { type: 'currentCostume', number: 2 },
+                { type: 'tab', tab: 'code' },
+            ],
+        },
+        // 0-7 なかまと背景をふやそう（スプライトリスト・背景）: スプライトが 2 つ以上・背景が変わった
+        {
+            id: 'blocks-l0-sprite-backdrop',
+            card: { category: CATEGORIES.LOOKS, main: CATEGORIES.LOOKS },
+            task: challengeMessage('blocks-l0-sprite-backdrop', 'task'),
+            steps: withTitles('blocks-l0-sprite-backdrop', [
+                { target: HINT_TARGETS.SPRITE_LIST },
+                { target: HINT_TARGETS.BACKDROP },
+            ]),
+            debug: debugTips('blocks-l0-sprite-backdrop', 1),
+            goal: [
+                { type: 'sprites', min: 2 },
+                { type: 'currentCostume', target: 'stage', changed: true },
+            ],
+        },
+        // 0-8 どこでしょう？（ふりかえり）: 画面の部分をクリックして答える 5 問に、全部正しく答えた
+        {
+            id: 'blocks-l0-where',
+            card: { category: CATEGORIES.SENSING, main: CATEGORIES.SENSING },
+            task: challengeMessage('blocks-l0-where', 'task'),
+            partQuiz: { questions: LESSON0_QUIZ_PARTS },
+            steps: withTitles('blocks-l0-where', [{ target: HINT_TARGETS.PART_QUIZ }]),
+            goal: [{ type: 'partQuiz', count: LESSON0_QUIZ_PARTS.length }],
+        },
+    ],
+});
+
 // チャレンジ id は記録（localStorage・クラスへの引き継ぎ）のキーなので、並びを
 // 変えても変わらない名前にする（番号を入れない）。中身（仕様）は EPIC #1466 の sub-issue。
 // レッスンの id（blocks-l1 / blocks-l2 / blocks-l3）とチャレンジ id は別のもの。チャレンジ id に
@@ -284,24 +482,24 @@ const debugTips = (challengeId, count) =>
 const blocksLesson1 = defineLesson({
     id: 'blocks-l1',
     challenges: [
-        // 1 キーで音を鳴らそう（音）: スペースキーで「ニャー」のあと「Owl」が鳴る
+        // 1 キーで音を鳴らそう（音）: スペースキーで「ニャー」が鳴る。はじめての操作を少なくするため、音タブで
+        // 音を足す手順は入れない（docs/lessons/design.md の「はじめの一歩」）
         {
             id: 'blocks-l1-key-sound',
             card: { category: CATEGORIES.SOUND, main: CATEGORIES.SOUND },
             task: challengeMessage('blocks-l1-key-sound', 'task'),
             allowedBlocks: {
                 event: [{ opcode: 'event_whenkeypressed', fields: { KEY_OPTION: 'space' } }],
-                // 音の ▼ は、足した「Owl」ではなくネコの音（作品を作った locale の名前）
+                // 音の ▼ はネコの音（作品を作った locale の名前）
                 sound: [
                     {
                         opcode: 'sound_playuntildone',
                         inputs: { SOUND_MENU: { ja: 'ニャー', 'ja-Hira': 'Meow', en: 'Meow' } },
                     },
-                    { opcode: 'sound_play', inputs: { SOUND_MENU: { ja: 'ニャー', 'ja-Hira': 'Meow', en: 'Meow' } } },
                 ],
             },
+            // イベントのブロックを置く → 音のブロックをくっつける → キーを押す
             steps: withTitles('blocks-l1-key-sound', [
-                { target: HINT_TARGETS.SOUNDS_TAB },
                 { target: HINT_TARGETS.PALETTE, blocks: 'when_key_pressed("space") do\nend\n', spotlight: true },
                 // つなげる相手（その上のブロック）とつないだ並びで描く（docs/lessons/design.md の「ヒント」・#1582）
                 {
@@ -313,31 +511,23 @@ const blocksLesson1 = defineLesson({
                     },
                     spotlight: true,
                 },
-                {
-                    target: HINT_TARGETS.CODE_AREA,
-                    blocks: {
-                        ja: 'play_until_done("ニャー")\nplay("Owl")\n',
-                        'ja-Hira': 'play_until_done("Meow")\nplay("Owl")\n',
-                        en: 'play_until_done("Meow")\nplay("Owl")\n',
-                    },
-                },
                 { target: HINT_TARGETS.KEYBOARD, spotlight: true },
             ]),
             debug: debugTips('blocks-l1-key-sound', 2),
+            // 見るのは「鳴いた」こと。「終わるまで鳴らす」でも「鳴らす」でもよい
             goal: [
                 {
                     type: 'uses',
                     trigger: { hat: 'event_whenkeypressed', key: 'space' },
-                    blocks: ['sound_playuntildone', 'sound_play'],
-                    order: ['sound_playuntildone', 'sound_play'],
+                    blocks: [{ opcode: ['sound_playuntildone', 'sound_play'] }],
                 },
             ],
             // ネコの音の名前は作品を作ったときの locale で変わる（ja =「ニャー」、en = "Meow"。ja-Hira は
             // scratch-l10n に訳が無く "Meow"）。作品に合わないときは、ほかの locale の code を試す（lesson-hint.jsx）
             code: {
-                ja: 'when_key_pressed("space") do\n  play_until_done("ニャー")\n  play("Owl")\nend\n',
-                'ja-Hira': 'when_key_pressed("space") do\n  play_until_done("Meow")\n  play("Owl")\nend\n',
-                en: 'when_key_pressed("space") do\n  play_until_done("Meow")\n  play("Owl")\nend\n',
+                ja: 'when_key_pressed("space") do\n  play_until_done("ニャー")\nend\n',
+                'ja-Hira': 'when_key_pressed("space") do\n  play_until_done("Meow")\nend\n',
+                en: 'when_key_pressed("space") do\n  play_until_done("Meow")\nend\n',
             },
         },
         // 2 矢印キーで動かそう（動き）: 上下の矢印キーで y 座標を変える
@@ -2692,7 +2882,8 @@ export const COURSES = [
     defineCourse({
         id: 'kyou-kara-programmer',
         language: LANGUAGES.BLOCKS,
-        lessons: [blocksLesson1, blocksLesson2, blocksLesson3],
+        // レッスン 0 は warmup（コースの数に入れない・レッスン表では最初に出す）
+        lessons: [blocksLesson0, blocksLesson1, blocksLesson2, blocksLesson3],
     }),
     defineCourse({
         id: 'chat-wo-tsukurou',
@@ -2725,7 +2916,7 @@ export const findCourse = (courseId, courses = COURSES) => courses.find((c) => c
  */
 export const findLesson = (lessonId, courses = COURSES) => {
     for (const course of courses) {
-        const lesson = course.lessons.find((l) => l.id === lessonId);
+        const lesson = courseLessons(course).find((l) => l.id === lessonId);
         if (lesson) return lesson;
     }
     return null;
@@ -2739,7 +2930,7 @@ export const findLesson = (lessonId, courses = COURSES) => {
  */
 export const findChallenge = (challengeId, courses = COURSES) => {
     for (const course of courses) {
-        for (const lesson of course.lessons) {
+        for (const lesson of courseLessons(course)) {
             const challenge = lesson.challenges.find((c) => c.id === challengeId);
             if (challenge) return { course, lesson, challenge };
         }

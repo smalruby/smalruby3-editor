@@ -1,4 +1,5 @@
 // === Smalruby: This file is Smalruby-specific (the parse stage, docs/ruby-editor/converter-stages.md) ===
+import { unwrapWithoutScreenRefreshDefs } from './screen-refresh-defs';
 
 /**
  * The parse stage: the index of the source and the tree of prism. Mixed into
@@ -35,6 +36,8 @@ const ParseStage = {
             return null;
         }
         this._context.rootNode = parseResult.value; // Save root node for line mapping
+        // `without_screen_refresh def foo` becomes the `def`; the `def`s are kept (issue #2114).
+        this._context.warpDefNodes = unwrapWithoutScreenRefreshDefs(parseResult.value);
         return parseResult;
     },
 };

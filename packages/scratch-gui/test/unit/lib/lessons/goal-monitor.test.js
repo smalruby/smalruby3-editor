@@ -475,7 +475,10 @@ describe('takeSnapshot / takeCostumeCounts', () => {
         const clone = { ...makeTarget({ id: 'clone' }), isOriginal: false };
         const vm = makeVm([stage, cat, clone], ['text2speech']);
         const baseline = takeCostumeCounts(vm.runtime);
-        expect(baseline).toEqual({ stage: { isStage: true, count: 1 }, cat: { isStage: false, count: 2 } });
+        expect(baseline).toEqual({
+            stage: { isStage: true, count: 1, current: null },
+            cat: { isStage: false, count: 2, current: null },
+        });
         const snap = takeSnapshot(vm, baseline);
         expect(snap.spriteCount).toBe(1);
         expect(snap.baselineCostumes).toBe(baseline);
@@ -485,5 +488,88 @@ describe('takeSnapshot / takeCostumeCounts', () => {
         ]);
         expect(snap.isExtensionLoaded('text2speech')).toBe(true);
         expect(snap.isExtensionLoaded('music')).toBe(false);
+    });
+});
+
+describe('attachGoalMonitor for lesson 0 (#2134)', () => {
+    let runtime;
+    let vm;
+    let cat;
+    beforeEach(() => {
+        cat = makeTarget({
+            id: 'cat',
+            blocks: { areaBlock: { opcode: 'motion_movesteps', fields: {} } },
+            costumes: 2,
+        });
+        cat.x = 0;
+        cat.y = 0;
+        cat.currentCostume = 0;
+        const stage = makeTarget({ id: 'stage', isStage: true });
+        vm = makeVm([stage, cat]);
+        runtime = vm.runtime;
+        runtime._primitives.motion_movesteps = jest.fn();
+        // パレットのブロックはスプライトのブロックに無く、flyoutBlocks にある
+        const flyout = { paletteBlock: { opcode: 'motion_movesteps', fields: {} } };
+        runtime.flyoutBlocks.getBlock = (id) => flyout[id] || null;
+    });
+
+    test('tells a block clicked in the palette from one clicked in the code area', () => {
+        const onSatisfied = jest.fn();
+        attachGoalMonitor(
+            vm,
+            [{ type: 'uses', trigger: { click: 'palette' }, blocks: ['motion_movesteps'] }],
+            onSatisfied,
+        );
+        exec(runtime, hatThread(cat, 'areaBlock', { stackClick: true }), 'motion_movesteps');
+        runtime.emit('BEFORE_STEP');
+        expect(onSatisfied).not.toHaveBeenCalled();
+        exec(runtime, hatThread(cat, 'paletteBlock', { stackClick: true }), 'motion_movesteps');
+        runtime.emit('BEFORE_STEP');
+        expect(onSatisfied).toHaveBeenCalledTimes(1);
+    });
+
+    test('moved: the sprite dragged away from the start', () => {
+        const onSatisfied = jest.fn();
+        attachGoalMonitor(vm, [{ type: 'moved' }], onSatisfied);
+        runtime.emit('BEFORE_STEP');
+        expect(onSatisfied).not.toHaveBeenCalled();
+        cat.x = 50;
+        runtime.emit('PROJECT_CHANGED');
+        runtime.emit('BEFORE_STEP');
+        expect(onSatisfied).toHaveBeenCalledTimes(1);
+    });
+
+    test('currentCostume is checked again on TARGETS_UPDATE (the costumes tab does not change the project)', () => {
+        const onSatisfied = jest.fn();
+        attachGoalMonitor(vm, [{ type: 'currentCostume', number: 2 }], onSatisfied);
+        runtime.emit('BEFORE_STEP');
+        cat.currentCostume = 1;
+        runtime.emit('BEFORE_STEP');
+        expect(onSatisfied).not.toHaveBeenCalled();
+        runtime.emit('TARGETS_UPDATE');
+        runtime.emit('BEFORE_STEP');
+        expect(onSatisfied).toHaveBeenCalledTimes(1);
+    });
+
+    test('reads the editor screen with getUi, and refresh() books a check', () => {
+        const onSatisfied = jest.fn();
+        const ui = { activeTab: 'costumes', partQuizSolved: 0 };
+        const detach = attachGoalMonitor(
+            vm,
+            [
+                { type: 'tab', tab: 'code' },
+                { type: 'partQuiz', count: 2 },
+            ],
+            onSatisfied,
+            { getUi: () => ui },
+        );
+        runtime.emit('BEFORE_STEP');
+        ui.activeTab = 'code';
+        ui.partQuizSolved = 2;
+        runtime.emit('BEFORE_STEP');
+        expect(onSatisfied).not.toHaveBeenCalled();
+        detach.refresh();
+        runtime.emit('BEFORE_STEP');
+        expect(onSatisfied).toHaveBeenCalledTimes(1);
     });
 });

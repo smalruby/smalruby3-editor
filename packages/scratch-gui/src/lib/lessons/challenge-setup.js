@@ -1,4 +1,4 @@
-// チャレンジを開くときの準備（deck-setup と同じ形の setup を作る）。
+// チャレンジを開くときの準備（apply-setup.js に渡す setup を作る）。
 // コースの言語からタブと Ruby モードの既定を決め、チャレンジの setup で上書きする。
 import { LANGUAGES } from './courses';
 
@@ -10,7 +10,7 @@ const DEFAULT_SETUP_BY_LANGUAGE = {
 };
 
 /**
- * チャレンジに適用する setup（`lib/deck-setup.js` の applyDeckSetup に渡す形）。
+ * チャレンジに適用する setup（`lib/lessons/apply-setup.js` の applySetup に渡す形）。
  * @param {object} course - チャレンジが入っているコース（`language` を見る）。
  * @param {object} challenge - チャレンジ（`setup` は null でもよい）。
  * @returns {object} タブ・Ruby モード・拡張機能などの setup。

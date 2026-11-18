@@ -117,6 +117,44 @@ describe('findHintTargetRect', () => {
         expect(findHintTargetRect(HINT_TARGETS.SOUNDS_TAB, document)).toEqual(rect(200, 0, 300, 40));
     });
 
+    // ルビータブは 4 つめのタブ。SP はサイドレールのボタン（#2142）
+    test('the Ruby tab is the 4th desktop tab, or the side rail button on SP', () => {
+        const list = document.createElement('ul');
+        [rect(0, 88, 92, 120), rect(92, 88, 214, 120), rect(214, 88, 290, 120), rect(290, 88, 372, 120)].forEach(
+            (r) => {
+                const li = document.createElement('li');
+                li.className = 'gui_tab_abc';
+                li.getBoundingClientRect = () => r;
+                list.appendChild(li);
+            },
+        );
+        document.body.appendChild(list);
+        expect(findHintTargetRect(HINT_TARGETS.RUBY_TAB, document)).toEqual(rect(290, 88, 372, 120));
+        addEl('x', rect(0, 300, 48, 348), { 'data-testid': 'mobile-side-rail-ruby' });
+        expect(findHintTargetRect(HINT_TARGETS.RUBY_TAB, document)).toEqual(rect(0, 300, 48, 348));
+    });
+
+    // 名前の札（「ガイド」）でも使う場所（#2133）
+    test('the stop button, the code tab, the task bar and the hint button are found', () => {
+        addEl('stop-all_stop-all-button_abc', rect(0, 0, 10, 10));
+        expect(findHintTargetRect(HINT_TARGETS.STOP_BUTTON, document)).toBeNull();
+        addEl('stop-all_stop-all_abc', rect(940, 60, 970, 90));
+        expect(findHintTargetRect(HINT_TARGETS.STOP_BUTTON, document)).toEqual(rect(940, 60, 970, 90));
+        const list = document.createElement('ul');
+        [rect(0, 88, 100, 120), rect(100, 88, 200, 120)].forEach((r) => {
+            const li = document.createElement('li');
+            li.className = 'gui_tab_abc';
+            li.getBoundingClientRect = () => r;
+            list.appendChild(li);
+        });
+        document.body.appendChild(list);
+        expect(findHintTargetRect(HINT_TARGETS.CODE_TAB, document)).toEqual(rect(0, 88, 100, 120));
+        addEl('', rect(0, 48, 1300, 88), { 'data-testid': 'lesson-task-bar' });
+        addEl('', rect(1000, 56, 1050, 80), { 'data-testid': 'lesson-task-bar-hint' });
+        expect(findHintTargetRect(HINT_TARGETS.TASK_BAR, document)).toEqual(rect(0, 48, 1300, 88));
+        expect(findHintTargetRect(HINT_TARGETS.HINT_BUTTON, document)).toEqual(rect(1000, 56, 1050, 80));
+    });
+
     test('the extension button is found by the data-testid of the Smalruby component', () => {
         addEl('extension-button_extension-button-container_abc', rect(0, 540, 60, 600), {
             'data-testid': 'extension-button',
@@ -132,6 +170,31 @@ describe('findHintTargetRect', () => {
         addEl('', rect(746, 132, 922, 331), { 'data-testid': 'lesson-practice-partner' });
         expect(findHintTargetRect(HINT_TARGETS.PRACTICE_PARTNER, document)).toEqual(rect(746, 132, 922, 331));
         expect(findHintAvoidRects(document)).toEqual([rect(746, 132, 922, 331)]);
+    });
+
+    test('the list of costumes or sounds is avoided, so the balloon does not hide the 2nd costume (#2146)', () => {
+        expect(findHintAvoidRects(document, HINT_TARGETS.COSTUMES_TAB)).toEqual([]);
+        addEl('selector_wrapper_abc', rect(0, 117, 150, 563));
+        expect(findHintAvoidRects(document, HINT_TARGETS.COSTUMES_TAB)).toEqual([rect(0, 117, 150, 563)]);
+    });
+
+    test('a balloon pointing at the code area does not cover the scripts in it (#2146)', () => {
+        const blocks = addEl('blocks_blocks_abc', rect(0, 88, 920, 563));
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('class', 'blocklySvg');
+        const ws = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        ws.setAttribute('class', 'blocklyWorkspace');
+        const canvas = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        canvas.setAttribute('class', 'blocklyBlockCanvas');
+        const script = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        script.setAttribute('class', 'event_whenflagclicked blocklyBlock blocklyDraggable');
+        script.getBoundingClientRect = () => rect(516, 304, 719, 418);
+        canvas.appendChild(script);
+        ws.appendChild(canvas);
+        svg.appendChild(ws);
+        blocks.appendChild(svg);
+        expect(findHintAvoidRects(document, HINT_TARGETS.CODE_AREA)).toEqual([rect(516, 304, 719, 418)]);
+        expect(findHintAvoidRects(document, HINT_TARGETS.PALETTE)).toEqual([]);
     });
 
     test('the role buttons in the task bar are found by their data-testid (not the note under them)', () => {
@@ -163,7 +226,20 @@ describe('hint targets: CSS Modules class names of upstream components', () => {
         'sprite-selector_sprite-selector_': ['sprite-selector/sprite-selector.css', 'sprite-selector'],
         'stage-selector_stage-selector_': ['stage-selector/stage-selector.css', 'stage-selector'],
         'green-flag_green-flag_': ['green-flag/green-flag.css', 'green-flag'],
+        'stop-all_stop-all_': ['stop-all/stop-all.css', 'stop-all'],
+        selector_wrapper_: ['asset-panel/selector.css', 'wrapper'],
     };
+
+    // タブは並び順（nth-child）で探す。ルビータブ（Smalruby が足したタブ）が 4 つめのままかを見張る（#2142）
+    test('the tabs are Code, Costumes, Sounds and Ruby in this order in gui.jsx', () => {
+        const gui = fs.readFileSync(path.join(srcDir, 'components/gui/gui.jsx'), 'utf8');
+        const ids = ['gui.gui.codeTab', 'gui.gui.costumesTab', 'gui.gui.soundsTab', 'gui.smalruby3.gui.rubyTab'];
+        const at = ids.map((id) => gui.indexOf(`id="${id}"`));
+        at.forEach((i) => expect(i).toBeGreaterThan(0));
+        expect([...at].sort((x, y) => x - y)).toEqual(at);
+        const tabList = gui.slice(gui.indexOf('<TabList'), gui.indexOf('</TabList>'));
+        expect(tabList.match(/<Tab\b/g)).toHaveLength(4);
+    });
 
     test('every class prefix used by the selectors is listed here', () => {
         const used = new Set(Array.from(source.matchAll(/\[class\*="([^"]+)"\]/g), (m) => m[1]));
@@ -235,6 +311,20 @@ describe('computeHintPlacement', () => {
         expect(below.top).toBe(92);
         expect(below.left).toBe(8);
         expect(below.arrow).toEqual({ x: 142, y: 12 });
+    });
+
+    test('below the costumes tab, the balloon moves off the list of costumes (#2146)', () => {
+        const tab = rect(100, 88, 230, 116);
+        const list = rect(0, 117, 150, 563);
+        const placed = computeHintPlacement({
+            target: tab,
+            balloon,
+            viewport: { width: 1300, height: 600, top: 80 },
+            sides: preferredSides('costumes-tab'),
+            avoid: [list],
+        });
+        expect(placed.left).toBeGreaterThanOrEqual(list.right);
+        expect(placed.top).toBeGreaterThanOrEqual(tab.bottom);
     });
 
     // 1300×600 のチャットのレッスン 3: 練習相手のパネル（コードエリアの右上）に吹き出しをかぶせない（#1643）

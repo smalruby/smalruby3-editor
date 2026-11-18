@@ -217,7 +217,7 @@ export default function (Generator) {
                     /^self\.when\(/.test(trimmed) ||
                     /^when_/.test(trimmed) ||
                     /^\w+\.when[\s_(]/.test(trimmed) ||
-                    /^def /.test(trimmed)
+                    /^(?:without_screen_refresh )?def /.test(trimmed)
                 ) {
                     insideSections.push(section);
                 } else {

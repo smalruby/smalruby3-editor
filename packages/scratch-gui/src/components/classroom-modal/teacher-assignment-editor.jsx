@@ -19,7 +19,6 @@ import {
 } from '../../lib/classroom-assignment-utils.js';
 import { effectiveScoring, lessonChanges } from '../../lib/classroom-lesson-settings.js';
 import { findCourse } from '../../lib/lessons/courses.js';
-import Spinner from '../spinner/spinner.jsx';
 import styles from './classroom-modal.css';
 import ErrorDisplay from './error-display.jsx';
 import LessonScoringField, { lessonScoringMessages } from './lesson-scoring-field.jsx';
@@ -241,7 +240,6 @@ const TeacherAssignmentEditor = ({
     onRemovePage,
     onRemovePageImage,
     onRemoveStarter,
-    onSave,
     onUseCurrentProject,
     onUseFile,
 }) => {
@@ -382,34 +380,14 @@ const TeacherAssignmentEditor = ({
     return (
         <div className={styles.assignmentEditor} data-testid="classroom-description-editor">
             {/* E1 (#1303): the save button sits at the top (like Google
-                Classroom's "Assign"), so it is visible without scrolling. */}
-            <div className={styles.assignmentEditorHeader}>
-                <p className={styles.assignmentEditorHint}>
-                    <FormattedMessage
-                        defaultMessage="Students see these pages when they join with the class code, and start from the starter project with a button."
-                        description="Assignment editor explanation"
-                        id="gui.classroom.assignmentEditor.hint"
-                    />
-                </p>
-                <div className={styles.assignmentEditorActions}>
-                    <button
-                        className={styles.primaryButton}
-                        data-testid="classroom-assignment-save"
-                        disabled={isSaving}
-                        onClick={onSave}
-                    >
-                        {isSaving ? (
-                            <Spinner className={styles.buttonSpinner} small />
-                        ) : (
-                            <FormattedMessage
-                                defaultMessage="Save Assignment"
-                                description="Assignment editor: save"
-                                id="gui.classroom.assignmentEditor.save"
-                            />
-                        )}
-                    </button>
-                </div>
-            </div>
+                Classroom's "Assign"), in the「✕ ＋ 課題名」row above the tabs (#2089). */}
+            <p className={styles.assignmentEditorHint}>
+                <FormattedMessage
+                    defaultMessage="Students see these pages when they join with the class code, and start from the starter project with a button."
+                    description="Assignment editor explanation"
+                    id="gui.classroom.assignmentEditor.hint"
+                />
+            </p>
 
             <ErrorDisplay error={error} errorTitle={errorTitle} />
 
@@ -747,7 +725,6 @@ TeacherAssignmentEditor.propTypes = {
     onRemovePage: PropTypes.func.isRequired,
     onRemovePageImage: PropTypes.func.isRequired,
     onRemoveStarter: PropTypes.func.isRequired,
-    onSave: PropTypes.func.isRequired,
     onUseCurrentProject: PropTypes.func.isRequired,
     onUseFile: PropTypes.func.isRequired,
 };

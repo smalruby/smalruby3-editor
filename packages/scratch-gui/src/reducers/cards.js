@@ -11,9 +11,6 @@ const PREV_STEP = 'scratch-gui/cards/PREV_STEP';
 const DRAG_CARD = 'scratch-gui/cards/DRAG_CARD';
 const START_DRAG = 'scratch-gui/cards/START_DRAG';
 const END_DRAG = 'scratch-gui/cards/END_DRAG';
-// === Smalruby: Start of start-tutorial button ===
-const SET_PENDING_PROJECT_TITLE = 'scratch-gui/cards/SET_PENDING_PROJECT_TITLE';
-// === Smalruby: End of start-tutorial button ===
 
 const initialState = {
     visible: false,
@@ -23,11 +20,7 @@ const initialState = {
     x: 0,
     y: 0,
     expanded: true,
-    dragging: false,
-    tutorialAllowedBlocks: null,
-    // === Smalruby: Start of start-tutorial button ===
-    pendingProjectTitle: null
-    // === Smalruby: End of start-tutorial button ===
+    dragging: false
 };
 
 const reducer = function (state, action) {
@@ -35,8 +28,7 @@ const reducer = function (state, action) {
     switch (action.type) {
     case CLOSE_CARDS:
         return Object.assign({}, state, {
-            visible: false,
-            tutorialAllowedBlocks: null
+            visible: false
         });
     case SHRINK_EXPAND_CARDS:
         return Object.assign({}, state, {
@@ -46,18 +38,15 @@ const reducer = function (state, action) {
         return Object.assign({}, state, {
             visible: true
         });
-    case ACTIVATE_DECK: {
-        const deck = state.content[action.activeDeckId];
+    case ACTIVATE_DECK:
         return Object.assign({}, state, {
             activeDeckId: action.activeDeckId,
             step: 0,
             x: 0,
             y: 0,
             expanded: true,
-            visible: true,
-            tutorialAllowedBlocks: (deck && deck.allowedBlocks) ? deck.allowedBlocks : null
+            visible: true
         });
-    }
     case NEXT_STEP:
         if (state.activeDeckId !== null) {
             analytics.event({
@@ -92,12 +81,6 @@ const reducer = function (state, action) {
         return Object.assign({}, state, {
             dragging: false
         });
-    // === Smalruby: Start of start-tutorial button ===
-    case SET_PENDING_PROJECT_TITLE:
-        return Object.assign({}, state, {
-            pendingProjectTitle: action.title
-        });
-    // === Smalruby: End of start-tutorial button ===
     default:
         return state;
     }
@@ -142,12 +125,6 @@ const endDrag = function () {
     return {type: END_DRAG};
 };
 
-// === Smalruby: Start of start-tutorial button ===
-const setPendingProjectTitle = function (title) {
-    return {type: SET_PENDING_PROJECT_TITLE, title};
-};
-// === Smalruby: End of start-tutorial button ===
-
 export {
     reducer as default,
     initialState as cardsInitialState,
@@ -159,8 +136,5 @@ export {
     prevStep,
     dragCard,
     startDrag,
-    endDrag,
-    // === Smalruby: Start of start-tutorial button ===
-    setPendingProjectTitle
-    // === Smalruby: End of start-tutorial button ===
+    endDrag
 };

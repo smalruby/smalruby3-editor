@@ -305,7 +305,7 @@ describe('LessonPracticePartner container', () => {
         expect(screen.queryByTestId('lesson-practice-partner-missing')).toBeNull();
         fireEvent.click(button);
         expect(screen.getByTestId('lesson-practice-partner-missing')).toHaveTextContent(
-            '"なまえ" is still empty. Click the flag and enter it first.',
+            '"なまえ" is still empty. Click the Green Flag and enter it first.',
         );
         expect(vm.runtime.startHats).not.toHaveBeenCalled();
         name.value = 'たかお';

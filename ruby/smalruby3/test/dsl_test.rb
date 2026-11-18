@@ -29,6 +29,21 @@ class DSLTest < Minitest::Test
     assert_equal "all around", klass._initial_rotation_style
   end
 
+  def test_without_screen_refresh_def_defines_the_method
+    sprite_class = Class.new(Smalruby3::Sprite) do
+      without_screen_refresh def foo(n)
+        n * 2
+      end
+    end
+    stage_class = Class.new(Smalruby3::Stage) do
+      without_screen_refresh def bar
+        3
+      end
+    end
+    assert sprite_class.method_defined?(:foo)
+    assert stage_class.method_defined?(:bar)
+  end
+
   def test_sprite_set_sprite
     klass = Class.new(Smalruby3::Sprite) do
       set_sprite "Shimaraby"
