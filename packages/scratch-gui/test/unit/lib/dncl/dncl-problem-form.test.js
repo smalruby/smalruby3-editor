@@ -6,7 +6,7 @@ import {
     problemFormText,
 } from '../../../../src/lib/dncl/dncl-problem-form';
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
-import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { FORMS, rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
 
 // The programs are written for these tests in the style of the 共通テスト
 // notation; no question of the test is used (docs/dncl/policy.md).
@@ -247,22 +247,30 @@ describe('problemFormText pasted back, more forms', () => {
         roundTrip(['もし a ならば:', '    x = 1', '# 外のコメント', '    y = 1'].join('\n'));
     });
 
+    const WHILE_IF_RUBY = [
+        '@x = 0',
+        'while @x < 5',
+        '  if @x == 1',
+        '    @y = 1',
+        '  elsif @x == 2',
+        '    @y = 2',
+        '  else',
+        '    @y = 3',
+        '  end',
+        '  @x += 1',
+        'end',
+    ].join('\n');
+
     test('the DNCL-like form made from Ruby (while, if / elsif / else, +=)', () => {
-        const ruby = [
-            '@x = 0',
-            'while @x < 5',
-            '  if @x == 1',
-            '    @y = 1',
-            '  elsif @x == 2',
-            '    @y = 2',
-            '  else',
-            '    @y = 3',
-            '  end',
-            '  @x += 1',
-            'end',
-        ].join('\n');
-        const { dncl } = rubyToDncl(ruby);
+        const { dncl } = rubyToDncl(WHILE_IF_RUBY, { form: FORMS.DNCL });
         expect(dncl).toContain('を繰り返す');
+        roundTrip(dncl);
+        expect(dnclToRuby(tidyPastedDncl(problemFormText(dncl))).ruby).toContain('@x += 1');
+    });
+
+    test('the standard form made from Ruby (while, if / elsif / else, +=)', () => {
+        const { dncl } = rubyToDncl(WHILE_IF_RUBY);
+        expect(dncl).toContain('の間繰り返す:');
         roundTrip(dncl);
         expect(dnclToRuby(tidyPastedDncl(problemFormText(dncl))).ruby).toContain('@x += 1');
     });
