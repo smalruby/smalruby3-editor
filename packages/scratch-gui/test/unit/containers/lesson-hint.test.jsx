@@ -63,6 +63,7 @@ const baseProps = () => ({
     onInsertCode: jest.fn(),
     onNextHint: jest.fn(),
     onPrevHint: jest.fn(),
+    onShowHint: jest.fn(),
     rubyVersion: '2',
     scratchBlocks: null,
     vm: { editingTarget: { id: 'sprite' } },
@@ -359,8 +360,8 @@ describe('LessonHint container', () => {
 
     test('draws the hint blocks of the UI locale', async () => {
         const current = findChallenge('blocks-l1-key-sound');
-        const step = current.challenge.steps[2];
-        const hint = { ...keySoundLastPage().hint, index: 2, step, lastResort: false };
+        const step = current.challenge.steps[1];
+        const hint = { ...keySoundLastPage().hint, index: 1, step, lastResort: false };
         renderContainer({ ...baseProps(), current, hint }, 'en');
         await flush();
         expect(rubyToBlocksXml.mock.calls[0][2]).toBe(
@@ -550,6 +551,43 @@ describe('LessonHint container', () => {
         expect(props.vm.addSprite).not.toHaveBeenCalled();
         expect(targetCodeToBlocks).not.toHaveBeenCalled();
         expect(props.onInsertCode).not.toHaveBeenCalled();
+    });
+
+    test('a small hint shows only the tag with the page and a short heading; pressing it shows the hint again', () => {
+        const props = { ...baseProps(), hint: hintFor(1, { visible: false, minimized: true }) };
+        const { getByTestId, queryByTestId } = renderContainer(props);
+        expect(queryByTestId('lesson-hint')).not.toBeInTheDocument();
+        expect(queryByTestId('lesson-hint-spotlight')).not.toBeInTheDocument();
+        const { challenge } = findChallenge(CHALLENGE_ID);
+        expect(getByTestId('lesson-hint-minimized-position')).toHaveTextContent(
+            `Hint 2/${challenge.steps.length + 1}`,
+        );
+        expect(getByTestId('lesson-hint-minimized-heading').textContent.length).toBeGreaterThan(0);
+        expect(getByTestId('lesson-hint-minimized-heading').textContent).not.toContain('**');
+        fireEvent.click(getByTestId('lesson-hint-minimized'));
+        expect(props.onShowHint).toHaveBeenCalledTimes(1);
+    });
+
+    test('the small tag glows while the student seems stuck (#2132)', () => {
+        const props = { ...baseProps(), nudge: true, hint: hintFor(1, { visible: false, minimized: true }) };
+        const { getByTestId } = renderContainer(props);
+        expect(getByTestId('lesson-hint-minimized')).toHaveAttribute('data-nudge', 'true');
+    });
+
+    test('the small tag of the last page says "If it does not work"', () => {
+        const { challenge } = findChallenge(CHALLENGE_ID);
+        const props = {
+            ...baseProps(),
+            hint: hintFor(challenge.steps.length, { visible: false, minimized: true }),
+        };
+        const { getByTestId } = renderContainer(props);
+        expect(getByTestId('lesson-hint-minimized-heading')).toHaveTextContent('If it does not work');
+    });
+
+    test('the minimize button of the balloon has a minus and says it makes the hint small', () => {
+        const { getByTestId } = renderContainer(baseProps());
+        expect(getByTestId('lesson-hint-close')).toHaveTextContent('－');
+        expect(getByTestId('lesson-hint-close')).toHaveAttribute('aria-label', 'Make the hint small');
     });
 
     test('next / back / close dispatch', () => {

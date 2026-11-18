@@ -109,6 +109,21 @@ describe('isIgnorableSevereLog (environment noise)', () => {
         expect(isIgnorableSevereLog(message)).toBe(false);
     });
 
+    test('ignores the upstream LibraryItem id warning of the hidden tutorials in the tutorial library', () => {
+        const message =
+            'gui.js 133170:16 "Warning: Failed %s type: %s%s" "prop" "The prop `id` is marked as required in ' +
+            '`LibraryItem`, but its value is `undefined`." "\\n    at LibraryItem (gui.js:1:5)\\n    at div' +
+            '\\n    at LibraryComponent (gui.js:2:5)\\n    at injectIntl(LibraryComponent)\\n    at TipsLibrary (gui.js:3:5)"';
+        expect(isIgnorableSevereLog(message)).toBe(true);
+    });
+
+    test('does not ignore the LibraryItem id warning outside the tutorial library', () => {
+        const message =
+            'gui.js 133170:16 "Warning: Failed %s type: %s%s" "prop" "The prop `id` is marked as required in ' +
+            '`LibraryItem`, but its value is `undefined`." "\\n    at LibraryItem (gui.js:1:5)\\n    at CostumeLibrary (gui.js:3:5)"';
+        expect(isIgnorableSevereLog(message)).toBe(false);
+    });
+
     test('does not ignore other WebSocket failures', () => {
         const message = "WebSocket connection to 'wss://example.com/' failed: net::ERR_NAME_NOT_RESOLVED";
         expect(isIgnorableSevereLog(message)).toBe(false);

@@ -4,7 +4,8 @@
 //   - ブロックの実行: vm-execution-hook.js（opcode・引数・スレッド → run）
 //   - 言った文字:     runtime の 'SAY' イベント（looks_say / looks_sayforsecs / think）
 //   - 答え:           runtime の 'ANSWER' イベント（「聞いて待つ」に入力したとき）
-//   - いまの状態:     takeSnapshot（変数・リスト・スプライト数・コスチューム数・拡張機能）
+//   - いまの状態:     takeSnapshot（変数・リスト・スプライト数・コスチューム・位置・拡張機能）と、エディタの画面の状態
+//                     （いまのタブ・クイズの答え。attachGoalMonitor の getUi・#2134）
 // 判定は、何か記録があったあとの次の step（runtime の 'BEFORE_STEP'）で 1 回だけ行う。
 import { createFacts, evaluateGoal, recordAnswer, recordExecution, recordSay, startRun } from './goal';
 import { hookOpcodeExecution, resetExecuteCaches } from './vm-execution-hook';
@@ -17,16 +18,34 @@ const costumeCount = (target) => {
 };
 
 /**
- * ターゲットごとのコスチューム（背景）の数。
+ * ターゲットごとのコスチューム（背景）の数と、いまのコスチュームの番号（0 から）。
  * @param {object} runtime - VM の runtime。
- * @returns {object} ターゲット id → `{isStage, count}`。
+ * @returns {object} ターゲット id → `{isStage, count, current}`。
  */
 export const takeCostumeCounts = (runtime) => {
     const counts = {};
     originalTargets(runtime).forEach((target) => {
-        counts[target.id] = { isStage: Boolean(target.isStage), count: costumeCount(target) };
+        counts[target.id] = {
+            isStage: Boolean(target.isStage),
+            count: costumeCount(target),
+            current: Number.isInteger(target.currentCostume) ? target.currentCostume : null,
+        };
     });
     return counts;
+};
+
+/**
+ * スプライトごとの位置（ステージは入れない）。
+ * @param {object} runtime - VM の runtime。
+ * @returns {object} ターゲット id → `{x, y}`。
+ */
+export const takePositions = (runtime) => {
+    const positions = {};
+    originalTargets(runtime).forEach((target) => {
+        if (target.isStage || typeof target.x !== 'number' || typeof target.y !== 'number') return;
+        positions[target.id] = { x: target.x, y: target.y };
+    });
+    return positions;
 };
 
 const variablesOf = (target) => Object.values(target.variables || {});
@@ -35,9 +54,11 @@ const variablesOf = (target) => Object.values(target.variables || {});
  * いまの作品の状態（goal.js の result 系の条件が見るもの）。
  * @param {object} vm - VM。
  * @param {object} baselineCostumes - 見張りを始めたときの takeCostumeCounts。
+ * @param {object} [baselinePositions] - 見張りを始めたときの takePositions。
+ * @param {object} [ui] - エディタの画面の状態（`{activeTab, partQuizSolved}`）。
  * @returns {object} snapshot。
  */
-export const takeSnapshot = (vm, baselineCostumes) => {
+export const takeSnapshot = (vm, baselineCostumes, baselinePositions = {}, ui = {}) => {
     const runtime = vm.runtime;
     const targets = originalTargets(runtime);
     const variables = [];
@@ -56,6 +77,9 @@ export const takeSnapshot = (vm, baselineCostumes) => {
         spriteCount: targets.filter((target) => !target.isStage).length,
         costumes: takeCostumeCounts(runtime),
         baselineCostumes,
+        positions: takePositions(runtime),
+        baselinePositions,
+        ui,
         variables,
         isExtensionLoaded: (id) =>
             Boolean(extensionManager && typeof extensionManager.isExtensionLoaded === 'function') &&
@@ -92,10 +116,15 @@ const readRemoteValues = (runtime) => {
     return values;
 };
 
-// スレッドの始まり（ハット）を run の形にする
-const describeThread = (thread) => {
+// スレッドの始まり（ハット）を run の形にする。パレットで押したブロックはスプライトのブロックに無く、
+// runtime.flyoutBlocks にある（execute.js も flyoutBlocks から探す）。それを `palette` として分ける（#2134）
+const describeThread = (thread, runtime) => {
     const container = thread.blockContainer || (thread.target && thread.target.blocks);
-    const block = container && typeof container.getBlock === 'function' ? container.getBlock(thread.topBlock) : null;
+    const own = container && typeof container.getBlock === 'function' ? container.getBlock(thread.topBlock) : null;
+    const flyout = runtime && runtime.flyoutBlocks;
+    const fromPalette =
+        !own && Boolean(thread.stackClick) && Boolean(flyout && flyout.getBlock && flyout.getBlock(thread.topBlock));
+    const block = own || (fromPalette ? flyout.getBlock(thread.topBlock) : null);
     const fields = {};
     if (block && block.fields) {
         Object.entries(block.fields).forEach(([name, field]) => {
@@ -103,7 +132,12 @@ const describeThread = (thread) => {
         });
     }
     return {
-        trigger: { hat: block ? block.opcode : null, fields, stackClick: Boolean(thread.stackClick) },
+        trigger: {
+            hat: block ? block.opcode : null,
+            fields,
+            stackClick: Boolean(thread.stackClick),
+            palette: fromPalette,
+        },
         targetId: thread.target ? thread.target.id : null,
         isStage: Boolean(thread.target && thread.target.isStage),
     };
@@ -162,13 +196,17 @@ const copyArgs = (args) => {
  * @param {object} vm - VM（`vm.runtime` を使う）。
  * @param {Array<object>} goal - チャレンジの goal（goal.js）。
  * @param {function(): void} onSatisfied - 満たしたときに呼ぶ。
- * @returns {function(): void} 見張りをやめる関数。
+ * @param {object} [options] - 任意。
+ * @param {function(): object} [options.getUi] - エディタの画面の状態（`{activeTab, partQuizSolved}`）を返す。
+ *   `tab` / `partQuiz` の条件が見る。画面の状態が変わったら、返す関数の `refresh()` で判定を予約する。
+ * @returns {function(): void} 見張りをやめる関数（`refresh()` で次の step に判定し直す）。
  */
-export const attachGoalMonitor = (vm, goal, onSatisfied) => {
+export const attachGoalMonitor = (vm, goal, onSatisfied, { getUi = null } = {}) => {
     const runtime = vm.runtime;
     const facts = createFacts();
     const runs = new WeakMap();
     const baselineCostumes = takeCostumeCounts(runtime);
+    const baselinePositions = takePositions(runtime);
     let dirty = true;
     let detached = false;
     // 最後にブロックを動かした run。「言う」「聞いて待つ」は、見張りが呼ばれたすぐあとに同じブロックの中で
@@ -178,7 +216,7 @@ export const attachGoalMonitor = (vm, goal, onSatisfied) => {
     const runFor = (thread) => {
         let run = runs.get(thread);
         if (!run) {
-            run = startRun(facts, describeThread(thread));
+            run = startRun(facts, describeThread(thread, runtime));
             runs.set(thread, run);
         }
         return run;
@@ -229,6 +267,8 @@ export const attachGoalMonitor = (vm, goal, onSatisfied) => {
         ['PROJECT_CHANGED', markDirty],
         ['EXTENSION_ADDED', markDirty],
         ['targetWasCreated', markDirty],
+        // コスチュームの切りかえ・スプライトの移動（コスチュームタブで選んだときは PROJECT_CHANGED が出ない）
+        ['TARGETS_UPDATE', markDirty],
     ];
 
     const detach = () => {
@@ -241,7 +281,8 @@ export const attachGoalMonitor = (vm, goal, onSatisfied) => {
     const check = () => {
         if (detached || !dirty) return;
         dirty = false;
-        if (!evaluateGoal(goal, facts, takeSnapshot(vm, baselineCostumes)).satisfied) return;
+        const ui = getUi ? getUi() || {} : {};
+        if (!evaluateGoal(goal, facts, takeSnapshot(vm, baselineCostumes, baselinePositions, ui)).satisfied) return;
         detach();
         onSatisfied();
     };
@@ -249,5 +290,6 @@ export const attachGoalMonitor = (vm, goal, onSatisfied) => {
 
     listeners.forEach(([event, listener]) => runtime.on(event, listener));
 
+    detach.refresh = markDirty;
     return detach;
 };
