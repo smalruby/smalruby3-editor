@@ -15,7 +15,9 @@ const PollingClientMixin = {
      * Start polling for events when WebSocket is not available.
      */
     startPolling() {
-        this.stopPolling();
+        // issue #2241: 参加の前に入れた lastFetchTime を残す（ここで消すと、最初のポーリングが
+        // 「今」から始まり、参加から最初のポーリングまでに送られたメッセージを取りこぼす）。
+        this._clearPollingTimer();
         if (!this.groupId) return;
 
         debug(() => `Mesh V2: Starting event polling (Interval: ${this.pollingIntervalSeconds}s)`);
@@ -29,12 +31,20 @@ const PollingClientMixin = {
      * Stop event polling.
      */
     stopPolling() {
+        this._clearPollingTimer();
+        this.lastFetchTime = '';
+    },
+
+    /**
+     * Stop the polling timer only, keeping lastFetchTime.
+     * @private
+     */
+    _clearPollingTimer() {
         if (this.pollingTimer) {
             debug(() => 'Mesh V2: Stopping event polling');
             clearInterval(this.pollingTimer);
             this.pollingTimer = null;
         }
-        this.lastFetchTime = '';
     },
 
     /**
