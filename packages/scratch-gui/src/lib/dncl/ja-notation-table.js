@@ -1,7 +1,7 @@
 // === Smalruby: This file is Smalruby-specific (the Smalruby table of ja-notation) ===
 //
 // What the names and functions of the Japanese mode become in Smalruby's Ruby,
-// given to the ja-notation library (src/lib/ja-notation/, MIT), which has no
+// given to the ja-notation library (packages/ja-notation/, MIT), which has no
 // rule of its own. `dnclToRuby` (./dncl-to-ruby.js) converts the Japanese of the
 // editor with it (J3 of docs/ruby-editor/converter-roadmap.md).
 import { RUBY_LITERALS } from './dncl-keywords';

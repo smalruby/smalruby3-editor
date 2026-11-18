@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // ja-notation: read the Ruby syntax tree of prism into a JaAST (d of
-// docs/ruby-editor/converter-roadmap.md, 2 章). See ./LICENSE.
+// docs/ruby-editor/converter-roadmap.md, 2 章). See ../LICENSE.
 //
 // The JaAST it makes is the one `parse` makes from the Japanese of the same
 // program, so the Ruby the library builds from it (`buildRuby`) is the Ruby
@@ -15,8 +15,8 @@
 // The lines of the JaAST are the lines of the Ruby. The settings are read from
 // the comments at the top (./settings.js), and what they change is changed
 // back on the tree: with indexes from 1, `@A[i - 1]` is read as `A[i]`.
-import { callOf, childrenOf, field, hasFlag, SourceIndex, statementsOf, typeOf, unwrap } from './prism-reader';
-import { indexToJa, readSettings } from './settings';
+import { callOf, childrenOf, field, hasFlag, SourceIndex, statementsOf, typeOf, unwrap } from './prism-reader.js';
+import { indexToJa, readSettings } from './settings.js';
 
 /** The binary operators of Ruby that are the same in the Japanese. */
 const BINARY_OPERATORS = new Set(['+', '-', '*', '/', '%', '==', '!=', '<', '<=', '>', '>=']);
@@ -1129,7 +1129,7 @@ class RubyReader {
  *   Japanese of a call (`puts(x)` → `表示する(x)`), or null when it is not one.
  *   `call` is `{name, receiver, args, hasParens, node}` (prism nodes); the
  *   helpers read them (`expression`, `call`, `callOf`, `typeOf`, `unwrap`, `text`).
- * @param {{isQuestion: Function, kindOf: Function}} [options.input] - The
+ * @param {{isQuestion: function(object, object): boolean, kindOf: function(object, object): ?string}} [options.input] - The
  *   question of an input (`isQuestion(call, helpers)`) and the kind of input
  *   its answer is (`kindOf(valueNode, helpers)`: `external` / `integer` / `string` / null).
  * @param {Set<string>} [options.passthrough] - Names of the Ruby system the Japanese writes as they are.

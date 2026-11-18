@@ -3,7 +3,7 @@
 /**
  * The rule for measuring the indent of a DNCL line in the problem form
  * (`dncl-problem-form.js`). The reader (`indentWidth` of
- * `src/lib/ja-notation/parse.js`) measures the same way, so that the blocks
+ * `packages/ja-notation/src/parse.js`) measures the same way, so that the blocks
  * the reader finds and the rules the editor draws agree.
  * A tab counts as 4 columns and the full-width space (U+3000) as 2, so mixed
  * indentation still compares sensibly.

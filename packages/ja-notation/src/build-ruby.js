@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// ja-notation: build the Ruby syntax tree (RubyAST) from a JaAST. See ./LICENSE.
+// ja-notation: build the Ruby syntax tree (RubyAST) from a JaAST. See ../LICENSE.
 //
 // The RubyAST is a small tree of plain objects whose `type` names are the node
 // names of prism (`CallNode`, `IfNode`, ...), with only the fields the Japanese
@@ -11,7 +11,7 @@
 //
 // Every Ruby statement has `jaLine` (the Japanese line it comes from) and may
 // have `comment`; a block has `closeLine` / `closeAfter` (see ./ja-ast.js).
-import { indexToRuby, settingsOf } from './settings';
+import { indexToRuby, settingsOf } from './settings.js';
 
 /**
  * A call: `receiver.name(args)`, an operator (`name` is `+`, `-@`, `!`, `[]`,

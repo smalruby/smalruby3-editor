@@ -1,6 +1,6 @@
 // === Smalruby: This file is Smalruby-specific (the words of the errors of ja-notation) ===
 //
-// ja-notation (src/lib/ja-notation/, MIT) says why it cannot read the Japanese
+// ja-notation (packages/ja-notation/, MIT) says why it cannot read the Japanese
 // with a `code` and the details of the error (the name, the block). The
 // editor keeps the words the students see (the 標準の形 ones of #2041 and the
 // ids the UI translates): this file turns each error of ja-notation into them.

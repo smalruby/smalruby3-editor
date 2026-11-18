@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // ja-notation: write the Japanese of a JaAST in the standard form (e of
-// docs/ruby-editor/converter-roadmap.md, 2 章). See ./LICENSE.
+// docs/ruby-editor/converter-roadmap.md, 2 章). See ../LICENSE.
 //
 // The standard form (the form of 共通テスト用プログラム表記): a block is
 // opened by a line that ends with `:` and holds the lines indented under it
@@ -17,7 +17,7 @@
 //   as a line of the block.
 //
 // The comments are written with the comment mark of the settings (`//` or `#`).
-import { settingsOf, writeComment } from './settings';
+import { settingsOf, writeComment } from './settings.js';
 
 /** The spaces of one level of indent. */
 const INDENT = '    ';

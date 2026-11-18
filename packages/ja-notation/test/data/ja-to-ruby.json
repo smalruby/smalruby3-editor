@@ -1,0 +1,144 @@
+{
+    "about": "jaToRuby(ja, table): the Ruby and the Japanese line of each Ruby line, or the errors (on Japanese lines) when there is no Ruby. The tables are made by each implementation: \"none\" is no table (names are local variables, no function), \"plain\" has only 表示する → puts (see README.md).",
+    "cases": [
+        {
+            "title": "an assignment",
+            "table": "none",
+            "ja": "x = 1",
+            "ruby": "x = 1",
+            "jaLines": [1]
+        },
+        {
+            "title": "an array and its element",
+            "table": "none",
+            "ja": "Data = [1, 2]\nx = Data[0]",
+            "ruby": "Data = [1, 2]\nx = Data[0]",
+            "jaLines": [1, 2]
+        },
+        {
+            "title": "a name in capitals is written as it is",
+            "table": "none",
+            "ja": "A = 3",
+            "ruby": "A = 3",
+            "jaLines": [1]
+        },
+        {
+            "title": "the integer quotient",
+            "table": "none",
+            "ja": "b = a ÷ 2 + 1",
+            "ruby": "b = (a / 2).to_i + 1",
+            "jaLines": [1]
+        },
+        {
+            "title": "not and or",
+            "table": "none",
+            "ja": "x = not (a > 0 or b)",
+            "ruby": "x = !(a > 0 || b)",
+            "jaLines": [1]
+        },
+        {
+            "title": "a counting loop becomes a while loop that adds the step",
+            "table": "plain",
+            "ja": "i を 3 から 1 まで 1 ずつ減らしながら繰り返す:\n⎿ 表示する(i)",
+            "ruby": "i = 3\nwhile i >= 1\n  puts(i)\n  i += -1\nend",
+            "jaLines": [1, 1, 2, 2, 2]
+        },
+        {
+            "title": "a loop on a `not` is an until loop",
+            "table": "none",
+            "ja": "not x の間繰り返す:\n  x = 真",
+            "ruby": "until x\n  x = true\nend",
+            "jaLines": [1, 2, 2]
+        },
+        {
+            "title": "a function and its parameters",
+            "table": "none",
+            "ja": "関数 たす(a, b):\n    返す a + b + c",
+            "ruby": "def たす(a, b)\n  return a + b + c\nend",
+            "jaLines": [1, 2, 2]
+        },
+        {
+            "title": "a block that ends by its indent puts the blank lines after its end",
+            "table": "none",
+            "ja": "もし a > 0 ならば:\n    a = 1\n\nb = 2",
+            "ruby": "if a > 0\n  a = 1\nend\n\nb = 2",
+            "jaLines": [1, 2, 2, 3, 4]
+        },
+        {
+            "title": "a block closed by a line of its own has its end on that line",
+            "table": "none",
+            "ja": "もし a > 0 ならば\n  a = 1\n\nを実行する # c\nb = 2",
+            "ruby": "if a > 0\n  a = 1\n\nend # c\nb = 2",
+            "jaLines": [1, 2, 3, 4, 5]
+        },
+        {
+            "title": "a counting loop closed by `を繰り返す` adds the step on that line",
+            "table": "plain",
+            "ja": "i を 3 から 1 まで -1 ずつ減らしながら\n  表示する(i)\nを繰り返す",
+            "ruby": "i = 3\nwhile i >= 1\n  puts(i)\n  i += -(-1)\nend",
+            "jaLines": [1, 1, 2, 3, 3]
+        },
+        {
+            "title": "a counting loop closed by another closing word adds the step too",
+            "table": "plain",
+            "ja": "i を 1 から 3 まで 1 ずつ増やしながら\n  表示する(i)\nを実行する",
+            "ruby": "i = 1\nwhile i <= 3\n  puts(i)\n  i += 1\nend",
+            "jaLines": [1, 1, 2, 3, 3]
+        },
+        {
+            "title": "the names and functions are what the table says",
+            "table": "plain",
+            "ja": "x = 1\n表示する(x, 2)",
+            "ruby": "x = 1\nputs(x, 2)",
+            "jaLines": [1, 2]
+        },
+        {
+            "title": "a function not in the table is an error",
+            "table": "plain",
+            "ja": "要素数(x)",
+            "errors": [
+                {
+                    "code": "unknown-command",
+                    "message": "「要素数」は定義されていない関数です",
+                    "line": 1,
+                    "column": 0,
+                    "name": "要素数"
+                }
+            ]
+        },
+        {
+            "title": "without a table of inputs, an input is an error",
+            "table": "plain",
+            "ja": "x = 【外部からの入力】",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "入力は使えません",
+                    "line": 1,
+                    "column": 0
+                }
+            ]
+        },
+        {
+            "title": "a command of a Ruby system is an error",
+            "table": "none",
+            "ja": "move(10)",
+            "errors": [
+                {
+                    "code": "unknown-command",
+                    "message": "「move」は日本語モードでは書けない命令です",
+                    "line": 1,
+                    "column": 0,
+                    "name": "move"
+                }
+            ]
+        },
+        {
+            "title": "the settings: indexes from 1",
+            "table": "none",
+            "ja": "# すべての配列の添字は 1 から始まる。\nA[i] = A[i + 1]",
+            "ruby": "# すべての配列の添字は 1 から始まる。\nA[i - 1] = A[i]",
+            "jaLines": [1, 2]
+        }
+    ]
+}

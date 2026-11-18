@@ -1,5 +1,5 @@
 // === Smalruby: This file is Smalruby-specific (DNCL 0-based array index hints) ===
-import { parse } from '../ja-notation';
+import { parse } from '@smalruby/ja-notation';
 
 // Smalruby DNCL arrays start at index 0, like the 共通テスト notation by
 // default. A program written for a problem that says "the index starts at 1"

@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 // ja-notation: Japanese (the 共通テスト用プログラム表記) ⇔ Ruby through syntax
-// trees. See ./LICENSE and docs/ruby-editor/converter-roadmap.md (2 章).
+// trees. See ../LICENSE and docs/ruby-editor/converter-roadmap.md (2 章).
 //
 // The library has no dependency: it imports nothing outside this directory,
 // and the functions and names of a Ruby system are given by the caller.
-import { buildRuby, RUBY } from './build-ruby';
-import { parse } from './parse';
-import { readRuby } from './read-ruby';
-import { DEFAULT_SETTINGS, readSettings, settingsSentences } from './settings';
-import { writeJa } from './write-ja';
-import { writeRuby } from './write-ruby';
+import { buildRuby, RUBY } from './build-ruby.js';
+import { parse } from './parse.js';
+import { readRuby } from './read-ruby.js';
+import { DEFAULT_SETTINGS, readSettings, settingsSentences } from './settings.js';
+import { writeJa } from './write-ja.js';
+import { writeRuby } from './write-ruby.js';
 
 /**
  * Japanese (the standard form or the DNCL-like form) to Ruby: read (a), build (b) and write (c).

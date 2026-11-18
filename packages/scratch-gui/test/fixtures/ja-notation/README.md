@@ -31,7 +31,7 @@
 - 不具合を直したら、その例をテスト（と `test/unit/lib/ruby-roundtrip/japanese-table.test.js` の表）に足し、
   コーパスを集め直す（新しい変換が同じ不具合を持たないように）。
 
-新しい変換（`src/lib/ja-notation/`）は `test/unit/lib/ja-notation/corpus.test.js` がこのゴールデンと比べる:
+新しい変換（`packages/ja-notation/`）は `test/unit/lib/ja-notation/corpus.test.js` がこのゴールデンと比べる:
 標準の形と DNCL 風の形のすべてのプログラムで、Ruby が prism の構文木で同じで（空白・括弧の違いは許す）、行の対応も同じであること。
 いまの変換が変換できないものは、新しい変換も変換できず、最初の誤りが同じ行にあること。
 
@@ -56,5 +56,5 @@ UPDATE_JA_GOLDEN=1 npx jest test/unit/lib/ja-notation/golden.test.js
 
 - データは **自作のプログラムだけ**。**大学入試センターの問題は入れない**（`docs/dncl/policy.md`）。
   外の例題のページをもとにしたテスト（`collect-corpus.mjs` の `EXCLUDED_TESTS`）は集めない。
-- ライブラリ（`ja-notation`）は MIT で出す予定で、このデータもあとで Node と Ruby の実装が同じものを流す（J6）。
+- ライブラリ（`packages/ja-notation/`）は MIT。このコーパスとゴールデンはスモウルビーの表（ブロック・生成器）を通した記録なので scratch-gui に置く。ライブラリだけのテストのデータ（JSON）は `packages/ja-notation/test/data/`。
   ほかから写したプログラムを入れない。

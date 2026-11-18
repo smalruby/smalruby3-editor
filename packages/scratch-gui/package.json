@@ -143,6 +143,7 @@
     "@monaco-editor/react": "^4.7.0",
     "@radix-ui/react-context-menu": "2.2.16",
     "@ruby/prism": "^1.9.0",
+    "@smalruby/ja-notation": "0.1.0",
     "@smalruby/scratch-render": "13.7.2",
     "@smalruby/scratch-svg-renderer": "13.7.2",
     "@smalruby/scratch-vm": "13.7.2",

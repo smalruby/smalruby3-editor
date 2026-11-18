@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // ja-notation: write the Ruby text of a RubyAST (./build-ruby.js), and which
-// Japanese line each Ruby line comes from. See ./LICENSE.
+// Japanese line each Ruby line comes from. See ../LICENSE.
 
 /** How strongly each operator binds (higher binds tighter). */
 const PRECEDENCE = {
