@@ -3,6 +3,7 @@
  * the Ruby converter's missing `end`.
  */
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
+import { FORBIDDEN_PREFIX_ERROR_ID } from '../../../../src/lib/dncl/dncl-validator';
 
 // A program with a block error makes no Ruby; the block error is one of its errors.
 const errorsOf = (lines) => dnclToRuby(lines.join('\n')).errors;
@@ -157,6 +158,8 @@ describe('the errors of dnclToRuby and a # in a string', () => {
     const atError = (column) => ({
         line: 1,
         column,
+        id: FORBIDDEN_PREFIX_ERROR_ID,
+        name: '@',
         message: '日本語モードでは変数に「@」は使えません',
     });
 
@@ -194,5 +197,20 @@ describe('the errors of dnclToRuby and a # in a string', () => {
         const result = dnclToRuby('x ← "#" # @y');
         expect(result.errors).toEqual([]);
         expect(result.ruby).toBe('@x = "#" # @y');
+    });
+});
+
+// `@` / `$` are told by an id the editor translates, with the mark at the `@` / `$` (issue #1674).
+describe('the error of @ / $ is translated and marks the character (issue #1674)', () => {
+    test.each([
+        ['@x = 1', '@', 1],
+        ['$x = 1', '$', 1],
+        ['y = 2 + @x', '@', 9],
+        ['(1) もし x > 0 ならば:\n(2) ⎿ y = $z', '$', 11],
+    ])('%s has the id and the name, at the column of the character', (dncl, name, column) => {
+        const { ruby, errors } = dnclToRuby(dncl);
+        expect(ruby).toBeNull();
+        expect(errors).toHaveLength(1);
+        expect(errors[0]).toMatchObject({ id: FORBIDDEN_PREFIX_ERROR_ID, name, column });
     });
 });

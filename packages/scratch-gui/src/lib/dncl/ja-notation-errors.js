@@ -9,6 +9,7 @@ import {
     findUnsupportedCommands,
     isPostTestLoopLine,
     codeWithoutStrings,
+    FORBIDDEN_PREFIX_ERROR_ID,
     POST_TEST_LOOP_ERROR_ID,
     POST_TEST_LOOP_MESSAGE,
     UNSUPPORTED_NOTATION_ERROR_ID,
@@ -70,7 +71,7 @@ const wordError = (error) => {
     const at = { line: error.line, column: error.column + 1 };
     switch (error.code) {
         case 'forbidden':
-            return { ...at, message: error.message };
+            return { ...at, id: FORBIDDEN_PREFIX_ERROR_ID, name: error.name, message: error.message };
         case 'bad-number':
             return {
                 ...at,
