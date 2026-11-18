@@ -41,8 +41,8 @@ Ruby → ブロックの変換器（`packages/scratch-gui/src/lib/ruby-to-blocks
 | ----------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | 変換そのもの（`visit` と `visitXxxNode`）                               | ノードの種類ごとに手で書く                                            |
 | 分析（`analyze`）                                                       | `forEachNode`（`node-walk.js`。prism の `childNodes()` のすべての子） |
-| `_statementNodeOf`（エラーで文を指す）                                  | `_childNodesOf`。エラーのたびに根からたどる                           |
-| `_associateSourceComments` の一部                                       | `_childNodesOf`                                                       |
+| `_statementNodeOf`（エラーで文を指す）                                  | 解析の段の「子 → 親」の索引（`parentIndexOf`）で、ノードから親へ上る  |
+| `_associateSourceComments` の一部                                       | 同じ索引（ノードの並びがたどる順なので、親のブロックが先に決まる）    |
 | `containsSuper`（`class-analysis.js`。メソッドの中に `super` があるか） | `forEachNode`                                                         |
 
 手続きの呼び出しを数える下調べ（もとの `_countProcedureCallsInNode`）は、子を手で並べたプロパティ名でたどっていた。並べた名前に `CaseNode` の `conditions`（`when` の並び）や
@@ -72,6 +72,7 @@ Scratch のブロック
 - prism の `parse` と、その構文エラーの翻訳（`prism-error-translator.js`）。
 - ソースの索引を **1 回だけ** 作る: バイト → 文字の表（いまの `_buildByteToCharMap`）、改行のバイト位置の表（行番号を二分探索で引く。試作で入れた `_newlineByteOffsets`）。
 - ノードの種類名は、本番のビルドでクラス名が変わるので `accept()` で調べる。`node-walk.js` の `nodeTypeName` が、ノードのクラスごとに一度だけ調べて覚える。変換（`visit` が呼ぶ `visitXxxNode` を決めるところも）と分析は、どちらもこれを使う。
+- 「子 → 親」の索引（`node-walk.js` の `parentIndexOf`。`forEachNode` で 1 回たどって作り、`_context.parentOfNode` に置く）。エラーで文を指す処理（`_statementNodeOf`）とコメントの結びつけは、根からたどり直さずにこれを引く。`without_screen_refresh def` を `def` に変えたあとの木で作る。
 - 出すもの: `{ root, source, index, comments, errors }`。ブロックはまだ作らない。
 - いまの関数: `_indexSource(code)`（ソースとバイト → 文字の表を `_context` に置く。エラーの位置を出すのにどの段でも使うので、`try` の前に作る）と `_parse(prism, code)`（prism の結果を返す。読みこみ済みの prism を受けとる同期の関数で、prism を待つのは `targetCodeToBlocks` が読みこみ前のときだけ。待ちを 1 つ増やすと変換の終わりが遅れ、Ruby タブでスプライトを変えたときのエラーの知らせが消えた。構文エラーは翻訳して `errors` に入れ、`null` を返す）。
 
