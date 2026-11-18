@@ -330,20 +330,28 @@ describe('SmalrubyWebHostingStack', () => {
             expect(cert.Properties.SubjectAlternativeNames).toBeUndefined();
         });
 
-        test('apex still points to GitHub Pages (no alias to CloudFront yet)', () => {
+        test('apex A / AAAA are aliases to the site distribution (no GitHub Pages IPs)', () => {
             const records = Object.values(template.findResources('AWS::Route53::RecordSet'));
-            expect(records.filter((r) => r.Properties.AliasTarget)).toEqual([]);
-            const apexA = records.filter(
-                (r) => r.Properties.Type === 'A' && r.Properties.Name === 'smalruby.app.',
-            );
-            expect(apexA).toHaveLength(1);
-            expect([...apexA[0].Properties.ResourceRecords].sort()).toEqual([
-                '185.199.108.153',
-                '185.199.109.153',
-                '185.199.110.153',
-                '185.199.111.153',
-            ]);
-            expect(records.filter((r) => r.Properties.Type === 'AAAA')).toEqual([]);
+            const distId = Object.keys(template.findResources('AWS::CloudFront::Distribution'))[0];
+            for (const type of ['A', 'AAAA']) {
+                const apex = records.filter(
+                    (r) => r.Properties.Type === type && r.Properties.Name === 'smalruby.app.',
+                );
+                expect(apex).toHaveLength(1);
+                const { AliasTarget, ResourceRecords, TTL } = apex[0].Properties;
+                expect(ResourceRecords).toBeUndefined();
+                expect(TTL).toBeUndefined();
+                // CloudFront の ALIAS はどのディストリビューションでも同じゾーン ID（Z2FDTNDATAQYW2）。
+                expect(AliasTarget.HostedZoneId).toEqual(
+                    expect.objectContaining({ 'Fn::FindInMap': expect.anything() }),
+                );
+                expect(AliasTarget.DNSName).toEqual({
+                    'Fn::GetAtt': [distId, 'DomainName'],
+                });
+            }
+            expect(JSON.stringify(records)).not.toContain('185.199.');
+            // ALIAS は apex の 2 つだけ（ワイルドカードや他の名前を CloudFront へ向けない）。
+            expect(records.filter((r) => r.Properties.AliasTarget)).toHaveLength(2);
         });
 
         test('cache policy keeps index.html short and lets hashed assets stay long', () => {
