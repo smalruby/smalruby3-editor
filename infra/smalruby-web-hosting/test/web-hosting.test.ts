@@ -10,6 +10,8 @@ import {
     SITE_ACCESS_LOG_RETENTION_DAYS,
     SITE_NONCURRENT_VERSION_EXPIRATION_DAYS,
     SITE_WEB_ACL_ARN,
+    SITE_NOT_FOUND_PAGE_PATH,
+    SITE_ERROR_CACHING_MIN_TTL_SECONDS,
     SmalrubyWebHostingStack,
 } from '../lib/web-hosting-stack';
 
@@ -186,8 +188,10 @@ describe('SmalrubyWebHostingStack', () => {
             );
         });
 
-        // GitHub Pages と同じく `/about` に about.html を返す関数（プレビューの関数とは別のコード）。
-        test('resolves extensionless URLs with the smalruby.app viewer-request function', () => {
+        // 拡張子の無い URL を `/<path>/` へ 301 する規則はプレビューと同じなので同じコードを使う。
+        // ただし関数のリソースは別にする（定額プランの配信は、ほかの配信に付いている
+        // CloudFront Functions を付けられない）。
+        test('uses its own viewer-request function with the shared directory rules', () => {
             const behavior = Object.values(template.findResources('AWS::CloudFront::Distribution'))[0]
                 .Properties.DistributionConfig.DefaultCacheBehavior;
             const assoc = behavior.FunctionAssociations.find(
@@ -198,8 +202,32 @@ describe('SmalrubyWebHostingStack', () => {
             const fn = template.findResources('AWS::CloudFront::Function')[fnId];
             expect(fn.Properties.FunctionConfig.Runtime).toBe('cloudfront-js-2.0');
             expect(fn.Properties.FunctionCode).toBe(
-                fs.readFileSync(path.join(__dirname, '../lib/functions/site-viewer-request.js'), 'utf8'),
+                fs.readFileSync(path.join(__dirname, '../lib/functions/preview-viewer-request.js'), 'utf8'),
             );
+        });
+
+        // 存在しないファイルは S3（OAC）が 403 を返す。403 も 404 も 404 ページを 404 で返す。
+        test('returns the 404 page with status 404 for missing files (403 / 404 from S3)', () => {
+            template.hasResourceProperties('AWS::CloudFront::Distribution', {
+                DistributionConfig: Match.objectLike({
+                    CustomErrorResponses: [
+                        {
+                            ErrorCode: 403,
+                            ResponseCode: 404,
+                            ResponsePagePath: SITE_NOT_FOUND_PAGE_PATH,
+                            ErrorCachingMinTTL: SITE_ERROR_CACHING_MIN_TTL_SECONDS,
+                        },
+                        {
+                            ErrorCode: 404,
+                            ResponseCode: 404,
+                            ResponsePagePath: SITE_NOT_FOUND_PAGE_PATH,
+                            ErrorCachingMinTTL: SITE_ERROR_CACHING_MIN_TTL_SECONDS,
+                        },
+                    ],
+                }),
+            });
+            expect(SITE_NOT_FOUND_PAGE_PATH).toBe('/404.html');
+            expect(SITE_ERROR_CACHING_MIN_TTL_SECONDS).toBe(60);
         });
 
         // CloudFront の定額プラン（Pro）は、カスタムのキャッシュポリシー・レスポンスヘッダーポリシーを

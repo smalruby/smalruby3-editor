@@ -37,7 +37,7 @@
                                        │  smalruby.app  A / AAAA（ALIAS）→ CloudFront
                                        ▼
                                    CloudFront ──(OAC)──▶ S3（非公開・バージョニングあり）
-                                       │  viewer-request: /  → /index.html、/about → /about.html、/admin → /admin/
+                                       │  viewer-request: /  → /index.html、/admin → /admin/（拡張子の無い URL は /<path>/ へ 301）
                                        │  証明書: ACM（us-east-1・DNS 検証）
                                        └─ viewer-response: HSTS / nosniff
 ```
@@ -75,25 +75,23 @@ prod ステージのリソースは、`infra/smalruby-web-hosting/lib/web-hostin
 | `/admin/`（管理 SPA） | CI が `admin/` に置く。本体の `--delete` で消えないよう、本体の同期では `admin/` を除く |
 | `/.well-known/microsoft-identity-association.json` | `packages/scratch-gui/legal/.well-known/` からビルドに入る。ドットで始まるディレクトリも同期の対象にする（Microsoft のパブリッシャー検証に要る） |
 | `/auth-redirect.html`（Microsoft ログインの戻り先） | ビルドに入っている。オリジンが同じなので Microsoft / Google の設定は変えない |
-| `/about.html` などの静的ページ | ビルドに入っている。拡張子付きの URL はそのまま返し、`/about` のように拡張子を省いた URL には `about.html` を返す（GitHub Pages と同じ） |
+| `/about.html` などの静的ページ | ビルドに入っている。拡張子付きの URL はそのまま返す。`/about` のように拡張子を省いた URL は開けない（`/about/` へ 301 したあと 404 ページになる。下の「拡張子の無い URL」） |
 | HSTS ヘッダ | CloudFront の viewer-response 関数で付ける（定額プランは応答ヘッダポリシーを使えないため。`.app` は HSTS preload 済みなので、ブラウザはもともと HTTPS でしか来ない） |
 | `CNAME` / `.nojekyll` | GitHub Pages 専用なので S3 には要らない |
 
 ### 拡張子の無い URL
 
-GitHub Pages は `/x` に対して、`x.html` があればそれを 200 で返し、無くて `x/` がディレクトリなら `/x/` へ 301 する。本番の viewer-request 関数（`lib/functions/site-viewer-request.js`）は同じ結果になるように、次の順で決める。
+本番の viewer-request 関数は、どのディレクトリに `index.html` があるかの一覧を持たずに、URL の形だけで決める。
 
 | URL | 返すもの |
 |---|---|
 | `/`、`/admin/` のように末尾が `/` | `.../index.html` |
-| `/x.js` のように最後の部分に拡張子がある | そのまま |
-| `/admin`、`/assignments`（`index.html` を持つディレクトリ） | `/<名前>/` へ 301（クエリ文字列は保つ） |
-| `/about`、`/privacy-policy` のようにトップレベルで拡張子が無い | `/about.html` などを返す（リダイレクトしない） |
-| `/assignments/LICENSE` のように下の階層で拡張子が無い | そのまま（拡張子の無いファイルがあるため） |
+| `/x.js`、`/about.html` のように最後の部分に拡張子がある | そのまま |
+| `/admin`、`/about`、`/assignments/LICENSE` のように最後の部分に拡張子が無い | `/<path>/` へ 301（クエリ文字列は保つ） |
 
-CloudFront Functions からは S3 にオブジェクトがあるかを問い合わせられないので、`index.html` を持つディレクトリは関数の中の固定の一覧（`SITE_DIRECTORIES`）で持つ。ページ（`.html`）はビルドで全部トップレベルに置かれ（`pages/` と `legal/` を `.` にコピーする）、`index.html` を持つトップレベルのディレクトリは `admin/`（管理 SPA）と `assignments/`（標準課題）だけなので、一覧は短く変わりにくい。ビルドにそういうディレクトリを足したら一覧にも足す（`test/site-viewer-request.test.ts` がリポジトリの中身と突き合わせて、足し忘れを落とす）。`index.html` の無いディレクトリ（`/static` など）は、GitHub Pages では 301 のあと 404、CloudFront では `static.html` を探して 403 になり、どちらも開けない点は同じ。
+`/admin` → `/admin/` は管理 SPA のために要る（相対パスでアセットを読むので、`/` 無しのままだと 1 階層上を見てしまう）。一方、`/about` は `/about/` → `/about/index.html` を探して 404 ページになる。**拡張子の無いページの URL は使えない**ので、サイト内のリンクは `about.html` のように `.html` 付きで書く（GitHub Pages は `/about` に `about.html` を返していたが、CloudFront Functions からは S3 にファイルがあるかを問い合わせられず、そうするには `index.html` を持つディレクトリの一覧を関数に持つ必要があるため、持たないことにした）。`/assignments/LICENSE` のような拡張子の無いファイルも URL では開けない（サイトからはリンクしていない）。
 
-プレビュー（`preview.smalruby.app/<slug>/`）は `/<slug>` をディレクトリとして扱うので、別の関数（`lib/functions/preview-viewer-request.js`）のまま変えない。
+規則はプレビュー（`preview.smalruby.app/<slug>/`）と同じなので、関数のコードは同じファイル（`lib/functions/preview-viewer-request.js`）を使う。関数のリソースは本番とプレビューで別にする（定額プランの配信には、ほかの配信に付いている CloudFront Functions を付けられない）。
 
 ### 存在しないファイル
 
@@ -266,8 +264,7 @@ CloudFront Functions からは S3 にオブジェクトがあるかを問い合�
 | ファイル | 役割 |
 |---|---|
 | `infra/smalruby-web-hosting/lib/web-hosting-stack.ts` | 配信基盤の CDK。prod は `createSiteDelivery()`、stg はプレビュー |
-| `infra/smalruby-web-hosting/lib/functions/site-viewer-request.js` | 本番の CloudFront Function（ディレクトリの URL を `index.html` に、拡張子の無いページを `.html` に解決） |
-| `infra/smalruby-web-hosting/lib/functions/preview-viewer-request.js` | プレビューの CloudFront Function（ディレクトリの URL を `index.html` に解決） |
+| `infra/smalruby-web-hosting/lib/functions/preview-viewer-request.js` | viewer-request の CloudFront Function のコード（ディレクトリの URL を `index.html` に解決し、拡張子の無い URL を `/<path>/` へ 301）。本番とプレビューで共用（関数のリソースは別） |
 | `infra/smalruby-web-hosting/test/web-hosting.test.ts` | スタックのテスト |
 | `.github/workflows/ci-cd.yml`（`build-and-deploy`） | 本番のビルドと配置 |
 | `docs/infra/smalruby-web-hosting.md` | 配信基盤の CDK の詳細と運用 |
