@@ -269,15 +269,17 @@ const joinContinuationLines = (source) => {
  *
  * Only splits when:
  *   - There is at least one top-level comma (depth 0, outside strings)
- *   - Every comma-separated piece contains a top-level `=`
+ *   - Every comma-separated piece contains a top-level `=` or `←`
  *
- * The leading indent is preserved on every output line.
+ * The leading indent and `｜` markers are kept on every output line; a `⎿`
+ * is kept on the last one only.
  * @param {string} line - The line to inspect.
  * @returns {string} The original line, or multiple lines joined with `\n`.
  */
 const splitMultiAssignment = (line) => {
-    const indentMatch = line.match(/^(\s*)/);
-    const indent = indentMatch ? indentMatch[1] : '';
+    // The indent includes the `｜` / `⎿` markers, so that every piece stays in
+    // the block the line is in (Issue #1819).
+    const indent = line.match(/^[\s｜|⎿]*/)[0];
     const body = line.substring(indent.length);
     if (body.length === 0) return line;
 
@@ -307,7 +309,8 @@ const splitMultiAssignment = (line) => {
             i++;
             continue;
         }
-        if (ch === ',' && depth === 0) {
+        // A full-width comma is read as `,` (docs/dncl/policy.md).
+        if ((ch === ',' || ch === '，') && depth === 0) {
             parts.push(current);
             current = '';
             i++;
@@ -320,7 +323,7 @@ const splitMultiAssignment = (line) => {
 
     if (parts.length < 2) return line;
 
-    // Every part must contain a top-level `=` (depth 0, outside strings).
+    // Every part must contain a top-level `=` or `←` (depth 0, outside strings).
     // Otherwise we likely have a function call or a single expression with
     // top-level commas, and shouldn't split.
     const hasTopLevelEquals = (part) => {
@@ -343,6 +346,8 @@ const splitMultiAssignment = (line) => {
                 j++;
                 continue;
             }
+            // `←` is an assignment as `=` is (Issue #1819).
+            if (c === '←' && d === 0) return true;
             if (c === '=' && d === 0) {
                 // Make sure this is `=` (assignment) not `==`, `<=`, `>=`, `!=`.
                 const prev = part[j - 1];
@@ -357,7 +362,10 @@ const splitMultiAssignment = (line) => {
     };
     if (!parts.every(hasTopLevelEquals)) return line;
 
-    return parts.map((p) => `${indent}${p.trim()}`).join('\n');
+    // A `⎿` closes the block after the line, so only the last piece keeps it;
+    // the pieces before it are still in the block (`｜`).
+    const openIndent = indent.replace(/⎿/g, '｜');
+    return parts.map((p, idx) => `${idx === parts.length - 1 ? indent : openIndent}${p.trim()}`).join('\n');
 };
 
 // If a string literal starts at `line[i]`, the index just past it, or -1.
