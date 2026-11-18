@@ -4655,5 +4655,12 @@
       "test/unit/lib/ruby-roundtrip/multiple-assignment.test.js › Ruby to blocks: multiple assignment (issue #1814) DNCL the swap `a, b = b, a` is the error of a wrong instruction"
     ],
     "ja": "a, b = b, a"
+  },
+  {
+    "id": "ja-f2b9158734",
+    "from": [
+      "test/unit/lib/ruby-roundtrip/multiple-assignment.test.js › Ruby to blocks: multiple assignment (issue #1814) DNCL the swap of elements `A[0], A[1] = A[1], A[0]` is Ruby, and the error of a wrong instruction (issue #2237)"
+    ],
+    "ja": "A = [1, 2]\nA[0], A[1] = A[1], A[0]"
   }
 ]
