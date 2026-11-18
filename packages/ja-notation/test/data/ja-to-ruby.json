@@ -219,6 +219,27 @@
                     "column": 6
                 }
             ]
+        },
+        {
+            "title": "the box-drawing marks │ and └ are read as ｜ and ⎿ (only how they look differs), with | too",
+            "table": "none",
+            "ja": "もし x > 0 ならば:\n│ もし y > 0 ならば:\n│ └ y = 1\n└ z = 2\nw = 3",
+            "ruby": "if x > 0\n  if y > 0\n    y = 1\n  end\n  z = 2\nend\nw = 3",
+            "jaLines": [1, 2, 3, 3, 4, 4, 5]
+        },
+        {
+            "title": "| and └ mixed",
+            "table": "none",
+            "ja": "(1) もし x > 0 ならば:\n(2) | y = 1\n(3) └ z = 2",
+            "ruby": "if x > 0\n  y = 1\n  z = 2\nend",
+            "jaLines": [1, 2, 3, 3]
+        },
+        {
+            "title": "a full-width # starts a comment, and “…” is a string",
+            "table": "plain",
+            "ja": "表示する(“やあ”)  ＃ あいさつ",
+            "ruby": "puts(\"やあ\") # あいさつ",
+            "jaLines": [1]
         }
     ]
 }

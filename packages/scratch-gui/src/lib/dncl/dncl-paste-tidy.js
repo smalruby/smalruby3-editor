@@ -30,6 +30,19 @@ import { NAME_PATTERN } from './paren-utils';
 const LINE_NUMBER_RE = /^\s*(?:\(\d+(?:-\d+)*\)\s*|\d+:(?:\s+|$))/;
 
 /**
+ * A line number written with spaces in its parentheses (`( 1 )`), as some texts show it
+ * (Issue #1756). It is written back as `(1)` before the line numbers are removed.
+ */
+const SPACED_LABEL_RE = /^(\s*)\(\s+(\d+(?:-\d+)*)\s*\)|^(\s*)\((\d+(?:-\d+)*)\s+\)/;
+
+/**
+ * A bare line number (`01`, `1`) and what follows it: the end of the line, or spaces and code
+ * that does not go on from a number (`1 + 2` is code). Taken only when every line of the paste
+ * has one (see `isBareNumbered`), as a line of code can start with a number.
+ */
+const BARE_LABEL_RE = /^(\s*)(\d+)(?=\s*$|\s+[^\s\d+\-*/%=<>!÷×,.)\]:：．＋－＊／％＝＜＞])/;
+
+/**
  * The line-number label alone, without the whitespace after it: that
  * whitespace is the indent of the code (Issue #1718).
  */
@@ -54,7 +67,7 @@ const afterLineNumber = (line) => {
  * @param {string} code - The code after the line number and its whitespace.
  * @returns {boolean} True when it starts with a marker.
  */
-const startsWithMarker = (code) => /^[｜|⎿]/.test(code);
+const startsWithMarker = (code) => /^[｜|│⎿└]/.test(code);
 
 /**
  * Remove the line numbers but keep the indent of code written with
@@ -256,8 +269,8 @@ const joinContinuationLines = (lines) => {
         }
         while (depth > 0 && i + 1 < lines.length && !LINE_NUMBER_RE.test(lines[i + 1])) {
             i++;
-            const m = lines[i].match(/^([\s｜|⎿]*)(.*)$/);
-            closeCount += (m[1].match(/⎿/g) || []).length;
+            const m = lines[i].match(/^([\s｜|│⎿└]*)(.*)$/);
+            closeCount += (m[1].match(/[⎿└]/g) || []).length;
             const rest = codeOfLine(m[2].trim());
             comments.push(m[2].trim().substring(rest.length).trim());
             if (rest !== '') line = `${line} ${rest}`;
@@ -267,10 +280,10 @@ const joinContinuationLines = (lines) => {
         if (comment !== '') line = `${line} ${comment}`;
         if (closeCount > 0) {
             const prefix = line.match(LINE_NUMBER_RE)[0];
-            const m = line.substring(prefix.length).match(/^([\s｜|⎿]*)(.*)$/);
+            const m = line.substring(prefix.length).match(/^([\s｜|│⎿└]*)(.*)$/);
             const markers = m[1].split('');
             for (let k = markers.length - 1; k >= 0 && closeCount > 0; k--) {
-                if (markers[k] === '｜' || markers[k] === '|') {
+                if (markers[k] === '｜' || markers[k] === '|' || markers[k] === '│') {
                     markers[k] = '⎿';
                     closeCount--;
                 }
@@ -281,6 +294,73 @@ const joinContinuationLines = (lines) => {
         i++;
     }
     return result;
+};
+
+/**
+ * Whether every line of the paste has a bare line number (`01 a = 1`), a line that goes on
+ * from an open bracket of the line above aside (a wrapped statement).
+ * @param {Array<string>} lines - The pasted lines.
+ * @returns {boolean} True when the lines are numbered that way.
+ */
+const isBareNumbered = (lines) => {
+    let depth = 0;
+    let numbered = 0;
+    for (const line of lines) {
+        if (depth <= 0) {
+            if (line.trim() === '') continue;
+            if (!BARE_LABEL_RE.test(line)) return false;
+            numbered++;
+            depth = 0;
+        }
+        depth += bracketDepth(line);
+    }
+    return numbered > 0;
+};
+
+/**
+ * Write the line numbers of other texts (`( 1 )`, and `01` / `1` when every line has one)
+ * as `(1)`, the form the rest of the tidying takes (Issue #1756).
+ * @param {Array<string>} lines - The pasted lines.
+ * @returns {Array<string>} The lines.
+ */
+const normalizeLineNumbers = (lines) => {
+    const spaced = lines.map((line) =>
+        line.replace(SPACED_LABEL_RE, (all, s1, n1, s2, n2) => `${s1 || s2 || ''}(${n1 || n2})`),
+    );
+    if (!isBareNumbered(spaced)) return spaced;
+    let depth = 0;
+    return spaced.map((line) => {
+        const out = depth <= 0 ? line.replace(BARE_LABEL_RE, (all, space, number) => `${space}(${number})`) : line;
+        depth = depth <= 0 ? bracketDepth(line) : depth + bracketDepth(line);
+        return out;
+    });
+};
+
+/** The vertical marks of a line (`｜`, and `|` / `│` as other texts write it). */
+const BAR_MARKS = new Set(['｜', '|', '│']);
+
+/**
+ * Write an `L` that closes a block (the L shape some texts write with the letter) as `⎿`
+ * (Issue #1756). An `L` is the L shape only where a mark can be: right under a vertical mark
+ * of the line above, or where the code of the line above starts when that line opens a block
+ * (`もし x > 0 ならば:` and `L y = 1`). A variable `L` (`L = 1`, `L を 1 から ...`) is kept.
+ * @param {Array<string>} lines - The lines (line numbers removed).
+ * @returns {Array<string>} The lines.
+ */
+const markLShapes = (lines) => {
+    let above = null;
+    return lines.map((line) => {
+        let out = line;
+        const m = line.match(/^([\s｜|│⎿└]*)L(\s+)(?!を(?:\s|$)|の間)(\S.*)$/);
+        if (m && above !== null) {
+            const at = m[1].length;
+            const code = codeOfLine(above);
+            const opens = /[:：]$/.test(code) && code.match(/^[\s｜|│⎿└]*/)[0].length === at;
+            if (BAR_MARKS.has(above[at]) || opens) out = `${m[1]}⎿${m[2]}${m[3]}`;
+        }
+        if (line.trim() !== '') above = out;
+        return out;
+    });
 };
 
 /**
@@ -295,9 +375,12 @@ const joinContinuationLines = (lines) => {
  */
 const tidyPastedDncl = (text, context = '') => {
     const eol = text.includes('\r\n') ? '\r\n' : '\n';
-    const lines = text.split(/\r?\n/);
-    if (!lines.some((line) => LINE_NUMBER_RE.test(line))) return text;
-    const stripped = removeLineNumbers(joinContinuationLines(lines));
+    const lines = normalizeLineNumbers(text.split(/\r?\n/));
+    if (!lines.some((line) => LINE_NUMBER_RE.test(line))) {
+        const marked = markLShapes(lines);
+        return marked.some((line, i) => line !== lines[i]) ? marked.join(eol) : text;
+    }
+    const stripped = markLShapes(removeLineNumbers(joinContinuationLines(lines)));
     const names = collectNames(`${stripped.join('\n')}\n${context}`);
     return stripped.map((line) => convertSlashComment(line, names)).join(eol);
 };

@@ -191,9 +191,9 @@ const longOperatorAt = (text, i) => LONG_OPERATORS.find((op) => text.startsWith(
  *   is the literal with its quotes), `name`, `op` (`value`: the operator, a
  *   full-width one read as its half-width one), `input` (`value`: `external` /
  *   `integer` / `string`), `comment` (`text` from `#` to the end; a comment
- *   started with `//` when it is the comment mark is read as one with `#`).
- *   The DNCL-like form is read too: `←` is the operator `=`, a 「...」 is a
- *   `string` (its `text` is the `"..."` literal it is read as) and `かつ` /
+ *   started with `//` when it is the comment mark, or with a full-width `＃`, is read as one with `#`).
+ *   The DNCL-like form is read too: `←` is the operator `=`, a 「...」 (and
+ *   a `“...”`) is a `string` (its `text` is the `"..."` literal it is read as) and `かつ` /
  *   `または` / `でない` are names.
  * - `forbidden`: `@` or `$`, which Japanese names do not have.
  * - `unknown`: any other character, and a string that is not closed.
@@ -217,8 +217,9 @@ const tokenize = (text, offset = 0, commentMarker = '#') => {
             i++;
             continue;
         }
-        if (ch === '#') {
-            push('comment', i, text.length);
+        if (ch === '#' || ch === '＃') {
+            // A full-width `＃` is read as `#` (only how it looks differs).
+            tokens.push({ type: 'comment', text: `#${text.substring(i + 1)}`, column: i + offset });
             break;
         }
         if (commentMarker === '//' && text.startsWith('//', i)) {
@@ -236,8 +237,9 @@ const tokenize = (text, offset = 0, commentMarker = '#') => {
             i = end;
             continue;
         }
-        if (ch === '「') {
-            const close = text.indexOf('」', i + 1);
+        if (ch === '「' || ch === '“') {
+            // `“…”` is how a text (a PDF, a web page) often shows `"…"`.
+            const close = text.indexOf(ch === '「' ? '」' : '”', i + 1);
             if (close === -1) {
                 push('unknown', i, text.length);
                 break;
