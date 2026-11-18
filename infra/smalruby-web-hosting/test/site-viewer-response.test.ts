@@ -47,4 +47,35 @@ describe('site viewer-response function', () => {
         expect(res.headers['x-frame-options']).toBeUndefined();
         expect(res.headers['content-security-policy']).toBeUndefined();
     });
+
+    describe('Vary for the pre-compressed gui JS', () => {
+        test.each(['br', 'gzip'])('adds Vary: Accept-Encoding to Content-Encoding: %s', (enc) => {
+            const res = respond({ 'content-encoding': { value: enc } });
+            expect(res.headers['vary']).toEqual({ value: 'Accept-Encoding' });
+            expect(res.headers['content-encoding']).toEqual({ value: enc });
+            // HSTS / nosniff はそのまま付く
+            expect(res.headers['strict-transport-security']).toEqual({ value: 'max-age=31536000' });
+            expect(res.headers['x-content-type-options']).toEqual({ value: 'nosniff' });
+        });
+
+        test('does not add Vary to responses without Content-Encoding', () => {
+            expect(respond().headers['vary']).toBeUndefined();
+        });
+
+        test('does not duplicate Accept-Encoding in Vary', () => {
+            const res = respond({
+                'content-encoding': { value: 'br' },
+                vary: { value: 'accept-encoding' },
+            });
+            expect(res.headers['vary']).toEqual({ value: 'accept-encoding' });
+        });
+
+        test('appends Accept-Encoding to the other Vary values', () => {
+            const res = respond({
+                'content-encoding': { value: 'gzip' },
+                vary: { value: 'Origin' },
+            });
+            expect(res.headers['vary']).toEqual({ value: 'Origin, Accept-Encoding' });
+        });
+    });
 });
