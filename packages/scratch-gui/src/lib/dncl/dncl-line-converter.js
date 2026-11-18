@@ -189,7 +189,7 @@ const convertLine = (line) => {
     }
 
     // Handle ← assignment → =
-    converted = converted.replace(/\s*←\s*/g, ' = ');
+    converted = convertArrow(converted);
 
     // Handle 【外部からの入力】 and the 共通テスト forms 【整数を入力】 /
     // 【文字列を入力】 (Issue #1186). The integer form converts the answer.

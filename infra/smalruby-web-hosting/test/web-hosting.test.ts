@@ -1,5 +1,6 @@
 import * as cdk from 'aws-cdk-lib/core';
 import { Match, Template } from 'aws-cdk-lib/assertions';
+import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import {
     PREVIEW_DEFAULT_TTL_SECONDS,
     PREVIEW_OBJECT_EXPIRATION_DAYS,
@@ -176,10 +177,58 @@ describe('SmalrubyWebHostingStack', () => {
                     ViewerProtocolPolicy: 'redirect-to-https',
                     FunctionAssociations: [
                         expect.objectContaining({ EventType: 'viewer-request' }),
+                        expect.objectContaining({ EventType: 'viewer-response' }),
                     ],
-                    ResponseHeadersPolicyId: expect.anything(),
                 }),
             );
+        });
+
+        // CloudFront の定額プラン（Pro）は、カスタムのキャッシュポリシー・レスポンスヘッダーポリシーを
+        // 使う配信を入れられず、料金クラスも持たない。
+        describe('fits the CloudFront flat-rate plan (Pro)', () => {
+            const behavior = () =>
+                Object.values(template.findResources('AWS::CloudFront::Distribution'))[0].Properties
+                    .DistributionConfig.DefaultCacheBehavior;
+
+            test('uses the AWS managed CachingOptimized cache policy', () => {
+                expect(behavior().CachePolicyId).toBe(
+                    cloudfront.CachePolicy.CACHING_OPTIMIZED.cachePolicyId,
+                );
+                expect(behavior().CachePolicyId).toBe('658327ea-f89d-4fab-a63d-7e88639e58f6');
+            });
+
+            test('attaches no response headers policy', () => {
+                expect(behavior().ResponseHeadersPolicyId).toBeUndefined();
+            });
+
+            test('uses PriceClass_All (flat-rate plans have no price class)', () => {
+                template.hasResourceProperties('AWS::CloudFront::Distribution', {
+                    DistributionConfig: Match.objectLike({ PriceClass: 'PriceClass_All' }),
+                });
+            });
+
+            test('adds HSTS and nosniff with a viewer-response function', () => {
+                const assoc = behavior().FunctionAssociations.find(
+                    (a: { EventType: string }) => a.EventType === 'viewer-response',
+                );
+                const fnId = assoc.FunctionARN['Fn::GetAtt'][0];
+                expect(fnId).toMatch(/^SiteViewerResponse/);
+                const fn = template.findResources('AWS::CloudFront::Function')[fnId];
+                expect(fn.Properties.FunctionConfig.Runtime).toBe('cloudfront-js-2.0');
+                expect(fn.Properties.FunctionCode).toContain('strict-transport-security');
+                expect(fn.Properties.FunctionCode).toContain('x-content-type-options');
+            });
+
+            // 消すと cdk diff に削除が出て Deploy Infra の prod 自動デプロイが止まるので、
+            // 配信から外しても定義は残す（follow-up で消す）。
+            test('keeps the old cache policy and response headers policy (not deleted yet)', () => {
+                expect(Object.keys(template.findResources('AWS::CloudFront::CachePolicy'))).toEqual(
+                    [expect.stringMatching(/^SiteCachePolicy/)],
+                );
+                expect(
+                    Object.keys(template.findResources('AWS::CloudFront::ResponseHeadersPolicy')),
+                ).toEqual([expect.stringMatching(/^SiteResponseHeaders/)]);
+            });
         });
 
         test('access log bucket is private, encrypted, SSL only and accepts CloudFront logs', () => {
@@ -476,6 +525,16 @@ describe('SmalrubyWebHostingStack', () => {
                     }),
                 }),
             });
+        });
+
+        test('preview keeps its own cache policy and Price Class 200 (not on a flat-rate plan)', () => {
+            const config = Object.values(template.findResources('AWS::CloudFront::Distribution'))[0]
+                .Properties.DistributionConfig;
+            expect(config.PriceClass).toBe('PriceClass_200');
+            expect(config.DefaultCacheBehavior.CachePolicyId).toEqual({
+                Ref: expect.stringMatching(/^PreviewCachePolicy/),
+            });
+            template.resourceCountIs('AWS::CloudFront::Function', 1);
         });
 
         test('cache policy keeps index.html short and lets hashed assets stay long', () => {

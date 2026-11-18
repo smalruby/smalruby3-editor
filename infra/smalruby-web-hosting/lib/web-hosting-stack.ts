@@ -326,28 +326,45 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
             'SiteViewerRequest',
             'Resolve directory URLs to index.html for smalruby.app',
         );
-        const cachePolicy = this.createCachePolicy(
+        // 配信は CloudFront の定額プラン（Pro）に入れる。定額プランはカスタムのキャッシュポリシーと
+        // カスタムのレスポンスヘッダーポリシーを使えないので、配信には AWS 管理の CachingOptimized と
+        // viewer-response 関数（ヘッダ）を付ける。
+        //
+        // 下の SiteCachePolicy と SiteResponseHeaders は、もう配信から参照しないが定義を残す。
+        // 消すと cdk diff にリソースの削除が出て、Deploy Infra の prod 自動デプロイが安全装置で
+        // 止まるため（.claude/rules/infra/development.md）。配信が参照しなくなった版が prod に
+        // 出たあと、別の follow-up（人間が手元から出す Contract）で 2 つを消す。
+        this.createCachePolicy(
             'SiteCachePolicy',
             'smalruby.app: short for index.html, honor Cache-Control for assets',
         );
 
         // GitHub Pages が返している HSTS をそのまま引き継ぐ（.app は HSTS preload 済みなので
         // ブラウザは常に HTTPS で来るが、ヘッダが消えると診断ツールで差分に見える）。
-        const responseHeadersPolicy = new cloudfront.ResponseHeadersPolicy(
-            this,
-            'SiteResponseHeaders',
-            {
-                comment: 'smalruby.app: HSTS and nosniff',
-                securityHeadersBehavior: {
-                    strictTransportSecurity: {
-                        accessControlMaxAge: cdk.Duration.days(365),
-                        includeSubdomains: false,
-                        override: true,
-                    },
-                    contentTypeOptions: { override: true },
+        // いまは同じヘッダを viewer-response 関数（SiteViewerResponse）で付けており、これは
+        // 上と同じ理由で定義だけ残している（follow-up で消す）。
+        new cloudfront.ResponseHeadersPolicy(this, 'SiteResponseHeaders', {
+            comment: 'smalruby.app: HSTS and nosniff',
+            securityHeadersBehavior: {
+                strictTransportSecurity: {
+                    accessControlMaxAge: cdk.Duration.days(365),
+                    includeSubdomains: false,
+                    override: true,
                 },
+                contentTypeOptions: { override: true },
             },
-        );
+        });
+
+        // HSTS（365 日・includeSubDomains なし）と nosniff を付ける。管理ポリシー
+        // Managed-SecurityHeadersPolicy は X-Frame-Options: SAMEORIGIN なども足し、smalruby.app を
+        // iframe に埋めている所を壊しうるので使わない。
+        const viewerResponse = new cloudfront.Function(this, 'SiteViewerResponse', {
+            runtime: cloudfront.FunctionRuntime.JS_2_0,
+            code: cloudfront.FunctionCode.fromFile({
+                filePath: path.join(__dirname, 'functions/site-viewer-response.js'),
+            }),
+            comment: 'Add HSTS and nosniff to smalruby.app responses',
+        });
 
         const logBucket = this.createSiteAccessLogBucket();
 
@@ -373,18 +390,27 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
             logFilePrefix: SITE_ACCESS_LOG_PREFIX,
             logIncludesCookies: false,
             httpVersion: cloudfront.HttpVersion.HTTP2_AND_3,
-            priceClass: cloudfront.PriceClass.PRICE_CLASS_200,
+            // 定額プランは料金クラスを持たない（プランに入れると PriceClass_All になる）。200 のままだと
+            // 次の deploy で CloudFront とずれるので All にする。
+            priceClass: cloudfront.PriceClass.PRICE_CLASS_ALL,
             defaultBehavior: {
                 origin: origins.S3BucketOrigin.withOriginAccessControl(bucket),
                 viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
                 allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD,
                 compress: true,
-                cachePolicy,
-                responseHeadersPolicy,
+                // キャッシュキーは自前のポリシーと同じ（クエリ・ヘッダ・cookie なし、gzip / br）。
+                // TTL は CI が全オブジェクトに付ける Cache-Control で決まる（ハッシュ付きは 1 年、
+                // それ以外は s-maxage=60）。Cache-Control の無いオブジェクトは既定の 1 日になるので、
+                // CI の配置で Cache-Control を落とさないこと（docs/hosting/README.md）。
+                cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
                 functionAssociations: [
                     {
                         function: viewerRequest,
                         eventType: cloudfront.FunctionEventType.VIEWER_REQUEST,
+                    },
+                    {
+                        function: viewerResponse,
+                        eventType: cloudfront.FunctionEventType.VIEWER_RESPONSE,
                     },
                 ],
             },

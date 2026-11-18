@@ -39,7 +39,7 @@
                                    CloudFront ──(OAC)──▶ S3（非公開・バージョニングあり）
                                        │  viewer-request: /  → /index.html、/admin → /admin/
                                        │  証明書: ACM（us-east-1・DNS 検証）
-                                       └─ 応答ヘッダ: HSTS / nosniff
+                                       └─ viewer-response: HSTS / nosniff
 ```
 
 | 項目 | 移した後 |
@@ -76,7 +76,7 @@ prod ステージのリソースは、`infra/smalruby-web-hosting/lib/web-hostin
 | `/.well-known/microsoft-identity-association.json` | `packages/scratch-gui/legal/.well-known/` からビルドに入る。ドットで始まるディレクトリも同期の対象にする（Microsoft のパブリッシャー検証に要る） |
 | `/auth-redirect.html`（Microsoft ログインの戻り先） | ビルドに入っている。オリジンが同じなので Microsoft / Google の設定は変えない |
 | `/about.html` などの静的ページ | ビルドに入っている。拡張子付きの URL はそのまま返す |
-| HSTS ヘッダ | CloudFront の応答ヘッダポリシーで付ける（`.app` は HSTS preload 済みなので、ブラウザはもともと HTTPS でしか来ない） |
+| HSTS ヘッダ | CloudFront の viewer-response 関数で付ける（定額プランは応答ヘッダポリシーを使えないため。`.app` は HSTS preload 済みなので、ブラウザはもともと HTTPS でしか来ない） |
 | `CNAME` / `.nojekyll` | GitHub Pages 専用なので S3 には要らない |
 
 URL の扱いで GitHub Pages と違う点: `/about` のように拡張子も末尾の `/` も無い URL は、GitHub Pages では `about.html` を返すが、CloudFront では `/about/` へ 301 になる（プレビューと同じ関数を使うため）。ビルドの中のリンクは拡張子付き（`about.html`）か、`/admin/` のように末尾が `/` なので、困る URL は今のところ無い。
@@ -164,7 +164,7 @@ URL の扱いで GitHub Pages と違う点: `/about` のように拡張子も末
 | ファイル名にハッシュが付いたもの（`/\.[0-9a-f]{8,}\./`。Workbox の `dontCacheBustURLsMatching` と同じ） | `public, max-age=31536000, immutable` | 中身が変わると名前が変わる |
 | それ以外（`index.html`、`service-worker.js`、`version.json`、`auth-redirect.*`、`.well-known/*`、`admin/index.html` など） | `max-age=0, s-maxage=60` | ブラウザは毎回確かめ直し、CloudFront には 60 秒だけ置く |
 
-- CloudFront のキャッシュポリシーはプレビューと同じ（`Cache-Control` が無ければ 60 秒、あれば従う・最長 1 年。クエリ文字列・ヘッダ・Cookie はキーに含めない）。
+- CloudFront のキャッシュポリシーは AWS 管理の `CachingOptimized`（`Cache-Control` があれば従う・最長 1 年。クエリ文字列・ヘッダ・Cookie はキーに含めない）。定額プランはカスタムのキャッシュポリシーを使えないため。**`Cache-Control` が無いオブジェクトはエッジに 1 日残る**（プレビューの 60 秒と違う）ので、CI は上の表のとおり全ファイルに `Cache-Control` を付けて置く。
 - CI は置いたあとに `/*` を invalidation する（1 回 1 パスとして数えるので、月 1,000 パスの無料枠に十分収まる）。
 - S3 はバージョニングを有効にし、上書き・削除された古い版を 30 日残す（CI の誤りで消えたファイルを戻すため。日数は人間が決める値）。いまの版は期限で消さない（プレビューと違う点）。バケットは本番の配信元なので `RETAIN`（スタックを消しても残る）。
 
@@ -225,6 +225,7 @@ URL の扱いで GitHub Pages と違う点: `/about` のように拡張子も末
 | アクセスログ | 月 1 未満 | 標準ログ（従来）は届けるのが無料で、かかるのは S3 の保存と書き込みだけ。月 3,000 万リクエストでもログは gzip で月 数 GB、30 日分を置いて月 0.05〜0.2 程度 |
 
 - 従量課金の上限が読みにくいので、**CloudFront の定額プラン**（Pro は月 15 で転送量の上限が十分大きい）を使うかどうかを人間が決める。まず従量で 1〜2 週間動かし、CloudFront の使用量レポートで実際の転送量を見てから決めるのが安全。
+  - Pro に入れられるよう、`SiteDistribution` はカスタムのキャッシュポリシー・応答ヘッダポリシーを使わない形にしてある（AWS 管理の `CachingOptimized` + viewer-response 関数・Price Class All）。プランを選ぶのはコンソールで人間が行う（CDK にはプランの設定が無い）。
 - **AWS Budgets の予算アラート**（例: 月 50 を超えたら通知）を切り替えの前に設定する。
 - GitHub Pages は無料なので、移すと費用は増える。理由（依存をなくす・ログ・調整のしやすさ）と見合うかを、転送量を見て判断する。
 
