@@ -247,6 +247,16 @@ const VariableUtils = {
     _createProcedure(name) {
         name = name.toString();
         let procedure = this._context.procedures[name];
+        if (procedure && procedure.declaredBeforeDefinition) {
+            // Declared for a call before the `def` (issue #2167): the `def` makes it again,
+            // with the same argument IDs, which the calls before it have.
+            procedure.declaredBeforeDefinition = false;
+            procedure.reservedArgumentIds = procedure.argumentIds;
+            procedure.procCode = [blockNameOfRubyMethodName(name)];
+            procedure.argumentIds = [];
+            procedure.argumentVariables = [];
+            return procedure;
+        }
         if (procedure) {
             throw new RubyToBlocksConverterError(
                 this._context.currentNode,
@@ -265,6 +275,45 @@ const VariableUtils = {
             argumentBlocks: [],
         };
         this._context.procedures[name] = procedure;
+        return procedure;
+    },
+
+    /**
+     * Declare the procedure of a `def` that comes later in the code, for a call before it (issue #2167).
+     * The analysis (`procedures.definitions`) gives the name and the arguments; the `def` fills in the
+     * rest when the converter comes to it (`_createProcedure` takes the declared one). Only a method
+     * defined once, with only required arguments of the same number as the call, without `super`
+     * and not in a module, is declared: the other ones would not be the procedure the call calls.
+     * @param {string} name - The name of the method.
+     * @param {number} numArgs - The number of the arguments of the call.
+     * @returns {?object} The declared procedure, or null.
+     */
+    _declareProcedureDefinedLater(name, numArgs) {
+        const analysis = this._context.analysis;
+        if (!analysis) return null;
+        name = name.toString();
+        const definitions = analysis.procedures.definitions.filter((d) => d.name === name);
+        if (definitions.length !== 1) return null;
+        const [definition] = definitions;
+        if (
+            definition.usesSuper ||
+            definition.optionals.length > 0 ||
+            definition.requireds.length !== numArgs ||
+            analysis.classes.modules.some((m) => m.methods.includes(name))
+        ) {
+            return null;
+        }
+        const procedure = this._createProcedure(name);
+        definition.requireds.forEach(() => {
+            procedure.procCode.push('%s');
+            procedure.argumentIds.push(Blockly.utils.idGenerator.genUid());
+            // The `def` makes the real variables; whether one is a boolean is known only then,
+            // and the `def` fixes the calls made before it.
+            procedure.argumentVariables.push({ isBoolean: false });
+        });
+        procedure.declaredBeforeDefinition = true;
+        procedure.callNodesBeforeDefinition = [];
+        procedure.valueCallNodesBeforeDefinition = [];
         return procedure;
     },
 
@@ -638,6 +687,22 @@ const VariableUtils = {
         if (!variable) return false;
         if (variable.dataType === 'string') return true;
         return !variable.dataType && this._isUsedOnlyAsString(variable);
+    },
+
+    /**
+     * Whether `x + "..."` is the string `+` although nothing tells that `x` is a String: the right
+     * side is a string literal and the code sets `x` to nothing else (a number, a list or a hash).
+     * In Ruby `x + "..."` runs only when `x` is a String (a number raises a TypeError), so the join
+     * is the only block it can be. A name the code never sets, as `namae` of a program in the
+     * Japanese mode that shows a name, was the wrong instruction (issue #2168).
+     * @param {object} variable - The variable in the converter's stores.
+     * @param {object} operand - The right-hand side of `+` (a value or a block).
+     * @returns {boolean} true if `+` on the variable joins strings.
+     */
+    _isJoinedWithStringLiteral(variable, operand) {
+        if (!variable || variable.dataType || !this._isString(operand)) return false;
+        const use = this._variableUsesOf(variable);
+        return !use || (!use.notString && !use.list && !use.hash);
     },
 
     /**
