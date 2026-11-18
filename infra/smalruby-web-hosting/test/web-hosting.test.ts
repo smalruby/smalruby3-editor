@@ -1,9 +1,17 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import * as cdk from 'aws-cdk-lib/core';
 import { Match, Template } from 'aws-cdk-lib/assertions';
+import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import {
     PREVIEW_DEFAULT_TTL_SECONDS,
     PREVIEW_OBJECT_EXPIRATION_DAYS,
+    SITE_ACCESS_LOG_PREFIX,
+    SITE_ACCESS_LOG_RETENTION_DAYS,
     SITE_NONCURRENT_VERSION_EXPIRATION_DAYS,
+    SITE_WEB_ACL_ARN,
+    SITE_NOT_FOUND_PAGE_PATH,
+    SITE_ERROR_CACHING_MIN_TTL_SECONDS,
     SmalrubyWebHostingStack,
 } from '../lib/web-hosting-stack';
 
@@ -46,7 +54,11 @@ describe('SmalrubyWebHostingStack', () => {
     test('prod creates no preview resources', () => {
         const template = synth('prod');
 
-        template.resourceCountIs('AWS::Route53::HostedZone', 0);
+        // prod のゾーンは smalruby.app だけ（preview.smalruby.app は stg にある）。
+        const zoneNames = Object.values(template.findResources('AWS::Route53::HostedZone')).map(
+            (r) => r.Properties.Name,
+        );
+        expect(zoneNames).toEqual(['smalruby.app.']);
         expect(
             Object.keys(template.findResources('*')).filter((id) => id.startsWith('Preview')),
         ).toEqual([]);
@@ -76,21 +88,39 @@ describe('SmalrubyWebHostingStack', () => {
     describe('production site delivery (prod)', () => {
         let template: Template;
 
+        // 本番の配信元（SiteBucket）とアクセスログ（SiteLogBucket）の 2 つがある。
+        const bucketById = (prefix: string) => {
+            const found = Object.entries(template.findResources('AWS::S3::Bucket')).filter(([id]) =>
+                id.startsWith(prefix),
+            );
+            expect(found).toHaveLength(1);
+            return found[0][1];
+        };
+        const siteBucket = () => bucketById('SiteBucket');
+        const logBucket = () => bucketById('SiteLogBucket');
+
         beforeAll(() => {
             template = synth('prod');
         });
 
-        test('creates one private, SSL-only, versioned bucket', () => {
-            template.resourceCountIs('AWS::S3::Bucket', 1);
-            template.hasResourceProperties('AWS::S3::Bucket', {
-                PublicAccessBlockConfiguration: {
-                    BlockPublicAcls: true,
-                    BlockPublicPolicy: true,
-                    IgnorePublicAcls: true,
-                    RestrictPublicBuckets: true,
-                },
-                VersioningConfiguration: { Status: 'Enabled' },
-            });
+        test('creates the site bucket and the access log bucket only', () => {
+            template.resourceCountIs('AWS::S3::Bucket', 2);
+            siteBucket();
+            logBucket();
+        });
+
+        test('creates one private, SSL-only, versioned site bucket', () => {
+            expect(siteBucket().Properties).toEqual(
+                expect.objectContaining({
+                    PublicAccessBlockConfiguration: {
+                        BlockPublicAcls: true,
+                        BlockPublicPolicy: true,
+                        IgnorePublicAcls: true,
+                        RestrictPublicBuckets: true,
+                    },
+                    VersioningConfiguration: { Status: 'Enabled' },
+                }),
+            );
             template.hasResourceProperties('AWS::S3::BucketPolicy', {
                 PolicyDocument: {
                     Statement: Match.arrayWith([
@@ -104,15 +134,16 @@ describe('SmalrubyWebHostingStack', () => {
         });
 
         test('retains the bucket (the production origin is never deleted with the stack)', () => {
-            template.hasResource('AWS::S3::Bucket', {
-                DeletionPolicy: 'Retain',
-                UpdateReplacePolicy: 'Retain',
-            });
+            expect(siteBucket()).toEqual(
+                expect.objectContaining({
+                    DeletionPolicy: 'Retain',
+                    UpdateReplacePolicy: 'Retain',
+                }),
+            );
         });
 
         test('never expires the current objects, only old versions', () => {
-            const buckets = Object.values(template.findResources('AWS::S3::Bucket'));
-            const rules = buckets[0].Properties.LifecycleConfiguration.Rules;
+            const rules = siteBucket().Properties.LifecycleConfiguration.Rules;
             for (const rule of rules) {
                 expect(rule.ExpirationInDays).toBeUndefined();
                 expect(rule.ExpirationDate).toBeUndefined();
@@ -130,61 +161,262 @@ describe('SmalrubyWebHostingStack', () => {
             );
         });
 
-        test('distribution serves the bucket through OAC without a custom domain yet', () => {
+        test('distribution serves smalruby.app from the bucket through OAC with TLS 1.2+', () => {
             template.resourceCountIs('AWS::CloudFront::Distribution', 1);
             template.resourceCountIs('AWS::CloudFront::OriginAccessControl', 1);
             const distribution = Object.values(
                 template.findResources('AWS::CloudFront::Distribution'),
             )[0];
             const config = distribution.Properties.DistributionConfig;
-            // smalruby.app は GitHub Pages のまま。証明書と別名はゾーンを移してから足す。
-            expect(config.Aliases).toBeUndefined();
-            expect(config.ViewerCertificate).toBeUndefined();
+            // www.smalruby.app は今は無いので代替ドメインは apex だけ。
+            expect(config.Aliases).toEqual(['smalruby.app']);
+            expect(config.ViewerCertificate).toEqual(
+                expect.objectContaining({
+                    AcmCertificateArn: expect.anything(),
+                    SslSupportMethod: 'sni-only',
+                    MinimumProtocolVersion: 'TLSv1.2_2021',
+                }),
+            );
             expect(config.DefaultCacheBehavior).toEqual(
                 expect.objectContaining({
                     ViewerProtocolPolicy: 'redirect-to-https',
                     FunctionAssociations: [
                         expect.objectContaining({ EventType: 'viewer-request' }),
+                        expect.objectContaining({ EventType: 'viewer-response' }),
                     ],
-                    ResponseHeadersPolicyId: expect.anything(),
                 }),
             );
         });
 
-        test('creates no DNS records or certificates (the live site is untouched)', () => {
-            template.resourceCountIs('AWS::Route53::HostedZone', 0);
-            template.resourceCountIs('AWS::Route53::RecordSet', 0);
-            template.resourceCountIs('AWS::CertificateManager::Certificate', 0);
-            template.resourceCountIs('AWS::CloudFormation::CustomResource', 0);
+        // 拡張子の無い URL を `/<path>/` へ 301 する規則はプレビューと同じなので同じコードを使う。
+        // ただし関数のリソースは別にする（定額プランの配信は、ほかの配信に付いている
+        // CloudFront Functions を付けられない）。
+        test('uses its own viewer-request function with the shared directory rules', () => {
+            const behavior = Object.values(template.findResources('AWS::CloudFront::Distribution'))[0]
+                .Properties.DistributionConfig.DefaultCacheBehavior;
+            const assoc = behavior.FunctionAssociations.find(
+                (a: { EventType: string }) => a.EventType === 'viewer-request',
+            );
+            const fnId = assoc.FunctionARN['Fn::GetAtt'][0];
+            expect(fnId).toMatch(/^SiteViewerRequest/);
+            const fn = template.findResources('AWS::CloudFront::Function')[fnId];
+            expect(fn.Properties.FunctionConfig.Runtime).toBe('cloudfront-js-2.0');
+            expect(fn.Properties.FunctionCode).toBe(
+                fs.readFileSync(path.join(__dirname, '../lib/functions/preview-viewer-request.js'), 'utf8'),
+            );
         });
 
-        test('cache policy keeps index.html short and lets hashed assets stay long', () => {
-            template.hasResourceProperties('AWS::CloudFront::CachePolicy', {
-                CachePolicyConfig: Match.objectLike({
-                    MinTTL: 0,
-                    DefaultTTL: PREVIEW_DEFAULT_TTL_SECONDS,
-                    MaxTTL: 365 * 24 * 60 * 60,
+        // 存在しないファイルは S3（OAC）が 403 を返す。403 も 404 も 404 ページを 404 で返す。
+        test('returns the 404 page with status 404 for missing files (403 / 404 from S3)', () => {
+            template.hasResourceProperties('AWS::CloudFront::Distribution', {
+                DistributionConfig: Match.objectLike({
+                    CustomErrorResponses: [
+                        {
+                            ErrorCode: 403,
+                            ResponseCode: 404,
+                            ResponsePagePath: SITE_NOT_FOUND_PAGE_PATH,
+                            ErrorCachingMinTTL: SITE_ERROR_CACHING_MIN_TTL_SECONDS,
+                        },
+                        {
+                            ErrorCode: 404,
+                            ResponseCode: 404,
+                            ResponsePagePath: SITE_NOT_FOUND_PAGE_PATH,
+                            ErrorCachingMinTTL: SITE_ERROR_CACHING_MIN_TTL_SECONDS,
+                        },
+                    ],
                 }),
+            });
+            expect(SITE_NOT_FOUND_PAGE_PATH).toBe('/404.html');
+            expect(SITE_ERROR_CACHING_MIN_TTL_SECONDS).toBe(60);
+        });
+
+        // CloudFront の定額プラン（Pro）は、カスタムのキャッシュポリシー・レスポンスヘッダーポリシーを
+        // 使う配信を入れられず、料金クラスも持たない。
+        describe('fits the CloudFront flat-rate plan (Pro)', () => {
+            const behavior = () =>
+                Object.values(template.findResources('AWS::CloudFront::Distribution'))[0].Properties
+                    .DistributionConfig.DefaultCacheBehavior;
+
+            test('uses the AWS managed CachingOptimized cache policy', () => {
+                expect(behavior().CachePolicyId).toBe(
+                    cloudfront.CachePolicy.CACHING_OPTIMIZED.cachePolicyId,
+                );
+                expect(behavior().CachePolicyId).toBe('658327ea-f89d-4fab-a63d-7e88639e58f6');
+            });
+
+            test('attaches no response headers policy', () => {
+                expect(behavior().ResponseHeadersPolicyId).toBeUndefined();
+            });
+
+            test('uses PriceClass_All (flat-rate plans have no price class)', () => {
+                template.hasResourceProperties('AWS::CloudFront::Distribution', {
+                    DistributionConfig: Match.objectLike({ PriceClass: 'PriceClass_All' }),
+                });
+            });
+
+            // プランが作った Web ACL を参照するだけ。外すと次の deploy でプランの条件から外れる。
+            test('keeps the Web ACL the plan attached (and creates no Web ACL itself)', () => {
+                template.hasResourceProperties('AWS::CloudFront::Distribution', {
+                    DistributionConfig: Match.objectLike({ WebACLId: SITE_WEB_ACL_ARN }),
+                });
+                expect(SITE_WEB_ACL_ARN).toBe(
+                    'arn:aws:wafv2:us-east-1:007325983811:global/webacl/CreatedByCloudFront-086021c8/a34b81cf-b3e7-42f7-9c2c-6390e96e30d7',
+                );
+                template.resourceCountIs('AWS::WAFv2::WebACL', 0);
+            });
+
+            test('adds HSTS and nosniff with a viewer-response function', () => {
+                const assoc = behavior().FunctionAssociations.find(
+                    (a: { EventType: string }) => a.EventType === 'viewer-response',
+                );
+                const fnId = assoc.FunctionARN['Fn::GetAtt'][0];
+                expect(fnId).toMatch(/^SiteViewerResponse/);
+                const fn = template.findResources('AWS::CloudFront::Function')[fnId];
+                expect(fn.Properties.FunctionConfig.Runtime).toBe('cloudfront-js-2.0');
+                expect(fn.Properties.FunctionCode).toContain('strict-transport-security');
+                expect(fn.Properties.FunctionCode).toContain('x-content-type-options');
+            });
+
+            // 定額プランはカスタムのポリシーを使えないので、配信から外したポリシーは定義も持たない。
+            test('has no custom cache policy or response headers policy', () => {
+                template.resourceCountIs('AWS::CloudFront::CachePolicy', 0);
+                template.resourceCountIs('AWS::CloudFront::ResponseHeadersPolicy', 0);
             });
         });
 
-        test('response headers keep HSTS like GitHub Pages', () => {
-            template.hasResourceProperties('AWS::CloudFront::ResponseHeadersPolicy', {
-                ResponseHeadersPolicyConfig: Match.objectLike({
-                    SecurityHeadersConfig: Match.objectLike({
-                        StrictTransportSecurity: Match.objectLike({
-                            AccessControlMaxAgeSec: 365 * 24 * 60 * 60,
-                        }),
-                        ContentTypeOptions: Match.anyValue(),
+        test('access log bucket is private, encrypted, SSL only and accepts CloudFront logs', () => {
+            const bucket = logBucket();
+            expect(bucket.Properties).toEqual(
+                expect.objectContaining({
+                    PublicAccessBlockConfiguration: {
+                        BlockPublicAcls: true,
+                        BlockPublicPolicy: true,
+                        IgnorePublicAcls: true,
+                        RestrictPublicBuckets: true,
+                    },
+                    BucketEncryption: {
+                        ServerSideEncryptionConfiguration: [
+                            { ServerSideEncryptionByDefault: { SSEAlgorithm: 'AES256' } },
+                        ],
+                    },
+                    // 標準ログは ACL で書き込まれるので ACL を無効にしない（持ち主はこのアカウント）。
+                    OwnershipControls: { Rules: [{ ObjectOwnership: 'BucketOwnerPreferred' }] },
+                }),
+            );
+            expect(bucket.Properties.VersioningConfiguration).toBeUndefined();
+            const policies = Object.values(template.findResources('AWS::S3::BucketPolicy')).filter(
+                (p) => JSON.stringify(p.Properties.Bucket).includes('SiteLogBucket'),
+            );
+            expect(policies).toHaveLength(1);
+            expect(policies[0].Properties.PolicyDocument.Statement).toEqual(
+                expect.arrayContaining([
+                    expect.objectContaining({
+                        Effect: 'Deny',
+                        Condition: { Bool: { 'aws:SecureTransport': 'false' } },
                     }),
+                ]),
+            );
+        });
+
+        test('access logs are deleted after the retention period', () => {
+            // 人間が決めた保持期間（30 日）。変えるときは docs/hosting/README.md も直す。
+            expect(SITE_ACCESS_LOG_RETENTION_DAYS).toBe(30);
+            const rules = logBucket().Properties.LifecycleConfiguration.Rules;
+            expect(rules).toEqual([
+                expect.objectContaining({
+                    Status: 'Enabled',
+                    ExpirationInDays: SITE_ACCESS_LOG_RETENTION_DAYS,
                 }),
+            ]);
+        });
+
+        test('access log bucket is not retained (logs are not needed to keep serving)', () => {
+            expect(logBucket()).toEqual(
+                expect.objectContaining({
+                    DeletionPolicy: 'Delete',
+                    UpdateReplacePolicy: 'Delete',
+                }),
+            );
+        });
+
+        test('distribution writes standard logs to the log bucket without cookies', () => {
+            const distribution = Object.values(
+                template.findResources('AWS::CloudFront::Distribution'),
+            )[0];
+            const logging = distribution.Properties.DistributionConfig.Logging;
+            expect(logging).toEqual({
+                Bucket: {
+                    'Fn::GetAtt': [expect.stringMatching(/^SiteLogBucket/), 'RegionalDomainName'],
+                },
+                IncludeCookies: false,
+                Prefix: SITE_ACCESS_LOG_PREFIX,
             });
+        });
+
+        test('deploy role cannot touch the access log bucket', () => {
+            const statements = Object.values(template.findResources('AWS::IAM::Policy')).flatMap(
+                (p) => p.Properties.PolicyDocument.Statement,
+            );
+            expect(JSON.stringify(statements)).not.toContain('SiteLogBucket');
+        });
+
+        test('keeps the distribution logical id so CloudFront is updated, not replaced', () => {
+            expect(Object.keys(template.findResources('AWS::CloudFront::Distribution'))).toEqual([
+                expect.stringMatching(/^SiteDistribution[0-9A-F]{8}$/),
+            ]);
+        });
+
+        test('certificate for smalruby.app is DNS validated in us-east-1 with the site zone', () => {
+            // DnsValidatedCertificate は us-east-1 の証明書をカスタムリソースで作る（スタックは分けない）。
+            template.resourceCountIs('AWS::CertificateManager::Certificate', 0);
+            template.resourceCountIs('AWS::CloudFormation::CustomResource', 1);
+            const zoneId = Object.keys(template.findResources('AWS::Route53::HostedZone'))[0];
+            template.hasResourceProperties('AWS::CloudFormation::CustomResource', {
+                DomainName: 'smalruby.app',
+                Region: 'us-east-1',
+                HostedZoneId: { Ref: zoneId },
+            });
+            // www は今は無いので SAN に足さない。
+            const cert = Object.values(
+                template.findResources('AWS::CloudFormation::CustomResource'),
+            )[0];
+            expect(cert.Properties.SubjectAlternativeNames).toBeUndefined();
+        });
+
+        test('apex A / AAAA are aliases to the site distribution (no GitHub Pages IPs)', () => {
+            const records = Object.values(template.findResources('AWS::Route53::RecordSet'));
+            const distId = Object.keys(template.findResources('AWS::CloudFront::Distribution'))[0];
+            for (const type of ['A', 'AAAA']) {
+                const apex = records.filter(
+                    (r) => r.Properties.Type === type && r.Properties.Name === 'smalruby.app.',
+                );
+                expect(apex).toHaveLength(1);
+                const { AliasTarget, ResourceRecords, TTL } = apex[0].Properties;
+                expect(ResourceRecords).toBeUndefined();
+                expect(TTL).toBeUndefined();
+                // CloudFront の ALIAS はどのディストリビューションでも同じゾーン ID（Z2FDTNDATAQYW2）。
+                expect(AliasTarget.HostedZoneId).toEqual(
+                    expect.objectContaining({ 'Fn::FindInMap': expect.anything() }),
+                );
+                expect(AliasTarget.DNSName).toEqual({
+                    'Fn::GetAtt': [distId, 'DomainName'],
+                });
+            }
+            expect(JSON.stringify(records)).not.toContain('185.199.');
+            // ALIAS は apex の 2 つだけ（ワイルドカードや他の名前を CloudFront へ向けない）。
+            expect(records.filter((r) => r.Properties.AliasTarget)).toHaveLength(2);
         });
 
         test('deploy role trusts only develop (or the prod environment) of this repository', () => {
             template.resourceCountIs('Custom::AWSCDKOpenIdConnectProvider', 0);
             template.resourceCountIs('AWS::IAM::OIDCProvider', 0);
-            template.resourceCountIs('AWS::IAM::Role', 1);
+            // OIDC で引き受けるロールは CI 用の 1 つだけ（もう 1 つは証明書のカスタムリソースの Lambda 用）。
+            const oidcRoles = Object.values(template.findResources('AWS::IAM::Role')).filter((r) =>
+                JSON.stringify(r.Properties.AssumeRolePolicyDocument).includes(
+                    'sts:AssumeRoleWithWebIdentity',
+                ),
+            );
+            expect(oidcRoles).toHaveLength(1);
             template.hasResourceProperties('AWS::IAM::Role', {
                 AssumeRolePolicyDocument: {
                     Statement: [
@@ -208,9 +440,14 @@ describe('SmalrubyWebHostingStack', () => {
         });
 
         test('deploy role can only touch this bucket and invalidate this distribution', () => {
-            const statements = Object.values(template.findResources('AWS::IAM::Policy')).flatMap(
-                (p) => p.Properties.PolicyDocument.Statement,
+            const roleId = Object.keys(template.findResources('AWS::IAM::Role')).find((id) =>
+                id.startsWith('SiteDeployRole'),
             );
+            const policies = Object.values(template.findResources('AWS::IAM::Policy')).filter(
+                (p) => JSON.stringify(p.Properties.Roles) === JSON.stringify([{ Ref: roleId }]),
+            );
+            expect(policies).toHaveLength(1);
+            const statements = policies.flatMap((p) => p.Properties.PolicyDocument.Statement);
             const actions = statements.flatMap((s: { Action: string | string[] }) =>
                 Array.isArray(s.Action) ? s.Action : [s.Action],
             );
@@ -232,9 +469,14 @@ describe('SmalrubyWebHostingStack', () => {
             expect(Object.keys(template.findOutputs('*')).sort()).toEqual(
                 [
                     'SiteBucketName',
+                    'SiteCertificateArn',
                     'SiteDeployRoleArn',
                     'SiteDistributionDomainName',
                     'SiteDistributionId',
+                    // smalruby.app のゾーン（test/site-zone.test.ts）
+                    'SiteHostedZoneId',
+                    'SiteHostedZoneNameServers',
+                    'SiteLogBucketName',
                 ].sort(),
             );
         });
@@ -313,6 +555,26 @@ describe('SmalrubyWebHostingStack', () => {
                     }),
                 }),
             });
+        });
+
+        test('preview keeps its own cache policy and Price Class 200 (not on a flat-rate plan)', () => {
+            const config = Object.values(template.findResources('AWS::CloudFront::Distribution'))[0]
+                .Properties.DistributionConfig;
+            expect(config.PriceClass).toBe('PriceClass_200');
+            expect(config.WebACLId).toBeUndefined();
+            expect(config.DefaultCacheBehavior.CachePolicyId).toEqual({
+                Ref: expect.stringMatching(/^PreviewCachePolicy/),
+            });
+            template.resourceCountIs('AWS::CloudFront::CachePolicy', 1);
+            template.resourceCountIs('AWS::CloudFront::ResponseHeadersPolicy', 0);
+            template.resourceCountIs('AWS::CloudFront::Function', 1);
+        });
+
+        test('preview keeps the preview viewer-request function (/<slug> is a directory)', () => {
+            const fn = Object.values(template.findResources('AWS::CloudFront::Function'))[0];
+            expect(fn.Properties.FunctionCode).toBe(
+                fs.readFileSync(path.join(__dirname, '../lib/functions/preview-viewer-request.js'), 'utf8'),
+            );
         });
 
         test('cache policy keeps index.html short and lets hashed assets stay long', () => {

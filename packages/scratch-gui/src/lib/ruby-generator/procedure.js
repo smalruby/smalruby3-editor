@@ -1,3 +1,16 @@
+import { rubyMethodNameOfProccode } from '../ruby-method-name';
+
+/**
+ * Whether a custom block runs without screen refresh. A project made in the block editor keeps
+ * the `warp` of the prototype as a string (`"true"`); a loaded project may keep a boolean.
+ * @param {object} customBlock - The procedures_prototype block.
+ * @returns {boolean} true when it runs without screen refresh.
+ */
+const isWarp = (customBlock) => {
+    const warp = customBlock && customBlock.mutation && customBlock.mutation.warp;
+    return warp === true || warp === 'true';
+};
+
 /**
  * Define Ruby code generator for Procedures Blocks
  * @param {RubyGenerator} Generator The RubyGenerator
@@ -102,6 +115,10 @@ export default function (Generator) {
         } else {
             code = Generator.blockToCode(customBlock);
         }
+        // "Run without screen refresh" (issue #2114): `without_screen_refresh def foo`, as `private def foo`.
+        if (isWarp(customBlock)) {
+            code = `without_screen_refresh ${code}`;
+        }
 
         // Generate method body from the saved next block
         const bodyBlock = Generator.getBlock(savedNext);
@@ -133,7 +150,7 @@ export default function (Generator) {
                         // The return comment contains the method name
                         const returnComment = Generator.getRubyMarkerText(lastBlock);
                         if (returnComment) {
-                            const returnMatch = returnComment.match(/@ruby:return:(\w+)/);
+                            const returnMatch = returnComment.match(/@ruby:return:([^:,\s]+)/);
                             if (returnMatch) {
                                 if (!Generator.returnCallCache_) {
                                     Generator.returnCallCache_ = {};
@@ -204,10 +221,8 @@ export default function (Generator) {
     };
 
     const blockToMethod = function (block, isCall) {
-        let methodName = block.mutation.proccode
-            .split(' ')
-            .filter((i) => !/^%[sb]$/.test(i))
-            .join('_');
+        // A name that starts with a digit or is a reserved word gets `_` in front (issue #2116).
+        let methodName = rubyMethodNameOfProccode(block.mutation.proccode);
         if (methodName.length === 0) {
             methodName = 'procedure';
         }
@@ -273,7 +288,7 @@ export default function (Generator) {
                 // Extract method name from the return assignment comment
                 const nextComment = Generator.getRubyMarkerText(nextBlock);
                 if (nextComment) {
-                    const match = nextComment.match(/@ruby:return:(\w+)/);
+                    const match = nextComment.match(/@ruby:return:([^:,\s]+)/);
                     if (match) {
                         Generator.returnCallCache_[match[1]] = superCode;
                     }

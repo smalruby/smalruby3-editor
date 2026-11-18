@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ページが見つかりません | スモウルビー</title>
+    <meta name="robots" content="noindex">
+    <!--
+        CloudFront がどの階層の URL（/x/y/z など）にもこのページを返すので、
+        アセットとリンクは必ず `/` から始まる絶対パスで書く（相対パスだと壊れる）。
+    -->
+    <link rel="shortcut icon" href="/static/favicon.ico">
+    <style>
+        :root {
+            --ruby-red: #e60012;
+            --ruby-dark: #b8000e;
+            --purple: #6a1b9a;
+            --purple-deep: #4a148c;
+            --purple-light: #9c27b0;
+            --bg: #fafbff;
+            --text: #2d3748;
+            --text-light: #718096;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; }
+        body {
+            font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+            line-height: 1.8;
+            color: var(--text);
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+        }
+        a { color: var(--purple); }
+
+        .hero {
+            background: linear-gradient(135deg, var(--purple-deep), var(--purple) 50%, var(--purple-light));
+            color: #fff;
+            padding: 2.5rem 1.25rem;
+            text-align: center;
+        }
+        .hero .badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.18);
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 50px;
+            padding: 0.3rem 1rem;
+            font-size: 0.8rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+        .hero h1 { font-size: clamp(1.4rem, 4.5vw, 2rem); line-height: 1.4; }
+
+        main {
+            flex: 1;
+            max-width: 820px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 2.5rem 1.25rem;
+            text-align: center;
+        }
+        main img { width: 120px; height: auto; margin-bottom: 1rem; }
+        main p { margin-bottom: 0.9rem; }
+        .links {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+        .links a {
+            display: inline-block;
+            padding: 0.8rem 2rem;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 1rem;
+            text-decoration: none;
+        }
+        .links .primary {
+            background: linear-gradient(135deg, var(--ruby-red), var(--ruby-dark));
+            color: #fff;
+        }
+        .links .secondary {
+            background: #fff;
+            color: var(--purple);
+            border: 2px solid var(--purple);
+        }
+
+        footer {
+            background: #1a1a2e;
+            color: rgba(255,255,255,0.7);
+            text-align: center;
+            padding: 2rem 1rem;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+
+<header class="hero">
+    <div class="badge">404</div>
+    <h1>ページが見つかりません</h1>
+</header>
+
+<main>
+    <img src="/assets/hatti-greeting.png" alt="ハッチー">
+    <p>お探しのページは、移動したか、削除されたか、URL がまちがっている可能性があります。</p>
+    <p>URL をもう一度確かめるか、下のリンクからトップページへ移動してください。</p>
+    <div class="links">
+        <a class="primary" href="/">スモウルビーを開く</a>
+        <a class="secondary" href="/about.html">スモウルビーについて</a>
+    </div>
+</main>
+
+<footer>
+    <p>NPO法人Rubyプログラミング少年団</p>
+    <p style="margin-top:0.4rem;opacity:0.6;">&copy; 2026 Smalruby Project.</p>
+</footer>
+
+</body>
+</html>

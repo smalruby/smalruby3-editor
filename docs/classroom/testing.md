@@ -104,7 +104,6 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-lesson-progress-current-{challengeId}` | sup | 列のいまやっている人の数（右肩の青い数。いるときだけ） |
 | `classroom-lesson-progress-loading` | p | はじめの取得が終わるまでの「進み具合を読み込み中…」（メンバータブ・「進み具合」タブ） |
 | `classroom-lesson-progress-error` | p | はじめの取得から失敗したときの「進み具合を読み込めませんでした。…」 |
-| `classroom-detail-compact-code` | div | 「進み具合」タブでの小さな 1 行の参加コード（課題名の欄と保存期限の行の代わり） |
 | `classroom-lesson-progress-row-{memberId}` | tr | 席の行 |
 | `classroom-lesson-progress-seat-{memberId}` | button | 席番号（押すと右にメンバーの詳細） |
 | `classroom-lesson-progress-cell-{memberId}-{challengeId}` | span | セル（`data-kind` = `done` / `before` / `current` / `stuck` / `todo`） |
@@ -341,7 +340,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-lesson-sentence` | span | 生徒に出る文（「6 つのうち 4 つ（★ 2 つをふくむ）」） |
 | `classroom-lesson-submit-no` / `-yes` | input (radio) | 「提出しない（レッスンだけ）」（既定）/「最後に作品も提出する」 |
 | `classroom-lesson-dropped-notice` | p | 保存したチャレンジを外したときの注意（送られた進み具合は残るが数えない） |
-| `classroom-assignment-save` | button | 課題を保存（フォームの最上段） |
+| `classroom-assignment-save` | button | 課題を保存（「説明」タブのときだけ、課題詳細の「✕ ＋ 課題名」の行の右端） |
 
 ### 生徒: 始め方（主ボタン・ほかの始め方）
 
@@ -787,6 +786,19 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-notifications-back` | button | 左下の「戻る」（クラス一覧へ） |
 | `classroom-notification-page-item-{notificationId}` | button | 一覧ページ内のお知らせ 1 件 |
 | `classroom-notifications-pager` / `-prev` / `-next` | div / button | ページャ（10 件/ページ） |
+
+### 「✕ ＋ 見出し」の行（先生・1 つの物を編集する画面）
+
+課題詳細・課題を作成・課題を再利用・合言葉で取り込み・課題を共有・Google Classroom への共有・クラスの設定の本文の上に出る。1 画面に 1 つなので、どの画面も同じ testid。
+
+| data-testid | 要素 | 説明 |
+|------------|------|------|
+| `classroom-close-row` | div | 行（課題詳細では課題名の欄・参加コード・［課題を保存］も入る） |
+| `classroom-close-row-close` | button | ✕（`aria-label` は行き先: 「課題一覧に戻る」「クラスに戻る」「クラス一覧に戻る」「課題に戻る」） |
+| `classroom-close-row-title` | h2 | 見出し（課題詳細は見出しの代わりに課題名の欄 `classroom-detail-assignment-name`） |
+| `classroom-close-row-discard-message` | p | 保存していない変更があるときに ✕ を押すと出る「変更を破棄しますか？保存していない変更は消えます。」 |
+| `classroom-close-row-discard-cancel` | button | ［キャンセル］（とどまる） |
+| `classroom-close-row-discard` | button | ［破棄］（変更を捨てて戻る・赤） |
 
 ### 汎用
 

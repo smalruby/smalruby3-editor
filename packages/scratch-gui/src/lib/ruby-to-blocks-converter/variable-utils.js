@@ -1,5 +1,6 @@
 import { defineMessages } from 'react-intl';
 import * as Blockly from 'scratch-blocks';
+import { blockNameOfRubyMethodName, rubyMethodNameOfProccode } from '../ruby-method-name';
 import { Variable } from './constants';
 import { RubyToBlocksConverterError } from './errors';
 
@@ -238,10 +239,7 @@ const VariableUtils = {
         const proccode = block.mutation.proccode;
         if (!proccode) return false;
         // Extract procedure name from proccode (name is the first part before any %s/%b)
-        const procName = proccode
-            .split(' ')
-            .filter((i) => !/^%[sb]$/.test(i))
-            .join('_');
+        const procName = rubyMethodNameOfProccode(proccode);
         const procedure = this._lookupProcedure(procName);
         return procedure && procedure.hasReturnValue;
     },
@@ -258,7 +256,8 @@ const VariableUtils = {
         procedure = {
             id: Blockly.utils.idGenerator.genUid(),
             name: name,
-            procCode: [name],
+            // The block name of a method name such as `_1_文字えらぶ` is `1_文字えらぶ` (issue #2116).
+            procCode: [blockNameOfRubyMethodName(name)],
             argumentNames: [],
             argumentDefaults: [],
             argumentIds: [],

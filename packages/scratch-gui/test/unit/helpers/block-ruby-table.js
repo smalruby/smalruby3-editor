@@ -25,8 +25,20 @@
  * Multi-line Ruby: start a template literal with a new line and indent it as you like; it is
  * dedented. A string that starts on its first line is used as it is (only trimmed), so
  * `'3.times do\n  say("hi")\nend'` keeps its indentation.
+ *
+ * The Japanese column (issue #2095): a row with `ja` (the Japanese mode, cleaned like `ruby`)
+ * also defines
+ *
+ * - `jaToBlocks`: `ja` → Ruby (`dnclToRuby`, as the Japanese mode does) → blocks; they must equal
+ *   `blocks`. The Ruby made from `ja` may differ from `ruby` (spaces, parentheses); the blocks may not.
+ * - `toJa`: `blocks` → Ruby (the generator) → Japanese (`rubyToDncl`); it must equal `ja`.
+ *
+ * `jaOnly: 'jaToBlocks'` / `jaOnly: 'toJa'` runs that Japanese direction alone (a form the
+ * Japanese mode reads but does not write, such as `a ← 1`). Neither may report an error.
  */
 import dedent from 'dedent';
+import { dnclToRuby } from '../../../src/lib/dncl/dncl-to-ruby';
+import { rubyToDncl } from '../../../src/lib/dncl/ruby-to-dncl';
 import RubyGenerator from '../../../src/lib/ruby-generator';
 import { buildBlocks, printBlockNotationLike, readBlocks } from './block-notation';
 import {
@@ -78,7 +90,50 @@ const rubyToBlocks = async (ruby, { version, stage }) => {
     return readBlocks(target, stageTarget);
 };
 
+/**
+ * The Ruby the Japanese mode makes from Japanese.
+ * @param {string} ja - The Japanese code.
+ * @returns {string} The Ruby.
+ */
+const jaToRuby = (ja) => {
+    const { ruby, errors } = dnclToRuby(ja);
+    if (ruby === null || errors.length > 0) {
+        throw new Error(`Japanese could not be converted:\n${ja}\nerrors: ${JSON.stringify(errors)}`);
+    }
+    return ruby;
+};
+
+/**
+ * Generate Ruby from the notation of blocks and write it in Japanese, as the Japanese mode shows it.
+ * @param {string} blocks - The notation.
+ * @param {{version: string, stage: boolean}} options - As `blocksToRuby`.
+ * @returns {string} The Japanese, trimmed.
+ */
+const blocksToJa = (blocks, options) => {
+    const ruby = blocksToRuby(blocks, options);
+    const { dncl, errors } = rubyToDncl(ruby);
+    if (errors.length > 0) {
+        throw new Error(`Ruby could not be written in Japanese:\n${ruby}\nerrors: ${JSON.stringify(errors)}`);
+    }
+    return dncl.trim();
+};
+
+const defineJaTests = (row, ja, opts) => {
+    if (row.jaOnly !== 'toJa') {
+        test('jaToBlocks', async () => {
+            const { actual, expected } = printBlockNotationLike(await rubyToBlocks(jaToRuby(ja), opts), row.blocks);
+            expect(actual).toBe(expected);
+        });
+    }
+    if (row.jaOnly !== 'jaToBlocks') {
+        test('toJa', () => {
+            expect(blocksToJa(row.blocks, opts)).toBe(ja);
+        });
+    }
+};
+
 const defineRowTests = (row, ruby, opts) => {
+    if (typeof row.ja === 'string') defineJaTests(row, cleanRuby(row.ja), opts);
     if (row.only !== 'toBlocks') {
         test('toRuby', () => {
             expect(blocksToRuby(row.blocks, opts)).toBe(ruby);
@@ -103,7 +158,8 @@ const defineRowTests = (row, ruby, opts) => {
 /**
  * Define the tests of a table.
  * @param {string} name - The name of the table (the describe block).
- * @param {Array<{blocks: string, ruby: string, only?: string, name?: string, versions?: Array<string>}>} rows
+ * @param {Array<{blocks: string, ruby: string, ja?: string, only?: string, jaOnly?: string, name?: string,
+ *     versions?: Array<string>}>} rows
  *     - The rows.
  * @param {{versions?: Array<string>, version?: string, stage?: boolean}} [options] - The Ruby
  *     versions to run every row with (default `['2']`; `version: '1'` is the same as `versions: ['1']`)
@@ -116,6 +172,9 @@ const defineBlockRubyTable = (name, rows, options = {}) => {
         rows.forEach((row, i) => {
             if (row.only && row.only !== 'toRuby' && row.only !== 'toBlocks') {
                 throw new Error(`row ${i}: only must be 'toRuby' or 'toBlocks', not ${row.only}`);
+            }
+            if (row.jaOnly && row.jaOnly !== 'toJa' && row.jaOnly !== 'jaToBlocks') {
+                throw new Error(`row ${i}: jaOnly must be 'toJa' or 'jaToBlocks', not ${row.jaOnly}`);
             }
             const ruby = cleanRuby(row.ruby);
             const rowName = row.name || `${i + 1}: ${ruby.split('\n')[0]}`;
@@ -134,4 +193,4 @@ const defineBlockRubyTable = (name, rows, options = {}) => {
     });
 };
 
-export { defineBlockRubyTable, blocksToRuby, rubyToBlocks, cleanRuby };
+export { defineBlockRubyTable, blocksToRuby, rubyToBlocks, cleanRuby, jaToRuby, blocksToJa };

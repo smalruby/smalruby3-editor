@@ -68,7 +68,7 @@ const sprite = (name, sounds, costumes = ['costume1']) => ({
     layerOrder: 1,
 });
 
-// その locale の新しい作品に、チャレンジで足すもの（Owl・Canyon / Arctic・spriteCodes のスプライト）を足した状態
+// その locale の新しい作品に、チャレンジで足すもの（Canyon / Arctic・spriteCodes のスプライト）を足した状態
 const projectFor = (locale, { sprites }) => ({
     targets: [
         {
@@ -85,7 +85,7 @@ const projectFor = (locale, { sprites }) => ({
             volume: 100,
             layerOrder: 0,
         },
-        sprite('Sprite1', [CAT_SOUND[locale], 'Owl']),
+        sprite('Sprite1', [CAT_SOUND[locale]]),
         ...sprites.map((name) =>
             LIBRARY_SPRITES[name]
                 ? sprite(name, LIBRARY_SPRITES[name].sounds, LIBRARY_SPRITES[name].costumes)
