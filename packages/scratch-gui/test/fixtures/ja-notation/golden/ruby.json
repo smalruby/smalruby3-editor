@@ -167,7 +167,22 @@
   },
   "ruby-0560bfb414": {
     "ja": "a = $b + c + 平方根(4)\nもし a > 1 and not a == 2 ならば:\n    a = nil",
-    "errors": [],
+    "errors": [
+      {
+        "line": 1,
+        "column": 6,
+        "id": "unsupportedNotation",
+        "name": "$b",
+        "message": "「$b」は日本語モードでは書けません。Ruby モードでは書けます。"
+      },
+      {
+        "line": 3,
+        "column": 8,
+        "id": "unsupportedNotation",
+        "name": "nil",
+        "message": "「nil」は日本語モードでは書けません。Ruby モードでは書けます。"
+      }
+    ],
     "back": {
       "ruby": null,
       "errors": [
@@ -1805,6 +1820,13 @@
         "id": "unsupportedCommand",
         "name": "break",
         "message": "「break」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      },
+      {
+        "line": 3,
+        "column": 9,
+        "id": "unsupportedNotation",
+        "name": "if",
+        "message": "「if」は日本語モードでは書けません。Ruby モードでは書けます。"
       }
     ],
     "back": {
@@ -1827,6 +1849,13 @@
         "id": "unsupportedCommand",
         "name": "next",
         "message": "「next」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      },
+      {
+        "line": 4,
+        "column": 8,
+        "id": "unsupportedNotation",
+        "name": "unless",
+        "message": "「unless」は日本語モードでは書けません。Ruby モードでは書けます。"
       }
     ],
     "back": {
@@ -1874,6 +1903,106 @@
         {
           "line": 4,
           "column": 14,
+          "message": "日本語モードでは変数に「@」は使えません"
+        }
+      ]
+    }
+  },
+  "ruby-9fcce08e32": {
+    "ja": "h = {}\n表示する(h[:a])",
+    "errors": [
+      {
+        "line": 1,
+        "column": 6,
+        "id": "unsupportedNotation",
+        "name": "{}",
+        "message": "「{}」は日本語モードでは書けません。Ruby モードでは書けます。"
+      },
+      {
+        "line": 2,
+        "column": 9,
+        "id": "unsupportedNotation",
+        "name": ":a",
+        "message": "「:a」は日本語モードでは書けません。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 1,
+          "column": 5,
+          "message": "「{」が読めません"
+        },
+        {
+          "line": 2,
+          "column": 8,
+          "message": "「:」が読めません"
+        }
+      ]
+    }
+  },
+  "ruby-6c853477e1": {
+    "ja": "puts(1) unless @x",
+    "errors": [
+      {
+        "line": 1,
+        "column": 9,
+        "id": "unsupportedNotation",
+        "name": "unless",
+        "message": "「unless」は日本語モードでは書けません。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 1,
+          "column": 16,
+          "message": "日本語モードでは変数に「@」は使えません"
+        }
+      ]
+    }
+  },
+  "ruby-4e120bf048": {
+    "ja": "case @x\nwhen 1\n  puts(1)\nend",
+    "errors": [
+      {
+        "line": 1,
+        "column": 1,
+        "id": "unsupportedNotation",
+        "name": "case",
+        "message": "「case」は日本語モードでは書けません。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 1,
+          "column": 6,
+          "message": "日本語モードでは変数に「@」は使えません"
+        }
+      ]
+    }
+  },
+  "ruby-8cd07fa1a1": {
+    "ja": "a = @x ? 1 : 2",
+    "errors": [
+      {
+        "line": 1,
+        "column": 6,
+        "id": "unsupportedNotation",
+        "name": "@x ? 1 : 2",
+        "message": "「@x ? 1 : 2」は日本語モードでは書けません。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 1,
+          "column": 5,
           "message": "日本語モードでは変数に「@」は使えません"
         }
       ]

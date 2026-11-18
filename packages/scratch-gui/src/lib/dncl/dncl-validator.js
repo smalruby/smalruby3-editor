@@ -149,6 +149,22 @@ const unsupportedNumberMessage = (name) =>
     '「1000」「0.5」のように書いてください。Ruby モードでは書けます。';
 
 /**
+ * The id of the error for Ruby that has no form in the Japanese mode and is
+ * not a command or a number (`case` / `when`, a hash `{}`, a symbol `:a`, a
+ * modifier `unless`; issue #1740). Ruby → Japanese would keep it as Ruby,
+ * which the Japanese reads back as something else (`@`, `{`), so it is told
+ * on its Ruby line instead. The `name` is its keyword, or its text.
+ */
+const UNSUPPORTED_NOTATION_ERROR_ID = 'unsupportedNotation';
+
+/**
+ * The message of the unsupported notation error.
+ * @param {string} name - The keyword or the text of the Ruby.
+ * @returns {string} The message.
+ */
+const unsupportedNotationMessage = (name) => `「${name}」は日本語モードでは書けません。Ruby モードでは書けます。`;
+
+/**
  * The command of a `do` block line: the name just before `do` and the
  * arguments of the command (`with_screen_refresh do` → `with_screen_refresh`,
  * `[1, 2].each do |x|` → `each`, `self.when(:clicked) do` → `when`).
@@ -297,6 +313,8 @@ export {
     POST_TEST_LOOP_MESSAGE,
     UNSUPPORTED_COMMAND_ERROR_ID,
     unsupportedCommandMessage,
+    UNSUPPORTED_NOTATION_ERROR_ID,
     UNSUPPORTED_NUMBER_ERROR_ID,
+    unsupportedNotationMessage,
     unsupportedNumberMessage,
 };
