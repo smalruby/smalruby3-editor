@@ -31,6 +31,10 @@
 - 不具合を直したら、その例をテスト（と `test/unit/lib/ruby-roundtrip/japanese-table.test.js` の表）に足し、
   コーパスを集め直す（新しい変換が同じ不具合を持たないように）。
 
+新しい変換（`src/lib/ja-notation/`）は `test/unit/lib/ja-notation/corpus.test.js` がこのゴールデンと比べる:
+標準の形のプログラムは、Ruby が prism の構文木で同じで（空白・括弧の違いは許す）、行の対応も同じであること。
+いまの変換が変換できないものは、新しい変換も変換できず、最初の誤りが同じ行にあること。DNCL 風の形のものは次の段（J2）で読む。
+
 ## コーパスの集め方
 
 ```bash

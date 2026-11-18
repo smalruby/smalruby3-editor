@@ -98,6 +98,24 @@ DNCL の行に戻して見せる。詳しくは [`docs/genai-consult/README.md`]
 | `ruby-to-dncl-identifier.js` | 識別子の逆変換 |
 | `ruby-to-dncl-builtins.js` | 組み込み関数の逆変換。`puts(... + ...)` の左寄せ `+` チェーンを `表示する(...)` 多引数にフラット化（display fragment 限定） |
 
+#### 新しい変換（ja-notation。作り直しの途中で、まだエディタからは使わない）
+
+日本語 → 日本語の構文木（JaAST）→ Ruby の構文木 → Ruby のテキストと行の対応、の順に変換するライブラリ。
+設計は [`../ruby-editor/converter-roadmap.md`](../ruby-editor/converter-roadmap.md) の 2 章・4 章。いまは **標準の形だけ** を読み、
+テストの中でだけ動かして、いまの `dnclToRuby` と同じ Ruby（prism の構文木で比べる）・同じ行の対応になることを確かめている。
+DNCL 風の形（`を実行する` などで閉じる行、`←`、`かつ`、「...」）は `dncl-like` の誤りにする（次の段で読む）。
+
+| ファイル | 役割 |
+|---|---|
+| `src/lib/ja-notation/`（MIT。`LICENSE` あり） | ライブラリ。外のモジュールを import しない（`test/unit/lib/ja-notation/boundary.test.js`） |
+| `ja-notation/lexer.js` | 1 行を字句に分ける。全角の演算子・`≦` などは半角のものとして読む |
+| `ja-notation/parse-standard.js` | 標準の形を読む（行番号・`｜` `⎿`・字下げ・`ならば:`・`and` / `or` / `not`）。JaAST の形は `ja-notation/ja-ast.js` |
+| `ja-notation/build-ruby.js` | JaAST → Ruby の構文木（prism のノード名を使う小さな形）。変数の名前・関数・入力は外から受けとる表で決める |
+| `ja-notation/write-ruby.js` | Ruby のテキストと、Ruby の行ごとの日本語の行を書く |
+| `src/lib/dncl/ja-notation-table.js` | スモウルビーの表（`表示する` → `puts`、大文字の名前 → `@_var_X_` / `@_array_X_` など） |
+
+テスト: `test/unit/lib/ja-notation/corpus.test.js`（コーパスのゴールデンとの比較）、`parse-standard.test.js`、`build-and-write-ruby.test.js`。
+
 #### エラー行の対応（ソースマップ）
 
 DNCL モードでは、DNCL を Ruby に変換してからブロックに変換するため、変換エラーは **Ruby の行番号**で返ってくる。DNCL と Ruby の行は 1:1 に対応しないので、`DnclSourceMap` で DNCL の行に戻してからエディタにエラーマーカーを表示する（`ruby-tab.jsx` の `showErrors`）。Ruby の桁は DNCL の桁と対応しないため、マーカーは **DNCL の行全体**に付ける（付け替えは `DnclSourceMap#rubyErrorsToDncl`）。Ruby の最終行より後ろ（または 1 行目より前）を指すエラーは、Ruby の最終行（1 行目）に対応する DNCL の行に寄せる。Ruby の方が行数が多いのが普通なので、行番号をそのまま使うと無関係な DNCL の行や存在しない行を指してしまうため。
