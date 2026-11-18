@@ -18,55 +18,55 @@
         },
         {
             "id": "jhs-tech-d2-chat",
-            "version": "0.1.0",
+            "version": "0.1.1",
             "title": "双方向性のあるコンテンツ（チャットを作ろう）",
             "schoolType": "jhs",
             "assignments": [
                 {
                     "id": "jhs-tech-d2-chat-01-intro",
-                    "version": "0.1.0",
+                    "version": "0.1.1",
                     "number": 1,
                     "title": "双方向性のあるコンテンツとスモウルビー"
                 },
                 {
                     "id": "jhs-tech-d2-chat-02-input-output",
-                    "version": "0.1.0",
+                    "version": "0.1.1",
                     "number": 2,
                     "title": "使用者の働きかけと応答"
                 },
                 {
                     "id": "jhs-tech-d2-chat-03-message",
-                    "version": "0.1.0",
+                    "version": "0.1.1",
                     "number": 3,
                     "title": "メッセージで 2 人がやりとりする"
                 },
                 {
                     "id": "jhs-tech-d2-chat-04-mesh",
-                    "version": "0.1.0",
+                    "version": "0.1.1",
                     "number": 4,
                     "title": "ネットワークを利用したプログラム（メッシュ）"
                 },
                 {
                     "id": "jhs-tech-d2-chat-05-find-problems",
-                    "version": "0.1.0",
+                    "version": "0.1.1",
                     "number": 5,
                     "title": "チャットを便利・快適・安全にする"
                 },
                 {
                     "id": "jhs-tech-d2-chat-06-design",
-                    "version": "0.1.0",
+                    "version": "0.1.1",
                     "number": 6,
                     "title": "便利・快適・安全なチャットを設計しよう"
                 },
                 {
                     "id": "jhs-tech-d2-chat-07-build-debug",
-                    "version": "0.1.0",
+                    "version": "0.1.1",
                     "number": 7,
                     "title": "チャットを作ろう（制作とデバッグ）"
                 },
                 {
                     "id": "jhs-tech-d2-chat-08-evaluate-improve",
-                    "version": "0.1.0",
+                    "version": "0.1.1",
                     "number": 8,
                     "title": "評価・改善とまとめ"
                 }

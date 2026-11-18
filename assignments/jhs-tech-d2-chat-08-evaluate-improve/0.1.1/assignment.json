@@ -1,0 +1,38 @@
+{
+    "schemaVersion": 1,
+    "id": "jhs-tech-d2-chat-08-evaluate-improve",
+    "version": "0.1.1",
+    "series": "jhs-tech-d2-chat",
+    "number": 8,
+    "title": "評価・改善とまとめ",
+    "goal": "おたがいのチャットを使って評価し、直すところを決めて改善し、単元をふりかえる。",
+    "schoolType": "jhs",
+    "subject": "技術・家庭科〈技術分野〉",
+    "curriculum": "D(2) 双方向性のあるコンテンツのプログラミングによる問題解決",
+    "grade": 2,
+    "hours": 1,
+    "starter": null,
+    "license": "CC0-1.0",
+    "worksheetPages": [
+        9,
+        10,
+        11
+    ],
+    "lessons": [],
+    "submit": {
+        "project": "06_◯◯チャット改良版",
+        "worksheet": true
+    },
+    "files": [
+        {
+            "file": "worksheet.pdf",
+            "kind": "worksheet",
+            "audience": "student"
+        },
+        {
+            "file": "worksheet-teacher.pdf",
+            "kind": "worksheet",
+            "audience": "teacher"
+        }
+    ]
+}
