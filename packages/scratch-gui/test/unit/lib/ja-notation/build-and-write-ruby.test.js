@@ -42,10 +42,10 @@ describe('jaToRuby with the table of Smalruby', () => {
         );
     });
 
-    test('a block that ends by its indent keeps the blank lines in it', () => {
+    test('a block that ends by its indent puts the blank lines after its end', () => {
         const { ruby, jaLines } = smalruby('もし a > 0 ならば:\n    a = 1\n\nb = 2');
-        expect(ruby).toBe('if @a > 0\n  @a = 1\n\nend\n@b = 2');
-        expect(jaLines).toEqual([1, 2, 3, 2, 4]);
+        expect(ruby).toBe('if @a > 0\n  @a = 1\nend\n\n@b = 2');
+        expect(jaLines).toEqual([1, 2, 2, 3, 4]);
     });
 
     test.each([

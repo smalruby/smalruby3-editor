@@ -179,8 +179,8 @@ const convertLine = (line) => {
         return `${indent}def ${funcMatch[1]}(${funcMatch[2]})`;
     }
 
-    // 返す expr → return expr
-    const returnMatch = trimmed.match(/^返す\s+(.+)$/);
+    // 返す expr / expr を返す (standard form, Issue #1754) → return expr
+    const returnMatch = trimmed.match(/^返す\s+(.+)$/) || trimmed.match(/^(.+?)\s+を返す$/);
     if (returnMatch) {
         let expr = convertJapaneseStrings(convertArrow(returnMatch[1]));
         expr = convertBuiltinFunctions(expr);
