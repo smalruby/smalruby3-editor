@@ -27,11 +27,11 @@ export default {
     'gui.smalruby3.previewInfo.welcome': 'Welcome to the Smalruby 3.0 Preview',
     'gui.smalruby3.menuBar.downloadRubyCodeToComputer': 'Save Ruby to your computer',
     'gui.menuBar.meshV2': 'Mesh',
-    'gui.menuBar.smalrubotS1': 'SmalrubotS1',
+    'gui.menuBar.smalrubotS1': 'Studuino',
     'gui.menuBar.smalrubotS1.flashFirmware': 'Write Firmware',
-    'gui.smalrubotFirmware.title': 'SmalrubotS1 Firmware',
+    'gui.smalrubotFirmware.title': 'Studuino Firmware',
     'gui.smalrubotFirmware.description':
-        'Write the SmalrubotS1 firmware to the Studuino board. Connect the board via USB cable, then press the button below and select your Smalrubot S1 in the serial port dialog.',
+        'Write the firmware to the Studuino board. Connect the board via USB cable, then press the button below and select your Studuino in the serial port dialog.',
     'gui.smalrubotFirmware.warning': 'Do not disconnect the USB cable during the firmware write process.',
     'gui.smalrubotFirmware.flashButton': 'Write Firmware',
     'gui.smalrubotFirmware.cancelButton': 'Cancel',
@@ -1005,10 +1005,11 @@ export default {
         'If the host is not displayed, please set the domain. The zip code of a facility such as a school is ideal.',
     'mesh.domainExampleTitle': 'Example',
     'mesh.domainExample': '100-0014',
-    'gui.smalruby3.extension.smalrubotS1.name': 'Smalrubot S1',
-    'gui.smalruby3.extension.smalrubotS1.description': 'Control the Smalrubot S1.',
-    'gui.smalruby3.extension.smalrubotS1.connectingMessage': 'Connecting the Smalrubot S1',
-    'smalrubotS1.categoryName': 'Smalrubot S1',
+    'gui.smalruby3.extension.smalrubotS1.name': 'Studuino',
+    'gui.smalruby3.extension.smalrubotS1.description':
+        'Control Studuino®, an Arduino-compatible board designed for building robots. Studuino® is a registered trademark of Artec Co., Ltd.',
+    'gui.smalruby3.extension.smalrubotS1.connectingMessage': 'Connecting the Studuino',
+    'smalrubotS1.categoryName': 'Studuino',
     'smalrubotS1.action': '[ACTION] (M1, M2)',
     'smalrubotS1.actionAndStopAfter': '[ACTION] for [SECS] seconds (M1, M2)',
     'smalrubotS1.bendArm': 'bend arm (D10) [DEGREE] degrees in [SECS] seconds',
@@ -1373,29 +1374,28 @@ export default {
 
     // SmalrubotS1 dedicated flow messages
     'gui.connection.smalrubotS1Initial.intro':
-        'How do you want to use Smalrubot S1? If this is your first time, please write the firmware first.',
+        'How do you want to use Studuino? If this is your first time, please write the firmware first.',
     'gui.connection.smalrubotS1Initial.connect': 'Connect (for students)',
-    'gui.connection.smalrubotS1Initial.connectDescription':
-        'Connect to a Smalrubot S1 with firmware already written.',
+    'gui.connection.smalrubotS1Initial.connectDescription': 'Connect to a Studuino with firmware already written.',
     'gui.connection.smalrubotS1Initial.flashFirmware': 'Write firmware (for teachers)',
-    'gui.connection.smalrubotS1Initial.flashFirmwareDescription': 'Write firmware to a new Smalrubot S1.',
+    'gui.connection.smalrubotS1Initial.flashFirmwareDescription': 'Write firmware to a new Studuino.',
     'gui.connection.smalrubotS1Initial.helpButton': 'Help',
     'gui.connection.smalrubotS1Unsupported.title': 'WebSerial is not supported',
     'gui.connection.smalrubotS1Unsupported.description':
-        'Smalrubot S1 requires WebSerial API support, which is available in Google Chrome, Microsoft Edge, ' +
-        'and Opera on desktop. Please use one of these browsers to use Smalrubot S1.',
+        'Studuino requires WebSerial API support, which is available in Google Chrome, Microsoft Edge, ' +
+        'and Opera on desktop. Please use one of these browsers to use Studuino.',
     'gui.connection.smalrubotS1Unsupported.helpButton': 'Help',
     'gui.connection.smalrubotS1Connecting.title': 'Connecting...',
     'gui.connection.smalrubotS1Connecting.description':
-        'Please select your Smalrubot S1 in the serial port dialog. ' +
+        'Please select your Studuino in the serial port dialog. ' +
         'If the dialog does not appear, click "Back" and try again.',
     'gui.connection.smalrubotS1Connected.title': 'Connected',
-    'gui.connection.smalrubotS1Connected.description': 'Your Smalrubot S1 is ready to use.',
+    'gui.connection.smalrubotS1Connected.description': 'Your Studuino is ready to use.',
     'gui.connection.smalrubotS1Connected.disconnectButton': 'Disconnect',
     'gui.connection.smalrubotS1Connected.goToEditorButton': 'Go to Editor',
     'gui.connection.smalrubotS1Error.title': 'Connection failed',
     'gui.connection.smalrubotS1Error.description':
-        'Could not connect to Smalrubot S1. Make sure your device is plugged in and try again.',
+        'Could not connect to Studuino. Make sure your device is plugged in and try again.',
     'gui.connection.smalrubotS1Error.retryButton': 'Try again',
     'gui.connection.smalrubotS1.backButton': 'Back',
 

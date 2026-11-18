@@ -41,7 +41,7 @@ const EXTENSION_RECEIVER_LABELS = {
     microbit: 'マイクロビット',
     mesh_v1: 'メッシュ(従来)',
     mesh: 'メッシュ',
-    smalrubot_s1: 'スモウルボットS1',
+    smalrubot_s1: 'スタディーノ',
     koshien: 'スモウルビー甲子園',
     tm: '機械学習',
     akadako: 'AkaDako',

@@ -18,11 +18,11 @@ export default {
     'gui.rubyVersion.v1': 'バージョン1',
     'gui.rubyVersion.v2': 'バージョン2 (初期設定)',
     'gui.menuBar.meshV2': 'メッシュ',
-    'gui.menuBar.smalrubotS1': 'スモウルボットS1',
+    'gui.menuBar.smalrubotS1': 'Studuino',
     'gui.menuBar.smalrubotS1.flashFirmware': 'ファームウェア書き込み',
-    'gui.smalrubotFirmware.title': 'スモウルボットS1 ファームウェア',
+    'gui.smalrubotFirmware.title': 'Studuino ファームウェア',
     'gui.smalrubotFirmware.description':
-        'スモウルボットS1のファームウェアをStuduino基板に書き込みます。USBケーブルで基板を接続してから、下のボタンを押してシリアルポート選択ダイアログで、お使いのスモウルボット S1 を選んでください。',
+        'Studuino 用のファームウェアを基板に書き込みます。USBケーブルで基板を接続してから、下のボタンを押してシリアルポート選択ダイアログで、お使いの Studuino を選んでください。',
     'gui.smalrubotFirmware.warning': 'ファームウェア書き込み中にUSBケーブルを抜かないでください。',
     'gui.smalrubotFirmware.flashButton': 'ファームウェア書き込み',
     'gui.smalrubotFirmware.cancelButton': 'キャンセル',
@@ -1379,10 +1379,11 @@ export default {
     'faceSensing.topOfHead': '頭のてっぺん',
     'faceSensing.left': '左',
     'faceSensing.right': '右',
-    'gui.smalruby3.extension.smalrubotS1.name': 'スモウルボットS1',
-    'gui.smalruby3.extension.smalrubotS1.description': 'スモウルボットS1を制御する。',
-    'gui.smalruby3.extension.smalrubotS1.connectingMessage': 'スモウルボットS1に接続しています。',
-    'smalrubotS1.categoryName': 'スモウルボットS1',
+    'gui.smalruby3.extension.smalrubotS1.name': 'Studuino（スタディーノ）',
+    'gui.smalruby3.extension.smalrubotS1.description':
+        'ロボット製作に特化した Arduino 互換基板 Studuino®（スタディーノ）を動かす。Studuino® は株式会社アーテックの登録商標です。',
+    'gui.smalruby3.extension.smalrubotS1.connectingMessage': 'Studuino に接続しています。',
+    'smalrubotS1.categoryName': 'Studuino',
     'smalrubotS1.action': '[ACTION] (M1, M2)',
     'smalrubotS1.actionAndStopAfter': '[SECS] 秒 [ACTION] (M1, M2)',
     'smalrubotS1.bendArm': '[SECS] 秒でアーム (D10) を [DEGREE] 度に曲げる',
@@ -1672,30 +1673,29 @@ export default {
 
     // SmalrubotS1 dedicated flow messages
     'gui.connection.smalrubotS1Initial.intro':
-        'スモウルボット S1 をどのように使いますか？ はじめての場合は、まずファームウェアを書き込んでください。',
+        'Studuino をどのように使いますか？ はじめての場合は、まずファームウェアを書き込んでください。',
     'gui.connection.smalrubotS1Initial.connect': '接続する（生徒用）',
     'gui.connection.smalrubotS1Initial.connectDescription':
-        'ファームウェアが書き込まれているスモウルボット S1 に接続します。',
+        'ファームウェアが書き込まれている Studuino に接続します。',
     'gui.connection.smalrubotS1Initial.flashFirmware': 'ファームウェアを書き込む（先生用）',
-    'gui.connection.smalrubotS1Initial.flashFirmwareDescription':
-        '新しいスモウルボット S1 にファームウェアを書き込みます。',
+    'gui.connection.smalrubotS1Initial.flashFirmwareDescription': '新しい Studuino にファームウェアを書き込みます。',
     'gui.connection.smalrubotS1Initial.helpButton': 'ヘルプ',
     'gui.connection.smalrubotS1Unsupported.title': 'WebSerial に対応していません',
     'gui.connection.smalrubotS1Unsupported.description':
-        'スモウルボット S1 を使うには WebSerial API に対応したブラウザが必要です。' +
+        'Studuino を使うには WebSerial API に対応したブラウザが必要です。' +
         'Google Chrome、Microsoft Edge、または Opera のデスクトップ版をお使いください。',
     'gui.connection.smalrubotS1Unsupported.helpButton': 'ヘルプ',
     'gui.connection.smalrubotS1Connecting.title': '接続中...',
     'gui.connection.smalrubotS1Connecting.description':
-        'シリアルポート選択ダイアログで、お使いのスモウルボット S1 を選んでください。' +
+        'シリアルポート選択ダイアログで、お使いの Studuino を選んでください。' +
         'ダイアログが表示されない場合は「もどる」を押してやり直してください。',
     'gui.connection.smalrubotS1Connected.title': '接続しました',
-    'gui.connection.smalrubotS1Connected.description': 'スモウルボット S1 を使う準備ができました。',
+    'gui.connection.smalrubotS1Connected.description': 'Studuino を使う準備ができました。',
     'gui.connection.smalrubotS1Connected.disconnectButton': '切断する',
     'gui.connection.smalrubotS1Connected.goToEditorButton': 'エディターに戻る',
     'gui.connection.smalrubotS1Error.title': '接続に失敗しました',
     'gui.connection.smalrubotS1Error.description':
-        'スモウルボット S1 に接続できませんでした。デバイスが接続されていることを確認して、もう一度お試しください。',
+        'Studuino に接続できませんでした。デバイスが接続されていることを確認して、もう一度お試しください。',
     'gui.connection.smalrubotS1Error.retryButton': 'もう一度試す',
     'gui.connection.smalrubotS1.backButton': 'もどる',
 

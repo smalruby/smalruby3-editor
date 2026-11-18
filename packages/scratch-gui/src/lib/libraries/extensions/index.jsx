@@ -483,7 +483,7 @@ export default [
     {
         name: (
             <FormattedMessage
-                defaultMessage="Smalrubot S1"
+                defaultMessage="Studuino"
                 description="Name for the 'Smalrubot S1' extension"
                 id="gui.smalruby3.extension.smalrubotS1.name"
             />
@@ -493,7 +493,7 @@ export default [
         insetIconURL: smalrubotS1InsetIconURL,
         description: (
             <FormattedMessage
-                defaultMessage="Control the Smalrubot S1."
+                defaultMessage="Control Studuino®, an Arduino-compatible board designed for building robots. Studuino® is a registered trademark of Artec Co., Ltd."
                 description="Description for the 'Smalrubot S1' extension"
                 id="gui.smalruby3.extension.smalrubotS1.description"
             />

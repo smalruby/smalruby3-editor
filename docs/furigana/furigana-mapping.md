@@ -604,23 +604,23 @@ TryRuby 対応で追加された Ruby メソッドのふりがな。
 | `mesh_v1`（レシーバー） | `メッシュ(従来)` | — |
 | `mesh_v1.sensor_value("x")` | `メッシュ(従来)` `センサーの値` | 「xセンサーの値」 |
 
-### スモウルボットS1（Smalrubot S1拡張機能）
+### Studuino（スタディーノ）拡張機能（旧 スモウルボットS1）
 
-`smalrubot_s1` は事前定義レシーバー。レシーバー自体に `スモウルボットS1` のふりがなが付く。
+`smalrubot_s1` は事前定義レシーバー。レシーバー自体に `スタディーノ` のふりがなが付く。
 
 | Ruby | ふりがな | Scratchブロック |
 | ------ | --------- | ------ |
-| `smalrubot_s1`（レシーバー） | `スモウルボットS1` | — |
-| `smalrubot_s1.action("forward")` | `スモウルボットS1` `動作する` `進める` | 「進める」 |
-| `smalrubot_s1.action("backward")` | `スモウルボットS1` `動作する` `バックさせる` | 「バックさせる」 |
-| `smalrubot_s1.action("turnLeft")` | `スモウルボットS1` `動作する` `左に曲げる` | 「左に曲げる」 |
-| `smalrubot_s1.action("turnRight")` | `スモウルボットS1` `動作する` `右に曲げる` | 「右に曲げる」 |
-| `smalrubot_s1.action("stop")` | `スモウルボットS1` `動作する` `止める` | 「止める」 |
-| `smalrubot_s1.bend_arm(90, 1)` | `スモウルボットS1` `アームを曲げる` | 「アームを曲げる」 |
-| `smalrubot_s1.sensor_value("left")` | `スモウルボットS1` `センサーの値` | 「左のセンサー」 |
-| `smalrubot_s1.get_motor_speed("left")` | `スモウルボットS1` `モーター速度` | 「左DCモーターの速度」 |
-| `smalrubot_s1.set_motor_speed("left", 50)` | `スモウルボットS1` `モーター速度を設定` | 「左DCモーターの速度を50にする」 |
-| `smalrubot_s1.led("left", true)` | `スモウルボットS1` `LED設定` | 「左のLEDをオンにする」 |
+| `smalrubot_s1`（レシーバー） | `スタディーノ` | — |
+| `smalrubot_s1.action("forward")` | `スタディーノ` `動作する` `進める` | 「進める」 |
+| `smalrubot_s1.action("backward")` | `スタディーノ` `動作する` `バックさせる` | 「バックさせる」 |
+| `smalrubot_s1.action("turnLeft")` | `スタディーノ` `動作する` `左に曲げる` | 「左に曲げる」 |
+| `smalrubot_s1.action("turnRight")` | `スタディーノ` `動作する` `右に曲げる` | 「右に曲げる」 |
+| `smalrubot_s1.action("stop")` | `スタディーノ` `動作する` `止める` | 「止める」 |
+| `smalrubot_s1.bend_arm(90, 1)` | `スタディーノ` `アームを曲げる` | 「アームを曲げる」 |
+| `smalrubot_s1.sensor_value("left")` | `スタディーノ` `センサーの値` | 「左のセンサー」 |
+| `smalrubot_s1.get_motor_speed("left")` | `スタディーノ` `モーター速度` | 「左DCモーターの速度」 |
+| `smalrubot_s1.set_motor_speed("left", 50)` | `スタディーノ` `モーター速度を設定` | 「左DCモーターの速度を50にする」 |
+| `smalrubot_s1.led("left", true)` | `スタディーノ` `LED設定` | 「左のLEDをオンにする」 |
 
 ### スモウルビー甲子園（Koshien拡張機能）
 
