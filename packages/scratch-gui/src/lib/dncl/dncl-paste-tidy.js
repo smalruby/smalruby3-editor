@@ -21,7 +21,7 @@ import { codeOfLine, commentIndex, stringEndAt } from './dncl-trailing-comment';
 
 /**
  * A line-number prefix and the whitespace after it: the DNCLv2 form
- * (`(00)` / `(00-1)`, as the pre-processor strips it) or `1:`, as listings
+ * (`(00)` / `(00-1)`, as the reader skips it) or `1:`, as listings
  * that number their lines are copied. Leading whitespace is allowed because
  * a pasted selection often starts mid-indent. `1:` needs a space (or the end
  * of the line) after it so that `10:30` is not taken for a line number.
@@ -228,7 +228,7 @@ const convertSlashComment = (line, names) => {
  * Join statements that 共通テスト samples wrap onto unnumbered lines, e.g.
  *   `(10)  ｜ 表示する(i, "人目の待ち時間：",`
  *   `      ⎿          Kaishi[i] - Touchaku[i], "分間")`
- * The pre-processor only joins such lines while the line number is still
+ * The reader only joins such lines while the line number is still
  * there, so they have to be joined before the number is removed. A `⎿` on
  * a continuation line closes a block after the statement, so it replaces
  * the innermost `｜` of the joined line (`  ⎿ 表示する(...)`).

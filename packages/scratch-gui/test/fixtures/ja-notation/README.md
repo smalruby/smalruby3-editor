@@ -14,7 +14,7 @@
 
 | 項目 | 中身 |
 |---|---|
-| `ruby` / `errors` / `blockErrors` | `dnclToRuby` の結果（誤りの文と、日本語の行・列） |
+| `ruby` / `errors` | `dnclToRuby` の結果（誤りの文と、日本語の行・列。ブロックの閉じ忘れなどの誤りもここに入る） |
 | `rubyLines` | Ruby の行ごとの、日本語の行（行の対応） |
 | `converterErrors` | その Ruby をブロックにしたときの誤り。日本語モードが見せるとおり、日本語の行に直したもの |
 | `blocks` | ブロック（短い記法。`test/unit/helpers/block-notation.js`。カスタムブロックの引数の ID は `arg1`・`arg2` …） |

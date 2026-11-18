@@ -173,9 +173,10 @@ class RubyBuilder {
      * @param {string} code - The code.
      * @param {string} message - The message.
      * @param {object} node - The JaAST node it is at.
+     * @param {object} [detail] - More about it (`name`: the name of an unknown command).
      */
-    fail(code, message, node) {
-        this.errors.push({ code, message, line: node.line, column: node.column });
+    fail(code, message, node, detail = {}) {
+        this.errors.push({ code, message, line: node.line, column: node.column, ...detail });
     }
 
     /**
@@ -259,7 +260,7 @@ class RubyBuilder {
             const message = /^[A-Za-z_]/.test(e.name)
                 ? `「${e.name}」は日本語モードでは書けない命令です`
                 : `「${e.name}」は定義されていない関数です`;
-            this.fail('unknown-command', message, e);
+            this.fail('unknown-command', message, e, { name: e.name });
         }
         return call(null, e.name, args);
     }
@@ -432,7 +433,7 @@ class RubyBuilder {
             !this.names.declared.has(e.name) &&
             !/^[A-Z]/.test(e.name)
         ) {
-            this.fail('unknown-command', `「${e.name}」は日本語モードでは書けない命令です`, e);
+            this.fail('unknown-command', `「${e.name}」は日本語モードでは書けない命令です`, e, { name: e.name });
         }
         return this.expression(e);
     }

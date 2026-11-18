@@ -1,8 +1,7 @@
 {
   "ja-974a3c422a": {
-    "ruby": "@a = 10     # 通常の代入\n@_var_A_ = 3      # 矢印による代入\n@_array_Kouka_ = [1, 5, 10]  # 配列の初期化",
+    "ruby": "@a = 10 # 通常の代入\n@_var_A_ = 3 # 矢印による代入\n@_array_Kouka_ = [1, 5, 10] # 配列の初期化",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -19,7 +18,6 @@
   "ja-7496e7b161": {
     "ruby": "while @a > 0\n  @a = @a - 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -36,7 +34,6 @@
   "ja-59be22c685": {
     "ruby": "@i = 1\nwhile @i <= 10\n  puts(@i)\n  @i += 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -55,7 +52,6 @@
   "ja-5d5da5f5e6": {
     "ruby": "@i = 10\nwhile @i >= 0\n  puts(@i)\n  @i += -1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -74,7 +70,6 @@
   "ja-762b8529d5": {
     "ruby": "# Ruby（後判定）: begin; a = a + 1; end until a >= 3\n@a = @a + 1\nwhile @a < 3\n  @a = @a + 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -93,7 +88,6 @@
   "ja-a97ff4d133": {
     "ruby": "def add(a, b)\n  return a + b\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -110,7 +104,6 @@
   "ja-21aeb6f960": {
     "ruby": "def saidaikouyakusuu(a, b)\n  @x = a\n  @y = b\n  while @y != 0\n    @amari = @x % @y\n    @x = @y\n    @y = @amari\n  end\n  return @x\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -134,7 +127,6 @@
   "ja-e3f31f4fbf": {
     "ruby": "def f(x)\n  return x * 2\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -149,9 +141,8 @@
     }
   },
   "ja-0fda5a8765": {
-    "ruby": "puts(@a.to_s + @b.to_s + @c.to_s)              # → puts(@a.to_s + @b.to_s + @c.to_s)\nputs(@atai.to_s + \"は\" + @aida.to_s)     # → puts(@atai.to_s + \"は\" + @aida.to_s)\nputs((@a + 1).to_s + @b.to_s)             # → puts((@a + 1).to_s + @b.to_s)\nputs((!@x).to_s + @y.to_s)          # → puts((!@x).to_s + @y.to_s)",
+    "ruby": "puts(@a.to_s + @b.to_s + @c.to_s) # → puts(@a.to_s + @b.to_s + @c.to_s)\nputs(@atai.to_s + \"は\" + @aida.to_s) # → puts(@atai.to_s + \"は\" + @aida.to_s)\nputs((@a + 1).to_s + @b.to_s) # → puts((@a + 1).to_s + @b.to_s)\nputs((!@x).to_s + @y.to_s) # → puts((!@x).to_s + @y.to_s)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -169,7 +160,6 @@
   "ja-183004f7a1": {
     "ruby": "ask(\"\")\n@a = answer\n# ↓ Ruby 変換後\n# ask_and_wait(\"\")\n# @a = answer",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -186,9 +176,8 @@
     }
   },
   "ja-e34ce18557": {
-    "ruby": "# 問題文: Nissu の添字は 1 から始まる（Nissu[1] が工芸品 1 の日数）\n@_array_Nissu_ = [4, 1, 3]\n@kougeihin = 1\nwhile @kougeihin <= 3\n  puts(@_array_Nissu_[@kougeihin - 1])   # Nissu[kougeihin] と書くと最後に範囲外になる\n  @kougeihin += 1\nend",
+    "ruby": "# 問題文: Nissu の添字は 1 から始まる（Nissu[1] が工芸品 1 の日数）\n@_array_Nissu_ = [4, 1, 3]\n@kougeihin = 1\nwhile @kougeihin <= 3\n  puts(@_array_Nissu_[@kougeihin - 1]) # Nissu[kougeihin] と書くと最後に範囲外になる\n  @kougeihin += 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -209,7 +198,6 @@
   "ja-f6fb9bee2c": {
     "ruby": "# 変数の初期化\n@a = 0\n\n# メインロジック\nif @a > 0\n  puts(@a)\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -230,7 +218,6 @@
   "ja-fcfa6c7c3f": {
     "ruby": "@i = 1\nwhile @i <= 30\n  if @i % 15 == 0\n    puts(\"FizzBuzz\")\n  elsif @i % 3 == 0\n    puts(\"Fizz\")\n  elsif @i % 5 == 0\n    puts(\"Buzz\")\n  else\n    puts(@i)\n  end\n  @i += 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -257,7 +244,6 @@
   "ja-80435d4568": {
     "ruby": "@_array_Data_ = [3, 1, 4, 1, 5, 9, 2, 6]\n@合計 = 0\n@i = 0\nwhile @i <= @_array_Data_.length - 1\n  @合計 = @合計 + @_array_Data_[@i]\n  @i += 1\nend\nputs(@合計)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -279,7 +265,6 @@
   "ja-d5d189510d": {
     "ruby": "def 最大値(a, b)\n  if a > b\n    return a\n  else\n    return b\n  end\nend\n\nask(\"\")\n@x = answer\nask(\"\")\n@y = answer\nputs(最大値(@x.to_i, @y.to_i))",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -306,7 +291,6 @@
   "ja-5e15beaa3b": {
     "ruby": "@_array_Data_ = [5, 3, 8, 1, 9, 2, 7]\nask(\"\")\n@key = answer\n@key = @key.to_i\n@found = false\n@i = 0\nwhile @i <= @_array_Data_.length - 1\n  if @_array_Data_[@i] == @key\n    puts(@i.to_s + \"番目に見つかりました\")\n    @found = true\n  end\n  @i += 1\nend\nif !@found\n  puts(\"見つかりませんでした\")\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -336,7 +320,6 @@
   "ja-2f081f267f": {
     "ruby": "if @a > 0\n  puts(\"正の数\")\nelse\n  puts(\"正でない\")\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -355,7 +338,6 @@
   "ja-80ddb38c57": {
     "ruby": "# 関数の引数に代入してしまったもの（引数は変えられない。ほかの変数に写してから使う）\ndef saidaikouyakusuu(a, b)\n  while b != 0\n    @amari = a % b\n    a = b\n    b = @amari\n  end\n  return a\nend\nputs(saidaikouyakusuu(12, 18))\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -380,93 +362,32 @@
     ]
   },
   "ja-3a9de96e8d": {
-    "ruby": " / @合計を求める（ / @をコメントのつもりで書いている）\n@goukei = 0\n@i = 1\nwhile @i <= 10\n  @goukei = @goukei + @i\n  @i += 1\nend\nputs(@goukei)\n",
-    "errors": [],
-    "blockErrors": [],
-    "rubyLines": [
-      1,
-      2,
-      3,
-      3,
-      4,
-      5,
-      5,
-      6,
-      7
-    ],
-    "converterErrors": [
+    "ruby": null,
+    "errors": [
       {
-        "row": 0,
-        "column": 0,
-        "type": "error",
-        "text": "unexpected instance variable, expecting end-of-input",
-        "source": null
+        "line": 1,
+        "column": 1,
+        "message": "「//」が読めません"
       }
     ]
   },
   "ja-16f68eb64c": {
-    "ruby": "# 「を実行する」が多すぎる\n@x = 5\nif @x > 0\n  puts(\"正\")\nend\nend\n",
-    "errors": [],
-    "blockErrors": [
+    "ruby": null,
+    "errors": [
       {
         "line": 6,
         "column": 1,
         "message": "「を実行する」で閉じるものがありません"
       }
-    ],
-    "rubyLines": [
-      1,
-      2,
-      3,
-      4,
-      5,
-      6,
-      7
-    ],
-    "converterErrors": [
-      {
-        "row": 5,
-        "column": 0,
-        "type": "error",
-        "text": "Extra `end` found.\nRemove the unnecessary `end`.",
-        "source": null
-      }
     ]
   },
   "ja-7df51ded4a": {
-    "ruby": "# 「を繰り返す」で閉じ忘れている\n@_array_Tensu_ = [70, 85, 90, 60]\n@goukei = 0\n@i = 0\nwhile @i <= @_array_Tensu_.length - 1\n  @goukei = @goukei + @_array_Tensu_[@i]\n  puts(\"合計\" + @goukei.to_s)\n",
-    "errors": [],
-    "blockErrors": [
+    "ruby": null,
+    "errors": [
       {
         "line": 4,
         "column": 1,
         "message": "「〜ずつ増やしながら」を「を繰り返す」で閉じてください"
-      }
-    ],
-    "rubyLines": [
-      1,
-      2,
-      3,
-      4,
-      4,
-      5,
-      6,
-      7
-    ],
-    "converterErrors": [
-      {
-        "row": 5,
-        "column": 0,
-        "type": "error",
-        "text": "The code ended unexpectedly.\nCheck for missing `end`, `)`, `]`, or `}`.",
-        "source": null
-      },
-      {
-        "row": 3,
-        "column": 0,
-        "type": "error",
-        "text": "`end` is missing for `while`.\nAdd `end` to close the `while` statement.",
-        "source": null
       }
     ]
   },
@@ -487,13 +408,11 @@
         "name": "len",
         "message": "「len」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-414d32486f": {
     "ruby": "@_array_Data_ = [3, 18, 29, 33, 48, 52, 62, 77, 89, 97]\n@kazu = 0\n@i = 0\nwhile @i <= @_array_Data_.length - 1\n  if @_array_Data_[@i] > 50\n    @kazu = @kazu + 1\n  end\n  @i += 1\nend\nputs(@kazu.to_s + \"個\")\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -518,7 +437,6 @@
   "ja-0850d84775": {
     "ruby": "@_array_Tensu_ = [70, 85, 90, 60]\n@goukei = 0\n@i = 0\nwhile @i <= @_array_Tensu_.length - 1\n  @goukei = @goukei + @_array_Tensu_[@i]\n  @i += 1\nend\nputs(\"合計\" + @goukei.to_s)\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -541,7 +459,6 @@
   "ja-3ce7e1054c": {
     "ruby": "@x = 100\n@kaisuu = 0\nwhile @x > 1\n  @x = (@x / 2).to_i\n  @kaisuu = @kaisuu + 1\nend\nputs(@kaisuu)\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -563,7 +480,6 @@
   "ja-72dfdbcd15": {
     "ruby": "# 問題文に合わせて添字を 1 から数えてしまったもの（動くが、範囲外を読む）\n@_array_Data_ = [2, 5, 8, 3, 6]\n@kazu = 0\n@i = 1\nwhile @i <= 5\n  if @_array_Data_[@i] % 2 == 0\n    @kazu = @kazu + 1\n  end\n  @i += 1\nend\nputs(@kazu)\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -589,7 +505,6 @@
   "ja-a50802b617": {
     "ruby": "# 最大値の初期値を 0 にしてしまったもの（全部マイナスだと 0 になる）\n@_array_Data_ = [-5, -2, -9, -1]\n@saidai = 0\n@i = 0\nwhile @i <= @_array_Data_.length - 1\n  if @_array_Data_[@i] > @saidai\n    @saidai = @_array_Data_[@i]\n  end\n  @i += 1\nend\nputs(@saidai)\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -613,15 +528,8 @@
     }
   },
   "ja-fa453299b9": {
-    "ruby": "# ブロックの終わりを end で閉じたもの（スモウルビーでは動くが、DNCL の書き方ではない）\n@x = 3\nif @x > 0\n  puts(@x)\n  end\n",
+    "ruby": "# ブロックの終わりを end で閉じたもの（スモウルビーでは動くが、DNCL の書き方ではない）\n@x = 3\nif @x > 0\n  puts(@x)\nend\n",
     "errors": [],
-    "blockErrors": [
-      {
-        "line": 3,
-        "column": 1,
-        "message": "「もし〜ならば」を「を実行する」で閉じてください"
-      }
-    ],
     "rubyLines": [
       1,
       2,
@@ -641,7 +549,6 @@
   "ja-0a5b3d1876": {
     "ruby": "# 二分探索（昇順に並んだ配列）\n@_array_Data_ = [1, 3, 4, 7, 9, 11, 15]\n@sagasu = 9\n@hidari = 0\n@migi = @_array_Data_.length - 1\n@basyo = -1\nwhile @hidari <= @migi && @basyo == -1\n  @aida = ((@hidari + @migi) / 2).to_i\n  if @_array_Data_[@aida] == @sagasu\n    @basyo = @aida\n  elsif @_array_Data_[@aida] < @sagasu\n    @hidari = @aida + 1\n  else\n    @migi = @aida - 1\n  end\nend\nputs(@basyo)\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -673,7 +580,6 @@
   "ja-25978d6af5": {
     "ruby": "# バブルソート（小さい順）\n@_array_Data_ = [5, 3, 8, 1, 4]\n@n = @_array_Data_.length\n@i = 0\nwhile @i <= @n - 2\n  @j = 0\n  while @j <= @n - 2 - @i\n    if @_array_Data_[@j] > @_array_Data_[@j + 1]\n      @tmp = @_array_Data_[@j]\n      @_array_Data_[@j] = @_array_Data_[@j + 1]\n      @_array_Data_[@j + 1] = @tmp\n    end\n    @j += 1\n  end\n  @i += 1\nend\nputs(@_array_Data_)\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -705,7 +611,6 @@
   "ja-c12dd35499": {
     "ruby": "# 条件に合う要素を数える（偶数の個数）\n@_array_Data_ = [2, 5, 8, 3, 6]\n@kazu = 0\n@i = 0\nwhile @i <= @_array_Data_.length - 1\n  if @_array_Data_[@i] % 2 == 0\n    @kazu = @kazu + 1\n  end\n  @i += 1\nend\nputs(@kazu)\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -731,7 +636,6 @@
   "ja-49079da069": {
     "ruby": "# 減らしながら繰り返す\n@i = 10\nwhile @i >= 1\n  puts(@i)\n  @i += -1\nend\nputs(\"発射\")\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -753,7 +657,6 @@
   "ja-d13fd6ba68": {
     "ruby": "# サイコロを振って出た目を数える（乱数）\n@_array_Kaisuu_ = [0, 0, 0, 0, 0, 0]\n@i = 1\nwhile @i <= 60\n  @me = rand(1..6)\n  @_array_Kaisuu_[@me - 1] = @_array_Kaisuu_[@me - 1] + 1\n  @i += 1\nend\nputs(@_array_Kaisuu_)\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -777,7 +680,6 @@
   "ja-45f985971e": {
     "ruby": "# 階乗を求める関数\ndef kaijou(n)\n  @kekka = 1\n  @i = 1\n  while @i <= n\n    @kekka = @kekka * @i\n    @i += 1\n  end\n  return @kekka\nend\nputs(kaijou(5))\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -803,7 +705,6 @@
   "ja-c82858fc86": {
     "ruby": "# フィボナッチ数列を配列に作る\n@_array_Fib_ = [0, 1, 0, 0, 0, 0, 0, 0, 0, 0]\n@i = 2\nwhile @i <= @_array_Fib_.length - 1\n  @_array_Fib_[@i] = @_array_Fib_[@i - 1] + @_array_Fib_[@i - 2]\n  @i += 1\nend\nputs(@_array_Fib_)\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -826,7 +727,6 @@
   "ja-316ecedf16": {
     "ruby": "# 3 の倍数・5 の倍数で表示を変える\n@i = 1\nwhile @i <= 15\n  if @i % 15 == 0\n    puts(\"FizzBuzz\")\n  elsif @i % 3 == 0\n    puts(\"Fizz\")\n  elsif @i % 5 == 0\n    puts(\"Buzz\")\n  else\n    puts(@i)\n  end\n  @i += 1\nend\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -855,7 +755,6 @@
   "ja-32f6eb82f3": {
     "ruby": "# ユークリッドの互除法で最大公約数を求める関数（引数はほかの変数に写してから変える）\ndef saidaikouyakusuu(a, b)\n  @x = a\n  @y = b\n  while @y != 0\n    @amari = @x % @y\n    @x = @y\n    @y = @amari\n  end\n  return @x\nend\nputs(saidaikouyakusuu(12, 18))\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -882,7 +781,6 @@
   "ja-80c9617f1b": {
     "ruby": "# 点数から評定を決める\n@_array_Tensu_ = [92, 75, 58, 81]\n@i = 0\nwhile @i <= @_array_Tensu_.length - 1\n  if @_array_Tensu_[@i] >= 90\n    puts(@_array_Tensu_[@i].to_s + \"A\")\n  elsif @_array_Tensu_[@i] >= 70\n    puts(@_array_Tensu_[@i].to_s + \"B\")\n  else\n    puts(@_array_Tensu_[@i].to_s + \"C\")\n  end\n  @i += 1\nend\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -910,7 +808,6 @@
   "ja-5fc4cb4e47": {
     "ruby": "# 入力した数の 2 倍を表示する\nask(\"\")\n@kotae = answer\n@n = @kotae.to_i\nputs(@n * 2)\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -930,7 +827,6 @@
   "ja-412cc4f9dd": {
     "ruby": "# 線形探索（見つかった添字、無ければ -1）\n@_array_Data_ = [4, 9, 7, 1, 3]\n@sagasu = 7\n@basyo = -1\n@i = 0\nwhile @i < @_array_Data_.length && @basyo == -1\n  if @_array_Data_[@i] == @sagasu\n    @basyo = @i\n  end\n  @i = @i + 1\nend\nif @basyo == -1\n  puts(\"見つからない\")\nelse\n  puts(@basyo.to_s + \"番目\")\nend\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -961,7 +857,6 @@
   "ja-35855c1b87": {
     "ruby": "# 配列の最大値（最初の要素から始める）\n@_array_Data_ = [-5, -2, -9, -1]\n@saidai = @_array_Data_[0]\n@i = 1\nwhile @i <= @_array_Data_.length - 1\n  if @_array_Data_[@i] > @saidai\n    @saidai = @_array_Data_[@i]\n  end\n  @i += 1\nend\nputs(@saidai)\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -987,7 +882,6 @@
   "ja-683f89b972": {
     "ruby": "# 最小値とその添字\n@_array_Data_ = [8, 3, 6, 1, 7]\n@saisyou = @_array_Data_[0]\n@basyo = 0\n@i = 1\nwhile @i <= @_array_Data_.length - 1\n  if @_array_Data_[@i] < @saisyou\n    @saisyou = @_array_Data_[@i]\n    @basyo = @i\n  end\n  @i += 1\nend\nputs(\"最小値は\" + @saisyou.to_s + \"で添字は\" + @basyo.to_s)\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -1015,7 +909,6 @@
   "ja-c9767b9d9d": {
     "ruby": "# 素数かどうか調べる\n@n = 29\n@sosuu = true\n@i = 2\nwhile @i * @i <= @n\n  if @n % @i == 0\n    @sosuu = false\n  end\n  @i = @i + 1\nend\nif @sosuu\n  puts(@n.to_s + \"は素数\")\nelse\n  puts(@n.to_s + \"は素数ではない\")\nend\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -1045,7 +938,6 @@
   "ja-bb34ddc685": {
     "ruby": "# 配列を逆順にする\n@_array_Data_ = [1, 2, 3, 4, 5]\n@n = @_array_Data_.length\n@i = 0\nwhile @i <= (@n / 2).to_i - 1\n  @tmp = @_array_Data_[@i]\n  @_array_Data_[@i] = @_array_Data_[@n - 1 - @i]\n  @_array_Data_[@n - 1 - @i] = @tmp\n  @i += 1\nend\nputs(@_array_Data_)\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -1071,7 +963,6 @@
   "ja-6f243c41d9": {
     "ruby": "# 四捨五入・切り捨て・切り上げ・絶対値・平方根\n@x = 2.5\nputs(@x.round)\nputs(@x.floor)\nputs(@x.ceil)\nputs(-5.abs)\nputs(Math.sqrt(9))\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -1093,7 +984,6 @@
   "ja-74eaeebf83": {
     "ruby": "# 選択ソート（小さい順）\n@_array_Data_ = [5, 3, 8, 1, 4]\n@n = @_array_Data_.length\n@i = 0\nwhile @i <= @n - 2\n  @saisyou = @i\n  @j = @i + 1\n  while @j <= @n - 1\n    if @_array_Data_[@j] < @_array_Data_[@saisyou]\n      @saisyou = @j\n    end\n    @j += 1\n  end\n  @tmp = @_array_Data_[@i]\n  @_array_Data_[@i] = @_array_Data_[@saisyou]\n  @_array_Data_[@saisyou] = @tmp\n  @i += 1\nend\nputs(@_array_Data_)\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -1127,7 +1017,6 @@
   "ja-133e277a33": {
     "ruby": "# 文字列に含まれるか・文字列にする\n@namae = \"さくら\"\nif @namae.include?(\"く\")\n  puts(@namae + \"には く がある\")\nend\nputs(12.to_s + \"円\")\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -1148,7 +1037,6 @@
   "ja-eaefce5c73": {
     "ruby": "# 合計と平均\n@_array_Tensu_ = [70, 85, 90, 60]\n@goukei = 0\n@i = 0\nwhile @i <= @_array_Tensu_.length - 1\n  @goukei = @goukei + @_array_Tensu_[@i]\n  @i += 1\nend\nputs(\"合計\" + @goukei.to_s)\nputs(\"平均\" + (@goukei / @_array_Tensu_.length).to_s)\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -1173,7 +1061,6 @@
   "ja-cff1c8389f": {
     "ruby": "@b = -(2.5.ceil)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1188,7 +1075,6 @@
   "ja-1655b87c1f": {
     "ruby": "@b = -(2.5.floor)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1203,7 +1089,6 @@
   "ja-bc9cdc1011": {
     "ruby": "@b = -(2.5.round)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1218,7 +1103,6 @@
   "ja-849e5ae634": {
     "ruby": "@b = -(@x.to_i)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1233,7 +1117,6 @@
   "ja-f321855a43": {
     "ruby": "@b = -(1.to_s)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1248,7 +1131,6 @@
   "ja-52134ad822": {
     "ruby": "@b = -(-5.abs)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1263,7 +1145,6 @@
   "ja-fa5f82e6fe": {
     "ruby": "@b = -(5.abs)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1278,7 +1159,6 @@
   "ja-9981a0f645": {
     "ruby": "@b = -((@a - @c).abs)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1293,7 +1173,6 @@
   "ja-b6f90f8a77": {
     "ruby": "@b = -(@x.to_i.abs)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1308,7 +1187,6 @@
   "ja-f9ba8e0e96": {
     "ruby": "@b = -(@_array_A_.length)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1323,7 +1201,6 @@
   "ja-00d9e8cbad": {
     "ruby": "@b = 3 * -(5.abs)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1338,7 +1215,6 @@
   "ja-8560a86b0e": {
     "ruby": "@b = -(@a + 1)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1353,7 +1229,6 @@
   "ja-a8d8f5012d": {
     "ruby": "@b = -@x",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1366,9 +1241,8 @@
     }
   },
   "ja-ce2c70bf2e": {
-    "ruby": "@b = -rand(1..10)",
+    "ruby": "@b = -(rand(1..10))",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1381,9 +1255,8 @@
     }
   },
   "ja-8b52f25209": {
-    "ruby": "@b = -Math.sqrt(4)",
+    "ruby": "@b = -(Math.sqrt(4))",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1398,7 +1271,6 @@
   "ja-1d61e73c1f": {
     "ruby": "@b = @a - 5.abs",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1411,9 +1283,8 @@
     }
   },
   "ja-7afe5b1fa0": {
-    "ruby": "@b = @a -5.abs",
+    "ruby": "@b = @a - 5.abs",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1428,7 +1299,6 @@
   "ja-a650521cc3": {
     "ruby": "puts(-(5.abs))",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1443,7 +1313,6 @@
   "ja-b10ecba0d3": {
     "ruby": "@b = (@x / 2).to_s",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1458,7 +1327,6 @@
   "ja-8190c30186": {
     "ruby": "@i = (@a + 1).to_i\nwhile @i <= @_array_Data_.length\n  @b = @i\n  @i += 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -1477,7 +1345,6 @@
   "ja-00f1305417": {
     "ruby": "@y = (@x / 2).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1492,7 +1359,6 @@
   "ja-6085ec8f0d": {
     "ruby": "if (@a + 1).to_i > 3\n  @b = 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -1509,7 +1375,6 @@
   "ja-8d025904dc": {
     "ruby": "if @a.to_i > 3\n  @b = 1\nelsif @a.to_s == \"1\"\n  @b = 2\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -1528,7 +1393,6 @@
   "ja-7b1794971d": {
     "ruby": "while @_array_Data_.length > @i\n  @i = @i + 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -1545,7 +1409,6 @@
   "ja-803009f93a": {
     "ruby": "def f(x)\n  return (x * 2).to_i\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -1562,7 +1425,6 @@
   "ja-0f6ddc24bd": {
     "ruby": "@b = (@a + 1).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1577,7 +1439,6 @@
   "ja-2d03036e47": {
     "ruby": "@b = @a.to_i + 1",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1592,7 +1453,6 @@
   "ja-870f38be6f": {
     "ruby": "@b = @x.to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1607,7 +1467,6 @@
   "ja-2eac997352": {
     "ruby": "@b = rand(1..10).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1622,7 +1481,6 @@
   "ja-c141046ca2": {
     "ruby": "@b = -1.to_s",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1637,7 +1495,6 @@
   "ja-7019982167": {
     "ruby": "@b = \"x\".to_s",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1652,7 +1509,6 @@
   "ja-78ad4f8f1a": {
     "ruby": "@b = @_array_Data_[1].to_s",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1667,7 +1523,6 @@
   "ja-520b8c98a9": {
     "ruby": "@b = @_array_Data_.length",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1682,7 +1537,6 @@
   "ja-23f9b9318f": {
     "ruby": "@b = (@a * 2).ceil",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1697,7 +1551,6 @@
   "ja-4f03824a02": {
     "ruby": "@b = (@a * 2).floor",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1712,7 +1565,6 @@
   "ja-6be9cda729": {
     "ruby": "@b = (@s + @t).include?(\"a\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1727,7 +1579,6 @@
   "ja-98bdf4d9cd": {
     "ruby": "@b = (@a * 2).round",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1742,7 +1593,6 @@
   "ja-a5c7dec8b2": {
     "ruby": "@b = ((@a + 1) * 2).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1757,7 +1607,6 @@
   "ja-9835f67866": {
     "ruby": "@b = (@a / 2).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1772,7 +1621,6 @@
   "ja-01486eb2d8": {
     "ruby": "@b = (@a + 1).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1787,7 +1635,6 @@
   "ja-f687b63dd7": {
     "ruby": "@b = (@_array_Data_[1] * 3).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1802,7 +1649,6 @@
   "ja-887d4aad0b": {
     "ruby": "@b = (rand(1..10) * 2).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1817,7 +1663,6 @@
   "ja-66f30d7d2e": {
     "ruby": "@b = (@a + 1).to_s",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1832,7 +1677,6 @@
   "ja-a190d72162": {
     "ruby": "@b = (@a > 1).to_s",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1847,7 +1691,6 @@
   "ja-89b546debc": {
     "ruby": "@b = (!@x).to_s",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1862,7 +1705,6 @@
   "ja-e595e0a92f": {
     "ruby": "@b = (@x / 2).to_i.to_s",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1877,7 +1719,6 @@
   "ja-8264dc9ac9": {
     "ruby": "@b = (@a - @c).abs",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1892,7 +1733,6 @@
   "ja-183739aa9f": {
     "ruby": "puts((@a + 1).to_s)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1907,7 +1747,6 @@
   "ja-268b795be4": {
     "ruby": "@b = -(@a.abs)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1922,7 +1761,6 @@
   "ja-ac224ba256": {
     "ruby": "@b = -5.abs",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -1937,7 +1775,6 @@
   "ja-8f9e07fd0a": {
     "ruby": "@_array_Data_ = [1, 2, 3]\n@i = @_array_Data_.length - 1\nwhile @i >= 0\n  @a = @i\n  @i += -1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -1957,7 +1794,6 @@
   "ja-bd4bc746b6": {
     "ruby": "@s = \"2\"\n@i = 0\nwhile @i <= 10\n  @a = @i\n  @i += @s.to_i\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -1977,7 +1813,6 @@
   "ja-f99b7415da": {
     "ruby": "@i = 1\nwhile @i <= rand(10)\n  @a = @i\n  @i += 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -1996,7 +1831,6 @@
   "ja-3ae16f7d47": {
     "ruby": "@x = \"5\"\n@i = 1\nwhile @i <= @x.to_i\n  @a = @i\n  @i += 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -2016,7 +1850,6 @@
   "ja-6b91999752": {
     "ruby": "@i = 1\nwhile @i <= rand(10).to_i\n  @a = @i\n  @i += 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -2035,7 +1868,6 @@
   "ja-30f6cbb584": {
     "ruby": "@_array_Data_ = [1, 2, 3]\n@i = @_array_Data_.length\nwhile @i >= 1\n  @a = @i\n  @i += -1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -2055,7 +1887,6 @@
   "ja-eee85fd3e3": {
     "ruby": "@_array_Data_ = [1, 2, 3]\n@i = 0\nwhile @i <= @_array_Data_.length - 1\n  @a = @i\n  @i += 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -2075,7 +1906,6 @@
   "ja-bc51535e9d": {
     "ruby": "@_array_Data_ = [1, 2, 3]\nwhile @_array_Data_.length > 0\n  @a = 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -2093,7 +1923,6 @@
   "ja-18ddf93d44": {
     "ruby": "@n = 10\n@i = 0\nwhile @i <= @n - 1\n  @a = @i\n  @i += 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -2113,7 +1942,6 @@
   "ja-321cd7d831": {
     "ruby": "@i = 1\nwhile @i <= 10\n  @a = @i\n  @i += 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -2132,7 +1960,6 @@
   "ja-9cda945197": {
     "ruby": "def 最大値(a, b)\n  return a\nend\n@答え = 最大値(5, 8)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -2150,7 +1977,6 @@
   "ja-6b1d61313b": {
     "ruby": "def にばい(x)\n  return x * 2\nend\nputs(にばい(5))",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -2168,7 +1994,6 @@
   "ja-e2e2f282bb": {
     "ruby": "@答え = たしざん(3, 4)\ndef たしざん(a, b)\n  return a + b\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -2188,7 +2013,6 @@
   "ja-0ea8592708": {
     "ruby": "def たしざん(a, b)\n  return a + b\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -2205,7 +2029,6 @@
   "ja-22b90cde7b": {
     "ruby": "def 最大値(a, b)\n  return a\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -2222,7 +2045,6 @@
   "ja-a6c038d3f8": {
     "ruby": "def ハロー()\n  return 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -2239,7 +2061,6 @@
   "ja-7af2e5e9f1": {
     "ruby": "def add_2つ(a)\n  return a\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -2256,7 +2077,6 @@
   "ja-9653176650": {
     "ruby": "@i = 10\nwhile @i >= 1\n  puts(@i)\n  @i += -(-1)\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -2275,7 +2095,6 @@
   "ja-3d34476605": {
     "ruby": "@i = 10\nwhile @i >= 1\n  puts(@i)\n  @i += -2\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -2294,7 +2113,6 @@
   "ja-7f8c7470c5": {
     "ruby": "@i = 10\nwhile @i >= 1\n  puts(@i)\n  @i += -(@a * 2)\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -2313,7 +2131,6 @@
   "ja-43c01ba2cb": {
     "ruby": "@i = 10\nwhile @i >= 1\n  puts(@i)\n  @i += -@a\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -2330,9 +2147,8 @@
     }
   },
   "ja-1cf89e00d2": {
-    "ruby": "@i = 10\nwhile @i >= 1\n  puts(@i)\n  @i += -(@a / 2).to_i\nend",
+    "ruby": "@i = 10\nwhile @i >= 1\n  puts(@i)\n  @i += -((@a / 2).to_i)\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -2351,7 +2167,6 @@
   "ja-f94fd4d7b2": {
     "ruby": "@i = 10\nwhile @i >= 1\n  puts(@i)\n  @i += -1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -2370,7 +2185,6 @@
   "ja-ed62bdd1b8": {
     "ruby": "@i = 10\nwhile @i >= 1\n  puts(@i)\n  @i += -(@a + 1)\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -2389,7 +2203,6 @@
   "ja-ec11319526": {
     "ruby": "@i = 1\nwhile @i <= 10\n  puts(@i)\n  @i += 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -2408,7 +2221,6 @@
   "ja-4a1c83a9b6": {
     "ruby": "@i = 0\nwhile @i <= 10\n  puts(@i)\n  @i += @s.to_i\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -2427,7 +2239,6 @@
   "ja-7a5201d189": {
     "ruby": "@i = 0\nwhile @i <= 10\n  puts(@i)\n  @i += (@s / 2).to_i\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -2444,9 +2255,8 @@
     }
   },
   "ja-a24caa706b": {
-    "ruby": "@i = 10\nwhile @i >= 0\n  puts(@i)\n  @i += -(@s / 2).to_i\nend",
+    "ruby": "@i = 10\nwhile @i >= 0\n  puts(@i)\n  @i += -((@s / 2).to_i)\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -2465,7 +2275,6 @@
   "ja-e372be2b0a": {
     "ruby": "@i = 0\nwhile @i <= 10\n  puts(@i)\n  @i += @s\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -2484,7 +2293,6 @@
   "ja-1089803dd4": {
     "ruby": "@i = 1\nwhile @i <= 10\n  puts(@i)\n\n\n  @i += 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -2505,7 +2313,6 @@
   "ja-6b8371e773": {
     "ruby": "@i = 1\nwhile @i <= 10 # a # b\n  puts(@i) # c\n  @i += 1\nend # d # e",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -2524,7 +2331,6 @@
   "ja-f27b24dd28": {
     "ruby": "@i = 1\nwhile @i <= 3\n  @j = 1\n  while @j <= 3\n    @j += 1\n    puts(@j)\n  end\n  @i += 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -2547,7 +2353,6 @@
   "ja-a50fa3d7c5": {
     "ruby": "@i = 1\nwhile @i <= 3\n  @i += 1\n  @j = 1\n  while @j <= 3\n    puts(@j)\n    @j += 1\n  end\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -2570,7 +2375,6 @@
   "ja-ee96213f17": {
     "ruby": "@i = 1\nwhile @i <= 3\n  @i = 1\n  while @i <= 3\n    puts(@i)\n    @i += 1\n  end\n  @i += 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -2593,7 +2397,6 @@
   "ja-36c9ee5a82": {
     "ruby": "@i = 1\nwhile @i <= 10\n  if @i > 0\n    @i += 1\n  end\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -2613,7 +2416,6 @@
   "ja-90408b87fb": {
     "ruby": "@i = 1\nwhile @i <= 10\n  @i += 1\n  puts(@i)\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -2630,9 +2432,8 @@
     }
   },
   "ja-30b18e55ce": {
-    "ruby": "@i = 10\nwhile @i >= 1\n  puts(@i)\n  @i += -(@a) + 1\nend",
+    "ruby": "@i = 10\nwhile @i >= 1\n  puts(@i)\n  @i += -@a + 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -2651,7 +2452,6 @@
   "ja-68ba83625e": {
     "ruby": "@i = 1\nwhile @i <= 100\n  @k += 1\n  @i += @k\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -2670,7 +2470,6 @@
   "ja-8d9b98b380": {
     "ruby": "@i = 1\nwhile @i <= 100\n  puts(@i)\n  @i += @i\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -2689,7 +2488,6 @@
   "ja-c86279904c": {
     "ruby": "@i = 1\nwhile @i <= 10\n  @i = @i * 2\n  puts(@i)\n  @i += 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -2709,7 +2507,6 @@
   "ja-3d2c09f723": {
     "ruby": "@i = 1\nwhile @i <= 10\n  @i += 1\n  puts(@i)\n  @i += 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -2729,7 +2526,6 @@
   "ja-05239b9288": {
     "ruby": "@i = 1\nwhile @i <= 10\n  @i, @j = 5, 0\n  @i += 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -2748,7 +2544,6 @@
   "ja-7ccd4d9317": {
     "ruby": "@i = 1 # a\nwhile @i <= 10 # b\n  @i += 1 # c\n  puts(@i) # d\nend # e",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -2767,7 +2562,6 @@
   "ja-183108207f": {
     "ruby": "@_array_Kouka_ = [1, 2]\nputs(@_array_Kouka_.length)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2
@@ -2783,7 +2577,6 @@
   "ja-fff811279e": {
     "ruby": "puts(@x.to_i.to_s + \"回\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -2798,7 +2591,6 @@
   "ja-57ddc1099e": {
     "ruby": "puts(\"a\" + \"b\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -2813,7 +2605,6 @@
   "ja-0f994ab7d5": {
     "ruby": "puts(\"添字\" + \" \" + \"要素\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -2828,7 +2619,6 @@
   "ja-05db25a122": {
     "ruby": "puts(@atai.to_s + \"は\" + @aida.to_s + \"番目にありました\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -2843,7 +2633,6 @@
   "ja-0ecd9d1f04": {
     "ruby": "puts(rand(1..10).to_s + \"個\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -2858,7 +2647,6 @@
   "ja-ad999d8d58": {
     "ruby": "puts(@a.to_s + (@b + 1).to_s)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -2873,7 +2661,6 @@
   "ja-2e970c0c93": {
     "ruby": "puts(-1.to_s + \"個\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -2888,7 +2675,6 @@
   "ja-06c20c9e83": {
     "ruby": "puts((-@a).to_s + \"個\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -2903,7 +2689,6 @@
   "ja-62ce7f6dcb": {
     "ruby": "puts(\"合計\" + (@a * 2).to_s)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -2918,7 +2703,6 @@
   "ja-7105636349": {
     "ruby": "@_array_Tensu_ = [1]\nputs(\"平均\" + (@goukei / @_array_Tensu_.length).to_s)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2
@@ -2934,7 +2718,6 @@
   "ja-469876a6e7": {
     "ruby": "puts(\"答え\" + (!(@a > 1)).to_s)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -2949,7 +2732,6 @@
   "ja-cfa4b33cdf": {
     "ruby": "puts((@a + 1).to_s + \"個\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -2964,7 +2746,6 @@
   "ja-b9da4866fd": {
     "ruby": "puts((@a + 1).to_s + @b.to_s)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -2977,9 +2758,8 @@
     }
   },
   "ja-efa5ef7d57": {
-    "ruby": "puts(((@a / @b).to_i).to_s + \"x\")",
+    "ruby": "puts((@a / @b).to_i.to_s + \"x\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -2994,7 +2774,6 @@
   "ja-906c156bba": {
     "ruby": "@_array_A_ = [1]\n@_array_B_ = [2]\nputs(@_array_A_[@i].to_s + @_array_B_[@i].to_s)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -3011,7 +2790,6 @@
   "ja-83f27b28fe": {
     "ruby": "puts((@x && @y).to_s + \"!\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3026,7 +2804,6 @@
   "ja-dc2026888d": {
     "ruby": "puts((!@x).to_s + @y.to_s)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3041,7 +2818,6 @@
   "ja-046b3553bc": {
     "ruby": "puts(!@x)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3063,13 +2839,11 @@
         "name": "with_screen_refresh",
         "message": "「with_screen_refresh」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-661fbcfdf5": {
     "ruby": "@a = 0\nuntil @a > 10\n  @a += 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -3087,7 +2861,6 @@
   "ja-87279971b8": {
     "ruby": "@a = 0\nwhile @a < 10\n  @a = @a + 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -3105,7 +2878,6 @@
   "ja-a3dbd54f81": {
     "ruby": "@a = 0\nuntil @a > 10\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -3122,7 +2894,6 @@
   "ja-1c25fc561d": {
     "ruby": "@a = 0\nwhile @a > 10\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -3139,7 +2910,6 @@
   "ja-097a062948": {
     "ruby": "@_array_Data_ = [3, 18, 29, 33, 48, 52, 62, 77, 89, 97]\n@kazu = 0\n@i = 0\nwhile @i <= @_array_Data_.length - 1\n  if @_array_Data_[@i] > 50\n    @kazu = @kazu + 1\n  end\n  @i += 1\nend\nputs(@kazu.to_s + \"個\")\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -3164,7 +2934,6 @@
   "ja-4cbef05484": {
     "ruby": "@_array_Tensu_ = [70, 85, 90, 60]\n@goukei = 0\n@i = 0\nwhile @i <= @_array_Tensu_.length - 1\n  @goukei = @goukei + @_array_Tensu_[@i]\n  @i += 1\nend\nputs(\"合計\" + @goukei.to_s)\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -3187,7 +2956,6 @@
   "ja-bf6a07b586": {
     "ruby": "@x = 100\n@kaisuu = 0\nwhile @x > 1\n  @x = (@x / 2).to_i\n  @kaisuu = @kaisuu + 1\nend\nputs(@kaisuu)\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -3209,7 +2977,6 @@
   "ja-fa81c6b107": {
     "ruby": "def f(a)\n  return a\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -3226,7 +2993,6 @@
   "ja-50358a9996": {
     "ruby": "def maximum(a, b)\n  if a > b\n    return a\n  else\n    return b\n  end\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -3247,7 +3013,6 @@
   "ja-de8d1f9fc7": {
     "ruby": "def maximum(a, b)\n  if a > b\n    return a\n  else\n    return b\n  end\nend\n@x = 5\n@y = 8\n@答え = maximum(@x, @y)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -3271,7 +3036,6 @@
   "ja-bbd70935cf": {
     "ruby": "def hello()\n  return 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -3288,7 +3052,6 @@
   "ja-425163ee53": {
     "ruby": "def f(x)\n  return x\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -3305,7 +3068,6 @@
   "ja-fb04c6806d": {
     "ruby": "def add(a, b)\n  return a + b\nend\n@答え = add(3, 4)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -3323,7 +3085,6 @@
   "ja-fbb04c2023": {
     "ruby": "@a = 5\ndef f(a)\n  return a\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -3341,7 +3102,6 @@
   "ja-dbc082b4c6": {
     "ruby": "def f(a)\n  return a\nend\n@a = 10\n@答え = @a",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -3360,7 +3120,6 @@
   "ja-3b7376396d": {
     "ruby": "def f(a)\n  return a\nend\ndef g(b)\n  return b\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -3378,9 +3137,8 @@
     }
   },
   "ja-522d11d182": {
-    "ruby": "@b = ((@a / 2).to_i) * 3",
+    "ruby": "@b = (@a / 2).to_i * 3",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3395,7 +3153,6 @@
   "ja-664eddd073": {
     "ruby": "@b = (@a / 2).to_s",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3410,7 +3167,6 @@
   "ja-2782e74dd5": {
     "ruby": "@b = ((@a + @c) / 2).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3425,7 +3181,6 @@
   "ja-fe4485fbf0": {
     "ruby": "@b = ((@a + @c) / 2).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3440,7 +3195,6 @@
   "ja-6dc7a27829": {
     "ruby": "@b = (@a * 3 / 2).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3455,7 +3209,6 @@
   "ja-8188a43ca7": {
     "ruby": "@b = (@a / (@c + 1)).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3470,7 +3223,6 @@
   "ja-e2b0ddf9b9": {
     "ruby": "@b = ((@a / 2).to_i / 3).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3485,7 +3237,6 @@
   "ja-c7bb78f338": {
     "ruby": "@b = (@a / 2).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3500,7 +3251,6 @@
   "ja-3e416eaf7c": {
     "ruby": "@b = (@a / 2).to_i + 1",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3515,7 +3265,6 @@
   "ja-c92e92e2f0": {
     "ruby": "@b = @a + (@c / 2).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3530,7 +3279,6 @@
   "ja-7137a0c325": {
     "ruby": "@b = (@_array_Data_[@i + 1] / 2).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3545,7 +3293,6 @@
   "ja-75a09a93c3": {
     "ruby": "@b = @_array_Data_[(@i / 2).to_i]",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3560,7 +3307,6 @@
   "ja-54ec8fd1a2": {
     "ruby": "@b = (@合計 / @個数).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3575,7 +3321,6 @@
   "ja-7129d7109b": {
     "ruby": "@b = (@a / 2).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3590,7 +3335,6 @@
   "ja-fe15aa1e12": {
     "ruby": "@b = ((@合計 + 1) / @個数).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3605,7 +3349,6 @@
   "ja-04bca0c87d": {
     "ruby": "@b = ((@合計 + 1) / @個数).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3620,7 +3363,6 @@
   "ja-6c686132e2": {
     "ruby": "@b = (1 / @生徒番号).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3635,7 +3377,6 @@
   "ja-b65af9343c": {
     "ruby": "@b = @_array_Data_[(@合計 / @個数).to_i]",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3650,7 +3391,6 @@
   "ja-0c75153ed6": {
     "ruby": "@b = (@_array_Tokuten_[@i] / @人数).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3665,7 +3405,6 @@
   "ja-df112c191f": {
     "ruby": "@b = (@x / @個数).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3680,7 +3419,6 @@
   "ja-8053d1643b": {
     "ruby": "@b = (@x / @個数).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3695,7 +3433,6 @@
   "ja-84a1a857ae": {
     "ruby": "@b = (@合計 * 2 / @個数).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3710,7 +3447,6 @@
   "ja-718f433905": {
     "ruby": "@b = (@合計 / 2).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3725,7 +3461,6 @@
   "ja-653a80fa1d": {
     "ruby": "@b = @合計 + (@点数 / @個数).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3740,7 +3475,6 @@
   "ja-a80fc4cc4c": {
     "ruby": "@b = (@合計 / (@個数 + 1)).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3753,9 +3487,8 @@
     }
   },
   "ja-9921a9ec02": {
-    "ruby": "@b = (@合計 / ((@点数 / @個数).to_i)).to_i",
+    "ruby": "@b = (@合計 / (@点数 / @個数).to_i).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3770,7 +3503,6 @@
   "ja-d8a844f35a": {
     "ruby": "@b = (@合計 / 2).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3785,7 +3517,6 @@
   "ja-d18dd169b0": {
     "ruby": "@b = (@合計 / @個数).to_i * 2",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3800,7 +3531,6 @@
   "ja-358b830674": {
     "ruby": "@b = (@合計 / @個数).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3815,7 +3545,6 @@
   "ja-ffb85db1c5": {
     "ruby": "@b = ((@合計 / @個数).to_i / 2).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3830,7 +3559,6 @@
   "ja-e4889fbf23": {
     "ruby": "@b = (@合計 / @個数).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3845,7 +3573,6 @@
   "ja-6918e72aa4": {
     "ruby": "@b = (@得点[@i] / @人数).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3860,7 +3587,6 @@
   "ja-90f2daa9e7": {
     "ruby": "@b = (@合計 / @個数).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3875,7 +3601,6 @@
   "ja-d379d8477f": {
     "ruby": "@b = (@合計 / @個数).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3890,7 +3615,6 @@
   "ja-72bdf570df": {
     "ruby": "@b = (@_array_Data_.length / (@n + 1)).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3905,7 +3629,6 @@
   "ja-1c895dc3f0": {
     "ruby": "@b = (@_array_Data_.length / @個数).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3920,7 +3643,6 @@
   "ja-ac367066fa": {
     "ruby": "@b = @合計 / @個数",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3935,7 +3657,6 @@
   "ja-22259e2980": {
     "ruby": "@b = (@合計 / @個数 * 3).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3950,7 +3671,6 @@
   "ja-ae216bc14e": {
     "ruby": "@b = (@合計 / 2 * 3).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3965,7 +3685,6 @@
   "ja-a228935633": {
     "ruby": "@b = @x + (@合計 / @個数).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3980,7 +3699,6 @@
   "ja-21c97b6b4d": {
     "ruby": "puts((@合計 / @個数).to_i)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -3993,9 +3711,8 @@
     }
   },
   "ja-d464c5a70b": {
-    "ruby": "@b = -(@a / 2).to_i",
+    "ruby": "@b = -((@a / 2).to_i)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4008,9 +3725,8 @@
     }
   },
   "ja-c803988b61": {
-    "ruby": "@b = ((@a / 2) * 3).to_i",
+    "ruby": "@b = (@a / 2 * 3).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4023,9 +3739,8 @@
     }
   },
   "ja-c0a0f064bc": {
-    "ruby": "@b = ((@a / 2) / 3).to_i",
+    "ruby": "@b = (@a / 2 / 3).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4040,7 +3755,6 @@
   "ja-2b3061cdc1": {
     "ruby": "@b = ((@a / 2).to_i * 3).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4055,7 +3769,6 @@
   "ja-4669ed611d": {
     "ruby": "@b = ((@a / 2).to_i / 3).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4070,7 +3783,6 @@
   "ja-0708d3cc2f": {
     "ruby": "@b = (@a * 3 / 2).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4083,9 +3795,8 @@
     }
   },
   "ja-c4713bb033": {
-    "ruby": "@b = (@a / ((@a / 2).to_i)).to_i",
+    "ruby": "@b = (@a / (@a / 2).to_i).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4100,7 +3811,6 @@
   "ja-f0b487639f": {
     "ruby": "@b = (@a / (2 * 3)).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4115,7 +3825,6 @@
   "ja-0c4f96aaeb": {
     "ruby": "@b = (@a / 2 * 3).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4130,7 +3839,6 @@
   "ja-7e4a37e666": {
     "ruby": "@b = (@a / 2 * 3).to_i.to_s",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4145,7 +3853,6 @@
   "ja-e4742add46": {
     "ruby": "@b = (@a / 2 / 3).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4160,7 +3867,6 @@
   "ja-cb07fa9e10": {
     "ruby": "@b = (@a / 2 + 1).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4175,7 +3881,6 @@
   "ja-ecc3048aec": {
     "ruby": "@b = (@a / 2).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4190,7 +3895,6 @@
   "ja-f09843ef5d": {
     "ruby": "@b = (@a / 2).to_i * 3",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4205,7 +3909,6 @@
   "ja-085979900d": {
     "ruby": "@b = (@a / 2).to_i + (@a / 4).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4218,9 +3921,8 @@
     }
   },
   "ja-1e4a8ddb5f": {
-    "ruby": "@b = ((@a / 2).to_i).to_s",
+    "ruby": "@b = (@a / 2).to_i.to_s",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4235,7 +3937,6 @@
   "ja-20dd7021e1": {
     "ruby": "@b = (@a + @b) / 2",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4248,9 +3949,8 @@
     }
   },
   "ja-aeabd06b44": {
-    "ruby": "@b = @a * ((@a / 2).to_i)",
+    "ruby": "@b = @a * (@a / 2).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4263,9 +3963,8 @@
     }
   },
   "ja-9fecb1c9dd": {
-    "ruby": "@b = @a / ((@a / 2).to_i)",
+    "ruby": "@b = @a / (@a / 2).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4280,7 +3979,6 @@
   "ja-1728b24bbb": {
     "ruby": "@b = @a / 2",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4295,7 +3993,6 @@
   "ja-65f86b6488": {
     "ruby": "@b = @a / 2 * 3",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4310,7 +4007,6 @@
   "ja-f4de429163": {
     "ruby": "if @a == \"「く」\"\n  @a = 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -4327,7 +4023,6 @@
   "ja-ec3dc620ed": {
     "ruby": "@a = '「く」'",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4342,7 +4037,6 @@
   "ja-c93175c4ea": {
     "ruby": "@a = \"く\" + \"「け」\"",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4357,7 +4051,6 @@
   "ja-e236486fa4": {
     "ruby": "puts(\"こんにちは\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4372,7 +4065,6 @@
   "ja-ed0cd0a460": {
     "ruby": "if @a == \"く\"\n  @a = 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -4389,7 +4081,6 @@
   "ja-52cad857e9": {
     "ruby": "@a = \"「く」と「け」\"",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4404,7 +4095,6 @@
   "ja-8d7923f4fc": {
     "ruby": "puts(@namae + \"には「く」がある\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4421,7 +4111,6 @@
   "ja-287e94eb6d": {
     "ruby": "puts(\"「く」がある\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4436,7 +4125,6 @@
   "ja-37564e4685": {
     "ruby": "@x = @a == 1 && @b",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4451,7 +4139,6 @@
   "ja-19dcb99c8a": {
     "ruby": "@x = @a == \"はい\" && @b",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4466,7 +4153,6 @@
   "ja-8a5bb3cd5d": {
     "ruby": "@x = @b && \"はい\" == @a",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4481,7 +4167,6 @@
   "ja-d444412768": {
     "ruby": "@x = !(@かつお > 0)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4494,9 +4179,8 @@
     }
   },
   "ja-6404f2d744": {
-    "ruby": "if !(@a > 0) && (@b > 0)\n  @x = 1\nend",
+    "ruby": "if !(@a > 0) && @b > 0\n  @x = 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -4511,9 +4195,8 @@
     }
   },
   "ja-5871d9ded9": {
-    "ruby": "@x = !(@a > 0) && (@b > 0)",
+    "ruby": "@x = !(@a > 0) && @b > 0",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4526,9 +4209,8 @@
     }
   },
   "ja-47a1c288b6": {
-    "ruby": "@x = !@a || (@b)",
+    "ruby": "@x = !@a || @b",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4543,7 +4225,6 @@
   "ja-5cca5933ee": {
     "ruby": "@x = !@a[1] && @b",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4560,7 +4241,6 @@
   "ja-798d1b518a": {
     "ruby": "@x = \"(a)または(b)\"",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4575,7 +4255,6 @@
   "ja-248bcbf290": {
     "ruby": "@x = \"(a)かつ(b)\"",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4590,7 +4269,6 @@
   "ja-dc687c2079": {
     "ruby": "@x = @a # (a)かつ(b)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4605,7 +4283,6 @@
   "ja-1d7b7cd71c": {
     "ruby": "@x = @a # (a)でない",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4620,7 +4297,6 @@
   "ja-460194ed88": {
     "ruby": "@x = @たかつ[1]",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4635,7 +4311,6 @@
   "ja-d6bb981814": {
     "ruby": "@x = @a1かつ",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4650,7 +4325,6 @@
   "ja-48e6fbe114": {
     "ruby": "@かつお = 1",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4665,7 +4339,6 @@
   "ja-f8c1b77391": {
     "ruby": "@x = @しかつめ",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4680,7 +4353,6 @@
   "ja-0dc5f44e9b": {
     "ruby": "@たかつき = 1",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4695,7 +4367,6 @@
   "ja-c5c91b9958": {
     "ruby": "@x = @できでない",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4710,7 +4381,6 @@
   "ja-823e49ee5d": {
     "ruby": "@x = @または2",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4725,7 +4395,6 @@
   "ja-7bdec8cbe7": {
     "ruby": "@x = @a[1] || @b",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4742,7 +4411,6 @@
   "ja-556fdda25f": {
     "ruby": "@たかつき = 1\n@x = @かつお && @たかつき",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2
@@ -4756,9 +4424,8 @@
     }
   },
   "ja-636f39d764": {
-    "ruby": "@x = (@a > 0) && (@b > 0)",
+    "ruby": "@x = @a > 0 && @b > 0",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4771,9 +4438,8 @@
     }
   },
   "ja-7e0c65b963": {
-    "ruby": "if (@a > 0) || (@b > 0)\n  @a = 1\nend",
+    "ruby": "if @a > 0 || @b > 0\n  @a = 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -4790,7 +4456,6 @@
   "ja-27d0f8436d": {
     "ruby": "@x = @a[1] && @b",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4807,7 +4472,6 @@
   "ja-3f1015bb50": {
     "ruby": "@x = @a[1] || @b",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4822,9 +4486,8 @@
     ]
   },
   "ja-4059fc3952": {
-    "ruby": "@x = (@a > 0) || (@b > 0)",
+    "ruby": "@x = @a > 0 || @b > 0",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4837,9 +4500,8 @@
     }
   },
   "ja-ca988f8159": {
-    "ruby": "@x = (@a > 0) && (@b > 0)",
+    "ruby": "@x = @a > 0 && @b > 0",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4854,7 +4516,6 @@
   "ja-e50ba07290": {
     "ruby": "@a = !@x && @y",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4869,7 +4530,6 @@
   "ja-57189f6571": {
     "ruby": "@x = !(@a > 0)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4884,7 +4544,6 @@
   "ja-5cd17283e9": {
     "ruby": "@x = !(@a > 0) && @b",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4899,7 +4558,6 @@
   "ja-87f19b8db7": {
     "ruby": "@x = !@a[1]",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -4916,7 +4574,6 @@
   "ja-886c99e51b": {
     "ruby": "@next = true\nwhile @next && true\n  @next = false\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -4934,7 +4591,6 @@
   "ja-0d3503f703": {
     "ruby": "@next = 1\nwhile @next < 10\n  @next += 1\nend\n@break = 1\nwhile @break <= 3\n  puts(@break)\n  @break += 1\nend\n@next == 1",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -4958,7 +4614,6 @@
   "ja-bf2196ec85": {
     "ruby": "@next = 1\n@break = @next + 1\n@next += @break\nputs(@next)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -4983,8 +4638,7 @@
         "name": "break",
         "message": "「break」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-6f6d6f3c03": {
     "ruby": null,
@@ -4996,13 +4650,11 @@
         "name": "next",
         "message": "「next」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-e467f3248c": {
     "ruby": "@a = 17",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -5017,7 +4669,6 @@
   "ja-5ae340c1b3": {
     "ruby": "@a = 0",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -5032,7 +4683,6 @@
   "ja-7d1bc79ee1": {
     "ruby": "@a = 0.5",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -5047,7 +4697,6 @@
   "ja-1d3d866a10": {
     "ruby": "@a = 0.5",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -5062,7 +4711,6 @@
   "ja-ab9315d0e9": {
     "ruby": "@a = 7 + 1",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -5077,7 +4725,6 @@
   "ja-dfe912bdd0": {
     "ruby": "@a = 17",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -5092,7 +4739,6 @@
   "ja-295ae44abc": {
     "ruby": "@a = 8",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -5107,7 +4753,6 @@
   "ja-8a7b5cfb03": {
     "ruby": "@a = 10 + 1.05",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -5122,7 +4767,6 @@
   "ja-e73dfcf9c7": {
     "ruby": "@a = @_array_A_[1]",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -5137,7 +4781,6 @@
   "ja-8bac576454": {
     "ruby": "@_array_Data_ = [1, 2, 3]",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -5150,40 +4793,12 @@
     }
   },
   "ja-9f43d0f33c": {
-    "ruby": "@i = 1\nwhile @i <= 10",
-    "errors": [],
-    "blockErrors": [
+    "ruby": null,
+    "errors": [
       {
         "line": 1,
         "column": 1,
         "message": "「〜ずつ増やしながら繰り返す:」の中の行を字下げしてください"
-      }
-    ],
-    "rubyLines": [
-      1,
-      1
-    ],
-    "converterErrors": [
-      {
-        "row": 0,
-        "column": 0,
-        "type": "error",
-        "text": "expected a predicate expression for the `while` statement",
-        "source": null
-      },
-      {
-        "row": 0,
-        "column": 0,
-        "type": "error",
-        "text": "The code ended unexpectedly.\nCheck for missing `end`, `)`, `]`, or `}`.",
-        "source": null
-      },
-      {
-        "row": 0,
-        "column": 0,
-        "type": "error",
-        "text": "`end` is missing for `while`.\nAdd `end` to close the `while` statement.",
-        "source": null
       }
     ]
   },
@@ -5197,8 +4812,7 @@
         "name": "0b101",
         "message": "「0b101」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-ab18bdd560": {
     "ruby": null,
@@ -5210,8 +4824,7 @@
         "name": "0o17",
         "message": "「0o17」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-2f5780fb83": {
     "ruby": null,
@@ -5223,8 +4836,7 @@
         "name": "0x5",
         "message": "「0x5」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-14131ccfc9": {
     "ruby": null,
@@ -5236,8 +4848,7 @@
         "name": "1_000",
         "message": "「1_000」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-506bfcb8ae": {
     "ruby": null,
@@ -5249,8 +4860,7 @@
         "name": "0x5",
         "message": "「0x5」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-4b2a7df1f6": {
     "ruby": null,
@@ -5262,8 +4872,7 @@
         "name": "1.5e-3",
         "message": "「1.5e-3」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-40bdc58e74": {
     "ruby": null,
@@ -5275,8 +4884,7 @@
         "name": "1e3",
         "message": "「1e3」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-1067e21543": {
     "ruby": null,
@@ -5288,8 +4896,7 @@
         "name": "2E+10",
         "message": "「2E+10」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-aa298fa7af": {
     "ruby": null,
@@ -5301,8 +4908,7 @@
         "name": "2i",
         "message": "「2i」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-74d14b9fc3": {
     "ruby": null,
@@ -5314,8 +4920,7 @@
         "name": "3r",
         "message": "「3r」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-20246e35eb": {
     "ruby": null,
@@ -5327,13 +4932,11 @@
         "name": "0x1",
         "message": "「0x1」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-1d9c284033": {
     "ruby": "@a = 1.5 + 10",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -5355,8 +4958,7 @@
         "name": "1_000",
         "message": "「1_000」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-0d9b2b7b82": {
     "ruby": null,
@@ -5368,13 +4970,11 @@
         "name": "0x1F",
         "message": "「0x1F」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-42e721437a": {
     "ruby": "@n = 1 # 生徒番号\n@_array_Namae_ = [\"可燃ごみ\", \"不燃ごみ\", \"ペットボトル\"]\n@shuruisu = 3\n@j = 1\nwhile @j <= @shuruisu\n  puts(@j.to_s + \"番目：\" + @_array_Namae_[@j].to_s)\n  @j += 1\nend\nputs(@n)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -5397,7 +4997,6 @@
   "ja-59477ded90": {
     "ruby": "# 繰り返し\n@a = 1 # begin",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2
@@ -5413,7 +5012,6 @@
   "ja-450f59a24b": {
     "ruby": "puts(\"繰り返し\")\nputs(\"begin\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2
@@ -5429,7 +5027,6 @@
   "ja-1e2ce6cd97": {
     "ruby": "@begin_count = 1",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -5444,7 +5041,6 @@
   "ja-6e452c4ca6": {
     "ruby": "@繰り返し回数 = 3\nputs(@繰り返し回数)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2
@@ -5472,8 +5068,7 @@
         "id": "postTestLoop",
         "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-77ba7136e9": {
     "ruby": null,
@@ -5490,13 +5085,11 @@
         "id": "postTestLoop",
         "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-f1c2d6126e": {
     "ruby": "@a = 0\nif @a < 1\n  @a = 1\nend\nwhile @a < 3\n  @a = @a + 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -5529,13 +5122,11 @@
         "id": "postTestLoop",
         "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-75ae48293b": {
     "ruby": "@a = 0\nwhile @a < 3\n  @a = @a + 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -5565,8 +5156,7 @@
         "id": "postTestLoop",
         "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-bf77f97b6c": {
     "ruby": null,
@@ -5577,8 +5167,7 @@
         "id": "postTestLoop",
         "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-847227a75a": {
     "ruby": null,
@@ -5595,13 +5184,11 @@
         "id": "postTestLoop",
         "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-e2e946bff1": {
     "ruby": "@a = 0\nwhile @a < 3\n  @a = @a + 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -5619,7 +5206,6 @@
   "ja-6fa2f8a5b6": {
     "ruby": "# コメント",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -5634,7 +5220,6 @@
   "ja-30e887da48": {
     "ruby": "if @a > 0\n  @a = 1\nelse\n  @a = 2\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -5653,7 +5238,6 @@
   "ja-882e46fcef": {
     "ruby": "ask(\"\")\n@n = answer.to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1
@@ -5669,7 +5253,6 @@
   "ja-da83a676d1": {
     "ruby": "puts(@a.to_s + \"は\" + @b.to_s)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -5682,31 +5265,18 @@
     }
   },
   "ja-3da72930de": {
-    "ruby": "@a = 1\nif @a > 0\n  @b = 1\nelsif @a.foo > 5\n  @b = 2\nend",
-    "errors": [],
-    "blockErrors": [],
-    "rubyLines": [
-      1,
-      2,
-      3,
-      4,
-      5,
-      6
-    ],
-    "converterErrors": [
+    "ruby": null,
+    "errors": [
       {
-        "row": 3,
-        "column": 0,
-        "type": "error",
-        "text": "\"@a.foo\" is the wrong instruction.\nCheck the spelling or use a supported block.",
-        "source": null
+        "line": 4,
+        "column": 10,
+        "message": "「.」が読めません"
       }
     ]
   },
   "ja-5dff9d948c": {
     "ruby": "ask(\"\")\n@a = answer\n@b = 2\n@c = @error",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -5724,7 +5294,6 @@
   "ja-b5b03f82b9": {
     "ruby": "ask(\"\")\n@a = answer\n@b = 2",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -5741,7 +5310,6 @@
   "ja-ed457d8342": {
     "ruby": "@a = 1\n@b = 2\n@c = 3",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -5758,7 +5326,6 @@
   "ja-a2ccf94b24": {
     "ruby": "if @aa > 0\n  @aa = 1\nend\n\n@bb = 2",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -5777,7 +5344,6 @@
   "ja-da8abe457a": {
     "ruby": "if @aa > 0\n  @aa = 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -5794,7 +5360,6 @@
   "ja-e04cc01cae": {
     "ruby": "@aa = 0\n@bb = 1\n@cc = 2",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -5811,7 +5376,6 @@
   "ja-265b586f8c": {
     "ruby": "if @a > 0\n  @a = 1\nend\n@bb = 2",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -5829,7 +5393,6 @@
   "ja-c4fe263dba": {
     "ruby": "@i = 1\nwhile @i <= 3\n  puts(@i)\n  @i += 1\nend\n@cc = 1",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -5849,7 +5412,6 @@
   "ja-e71f8afa4a": {
     "ruby": "if @aa > 0\n  @aa = 1\nend\n@bb = 2",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -5867,7 +5429,6 @@
   "ja-50d158336f": {
     "ruby": "ask(\"\")\n@aa = answer.to_i\nask(\"\")\n@bb = answer\n@cc = 1",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -5886,7 +5447,6 @@
   "ja-2a1a3379bc": {
     "ruby": "puts(@aa.to_s + @bb.to_s)\n@cc = 1",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       3
@@ -5907,13 +5467,11 @@
         "column": 5,
         "message": "日本語モードでは変数に「@」は使えません"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-9ad0457dd5": {
     "ruby": "@b = \"a\\\"←c\"",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -5928,7 +5486,6 @@
   "ja-dd837b5b7f": {
     "ruby": "if @b == \"a\\\"←c\"\n  puts(@b)\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -5945,7 +5502,6 @@
   "ja-09797b81ec": {
     "ruby": "@b = \"a\\\"←c\"",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -5960,7 +5516,6 @@
   "ja-40746cbc03": {
     "ruby": "puts(\"a\\\\b\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -5975,7 +5530,6 @@
   "ja-ea2aae7190": {
     "ruby": "puts(\"\\\"x←1\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -5990,7 +5544,6 @@
   "ja-60bb1e5c52": {
     "ruby": "puts(\"\\\"x←1\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6005,7 +5558,6 @@
   "ja-03902fb405": {
     "ruby": "puts(\"a\\\\\\\"b\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6020,7 +5572,6 @@
   "ja-a34abf83cc": {
     "ruby": "puts(\"a\\\\b\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6035,7 +5586,6 @@
   "ja-5b35498dbc": {
     "ruby": "@a = 1 # x←1",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6050,7 +5600,6 @@
   "ja-5ccd379470": {
     "ruby": "puts(\"x←1\") # c←d",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6065,7 +5614,6 @@
   "ja-f47285acac": {
     "ruby": "# x←1",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6080,7 +5628,6 @@
   "ja-2b7c8cf3fb": {
     "ruby": "@kekka = \"x←1\" + @a.to_s",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6095,7 +5642,6 @@
   "ja-b04a9a3995": {
     "ruby": "@a = \"x\"",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6110,7 +5656,6 @@
   "ja-0ba0d248d4": {
     "ruby": "@a = \"x←1\"",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6125,7 +5670,6 @@
   "ja-7a54ce9f60": {
     "ruby": "@a = \"b ← c\"",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6140,7 +5684,6 @@
   "ja-9ea91487cc": {
     "ruby": "@a = \"x←1\"",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6155,7 +5698,6 @@
   "ja-a5f7082750": {
     "ruby": "@x = \"a\" + \"←\"",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6170,7 +5712,6 @@
   "ja-22ba8b5006": {
     "ruby": "while @b != \"x←1\"\n  @b = \"x←1\"\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -6187,7 +5728,6 @@
   "ja-ac767add19": {
     "ruby": "def shiki(x)\n  return \"x←1\"\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -6204,7 +5744,6 @@
   "ja-afce967c09": {
     "ruby": "if @b == \"x←1\"\n  puts(@b)\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -6219,32 +5758,18 @@
     }
   },
   "ja-fa8fc1bdf4": {
-    "ruby": "elsif @b == \"x←1\"",
-    "errors": [],
-    "blockErrors": [
+    "ruby": null,
+    "errors": [
       {
         "line": 1,
         "column": 1,
         "message": "「そうでなくもし〜ならば」の前に「もし〜ならば」がありません"
-      }
-    ],
-    "rubyLines": [
-      1
-    ],
-    "converterErrors": [
-      {
-        "row": 0,
-        "column": 0,
-        "type": "error",
-        "text": "unexpected 'elsif', ignoring it",
-        "source": null
       }
     ]
   },
   "ja-435588b53e": {
     "ruby": "if @a > 1\n  puts(\"a←1\")\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -6261,7 +5786,6 @@
   "ja-6186dfe729": {
     "ruby": "if @a > 1\n  @b = \"p←q\"\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -6278,7 +5802,6 @@
   "ja-a3d0c94130": {
     "ruby": "@a = 0\nwhile @a < 3\n  @b = \"i←i+1\"\n  @a = @a + 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -6297,7 +5820,6 @@
   "ja-9280d0cdb6": {
     "ruby": "puts('x←1')",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6312,7 +5834,6 @@
   "ja-90100936ab": {
     "ruby": "puts(\"x←1\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6327,7 +5848,6 @@
   "ja-8ca9026209": {
     "ruby": "puts(\"a\" + \"x←1\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6342,7 +5862,6 @@
   "ja-b99f21bdb4": {
     "ruby": "puts(\"x ← 1\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6357,7 +5876,6 @@
   "ja-931bd3d0f7": {
     "ruby": "puts(\"x←1\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6372,7 +5890,6 @@
   "ja-e38fa97bca": {
     "ruby": "puts(\"名前\" + \"x←1\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6387,7 +5904,6 @@
   "ja-6b9260984c": {
     "ruby": "@a = 1\n@b = \"c = 2, d = 3\"",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1
@@ -6403,7 +5919,6 @@
   "ja-291d4dd566": {
     "ruby": "@a = 1 # ≦ かつ 真 7 ÷ 2",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6418,7 +5933,6 @@
   "ja-ba343c75bb": {
     "ruby": "puts(\"要素数(Tokuten)\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6433,7 +5947,6 @@
   "ja-6473c475aa": {
     "ruby": "puts(\"7 // 2\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6448,7 +5961,6 @@
   "ja-6d6b1af375": {
     "ruby": "puts(\"7 ÷ 2\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6463,7 +5975,6 @@
   "ja-55f132b51f": {
     "ruby": "puts(\"a ≦ b ≧ c\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6478,7 +5989,6 @@
   "ja-535f788a51": {
     "ruby": "puts(\"a and b or not c\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6493,7 +6003,6 @@
   "ja-25e18911db": {
     "ruby": "puts(\"a かつ b または c\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6508,7 +6017,6 @@
   "ja-58015da7c9": {
     "ruby": "puts(\"x でない\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6523,7 +6031,6 @@
   "ja-355ed235a9": {
     "ruby": "puts(\"整数(3.5)\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6538,7 +6045,6 @@
   "ja-10439a657c": {
     "ruby": "puts(\"真 と 偽\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6553,7 +6059,6 @@
   "ja-93124b521c": {
     "ruby": "@a = @_array_Kouka_[0]",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6568,7 +6073,6 @@
   "ja-2fff19c81d": {
     "ruby": "@_array_Kouka_[0] = 100",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6583,7 +6087,6 @@
   "ja-d72a587784": {
     "ruby": "@a = @_array_Kouka_.length",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6598,7 +6101,6 @@
   "ja-6325e9b3e4": {
     "ruby": "@a = rand(10)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6613,7 +6115,6 @@
   "ja-c3ec3c7c0e": {
     "ruby": "@a = @x.ceil",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6628,7 +6129,6 @@
   "ja-25915c3b92": {
     "ruby": "@a = @x.floor",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6643,7 +6143,6 @@
   "ja-947a744b45": {
     "ruby": "@a = \"hello\".include?(\"ell\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6658,7 +6157,6 @@
   "ja-aee6c8ef75": {
     "ruby": "@a = @x.round",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6673,7 +6171,6 @@
   "ja-01816d195e": {
     "ruby": "@a = Math.sqrt(@x)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6688,7 +6185,6 @@
   "ja-87181a7f33": {
     "ruby": "@a = @x.to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6703,7 +6199,6 @@
   "ja-256643f1fa": {
     "ruby": "@a = @x.to_s",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6718,7 +6213,6 @@
   "ja-e8482747f5": {
     "ruby": "@a = @x.abs",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6733,7 +6227,6 @@
   "ja-ea432f1686": {
     "ruby": "@a = 1 # コメント",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6748,7 +6241,6 @@
   "ja-6e1def5f26": {
     "ruby": "# これはコメント",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6763,7 +6255,6 @@
   "ja-47dfd723c6": {
     "ruby": "@i = 0\nwhile @i <= @n\n  puts(@i)\n  @i += 2\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -6782,7 +6273,6 @@
   "ja-d88110cbb3": {
     "ruby": "@i = 1\nwhile @i <= 3\n  @j = 1\n  while @j <= 3\n    puts(@i)\n    @j += 1\n  end\n  @i += 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -6805,7 +6295,6 @@
   "ja-aac3f1b7ed": {
     "ruby": "if @a > 0\n  @a = 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -6822,7 +6311,6 @@
   "ja-7b1da34b17": {
     "ruby": "if @a > 0\n  @a = 1\nelse\n  @a = 2\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -6841,7 +6329,6 @@
   "ja-e9e8359677": {
     "ruby": "if @a > 0\n  @a = 1\nelsif @a > 5\n  @a = 2\nelse\n  @a = 3\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -6862,7 +6349,6 @@
   "ja-5625e68e40": {
     "ruby": "if @a > 0\n  @a = 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -6879,7 +6365,6 @@
   "ja-3fe4f05424": {
     "ruby": "while @a > 0 && @b < 10\n  @a = @a - 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -6896,7 +6381,6 @@
   "ja-2195b5c8fa": {
     "ruby": "@a = 1",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6911,7 +6395,6 @@
   "ja-2f81c01361": {
     "ruby": "@a = 1\n@b = 2",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2
@@ -6927,7 +6410,6 @@
   "ja-fc7669947f": {
     "ruby": "@a = 1\n\n@b = 2",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -6944,7 +6426,6 @@
   "ja-78c62357e0": {
     "ruby": "@s.include?(@a.include?(@b))",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6959,7 +6440,6 @@
   "ja-352ec7800a": {
     "ruby": "puts(rand(rand(1..10)))",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -6974,26 +6454,18 @@
     ]
   },
   "ja-51b3580448": {
-    "ruby": "含む(@s, @a, @b)",
-    "errors": [],
-    "blockErrors": [],
-    "rubyLines": [
-      1
-    ],
-    "converterErrors": [
+    "ruby": null,
+    "errors": [
       {
-        "row": 0,
-        "column": 0,
-        "type": "error",
-        "text": "\"含む(@s, @a, @b)\" is the wrong instruction.\nCheck the spelling or use a supported block.",
-        "source": null
+        "line": 1,
+        "column": 1,
+        "message": "「含む」の引数の数が違います"
       }
     ]
   },
   "ja-bcd1ed9c92": {
     "ruby": "@a = @s.include?(rand(1..10))",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7008,7 +6480,6 @@
   "ja-a1e83ebede": {
     "ruby": "puts(rand(1..10) + 5)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7023,7 +6494,6 @@
   "ja-dd9e0ad50c": {
     "ruby": "puts(rand(1..10))",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7038,7 +6508,6 @@
   "ja-07204b7244": {
     "ruby": "puts(@x.to_i)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7053,7 +6522,6 @@
   "ja-861283be0c": {
     "ruby": "puts(@x.abs)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7068,7 +6536,6 @@
   "ja-3fda57f418": {
     "ruby": "puts(@_array_Kouka_.length)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7083,7 +6550,6 @@
   "ja-b56a365280": {
     "ruby": "@a = false",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7098,7 +6564,6 @@
   "ja-d1f56f4c7b": {
     "ruby": "@a = true",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7113,7 +6578,6 @@
   "ja-98ee19ab1e": {
     "ruby": "@a = @x <= 10",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7128,7 +6592,6 @@
   "ja-400ffc1c2a": {
     "ruby": "@a = @x >= 10",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7143,7 +6606,6 @@
   "ja-7c64cd239b": {
     "ruby": "@a = 10 / 3",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7158,7 +6620,6 @@
   "ja-9cbc414fe2": {
     "ruby": "@a = (10 / 3).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7173,7 +6634,6 @@
   "ja-5405bf19e5": {
     "ruby": "@a = (10 / 3).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7188,7 +6648,6 @@
   "ja-94ccbf46d9": {
     "ruby": "@a = @x && @y",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7203,7 +6662,6 @@
   "ja-09a6eca621": {
     "ruby": "@a = !@x",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7218,7 +6676,6 @@
   "ja-cee4bb58dc": {
     "ruby": "@a = @x || @y",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7233,7 +6690,6 @@
   "ja-a4cd87b6cc": {
     "ruby": "@a = \"テスト\"",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7248,7 +6704,6 @@
   "ja-75a75a0ea9": {
     "ruby": "@a = \"hello world\"",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7263,7 +6718,6 @@
   "ja-3abe8fd107": {
     "ruby": "def myfunc(x)\n  return 5\nend\nmyfunc(3)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -7281,7 +6735,6 @@
   "ja-df0ef9d8d1": {
     "ruby": "def myfunc(x)\n  return 5\nend\n@a = myfunc(3)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -7299,7 +6752,6 @@
   "ja-cda65d1f69": {
     "ruby": "def myfunc(x)\n  return 5\nend\nputs(myfunc(3))",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -7317,7 +6769,6 @@
   "ja-053fb08229": {
     "ruby": "myfunc(3)\ndef myfunc(x)\n  return 5\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -7337,7 +6788,6 @@
   "ja-9efa7d69da": {
     "ruby": "@a = 1 # @todo",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7357,13 +6807,11 @@
         "column": 1,
         "message": "日本語モードでは変数に「@」は使えません"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-5c70b8cd8d": {
     "ruby": "@a = \"user@example.com\"",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7383,13 +6831,11 @@
         "column": 1,
         "message": "日本語モードでは変数に「$」は使えません"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-43b28087ec": {
     "ruby": "@a = @a + 1",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7404,7 +6850,6 @@
   "ja-9bf7de3210": {
     "ruby": "@data = [1, 2, 3]",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7419,7 +6864,6 @@
   "ja-659ecc1edc": {
     "ruby": "@a = 3",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7434,7 +6878,6 @@
   "ja-2a4dbf4707": {
     "ruby": "@a = 3",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7449,7 +6892,6 @@
   "ja-0f8fd3a6ee": {
     "ruby": "@_array_Kouka_ = [1, 5, 10]",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7464,7 +6906,6 @@
   "ja-6340572cf3": {
     "ruby": "@_var_A_ = 3",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7479,7 +6920,6 @@
   "ja-82c5f96e7a": {
     "ruby": "@a = @_var_A_ + 1",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7494,7 +6934,6 @@
   "ja-67395d7627": {
     "ruby": "@_var_A_ = 3",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7509,7 +6948,6 @@
   "ja-64e9147fb0": {
     "ruby": "ask(\"\")\n@a = answer",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1
@@ -7525,7 +6963,6 @@
   "ja-84437a9868": {
     "ruby": "ask(\"\")\n@_var_A_ = answer",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1
@@ -7541,7 +6978,6 @@
   "ja-d673a7c244": {
     "ruby": "puts(@a + 1)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7556,7 +6992,6 @@
   "ja-35256e0dc7": {
     "ruby": "puts(@a.to_s + \"は\" + @b.to_s + \"番目\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7571,7 +7006,6 @@
   "ja-ecaae3aaf6": {
     "ruby": "puts(@a.to_s + @b.to_s + @c.to_s)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7586,7 +7020,6 @@
   "ja-daf3cac30e": {
     "ruby": "puts(@a)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7601,7 +7034,6 @@
   "ja-1fe18f4ece": {
     "ruby": "puts(\"hello\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7616,7 +7048,6 @@
   "ja-b3bae17790": {
     "ruby": "if @a == \"#\" # c\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2
@@ -7632,7 +7063,6 @@
   "ja-da13be5d1d": {
     "ruby": "if @a == '#'\n  puts(@a)\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -7649,7 +7079,6 @@
   "ja-e3b3c23c54": {
     "ruby": "if @a == \"#\"\n  puts(@a)\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -7666,7 +7095,6 @@
   "ja-cc40928d74": {
     "ruby": "if @a == \"#\"\n  puts(@a)\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -7683,7 +7111,6 @@
   "ja-57173dd136": {
     "ruby": "@x = 1 # もし a ならば",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7698,7 +7125,6 @@
   "ja-fff835d88a": {
     "ruby": "@x = 1 # a の間",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7713,7 +7139,6 @@
   "ja-39ee292742": {
     "ruby": "# はじめ\nif @a > 0 # c\n  # なか\n  puts(@a)\nend\n# おわり",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -7733,7 +7158,6 @@
   "ja-7f6c704930": {
     "ruby": "@i = 1\nwhile @i <= 3 # c\n  puts(@i)\n  @i += 1\nend # d",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -7752,7 +7176,6 @@
   "ja-ed45f43242": {
     "ruby": "if @a > 0 # c\n  puts(@a) # d\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -7769,7 +7192,6 @@
   "ja-479618958a": {
     "ruby": "if @a > 0 # c\n  puts(@a)\nend\nputs(@b)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -7787,7 +7209,6 @@
   "ja-30a545ed42": {
     "ruby": "if @a > 0 # c1\n  puts(@a)\nelse # c2\n  puts(@b)\nend\nputs(@c)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -7807,7 +7228,6 @@
   "ja-2de861696b": {
     "ruby": "if @a > 0 # c1\n  puts(@a)\nelsif @a < 0 # c2\n  puts(@b)\nelse # c3\n  puts(@c)\nend # c4",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -7828,7 +7248,6 @@
   "ja-36ee3f9428": {
     "ruby": "def f(x) # c\n  return x + 1\nend # d",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -7845,7 +7264,6 @@
   "ja-e0ca2ff2d0": {
     "ruby": "if @a > 0\n  puts(@a)\nend # c",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -7862,7 +7280,6 @@
   "ja-81d0debacd": {
     "ruby": "if @a > 0 # c\n  puts(@a)\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -7879,7 +7296,6 @@
   "ja-712edc7435": {
     "ruby": "ask(\"\")\n@x = answer # c",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1
@@ -7895,7 +7311,6 @@
   "ja-dfd9a4eadb": {
     "ruby": "while @a < 3 # loop\n  if @a > 1 # if\n    puts(@a)\n  end # end if\n  @a = @a + 1 # step\nend # end loop",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -7915,7 +7330,6 @@
   "ja-b70974a38d": {
     "ruby": "@x = \"a\\\"#b\" # c",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7928,26 +7342,18 @@
     }
   },
   "ja-9fe3b2ea2f": {
-    "ruby": "@x = \"abc # c",
-    "errors": [],
-    "blockErrors": [],
-    "rubyLines": [
-      1
-    ],
-    "converterErrors": [
+    "ruby": null,
+    "errors": [
       {
-        "row": 0,
-        "column": 0,
-        "type": "error",
-        "text": "unterminated string; expected a closing delimiter for the interpolated string",
-        "source": null
+        "line": 1,
+        "column": 5,
+        "message": "「\"abc # c」が読めません"
       }
     ]
   },
   "ja-34d0beaa20": {
     "ruby": "@x = \"a\" + \"#b\" # c",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -7962,7 +7368,6 @@
   "ja-c94b1f7595": {
     "ruby": "ask(\"\")\n@x = answer # c\nif @x > 0 # d\n  puts(@x) # e\nend\nputs(0)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -7982,7 +7387,6 @@
   "ja-06d66c52e8": {
     "ruby": "@i = 1\nwhile @i <= 3 # a # b\n  puts(@i) # p\n  @i += 1\nend # inc # e",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -8001,7 +7405,6 @@
   "ja-c336b3b3a8": {
     "ruby": "ask(\"\")\n@x = answer # q # a",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1
@@ -8017,7 +7420,6 @@
   "ja-71dfdf0940": {
     "ruby": "while @a < 3 # c\n  @a = @a + 1\nend # d",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -8034,7 +7436,6 @@
   "ja-7d54d9e1b6": {
     "ruby": "@a = 1\n@a\n@_var_NG_\n@i = 0\nwhile @i <= 2\n  @i\n  @i += 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -8058,7 +7459,6 @@
   "ja-18d49acbb3": {
     "ruby": "def f(x)\n  x\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -8075,7 +7475,6 @@
   "ja-85349ad4a7": {
     "ruby": "def 足す1(a)\n  return a + 1\nend\n@b = 足す1(2)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -8093,7 +7492,6 @@
   "ja-f40d6cc8dd": {
     "ruby": "def あいさつ()\n  puts(\"こんにちは\")\nend\nあいさつ()",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -8111,7 +7509,6 @@
   "ja-ff70a2a2df": {
     "ruby": "def greet()\n  puts(\"hi\")\nend\ngreet",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -8137,7 +7534,6 @@
   "ja-e210ab6e45": {
     "ruby": "puts(\"move(2)\")\n@a = 1 # move(2)\nputs(\"step()\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -8154,7 +7550,6 @@
   "ja-8f949efa33": {
     "ruby": "@move = 1\nputs(@move)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2
@@ -8170,7 +7565,6 @@
   "ja-6cab1664ac": {
     "ruby": "def f(a)\n  return a * 2\nend\n@b = 1 + f(2) * @_array_Kazu_.length + @x.to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -8195,8 +7589,7 @@
         "name": "touching",
         "message": "「touching」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-19f0388eaf": {
     "ruby": null,
@@ -8208,8 +7601,7 @@
         "name": "distance",
         "message": "「distance」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-6b63f8a3dc": {
     "ruby": null,
@@ -8221,8 +7613,7 @@
         "name": "move",
         "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-e9843bca1b": {
     "ruby": null,
@@ -8234,8 +7625,7 @@
         "name": "move",
         "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-8fa7b7cc98": {
     "ruby": null,
@@ -8247,8 +7637,7 @@
         "name": "bounce_if_on_edge",
         "message": "「bounce_if_on_edge」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-4c04845a30": {
     "ruby": null,
@@ -8260,8 +7649,7 @@
         "name": "move",
         "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-aee5a4ae79": {
     "ruby": null,
@@ -8273,8 +7661,7 @@
         "name": "when_key_pressed",
         "message": "「when_key_pressed」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-03c02d00ed": {
     "ruby": null,
@@ -8286,8 +7673,7 @@
         "name": "差分",
         "message": "「差分」は定義されていない関数です。「関数 差分(…):」で定義してください。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-387ee0a419": {
     "ruby": null,
@@ -8306,8 +7692,7 @@
         "name": "stop!",
         "message": "「stop!」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-6d13e37b2e": {
     "ruby": null,
@@ -8319,8 +7704,7 @@
         "name": "stop!",
         "message": "「stop!」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-ccd4f99839": {
     "ruby": null,
@@ -8332,8 +7716,7 @@
         "name": "touching?",
         "message": "「touching?」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-dbe19ad0b5": {
     "ruby": null,
@@ -8359,13 +7742,11 @@
         "name": "each",
         "message": "「each」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-7ba928bd79": {
     "ruby": "@a = 0\n@b = false\nuntil @a > 10 && @b\n  @a = @a + 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -8384,7 +7765,6 @@
   "ja-c85095beb3": {
     "ruby": "@a = 0\nuntil @a > 10\n  @a = @a + 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -8402,7 +7782,6 @@
   "ja-74a2c1c003": {
     "ruby": "until @a > 10 && @b\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2
@@ -8418,7 +7797,6 @@
   "ja-d7f46d064c": {
     "ruby": "@a = !(@b == @c)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -8433,7 +7811,6 @@
   "ja-33c0f1f6fd": {
     "ruby": "until @a > 10\n  @a = @a + 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -8450,7 +7827,6 @@
   "ja-e806d0f39b": {
     "ruby": "if !(@x || @y)\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2
@@ -8466,7 +7842,6 @@
   "ja-299f53dc8e": {
     "ruby": "puts(!@a)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -8481,7 +7856,6 @@
   "ja-9ef41957f4": {
     "ruby": "if !(@a > 1)\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2
@@ -8497,7 +7871,6 @@
   "ja-61dbd38f2a": {
     "ruby": "@a = !(\"x\" == @b)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -8512,7 +7885,6 @@
   "ja-2cda8cc4e9": {
     "ruby": "while !@a && @b\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2
@@ -8528,7 +7900,6 @@
   "ja-ec8c4d1ae9": {
     "ruby": "until @x\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2
@@ -8544,7 +7915,6 @@
   "ja-4889a9ab74": {
     "ruby": "if !(@a > 1) || @b < 2\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2
@@ -8560,7 +7930,6 @@
   "ja-9154151065": {
     "ruby": "if @a > 1 && !(@b < 2)\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2
@@ -8576,7 +7945,6 @@
   "ja-c9fe8cf4b3": {
     "ruby": "if !@x && @y\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2
@@ -8592,7 +7960,6 @@
   "ja-2fd0f6699b": {
     "ruby": "@a = !true",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -8607,7 +7974,6 @@
   "ja-b4e9ccbce1": {
     "ruby": "@a = !false",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -8620,9 +7986,8 @@
     }
   },
   "ja-bd9dc35fa1": {
-    "ruby": "@c = @a == (!@b)",
+    "ruby": "@c = @a == !@b",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -8635,9 +8000,8 @@
     }
   },
   "ja-dedf825be4": {
-    "ruby": "@c = @a > 1 && @b == (!@d)",
+    "ruby": "@c = @a > 1 && @b == !@d",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -8650,9 +8014,8 @@
     }
   },
   "ja-19b98ac02d": {
-    "ruby": "if @a == (!@b)\nend",
+    "ruby": "if @a == !@b\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2
@@ -8666,9 +8029,8 @@
     }
   },
   "ja-f1214cd44d": {
-    "ruby": "until @a == (!@b)\nend",
+    "ruby": "until @a == !@b\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2
@@ -8684,7 +8046,6 @@
   "ja-48675330b4": {
     "ruby": "@b = !@x",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -8699,7 +8060,6 @@
   "ja-641647161c": {
     "ruby": "@b = !@x && @y",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -8714,7 +8074,6 @@
   "ja-17563b768d": {
     "ruby": "@b = @x || !@y",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -8729,7 +8088,6 @@
   "ja-b260087d76": {
     "ruby": "@c = !@a == @b",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -8744,7 +8102,6 @@
   "ja-bcefac4a05": {
     "ruby": "until @a > 10\n  @a += 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -8761,7 +8118,6 @@
   "ja-07f997bd68": {
     "ruby": "until @a > 10\n  until @b\n    @b = true\n  end\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -8780,7 +8136,6 @@
   "ja-a310ffa6b2": {
     "ruby": "until @a > 10\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2
@@ -8796,7 +8151,6 @@
   "ja-4c5763e6a6": {
     "ruby": "until @a > 10\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2
@@ -8812,7 +8166,6 @@
   "ja-e55de6eafe": {
     "ruby": "@i = 1\nwhile @i <= 3\n  if @i > 1\n    puts(@i)\n  end\n  puts(0)\n  @i += 1\nend\nputs(9)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -8835,7 +8188,6 @@
   "ja-f079dcbe7c": {
     "ruby": "@i = 1\nwhile @i <= 3\n  if @i > 1\n    puts(@i)\n  end\n  puts(0)\n  puts(1)\n  @i += 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -8858,7 +8210,6 @@
   "ja-95ec10d847": {
     "ruby": "@i = 1\nwhile @i <= 3\n  if @i > 1\n    puts(@i)\n  else\n    puts(0)\n  end\n  puts(1)\n  @i += 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -8882,7 +8233,6 @@
   "ja-4aa279bc02": {
     "ruby": "@i = 1\nwhile @i <= 3\n  if @i > 1\n    puts(@i)\n  end\n  puts(0)\n  @i += 1\nend\nputs(9)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -8905,7 +8255,6 @@
   "ja-9d5a3d70d5": {
     "ruby": "if @x > 0\n  @y = 1\nend\n@z = 2",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -8923,7 +8272,6 @@
   "ja-8755d1977f": {
     "ruby": "if @x > 0\n  @y = 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -8940,7 +8288,6 @@
   "ja-04e3ea1c30": {
     "ruby": "if @x > 0\n  @y = 1\nend\n@z = 2",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -8958,7 +8305,6 @@
   "ja-8fd29ddcab": {
     "ruby": "while @hidari <= @migi\n  if @aida == 3\n    @owari = 1\n  elsif @aida < 3\n    @hidari = @aida + 1\n  else\n    @migi = @aida - 1\n  end\nend\nputs(@owari)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -8982,7 +8328,6 @@
   "ja-8f79d107e6": {
     "ruby": "@a = 1\nif @a > 0\n  @a = 2\nend\n@b = 3",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -9001,7 +8346,6 @@
   "ja-3321014656": {
     "ruby": "@i = 1\nwhile @i <= 2\n  if @i > 1\n    puts(@i)\n  else\n    puts(0)\n  end\n  @i += 1\nend\nputs(\"end\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -9025,7 +8369,6 @@
   "ja-4cdee7e8ff": {
     "ruby": "if @x > 0\n  @y = 1\nend\n@z = 2",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -9050,8 +8393,7 @@
         "name": "move",
         "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-cfc1e93ce2": {
     "ruby": null,
@@ -9063,8 +8405,7 @@
         "name": "move",
         "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-324c89416d": {
     "ruby": null,
@@ -9076,8 +8417,7 @@
         "name": "move",
         "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-4391026b3a": {
     "ruby": null,
@@ -9087,13 +8427,11 @@
         "column": 13,
         "message": "日本語モードでは変数に「@」は使えません"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-962e6abf67": {
     "ruby": "if @x > 0\n  @y = 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -9110,7 +8448,6 @@
   "ja-ee9174eb18": {
     "ruby": "@i = 1\nwhile @i <= 2\n  if @i > 1\n    puts(@i)\n  else\n    puts(0)\n  end\n  @i += 1\nend\nputs(\"end\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -9134,7 +8471,6 @@
   "ja-653320900c": {
     "ruby": "@i = 1\nwhile @i <= 2\n  if @i > 1\n    puts(@i)\n  else\n    puts(0)\n  end\n  @i += 1\nend\nputs(\"end\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -9158,7 +8494,6 @@
   "ja-d312534305": {
     "ruby": "@i = 1\nwhile @i <= 2\n  if @i > 1\n    puts(@i)\n  else\n    puts(0)\n  end\n  @i += 1\nend\nputs(\"end\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -9182,7 +8517,6 @@
   "ja-6f99a40e07": {
     "ruby": "@i = 1\nwhile @i <= 2\n  if @i > 1\n    puts(@i)\n  else\n    puts(0)\n  end\n  @i += 1\nend\nputs(\"end\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -9206,7 +8540,6 @@
   "ja-437e12cfd1": {
     "ruby": "@i = 1\nwhile @i <= 2\n  if @i > 1\n    puts(@i)\n  else\n    puts(0)\n  end\n  @i += 1\nend\nputs(\"end\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -9230,7 +8563,6 @@
   "ja-89d0342d28": {
     "ruby": "@i = 1\nwhile @i <= 3\n  puts(@i)\n  @i += 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -9249,7 +8581,6 @@
   "ja-0b944f3b79": {
     "ruby": "def 合計(a)\n  if a > 0\n    puts(a)\n  end\nend\nputs(1)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -9269,7 +8600,6 @@
   "ja-86e528771c": {
     "ruby": "if @x > 0 # 正のとき\n  @y = 1 # 代入\n\n  @z = 2\nend\n@w = 3",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -9289,7 +8619,6 @@
   "ja-ada73d1ce6": {
     "ruby": "@i = 1\nwhile @i <= 2\n  if @i > 1\n    puts(@i)\n  else\n    puts(0)\n  end\n  @i += 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -9312,7 +8641,6 @@
   "ja-f7bc12f865": {
     "ruby": "@b = !@x",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -9327,7 +8655,6 @@
   "ja-177c2c30e4": {
     "ruby": "@nothing = @knot",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -9342,7 +8669,6 @@
   "ja-05d5fce2de": {
     "ruby": "@c = !(@a || @b)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -9357,7 +8683,6 @@
   "ja-48168ab29f": {
     "ruby": "@b = !(@a > 10)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -9372,7 +8697,6 @@
   "ja-7d46ce2a52": {
     "ruby": "@c = !@a && @b",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -9387,7 +8711,6 @@
   "ja-cc6fee7709": {
     "ruby": "puts(\"not x\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -9402,7 +8725,6 @@
   "ja-00918e2ee9": {
     "ruby": "until @x\n  @x = true\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -9419,7 +8741,6 @@
   "ja-886477241a": {
     "ruby": "@b = @x && !@y",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -9434,7 +8755,6 @@
   "ja-00b547b6da": {
     "ruby": "if !@x\n  puts(1)\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -9458,8 +8778,7 @@
         "name": "with_screen_refresh",
         "message": "「with_screen_refresh」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-8a90f0ebb6": {
     "ruby": null,
@@ -9471,8 +8790,7 @@
         "name": "broadcast",
         "message": "「broadcast」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-c9c776e845": {
     "ruby": null,
@@ -9484,8 +8802,7 @@
         "name": "move",
         "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-98dfdb0bac": {
     "ruby": null,
@@ -9497,8 +8814,7 @@
         "name": "turn_right",
         "message": "「turn_right」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-db3d6785d3": {
     "ruby": null,
@@ -9510,8 +8826,7 @@
         "name": "when_clicked",
         "message": "「when_clicked」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-ad2c777b40": {
     "ruby": null,
@@ -9523,8 +8838,7 @@
         "name": "when_flag_clicked",
         "message": "「when_flag_clicked」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-45a8ae0bee": {
     "ruby": null,
@@ -9536,13 +8850,11 @@
         "name": "when_key_pressed",
         "message": "「when_key_pressed」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-17d0a3158f": {
     "ruby": "@x = 10\nputs(\"hello\")\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -9559,7 +8871,6 @@
   "ja-a2c0527f7d": {
     "ruby": "@x = 10\nif @x > 5\n  puts(\"big\")\nend\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -9576,74 +8887,28 @@
     }
   },
   "ja-e48c68c559": {
-    "ruby": "@a = 1\n@b = 2\nif @a > 0\n  puts(@a)",
-    "errors": [],
-    "blockErrors": [
+    "ruby": null,
+    "errors": [
       {
         "line": 2,
         "column": 1,
         "message": "「もし〜ならば」を「を実行する」で閉じてください"
-      }
-    ],
-    "rubyLines": [
-      1,
-      1,
-      2,
-      3
-    ],
-    "converterErrors": [
-      {
-        "row": 2,
-        "column": 0,
-        "type": "error",
-        "text": "The code ended unexpectedly.\nCheck for missing `end`, `)`, `]`, or `}`.",
-        "source": null
-      },
-      {
-        "row": 1,
-        "column": 0,
-        "type": "error",
-        "text": "`end` is missing.\nAdd `end` to close the conditional clause (if/unless).",
-        "source": null
       }
     ]
   },
   "ja-9f5b0ab3fa": {
-    "ruby": "puts(1)\nif @x > 0\n  puts(@x)",
-    "errors": [],
-    "blockErrors": [
+    "ruby": null,
+    "errors": [
       {
         "line": 2,
         "column": 1,
         "message": "「もし〜ならば」を「を実行する」で閉じてください"
-      }
-    ],
-    "rubyLines": [
-      1,
-      2,
-      3
-    ],
-    "converterErrors": [
-      {
-        "row": 2,
-        "column": 0,
-        "type": "error",
-        "text": "The code ended unexpectedly.\nCheck for missing `end`, `)`, `]`, or `}`.",
-        "source": null
-      },
-      {
-        "row": 1,
-        "column": 0,
-        "type": "error",
-        "text": "`end` is missing.\nAdd `end` to close the conditional clause (if/unless).",
-        "source": null
       }
     ]
   },
   "ja-559fe4f8c1": {
     "ruby": "if @x > 0\n  puts(@x)\n  puts(1)\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -9661,7 +8926,6 @@
   "ja-b35dcefb87": {
     "ruby": "if @x > 0\n  puts(@x)\nend\nputs(1)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -9679,7 +8943,6 @@
   "ja-ccb4b5eb6f": {
     "ruby": "@x = \"#\" # @y",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -9699,13 +8962,11 @@
         "column": 11,
         "message": "日本語モードでは変数に「@」は使えません"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-24460769cc": {
     "ruby": "@a = (1 / @生徒番号).to_i\nputs(@a)\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -9729,45 +8990,21 @@
         "name": "foo",
         "message": "「foo」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-f4dde706a0": {
-    "ruby": "if @x > 0\n  puts(@x)\n",
-    "errors": [],
-    "blockErrors": [
+    "ruby": null,
+    "errors": [
       {
         "line": 1,
         "column": 1,
         "message": "「もし〜ならば」を「を実行する」で閉じてください"
-      }
-    ],
-    "rubyLines": [
-      1,
-      2,
-      3
-    ],
-    "converterErrors": [
-      {
-        "row": 1,
-        "column": 0,
-        "type": "error",
-        "text": "The code ended unexpectedly.\nCheck for missing `end`, `)`, `]`, or `}`.",
-        "source": null
-      },
-      {
-        "row": 0,
-        "column": 0,
-        "type": "error",
-        "text": "`end` is missing.\nAdd `end` to close the conditional clause (if/unless).",
-        "source": null
       }
     ]
   },
   "ja-52f20c2f1e": {
     "ruby": "@合計 = 7\n@個数 = 2\n@a = (@合計 / @個数).to_i\n@b = (@合計 / @個数).to_i\nputs(@a.to_s + @b.to_s)\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -9792,13 +9029,11 @@
         "column": 1,
         "message": "日本語モードでは変数に「@」は使えません"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-d50fc835f1": {
     "ruby": "@_array_Data_ = [3, 1, 2]\n@goukei = 0\n@i = 0\nwhile @i <= 2\n  @goukei = @goukei + @_array_Data_[@i]\n  @i += 1\nend\nputs(@goukei)\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -9821,7 +9056,6 @@
   "ja-17ddf0cf15": {
     "ruby": "@_array_Data_ = [3, 18, 29, 33, 48, 52, 62, 77, 89, 97]\n@kazu = @_array_Data_.length\nputs(\"0～99:\")\nask(\"\")\n@atai = answer\n@hidari = 0\n@migi = @kazu - 1\n@owari = 0\nwhile @hidari <= @migi && @owari == 0\n  @aida = ((@hidari + @migi) / 2).to_i\n  if @_array_Data_[@aida] == @atai\n    puts(@atai.to_s + \"は\" + @aida.to_s + \"番目にありました\")\n    @owari = 1\n  elsif @_array_Data_[@aida] < @atai\n    @hidari = @aida + 1\n  else\n    @migi = @aida - 1\n  end\nend\nif @owari == 0\n  puts(@atai.to_s + \"は見つかりませんでした\")\nend\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -9858,7 +9092,6 @@
   "ja-92aae989b7": {
     "ruby": "@_array_Data_ = [3, 1, 2]\n@goukei = 0\n@i = 1\nwhile @i <= 3\n  @goukei = @goukei + @_array_Data_[@i]\n  @i += 1\nend\nputs(@goukei)\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -9881,7 +9114,6 @@
   "ja-a86e51130b": {
     "ruby": "@合計 = 7\n@個数 = 2\n@a = (@合計 / @個数).to_i\n@b = (1 / @生徒番号).to_i\nputs(@a.to_s + @b.to_s)\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -9901,7 +9133,6 @@
   "ja-3cfaa7d81d": {
     "ruby": "@_array_Data_ = [3, 1, 2]\nputs(@_array_Data_[3])\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -9932,13 +9163,11 @@
         "name": "len",
         "message": "「len」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
       }
-    ],
-    "blockErrors": []
+    ]
   },
   "ja-70b233423b": {
     "ruby": "@x = 10\nwhile @x > 0\n  @x = @x - 3\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -9956,7 +9185,6 @@
   "ja-16490f58c8": {
     "ruby": "@x = 1\nif @x > 0 && @x < 10\n  puts(\"1けた\")\nelsif @x == 0\n  puts(\"0\")\nelse\n  puts(\"ほか\")\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -9978,7 +9206,6 @@
   "ja-a79597cecd": {
     "ruby": "@me = rand(1..6)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -9993,7 +9220,6 @@
   "ja-d7963f527d": {
     "ruby": "@kosuu = 3\n@goukei = 0",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2
@@ -10009,7 +9235,6 @@
   "ja-615859dc03": {
     "ruby": "ask(\"\")\n@kotae = answer\n@n = @kotae.to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -10026,7 +9251,6 @@
   "ja-da643ce1d9": {
     "ruby": "puts(2.1.ceil)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -10041,7 +9265,6 @@
   "ja-80de3cbe07": {
     "ruby": "puts(2.5.floor)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -10056,7 +9279,6 @@
   "ja-6e61a7230d": {
     "ruby": "@a = 7 / 2\n@b = (7 / 2).to_i\n@c = (7 / 2).to_i\n@d = 7 % 2",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -10074,7 +9296,6 @@
   "ja-ad582866d0": {
     "ruby": "puts(2.5.round)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -10089,7 +9310,6 @@
   "ja-907207d2a2": {
     "ruby": "@_array_Data_ = [3, 1, 2]\n@i = 0\nwhile @i <= @_array_Data_.length - 1\n  puts(@_array_Data_[@i])\n  @i += 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -10109,7 +9329,6 @@
   "ja-64b4fd6f71": {
     "ruby": "puts(Math.sqrt(9))",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -10124,7 +9343,6 @@
   "ja-0aaba47199": {
     "ruby": "puts(3.7.to_i)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -10139,7 +9357,6 @@
   "ja-0d9565876f": {
     "ruby": "puts(12.to_s + \"円\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -10154,7 +9371,6 @@
   "ja-6de7c10364": {
     "ruby": "@namae = \"さくら\"\nif @namae.include?(\"く\")\n  puts(\"ある\")\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -10172,7 +9388,6 @@
   "ja-c6dfa79e4e": {
     "ruby": "puts(-5.abs)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -10187,7 +9402,6 @@
   "ja-6a726f5738": {
     "ruby": "@ten = 80\nputs(@ten.to_s + \"点\")",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2
@@ -10203,7 +9417,6 @@
   "ja-253268469f": {
     "ruby": "@_array_Data_ = [3, 1, 2]\n@_array_Data_[0] = 5",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2
@@ -10219,7 +9432,6 @@
   "ja-580e999d85": {
     "ruby": "@_array_Data_ = [3, 1, 2]\nputs(@_array_Data_.length)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2
@@ -10235,7 +9447,6 @@
   "ja-462b1ef72d": {
     "ruby": "def nibai(x)\n  return x * 2\nend\nputs(nibai(4))",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -10253,7 +9464,6 @@
   "ja-d7564870ad": {
     "ruby": "@x = 2\nputs(@x)\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -10270,7 +9480,6 @@
   "ja-43331026c4": {
     "ruby": "@_var_NG_\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2
@@ -10286,7 +9495,6 @@
   "ja-e63db49479": {
     "ruby": "@x = 1\nputs(@x)\n",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -10303,7 +9511,6 @@
   "ja-b925e51bb0": {
     "ruby": "@x = (7 / 2).to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -10318,7 +9525,6 @@
   "ja-34bce5f775": {
     "ruby": "@x = 1",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -10333,7 +9539,6 @@
   "ja-62667cf620": {
     "ruby": "@_array_Data_[0] = 5",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -10348,7 +9553,6 @@
   "ja-6956af877c": {
     "ruby": "@x = @_array_Data_.length",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -10363,7 +9567,6 @@
   "ja-788c5dad83": {
     "ruby": "@x = @y.to_i",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -10378,7 +9581,6 @@
   "ja-10d6d35222": {
     "ruby": "puts(@x)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -10393,7 +9595,6 @@
   "ja-3179fd9238": {
     "ruby": "if @x > 0\n  puts(@x)\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -10410,7 +9611,6 @@
   "ja-285bc3c09c": {
     "ruby": "if @x > 0\n  puts(@x)\nelse\n  puts(@y)\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -10429,7 +9629,6 @@
   "ja-d725118e26": {
     "ruby": "@x = @x * 2 - 1",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -10444,7 +9643,6 @@
   "ja-b826fbffa1": {
     "ruby": "@x = 7 % 2",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -10459,7 +9657,6 @@
   "ja-78c37b33b4": {
     "ruby": "@i = 3\nwhile @i >= 1\n  puts(@i)\n  @i += -1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -10478,7 +9675,6 @@
   "ja-e5ad6e5921": {
     "ruby": "@i = 1\nwhile @i <= 3\n  puts(@i)\n  @i += 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1,
@@ -10497,7 +9693,6 @@
   "ja-62e620c316": {
     "ruby": "@_var_Kosu_ = 3",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -10512,7 +9707,6 @@
   "ja-f4a97b8803": {
     "ruby": "@_array_Data_ = [1, 2]",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -10527,7 +9721,6 @@
   "ja-34b7faf8c8": {
     "ruby": "@x = @_array_Data_[1]",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -10542,7 +9735,6 @@
   "ja-a1b9bcb4d1": {
     "ruby": "ask(\"\")\n@x = answer",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1
@@ -10558,7 +9750,6 @@
   "ja-0b8c594c6a": {
     "ruby": "@x = 1\nputs(@x)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2
@@ -10574,7 +9765,6 @@
   "ja-7fa0b0b78e": {
     "ruby": "@x = 1",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -10589,7 +9779,6 @@
   "ja-40bba4b4a3": {
     "ruby": "if @x > 0\n  puts(@x)\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -10606,7 +9795,6 @@
   "ja-c28b9a86e6": {
     "ruby": "@x = true",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -10621,7 +9809,6 @@
   "ja-6b17a2e44b": {
     "ruby": "@a = 1\n@b = 2",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       1
@@ -10637,7 +9824,6 @@
   "ja-bc25fc8218": {
     "ruby": "if @x > 0 && @x < 9\n  puts(@x)\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -10654,7 +9840,6 @@
   "ja-b52f7d5b4e": {
     "ruby": "while @x < 3\n  @x = @x + 1\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -10671,7 +9856,6 @@
   "ja-faa60eeb22": {
     "ruby": "@x = rand(10)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -10686,7 +9870,6 @@
   "ja-712445cad9": {
     "ruby": "puts(\"合計\" + @x.to_s)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],
@@ -10701,7 +9884,6 @@
   "ja-416258ac00": {
     "ruby": "@a = 1\nif @a > 0 && @a < 3 && @a > 1\n  @a = 2\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -10719,7 +9901,6 @@
   "ja-d216e6ceec": {
     "ruby": "@a = 1\nif @a > 0 || @a < 3 && @a > 1\n  @a = 2\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -10737,7 +9918,6 @@
   "ja-e23d78d0ff": {
     "ruby": "@a = 1\nif @a > 0 || @a < 3 || @a > 1\n  @a = 2\nend",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2,
@@ -10755,7 +9935,6 @@
   "ja-38c059cd95": {
     "ruby": "@i, @j = 5, 0\nputs(@i + @j)",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1,
       2
@@ -10771,7 +9950,6 @@
   "ja-4c6ddb1617": {
     "ruby": "@a, @b = @b, @a",
     "errors": [],
-    "blockErrors": [],
     "rubyLines": [
       1
     ],

@@ -76,9 +76,13 @@ const STOP_NAMES = new Set([
  * @param {string} message - The message, in Japanese.
  * @param {number} line - The line (1-based).
  * @param {number} column - The column (0-based).
+ * @param {object} [detail] - What a caller may need to say the error in its own
+ *   words: `name` (the token), `opener` / `direction` / `colon` / `word` (the
+ *   block of a block error), `block` (`stray-closer`, `closer-indent`,
+ *   `stray-branch`) and `branch`.
  * @returns {object} The error.
  */
-const makeError = (code, message, line, column = 0) => ({ code, message, line, column });
+const makeError = (code, message, line, column = 0, detail = {}) => ({ code, message, line, column, ...detail });
 
 /** Thrown inside the reading of one line, caught at the line. */
 class LineError extends Error {
@@ -819,8 +823,12 @@ const tokenError = (tokens) => {
     }
     for (const t of tokens) {
         const at = (code, message) => makeError(code, message, t.line, t.column);
-        if (t.type === 'forbidden') return at('forbidden', `日本語モードでは変数に「${t.text}」は使えません`);
-        if (t.type === 'badNumber') return at('bad-number', `「${t.text}」は日本語モードでは書けない数の書き方です`);
+        if (t.type === 'forbidden') {
+            return { ...at('forbidden', `日本語モードでは変数に「${t.text}」は使えません`), name: t.text };
+        }
+        if (t.type === 'badNumber') {
+            return { ...at('bad-number', `「${t.text}」は日本語モードでは書けない数の書き方です`), name: t.text };
+        }
         if (t.type === 'unknown') return at('syntax', `「${t.text}」が読めません`);
     }
     return null;
@@ -849,8 +857,23 @@ const parse = (source) => {
         entry.node.closeLine = closeLine;
         entry.node.closeAfter = closeAfter;
     };
+    // What a block error says about its block: the kind of the opener (and the
+    // direction of a counting loop) and whether it was opened with `:`.
+    const openerOf = (entry) => ({
+        opener: entry.node.type,
+        ...(entry.node.type === 'For' ? { direction: entry.node.direction } : {}),
+        colon: entry.colon,
+    });
     const emptyBlock = (entry) =>
-        errors.push(makeError('empty-block', 'ブロックの中に行がありません', entry.node.line, entry.node.column));
+        errors.push(
+            makeError(
+                'empty-block',
+                'ブロックの中に行がありません',
+                entry.node.line,
+                entry.node.column,
+                openerOf(entry),
+            ),
+        );
 
     lines.forEach((entry) => {
         if (entry.blank) return;
@@ -898,11 +921,21 @@ const parse = (source) => {
         if (closes) {
             const top = stack[stack.length - 1];
             if (!top) {
-                errors.push(makeError('syntax', `「${block.word}」で閉じるブロックがありません`, entry.line, column));
+                errors.push(
+                    makeError('syntax', `「${block.word}」で閉じるブロックがありません`, entry.line, column, {
+                        block: 'stray-closer',
+                        word: block.word,
+                    }),
+                );
                 return;
             }
             if (top.mode === 'indent' && (entry.width > top.width || block.word === END_WORD)) {
-                errors.push(makeError('syntax', `「${block.word}」の字下げが合いません`, entry.line, column));
+                errors.push(
+                    makeError('syntax', `「${block.word}」の字下げが合いません`, entry.line, column, {
+                        block: 'closer-indent',
+                        word: block.word,
+                    }),
+                );
                 return;
             }
             stack.pop();
@@ -915,7 +948,13 @@ const parse = (source) => {
         if (continuesIf) {
             const top = stack[stack.length - 1];
             if (!top || top.node.type !== 'If' || top.node.elseBody) {
-                errors.push(makeError('syntax', '対応する「もし」がありません', entry.line, column));
+                errors.push(
+                    makeError('syntax', '対応する「もし」がありません', entry.line, column, {
+                        block: 'stray-branch',
+                        branch: block.kind,
+                        colon: block.colon,
+                    }),
+                );
                 return;
             }
             top.hasBody = false;
@@ -938,6 +977,7 @@ const parse = (source) => {
                 body: block.node.body || block.node.branches[0].body,
                 width: entry.width,
                 mode: block.colon ? 'indent' : 'closer',
+                colon: block.colon,
             });
         } else {
             if (entry.comment !== null) statements[statements.length - 1].comment = entry.comment;
@@ -960,7 +1000,12 @@ const parse = (source) => {
         } else {
             const word =
                 top.node.type === 'If' ? 'を実行する' : top.node.type === 'FunctionDef' ? 'と定義する' : 'を繰り返す';
-            errors.push(makeError('unclosed', `「${word}」で閉じていません`, top.node.line, top.node.column));
+            errors.push(
+                makeError('unclosed', `「${word}」で閉じていません`, top.node.line, top.node.column, {
+                    ...openerOf(top),
+                    word,
+                }),
+            );
         }
     }
     return errors.length > 0 ? { program: null, errors } : { program, errors };

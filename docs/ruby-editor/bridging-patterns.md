@@ -857,7 +857,7 @@ defineBlockRubyTable('Motion blocks ⇔ Ruby', [
 
 | 日本語モード | Ruby | 決めているところ |
 |---|---|---|
-| 小文字で始まる名前 `x` | `@x` | `src/lib/dncl/dncl-state.js` の `mapVarName` |
+| 小文字で始まる名前 `x` | `@x` | `src/lib/dncl/ja-notation-table.js` の `variable` |
 | 大文字で始まり、配列として使う名前 `Data` | `@_array_Data_` | 同上 |
 | 大文字で始まる、それ以外の名前 `Kosu` | `@_var_Kosu_` | 同上 |
 

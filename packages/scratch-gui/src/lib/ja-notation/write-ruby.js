@@ -72,7 +72,8 @@ const TEXT = {
             case 'OrNode':
                 return this.binary(node, '||', node.left, node.right, 'OrNode');
             case 'RangeNode':
-                return this.binary(node, node.exclusive ? '...' : '..', node.left, node.right, 'RangeNode');
+                // Written without spaces (`1..10`), as Ruby programs usually write it.
+                return this.binary(node, node.exclusive ? '...' : '..', node.left, node.right, 'RangeNode', '');
             case 'CallNode':
                 return this.callNode(node);
             default:
@@ -100,12 +101,13 @@ const TEXT = {
      * @param {object} left - The left side.
      * @param {object} right - The right side.
      * @param {string} key - The key in `PRECEDENCE`.
+     * @param {string} [space] - What is put on each side of the operator.
      * @returns {string} The Ruby.
      */
-    binary(node, symbol, left, right, key) {
+    binary(node, symbol, left, right, key, space = ' ') {
         const own = PRECEDENCE[key];
         const strict = NON_ASSOCIATIVE.has(key);
-        return `${this.operand(left, own, strict)} ${symbol} ${this.operand(right, own, true)}`;
+        return `${this.operand(left, own, strict)}${space}${symbol}${space}${this.operand(right, own, true)}`;
     },
 
     /**

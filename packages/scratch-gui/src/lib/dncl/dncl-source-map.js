@@ -3,11 +3,11 @@
 /**
  * Source map for DNCL ↔ Ruby line position mapping.
  *
- * DNCL and Ruby lines do not correspond 1:1: the DNCLv2 pre-processor joins
- * continuation lines, splits multi-assignments and adds block closers, and
- * the line converter expands input lines and counting loops into 2 Ruby
- * lines. The map is therefore built from the per-line correspondence that
- * `dnclToRuby` records while converting (use `dnclToRuby(dncl).sourceMap`).
+ * DNCL and Ruby lines do not correspond 1:1: continuation lines are one
+ * statement, a multi-assignment is several, a block of the standard form has
+ * no closing line, and an input or a counting loop is 2 Ruby lines. The map
+ * is therefore built from the Japanese line of each Ruby line that
+ * ja-notation writes (use `dnclToRuby(dncl).sourceMap`).
  */
 class DnclSourceMap {
     /**

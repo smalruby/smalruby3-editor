@@ -7,11 +7,7 @@
  * go back and forth.
  */
 import { dnclToRuby, rubyForLeavingDncl } from '../../../../src/lib/dncl/dncl-to-ruby';
-import {
-    isRubyCommandName,
-    UNSUPPORTED_COMMAND_ERROR_ID,
-    validateDncl,
-} from '../../../../src/lib/dncl/dncl-validator';
+import { isRubyCommandName, UNSUPPORTED_COMMAND_ERROR_ID } from '../../../../src/lib/dncl/dncl-validator';
 import { FORMS, rubyToDncl as rubyToDnclInForm } from '../../../../src/lib/dncl/ruby-to-dncl';
 
 // These cases check the DNCL 風の形 the writer still has (Issue #1754);
@@ -149,8 +145,8 @@ describe('DNCL → Ruby: a command the Japanese mode does not have stops with an
         expect(['差分', 'あいさつ', 'カウント'].map(isRubyCommandName)).toEqual([false, false, false]);
     });
 
-    test('validateDncl tells it too', () => {
-        expect(validateDncl('move(2)').map((err) => err.id)).toEqual([UNSUPPORTED_COMMAND_ERROR_ID]);
+    test('it is the only error of the program', () => {
+        expect(dnclToRuby('move(2)').errors.map((err) => err.id)).toEqual([UNSUPPORTED_COMMAND_ERROR_ID]);
     });
 
     test('leaving the Japanese mode keeps the last Ruby', () => {

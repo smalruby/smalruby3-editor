@@ -1,9 +1,10 @@
 // === Smalruby: This file is Smalruby-specific (how the Japanese mode measures an indent) ===
 
 /**
- * The one rule for measuring the indent of a DNCL line, shared by the reader
- * (`dncl-v2-preprocessor.js`) and the problem form (`dncl-problem-form.js`),
- * so that the blocks the reader finds and the rules the editor draws agree.
+ * The rule for measuring the indent of a DNCL line in the problem form
+ * (`dncl-problem-form.js`). The reader (`indentWidth` of
+ * `src/lib/ja-notation/parse.js`) measures the same way, so that the blocks
+ * the reader finds and the rules the editor draws agree.
  * A tab counts as 4 columns and the full-width space (U+3000) as 2, so mixed
  * indentation still compares sensibly.
  */

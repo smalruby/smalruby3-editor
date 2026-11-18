@@ -1,6 +1,5 @@
-// === Smalruby: This file is Smalruby-specific (DNCL source validator) ===
+// === Smalruby: This file is Smalruby-specific (the checks of the words of the Japanese mode) ===
 import { DNCL_KEYWORDS, RUBY_LITERALS } from './dncl-keywords';
-import { findFunctionNames } from './dncl-state';
 import { codeOfLine, commentIndex, stringEndAt } from './dncl-trailing-comment';
 import { findMatchingClose } from './paren-utils';
 
@@ -217,9 +216,27 @@ const doBlockCommand = (code) => {
 };
 
 /**
+ * The names of the functions the source defines (`関数 name(...)`), CJK names
+ * too (Issue #643): calls of them are not Ruby commands.
+ * @param {string} source - The Japanese source.
+ * @returns {Set<string>} The function names.
+ */
+const findFunctionNames = (source) => {
+    const ident =
+        '[a-zA-Z_\\u3040-\\u309F\\u30A0-\\u30FF\\u4E00-\\u9FFF][a-zA-Z0-9_\\u3040-\\u309F\\u30A0-\\u30FF\\u4E00-\\u9FFF]*';
+    const re = new RegExp(`^関数\\s+(${ident})\\s*\\(`);
+    const names = new Set();
+    for (const line of source.split('\n')) {
+        const m = line.trim().match(re);
+        if (m) names.add(m[1]);
+    }
+    return names;
+};
+
+/**
  * The names the source declares as variables: assigned (`a ← 1`, `a = 1`,
  * `a += 1`), counted by a loop (`i を 1 から …`) or a function parameter.
- * @param {string} source - DNCL source after the DNCLv2 pre-processor.
+ * @param {string} source - The Japanese (its line numbers and `｜` marks blanked out), or the Japanese `rubyToDncl` makes.
  * @returns {Set<string>} The names.
  */
 const findDeclaredNames = (source) => {
@@ -254,7 +271,7 @@ const findDeclaredNames = (source) => {
  * passes as they are (`puts`, `say`, `rand`, ...) and the functions the
  * source defines. A variable (a name not called) is not taken, so a
  * variable may have the name of a command.
- * @param {string} source - DNCL source after the DNCLv2 pre-processor.
+ * @param {string} source - The Japanese (its line numbers and `｜` marks blanked out), or the Japanese `rubyToDncl` makes.
  * @returns {Array<object>} Errors with `line`, `column`, `id`, `name` and
  *   `message`.
  */
@@ -315,220 +332,8 @@ const findUnsupportedCommands = (source) => {
     return errors;
 };
 
-/**
- * Validate DNCL source for forbidden characters. DNCL variables cannot use
- * `@` or `$` prefixes.
- * @param {string} source - The DNCL source code.
- * @returns {Array<object>} Array of error objects with `line`, `column`,
- *   and `message`.
- */
-const validateDncl = (source) => {
-    const errors = [];
-    const lines = source.split('\n');
-    for (let i = 0; i < lines.length; i++) {
-        // The code before the comment, with the strings blanked out: a `#`
-        // in a string (`"#"`, `'#'`, `「#」`) is text, not a comment, so an
-        // `@` after it is still found, and an `@` in a string or in the
-        // comment is not (Issue #1709). The columns stay as written.
-        const code = codeWithoutStrings(lines[i]);
-        for (let j = 0; j < code.length; j++) {
-            if (code[j] === '@' || code[j] === '$') {
-                errors.push({
-                    line: i + 1,
-                    column: j + 1,
-                    message: `日本語モードでは変数に「${code[j]}」は使えません`,
-                });
-            }
-        }
-        if (isPostTestLoopLine(code.trim())) {
-            errors.push({
-                line: i + 1,
-                column: 1,
-                id: POST_TEST_LOOP_ERROR_ID,
-                message: POST_TEST_LOOP_MESSAGE,
-            });
-        }
-    }
-    return errors
-        .concat(findUnsupportedNumbers(source), findUnsupportedCommands(source))
-        .sort((a, b) => a.line - b.line || a.column - b.column);
-};
-
-// Block openers of the DNCL the line converter reads (after the DNCLv2
-// pre-processor), with the closer each needs and how the error names it.
-// The patterns are looser than the converter's so that an opener it would
-// not read (a CJK loop variable) is not taken for a missing opener.
-const BLOCK_KINDS = [
-    {
-        re: /^もし\s+.+\s+(?:なら|ならば)$/,
-        name: '「もし〜ならば」',
-        standardName: '「もし〜ならば:」',
-        closer: 'を実行する',
-        isIf: true,
-    },
-    {
-        re: /\sずつ増やしながら$/,
-        name: '「〜ずつ増やしながら」',
-        standardName: '「〜ずつ増やしながら繰り返す:」',
-        closer: 'を繰り返す',
-    },
-    {
-        re: /\sずつ減らしながら$/,
-        name: '「〜ずつ減らしながら」',
-        standardName: '「〜ずつ減らしながら繰り返す:」',
-        closer: 'を繰り返す',
-    },
-    { re: /^.+\sの間$/, name: '「〜の間」', standardName: '「〜の間繰り返す:」', closer: 'を繰り返す' },
-    { re: /^関数\s+\S+?\s*\(/, name: '「関数」', standardName: '「関数 〜(…):」', closer: 'と定義する' },
-    { re: { test: isDoBlockLine }, name: '「〜 do」', closer: 'を実行する' },
-];
-
-const CLOSERS = new Set(['を実行する', 'を繰り返す', 'と定義する']);
-
-const continuationName = (body) => {
-    if (body === 'そうでなければ') return '「そうでなければ」';
-    if (/^そうでなくもし\s+.+\s+(?:なら|ならば)$/.test(body)) {
-        return '「そうでなくもし〜ならば」';
-    }
-    return null;
-};
-
-/**
- * Read the block structure of the lines: each code line is an opener, a
- * continuation of `もし` (`そうでなくもし` / `そうでなければ`), a closer or
- * none of them, as the line converter reads it (whole trimmed line).
- * @param {string} source - DNCL source after the DNCLv2 pre-processor.
- * @returns {Array<object>} `{line, opener?, continuation?, closer?}` per
- *   structural line.
- */
-const readBlockLines = (source) => {
-    const result = [];
-    source.split('\n').forEach((text, i) => {
-        const body = text.trim();
-        if (body === '' || body.startsWith('#')) return;
-        const line = i + 1;
-        if (CLOSERS.has(body)) {
-            result.push({ line, closer: body });
-            return;
-        }
-        const continuation = continuationName(body);
-        if (continuation) {
-            result.push({ line, continuation });
-            return;
-        }
-        const opener = BLOCK_KINDS.find((kind) => kind.re.test(body));
-        if (opener) result.push({ line, opener });
-    });
-    return result;
-};
-
-/**
- * Whether the blocks are balanced as Ruby reads the converted code: every
- * closer becomes `end` and closes the innermost block whatever its kind,
- * and `elsif` / `else` must be directly inside an `if`.
- * @param {Array<object>} blockLines - From `readBlockLines`.
- * @returns {boolean} True when the Ruby has no missing or extra `end`.
- */
-const isBalancedAsRuby = (blockLines) => {
-    const stack = [];
-    for (const entry of blockLines) {
-        if (entry.opener) stack.push(entry.opener);
-        else if (entry.continuation) {
-            if (stack.length === 0 || !stack[stack.length - 1].isIf) return false;
-        } else {
-            if (stack.length === 0) return false;
-            stack.pop();
-        }
-    }
-    return stack.length === 0;
-};
-
-// The standard form shows the inside of a block by its indent, so a block of
-// it left open is one whose inside is not indented (Issue #2035).
-const unclosedError = (open, isStandardLine) => ({
-    line: open.line,
-    column: 1,
-    message:
-        isStandardLine(open.line) && open.opener.standardName
-            ? `${open.opener.standardName}の中の行を字下げしてください`
-            : `${open.opener.name}を「${open.opener.closer}」で閉じてください`,
-});
-
-// An else / else-if of the standard form with no `もし` open stands at a
-// shallower indent than its `もし` (Issue #2035).
-const continuationError = (entry, isStandardLine) => ({
-    line: entry.line,
-    column: 1,
-    message: isStandardLine(entry.line)
-        ? `${entry.continuation.replace(/」$/, ':」')}は、「もし〜ならば:」と同じ字下げで書いてください`
-        : `${entry.continuation}の前に「もし〜ならば」がありません`,
-});
-
-/**
- * Find a missing or extra closer of a DNCL block and say it in the words of
- * DNCL (Issue #1419). Without this the converted Ruby fails with a missing
- * or extra `end`, which a DNCL student (and a generative AI asked to fix
- * the DNCL) should not be told about.
- *
- * Only a structure that breaks the converted Ruby is reported: a block
- * closed by the closer of another kind (`もし … を繰り返す`) still converts,
- * and the editor takes it, so it is not an error here either.
- *
- * A block of the standard form (its opener ends with `:`) is told to indent
- * its inside instead of to be closed (Issue #2035).
- * @param {string} source - DNCL source after the DNCLv2 pre-processor.
- * @param {object} [options] - Options.
- * @param {function(number): boolean} [options.isStandardLine] - Whether the
- *   line of `source` (1-based) was written in the standard form.
- * @returns {Array<object>} Errors with `line`, `column` and `message`.
- */
-const findDnclBlockErrors = (source, { isStandardLine = () => false } = {}) => {
-    const blockLines = readBlockLines(source);
-    if (isBalancedAsRuby(blockLines)) return [];
-    const errors = [];
-    const stack = [];
-    // Close the blocks opened after `index`: they were left open.
-    const closeAbove = (index) => {
-        while (stack.length > index + 1) errors.push(unclosedError(stack.pop(), isStandardLine));
-    };
-    for (const entry of blockLines) {
-        if (entry.opener) {
-            stack.push(entry);
-        } else if (entry.continuation) {
-            const index = stack.map((open) => open.opener.isIf).lastIndexOf(true);
-            if (index < 0) {
-                errors.push(continuationError(entry, isStandardLine));
-            } else {
-                closeAbove(index);
-            }
-        } else if (stack.length === 0) {
-            errors.push({
-                line: entry.line,
-                column: 1,
-                message: `「${entry.closer}」で閉じるものがありません`,
-            });
-        } else {
-            const index = stack.map((open) => open.opener.closer).lastIndexOf(entry.closer);
-            if (index < 0) {
-                const top = stack.pop();
-                errors.push({
-                    line: entry.line,
-                    column: 1,
-                    message: `${top.opener.name}は「${entry.closer}」ではなく「${top.opener.closer}」で閉じてください`,
-                });
-            } else {
-                closeAbove(index);
-                stack.pop();
-            }
-        }
-    }
-    while (stack.length > 0) errors.push(unclosedError(stack.pop(), isStandardLine));
-    return errors.sort((a, b) => a.line - b.line);
-};
-
 export {
     codeWithoutStrings,
-    findDnclBlockErrors,
     findUnsupportedCommands,
     findUnsupportedNumbers,
     isDoBlockLine,
@@ -540,5 +345,4 @@ export {
     unsupportedCommandMessage,
     UNSUPPORTED_NUMBER_ERROR_ID,
     unsupportedNumberMessage,
-    validateDncl,
 };

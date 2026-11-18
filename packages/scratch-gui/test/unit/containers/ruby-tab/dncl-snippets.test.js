@@ -90,9 +90,8 @@ describe('DNCL snippets: the standard form (Issue #2035)', () => {
 
 describe('DNCL snippets: what they put in becomes Ruby and blocks (Issue #2035)', () => {
     test.each(ROWS)('%s', async (_label, insertText) => {
-        const { ruby, errors, blockErrors } = dnclToRuby(programOf(expand(insertText)));
+        const { ruby, errors } = dnclToRuby(programOf(expand(insertText)));
         expect(errors).toEqual([]);
-        expect(blockErrors).toEqual([]);
         const converter = new RubyToBlocksConverter(null, { version: '2' });
         const ok = await converter.targetCodeToBlocks(null, ruby);
         expect(converter.errors).toEqual([]);

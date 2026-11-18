@@ -3,11 +3,12 @@
  * the Ruby converter's missing `end`.
  */
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
-import { findDnclBlockErrors, validateDncl } from '../../../../src/lib/dncl/dncl-validator';
 
-const errorsOf = (lines) => findDnclBlockErrors(lines.join('\n'));
+// A program with a block error makes no Ruby; the block error is one of its errors.
+const errorsOf = (lines) => dnclToRuby(lines.join('\n')).errors;
+const errorsOfLine = (line) => dnclToRuby(line).errors;
 
-describe('findDnclBlockErrors', () => {
+describe('block errors of the DNCL-like form', () => {
     test('balanced blocks have no error', () => {
         expect(
             errorsOf([
@@ -125,11 +126,10 @@ describe('findDnclBlockErrors', () => {
 });
 
 describe('dnclToRuby with a missing closer', () => {
-    test('still makes the Ruby and gives the DNCL error on the DNCL line', () => {
+    test('makes no Ruby and gives the DNCL error on the DNCL line', () => {
         const result = dnclToRuby(['表示する(1)', 'もし x > 0 ならば', '  表示する(x)'].join('\n'));
-        expect(result.ruby).not.toBeNull();
-        expect(result.errors).toEqual([]);
-        expect(result.blockErrors).toEqual([
+        expect(result.ruby).toBeNull();
+        expect(result.errors).toEqual([
             {
                 line: 2,
                 column: 1,
@@ -139,15 +139,13 @@ describe('dnclToRuby with a missing closer', () => {
     });
 
     test('the DNCLv2 forms closed by ⎿ and by indentation have no block error', () => {
-        expect(dnclToRuby(['もし x > 0 ならば:', '｜ 表示する(x)', '⎿ 表示する(1)'].join('\n')).blockErrors).toEqual(
-            [],
-        );
-        expect(dnclToRuby(['もし x > 0 ならば:', '  表示する(x)', '表示する(1)'].join('\n')).blockErrors).toEqual([]);
+        expect(dnclToRuby(['もし x > 0 ならば:', '｜ 表示する(x)', '⎿ 表示する(1)'].join('\n')).errors).toEqual([]);
+        expect(dnclToRuby(['もし x > 0 ならば:', '  表示する(x)', '表示する(1)'].join('\n')).errors).toEqual([]);
     });
 
     test('an error on a line after a DNCLv2 multi-assignment is on the line written', () => {
         const result = dnclToRuby(['a ← 1, b ← 2', 'もし a > 0 ならば', '  表示する(a)'].join('\n'));
-        expect(result.blockErrors.map((err) => err.line)).toEqual([2]);
+        expect(result.errors.map((err) => err.line)).toEqual([2]);
     });
 });
 
@@ -155,7 +153,7 @@ describe('dnclToRuby with a missing closer', () => {
  * A `#` in a string is text, not a comment, so the `@` / `$` after it is still found
  * (#1709). A `#` outside a string starts the comment, and an `@` in it is no error.
  */
-describe('validateDncl and a # in a string', () => {
+describe('the errors of dnclToRuby and a # in a string', () => {
     const atError = (column) => ({
         line: 1,
         column,
@@ -168,7 +166,7 @@ describe('validateDncl and a # in a string', () => {
         ['x ← 「#」 + @y', 11],
         ['x ← "a#b" + $y', 13],
     ])('%s is an error at the @ / $', (line, column) => {
-        const errors = validateDncl(line);
+        const errors = errorsOfLine(line);
         expect(errors).toHaveLength(1);
         expect(errors[0].line).toBe(1);
         expect(errors[0].column).toBe(column);
@@ -184,12 +182,12 @@ describe('validateDncl and a # in a string', () => {
     test.each(['x ← 1 # @y', 'x ← "#" # @y', 'x ← 「#」 # $y', "x ← '#' # @y", '# @y'])(
         'an @ / $ in the comment of %s is no error',
         (line) => {
-            expect(validateDncl(line)).toEqual([]);
+            expect(errorsOfLine(line)).toEqual([]);
         },
     );
 
     test('an @ in 「...」 is text, not a variable', () => {
-        expect(validateDncl('x ← 「@y」')).toEqual([]);
+        expect(errorsOfLine('x ← 「@y」')).toEqual([]);
     });
 
     test('a string after which the comment starts converts with the comment', () => {

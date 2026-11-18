@@ -9,11 +9,7 @@
  * its blocks closed by the right words.
  */
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
-import {
-    findDnclBlockErrors,
-    POST_TEST_LOOP_ERROR_ID,
-    UNSUPPORTED_COMMAND_ERROR_ID,
-} from '../../../../src/lib/dncl/dncl-validator';
+import { POST_TEST_LOOP_ERROR_ID, UNSUPPORTED_COMMAND_ERROR_ID } from '../../../../src/lib/dncl/dncl-validator';
 import { FORMS, rubyToDncl as rubyToDnclInForm } from '../../../../src/lib/dncl/ruby-to-dncl';
 
 // These cases check the DNCL 風の形 the writer still has (Issue #1754);
@@ -124,32 +120,14 @@ describe('Ruby → DNCL: the end of a do block (issue #1665)', () => {
         expect(errors.filter((e) => e.id === POST_TEST_LOOP_ERROR_ID).map((e) => e.line)).toEqual([1, 5]);
     });
 
-    test('the DNCL of a do block inside の間 has no block error and stops on the do line (issue #1679)', () => {
+    test('the DNCL of a do block inside の間 stops on the do line (issue #1679)', () => {
         const ruby = lines('while @a < 1', '  with_screen_refresh do', '    @b = 1', '  end', 'end');
         const dncl = convert(ruby);
-        expect(findDnclBlockErrors(dncl)).toEqual([]);
         const back = dnclToRuby(dncl);
         // Not `@with_screen_refresh do`: the Japanese mode has no such command.
         expect(back.ruby).toBeNull();
         expect(back.errors.map(({ line, id, name }) => ({ line, id, name }))).toEqual([
             { line: 2, id: UNSUPPORTED_COMMAND_ERROR_ID, name: 'with_screen_refresh' },
         ]);
-    });
-});
-
-describe('findDnclBlockErrors: a do block is closed by を実行する (issue #1665)', () => {
-    test('a do block inside の間 is balanced', () => {
-        expect(
-            findDnclBlockErrors(lines('a < 1 の間', '  loop do', '    a = a + 1', '  を実行する', 'を繰り返す')),
-        ).toEqual([]);
-    });
-
-    test('a do in a comment is not a block', () => {
-        expect(findDnclBlockErrors(lines('a < 1 の間', '  表示する a # do', 'を繰り返す'))).toEqual([]);
-    });
-
-    test('a do block left open is told', () => {
-        const errors = findDnclBlockErrors(lines('a < 1 の間', '  loop do', '    a = a + 1', 'を繰り返す'));
-        expect(errors.length).toBeGreaterThan(0);
     });
 });

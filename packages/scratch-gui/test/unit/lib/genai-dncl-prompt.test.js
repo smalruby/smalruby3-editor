@@ -1,5 +1,5 @@
-import { DNCL_BUILTIN_NAMES, convertBuiltinFunctions } from '../../../src/lib/dncl/dncl-builtins';
 import { dnclToRuby } from '../../../src/lib/dncl/dncl-to-ruby';
+import { DNCL_BUILTIN_NAMES } from '../../../src/lib/dncl/ja-notation-table';
 import {
     DNCL_COMMAND_EXAMPLES,
     DNCL_TAB_KINDS,
@@ -91,7 +91,7 @@ describe('buildDnclTabPrompt', () => {
         expect(prompt).not.toContain('```ruby');
     });
 
-    test('lists an example of every built-in function of dncl-builtins', () => {
+    test('lists an example of every built-in function of the ja-notation table', () => {
         DNCL_BUILTIN_NAMES.forEach((name) => expect(prompt).toContain(`${name}(`));
     });
 
@@ -101,8 +101,11 @@ describe('buildDnclTabPrompt', () => {
 });
 
 describe('DNCL_BUILTIN_NAMES', () => {
-    test.each(DNCL_BUILTIN_NAMES)('%s is converted by convertBuiltinFunctions', (name) => {
-        expect(convertBuiltinFunctions(`${name}(a, b)`)).not.toContain(name);
+    test.each(DNCL_BUILTIN_NAMES)('%s is not left as it is in the Ruby', (name) => {
+        const args = name === '含む' ? 'a, b' : 'a';
+        const { ruby } = dnclToRuby(`x = ${name}(${args})`);
+        expect(ruby).not.toBeNull();
+        expect(ruby).not.toContain(name);
     });
 });
 
