@@ -501,6 +501,8 @@ test/unit/*
 !test/unit/helpers/
 !test/unit/helpers/**
 !test/unit/lib/
+!test/unit/playground/
+!test/unit/playground/**
 !test/unit/reducers/
 !test/unit/util/
 !test/unit/empty-block-selection.test.js
@@ -610,6 +612,7 @@ test/unit/containers/*
 !test/unit/containers/lesson-mode.test.jsx
 !test/unit/containers/lesson-hint.test.jsx
 !test/unit/containers/lessons-library.test.jsx
+!test/unit/containers/tips-library.test.jsx
 !test/unit/containers/welcome-modal-hoc.test.jsx
 !test/unit/containers/classroom-classcode-utils.test.js
 !test/unit/containers/classroom-error-utils.test.js
