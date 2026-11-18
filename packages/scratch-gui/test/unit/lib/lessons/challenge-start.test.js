@@ -340,6 +340,34 @@ describe('applyStartLists', () => {
             vm.runtime,
         );
     });
+
+    // 1-3 の「まえ」「つぎ」（#2108）: 2 つ出すと同じ位置に重なっていた
+    test('puts the monitors of 2 lists side by side', () => {
+        const cat = withData(sprite('cat', 'Sprite1'));
+        const vm = makeVm([withData(stageTarget()), cat]);
+        vm.runtime.monitorBlocks = monitorBlocks();
+        vm.runtime.requestUpdateMonitor = jest.fn();
+        applyStartLists(
+            vm,
+            [
+                { name: 'まえ', items: [], monitor: true },
+                { name: 'こうほ', items: [] },
+                { name: 'つぎ', items: [], monitor: true },
+            ],
+            cat,
+            'ja',
+        );
+        const names = Object.fromEntries(Object.values(cat.variables).map((v) => [v.id, v.name]));
+        const positions = vm.runtime.requestUpdateMonitor.mock.calls.map(([m]) => [
+            names[m.get('id')],
+            m.get('x'),
+            m.get('y'),
+        ]);
+        expect(positions).toEqual([
+            ['まえ', 0, 0],
+            ['つぎ', 110, 0],
+        ]);
+    });
 });
 
 describe('applyWarpProcedures', () => {

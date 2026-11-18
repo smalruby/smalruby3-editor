@@ -12,6 +12,7 @@
 //     その定義ブロックを「画面を再描画せずに実行する」にする。Ruby の `def` には、まだこの設定を書けないため
 //     （Ruby → ブロックの変換が warp を作らない・#2114）
 // 変換して入れるのは「プログラムを入れる」の spriteCodes と同じ（targetCodeToBlocks → apply）。
+import { Map } from 'immutable';
 import spriteLibraryContent from '../libraries/sprites.json';
 import { localizeCode } from './courses';
 import {
@@ -24,6 +25,8 @@ import {
 
 // 2 つめ以降のスプライトの間隔（3 つめからは下へずらす。このコースは 2 つまで）
 const NEXT_SPRITE_GAP_Y = 100;
+// setup.lists のモニターを横に並べる間隔（リストのモニターの既定の幅 100 より少し広く）
+const LIST_MONITOR_GAP_X = 110;
 
 const warn = (...args) => {
     // eslint-disable-next-line no-console
@@ -62,7 +65,7 @@ const newListId = (name) => {
 
 // ステージにリストのモニターを出す（作品の読み込みと同じく、モニター用のブロックを作ってからチェックを入れる。
 // パレットにリストのブロックが無いチャレンジでもモニターを出せるように）
-const showListMonitor = (vm, target, list) => {
+const showListMonitor = (vm, target, list, position) => {
     const monitorBlocks = vm.runtime.monitorBlocks;
     if (!monitorBlocks) return;
     if (!monitorBlocks.getBlock(list.id)) {
@@ -76,11 +79,14 @@ const showListMonitor = (vm, target, list) => {
             topLevel: true,
             shadow: false,
             targetId: target.isStage ? null : target.id,
-            x: 0,
-            y: 0,
         });
     }
     monitorBlocks.changeBlock({ id: list.id, element: 'checkbox', value: true }, vm.runtime);
+    // チェックで足したモニターは位置を持たず、GUI が空いている場所に置く。同じときに 2 つ足すと同じ場所を取って
+    // 重なるので、位置を入れておく（位置のあるモニターは GUI がその位置に置く・containers/monitor.jsx）
+    if (position && typeof vm.runtime.requestUpdateMonitor === 'function') {
+        vm.runtime.requestUpdateMonitor(Map({ id: list.id, x: position.x, y: position.y }));
+    }
 };
 
 /**
@@ -92,6 +98,7 @@ const showListMonitor = (vm, target, list) => {
  * @param {string} locale - いまの locale。
  */
 export const applyStartLists = (vm, lists, sprite, locale) => {
+    let shown = 0;
     (lists || []).forEach((spec) => {
         const name = localizeValue(spec && spec.name, locale);
         const items = localizeValue(spec && spec.items, locale);
@@ -107,7 +114,9 @@ export const applyStartLists = (vm, lists, sprite, locale) => {
         }
         list.value = items.map(String);
         list._monitorUpToDate = false;
-        if (spec.monitor) showListMonitor(vm, target, list);
+        // 2 つ以上出すときは左から横に並べる（同じ位置にすると重なる。同時に出すモニターは GUI の自動の並べ方でも
+        // 同じ空き場所を取ってしまう）
+        if (spec.monitor) showListMonitor(vm, target, list, { x: LIST_MONITOR_GAP_X * shown++, y: 0 });
     });
 };
 

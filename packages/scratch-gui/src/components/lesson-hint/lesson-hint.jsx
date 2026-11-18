@@ -308,6 +308,7 @@ const LessonHint = ({
     onNext,
     note = null,
     onPrev,
+    ruby = null,
     scratchBlocks,
     spotlight = false,
     target,
@@ -515,6 +516,12 @@ const LessonHint = ({
                                     {intl.formatMessage(messages.blocksError)}
                                 </p>
                             ) : null}
+                            {ruby ? (
+                                // 「Ruby で読む」のページ: 上のブロックと同じプログラムを Ruby の文で並べて見せる
+                                <pre className={styles.ruby} data-testid="lesson-hint-ruby" lang="en">
+                                    {ruby}
+                                </pre>
+                            ) : null}
                         </>
                     )}
                 </div>
@@ -570,6 +577,8 @@ LessonHint.propTypes = {
     onInsertCode: PropTypes.func,
     onNext: PropTypes.func.isRequired,
     onPrev: PropTypes.func.isRequired,
+    // 「Ruby で読む」のページで、ブロックの下に出す Ruby（そのページの `blocks`）。ほかのページは null
+    ruby: PropTypes.string,
     scratchBlocks: PropTypes.object,
     spotlight: PropTypes.bool,
     target: PropTypes.string,

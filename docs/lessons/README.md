@@ -633,6 +633,43 @@ design.md の「中 2 のコース」。コースの ✓ もこれで数える�
 
 ![チャットをつくろう 5-5 のヒントの 1 ページ目（図と練習相手のパネル・1300×600）](screenshots/0725-chat-l5-stamp-hint1-1300x600.png)
 
+### コース「ことばを予想する AI をつくろう」のチャレンジ
+
+中学 3 年〜高校のコース（方針は [`design.md` の「ことばを予想する AI をつくろう」](design.md#ことばを予想する-ai-をつくろう)）。
+コース id は `kotoba-yosou-ai`、文言は `lm.locale.js`（ja / ja-Hira / en。`lessons.locale.js` に spread する）。
+いまはレッスン 1 が入っている。
+
+- **始め方**: どのチャレンジも、ネコを **Retro Robot**（ライブラリ）に置きかえ、できあがりの AI（4 つの定義ブロック・
+  `without_screen_refresh def`）と旗のスクリプト（「学習する」）を `setup.code` で、教科書（`lm-textbook.js` の 30 文）と
+  空の「まえ」「つぎ」「こうほ」を `setup.lists` で入れる（`courses.js` の `lmSetup`）。`setup.warpProcedures` にも 3 locale の名前を並べる。
+- **名前**: 変数・リスト・定義ブロックは locale ごと（`courses.js` の `LM_WORDS`）。ja「教科書・まえ・つぎ・こうほ・文・文字・何文目・
+  何文字目・何行目・前の文字」と「学習する・こうほを集める・文字をえらぶ・文をつくる」、ja-Hira はそのひらがな（「おしえる ぶんを いれてね」）、
+  en は `textbook / before / after / candidates / sentence / letter / sentence_no / letter_no / row_no / prev_letter` と
+  `learn / collect_candidates / pick_letter / make_sentence`。判定はどの名前でも通す。
+- **学習の前の文字**: 「(何文字目 - 1) 番目の文字」ではなく変数「前の文字」を使う（文ごとに空にし、1 文字進むたびに入れかえる）。
+  0 番目の文字を使わないので、Ruby で読んでも同じ意味になる。
+- **ヒント**: 最後のページは試す操作、その手前が「Ruby で読む」のページ（`kind: 'ruby'`・ルビータブを指す・ブロックの下に Ruby を文で出す）。
+  ヒントの Ruby は、作品にある定義ブロックを名前だけで呼ぶ（上の「ヒントの吹き出し」）。
+- **モニター**: 1-2 は「教科書」、1-3 は「まえ」「つぎ」だけ出す（ステージが狭いため）。
+
+レッスン 1「AI と話してみよう」（`lm-l1`。ja-Hira「AI と はなしてみよう」、en "Talk with the AI"）:
+
+| # | id | 課題 | 答え（ja・できあがりの AI に足すもの） | できた の条件（`goal`） | クイズの正解 |
+|---|----|------|-----------|------------------------|-------------|
+| 1 | `lm-l1-make` | ロボットを押したら AI が文を 1 つ作って言う（入力は使わない） | `when_clicked` 〔`文をつくる` → `say(@文)`〕 | 押したスクリプトで「文をつくる」を呼んでから `looks_say` ＋ 「。」（en「.」）で終わり、学習した組だけでできた文を言った | — |
+| 2 | `lm-l1-teach` | a キーで聞いて、答えを教科書に足し、学習し直す | `when_key_pressed("a")` 〔`ask` → `@教科書.push(answer)` → `学習する`〕 | a キーのスクリプトで `sensing_askandwait`・`data_addtolist` のあとに「学習する」 ＋ 教科書が 31 文以上 ＋ `ngram` の `learned`（いまの教科書の全部の組） | — |
+| 3 | `lm-l1-look` | c キーで「こ」（en「v」）の次に来た文字を「こうほ」に集めて見せる | `when_key_pressed("c")` 〔`@文 = "こ"` → `こうほを集める` → `show_list("@こうほ")`〕 | c キーのスクリプトで「こうほを集める」と `data_showlist` ＋ 変数「文」が「こ」 ＋ `ngram` の `candidates` | ②「ん」3・「で」1（ja-Hira は「ん」3・「う」「で」「し」1、en は「e」2・「o」2） |
+| 4 | `lm-l1-random` | 1 回押すと、文を 5 回作って 2 秒ずつ言う | `when_clicked` 〔`5.times` 〔`文をつくる` → `say(@文, 2)`〕〕 | 押したスクリプトの中で `control_repeat`・「文をつくる」2 回以上・`looks_sayforsecs` 2 回以上 ＋ 学習した組だけの文を 2 種類以上言った | ③乱数で選ぶから |
+
+- 「通ってはいけない例」（headless の画面で確かめた）: 1-1 で「文をつくる」を呼ばずに「文」を言う（学習で最後に読んだ文になる）、
+  1-2 で足すだけで学習し直さない、1-3 で「ん」の次を集める、1-4 でくり返さずに 3 回押す。
+- 1-3 の形（モニターは最初から出し、生徒は「(文) を (こ) にする → こうほを集める → こうほを表示」）は、答え待ちの問い Q-L1-2 の
+  おすすめ（A）で**仮に**作ったもの。クイズの数は `courses.test.js` が本物の教科書から数え直して確かめる。
+
+![ことばを予想する AI 1-1 のヒント「Ruby で読む」のページ（1300×600）](screenshots/0901-lm-l1-make-ruby-page-1300x600.png)
+
+![ことばを予想する AI 1-3 の始め（旗のあとの「まえ」「つぎ」のモニター・1300×600）](screenshots/0902-lm-l1-look-monitors-1300x600.png)
+
 ## 記録の形（端末）
 
 `packages/scratch-gui/src/lib/lessons/lesson-progress.js`。localStorage の **`smalruby:lessonProgress`** に、
@@ -722,7 +759,8 @@ design.md の「中 2 のコース」。コースの ✓ もこれで数える�
   配列でもよい（例: `['event_broadcast', 'event_broadcastandwait', 'meshV2_broadcastWithValue']` = どの「送る」で送ってもよい。数は合計する）。
   - `count`: **1 回のスクリプトの実行（スレッド 1 本）の中で** その回数以上動いた（例: 背景を 6 回かえた）。
     「待つ」「繰り返す」のように待ちながら何度も呼ばれるブロックは、呼ばれた回数になる
-  - `args`: 引数の条件（引数名 → 値の条件。例: `{DY: {gt: 0}}`）。条件に合う実行を数える
+  - `args`: 引数の条件（引数名 → 値の条件。例: `{DY: {gt: 0}}`）。条件に合う実行を数える。定義ブロックの呼び出し
+    （`procedures_call`）は `mutation` が定義ブロックの名前（proccode）になる（例: `{mutation: /^(文をつくる|make_sentence)$/}`）
   - `distinct`: その引数の **ちがう値** が `count` 種類以上あった（例: `{opcode: 'looks_say', distinct: 'MESSAGE', count: 2}` =
     2 種類のセリフを言った）
   - 要素ごとに「きっかけに合うどれかのスクリプトの実行で満たした」を見るので、同じキーのスクリプトが 2 本に
@@ -1405,7 +1443,7 @@ partner: {
   | `code` | Ruby（locale ごとにも書ける） | 前の段の**答え**を、`sprites` の 1 つめ（無ければネコ）に入れておく。生徒の前の作品ではない |
   | `spriteCodes` | `{sprite, code}`[] | ほかのスプライトの前の段の答え。チャレンジの `spriteCodes` と同じ形（いなければライブラリから足す） |
   | `stageCode` | Ruby（locale ごとにも書ける） | ステージのプログラム（例: 旗でリスト「NGワード」を作り直す準備） |
-  | `lists` | `{name, items, stage, monitor}`[] | リストの中身（例: 「ことばを予想する AI」の教科書）。`name` / `items` は locale ごとの `{ja, 'ja-Hira', en}` でも書ける。`stage: true` ならステージ（すべてのスプライト用）、無ければ `code` を入れたスプライトのリスト。同じ名前のリストがあれば中身を置きかえ、無ければ作る。`monitor: true` ならステージにリストのモニターを出す（パレットにリストのブロックが無くても出る） |
+  | `lists` | `{name, items, stage, monitor}`[] | リストの中身（例: 「ことばを予想する AI」の教科書）。`name` / `items` は locale ごとの `{ja, 'ja-Hira', en}` でも書ける。`stage: true` ならステージ（すべてのスプライト用）、無ければ `code` を入れたスプライトのリスト。同じ名前のリストがあれば中身を置きかえ、無ければ作る。`monitor: true` ならステージにリストのモニターを出す（パレットにリストのブロックが無くても出る。2 つ以上は左上から横に 110 ずつ並べる） |
   | `warpProcedures` | string[] | 定義ブロックの名前（locale ごとの名前を全部並べてよい）。入れたプログラムのその定義ブロックを「画面を再描画せずに実行する」にする。Ruby の `def` にはこの設定を書けないため、ここで付ける |
 
   入れる順はステージ → `spriteCodes` → `code` → `lists` → `warpProcedures`（リストはプログラムが作ったリストの中身を
@@ -1568,6 +1606,8 @@ partner: {
   描いたあとにエディタのワークスペースを `setMainWorkspace` で戻す。変換した XML は Ruby ごとに覚える。
   XML の先頭にはブロックが使う変数・リスト・メッセージを `<variables>` で宣言する（「(変数)」のブロックは id で変数を
   探すだけで作らないので、「〜にする」の無い絵では名前が空になるため）。
+  作品にある引数の無い定義ブロック（「ことばを予想する AI」の「文をつくる」など）は、ヒントの Ruby に `def` を書かずに名前だけで
+  呼べる（変換の前に空の定義を足し、定義の分は描かない。名前は編集中の target の定義ブロックから取る）。
   変換できない Ruby は「（このブロックは描けませんでした）」を出す（文言は出る）。`blocks` が locale ごとの
   オブジェクトなら、いまの UI の locale のものを描く（`localizeCode`）。
   条件の穴に入った `false` は空の穴として描く（`if false` = 「もし <  > なら」）。これは Ruby → ブロック変換
@@ -1952,6 +1992,7 @@ partner: {
 | `lesson-hint-activity-diagram` | div | ヒントの 1 ページ目のアクティビティ図（文言の上。チャレンジの `activityDiagram` が true のときだけ） |
 | `lesson-hint-blocks` | div | 本物のブロックを描く読み取り専用ワークスペース（`.blocklyBlockCanvas g[data-id]` がブロック） |
 | `lesson-hint-blocks-error` | p | ブロックを描けなかったときの注意 |
+| `lesson-hint-ruby` | pre | 「Ruby で読む」のページ（`kind: 'ruby'`）で、ブロックの下に出す同じプログラムの Ruby |
 | `lesson-hint-debug-title` / `lesson-hint-debug` | div / ul | 「うまく動かないときは」と箇条書き（最後のページ） |
 | `lesson-hint-insert-code` | button | 正解のプログラムを確認する（最後のページ。`code` があるときだけ。押すと確認を出す） |
 | `lesson-hint-insert-code-confirm` | div | 「正解のプログラムで置き換えますか？…」の確認（押したあとだけある） |
@@ -2140,6 +2181,7 @@ GTM・GA4 の設定（トリガー・データレイヤー変数・カスタム�
 | `packages/scratch-gui/src/lib/lessons/courses.js` | コース・レッスン・チャレンジのデータと検索。locale ごとの Ruby を選ぶ `localizeCode` / `challengeCodeFor` / `challengeCodeCandidates`。ふりかえりのクイズを作る `challengeQuiz` と形を確かめる `validateQuiz` |
 | `packages/scratch-gui/src/lib/lessons/lessons.locale.js` | 文言（en / ja / ja-Hira。`src/locales/*.js` に spread） |
 | `packages/scratch-gui/src/lib/lessons/chat.locale.js` | コース「チャットをつくろう」の文言（en / ja / ja-Hira。`lessons.locale.js` に spread） |
+| `packages/scratch-gui/src/lib/lessons/lm.locale.js` | コース「ことばを予想する AI をつくろう」の文言（en / ja / ja-Hira。`lessons.locale.js` に spread） |
 | `packages/scratch-gui/src/lib/lessons/lesson-progress.js` | 端末への記録（いまの定義での読みかえ）・レッスン／コースの進み具合・「できた！」のボタンとレッスン表で見せるもの |
 | `packages/scratch-gui/src/lib/lessons/role-swap.js` | ペアの役の名前の入れかえ（`swapRoleText` / `swapChallengeRoles` / `challengeForRole` / `formatRoleMessage` / `roleOfChallenge`） |
 | `packages/scratch-gui/src/lib/lessons/lesson-role.js` | 役の決め方（`resolveChallengeRole`・出席番号のペア `seatRoleFor` / `connectedGroupSeats`）・前回の役の保存（`smalruby:lessonRole`）・役を変えたら始めなおすか（`roleChangeRestarts`） |
