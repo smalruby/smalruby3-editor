@@ -121,6 +121,45 @@ test('MeshV2Service Polling', (t) => {
         }, 50);
     });
 
+    t.test('startPolling keeps lastFetchTime set before joining (#2241)', (st) => {
+        const blocks = createMockBlocks();
+        const service = new MeshV2Service(blocks, 'node1', 'domain1');
+        service.groupId = 'group1';
+        service.useWebSocket = false;
+        service.pollingIntervalSeconds = 60;
+        service.lastFetchTime = '2026-11-19T00:00:00.000Z';
+
+        service.startPolling();
+        st.equal(service.lastFetchTime, '2026-11-19T00:00:00.000Z');
+
+        service.stopPolling();
+        st.equal(service.lastFetchTime, '');
+        st.end();
+    });
+
+    t.test('first pollEvents after startPolling uses the join time as since (#2241)', async (st) => {
+        const blocks = createMockBlocks();
+        const service = new MeshV2Service(blocks, 'node1', 'domain1');
+        service.groupId = 'group1';
+        service.useWebSocket = false;
+        service.pollingIntervalSeconds = 60;
+        service.lastFetchTime = 'JOINED_AT';
+        let since = null;
+        service.client = {
+            query: (opts) => {
+                since = opts.variables.since;
+                return Promise.resolve({ data: { pollGroupData: { events: [], nodeStatuses: [] } } });
+            },
+        };
+
+        service.startPolling();
+        await service.pollEvents();
+        service.stopPolling();
+
+        st.equal(since, 'JOINED_AT');
+        st.end();
+    });
+
     t.test('testWebSocket success', async (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
