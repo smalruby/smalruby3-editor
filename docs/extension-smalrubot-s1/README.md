@@ -276,13 +276,44 @@ Studuino の拡張機能を読みこむと、**コードエリアの右上（ス
 | `studuino-practice-board-servo-D10` | div | サーボモーター |
 | `studuino-practice-board-servo-degree` | span | サーボの角度の数字 |
 
-## 命令とセンサーの値の記録（🚧 これから）
+## 命令とセンサーの値の記録
 
-レッスンで「できた」を判定するために、拡張機能が **出した命令**（LED のオン／オフ、モーターの向きと速度、サーボの角度）と **読んだセンサーの値** を記録する。
+レッスンで「できた」を判定するために、拡張機能が **出した命令**（LED のオン／オフ、モーターの向きと速度、サーボの角度）と **読んだセンサーの値** を記録する（`scratch3_smalrubot_s1/command-log.js`）。
 
-- **実機でも練習用の基板でも、同じ記録で判定する**（どちらを使ったかで判定を変えない）。
-- 手元に無いセンサーがあるときは、**代わりのセンサーを使っても「できた」** にする（判定はセンサーの種類にしばりすぎない）。
-- 記録の形とレッスンからの読み方は実装で決める。
+- **実機でも練習用の基板でも、同じ記録で判定する**（どちらを使ったかで判定を変えない）。記録はブロックの処理（`Scratch3SmalrubotS1Blocks` の各ブロックのメソッド）の 1 か所で書くので、どちらの基板でも同じ形になる。
+- 手元に無いセンサーがあるときは、**代わりのセンサーを使っても「できた」** にする（判定はセンサーの種類にしばりすぎない。`docs/lessons/README.md` の `boardCommand` の `whenSensor`）。
+- 作品のデータ（sb3）には保存しない。
+
+### 記録の形
+
+1 件は次のオブジェクト。古い順に並ぶ。
+
+| 項目 | 値 |
+|---|---|
+| `seq` | 1 件ごとに 1 ずつ増える番号（消しても戻らない） |
+| `t` | 記録を消してから（緑の旗から）の時間（ミリ秒） |
+| `board` | `device`（実機）/ `practice`（練習用の基板）。判定では見ない |
+| `kind` | `led` / `motor` / `servo` / `servoCalibration` / `sensorRead` |
+| `port` | `A0` `A1`（LED）、`M1` `M2`（モーター）、`D10`（サーボ）、`A2` `A4` `A5` `A6` `A7`（センサー） |
+| `value` | `on` / `off`（LED）、`normal` / `reverse` / `stop`（モーター）、角度（サーボ 0〜180・調整 -15〜15）、読んだ値（センサー） |
+| `speed` | モーターの速さ（%。止めたときは 0） |
+| `sensor` | `touch` / `irPhotoreflector` / `light` / `sound`（センサー） |
+
+- ブロックの名前ではなく **ポートと値** で残す。「車を前進させる」などの `action` は `M1`・`M2` の 2 件になる。速さを決めるブロックは記録しない（次の `action` の `speed` に出る）。
+- **同じ命令をくり返しても毎回記録する**（練習用の基板の状態のイベント `STUDUINO_PRACTICE_BOARD_STATE` は、値が変わったときだけ出る）。ただし秒数つきの「アームを曲げる」は毎フレーム角度を送るので、途中の角度は変わったときだけ記録する（最後の角度はいつも記録する）。
+- 停止ボタン（`stopAll`）で LED を消し、モーターを止めるのは作品の命令ではないので記録しない。
+- 上限は 1000 件（古いものから捨てる）。
+
+### 読み方
+
+| API | 内容 |
+|---|---|
+| `getCommandLog(limit?)` | 記録の写し（`limit` で最後の N 件） |
+| `clearCommandLog()` | 記録を消す |
+| runtime のイベント `STUDUINO_COMMAND_LOG`（`Scratch3SmalrubotS1Blocks.COMMAND_LOG_EVENT`） | 1 件ごとに、その写しを送る |
+| runtime のイベント `STUDUINO_COMMAND_LOG_CLEAR`（`COMMAND_LOG_CLEAR_EVENT`） | 記録を消したとき |
+
+記録は緑の旗（`PROJECT_START`）と作品の読みこみ（`PROJECT_LOADED`）で消える。レッスンの判定（`goal-monitor.js`）は、チャレンジを開いたときから上のイベントを受けて自分の事実（facts）に入れる。
 
 ## Studuino モードとの境目
 
@@ -368,6 +399,7 @@ Studuino の拡張機能を読みこむと、**コードエリアの右上（ス
 
 - `packages/scratch-vm/src/extensions/scratch3_smalrubot_s1/index.js` — 拡張機能本体（Web Serial 通信、コマンド送受信、センサー値ポーリング、ポートの初期化、実機と練習用の基板の切りかえ）
 - `packages/scratch-vm/src/extensions/scratch3_smalrubot_s1/practice-board.js` — 練習用の基板（状態と、実機と同じ操作）
+- `packages/scratch-vm/src/extensions/scratch3_smalrubot_s1/command-log.js` — 出した命令と読んだセンサーの値の記録（レッスンの判定用・上限つき）
 - `packages/scratch-vm/src/extension-support/block-type.js` / `extension-manager.js` / `src/engine/runtime.js` — 見出し（`BlockType.LABEL`）の Smalruby マーカー（`docs/maintenance/smalruby-markers-vm.md`）
 
 ### infra / ruby

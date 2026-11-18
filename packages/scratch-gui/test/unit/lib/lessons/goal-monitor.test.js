@@ -573,3 +573,38 @@ describe('attachGoalMonitor for lesson 0 (#2134)', () => {
         expect(onSatisfied).toHaveBeenCalledTimes(1);
     });
 });
+
+describe('attachGoalMonitor and the Studuino command record (#2193)', () => {
+    test('the record events of the extension meet a boardCommand goal', () => {
+        const vm = makeVm([makeTarget({ id: 'stage', isStage: true })]);
+        const runtime = vm.runtime;
+        const onSatisfied = jest.fn();
+        const goal = [
+            { type: 'boardCommand', kind: 'led', value: 'on', whenSensor: { sensor: 'light', value: { lt: 50 } } },
+        ];
+        const detach = attachGoalMonitor(vm, goal, onSatisfied);
+        runtime.emit('STUDUINO_COMMAND_LOG', {
+            board: 'device',
+            kind: 'sensorRead',
+            port: 'A6',
+            sensor: 'light',
+            value: 20,
+        });
+        runtime.emit('STUDUINO_COMMAND_LOG_CLEAR');
+        runtime.emit('STUDUINO_COMMAND_LOG', { board: 'device', kind: 'led', port: 'A0', value: 'on' });
+        runtime.emit('BEFORE_STEP');
+        expect(onSatisfied).not.toHaveBeenCalled();
+        runtime.emit('STUDUINO_COMMAND_LOG', {
+            board: 'device',
+            kind: 'sensorRead',
+            port: 'A6',
+            sensor: 'light',
+            value: 20,
+        });
+        runtime.emit('STUDUINO_COMMAND_LOG', { board: 'device', kind: 'led', port: 'A0', value: 'on' });
+        runtime.emit('BEFORE_STEP');
+        expect(onSatisfied).toHaveBeenCalledTimes(1);
+        expect(runtime.listenerCount('STUDUINO_COMMAND_LOG')).toBe(0);
+        detach();
+    });
+});

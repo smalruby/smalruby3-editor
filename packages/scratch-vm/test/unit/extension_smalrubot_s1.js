@@ -780,5 +780,169 @@ test('Smalrubot S1 Blocks', (t) => {
         });
     });
 
+    // #2193: the record of the commands sent and the sensor values read.
+    const LOG_EVENT = 'STUDUINO_COMMAND_LOG';
+    const LOG_CLEAR_EVENT = 'STUDUINO_COMMAND_LOG_CLEAR';
+
+    /**
+     * Run the same blocks and return the record without `seq` / `t`.
+     * @param {object} blocks - the extension.
+     * @returns {Promise<Array<object>>} - the entries.
+     */
+    const runSameBlocks = (blocks) => {
+        const util = createUtil();
+        blocks.runtime.requestRedraw = () => {};
+        return blocks
+            .turnLedOn({ POSITION: 'left' })
+            .then(() => blocks.turnLedOff({ POSITION: 'right' }))
+            .then(() => {
+                blocks.setMotorSpeed({ POSITION: 'right', SPEED: 20 });
+                blocks.action({ ACTION: 'forward' });
+                blocks.action({ ACTION: 'stop' });
+                blocks.bendArm({ DEGREE: 200, SECS: 0 }, util);
+                return blocks.setArmCalibration({ DEGREE: 20 });
+            })
+            .then(() => blocks.getSensorValue({ POSITION: 'light' }))
+            .then(() => blocks.getSensorValue({ POSITION: 'ir_a4' }))
+            .then(() =>
+                blocks.getCommandLog().map((entry) => {
+                    const copy = Object.assign({}, entry);
+                    delete copy.seq;
+                    delete copy.t;
+                    return copy;
+                }),
+            );
+    };
+
+    const EXPECTED_LOG = [
+        { kind: 'led', port: 'A0', value: 'on' },
+        { kind: 'led', port: 'A1', value: 'off' },
+        { kind: 'motor', port: 'M1', value: 'normal', speed: 50 },
+        { kind: 'motor', port: 'M2', value: 'normal', speed: 20 },
+        { kind: 'motor', port: 'M1', value: 'stop', speed: 0 },
+        { kind: 'motor', port: 'M2', value: 'stop', speed: 0 },
+        { kind: 'servo', port: 'D10', value: 180 },
+        { kind: 'servoCalibration', port: 'D10', value: 15 },
+        { kind: 'sensorRead', port: 'A6', sensor: 'light', value: 77 },
+        { kind: 'sensorRead', port: 'A4', sensor: 'irPhotoreflector', value: 77 },
+    ];
+
+    t.test('command log: the practice board and the real board make the same record', (st) => {
+        const practice = new SmalrubotS1Blocks(createRecordingRuntime());
+        practice.setPracticeSensorValue('light', 77);
+        practice.setPracticeSensorValue('ir_a4', 77);
+        const device = new SmalrubotS1Blocks(createRecordingRuntime());
+        connectWithRecordingWriter(device);
+        return Promise.all([runSameBlocks(practice), runSameBlocks(device)]).then(([practiceLog, deviceLog]) => {
+            st.same(
+                practiceLog,
+                EXPECTED_LOG.map((entry) => Object.assign({ board: 'practice' }, entry)),
+            );
+            st.same(
+                deviceLog,
+                EXPECTED_LOG.map((entry) => Object.assign({ board: 'device' }, entry)),
+            );
+            st.end();
+        });
+    });
+
+    t.test('command log: every entry is sent with the event, with seq and t', (st) => {
+        const runtime = createRecordingRuntime();
+        const blocks = new SmalrubotS1Blocks(runtime);
+        let now = 1000;
+        blocks.commandLog.now = () => now;
+        blocks.clearCommandLog();
+        now = 1250;
+        return blocks.turnLedOn({ POSITION: 'right' }).then(() => {
+            const sent = runtime.events.filter(([event]) => event === LOG_EVENT).map(([, entry]) => entry);
+            st.equal(SmalrubotS1Blocks.COMMAND_LOG_EVENT, LOG_EVENT);
+            st.equal(SmalrubotS1Blocks.COMMAND_LOG_CLEAR_EVENT, LOG_CLEAR_EVENT);
+            st.equal(sent.length, 1);
+            st.match(sent[0], { board: 'practice', kind: 'led', port: 'A1', value: 'on', t: 250 });
+            st.same(blocks.getCommandLog(), sent, 'getCommandLog returns the same entries');
+            st.end();
+        });
+    });
+
+    t.test('command log: the same command again is recorded again', (st) => {
+        const blocks = new SmalrubotS1Blocks(createRecordingRuntime());
+        return blocks
+            .turnLedOn({ POSITION: 'left' })
+            .then(() => blocks.turnLedOn({ POSITION: 'left' }))
+            .then(() => {
+                st.equal(blocks.getCommandLog().length, 2, 'even though the practice board state did not change');
+                st.end();
+            });
+    });
+
+    t.test('command log: keeps only the latest entries', (st) => {
+        const blocks = new SmalrubotS1Blocks(createRecordingRuntime());
+        blocks.commandLog.max = 3;
+        ['left', 'right', 'left', 'right', 'left'].forEach((position) => blocks.turnLedOn({ POSITION: position }));
+        const log = blocks.getCommandLog();
+        st.equal(log.length, 3);
+        st.same(
+            log.map((entry) => entry.seq),
+            [3, 4, 5],
+            'the oldest are dropped',
+        );
+        st.same(
+            blocks.getCommandLog(2).map((entry) => entry.seq),
+            [4, 5],
+            'the latest N',
+        );
+        st.same(blocks.getCommandLog(0), []);
+        st.end();
+    });
+
+    t.test('command log: cleared by clearCommandLog, the green flag and loading a project', (st) => {
+        const runtime = createRecordingRuntime();
+        const handlers = {};
+        runtime.on = (event, handler) => {
+            (handlers[event] = handlers[event] || []).push(handler);
+        };
+        const blocks = new SmalrubotS1Blocks(runtime);
+        const fire = (event) => (handlers[event] || []).forEach((handler) => handler());
+        ['PROJECT_START', 'PROJECT_LOADED'].forEach((event) => {
+            blocks.turnLedOn({ POSITION: 'left' });
+            st.equal(blocks.getCommandLog().length, 1);
+            fire(event);
+            st.same(blocks.getCommandLog(), [], event);
+        });
+        blocks.turnLedOn({ POSITION: 'left' });
+        blocks.clearCommandLog();
+        st.same(blocks.getCommandLog(), []);
+        st.ok(
+            runtime.events.some(([event]) => event === LOG_CLEAR_EVENT),
+            'clearing is sent with the event',
+        );
+        blocks.turnLedOn({ POSITION: 'left' });
+        st.equal(blocks.getCommandLog()[0].seq, 4, 'seq keeps growing after clearing');
+        st.end();
+    });
+
+    t.test('command log: a timed bendArm records the angles on the way only when they change', (st) => {
+        const blocks = new SmalrubotS1Blocks(createRecordingRuntime());
+        const util = createUtil();
+        blocks.bendArm({ DEGREE: 0, SECS: 1 }, util);
+        [500, 500, 1000].forEach((elapsed) => {
+            util.stackFrame.timer = { timeElapsed: () => elapsed };
+            blocks.bendArm({ DEGREE: 0, SECS: 1 }, util);
+        });
+        st.same(
+            blocks.getCommandLog().map((entry) => entry.value),
+            [45, 0],
+        );
+        st.end();
+    });
+
+    t.test('command log: stop (the stop button) is not a command of the project', (st) => {
+        const blocks = new SmalrubotS1Blocks(createRecordingRuntime());
+        return blocks.stopAll().then(() => {
+            st.same(blocks.getCommandLog(), []);
+            st.end();
+        });
+    });
+
     t.end();
 });
