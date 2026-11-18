@@ -1893,6 +1893,8 @@ export default {
     'gui.dnclModeNotice.exitButton': 'Rubyふりがなモードに戻す',
     'gui.rubyTab.dnclDoubleSlashHint':
         'スモウルビーでは // はコメントではありません（整数の割り算です）。コメントには # をつかってください。',
+    'gui.rubyTab.dnclStringArithmeticHint':
+        '文字列と - * / を使うと、左から順に計算されます。"a" + x - 1 は、文字列 "a" + x から 1 を引きます。数の計算は "a" + (x - 1) のようにかっこで囲んでください。',
     'gui.rubyTab.dnclArrayIndexHint':
         '{access} は配列の範囲外になります。スモウルビーの日本語では、配列の添字は 0 から始まります（最初の要素は {array}[0]、最後の要素は {array}[{last}]）。問題文で添字が 1 から始まるときは、{fixed} のように添字を 1 ずらして書いてください。',
     'gui.rubyTab.dnclIndexShiftConfirm':
@@ -1900,6 +1902,8 @@ export default {
     'gui.rubyTab.dnclIndexShiftDone':
         '{count} か所の配列の添字を 1 ずつ減らしました（緑の印）。\n繰り返しの範囲（「i を 1 から n まで」など）は書き換えていません。0 始まりに合わせて、必要なら自分で直してください。',
     'gui.rubyTab.dnclIndexShiftChangedHeading': '書き換えた箇所:',
+    'gui.rubyTab.problemFormDone': 'できた',
+    'gui.rubyToolbar.copyProblemForm': '問題の形でコピー',
     'gui.rubyTab.dnclIndexShiftChangedItem': '{line} 行目: {before} → {after}',
     'gui.rubyTab.dnclIndexShiftSuspectsHeading': 'もしかしたらここも直す必要があるかもしれません（黄色の印）:',
     'gui.rubyTab.dnclIndexShiftSuspectItem': '{line} 行目: {text}（{reason}）',
@@ -1918,7 +1922,7 @@ export default {
     'gui.rubyTab.dnclPostTestLoopError':
         '後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。',
     'gui.rubyTab.dnclUndefinedFunctionError':
-        '「{name}」は定義されていない関数です。「関数 {name}(…)」で定義してください。',
+        '「{name}」は定義されていない関数です。「関数 {name}(…):」で定義してください。',
     'gui.rubyTab.dnclUnsupportedCommandError':
         '「{name}」は日本語モードでは書けない命令です。Ruby モードでは書けます。',
     'gui.rubyTab.dnclUnsupportedNumberError':

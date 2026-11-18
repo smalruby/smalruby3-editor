@@ -1,5 +1,8 @@
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
 import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { loadPrism } from '../../../../src/lib/prism-parser';
+
+beforeAll(() => loadPrism());
 
 /**
  * Built-in functions that become a method call on their argument
@@ -61,12 +64,12 @@ describe('DNCL built-in with an expression argument (Issue #1686)', () => {
             'b = 整数(a) + 1',
             'b = 整数(乱数(1..10))',
             '表示する(文字列(a + 1))',
-            'もし 整数(a + 1) > 3 ならば\n  b = 1\nを実行する',
+            'もし 整数(a + 1) > 3 ならば:\n    b = 1',
             // Built-ins in control-flow lines come back too.
-            'もし 整数(a) > 3 ならば\n  b = 1\nそうでなくもし 文字列(a) == "1" ならば\n  b = 2\nを実行する',
-            '要素数(Data) > i の間\n  i = i + 1\nを繰り返す',
-            '関数 f(x)\n  返す 整数(x * 2)\nと定義する',
-            'i を 整数(a + 1) から 要素数(Data) まで 1 ずつ増やしながら\n  b = i\nを繰り返す',
+            'もし 整数(a) > 3 ならば:\n    b = 1\nそうでなくもし 文字列(a) == "1" ならば:\n    b = 2',
+            '要素数(Data) > i の間繰り返す:\n    i = i + 1',
+            '関数 f(x):\n    整数(x * 2) を返す',
+            'i を 整数(a + 1) から 要素数(Data) まで 1 ずつ増やしながら繰り返す:\n    b = i',
         ])('%s', (dncl) => {
             expect(roundtrip(dncl)).toBe(dncl);
         });
@@ -82,7 +85,7 @@ describe('DNCL built-in with an expression argument (Issue #1686)', () => {
         });
 
         test('文字列(x でない) keeps the negation inside', () => {
-            expect(roundtrip('b = 文字列(x でない)')).toBe('b = 文字列(x でない)');
+            expect(roundtrip('b = 文字列(x でない)')).toBe('b = 文字列(not x)');
         });
 
         test('Ruby → DNCL → Ruby keeps `(式).to_i`', () => {
@@ -108,21 +111,21 @@ describe('Ruby → DNCL with a negative number receiver (Issue #1700)', () => {
         ['@b = -1.5.abs', 'b = 絶対値(-1.5)'],
         ['@b = -2.5.round', 'b = 四捨五入(-2.5)'],
         ['@b = 3 * -5.abs', 'b = 3 * 絶対値(-5)'],
-        ['@b = (-5.abs + 1)', 'b = (絶対値(-5) + 1)'],
+        ['@b = (-5.abs + 1)', 'b = 絶対値(-5) + 1'],
         ['puts(-1.to_s + "個")', '表示する(-1, "個")'],
-        ['@b = @a && -5.abs', 'b = a かつ 絶対値(-5)'],
-        ['@b = (@a > 0 || -1.to_s == "x")', 'b = (a > 0 または 文字列(-1) == "x")'],
-        ['@b = (@a > 0 and -5.abs > 1)', 'b = (a > 0 and 絶対値(-5) > 1)'],
+        ['@b = @a && -5.abs', 'b = a and 絶対値(-5)'],
+        ['@b = (@a > 0 || -1.to_s == "x")', 'b = a > 0 or 文字列(-1) == "x"'],
+        ['@b = (@a > 0 and -5.abs > 1)', 'b = a > 0 and 絶対値(-5) > 1'],
     ])('%s → %s', (ruby, dncl) => {
         expect(toDncl(ruby)).toBe(dncl);
     });
 
     test.each([
         ['@b = -@a.abs', 'b = -絶対値(a)'],
-        ['@b = - 5.abs', 'b = - 絶対値(5)'],
+        ['@b = - 5.abs', 'b = -絶対値(5)'],
         ['@b = @a - 5.abs', 'b = a - 絶対値(5)'],
-        ['@b = @a -5.abs', 'b = a -絶対値(5)'],
-        ['@b = 3 -5.abs', 'b = 3 -絶対値(5)'],
+        ['@b = @a -5.abs', 'b = a - 絶対値(5)'],
+        ['@b = 3 -5.abs', 'b = 3 - 絶対値(5)'],
     ])('a `-` that is not part of the number stays outside: %s', (ruby, dncl) => {
         expect(toDncl(ruby)).toBe(dncl);
     });
@@ -165,12 +168,12 @@ describe('DNCL → Ruby with a `-` before a built-in (Issue #1744)', () => {
 
     test.each([
         ['b = a - 絶対値(5)', '@b = @a - 5.abs'],
-        ['b = a -絶対値(5)', '@b = @a -5.abs'],
+        ['b = a - 絶対値(5)', '@b = @a - 5.abs'],
         ['b = -x', '@b = -@x'],
         ['b = -(a + 1)', '@b = -(@a + 1)'],
         ['b = 絶対値(-5)', '@b = -5.abs'],
-        ['b = -乱数(1..10)', '@b = -rand(1..10)'],
-        ['b = -平方根(4)', '@b = -Math.sqrt(4)'],
+        ['b = -乱数(1..10)', '@b = -(rand(1..10))'],
+        ['b = -平方根(4)', '@b = -(Math.sqrt(4))'],
     ])('other `-` are left as they are: %s', (dncl, ruby) => {
         expect(toRuby(dncl)).toBe(ruby);
     });

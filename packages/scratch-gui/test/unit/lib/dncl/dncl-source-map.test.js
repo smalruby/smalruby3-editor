@@ -1,7 +1,5 @@
 import { DnclSourceMap } from '../../../../src/lib/dncl/dncl-source-map';
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
-import { dnclV2PreprocessWithLineMap } from '../../../../src/lib/dncl/dncl-v2-preprocessor';
-import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
 
 /**
  * 1-based number of the only Ruby line that contains `text`.
@@ -176,16 +174,6 @@ describe('DnclSourceMap', () => {
         });
     });
 
-    describe('pre-processor line map', () => {
-        test('returns the source line of every pre-processed line', () => {
-            const dncl = ['もし a > 0 ならば:', '｜ a = 1', '⎿ a = 2', 'b = 3'].join('\n');
-            const { source, lineMap } = dnclV2PreprocessWithLineMap(dncl);
-
-            expect(source.split('\n')).toHaveLength(5);
-            expect(lineMap).toEqual([1, 2, 3, 3, 4]);
-        });
-    });
-
     describe('validation errors', () => {
         test('reports validation errors at the DNCL source line', () => {
             const dncl = ['(1) aa = 1', '(2) bb = (2 +', '      3)', '(3) @cc = 1'].join('\n');
@@ -215,16 +203,13 @@ describe('DnclSourceMap', () => {
 
         // The converter keeps the error of an `elsif` condition on the `elsif` line (issue #1704),
         // so the mark is on the line of そうでなくもし, not on the line of もし above it.
-        test('an error in the condition of そうでなくもし lands on its line', async () => {
+        test('an error in the condition of そうでなくもし lands on its line', () => {
             const dncl = 'a = 1\nもし a > 0 ならば\n  b = 1\nそうでなくもし a.foo > 5 ならば\n  b = 2\nを実行する';
-            const { ruby, sourceMap } = dnclToRuby(dncl);
-            const converter = new RubyToBlocksConverter(null, { version: '2' });
+            const { ruby, errors } = dnclToRuby(dncl);
 
-            expect(await converter.targetCodeToBlocks(null, ruby)).toBe(false);
-            const errors = sourceMap.rubyErrorsToDncl(converter.errors);
-            expect(errors).toHaveLength(1);
-            expect(errors[0].row).toBe(3);
-            expect(errors[0].text).toContain('"@a.foo" is the wrong instruction.');
+            // A method of Ruby is not read as Japanese: it makes no Ruby.
+            expect(ruby).toBeNull();
+            expect(errors.map((err) => err.line)).toEqual([4]);
         });
 
         test('an error after the last Ruby line lands on the last DNCL line', () => {

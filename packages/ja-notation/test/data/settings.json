@@ -1,0 +1,235 @@
+{
+    "about": "The settings of a program (indexBase, commentMarker, logicNote). read: readSettings(comments). sentences: settingsSentences(settings), which readSettings reads back as the same settings. programs: parse(ja).program.settings. jaToRuby / rubyToJa: pairs with no table that go both ways (jaToRuby(ja).ruby is ruby, rubyToJa(ruby).ja is ja, with no errors).",
+    "defaults": {
+        "indexBase": 0,
+        "commentMarker": "#",
+        "logicNote": false
+    },
+    "read": [
+        {
+            "comments": [],
+            "settings": {
+                "indexBase": 0,
+                "commentMarker": "#",
+                "logicNote": false
+            }
+        },
+        {
+            "comments": ["# すべての配列の添字は 1 から始まる。"],
+            "settings": {
+                "indexBase": 1,
+                "commentMarker": "#",
+                "logicNote": false
+            }
+        },
+        {
+            "comments": ["# すべての配列の添字は０から始まる。"],
+            "settings": {
+                "indexBase": 0,
+                "commentMarker": "#",
+                "logicNote": false
+            }
+        },
+        {
+            "comments": ["#配列の添え字は １ から始まる"],
+            "settings": {
+                "indexBase": 1,
+                "commentMarker": "#",
+                "logicNote": false
+            }
+        },
+        {
+            "comments": ["// 「//」から行の終わりまでは，処理の対象とならない。"],
+            "settings": {
+                "indexBase": 0,
+                "commentMarker": "//",
+                "logicNote": false
+            }
+        },
+        {
+            "comments": ["# 「#」から行の終わりまでは，処理の対象とならない。"],
+            "settings": {
+                "indexBase": 0,
+                "commentMarker": "#",
+                "logicNote": false
+            }
+        },
+        {
+            "comments": ["# 「and」は「かつ」を意味する論理演算子であり，左右の式がともに真のときにだけ真となる。"],
+            "settings": {
+                "indexBase": 0,
+                "commentMarker": "#",
+                "logicNote": true
+            }
+        },
+        {
+            "comments": ["# 添字は 1 から始まる（Nissu[1] が 1 月）"],
+            "settings": {
+                "indexBase": 0,
+                "commentMarker": "#",
+                "logicNote": false
+            }
+        },
+        {
+            "comments": ["# すべての配列の添字は 1 から始まる。と書く問題もある"],
+            "settings": {
+                "indexBase": 0,
+                "commentMarker": "#",
+                "logicNote": false
+            }
+        }
+    ],
+    "sentences": [
+        {
+            "settings": {
+                "indexBase": 1,
+                "commentMarker": "//",
+                "logicNote": true
+            },
+            "sentences": [
+                "# すべての配列の添字は 1 から始まる。",
+                "# 「//」から行の終わりまでは，処理の対象とならない。",
+                "# 「and」は「かつ」を意味する論理演算子であり，左右の式がともに真のときにだけ真となる。",
+                "# 「or」は「または」を意味する論理演算子であり，左右の式の少なくとも一方が真のときに真となる。",
+                "# 「not」は「でない」を意味する論理演算子であり，右の式が偽のときにだけ真となる。"
+            ]
+        },
+        {
+            "settings": {
+                "indexBase": 0,
+                "commentMarker": "#",
+                "logicNote": false
+            },
+            "sentences": []
+        }
+    ],
+    "programs": [
+        {
+            "title": "the settings are only read from the comments before the first line of code",
+            "ja": "(01) x = 1\n# すべての配列の添字は 1 から始まる。",
+            "settings": {
+                "indexBase": 0,
+                "commentMarker": "#",
+                "logicNote": false
+            }
+        },
+        {
+            "title": "a blank line before the sentence",
+            "ja": "\n(01) # すべての配列の添字は 1 から始まる。\n(02) x = 1",
+            "settings": {
+                "indexBase": 1,
+                "commentMarker": "#",
+                "logicNote": false
+            }
+        },
+        {
+            "title": "`//` starts a comment",
+            "ja": "// 「//」から行の終わりまでは，処理の対象とならない。\nx = 7 // 7 を入れる",
+            "settings": {
+                "indexBase": 0,
+                "commentMarker": "//",
+                "logicNote": false
+            }
+        }
+    ],
+    "jaToRuby": [
+        {
+            "ja": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[i]",
+            "ruby": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[i - 1]"
+        },
+        {
+            "ja": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[1]",
+            "ruby": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[0]"
+        },
+        {
+            "ja": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[0]",
+            "ruby": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[-1]"
+        },
+        {
+            "ja": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[i + 1]",
+            "ruby": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[i]"
+        },
+        {
+            "ja": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[i - 1]",
+            "ruby": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[i - 1 - 1]"
+        },
+        {
+            "ja": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[i * 2]",
+            "ruby": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[i * 2 - 1]"
+        },
+        {
+            "ja": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[B[i]]",
+            "ruby": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[B[i - 1] - 1]"
+        },
+        {
+            "ja": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nA[i] = 5",
+            "ruby": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nA[i - 1] = 5"
+        },
+        {
+            "ja": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nA[i] += 5",
+            "ruby": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nA[i - 1] += 5"
+        },
+        {
+            "ja": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nもし A[i] > A[i + 1] ならば:\n    x = 1",
+            "ruby": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nif A[i - 1] > A[i]\n  x = 1\nend"
+        },
+        {
+            "ja": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[2 + 1]",
+            "ruby": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[2 + 1 - 1]"
+        },
+        {
+            "ja": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[i - 1 + 1]",
+            "ruby": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[i - 1 + 1 - 1]"
+        },
+        {
+            "ja": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[n] + A[i]",
+            "ruby": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[n - 1] + A[i - 1]"
+        },
+        {
+            "ja": "// 「//」から行の終わりまでは，処理の対象とならない。\nx = 7 // 7 を入れる\n// 表示する\ny = x ÷ 2",
+            "ruby": "# 「//」から行の終わりまでは，処理の対象とならない。\nx = 7 # 7 を入れる\n# 表示する\ny = (x / 2).to_i"
+        },
+        {
+            "ja": "// 「//」から行の終わりまでは，処理の対象とならない。\n// すべての配列の添字は 1 から始まる。\nx = A[0] // 1 番目から",
+            "ruby": "# 「//」から行の終わりまでは，処理の対象とならない。\n# すべての配列の添字は 1 から始まる。\nx = A[-1] # 1 番目から"
+        }
+    ],
+    "rubyToJa": [
+        {
+            "ruby": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[i - 1]",
+            "ja": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[i]"
+        },
+        {
+            "ruby": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[i]",
+            "ja": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[i + 1]"
+        },
+        {
+            "ruby": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[0]",
+            "ja": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[1]"
+        },
+        {
+            "ruby": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[-1]",
+            "ja": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[0]"
+        },
+        {
+            "ruby": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[-3]",
+            "ja": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[-2]"
+        },
+        {
+            "ruby": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[i + 1]",
+            "ja": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[i + 1 + 1]"
+        },
+        {
+            "ruby": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[i - 2]",
+            "ja": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[i - 2 + 1]"
+        },
+        {
+            "ruby": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[i - 1 - 1]",
+            "ja": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[i - 1]"
+        },
+        {
+            "ruby": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[i + 1 - 1]",
+            "ja": "# すべての配列の添字は 1 から始まる。\ni = 2\nn = 1\nx = A[i + 1 - 1 + 1]"
+        }
+    ]
+}

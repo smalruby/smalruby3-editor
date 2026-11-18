@@ -201,10 +201,10 @@ describe('dnclToRuby', () => {
             expect(convert('a = 含む(s, 乱数(1..10))')).toBe('@a = @s.include?(rand(1..10))');
         });
 
-        test('含む with 3 args is left unchanged (only 2-arg form is valid)', () => {
-            // Identifier conversion still runs (a → @a, b → @b, s → @s),
-            // but 含む itself stays as-is to avoid generating malformed Ruby.
-            expect(convert('含む(s, a, b)')).toBe('含む(@s, @a, @b)');
+        test('含む with 3 args is an error (only the 2-arg form is valid)', () => {
+            const { ruby, errors } = dnclToRuby('含む(s, a, b)');
+            expect(ruby).toBeNull();
+            expect(errors).toEqual([{ line: 1, column: 1, message: '「含む」の引数の数が違います' }]);
         });
 
         test('same-name nesting: 表示する(乱数(乱数(1..10)))', () => {

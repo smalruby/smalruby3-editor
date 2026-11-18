@@ -12,6 +12,9 @@
 // See Issue #640.
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
 import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { loadPrism } from '../../../../src/lib/prism-parser';
+
+beforeAll(() => loadPrism());
 
 const dToR = (src) => dnclToRuby(src).ruby;
 const rToD = (src) => rubyToDncl(src).dncl;
@@ -162,7 +165,7 @@ describe('表示する multi arg: expressions are wrapped before .to_s (#1672)',
     });
 
     test('表示する(a ÷ b, "x") converts the whole quotient to a string', () => {
-        expect(dToR('表示する(a ÷ b, "x")')).toBe('puts(((@a / @b).to_i).to_s + "x")');
+        expect(dToR('表示する(a ÷ b, "x")')).toBe('puts((@a / @b).to_i.to_s + "x")');
     });
 
     test('表示する("平均", goukei / 要素数(Tensu)) (sum-average fixture) joins the quotient', () => {

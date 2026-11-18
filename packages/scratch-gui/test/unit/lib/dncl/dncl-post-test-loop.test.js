@@ -10,6 +10,9 @@
 import { dnclToRuby, rubyForLeavingDncl } from '../../../../src/lib/dncl/dncl-to-ruby';
 import { POST_TEST_LOOP_ERROR_ID } from '../../../../src/lib/dncl/dncl-validator';
 import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { loadPrism } from '../../../../src/lib/prism-parser';
+
+beforeAll(() => loadPrism());
 
 const dToR = (src) => dnclToRuby(src).ruby;
 
@@ -36,7 +39,7 @@ describe('DNCL: the post-test loop is not supported (issue #1626)', () => {
             expect(errors.map((e) => e.line)).toEqual([3, 5]);
         });
 
-        test('nested in a while loop, the closers around it stay DNCL', () => {
+        test('nested in a while loop, the loop around it stays Japanese', () => {
             const ruby = [
                 'while @b < 2',
                 '  begin',
@@ -47,8 +50,8 @@ describe('DNCL: the post-test loop is not supported (issue #1626)', () => {
             ].join('\n');
             const { dncl, errors } = rubyToDncl(ruby);
             expect(errors.map((e) => e.line)).toEqual([2, 4]);
-            expect(dncl.split('\n')[0]).toBe('b < 2 の間');
-            expect(dncl.split('\n')[5]).toBe('を繰り返す');
+            expect(dncl.split('\n')[0]).toBe('b < 2 の間繰り返す:');
+            expect(dncl.split('\n')[4]).toBe('    b = b + 1');
         });
 
         test('the DNCL of it is not a post-test loop of the old DNCL', () => {
@@ -60,7 +63,7 @@ describe('DNCL: the post-test loop is not supported (issue #1626)', () => {
             const ruby = '@a = 0\nwhile @a < 3\n  @a = @a + 1\nend';
             const { dncl, errors } = rubyToDncl(ruby);
             expect(errors).toEqual([]);
-            expect(dncl).toBe('a = 0\na < 3 の間\n  a = a + 1\nを繰り返す');
+            expect(dncl).toBe('a = 0\na < 3 の間繰り返す:\n    a = a + 1');
             expect(dToR(dncl)).toBe(ruby);
         });
     });
@@ -70,8 +73,9 @@ describe('DNCL: the post-test loop is not supported (issue #1626)', () => {
             const { dncl } = rubyToDncl('@a = 0\nbegin\n  @a = @a + 1\nend while @a < 3');
             const result = dnclToRuby(dncl);
             expect(result.ruby).toBeNull();
-            expect(result.errors.map((e) => e.line)).toEqual([2, 4]);
-            result.errors.forEach((e) => expect(e.id).toBe(POST_TEST_LOOP_ERROR_ID));
+            // The Ruby with no Japanese form is shown as it is, so its `@a` is told too.
+            const postTest = result.errors.filter((e) => e.id === POST_TEST_LOOP_ERROR_ID);
+            expect(postTest.map((e) => e.line)).toEqual([2, 4]);
         });
 
         test.each([
@@ -105,7 +109,7 @@ describe('DNCL: the post-test loop is not supported (issue #1626)', () => {
         });
 
         test('the pre-test loop does not change', () => {
-            expect(dToR('a = 0\na < 3 の間\n  a = a + 1\nを繰り返す')).toBe(
+            expect(dToR('a = 0\na < 3 の間繰り返す:\n    a = a + 1')).toBe(
                 '@a = 0\nwhile @a < 3\n  @a = @a + 1\nend',
             );
         });

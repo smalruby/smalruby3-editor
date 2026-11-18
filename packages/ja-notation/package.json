@@ -1,0 +1,49 @@
+{
+    "name": "@smalruby/ja-notation",
+    "version": "0.1.0",
+    "private": true,
+    "description": "Japanese program notation (the 共通テスト用プログラム表記 and the DNCL-like form) ⇔ Ruby through syntax trees",
+    "keywords": [
+        "ruby",
+        "dncl",
+        "japanese",
+        "education"
+    ],
+    "license": "MIT",
+    "author": "Kouji Takao and Smalruby contributors",
+    "type": "module",
+    "exports": {
+        ".": "./src/index.js"
+    },
+    "main": "src/index.js",
+    "files": [
+        "LICENSE",
+        "README.md",
+        "src"
+    ],
+    "scripts": {
+        "build": "echo \"No build: the package is its source (ESM)\"",
+        "build:dev": "echo \"No build: the package is its source (ESM)\"",
+        "clean": "echo \"Nothing to clean\"",
+        "format": "prettier --write . && eslint --fix",
+        "format:check": "prettier --check .",
+        "lint": "eslint --max-warnings 0 && prettier --check .",
+        "test": "npm run lint && npm run test:unit",
+        "test:unit": "node --test",
+        "test:integration": "echo \"No integration tests\""
+    },
+    "devDependencies": {
+        "@ruby/prism": "^1.9.0",
+        "eslint": "9.39.4",
+        "eslint-config-prettier": "10.1.8",
+        "eslint-config-scratch": "14.1.12",
+        "globals": "16.5.0",
+        "prettier": "3.8.3"
+    },
+    "homepage": "https://github.com/smalruby/smalruby3-editor/tree/develop/packages/ja-notation#readme",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/smalruby/smalruby3-editor.git",
+        "directory": "packages/ja-notation"
+    }
+}

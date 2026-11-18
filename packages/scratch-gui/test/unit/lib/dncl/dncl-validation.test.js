@@ -7,7 +7,10 @@
  */
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
 import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { loadPrism } from '../../../../src/lib/prism-parser';
 import { makeSpriteTarget, makeConverter } from '../../helpers/ruby-roundtrip-helper';
+
+beforeAll(() => loadPrism());
 
 // The localized message used in the actual component (ja locale).
 const DNCL_VALIDATION_MESSAGE =

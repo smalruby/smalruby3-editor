@@ -1934,6 +1934,8 @@ export default {
     'gui.dnclModeNotice.exitButton': 'Rubyふりがなモードにもどす',
     'gui.rubyTab.dnclDoubleSlashHint':
         'スモウルビーでは // はコメントではありません（せいすうのわりざんです）。コメントには # をつかってください。',
+    'gui.rubyTab.dnclStringArithmeticHint':
+        'もじれつと - * / をつかうと、ひだりからじゅんにけいさんされます。"a" + x - 1 は、もじれつ "a" + x から 1 をひきます。かずのけいさんは "a" + (x - 1) のようにかっこでかこんでください。',
     'gui.rubyTab.dnclArrayIndexHint':
         '{access} ははいれつのはんいがいになります。スモウルビーのにほんごでは、はいれつのそえじは 0 からはじまります（さいしょのようそは {array}[0]、さいごのようそは {array}[{last}]）。もんだいぶんでそえじが 1 からはじまるときは、{fixed} のようにそえじを 1 ずらしてかいてください。',
     'gui.rubyTab.dnclIndexShiftConfirm':
@@ -1941,6 +1943,8 @@ export default {
     'gui.rubyTab.dnclIndexShiftDone':
         '{count} かしょのはいれつのそえじを 1 ずつへらしました（みどりのしるし）。\nくりかえしのはんい（「i を 1 から n まで」など）はかきかえていません。0 はじまりにあわせて、ひつようならじぶんでなおしてください。',
     'gui.rubyTab.dnclIndexShiftChangedHeading': 'かきかえたかしょ:',
+    'gui.rubyTab.problemFormDone': 'できた',
+    'gui.rubyToolbar.copyProblemForm': 'もんだいのかたちでコピー',
     'gui.rubyTab.dnclIndexShiftChangedItem': '{line} ぎょうめ: {before} → {after}',
     'gui.rubyTab.dnclIndexShiftSuspectsHeading':
         'もしかしたらここもなおすひつようがあるかもしれません（きいろのしるし）:',
@@ -1962,7 +1966,7 @@ export default {
     'gui.rubyTab.dnclPostTestLoopError':
         'あとではんていするくりかえし（さきに 1 かいうごかしてからじょうけんをたしかめるくりかえし）は、にほんごではかけません。さいしょの 1 かいをループのまえにかいてから、「〜のあいだくりかえす」にしてください。Ruby モードではかけます。',
     'gui.rubyTab.dnclUndefinedFunctionError':
-        '「{name}」は、ていぎされていないかんすうです。「関数 {name}(…)」でていぎしてください。',
+        '「{name}」は、ていぎされていないかんすうです。「関数 {name}(…):」でていぎしてください。',
     'gui.rubyTab.dnclUnsupportedCommandError':
         '「{name}」は、にほんごモードではかけないめいれいです。Ruby モードではかけます。',
     'gui.rubyTab.dnclUnsupportedNumberError':

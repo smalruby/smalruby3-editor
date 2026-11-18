@@ -24,7 +24,15 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
             NUM1: operator_multiply(NUM1: @x, NUM2: 2), NUM2: 1))`,
     },
     {
+        name: 'the remainder is written ％ (full-width) in the standard form',
+        ja: 'x = 7 ％ 2',
+        ruby: '@x = 7 % 2',
+        blocks: 'data_setvariableto(VARIABLE = @x, VALUE: operator_mod(NUM1: 7, NUM2: 2))',
+    },
+    {
+        name: 'the half-width % is read',
         ja: 'x = 7 % 2',
+        jaOnly: 'jaToBlocks',
         ruby: '@x = 7 % 2',
         blocks: 'data_setvariableto(VARIABLE = @x, VALUE: operator_mod(NUM1: 7, NUM2: 2))',
     },
@@ -108,6 +116,13 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
             STRING2: operator_join(STRING1: @x, STRING2: "") #"@ruby:method:to_s"), SECS: 1) ${PUTS}`,
     },
     {
+        name: 'a name joined with a string that has 「」 in it (issue #2168)',
+        ja: '表示する(namae + "には「く」がある")',
+        ruby: 'puts(@namae + "には「く」がある")',
+        blocks: `looks_sayforsecs(MESSAGE: operator_join(STRING1: @namae, STRING2: "には「く」がある"),
+            SECS: 1) ${PUTS}`,
+    },
+    {
         name: 'an input',
         ja: 'x = 【外部からの入力】',
         ruby: `
@@ -120,6 +135,22 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
         `,
     },
     {
+        ja: `
+            もし x > 0 ならば:
+                表示する(x)
+        `,
+        ruby: `
+            if @x > 0
+              puts(@x)
+            end
+        `,
+        blocks: `control_if(CONDITION: operator_gt(OPERAND1: @x, OPERAND2: "0")) {
+            looks_sayforsecs(MESSAGE: @x, SECS: 1) ${PUTS}
+        }`,
+    },
+    {
+        name: 'もし (DNCL 風の形, read)',
+        jaOnly: 'jaToBlocks',
         ja: `
             もし x > 0 ならば
               表示する(x)
@@ -152,6 +183,28 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
     },
     {
         ja: `
+            もし x > 0 ならば:
+                表示する(x)
+            そうでなければ:
+                表示する(y)
+        `,
+        ruby: `
+            if @x > 0
+              puts(@x)
+            else
+              puts(@y)
+            end
+        `,
+        blocks: `control_if_else(CONDITION: operator_gt(OPERAND1: @x, OPERAND2: "0")) {
+            looks_sayforsecs(MESSAGE: @x, SECS: 1) ${PUTS}
+        } {
+            looks_sayforsecs(MESSAGE: @y, SECS: 1) ${PUTS}
+        }`,
+    },
+    {
+        name: 'もし … そうでなければ (DNCL 風の形, read)',
+        jaOnly: 'jaToBlocks',
+        ja: `
             もし x > 0 ならば
               表示する(x)
             そうでなければ
@@ -172,7 +225,24 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
         }`,
     },
     {
-        name: 'かつ',
+        name: 'and',
+        ja: `
+            もし x > 0 and x < 9 ならば:
+                表示する(x)
+        `,
+        ruby: `
+            if @x > 0 && @x < 9
+              puts(@x)
+            end
+        `,
+        blocks: `control_if(CONDITION: operator_and(OPERAND1: operator_gt(OPERAND1: @x, OPERAND2: "0"),
+            OPERAND2: operator_lt(OPERAND1: @x, OPERAND2: "9"))) {
+            looks_sayforsecs(MESSAGE: @x, SECS: 1) ${PUTS}
+        }`,
+    },
+    {
+        name: 'かつ (DNCL 風の形, read)',
+        jaOnly: 'jaToBlocks',
         ja: `
             もし x > 0 かつ x < 9 ならば
               表示する(x)
@@ -189,7 +259,23 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
         }`,
     },
     {
-        name: 'の間 を繰り返す',
+        name: 'の間繰り返す',
+        ja: `
+            x < 3 の間繰り返す:
+                x = x + 1
+        `,
+        ruby: `
+            while @x < 3
+              @x = @x + 1
+            end
+        `,
+        blocks: `control_repeat_until(CONDITION: operator_not(OPERAND: operator_lt(OPERAND1: @x, OPERAND2: "3"))) {
+            data_setvariableto(VARIABLE = @x, VALUE: operator_add(NUM1: @x, NUM2: 1))
+        } #"@ruby:syntax:while"`,
+    },
+    {
+        name: 'の間 を繰り返す (DNCL 風の形, read)',
+        jaOnly: 'jaToBlocks',
         ja: `
             x < 3 の間
               x = x + 1
@@ -206,6 +292,31 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
     },
     {
         name: 'a counting loop',
+        ja: `
+            i を 1 から 3 まで 1 ずつ増やしながら繰り返す:
+                表示する(i)
+        `,
+        ruby: `
+            @i = 1
+            while @i <= 3
+              puts(@i)
+              @i += 1
+            end
+        `,
+        blocks: `
+            data_setvariableto(VARIABLE = @i, VALUE: "1")
+            control_repeat_until(CONDITION: operator_not(OPERAND: operator_or(
+                OPERAND1: operator_lt(OPERAND1: @i, OPERAND2: "3") #"@ruby:operator:<=:1",
+                OPERAND2: operator_equals(OPERAND1: @i, OPERAND2: "3") #"@ruby:operator:<=:1"
+            ) #"@ruby:operator:<=:1")) {
+              looks_sayforsecs(MESSAGE: @i, SECS: 1) ${PUTS}
+              data_changevariableby(VARIABLE = @i, VALUE: 1)
+            } #"@ruby:syntax:while"
+        `,
+    },
+    {
+        name: 'a counting loop (DNCL 風の形, read)',
+        jaOnly: 'jaToBlocks',
         ja: `
             i を 1 から 3 まで 1 ずつ増やしながら
               表示する(i)
@@ -231,6 +342,31 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
     },
     {
         name: 'a counting loop down',
+        ja: `
+            i を 3 から 1 まで 1 ずつ減らしながら繰り返す:
+                表示する(i)
+        `,
+        ruby: `
+            @i = 3
+            while @i >= 1
+              puts(@i)
+              @i += -1
+            end
+        `,
+        blocks: `
+            data_setvariableto(VARIABLE = @i, VALUE: "3")
+            control_repeat_until(CONDITION: operator_not(OPERAND: operator_or(
+                OPERAND1: operator_gt(OPERAND1: @i, OPERAND2: "1") #"@ruby:operator:>=:1",
+                OPERAND2: operator_equals(OPERAND1: @i, OPERAND2: "1") #"@ruby:operator:>=:1"
+            ) #"@ruby:operator:>=:1")) {
+              looks_sayforsecs(MESSAGE: @i, SECS: 1) ${PUTS}
+              data_changevariableby(VARIABLE = @i, VALUE: -1)
+            } #"@ruby:syntax:while"
+        `,
+    },
+    {
+        name: 'a counting loop down (DNCL 風の形, read)',
+        jaOnly: 'jaToBlocks',
         ja: `
             i を 3 から 1 まで 1 ずつ減らしながら
               表示する(i)

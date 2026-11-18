@@ -631,6 +631,7 @@ move(30) # うしろ
 - 変数の注釈は `@ruby:lvar` だけ（`@ruby:variable` という注釈は無い）。変数の名前と置き場所（スプライトかステージか）で種類がわかるので、インスタンス変数とグローバル変数には注釈を付けない。
 - 変換器は、コードがその名前をどう使っているか（`@a = []` や `push` ならリスト、`@a = 0` や `+= 1` なら変数）を変換の前に調べておく（分析の段 `analysis.js` の `variables.uses`）。
 - 1 つのスプライトのコードで同じ名前を `@a` と `$a` の両方に使うことはできない。
+- 右が文字列のリテラルの `+`（`@a + "さん"`）は、コードがその名前に数・リスト・ハッシュを入れていなければ「（ ）と（ ）」（`operator_join`）にする。Ruby では左が文字列のときだけ動く（数なら TypeError）ので、ほかのブロックにはならない。一度も代入しない名前（日本語モードの `表示する(namae + "…")`）もこれで変換できる（`variable-utils.js` の `_isJoinedWithStringLiteral`）。右が数や変数の `@a + 1`・`@a + @b` は今までどおりで、`gets` で入れた名前どうしは足し算のまま（`_isStringOperand`）。
 
 **往復の例**:
 
@@ -648,7 +649,7 @@ $a += 1
 
 **できないこと**（エラーになる形）: 同じ名前の変数の種類を変える（`@a = 1` と `$a = 2`、`cannotChangeVariableScope`）、定数への代入（`FOO = 1`）。
 
-**テスト**: `ruby-to-blocks-converter/variables/variables-instance1.test.js`、`variables-instance2.test.js`、`variables-global1.test.js`、`variables-global2.test.js`、`variables-scope.test.js`、`variables-data-type.test.js`、`ruby-roundtrip/variables.test.js`、`ruby-roundtrip/variable-or-list-kind.test.js`、`ruby-generator/variables.test.js`。
+**テスト**: `ruby-to-blocks-converter/variables/variables-instance1.test.js`、`variables-instance2.test.js`、`variables-global1.test.js`、`variables-global2.test.js`、`variables-scope.test.js`、`variables-data-type.test.js`、`ruby-roundtrip/variables.test.js`、`ruby-roundtrip/variable-or-list-kind.test.js`、`ruby-roundtrip/string-plus-evidence.test.js`、`ruby-generator/variables.test.js`。
 
 ### P16. 多重代入
 
@@ -857,11 +858,11 @@ defineBlockRubyTable('Motion blocks ⇔ Ruby', [
 
 | 日本語モード | Ruby | 決めているところ |
 |---|---|---|
-| 小文字で始まる名前 `x` | `@x` | `src/lib/dncl/dncl-state.js` の `mapVarName` |
+| 小文字で始まる名前 `x` | `@x` | `src/lib/dncl/ja-notation-table.js` の `variable` |
 | 大文字で始まり、配列として使う名前 `Data` | `@_array_Data_` | 同上 |
 | 大文字で始まる、それ以外の名前 `Kosu` | `@_var_Kosu_` | 同上 |
 
-Ruby から日本語モードに戻すときは `src/lib/dncl/ruby-to-dncl-identifier.js` が元の名前に戻す。
+Ruby から日本語モードに戻すときは `src/lib/dncl/ja-notation-table.js` の逆向きの表（`SMALRUBY_RUBY_TO_JA` の `variable`）が元の名前に戻す。
 
 日本語モードの変換を作り直す（`ja-notation`。[`converter-roadmap.md`](converter-roadmap.md) の 2 章・4 章）ための安全網は 2 つある。
 

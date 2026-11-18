@@ -1,6 +1,6 @@
 // Checking a DNCL answer of "生成AI に相談" in the Ruby tab's Japanese (DNCL) mode
-// (#1402): the DNCL is turned into Ruby first (through the DNCLv2 pre-processor, so the
-// form of 共通テスト with line numbers, ｜ / ⎿ and colons is read too), and then judged as
+// (#1402): the DNCL is turned into Ruby first (ja-notation reads the standard form of
+// 共通テスト with line numbers, ｜ / ⎿ and colons too), and then judged as
 // the Ruby modes are. Errors are moved back to DNCL lines with the source map.
 // The converter is passed in, so this file stays free of the VM.
 // An answer counting its indexes from 1 still turns into blocks, so it stays ✔, but the
@@ -57,6 +57,8 @@ const checkDnclAnswer = async ({ answer, editingName, convert }) => {
     toProblems(slashCommentRows(lines).map((row) => ({ row, text: DOUBLE_SLASH_HINT })));
     const transpiled = dnclToRuby(code);
     if (transpiled.ruby === null) {
+        // A missing or extra closer is among these errors, said in the words of DNCL, not as
+        // the converter's missing `end`, which would lead the AI to write `end` (#1419).
         toProblems(transpiled.errors.map((error) => ({ row: error.line - 1, text: error.message })));
     } else {
         try {
@@ -66,10 +68,6 @@ const checkDnclAnswer = async ({ answer, editingName, convert }) => {
                     RAW_OPCODES.includes(block.opcode),
                 ).length;
                 if (count > 0) problems.push({ type: 'raw', sprite: null, count });
-            } else if (transpiled.blockErrors.length > 0) {
-                // A missing or extra closer: said in the words of DNCL, not as the
-                // converter's missing `end`, which would lead the AI to write `end` (#1419).
-                toProblems(transpiled.blockErrors.map((error) => ({ row: error.line - 1, text: error.message })));
             } else {
                 const errors = part.converter.errors.map((error) => ({
                     row: typeof error.row === 'number' ? error.row : null,

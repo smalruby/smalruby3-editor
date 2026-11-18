@@ -3,7 +3,7 @@ import Editor from '@monaco-editor/react';
 import VM from '@smalruby/scratch-vm';
 import PropTypes from 'prop-types';
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { injectIntl } from 'react-intl';
+import { defineMessages, injectIntl } from 'react-intl';
 import { connect } from 'react-redux';
 import AutoCorrectModal from '../components/auto-correct-modal/auto-correct-modal.jsx';
 import cameraIcon from '../components/blocks-screenshot-button/icon--camera.svg';
@@ -14,6 +14,8 @@ import { autoCorrect, defaultSettings as defaultAutoCorrectSettings } from '../l
 import collectMetadata from '../lib/collect-metadata.js';
 import { findArrayIndexHints } from '../lib/dncl/dncl-array-index-hint';
 import { slashCommentRows, tidyPastedDncl, withDoubleSlashHint } from '../lib/dncl/dncl-paste-tidy';
+import { problemFormText } from '../lib/dncl/dncl-problem-form';
+import { stringArithmeticRows } from '../lib/dncl/dncl-string-arithmetic-hint';
 import { dnclToRuby, rubyForLeavingDncl } from '../lib/dncl/dncl-to-ruby';
 import {
     isRubyCommandName,
@@ -65,9 +67,15 @@ import {
     DNCL_INDEX_HINT_OWNER,
     DNCL_UNSUPPORTED_OWNER,
     DNCL_SLASH_COMMENT_OWNER,
+    DNCL_STRING_ARITHMETIC_OWNER,
 } from './ruby-tab/constants';
 import updateDebugGlobals from './ruby-tab/debug-globals';
 import { offerDnclIndexShift } from './ruby-tab/dncl-index-shift';
+import {
+    createProblemFormView,
+    problemFormLineNumbers,
+    problemFormLineNumbersMinChars,
+} from './ruby-tab/dncl-problem-form-view';
 import {
     registerCustomPasteAction,
     setupPasteTransform,
@@ -84,6 +92,14 @@ import FuriganaRenderer from './ruby-tab/furigana-renderer';
 import QuickFixProvider from './ruby-tab/quick-fix-provider';
 import styles from './ruby-tab/ruby-tab.css';
 import { showBubble, dismissBubble, removeBubble } from './ruby-tab/visual-report-bubble';
+
+const problemFormMessages = defineMessages({
+    done: {
+        id: 'gui.rubyTab.problemFormDone',
+        defaultMessage: 'Done',
+        description: 'Button that shows the Japanese mode program in the form of the test questions',
+    },
+});
 
 // === Initialization helpers ===
 
@@ -182,6 +198,26 @@ const RubyTab = (props) => {
     });
     // Separate DNCL display code to prevent editor from showing Ruby
     const [dnclDisplayCode, setDnclDisplayCode] = useState('');
+    // Ruby → Japanese parses the Ruby with prism (ja-notation), so the Japanese is
+    // shown once prism is loaded.
+    const [prismReady, setPrismReady] = useState(() => Boolean(getPrism()));
+    useEffect(() => {
+        if (prismReady) return;
+        let alive = true;
+        loadPrism().then(() => {
+            if (alive) setPrismReady(true);
+        });
+        return () => {
+            alive = false;
+        };
+    }, []);
+    // Whether the editor shows the problem form (line rules) of the Japanese
+    // mode: when it has no focus (Issue #1755).
+    const [problemFormShown, setProblemFormShown] = useState(false);
+    const problemFormViewRef = useRef(null);
+    // Room in the line number column for the labels `(01)` / `(100)` / `(1000)`.
+    const [lineNumbersMinChars, setLineNumbersMinChars] = useState(5);
+    const focusListenersRef = useRef([]);
     const dnclSourceMapRef = useRef(null);
     const dnclModeRef = useRef(dnclMode);
     dnclModeRef.current = dnclMode;
@@ -296,19 +332,10 @@ const RubyTab = (props) => {
             // each error to its DNCL line. Ruby columns have no DNCL
             // counterpart, so the whole DNCL line is marked.
             const sourceMap = dnclModeRef.current ? dnclSourceMapRef.current : null;
+            // A missing or extra closer of DNCL makes no Ruby, so it is told
+            // on its DNCL line by the DNCL error markers below, never as a
+            // missing `end` of the converter (Issue #1419).
             let errors = sourceMap ? sourceMap.rubyErrorsToDncl(rawErrors) : rawErrors;
-            if (dnclModeRef.current && errors.length > 0) {
-                // A missing or extra closer makes the converter say a missing
-                // `end`; say it in the words of DNCL instead (Issue #1419).
-                const { blockErrors } = dnclToRuby(editorRef.current.getValue());
-                if (blockErrors.length > 0) {
-                    errors = blockErrors.map((err) => ({
-                        row: err.line - 1,
-                        column: err.column - 1,
-                        text: err.message,
-                    }));
-                }
-            }
             if (dnclModeRef.current) {
                 // `//` is integer division in Smalruby DNCL, never a comment,
                 // so a 共通テスト style `//` comment fails to convert. Tell
@@ -445,8 +472,13 @@ const RubyTab = (props) => {
             setDnclDisplayCode(code);
             const result = dnclToRuby(code);
             if (result.errors && result.errors.length > 0) {
-                // Show DNCL validation errors but don't dispatch invalid code
+                // Don't dispatch code that makes no Ruby: its errors are shown
+                // on their DNCL lines by the DNCL error markers, so the markers
+                // of the last conversion of the blocks are taken off.
                 dnclSourceMapRef.current = null;
+                if (editorRef.current && monacoRef.current) {
+                    monacoRef.current.editor.setModelMarkers(editorRef.current.getModel(), 'smalruby', []);
+                }
                 return;
             }
             dnclSourceMapRef.current = result.sourceMap;
@@ -540,8 +572,22 @@ const RubyTab = (props) => {
             resizeObserverRef.current.observe(containerRef.current);
         }
 
+        problemFormViewRef.current = createProblemFormView(
+            editor,
+            monaco,
+            () => dnclModeRef.current,
+            setProblemFormShown,
+        );
+        focusListenersRef.current = [
+            editor.onDidFocusEditorText(() => problemFormViewRef.current.sync()),
+            editor.onDidBlurEditorText(() => problemFormViewRef.current.sync()),
+        ];
+        setLineNumbersMinChars(problemFormLineNumbersMinChars(editor.getValue()));
+
         contentChangeListenerRef.current = editor.onDidChangeModelContent(() => {
             updateUndoRedoState();
+            problemFormViewRef.current.sync();
+            setLineNumbersMinChars(problemFormLineNumbersMinChars(editor.getValue()));
             if (furiganaEnabledRef.current) {
                 scheduleFuriganaUpdate();
             }
@@ -568,6 +614,11 @@ const RubyTab = (props) => {
         });
 
         updateUndoRedoState();
+        // A new editor (reload in the Japanese mode, another language) starts
+        // without the problem form: make React and the view agree, then show
+        // it if the mode asks for it.
+        setProblemFormShown(false);
+        problemFormViewRef.current.sync();
     }, []);
 
     // --- UI event handlers (useCallback for react/jsx-no-bind) ---
@@ -624,6 +675,39 @@ const RubyTab = (props) => {
             handler();
         }
     }, [getSaveToComputerHandler]);
+
+    // 「できた」: leave the text for the problem form (Issue #1755). Blurring the
+    // editor also closes the software keyboard of a tablet. A mouse press is
+    // handled on mousedown without moving the focus to the button, so the
+    // text does not turn into the problem form under the pointer before the
+    // press ends; the click handler serves the keyboard (Enter / Space).
+    const leaveTextForProblemForm = () => {
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    };
+    const handleProblemFormDoneMouseDown = useCallback((event) => {
+        event.preventDefault();
+        leaveTextForProblemForm();
+    }, []);
+    const handleProblemFormDoneClick = useCallback(() => {
+        leaveTextForProblemForm();
+        if (problemFormViewRef.current) problemFormViewRef.current.sync();
+    }, []);
+
+    const problemFormLineNumberLabels = useCallback(
+        (lineNumber) => problemFormLineNumbers(editorRef.current)(lineNumber),
+        [],
+    );
+
+    // Copy the program as the questions show it: line numbers and rules as
+    // characters (Issue #1755). The usual copy keeps the text.
+    const handleCopyProblemForm = useCallback(async () => {
+        if (!editorRef.current) return;
+        try {
+            await navigator.clipboard.writeText(problemFormText(editorRef.current.getValue()));
+        } catch (error) {
+            console.error('Failed to copy the problem form:', error); // eslint-disable-line no-console
+        }
+    }, []);
 
     const handleInsertClass = useCallback(() => {
         if (!editorRef.current) return;
@@ -684,7 +768,7 @@ const RubyTab = (props) => {
                     {
                         id: 'gui.rubyTab.dnclUndefinedFunctionError',
                         defaultMessage:
-                            '"{name}" is a function that is not defined. Define it with "関数 {name}(…)".',
+                            '"{name}" is a function that is not defined. Define it with "関数 {name}(…):".',
                     },
                     { name: err.name },
                 );
@@ -722,6 +806,8 @@ const RubyTab = (props) => {
 
         // Clear any existing errors before mode switch attempt.
         clearErrors();
+        // Ruby → Japanese parses the Ruby with prism.
+        if (enabling) await loadPrism();
 
         // Validate before switching TO DNCL mode:
         // Dry-run Ruby → DNCL → Ruby → Blocks to check for unsupported code.
@@ -1130,6 +1216,12 @@ const RubyTab = (props) => {
                 contentChangeListenerRef.current.dispose();
                 contentChangeListenerRef.current = null;
             }
+            focusListenersRef.current.forEach((listener) => listener.dispose());
+            focusListenersRef.current = [];
+            if (problemFormViewRef.current) {
+                problemFormViewRef.current.dispose();
+                problemFormViewRef.current = null;
+            }
             if (configChangeListenerRef.current) {
                 configChangeListenerRef.current.dispose();
                 configChangeListenerRef.current = null;
@@ -1205,7 +1297,7 @@ const RubyTab = (props) => {
     // When code changes from blocks tab (Ruby → DNCL display), sync DNCL display
     const rubyCodeStr = rubyCode.code;
     useEffect(() => {
-        if (!dnclMode) return;
+        if (!dnclMode || !prismReady) return;
         if (!editorRef.current || !monacoRef.current) return;
         // Only sync when the Ruby code changed externally (e.g., from blocks)
         // not from our own editor change (which already sets dnclDisplayCode)
@@ -1215,7 +1307,12 @@ const RubyTab = (props) => {
             const result = rubyToDncl(rubyCodeStr);
             setDnclDisplayCode(result.dncl);
         }
-    }, [rubyCodeStr, dnclMode]);
+    }, [rubyCodeStr, dnclMode, prismReady]);
+
+    // The problem form is drawn only in the Japanese mode.
+    useEffect(() => {
+        if (problemFormViewRef.current) problemFormViewRef.current.sync();
+    }, [dnclMode]);
 
     // The marks left by the paste-time index shift belong to the DNCL text.
     useEffect(() => {
@@ -1281,22 +1378,50 @@ const RubyTab = (props) => {
         monacoRef.current.editor.setModelMarkers(editorRef.current.getModel(), DNCL_SLASH_COMMENT_OWNER, markers);
     }, [dnclMode, dnclDisplayCode, intl]);
 
-    // The post-test loop (Issue #1626) and the Ruby commands (Issue #1679)
-    // cannot be written in DNCL. Such DNCL is not converted to Ruby (it would
-    // become `@begin` / `@move(2)`), so tell it on its lines whether it was
-    // typed or shown from blocks. The markers use their own owner so clearing
-    // conversion errors keeps them.
+    // `+` with a string and `-` / `*` / `/` are worked out from the left, so in
+    // `"残り" + a - 1` the `- 1` is taken from a string and only a number is shown.
+    // The order is kept (Ruby reads it the same way); warn on such lines so that
+    // the number part is put in parentheses (see `stringArithmeticRows`). The
+    // markers use their own owner so clearing conversion errors keeps them
+    // (Issue #1465).
     useEffect(() => {
         if (!editorRef.current || !monacoRef.current) return;
-        const errors = dnclMode
-            ? dnclToRuby(dnclDisplayCode).errors.filter(
-                  (err) =>
-                      err.id === POST_TEST_LOOP_ERROR_ID ||
-                      err.id === UNSUPPORTED_COMMAND_ERROR_ID ||
-                      err.id === UNSUPPORTED_NUMBER_ERROR_ID,
-              )
-            : [];
+        const lines = dnclMode ? dnclDisplayCode.split('\n') : [];
+        const rows = dnclMode ? stringArithmeticRows(lines) : [];
+        const message = intl.formatMessage({
+            id: 'gui.rubyTab.dnclStringArithmeticHint',
+            defaultMessage:
+                'With a string, - * / are worked out from the left, so "a" + x - 1 subtracts from the string "a" + x. Put the number part in parentheses, like "a" + (x - 1).',
+        });
+        const markers = rows.map((row) => ({
+            startLineNumber: row + 1,
+            startColumn: 1,
+            endLineNumber: row + 1,
+            endColumn: lines[row].length + 1,
+            message,
+            severity: monacoRef.current.MarkerSeverity.Warning,
+        }));
+        monacoRef.current.editor.setModelMarkers(editorRef.current.getModel(), DNCL_STRING_ARITHMETIC_OWNER, markers);
+    }, [dnclMode, dnclDisplayCode, intl]);
+
+    // DNCL that makes no Ruby is told on its lines, whether it was typed or
+    // shown from blocks: the post-test loop (Issue #1626), the Ruby commands
+    // (Issue #1679), the numbers of Ruby, a missing or extra closer (Issue
+    // #1419) and a line that cannot be read. The markers use their own owner
+    // so clearing conversion errors keeps them.
+    useEffect(() => {
+        if (!editorRef.current || !monacoRef.current) return;
+        const errors = dnclMode ? dnclToRuby(dnclDisplayCode).errors : [];
         const lines = dnclDisplayCode.split('\n');
+        const translated = (err) =>
+            err.id === POST_TEST_LOOP_ERROR_ID ||
+            err.id === UNSUPPORTED_COMMAND_ERROR_ID ||
+            err.id === UNSUPPORTED_NUMBER_ERROR_ID;
+        // `//` is integer division in Smalruby DNCL, never a comment (Issue #1192).
+        const doubleSlashHint = intl.formatMessage({
+            id: 'gui.rubyTab.dnclDoubleSlashHint',
+            defaultMessage: 'In Smalruby, // is not a comment (it is integer division). Use # for comments.',
+        });
         const markers = errors
             .filter((err) => err.line <= lines.length)
             .map((err) => {
@@ -1304,17 +1429,20 @@ const RubyTab = (props) => {
                 const command =
                     (err.id === UNSUPPORTED_COMMAND_ERROR_ID || err.id === UNSUPPORTED_NUMBER_ERROR_ID) &&
                     err.column + err.name.length <= lineEnd;
+                const [hinted] = translated(err)
+                    ? [{ text: dnclErrorText(err) }]
+                    : withDoubleSlashHint([{ row: err.line - 1, text: err.message }], lines, doubleSlashHint);
                 return {
                     startLineNumber: err.line,
                     startColumn: command ? err.column : 1,
                     endLineNumber: err.line,
                     endColumn: command ? err.column + err.name.length : lineEnd,
-                    message: dnclErrorText(err),
+                    message: hinted.text,
                     severity: monacoRef.current.MarkerSeverity.Error,
                 };
             });
         monacoRef.current.editor.setModelMarkers(editorRef.current.getModel(), DNCL_UNSUPPORTED_OWNER, markers);
-    }, [dnclMode, dnclDisplayCode, dnclErrorText]);
+    }, [dnclMode, dnclDisplayCode, dnclErrorText, intl]);
 
     // componentDidUpdate equivalent
     const prevPropsRef = useRef(null);
@@ -1577,6 +1705,7 @@ const RubyTab = (props) => {
                     dnclValidating={dnclValidating}
                     dnclModeLocked={dnclModeLocked}
                     onToggleDnclMode={handleToggleDnclMode}
+                    onCopyProblemForm={handleCopyProblemForm}
                     locale={locale}
                 />
                 <div className={styles.editorWrapper}>
@@ -1590,7 +1719,12 @@ const RubyTab = (props) => {
                             fontSize: fontSize || DEFAULT_FONT_SIZE,
                             fontFamily: 'Monaco, Menlo, Consolas, "source-code-pro", monospace',
                             minimap: { enabled: false },
-                            renderWhitespace: 'all',
+                            // The problem form of the Japanese mode shows no dots for the
+                            // spaces and no indent guides, and the line numbers as (01).
+                            renderWhitespace: problemFormShown ? 'none' : 'all',
+                            guides: { indentation: !problemFormShown },
+                            lineNumbers: dnclMode ? problemFormLineNumberLabels : 'on',
+                            lineNumbersMinChars: dnclMode ? lineNumbersMinChars : 5,
                             scrollBeyondLastLine: true,
                             tabSize: 2,
                             fixedOverflowWidgets: true,
@@ -1606,6 +1740,17 @@ const RubyTab = (props) => {
                         value={dnclMode ? dnclDisplayCode : code}
                         width="100%"
                     />
+                    {dnclMode && !problemFormShown && (
+                        <button
+                            className={styles.problemFormDoneButton}
+                            data-testid="ruby-tab-problem-form-done"
+                            type="button"
+                            onClick={handleProblemFormDoneClick}
+                            onMouseDown={handleProblemFormDoneMouseDown}
+                        >
+                            {intl.formatMessage(problemFormMessages.done)}
+                        </button>
+                    )}
                     {/* Switching to or from DNCL starts the consultation again: the question, the
                         answer and the two versions are in the language of the mode (#1402). */}
                     <GenaiConcierge

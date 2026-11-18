@@ -39,6 +39,7 @@
 import dedent from 'dedent';
 import { dnclToRuby } from '../../../src/lib/dncl/dncl-to-ruby';
 import { rubyToDncl } from '../../../src/lib/dncl/ruby-to-dncl';
+import { loadPrism } from '../../../src/lib/prism-parser';
 import RubyGenerator from '../../../src/lib/ruby-generator';
 import { buildBlocks, printBlockNotationLike, readBlocks } from './block-notation';
 import {
@@ -126,7 +127,8 @@ const defineJaTests = (row, ja, opts) => {
         });
     }
     if (row.jaOnly !== 'jaToBlocks') {
-        test('toJa', () => {
+        test('toJa', async () => {
+            await loadPrism();
             expect(blocksToJa(row.blocks, opts)).toBe(ja);
         });
     }
