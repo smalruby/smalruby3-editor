@@ -2000,15 +2000,13 @@
       3,
       4
     ],
-    "converterErrors": [
-      {
-        "row": 0,
-        "column": 0,
-        "type": "error",
-        "text": "\"@答え = たしざん(3, 4)\" is the wrong instruction.\nCheck the spelling or use a supported block.",
-        "source": null
-      }
-    ]
+    "converterErrors": [],
+    "blocks": "procedures_call(arg1: \"3\", arg2: \"4\") #\"@ruby:return:たしざん\"\ndata_setvariableto(VARIABLE = @答え, VALUE: @_return_たしざん_ #\"@ruby:return:たしざん\")\n\nprocedures_definition(custom_block: shadow procedures_prototype(arg1: shadow argument_reporter_string_number(VALUE = \"a\"), arg2: shadow argument_reporter_string_number(VALUE = \"b\")))\ndata_setvariableto(VARIABLE = @_return_たしざん_, VALUE: \"\") #\"@ruby:return:たしざん:initialize\"\ndata_setvariableto(VARIABLE = @_return_たしざん_, VALUE: operator_add(NUM1: argument_reporter_string_number(VALUE = \"a\"), NUM2: argument_reporter_string_number(VALUE = \"b\"))) #\"@ruby:syntax:return @ruby:return:たしざん\"\ncontrol_stop(STOP_OPTION = \"this script\") #\"@ruby:syntax:return\"",
+    "shown": {
+      "ruby": "def たしざん(a, b)\n  return a + b\nend\n\n@答え = たしざん(3, 4)",
+      "ja": "関数 たしざん(a, b):\n    a + b を返す\n\n答え = たしざん(3, 4)",
+      "errors": []
+    }
   },
   "ja-0ea8592708": {
     "ruby": "def たしざん(a, b)\n  return a + b\nend",
@@ -6773,15 +6771,13 @@
       3,
       4
     ],
-    "converterErrors": [
-      {
-        "row": 0,
-        "column": 0,
-        "type": "error",
-        "text": "\"myfunc(3)\" is the wrong instruction.\nCheck the spelling or use a supported block.",
-        "source": null
-      }
-    ]
+    "converterErrors": [],
+    "blocks": "procedures_call(arg1: \"3\")\n\nprocedures_definition(custom_block: shadow procedures_prototype(arg1: shadow argument_reporter_string_number(VALUE = \"x\")))\ndata_setvariableto(VARIABLE = @_return_myfunc_, VALUE: \"\") #\"@ruby:return:myfunc:initialize\"\ndata_setvariableto(VARIABLE = @_return_myfunc_, VALUE: \"5\") #\"@ruby:syntax:return @ruby:return:myfunc\"\ncontrol_stop(STOP_OPTION = \"this script\") #\"@ruby:syntax:return\"",
+    "shown": {
+      "ruby": "def myfunc(x)\n  return 5\nend\n\nmyfunc(3)",
+      "ja": "関数 myfunc(x):\n    5 を返す\n\nmyfunc(3)",
+      "errors": []
+    }
   },
   "ja-9efa7d69da": {
     "ruby": "@a = 1 # @todo",
