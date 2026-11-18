@@ -606,21 +606,26 @@ TryRuby 対応で追加された Ruby メソッドのふりがな。
 
 ### Studuino（スタディーノ）拡張機能（旧 スモウルボットS1）
 
-`smalrubot_s1` は事前定義レシーバー。レシーバー自体に `スタディーノ` のふりがなが付く。
+`studuino` は事前定義レシーバー。レシーバー自体に `スタディーノ` のふりがなが付く。ブロックからは `studuino.` を書き出す。前の書き方の `smalrubot_s1` も同じふりがな（レシーバー・メソッド・選択肢）が付く。
 
 | Ruby | ふりがな | Scratchブロック |
 | ------ | --------- | ------ |
-| `smalrubot_s1`（レシーバー） | `スタディーノ` | — |
-| `smalrubot_s1.action("forward")` | `スタディーノ` `動作する` `進める` | 「進める」 |
-| `smalrubot_s1.action("backward")` | `スタディーノ` `動作する` `バックさせる` | 「バックさせる」 |
-| `smalrubot_s1.action("turnLeft")` | `スタディーノ` `動作する` `左に曲げる` | 「左に曲げる」 |
-| `smalrubot_s1.action("turnRight")` | `スタディーノ` `動作する` `右に曲げる` | 「右に曲げる」 |
-| `smalrubot_s1.action("stop")` | `スタディーノ` `動作する` `止める` | 「止める」 |
-| `smalrubot_s1.bend_arm(90, 1)` | `スタディーノ` `アームを曲げる` | 「アームを曲げる」 |
-| `smalrubot_s1.sensor_value("left")` | `スタディーノ` `センサーの値` | 「左のセンサー」 |
-| `smalrubot_s1.get_motor_speed("left")` | `スタディーノ` `モーター速度` | 「左DCモーターの速度」 |
-| `smalrubot_s1.set_motor_speed("left", 50)` | `スタディーノ` `モーター速度を設定` | 「左DCモーターの速度を50にする」 |
-| `smalrubot_s1.led("left", true)` | `スタディーノ` `LED設定` | 「左のLEDをオンにする」 |
+| `studuino` / `smalrubot_s1`（レシーバー） | `スタディーノ` | — |
+| `studuino.action("forward")` | `スタディーノ` `動作する` `車を前進させる` | 「車を前進させる」 |
+| `studuino.action("backward")` | `スタディーノ` `動作する` `車を後退させる` | 「車を後退させる」 |
+| `studuino.action("left")` | `スタディーノ` `動作する` `車を左に曲げる` | 「車を左に曲げる」 |
+| `studuino.action("right")` | `スタディーノ` `動作する` `車を右に曲げる` | 「車を右に曲げる」 |
+| `studuino.action("stop")` | `スタディーノ` `動作する` `車を止める` | 「車を止める」 |
+| `studuino.bend_arm(90, 1)` | `スタディーノ` `アームを曲げる` | 「アーム（サーボモーター D10）を曲げる」 |
+| `studuino.sensor_value("light")` | `スタディーノ` `センサーの値` `光センサー (A6)` | 「光センサー (A6) の値」 |
+| `studuino.sensor_value("ir_a4")` | `スタディーノ` `センサーの値` `赤外線センサー（フォトリフレクタ）(A4)` | 「赤外線センサー（フォトリフレクタ）(A4) の値」 |
+| `studuino.sensor_value("left")` | `スタディーノ` `センサーの値` `左のセンサー (A4)` | 「左のセンサー (A4) の値」 |
+| `studuino.get_motor_speed("left")` | `スタディーノ` `モーター速度` `左` | 「左の DC モーターの速度」 |
+| `studuino.set_motor_speed("left", 50)` | `スタディーノ` `モーター速度を設定` `左` | 「左の DC モーターの速度を 50 にする」 |
+| `studuino.led("left", true)` | `スタディーノ` `LED設定` `左` | 「左の LED をオンにする」 |
+| `studuino.arm_calibration = 0` | `スタディーノ` `アーム調整` | 「アームを 0 度調整する」 |
+
+センサーの選択肢は、ほかに `ir_a5`（赤外線センサー（フォトリフレクタ）(A5)）・`touch`（タッチセンサー (A2)）・`sound`（音センサー (A7)）・`right`（右のセンサー (A5)）。
 
 ### スモウルビー甲子園（Koshien拡張機能）
 

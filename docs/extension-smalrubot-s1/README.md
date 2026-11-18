@@ -42,14 +42,9 @@
 | 拡張機能の名前（ライブラリ・カテゴリ・メニューバー・接続モーダル・ファームウェアのモーダル） | スモウルボットS1 | **Studuino（スタディーノ）**（ひらがなの表示では「Studuino (スタディーノ)」、文の中は「スタディーノ」） |
 | ライブラリの絵（カード・接続モーダル・カテゴリの絵） | スモウルボットS1 のロボットの写真 | **自分たちで用意した基板の絵**（アーテック社の写真・ロゴは使わない。下の「ライブラリの絵と商標の表記」） |
 | ライブラリのカードの説明 | スモウルボットS1を制御する。 | アーテック社の表記に合わせた紹介と、登録商標の一文（下の「ライブラリの絵と商標の表記」） |
-| Ruby タブのふりがな（`smalrubot_s1` の上に出る名前） | スモウルボットS1 | スタディーノ |
+| Ruby タブのふりがな（`studuino` / `smalrubot_s1` の上に出る名前） | スモウルボットS1 | スタディーノ |
+| Ruby の書き出し | `smalrubot_s1.` | **`studuino.`**（読みこみは `smalrubot_s1.` も受けつける。下の「Ruby の書き方」） |
 | ブロック・選択肢の表示 | ロボットの部品の名前（「左のセンサー」など） | 一般的な名前（下の「ブロックと選択肢」）。センサーの選択肢を足し、ロボットのブロックを「ロボットカー」の見出しの下にまとめた |
-
-### 変えるもの（🚧 これから）
-
-| 対象 | いま | これから |
-|---|---|---|
-| Ruby の書き出し | `smalrubot_s1.` | `studuino.`（下の「Ruby の書き方」） |
 
 ### ライブラリの絵と商標の表記
 
@@ -145,28 +140,31 @@
 
 ## Ruby の書き方
 
-### いま
-
-書き出しも読みこみも `smalrubot_s1.` を使う。
+**書き出しは全部 `studuino.`**。**読みこみは `studuino.` と `smalrubot_s1.` の両方を受けつける**ので、前に書いた Ruby のプログラムや教材もそのままブロックにできる（ブロックにしてから書き出すと `studuino.` になる）。変わったのはレシーバーの名前だけで、メソッド名と引数の形は前と同じ。
 
 | ブロック | Ruby |
 |---|---|
-| `action` | `smalrubot_s1.action("forward")` |
-| `actionAndStopAfter` | `smalrubot_s1.action("forward", 0.5)` |
-| `bendArm` | `smalrubot_s1.bend_arm(90, 1)` |
-| `getSensorValue` | `smalrubot_s1.sensor_value("left")` |
-| `turnLedOn` / `turnLedOff` | `smalrubot_s1.led("left", true)` / `smalrubot_s1.led("left", false)` |
-| `getMotorSpeed` | `smalrubot_s1.get_motor_speed("left")` |
-| `setMotorSpeed` | `smalrubot_s1.set_motor_speed("left", 50)` |
-| `setArmCalibration` | `smalrubot_s1.arm_calibration = 0` |
+| `action` | `studuino.action("forward")` |
+| `actionAndStopAfter` | `studuino.action("forward", 0.5)` |
+| `bendArm` | `studuino.bend_arm(90, 1)` |
+| `getSensorValue` | `studuino.sensor_value("light")` |
+| `turnLedOn` / `turnLedOff` | `studuino.led("left", true)` / `studuino.led("left", false)` |
+| `getMotorSpeed` | `studuino.get_motor_speed("left")` |
+| `setMotorSpeed` | `studuino.set_motor_speed("left", 50)` |
+| `setArmCalibration` | `studuino.arm_calibration = 0` |
 
 引数の文字列はメニューの値（`forward` / `backward` / `left` / `right` / `stop`、`light` / `ir_a4` / `ir_a5` / `touch` / `sound` / `left` / `right`）。
 
-### これから（🚧）
+```ruby
+# 前の書き方（読みこめる）
+smalrubot_s1.sensor_value("ir_a4")
+# ブロックにしてから書き出すと
+studuino.sensor_value("ir_a4")
+```
 
-- **書き出しは全部 `studuino.`** にする（例: `studuino.action("forward")`、`studuino.sensor_value("light")`）。メソッド名と引数は上の表と同じ。
-- **読みこみは `studuino.` と `smalrubot_s1.` の両方を受けつける**。前に書いた Ruby のプログラムもブロックにできる（ブロックにしてから書き出すと `studuino.` になる）。
-- 増やした選択肢（`ir_a4` / `ir_a5`）も、ほかの値と同じ形で文字列として書き、読みこめる（いまは `smalrubot_s1.sensor_value("ir_a4")`）。
+- 変換器は、同じ表（メソッドと引数のチェック）を `studuino` と `smalrubot_s1` の 2 つのレシーバーで登録している。Ruby タブのふりがな（「スタディーノ」）と補完も両方のレシーバーで同じ。補完は `studuino.` を入れ、`smalrubot` と打っても見つかる。
+- `studuino` は、ほかの拡張機能のレシーバー（`mesh` / `koshien` など）やスプライトのメソッドと名前がぶつからない。同じ名前のローカル変数を作ると、Ruby のふつうの決まりどおりそちらが先になる（`smalrubot_s1` のときと同じ）。
+- Studuino モード（`docs/studuino-mode/`）も、同じ `studuino.` の書き方を使う前提（ポートの設定の書き方はそちらで決める）。
 
 ## 練習用の基板（🚧 これから）
 
@@ -254,8 +252,8 @@
 
 | ファイル | 役割 |
 |---|---|
-| `packages/scratch-gui/src/lib/ruby-generator/smalrubot_s1.js` | ブロック → Ruby（いまは `smalrubot_s1.` で書き出す） |
-| `packages/scratch-gui/src/lib/ruby-to-blocks-converter/smalrubot_s1.js` | Ruby → ブロック（いまは `smalrubot_s1.` を読みこむ） |
+| `packages/scratch-gui/src/lib/ruby-generator/smalrubot_s1.js` | ブロック → Ruby（`studuino.` で書き出す） |
+| `packages/scratch-gui/src/lib/ruby-to-blocks-converter/smalrubot_s1.js` | Ruby → ブロック（`studuino.` と `smalrubot_s1.` を読みこむ） |
 
 #### Redux
 

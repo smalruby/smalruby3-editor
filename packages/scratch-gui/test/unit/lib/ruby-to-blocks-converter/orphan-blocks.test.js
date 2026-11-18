@@ -11,7 +11,7 @@
  *
  * or from an argument that was converted but only read as a value (a field, or which opcode to
  * use), and never put into an input (#1534):
- * - `self.drag_mode = true` / `smalrubot_s1.led("left", false)`: the `1 = 1` / `0 < 0` block;
+ * - `self.drag_mode = true` / `studuino.led("left", false)`: the `1 = 1` / `0 < 0` block;
  * - `ticket.reverse!`: the receiver's `data_variable` block (and its `@ruby:lvar` comment);
  * - `"a".reverse` as a statement / `if "a".reverse`: the `returnValue` reporter;
  * - `koshien.map_from("0:0", m)`: the `data_variable` was deleted but not its comment;
@@ -241,8 +241,10 @@ describe('RubyToBlocksConverter: no orphan blocks', () => {
                 null,
             ],
             ['koshien map_from with a local variable', 'm = "x"\n$map = koshien.map_from("14:0", m)', null],
-            ['smalrubot LED on', 'smalrubot_s1.led("left", true)', null],
-            ['smalrubot LED off', 'smalrubot_s1.led("right", false)', null],
+            ['smalrubot LED on', 'smalrubot_s1.led("left", true)', 'studuino.led("left", true)'],
+            ['smalrubot LED off', 'smalrubot_s1.led("right", false)', 'studuino.led("right", false)'],
+            ['studuino LED on', 'studuino.led("left", true)', null],
+            ['studuino LED off', 'studuino.led("right", false)', null],
             [
                 'method ending with true',
                 dedent`

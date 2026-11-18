@@ -9,7 +9,43 @@ import {
     expectRoundTrip,
 } from '../../helpers/ruby-roundtrip-helper';
 
-describe('Ruby Roundtrip: Smalrubot S1 extension blocks', () => {
+// One line per block (and per choice of a menu). The blocks write `studuino.` (#2190).
+const STUDUINO_RUBY = dedent`
+        studuino.action("forward")
+        studuino.action("backward")
+        studuino.action("left")
+        studuino.action("right")
+        studuino.action("stop")
+        studuino.action("forward", 0.5)
+        studuino.bend_arm(90, 1)
+
+        studuino.sensor_value("left")
+
+        studuino.sensor_value("right")
+
+        studuino.sensor_value("touch")
+
+        studuino.sensor_value("light")
+
+        studuino.sensor_value("sound")
+
+        studuino.sensor_value("ir_a4")
+
+        studuino.sensor_value("ir_a5")
+
+        studuino.led("left", true)
+        studuino.led("right", true)
+        studuino.led("left", false)
+
+        studuino.get_motor_speed("left")
+
+        studuino.get_motor_speed("right")
+
+        studuino.set_motor_speed("left", 50)
+        studuino.arm_calibration = 0
+`;
+
+describe('Ruby Roundtrip: Studuino (Smalrubot S1) extension blocks', () => {
     let target, runtime, converter;
 
     beforeEach(() => {
@@ -18,44 +54,13 @@ describe('Ruby Roundtrip: Smalrubot S1 extension blocks', () => {
         converter = makeConverter(target, runtime);
     });
 
-    test('Ruby -> Code -> Ruby', async () => {
-        await expectRoundTrip(
-            converter,
-            target,
-            dedent`
-            smalrubot_s1.action("forward")
-            smalrubot_s1.action("backward")
-            smalrubot_s1.action("left")
-            smalrubot_s1.action("right")
-            smalrubot_s1.action("stop")
-            smalrubot_s1.action("forward", 0.5)
-            smalrubot_s1.bend_arm(90, 1)
+    test('Ruby -> Code -> Ruby writes studuino.', async () => {
+        await expectRoundTrip(converter, target, STUDUINO_RUBY);
+    });
 
-            smalrubot_s1.sensor_value("left")
-
-            smalrubot_s1.sensor_value("right")
-
-            smalrubot_s1.sensor_value("touch")
-
-            smalrubot_s1.sensor_value("light")
-
-            smalrubot_s1.sensor_value("sound")
-
-            smalrubot_s1.sensor_value("ir_a4")
-
-            smalrubot_s1.sensor_value("ir_a5")
-
-            smalrubot_s1.led("left", true)
-            smalrubot_s1.led("right", true)
-            smalrubot_s1.led("left", false)
-
-            smalrubot_s1.get_motor_speed("left")
-
-            smalrubot_s1.get_motor_speed("right")
-
-            smalrubot_s1.set_motor_speed("left", 50)
-            smalrubot_s1.arm_calibration = 0
-        `,
-        );
+    test('older Ruby with smalrubot_s1. opens and is written back with studuino.', async () => {
+        const older = STUDUINO_RUBY.replace(/studuino\./g, 'smalrubot_s1.');
+        expect(older).not.toContain('studuino.');
+        await expectRoundTrip(converter, target, older, STUDUINO_RUBY);
     });
 });
