@@ -140,7 +140,7 @@ describe('DNCL → Ruby: a command the Japanese mode does not have stops with an
         expect(result.ruby).toBeNull();
         expect(result.errors[0]).toMatchObject({ id: UNSUPPORTED_COMMAND_ERROR_ID, name: '差分' });
         expect(result.errors[0].message).toBe(
-            '「差分」は定義されていない関数です。「関数 差分(…)」で定義してください。',
+            '「差分」は定義されていない関数です。「関数 差分(…):」で定義してください。',
         );
     });
 
