@@ -829,6 +829,12 @@ defineBlockRubyTable('Motion blocks ⇔ Ruby', [
 | `math_angle(90)` / `text("hi")` | opcode まで比べる数・文字列（素の `10` はどの `math_*` とも一致） |
 | `noshadow <ブロック>` / `shadow <ブロック>` | 影かどうかがふつうと違うブロック（メニュー・数・文字列はふつう影） |
 
+**日本語の列**: 行に `ja`（日本語モードのコード）を書くと、その行は「日本語 → Ruby（`dnclToRuby`）→ ブロック」（`jaToBlocks`）と「ブロック → Ruby → 日本語（`rubyToDncl`）」（`toJa`）も流す。日本語から作った Ruby は `ruby` と空白やかっこが違ってもよく、ブロックが同じであればよい。日本語モードが読むが書かない形（`x ← 1`、行番号、`⎿`）は `jaOnly: 'jaToBlocks'` にする。日本語の表は `test/unit/lib/ruby-roundtrip/japanese-table.test.js`。
+
+```js
+{ ja: '表示する(x)', ruby: 'puts(@x)', blocks: 'looks_sayforsecs(MESSAGE: @x, SECS: 1) #"@ruby:method:puts"' },
+```
+
 比べないもの: ID、位置、ブロックの後ろに隠れた影、素の数の影の opcode の違い（`math_number` と `math_whole_number` など）。どのスクリプトからもつながらないブロックや、無い変数を指すフィールドがあると、変換の側のテストはその理由で落ちる。カスタムブロック（mutation を持つブロック）とエラーになる形は、いまは `test/helpers/expect-to-equal-blocks.js` で書く。
 
 ## 新しい橋渡しパターンを足すときのチェックリスト
@@ -854,6 +860,11 @@ defineBlockRubyTable('Motion blocks ⇔ Ruby', [
 | 大文字で始まる、それ以外の名前 `Kosu` | `@_var_Kosu_` | 同上 |
 
 Ruby から日本語モードに戻すときは `src/lib/dncl/ruby-to-dncl-identifier.js` が元の名前に戻す。
+
+日本語モードの変換を作り直す（`ja-notation`。[`converter-roadmap.md`](converter-roadmap.md) の 2 章・4 章）ための安全網は 2 つある。
+
+- **表のテスト**の日本語の列（`japanese-table.test.js`。→「[表のテスト](#表のテストブロックの短い記法)」）。日本語が出す Ruby が、変換器の受け付ける Ruby の部分集合であることを確かめる。
+- **コーパスとゴールデン**（`packages/scratch-gui/test/fixtures/ja-notation/`。集め方と作り直し方はそこの README）。日本語モードのテスト・`test/fixtures/dncl/`・言語仕様の例から集めた日本語と Ruby のプログラムについて、いまの `dnclToRuby` / `rubyToDncl` の出力（Ruby・日本語・ブロック・誤りの文と行）を記録し、`test/unit/lib/ja-notation/golden.test.js` が差が無いことを確かめる。不具合を直して出力が変わるときは、ゴールデンを作り直して差分を読む。
 
 ## License
 

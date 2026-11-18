@@ -1,0 +1,2578 @@
+[
+  {
+    "id": "ruby-07ab982fbe",
+    "from": [
+      "test/unit/lib/dncl/dncl-bare-method-in-expression.test.js › Ruby → DNCL: a method without parentheses in an expression (issue #1694) a method in a condition and with a method of its value"
+    ],
+    "ruby": "if direction > 90\n  puts(y_position.to_s)\nend"
+  },
+  {
+    "id": "ruby-479055452c",
+    "from": [
+      "test/unit/lib/dncl/dncl-bare-method-in-expression.test.js › Ruby → DNCL: a method without parentheses in an expression (issue #1694) a method in an argument"
+    ],
+    "ruby": "puts(costume_number)"
+  },
+  {
+    "id": "ruby-1365258296",
+    "from": [
+      "test/unit/lib/dncl/dncl-bare-method-in-expression.test.js › Ruby → DNCL: a method without parentheses in an expression (issue #1694) a method in an assignment"
+    ],
+    "ruby": "@a = 1 + x_position"
+  },
+  {
+    "id": "ruby-22a7460321",
+    "from": [
+      "test/unit/lib/dncl/dncl-bare-method-in-expression.test.js › Ruby → DNCL: a method without parentheses in an expression (issue #1694) a method in the bound or the step of a counting loop"
+    ],
+    "ruby": "@i = 1\nwhile @i <= x_position\n  puts(@i)\n  @i += costume_number\nend"
+  },
+  {
+    "id": "ruby-604fe0a397",
+    "from": [
+      "test/unit/lib/dncl/dncl-bare-method-in-expression.test.js › Ruby → DNCL: a method without parentheses in an expression (issue #1694) a name alone on a line is told once"
+    ],
+    "ruby": "bounce_if_on_edge"
+  },
+  {
+    "id": "ruby-2fdccc8f04",
+    "from": [
+      "test/unit/lib/dncl/dncl-bare-method-in-expression.test.js › Ruby → DNCL: a method without parentheses in an expression (issue #1694) a name in a string or a comment is not taken"
+    ],
+    "ruby": "puts(\"x_position\")\n@a = 1 # x_position"
+  },
+  {
+    "id": "ruby-58cf3ef45c",
+    "from": [
+      "test/unit/lib/dncl/dncl-bare-method-in-expression.test.js › Ruby → DNCL: a method without parentheses in an expression (issue #1694) the error message points to the Ruby mode"
+    ],
+    "ruby": "@a = x_position"
+  },
+  {
+    "id": "ruby-b5bb6c47cd",
+    "from": [
+      "test/unit/lib/dncl/dncl-bare-method-in-expression.test.js › Ruby → DNCL: names that stay as they are (issue #1694) a block parameter"
+    ],
+    "ruby": "(1..3).step(1) do |i|\n  puts(i)\nend"
+  },
+  {
+    "id": "ruby-07b0faa6ff",
+    "from": [
+      "test/unit/lib/dncl/dncl-bare-method-in-expression.test.js › Ruby → DNCL: names that stay as they are (issue #1694) a defined function called without parentheses"
+    ],
+    "ruby": "def greet\n  puts(\"hi\")\nend\n@a = greet"
+  },
+  {
+    "id": "ruby-115bfe2a31",
+    "from": [
+      "test/unit/lib/dncl/dncl-bare-method-in-expression.test.js › Ruby → DNCL: names that stay as they are (issue #1694) a method parameter"
+    ],
+    "ruby": "def f(x)\n  return x * 2\nend\n@a = f(3)"
+  },
+  {
+    "id": "ruby-6ea6ea0cb1",
+    "from": [
+      "test/unit/lib/dncl/dncl-bare-method-in-expression.test.js › Ruby → DNCL: names that stay as they are (issue #1694) a Ruby local variable"
+    ],
+    "ruby": "b = 2\n@a = 1 + b"
+  },
+  {
+    "id": "ruby-c86e6cfe97",
+    "from": [
+      "test/unit/lib/dncl/dncl-bare-method-in-expression.test.js › Ruby → DNCL: names that stay as they are (issue #1694) answer, rand and the built-in functions"
+    ],
+    "ruby": "ask(\"\")\n@a = answer\n@b = rand(1..6)\n@c = @a.to_i + @b.length\nputs(true && !false)"
+  },
+  {
+    "id": "ruby-0560bfb414",
+    "from": [
+      "test/unit/lib/dncl/dncl-bare-method-in-expression.test.js › Ruby → DNCL: names that stay as they are (issue #1694) instance and global variables, constants and keywords"
+    ],
+    "ruby": "@a = $b + @_var_c_ + Math.sqrt(4)\nif @a > 1 and not @a == 2\n  @a = nil\nend"
+  },
+  {
+    "id": "ruby-d3d541db91",
+    "from": [
+      "test/unit/lib/dncl/dncl-bare-method-in-expression.test.js › Ruby → DNCL: names that stay as they are (issue #1694) Ruby local variables assigned together"
+    ],
+    "ruby": "a, b = 1, 2\nputs(a + b)"
+  },
+  {
+    "id": "ruby-5185405f54",
+    "from": [
+      "test/unit/lib/dncl/dncl-bare-method-in-expression.test.js › Ruby → DNCL: names that stay as they are (issue #1694) wait until"
+    ],
+    "ruby": "@a = 1\nwait until @a > 0"
+  },
+  {
+    "id": "ruby-60e1be5cbf",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL → Ruby with a `-` before a built-in (Issue #1744) DNCL → Ruby → DNCL: b = -(a + 1)",
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL → Ruby with a `-` before a built-in (Issue #1744) Ruby → DNCL → Ruby keeps the value: @b = -(@a + 1)"
+    ],
+    "ruby": "@b = -(@a + 1)"
+  },
+  {
+    "id": "ruby-0673c22fe7",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL → Ruby with a `-` before a built-in (Issue #1744) DNCL → Ruby → DNCL: b = -四捨五入(2.5)"
+    ],
+    "ruby": "@b = -(2.5.round)"
+  },
+  {
+    "id": "ruby-4d12ecdd1c",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL → Ruby with a `-` before a built-in (Issue #1744) DNCL → Ruby → DNCL: b = -整数(x)",
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL → Ruby with a `-` before a built-in (Issue #1744) Ruby → DNCL → Ruby keeps the value: @b = -(@x.to_i)"
+    ],
+    "ruby": "@b = -(@x.to_i)"
+  },
+  {
+    "id": "ruby-4fbe66ff4d",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL → Ruby with a `-` before a built-in (Issue #1744) DNCL → Ruby → DNCL: b = -文字列(1)",
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL → Ruby with a `-` before a built-in (Issue #1744) Ruby → DNCL → Ruby keeps the value: @b = -(1.to_s)"
+    ],
+    "ruby": "@b = -(1.to_s)"
+  },
+  {
+    "id": "ruby-d70c8fa8b3",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL → Ruby with a `-` before a built-in (Issue #1744) DNCL → Ruby → DNCL: b = -絶対値(5)",
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL → Ruby with a `-` before a built-in (Issue #1744) Ruby → DNCL → Ruby keeps the value: @b = -(5.abs)"
+    ],
+    "ruby": "@b = -(5.abs)"
+  },
+  {
+    "id": "ruby-81d9b8a2cd",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL → Ruby with a `-` before a built-in (Issue #1744) DNCL → Ruby → DNCL: b = -絶対値(a - c)"
+    ],
+    "ruby": "@b = -((@a - @c).abs)"
+  },
+  {
+    "id": "ruby-882975e3e3",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL → Ruby with a `-` before a built-in (Issue #1744) DNCL → Ruby → DNCL: b = -要素数(A)"
+    ],
+    "ruby": "@b = -(@_array_A_.length)"
+  },
+  {
+    "id": "ruby-25ba083a0e",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL → Ruby with a `-` before a built-in (Issue #1744) DNCL → Ruby → DNCL: b = 3 * -絶対値(5)"
+    ],
+    "ruby": "@b = 3 * -(5.abs)"
+  },
+  {
+    "id": "ruby-364a3b1aac",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL built-in with an expression argument (Issue #1686) DNCL → Ruby → DNCL b = 四捨五入(a * 2)"
+    ],
+    "ruby": "@b = (@a * 2).round"
+  },
+  {
+    "id": "ruby-fd11471525",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL built-in with an expression argument (Issue #1686) DNCL → Ruby → DNCL b = 整数((a + 1) * 2)"
+    ],
+    "ruby": "@b = ((@a + 1) * 2).to_i"
+  },
+  {
+    "id": "ruby-200a343d3e",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL built-in with an expression argument (Issue #1686) DNCL → Ruby → DNCL b = 整数(a + 1)",
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL built-in with an expression argument (Issue #1686) DNCL → Ruby → DNCL Ruby → DNCL → Ruby keeps `(式).to_i`"
+    ],
+    "ruby": "@b = (@a + 1).to_i"
+  },
+  {
+    "id": "ruby-eceb18b9d7",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL built-in with an expression argument (Issue #1686) DNCL → Ruby → DNCL b = 整数(a) + 1"
+    ],
+    "ruby": "@b = @a.to_i + 1"
+  },
+  {
+    "id": "ruby-47ec7f661a",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL built-in with an expression argument (Issue #1686) DNCL → Ruby → DNCL b = 整数(Data[1] * 3)"
+    ],
+    "ruby": "@b = (@_array_Data_[1] * 3).to_i"
+  },
+  {
+    "id": "ruby-5202879fb6",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL built-in with an expression argument (Issue #1686) DNCL → Ruby → DNCL b = 整数(x)"
+    ],
+    "ruby": "@b = @x.to_i"
+  },
+  {
+    "id": "ruby-3d7ccd9821",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL built-in with an expression argument (Issue #1686) DNCL → Ruby → DNCL b = 整数(乱数(1..10))"
+    ],
+    "ruby": "@b = rand(1..10).to_i"
+  },
+  {
+    "id": "ruby-91f82bfbe2",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL built-in with an expression argument (Issue #1686) DNCL → Ruby → DNCL b = 文字列(a + 1)"
+    ],
+    "ruby": "@b = (@a + 1).to_s"
+  },
+  {
+    "id": "ruby-9ab69a58ee",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL built-in with an expression argument (Issue #1686) DNCL → Ruby → DNCL b = 文字列(a > 1)"
+    ],
+    "ruby": "@b = (@a > 1).to_s"
+  },
+  {
+    "id": "ruby-ad21cff842",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL built-in with an expression argument (Issue #1686) DNCL → Ruby → DNCL b = 文字列(Data[1])"
+    ],
+    "ruby": "@b = @_array_Data_[1].to_s"
+  },
+  {
+    "id": "ruby-fabe689266",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL built-in with an expression argument (Issue #1686) DNCL → Ruby → DNCL b = 文字列(x / 2) comes back as b = 文字列(x / 2)"
+    ],
+    "ruby": "@b = (@x / 2).to_s"
+  },
+  {
+    "id": "ruby-e48113eb20",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL built-in with an expression argument (Issue #1686) DNCL → Ruby → DNCL b = 文字列(整数(x / 2)) comes back as b = 文字列(x ÷ 2)"
+    ],
+    "ruby": "@b = (@x / 2).to_i.to_s"
+  },
+  {
+    "id": "ruby-e425923f82",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL built-in with an expression argument (Issue #1686) DNCL → Ruby → DNCL b = 絶対値(a - c)"
+    ],
+    "ruby": "@b = (@a - @c).abs"
+  },
+  {
+    "id": "ruby-708b2b17fe",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL built-in with an expression argument (Issue #1686) DNCL → Ruby → DNCL i を 整数(a + 1) から 要素数(Data) まで 1 ずつ増やしながら\n  b = i\nを繰り返す"
+    ],
+    "ruby": "@i = (@a + 1).to_i\nwhile @i <= @_array_Data_.length\n  @b = @i\n  @i += 1\nend"
+  },
+  {
+    "id": "ruby-2f238db0f1",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL built-in with an expression argument (Issue #1686) DNCL → Ruby → DNCL y = 整数(x / 2) comes back as y = x ÷ 2"
+    ],
+    "ruby": "@y = (@x / 2).to_i"
+  },
+  {
+    "id": "ruby-f686d71468",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL built-in with an expression argument (Issue #1686) DNCL → Ruby → DNCL もし 整数(a + 1) > 3 ならば\n  b = 1\nを実行する"
+    ],
+    "ruby": "if (@a + 1).to_i > 3\n  @b = 1\nend"
+  },
+  {
+    "id": "ruby-2f240b29e3",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL built-in with an expression argument (Issue #1686) DNCL → Ruby → DNCL もし 整数(a) > 3 ならば\n  b = 1\nそうでなくもし 文字列(a) == \"1\" ならば\n  b = 2\nを実行する"
+    ],
+    "ruby": "if @a.to_i > 3\n  @b = 1\nelsif @a.to_s == \"1\"\n  @b = 2\nend"
+  },
+  {
+    "id": "ruby-2efabfc9fa",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL built-in with an expression argument (Issue #1686) DNCL → Ruby → DNCL 文字列(x でない) keeps the negation inside"
+    ],
+    "ruby": "@b = (!@x).to_s"
+  },
+  {
+    "id": "ruby-b58350ef0e",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL built-in with an expression argument (Issue #1686) DNCL → Ruby → DNCL 表示する(文字列(a + 1))"
+    ],
+    "ruby": "puts((@a + 1).to_s)"
+  },
+  {
+    "id": "ruby-0aa55ce178",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL built-in with an expression argument (Issue #1686) DNCL → Ruby → DNCL 要素数(Data) > i の間\n  i = i + 1\nを繰り返す"
+    ],
+    "ruby": "while @_array_Data_.length > @i\n  @i = @i + 1\nend"
+  },
+  {
+    "id": "ruby-0315fc3088",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL built-in with an expression argument (Issue #1686) DNCL → Ruby → DNCL 関数 f(x)\n  返す 整数(x * 2)\nと定義する"
+    ],
+    "ruby": "def f(x)\n  return (x * 2).to_i\nend"
+  },
+  {
+    "id": "ruby-ab488aee62",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › Ruby → DNCL with a negative number receiver (Issue #1700) @b = -1.5.abs → b = 絶対値(-1.5)"
+    ],
+    "ruby": "@b = -1.5.abs"
+  },
+  {
+    "id": "ruby-1e8d0d5f16",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › Ruby → DNCL with a negative number receiver (Issue #1700) @b = -1.to_s → b = 文字列(-1)",
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › Ruby → DNCL with a negative number receiver (Issue #1700) DNCL → Ruby → DNCL: b = 文字列(-1)"
+    ],
+    "ruby": "@b = -1.to_s"
+  },
+  {
+    "id": "ruby-59848e7a29",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › Ruby → DNCL with a negative number receiver (Issue #1700) @b = -2.5.round → b = 四捨五入(-2.5)"
+    ],
+    "ruby": "@b = -2.5.round"
+  },
+  {
+    "id": "ruby-afdf348d99",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › Ruby → DNCL with a negative number receiver (Issue #1700) @b = -5.abs → b = 絶対値(-5)",
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › Ruby → DNCL with a negative number receiver (Issue #1700) DNCL → Ruby → DNCL: b = 絶対値(-5)",
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL → Ruby with a `-` before a built-in (Issue #1744) DNCL → Ruby → DNCL: b = 絶対値(-5)"
+    ],
+    "ruby": "@b = -5.abs"
+  },
+  {
+    "id": "ruby-00c33c7e07",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › Ruby → DNCL with a negative number receiver (Issue #1700) @b = (-5.abs + 1) → b = (絶対値(-5) + 1)"
+    ],
+    "ruby": "@b = (-5.abs + 1)"
+  },
+  {
+    "id": "ruby-4be4df6e26",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › Ruby → DNCL with a negative number receiver (Issue #1700) @b = (@a > 0 || -1.to_s == \"x\") → b = (a > 0 または 文字列(-1) == \"x\")"
+    ],
+    "ruby": "@b = (@a > 0 || -1.to_s == \"x\")"
+  },
+  {
+    "id": "ruby-1ec9e1748e",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › Ruby → DNCL with a negative number receiver (Issue #1700) @b = (@a > 0 and -5.abs > 1) → b = (a > 0 and 絶対値(-5) > 1)"
+    ],
+    "ruby": "@b = (@a > 0 and -5.abs > 1)"
+  },
+  {
+    "id": "ruby-fc27c7275b",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › Ruby → DNCL with a negative number receiver (Issue #1700) @b = @a && -5.abs → b = a かつ 絶対値(-5)"
+    ],
+    "ruby": "@b = @a && -5.abs"
+  },
+  {
+    "id": "ruby-57274e6c63",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › Ruby → DNCL with a negative number receiver (Issue #1700) @b = 3 * -5.abs → b = 3 * 絶対値(-5)"
+    ],
+    "ruby": "@b = 3 * -5.abs"
+  },
+  {
+    "id": "ruby-bbf7e1ad48",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › Ruby → DNCL with a negative number receiver (Issue #1700) a `-` that is not part of the number stays outside: @b = - 5.abs"
+    ],
+    "ruby": "@b = - 5.abs"
+  },
+  {
+    "id": "ruby-1c3be247ee",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › Ruby → DNCL with a negative number receiver (Issue #1700) a `-` that is not part of the number stays outside: @b = -@a.abs",
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL → Ruby with a `-` before a built-in (Issue #1744) Ruby → DNCL → Ruby keeps the value: @b = -@a.abs"
+    ],
+    "ruby": "@b = -@a.abs"
+  },
+  {
+    "id": "ruby-ebf62570cc",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › Ruby → DNCL with a negative number receiver (Issue #1700) a `-` that is not part of the number stays outside: @b = @a - 5.abs",
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL → Ruby with a `-` before a built-in (Issue #1744) DNCL → Ruby → DNCL: b = a - 絶対値(5)",
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › DNCL → Ruby with a `-` before a built-in (Issue #1744) Ruby → DNCL → Ruby keeps the value: @b = @a - 5.abs"
+    ],
+    "ruby": "@b = @a - 5.abs"
+  },
+  {
+    "id": "ruby-e3c310c737",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › Ruby → DNCL with a negative number receiver (Issue #1700) a `-` that is not part of the number stays outside: @b = @a -5.abs"
+    ],
+    "ruby": "@b = @a -5.abs"
+  },
+  {
+    "id": "ruby-a4ef7aeb32",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › Ruby → DNCL with a negative number receiver (Issue #1700) a `-` that is not part of the number stays outside: @b = 3 -5.abs"
+    ],
+    "ruby": "@b = 3 -5.abs"
+  },
+  {
+    "id": "ruby-0d76243cae",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › Ruby → DNCL with a negative number receiver (Issue #1700) DNCL → Ruby → DNCL: b = -絶対値(a)"
+    ],
+    "ruby": "@b = -(@a.abs)"
+  },
+  {
+    "id": "ruby-40184cb496",
+    "from": [
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › Ruby → DNCL with a negative number receiver (Issue #1700) puts(-1.to_s + \"個\") → 表示する(-1, \"個\")",
+      "test/unit/lib/dncl/dncl-builtin-expression-arg.test.js › Ruby → DNCL with a negative number receiver (Issue #1700) DNCL → Ruby → DNCL: 表示する(-1, \"個\")"
+    ],
+    "ruby": "puts(-1.to_s + \"個\")"
+  },
+  {
+    "id": "ruby-0a2ba5c834",
+    "from": [
+      "test/unit/lib/dncl/dncl-counting-while.test.js › counting while loop (Issue #1695) becomes a counting loop -= at the end of the body (the comment of the issue)"
+    ],
+    "ruby": "@i = 10\nwhile @i >= 1\n  puts(@i)\n  @i += -1\nend"
+  },
+  {
+    "id": "ruby-eac61b8424",
+    "from": [
+      "test/unit/lib/dncl/dncl-counting-while.test.js › counting while loop (Issue #1695) becomes a counting loop -= at the end of the body (the comment of the issue)"
+    ],
+    "ruby": "@i = 10\nwhile @i >= 1\n  puts(@i)\n  @i -= 1\nend"
+  },
+  {
+    "id": "ruby-0edccbf106",
+    "from": [
+      "test/unit/lib/dncl/dncl-counting-while.test.js › counting while loop (Issue #1695) becomes a counting loop -= with a step of two terms"
+    ],
+    "ruby": "@i = 10\nwhile @i >= 1\n  puts(@i)\n  @i -= @a + 1\nend"
+  },
+  {
+    "id": "ruby-1826f3c819",
+    "from": [
+      "test/unit/lib/dncl/dncl-counting-while.test.js › counting while loop (Issue #1695) becomes a counting loop -= with a step of two terms",
+      "test/unit/lib/dncl/dncl-counting-while.test.js › counting while loop (Issue #1695) a decreasing step of more than one term (DNCL → Ruby) it comes back as the same DNCL"
+    ],
+    "ruby": "@i = 10\nwhile @i >= 1\n  puts(@i)\n  @i += -(@a + 1)\nend"
+  },
+  {
+    "id": "ruby-ecb792978f",
+    "from": [
+      "test/unit/lib/dncl/dncl-counting-while.test.js › counting while loop (Issue #1695) becomes a counting loop @i = @i - 1 at the end of the body"
+    ],
+    "ruby": "@i = 10\nwhile @i >= 1\n  puts(@i)\n  @i = @i - 1\nend"
+  },
+  {
+    "id": "ruby-40fd298179",
+    "from": [
+      "test/unit/lib/dncl/dncl-counting-while.test.js › counting while loop (Issue #1695) becomes a counting loop @i = @i + 2 at the end of the body"
+    ],
+    "ruby": "@i = 1\nwhile @i <= 10\n  puts(@i)\n  @i = @i + 2\nend"
+  },
+  {
+    "id": "ruby-666e4eeb94",
+    "from": [
+      "test/unit/lib/dncl/dncl-counting-while.test.js › counting while loop (Issue #1695) becomes a counting loop a step expression not changed in the body"
+    ],
+    "ruby": "@i = 0\nwhile @i <= 10\n  puts(@i)\n  @i += @s.to_i\nend"
+  },
+  {
+    "id": "ruby-6325bde02c",
+    "from": [
+      "test/unit/lib/dncl/dncl-counting-while.test.js › counting while loop (Issue #1695) becomes a counting loop a step of integer division"
+    ],
+    "ruby": "@i = 0\nwhile @i <= 10\n  puts(@i)\n  @i += (@s / 2).to_i\nend"
+  },
+  {
+    "id": "ruby-ce706afc40",
+    "from": [
+      "test/unit/lib/dncl/dncl-counting-while.test.js › counting while loop (Issue #1695) becomes a counting loop a step of integer division"
+    ],
+    "ruby": "@i = 10\nwhile @i >= 0\n  puts(@i)\n  @i += -(@s / 2).to_i\nend"
+  },
+  {
+    "id": "ruby-f52610a623",
+    "from": [
+      "test/unit/lib/dncl/dncl-counting-while.test.js › counting while loop (Issue #1695) becomes a counting loop a step variable not changed in the body"
+    ],
+    "ruby": "@i = 0\nwhile @i <= 10\n  puts(@i)\n  @i += @s\nend"
+  },
+  {
+    "id": "ruby-39dda102a3",
+    "from": [
+      "test/unit/lib/dncl/dncl-counting-while.test.js › counting while loop (Issue #1695) becomes a counting loop blank lines before end"
+    ],
+    "ruby": "@i = 1\nwhile @i <= 10\n  puts(@i)\n\n\n  @i += 1\nend"
+  },
+  {
+    "id": "ruby-ab7c89e93a",
+    "from": [
+      "test/unit/lib/dncl/dncl-counting-while.test.js › counting while loop (Issue #1695) becomes a counting loop blank lines before end"
+    ],
+    "ruby": "@i = 1\nwhile @i <= 10\n  puts(@i)\n  @i += 1\n\n\nend"
+  },
+  {
+    "id": "ruby-874b62cf69",
+    "from": [
+      "test/unit/lib/dncl/dncl-counting-while.test.js › counting while loop (Issue #1695) becomes a counting loop with comments at the end of lines"
+    ],
+    "ruby": "@i = 1 # a\nwhile @i <= 10 # b\n  puts(@i) # c\n  @i += 1 # d\nend # e"
+  },
+  {
+    "id": "ruby-cc6af134bb",
+    "from": [
+      "test/unit/lib/dncl/dncl-counting-while.test.js › counting while loop (Issue #1695) becomes a counting loop with comments at the end of lines"
+    ],
+    "ruby": "@i = 1\nwhile @i <= 10 # a # b\n  puts(@i) # c\n  @i += 1\nend # d # e"
+  },
+  {
+    "id": "ruby-b4101ddb2f",
+    "from": [
+      "test/unit/lib/dncl/dncl-counting-while.test.js › counting while loop (Issue #1695) nested while loops only the inner increment is not the last line"
+    ],
+    "ruby": "@i = 1\nwhile @i <= 3\n  @j = 1\n  while @j <= 3\n    @j += 1\n    puts(@j)\n  end\n  @i += 1\nend"
+  },
+  {
+    "id": "ruby-1fe6a5d5b4",
+    "from": [
+      "test/unit/lib/dncl/dncl-counting-while.test.js › counting while loop (Issue #1695) nested while loops only the outer increment is not the last line"
+    ],
+    "ruby": "@i = 1\nwhile @i <= 3\n  @i += 1\n  @j = 1\n  while @j <= 3\n    puts(@j)\n    @j += 1\n  end\nend"
+  },
+  {
+    "id": "ruby-d1af138e90",
+    "from": [
+      "test/unit/lib/dncl/dncl-counting-while.test.js › counting while loop (Issue #1695) nested while loops the inner loop uses the same variable"
+    ],
+    "ruby": "@i = 1\nwhile @i <= 3\n  @i = 1\n  while @i <= 3\n    puts(@i)\n    @i += 1\n  end\n  @i += 1\nend"
+  },
+  {
+    "id": "ruby-ba0cf5440f",
+    "from": [
+      "test/unit/lib/dncl/dncl-counting-while.test.js › counting while loop (Issue #1695) stays a の間 loop the increment is in an if at the end of the body"
+    ],
+    "ruby": "@i = 1\nwhile @i <= 10\n  if @i > 0\n    @i += 1\n  end\nend"
+  },
+  {
+    "id": "ruby-038864683e",
+    "from": [
+      "test/unit/lib/dncl/dncl-counting-while.test.js › counting while loop (Issue #1695) stays a の間 loop the increment is not the last line (the example of the issue)"
+    ],
+    "ruby": "@i = 1\nwhile @i <= 10\n  @i += 1\n  puts(@i)\nend"
+  },
+  {
+    "id": "ruby-dd5f709880",
+    "from": [
+      "test/unit/lib/dncl/dncl-counting-while.test.js › counting while loop (Issue #1695) stays a の間 loop the negated step is more than one operand"
+    ],
+    "ruby": "@i = 10\nwhile @i >= 1\n  puts(@i)\n  @i += -(@a) + 1\nend"
+  },
+  {
+    "id": "ruby-c2b1b186e6",
+    "from": [
+      "test/unit/lib/dncl/dncl-counting-while.test.js › counting while loop (Issue #1695) stays a の間 loop the step calls a method"
+    ],
+    "ruby": "@i = 1\nwhile @i <= 10\n  puts(@i)\n  @i += rand(3)\nend"
+  },
+  {
+    "id": "ruby-c67674a2f5",
+    "from": [
+      "test/unit/lib/dncl/dncl-counting-while.test.js › counting while loop (Issue #1695) stays a の間 loop the step goes the other way than the condition"
+    ],
+    "ruby": "@i = 1\nwhile @i <= 10\n  puts(@i)\n  @i -= 1\nend"
+  },
+  {
+    "id": "ruby-6f77dfe34c",
+    "from": [
+      "test/unit/lib/dncl/dncl-counting-while.test.js › counting while loop (Issue #1695) stays a の間 loop the step is a variable changed in the body"
+    ],
+    "ruby": "@i = 1\nwhile @i <= 100\n  @k += 1\n  @i += @k\nend"
+  },
+  {
+    "id": "ruby-286ce10d66",
+    "from": [
+      "test/unit/lib/dncl/dncl-counting-while.test.js › counting while loop (Issue #1695) stays a の間 loop the step uses the variable itself"
+    ],
+    "ruby": "@i = 1\nwhile @i <= 100\n  puts(@i)\n  @i += @i\nend"
+  },
+  {
+    "id": "ruby-850efac48d",
+    "from": [
+      "test/unit/lib/dncl/dncl-counting-while.test.js › counting while loop (Issue #1695) stays a の間 loop the variable is changed in the middle of the body"
+    ],
+    "ruby": "@i = 1\nwhile @i <= 10\n  @i = @i * 2\n  puts(@i)\n  @i += 1\nend"
+  },
+  {
+    "id": "ruby-b2c1584066",
+    "from": [
+      "test/unit/lib/dncl/dncl-counting-while.test.js › counting while loop (Issue #1695) stays a の間 loop the variable is incremented twice"
+    ],
+    "ruby": "@i = 1\nwhile @i <= 10\n  @i += 1\n  puts(@i)\n  @i += 1\nend"
+  },
+  {
+    "id": "ruby-b58097df4a",
+    "from": [
+      "test/unit/lib/dncl/dncl-counting-while.test.js › counting while loop (Issue #1695) stays a の間 loop the variable is the first of a multiple assignment"
+    ],
+    "ruby": "@i = 1\nwhile @i <= 10\n  @i, @j = 5, 0\n  @i += 1\nend"
+  },
+  {
+    "id": "ruby-519406224b",
+    "from": [
+      "test/unit/lib/dncl/dncl-counting-while.test.js › counting while loop (Issue #1695) stays a の間 loop with comments at the end of lines"
+    ],
+    "ruby": "@i = 1 # a\nwhile @i <= 10 # b\n  @i += 1 # c\n  puts(@i) # d\nend # e"
+  },
+  {
+    "id": "ruby-aed0b4f4d6",
+    "from": [
+      "test/unit/lib/dncl/dncl-display-multi-arg.test.js › Ruby → DNCL: puts(...) flatten + .to_s unwrap puts(\"a\" + \"b\" + \"c\") → 表示する(\"a\", \"b\", \"c\")"
+    ],
+    "ruby": "puts(\"a\" + \"b\" + \"c\")"
+  },
+  {
+    "id": "ruby-938a12a4d1",
+    "from": [
+      "test/unit/lib/dncl/dncl-display-multi-arg.test.js › Ruby → DNCL: puts(...) flatten + .to_s unwrap puts(\"添字\" + \" \" + \"要素\") → 表示する(\"添字\", \" \", \"要素\")"
+    ],
+    "ruby": "puts(\"添字\" + \" \" + \"要素\")"
+  },
+  {
+    "id": "ruby-1d4c1565e6",
+    "from": [
+      "test/unit/lib/dncl/dncl-display-multi-arg.test.js › Ruby → DNCL: puts(...) flatten + .to_s unwrap puts(((1.to_s + \"は\") + 2.to_s) + \"番目\") → 表示する(1, \"は\", 2, \"番目\")"
+    ],
+    "ruby": "puts(((1.to_s + \"は\") + 2.to_s) + \"番目\")"
+  },
+  {
+    "id": "ruby-a4ab20af7b",
+    "from": [
+      "test/unit/lib/dncl/dncl-display-multi-arg.test.js › Ruby → DNCL: puts(...) flatten + .to_s unwrap puts((@a.to_s + \"は\") + @b.to_s) → 表示する(a, \"は\", b) (parens flattened)"
+    ],
+    "ruby": "puts((@a.to_s + \"は\") + @b.to_s)"
+  },
+  {
+    "id": "ruby-b18df705da",
+    "from": [
+      "test/unit/lib/dncl/dncl-display-multi-arg.test.js › Ruby → DNCL: puts(...) flatten + .to_s unwrap puts(@a + @b) — no .to_s, no string literal → NOT flattened"
+    ],
+    "ruby": "puts(@a + @b)"
+  },
+  {
+    "id": "ruby-fe55f457b1",
+    "from": [
+      "test/unit/lib/dncl/dncl-display-multi-arg.test.js › Ruby → DNCL: puts(...) flatten + .to_s unwrap puts(@a.to_s + \"は\" + @b.to_s) → 表示する(a, \"は\", b)"
+    ],
+    "ruby": "puts(@a.to_s + \"は\" + @b.to_s)"
+  },
+  {
+    "id": "ruby-c24aeb57ff",
+    "from": [
+      "test/unit/lib/dncl/dncl-display-multi-arg.test.js › Ruby → DNCL: puts(...) flatten + .to_s unwrap puts(@x + 1) → 表示する(x + 1) (numeric arithmetic stays as one arg)"
+    ],
+    "ruby": "puts(@x + 1)"
+  },
+  {
+    "id": "ruby-1b8659c531",
+    "from": [
+      "test/unit/lib/dncl/dncl-display-multi-arg.test.js › Ruby → DNCL: say(...) flatten too (for backward compat) say(\"a\" + \"b\" + \"c\", 1) → 表示する(\"a\", \"b\", \"c\") (NEW: flatten)"
+    ],
+    "ruby": "say(\"a\" + \"b\" + \"c\", 1)"
+  },
+  {
+    "id": "ruby-7826b0588b",
+    "from": [
+      "test/unit/lib/dncl/dncl-display-multi-arg.test.js › 表示する multi arg: expressions are wrapped before .to_s (#1672) DNCL → Ruby → DNCL → Ruby keeps the Ruby"
+    ],
+    "ruby": "puts((!@x).to_s + @y.to_s)"
+  },
+  {
+    "id": "ruby-e9fb87e710",
+    "from": [
+      "test/unit/lib/dncl/dncl-display-multi-arg.test.js › 表示する multi arg: expressions are wrapped before .to_s (#1672) DNCL → Ruby → DNCL → Ruby keeps the Ruby"
+    ],
+    "ruby": "puts(@a.to_s + (@b + 1).to_s)"
+  },
+  {
+    "id": "ruby-c90253c67d",
+    "from": [
+      "test/unit/lib/dncl/dncl-display-multi-arg.test.js › 表示する multi arg: expressions are wrapped before .to_s (#1672) Ruby → DNCL drops the parentheses of (expr).to_s"
+    ],
+    "ruby": "puts(\"合計\" + (@a * 2).to_s)"
+  },
+  {
+    "id": "ruby-edca6f4828",
+    "from": [
+      "test/unit/lib/dncl/dncl-display-multi-arg.test.js › 表示する multi arg: expressions are wrapped before .to_s (#1672) Ruby → DNCL drops the parentheses of (expr).to_s"
+    ],
+    "ruby": "puts((@a + 1).to_s + @b.to_s)"
+  },
+  {
+    "id": "ruby-9d84e5391b",
+    "from": [
+      "test/unit/lib/dncl/dncl-do-block.test.js › Ruby → DNCL: the end of a do block (issue #1665) [1, 2].each do |x, y| inside the stack is closed by を実行する"
+    ],
+    "ruby": "while @a < 1\n  [1, 2].each do |x, y|\n    move(2)\n  end\nend"
+  },
+  {
+    "id": "ruby-61a21afaf1",
+    "from": [
+      "test/unit/lib/dncl/dncl-do-block.test.js › Ruby → DNCL: the end of a do block (issue #1665) @list.each do |x| inside the stack is closed by を実行する"
+    ],
+    "ruby": "while @a < 1\n  @list.each do |x|\n    move(2)\n  end\nend"
+  },
+  {
+    "id": "ruby-c96ce9ba3f",
+    "from": [
+      "test/unit/lib/dncl/dncl-do-block.test.js › Ruby → DNCL: the end of a do block (issue #1665) 3.times do inside もし"
+    ],
+    "ruby": "if @a < 1\n  3.times do\n    @b = @b + 1\n  end\nend"
+  },
+  {
+    "id": "ruby-0a32d06e0c",
+    "from": [
+      "test/unit/lib/dncl/dncl-do-block.test.js › Ruby → DNCL: the end of a do block (issue #1665) a comment after the do does not hide the block"
+    ],
+    "ruby": "while @a < 1\n  loop do # forever\n    move(1)\n  end\nend"
+  },
+  {
+    "id": "ruby-6baae9610c",
+    "from": [
+      "test/unit/lib/dncl/dncl-do-block.test.js › Ruby → DNCL: the end of a do block (issue #1665) a do at the top level is still closed by を実行する"
+    ],
+    "ruby": "when_flag_clicked do\n  move(2)\nend"
+  },
+  {
+    "id": "ruby-1983a2aeae",
+    "from": [
+      "test/unit/lib/dncl/dncl-do-block.test.js › Ruby → DNCL: the end of a do block (issue #1665) a do block inside the post-test loop does not take its end"
+    ],
+    "ruby": "begin\n  with_screen_refresh do\n    move(2)\n  end\nend while @a < 1"
+  },
+  {
+    "id": "ruby-b633dac76d",
+    "from": [
+      "test/unit/lib/dncl/dncl-do-block.test.js › Ruby → DNCL: the end of a do block (issue #1665) a do in a comment at the end of the line does not open a block"
+    ],
+    "ruby": "while @a < 1\n  move(1) # what to do\n  puts(\"#\") # do\nend"
+  },
+  {
+    "id": "ruby-c14318c6c6",
+    "from": [
+      "test/unit/lib/dncl/dncl-do-block.test.js › Ruby → DNCL: the end of a do block (issue #1665) a do inside a string does not open a block"
+    ],
+    "ruby": "while @a < 1\n  puts(\"do\")\n  say(\"a do\", 1)\nend"
+  },
+  {
+    "id": "ruby-6da82361be",
+    "from": [
+      "test/unit/lib/dncl/dncl-do-block.test.js › Ruby → DNCL: the end of a do block (issue #1665) nested do blocks inside 関数 and の間"
+    ],
+    "ruby": "def f(x)\n  while @a < 1\n    loop do\n      [1, 2].each do |y|\n        if @a\n          move(y)\n        end\n      end\n    end\n  end\nend"
+  },
+  {
+    "id": "ruby-4aaad0975d",
+    "from": [
+      "test/unit/lib/dncl/dncl-do-block.test.js › Ruby → DNCL: the end of a do block (issue #1665) self.when(:clicked) do inside the stack is closed by を実行する"
+    ],
+    "ruby": "while @a < 1\n  self.when(:clicked) do\n    move(2)\n  end\nend"
+  },
+  {
+    "id": "ruby-533fd2bdc7",
+    "from": [
+      "test/unit/lib/dncl/dncl-do-block.test.js › Ruby → DNCL: the end of a do block (issue #1665) the DNCL of a do block inside の間 has no block error and stops on the do line (issue #1679)"
+    ],
+    "ruby": "while @a < 1\n  with_screen_refresh do\n    @b = 1\n  end\nend"
+  },
+  {
+    "id": "ruby-7f4bb92f22",
+    "from": [
+      "test/unit/lib/dncl/dncl-do-block.test.js › Ruby → DNCL: the end of a do block (issue #1665) until x do (an empty loop) inside の間 (issue #1667)"
+    ],
+    "ruby": "while @a < 1\n  until @x > 1 do\n  end\n  @a = @a + 1\nend"
+  },
+  {
+    "id": "ruby-6e43ecf036",
+    "from": [
+      "test/unit/lib/dncl/dncl-do-block.test.js › Ruby → DNCL: the end of a do block (issue #1665) when_flag_clicked do inside the stack is closed by を実行する"
+    ],
+    "ruby": "while @a < 1\n  when_flag_clicked do\n    move(2)\n  end\nend"
+  },
+  {
+    "id": "ruby-2a0da5dba7",
+    "from": [
+      "test/unit/lib/dncl/dncl-do-block.test.js › Ruby → DNCL: the end of a do block (issue #1665) when_key_pressed(\"space\") do inside the stack is closed by を実行する"
+    ],
+    "ruby": "while @a < 1\n  when_key_pressed(\"space\") do\n    move(2)\n  end\nend"
+  },
+  {
+    "id": "ruby-9173ca31c6",
+    "from": [
+      "test/unit/lib/dncl/dncl-empty-loop-wait-until.test.js › DNCL empty loops become \"wait until\" a \"repeat until\" with a body stays \"repeat until\" through DNCL"
+    ],
+    "ruby": "@a = 0\nuntil @a > 10\n  @a += 1\nend"
+  },
+  {
+    "id": "ruby-97a65c9948",
+    "from": [
+      "test/unit/lib/dncl/dncl-empty-loop-wait-until.test.js › DNCL empty loops become \"wait until\" an empty \"repeat until\" becomes \"wait until\" through DNCL"
+    ],
+    "ruby": "@a = 0\nuntil @a > 10 do\nend"
+  },
+  {
+    "id": "ruby-6609d33d8d",
+    "from": [
+      "test/unit/lib/dncl/dncl-empty-loop-wait-until.test.js › DNCL empty loops become \"wait until\" an empty 「〜でない の間」 becomes \"wait until\"",
+      "test/unit/lib/dncl/dncl-empty-loop-wait-until.test.js › DNCL empty loops become \"wait until\" \"wait until\" stays \"wait until\" through DNCL"
+    ],
+    "ruby": "@a = 0\nwait until @a > 10"
+  },
+  {
+    "id": "ruby-84d6e04c9b",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) DNCL → Ruby → DNCL b = (a + c) ÷ 2",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) DNCL → Ruby → DNCL keeps the value: b = (a + c) ÷ 2"
+    ],
+    "ruby": "@b = ((@a + @c) / 2).to_i"
+  },
+  {
+    "id": "ruby-177d4d8586",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) DNCL → Ruby → DNCL b = (a ÷ 2) * 3",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) DNCL → Ruby → DNCL keeps the value: b = (a ÷ 2) * 3"
+    ],
+    "ruby": "@b = ((@a / 2).to_i) * 3"
+  },
+  {
+    "id": "ruby-aa0b8ed44e",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) DNCL → Ruby → DNCL b = a * (a ÷ 2)",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) DNCL → Ruby → DNCL keeps the value: b = a * (a ÷ 2)"
+    ],
+    "ruby": "@b = @a * ((@a / 2).to_i)"
+  },
+  {
+    "id": "ruby-4b8607b384",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) DNCL → Ruby → DNCL b = a ÷ (a ÷ 2)",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) DNCL → Ruby → DNCL keeps the value: b = a ÷ (a ÷ 2)"
+    ],
+    "ruby": "@b = (@a / ((@a / 2).to_i)).to_i"
+  },
+  {
+    "id": "ruby-15b00b9709",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) DNCL → Ruby → DNCL b = 文字列(a / 2)",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) DNCL → Ruby → DNCL keeps the value: b = 文字列(a / 2)"
+    ],
+    "ruby": "@b = (@a / 2).to_s"
+  },
+  {
+    "id": "ruby-e29a221f1c",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) DNCL → Ruby → DNCL b = 文字列(a ÷ 2)",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) DNCL → Ruby → DNCL keeps the value: b = 文字列(a ÷ 2)"
+    ],
+    "ruby": "@b = ((@a / 2).to_i).to_s"
+  },
+  {
+    "id": "ruby-a9eca169fb",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Japanese names around ÷ and // (Issue #1711) @b = ((@合計 + 1) / @個数).to_i → b = (合計 + 1) ÷ 個数",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Japanese names around ÷ and // (Issue #1711) DNCL → Ruby → DNCL: b = (合計 + 1) ÷ 個数",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Japanese names around ÷ and // (Issue #1711) DNCL → Ruby → DNCL keeps the value: b = (合計 + 1) ÷ 個数"
+    ],
+    "ruby": "@b = ((@合計 + 1) / @個数).to_i"
+  },
+  {
+    "id": "ruby-600548acb8",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Japanese names around ÷ and // (Issue #1711) @b = (@x / @個数).to_i → b = x ÷ 個数",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Japanese names around ÷ and // (Issue #1711) DNCL → Ruby → DNCL: b = x ÷ 個数",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Japanese names around ÷ and // (Issue #1711) DNCL → Ruby → DNCL keeps the value: b = x ÷ 個数"
+    ],
+    "ruby": "@b = (@x / @個数).to_i"
+  },
+  {
+    "id": "ruby-87f2501b75",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Japanese names around ÷ and // (Issue #1711) @b = (@合計 / @個数).to_i → b = 合計 ÷ 個数",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Japanese names around ÷ and // (Issue #1711) DNCL → Ruby → DNCL: b = 合計 ÷ 個数",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Japanese names around ÷ and // (Issue #1711) DNCL → Ruby → DNCL keeps the value: b = 合計 ÷ 個数"
+    ],
+    "ruby": "@b = (@合計 / @個数).to_i"
+  },
+  {
+    "id": "ruby-c86f9bee0c",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Japanese names around ÷ and // (Issue #1711) DNCL → Ruby → DNCL: b = 合計 * 2 ÷ 個数",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Japanese names around ÷ and // (Issue #1711) DNCL → Ruby → DNCL keeps the value: b = 合計 * 2 ÷ 個数"
+    ],
+    "ruby": "@b = (@合計 * 2 / @個数).to_i"
+  },
+  {
+    "id": "ruby-6a334e27eb",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Japanese names around ÷ and // (Issue #1711) DNCL → Ruby → DNCL: b = 合計 / 個数",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Japanese names around ÷ and // (Issue #1711) DNCL → Ruby → DNCL keeps the value: b = 合計 / 個数",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Japanese names around ÷ and // (Issue #1711) Ruby → DNCL → Ruby keeps the value: @b = @合計 / @個数"
+    ],
+    "ruby": "@b = @合計 / @個数"
+  },
+  {
+    "id": "ruby-9c1f005ec2",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Japanese names around ÷ and // (Issue #1711) DNCL → Ruby → DNCL: b = 合計 + 点数 ÷ 個数",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Japanese names around ÷ and // (Issue #1711) DNCL → Ruby → DNCL keeps the value: b = 合計 + 点数 ÷ 個数"
+    ],
+    "ruby": "@b = @合計 + (@点数 / @個数).to_i"
+  },
+  {
+    "id": "ruby-d495b38261",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Japanese names around ÷ and // (Issue #1711) DNCL → Ruby → DNCL: b = 合計 ÷ (点数 ÷ 個数)",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Japanese names around ÷ and // (Issue #1711) DNCL → Ruby → DNCL keeps the value: b = 合計 ÷ (点数 ÷ 個数)"
+    ],
+    "ruby": "@b = (@合計 / ((@点数 / @個数).to_i)).to_i"
+  },
+  {
+    "id": "ruby-63e588d690",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Japanese names around ÷ and // (Issue #1711) DNCL → Ruby → DNCL: b = 合計 ÷ 2",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Japanese names around ÷ and // (Issue #1711) DNCL → Ruby → DNCL keeps the value: b = 合計 ÷ 2"
+    ],
+    "ruby": "@b = (@合計 / 2).to_i"
+  },
+  {
+    "id": "ruby-02ef8ccf06",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Japanese names around ÷ and // (Issue #1711) DNCL → Ruby → DNCL: b = 合計 ÷ 個数 * 2",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Japanese names around ÷ and // (Issue #1711) DNCL → Ruby → DNCL keeps the value: b = 合計 ÷ 個数 * 2",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Japanese names around ÷ and // (Issue #1711) Ruby → DNCL → Ruby keeps the value: @b = (@合計 / @個数).to_i * 2"
+    ],
+    "ruby": "@b = (@合計 / @個数).to_i * 2"
+  },
+  {
+    "id": "ruby-c515c6c130",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Japanese names around ÷ and // (Issue #1711) DNCL → Ruby → DNCL: b = 整数(合計 / 個数 * 3)",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Japanese names around ÷ and // (Issue #1711) DNCL → Ruby → DNCL keeps the value: b = 整数(合計 / 個数 * 3)"
+    ],
+    "ruby": "@b = (@合計 / @個数 * 3).to_i"
+  },
+  {
+    "id": "ruby-faec4424d6",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Japanese names around ÷ and // (Issue #1711) Ruby → DNCL → Ruby keeps the value: @b = (@合計 / 2 * 3).to_i"
+    ],
+    "ruby": "@b = (@合計 / 2 * 3).to_i"
+  },
+  {
+    "id": "ruby-2336b8faec",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Japanese names around ÷ and // (Issue #1711) Ruby → DNCL → Ruby keeps the value: @b = @x + (@合計 / @個数).to_i"
+    ],
+    "ruby": "@b = @x + (@合計 / @個数).to_i"
+  },
+  {
+    "id": "ruby-b1cd0f192d",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL @b = ((@a + @b) / 2).to_i → b = (a + b) ÷ 2"
+    ],
+    "ruby": "@b = ((@a + @b) / 2).to_i"
+  },
+  {
+    "id": "ruby-c1bcc552c0",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL @b = (@x / 2).to_i → b = x ÷ 2"
+    ],
+    "ruby": "@b = (@x / 2).to_i"
+  },
+  {
+    "id": "ruby-1761fd3928",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL → Ruby keeps the value @b = -(@a / 2).to_i"
+    ],
+    "ruby": "@b = -(@a / 2).to_i"
+  },
+  {
+    "id": "ruby-cd28ae39bb",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL → Ruby keeps the value @b = ((@a / 2) * 3).to_i",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL @b = ((@a / 2) * 3).to_i → b = 整数((a / 2) * 3)"
+    ],
+    "ruby": "@b = ((@a / 2) * 3).to_i"
+  },
+  {
+    "id": "ruby-5f3a188d42",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL → Ruby keeps the value @b = ((@a / 2) / 3).to_i",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL @b = ((@a / 2) / 3).to_i → b = (a / 2) ÷ 3"
+    ],
+    "ruby": "@b = ((@a / 2) / 3).to_i"
+  },
+  {
+    "id": "ruby-0b7eecd69e",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL → Ruby keeps the value @b = ((@a / 2).to_i * 3).to_i",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL @b = ((@a / 2).to_i * 3).to_i → b = 整数(a ÷ 2 * 3)",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) DNCL → Ruby → DNCL b = 整数(a ÷ 2 * 3)"
+    ],
+    "ruby": "@b = ((@a / 2).to_i * 3).to_i"
+  },
+  {
+    "id": "ruby-4ee415a7a8",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL → Ruby keeps the value @b = ((@a / 2).to_i / 3).to_i",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL @b = ((@a / 2).to_i / 3).to_i → b = a ÷ 2 ÷ 3",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) DNCL → Ruby → DNCL b = a ÷ 2 ÷ 3"
+    ],
+    "ruby": "@b = ((@a / 2).to_i / 3).to_i"
+  },
+  {
+    "id": "ruby-a5de94f6c7",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL → Ruby keeps the value @b = (@a * 3 / 2).to_i",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL @b = (@a * 3 / 2).to_i → b = a * 3 ÷ 2",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) DNCL → Ruby → DNCL b = a * 3 ÷ 2"
+    ],
+    "ruby": "@b = (@a * 3 / 2).to_i"
+  },
+  {
+    "id": "ruby-c9b010abc2",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL → Ruby keeps the value @b = (@a / (@a / 2).to_i).to_i",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL @b = (@a / (@a / 2).to_i).to_i → b = a ÷ (a ÷ 2)"
+    ],
+    "ruby": "@b = (@a / (@a / 2).to_i).to_i"
+  },
+  {
+    "id": "ruby-a65794aaaf",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL → Ruby keeps the value @b = (@a / (2 * 3)).to_i",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL @b = (@a / (2 * 3)).to_i → b = a ÷ (2 * 3)"
+    ],
+    "ruby": "@b = (@a / (2 * 3)).to_i"
+  },
+  {
+    "id": "ruby-dcdb85f8d2",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL → Ruby keeps the value @b = (@a / 2 * 3).to_i",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL @b = (@a / 2 * 3).to_i → b = 整数(a / 2 * 3)",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) DNCL → Ruby → DNCL b = 整数(a / 2 * 3)"
+    ],
+    "ruby": "@b = (@a / 2 * 3).to_i"
+  },
+  {
+    "id": "ruby-8b1b4aa42d",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL → Ruby keeps the value @b = (@a / 2 * 3).to_i.to_s",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL @b = (@a / 2 * 3).to_i.to_s → b = 文字列(整数(a / 2 * 3))"
+    ],
+    "ruby": "@b = (@a / 2 * 3).to_i.to_s"
+  },
+  {
+    "id": "ruby-2db7766177",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL → Ruby keeps the value @b = (@a / 2 / 3).to_i",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL @b = (@a / 2 / 3).to_i → b = a / 2 ÷ 3",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) DNCL → Ruby → DNCL b = a / 2 ÷ 3"
+    ],
+    "ruby": "@b = (@a / 2 / 3).to_i"
+  },
+  {
+    "id": "ruby-7734f6698d",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL → Ruby keeps the value @b = (@a / 2 + 1).to_i",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL @b = (@a / 2 + 1).to_i → b = 整数(a / 2 + 1)"
+    ],
+    "ruby": "@b = (@a / 2 + 1).to_i"
+  },
+  {
+    "id": "ruby-34d0150a5e",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL → Ruby keeps the value @b = (@a / 2).to_i",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) DNCL → Ruby → DNCL b = a ÷ 2",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) DNCL → Ruby → DNCL keeps the value: b = a ÷ 2"
+    ],
+    "ruby": "@b = (@a / 2).to_i"
+  },
+  {
+    "id": "ruby-1f06fb5ef6",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL → Ruby keeps the value @b = (@a / 2).to_i * 3",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL @b = (@a / 2).to_i * 3 → b = a ÷ 2 * 3",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) DNCL → Ruby → DNCL b = a ÷ 2 * 3"
+    ],
+    "ruby": "@b = (@a / 2).to_i * 3"
+  },
+  {
+    "id": "ruby-81b8e1e9a0",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL → Ruby keeps the value @b = (@a / 2).to_i + (@a / 4).to_i"
+    ],
+    "ruby": "@b = (@a / 2).to_i + (@a / 4).to_i"
+  },
+  {
+    "id": "ruby-2eb0340851",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL → Ruby keeps the value @b = (@a / 2).to_i.to_s",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL @b = (@a / 2).to_i.to_s → b = 文字列(a ÷ 2)"
+    ],
+    "ruby": "@b = (@a / 2).to_i.to_s"
+  },
+  {
+    "id": "ruby-a0a0f9f059",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL → Ruby keeps the value @b = (@a + @b) / 2"
+    ],
+    "ruby": "@b = (@a + @b) / 2"
+  },
+  {
+    "id": "ruby-c6a9125a28",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL → Ruby keeps the value @b = @a * (@a / 2).to_i",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL @b = @a * (@a / 2).to_i → b = a * (a ÷ 2)"
+    ],
+    "ruby": "@b = @a * (@a / 2).to_i"
+  },
+  {
+    "id": "ruby-3dfca3f3d8",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL → Ruby keeps the value @b = @a / (@a / 2).to_i"
+    ],
+    "ruby": "@b = @a / (@a / 2).to_i"
+  },
+  {
+    "id": "ruby-bff6212c47",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL → Ruby keeps the value @b = @a / 2",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL @b = @a / 2 → b = a / 2",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) DNCL → Ruby → DNCL b = a / 2"
+    ],
+    "ruby": "@b = @a / 2"
+  },
+  {
+    "id": "ruby-1e3ded9e4d",
+    "from": [
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL → Ruby keeps the value @b = @a / 2 * 3",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) Ruby → DNCL @b = @a / 2 * 3 → b = a / 2 * 3",
+      "test/unit/lib/dncl/dncl-integer-division-to-i.test.js › DNCL / and ÷ (Issue #1701) DNCL → Ruby → DNCL b = a / 2 * 3"
+    ],
+    "ruby": "@b = @a / 2 * 3"
+  },
+  {
+    "id": "ruby-d81abdaaef",
+    "from": [
+      "test/unit/lib/dncl/dncl-japanese-quotes-in-string.test.js › DNCL: 「」 inside a \"...\" string (Issue #1457) an assignment of a \"...\" string with 「」 round-trips"
+    ],
+    "ruby": "@a = \"「く」と「け」\""
+  },
+  {
+    "id": "ruby-2d36aba646",
+    "from": [
+      "test/unit/lib/dncl/dncl-japanese-quotes-in-string.test.js › DNCL: 「」 inside a \"...\" string (Issue #1457) namae + \"には「く」がある\" keeps the 「」 as they are"
+    ],
+    "ruby": "puts(@namae + \"には「く」がある\")"
+  },
+  {
+    "id": "ruby-fc72d91bce",
+    "from": [
+      "test/unit/lib/dncl/dncl-japanese-quotes-in-string.test.js › DNCL: 「」 inside a \"...\" string (Issue #1457) 表示する(\"「く」がある\") keeps the 「」 as they are"
+    ],
+    "ruby": "puts(\"「く」がある\")"
+  },
+  {
+    "id": "ruby-26e711ac71",
+    "from": [
+      "test/unit/lib/dncl/dncl-logical-word-boundary.test.js › かつ / または without spaces around them (Issue #1697) Ruby → DNCL → Ruby && between parentheses"
+    ],
+    "ruby": "@x = (@a > 0) && (@b > 0)"
+  },
+  {
+    "id": "ruby-7effd4bfd2",
+    "from": [
+      "test/unit/lib/dncl/dncl-logical-word-boundary.test.js › かつ / または without spaces around them (Issue #1697) Ruby → DNCL → Ruby || between array elements"
+    ],
+    "ruby": "@x = @a[1] || @b"
+  },
+  {
+    "id": "ruby-69825828c3",
+    "from": [
+      "test/unit/lib/dncl/dncl-logical-word-boundary.test.js › かつ / または without spaces around them (Issue #1697) Ruby → DNCL → Ruby a name containing かつ"
+    ],
+    "ruby": "@たかつき = 1\n@x = @かつお && @たかつき"
+  },
+  {
+    "id": "ruby-9eb75f7825",
+    "from": [
+      "test/unit/lib/dncl/dncl-loop-jump.test.js › a variable named like the keyword (issue #1716) a variable named next at the head of a loop or a condition goes back and forth"
+    ],
+    "ruby": "@next = 1\nwhile @next < 10\n  @next += 1\nend\n@break = 1\nwhile @break <= 3\n  puts(@break)\n  @break += 1\nend\n@next == 1"
+  },
+  {
+    "id": "ruby-4eeec74912",
+    "from": [
+      "test/unit/lib/dncl/dncl-loop-jump.test.js › a variable named like the keyword (issue #1716) next and break as variables go back and forth"
+    ],
+    "ruby": "@next = 1\n@break = @next + 1\n@next += @break\nputs(@next)"
+  },
+  {
+    "id": "ruby-b26155f79f",
+    "from": [
+      "test/unit/lib/dncl/dncl-loop-jump.test.js › Ruby → DNCL: break / next in a loop is told on its Ruby line (issue #1716) break and next alone on a line"
+    ],
+    "ruby": "@i = 0\nwhile @i < 10\n  @i += 1\n  if @i == 3\n    next\n  end\n  break\nend"
+  },
+  {
+    "id": "ruby-5698d8ec93",
+    "from": [
+      "test/unit/lib/dncl/dncl-loop-jump.test.js › Ruby → DNCL: break / next in a loop is told on its Ruby line (issue #1716) break with if in a counting loop"
+    ],
+    "ruby": "@i = 1\nwhile @i <= 10\n  break if @i == 5\n  @i += 1\nend"
+  },
+  {
+    "id": "ruby-f5152fd5b3",
+    "from": [
+      "test/unit/lib/dncl/dncl-loop-jump.test.js › Ruby → DNCL: break / next in a loop is told on its Ruby line (issue #1716) next with unless in a while loop"
+    ],
+    "ruby": "@i = 0\nwhile @i < 10\n  @i += 1\n  next unless @i > 5\n  puts(@i)\nend"
+  },
+  {
+    "id": "ruby-f712580d17",
+    "from": [
+      "test/unit/lib/dncl/dncl-loop-jump.test.js › Ruby → DNCL: break / next in a loop is told on its Ruby line (issue #1716) redo and retry"
+    ],
+    "ruby": "@i = 0\nwhile @i < 10\n  redo if @i == 3\n  retry if @i == 4\nend"
+  },
+  {
+    "id": "ruby-e80730bcfe",
+    "from": [
+      "test/unit/lib/dncl/dncl-number-notation.test.js › an integer with leading zeros (issue #1745) Ruby @a = 0 has no number error"
+    ],
+    "ruby": "@a = 0"
+  },
+  {
+    "id": "ruby-3e627ccada",
+    "from": [
+      "test/unit/lib/dncl/dncl-number-notation.test.js › an integer with leading zeros (issue #1745) Ruby @a = 0.5 has no number error"
+    ],
+    "ruby": "@a = 0.5"
+  },
+  {
+    "id": "ruby-113e8754a2",
+    "from": [
+      "test/unit/lib/dncl/dncl-number-notation.test.js › an integer with leading zeros (issue #1745) Ruby @a = 017 (octal) is an error on its line"
+    ],
+    "ruby": "@a = 017"
+  },
+  {
+    "id": "ruby-2d8d6650a4",
+    "from": [
+      "test/unit/lib/dncl/dncl-number-notation.test.js › an integer with leading zeros (issue #1745) Ruby @a = 017.to_s (octal) is an error on its line"
+    ],
+    "ruby": "@a = 017.to_s"
+  },
+  {
+    "id": "ruby-17b0e00582",
+    "from": [
+      "test/unit/lib/dncl/dncl-number-notation.test.js › an integer with leading zeros (issue #1745) Ruby @a = 08 (octal) is an error on its line"
+    ],
+    "ruby": "@a = 08"
+  },
+  {
+    "id": "ruby-ed712c94bc",
+    "from": [
+      "test/unit/lib/dncl/dncl-number-notation.test.js › an integer with leading zeros (issue #1745) Ruby @a = 1.05 has no number error"
+    ],
+    "ruby": "@a = 1.05"
+  },
+  {
+    "id": "ruby-b8d2a36ed6",
+    "from": [
+      "test/unit/lib/dncl/dncl-number-notation.test.js › an integer with leading zeros (issue #1745) Ruby @a = 10 has no number error"
+    ],
+    "ruby": "@a = 10"
+  },
+  {
+    "id": "ruby-18edfeb8ad",
+    "from": [
+      "test/unit/lib/dncl/dncl-number-notation.test.js › an integer with leading zeros (issue #1745) Ruby @a01 = 1 has no number error"
+    ],
+    "ruby": "@a01 = 1"
+  },
+  {
+    "id": "ruby-c1afea4390",
+    "from": [
+      "test/unit/lib/dncl/dncl-number-notation.test.js › an integer with leading zeros (issue #1745) Ruby puts(\"017\") has no number error"
+    ],
+    "ruby": "puts(\"017\")"
+  },
+  {
+    "id": "ruby-dc5f09ac8b",
+    "from": [
+      "test/unit/lib/dncl/dncl-number-notation.test.js › Ruby → DNCL: the same numbers are told on the Ruby line (issue #1745) @a = 0x5"
+    ],
+    "ruby": "@a = 0x5"
+  },
+  {
+    "id": "ruby-0b0a85c536",
+    "from": [
+      "test/unit/lib/dncl/dncl-number-notation.test.js › Ruby → DNCL: the same numbers are told on the Ruby line (issue #1745) @a = 1_000"
+    ],
+    "ruby": "@a = 1_000"
+  },
+  {
+    "id": "ruby-37ee1f3ed0",
+    "from": [
+      "test/unit/lib/dncl/dncl-number-notation.test.js › Ruby → DNCL: the same numbers are told on the Ruby line (issue #1745) @a = 1e3"
+    ],
+    "ruby": "@a = 1e3"
+  },
+  {
+    "id": "ruby-1a508f0d78",
+    "from": [
+      "test/unit/lib/dncl/dncl-number-notation.test.js › Ruby → DNCL: the same numbers are told on the Ruby line (issue #1745) decimal numbers and numbers in strings have no error"
+    ],
+    "ruby": "@a = 1.5\nputs(\"0x5\")\n@b = 1.to_s # 1e3"
+  },
+  {
+    "id": "ruby-58f23a4a46",
+    "from": [
+      "test/unit/lib/dncl/dncl-number-notation.test.js › Ruby → DNCL: the same numbers are told on the Ruby line (issue #1745) puts(0b101)"
+    ],
+    "ruby": "puts(0b101)"
+  },
+  {
+    "id": "ruby-ae927b97f8",
+    "from": [
+      "test/unit/lib/dncl/dncl-number-notation.test.js › Ruby → DNCL: the same numbers are told on the Ruby line (issue #1745) the line is the Ruby line"
+    ],
+    "ruby": "@a = 1\nputs(@a)\n@b = 1e3"
+  },
+  {
+    "id": "ruby-57ccc4bb72",
+    "from": [
+      "test/unit/lib/dncl/dncl-post-test-loop.test.js › DNCL: the post-test loop is not supported (issue #1626) Ruby → DNCL begin ... end until is told as an error"
+    ],
+    "ruby": "begin\n  @a = @a + 1\nend until @a >= 3"
+  },
+  {
+    "id": "ruby-9273b49fc3",
+    "from": [
+      "test/unit/lib/dncl/dncl-post-test-loop.test.js › DNCL: the post-test loop is not supported (issue #1626) Ruby → DNCL begin ... end while is told as an error on the begin and end lines",
+      "test/unit/lib/dncl/dncl-post-test-loop.test.js › DNCL: the post-test loop is not supported (issue #1626) DNCL → Ruby the DNCL shown for begin ... end while does not become @begin",
+      "test/unit/lib/dncl/dncl-post-test-loop.test.js › DNCL: the post-test loop is not supported (issue #1626) leaving the Japanese mode the last Ruby is kept when the DNCL has a post-test loop"
+    ],
+    "ruby": "@a = 0\nbegin\n  @a = @a + 1\nend while @a < 3"
+  },
+  {
+    "id": "ruby-1e6667309e",
+    "from": [
+      "test/unit/lib/dncl/dncl-post-test-loop.test.js › DNCL: the post-test loop is not supported (issue #1626) Ruby → DNCL nested in a while loop, the closers around it stay DNCL"
+    ],
+    "ruby": "while @b < 2\n  begin\n    @a = @a + 1\n  end until @a >= 3\n  @b = @b + 1\nend"
+  },
+  {
+    "id": "ruby-4d48589e0a",
+    "from": [
+      "test/unit/lib/dncl/dncl-post-test-loop.test.js › DNCL: the post-test loop is not supported (issue #1626) Ruby → DNCL the DNCL of it is not a post-test loop of the old DNCL"
+    ],
+    "ruby": "begin\n  @a = @a + 1\nend while @a < 3"
+  },
+  {
+    "id": "ruby-2e9e8bada2",
+    "from": [
+      "test/unit/lib/dncl/dncl-post-test-loop.test.js › DNCL: the post-test loop is not supported (issue #1626) Ruby → DNCL the error line is the Ruby line even when lines before it are merged"
+    ],
+    "ruby": "@x = ask(\"\")\n@x = answer\nbegin\n  @a = @a + 1\nend until @a >= 3"
+  },
+  {
+    "id": "ruby-6127290df8",
+    "from": [
+      "test/unit/lib/dncl/dncl-post-test-loop.test.js › DNCL: the post-test loop is not supported (issue #1626) Ruby → DNCL the pre-test loops have no error and do not change"
+    ],
+    "ruby": "@a = 0\nwhile @a < 3\n  @a = @a + 1\nend"
+  },
+  {
+    "id": "ruby-b3a0015487",
+    "from": [
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) built-in functions 含む round-trips"
+    ],
+    "ruby": "@a = \"hello\".include?(\"ell\")"
+  },
+  {
+    "id": "ruby-658999bfe3",
+    "from": [
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) control flow ascending for loop",
+      "test/unit/lib/dncl/dncl-counting-while.test.js › counting while loop (Issue #1695) becomes a counting loop the increment is the last line (unchanged)",
+      "test/unit/lib/dncl/dncl-counting-while.test.js › counting while loop (Issue #1695) becomes a counting loop a body indented by four spaces"
+    ],
+    "ruby": "@i = 1\nwhile @i <= 10\n  puts(@i)\n  @i += 1\nend"
+  },
+  {
+    "id": "ruby-7c3d4a151e",
+    "from": [
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) control flow descending for loop"
+    ],
+    "ruby": "@i = 10\nwhile @i >= 0\n  puts(@i)\n  @i += -1\nend"
+  },
+  {
+    "id": "ruby-7d9eff81cc",
+    "from": [
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) control flow function definition"
+    ],
+    "ruby": "def f(x)\n  return x * 2\nend"
+  },
+  {
+    "id": "ruby-c19219917e",
+    "from": [
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) nested function calls a = 含む(s, 乱数(1..10)) round-trips"
+    ],
+    "ruby": "@a = @s.include?(rand(1..10))"
+  },
+  {
+    "id": "ruby-2eb0608b25",
+    "from": [
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) nested function calls 表示する(乱数(1..10) + 5) round-trips"
+    ],
+    "ruby": "puts(rand(1..10) + 5)"
+  },
+  {
+    "id": "ruby-07a67412bc",
+    "from": [
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) nested function calls 表示する(乱数(1..10)) round-trips"
+    ],
+    "ruby": "puts(rand(1..10))"
+  },
+  {
+    "id": "ruby-ecaff604c6",
+    "from": [
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) nested function calls 表示する(整数(x)) round-trips"
+    ],
+    "ruby": "puts(@x.to_i)"
+  },
+  {
+    "id": "ruby-ed8c543996",
+    "from": [
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) nested function calls 表示する(絶対値(x)) round-trips"
+    ],
+    "ruby": "puts(@x.abs)"
+  },
+  {
+    "id": "ruby-36e67b9821",
+    "from": [
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) Ruby → DNCL → Ruby (regression for nested parens) say(@x.to_i, 1) → puts(@x.to_i)"
+    ],
+    "ruby": "say(@x.to_i, 1)"
+  },
+  {
+    "id": "ruby-2a2b54cea0",
+    "from": [
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) Ruby → DNCL → Ruby (regression for nested parens) say(rand(1..10) + 5, 1) → puts(rand(1..10) + 5) (single expr, not flattened)"
+    ],
+    "ruby": "say(rand(1..10) + 5, 1)"
+  },
+  {
+    "id": "ruby-2cf24538ea",
+    "from": [
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) Ruby → DNCL → Ruby (regression for nested parens) say(rand(1..10), 1) → puts(rand(1..10)) (表示する uses puts)"
+    ],
+    "ruby": "say(rand(1..10), 1)"
+  },
+  {
+    "id": "ruby-231463adce",
+    "from": [
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) user-defined function calls function call in assignment round-trips"
+    ],
+    "ruby": "def myfunc(x)\n  return 5\nend\n@a = myfunc(3)"
+  },
+  {
+    "id": "ruby-df99e9932d",
+    "from": [
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) user-defined function calls function definition + call round-trips"
+    ],
+    "ruby": "def myfunc(x)\n  return 5\nend\nmyfunc(3)"
+  },
+  {
+    "id": "ruby-c7d88b1360",
+    "from": [
+      "test/unit/lib/dncl/dncl-say-block-roundtrip.test.js › Display matrix: Ruby say(...) → DNCL 表示する (秒数無視) say(@変数 + \"バナナ\", 2) → 表示する(変数 + \"バナナ\")"
+    ],
+    "ruby": "say(@変数 + \"バナナ\", 2)"
+  },
+  {
+    "id": "ruby-ff724274a8",
+    "from": [
+      "test/unit/lib/dncl/dncl-say-block-roundtrip.test.js › Display matrix: Ruby say(...) → DNCL 表示する (秒数無視) say(arg.to_s + \"x\" + arg2.to_s, 3) → 表示する(arg, \"x\", arg2)"
+    ],
+    "ruby": "say(@a.to_s + \"x\" + @b.to_s, 3)"
+  },
+  {
+    "id": "ruby-5cd44d0965",
+    "from": [
+      "test/unit/lib/dncl/dncl-trailing-comment.test.js › trailing # comment on block lines (Issue #1696) a # inside a string is not a comment Ruby → DNCL keeps # inside a string"
+    ],
+    "ruby": "if @a == \"#\" # c\n  puts(@a)\nend"
+  },
+  {
+    "id": "ruby-3f4ace887d",
+    "from": [
+      "test/unit/lib/dncl/dncl-trailing-comment.test.js › trailing # comment on block lines (Issue #1696) comment-only lines Ruby → DNCL",
+      "test/unit/lib/dncl/dncl-trailing-comment.test.js › trailing # comment on block lines (Issue #1696) comment-only lines DNCL → Ruby → DNCL",
+      "test/unit/lib/dncl/dncl-trailing-comment.test.js › trailing # comment on block lines (Issue #1696) comment-only lines Ruby → DNCL → Ruby"
+    ],
+    "ruby": "# はじめ\nif @a > 0 # c\n  # なか\n  puts(@a)\nend\n# おわり"
+  },
+  {
+    "id": "ruby-9b9e548db4",
+    "from": [
+      "test/unit/lib/dncl/dncl-trailing-comment.test.js › trailing # comment on block lines (Issue #1696) counting loop Ruby → DNCL",
+      "test/unit/lib/dncl/dncl-trailing-comment.test.js › trailing # comment on block lines (Issue #1696) counting loop DNCL → Ruby → DNCL",
+      "test/unit/lib/dncl/dncl-trailing-comment.test.js › trailing # comment on block lines (Issue #1696) counting loop Ruby → DNCL → Ruby"
+    ],
+    "ruby": "@i = 1\nwhile @i <= 3 # c\n  puts(@i)\n  @i += 1\nend # d"
+  },
+  {
+    "id": "ruby-60da6f11c5",
+    "from": [
+      "test/unit/lib/dncl/dncl-trailing-comment.test.js › trailing # comment on block lines (Issue #1696) else and elsif Ruby → DNCL",
+      "test/unit/lib/dncl/dncl-trailing-comment.test.js › trailing # comment on block lines (Issue #1696) else and elsif DNCL → Ruby → DNCL",
+      "test/unit/lib/dncl/dncl-trailing-comment.test.js › trailing # comment on block lines (Issue #1696) else and elsif Ruby → DNCL → Ruby"
+    ],
+    "ruby": "if @a > 0 # c1\n  puts(@a)\nelsif @a < 0 # c2\n  puts(@b)\nelse # c3\n  puts(@c)\nend # c4"
+  },
+  {
+    "id": "ruby-4f97f20639",
+    "from": [
+      "test/unit/lib/dncl/dncl-trailing-comment.test.js › trailing # comment on block lines (Issue #1696) function Ruby → DNCL",
+      "test/unit/lib/dncl/dncl-trailing-comment.test.js › trailing # comment on block lines (Issue #1696) function DNCL → Ruby → DNCL",
+      "test/unit/lib/dncl/dncl-trailing-comment.test.js › trailing # comment on block lines (Issue #1696) function Ruby → DNCL → Ruby"
+    ],
+    "ruby": "def f(x) # c\n  return x + 1\nend # d"
+  },
+  {
+    "id": "ruby-fe55ee722c",
+    "from": [
+      "test/unit/lib/dncl/dncl-trailing-comment.test.js › trailing # comment on block lines (Issue #1696) if closer Ruby → DNCL",
+      "test/unit/lib/dncl/dncl-trailing-comment.test.js › trailing # comment on block lines (Issue #1696) if closer DNCL → Ruby → DNCL",
+      "test/unit/lib/dncl/dncl-trailing-comment.test.js › trailing # comment on block lines (Issue #1696) if closer Ruby → DNCL → Ruby"
+    ],
+    "ruby": "if @a > 0\n  puts(@a)\nend # c"
+  },
+  {
+    "id": "ruby-04fb04bc33",
+    "from": [
+      "test/unit/lib/dncl/dncl-trailing-comment.test.js › trailing # comment on block lines (Issue #1696) if opener Ruby → DNCL",
+      "test/unit/lib/dncl/dncl-trailing-comment.test.js › trailing # comment on block lines (Issue #1696) if opener DNCL → Ruby → DNCL",
+      "test/unit/lib/dncl/dncl-trailing-comment.test.js › trailing # comment on block lines (Issue #1696) if opener Ruby → DNCL → Ruby"
+    ],
+    "ruby": "if @a > 0 # c\n  puts(@a)\nend"
+  },
+  {
+    "id": "ruby-2fee7980cb",
+    "from": [
+      "test/unit/lib/dncl/dncl-trailing-comment.test.js › trailing # comment on block lines (Issue #1696) input keeps the comment both ways"
+    ],
+    "ruby": "ask(\"\")\n@x = answer # c"
+  },
+  {
+    "id": "ruby-20e60df7bd",
+    "from": [
+      "test/unit/lib/dncl/dncl-trailing-comment.test.js › trailing # comment on block lines (Issue #1696) nested blocks Ruby → DNCL",
+      "test/unit/lib/dncl/dncl-trailing-comment.test.js › trailing # comment on block lines (Issue #1696) nested blocks DNCL → Ruby → DNCL",
+      "test/unit/lib/dncl/dncl-trailing-comment.test.js › trailing # comment on block lines (Issue #1696) nested blocks Ruby → DNCL → Ruby"
+    ],
+    "ruby": "while @a < 3 # loop\n  if @a > 1 # if\n    puts(@a)\n  end # end if\n  @a = @a + 1 # step\nend # end loop"
+  },
+  {
+    "id": "ruby-1d1ca8d69a",
+    "from": [
+      "test/unit/lib/dncl/dncl-trailing-comment.test.js › trailing # comment on block lines (Issue #1696) Ruby → DNCL: a command in a comment is not an unsupported command"
+    ],
+    "ruby": "puts(1) # move(2)"
+  },
+  {
+    "id": "ruby-72a937ee53",
+    "from": [
+      "test/unit/lib/dncl/dncl-trailing-comment.test.js › trailing # comment on block lines (Issue #1696) Ruby → DNCL: a command in a comment is not an unsupported command"
+    ],
+    "ruby": "@i = 1 # a\nwhile @i <= 3 # b\n  @i += 1 # c\nend # d\nmove(2) # e"
+  },
+  {
+    "id": "ruby-472e25dad1",
+    "from": [
+      "test/unit/lib/dncl/dncl-trailing-comment.test.js › trailing # comment on block lines (Issue #1696) two Ruby lines that become one DNCL line keep both comments counting loop"
+    ],
+    "ruby": "@i = 1\nwhile @i <= 3 # a # b\n  puts(@i) # p\n  @i += 1\nend # inc # e"
+  },
+  {
+    "id": "ruby-dddf8c4e71",
+    "from": [
+      "test/unit/lib/dncl/dncl-trailing-comment.test.js › trailing # comment on block lines (Issue #1696) two Ruby lines that become one DNCL line keep both comments counting loop"
+    ],
+    "ruby": "@i = 1 # a\nwhile @i <= 3 # b\n  puts(@i) # p\n  @i += 1 # inc\nend # e"
+  },
+  {
+    "id": "ruby-0dae47428d",
+    "from": [
+      "test/unit/lib/dncl/dncl-trailing-comment.test.js › trailing # comment on block lines (Issue #1696) two Ruby lines that become one DNCL line keep both comments input"
+    ],
+    "ruby": "ask(\"\")\n@x = answer # q # a"
+  },
+  {
+    "id": "ruby-4377582ea1",
+    "from": [
+      "test/unit/lib/dncl/dncl-trailing-comment.test.js › trailing # comment on block lines (Issue #1696) two Ruby lines that become one DNCL line keep both comments input"
+    ],
+    "ruby": "ask(\"\") # q\n@x = answer # a"
+  },
+  {
+    "id": "ruby-5215e56679",
+    "from": [
+      "test/unit/lib/dncl/dncl-trailing-comment.test.js › trailing # comment on block lines (Issue #1696) while loop Ruby → DNCL",
+      "test/unit/lib/dncl/dncl-trailing-comment.test.js › trailing # comment on block lines (Issue #1696) while loop DNCL → Ruby → DNCL",
+      "test/unit/lib/dncl/dncl-trailing-comment.test.js › trailing # comment on block lines (Issue #1696) while loop Ruby → DNCL → Ruby"
+    ],
+    "ruby": "while @a < 3 # c\n  @a = @a + 1\nend # d"
+  },
+  {
+    "id": "ruby-e286823dc8",
+    "from": [
+      "test/unit/lib/dncl/dncl-unsupported-command.test.js › DNCL → Ruby → DNCL: calls the Japanese mode has (issue #1679) a call of a defined function with arguments"
+    ],
+    "ruby": "def 足す1(a)\n  return a + 1\nend\n@b = 足す1(2)"
+  },
+  {
+    "id": "ruby-4d44dd4e74",
+    "from": [
+      "test/unit/lib/dncl/dncl-unsupported-command.test.js › DNCL → Ruby → DNCL: calls the Japanese mode has (issue #1679) a call of a defined function without arguments"
+    ],
+    "ruby": "def あいさつ()\n  puts(\"こんにちは\")\nend\nあいさつ()"
+  },
+  {
+    "id": "ruby-c2470cd865",
+    "from": [
+      "test/unit/lib/dncl/dncl-unsupported-command.test.js › DNCL → Ruby → DNCL: calls the Japanese mode has (issue #1679) a call of a defined function without parentheses"
+    ],
+    "ruby": "def greet()\n  puts(\"hi\")\nend\ngreet"
+  },
+  {
+    "id": "ruby-4e74e19313",
+    "from": [
+      "test/unit/lib/dncl/dncl-unsupported-command.test.js › DNCL → Ruby → DNCL: calls the Japanese mode has (issue #1679) a variable with the name of a command"
+    ],
+    "ruby": "@move = 1\nputs(@move)"
+  },
+  {
+    "id": "ruby-3ef3655316",
+    "from": [
+      "test/unit/lib/dncl/dncl-unsupported-command.test.js › DNCL → Ruby → DNCL: calls the Japanese mode has (issue #1679) calls in an expression"
+    ],
+    "ruby": "def f(a)\n  return a * 2\nend\n@b = 1 + f(2) * @_array_Kazu_.length + @x.to_i"
+  },
+  {
+    "id": "ruby-ec404ee44d",
+    "from": [
+      "test/unit/lib/dncl/dncl-unsupported-command.test.js › Ruby → DNCL: a command the Japanese mode does not have is told on its Ruby line (issue #1679) a command with and without arguments"
+    ],
+    "ruby": "@a = 1\nmove(@a)\nbounce_if_on_edge"
+  },
+  {
+    "id": "ruby-6fc08cddba",
+    "from": [
+      "test/unit/lib/dncl/dncl-unsupported-command.test.js › Ruby → DNCL: a command the Japanese mode does not have is told on its Ruby line (issue #1679) a do block and the command in it",
+      "test/unit/lib/dncl/dncl-do-block.test.js › Ruby → DNCL: the end of a do block (issue #1665) with_screen_refresh do inside の間"
+    ],
+    "ruby": "while @a < 1\n  with_screen_refresh do\n    move(2)\n  end\nend"
+  },
+  {
+    "id": "ruby-9716caf4c3",
+    "from": [
+      "test/unit/lib/dncl/dncl-unsupported-command.test.js › Ruby → DNCL: a command the Japanese mode does not have is told on its Ruby line (issue #1679) a predicate method is told on its column"
+    ],
+    "ruby": "if key_pressed?(\"space\")\n  puts(1)\nend"
+  },
+  {
+    "id": "ruby-60b44a062e",
+    "from": [
+      "test/unit/lib/dncl/dncl-unsupported-command.test.js › Ruby → DNCL: a command the Japanese mode does not have is told on its Ruby line (issue #1679) code the Japanese mode has has no error"
+    ],
+    "ruby": "@x = 10\nsay(\"hello\", 1)\nputs(rand(1..6))"
+  },
+  {
+    "id": "ruby-b7c07e7a0c",
+    "from": [
+      "test/unit/lib/dncl/dncl-unsupported-command.test.js › Ruby → DNCL: a command the Japanese mode does not have is told on its Ruby line (issue #1679) the line after a counting loop that became one DNCL line"
+    ],
+    "ruby": "@i = 1\nwhile @i <= 3\n  turn_right(@i)\n  @i += 1\nend"
+  },
+  {
+    "id": "ruby-b2c50872da",
+    "from": [
+      "test/unit/lib/dncl/dncl-until-negation.test.js › DNCL → Ruby → blocks → Ruby → DNCL: until (a > 10 かつ b) でない の間 round-trips"
+    ],
+    "ruby": "@a = 0\n@b = false\nuntil @a > 10 && @b\n  @a = @a + 1\nend"
+  },
+  {
+    "id": "ruby-04221b3552",
+    "from": [
+      "test/unit/lib/dncl/dncl-until-negation.test.js › DNCL → Ruby → blocks → Ruby → DNCL: until a > 10 でない の間 stays a \"repeat until\" block"
+    ],
+    "ruby": "@a = 0\nuntil @a > 10\n  @a = @a + 1\nend"
+  },
+  {
+    "id": "ruby-c7bff68bad",
+    "from": [
+      "test/unit/lib/dncl/dncl-until-negation.test.js › DNCL round trip: until a ! on the right of a comparison: @c = @a == !@b Ruby → DNCL puts the negation in parentheses"
+    ],
+    "ruby": "@c = @a == !@b"
+  },
+  {
+    "id": "ruby-833181abfb",
+    "from": [
+      "test/unit/lib/dncl/dncl-until-negation.test.js › DNCL round trip: until a ! on the right of a comparison: @c = @a > 1 && @b == !@d Ruby → DNCL puts the negation in parentheses"
+    ],
+    "ruby": "@c = @a > 1 && @b == !@d"
+  },
+  {
+    "id": "ruby-ec168a5b51",
+    "from": [
+      "test/unit/lib/dncl/dncl-until-negation.test.js › DNCL round trip: until a ! on the right of a comparison: if @a == !@b\nend Ruby → DNCL puts the negation in parentheses"
+    ],
+    "ruby": "if @a == !@b\nend"
+  },
+  {
+    "id": "ruby-26bcc35a25",
+    "from": [
+      "test/unit/lib/dncl/dncl-until-negation.test.js › DNCL round trip: until a ! on the right of a comparison: until @a == !@b\nend Ruby → DNCL puts the negation in parentheses"
+    ],
+    "ruby": "until @a == !@b\nend"
+  },
+  {
+    "id": "ruby-5da7805cbb",
+    "from": [
+      "test/unit/lib/dncl/dncl-until-negation.test.js › DNCL round trip: until a ! that starts its term needs no parentheses: @b = !@x"
+    ],
+    "ruby": "@b = !@x"
+  },
+  {
+    "id": "ruby-5a5b26db55",
+    "from": [
+      "test/unit/lib/dncl/dncl-until-negation.test.js › DNCL round trip: until a ! that starts its term needs no parentheses: @b = !@x && @y"
+    ],
+    "ruby": "@b = !@x && @y"
+  },
+  {
+    "id": "ruby-f0a8cc62e8",
+    "from": [
+      "test/unit/lib/dncl/dncl-until-negation.test.js › DNCL round trip: until a ! that starts its term needs no parentheses: @b = @x || !@y"
+    ],
+    "ruby": "@b = @x || !@y"
+  },
+  {
+    "id": "ruby-581b939366",
+    "from": [
+      "test/unit/lib/dncl/dncl-until-negation.test.js › DNCL round trip: until a ! that starts its term needs no parentheses: @c = !@a == @b"
+    ],
+    "ruby": "@c = !@a == @b"
+  },
+  {
+    "id": "ruby-a8fe173d0b",
+    "from": [
+      "test/unit/lib/dncl/dncl-until-negation.test.js › DNCL round trip: until Ruby → DNCL → Ruby: until @a > 10\n  until @b\n    @b = true\n  end\nend"
+    ],
+    "ruby": "until @a > 10\n  until @b\n    @b = true\n  end\nend"
+  },
+  {
+    "id": "ruby-383995b080",
+    "from": [
+      "test/unit/lib/dncl/dncl-until-negation.test.js › Ruby → DNCL: until / ! != is not a negation"
+    ],
+    "ruby": "if @a != 1\nend"
+  },
+  {
+    "id": "ruby-1cae853668",
+    "from": [
+      "test/unit/lib/dncl/dncl-until-negation.test.js › Ruby → DNCL: until / ! !f(@x) keeps the call together"
+    ],
+    "ruby": "@a = !f(@x)"
+  },
+  {
+    "id": "ruby-e2c835721f",
+    "from": [
+      "test/unit/lib/dncl/dncl-until-negation.test.js › Ruby → DNCL: until / ! until @a > 10",
+      "test/unit/lib/dncl/dncl-until-negation.test.js › DNCL round trip: until Ruby → DNCL → Ruby: until @a > 10\n  @a += 1\nend"
+    ],
+    "ruby": "until @a > 10\n  @a += 1\nend"
+  },
+  {
+    "id": "ruby-065ae0237c",
+    "from": [
+      "test/unit/lib/dncl/dncl-until-negation.test.js › Ruby → DNCL: until / ! until @a > 10 && @b puts the whole condition in parentheses",
+      "test/unit/lib/dncl/dncl-until-negation.test.js › DNCL round trip: until Ruby → DNCL → Ruby: until @a > 10 && @b\nend"
+    ],
+    "ruby": "until @a > 10 && @b\nend"
+  },
+  {
+    "id": "ruby-804aebf5c2",
+    "from": [
+      "test/unit/lib/dncl/dncl-until-negation.test.js › Ruby → DNCL: until / ! until @x",
+      "test/unit/lib/dncl/dncl-until-negation.test.js › DNCL round trip: until Ruby → DNCL → Ruby: until @x\nend"
+    ],
+    "ruby": "until @x\nend"
+  },
+  {
+    "id": "ruby-96ccac16b4",
+    "from": [
+      "test/unit/lib/dncl/dncl-until-negation.test.js › Ruby → DNCL: until / ! wait until @a > 10 becomes an empty loop",
+      "test/unit/lib/dncl/dncl-until-negation.test.js › DNCL round trip: until wait until @a > 10 keeps the same meaning"
+    ],
+    "ruby": "wait until @a > 10"
+  },
+  {
+    "id": "ruby-b7c782124b",
+    "from": [
+      "test/unit/lib/dncl/dncl-until-negation.test.js › Ruby → DNCL: until / ! while !(@a > 10)",
+      "test/unit/lib/dncl/dncl-until-negation.test.js › DNCL round trip: until while !(@a > 10) becomes until @a > 10"
+    ],
+    "ruby": "while !(@a > 10)\nend"
+  },
+  {
+    "id": "ruby-228ccff8b6",
+    "from": [
+      "test/unit/lib/dncl/dncl-validation.test.js › DNCL mode switch validation invalid code (should block switch) a do block inside の間 is told on its line (issue #1665)"
+    ],
+    "ruby": "@a = 0\nwhile @a < 1\n  with_screen_refresh do\n    @a = @a + 1\n  end\nend\n"
+  },
+  {
+    "id": "ruby-8a90f0ebb6",
+    "from": [
+      "test/unit/lib/dncl/dncl-validation.test.js › DNCL mode switch validation invalid code (should block switch) broadcast is not supported in DNCL"
+    ],
+    "ruby": "broadcast(\"message1\")\n"
+  },
+  {
+    "id": "ruby-c9c776e845",
+    "from": [
+      "test/unit/lib/dncl/dncl-validation.test.js › DNCL mode switch validation invalid code (should block switch) move is not supported in DNCL"
+    ],
+    "ruby": "move(10)\n"
+  },
+  {
+    "id": "ruby-98dfdb0bac",
+    "from": [
+      "test/unit/lib/dncl/dncl-validation.test.js › DNCL mode switch validation invalid code (should block switch) turn_right is not supported in DNCL"
+    ],
+    "ruby": "turn_right(90)\n"
+  },
+  {
+    "id": "ruby-4e7d4ef4ae",
+    "from": [
+      "test/unit/lib/dncl/dncl-validation.test.js › DNCL mode switch validation invalid code (should block switch) when_clicked is not supported in DNCL"
+    ],
+    "ruby": "when_clicked do\n  say(\"hello\", 1)\nend\n"
+  },
+  {
+    "id": "ruby-d37d936b3f",
+    "from": [
+      "test/unit/lib/dncl/dncl-validation.test.js › DNCL mode switch validation invalid code (should block switch) when_flag_clicked breaks in DNCL round-trip"
+    ],
+    "ruby": "when_flag_clicked do\n  say(\"hello\", 1)\nend\n"
+  },
+  {
+    "id": "ruby-1783fd197f",
+    "from": [
+      "test/unit/lib/dncl/dncl-validation.test.js › DNCL mode switch validation invalid code (should block switch) when_key_pressed is not supported in DNCL",
+      "test/unit/lib/dncl/dncl-validation.test.js › DNCL mode switch validation error message errors use the localized validation message"
+    ],
+    "ruby": "when_key_pressed(\"a\") do\n  say(\"hello\", 1)\nend\n"
+  },
+  {
+    "id": "ruby-a63e74fb43",
+    "from": [
+      "test/unit/lib/dncl/dncl-validation.test.js › DNCL mode switch validation valid code (should allow switch) simple variable assignment and say"
+    ],
+    "ruby": "@x = 10\nsay(\"hello\", 1)\n"
+  },
+  {
+    "id": "ruby-9c85040659",
+    "from": [
+      "test/unit/lib/dncl/dncl-validation.test.js › DNCL mode switch validation valid code (should allow switch) variable with if and say"
+    ],
+    "ruby": "@x = 10\nif @x > 5\n  say(\"big\", 1)\nend\n"
+  },
+  {
+    "id": "ruby-0c9195f1d2",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl built-in functions .abs → 絶対値()",
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) built-in functions 絶対値 round-trips"
+    ],
+    "ruby": "@a = @x.abs"
+  },
+  {
+    "id": "ruby-470518801e",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl built-in functions .ceil → 切り上げ()",
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) built-in functions 切り上げ round-trips"
+    ],
+    "ruby": "@a = @x.ceil"
+  },
+  {
+    "id": "ruby-a43b8a7ed0",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl built-in functions .floor → 切り捨て()",
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) built-in functions 切り捨て round-trips"
+    ],
+    "ruby": "@a = @x.floor"
+  },
+  {
+    "id": "ruby-00a5587469",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl built-in functions .include?() → 含む()"
+    ],
+    "ruby": "@a = @x.include?(\"ell\")"
+  },
+  {
+    "id": "ruby-164ee8c178",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl built-in functions .length → 要素数()"
+    ],
+    "ruby": "@a = @_array_Kouka_.length"
+  },
+  {
+    "id": "ruby-099f98dd49",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl built-in functions .round → 四捨五入()",
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) built-in functions 四捨五入 round-trips"
+    ],
+    "ruby": "@a = @x.round"
+  },
+  {
+    "id": "ruby-45111d1fe8",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl built-in functions .to_i → 整数()",
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) built-in functions 整数 round-trips"
+    ],
+    "ruby": "@a = @x.to_i"
+  },
+  {
+    "id": "ruby-e2323268c9",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl built-in functions .to_s → 文字列()",
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) built-in functions 文字列 round-trips"
+    ],
+    "ruby": "@a = @x.to_s"
+  },
+  {
+    "id": "ruby-35d0c74fed",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl built-in functions Math.sqrt() → 平方根()",
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) built-in functions 平方根 round-trips"
+    ],
+    "ruby": "@a = Math.sqrt(@x)"
+  },
+  {
+    "id": "ruby-425f113d9d",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl built-in functions rand() → 乱数()",
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) built-in functions 乱数 round-trips"
+    ],
+    "ruby": "@a = rand(10)"
+  },
+  {
+    "id": "ruby-f0a9a9fa20",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl CJK built-in methods .abs on CJK variable"
+    ],
+    "ruby": "@a = @差分.abs"
+  },
+  {
+    "id": "ruby-7d9ed74e6a",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl CJK built-in methods .include? on CJK variable"
+    ],
+    "ruby": "@a = @文字列.include?(\"ell\")"
+  },
+  {
+    "id": "ruby-fabfa94ba8",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl CJK built-in methods .length on CJK variable"
+    ],
+    "ruby": "@a = @配列.length"
+  },
+  {
+    "id": "ruby-f1f6c358e9",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl CJK built-in methods .round on CJK variable"
+    ],
+    "ruby": "@a = @平均.round"
+  },
+  {
+    "id": "ruby-dce4bd95fe",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl CJK built-in methods .to_i on CJK variable"
+    ],
+    "ruby": "@a = @合計.to_i"
+  },
+  {
+    "id": "ruby-cdeaf6c9be",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl CJK built-in methods .to_s on CJK variable"
+    ],
+    "ruby": "@a = @合計.to_s"
+  },
+  {
+    "id": "ruby-e0c679c242",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl CJK for-loop (while pattern) for-loop with CJK body variable"
+    ],
+    "ruby": "@合計 = 0\n@i = 1\nwhile @i <= 10\n  @合計 += @i\n  @i += 1\nend"
+  },
+  {
+    "id": "ruby-cb7c62d16c",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl CJK for-loop (while pattern) for-loop with CJK loop variable"
+    ],
+    "ruby": "@回数 = 1\nwhile @回数 <= 5\n  say(@回数, 1)\n  @回数 += 1\nend"
+  },
+  {
+    "id": "ruby-6ca50474fe",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl CJK roundtrip: reported bug DNCL program with 合計 variable roundtrips correctly"
+    ],
+    "ruby": "@合計 = 0\n@i = 1\nwhile @i <= 10\n  @合計 += @i\n  @i += 1\nend\nsay(@合計, 1)"
+  },
+  {
+    "id": "ruby-931705aea0",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl CJK variable names CJK uppercase array variable"
+    ],
+    "ruby": "@_array_配列_ = [1, 2, 3]"
+  },
+  {
+    "id": "ruby-0bff53339c",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl CJK variable names CJK uppercase scalar variable"
+    ],
+    "ruby": "@_var_合計_ = 0"
+  },
+  {
+    "id": "ruby-a0c6526b4f",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl CJK variable names hiragana variable"
+    ],
+    "ruby": "@けっか = 1"
+  },
+  {
+    "id": "ruby-f7c88ec9e2",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl CJK variable names kanji variable assignment"
+    ],
+    "ruby": "@合計 = 0"
+  },
+  {
+    "id": "ruby-e1def93cd9",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl CJK variable names kanji variable reference in expression"
+    ],
+    "ruby": "@合計 = @合計 + @i"
+  },
+  {
+    "id": "ruby-7d3eb3c6d4",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl CJK variable names katakana variable"
+    ],
+    "ruby": "@カウント = 0"
+  },
+  {
+    "id": "ruby-a3c395cff1",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl CJK variable names negation of CJK variable"
+    ],
+    "ruby": "if !@合計\n  @a = 1\nend"
+  },
+  {
+    "id": "ruby-6fa2f8a5b6",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl comments preserves comments",
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) comments and blank lines preserves comments"
+    ],
+    "ruby": "# コメント"
+  },
+  {
+    "id": "ruby-49f0a595c1",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl control flow: for loop (step syntax) ascending step for loop"
+    ],
+    "ruby": "(1..10).step(1) do |i|\n  say(@i, 1)\nend"
+  },
+  {
+    "id": "ruby-48a6e1d3b2",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl control flow: for loop (step syntax) descending step for loop"
+    ],
+    "ruby": "10.step(0, -1) do |i|\n  say(@i, 1)\nend"
+  },
+  {
+    "id": "ruby-144d02d4bf",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl control flow: for loop (while pattern) ascending while-based for loop"
+    ],
+    "ruby": "@i = 1\nwhile @i <= 10\n  say(@i, 1)\n  @i += 1\nend"
+  },
+  {
+    "id": "ruby-001b1ca44e",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl control flow: for loop (while pattern) ascending while-based for loop with step 2"
+    ],
+    "ruby": "@i = 0\nwhile @i <= @n\n  say(@i, 1)\n  @i += 2\nend"
+  },
+  {
+    "id": "ruby-f8540561d0",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl control flow: for loop (while pattern) descending while-based for loop"
+    ],
+    "ruby": "@i = 10\nwhile @i >= 0\n  say(@i, 1)\n  @i += -1\nend"
+  },
+  {
+    "id": "ruby-56bd6a584b",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl control flow: for loop (while pattern) nested while-based for loops"
+    ],
+    "ruby": "@i = 1\nwhile @i <= 3\n  @j = 1\n  while @j <= 3\n    say(@i, 1)\n    @j += 1\n  end\n  @i += 1\nend"
+  },
+  {
+    "id": "ruby-22ff6f6ae1",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl control flow: function function definition"
+    ],
+    "ruby": "def f(x)\n  return @x * 2\nend"
+  },
+  {
+    "id": "ruby-89de32bc40",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl control flow: if if-else",
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) control flow if-else"
+    ],
+    "ruby": "if @a > 0\n  @a = 1\nelse\n  @a = 2\nend"
+  },
+  {
+    "id": "ruby-508562e417",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl control flow: if if-elsif-else"
+    ],
+    "ruby": "if @a > 0\n  @a = 1\nelsif @a > 5\n  @a = 2\nelse\n  @a = 3\nend"
+  },
+  {
+    "id": "ruby-e7ed5ed593",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl control flow: if simple if",
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) control flow simple if",
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) control flow if with なら normalizes to ならば"
+    ],
+    "ruby": "if @a > 0\n  @a = 1\nend"
+  },
+  {
+    "id": "ruby-09e7915b9b",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl control flow: N.times N.times converts to for loop"
+    ],
+    "ruby": "10.times do\n  @a = @a + 1\nend"
+  },
+  {
+    "id": "ruby-15ab7cae9d",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl control flow: until the do of an empty until / while is dropped"
+    ],
+    "ruby": "while @a > 10 do\nend"
+  },
+  {
+    "id": "ruby-4e2ef9a487",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl control flow: until the do of an empty until / while is dropped"
+    ],
+    "ruby": "until @a > 10 do\nend"
+  },
+  {
+    "id": "ruby-7c12290d9e",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl control flow: until until loop converts to でない の間"
+    ],
+    "ruby": "until @a > 10\n  @a = @a + 1\nend"
+  },
+  {
+    "id": "ruby-7b731f7128",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl control flow: while loop while loop",
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) control flow while loop"
+    ],
+    "ruby": "while @a > 0\n  @a = @a - 1\nend"
+  },
+  {
+    "id": "ruby-c7861c0594",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl display and input ask + answer → 入力",
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) display and input 入力 round-trips"
+    ],
+    "ruby": "ask(\"\")\n@a = answer"
+  },
+  {
+    "id": "ruby-05cb2fad0a",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl display and input ask + answer.to_i → 整数を入力 (Issue #1186)",
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) display and input 入力 round-trips"
+    ],
+    "ruby": "ask(\"\")\n@n = answer.to_i"
+  },
+  {
+    "id": "ruby-8422e45088",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl display and input ask_and_wait + answer → 入力 (legacy)"
+    ],
+    "ruby": "ask_and_wait(\"\")\n@a = answer"
+  },
+  {
+    "id": "ruby-cbc736d277",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl display and input p → 表示する"
+    ],
+    "ruby": "p(@a)"
+  },
+  {
+    "id": "ruby-2a47cf172b",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl display and input print → 表示する"
+    ],
+    "ruby": "print(@a)"
+  },
+  {
+    "id": "ruby-7c8d155ded",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl display and input puts → 表示する",
+      "test/unit/lib/dncl/dncl-say-block-roundtrip.test.js › Display matrix: full round-trip (intentionally lossy) DNCL 表示する(a) → Ruby → DNCL stable as 表示する(a)",
+      "test/unit/lib/dncl/dncl-say-block-roundtrip.test.js › Display matrix: full round-trip (intentionally lossy) Ruby puts(@a) → DNCL → Ruby stable as puts(@a)"
+    ],
+    "ruby": "puts(@a)"
+  },
+  {
+    "id": "ruby-76b592ca14",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl display and input say → 表示する",
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl display: say with any duration say with 1 second",
+      "test/unit/lib/dncl/dncl-say-block-roundtrip.test.js › Display matrix: Ruby say(...) → DNCL 表示する (秒数無視) say(@a, 1) → 表示する(a)"
+    ],
+    "ruby": "say(@a, 1)"
+  },
+  {
+    "id": "ruby-a21298923f",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl display and input say with multiple args",
+      "test/unit/lib/dncl/dncl-display-multi-arg.test.js › Ruby → DNCL: say(...) flatten too (for backward compat) say(@a, @b, @c, 1) → 表示する(a, b, c) (existing multi-arg comma form)"
+    ],
+    "ruby": "say(@a, @b, @c, 1)"
+  },
+  {
+    "id": "ruby-642afbeca7",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl display: say with any duration say with 0.5 seconds",
+      "test/unit/lib/dncl/dncl-say-block-roundtrip.test.js › Display matrix: Ruby say(...) → DNCL 表示する (秒数無視) say(@a, 0.5) → 表示する(a) (小数の秒数も無視)"
+    ],
+    "ruby": "say(@a, 0.5)"
+  },
+  {
+    "id": "ruby-d63c113b17",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl display: say with any duration say with 2 seconds",
+      "test/unit/lib/dncl/dncl-say-block-roundtrip.test.js › Display matrix: Ruby say(...) → DNCL 表示する (秒数無視) say(@a, 2) → 表示する(a) (秒数 2 は無視)",
+      "test/unit/lib/dncl/dncl-say-block-roundtrip.test.js › Display matrix: full round-trip (intentionally lossy) Ruby say(@a, 2) → DNCL → Ruby — 不可逆: puts(@a) (秒数喪失)"
+    ],
+    "ruby": "say(@a, 2)"
+  },
+  {
+    "id": "ruby-bed971a784",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl multiline preserves blank lines",
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) comments and blank lines preserves blank lines"
+    ],
+    "ruby": "@a = 1\n\n@b = 2"
+  },
+  {
+    "id": "ruby-c083bb251a",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl nested same-name calls p does not match part of map("
+    ],
+    "ruby": "@a = @arr.map(&:to_s)"
+  },
+  {
+    "id": "ruby-4ac041d396",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl nested same-name calls p(p(x)) fully converts"
+    ],
+    "ruby": "p(p(@x))"
+  },
+  {
+    "id": "ruby-6e3123c670",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl nested same-name calls puts(puts(x)) fully converts"
+    ],
+    "ruby": "puts(puts(@x))"
+  },
+  {
+    "id": "ruby-3235f43023",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl nested same-name calls rand(rand(rand(1..10))) fully converts"
+    ],
+    "ruby": "puts(rand(rand(rand(1..10))))"
+  },
+  {
+    "id": "ruby-1496e444fc",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl nested same-name calls say with nested same-name in args"
+    ],
+    "ruby": "say(rand(rand(1..10)), 1)"
+  },
+  {
+    "id": "ruby-3f89cf26c3",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl operators boolean false",
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) operators boolean true/false"
+    ],
+    "ruby": "@a = false"
+  },
+  {
+    "id": "ruby-9c88e45b0c",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl operators boolean true",
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) operators boolean true/false"
+    ],
+    "ruby": "@a = true"
+  },
+  {
+    "id": "ruby-248858c0bd",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl operators logical !"
+    ],
+    "ruby": "@a = !@x"
+  },
+  {
+    "id": "ruby-050b263cdc",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl operators logical &&",
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) operators logical operators"
+    ],
+    "ruby": "@a = @x && @y"
+  },
+  {
+    "id": "ruby-e1695f0e00",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl operators logical ||",
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) operators logical operators"
+    ],
+    "ruby": "@a = @x || @y"
+  },
+  {
+    "id": "ruby-5a68b73104",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl variable assignment lowercase variable",
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) variables lowercase variable assignment"
+    ],
+    "ruby": "@a = 3"
+  },
+  {
+    "id": "ruby-4e4a61ddb1",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl variable assignment uppercase array variable",
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) variables uppercase array variable"
+    ],
+    "ruby": "@_array_Kouka_ = [1, 5, 10]"
+  },
+  {
+    "id": "ruby-fc6e2e1a20",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl variable assignment uppercase scalar variable",
+      "test/unit/lib/dncl/dncl-roundtrip.test.js › DNCL round-trip (DNCL → Ruby → DNCL) variables uppercase scalar variable"
+    ],
+    "ruby": "@_var_A_ = 3"
+  },
+  {
+    "id": "ruby-00ee9c43b5",
+    "from": [
+      "test/unit/lib/dncl/ruby-to-dncl.test.js › rubyToDncl variable assignment variable reference in expression"
+    ],
+    "ruby": "@a = @_var_A_ + 1"
+  },
+  {
+    "id": "ruby-2b778c7762",
+    "from": [
+      "test/unit/lib/genai-ruby-adapter.test.js › the Ruby tab adapter in the Japanese (DNCL) mode (#1402) switches a sprite no longer in the editor through Ruby"
+    ],
+    "ruby": "move(0)\n"
+  },
+  {
+    "id": "ruby-bb37969227",
+    "from": [
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks ÷ is the integer division toJa"
+    ],
+    "ruby": "@x = (7 / 2).to_i"
+  },
+  {
+    "id": "ruby-a9708ea550",
+    "from": [
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks 1: @x = 1 toJa"
+    ],
+    "ruby": "@x = 1"
+  },
+  {
+    "id": "ruby-45916ee09b",
+    "from": [
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks 10: @_array_Data_[0] = 5 toJa"
+    ],
+    "ruby": "@_array_Data_[0] = 5"
+  },
+  {
+    "id": "ruby-d18755ab62",
+    "from": [
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks 11: @x = @_array_Data_.length toJa"
+    ],
+    "ruby": "@x = @_array_Data_.length"
+  },
+  {
+    "id": "ruby-05df4dcd7a",
+    "from": [
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks 12: @x = @y.to_i toJa"
+    ],
+    "ruby": "@x = @y.to_i"
+  },
+  {
+    "id": "ruby-54ff0e8e7d",
+    "from": [
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks 13: puts(@x) toJa"
+    ],
+    "ruby": "puts(@x)"
+  },
+  {
+    "id": "ruby-6ef00f586a",
+    "from": [
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks 16: if @x > 0 toJa"
+    ],
+    "ruby": "if @x > 0\n  puts(@x)\nend"
+  },
+  {
+    "id": "ruby-61c7f55e11",
+    "from": [
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks 18: if @x > 0 toJa"
+    ],
+    "ruby": "if @x > 0\n  puts(@x)\nelse\n  puts(@y)\nend"
+  },
+  {
+    "id": "ruby-6fc293d44c",
+    "from": [
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks 3: @x = @x * 2 - 1 toJa"
+    ],
+    "ruby": "@x = @x * 2 - 1"
+  },
+  {
+    "id": "ruby-6bf6c63ee7",
+    "from": [
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks 4: @x = 7 % 2 toJa"
+    ],
+    "ruby": "@x = 7 % 2"
+  },
+  {
+    "id": "ruby-079cddd189",
+    "from": [
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks a counting loop down toJa"
+    ],
+    "ruby": "@i = 3\nwhile @i >= 1\n  puts(@i)\n  @i += -1\nend"
+  },
+  {
+    "id": "ruby-d064a45827",
+    "from": [
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks a counting loop toJa"
+    ],
+    "ruby": "@i = 1\nwhile @i <= 3\n  puts(@i)\n  @i += 1\nend"
+  },
+  {
+    "id": "ruby-1b6c2e6ab5",
+    "from": [
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks a name that starts with a capital letter toJa"
+    ],
+    "ruby": "@_var_Kosu_ = 3"
+  },
+  {
+    "id": "ruby-d6f07a4017",
+    "from": [
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks an array toJa"
+    ],
+    "ruby": "@_array_Data_ = [1, 2]"
+  },
+  {
+    "id": "ruby-12e44c678f",
+    "from": [
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks an element of an array (indexes from 0) toJa"
+    ],
+    "ruby": "@x = @_array_Data_[1]"
+  },
+  {
+    "id": "ruby-d1a9c0ec96",
+    "from": [
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks an input toJa"
+    ],
+    "ruby": "ask(\"\")\n@x = answer"
+  },
+  {
+    "id": "ruby-a22ccc3dea",
+    "from": [
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks true is written as 真 toJa"
+    ],
+    "ruby": "@x = true"
+  },
+  {
+    "id": "ruby-3cd5f2d94e",
+    "from": [
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks かつ toJa"
+    ],
+    "ruby": "if @x > 0 && @x < 9\n  puts(@x)\nend"
+  },
+  {
+    "id": "ruby-db39dd4f47",
+    "from": [
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks の間 を繰り返す toJa"
+    ],
+    "ruby": "while @x < 3\n  @x = @x + 1\nend"
+  },
+  {
+    "id": "ruby-74967b1eaa",
+    "from": [
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks 表示する with two values toJa"
+    ],
+    "ruby": "puts(\"合計\" + @x.to_s)"
+  },
+  {
+    "id": "ruby-2b1c082691",
+    "from": [
+      "test/unit/lib/ruby-roundtrip/logical-chain.test.js › DNCL: a chain of かつ / または (issue #1634) a = 1\nもし a > 0 かつ a < 3 かつ a > 1 ならば\n  a = 2\nを実行する comes back as written through the blocks"
+    ],
+    "ruby": "@a = 1\nif @a > 0 && @a < 3 && @a > 1\n  @a = 2\nend"
+  },
+  {
+    "id": "ruby-20e1454a5f",
+    "from": [
+      "test/unit/lib/ruby-roundtrip/logical-chain.test.js › DNCL: a chain of かつ / または (issue #1634) a = 1\nもし a > 0 または a < 3 かつ a > 1 ならば\n  a = 2\nを実行する comes back as written through the blocks"
+    ],
+    "ruby": "@a = 1\nif @a > 0 || @a < 3 && @a > 1\n  @a = 2\nend"
+  },
+  {
+    "id": "ruby-3762c22a51",
+    "from": [
+      "test/unit/lib/ruby-roundtrip/logical-chain.test.js › DNCL: a chain of かつ / または (issue #1634) a = 1\nもし a > 0 または a < 3 または a > 1 ならば\n  a = 2\nを実行する comes back as written through the blocks"
+    ],
+    "ruby": "@a = 1\nif @a > 0 || @a < 3 || @a > 1\n  @a = 2\nend"
+  }
+]

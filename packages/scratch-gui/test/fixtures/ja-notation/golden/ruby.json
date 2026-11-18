@@ -1,0 +1,4161 @@
+{
+  "ruby-07ab982fbe": {
+    "ja": "もし direction > 90 ならば\n  表示する(文字列(y_position))\nを実行する",
+    "errors": [
+      {
+        "line": 1,
+        "column": 4,
+        "id": "unsupportedCommand",
+        "name": "direction",
+        "message": "「direction」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      },
+      {
+        "line": 2,
+        "column": 8,
+        "id": "unsupportedCommand",
+        "name": "y_position",
+        "message": "「y_position」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": "if @direction > 90\n  puts(@y_position.to_s)\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-479055452c": {
+    "ja": "表示する(costume_number)",
+    "errors": [
+      {
+        "line": 1,
+        "column": 6,
+        "id": "unsupportedCommand",
+        "name": "costume_number",
+        "message": "「costume_number」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": "puts(@costume_number)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-1365258296": {
+    "ja": "a = 1 + x_position",
+    "errors": [
+      {
+        "line": 1,
+        "column": 10,
+        "id": "unsupportedCommand",
+        "name": "x_position",
+        "message": "「x_position」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": "@a = 1 + @x_position",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-22a7460321": {
+    "ja": "i = 1\ni <= x_position の間\n  表示する(i)\n  i += costume_number\nを繰り返す",
+    "errors": [
+      {
+        "line": 2,
+        "column": 13,
+        "id": "unsupportedCommand",
+        "name": "x_position",
+        "message": "「x_position」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      },
+      {
+        "line": 4,
+        "column": 9,
+        "id": "unsupportedCommand",
+        "name": "costume_number",
+        "message": "「costume_number」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": "@i = 1\nwhile @i <= @x_position\n  puts(@i)\n  @i += @costume_number\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-604fe0a397": {
+    "ja": "bounce_if_on_edge",
+    "errors": [
+      {
+        "line": 1,
+        "column": 1,
+        "id": "unsupportedCommand",
+        "name": "bounce_if_on_edge",
+        "message": "「bounce_if_on_edge」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 1,
+          "column": 1,
+          "id": "unsupportedCommand",
+          "name": "bounce_if_on_edge",
+          "message": "「bounce_if_on_edge」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-2fdccc8f04": {
+    "ja": "表示する(\"x_position\")\na = 1 # x_position",
+    "errors": [],
+    "back": {
+      "ruby": "puts(\"x_position\")\n@a = 1 # x_position",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-58cf3ef45c": {
+    "ja": "a = x_position",
+    "errors": [
+      {
+        "line": 1,
+        "column": 6,
+        "id": "unsupportedCommand",
+        "name": "x_position",
+        "message": "「x_position」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": "@a = @x_position",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-b5bb6c47cd": {
+    "ja": "i を 1 から 3 まで 1 ずつ増やしながら\n  表示する(i)\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 1\nwhile @i <= 3\n  puts(@i)\n  @i += 1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-07b0faa6ff": {
+    "ja": "def greet\n  表示する(\"hi\")\nを実行する\na = greet",
+    "errors": [],
+    "back": {
+      "ruby": "def @greet\nputs(\"hi\")\nend\n@a = @greet",
+      "errors": [],
+      "blockErrors": [
+        {
+          "line": 3,
+          "column": 1,
+          "message": "「を実行する」で閉じるものがありません"
+        }
+      ]
+    }
+  },
+  "ruby-115bfe2a31": {
+    "ja": "関数 f(x)\n  返す x * 2\nと定義する\na = f(3)",
+    "errors": [],
+    "back": {
+      "ruby": "def f(x)\n  return x * 2\nend\n@a = f(3)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-6ea6ea0cb1": {
+    "ja": "b = 2\na = 1 + b",
+    "errors": [],
+    "back": {
+      "ruby": "@b = 2\n@a = 1 + @b",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-c86e6cfe97": {
+    "ja": "a = 【外部からの入力】\nb = 乱数(1..6)\nc = 整数(a) + 要素数(b)\n表示する(true かつ 偽 でない)",
+    "errors": [],
+    "back": {
+      "ruby": "ask(\"\")\n@a = answer\n@b = rand(1..6)\n@c = @a.to_i + @b.length\nputs(true && !false)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-0560bfb414": {
+    "ja": "a = $b + c + 平方根(4)\nもし a > 1 and not a == 2 ならば\n  a = nil\nを実行する",
+    "errors": [],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 1,
+          "column": 5,
+          "message": "日本語モードでは変数に「$」は使えません"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-d3d541db91": {
+    "ja": "a, b = 1, 2\n表示する(a + b)",
+    "errors": [],
+    "back": {
+      "ruby": "@a, @b = 1, 2\nputs(@a + @b)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-5185405f54": {
+    "ja": "a = 1\na > 0 でない の間\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@a = 1\nuntil @a > 0\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-60e1be5cbf": {
+    "ja": "b = -(a + 1)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = -(@a + 1)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-0673c22fe7": {
+    "ja": "b = -四捨五入(2.5)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = -(2.5.round)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-4d12ecdd1c": {
+    "ja": "b = -整数(x)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = -(@x.to_i)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-4fbe66ff4d": {
+    "ja": "b = -文字列(1)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = -(1.to_s)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-d70c8fa8b3": {
+    "ja": "b = -絶対値(5)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = -(5.abs)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-81d9b8a2cd": {
+    "ja": "b = -絶対値(a - c)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = -((@a - @c).abs)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-882975e3e3": {
+    "ja": "b = -要素数(A)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = -(@_array_A_.length)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-25ba083a0e": {
+    "ja": "b = 3 * -絶対値(5)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = 3 * -(5.abs)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-364a3b1aac": {
+    "ja": "b = 四捨五入(a * 2)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = (@a * 2).round",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-fd11471525": {
+    "ja": "b = 整数((a + 1) * 2)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = ((@a + 1) * 2).to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-200a343d3e": {
+    "ja": "b = 整数(a + 1)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = (@a + 1).to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-eceb18b9d7": {
+    "ja": "b = 整数(a) + 1",
+    "errors": [],
+    "back": {
+      "ruby": "@b = @a.to_i + 1",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-47ec7f661a": {
+    "ja": "b = 整数(Data[1] * 3)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = (@_array_Data_[1] * 3).to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-5202879fb6": {
+    "ja": "b = 整数(x)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = @x.to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-3d7ccd9821": {
+    "ja": "b = 整数(乱数(1..10))",
+    "errors": [],
+    "back": {
+      "ruby": "@b = rand(1..10).to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-91f82bfbe2": {
+    "ja": "b = 文字列(a + 1)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = (@a + 1).to_s",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-9ab69a58ee": {
+    "ja": "b = 文字列(a > 1)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = (@a > 1).to_s",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-ad21cff842": {
+    "ja": "b = 文字列(Data[1])",
+    "errors": [],
+    "back": {
+      "ruby": "@b = @_array_Data_[1].to_s",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-fabe689266": {
+    "ja": "b = 文字列(x / 2)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = (@x / 2).to_s",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-e48113eb20": {
+    "ja": "b = 文字列(x ÷ 2)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = ((@x / 2).to_i).to_s",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-e425923f82": {
+    "ja": "b = 絶対値(a - c)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = (@a - @c).abs",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-708b2b17fe": {
+    "ja": "i を 整数(a + 1) から 要素数(Data) まで 1 ずつ増やしながら\n  b = i\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = (@a + 1).to_i\nwhile @i <= @_array_Data_.length\n  @b = @i\n  @i += 1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-2f238db0f1": {
+    "ja": "y = x ÷ 2",
+    "errors": [],
+    "back": {
+      "ruby": "@y = (@x / 2).to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-f686d71468": {
+    "ja": "もし 整数(a + 1) > 3 ならば\n  b = 1\nを実行する",
+    "errors": [],
+    "back": {
+      "ruby": "if (@a + 1).to_i > 3\n  @b = 1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-2f240b29e3": {
+    "ja": "もし 整数(a) > 3 ならば\n  b = 1\nそうでなくもし 文字列(a) == \"1\" ならば\n  b = 2\nを実行する",
+    "errors": [],
+    "back": {
+      "ruby": "if @a.to_i > 3\n  @b = 1\nelsif @a.to_s == \"1\"\n  @b = 2\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-2efabfc9fa": {
+    "ja": "b = 文字列(x でない)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = (!@x).to_s",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-b58350ef0e": {
+    "ja": "表示する(文字列(a + 1))",
+    "errors": [],
+    "back": {
+      "ruby": "puts((@a + 1).to_s)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-0aa55ce178": {
+    "ja": "要素数(Data) > i の間\n  i = i + 1\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "while @_array_Data_.length > @i\n  @i = @i + 1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-0315fc3088": {
+    "ja": "関数 f(x)\n  返す 整数(x * 2)\nと定義する",
+    "errors": [],
+    "back": {
+      "ruby": "def f(x)\n  return (x * 2).to_i\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-ab488aee62": {
+    "ja": "b = 絶対値(-1.5)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = -1.5.abs",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-1e8d0d5f16": {
+    "ja": "b = 文字列(-1)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = -1.to_s",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-59848e7a29": {
+    "ja": "b = 四捨五入(-2.5)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = -2.5.round",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-afdf348d99": {
+    "ja": "b = 絶対値(-5)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = -5.abs",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-00c33c7e07": {
+    "ja": "b = (絶対値(-5) + 1)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = (-5.abs + 1)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-4be4df6e26": {
+    "ja": "b = (a > 0 または 文字列(-1) == \"x\")",
+    "errors": [],
+    "back": {
+      "ruby": "@b = (@a > 0 || -1.to_s == \"x\")",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-1ec9e1748e": {
+    "ja": "b = (a > 0 and 絶対値(-5) > 1)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = (@a > 0 && -5.abs > 1)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-fc27c7275b": {
+    "ja": "b = a かつ 絶対値(-5)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = @a && -5.abs",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-57274e6c63": {
+    "ja": "b = 3 * 絶対値(-5)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = 3 * -5.abs",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-bbf7e1ad48": {
+    "ja": "b = - 絶対値(5)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = - (5.abs)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-1c3be247ee": {
+    "ja": "b = -絶対値(a)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = -(@a.abs)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-ebf62570cc": {
+    "ja": "b = a - 絶対値(5)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = @a - 5.abs",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-e3c310c737": {
+    "ja": "b = a -絶対値(5)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = @a -5.abs",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-a4ef7aeb32": {
+    "ja": "b = 3 -絶対値(5)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = 3 -5.abs",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-0d76243cae": {
+    "ja": "b = -絶対値(a)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = -(@a.abs)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-40184cb496": {
+    "ja": "表示する(-1, \"個\")",
+    "errors": [],
+    "back": {
+      "ruby": "puts(-1.to_s + \"個\")",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-0a2ba5c834": {
+    "ja": "i を 10 から 1 まで 1 ずつ減らしながら\n  表示する(i)\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 10\nwhile @i >= 1\n  puts(@i)\n  @i += -1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-eac61b8424": {
+    "ja": "i を 10 から 1 まで 1 ずつ減らしながら\n  表示する(i)\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 10\nwhile @i >= 1\n  puts(@i)\n  @i += -1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-0edccbf106": {
+    "ja": "i を 10 から 1 まで a + 1 ずつ減らしながら\n  表示する(i)\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 10\nwhile @i >= 1\n  puts(@i)\n  @i += -(@a + 1)\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-1826f3c819": {
+    "ja": "i を 10 から 1 まで a + 1 ずつ減らしながら\n  表示する(i)\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 10\nwhile @i >= 1\n  puts(@i)\n  @i += -(@a + 1)\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-ecb792978f": {
+    "ja": "i を 10 から 1 まで 1 ずつ減らしながら\n  表示する(i)\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 10\nwhile @i >= 1\n  puts(@i)\n  @i += -1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-40fd298179": {
+    "ja": "i を 1 から 10 まで 2 ずつ増やしながら\n  表示する(i)\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 1\nwhile @i <= 10\n  puts(@i)\n  @i += 2\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-666e4eeb94": {
+    "ja": "i を 0 から 10 まで 整数(s) ずつ増やしながら\n  表示する(i)\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 0\nwhile @i <= 10\n  puts(@i)\n  @i += @s.to_i\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-6325bde02c": {
+    "ja": "i を 0 から 10 まで s ÷ 2 ずつ増やしながら\n  表示する(i)\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 0\nwhile @i <= 10\n  puts(@i)\n  @i += (@s / 2).to_i\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-ce706afc40": {
+    "ja": "i を 10 から 0 まで s ÷ 2 ずつ減らしながら\n  表示する(i)\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 10\nwhile @i >= 0\n  puts(@i)\n  @i += -(@s / 2).to_i\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-f52610a623": {
+    "ja": "i を 0 から 10 まで s ずつ増やしながら\n  表示する(i)\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 0\nwhile @i <= 10\n  puts(@i)\n  @i += @s\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-39dda102a3": {
+    "ja": "i を 1 から 10 まで 1 ずつ増やしながら\n  表示する(i)\n\n\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 1\nwhile @i <= 10\n  puts(@i)\n\n\n  @i += 1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-ab7c89e93a": {
+    "ja": "i を 1 から 10 まで 1 ずつ増やしながら\n  表示する(i)\n\n\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 1\nwhile @i <= 10\n  puts(@i)\n\n\n  @i += 1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-874b62cf69": {
+    "ja": "i を 1 から 10 まで 1 ずつ増やしながら # a # b\n  表示する(i) # c\nを繰り返す # d # e",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 1\nwhile @i <= 10 # a # b\n  puts(@i) # c\n  @i += 1\nend # d # e",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-cc6af134bb": {
+    "ja": "i を 1 から 10 まで 1 ずつ増やしながら # a # b\n  表示する(i) # c\nを繰り返す # d # e",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 1\nwhile @i <= 10 # a # b\n  puts(@i) # c\n  @i += 1\nend # d # e",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-b4101ddb2f": {
+    "ja": "i を 1 から 3 まで 1 ずつ増やしながら\n  j = 1\n  j <= 3 の間\n    j += 1\n    表示する(j)\n  を繰り返す\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 1\nwhile @i <= 3\n  @j = 1\n  while @j <= 3\n    @j += 1\n    puts(@j)\n  end\n  @i += 1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-1fe6a5d5b4": {
+    "ja": "i = 1\ni <= 3 の間\n  i += 1\n  j を 1 から 3 まで 1 ずつ増やしながら\n    表示する(j)\n  を繰り返す\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 1\nwhile @i <= 3\n  @i += 1\n  @j = 1\n  while @j <= 3\n    puts(@j)\n    @j += 1\n  end\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-d1af138e90": {
+    "ja": "i = 1\ni <= 3 の間\n  i を 1 から 3 まで 1 ずつ増やしながら\n    表示する(i)\n  を繰り返す\n  i += 1\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 1\nwhile @i <= 3\n  @i = 1\n  while @i <= 3\n    puts(@i)\n    @i += 1\n  end\n  @i += 1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-ba0cf5440f": {
+    "ja": "i = 1\ni <= 10 の間\n  もし i > 0 ならば\n    i += 1\n  を実行する\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 1\nwhile @i <= 10\n  if @i > 0\n    @i += 1\n  end\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-038864683e": {
+    "ja": "i = 1\ni <= 10 の間\n  i += 1\n  表示する(i)\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 1\nwhile @i <= 10\n  @i += 1\n  puts(@i)\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-dd5f709880": {
+    "ja": "i = 10\ni >= 1 の間\n  表示する(i)\n  i += -(a) + 1\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 10\nwhile @i >= 1\n  puts(@i)\n  @i += -(@a) + 1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-c2b1b186e6": {
+    "ja": "i = 1\ni <= 10 の間\n  表示する(i)\n  i += 乱数(3)\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 1\nwhile @i <= 10\n  puts(@i)\n  @i += rand(3)\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-c67674a2f5": {
+    "ja": "i = 1\ni <= 10 の間\n  表示する(i)\n  i -= 1\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 1\nwhile @i <= 10\n  puts(@i)\n  @i -= 1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-6f77dfe34c": {
+    "ja": "i = 1\ni <= 100 の間\n  k += 1\n  i += k\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 1\nwhile @i <= 100\n  @k += 1\n  @i += @k\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-286ce10d66": {
+    "ja": "i = 1\ni <= 100 の間\n  表示する(i)\n  i += i\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 1\nwhile @i <= 100\n  puts(@i)\n  @i += @i\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-850efac48d": {
+    "ja": "i = 1\ni <= 10 の間\n  i = i * 2\n  表示する(i)\n  i += 1\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 1\nwhile @i <= 10\n  @i = @i * 2\n  puts(@i)\n  @i += 1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-b2c1584066": {
+    "ja": "i = 1\ni <= 10 の間\n  i += 1\n  表示する(i)\n  i += 1\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 1\nwhile @i <= 10\n  @i += 1\n  puts(@i)\n  @i += 1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-b58097df4a": {
+    "ja": "i = 1\ni <= 10 の間\n  i, j = 5, 0\n  i += 1\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 1\nwhile @i <= 10\n  @i, @j = 5, 0\n  @i += 1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-519406224b": {
+    "ja": "i = 1 # a\ni <= 10 の間 # b\n  i += 1 # c\n  表示する(i) # d\nを繰り返す # e",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 1 # a\nwhile @i <= 10 # b\n  @i += 1 # c\n  puts(@i) # d\nend # e",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-aed0b4f4d6": {
+    "ja": "表示する(\"a\", \"b\", \"c\")",
+    "errors": [],
+    "back": {
+      "ruby": "puts(\"a\" + \"b\" + \"c\")",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-938a12a4d1": {
+    "ja": "表示する(\"添字\", \" \", \"要素\")",
+    "errors": [],
+    "back": {
+      "ruby": "puts(\"添字\" + \" \" + \"要素\")",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-1d4c1565e6": {
+    "ja": "表示する(1, \"は\", 2, \"番目\")",
+    "errors": [],
+    "back": {
+      "ruby": "puts(1.to_s + \"は\" + 2.to_s + \"番目\")",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-a4ab20af7b": {
+    "ja": "表示する(a, \"は\", b)",
+    "errors": [],
+    "back": {
+      "ruby": "puts(@a.to_s + \"は\" + @b.to_s)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-b18df705da": {
+    "ja": "表示する(a + b)",
+    "errors": [],
+    "back": {
+      "ruby": "puts(@a + @b)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-fe55f457b1": {
+    "ja": "表示する(a, \"は\", b)",
+    "errors": [],
+    "back": {
+      "ruby": "puts(@a.to_s + \"は\" + @b.to_s)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-c24aeb57ff": {
+    "ja": "表示する(x + 1)",
+    "errors": [],
+    "back": {
+      "ruby": "puts(@x + 1)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-1b8659c531": {
+    "ja": "表示する(\"a\", \"b\", \"c\")",
+    "errors": [],
+    "back": {
+      "ruby": "puts(\"a\" + \"b\" + \"c\")",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-7826b0588b": {
+    "ja": "表示する(x でない, y)",
+    "errors": [],
+    "back": {
+      "ruby": "puts((!@x).to_s + @y.to_s)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-e9fb87e710": {
+    "ja": "表示する(a, b + 1)",
+    "errors": [],
+    "back": {
+      "ruby": "puts(@a.to_s + (@b + 1).to_s)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-c90253c67d": {
+    "ja": "表示する(\"合計\", a * 2)",
+    "errors": [],
+    "back": {
+      "ruby": "puts(\"合計\" + (@a * 2).to_s)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-edca6f4828": {
+    "ja": "表示する(a + 1, b)",
+    "errors": [],
+    "back": {
+      "ruby": "puts((@a + 1).to_s + @b.to_s)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-9d84e5391b": {
+    "ja": "a < 1 の間\n  [1, 2].each do |x, y|\n    move(2)\n  を実行する\nを繰り返す",
+    "errors": [
+      {
+        "line": 2,
+        "column": 10,
+        "id": "unsupportedCommand",
+        "name": "each",
+        "message": "「each」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      },
+      {
+        "line": 3,
+        "column": 5,
+        "id": "unsupportedCommand",
+        "name": "move",
+        "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 2,
+          "column": 10,
+          "id": "unsupportedCommand",
+          "name": "each",
+          "message": "「each」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        },
+        {
+          "line": 3,
+          "column": 5,
+          "id": "unsupportedCommand",
+          "name": "move",
+          "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-61a21afaf1": {
+    "ja": "a < 1 の間\n  list.each do |x|\n    move(2)\n  を実行する\nを繰り返す",
+    "errors": [
+      {
+        "line": 2,
+        "column": 9,
+        "id": "unsupportedCommand",
+        "name": "each",
+        "message": "「each」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      },
+      {
+        "line": 3,
+        "column": 5,
+        "id": "unsupportedCommand",
+        "name": "move",
+        "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 2,
+          "column": 8,
+          "id": "unsupportedCommand",
+          "name": "each",
+          "message": "「each」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        },
+        {
+          "line": 3,
+          "column": 5,
+          "id": "unsupportedCommand",
+          "name": "move",
+          "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-c96ce9ba3f": {
+    "ja": "もし a < 1 ならば\n  _ を 1 から 3 まで 1 ずつ増やしながら\n    b = b + 1\n  を繰り返す\nを実行する",
+    "errors": [],
+    "back": {
+      "ruby": "if @a < 1\n  @_ = 1\n  while @_ <= 3\n    @b = @b + 1\n    @_ += 1\n  end\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-0a32d06e0c": {
+    "ja": "a < 1 の間\n  loop do # forever\n    move(1)\n  を実行する\nを繰り返す",
+    "errors": [
+      {
+        "line": 2,
+        "column": 3,
+        "id": "unsupportedCommand",
+        "name": "loop",
+        "message": "「loop」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      },
+      {
+        "line": 3,
+        "column": 5,
+        "id": "unsupportedCommand",
+        "name": "move",
+        "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 2,
+          "column": 3,
+          "id": "unsupportedCommand",
+          "name": "loop",
+          "message": "「loop」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        },
+        {
+          "line": 3,
+          "column": 5,
+          "id": "unsupportedCommand",
+          "name": "move",
+          "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-6baae9610c": {
+    "ja": "when_flag_clicked do\n  move(2)\nを実行する",
+    "errors": [
+      {
+        "line": 1,
+        "column": 1,
+        "id": "unsupportedCommand",
+        "name": "when_flag_clicked",
+        "message": "「when_flag_clicked」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      },
+      {
+        "line": 2,
+        "column": 3,
+        "id": "unsupportedCommand",
+        "name": "move",
+        "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 1,
+          "column": 1,
+          "id": "unsupportedCommand",
+          "name": "when_flag_clicked",
+          "message": "「when_flag_clicked」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        },
+        {
+          "line": 2,
+          "column": 3,
+          "id": "unsupportedCommand",
+          "name": "move",
+          "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-1983a2aeae": {
+    "ja": "begin\n  with_screen_refresh do\n    move(2)\n  を実行する\nend while a < 1",
+    "errors": [
+      {
+        "line": 1,
+        "column": 1,
+        "id": "postTestLoop",
+        "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+      },
+      {
+        "line": 2,
+        "column": 3,
+        "id": "unsupportedCommand",
+        "name": "with_screen_refresh",
+        "message": "「with_screen_refresh」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      },
+      {
+        "line": 3,
+        "column": 5,
+        "id": "unsupportedCommand",
+        "name": "move",
+        "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      },
+      {
+        "line": 5,
+        "column": 1,
+        "id": "postTestLoop",
+        "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 1,
+          "column": 1,
+          "id": "postTestLoop",
+          "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+        },
+        {
+          "line": 2,
+          "column": 3,
+          "id": "unsupportedCommand",
+          "name": "with_screen_refresh",
+          "message": "「with_screen_refresh」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        },
+        {
+          "line": 3,
+          "column": 5,
+          "id": "unsupportedCommand",
+          "name": "move",
+          "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        },
+        {
+          "line": 5,
+          "column": 1,
+          "id": "postTestLoop",
+          "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-b633dac76d": {
+    "ja": "a < 1 の間\n  move(1) # what to do\n  表示する(\"#\") # do\nを繰り返す",
+    "errors": [
+      {
+        "line": 2,
+        "column": 3,
+        "id": "unsupportedCommand",
+        "name": "move",
+        "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 2,
+          "column": 3,
+          "id": "unsupportedCommand",
+          "name": "move",
+          "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-c14318c6c6": {
+    "ja": "a < 1 の間\n  表示する(\"do\")\n  表示する(\"a do\")\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "while @a < 1\n  puts(\"do\")\n  puts(\"a do\")\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-6da82361be": {
+    "ja": "関数 f(x)\n  a < 1 の間\n    loop do\n      [1, 2].each do |y|\n        もし a ならば\n          move(y)\n        を実行する\n      を実行する\n    を実行する\n  を繰り返す\nと定義する",
+    "errors": [
+      {
+        "line": 3,
+        "column": 5,
+        "id": "unsupportedCommand",
+        "name": "loop",
+        "message": "「loop」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      },
+      {
+        "line": 4,
+        "column": 14,
+        "id": "unsupportedCommand",
+        "name": "each",
+        "message": "「each」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      },
+      {
+        "line": 6,
+        "column": 11,
+        "id": "unsupportedCommand",
+        "name": "move",
+        "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 3,
+          "column": 5,
+          "id": "unsupportedCommand",
+          "name": "loop",
+          "message": "「loop」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        },
+        {
+          "line": 4,
+          "column": 14,
+          "id": "unsupportedCommand",
+          "name": "each",
+          "message": "「each」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        },
+        {
+          "line": 6,
+          "column": 11,
+          "id": "unsupportedCommand",
+          "name": "move",
+          "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-4aaad0975d": {
+    "ja": "a < 1 の間\n  self.when(:clicked) do\n    move(2)\n  を実行する\nを繰り返す",
+    "errors": [
+      {
+        "line": 2,
+        "column": 8,
+        "id": "unsupportedCommand",
+        "name": "when",
+        "message": "「when」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      },
+      {
+        "line": 3,
+        "column": 5,
+        "id": "unsupportedCommand",
+        "name": "move",
+        "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 2,
+          "column": 8,
+          "id": "unsupportedCommand",
+          "name": "when",
+          "message": "「when」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        },
+        {
+          "line": 3,
+          "column": 5,
+          "id": "unsupportedCommand",
+          "name": "move",
+          "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-533fd2bdc7": {
+    "ja": "a < 1 の間\n  with_screen_refresh do\n    b = 1\n  を実行する\nを繰り返す",
+    "errors": [
+      {
+        "line": 2,
+        "column": 3,
+        "id": "unsupportedCommand",
+        "name": "with_screen_refresh",
+        "message": "「with_screen_refresh」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 2,
+          "column": 3,
+          "id": "unsupportedCommand",
+          "name": "with_screen_refresh",
+          "message": "「with_screen_refresh」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-7f4bb92f22": {
+    "ja": "a < 1 の間\n  x > 1 でない の間\n  を繰り返す\n  a = a + 1\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "while @a < 1\n  until @x > 1\n  end\n  @a = @a + 1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-6e43ecf036": {
+    "ja": "a < 1 の間\n  when_flag_clicked do\n    move(2)\n  を実行する\nを繰り返す",
+    "errors": [
+      {
+        "line": 2,
+        "column": 3,
+        "id": "unsupportedCommand",
+        "name": "when_flag_clicked",
+        "message": "「when_flag_clicked」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      },
+      {
+        "line": 3,
+        "column": 5,
+        "id": "unsupportedCommand",
+        "name": "move",
+        "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 2,
+          "column": 3,
+          "id": "unsupportedCommand",
+          "name": "when_flag_clicked",
+          "message": "「when_flag_clicked」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        },
+        {
+          "line": 3,
+          "column": 5,
+          "id": "unsupportedCommand",
+          "name": "move",
+          "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-2a0da5dba7": {
+    "ja": "a < 1 の間\n  when_key_pressed(\"space\") do\n    move(2)\n  を実行する\nを繰り返す",
+    "errors": [
+      {
+        "line": 2,
+        "column": 3,
+        "id": "unsupportedCommand",
+        "name": "when_key_pressed",
+        "message": "「when_key_pressed」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      },
+      {
+        "line": 3,
+        "column": 5,
+        "id": "unsupportedCommand",
+        "name": "move",
+        "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 2,
+          "column": 3,
+          "id": "unsupportedCommand",
+          "name": "when_key_pressed",
+          "message": "「when_key_pressed」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        },
+        {
+          "line": 3,
+          "column": 5,
+          "id": "unsupportedCommand",
+          "name": "move",
+          "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-9173ca31c6": {
+    "ja": "a = 0\na > 10 でない の間\n  a += 1\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@a = 0\nuntil @a > 10\n  @a += 1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-97a65c9948": {
+    "ja": "a = 0\na > 10 でない の間\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@a = 0\nuntil @a > 10\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-6609d33d8d": {
+    "ja": "a = 0\na > 10 でない の間\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@a = 0\nuntil @a > 10\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-84d6e04c9b": {
+    "ja": "b = (a + c) ÷ 2",
+    "errors": [],
+    "back": {
+      "ruby": "@b = ((@a + @c) / 2).to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-177d4d8586": {
+    "ja": "b = (a ÷ 2) * 3",
+    "errors": [],
+    "back": {
+      "ruby": "@b = ((@a / 2).to_i) * 3",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-aa0b8ed44e": {
+    "ja": "b = a * (a ÷ 2)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = @a * ((@a / 2).to_i)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-4b8607b384": {
+    "ja": "b = a ÷ (a ÷ 2)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = (@a / ((@a / 2).to_i)).to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-15b00b9709": {
+    "ja": "b = 文字列(a / 2)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = (@a / 2).to_s",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-e29a221f1c": {
+    "ja": "b = 文字列(a ÷ 2)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = ((@a / 2).to_i).to_s",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-a9eca169fb": {
+    "ja": "b = (合計 + 1) ÷ 個数",
+    "errors": [],
+    "back": {
+      "ruby": "@b = ((@合計 + 1) / @個数).to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-600548acb8": {
+    "ja": "b = x ÷ 個数",
+    "errors": [],
+    "back": {
+      "ruby": "@b = (@x / @個数).to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-87f2501b75": {
+    "ja": "b = 合計 ÷ 個数",
+    "errors": [],
+    "back": {
+      "ruby": "@b = (@合計 / @個数).to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-c86f9bee0c": {
+    "ja": "b = 合計 * 2 ÷ 個数",
+    "errors": [],
+    "back": {
+      "ruby": "@b = (@合計 * 2 / @個数).to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-6a334e27eb": {
+    "ja": "b = 合計 / 個数",
+    "errors": [],
+    "back": {
+      "ruby": "@b = @合計 / @個数",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-9c1f005ec2": {
+    "ja": "b = 合計 + 点数 ÷ 個数",
+    "errors": [],
+    "back": {
+      "ruby": "@b = @合計 + (@点数 / @個数).to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-d495b38261": {
+    "ja": "b = 合計 ÷ (点数 ÷ 個数)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = (@合計 / ((@点数 / @個数).to_i)).to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-63e588d690": {
+    "ja": "b = 合計 ÷ 2",
+    "errors": [],
+    "back": {
+      "ruby": "@b = (@合計 / 2).to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-02ef8ccf06": {
+    "ja": "b = 合計 ÷ 個数 * 2",
+    "errors": [],
+    "back": {
+      "ruby": "@b = (@合計 / @個数).to_i * 2",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-c515c6c130": {
+    "ja": "b = 整数(合計 / 個数 * 3)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = (@合計 / @個数 * 3).to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-faec4424d6": {
+    "ja": "b = 整数(合計 / 2 * 3)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = (@合計 / 2 * 3).to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-2336b8faec": {
+    "ja": "b = x + 合計 ÷ 個数",
+    "errors": [],
+    "back": {
+      "ruby": "@b = @x + (@合計 / @個数).to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-b1cd0f192d": {
+    "ja": "b = (a + b) ÷ 2",
+    "errors": [],
+    "back": {
+      "ruby": "@b = ((@a + @b) / 2).to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-c1bcc552c0": {
+    "ja": "b = x ÷ 2",
+    "errors": [],
+    "back": {
+      "ruby": "@b = (@x / 2).to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-1761fd3928": {
+    "ja": "b = -a ÷ 2",
+    "errors": [],
+    "back": {
+      "ruby": "@b = -(@a / 2).to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-cd28ae39bb": {
+    "ja": "b = 整数((a / 2) * 3)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = ((@a / 2) * 3).to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-5f3a188d42": {
+    "ja": "b = (a / 2) ÷ 3",
+    "errors": [],
+    "back": {
+      "ruby": "@b = ((@a / 2) / 3).to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-0b7eecd69e": {
+    "ja": "b = 整数(a ÷ 2 * 3)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = ((@a / 2).to_i * 3).to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-4ee415a7a8": {
+    "ja": "b = a ÷ 2 ÷ 3",
+    "errors": [],
+    "back": {
+      "ruby": "@b = ((@a / 2).to_i / 3).to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-a5de94f6c7": {
+    "ja": "b = a * 3 ÷ 2",
+    "errors": [],
+    "back": {
+      "ruby": "@b = (@a * 3 / 2).to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-c9b010abc2": {
+    "ja": "b = a ÷ (a ÷ 2)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = (@a / ((@a / 2).to_i)).to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-a65794aaaf": {
+    "ja": "b = a ÷ (2 * 3)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = (@a / (2 * 3)).to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-dcdb85f8d2": {
+    "ja": "b = 整数(a / 2 * 3)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = (@a / 2 * 3).to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-8b1b4aa42d": {
+    "ja": "b = 文字列(整数(a / 2 * 3))",
+    "errors": [],
+    "back": {
+      "ruby": "@b = (@a / 2 * 3).to_i.to_s",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-2db7766177": {
+    "ja": "b = a / 2 ÷ 3",
+    "errors": [],
+    "back": {
+      "ruby": "@b = (@a / 2 / 3).to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-7734f6698d": {
+    "ja": "b = 整数(a / 2 + 1)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = (@a / 2 + 1).to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-34d0150a5e": {
+    "ja": "b = a ÷ 2",
+    "errors": [],
+    "back": {
+      "ruby": "@b = (@a / 2).to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-1f06fb5ef6": {
+    "ja": "b = a ÷ 2 * 3",
+    "errors": [],
+    "back": {
+      "ruby": "@b = (@a / 2).to_i * 3",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-81b8e1e9a0": {
+    "ja": "b = a ÷ 2 + a ÷ 4",
+    "errors": [],
+    "back": {
+      "ruby": "@b = (@a / 2).to_i + (@a / 4).to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-2eb0340851": {
+    "ja": "b = 文字列(a ÷ 2)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = ((@a / 2).to_i).to_s",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-a0a0f9f059": {
+    "ja": "b = (a + b) / 2",
+    "errors": [],
+    "back": {
+      "ruby": "@b = (@a + @b) / 2",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-c6a9125a28": {
+    "ja": "b = a * (a ÷ 2)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = @a * ((@a / 2).to_i)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-3dfca3f3d8": {
+    "ja": "b = a / (a ÷ 2)",
+    "errors": [],
+    "back": {
+      "ruby": "@b = @a / ((@a / 2).to_i)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-bff6212c47": {
+    "ja": "b = a / 2",
+    "errors": [],
+    "back": {
+      "ruby": "@b = @a / 2",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-1e3ded9e4d": {
+    "ja": "b = a / 2 * 3",
+    "errors": [],
+    "back": {
+      "ruby": "@b = @a / 2 * 3",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-d81abdaaef": {
+    "ja": "a = \"「く」と「け」\"",
+    "errors": [],
+    "back": {
+      "ruby": "@a = \"「く」と「け」\"",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-2d36aba646": {
+    "ja": "表示する(namae + \"には「く」がある\")",
+    "errors": [],
+    "back": {
+      "ruby": "puts(@namae + \"には「く」がある\")",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-fc72d91bce": {
+    "ja": "表示する(\"「く」がある\")",
+    "errors": [],
+    "back": {
+      "ruby": "puts(\"「く」がある\")",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-26e711ac71": {
+    "ja": "x = (a > 0) かつ (b > 0)",
+    "errors": [],
+    "back": {
+      "ruby": "@x = (@a > 0) && (@b > 0)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-7effd4bfd2": {
+    "ja": "x = a[1] または b",
+    "errors": [],
+    "back": {
+      "ruby": "@x = @a[1] || @b",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-69825828c3": {
+    "ja": "たかつき = 1\nx = かつお かつ たかつき",
+    "errors": [],
+    "back": {
+      "ruby": "@たかつき = 1\n@x = @かつお && @たかつき",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-9eb75f7825": {
+    "ja": "next = 1\nnext < 10 の間\n  next += 1\nを繰り返す\nbreak を 1 から 3 まで 1 ずつ増やしながら\n  表示する(break)\nを繰り返す\nnext == 1",
+    "errors": [],
+    "back": {
+      "ruby": "@next = 1\nwhile @next < 10\n  @next += 1\nend\n@break = 1\nwhile @break <= 3\n  puts(@break)\n  @break += 1\nend\n@next == 1",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-4eeec74912": {
+    "ja": "next = 1\nbreak = next + 1\nnext += break\n表示する(next)",
+    "errors": [],
+    "back": {
+      "ruby": "@next = 1\n@break = @next + 1\n@next += @break\nputs(@next)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-b26155f79f": {
+    "ja": "i = 0\ni < 10 の間\n  i += 1\n  もし i == 3 ならば\n    next\n  を実行する\n  break\nを繰り返す",
+    "errors": [
+      {
+        "line": 5,
+        "column": 5,
+        "id": "unsupportedCommand",
+        "name": "next",
+        "message": "「next」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      },
+      {
+        "line": 7,
+        "column": 3,
+        "id": "unsupportedCommand",
+        "name": "break",
+        "message": "「break」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 5,
+          "column": 5,
+          "id": "unsupportedCommand",
+          "name": "next",
+          "message": "「next」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        },
+        {
+          "line": 7,
+          "column": 3,
+          "id": "unsupportedCommand",
+          "name": "break",
+          "message": "「break」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-5698d8ec93": {
+    "ja": "i を 1 から 10 まで 1 ずつ増やしながら\n  break if i == 5\nを繰り返す",
+    "errors": [
+      {
+        "line": 3,
+        "column": 3,
+        "id": "unsupportedCommand",
+        "name": "break",
+        "message": "「break」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 2,
+          "column": 3,
+          "id": "unsupportedCommand",
+          "name": "break",
+          "message": "「break」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-f5152fd5b3": {
+    "ja": "i = 0\ni < 10 の間\n  i += 1\n  next unless i > 5\n  表示する(i)\nを繰り返す",
+    "errors": [
+      {
+        "line": 4,
+        "column": 3,
+        "id": "unsupportedCommand",
+        "name": "next",
+        "message": "「next」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 4,
+          "column": 3,
+          "id": "unsupportedCommand",
+          "name": "next",
+          "message": "「next」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-f712580d17": {
+    "ja": "i = 0\ni < 10 の間\n  redo if i == 3\n  retry if i == 4\nを繰り返す",
+    "errors": [
+      {
+        "line": 3,
+        "column": 3,
+        "id": "unsupportedCommand",
+        "name": "redo",
+        "message": "「redo」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      },
+      {
+        "line": 4,
+        "column": 3,
+        "id": "unsupportedCommand",
+        "name": "retry",
+        "message": "「retry」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 3,
+          "column": 3,
+          "id": "unsupportedCommand",
+          "name": "redo",
+          "message": "「redo」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        },
+        {
+          "line": 4,
+          "column": 3,
+          "id": "unsupportedCommand",
+          "name": "retry",
+          "message": "「retry」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-e80730bcfe": {
+    "ja": "a = 0",
+    "errors": [],
+    "back": {
+      "ruby": "@a = 0",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-3e627ccada": {
+    "ja": "a = 0.5",
+    "errors": [],
+    "back": {
+      "ruby": "@a = 0.5",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-113e8754a2": {
+    "ja": "a = 017",
+    "errors": [
+      {
+        "line": 1,
+        "column": 6,
+        "id": "unsupportedNumber",
+        "name": "017",
+        "message": "「017」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": "@a = 17",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-2d8d6650a4": {
+    "ja": "a = 文字列(017)",
+    "errors": [
+      {
+        "line": 1,
+        "column": 6,
+        "id": "unsupportedNumber",
+        "name": "017",
+        "message": "「017」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": "@a = 17.to_s",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-17b0e00582": {
+    "ja": "a = 08",
+    "errors": [
+      {
+        "line": 1,
+        "column": 6,
+        "id": "unsupportedNumber",
+        "name": "08",
+        "message": "「08」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": "@a = 8",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-ed712c94bc": {
+    "ja": "a = 1.05",
+    "errors": [],
+    "back": {
+      "ruby": "@a = 1.05",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-b8d2a36ed6": {
+    "ja": "a = 10",
+    "errors": [],
+    "back": {
+      "ruby": "@a = 10",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-18edfeb8ad": {
+    "ja": "a01 = 1",
+    "errors": [],
+    "back": {
+      "ruby": "@a01 = 1",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-c1afea4390": {
+    "ja": "表示する(\"017\")",
+    "errors": [],
+    "back": {
+      "ruby": "puts(\"017\")",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-dc5f09ac8b": {
+    "ja": "a = 0x5",
+    "errors": [
+      {
+        "line": 1,
+        "column": 6,
+        "id": "unsupportedNumber",
+        "name": "0x5",
+        "message": "「0x5」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 1,
+          "column": 5,
+          "id": "unsupportedNumber",
+          "name": "0x5",
+          "message": "「0x5」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-0b0a85c536": {
+    "ja": "a = 1_000",
+    "errors": [
+      {
+        "line": 1,
+        "column": 6,
+        "id": "unsupportedNumber",
+        "name": "1_000",
+        "message": "「1_000」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 1,
+          "column": 5,
+          "id": "unsupportedNumber",
+          "name": "1_000",
+          "message": "「1_000」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-37ee1f3ed0": {
+    "ja": "a = 1e3",
+    "errors": [
+      {
+        "line": 1,
+        "column": 6,
+        "id": "unsupportedNumber",
+        "name": "1e3",
+        "message": "「1e3」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 1,
+          "column": 5,
+          "id": "unsupportedNumber",
+          "name": "1e3",
+          "message": "「1e3」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-1a508f0d78": {
+    "ja": "a = 1.5\n表示する(\"0x5\")\nb = 文字列(1) # 1e3",
+    "errors": [],
+    "back": {
+      "ruby": "@a = 1.5\nputs(\"0x5\")\n@b = 1.to_s # 1e3",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-58f23a4a46": {
+    "ja": "表示する(0b101)",
+    "errors": [
+      {
+        "line": 1,
+        "column": 6,
+        "id": "unsupportedNumber",
+        "name": "0b101",
+        "message": "「0b101」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 1,
+          "column": 6,
+          "id": "unsupportedNumber",
+          "name": "0b101",
+          "message": "「0b101」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-ae927b97f8": {
+    "ja": "a = 1\n表示する(a)\nb = 1e3",
+    "errors": [
+      {
+        "line": 3,
+        "column": 6,
+        "id": "unsupportedNumber",
+        "name": "1e3",
+        "message": "「1e3」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 3,
+          "column": 5,
+          "id": "unsupportedNumber",
+          "name": "1e3",
+          "message": "「1e3」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-57ccc4bb72": {
+    "ja": "begin\n  a = a + 1\nend until a >= 3",
+    "errors": [
+      {
+        "line": 1,
+        "column": 1,
+        "id": "postTestLoop",
+        "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+      },
+      {
+        "line": 3,
+        "column": 1,
+        "id": "postTestLoop",
+        "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 1,
+          "column": 1,
+          "id": "postTestLoop",
+          "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+        },
+        {
+          "line": 3,
+          "column": 1,
+          "id": "postTestLoop",
+          "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-9273b49fc3": {
+    "ja": "a = 0\nbegin\n  a = a + 1\nend while a < 3",
+    "errors": [
+      {
+        "line": 2,
+        "column": 1,
+        "id": "postTestLoop",
+        "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+      },
+      {
+        "line": 4,
+        "column": 1,
+        "id": "postTestLoop",
+        "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 2,
+          "column": 1,
+          "id": "postTestLoop",
+          "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+        },
+        {
+          "line": 4,
+          "column": 1,
+          "id": "postTestLoop",
+          "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-1e6667309e": {
+    "ja": "b < 2 の間\n  begin\n    a = a + 1\n  end until a >= 3\n  b = b + 1\nを繰り返す",
+    "errors": [
+      {
+        "line": 2,
+        "column": 1,
+        "id": "postTestLoop",
+        "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+      },
+      {
+        "line": 4,
+        "column": 1,
+        "id": "postTestLoop",
+        "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 2,
+          "column": 1,
+          "id": "postTestLoop",
+          "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+        },
+        {
+          "line": 4,
+          "column": 1,
+          "id": "postTestLoop",
+          "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-4d48589e0a": {
+    "ja": "begin\n  a = a + 1\nend while a < 3",
+    "errors": [
+      {
+        "line": 1,
+        "column": 1,
+        "id": "postTestLoop",
+        "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+      },
+      {
+        "line": 3,
+        "column": 1,
+        "id": "postTestLoop",
+        "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 1,
+          "column": 1,
+          "id": "postTestLoop",
+          "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+        },
+        {
+          "line": 3,
+          "column": 1,
+          "id": "postTestLoop",
+          "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-2e9e8bada2": {
+    "ja": "x = ask(\"\")\nx = answer\nbegin\n  a = a + 1\nend until a >= 3",
+    "errors": [
+      {
+        "line": 3,
+        "column": 1,
+        "id": "postTestLoop",
+        "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+      },
+      {
+        "line": 5,
+        "column": 1,
+        "id": "postTestLoop",
+        "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 3,
+          "column": 1,
+          "id": "postTestLoop",
+          "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+        },
+        {
+          "line": 5,
+          "column": 1,
+          "id": "postTestLoop",
+          "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-6127290df8": {
+    "ja": "a = 0\na < 3 の間\n  a = a + 1\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@a = 0\nwhile @a < 3\n  @a = @a + 1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-b3a0015487": {
+    "ja": "a = 含む(\"hello\", \"ell\")",
+    "errors": [],
+    "back": {
+      "ruby": "@a = \"hello\".include?(\"ell\")",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-658999bfe3": {
+    "ja": "i を 1 から 10 まで 1 ずつ増やしながら\n  表示する(i)\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 1\nwhile @i <= 10\n  puts(@i)\n  @i += 1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-7c3d4a151e": {
+    "ja": "i を 10 から 0 まで 1 ずつ減らしながら\n  表示する(i)\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 10\nwhile @i >= 0\n  puts(@i)\n  @i += -1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-7d9eff81cc": {
+    "ja": "関数 f(x)\n  返す x * 2\nと定義する",
+    "errors": [],
+    "back": {
+      "ruby": "def f(x)\n  return x * 2\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-c19219917e": {
+    "ja": "a = 含む(s, 乱数(1..10))",
+    "errors": [],
+    "back": {
+      "ruby": "@a = @s.include?(rand(1..10))",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-2eb0608b25": {
+    "ja": "表示する(乱数(1..10) + 5)",
+    "errors": [],
+    "back": {
+      "ruby": "puts(rand(1..10) + 5)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-07a67412bc": {
+    "ja": "表示する(乱数(1..10))",
+    "errors": [],
+    "back": {
+      "ruby": "puts(rand(1..10))",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-ecaff604c6": {
+    "ja": "表示する(整数(x))",
+    "errors": [],
+    "back": {
+      "ruby": "puts(@x.to_i)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-ed8c543996": {
+    "ja": "表示する(絶対値(x))",
+    "errors": [],
+    "back": {
+      "ruby": "puts(@x.abs)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-36e67b9821": {
+    "ja": "表示する(整数(x))",
+    "errors": [],
+    "back": {
+      "ruby": "puts(@x.to_i)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-2a2b54cea0": {
+    "ja": "表示する(乱数(1..10) + 5)",
+    "errors": [],
+    "back": {
+      "ruby": "puts(rand(1..10) + 5)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-2cf24538ea": {
+    "ja": "表示する(乱数(1..10))",
+    "errors": [],
+    "back": {
+      "ruby": "puts(rand(1..10))",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-231463adce": {
+    "ja": "関数 myfunc(x)\n  返す 5\nと定義する\na = myfunc(3)",
+    "errors": [],
+    "back": {
+      "ruby": "def myfunc(x)\n  return 5\nend\n@a = myfunc(3)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-df99e9932d": {
+    "ja": "関数 myfunc(x)\n  返す 5\nと定義する\nmyfunc(3)",
+    "errors": [],
+    "back": {
+      "ruby": "def myfunc(x)\n  return 5\nend\nmyfunc(3)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-c7d88b1360": {
+    "ja": "表示する(変数 + \"バナナ\")",
+    "errors": [],
+    "back": {
+      "ruby": "puts(@変数 + \"バナナ\")",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-ff724274a8": {
+    "ja": "表示する(a, \"x\", b)",
+    "errors": [],
+    "back": {
+      "ruby": "puts(@a.to_s + \"x\" + @b.to_s)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-5cd44d0965": {
+    "ja": "もし a == \"#\" ならば # c\n  表示する(a)\nを実行する",
+    "errors": [],
+    "back": {
+      "ruby": "if @a == \"#\" # c\n  puts(@a)\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-3f4ace887d": {
+    "ja": "# はじめ\nもし a > 0 ならば # c\n  # なか\n  表示する(a)\nを実行する\n# おわり",
+    "errors": [],
+    "back": {
+      "ruby": "# はじめ\nif @a > 0 # c\n  # なか\n  puts(@a)\nend\n# おわり",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-9b9e548db4": {
+    "ja": "i を 1 から 3 まで 1 ずつ増やしながら # c\n  表示する(i)\nを繰り返す # d",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 1\nwhile @i <= 3 # c\n  puts(@i)\n  @i += 1\nend # d",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-60da6f11c5": {
+    "ja": "もし a > 0 ならば # c1\n  表示する(a)\nそうでなくもし a < 0 ならば # c2\n  表示する(b)\nそうでなければ # c3\n  表示する(c)\nを実行する # c4",
+    "errors": [],
+    "back": {
+      "ruby": "if @a > 0 # c1\n  puts(@a)\nelsif @a < 0 # c2\n  puts(@b)\nelse # c3\n  puts(@c)\nend # c4",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-4f97f20639": {
+    "ja": "関数 f(x) # c\n  返す x + 1\nと定義する # d",
+    "errors": [],
+    "back": {
+      "ruby": "def f(x) # c\n  return x + 1\nend # d",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-fe55ee722c": {
+    "ja": "もし a > 0 ならば\n  表示する(a)\nを実行する # c",
+    "errors": [],
+    "back": {
+      "ruby": "if @a > 0\n  puts(@a)\nend # c",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-04fb04bc33": {
+    "ja": "もし a > 0 ならば # c\n  表示する(a)\nを実行する",
+    "errors": [],
+    "back": {
+      "ruby": "if @a > 0 # c\n  puts(@a)\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-2fee7980cb": {
+    "ja": "x = 【外部からの入力】 # c",
+    "errors": [],
+    "back": {
+      "ruby": "ask(\"\")\n@x = answer # c",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-20e60df7bd": {
+    "ja": "a < 3 の間 # loop\n  もし a > 1 ならば # if\n    表示する(a)\n  を実行する # end if\n  a = a + 1 # step\nを繰り返す # end loop",
+    "errors": [],
+    "back": {
+      "ruby": "while @a < 3 # loop\n  if @a > 1 # if\n    puts(@a)\n  end # end if\n  @a = @a + 1 # step\nend # end loop",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-1d1ca8d69a": {
+    "ja": "表示する(1) # move(2)",
+    "errors": [],
+    "back": {
+      "ruby": "puts(1) # move(2)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-72a937ee53": {
+    "ja": "i を 1 から 3 まで 1 ずつ増やしながら # a # b\nを繰り返す # c # d\nmove(2) # e",
+    "errors": [
+      {
+        "line": 5,
+        "column": 1,
+        "id": "unsupportedCommand",
+        "name": "move",
+        "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 3,
+          "column": 1,
+          "id": "unsupportedCommand",
+          "name": "move",
+          "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-472e25dad1": {
+    "ja": "i を 1 から 3 まで 1 ずつ増やしながら # a # b\n  表示する(i) # p\nを繰り返す # inc # e",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 1\nwhile @i <= 3 # a # b\n  puts(@i) # p\n  @i += 1\nend # inc # e",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-dddf8c4e71": {
+    "ja": "i を 1 から 3 まで 1 ずつ増やしながら # a # b\n  表示する(i) # p\nを繰り返す # inc # e",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 1\nwhile @i <= 3 # a # b\n  puts(@i) # p\n  @i += 1\nend # inc # e",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-0dae47428d": {
+    "ja": "x = 【外部からの入力】 # q # a",
+    "errors": [],
+    "back": {
+      "ruby": "ask(\"\")\n@x = answer # q # a",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-4377582ea1": {
+    "ja": "x = 【外部からの入力】 # q # a",
+    "errors": [],
+    "back": {
+      "ruby": "ask(\"\")\n@x = answer # q # a",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-5215e56679": {
+    "ja": "a < 3 の間 # c\n  a = a + 1\nを繰り返す # d",
+    "errors": [],
+    "back": {
+      "ruby": "while @a < 3 # c\n  @a = @a + 1\nend # d",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-e286823dc8": {
+    "ja": "関数 足す1(a)\n  返す a + 1\nと定義する\nb = 足す1(2)",
+    "errors": [],
+    "back": {
+      "ruby": "def 足す1(a)\n  return a + 1\nend\n@b = 足す1(2)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-4d44dd4e74": {
+    "ja": "関数 あいさつ()\n  表示する(\"こんにちは\")\nと定義する\nあいさつ()",
+    "errors": [],
+    "back": {
+      "ruby": "def あいさつ()\n  puts(\"こんにちは\")\nend\nあいさつ()",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-c2470cd865": {
+    "ja": "関数 greet()\n  表示する(\"hi\")\nと定義する\ngreet",
+    "errors": [],
+    "back": {
+      "ruby": "def greet()\n  puts(\"hi\")\nend\ngreet",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-4e74e19313": {
+    "ja": "move = 1\n表示する(move)",
+    "errors": [],
+    "back": {
+      "ruby": "@move = 1\nputs(@move)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-3ef3655316": {
+    "ja": "関数 f(a)\n  返す a * 2\nと定義する\nb = 1 + f(2) * 要素数(Kazu) + 整数(x)",
+    "errors": [],
+    "back": {
+      "ruby": "def f(a)\n  return a * 2\nend\n@b = 1 + f(2) * @_array_Kazu_.length + @x.to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-ec404ee44d": {
+    "ja": "a = 1\nmove(a)\nbounce_if_on_edge",
+    "errors": [
+      {
+        "line": 2,
+        "column": 1,
+        "id": "unsupportedCommand",
+        "name": "move",
+        "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      },
+      {
+        "line": 3,
+        "column": 1,
+        "id": "unsupportedCommand",
+        "name": "bounce_if_on_edge",
+        "message": "「bounce_if_on_edge」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 2,
+          "column": 1,
+          "id": "unsupportedCommand",
+          "name": "move",
+          "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        },
+        {
+          "line": 3,
+          "column": 1,
+          "id": "unsupportedCommand",
+          "name": "bounce_if_on_edge",
+          "message": "「bounce_if_on_edge」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-6fc08cddba": {
+    "ja": "a < 1 の間\n  with_screen_refresh do\n    move(2)\n  を実行する\nを繰り返す",
+    "errors": [
+      {
+        "line": 2,
+        "column": 3,
+        "id": "unsupportedCommand",
+        "name": "with_screen_refresh",
+        "message": "「with_screen_refresh」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      },
+      {
+        "line": 3,
+        "column": 5,
+        "id": "unsupportedCommand",
+        "name": "move",
+        "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 2,
+          "column": 3,
+          "id": "unsupportedCommand",
+          "name": "with_screen_refresh",
+          "message": "「with_screen_refresh」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        },
+        {
+          "line": 3,
+          "column": 5,
+          "id": "unsupportedCommand",
+          "name": "move",
+          "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-9716caf4c3": {
+    "ja": "もし key_pressed?(\"space\") ならば\n  表示する(1)\nを実行する",
+    "errors": [
+      {
+        "line": 1,
+        "column": 4,
+        "id": "unsupportedCommand",
+        "name": "key_pressed?",
+        "message": "「key_pressed?」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 1,
+          "column": 4,
+          "id": "unsupportedCommand",
+          "name": "key_pressed?",
+          "message": "「key_pressed?」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-60b44a062e": {
+    "ja": "x = 10\n表示する(\"hello\")\n表示する(乱数(1..6))",
+    "errors": [],
+    "back": {
+      "ruby": "@x = 10\nputs(\"hello\")\nputs(rand(1..6))",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-b7c07e7a0c": {
+    "ja": "i を 1 から 3 まで 1 ずつ増やしながら\n  turn_right(i)\nを繰り返す",
+    "errors": [
+      {
+        "line": 3,
+        "column": 3,
+        "id": "unsupportedCommand",
+        "name": "turn_right",
+        "message": "「turn_right」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 2,
+          "column": 3,
+          "id": "unsupportedCommand",
+          "name": "turn_right",
+          "message": "「turn_right」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-b2c50872da": {
+    "ja": "a = 0\nb = 偽\n(a > 10 かつ b) でない の間\n  a = a + 1\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@a = 0\n@b = false\nuntil @a > 10 && @b\n  @a = @a + 1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-04221b3552": {
+    "ja": "a = 0\na > 10 でない の間\n  a = a + 1\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@a = 0\nuntil @a > 10\n  @a = @a + 1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-c7bff68bad": {
+    "ja": "c = a == (b でない)",
+    "errors": [],
+    "back": {
+      "ruby": "@c = @a == (!@b)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-833181abfb": {
+    "ja": "c = a > 1 かつ b == (d でない)",
+    "errors": [],
+    "back": {
+      "ruby": "@c = @a > 1 && @b == (!@d)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-ec168a5b51": {
+    "ja": "もし a == (b でない) ならば\nを実行する",
+    "errors": [],
+    "back": {
+      "ruby": "if @a == (!@b)\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-26bcc35a25": {
+    "ja": "a == (b でない) でない の間\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "until @a == (!@b)\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-5da7805cbb": {
+    "ja": "b = x でない",
+    "errors": [],
+    "back": {
+      "ruby": "@b = !@x",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-5a5b26db55": {
+    "ja": "b = x でない かつ y",
+    "errors": [],
+    "back": {
+      "ruby": "@b = !@x && @y",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-f0a8cc62e8": {
+    "ja": "b = x または y でない",
+    "errors": [],
+    "back": {
+      "ruby": "@b = @x || !@y",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-581b939366": {
+    "ja": "c = a でない == b",
+    "errors": [],
+    "back": {
+      "ruby": "@c = !@a == @b",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-a8fe173d0b": {
+    "ja": "a > 10 でない の間\n  b でない の間\n    b = 真\n  を繰り返す\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "until @a > 10\n  until @b\n    @b = true\n  end\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-383995b080": {
+    "ja": "もし a != 1 ならば\nを実行する",
+    "errors": [],
+    "back": {
+      "ruby": "if @a != 1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-1cae853668": {
+    "ja": "a = f(x) でない",
+    "errors": [
+      {
+        "line": 1,
+        "column": 7,
+        "id": "unsupportedCommand",
+        "name": "f",
+        "message": "「f」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 1,
+          "column": 5,
+          "id": "unsupportedCommand",
+          "name": "f",
+          "message": "「f」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-e2c835721f": {
+    "ja": "a > 10 でない の間\n  a += 1\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "until @a > 10\n  @a += 1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-065ae0237c": {
+    "ja": "(a > 10 かつ b) でない の間\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "until @a > 10 && @b\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-804aebf5c2": {
+    "ja": "x でない の間\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "until @x\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-96ccac16b4": {
+    "ja": "a > 10 でない の間\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "until @a > 10\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-b7c782124b": {
+    "ja": "(a > 10) でない の間\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "until @a > 10\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-228ccff8b6": {
+    "ja": "a = 0\na < 1 の間\n  with_screen_refresh do\n    a = a + 1\n  を実行する\nを繰り返す\n",
+    "errors": [
+      {
+        "line": 3,
+        "column": 3,
+        "id": "unsupportedCommand",
+        "name": "with_screen_refresh",
+        "message": "「with_screen_refresh」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 3,
+          "column": 3,
+          "id": "unsupportedCommand",
+          "name": "with_screen_refresh",
+          "message": "「with_screen_refresh」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-8a90f0ebb6": {
+    "ja": "broadcast(\"message1\")\n",
+    "errors": [
+      {
+        "line": 1,
+        "column": 1,
+        "id": "unsupportedCommand",
+        "name": "broadcast",
+        "message": "「broadcast」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 1,
+          "column": 1,
+          "id": "unsupportedCommand",
+          "name": "broadcast",
+          "message": "「broadcast」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-c9c776e845": {
+    "ja": "move(10)\n",
+    "errors": [
+      {
+        "line": 1,
+        "column": 1,
+        "id": "unsupportedCommand",
+        "name": "move",
+        "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 1,
+          "column": 1,
+          "id": "unsupportedCommand",
+          "name": "move",
+          "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-98dfdb0bac": {
+    "ja": "turn_right(90)\n",
+    "errors": [
+      {
+        "line": 1,
+        "column": 1,
+        "id": "unsupportedCommand",
+        "name": "turn_right",
+        "message": "「turn_right」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 1,
+          "column": 1,
+          "id": "unsupportedCommand",
+          "name": "turn_right",
+          "message": "「turn_right」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-4e7d4ef4ae": {
+    "ja": "when_clicked do\n  表示する(\"hello\")\nを実行する\n",
+    "errors": [
+      {
+        "line": 1,
+        "column": 1,
+        "id": "unsupportedCommand",
+        "name": "when_clicked",
+        "message": "「when_clicked」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 1,
+          "column": 1,
+          "id": "unsupportedCommand",
+          "name": "when_clicked",
+          "message": "「when_clicked」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-d37d936b3f": {
+    "ja": "when_flag_clicked do\n  表示する(\"hello\")\nを実行する\n",
+    "errors": [
+      {
+        "line": 1,
+        "column": 1,
+        "id": "unsupportedCommand",
+        "name": "when_flag_clicked",
+        "message": "「when_flag_clicked」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 1,
+          "column": 1,
+          "id": "unsupportedCommand",
+          "name": "when_flag_clicked",
+          "message": "「when_flag_clicked」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-1783fd197f": {
+    "ja": "when_key_pressed(\"a\") do\n  表示する(\"hello\")\nを実行する\n",
+    "errors": [
+      {
+        "line": 1,
+        "column": 1,
+        "id": "unsupportedCommand",
+        "name": "when_key_pressed",
+        "message": "「when_key_pressed」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 1,
+          "column": 1,
+          "id": "unsupportedCommand",
+          "name": "when_key_pressed",
+          "message": "「when_key_pressed」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-a63e74fb43": {
+    "ja": "x = 10\n表示する(\"hello\")\n",
+    "errors": [],
+    "back": {
+      "ruby": "@x = 10\nputs(\"hello\")\n",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-9c85040659": {
+    "ja": "x = 10\nもし x > 5 ならば\n  表示する(\"big\")\nを実行する\n",
+    "errors": [],
+    "back": {
+      "ruby": "@x = 10\nif @x > 5\n  puts(\"big\")\nend\n",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-0c9195f1d2": {
+    "ja": "a = 絶対値(x)",
+    "errors": [],
+    "back": {
+      "ruby": "@a = @x.abs",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-470518801e": {
+    "ja": "a = 切り上げ(x)",
+    "errors": [],
+    "back": {
+      "ruby": "@a = @x.ceil",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-a43b8a7ed0": {
+    "ja": "a = 切り捨て(x)",
+    "errors": [],
+    "back": {
+      "ruby": "@a = @x.floor",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-00a5587469": {
+    "ja": "a = 含む(x, \"ell\")",
+    "errors": [],
+    "back": {
+      "ruby": "@a = @x.include?(\"ell\")",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-164ee8c178": {
+    "ja": "a = 要素数(Kouka)",
+    "errors": [],
+    "back": {
+      "ruby": "@a = @_array_Kouka_.length",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-099f98dd49": {
+    "ja": "a = 四捨五入(x)",
+    "errors": [],
+    "back": {
+      "ruby": "@a = @x.round",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-45111d1fe8": {
+    "ja": "a = 整数(x)",
+    "errors": [],
+    "back": {
+      "ruby": "@a = @x.to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-e2323268c9": {
+    "ja": "a = 文字列(x)",
+    "errors": [],
+    "back": {
+      "ruby": "@a = @x.to_s",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-35d0c74fed": {
+    "ja": "a = 平方根(x)",
+    "errors": [],
+    "back": {
+      "ruby": "@a = Math.sqrt(@x)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-425f113d9d": {
+    "ja": "a = 乱数(10)",
+    "errors": [],
+    "back": {
+      "ruby": "@a = rand(10)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-f0a9a9fa20": {
+    "ja": "a = 絶対値(差分)",
+    "errors": [],
+    "back": {
+      "ruby": "@a = @差分.abs",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-7d9ed74e6a": {
+    "ja": "a = 含む(文字列, \"ell\")",
+    "errors": [],
+    "back": {
+      "ruby": "@a = 文字列.include?(\"ell\")",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-fabfa94ba8": {
+    "ja": "a = 要素数(配列)",
+    "errors": [],
+    "back": {
+      "ruby": "@a = @配列.length",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-f1f6c358e9": {
+    "ja": "a = 四捨五入(平均)",
+    "errors": [],
+    "back": {
+      "ruby": "@a = @平均.round",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-dce4bd95fe": {
+    "ja": "a = 整数(合計)",
+    "errors": [],
+    "back": {
+      "ruby": "@a = @合計.to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-cdeaf6c9be": {
+    "ja": "a = 文字列(合計)",
+    "errors": [],
+    "back": {
+      "ruby": "@a = @合計.to_s",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-e0c679c242": {
+    "ja": "合計 = 0\ni を 1 から 10 まで 1 ずつ増やしながら\n  合計 += i\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@合計 = 0\n@i = 1\nwhile @i <= 10\n  @合計 += @i\n  @i += 1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-cb7c62d16c": {
+    "ja": "回数 を 1 から 5 まで 1 ずつ増やしながら\n  表示する(回数)\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@回数 @を 1 から 5 まで 1 @ずつ増やしながら\n  puts(@回数)\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-6ca50474fe": {
+    "ja": "合計 = 0\ni を 1 から 10 まで 1 ずつ増やしながら\n  合計 += i\nを繰り返す\n表示する(合計)",
+    "errors": [],
+    "back": {
+      "ruby": "@合計 = 0\n@i = 1\nwhile @i <= 10\n  @合計 += @i\n  @i += 1\nend\nputs(@合計)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-931705aea0": {
+    "ja": "配列 = [1, 2, 3]",
+    "errors": [],
+    "back": {
+      "ruby": "@配列 = [1, 2, 3]",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-0bff53339c": {
+    "ja": "合計 = 0",
+    "errors": [],
+    "back": {
+      "ruby": "@合計 = 0",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-a0c6526b4f": {
+    "ja": "けっか = 1",
+    "errors": [],
+    "back": {
+      "ruby": "@けっか = 1",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-f7c88ec9e2": {
+    "ja": "合計 = 0",
+    "errors": [],
+    "back": {
+      "ruby": "@合計 = 0",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-e1def93cd9": {
+    "ja": "合計 = 合計 + i",
+    "errors": [],
+    "back": {
+      "ruby": "@合計 = @合計 + @i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-7d3eb3c6d4": {
+    "ja": "カウント = 0",
+    "errors": [],
+    "back": {
+      "ruby": "@カウント = 0",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-a3c395cff1": {
+    "ja": "もし 合計 でない ならば\n  a = 1\nを実行する",
+    "errors": [],
+    "back": {
+      "ruby": "if !@合計\n  @a = 1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-6fa2f8a5b6": {
+    "ja": "# コメント",
+    "errors": [],
+    "back": {
+      "ruby": "# コメント",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-49f0a595c1": {
+    "ja": "i を 1 から 10 まで 1 ずつ増やしながら\n  表示する(i)\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 1\nwhile @i <= 10\n  puts(@i)\n  @i += 1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-48a6e1d3b2": {
+    "ja": "i を 10 から 0 まで 1 ずつ減らしながら\n  表示する(i)\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 10\nwhile @i >= 0\n  puts(@i)\n  @i += -1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-144d02d4bf": {
+    "ja": "i を 1 から 10 まで 1 ずつ増やしながら\n  表示する(i)\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 1\nwhile @i <= 10\n  puts(@i)\n  @i += 1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-001b1ca44e": {
+    "ja": "i を 0 から n まで 2 ずつ増やしながら\n  表示する(i)\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 0\nwhile @i <= @n\n  puts(@i)\n  @i += 2\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-f8540561d0": {
+    "ja": "i を 10 から 0 まで 1 ずつ減らしながら\n  表示する(i)\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 10\nwhile @i >= 0\n  puts(@i)\n  @i += -1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-56bd6a584b": {
+    "ja": "i を 1 から 3 まで 1 ずつ増やしながら\n  j を 1 から 3 まで 1 ずつ増やしながら\n    表示する(i)\n  を繰り返す\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 1\nwhile @i <= 3\n  @j = 1\n  while @j <= 3\n    puts(@i)\n    @j += 1\n  end\n  @i += 1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-22ff6f6ae1": {
+    "ja": "関数 f(x)\n  返す x * 2\nと定義する",
+    "errors": [],
+    "back": {
+      "ruby": "def f(x)\n  return x * 2\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-89de32bc40": {
+    "ja": "もし a > 0 ならば\n  a = 1\nそうでなければ\n  a = 2\nを実行する",
+    "errors": [],
+    "back": {
+      "ruby": "if @a > 0\n  @a = 1\nelse\n  @a = 2\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-508562e417": {
+    "ja": "もし a > 0 ならば\n  a = 1\nそうでなくもし a > 5 ならば\n  a = 2\nそうでなければ\n  a = 3\nを実行する",
+    "errors": [],
+    "back": {
+      "ruby": "if @a > 0\n  @a = 1\nelsif @a > 5\n  @a = 2\nelse\n  @a = 3\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-e7ed5ed593": {
+    "ja": "もし a > 0 ならば\n  a = 1\nを実行する",
+    "errors": [],
+    "back": {
+      "ruby": "if @a > 0\n  @a = 1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-09e7915b9b": {
+    "ja": "_ を 1 から 10 まで 1 ずつ増やしながら\n  a = a + 1\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@_ = 1\nwhile @_ <= 10\n  @a = @a + 1\n  @_ += 1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-15ab7cae9d": {
+    "ja": "a > 10 の間\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "while @a > 10\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-4e2ef9a487": {
+    "ja": "a > 10 でない の間\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "until @a > 10\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-7c12290d9e": {
+    "ja": "a > 10 でない の間\n  a = a + 1\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "until @a > 10\n  @a = @a + 1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-7b731f7128": {
+    "ja": "a > 0 の間\n  a = a - 1\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "while @a > 0\n  @a = @a - 1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-c7861c0594": {
+    "ja": "a = 【外部からの入力】",
+    "errors": [],
+    "back": {
+      "ruby": "ask(\"\")\n@a = answer",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-05cb2fad0a": {
+    "ja": "n = 【整数を入力】",
+    "errors": [],
+    "back": {
+      "ruby": "ask(\"\")\n@n = answer.to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-8422e45088": {
+    "ja": "a = 【外部からの入力】",
+    "errors": [],
+    "back": {
+      "ruby": "ask(\"\")\n@a = answer",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-cbc736d277": {
+    "ja": "表示する(a)",
+    "errors": [],
+    "back": {
+      "ruby": "puts(@a)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-2a47cf172b": {
+    "ja": "表示する(a)",
+    "errors": [],
+    "back": {
+      "ruby": "puts(@a)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-7c8d155ded": {
+    "ja": "表示する(a)",
+    "errors": [],
+    "back": {
+      "ruby": "puts(@a)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-76b592ca14": {
+    "ja": "表示する(a)",
+    "errors": [],
+    "back": {
+      "ruby": "puts(@a)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-a21298923f": {
+    "ja": "表示する(a, b, c)",
+    "errors": [],
+    "back": {
+      "ruby": "puts(@a.to_s + @b.to_s + @c.to_s)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-642afbeca7": {
+    "ja": "表示する(a)",
+    "errors": [],
+    "back": {
+      "ruby": "puts(@a)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-d63c113b17": {
+    "ja": "表示する(a)",
+    "errors": [],
+    "back": {
+      "ruby": "puts(@a)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-bed971a784": {
+    "ja": "a = 1\n\nb = 2",
+    "errors": [],
+    "back": {
+      "ruby": "@a = 1\n\n@b = 2",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-c083bb251a": {
+    "ja": "a = arr.map(&:to_s)",
+    "errors": [],
+    "back": {
+      "ruby": "@a = @arr.map(&:to_s)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-4ac041d396": {
+    "ja": "表示する(表示する(x))",
+    "errors": [],
+    "back": {
+      "ruby": "puts(puts(@x))",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-6e3123c670": {
+    "ja": "表示する(表示する(x))",
+    "errors": [],
+    "back": {
+      "ruby": "puts(puts(@x))",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-3235f43023": {
+    "ja": "表示する(乱数(乱数(乱数(1..10))))",
+    "errors": [],
+    "back": {
+      "ruby": "puts(rand(rand(rand(1..10))))",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-1496e444fc": {
+    "ja": "表示する(乱数(乱数(1..10)))",
+    "errors": [],
+    "back": {
+      "ruby": "puts(rand(rand(1..10)))",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-3f89cf26c3": {
+    "ja": "a = 偽",
+    "errors": [],
+    "back": {
+      "ruby": "@a = false",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-9c88e45b0c": {
+    "ja": "a = 真",
+    "errors": [],
+    "back": {
+      "ruby": "@a = true",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-248858c0bd": {
+    "ja": "a = x でない",
+    "errors": [],
+    "back": {
+      "ruby": "@a = !@x",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-050b263cdc": {
+    "ja": "a = x かつ y",
+    "errors": [],
+    "back": {
+      "ruby": "@a = @x && @y",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-e1695f0e00": {
+    "ja": "a = x または y",
+    "errors": [],
+    "back": {
+      "ruby": "@a = @x || @y",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-5a68b73104": {
+    "ja": "a = 3",
+    "errors": [],
+    "back": {
+      "ruby": "@a = 3",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-4e4a61ddb1": {
+    "ja": "Kouka = [1, 5, 10]",
+    "errors": [],
+    "back": {
+      "ruby": "@_array_Kouka_ = [1, 5, 10]",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-fc6e2e1a20": {
+    "ja": "A = 3",
+    "errors": [],
+    "back": {
+      "ruby": "@_var_A_ = 3",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-00ee9c43b5": {
+    "ja": "a = A + 1",
+    "errors": [],
+    "back": {
+      "ruby": "@a = @_var_A_ + 1",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-2b778c7762": {
+    "ja": "move(0)\n",
+    "errors": [
+      {
+        "line": 1,
+        "column": 1,
+        "id": "unsupportedCommand",
+        "name": "move",
+        "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+      }
+    ],
+    "back": {
+      "ruby": null,
+      "errors": [
+        {
+          "line": 1,
+          "column": 1,
+          "id": "unsupportedCommand",
+          "name": "move",
+          "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        }
+      ],
+      "blockErrors": []
+    }
+  },
+  "ruby-bb37969227": {
+    "ja": "x = 7 ÷ 2",
+    "errors": [],
+    "back": {
+      "ruby": "@x = (7 / 2).to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-a9708ea550": {
+    "ja": "x = 1",
+    "errors": [],
+    "back": {
+      "ruby": "@x = 1",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-45916ee09b": {
+    "ja": "Data[0] = 5",
+    "errors": [],
+    "back": {
+      "ruby": "@_array_Data_[0] = 5",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-d18755ab62": {
+    "ja": "x = 要素数(Data)",
+    "errors": [],
+    "back": {
+      "ruby": "@x = @_array_Data_.length",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-05df4dcd7a": {
+    "ja": "x = 整数(y)",
+    "errors": [],
+    "back": {
+      "ruby": "@x = @y.to_i",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-54ff0e8e7d": {
+    "ja": "表示する(x)",
+    "errors": [],
+    "back": {
+      "ruby": "puts(@x)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-6ef00f586a": {
+    "ja": "もし x > 0 ならば\n  表示する(x)\nを実行する",
+    "errors": [],
+    "back": {
+      "ruby": "if @x > 0\n  puts(@x)\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-61c7f55e11": {
+    "ja": "もし x > 0 ならば\n  表示する(x)\nそうでなければ\n  表示する(y)\nを実行する",
+    "errors": [],
+    "back": {
+      "ruby": "if @x > 0\n  puts(@x)\nelse\n  puts(@y)\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-6fc293d44c": {
+    "ja": "x = x * 2 - 1",
+    "errors": [],
+    "back": {
+      "ruby": "@x = @x * 2 - 1",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-6bf6c63ee7": {
+    "ja": "x = 7 % 2",
+    "errors": [],
+    "back": {
+      "ruby": "@x = 7 % 2",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-079cddd189": {
+    "ja": "i を 3 から 1 まで 1 ずつ減らしながら\n  表示する(i)\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 3\nwhile @i >= 1\n  puts(@i)\n  @i += -1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-d064a45827": {
+    "ja": "i を 1 から 3 まで 1 ずつ増やしながら\n  表示する(i)\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "@i = 1\nwhile @i <= 3\n  puts(@i)\n  @i += 1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-1b6c2e6ab5": {
+    "ja": "Kosu = 3",
+    "errors": [],
+    "back": {
+      "ruby": "@_var_Kosu_ = 3",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-d6f07a4017": {
+    "ja": "Data = [1, 2]",
+    "errors": [],
+    "back": {
+      "ruby": "@_array_Data_ = [1, 2]",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-12e44c678f": {
+    "ja": "x = Data[1]",
+    "errors": [],
+    "back": {
+      "ruby": "@x = @_array_Data_[1]",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-d1a9c0ec96": {
+    "ja": "x = 【外部からの入力】",
+    "errors": [],
+    "back": {
+      "ruby": "ask(\"\")\n@x = answer",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-a22ccc3dea": {
+    "ja": "x = 真",
+    "errors": [],
+    "back": {
+      "ruby": "@x = true",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-3cd5f2d94e": {
+    "ja": "もし x > 0 かつ x < 9 ならば\n  表示する(x)\nを実行する",
+    "errors": [],
+    "back": {
+      "ruby": "if @x > 0 && @x < 9\n  puts(@x)\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-db39dd4f47": {
+    "ja": "x < 3 の間\n  x = x + 1\nを繰り返す",
+    "errors": [],
+    "back": {
+      "ruby": "while @x < 3\n  @x = @x + 1\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-74967b1eaa": {
+    "ja": "表示する(\"合計\", x)",
+    "errors": [],
+    "back": {
+      "ruby": "puts(\"合計\" + @x.to_s)",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-2b1c082691": {
+    "ja": "a = 1\nもし a > 0 かつ a < 3 かつ a > 1 ならば\n  a = 2\nを実行する",
+    "errors": [],
+    "back": {
+      "ruby": "@a = 1\nif @a > 0 && @a < 3 && @a > 1\n  @a = 2\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-20e1454a5f": {
+    "ja": "a = 1\nもし a > 0 または a < 3 かつ a > 1 ならば\n  a = 2\nを実行する",
+    "errors": [],
+    "back": {
+      "ruby": "@a = 1\nif @a > 0 || @a < 3 && @a > 1\n  @a = 2\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  },
+  "ruby-3762c22a51": {
+    "ja": "a = 1\nもし a > 0 または a < 3 または a > 1 ならば\n  a = 2\nを実行する",
+    "errors": [],
+    "back": {
+      "ruby": "@a = 1\nif @a > 0 || @a < 3 || @a > 1\n  @a = 2\nend",
+      "errors": [],
+      "blockErrors": []
+    }
+  }
+}
