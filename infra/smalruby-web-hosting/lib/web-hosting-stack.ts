@@ -76,6 +76,19 @@ export const SITE_ACCESS_LOG_RETENTION_DAYS = 30;
 /** アクセスログのオブジェクトキーの接頭辞（ログのバケットを後でほかの用途と分けられるように付ける）。 */
 export const SITE_ACCESS_LOG_PREFIX = 'cloudfront/smalruby.app/';
 
+/**
+ * smalruby.app の配信に付いている WAF の Web ACL（us-east-1・CLOUDFRONT スコープ）。
+ *
+ * CloudFront の定額プラン（Pro）に配信を入れたときに、プランが作って配信に付けたもの。
+ * CDK が作ったものではなく、このスタックは Web ACL を作らない・import しない（ARN を参照するだけ）。
+ * 消さないこと・WAF のコンソールで中身を変えないこと。プランは Web ACL が付いていることを条件にするので、
+ * テンプレートに WebACLId が無いと次の deploy で配信から外れる（またはプランの条件違反で失敗する）。
+ * プランを変える・入れ直すなどで Web ACL が変わるときは、CloudFront のコンソールでプランと
+ * 配信に付いている Web ACL を確かめてから、この値を書き換える。
+ */
+export const SITE_WEB_ACL_ARN =
+    'arn:aws:wafv2:us-east-1:007325983811:global/webacl/CreatedByCloudFront-086021c8/a34b81cf-b3e7-42f7-9c2c-6390e96e30d7';
+
 /** GitHub Actions の OIDC プロバイダ（アカウントに 1 つだけ。Deploy Infra 用に作成済みのものを使う）。 */
 const GITHUB_OIDC_HOST = 'token.actions.githubusercontent.com';
 
@@ -401,6 +414,8 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
             // 定額プランは料金クラスを持たない（プランに入れると PriceClass_All になる）。200 のままだと
             // 次の deploy で CloudFront とずれるので All にする。
             priceClass: cloudfront.PriceClass.PRICE_CLASS_ALL,
+            // 定額プランが作った Web ACL（SITE_WEB_ACL_ARN の説明を参照）。
+            webAclId: SITE_WEB_ACL_ARN,
             defaultBehavior: {
                 origin: origins.S3BucketOrigin.withOriginAccessControl(bucket),
                 viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
