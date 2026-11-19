@@ -23,6 +23,7 @@ import {
     FORBIDDEN_PREFIX_ERROR_ID,
     isRubyCommandName,
     POST_TEST_LOOP_ERROR_ID,
+    STAGE_VARIABLE_ERROR_ID,
     UNSUPPORTED_COMMAND_ERROR_ID,
     UNSUPPORTED_NOTATION_ERROR_ID,
     UNSUPPORTED_NUMBER_ERROR_ID,
@@ -808,6 +809,16 @@ const RubyTab = (props) => {
                     {
                         id: 'gui.rubyTab.dnclForbiddenPrefixError',
                         defaultMessage: '"{name}" cannot be used in a variable in Japanese mode.',
+                    },
+                    { name: err.name },
+                );
+            }
+            if (err.id === STAGE_VARIABLE_ERROR_ID) {
+                return intl.formatMessage(
+                    {
+                        id: 'gui.rubyTab.dnclStageVariableError',
+                        defaultMessage:
+                            'A variable of the stage ({name}) cannot be written in Japanese mode. You can write it in Ruby mode.',
                     },
                     { name: err.name },
                 );

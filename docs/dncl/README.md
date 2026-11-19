@@ -178,18 +178,21 @@ prism の解析の関数は外から受けとり（`rubyToJa(source, { parse, ..
   本体のほかの文が変数も増分も変えないときだけ `〜ずつ増やしながら繰り返す` にする。それ以外は `i = 1` と `i <= 10 の間繰り返す:` のまま。
   `(a / b).to_i` は `a ÷ b`、`-((a / b).to_i)` は `-a ÷ b`（日本語では `-(a ÷ b)` と読むので、符号を `÷` の左に置く）。`((-a) / b).to_i` は `÷` にしない（`整数(-a / b)`）。
   `!(...)` のかっこは残す（`not (a > 10)`）。`until 条件` は `not 条件 の間繰り返す:`、`wait until 条件` は中身の無い繰り返し。
-- 日本語に書きかえるものが無い Ruby（`with_screen_refresh do` / `loop do` / `list.each do |x|` などの `xxx do`、`unless`、後置の `if`、`begin … end while`、`$g`、`nil` など）は、
+- 日本語に書きかえるものが無い Ruby（`with_screen_refresh do` / `loop do` / `list.each do |x|` などの `xxx do`、`unless`、後置の `if`、`begin … end while`、`nil` など）は、
   **書いてあるとおりの Ruby のまま**（`end` も）残す（JaAST の `RubyCode`）。中の命令と数の誤りは、そのまま Ruby の行に出す（日本語モードはこうした Ruby を切りかえで受け付けない）。
-  それ自体が誤りでない Ruby（`case` / `when`、ハッシュ `{}`、シンボル `:a`、後置の `unless` / `if`、三項演算子、`nil`、`$g` など）も、黙って残さずに `no-ja-form` の誤りにする
+  それ自体が誤りでない Ruby（`case` / `when`、ハッシュ `{}`、シンボル `:a`、後置の `unless` / `if`、三項演算子、`nil` など）も、黙って残さずに `no-ja-form` の誤りにする
   （黙って残すと、日本語に戻したときに「「@」は使えません」「「{」が読めません」のような見当違いの誤りになるため）。誤りは残した Ruby のいちばん外のものに 1 つだけ出し、
   キーワードで始まるものはキーワードの位置にキーワードの名前で（`unless`）、それ以外は先頭の位置に Ruby の字（1 行目の 20 字まで。長いものは `…`）で出す。
   その Ruby に命令や `break` の誤りがすでに出ているときは足さない。prism が文法の誤りを出したときは足さない（立て直しのノードの誤りを並べないため）。
+  ステージの変数・リスト（`$g`）は、日本語モードが想定しない（[`design.md`](design.md) の「ステージの変数は書かない」）ので、
+  書いてあるとおりに残したうえで、`$g` の名前の位置（読むところ・代入・`+=`・多重代入の左辺・`$g.push(1)` の受け手）に `stage-variable` の誤りを出す
+  （`no-ja-form` や `push` の命令の誤りは足さない）。
   表を渡さないとき（ほかの処理系）は、大文字の名前（Ruby の定数 `A`）も名前として読む（`buildRuby` がそう書くため）。
   `N.times do` と `(a..b).step(s) do |i|` / `a.step(b, -s) do |i|` は `〜ずつ増やしながら繰り返す` にする。
 - 書き方（`write-ja.js`）: 下の「書き出しの形」。演算子は日本語の読み方（`parse.js`）の強さで、要るところだけかっこを付ける（Ruby に書いてあったかっこは残さない。`not` の後ろは上のとおり）。
   空行は Ruby の空行の位置に残す（読み手が JaAST に `blankLines` を付ける）。行末のコメントは、その Ruby の行から作った日本語の行の末尾に付け直す。
 - 誤り: 日本語モードに無い命令（`unknown-command`。`(` の付いた名前、括弧の無いメソッド、受け手のあるメソッド、`xxx do` の `xxx`、`break` / `next` / `redo` / `retry`）、
-  数の書き方（`bad-number`）、後判定の繰り返し（`post-test-loop`。`begin` と `end while` の行）、日本語に無い書き方（`no-ja-form`。上の `RubyCode`）、Ruby の文法の誤り（`ruby-syntax`）。行と列は Ruby の行。
+  数の書き方（`bad-number`）、後判定の繰り返し（`post-test-loop`。`begin` と `end while` の行）、日本語に無い書き方（`no-ja-form`。上の `RubyCode`）、ステージの変数（`stage-variable`）、Ruby の文法の誤り（`ruby-syntax`）。行と列は Ruby の行。
   命令と取らないのは、表にある呼び出し、プログラムで `def` した名前、`dncl-keywords.js` の `RUBY_LITERALS`（`answer` / `ask` など）。ローカル変数は prism が変数と分かるので取らない。
 - 構文木を歩く処理は、長い `and` / `+` の並び（左に深い木）をくり返しで歩くので、項が数千あってもスタックが尽きない。prism 自身はおよそ 5000 項の式を解析できないので、それより長い式は誤り
   （「プログラムが長すぎて日本語にできません」）にする。
@@ -214,6 +217,7 @@ ja-notation の誤りは `ja-notation-errors.js` が、生徒に見えている�
 | `post-test-loop` | 後判定の繰り返しの文（`postTestLoop`） |
 | `unknown-command` | 「「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。」、日本語の名前は「「差分」は定義されていない関数です。「関数 差分(…):」で定義してください。」（`unsupportedCommand`） |
 | `no-ja-form` | 「「case」は日本語モードでは書けません。Ruby モードでは書けます。」（`unsupportedNotation`。Ruby → 日本語だけ） |
+| `stage-variable` | 「ステージの変数（$a）は日本語モードでは書けません。Ruby モードでは書けます。」（`stageVariable`。Ruby → 日本語だけ） |
 | `unclosed` / `empty-block` / `block`（閉じのことば・`そうでなければ`） | 下の「閉じ忘れのエラー」の文 |
 | そのほか（読めない字句・式が要る など） | ja-notation の文のまま（「「//」が読めません」など） |
 
@@ -549,6 +553,7 @@ Smalruby は **共通テスト用プログラム表記の形のプログラム�
   - `dncl-standard-form.test.js` — 書き出しの標準の形（字下げと `:`・`and` / `or` / `not`・`％`・`を返す`・終端の行を残す場合）と、DNCL 風の形も読むこと
   - `dncl-loop-jump.test.js` — 繰り返しの中の `break` / `next`（後置の `if` / `unless` 付き・1 行だけ・`redo` / `retry`）がその行のエラーで止まり、`@break` のような Ruby にならないこと。同じ名前の変数は往復できること
   - `dncl-no-ja-form.test.js` — 日本語に無い書き方（`case` / `when`・ハッシュ・シンボル・後置の `unless` / `if`・三項演算子）が Ruby → 日本語でその場所の誤り（`unsupportedNotation`）になり、日本語モードにある Ruby は誤りにならないこと
+  - `dncl-stage-variable.test.js` — ステージの変数・リスト（`$a`）が Ruby → 日本語でその名前の位置の誤り（`stageVariable`）になり、スプライトの変数（`@a`）は日本語になること
   - `dncl-unsupported-command.test.js` — 日本語モードに無い命令（引数あり・なし・変数と同じ名前・式や条件の中・`xxx do` と `|x|`）がその行のエラーで止まり、定義した関数の呼び出しや組み込み関数は往復できること（DNCL → Ruby と Ruby → DNCL の両方）
   - `dncl-do-block.test.js` — 日本語にしない `xxx do ... end` が `を実行する` で閉じ、外側の `〜の間` / `もし` / `関数` の閉じのことばがずれないこと（入れ子・`until x do`・後判定の中・文字列やコメントの中の `do`）
   - `dncl-roundtrip.test.js` — DNCL ↔ Ruby round-trip 安定性

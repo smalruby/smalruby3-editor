@@ -173,6 +173,22 @@ const UNSUPPORTED_NOTATION_ERROR_ID = 'unsupportedNotation';
 const unsupportedNotationMessage = (name) => `「${name}」は日本語モードでは書けません。Ruby モードでは書けます。`;
 
 /**
+ * The id of the error for a variable or a list of the stage (`$a`) in the Ruby
+ * (issue #1706). The Japanese mode is written for a program that runs alone,
+ * as on a terminal, and has no stage: Ruby → Japanese does not write them and
+ * tells them where they are. The `name` is the variable (`$a`).
+ */
+const STAGE_VARIABLE_ERROR_ID = 'stageVariable';
+
+/**
+ * The message of the stage variable error.
+ * @param {string} name - The variable (`$a`).
+ * @returns {string} The message.
+ */
+const stageVariableMessage = (name) =>
+    `ステージの変数（${name}）は日本語モードでは書けません。Ruby モードでは書けます。`;
+
+/**
  * The command of a `do` block line: the name just before `do` and the
  * arguments of the command (`with_screen_refresh do` → `with_screen_refresh`,
  * `[1, 2].each do |x|` → `each`, `self.when(:clicked) do` → `when`).
@@ -320,6 +336,8 @@ export {
     isRubyCommandName,
     POST_TEST_LOOP_ERROR_ID,
     POST_TEST_LOOP_MESSAGE,
+    STAGE_VARIABLE_ERROR_ID,
+    stageVariableMessage,
     UNSUPPORTED_COMMAND_ERROR_ID,
     unsupportedCommandMessage,
     UNSUPPORTED_NOTATION_ERROR_ID,

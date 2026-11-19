@@ -12,6 +12,8 @@ import {
     FORBIDDEN_PREFIX_ERROR_ID,
     POST_TEST_LOOP_ERROR_ID,
     POST_TEST_LOOP_MESSAGE,
+    STAGE_VARIABLE_ERROR_ID,
+    stageVariableMessage,
     UNSUPPORTED_NOTATION_ERROR_ID,
     UNSUPPORTED_NUMBER_ERROR_ID,
     UNSUPPORTED_COMMAND_ERROR_ID,
@@ -65,7 +67,7 @@ const blockMessage = (error) => {
  * @param {object} error - An error of ja-notation.
  * @returns {?object} The error, or null when it is not one of the words of
  *   the Japanese mode (a Ruby command, a number, Ruby with no Japanese form,
- *   `@`, the post-test loop).
+ *   a variable of the stage, `@`, the post-test loop).
  */
 const wordError = (error) => {
     const at = { line: error.line, column: error.column + 1 };
@@ -87,6 +89,13 @@ const wordError = (error) => {
                 id: UNSUPPORTED_NOTATION_ERROR_ID,
                 name: error.name,
                 message: unsupportedNotationMessage(error.name),
+            };
+        case 'stage-variable':
+            return {
+                ...at,
+                id: STAGE_VARIABLE_ERROR_ID,
+                name: error.name,
+                message: stageVariableMessage(error.name),
             };
         case 'unknown-command':
             return {
