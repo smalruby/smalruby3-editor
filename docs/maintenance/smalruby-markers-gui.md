@@ -196,6 +196,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/lib/legacy-storage.ts` | local sprite assets | スプライトの画像アセットをローカル配信の web store から解決する追加登録 |
 | `src/lib/legacy-backpack-storage.ts` | localStorage backpack support | バックパックを localStorage に保存する対応（5 ペア） |
 | `src/lib/alerts/index.jsx` | classroom session expired alert | クラスルームのセッション失効アラートの定義 |
+| `src/lib/alerts/index.jsx` | Smalrubot S1 renamed alert | 移行期間の前の名前のカード（スモウルボットS1）を選んだときの、名前が変わったことの知らせ（`smalrubotS1Renamed`。2027-11-30 の期限のあとに消す） |
 | `src/components/alerts/alert.jsx` | classroom session expired | セッション失効アラートの表示側 |
 | `src/containers/alert.jsx` | classroom session expired | セッション失効アラートのコンテナ側（3 ペア） |
 | `src/lib/libraries/extensions/index.jsx` | TM2Scratch extension / AkaDako extension / Ruby String extension | 拡張機能ライブラリへの Smalruby 拡張エントリ（各 2 ペア。取り外し可能拡張の分離マーカーと同名系列） |
@@ -211,6 +212,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/blocks/blocks.css` | show whole block shape on flyout hover | フライアウトにマウスを乗せている間、長いブロックが右へはみ出して見えるようにする（`clip-path`・RTL 対応）。スクロールバーを左に 4px 離し、ホバー中のスクロールバーの地を不透明度 0.4 にする |
 | `src/components/blocks/blocks.css` | v2 toolbox category label selector | カテゴリ名を 0.65rem に縮める規則のクラス名を、scratch-blocks v2.1.19 が描く `.blocklyToolboxCategoryLabel` にする（上流は v1 の `.scratchCategoryMenuItemLabel` のままで効かない） |
 | `src/components/library/library.jsx` | extension library key | 拡張機能の項目のキーに `extensionId` を使う |
+| `src/containers/extension-library.jsx` | Smalrubot S1 legacy card | 移行期間（2027-11-30 まで）だけ、アーテックロボ（Studuino）のカードの後ろに前の名前のカード「スモウルボットS1」を差しこみ、選ばれたら同じ拡張機能 `smalrubotS1` を読みこんで知らせを出す（import・`handleItemSelect`・render・propTypes・mapDispatchToProps の 5 ペア。処理は `src/lib/libraries/extensions/smalrubot-s1/legacy-card.jsx`） |
 | `src/components/library/library.jsx` | modal header actions | `headerActions` を `Modal` に渡す（prop と propType） |
 | `src/components/modal/modal.jsx` | modal header actions | ヘッダーの右のボタン置き場 `headerActions`（拡張機能のライブラリ・甲子園のテストのモーダルが使う）。描画と propType |
 | `src/components/modal/modal.css` | modal header actions | `.header-item-actions`（`headerActions` の置き場。LTR / RTL の余白） |

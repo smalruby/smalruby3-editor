@@ -346,8 +346,26 @@ const alerts = [
         ),
         level: AlertLevels.WARN,
         showRejoin: 'teacher'
-    }
+    },
     // === Smalruby: End of classroom session expired alert ===
+    // === Smalruby: Start of Smalrubot S1 renamed alert ===
+    {
+        alertId: 'smalrubotS1Renamed',
+        clearList: ['smalrubotS1Renamed'],
+        closeButton: true,
+        content: (
+            <span data-testid="smalrubot-s1-renamed-alert">
+                <FormattedMessage
+                    defaultMessage={'Smalrubot S1 is now called "ArtecRobo (Studuino)". ' +
+                        'It works the same. From now on, please choose "ArtecRobo (Studuino)".'}
+                    description="Alert shown after choosing the old Smalrubot S1 card in the extension library"
+                    id="gui.smalruby3.alerts.smalrubotS1Renamed"
+                />
+            </span>
+        ),
+        level: AlertLevels.INFO
+    }
+    // === Smalruby: End of Smalrubot S1 renamed alert ===
 ];
 
 export {

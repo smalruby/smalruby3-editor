@@ -12,6 +12,13 @@ import LibraryComponent from '../components/library/library.jsx';
 import extensionIcon from '../components/action-menu/icon--sprite.svg';
 
 import {toggleShowAllExtensions} from '../reducers/extension-filter';
+// === Smalruby: Start of Smalrubot S1 legacy card ===
+import {showStandardAlert} from '../reducers/alerts';
+import {
+    resolveLegacyCard,
+    withLegacyCards
+} from '../lib/libraries/extensions/smalrubot-s1/legacy-card.jsx';
+// === Smalruby: End of Smalrubot S1 legacy card ===
 
 import styles from './extension-library.css';
 
@@ -50,7 +57,12 @@ class ExtensionLibrary extends React.PureComponent {
     handleToggleShowAllExtensions (event) {
         this.props.onToggleShowAllExtensions(event.target.checked);
     }
-    handleItemSelect (item) {
+    handleItemSelect (selectedItem) {
+        // === Smalruby: Start of Smalrubot S1 legacy card ===
+        // The old card loads the same extension as the current card and tells about the rename.
+        const {item, alertId} = resolveLegacyCard(selectedItem, extensionLibraryContent);
+        if (alertId && this.props.onShowAlert) this.props.onShowAlert(alertId);
+        // === Smalruby: End of Smalrubot S1 legacy card ===
         const id = item.extensionId;
         let url = item.extensionURL ? item.extensionURL : id;
         if (!item.disabled && !id) {
@@ -75,7 +87,9 @@ class ExtensionLibrary extends React.PureComponent {
             showAllExtensionsParam === 'false' ? false :
                 this.props.showAllExtensions;
 
-        const extensionLibraryThumbnailData = extensionLibraryContent
+        // === Smalruby: Start of Smalrubot S1 legacy card ===
+        const extensionLibraryThumbnailData = withLegacyCards(extensionLibraryContent, new Date())
+        // === Smalruby: End of Smalrubot S1 legacy card ===
             .filter(extension => {
                 if (!showAllExtensions && extension.defaultHidden) {
                     return false;
@@ -129,6 +143,9 @@ ExtensionLibrary.propTypes = {
     intl: intlShape.isRequired,
     onCategorySelected: PropTypes.func,
     onRequestClose: PropTypes.func,
+    // === Smalruby: Start of Smalrubot S1 legacy card ===
+    onShowAlert: PropTypes.func,
+    // === Smalruby: End of Smalrubot S1 legacy card ===
     onToggleShowAllExtensions: PropTypes.func,
     showAllExtensions: PropTypes.bool,
     visible: PropTypes.bool,
@@ -140,6 +157,9 @@ const mapStateToProps = state => ({
 });
 
 const mapDispatchToProps = dispatch => ({
+    // === Smalruby: Start of Smalrubot S1 legacy card ===
+    onShowAlert: alertId => dispatch(showStandardAlert(alertId)),
+    // === Smalruby: End of Smalrubot S1 legacy card ===
     onToggleShowAllExtensions: showAll => dispatch(toggleShowAllExtensions(showAll))
 });
 

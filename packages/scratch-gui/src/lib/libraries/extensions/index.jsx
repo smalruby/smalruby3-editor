@@ -483,7 +483,7 @@ export default [
     {
         name: (
             <FormattedMessage
-                defaultMessage="ArtecRobo"
+                defaultMessage="ArtecRobo (Studuino)"
                 description="Name for the 'Smalrubot S1' extension"
                 id="gui.smalruby3.extension.smalrubotS1.name"
             />

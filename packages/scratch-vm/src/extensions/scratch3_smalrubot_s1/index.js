@@ -943,7 +943,7 @@ class Scratch3SmalrubotS1Blocks {
      * @returns {string} - the name of this extension.
      */
     static get EXTENSION_NAME() {
-        return 'ArtecRobo';
+        return 'ArtecRobo (Studuino)';
     }
 
     /**
