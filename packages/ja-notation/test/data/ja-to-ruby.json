@@ -79,11 +79,23 @@
             "jaLines": [1, 1, 2, 3, 3]
         },
         {
-            "title": "a counting loop closed by another closing word adds the step too",
+            "title": "a counting loop closed by another closing word is an error that says its closing word (W3 of Issue #1731)",
             "table": "plain",
             "ja": "i を 1 から 3 まで 1 ずつ増やしながら\n  表示する(i)\nを実行する",
-            "ruby": "i = 1\nwhile i <= 3\n  puts(i)\n  i += 1\nend",
-            "jaLines": [1, 1, 2, 3, 3]
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「を実行する」ではなく「を繰り返す」で閉じてください",
+                    "line": 3,
+                    "column": 0,
+                    "opener": "For",
+                    "direction": "up",
+                    "colon": false,
+                    "block": "closer-kind",
+                    "word": "を実行する",
+                    "expected": "を繰り返す"
+                }
+            ]
         },
         {
             "title": "the names and functions are what the table says",

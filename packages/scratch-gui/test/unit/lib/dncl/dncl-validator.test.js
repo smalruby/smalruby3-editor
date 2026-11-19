@@ -79,9 +79,39 @@ describe('block errors of the DNCL-like form', () => {
         ]);
     });
 
-    test('a wrong closer that still makes good Ruby is not an error', () => {
-        // The editor takes it (every closer becomes `end`), so it is left alone.
-        expect(errorsOf(['もし x > 0 ならば', '  表示する(x)', 'を繰り返す'])).toEqual([]);
+    // A closer of another kind of block is an error even when the Ruby would be good (W3 of #1731).
+    test('a wrong closer is reported with the closer of the block', () => {
+        expect(errorsOf(['もし x > 0 ならば', '  表示する(x)', 'を繰り返す'])).toEqual([
+            {
+                line: 3,
+                column: 1,
+                message: '「もし〜ならば」は「を繰り返す」ではなく「を実行する」で閉じてください',
+            },
+        ]);
+    });
+
+    test('a counting loop closed with another closer is reported', () => {
+        expect(errorsOf(['i を 1 から 3 まで 1 ずつ増やしながら', '  表示する(i)', 'を実行する'])).toEqual([
+            {
+                line: 3,
+                column: 1,
+                message: '「〜ずつ増やしながら」は「を実行する」ではなく「を繰り返す」で閉じてください',
+            },
+        ]);
+    });
+
+    test('a block opened with : closed by a line of another kind names the standard form', () => {
+        expect(errorsOf(['x < 3 の間繰り返す:', '    x = x + 1', 'と定義する'])).toEqual([
+            {
+                line: 3,
+                column: 1,
+                message: '「〜の間繰り返す:」は「と定義する」ではなく「を繰り返す」で閉じてください',
+            },
+        ]);
+    });
+
+    test('end still closes any kind of block', () => {
+        expect(errorsOf(['x < 3 の間', '  x ← x + 1', 'end'])).toEqual([]);
     });
 
     test('そうでなければ inside a loop of an if left open names the if', () => {

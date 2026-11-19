@@ -1293,6 +1293,11 @@
             "as": "もし a > 0 ならば:\n  b = 1"
         },
         {
+            "title": "`end` closes any kind of block opened without `:` (as in Ruby; the closing words must be of their block)",
+            "ja": "x > 0 の間\n  x = x - 1\nend",
+            "as": "x > 0 の間繰り返す:\n  x = x - 1"
+        },
+        {
             "title": "`を追加する` with no spaces around the value in brackets",
             "ja": "A に (3) を追加する",
             "as": "A に 3 を追加する"
@@ -1338,6 +1343,107 @@
                     "column": 0,
                     "block": "stray-closer",
                     "word": "end"
+                }
+            ]
+        },
+        {
+            "title": "a closing word of another kind of block is an error on the closing line (W3 of Issue #1731)",
+            "ja": "もし a > 0 ならば\n  b = 1\nを繰り返す",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「を繰り返す」ではなく「を実行する」で閉じてください",
+                    "line": 3,
+                    "column": 0,
+                    "opener": "If",
+                    "colon": false,
+                    "block": "closer-kind",
+                    "word": "を繰り返す",
+                    "expected": "を実行する"
+                }
+            ]
+        },
+        {
+            "title": "a loop closed by を実行する is an error",
+            "ja": "a > 0 の間\n  a = a - 1\nを実行する",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「を実行する」ではなく「を繰り返す」で閉じてください",
+                    "line": 3,
+                    "column": 0,
+                    "opener": "While",
+                    "colon": false,
+                    "block": "closer-kind",
+                    "word": "を実行する",
+                    "expected": "を繰り返す"
+                }
+            ]
+        },
+        {
+            "title": "a counting loop down closed by と定義する is an error",
+            "ja": "i を 3 から 1 まで 1 ずつ減らしながら\n  b = i\nと定義する",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「と定義する」ではなく「を繰り返す」で閉じてください",
+                    "line": 3,
+                    "column": 0,
+                    "opener": "For",
+                    "direction": "down",
+                    "colon": false,
+                    "block": "closer-kind",
+                    "word": "と定義する",
+                    "expected": "を繰り返す"
+                }
+            ]
+        },
+        {
+            "title": "a function closed by を繰り返す is an error",
+            "ja": "関数 f(a)\n  返す a\nを繰り返す",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「を繰り返す」ではなく「と定義する」で閉じてください",
+                    "line": 3,
+                    "column": 0,
+                    "opener": "FunctionDef",
+                    "colon": false,
+                    "block": "closer-kind",
+                    "word": "を繰り返す",
+                    "expected": "と定義する"
+                }
+            ]
+        },
+        {
+            "title": "a block opened with : closed by a line of another kind at its indent is an error",
+            "ja": "もし a > 0 ならば:\n    b = 1\nを繰り返す",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「を繰り返す」ではなく「を実行する」で閉じてください",
+                    "line": 3,
+                    "column": 0,
+                    "opener": "If",
+                    "colon": true,
+                    "block": "closer-kind",
+                    "word": "を繰り返す",
+                    "expected": "を実行する"
+                }
+            ]
+        },
+        {
+            "title": "a block forgotten to be closed inside the one the closing word closes is told as not closed",
+            "ja": "i を 1 から 3 まで 1 ずつ増やしながら\n  もし i > 1 ならば\n    x = 1\nを繰り返す",
+            "errors": [
+                {
+                    "code": "unclosed",
+                    "message": "「を実行する」で閉じていません",
+                    "line": 2,
+                    "column": 2,
+                    "opener": "If",
+                    "colon": false,
+                    "word": "を実行する"
                 }
             ]
         },
