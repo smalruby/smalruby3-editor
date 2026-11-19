@@ -3,7 +3,7 @@ import '@testing-library/jest-dom';
 import { render } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
-import alerts from '../../../src/lib/alerts/index.jsx';
+import alerts, { AlertLevels } from '../../../src/lib/alerts/index.jsx';
 import extensionLibraryContent from '../../../src/lib/libraries/extensions/index.jsx';
 import {
     SMALRUBOT_S1_EXTENSION_ID,
@@ -118,6 +118,11 @@ describe('Smalrubot S1 renamed alert', () => {
         const alert = alerts.find(a => a.alertId === SMALRUBOT_S1_RENAMED_ALERT_ID);
         expect(alert).toBeDefined();
         expect(alert.closeButton).toBe(true);
+    });
+
+    test('should use a level that has a background so the text is readable over the modal', () => {
+        const alert = alerts.find(a => a.alertId === SMALRUBOT_S1_RENAMED_ALERT_ID);
+        expect(alert.level).toBe(AlertLevels.INFO_BLUE);
     });
 
     test.each([

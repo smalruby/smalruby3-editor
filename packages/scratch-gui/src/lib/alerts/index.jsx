@@ -363,7 +363,7 @@ const alerts = [
                 />
             </span>
         ),
-        level: AlertLevels.INFO
+        level: AlertLevels.INFO_BLUE
     }
     // === Smalruby: End of Smalrubot S1 renamed alert ===
 ];
