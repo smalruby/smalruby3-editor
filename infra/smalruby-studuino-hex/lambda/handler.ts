@@ -33,8 +33,8 @@ export interface HandlerDeps {
   now: () => number;
   /** 各窓の数を増やして返す（数えられない窓は undefined）。 */
   countRequests: (windows: ReturnType<typeof rateWindows>) => Promise<(number | undefined)[]>;
-  loadSample: (name: string) => string;
-  compile: (sketchName: string, source: string) => Promise<CompileResult>;
+  loadSample: (name: string) => Record<string, string>;
+  compile: (sketchName: string, files: Record<string, string>) => Promise<CompileResult>;
   log: (entry: Record<string, unknown>) => void;
 }
 
@@ -107,7 +107,10 @@ export const createHandler = (deps: HandlerDeps) => {
     const toolchain = deps.toolchain;
     if (!toolchain) return fail('internal', { reason: 'toolchain_missing' });
     if (sample.needsStuduinoLib && !toolchain.studuinoLib) {
-      return fail('compile_failed', { reason: 'library_missing' });
+      return fail('compile_failed', {
+        reason: 'library_missing',
+        ...(toolchain.studuinoLibError ? { libraryError: toolchain.studuinoLibError } : {}),
+      });
     }
 
     let result: CompileResult;
@@ -140,10 +143,16 @@ export const createHandler = (deps: HandlerDeps) => {
           toolchain: {
             arduinoCli: toolchain.arduinoCli,
             avrCore: toolchain.avrCore,
+            libraries: toolchain.libraries,
+            board: toolchain.board,
             fqbn: toolchain.fqbn,
             studuinoLib: toolchain.studuinoLib,
+            ...(toolchain.boardError ? { boardError: toolchain.boardError } : {}),
+            ...(toolchain.studuinoLibError ? { studuinoLibError: toolchain.studuinoLibError } : {}),
           },
           compileMs: result.compileMs,
+          // 計測用（コールドとウォームの時間を比べる）
+          coldStart: wasCold,
         },
         allowedOrigin,
       ),
@@ -163,12 +172,12 @@ export const handler = createHandler({
   now: () => Date.now(),
   countRequests: windows => incrementWindows(env.RATE_LIMIT_TABLE_NAME || '', windows),
   loadSample: name => readSample(env.STUDUINO_SAMPLES_DIR || '/opt/arduino/samples', name),
-  compile: (sketchName, source) =>
+  compile: (sketchName, files) =>
     compileSketch({
       cliPath: env.ARDUINO_CLI || 'arduino-cli',
       fqbn: toolchain?.fqbn || '',
       sketchName,
-      source,
+      files,
       timeoutMs: limits.compileTimeoutMs,
       prebuiltCacheDir: env.STUDUINO_PREBUILT_CACHE,
     }),

@@ -30,17 +30,21 @@ CDK が Docker の build args に渡す（Dockerfile に版を書かない）。
 |---|---|---|
 | arduino-cli | 1.5.1（Linux 64bit） | GitHub のリリースの sha256 を固定 |
 | AVR のコア | `arduino:avr@1.8.8` | arduino-cli が index の checksum で確かめる |
-| Servo | 1.2.2 | 同上 |
-| Studuino ライブラリ | アーテック社の公式の配布元の zip | URL と sha256 を固定（下の「ライブラリ」） |
+| Servo・Adafruit NeoPixel | 1.2.2・1.15.2 | 同上（NeoPixel はサンプル `smalrubot-s1` だけが使う） |
+| ボード定義 | アーテック社の Arduino IDE 1.6.x/1.8.x 用（`arduino_ide_settings_ver16x_18x.zip` の `other/hardware/studuino`） | URL と sha256 を固定 |
+| Studuino ライブラリ | アーテック社の zip（`studuino_v1_lib.zip`） | URL と sha256 を固定（下の「ライブラリ」） |
 
-- ボードは **`arduino:avr:pro:cpu=8MHzatmega168`**（ATmega168・8MHz）。Studuino は ATmega168PA・8MHz・3.3V で、
-  いまのファームウェア（`sr_studu`）と同じ。168PA は 168 と同じ命令・メモリなので 168 向けの hex が動く。
-  書きこみはブラウザの STK500v1（`smalrubot-firmware-flasher.js`。optiboot 互換・115200bps・シグネチャ `1E 94 06`）
-  が行うので、ボード定義のブートローダの設定はコンパイルに効かない。
-- フラッシュの上限は **14,336 バイト**（pro の 168 の値）。超えたら `compile_failed`（`flash_overflow`）。
-- イメージを作るときに `blink`（と、ライブラリがあれば `studuino-led`）を 1 回コンパイルし、AVR のコアの
-  キャッシュを `/opt/arduino/build-cache` に入れておく。Lambda は最初の呼び出しで `/tmp` へ写して使う
-  （コールドスタートでもコアをコンパイルし直さない）。
+- ボードは **`studuino:avr:studuino`**（アーテック社のボード定義「Studuino (3.3V, 8 MHz) w/ ATmega168」）。
+  中身は `mcu=atmega168`・`f_cpu=8000000L`・`build.board=AVR_PRO`・upload は optiboot（`arduino` プロトコル・115200bps）で、
+  コアとツールは `arduino:avr` のもの（`build.core=arduino:arduino`）を使う。1.7.x 用の zip は Arduino IDE 1.7（arduino.org 版）向けなので使わない。
+  Studuino は ATmega168PA・8MHz・3.3V で、いまのファームウェア（`sr_studu`）と同じ。168PA は 168 と同じ命令・メモリなので
+  168 向けの hex が動く。書きこみはブラウザの STK500v1（`smalrubot-firmware-flasher.js`。シグネチャ `1E 94 06`）が行う。
+- フラッシュの上限は **15,872 バイト**（ボード定義の `upload.maximum_size`。16KB から optiboot の 512 バイトを引いた値）。
+  超えたら `compile_failed`（`flash_overflow`）。
+- ボード定義が取れない・sha256 が合わないときは、イメージのビルドを止めずに、同じ MCU・クロックの
+  `arduino:avr:pro:cpu=8MHzatmega168`（上限 14,336 バイト）で作り、応答の `toolchain.boardError` に理由を出す。
+- イメージを作るときにサンプルを 1 回ずつコンパイルし、AVR のコアのキャッシュを `/opt/arduino/build-cache` に
+  入れておく。Lambda は最初の呼び出しで `/tmp` へ写して使う（コールドスタートでもコアをコンパイルし直さない）。
 - ハンドラ（`lambda/handler.ts`）は synth のときに esbuild で `container/build/handler.js` にまとめ、
   イメージに入れる（AWS SDK はベースイメージのものを使う）。
 - イメージを作るのは `cdk deploy`（GitHub Actions の `Deploy Infra`）のとき。`cdk synth` では作らない。
@@ -52,8 +56,9 @@ CDK が Docker の build args に渡す（Dockerfile に版を書かない）。
 `sha256` を確かめ、5 つのフォルダだけをそのまま（LICENSE・著作権表示を含めて）入れる。
 
 - 取得元はアーテック社の公式の配布元（https://www.artec-kk.co.jp/studuino/ja/arduino.php ）。
-- `studuinoLib.url` が空のあいだは、ライブラリなしでコンテナを作る。そのとき `studuino-led` は
-  `compile_failed`（`reason: "library_missing"`）を返し、`blink`（Arduino のコアだけ）は動く。
+- ライブラリが取れない・sha256 が合わない（または `studuinoLib.url` が空の）ときは、ライブラリなしでコンテナを作る。
+  そのとき Studuino ライブラリの要るサンプルは `compile_failed`（`reason: "library_missing"`・`libraryError` に理由）を返し、
+  `blink`（Arduino のコアだけ）は動く。応答の `toolchain.studuinoLib` が `null` なら入っていない。
 - URL を書いたら sha256（64 桁の 16 進）も書く（無いと synth が失敗する）。
 
 ## API
@@ -71,10 +76,14 @@ Content-Type: application/json
 { "sample": "blink" }
 ```
 
-| サンプル | 中身 | ライブラリ |
-|---|---|---|
-| `blink` | A0 の LED を 0.5 秒ごとに点滅（`digitalWrite`） | 要らない |
-| `studuino-led` | 同じことを Studuino ライブラリ（`InitSensorPort`・`LED`・`Timer`）で | 要る |
+大きさの違うサンプルで、コンパイルの時間を測る（打ち切りの 25 秒が足りるかの材料）。
+
+| サンプル | 大きさ | 中身 | Studuino ライブラリ |
+|---|---|---|---|
+| `blink` | 小 | A0 の LED を 0.5 秒ごとに点滅（`digitalWrite`） | 要らない |
+| `studuino-led` | 小 | 同じことを Studuino ライブラリ（`InitSensorPort`・`LED`・`Timer`）で | 要る |
+| `robot-car` | 中 | ロボットカーの自動運転（赤外線フォトリフレクタ 2 つで線をたどる・タッチで止まってブザー・サーボで首をふる・暗いと LED） | 要る |
+| `smalrubot-s1` | 大 | スモウルボット S1 のファームウェア（`sr_studu`。smalruby/smalrubot、MIT。フォルダに LICENSE）。フラッシュの上限に近い | 要る（＋ Adafruit NeoPixel） |
 
 成功（200）:
 
@@ -82,10 +91,11 @@ Content-Type: application/json
 {
   "hex": ":100000000C94...\n:00000001FF\n",
   "size": 1234,
-  "maxSize": 14336,
   "source": "void setup() { ... }",
-  "toolchain": { "arduinoCli": "1.5.1", "avrCore": "arduino:avr@1.8.8", "fqbn": "arduino:avr:pro:cpu=8MHzatmega168", "studuinoLib": "sha256:..." },
-  "compileMs": 2345
+  "maxSize": 15872,
+  "toolchain": { "arduinoCli": "1.5.1", "avrCore": "arduino:avr@1.8.8", "libraries": "Servo@1.2.2|Adafruit NeoPixel@1.15.2", "board": "sha256:...", "fqbn": "studuino:avr:studuino", "studuinoLib": "sha256:..." },
+  "compileMs": 2345,
+  "coldStart": false
 }
 ```
 

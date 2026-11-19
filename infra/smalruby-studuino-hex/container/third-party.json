@@ -1,5 +1,5 @@
 {
-  "$comment": "コンテナに入れる外部のツールとライブラリ。版（とハッシュ）をここで固定し、CDK が Docker の build args に渡す。ライブラリのファイルはリポジトリに入れない（docs/infra/smalruby-studuino-hex.md）。",
+  "$comment": "コンテナに入れる外部のツールとライブラリ。版（とハッシュ）をここで固定し、CDK が Docker の build args に渡す。アーテック社のファイルはリポジトリに入れない（URL と sha256 だけ。docs/infra/smalruby-studuino-hex.md）。",
   "arduinoCli": {
     "version": "1.5.1",
     "url": "https://github.com/arduino/arduino-cli/releases/download/v1.5.1/arduino-cli_1.5.1_Linux_64bit.tar.gz",
@@ -9,19 +9,22 @@
     "id": "arduino:avr",
     "version": "1.8.8"
   },
-  "servo": {
-    "name": "Servo",
-    "version": "1.2.2"
-  },
+  "arduinoLibraries": [
+    { "$comment": "Studuino ライブラリが使う", "name": "Servo", "version": "1.2.2" },
+    { "$comment": "サンプル smalrubot-s1（スモウルボット S1 のファームウェア）が使う", "name": "Adafruit NeoPixel", "version": "1.15.2" }
+  ],
   "board": {
-    "$comment": "Studuino は ATmega168PA・8MHz・3.3V（いまのファームウェア sr_studu と同じ）。ブートローダは optiboot 互換（115200bps・シグネチャ 1E 94 06）で、書きこみはブラウザの STK500v1 が行うので、コンパイルにはブートローダの設定は効かない。上限は pro の 168 と同じ 14336 バイトにして、ブートローダの領域に食いこまないようにする。",
-    "fqbn": "arduino:avr:pro:cpu=8MHzatmega168",
-    "maxFlashBytes": 14336
+    "$comment": "アーテック社の Arduino IDE 1.6.x/1.8.x 用のボード定義（other/hardware/studuino/avr の boards.txt・platform.txt）。Studuino (3.3V, 8 MHz) w/ ATmega168: mcu=atmega168・f_cpu=8000000L・upload.speed=115200（optiboot）・maximum_size=15872。コアとツールは arduino:avr のものを使う（build.core=arduino:arduino）。",
+    "url": "https://www.artec-kk.co.jp/studuino/data/arduino_ide_settings_ver16x_18x.zip",
+    "sha256": "7cb02225aa1c9160336367333e274d196c5dfbfbd36836f006ef32bc6cf084cf",
+    "path": "arduino_ide_settings_ver16x_18x/other/hardware/studuino",
+    "fqbn": "studuino:avr:studuino",
+    "maxFlashBytes": 15872
   },
   "studuinoLib": {
-    "$comment": "アーテック社の公式の配布元（https://www.artec-kk.co.jp/studuino/ja/arduino.php）の zip の URL と sha256。空のあいだはライブラリなしでコンテナを作り、ライブラリの要るサンプルは compile_failed（reason: library_missing）になる。",
-    "url": "",
-    "sha256": "",
+    "$comment": "Studuino ライブラリ（studuino_v1_lib.zip）の公式の配布元の URL と sha256。sha256 は人間がアーテック社から受け取ったファイルの値。URL はボード定義と同じ data/ の下と見た推定で未確認（取れない・sha256 が合わないときは、ライブラリなしでコンテナを作り、toolchain.studuinoLibError に理由が出る。ライブラリの要るサンプルは compile_failed（reason: library_missing））。",
+    "url": "https://www.artec-kk.co.jp/studuino/data/studuino_v1_lib.zip",
+    "sha256": "ad0e4aaf6e5f0573b2577c3b0be5e024290525c89df147a2117828907b8ee219",
     "libraries": ["Studuino", "MMA8653", "MPU6050", "IRremoteForStuduino", "ColorSensor"]
   }
 }

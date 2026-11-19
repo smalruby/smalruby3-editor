@@ -65,16 +65,23 @@ export const parseOrigins = (value: string | undefined): string[] =>
 export const isAllowedOrigin = (origin: string | undefined, allowed: string[]): boolean =>
   !!origin && allowed.includes(origin);
 
-/** 動作確認用のサンプル（この段階では任意の C++ は受け付けない）。 */
+/**
+ * 動作確認とコンパイル時間の計測用のサンプル（この段階では任意の C++ は受け付けない）。
+ * 大きさの違う 4 つで、コンパイルの打ち切り（既定 25 秒）が足りるかを測る。
+ */
 export interface Sample {
   name: string;
+  /** 大きさの目安（small: コアだけ / Studuino ライブラリ最小、medium: ロボットカー、large: フラッシュの上限近く）。 */
+  size: 'small' | 'medium' | 'large';
   /** Studuino ライブラリが要るか（コンテナに入っていなければ library_missing）。 */
   needsStuduinoLib: boolean;
 }
 
 export const SAMPLES: Sample[] = [
-  { name: 'blink', needsStuduinoLib: false },
-  { name: 'studuino-led', needsStuduinoLib: true },
+  { name: 'blink', size: 'small', needsStuduinoLib: false },
+  { name: 'studuino-led', size: 'small', needsStuduinoLib: true },
+  { name: 'robot-car', size: 'medium', needsStuduinoLib: true },
+  { name: 'smalrubot-s1', size: 'large', needsStuduinoLib: true },
 ];
 
 export const findSample = (name: unknown): Sample | undefined =>

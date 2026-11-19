@@ -14,11 +14,18 @@ import * as path from 'path';
 export interface Toolchain {
   arduinoCli: string;
   avrCore: string;
-  servo: string;
+  /** Arduino のライブラリ（"名前@版" を | で区切る）。 */
+  libraries: string;
+  /** ボード定義の zip の sha256（入れられなかったら null）。 */
+  board: string | null;
+  /** ボード定義を入れられなかった理由（代わりに arduino:avr の pro で作った）。 */
+  boardError?: string | null;
   fqbn: string;
   maxFlashBytes: number;
   /** Studuino ライブラリの sha256（入っていなければ null）。 */
   studuinoLib: string | null;
+  /** Studuino ライブラリを入れられなかった理由。 */
+  studuinoLibError?: string | null;
 }
 
 export type CompileResult =
@@ -28,9 +35,9 @@ export type CompileResult =
 export interface CompilerOptions {
   cliPath: string;
   fqbn: string;
-  /** スケッチのフォルダの名前とソース。 */
+  /** スケッチのフォルダの名前と、フォルダに置くファイル（`<sketchName>.ino` を含む）。 */
   sketchName: string;
-  source: string;
+  files: Record<string, string>;
   timeoutMs: number;
   /** 作業場所（既定 /tmp）。 */
   tmpDir?: string;
@@ -68,7 +75,12 @@ export const compileSketch = async (opts: CompilerOptions): Promise<CompileResul
   const outDir = path.join(work, 'out');
   const cacheDir = path.join(tmp, 'arduino-cache');
   fs.mkdirSync(sketchDir, { recursive: true });
-  fs.writeFileSync(path.join(sketchDir, `${opts.sketchName}.ino`), opts.source);
+  for (const [name, content] of Object.entries(opts.files)) {
+    // ファイル名はサンプルのフォルダから来る（利用者の文字列ではない）が、念のためフォルダの外に書かない
+    if (name !== path.basename(name)) throw new Error(`invalid sketch file name: ${name}`);
+    fs.writeFileSync(path.join(sketchDir, name), content);
+  }
+  const source = opts.files[`${opts.sketchName}.ino`] ?? '';
   ensureCache(opts.prebuiltCacheDir, cacheDir);
 
   const args = [
@@ -127,7 +139,7 @@ export const compileSketch = async (opts: CompilerOptions): Promise<CompileResul
       return { ok: false, reason: overflow ? 'flash_overflow' : 'compile_failed', compileMs, log: tail };
     }
     const hex = fs.readFileSync(path.join(outDir, `${opts.sketchName}.ino.hex`), 'utf8');
-    return { ok: true, hex, source: opts.source, compileMs };
+    return { ok: true, hex, source, compileMs };
   } finally {
     fs.rmSync(work, { recursive: true, force: true });
   }
@@ -143,11 +155,22 @@ export const readToolchain = (file: string | undefined): Toolchain | null => {
   return JSON.parse(fs.readFileSync(file, 'utf8')) as Toolchain;
 };
 
+/** スケッチとしてコンパイルするファイル（LICENSE などは写さない）。 */
+const SKETCH_FILE = /\.(ino|cpp|c|h|hpp|S)$/;
+
 /**
- * サンプルのソースを読む。
+ * サンプルのフォルダのファイルを読む（.ino と、一緒にコンパイルする .cpp / .h）。
  * @param samplesDir - サンプルのフォルダ
  * @param name - サンプルの名前
- * @returns ソース
+ * @returns ファイル名 → 中身
  */
-export const readSample = (samplesDir: string, name: string): string =>
-  fs.readFileSync(path.join(samplesDir, name, `${name}.ino`), 'utf8');
+export const readSample = (samplesDir: string, name: string): Record<string, string> => {
+  const dir = path.join(samplesDir, name);
+  const files: Record<string, string> = {};
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.isFile() && SKETCH_FILE.test(entry.name)) {
+      files[entry.name] = fs.readFileSync(path.join(dir, entry.name), 'utf8');
+    }
+  }
+  return files;
+};

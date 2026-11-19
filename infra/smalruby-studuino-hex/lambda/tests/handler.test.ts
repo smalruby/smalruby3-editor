@@ -9,9 +9,10 @@ const HEX = ':100000000C9466000C948E000C948E000C948E0060\n:00000001FF\n';
 const toolchain: Toolchain = {
   arduinoCli: '1.5.1',
   avrCore: 'arduino:avr@1.8.8',
-  servo: 'Servo@1.2.2',
-  fqbn: 'arduino:avr:pro:cpu=8MHzatmega168',
-  maxFlashBytes: 14336,
+  libraries: 'Servo@1.2.2|Adafruit NeoPixel@1.15.2',
+  board: 'sha256:board',
+  fqbn: 'studuino:avr:studuino',
+  maxFlashBytes: 15872,
   studuinoLib: 'sha256:abc',
 };
 
@@ -27,7 +28,7 @@ const makeDeps = (over: Partial<HandlerDeps> = {}) => {
     toolchain,
     now: () => 1_700_000_000_000,
     countRequests: async () => [1, 1],
-    loadSample: () => 'void setup(){}',
+    loadSample: name => ({ [`${name}.ino`]: 'void setup(){}' }),
     compile,
     log: entry => logs.push(entry),
     ...over,
@@ -52,9 +53,9 @@ describe('POST /compile', () => {
     expect(res.statusCode).toBe(200);
     expect(res.headers['Access-Control-Allow-Origin']).toBe(ORIGIN);
     const body = JSON.parse(res.body);
-    expect(body).toMatchObject({ hex: HEX, size: 16, maxSize: 14336, source: 'void setup(){}' });
-    expect(body.toolchain).toMatchObject({ arduinoCli: '1.5.1', fqbn: toolchain.fqbn });
-    expect(compile).toHaveBeenCalledWith('blink', 'void setup(){}');
+    expect(body).toMatchObject({ hex: HEX, size: 16, maxSize: 15872, source: 'void setup(){}', coldStart: true });
+    expect(body.toolchain).toMatchObject({ arduinoCli: '1.5.1', fqbn: toolchain.fqbn, board: 'sha256:board' });
+    expect(compile).toHaveBeenCalledWith('blink', { 'blink.ino': 'void setup(){}' });
     expect(metric(logs)).toMatchObject({ outcome: 'ok', sample: 'blink', compileMs: 1200, hexBytes: 16, coldStart: true });
   });
 
@@ -113,10 +114,12 @@ describe('POST /compile', () => {
   });
 
   test('ライブラリが入っていないコンテナでは studuino-led は 422 library_missing', async () => {
-    const { deps, compile } = makeDeps({ toolchain: { ...toolchain, studuinoLib: null } });
+    const { deps, compile } = makeDeps({
+      toolchain: { ...toolchain, studuinoLib: null, studuinoLibError: 'download failed' },
+    });
     const res = await createHandler(deps)(event({ sample: 'studuino-led' }));
     expect(res.statusCode).toBe(422);
-    expect(JSON.parse(res.body).reason).toBe('library_missing');
+    expect(JSON.parse(res.body)).toMatchObject({ reason: 'library_missing', libraryError: 'download failed' });
     expect(compile).not.toHaveBeenCalled();
   });
 

@@ -90,7 +90,15 @@ describe('third-party.json', () => {
     expect(tp.arduinoCli.url).toContain(`/v${tp.arduinoCli.version}/`);
     expect(tp.arduinoCli.sha256).toMatch(/^[0-9a-f]{64}$/);
     expect(tp.avrCore.version).toMatch(/^\d+\.\d+\.\d+$/);
-    expect(tp.servo.version).toMatch(/^\d+\.\d+\.\d+$/);
+    for (const lib of tp.arduinoLibraries) expect(lib.version).toMatch(/^\d+\.\d+\.\d+$/);
+  });
+
+  test('ボード定義はアーテック社の配布元の zip（sha256 を固定）', () => {
+    const { board } = readThirdParty();
+    expect(board.url).toMatch(/^https:\/\/www\.artec-kk\.co\.jp\/studuino\/data\/.+\.zip$/);
+    expect(board.sha256).toMatch(/^[0-9a-f]{64}$/);
+    expect(board.fqbn).toBe('studuino:avr:studuino');
+    expect(board.maxFlashBytes).toBe(15872);
   });
 
   test('使うライブラリは 5 つだけ', () => {
@@ -109,5 +117,7 @@ describe('third-party.json', () => {
       dockerBuildArgs({ ...tp, studuinoLib: { ...tp.studuinoLib, url: 'https://example.com/a.zip', sha256: '' } }),
     ).toThrow(/sha256/);
     expect(dockerBuildArgs(tp).STUDUINO_LIBRARIES).toBe('Studuino,MMA8653,MPU6050,IRremoteForStuduino,ColorSensor');
+    expect(dockerBuildArgs(tp).ARDUINO_LIBRARIES).toBe('Servo@1.2.2|Adafruit NeoPixel@1.15.2');
+    expect(() => dockerBuildArgs({ ...tp, board: { ...tp.board, sha256: '' } })).toThrow(/board/);
   });
 });

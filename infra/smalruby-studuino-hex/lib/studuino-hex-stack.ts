@@ -15,8 +15,8 @@ import { resolveCorsOrigins } from './cors-origins';
 export interface ThirdParty {
   arduinoCli: { version: string; url: string; sha256: string };
   avrCore: { id: string; version: string };
-  servo: { name: string; version: string };
-  board: { fqbn: string; maxFlashBytes: number };
+  arduinoLibraries: { name: string; version: string }[];
+  board: { url: string; sha256: string; path: string; fqbn: string; maxFlashBytes: number };
   studuinoLib: { url: string; sha256: string; libraries: string[] };
 }
 
@@ -31,17 +31,25 @@ export const readThirdParty = (): ThirdParty =>
  * @returns build args
  */
 export const dockerBuildArgs = (tp: ThirdParty): Record<string, string> => {
-  if (tp.studuinoLib.url && !/^[0-9a-f]{64}$/.test(tp.studuinoLib.sha256)) {
+  const isSha256 = (v: string) => /^[0-9a-f]{64}$/.test(v);
+  if (tp.studuinoLib.url && !isSha256(tp.studuinoLib.sha256)) {
     throw new Error('third-party.json: studuinoLib.url を書いたら sha256（64 桁の 16 進）も書く');
   }
+  if (!tp.board.url || !isSha256(tp.board.sha256)) {
+    throw new Error('third-party.json: board の url と sha256（64 桁の 16 進）が要る');
+  }
+  // ライブラリの名前には空白がある（"Adafruit NeoPixel"）ので、"名前@版" を | で区切って 1 つの値にする
+  const libs = tp.arduinoLibraries.map(l => `${l.name}@${l.version}`).join('|');
   return {
     ARDUINO_CLI_URL: tp.arduinoCli.url,
     ARDUINO_CLI_SHA256: tp.arduinoCli.sha256,
     ARDUINO_CLI_VERSION: tp.arduinoCli.version,
     AVR_CORE_ID: tp.avrCore.id,
     AVR_CORE_VERSION: tp.avrCore.version,
-    SERVO_NAME: tp.servo.name,
-    SERVO_VERSION: tp.servo.version,
+    ARDUINO_LIBRARIES: libs,
+    STUDUINO_BOARD_URL: tp.board.url,
+    STUDUINO_BOARD_SHA256: tp.board.sha256,
+    STUDUINO_BOARD_PATH: tp.board.path,
     STUDUINO_FQBN: tp.board.fqbn,
     STUDUINO_MAX_FLASH_BYTES: String(tp.board.maxFlashBytes),
     STUDUINO_LIB_URL: tp.studuinoLib.url,
