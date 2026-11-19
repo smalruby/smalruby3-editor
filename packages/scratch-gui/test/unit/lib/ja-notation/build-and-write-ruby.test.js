@@ -63,10 +63,11 @@ describe('jaToRuby with the table of Smalruby', () => {
 
     // The current conversion adds the step only at `を繰り返す`, so a counting
     // loop closed by `を実行する` never ends there; here every closing line adds it.
-    test('a counting loop closed by another closing word adds the step too', () => {
-        expect(smalruby('i を 1 から 3 まで 1 ずつ増やしながら\n  表示する(i)\nを実行する').ruby).toBe(
-            '@i = 1\nwhile @i <= 3\n  console.puts(@i)\n  @i += 1\nend',
-        );
+    // The closing word must be the one of the block (W3 of the EPIC #1731).
+    test('a counting loop closed by another closing word is an error', () => {
+        const result = smalruby('i を 1 から 3 まで 1 ずつ増やしながら\n  表示する(i)\nを実行する');
+        expect(result.ruby).toBeNull();
+        expect(result.errors).toMatchObject([{ block: 'closer-kind', line: 3, expected: 'を繰り返す' }]);
     });
 
     test.each([
