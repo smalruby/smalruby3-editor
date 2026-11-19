@@ -697,8 +697,8 @@ design.md の「中 2 のコース」。コースの ✓ もこれで数える�
 | `currentCostume` | いまのコスチューム（`target: 'stage'` なら背景）。`number` = 何番め（1 から）、`changed: true` = 開いたときと別のコスチュームになった。始めにいたものだけ見る | `number`, `changed`, `target`（どちらか 1 つは要る） |
 | `tab` | いま開いているタブ（エディタの画面の状態。`code` / `costumes` / `sounds`） | `tab` |
 | `partQuiz` | 「どこでしょう？」のクイズに `count` 問正しく答えた（エディタの画面の状態） | `count` |
-| `boardCommand` | アーテックロボ（Studuino）の拡張機能が基板に出した命令（実機でも練習用の基板でも同じ記録） | `kind`（必須。`led` / `motor` / `servo` / `servoCalibration`。配列も可）, `port`, `value`, `speed`, `whenSensor` |
-| `sensorRead` | アーテックロボ（Studuino）の拡張機能がセンサーの値を読んだ | `port`, `sensor`, `value` |
+| `boardCommand` | アーテックロボの拡張機能が基板に出した命令（実機でも練習用の基板でも同じ記録） | `kind`（必須。`led` / `motor` / `servo` / `servoCalibration`。配列も可）, `port`, `value`, `speed`, `whenSensor` |
+| `sensorRead` | アーテックロボの拡張機能がセンサーの値を読んだ | `port`, `sensor`, `value` |
 
 `tab` と `partQuiz` は VM ではなく**エディタの画面の状態**を見る。見張り（`attachGoalMonitor`）に `getUi`（`{activeTab, partQuizSolved}` を
 返す関数）を渡し、`containers/lesson-goal-watcher.jsx` がタブ・クイズの答えが変わったら `refresh()` で判定を予約する。

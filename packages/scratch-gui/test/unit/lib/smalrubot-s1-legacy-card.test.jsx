@@ -94,7 +94,7 @@ describe('withLegacyCards', () => {
             </IntlProvider>,
         );
         expect(container).toHaveTextContent('スモウルボットS1');
-        expect(container).toHaveTextContent('アーテックロボ（Studuino）の前の名前です');
+        expect(container).toHaveTextContent('アーテックロボの前の名前です');
     });
 });
 
@@ -126,8 +126,8 @@ describe('Smalrubot S1 renamed alert', () => {
     });
 
     test.each([
-        ['ja', ja, 'アーテックロボ（Studuino）」に名前が変わりました'],
-        ['ja-Hira', jaHira, 'アーテックロボ (Studuino)」になまえがかわりました'],
+        ['ja', ja, 'アーテックロボ」に名前が変わりました'],
+        ['ja-Hira', jaHira, 'アーテックロボ」になまえがかわりました'],
         ['en', en, 'Smalrubot S1 is now called'],
     ])('should tell about the rename in %s', (locale, messages, text) => {
         const alert = alerts.find(a => a.alertId === SMALRUBOT_S1_RENAMED_ALERT_ID);

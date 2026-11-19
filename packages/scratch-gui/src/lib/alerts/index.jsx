@@ -356,8 +356,8 @@ const alerts = [
         content: (
             <span data-testid="smalrubot-s1-renamed-alert">
                 <FormattedMessage
-                    defaultMessage={'Smalrubot S1 is now called "ArtecRobo (Studuino)". ' +
-                        'It works the same. From now on, please choose "ArtecRobo (Studuino)".'}
+                    defaultMessage={'Smalrubot S1 is now called "ArtecRobo". ' +
+                        'It works the same. From now on, please choose "ArtecRobo".'}
                     description="Alert shown after choosing the old Smalrubot S1 card in the extension library"
                     id="gui.smalruby3.alerts.smalrubotS1Renamed"
                 />

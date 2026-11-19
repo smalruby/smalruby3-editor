@@ -19,7 +19,7 @@ describe('Smalrubot S1 legacy card', () => {
         await driver.quit();
     });
 
-    test('shows both cards and the old card adds ArtecRobo (Studuino) with the rename alert', async () => {
+    test('shows both cards and the old card adds ArtecRobo with the rename alert', async () => {
         await loadUri(uri);
         await clickXpath('//button[@title="Add Extension"]');
 
