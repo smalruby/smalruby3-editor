@@ -1,5 +1,6 @@
 // === Smalruby: This file is Smalruby-specific (Ruby tab with Monaco Editor, DNCL mode, furigana) ===
 import Editor from '@monaco-editor/react';
+import { settingsOfSource } from '@smalruby/ja-notation';
 import VM from '@smalruby/scratch-vm';
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
@@ -147,6 +148,17 @@ const loadAutoCorrectSettings = () => {
 };
 
 // === Component ===
+
+/**
+ * How the auto-correct reads the code: in the Japanese tab, `「…」` is a string
+ * and, when the settings at its top say so, `//` starts a comment. What is
+ * written in a comment is kept as it is (Issue #1731, S10).
+ * @param {string} code - The code in the editor.
+ * @param {boolean} dncl - Whether it is the Japanese tab's code.
+ * @returns {object} The options of `autoCorrect`.
+ */
+const autoCorrectOptionsOf = (code, dncl) =>
+    dncl ? { japanese: true, slashComments: settingsOfSource(code).commentMarker === '//' } : {};
 
 const RubyTab = (props) => {
     const {
@@ -511,13 +523,14 @@ const RubyTab = (props) => {
                 return;
             }
             if (autoCorrectEnabledRef.current && editorRef.current) {
-                const corrected = autoCorrect(value, autoCorrectSettingsRef.current);
+                const options = autoCorrectOptionsOf(value, dnclModeRef.current);
+                const corrected = autoCorrect(value, autoCorrectSettingsRef.current, options);
                 if (corrected !== value) {
                     isAutoCorrectUpdateRef.current = true;
                     const position = editorRef.current.getPosition();
                     const model = editorRef.current.getModel();
                     const beforeCursor = value.substring(0, model.getOffsetAt(position));
-                    const correctedBeforeCursor = autoCorrect(beforeCursor, autoCorrectSettingsRef.current);
+                    const correctedBeforeCursor = autoCorrect(beforeCursor, autoCorrectSettingsRef.current, options);
                     const offsetDiff = beforeCursor.length - correctedBeforeCursor.length;
                     model.setValue(corrected);
                     const newOffset = model.getOffsetAt(position) - offsetDiff;
@@ -995,7 +1008,11 @@ const RubyTab = (props) => {
             if (enabled && editorRef.current) {
                 const value = editorRef.current.getValue();
                 if (value) {
-                    const corrected = autoCorrect(value, autoCorrectSettingsRef.current);
+                    const corrected = autoCorrect(
+                        value,
+                        autoCorrectSettingsRef.current,
+                        autoCorrectOptionsOf(value, dnclModeRef.current),
+                    );
                     if (corrected !== value) {
                         isAutoCorrectUpdateRef.current = true;
                         const model = editorRef.current.getModel();
