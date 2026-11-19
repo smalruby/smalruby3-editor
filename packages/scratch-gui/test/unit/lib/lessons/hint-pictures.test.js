@@ -7,7 +7,7 @@
  */
 import * as prismNodes from '@ruby/prism/src/nodes.js';
 import { COURSES, findChallenge, localizeCode } from '../../../../src/lib/lessons/courses';
-import { rubyToBlocksXml } from '../../../../src/lib/lessons/hint-blocks';
+import { procedureNamesInCode, rubyToBlocksXml } from '../../../../src/lib/lessons/hint-blocks';
 import { ja } from '../../../../src/lib/lessons/lessons.locale';
 
 const LOCALES = ['ja', 'ja-Hira', 'en'];
@@ -22,6 +22,7 @@ const hintSteps = () =>
                         step: index + 1,
                         title: ja[step.title.id],
                         blocks: step.blocks,
+                        setupCode: challenge.setup && challenge.setup.code,
                     }))
                     .filter((entry) => entry.blocks),
             ),
@@ -33,10 +34,12 @@ const opcodesOf = (xml) => Array.from(xml.matchAll(/<block id="[^"]*" type="([^"
 
 const drawAll = async () => {
     const result = [];
-    for (const { id, step, title, blocks } of hintSteps()) {
+    for (const { id, step, title, blocks, setupCode } of hintSteps()) {
         for (const locale of LOCALES) {
             const ruby = localizeCode(blocks, locale);
-            const { xml } = await rubyToBlocksXml(null, null, ruby);
+            // 作品に最初から入っている定義ブロックは、ヒントの Ruby から名前だけで呼べる
+            const procedures = procedureNamesInCode(localizeCode(setupCode, locale));
+            const { xml } = await rubyToBlocksXml(null, null, ruby, null, { version: '2', procedures });
             result.push({ id, step, title, locale, ruby, xml, opcodes: opcodesOf(xml) });
         }
     }

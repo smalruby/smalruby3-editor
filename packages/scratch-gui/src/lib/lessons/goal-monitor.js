@@ -177,13 +177,17 @@ const isSendingThread = (thread, args) => {
 };
 
 // execute.js は引数のオブジェクトを使い回すので、記録する分は写す。
-// BROADCAST_OPTION は `{id, name}` なのでメッセージ名だけにする。
+// BROADCAST_OPTION は `{id, name}` なのでメッセージ名だけにする。定義ブロックの呼び出し（procedures_call）の
+// `mutation` は proccode（「文をつくる」のような定義ブロックの名前）にする（どの定義ブロックを呼んだかを見るため）
+const has = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
 const copyArgs = (args) => {
     if (!args || typeof args !== 'object') return {};
     const copy = {};
     Object.entries(args).forEach(([name, value]) => {
         if (value !== null && typeof value === 'object') {
-            copy[name] = Object.prototype.hasOwnProperty.call(value, 'name') ? value.name : String(value);
+            if (has(value, 'name')) copy[name] = value.name;
+            else if (has(value, 'proccode')) copy[name] = value.proccode;
+            else copy[name] = String(value);
         } else {
             copy[name] = value;
         }

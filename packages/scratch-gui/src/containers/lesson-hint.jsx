@@ -22,7 +22,7 @@ import LessonActivityDiagram from '../components/lesson-activity-diagram/lesson-
 import LessonHintMinimized from '../components/lesson-hint/lesson-hint-minimized.jsx';
 import LessonHint from '../components/lesson-hint/lesson-hint.jsx';
 import { useChallengeActivityDiagram } from '../lib/lessons/activity-diagram/use-challenge-activity-diagram';
-import { LANGUAGES, challengeCodeCandidates, localizeCode } from '../lib/lessons/courses';
+import { LANGUAGES, RUBY_STEP_KIND, challengeCodeCandidates, localizeCode } from '../lib/lessons/courses';
 import { rubyToBlocksXml } from '../lib/lessons/hint-blocks';
 import { hintStepTitle, isSeatedStudent } from '../lib/lessons/hint-text';
 import { findSpriteByName, insertSpriteCodes, resolveCodeSprite } from '../lib/lessons/insert-sprite-code';
@@ -233,6 +233,7 @@ const LessonHintContainer = ({
             note={step ? roleStepNote(step, role ? { role, source: roleSource } : null) || step.note || null : null}
             onNext={onNextHint}
             onPrev={onPrevHint}
+            ruby={step && step.kind === RUBY_STEP_KIND ? blocks : null}
             scratchBlocks={scratchBlocks}
             spotlight={hint.spotlight}
             target={step ? step.target : null}
