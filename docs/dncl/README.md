@@ -524,7 +524,7 @@ Smalruby は **共通テスト用プログラム表記の形のプログラム�
 
 ## テスト
 
-- ライブラリ（`packages/ja-notation/`）: `npm run test:unit --workspace=packages/ja-notation`（`node --test`。ルートの `npm run lint` からも流れる）。テストのデータは言語に依らない JSON（`packages/ja-notation/test/data/`）で、のちの Ruby の実装も同じデータを流す
+- ライブラリ（`packages/ja-notation/`）: `npm run test:unit --workspace=packages/ja-notation`（`node --test`。CI では `unit-test-ja-notation` のジョブで流れる）。テストのデータは言語に依らない JSON（`packages/ja-notation/test/data/`）で、のちの Ruby の実装も同じデータを流す
 - 変換の作り直し（`ja-notation`）のための安全網:
   - `test/unit/lib/ruby-roundtrip/japanese-table.test.js` — 日本語 ⇔ Ruby ⇔ ブロックの表（表のテストの日本語の列。[`bridging-patterns.md`](../ruby-editor/bridging-patterns.md) の「表のテスト」）
   - `test/unit/lib/ja-notation/golden.test.js` — 日本語のプログラムのコーパスについて、`dnclToRuby` / `rubyToDncl` の出力（Ruby・日本語・ブロック・誤りの文と行）がゴールデンと同じこと。データと集め方は `packages/scratch-gui/test/fixtures/ja-notation/README.md`
