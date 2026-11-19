@@ -10,7 +10,19 @@
     "version": "1.8.8"
   },
   "arduinoLibraries": [
-    { "$comment": "Studuino ライブラリ（studuino_v1_lib.zip）。公式の配布元（ボード定義と同じ data/ の下）。sha256 は人間がアーテック社から受け取ったファイルと同じ（stg のコンテナのビルドで一致を確かめた）。取れない・sha256 が合わないときは、ライブラリなしでコンテナを作り、toolchain.studuinoLibError に理由が出る（ライブラリの要るサンプルは compile_failed・reason: library_missing）。",
+    { "$comment": "Studuino ライブラリが使う", "name": "Servo", "version": "1.2.2" },
+    { "$comment": "サンプル smalrubot-s1（スモウルボット S1 のファームウェア）が使う", "name": "Adafruit NeoPixel", "version": "1.15.2" }
+  ],
+  "board": {
+    "$comment": "アーテック社の Arduino IDE 1.6.x/1.8.x 用のボード定義（other/hardware/studuino/avr の boards.txt・platform.txt）。Studuino (3.3V, 8 MHz) w/ ATmega168: mcu=atmega168・f_cpu=8000000L・upload.speed=115200（optiboot）・maximum_size=15872。コアとツールは arduino:avr のものを使う（build.core=arduino:arduino）。",
+    "url": "https://www.artec-kk.co.jp/studuino/data/arduino_ide_settings_ver16x_18x.zip",
+    "sha256": "7cb02225aa1c9160336367333e274d196c5dfbfbd36836f006ef32bc6cf084cf",
+    "path": "arduino_ide_settings_ver16x_18x/other/hardware/studuino",
+    "fqbn": "studuino:avr:studuino",
+    "maxFlashBytes": 15872
+  },
+  "studuinoLib": {
+    "$comment": "Studuino ライブラリ（studuino_v1_lib.zip）。公式の配布元（ボード定義と同じ data/ の下）。sha256 は人間がアーテック社から受け取ったファイルと同じ（stg のコンテナのビルドで一致を確かめた）。取れない・sha256 が合わないときは、ライブラリなしでコンテナを作り、toolchain.studuinoLibError に理由が出る（ライブラリの要るサンプルは compile_failed・reason: library_missing）。",
     "url": "https://www.artec-kk.co.jp/studuino/data/studuino_v1_lib.zip",
     "sha256": "ad0e4aaf6e5f0573b2577c3b0be5e024290525c89df147a2117828907b8ee219",
     "libraries": ["Studuino", "MMA8653", "MPU6050", "IRremoteForStuduino", "ColorSensor"]
