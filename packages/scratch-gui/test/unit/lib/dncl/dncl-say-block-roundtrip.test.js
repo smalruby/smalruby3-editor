@@ -8,14 +8,15 @@
 //   ─────────────────────────────────────────────────────────────────
 //   Block say(args, n)            → Ruby   say(args, n)        (現状通り)
 //   Block say(args, n)            → DNCL   表示する(args)       (秒数 n は無視)
-//   DNCL  表示する(args)          → Ruby   puts(args)          (不可逆: say には戻さない)
-//   DNCL  表示する(args)          → Block  looks_sayforsecs    (puts コメント + secs=1)
+//   DNCL  表示する(args)          → Ruby   console.puts(args)  (不可逆: say / puts には戻さない)
+//   DNCL  表示する(args)          → Block  smalrubyConsole_print (コンソールの拡張機能)
 //
 // 不可逆性 (重要):
-//   DNCL `表示する` は Ruby では `puts` になる (`say` には戻さない)。
-//   理由: `puts` の方が「Console に表示する」という意味に近く、
-//   DNCL `表示する` のセマンティクスと一致するため。`say` は Scratch の
-//   吹き出し演出 (秒数指定) を含むため、DNCL の純粋な「表示」とは異なる。
+//   DNCL `表示する` は、コンソールへの出力（コンソールの拡張機能のブロック。
+//   Ruby では `console.puts`）になる (`say` にも `puts` にも戻さない。#1758、
+//   docs/dncl/design.md の 5 章)。`say` は Scratch の吹き出し演出 (秒数指定) を
+//   含むため、日本語の「表示」とは異なる。Ruby の `puts` / `say`（コンソールの前の
+//   日本語のプログラムと、ルビータブのプログラム）は、`表示する` として読む。
 //
 // 秒数の扱い:
 //   DNCL では秒数を表現しない。Block ↔ Ruby は秒数を保持するが、
@@ -56,19 +57,19 @@ describe('Display matrix: Ruby say(...) → DNCL 表示する (秒数無視)', (
     });
 });
 
-describe('Display matrix: DNCL 表示する → Ruby puts (不可逆)', () => {
-    test('表示する(a) → puts(@a) (NOT say(...))', () => {
+describe('Display matrix: DNCL 表示する → Ruby console.puts (不可逆)', () => {
+    test('表示する(a) → console.puts(@a) (NOT say(...))', () => {
         const ruby = dToR('表示する(a)');
-        expect(ruby).toBe('puts(@a)');
+        expect(ruby).toBe('console.puts(@a)');
         expect(ruby).not.toMatch(/^say\(/);
     });
 
-    test('表示する("hello") → puts("hello")', () => {
-        expect(dToR('表示する("hello")')).toBe('puts("hello")');
+    test('表示する("hello") → console.puts("hello")', () => {
+        expect(dToR('表示する("hello")')).toBe('console.puts("hello")');
     });
 
-    test('表示する(a, "は", b) → puts(@a.to_s + "は" + @b.to_s)', () => {
-        expect(dToR('表示する(a, "は", b)')).toBe('puts(@a.to_s + "は" + @b.to_s)');
+    test('表示する(a, "は", b) → console.puts(@a.to_s + "は" + @b.to_s)', () => {
+        expect(dToR('表示する(a, "は", b)')).toBe('console.puts(@a.to_s + "は" + @b.to_s)');
     });
 });
 
@@ -81,22 +82,28 @@ describe('Display matrix: full round-trip (intentionally lossy)', () => {
         expect(dncl2).toBe('表示する(a)');
     });
 
-    // Ruby say → DNCL → Ruby: 不可逆! say(2) becomes puts (秒数喪失)
-    test('Ruby say(@a, 2) → DNCL → Ruby — 不可逆: puts(@a) (秒数喪失)', () => {
+    // Ruby say → DNCL → Ruby: 不可逆! say(2) becomes console.puts (秒数喪失)
+    test('Ruby say(@a, 2) → DNCL → Ruby — 不可逆: console.puts(@a) (秒数喪失)', () => {
         const ruby1 = 'say(@a, 2)';
         const dncl = rToD(ruby1);
         expect(dncl).toBe('表示する(a)');
         const ruby2 = dToR(dncl);
-        // 不可逆: say には戻らず puts、秒数 2 も失われる
-        expect(ruby2).toBe('puts(@a)');
+        // 不可逆: say には戻らず console.puts、秒数 2 も失われる
+        expect(ruby2).toBe('console.puts(@a)');
         expect(ruby2).not.toBe(ruby1);
     });
 
-    // Ruby puts → DNCL → Ruby: stable
-    test('Ruby puts(@a) → DNCL → Ruby stable as puts(@a)', () => {
-        const ruby1 = 'puts(@a)';
-        const dncl = rToD(ruby1);
-        const ruby2 = dToR(dncl);
-        expect(ruby2).toBe(ruby1);
+    // Ruby puts → DNCL → Ruby: 不可逆! puts becomes console.puts (the console)
+    test('Ruby puts(@a) → DNCL → Ruby — 不可逆: console.puts(@a)', () => {
+        const dncl = rToD('puts(@a)');
+        expect(dncl).toBe('表示する(a)');
+        expect(dToR(dncl)).toBe('console.puts(@a)');
+    });
+
+    // Ruby console.puts → DNCL → Ruby: stable
+    test('Ruby console.puts(@a) → DNCL → Ruby stable as console.puts(@a)', () => {
+        const ruby1 = 'console.puts(@a)';
+        expect(rToD(ruby1)).toBe('表示する(a)');
+        expect(dToR(rToD(ruby1))).toBe(ruby1);
     });
 });

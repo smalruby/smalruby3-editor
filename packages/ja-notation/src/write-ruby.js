@@ -134,7 +134,7 @@ const TEXT = {
         const target = this.operand(receiver, PRIMARY, false);
         if (name === '[]') return `${target}[${this.expression(args[0])}]`;
         if (name === '[]=') return `${target}[${this.expression(args[0])}] = ${this.expression(args[1])}`;
-        return args.length === 0
+        return args === null || args.length === 0
             ? `${target}.${name}`
             : `${target}.${name}(${args.map((x) => this.expression(x)).join(', ')})`;
     },

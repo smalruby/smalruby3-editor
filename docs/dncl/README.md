@@ -99,7 +99,7 @@ DNCL の行に戻して見せる。詳しくは [`docs/genai-consult/README.md`]
 | ファイル | 役割 |
 |---|---|
 | `dncl-to-ruby.js` | 日本語 → Ruby 変換のエントリポイント（`dnclToRuby`）。ja-notation（下の「日本語 → Ruby の変換（ja-notation）」）で読んで Ruby と行の対応を作り、誤りを `ja-notation-errors.js` で日本語モードの文言にする |
-| `ja-notation-table.js` | ja-notation に渡すスモウルビーの表（`表示する` → `puts`、大文字の名前 → `@_var_X_` / `@_array_X_`、入力 → `ask` と `answer` など）と、その逆向きの表（`SMALRUBY_RUBY_TO_JA`: `puts` / `say` / `p` / `print` → `表示する`、`.to_i` → `整数` など、`@_array_X_` → `X`、`ask("")` と次の行の `answer` → 入力）。組み込み関数の一覧 `DNCL_BUILTIN_NAMES`（生成AI に相談の質問文の命令の例にも使う） |
+| `ja-notation-table.js` | ja-notation に渡すスモウルビーの表（`表示する` → `console.puts`、大文字の名前 → `@_var_X_` / `@_array_X_`、入力 → `console.gets` など。`console` はコンソールの拡張機能のブロック）と、その逆向きの表（`SMALRUBY_RUBY_TO_JA`: `console.puts` / `puts` / `say` / `p` / `print` → `表示する`、`.to_i` → `整数` など、`@_array_X_` → `X`、`console.gets` の代入と、`ask("")` と次の行の `answer` → 入力）。組み込み関数の一覧 `DNCL_BUILTIN_NAMES`（生成AI に相談の質問文の命令の例にも使う） |
 | `ja-notation-errors.js` | **ja-notation の誤りを、日本語モードで見せる文言にする対応表**（日本語 → Ruby の `jaNotationErrors`、Ruby → 日本語の `rubyErrorWords`）。下の「誤りの文言」 |
 | `dncl-indent.js` | **字下げの幅の数え方**（`indentWidth`: タブは 4 桁・全角空白は 2 桁、`indentOffset`: ある幅の位置の字下げの文字）。問題の形が使う（ja-notation の読み方も同じ数え方） |
 | `dncl-problem-form.js` | **問題の形の配置**（`layoutProblemForm`: 行ごとの行番号 `(01)` と罫線の位置・種類、`problemFormText`: 行番号と罫線を文字で付けた形）。エディタの描画（`dncl-problem-form-view.js`）と「問題の形でコピー」が使う |
@@ -224,7 +224,6 @@ DNCL モードでは、DNCL を Ruby に変換してからブロックに変換�
 | `a = 0 , b = 1` の複数代入を分割 | 1 行 → 複数行 | 元の行 |
 | `⎿` からブロックの終了行（`を実行する` など）を追加 | +1 行 | `⎿` のある行 |
 | インデントだけで書いたブロックに終了行を自動で追加 | +1 行 | 閉じるブロックの**最後のコード行**（空行・コメントは除く） |
-| `【外部からの入力】` / `【整数を入力】` / `【文字列を入力】` を `ask` + 代入に展開 | 1 行 → 2 行 | 入力の行 |
 | `増やしながら` / `減らしながら` を初期化 + `while`、終了行を加算 + `end` に展開 | 1 行 → 2 行 | それぞれ元の行 |
 
 対応表は**変換しながら記録する**（行数の比較から推定しない）。ja-notation の `writeRuby` が Ruby の各行の日本語の行（`jaLines`）を書き、`dnclToRuby` がそれを `sourceMap` として返す。日本語の誤りは、はじめから日本語の行で出る。
@@ -321,30 +320,34 @@ Smalruby の Ruby タブは **3 つのモード** (Ruby / DNCL / ふりがな) �
 
 ほとんどの構文は **3 方向すべてが round-trip 安定** ですが、いくつかの **意図的に不可逆な変換** があり、設計の根拠とともに本セクションで明示します。
 
-### `表示する` (display) の変換マトリクス
+### `表示する` (display) と入力の変換マトリクス
+
+`表示する` と `【外部からの入力】` は、**コンソールの拡張機能**のブロックで表す（[`docs/extension-smalruby-console/`](../extension-smalruby-console/README.md)、設計は [`design.md`](./design.md) の 5 章）。
 
 | 方向 | 変換結果 | 備考 |
 |---|---|---|
+| **DNCL** `表示する(args)` → Ruby | `console.puts(args)` | コンソールの拡張機能の形 |
+| **DNCL** `表示する(args)` → Block | `smalrubyConsole_print`（`(args) を表示する`） | Ruby に戻すと `console.puts(args)` |
+| **DNCL** `x = 【外部からの入力】` → Ruby / Block | `@x = console.gets` / `x を (入力する) にする` | `【整数を入力】` は `console.gets.to_i`（`入力する` の切り捨て） |
+| Block `smalrubyConsole_print` / `smalrubyConsole_input` → **DNCL** | `表示する(...)` / `【外部からの入力】` | |
 | Block `looks_sayforsecs(msg, n)` → **Ruby** | `say(msg, n)` | 秒数を保持 |
-| Block `looks_sayforsecs(msg, n)` → **DNCL** | `表示する(msg)` | **秒数 n は無視** |
-| **DNCL** `表示する(args)` → Ruby | `puts(args)` | **不可逆: `say` には戻さない** |
-| **DNCL** `表示する(args)` → Block | `looks_sayforsecs(...)` + `@ruby:method:puts` コメント + secs=1 | Ruby に戻すと `puts(args)` |
+| Block `looks_sayforsecs(msg, n)`（Ruby の `puts` / `say`）→ **DNCL** | `表示する(msg)` | **秒数 n は無視**。もう一度日本語から変換すると、コンソールのブロックになる |
+| Block `sensing_askandwait("")` + 次の `答え` の代入 → **DNCL** | `【外部からの入力】` | コンソールの前の日本語のプログラム。もう一度日本語から変換すると、コンソールのブロックになる |
 
 ### 不可逆な変換とその理由
 
 #### 1. Block `say(msg, n)` → DNCL `表示する(msg)` （秒数喪失）
 
-**理由**: DNCL は「Console に値を表示する」という抽象的な操作を表現する言語で、秒数 (Scratch の吹き出し表示時間) は概念として持っていません。
+**理由**: 日本語の `表示する` は「コンソールに値を表示する」という操作で、秒数 (Scratch の吹き出し表示時間) は概念として持っていません。
 
-**結果**: Block で秒数を 2 にしても DNCL では `表示する(msg)` (秒数情報なし) になり、再度 Ruby/Block に戻すと **秒数は 1 (デフォルト)** にリセットされます。
+**結果**: Block で秒数を 2 にしても DNCL では `表示する(msg)` (秒数情報なし) になります。
 
-#### 2. DNCL `表示する` → Ruby `puts` （`say` には戻さない）
+#### 2. DNCL `表示する` → コンソールのブロック（`say` / `puts` には戻さない）
 
-**理由**: `puts` の方が「Console に出力する」という意味に近く、DNCL の `表示する` のセマンティクスと一致します。`say` は Scratch の吹き出し演出を含むため、DNCL の純粋な「表示」とは概念的に異なります。
+**理由**: 日本語の `表示する` はキャラクターの吹き出しではなく、コンソールへの出力を意味します。`say` は Scratch の吹き出し演出を含むため、日本語の「表示」とは概念的に異なります。
 
-**結果**: 一度 DNCL モードを経由した `say(msg, n)` は **`puts(msg)` に変換されたまま戻らない**。秒数情報も失われます。
-
-これは「DNCL モードに切り替えると、その時点でブロックが『表示する』ブロックに正規化される」という設計意図を反映した仕様で、教育的な観点で「DNCL 的な書き方」に揃えるためのものです。
+**結果**: 「言う」のブロック（Ruby の `say` / `puts`）や「聞いて待つ」と「答え」で作ったプログラムを日本語タブで編集すると、**コンソールのブロックに変わったまま戻らない**。秒数情報も失われます。
+Ruby の `puts` / `gets` は、いままでどおりコンソールのブロックにはしません（ルビータブは Scratch の部分集合。`design.md` の 5 章）。
 
 ### 変換マトリクスを lock-in するテスト
 
@@ -390,7 +393,7 @@ Smalruby は **DNCLv2 形式のプログラムをそのまま実行** できる�
 | `/` / `÷` | `a = 合計 / 個数` / `aida = (hidari + migi) ÷ 2` | 共通テスト用プログラム表記と同じ。`/` はふつうの割り算（`@a = @合計 / @個数`）、`÷` は商の整数値（`(... / 2).to_i`） |
 | `//` | `a = 合計 // 個数` | 常に整数除算（`÷` と同じ。行番号付きの行でも）。スモウルビーでは `//` はコメントではない。行番号付きで貼り付けた共通テストの `//` コメントは、下の「貼り付け時の整形」で `#` に直す |
 | 配列の初期化 | `配列変数 Hirabun を初期化する` | `Hirabun = []` |
-| 入力（整数 / 文字列） | `n =【整数を入力】` / `s =【文字列を入力】` | `ask("")` + `@n = answer.to_i` / `@s = answer` |
+| 入力（整数 / 文字列） | `n =【整数を入力】` / `s =【文字列を入力】` | `@n = console.gets.to_i` / `@s = console.gets` |
 | `の間繰り返す` | `a > 0 の間繰り返す:` | `a > 0 の間` |
 | `増やしながら繰り返す` | `i を ... 増やしながら繰り返す:` | `i を ... 増やしながら` |
 | `減らしながら繰り返す` | `i を ... 減らしながら繰り返す:` | `i を ... 減らしながら` |
@@ -408,7 +411,7 @@ Smalruby は **DNCLv2 形式のプログラムをそのまま実行** できる�
 | `and` / `or` | `a > 0 and b == 1` | `a > 0 かつ b == 1` |
 | `not`（前置の否定） | `not a > 10` / `x and not y` / `not (a or b)` | `a > 10 でない` / `x かつ y でない` / `(a または b) でない`。`not` は比較演算より弱く `and` / `or` より強い（Python と同じ。`でない` と同じ範囲を否定する）。文字列・コメントの中と、名前の一部（`nothing`・`knot`）は変えない |
 | 関数定義 | `calc(x) を定義する:` | `関数 calc(x)` |
-| `表示する` 多引数 | `表示する(a, "は", b)` | `puts(@a.to_s + "は" + @b.to_s)`（1 つの吹き出し）|
+| `表示する` 多引数 | `表示する(a, "は", b)` | `console.puts(@a.to_s + "は" + @b.to_s)`（コンソールの 1 行）|
 
 ### 貼り付け時の整形
 

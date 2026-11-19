@@ -27,12 +27,37 @@ const plain = (value) => JSON.parse(JSON.stringify(value));
  * The tables the data names. Each implementation makes them in its own language:
  * - `none`: no table (the names are local variables, there is no function).
  * - `plain`: only `表示する` is `puts`.
+ * - `gets`: an input is `gets` by itself (`x = gets`, `x = gets.to_i` for `【整数を入力】`).
  */
 const TABLES = {
     none: {},
     plain: {
         functions: { 表示する: { build: (args, ruby) => ruby.send(null, 'puts', args) } },
     },
+    gets: {
+        input: (kind, ruby) => {
+            const gets = ruby.send(null, 'gets', null);
+            return { before: [], value: kind === 'integer' ? ruby.send(gets, 'to_i') : gets };
+        },
+    },
+};
+
+/**
+ * Whether a node is `gets` with no receiver and no argument.
+ * @param {object} node - A prism node.
+ * @param {object} r - The helpers of readRuby.
+ * @returns {boolean} True if it is.
+ */
+const isGets = (node, r) => {
+    const call = r.callOf(node);
+    return Boolean(call && call.name === 'gets' && !call.receiver && (!call.args || call.args.length === 0));
+};
+
+// The Ruby → Japanese side of the `gets` table.
+TABLES.gets.input.kindOfAlone = (value, r) => {
+    if (isGets(value, r)) return 'external';
+    const call = r.callOf(value);
+    return call && call.name === 'to_i' && isGets(call.receiver, r) ? 'integer' : null;
 };
 
 /**

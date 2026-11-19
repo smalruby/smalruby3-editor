@@ -292,6 +292,11 @@ class RubyReader {
                 i++;
                 continue;
             }
+            const alone = this.inputAlone(nodes[i]);
+            if (alone) {
+                out.push(alone);
+                continue;
+            }
             const statement = this.statement(nodes[i]);
             if (!BLOCK_TYPES.has(statement.type)) {
                 const comment = this.takeComments(statement.line, statement.endLine);
@@ -706,6 +711,41 @@ class RubyReader {
     }
 
     /**
+     * The variable or element a statement gives a value to, and the value
+     * (`x = v`, `A[i] = v`), or null.
+     * @param {object} node - The statement.
+     * @returns {?{target: object, value: object}} The target (`{write}` for an element) and the value.
+     */
+    assignmentOf(node) {
+        if (VARIABLE_WRITES[typeOf(node)]) return { target: this.target(node), value: field(node, 'value') };
+        const write = callOf(node);
+        if (write && write.name === '[]=' && write.receiver && write.args && write.args.length === 2) {
+            return { target: { write }, value: write.args[1] };
+        }
+        return null;
+    }
+
+    /**
+     * The Input of an assignment whose value is the input, of the kind the
+     * caller tells.
+     * @param {{target: object, value: object}} assignment - The assignment (`assignmentOf`).
+     * @param {function(object, object): ?string} kindOf - The kind of input the value is.
+     * @param {number} line - The first line of the Input.
+     * @param {number} endLine - The last line of the Input.
+     * @returns {?object} The Input, or null.
+     */
+    inputOf(assignment, kindOf, line, endLine) {
+        let target = assignment && assignment.target;
+        const kind = target && kindOf(assignment.value, this.helpers());
+        if (!kind) return null;
+        if (target.write) target = this.indexOf(target.write.receiver, target.write.args[0]);
+        const statement = { type: 'Input', target, kind, line, column: 0, endLine };
+        const comment = this.takeComments(line, endLine);
+        if (comment) statement.comment = comment;
+        return statement;
+    }
+
+    /**
      * `x = 【外部からの入力】`: the question of an input and the assignment of
      * its answer on the next line, as the caller tells them (`options.input`).
      * @param {object} node - The statement.
@@ -715,29 +755,31 @@ class RubyReader {
     input(node, next) {
         const input = this.options.input;
         const call = callOf(node);
-        if (!input || !next || !call || !input.isQuestion(call, this.helpers())) return null;
+        if (!input || !input.isQuestion || !next || !call || !input.isQuestion(call, this.helpers())) return null;
         if (this.lineOf(next) !== this.endLineOf(node) + 1) return null;
-        let target = null;
-        let value = null;
-        if (VARIABLE_WRITES[typeOf(next)]) {
-            target = this.target(next);
-            value = field(next, 'value');
-        } else {
-            const write = callOf(next);
-            if (write && write.name === '[]=' && write.receiver && write.args && write.args.length === 2) {
-                value = write.args[1];
-                target = { write };
-            }
-        }
-        const kind = target && input.kindOf(value, this.helpers());
-        if (!kind) return null;
-        if (target.write) target = this.indexOf(target.write.receiver, target.write.args[0]);
-        const line = this.lineOf(node);
-        const endLine = this.endLineOf(next);
-        const statement = { type: 'Input', target, kind, line, column: 0, endLine };
-        const comment = this.takeComments(line, endLine);
-        if (comment) statement.comment = comment;
-        return statement;
+        return this.inputOf(
+            this.assignmentOf(next),
+            (value, helpers) => input.kindOf(value, helpers),
+            this.lineOf(node),
+            this.endLineOf(next),
+        );
+    }
+
+    /**
+     * `x = 【外部からの入力】` on one line: an assignment of a value that is the
+     * input by itself, as the caller tells (`options.input.kindOfAlone`).
+     * @param {object} node - The statement.
+     * @returns {?object} The Input, or null.
+     */
+    inputAlone(node) {
+        const input = this.options.input;
+        if (!input || !input.kindOfAlone) return null;
+        return this.inputOf(
+            this.assignmentOf(node),
+            (value, helpers) => input.kindOfAlone(value, helpers),
+            this.lineOf(node),
+            this.endLineOf(node),
+        );
     }
 
     /**
@@ -1197,9 +1239,11 @@ class RubyReader {
  *   Japanese of a call (`puts(x)` → `表示する(x)`), or null when it is not one.
  *   `call` is `{name, receiver, args, hasParens, node}` (prism nodes); the
  *   helpers read them (`expression`, `call`, `callOf`, `typeOf`, `unwrap`, `text`).
- * @param {{isQuestion: function(object, object): boolean, kindOf: function(object, object): ?string}} [options.input] - The
- *   question of an input (`isQuestion(call, helpers)`) and the kind of input
- *   its answer is (`kindOf(valueNode, helpers)`: `external` / `integer` / `string` / null).
+ * @param {object} [options.input] - The inputs: `isQuestion(call, helpers)` and
+ *   `kindOf(valueNode, helpers)` read a question with the assignment of its answer
+ *   on the next line (`ask("")` / `x = answer`), `kindOfAlone(valueNode, helpers)`
+ *   an assignment whose value is the input by itself (`x = gets`). The kinds are
+ *   `external` / `integer` / `string`, or null when it is not one.
  * @param {Set<string>} [options.passthrough] - Names of the Ruby system the Japanese writes as they are.
  * @returns {{program: object, errors: Array<object>}} The JaAST (`lineCount` and
  *   `blankLines` say how the Ruby is laid out) and the errors

@@ -22,14 +22,14 @@ describe('DNCL: 「」 inside a "..." string (Issue #1457)', () => {
 
     test('表示する("「く」がある") keeps the 「」 as they are', () => {
         const ruby = dToR('表示する("「く」がある")');
-        expect(ruby).toBe('puts("「く」がある")');
+        expect(ruby).toBe('console.puts("「く」がある")');
         expect(parseErrors(ruby)).toEqual([]);
         expect(rToD(ruby)).toBe('表示する("「く」がある")');
     });
 
     test('namae + "には「く」がある" keeps the 「」 as they are', () => {
         const ruby = dToR('表示する(namae + "には「く」がある")');
-        expect(ruby).toBe('puts(@namae + "には「く」がある")');
+        expect(ruby).toBe('console.puts(@namae + "には「く」がある")');
         expect(parseErrors(ruby)).toEqual([]);
         expect(rToD(ruby)).toBe('表示する(namae + "には「く」がある")');
     });
@@ -49,7 +49,7 @@ describe('DNCL: 「」 inside a "..." string (Issue #1457)', () => {
     });
 
     test('a string written with 「」 still becomes "..."', () => {
-        expect(dToR('表示する(「こんにちは」)')).toBe('puts("こんにちは")');
+        expect(dToR('表示する(「こんにちは」)')).toBe('console.puts("こんにちは")');
         expect(dToR('a = 「く」 + "「け」"')).toBe('@a = "く" + "「け」"');
         expect(dToR('もし a == 「く」 ならば\n  a = 1\nを実行する')).toBe('if @a == "く"\n  @a = 1\nend');
     });

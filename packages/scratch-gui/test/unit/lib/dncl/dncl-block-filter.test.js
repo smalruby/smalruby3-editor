@@ -6,6 +6,11 @@ describe('isDnclAllowedBlock', () => {
         expect(isDnclAllowedBlock('event_whenkeypressed')).toBe(false);
     });
 
+    test('allows the console blocks (表示する / 入力する, #1758)', () => {
+        expect(isDnclAllowedBlock('smalrubyConsole_print')).toBe(true);
+        expect(isDnclAllowedBlock('smalrubyConsole_input')).toBe(true);
+    });
+
     test('allows all operator blocks via prefix', () => {
         expect(isDnclAllowedBlock('operator_add')).toBe(true);
         expect(isDnclAllowedBlock('operator_equals')).toBe(true);

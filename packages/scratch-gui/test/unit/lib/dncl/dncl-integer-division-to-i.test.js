@@ -223,7 +223,7 @@ describe('DNCL / and ÷ (Issue #1701)', () => {
             ['b = Data[合計 ÷ 個数]', '@b = @_array_Data_[(@合計 / @個数).to_i]'],
             ['b = 要素数(Data) // (n + 1)', '@b = (@_array_Data_.length / (@n + 1)).to_i'],
             ['b = 要素数(Data) ÷ 個数', '@b = (@_array_Data_.length / @個数).to_i'],
-            ['表示する(合計 ÷ 個数)', 'puts((@合計 / @個数).to_i)'],
+            ['表示する(合計 ÷ 個数)', 'console.puts((@合計 / @個数).to_i)'],
         ])('%s → %s', (dncl, ruby) => {
             expect(toRuby(dncl)).toBe(ruby);
         });

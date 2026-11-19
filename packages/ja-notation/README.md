@@ -78,6 +78,7 @@ npm run test:unit --workspace=packages/ja-notation
 
 - `none`: 表なし（名前はローカル変数、関数なし）
 - `plain`: `表示する` だけが `puts`
+- `gets`: 入力が `gets` だけの値（`x = gets`、`【整数を入力】` は `gets.to_i`）。Ruby → 日本語では、入力だけを代入する行を入力として読む（表の `input.kindOfAlone`）
 
 誤りは `{code, message, line, column, name?}` をそのまま比べます（`message` もライブラリの出力です）。
 

@@ -54,7 +54,7 @@ describe('Ruby → DNCL: Ruby with no Japanese form (issue #1740)', () => {
     });
 
     test('Ruby the Japanese mode has is not told', () => {
-        const ruby = lines('@x = 1', 'if @x > 0', '  puts(@x)', 'end');
+        const ruby = lines('@x = 1', 'if @x > 0', '  console.puts(@x)', 'end');
         expect(rubyToDncl(ruby).errors).toEqual([]);
         expect(dnclToRuby(rubyToDncl(ruby).dncl).ruby).toBe(ruby);
     });

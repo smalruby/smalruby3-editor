@@ -33,7 +33,9 @@ describe('Ruby → DNCL: break / next in a loop is told on its Ruby line (issue 
 
     test('next with unless in a while loop', () => {
         expect(
-            rubyErrors(lines('@i = 0', 'while @i < 10', '  @i += 1', '  next unless @i > 5', '  puts(@i)', 'end')),
+            rubyErrors(
+                lines('@i = 0', 'while @i < 10', '  @i += 1', '  next unless @i > 5', '  console.puts(@i)', 'end'),
+            ),
         ).toEqual([{ line: 4, column: 3, name: 'next' }]);
     });
 
@@ -91,7 +93,7 @@ describe('a variable named like the keyword (issue #1716)', () => {
             'end',
             '@break = 1',
             'while @break <= 3',
-            '  puts(@break)',
+            '  console.puts(@break)',
             '  @break += 1',
             'end',
             '@next == 1',

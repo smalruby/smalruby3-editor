@@ -34,7 +34,7 @@ describe('indexes from 1: Japanese → Ruby → Japanese', () => {
         ['x = A[B[i]]', '@x = @_array_A_[@_array_B_[@i - 1] - 1]'],
         ['A[i] = 5', '@_array_A_[@i - 1] = 5'],
         ['A[i] += 5', '@_array_A_[@i - 1] += 5'],
-        ['表示する(A[n] + 要素数(A))', 'puts(@_array_A_[@n - 1] + @_array_A_.length)'],
+        ['表示する(A[n] + 要素数(A))', 'console.puts(@_array_A_[@n - 1] + @_array_A_.length)'],
         ['もし A[i] > A[i + 1] ならば:\n    x = 1', 'if @_array_A_[@i - 1] > @_array_A_[@i]\n  @x = 1\nend'],
         ['x = A[2 + 1]', '@x = @_array_A_[2 + 1 - 1]'],
         ['x = A[i - 1 + 1]', '@x = @_array_A_[@i - 1 + 1 - 1]'],
@@ -76,7 +76,7 @@ describe('the comment mark `//`', () => {
     test('`//` starts a comment, and the comments are written back with `//`', () => {
         const source = lines(SLASH, 'x = 7 // 7 を入れる', '// 表示する', '表示する(x ÷ 2)');
         const made = dnclToRuby(source);
-        expect(made.ruby).toBe(lines(RUBY_SLASH, '@x = 7 # 7 を入れる', '# 表示する', 'puts((@x / 2).to_i)'));
+        expect(made.ruby).toBe(lines(RUBY_SLASH, '@x = 7 # 7 を入れる', '# 表示する', 'console.puts((@x / 2).to_i)'));
         expect(rubyToDncl(made.ruby).dncl).toBe(source);
     });
 
