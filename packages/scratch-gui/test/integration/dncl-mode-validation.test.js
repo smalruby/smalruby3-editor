@@ -156,11 +156,14 @@ describe('the Japanese tab (DNCL) and the check on switching to it', () => {
         await waitForMonacoLanguage(driver, 'dncl');
         await waitForTestIdPresence(driver, 'ruby-tab-language-band', true);
         expect(await isTabSelected(driver, 'gui-tab-japanese')).toBe(true);
-        // and back in the Ruby tab the program is Ruby again
+        // The console is the stage of the Japanese tab
+        await waitForTestIdPresence(driver, 'smalruby-console', true);
+        // and back in the Ruby tab the program is Ruby again, on the stage
         await clickRubyTab(driver);
         await waitForMonacoLanguage(driver, 'smalruby');
         await waitForEditorValue(driver, '@x = 10');
         await waitForTestIdPresence(driver, 'ruby-tab-language-band', false);
+        await waitForTestIdPresence(driver, 'smalruby-console', false);
     });
 
     test('invalid code blocks DNCL switch and shows errors', async () => {
@@ -181,6 +184,8 @@ describe('the Japanese tab (DNCL) and the check on switching to it', () => {
 
         // The program cannot be written in Japanese: back in the Ruby tab with the errors
         await waitForTabSelected(driver, 'gui-tab-ruby');
+        // and the stage stays (the console is for the program in Japanese)
+        expect(await existsByTestId(driver, 'smalruby-console')).toBe(false);
         expect(await driver.executeScript('return window.monacoEditor.getModel().getLanguageId()')).toBe('smalruby');
 
         const errors = await getErrors();

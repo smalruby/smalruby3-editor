@@ -42,6 +42,7 @@ import { generatePreviewCode } from '../lib/ruby-script-preview';
 import { targetCodeToBlocks } from '../lib/ruby-to-blocks-converter';
 import RubyToBlocksConverterHOC from '../lib/ruby-to-blocks-converter-hoc.jsx';
 import { containsV1Code } from '../lib/ruby-to-blocks-converter/v1-detection';
+import { hideSmalrubyConsole, showSmalrubyConsole } from '../lib/smalruby-console.js';
 import { getUrlParams } from '../lib/url-params';
 import { showAlertWithTimeout, closeAlertWithId } from '../reducers/alerts';
 import {
@@ -178,6 +179,8 @@ const RubyTab = (props) => {
         dnclModeLocked,
         onClearExitDnclModeRequest,
         onActivateTab,
+        onShowSmalrubyConsole,
+        onHideSmalrubyConsole,
     } = props;
 
     // --- State ---
@@ -1343,6 +1346,18 @@ const RubyTab = (props) => {
         if (exitDnclModeExternallyRequested) onClearExitDnclModeRequest?.();
     }, [exitDnclModeExternallyRequested, dnclModeLocked, locale, activeTabIndex]);
 
+    // The console is the stage of the Japanese tab (docs/dncl/design.md 5 章): it is shown while the
+    // Japanese tab shows the program in Japanese, and the Ruby tab gives the stage back. The
+    // editing target is a dependency so that the console comes back after a project is loaded
+    // (a new project has no console extension yet).
+    const japaneseTabActive = activeTabIndex === JAPANESE_TAB_INDEX;
+    useEffect(() => {
+        if (dnclMode && japaneseTabActive) onShowSmalrubyConsole?.(vm);
+    }, [dnclMode, japaneseTabActive, editingTarget]);
+    useEffect(() => {
+        if (activeTabIndex === RUBY_TAB_INDEX) onHideSmalrubyConsole?.();
+    }, [activeTabIndex]);
+
     // Furigana toggle effect
     useEffect(() => {
         if (!editorRef.current || !monacoRef.current) return;
@@ -1922,6 +1937,8 @@ RubyTab.propTypes = {
     dnclModeLocked: PropTypes.bool,
     onClearExitDnclModeRequest: PropTypes.func,
     onActivateTab: PropTypes.func,
+    onShowSmalrubyConsole: PropTypes.func,
+    onHideSmalrubyConsole: PropTypes.func,
 };
 
 const mapStateToProps = (state) => ({
@@ -1958,6 +1975,8 @@ const mapDispatchToProps = (dispatch) => ({
     onSetDnclMode: (dnclMode) => dispatch(setDnclModeAction(dnclMode)),
     onClearExitDnclModeRequest: () => dispatch(clearExternalExitDnclModeRequest()),
     onActivateTab: (tab) => dispatch(activateTab(tab)),
+    onShowSmalrubyConsole: (vm) => showSmalrubyConsole(vm, dispatch),
+    onHideSmalrubyConsole: () => hideSmalrubyConsole(dispatch),
 });
 
 const ConnectedRubyTab = RubyToBlocksConverterHOC(injectIntl(connect(mapStateToProps, mapDispatchToProps)(RubyTab)));
