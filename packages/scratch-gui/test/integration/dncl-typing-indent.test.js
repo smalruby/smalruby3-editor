@@ -1,5 +1,5 @@
 import path from 'path';
-import { By, Key } from 'selenium-webdriver';
+import { Key } from 'selenium-webdriver';
 import SeleniumHelper from '../helpers/selenium-helper';
 
 // Typing in the Japanese tab needs no ruled lines (Issue #1731, W10): Enter
@@ -25,7 +25,7 @@ describe('Japanese tab: typing the indent', () => {
     });
 
     test('indents by 4 spaces after `:` and goes back with Backspace', async () => {
-        await loadUri(`${uri}?locale=ja&tab=japanese`);
+        await loadUri(`${uri}?rubyMode=dncl&locale=ja&tab=ruby`);
         await driver.wait(
             () =>
                 driver.executeScript(
@@ -35,9 +35,25 @@ describe('Japanese tab: typing the indent', () => {
             'The Japanese tab did not start',
         );
         await driver.executeScript('window.monacoEditor.setValue(""); window.monacoEditor.focus();');
-        const textarea = await driver.findElement(By.css('.monaco-editor textarea'));
-        await textarea.sendKeys('x = 3', Key.ENTER, 'もし x > 1 ならば:', Key.ENTER);
-        await textarea.sendKeys('表示する(x)', Key.ENTER, Key.BACK_SPACE, '表示する(0)');
+        const textarea = await driver.switchTo().activeElement();
+        // Each key goes alone: Enter sent in one string with the text is typed as a
+        // line break, which Monaco does not indent.
+        const type = async (...keys) => {
+            for (const key of keys) {
+                await textarea.sendKeys(key);
+                await driver.sleep(100);
+            }
+        };
+        await type(
+            'x = 3',
+            Key.ENTER,
+            'もし x > 1 ならば:',
+            Key.ENTER,
+            '表示する(x)',
+            Key.ENTER,
+            Key.BACK_SPACE,
+            '表示する(0)',
+        );
         await driver.wait(
             async () => (await editorValue(driver)).endsWith('表示する(0)'),
             10000,
