@@ -42,3 +42,19 @@ describe('DNCL mode: the words of the standard form are colored (Issue #2035)', 
         expect(dnclLanguage.symbols.test('％')).toBe(true);
     });
 });
+
+describe('DNCL mode: every bracket the tokenizer returns is defined (Issue #2255)', () => {
+    const bracketRule = dnclLanguage.tokenizer.root.find((rule) => rule[1] === '@brackets');
+    const defined = dnclLanguage.brackets.flatMap(({ open, close }) => [open, close]);
+
+    test.each(['{', '}', '[', ']', '(', ')', '「', '」', '【', '】'])('%s is a defined bracket', (char) => {
+        expect(bracketRule[0].test(char)).toBe(true);
+        expect(defined).toContain(char);
+    });
+
+    test('each pair has different open and close brackets', () => {
+        dnclLanguage.brackets.forEach(({ open, close }) => {
+            expect(open).not.toBe(close);
+        });
+    });
+});
