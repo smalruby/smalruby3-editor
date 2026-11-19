@@ -1937,32 +1937,13 @@ export default {
     'gui.rubyTab.dnclStringArithmeticHint':
         'もじれつと - * / をつかうと、ひだりからじゅんにけいさんされます。"a" + x - 1 は、もじれつ "a" + x から 1 をひきます。かずのけいさんは "a" + (x - 1) のようにかっこでかこんでください。',
     'gui.rubyTab.dnclArrayIndexHint':
-        '{access} ははいれつのはんいがいになります。スモウルビーのにほんごでは、はいれつのそえじは 0 からはじまります（さいしょのようそは {array}[0]、さいごのようそは {array}[{last}]）。もんだいぶんでそえじが 1 からはじまるときは、{fixed} のようにそえじを 1 ずらしてかいてください。',
-    'gui.rubyTab.dnclIndexShiftConfirm':
-        'スモウルビーのにほんごでは、はいれつのそえじは 0 からはじまります。はりつけたプログラムのはいれつのそえじを 1 ずつへらしますか？',
-    'gui.rubyTab.dnclIndexShiftDone':
-        '{count} かしょのはいれつのそえじを 1 ずつへらしました（みどりのしるし）。\nくりかえしのはんい（「i を 1 から n まで」など）はかきかえていません。0 はじまりにあわせて、ひつようならじぶんでなおしてください。',
-    'gui.rubyTab.dnclIndexShiftChangedHeading': 'かきかえたかしょ:',
+        '{access} ははいれつのはんいがいになります。スモウルビーのにほんごでは、はいれつのそえじは 0 からはじまります（さいしょのようそは {array}[0]、さいごのようそは {array}[{last}]）。もんだいぶんでそえじが 1 からはじまるときは、{fixed} のようにそえじを 1 ずらしてかくか、プログラムのはじめに「すべての配列の添字は 1 から始まる。」とかいてください（メニューの「せってい: そえじが 1 からはじまるもんだい」でかけます）。',
     'gui.rubyTab.problemFormDone': 'できた',
     'gui.rubyToolbar.copyProblemForm': 'もんだいのかたちでコピー',
-    'gui.rubyTab.dnclIndexShiftChangedItem': '{line} ぎょうめ: {before} → {after}',
-    'gui.rubyTab.dnclIndexShiftSuspectsHeading':
-        'もしかしたらここもなおすひつようがあるかもしれません（きいろのしるし）:',
-    'gui.rubyTab.dnclIndexShiftSuspectItem': '{line} ぎょうめ: {text}（{reason}）',
-    'gui.rubyTab.dnclIndexShiftMore': '…ほか {count} かしょ',
-    'gui.rubyTab.dnclIndexShiftChangedHover': 'そえじを 1 へらしました: {before} → {after}',
-    'gui.rubyTab.dnclIndexShiftReasonAssignOne':
-        'へんすうに 1 をいれています。そえじにつかうなら 0 にするひつようがあるかもしれません',
-    'gui.rubyTab.dnclIndexShiftReasonLoopFromOne':
-        '1 からはじまるくりかえしです。0 からはじめるひつようがあるかもしれません',
-    'gui.rubyTab.dnclIndexShiftReasonLoopFromN':
-        'せんとうのようそをとばすくりかえしです。はじまりを 1 ちいさくするひつようがあるかもしれません',
-    'gui.rubyTab.dnclIndexShiftReasonLoopToLength':
-        'ようそすうまでくりかえしています。0 はじまりでは 要素数(X) - 1 までです',
-    'gui.rubyTab.dnclIndexShiftReasonLessEqual':
-        'そえじにつかうへんすうを <= でくらべています。0 はじまりでは < にするひつようがあるかもしれません',
-    'gui.rubyTab.dnclIndexShiftReasonNegativeIndex':
-        'そえじが -1 になりました。ここはもともと 0 はじまりだったかもしれないので、たしかめてください',
+    'gui.rubyTab.dnclIndexSettingConfirm':
+        'はりつけたプログラムには、はいれつのそえじは 1 からはじまるとかいてあります。プログラムのはじめに「すべての配列の添字は 1 から始まる。」とかいて、そえじが 1 からはじまるせっていにしますか？',
+    'gui.rubyToolbar.settingsPatternExample': 'せってい: れいじのかたち（そえじは 0 から）',
+    'gui.rubyToolbar.settingsPatternIndexFromOne': 'せってい: そえじが 1 からはじまるもんだい',
     'gui.rubyTab.dnclForbiddenPrefixError': 'にほんごモードでは、へんすうに「{name}」はつかえません',
     'gui.rubyTab.dnclPostTestLoopError':
         'あとではんていするくりかえし（さきに 1 かいうごかしてからじょうけんをたしかめるくりかえし）は、にほんごではかけません。さいしょの 1 かいをループのまえにかいてから、「〜のあいだくりかえす」にしてください。Ruby モードではかけます。',
@@ -2090,7 +2071,7 @@ export default {
     'gui.genaiConcierge.indexHintsTitle':
         'ちゅうい: そえじが 1 からはじまっているかもしれません。スモウルビーのにほんごでは、はいれつのそえじは 0 からはじまります。',
     'gui.genaiConcierge.indexHint':
-        '{access} ははいれつのはんいがいになります（さいごのようそは {array}[{last}]）。もんだいぶんでそえじが 1 からはじまるときは、{fixed} のようにそえじを 1 ずらしてかいてください。',
+        '{access} ははいれつのはんいがいになります（さいごのようそは {array}[{last}]）。もんだいぶんでそえじが 1 からはじまるときは、{fixed} のようにそえじを 1 ずらしてかくか、プログラムのはじめに「すべての配列の添字は 1 から始まる。」とかいてください（メニューの「せってい: そえじが 1 からはじまるもんだい」でかけます）。',
     'gui.genaiConcierge.lineOf': '{line} ぎょうめ',
     'gui.genaiConcierge.spriteLineOf': '「{sprite}」の {line} ぎょうめ',
     'gui.genaiConcierge.spriteOf': '「{sprite}」',

@@ -29,14 +29,16 @@ const { ja } = rubyToJa('x = 1\nwhile x < 10\n  x += 2\nend', { parse });
 // ja: 'x = 1\nx < 10 の間繰り返す:\n    x += 2'
 ```
 
-| 関数                                            | すること                                                                                                     |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `jaToRuby(source, table)`                       | 日本語 → Ruby。`{ruby, jaLines, errors, program}`（誤りがあれば `ruby` は null。誤りは日本語の行・列）       |
-| `rubyToJa(source, {parse, ...table})`           | Ruby → 日本語（標準の形）。`{ja, errors, program}`（誤りがあっても書けるところは書く。誤りは Ruby の行・列） |
-| `parse(source)`                                 | 日本語 → JaAST（標準の形と DNCL 風の形を同じ JaAST に読む）                                                  |
-| `buildRuby(program, table)` / `writeRuby(...)`  | JaAST → RubyAST → Ruby のテキスト                                                                            |
-| `readRuby(result, source, table)` / `writeJa()` | prism の構文木 → JaAST → 日本語のテキスト                                                                    |
-| `readSettings(comments)` / `settingsSentences`  | 冒頭の説明文 ⇔ 設定（`indexBase`・`commentMarker`・`logicNote`）                                             |
+| 関数                                                          | すること                                                                                                         |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `jaToRuby(source, table)`                                     | 日本語 → Ruby。`{ruby, jaLines, errors, program}`（誤りがあれば `ruby` は null。誤りは日本語の行・列）           |
+| `rubyToJa(source, {parse, ...table})`                         | Ruby → 日本語（標準の形）。`{ja, errors, program}`（誤りがあっても書けるところは書く。誤りは Ruby の行・列）     |
+| `parse(source)`                                               | 日本語 → JaAST（標準の形と DNCL 風の形を同じ JaAST に読む）                                                      |
+| `buildRuby(program, table)` / `writeRuby(...)`                | JaAST → RubyAST → Ruby のテキスト                                                                                |
+| `readRuby(result, source, table)` / `writeJa()`               | prism の構文木 → JaAST → 日本語のテキスト                                                                        |
+| `readSettings(comments)` / `settingsSentences`                | 冒頭の説明文 ⇔ 設定（`indexBase`・`commentMarker`・`logicNote`）                                                 |
+| `settingsOfSource(source)` / `withSettings(source, settings)` | テキストの冒頭から設定を読む ／ 冒頭の説明文を書きかえる（ほかのコメントとコードはそのまま。添字は書きかえない） |
+| `SETTINGS_PATTERNS`                                           | よくある設定のパターン（`example` = 例示の形、`indexFromOne` = 添字が 1 から始まる問題）                         |
 
 表（`table`）の欄は `src/build-ruby.js`（日本語 → Ruby）と `src/read-ruby.js`（Ruby → 日本語）の JSDoc にあります。
 スモウルビーの表は `packages/scratch-gui/src/lib/dncl/ja-notation-table.js` です（このパッケージには入れません）。

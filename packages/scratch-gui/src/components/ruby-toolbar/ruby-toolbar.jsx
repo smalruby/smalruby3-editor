@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useIntl } from 'react-intl';
 import analytics from '../../lib/analytics';
+import { dnclSettingsPatternId } from '../../lib/dncl/dncl-settings';
 import { isJapaneseLocale } from '../../lib/locale-utils.js';
 import { isTouchDevice } from '../../lib/touch-device.js';
 import Spinner from '../spinner/spinner.jsx';
@@ -204,6 +205,29 @@ const RubyToolbar = (props) => {
         if (props.onCopyProblemForm) props.onCopyProblemForm();
     }, [props]);
 
+    // === Smalruby: Start of settings patterns of the Japanese mode ===
+    const handleSelectSettingsPattern = useCallback(
+        (patternId) => {
+            setShowMoreMenu(false);
+            if (props.onDismissBubble) props.onDismissBubble();
+            if (props.onSelectSettingsPattern) props.onSelectSettingsPattern(patternId);
+        },
+        [props],
+    );
+    const handleSelectExamplePattern = useCallback(
+        () => handleSelectSettingsPattern('example'),
+        [handleSelectSettingsPattern],
+    );
+    const handleSelectIndexFromOnePattern = useCallback(
+        () => handleSelectSettingsPattern('indexFromOne'),
+        [handleSelectSettingsPattern],
+    );
+    // The pattern the program is written by, read from its sentences when the menu is shown.
+    const currentPatternId =
+        showMoreMenu && props.dnclMode && props.editorRef && typeof props.editorRef.getValue === 'function'
+            ? dnclSettingsPatternId(props.editorRef.getValue())
+            : null;
+    // === Smalruby: End of settings patterns of the Japanese mode ===
     const handlePreviewRubyScript = useCallback(() => {
         setShowMoreMenu(false);
         if (props.onDismissBubble) props.onDismissBubble();
@@ -427,6 +451,34 @@ const RubyToolbar = (props) => {
                                     {intl.formatMessage(messages.copyProblemForm)}
                                 </div>
                             )}
+                            {props.dnclMode && (
+                                <div
+                                    className={styles.moreMenuItem}
+                                    data-testid="ruby-toolbar-menu-settings-pattern-example"
+                                    aria-checked={currentPatternId === 'example'}
+                                    role="menuitemradio"
+                                    onClick={handleSelectExamplePattern}
+                                >
+                                    <span className={styles.moreMenuIcon}>
+                                        {currentPatternId === 'example' ? '✓' : ''}
+                                    </span>
+                                    {intl.formatMessage(messages.settingsPatternExample)}
+                                </div>
+                            )}
+                            {props.dnclMode && (
+                                <div
+                                    className={styles.moreMenuItem}
+                                    data-testid="ruby-toolbar-menu-settings-pattern-index-from-one"
+                                    aria-checked={currentPatternId === 'indexFromOne'}
+                                    role="menuitemradio"
+                                    onClick={handleSelectIndexFromOnePattern}
+                                >
+                                    <span className={styles.moreMenuIcon}>
+                                        {currentPatternId === 'indexFromOne' ? '✓' : ''}
+                                    </span>
+                                    {intl.formatMessage(messages.settingsPatternIndexFromOne)}
+                                </div>
+                            )}
                             <div
                                 className={styles.moreMenuItem}
                                 data-testid="ruby-toolbar-menu-auto-correct-settings"
@@ -466,6 +518,7 @@ RubyToolbar.propTypes = {
     onOpenAutoCorrectSettings: PropTypes.func,
     onPreviewRubyScript: PropTypes.func,
     onCopyProblemForm: PropTypes.func,
+    onSelectSettingsPattern: PropTypes.func,
     locale: PropTypes.string,
 };
 

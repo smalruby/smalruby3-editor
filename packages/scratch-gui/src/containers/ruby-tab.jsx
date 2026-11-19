@@ -15,6 +15,7 @@ import collectMetadata from '../lib/collect-metadata.js';
 import { findArrayIndexHints } from '../lib/dncl/dncl-array-index-hint';
 import { slashCommentRows, tidyPastedDncl, withDoubleSlashHint } from '../lib/dncl/dncl-paste-tidy';
 import { problemFormText } from '../lib/dncl/dncl-problem-form';
+import { dnclWithSettingsPattern } from '../lib/dncl/dncl-settings';
 import { stringArithmeticRows } from '../lib/dncl/dncl-string-arithmetic-hint';
 import { dnclToRuby, rubyForLeavingDncl } from '../lib/dncl/dncl-to-ruby';
 import {
@@ -72,7 +73,7 @@ import {
     DNCL_STRING_ARITHMETIC_OWNER,
 } from './ruby-tab/constants';
 import updateDebugGlobals from './ruby-tab/debug-globals';
-import { offerDnclIndexShift } from './ruby-tab/dncl-index-shift';
+import { offerDnclIndexSetting, replaceEditorText } from './ruby-tab/dncl-index-setting';
 import {
     createProblemFormView,
     problemFormLineNumbers,
@@ -241,7 +242,6 @@ const RubyTab = (props) => {
     const pasteMutationObserverRef = useRef(null);
     const removePasteTransformRef = useRef(null);
     const pasteListenerRef = useRef(null);
-    const indexShiftDecorationsRef = useRef(null);
     const bodyMutationObserverRef = useRef(null);
     const bubbleElRef = useRef(null);
     const quickFixProviderRef = useRef(null);
@@ -537,22 +537,19 @@ const RubyTab = (props) => {
         const transformPastedText = (text) => (dnclModeRef.current ? tidyPastedDncl(text, editor.getValue()) : text);
         registerCustomPasteAction(editor, pasteLabel, transformPastedText);
         removePasteTransformRef.current = setupPasteTransform(editor, transformPastedText);
-        // Japanese (DNCL) mode offers to shift the array indexes of pasted
-        // code whose comments say indexes start at 1 (Issue #1366). The
-        // dialog waits until Monaco has finished handling the paste.
+        // Japanese (DNCL) mode offers to take a note of pasted code that the
+        // indexes start at 1 as the setting of the program (the sentence at its
+        // top; docs/dncl/design.md 4 章). The dialog waits until Monaco has
+        // finished handling the paste.
         pasteListenerRef.current = editor.onDidPaste((event) => {
             if (!dnclModeRef.current) return;
             setTimeout(() => {
                 if (!dnclModeRef.current || editorRef.current !== editor) return;
-                const decorations = offerDnclIndexShift({
+                offerDnclIndexSetting({
                     editor,
-                    monaco,
                     range: event.range,
                     formatMessage: (descriptor, values) => intlRef.current.formatMessage(descriptor, values),
                 });
-                if (!decorations) return;
-                if (indexShiftDecorationsRef.current) indexShiftDecorationsRef.current.clear();
-                indexShiftDecorationsRef.current = decorations;
             }, 0);
         });
         const observers = setupPasteDuplicateHider();
@@ -709,6 +706,18 @@ const RubyTab = (props) => {
         } catch (error) {
             console.error('Failed to copy the problem form:', error); // eslint-disable-line no-console
         }
+    }, []);
+
+    // A pattern of settings picked from the menu (docs/dncl/design.md 4 章):
+    // the sentences at the top are written for it, and the program again by
+    // them, so it means the same. One undo step takes it back.
+    const handleSelectSettingsPattern = useCallback((patternId) => {
+        if (!editorRef.current || !getPrism()) return;
+        replaceEditorText(
+            editorRef.current,
+            dnclWithSettingsPattern(editorRef.current.getValue(), patternId),
+            'smalruby.dnclSettingsPattern',
+        );
     }, []);
 
     const handleInsertClass = useCallback(() => {
@@ -1334,14 +1343,6 @@ const RubyTab = (props) => {
         if (problemFormViewRef.current) problemFormViewRef.current.sync();
     }, [dnclMode]);
 
-    // The marks left by the paste-time index shift belong to the DNCL text.
-    useEffect(() => {
-        if (!dnclMode && indexShiftDecorationsRef.current) {
-            indexShiftDecorationsRef.current.clear();
-            indexShiftDecorationsRef.current = null;
-        }
-    }, [dnclMode]);
-
     // Smalruby DNCL arrays start at index 0. A program written with 1-based
     // indices reads past the end of an array, where the VM silently returns
     // an empty value, so warn about such accesses in the editor. The markers
@@ -1364,7 +1365,7 @@ const RubyTab = (props) => {
                         {
                             id: 'gui.rubyTab.dnclArrayIndexHint',
                             defaultMessage:
-                                '{access} reads past the end of the array. In Smalruby Japanese mode, array indices start at 0 (the first element is {array}[0] and the last is {array}[{last}]). If the problem counts from 1, shift the index by 1, like {fixed}.',
+                                '{access} reads past the end of the array. In Smalruby Japanese mode, array indices start at 0 (the first element is {array}[0] and the last is {array}[{last}]). If the problem counts from 1, shift the index by 1, like {fixed}, or write "すべての配列の添字は 1 から始まる。" at the top of the program (the menu "Settings: a problem whose indices start at 1" writes it).',
                         },
                         hint,
                     ),
@@ -1730,6 +1731,7 @@ const RubyTab = (props) => {
                     dnclModeLocked={dnclModeLocked}
                     onToggleDnclMode={handleToggleDnclMode}
                     onCopyProblemForm={handleCopyProblemForm}
+                    onSelectSettingsPattern={handleSelectSettingsPattern}
                     locale={locale}
                 />
                 <div className={styles.editorWrapper}>

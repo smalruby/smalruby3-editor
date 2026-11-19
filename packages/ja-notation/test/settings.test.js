@@ -4,7 +4,17 @@
 // (data: ./data/settings.json).
 import assert from 'node:assert/strict';
 import { before, describe, test } from 'node:test';
-import { DEFAULT_SETTINGS, jaToRuby, parse, readSettings, rubyToJa, settingsSentences } from '../src/index.js';
+import {
+    DEFAULT_SETTINGS,
+    jaToRuby,
+    parse,
+    readSettings,
+    rubyToJa,
+    SETTINGS_PATTERNS,
+    settingsOfSource,
+    settingsSentences,
+    withSettings,
+} from '../src/index.js';
 import { plain, prism, readData } from './helpers.js';
 
 const data = readData('settings.json');
@@ -31,6 +41,30 @@ describe('the settings', () => {
         test(title, () => {
             assert.deepEqual(plain(parse(ja).program.settings), settings);
         });
+    });
+
+    data.withSettings.forEach(({ title, source, settings, out }) => {
+        test(`withSettings: ${title}`, () => {
+            const written = withSettings(source, settings);
+            assert.equal(written, out);
+            assert.deepEqual(settingsOfSource(written), { ...DEFAULT_SETTINGS, ...settings });
+            assert.equal(withSettings(written, settings), written);
+        });
+    });
+
+    data.settingsOfSource.forEach(({ source, settings }) => {
+        test(`settingsOfSource ${JSON.stringify(source)}`, () => {
+            assert.deepEqual(settingsOfSource(source), settings);
+        });
+    });
+
+    test('the patterns: the form of 例示 is the default, each says its settings', () => {
+        assert.deepEqual(
+            SETTINGS_PATTERNS.map(({ id }) => id),
+            ['example', 'indexFromOne'],
+        );
+        assert.deepEqual(SETTINGS_PATTERNS[0].settings, DEFAULT_SETTINGS);
+        assert.deepEqual(SETTINGS_PATTERNS[1].settings, { indexBase: 1, commentMarker: '#', logicNote: true });
     });
 });
 

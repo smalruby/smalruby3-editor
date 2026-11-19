@@ -90,6 +90,74 @@ const settingsSentences = (settings) => {
 };
 
 /**
+ * The patterns of settings a person who is not an expert picks from (design
+ * 4 章「よくある設定のパターン」): the form of 例示 (the default) and the
+ * problems whose array indexes start at 1 (which explain the logical operators, too).
+ */
+const SETTINGS_PATTERNS = Object.freeze([
+    Object.freeze({ id: 'example', settings: DEFAULT_SETTINGS }),
+    Object.freeze({
+        id: 'indexFromOne',
+        settings: Object.freeze({ indexBase: 1, commentMarker: '#', logicNote: true }),
+    }),
+]);
+
+/**
+ * Whether a comment is one of the sentences that say a setting.
+ * @param {string} comment - The comment (with its mark).
+ * @returns {boolean} True if it is.
+ */
+const isSettingsSentence = (comment) => {
+    const sentence = sentenceOf(comment);
+    return INDEX_BASE_RE.test(sentence) || COMMENT_MARKER_RE.test(sentence) || LOGIC_NOTE_RE.test(sentence);
+};
+
+/**
+ * The rows of the comment lines at the top of a source (before its first line
+ * of code; blank lines are skipped). The source is the text of the editor
+ * (Japanese or Ruby), with no line numbers.
+ * @param {Array<string>} lines - The lines of the source.
+ * @returns {Array<number>} The rows (0-based).
+ */
+const headerRows = (lines) => {
+    const rows = [];
+    for (let row = 0; row < lines.length; row++) {
+        const text = lines[row].trim();
+        if (text === '') continue;
+        if (!text.startsWith('#') && !text.startsWith('//')) break;
+        rows.push(row);
+    }
+    return rows;
+};
+
+/**
+ * The settings of a source (Japanese or Ruby), read from the comments at its top.
+ * @param {string} source - The source.
+ * @returns {object} `{indexBase, commentMarker, logicNote}`.
+ */
+const settingsOfSource = (source) => {
+    const lines = source.split(/\r?\n/);
+    return readSettings(headerRows(lines).map((row) => lines[row].trim()));
+};
+
+/**
+ * The source with the sentences of `settings` at its top: the sentences of
+ * settings already at the top go away (the other comments and the code stay)
+ * and the new ones are written first, with `#` (a comment with either comment
+ * mark, and in Ruby). What the code means is not changed: an index stays as it
+ * is written (to write the same program by other settings, go through Ruby).
+ * @param {string} source - The source (Japanese or Ruby).
+ * @param {object} settings - The settings (the default for what is not given).
+ * @returns {string} The source.
+ */
+const withSettings = (source, settings) => {
+    const eol = source.includes('\r\n') ? '\r\n' : '\n';
+    const lines = source.split(/\r?\n/);
+    const drop = new Set(headerRows(lines).filter((row) => isSettingsSentence(lines[row])));
+    return [...settingsSentences(settings), ...lines.filter((_line, row) => !drop.has(row))].join(eol);
+};
+
+/**
  * Whether an expression is an integer written as a number (`3`, `-1`), and its value.
  * @param {object} e - The JaAST expression.
  * @returns {?number} The integer, or null.
@@ -211,6 +279,9 @@ export {
     LOGIC_NOTES,
     readSettings,
     settingsOf,
+    settingsOfSource,
+    SETTINGS_PATTERNS,
     settingsSentences,
+    withSettings,
     writeComment,
 };

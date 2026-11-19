@@ -8,7 +8,14 @@ import { buildRuby, RUBY } from './build-ruby.js';
 import { isName, isNameChar, isNameHead, NAME_HEAD_RE, NAME_TAIL_RE } from './lexer.js';
 import { parse } from './parse.js';
 import { readRuby } from './read-ruby.js';
-import { DEFAULT_SETTINGS, readSettings, settingsSentences } from './settings.js';
+import {
+    DEFAULT_SETTINGS,
+    readSettings,
+    SETTINGS_PATTERNS,
+    settingsOfSource,
+    settingsSentences,
+    withSettings,
+} from './settings.js';
 import { writeJa } from './write-ja.js';
 import { writeRuby } from './write-ruby.js';
 
@@ -59,7 +66,10 @@ export {
     readSettings,
     RUBY,
     rubyToJa,
+    SETTINGS_PATTERNS,
+    settingsOfSource,
     settingsSentences,
+    withSettings,
     writeJa,
     writeRuby,
 };
