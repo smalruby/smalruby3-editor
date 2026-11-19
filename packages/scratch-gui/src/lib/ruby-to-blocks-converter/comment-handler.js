@@ -273,20 +273,25 @@ const CommentHandler = {
         }
         // A line that starts with a node that has no block (the `1` of `def foo\n  1\nend`, an element
         // of an array literal over more lines) goes to the block of the smallest node around it.
-        const fill = (node, outerBlockId) => {
+        // The index of the parents (parse-stage.js) has the nodes in the order of the walk, a node
+        // before its children, so the block around each node is known before its children.
+        const blockOfNode = new Map();
+        const fill = (node, parent) => {
             const type = nodeTypeName(node);
             const own = type === 'ProgramNode' || type === 'StatementsNode' ? null : nodeBlocks.get(node);
-            const blockId = own || outerBlockId;
+            const blockId = own || (parent ? blockOfNode.get(parent) : null) || null;
+            blockOfNode.set(node, blockId);
             const line = this._getNodeStartLine(node);
             if (!own && blockId && line !== null && !map.has(line)) {
                 const anchorId = this._commentAnchorOf(blockId);
                 if (anchorId) map.set(line, { blockId: anchorId, range: Infinity });
             }
-            for (const child of this._childNodesOf(node).flat()) {
-                if (child && child.location) fill(child, blockId);
-            }
         };
-        if (rootNode) fill(rootNode, null);
+        const parents = this._parentIndex();
+        if (rootNode && parents) {
+            fill(rootNode, null);
+            parents.forEach((parent, node) => fill(node, parent));
+        }
         for (const { node, startLine, anchorId } of caseNodes) {
             map.set(startLine, { blockId: anchorId, range: -1 });
             this._caseWhenConditions(node, anchorId).forEach(({ whenNode, condId }) => {

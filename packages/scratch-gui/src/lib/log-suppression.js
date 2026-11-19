@@ -17,7 +17,6 @@ const ignoredWarnings = [
     'findDOMNode is deprecated',
     'The AudioContext was not allowed to start',
     'apple-mobile-web-app-capable',
-    'GenerateSW has been called multiple times',
     // Monaco editor (editor.api-*.js) のタッチハンドラが start を取り逃した
     // touch の move / end を受け取ると警告を吐く。モバイル UI で blockly や
     // ステージにタッチを始めて Monaco エリアに指が乗ったまま離す等で発生

@@ -54,6 +54,8 @@ const ContextUtils = {
             containerNodeRanges: [], // Store {startLine, endLine} for container nodes (block, begin, kwbegin)
             processDepth: 0,
             rootNode: null,
+            // The parent of each node of the tree (parse-stage.js, `parentIndexOf`)
+            parentOfNode: null,
             // The DefNodes of `without_screen_refresh def` (screen-refresh-defs.js)
             warpDefNodes: new Set(),
             modules: Object.create(null),
