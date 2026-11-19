@@ -102,6 +102,26 @@ jobs:
       - name: Run scratch-vm Unit Tests
         run: npm run test:unit --workspace=packages/scratch-vm
 
+  unit-test-ja-notation:
+    runs-on: ubuntu-26.04
+    if: |
+      (!(
+        github.ref == 'refs/heads/develop' ||
+        github.ref == 'refs/heads/master' ||
+        github.ref == 'refs/heads/main'
+      ))
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          cache: 'npm'
+          node-version-file: '.nvmrc'
+      - name: Install Dependencies
+        uses: ./.github/actions/install-dependencies
+      # ja-notation は依存なしの ESM なので、ほかのパッケージのビルドは要らない
+      - name: Run ja-notation Unit Tests
+        run: npm run test:unit --workspace=packages/ja-notation
+
   unit-test-gui:
     runs-on: ubuntu-26.04
     if: |
