@@ -397,6 +397,8 @@ src/lib/libraries/extensions/*
 !src/lib/libraries/extensions/microbitMore/**
 !src/lib/libraries/extensions/smalruby-ruby/
 !src/lib/libraries/extensions/smalruby-ruby/**
+!src/lib/libraries/extensions/smalrubot-s1/
+!src/lib/libraries/extensions/smalrubot-s1/**
 !src/lib/libraries/extensions/tm2scratch/
 !src/lib/libraries/extensions/tm2scratch/**
 
@@ -473,6 +475,7 @@ test/integration/*
 !test/integration/ruby-tab.test.js
 !test/integration/smalrubot-firmware.test.js
 !test/integration/smalrubot-s1-connection-flow.test.js
+!test/integration/smalrubot-s1-legacy-card.test.js
 !test/integration/lesson-goal.test.js
 !test/integration/smalruby-lesson1-challenges-5-8.test.js
 !test/integration/smalruby-lesson1-challenges-9-11.test.js

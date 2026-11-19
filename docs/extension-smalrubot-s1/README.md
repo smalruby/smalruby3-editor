@@ -1,11 +1,11 @@
-# 拡張機能: アーテックロボ（ArtecRobo）／旧 スモウルボットS1
+# 拡張機能: アーテックロボ（Studuino）／旧 スモウルボットS1
 
 > **🆕 Smalruby 独自** — upstream に存在しない、Smalruby のために新規追加された拡張機能
 
 - **Smalruby ランタイム対応**: ❌（smalruby3 gem は未対応。WebSerial API 経由でハードウェアと通信するためブラウザ専用）
 - **デフォルト表示**: ✅（拡張機能ライブラリにデフォルトで表示される）
 
-> **いまの状態とこれから**: この拡張機能は、**同じ拡張機能のまま「アーテックロボ（ArtecRobo）」の名前に変えた**（前の名前は「スモウルボットS1」）。
+> **いまの状態とこれから**: この拡張機能は、**同じ拡張機能のまま「アーテックロボ（Studuino）」の名前に変えた**（前の名前は「スモウルボットS1」。2027-11-30 までは前の名前のカードも残す。下の「移行期間（前の名前のカード）」）。
 > ブロックの表示は一般的な名前にし、実機が無くても動かせる **練習用の基板**（VM の中のしくみと、ステージの横のパネル）を入れた。
 > このページは、いまの挙動と、リニューアルで決まった方針の両方を書く。
 > 見分けがつくように、まだ実装していないことには **🚧 これから** と付ける（印の無いことは、いまの挙動）。
@@ -33,7 +33,7 @@
 
 ## 名前の変更と互換の方針
 
-**同じ拡張機能のまま、表示の名前だけを「アーテックロボ（ArtecRobo）」にした**。前の作品（sb3・Ruby）はそのまま開けて、そのまま動く。
+**同じ拡張機能のまま、表示の名前だけを「アーテックロボ（Studuino）」にした**。前の作品（sb3・Ruby）はそのまま開けて、そのまま動く。
 
 ### キットと基板の呼び分け
 
@@ -41,7 +41,8 @@
 
 | 呼び名 | 使うところ |
 |---|---|
-| **アーテックロボ**（英語は ArtecRobo） | 拡張機能の名前（ライブラリのカード・ブロックのカテゴリ・メニューバー・接続モーダルの見出し）、Ruby タブのふりがな、紹介ページの見出し |
+| **アーテックロボ（Studuino）**（英語は ArtecRobo (Studuino)、ひらがなの表示は「アーテックロボ (Studuino)」） | 拡張機能の名前（ライブラリのカード・ブロックのカテゴリ・メニューバー・接続モーダルの見出し）、紹介ページ。名前の後ろに基板の名前を添えて、「Studuino で授業ができる」と先生に伝わるようにする |
+| **アーテックロボ** | Ruby タブのふりがな（`studuino` の上に出る名前。短いままにする） |
 | **Studuino**（スタディーノ） | 基板のこと: 接続の手順の文・ファームウェアのモーダル・練習用の基板のパネル・カードの説明文（「アーテックロボの Studuino 基板」） |
 
 Ruby の書き方は `studuino.` のまま（下の「Ruby の書き方」）。スモウルビーのふりがなは読みではなく意味を書くので、`studuino` の上には「アーテックロボ」と出る。
@@ -50,7 +51,7 @@ Ruby の書き方は `studuino.` のまま（下の「Ruby の書き方」）。
 
 | 対象 | 前 | いま |
 |---|---|---|
-| 拡張機能の名前（ライブラリ・カテゴリ・メニューバー・接続モーダルの見出し） | スモウルボットS1 | **アーテックロボ（ArtecRobo）**（カテゴリとメニューバーは「アーテックロボ」、英語は「ArtecRobo」） |
+| 拡張機能の名前（ライブラリ・カテゴリ・メニューバー・接続モーダルの見出し） | スモウルボットS1 | **アーテックロボ（Studuino）**（カテゴリ・メニューバーも同じ。ひらがなの表示は「アーテックロボ (Studuino)」、英語は「ArtecRobo (Studuino)」） |
 | 基板を指す文（接続モーダルの文・ファームウェアのモーダル・練習用の基板のパネル） | スモウルボットS1 | **Studuino**（ひらがなの表示の文の中は「スタディーノ」） |
 | ライブラリの絵（カード・接続モーダル・カテゴリの絵） | スモウルボットS1 のロボットの写真 | **自分たちで用意した基板の絵**（アーテック社の写真・ロゴは使わない。下の「ライブラリの絵と商標の表記」） |
 | ライブラリのカードの説明 | スモウルボットS1を制御する。 | アーテック社の表記に合わせた紹介と、登録商標の一文（下の「ライブラリの絵と商標の表記」） |
@@ -65,6 +66,20 @@ Ruby の書き方は `studuino.` のまま（下の「Ruby の書き方」）。
 - **商標の表記**: カードの説明は「アーテックロボ（ArtecRobo）の Studuino®（スタディーノ）基板を動かす。**アーテックロボは株式会社アーテックの製品で、Studuino® は同社の登録商標です。**」。Studuino® は登録商標なので ® を付ける。アーテックロボ（ArtecRobo）は商標の扱いを確かめていないので、「登録商標」と言い切らず「株式会社アーテックの製品」と書く。カードには「協力: Artec Co., Ltd.」も出る（実際に協力いただき、基板も提供いただいている）。紹介ページ（`pages/about.html`）の紹介にも同じ一文を入れ、写真はこの基板の絵にした。
 
   ![紹介ページの計測と制御のカード](screenshots/0701-about-page-1280x800.png)
+
+### 移行期間（前の名前のカード）
+
+前の名前の資料（授業の手引き・プリント）が「スモウルボットS1 を選ぶ」と書いているので、**1 年の移行期間**を置く。
+
+- 拡張機能ライブラリには、**アーテックロボ（Studuino）** のカードのすぐ後ろに、前の名前・前の絵（スモウルボットS1 のロボットの写真。`smalrubot-s1/legacy-smalrubot-s1*.png`）の **スモウルボットS1** のカードも出す。説明は「アーテックロボ（Studuino）の前の名前です。選ぶと、アーテックロボ（Studuino）が使えます。」。
+- どちらのカードを選んでも、読みこむのは同じ拡張機能 `smalrubotS1`（ブロック・作品・Ruby は同じ）。拡張機能の ID は 1 つのまま。前のカードはライブラリの中だけの別の項目（キーと DOM の id は `smalrubotS1Legacy`）で、選ぶと今のカードに置きかえてから読みこむので、接続の流れも同じになる。
+- 前のカードを選ぶと、画面の上に **名前が変わったことの知らせ**（アラート・閉じるボタンつき。`data-testid="smalrubot-s1-renamed-alert"`）が出る: 「スモウルボットS1 は「アーテックロボ（Studuino）」に名前が変わりました。中身は同じです。これからは「アーテックロボ（Studuino）」を選んでください。」。アラートは接続モーダルより上に出るので、接続の手順の途中でも読める。
+- 前のカードには `smalrubot` / `スモウルボット` などのタグを付けてある（拡張機能ライブラリはいまは検索欄を出していないが、検索を出したときに前の名前で見つかる）。
+- **期限**: 前のカードを出すのは **2027-11-30 まで**（その日の終わりまで。端末の日付で判断）。日付は `legacy-card.jsx` の `SMALRUBOT_S1_LEGACY_CARD_LAST_DAY` の 1 か所で、過ぎると自動で出なくなる。期限が来たら、前のカードのコード（`legacy-card.jsx`・前の絵・知らせ・翻訳・テスト・このセクション）を消す。
+
+![拡張機能ライブラリの 2 枚のカード](screenshots/0402-library-legacy-card-1280x800.png)
+
+![前のカードを選んだときの知らせ](screenshots/0403-renamed-alert-1280x800.png)
 
 ### 変えないもの
 
@@ -339,7 +354,7 @@ GUI は、イベントを聞いて表示し、センサーの値はこのメソ�
 
 ### 接続
 
-1. ブロックパレットの「拡張機能を追加」から **アーテックロボ（ArtecRobo）** を選ぶ
+1. ブロックパレットの「拡張機能を追加」から **アーテックロボ（Studuino）** を選ぶ（2027-11-30 までは **スモウルボットS1** のカードを選んでもよい）
 2. 接続モーダルが専用フローで開く（`smalrubot-s1-*-step.jsx` 系）。**生徒用 (接続) / 先生用 (ファームウェア書き込み)** のいずれかを選択
 
    ![Studuino 初期ステップ](screenshots/0101-initial-step-1280x800.png)
@@ -350,7 +365,7 @@ GUI は、イベントを聞いて表示し、センサーの値はこのメソ�
 
 ### ファームウェアフラッシュ
 
-1. 接続モーダルの「ファームウェアを書き込む（先生用）」 もしくはメニューバーの「アーテックロボ」メニューから起動
+1. 接続モーダルの「ファームウェアを書き込む（先生用）」 もしくはメニューバーの「アーテックロボ（Studuino）」メニューから起動
 2. ファームウェアフラッシュモーダル (`smalrubot-firmware-modal`) が開く。**macOS では PL2303 Serial Driver アプリのインストール案内** が先に表示される
 
    ![ファームウェアモーダル (macOS)](screenshots/0201-firmware-modal-macos-1280x800.png)
@@ -360,7 +375,7 @@ GUI は、イベントを聞いて表示し、センサーの値はこのメソ�
 
 ### ブロックパレット
 
-接続後はブロックパレットの **アーテックロボ** カテゴリに専用ブロックが表示される（ブロックの一覧は上の「ブロックと選択肢」）：
+接続後はブロックパレットの **アーテックロボ（Studuino）** カテゴリに専用ブロックが表示される（ブロックの一覧は上の「ブロックと選択肢」）：
 
 ![アーテックロボのブロックパレット](screenshots/0301-block-palette-1280x800.png)
 
@@ -379,6 +394,7 @@ Ruby タブのふりがなでは、`studuino` の上に「アーテックロボ�
 - `packages/scratch-gui/src/components/studuino-practice-board/` — 練習用の基板のパネル（表示）
 - `packages/scratch-gui/src/containers/studuino-practice-board.jsx` — 練習用の基板のパネルのコンテナ（状態を読む・センサーの値を変える・置き場所を測る）
 - `packages/scratch-gui/src/components/connection-modal/smalrubot-s1-*-step.jsx` × 5 — 専用接続ステップ（initial / connecting / connected / error / unsupported）
+- `packages/scratch-gui/src/lib/libraries/extensions/smalrubot-s1/legacy-card.jsx` — 移行期間の前の名前のカード（期限の定数・期限の判定・カードの差しこみ・選んだカードの置きかえ。純粋関数）
 
 #### ライブラリ
 
@@ -410,6 +426,8 @@ Ruby タブのふりがなでは、`studuino` の上に「アーテックロボ�
 - `src/containers/connection-modal.jsx` — ファームウェアフラッシュ起動
 - `src/components/connection-modal/error-step.jsx` — エラーステップでのファームウェアボタン
 - `src/components/gui/gui.jsx` — 練習用の基板のパネルの配置
+- `src/containers/extension-library.jsx` — 前の名前のカードの差しこみと、選んだときの置きかえ・知らせ
+- `src/lib/alerts/index.jsx` — 名前が変わったことの知らせ（`smalrubotS1Renamed`）
 
 詳細マーカー一覧: `docs/maintenance/smalruby-markers-gui.md`
 
@@ -440,8 +458,8 @@ Ruby タブのふりがなでは、`studuino` の上に「アーテックロボ�
 
 ## テスト
 
-- 単体テスト: `packages/scratch-gui/test/unit/lib/smalrubot-firmware-flasher.test.js`, `packages/scratch-gui/test/unit/containers/studuino-practice-board.test.jsx`（パネル）
-- 結合テスト: `packages/scratch-gui/test/integration/smalrubot-firmware.test.js`, `smalrubot-s1-connection-flow.test.js`
+- 単体テスト: `packages/scratch-gui/test/unit/lib/smalrubot-firmware-flasher.test.js`, `packages/scratch-gui/test/unit/containers/studuino-practice-board.test.jsx`（パネル）, `packages/scratch-gui/test/unit/lib/smalrubot-s1-legacy-card.test.jsx`（前の名前のカード）
+- 結合テスト: `packages/scratch-gui/test/integration/smalrubot-firmware.test.js`, `smalrubot-s1-connection-flow.test.js`, `smalrubot-s1-legacy-card.test.js`（前の名前のカード）
 - VM 単体テスト: `packages/scratch-vm/test/unit/extension_smalrubot_s1.js`
 
 ## 関連ドキュメント
