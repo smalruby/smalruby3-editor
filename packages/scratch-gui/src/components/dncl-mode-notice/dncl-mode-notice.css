@@ -1,3 +1,10 @@
+@import '../../css/smalruby-tokens.css';
+
+/*
+ * The notice of the Code tab while the program is written in the Japanese tab.
+ * It is an お知らせ (the info alert colors of docs/design-system/components/alerts.md)
+ * on the top right of the workspace, joined to its top and right edges.
+ */
 .notice {
     position: absolute;
     top: 0;
@@ -11,34 +18,45 @@
     flex-wrap: wrap;
     justify-content: flex-end;
     max-width: calc(100% - 8px);
-    padding: 6px 12px;
-    background-color: rgba(255, 243, 205, 0.95);
-    border-bottom: 1px solid #ffc107;
-    border-left: 1px solid #ffc107;
-    font-size: 12px;
-    gap: 8px;
+    padding: $space-small $space-medium $space-small 0.75rem;
+    background-color: $color-info-background;
+    border-bottom: 1px solid $color-info;
+    border-left: 1px solid $color-info;
+    border-bottom-left-radius: $radius-medium;
+    color: $color-text;
+    font-size: $font-size-small;
+    gap: $space-medium;
     pointer-events: auto;
 }
 
 .message {
-    color: #856404;
-    font-weight: 500;
+    font-weight: $font-weight-bold;
     flex: 1;
 }
 
+/* The 副ボタン of docs/design-system/components/README.md, small */
 .exitButton {
-    background: none;
-    border: 1px solid #856404;
-    border-radius: 4px;
-    color: #856404;
+    padding: $space-small $space-medium;
+    background-color: $color-surface;
+    border: 1px solid $color-border;
+    border-radius: $radius-small;
+    color: $color-text;
     cursor: pointer;
-    font-size: 11px;
-    padding: 3px 8px;
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
     white-space: nowrap;
     flex-shrink: 0;
 }
 
 .exitButton:hover {
-    background-color: #ffc107;
-    color: #fff;
+    border-color: $color-info;
+}
+
+.exitButton:active {
+    background-color: $color-background;
+}
+
+.exitButton:focus-visible {
+    outline: 2px solid $color-primary;
+    outline-offset: 2px;
 }
