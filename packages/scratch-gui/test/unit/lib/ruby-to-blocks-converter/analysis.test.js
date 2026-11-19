@@ -12,7 +12,7 @@ import path from 'path';
 import { loadPrism } from '../../../../src/lib/prism-parser';
 import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
 import { analyze } from '../../../../src/lib/ruby-to-blocks-converter/analysis';
-import { forEachNode, nodeTypeName } from '../../../../src/lib/ruby-to-blocks-converter/node-walk';
+import { forEachNode, nodeTypeName, parentIndexOf } from '../../../../src/lib/ruby-to-blocks-converter/node-walk';
 
 let prism;
 
@@ -391,5 +391,38 @@ describe('forEachNode', () => {
         expect(nodeTypeName(calls[0])).toBe('CallNode');
         expect(nodeTypeName(calls[1])).toBe('CallNode');
         expect(nodeTypeName({})).toBeNull();
+    });
+});
+
+describe('parentIndexOf', () => {
+    test('has the parent of every node but the root, in the order of the walk', () => {
+        const root = parse(dedent`
+            case @x
+            when foo(1)
+              say(bar(2))
+            end
+        `);
+        const parents = parentIndexOf(root);
+        const walked = [];
+        forEachNode(root, {
+            enter: (node, _type, parent) => {
+                if (parent) walked.push([node, parent]);
+            },
+        });
+        expect(parents.has(root)).toBe(false);
+        expect([...parents.entries()]).toEqual(walked);
+        const bar = walked.map(([node]) => node).find((node) => node.name === 'bar');
+        const chain = [];
+        for (let node = bar; node; node = parents.get(node)) chain.push(nodeTypeName(node));
+        expect(chain).toEqual([
+            'CallNode',
+            'ArgumentsNode',
+            'CallNode',
+            'StatementsNode',
+            'WhenNode',
+            'CaseNode',
+            'StatementsNode',
+            'ProgramNode',
+        ]);
     });
 });

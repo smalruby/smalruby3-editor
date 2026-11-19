@@ -19,6 +19,9 @@
 *
 !src/
 !test/
+!pages/
+pages/*
+!pages/service-worker.js
 
 # ============================================================
 # Level 1: src/*

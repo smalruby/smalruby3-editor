@@ -88,7 +88,7 @@ node scripts/hosting/site-compare.mjs --a https://smalruby.app --b https://smalr
 調べるパス:
 
 - いつも: `/`、`/index.html`、`/admin/`、`/.well-known/microsoft-identity-association.json`、`/auth-redirect.html`、`/version.json`、`/service-worker.js`
-- A の `/service-worker.js` の precache の一覧（Workbox の実行用のファイルも含む）と、A の `/index.html` が読むファイル（`--no-precache` で外す）
+- A の `/index.html` が読むファイルと、A の `/service-worker.js` が Workbox の precache を持つときはその一覧（`--no-precache` で外す。いまのエディタは precache を持たないので、一覧は空になる）
 - `--dist <ディレクトリ>`: ビルドの出力（例: `packages/scratch-gui/dist`）の全ファイル。`index.html` のあるディレクトリは `<dir>/` と、末尾の `/` 無しの `<dir>` も調べる
 - `--paths-file <ファイル>`: 1 行に 1 パス（`#` はコメント）
 
@@ -105,7 +105,7 @@ node scripts/hosting/site-compare.mjs --a https://smalruby.app --b https://smalr
 | 末尾の `/` が無いディレクトリ（`/admin` など） | B | **301** で `<path>/` へ |
 
 - B の設計どおりかの確かめ（下 4 行）は `--no-b-checks` で外せる（例: GitHub Pages どうしを比べるとき）。
-- 一度に聞く数は `--concurrency`（既定 4）。`--limit N` で先頭の N 個だけにする。全部を比べると両方から precache の全部（60〜100 MB）を読む。
+- 一度に聞く数は `--concurrency`（既定 4）。`--limit N` で先頭の N 個だけにする。`--dist` で全ファイルを比べると、両方からビルドの全部（100〜200 MB）を読む。
 - 出力は `OK` / `NG` とその理由。`--json` で JSON にする。
 - 終了コード: 0 = 問題なし、1 = 問題がある、2 = 引数の間違い・ホストに届かない。
 

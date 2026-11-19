@@ -4,6 +4,7 @@ import ControlConverter from '../../../../src/lib/ruby-to-blocks-converter/contr
 import EventConverter from '../../../../src/lib/ruby-to-blocks-converter/event';
 import LooksConverter from '../../../../src/lib/ruby-to-blocks-converter/looks';
 import MotionConverter from '../../../../src/lib/ruby-to-blocks-converter/motion';
+import MusicConverter from '../../../../src/lib/ruby-to-blocks-converter/music';
 import OperatorsConverter from '../../../../src/lib/ruby-to-blocks-converter/operators';
 import PenConverter from '../../../../src/lib/ruby-to-blocks-converter/pen';
 import {
@@ -24,7 +25,9 @@ import { makeConverter, makeStageTarget } from '../../helpers/ruby-roundtrip-hel
 const opcodesOf = (rows) =>
     rows.flatMap((row) => [
         row.opcode,
-        ...(row.args || []).filter((arg) => /^menu/.test(arg.kind)).map((arg) => arg.menuOpcode),
+        ...[...(row.args || []), ...(row.keywords || []).map(([, arg]) => arg)]
+            .filter((arg) => /^menu/.test(arg.kind))
+            .map((arg) => arg.menuOpcode),
         ...Object.values(row.menus || {}).map(([menuOpcode]) => menuOpcode),
     ]);
 
@@ -38,6 +41,7 @@ describe('RubyToBlocksConverter/send table', () => {
         sensing: SensingConverter,
         operators: OperatorsConverter,
         pen: PenConverter,
+        music: MusicConverter,
     };
 
     test.each(Object.keys(tables))('every opcode of the %s table has a generator', (area) => {
@@ -53,6 +57,32 @@ describe('RubyToBlocksConverter/send table', () => {
 
         expect(await converter.targetCodeToBlocks(null, 'jump(3)')).toBe(false);
         expect(converter.errors.map((error) => error.text)).toEqual(['unknown kind of argument: paint']);
+    });
+
+    test('a row of keywords takes only a hash of exactly its keys', async () => {
+        const converter = new RubyToBlocksConverter(null, { version: '2' });
+        registerSendTable(converter, [
+            {
+                receiver: 'sprite',
+                name: 'jump',
+                opcode: 'motion_movesteps',
+                keywords: [['steps', numberArg('STEPS', 10)]],
+            },
+        ]);
+        converter.registerOnSend('sprite', 'jump', 1, () =>
+            converter._createBlock('motion_ifonedgebounce', 'statement'),
+        );
+
+        for (const code of ['jump(3)', 'jump(far: 3)', 'jump(steps: 3, far: 1)', 'jump(steps: "far")']) {
+            await converter.targetCodeToBlocks(null, code);
+            expect(Object.values(converter.blocks).map((block) => block.opcode)).toEqual(['motion_ifonedgebounce']);
+        }
+
+        await converter.targetCodeToBlocks(null, 'jump(steps: 3)');
+        expect(Object.values(converter.blocks).map((block) => block.opcode)).toEqual([
+            'motion_movesteps',
+            'math_number',
+        ]);
     });
 
     test('a row gives way to the next handler when an argument is of another kind', async () => {
