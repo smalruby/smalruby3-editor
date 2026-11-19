@@ -1907,7 +1907,8 @@ export default {
     'gui.rubyTab.dnclForbiddenPrefixError': '日本語モードでは変数に「{name}」は使えません',
     'gui.rubyTab.dnclPostTestLoopError':
         '後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。',
-    'gui.rubyTab.dnclStageVariableError': 'ステージの変数（{name}）は日本語モードでは書けません。Ruby モードでは書けます。',
+    'gui.rubyTab.dnclStageVariableError':
+        'ステージの変数（{name}）は日本語モードでは書けません。Ruby モードでは書けます。',
     'gui.rubyTab.dnclUndefinedFunctionError':
         '「{name}」は定義されていない関数です。「関数 {name}(…):」で定義してください。',
     'gui.rubyTab.dnclUnsupportedCommandError':
