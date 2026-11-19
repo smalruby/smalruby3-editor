@@ -9,6 +9,7 @@
     "smalruby-api",
     "smalruby-bug-report",
     "smalruby-classroom",
-    "smalruby-rubytee-relay"
+    "smalruby-rubytee-relay",
+    "smalruby-studuino-hex"
   ]
 }

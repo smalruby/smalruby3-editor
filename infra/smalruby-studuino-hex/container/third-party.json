@@ -1,0 +1,27 @@
+{
+  "$comment": "コンテナに入れる外部のツールとライブラリ。版（とハッシュ）をここで固定し、CDK が Docker の build args に渡す。ライブラリのファイルはリポジトリに入れない（docs/infra/smalruby-studuino-hex.md）。",
+  "arduinoCli": {
+    "version": "1.5.1",
+    "url": "https://github.com/arduino/arduino-cli/releases/download/v1.5.1/arduino-cli_1.5.1_Linux_64bit.tar.gz",
+    "sha256": "28a8e119c498a25607821c36cb2dc49e8463941b261a0d99091baa7bc692dd2b"
+  },
+  "avrCore": {
+    "id": "arduino:avr",
+    "version": "1.8.8"
+  },
+  "servo": {
+    "name": "Servo",
+    "version": "1.2.2"
+  },
+  "board": {
+    "$comment": "Studuino は ATmega168PA・8MHz・3.3V（いまのファームウェア sr_studu と同じ）。ブートローダは optiboot 互換（115200bps・シグネチャ 1E 94 06）で、書きこみはブラウザの STK500v1 が行うので、コンパイルにはブートローダの設定は効かない。上限は pro の 168 と同じ 14336 バイトにして、ブートローダの領域に食いこまないようにする。",
+    "fqbn": "arduino:avr:pro:cpu=8MHzatmega168",
+    "maxFlashBytes": 14336
+  },
+  "studuinoLib": {
+    "$comment": "アーテック社の公式の配布元（https://www.artec-kk.co.jp/studuino/ja/arduino.php）の zip の URL と sha256。空のあいだはライブラリなしでコンテナを作り、ライブラリの要るサンプルは compile_failed（reason: library_missing）になる。",
+    "url": "",
+    "sha256": "",
+    "libraries": ["Studuino", "MMA8653", "MPU6050", "IRremoteForStuduino", "ColorSensor"]
+  }
+}
