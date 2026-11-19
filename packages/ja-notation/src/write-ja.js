@@ -17,6 +17,7 @@
 //   as a line of the block.
 //
 // The comments are written with the comment mark of the settings (`//` or `#`).
+import { each, run } from './run.js';
 import { settingsOf, writeComment } from './settings.js';
 
 /** The spaces of one level of indent. */
@@ -73,9 +74,10 @@ const precedenceOf = (e) => {
 /**
  * Write an expression.
  * @param {object} e - The JaAST expression.
+ * @yields {object} The writings of its parts (./run.js).
  * @returns {string} The Japanese.
  */
-const expression = (e) => {
+const expression = function* (e) {
     switch (e.type) {
         case 'Number':
             return e.value;
@@ -88,15 +90,15 @@ const expression = (e) => {
         case 'RubyCode':
             return e.text;
         case 'Index':
-            return `${operand(e.target, PRIMARY)}[${expression(e.index)}]`;
+            return `${yield operand(e.target, PRIMARY)}[${yield expression(e.index)}]`;
         case 'ArrayLiteral':
-            return `[${e.elements.map(expression).join(', ')}]`;
+            return `[${(yield each(e.elements, expression)).join(', ')}]`;
         case 'Call':
-            return `${e.name}(${e.args.map(expression).join(', ')})`;
+            return `${e.name}(${(yield each(e.args, expression)).join(', ')})`;
         case 'Unary':
-            return unary(e);
+            return yield unary(e);
         case 'Binary':
-            return binary(e);
+            return yield binary(e);
         default:
             throw new Error(`ja-notation: cannot write ${e.type}`);
     }
@@ -106,24 +108,27 @@ const expression = (e) => {
  * Write an operand, in parentheses when it binds less than its place needs.
  * @param {object} e - The JaAST expression.
  * @param {number} needed - The precedence the place needs.
+ * @yields {object} The writing of the expression (./run.js).
  * @returns {string} The Japanese.
  */
-const operand = (e, needed) => {
-    const text = expression(e);
+const operand = function* (e, needed) {
+    const text = yield expression(e);
     return precedenceOf(e) < needed ? `(${text})` : text;
 };
 
 /**
  * A sign or `not`.
  * @param {object} e - The Unary.
+ * @yields {object} The writing of its operand (./run.js).
  * @returns {string} The Japanese.
  */
-const unary = (e) => {
+const unary = function* (e) {
     // `parens`: the operand was written in parentheses (`!(a > 10)`), which are
     // kept so a student does not read `not a > 10` as `(not a) > 10`.
-    if (e.operator === 'not') return `not ${operand(e.operand, e.parens ? PRIMARY : PRECEDENCE.not)}`;
+    if (e.operator === 'not') return `not ${yield operand(e.operand, e.parens ? PRIMARY : PRECEDENCE.not)}`;
     // `- -5` and `-(-a)` are written with parentheses.
-    const inner = e.operand.type === 'Unary' ? `(${expression(e.operand)})` : operand(e.operand, PRECEDENCE.sign);
+    const inner =
+        e.operand.type === 'Unary' ? `(${yield expression(e.operand)})` : yield operand(e.operand, PRECEDENCE.sign);
     return `${e.operator}${inner}`;
 };
 
@@ -131,11 +136,12 @@ const unary = (e) => {
  * A binary operator: the left side may be of the same precedence (the
  * operators are read from the left), the right side binds tighter.
  * @param {object} e - The Binary.
+ * @yields {object} The writings of its sides (./run.js).
  * @returns {string} The Japanese.
  */
-const binary = (e) => {
+const binary = function* (e) {
     // The left sides of a long chain (`a and b and ... and z`) are followed in
-    // a loop, not by recursion, so thousands of terms do not run out of the stack.
+    // a loop, so the text is not made again and again through the chain.
     const needsOf = (b) => {
         const own = PRECEDENCE[b.operator];
         return { own, left: NON_ASSOCIATIVE.has(b.operator) ? own + 1 : own };
@@ -146,10 +152,10 @@ const binary = (e) => {
         current = current.left;
         chain.push(current);
     }
-    let text = operand(current.left, needsOf(current).left);
+    let text = yield operand(current.left, needsOf(current).left);
     for (let i = chain.length - 1; i >= 0; i--) {
         const b = chain[i];
-        const right = operand(b.right, needsOf(b).own + 1);
+        const right = yield operand(b.right, needsOf(b).own + 1);
         text =
             b.operator === '..' || b.operator === '...'
                 ? `${text}${b.operator}${right}`
@@ -202,16 +208,17 @@ class JaWriter {
      * @param {Array<object>} body - The statements.
      * @param {number} depth - The indent level.
      * @param {?number} after - The line before the first statement (for the blank lines).
+     * @yields {object} The writings of the statements (./run.js).
      * @returns {?number} The last line the statements take.
      */
-    body(body, depth, after) {
+    *body(body, depth, after) {
         let last = after;
-        body.forEach((s) => {
+        for (const s of body) {
             if (typeof s.line === 'number' && typeof last === 'number') this.gap(last + 1, s.line - 1);
-            this.statement(s, depth);
+            yield this.statement(s, depth);
             const end = s.closeLine || s.endLine || s.line;
             if (typeof end === 'number') last = end;
-        });
+        }
         return last;
     }
 
@@ -219,25 +226,26 @@ class JaWriter {
      * Write one statement.
      * @param {object} s - The statement.
      * @param {number} depth - The indent level.
+     * @yields {object} The writings of its parts (./run.js).
      */
-    statement(s, depth) {
+    *statement(s, depth) {
         switch (s.type) {
             case 'If':
-                this.ifStatement(s, depth);
+                yield this.ifStatement(s, depth);
                 return;
             case 'While':
-                this.block(s, depth, `${expression(s.condition)} の間繰り返す:`);
+                yield this.block(s, depth, `${yield expression(s.condition)} の間繰り返す:`);
                 return;
             case 'For': {
                 const way = s.direction === 'down' ? '減らしながら' : '増やしながら';
                 const head =
-                    `${s.variable.name} を ${expression(s.from)} から ${expression(s.to)} まで ` +
-                    `${expression(s.step)} ずつ${way}繰り返す:`;
-                this.block(s, depth, head);
+                    `${s.variable.name} を ${yield expression(s.from)} から ${yield expression(s.to)} まで ` +
+                    `${yield expression(s.step)} ずつ${way}繰り返す:`;
+                yield this.block(s, depth, head);
                 return;
             }
             case 'FunctionDef':
-                this.block(s, depth, `関数 ${s.name}(${s.params.join(', ')}):`);
+                yield this.block(s, depth, `関数 ${s.name}(${s.params.join(', ')}):`);
                 return;
             case 'Comment':
                 this.push(depth, writeComment(s.text, this.settings), null, { isComment: true });
@@ -246,31 +254,32 @@ class JaWriter {
                 this.rubyCode(s, depth);
                 return;
             default:
-                this.push(depth, this.simple(s), s.comment);
+                this.push(depth, yield this.simple(s), s.comment);
         }
     }
 
     /**
      * The text of a statement of one line.
      * @param {object} s - The statement.
+     * @yields {object} The writings of its expressions (./run.js).
      * @returns {string} The Japanese.
      */
-    simple(s) {
+    *simple(s) {
         switch (s.type) {
             case 'Assign':
-                return `${expression(s.target)} = ${expression(s.value)}`;
+                return `${yield expression(s.target)} = ${yield expression(s.value)}`;
             case 'OpAssign':
-                return `${expression(s.target)} ${s.operator}= ${expression(s.value)}`;
+                return `${yield expression(s.target)} ${s.operator}= ${yield expression(s.value)}`;
             case 'MultiAssign':
-                return `${s.targets.map(expression).join(', ')} = ${s.values.map(expression).join(', ')}`;
+                return `${(yield each(s.targets, expression)).join(', ')} = ${(yield each(s.values, expression)).join(', ')}`;
             case 'Input':
-                return `${expression(s.target)} = ${INPUTS[s.kind]}`;
+                return `${yield expression(s.target)} = ${INPUTS[s.kind]}`;
             case 'ExpressionStatement':
-                return expression(s.expression);
+                return yield expression(s.expression);
             case 'Return':
-                return s.value ? `${expression(s.value)} を返す` : '返す';
+                return s.value ? `${yield expression(s.value)} を返す` : '返す';
             case 'Append':
-                return `${expression(s.target)} に ${expression(s.value)} を追加する`;
+                return `${yield expression(s.target)} に ${yield expression(s.value)} を追加する`;
             default:
                 throw new Error(`ja-notation: cannot write ${s.type}`);
         }
@@ -307,10 +316,11 @@ class JaWriter {
      * @param {object} s - The statement.
      * @param {number} depth - The indent level.
      * @param {string} head - The opening line.
+     * @yields {object} The writings of its body (./run.js).
      */
-    block(s, depth, head) {
+    *block(s, depth, head) {
         this.push(depth, head, s.comment);
-        const last = this.body(s.body, depth + 1, s.line);
+        const last = yield this.body(s.body, depth + 1, s.line);
         this.close(s, depth, last, !JaWriter.hasLine(s.body));
     }
 
@@ -318,21 +328,24 @@ class JaWriter {
      * `もし`, with its branches.
      * @param {object} s - The If.
      * @param {number} depth - The indent level.
+     * @yields {object} The writings of its parts (./run.js).
      */
-    ifStatement(s, depth) {
+    *ifStatement(s, depth) {
         let empty = false;
         let last = null;
-        s.branches.forEach((branch, i) => {
+        for (let i = 0; i < s.branches.length; i++) {
+            const branch = s.branches[i];
             if (i > 0) this.gap(last + 1, branch.line - 1);
             const word = i === 0 ? 'もし' : 'そうでなくもし';
-            this.push(depth, `${word} ${expression(branch.condition)} ならば:`, i === 0 ? s.comment : branch.comment);
-            last = this.body(branch.body, depth + 1, branch.line);
+            const condition = yield expression(branch.condition);
+            this.push(depth, `${word} ${condition} ならば:`, i === 0 ? s.comment : branch.comment);
+            last = yield this.body(branch.body, depth + 1, branch.line);
             if (!JaWriter.hasLine(branch.body)) empty = true;
-        });
+        }
         if (s.elseBody) {
             if (typeof last === 'number' && typeof s.elseLine === 'number') this.gap(last + 1, s.elseLine - 1);
             this.push(depth, 'そうでなければ:', s.elseComment);
-            last = this.body(s.elseBody, depth + 1, s.elseLine);
+            last = yield this.body(s.elseBody, depth + 1, s.elseLine);
             if (!JaWriter.hasLine(s.elseBody)) empty = true;
         }
         this.close(s, depth, last, empty);
@@ -377,7 +390,7 @@ class JaWriter {
  */
 const writeJa = (program) => {
     const writer = new JaWriter(program);
-    const last = writer.body(program.body, 0, 0);
+    const last = run(writer.body(program.body, 0, 0));
     if (typeof program.lineCount === 'number') writer.gap((last || 0) + 1, program.lineCount);
     return writer.lines().join('\n');
 };

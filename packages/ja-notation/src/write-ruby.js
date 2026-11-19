@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // ja-notation: write the Ruby text of a RubyAST (./build-ruby.js), and which
 // Japanese line each Ruby line comes from. See ../LICENSE.
+import { each, run } from './run.js';
 
 /** How strongly each operator binds (higher binds tighter). */
 const PRECEDENCE = {
@@ -41,14 +42,19 @@ const precedenceOf = (node) => {
     return PRIMARY;
 };
 
-/** Writes the Ruby of expressions and of statements of one line. */
+/**
+ * Writes the Ruby of expressions and of statements of one line. The writings
+ * are generators run by `run` (./run.js), so a deep expression does not run
+ * out of the call stack.
+ */
 const TEXT = {
     /**
      * Write an expression.
      * @param {object} node - The RubyAST expression.
+     * @yields {object} The writings of its parts (./run.js).
      * @returns {string} The Ruby.
      */
-    expression(node) {
+    *expression(node) {
         switch (node.type) {
             case 'IntegerNode':
             case 'FloatNode':
@@ -66,16 +72,16 @@ const TEXT = {
             case 'ConstantReadNode':
                 return node.name;
             case 'ArrayNode':
-                return `[${node.elements.map((x) => this.expression(x)).join(', ')}]`;
+                return `[${(yield each(node.elements, (x) => this.expression(x))).join(', ')}]`;
             case 'AndNode':
-                return this.binary(node, '&&', node.left, node.right, 'AndNode');
+                return yield this.binary(node, '&&', node.left, node.right, 'AndNode');
             case 'OrNode':
-                return this.binary(node, '||', node.left, node.right, 'OrNode');
+                return yield this.binary(node, '||', node.left, node.right, 'OrNode');
             case 'RangeNode':
                 // Written without spaces (`1..10`), as Ruby programs usually write it.
-                return this.binary(node, node.exclusive ? '...' : '..', node.left, node.right, 'RangeNode', '');
+                return yield this.binary(node, node.exclusive ? '...' : '..', node.left, node.right, 'RangeNode', '');
             case 'CallNode':
-                return this.callNode(node);
+                return yield this.callNode(node);
             default:
                 throw new Error(`ja-notation: cannot write ${node.type}`);
         }
@@ -86,10 +92,11 @@ const TEXT = {
      * @param {object} child - The operand.
      * @param {number} parent - The precedence of the operator.
      * @param {boolean} strict - Whether the same precedence needs parentheses too.
+     * @yields {object} The writings of its parts (./run.js).
      * @returns {string} The Ruby.
      */
-    operand(child, parent, strict) {
-        const text = this.expression(child);
+    *operand(child, parent, strict) {
+        const text = yield this.expression(child);
         const own = precedenceOf(child);
         return own < parent || (strict && own === parent) ? `(${text})` : text;
     },
@@ -102,80 +109,89 @@ const TEXT = {
      * @param {object} right - The right side.
      * @param {string} key - The key in `PRECEDENCE`.
      * @param {string} [space] - What is put on each side of the operator.
+     * @yields {object} The writings of its parts (./run.js).
      * @returns {string} The Ruby.
      */
-    binary(node, symbol, left, right, key, space = ' ') {
+    *binary(node, symbol, left, right, key, space = ' ') {
         const own = PRECEDENCE[key];
         const strict = NON_ASSOCIATIVE.has(key);
-        return `${this.operand(left, own, strict)}${space}${symbol}${space}${this.operand(right, own, true)}`;
+        return `${yield this.operand(left, own, strict)}${space}${symbol}${space}${yield this.operand(right, own, true)}`;
     },
 
     /**
      * A call: an operator, an index, a method or a function.
      * @param {object} node - The CallNode.
+     * @yields {object} The writings of its parts (./run.js).
      * @returns {string} The Ruby.
      */
-    callNode(node) {
+    *callNode(node) {
         const { receiver, name } = node;
         const args = node.arguments;
         if (receiver === null)
-            return args === null ? name : `${name}(${args.map((x) => this.expression(x)).join(', ')})`;
+            return args === null ? name : `${name}(${(yield each(args, (x) => this.expression(x))).join(', ')})`;
         if (name === '-@' || name === '+@') {
             const sign = name[0];
             // `-5` is a number to Ruby, and `-5.abs` is `(-5).abs`: only a variable
             // is written right after the sign.
             const plain = receiver.type === 'InstanceVariableReadNode' || receiver.type === 'LocalVariableReadNode';
-            return plain ? `${sign}${this.expression(receiver)}` : `${sign}(${this.expression(receiver)})`;
+            return plain
+                ? `${sign}${yield this.expression(receiver)}`
+                : `${sign}(${yield this.expression(receiver)})`;
         }
-        if (name === '!') return `!${this.operand(receiver, PRECEDENCE['!'], false)}`;
+        if (name === '!') return `!${yield this.operand(receiver, PRECEDENCE['!'], false)}`;
         if (PRECEDENCE[name]) {
-            return this.binary(node, name, receiver, args[0], name);
+            return yield this.binary(node, name, receiver, args[0], name);
         }
-        const target = this.operand(receiver, PRIMARY, false);
-        if (name === '[]') return `${target}[${this.expression(args[0])}]`;
-        if (name === '[]=') return `${target}[${this.expression(args[0])}] = ${this.expression(args[1])}`;
+        const target = yield this.operand(receiver, PRIMARY, false);
+        if (name === '[]') return `${target}[${yield this.expression(args[0])}]`;
+        if (name === '[]=') return `${target}[${yield this.expression(args[0])}] = ${yield this.expression(args[1])}`;
         return args === null || args.length === 0
             ? `${target}.${name}`
-            : `${target}.${name}(${args.map((x) => this.expression(x)).join(', ')})`;
+            : `${target}.${name}(${(yield each(args, (x) => this.expression(x))).join(', ')})`;
     },
 
     /**
      * The Ruby of a statement that is one line.
      * @param {object} node - The RubyAST statement.
+     * @yields {object} The writings of its parts (./run.js).
      * @returns {string} The Ruby.
      */
-    simpleStatement(node) {
+    *simpleStatement(node) {
         switch (node.type) {
             case 'InstanceVariableWriteNode':
             case 'LocalVariableWriteNode':
-                return `${node.name} = ${this.expression(node.value)}`;
+                return `${node.name} = ${yield this.expression(node.value)}`;
             case 'InstanceVariableOperatorWriteNode':
             case 'LocalVariableOperatorWriteNode':
-                return `${node.name} ${node.operator}= ${this.expression(node.value)}`;
+                return `${node.name} ${node.operator}= ${yield this.expression(node.value)}`;
             case 'IndexOperatorWriteNode':
-                return `${this.operand(node.receiver, PRIMARY, false)}[${this.expression(node.index)}] ${node.operator}= ${this.expression(
+                return `${yield this.operand(node.receiver, PRIMARY, false)}[${yield this.expression(node.index)}] ${node.operator}= ${yield this.expression(
                     node.value,
                 )}`;
-            case 'MultiWriteNode':
-                return `${node.targets.map((t) => (t.type === 'CallNode' ? this.simpleTarget(t) : t.name)).join(', ')} = ${node.values
-                    .map((x) => this.expression(x))
-                    .join(', ')}`;
+            case 'MultiWriteNode': {
+                const targets = yield each(node.targets, function* (target) {
+                    return target.type === 'CallNode' ? yield TEXT.simpleTarget(target) : target.name;
+                });
+                const values = yield each(node.values, (x) => this.expression(x));
+                return `${targets.join(', ')} = ${values.join(', ')}`;
+            }
             case 'ReturnNode':
-                return node.value ? `return ${this.expression(node.value)}` : 'return';
+                return node.value ? `return ${yield this.expression(node.value)}` : 'return';
             case 'CommentLine':
                 return node.text;
             default:
-                return this.expression(node);
+                return yield this.expression(node);
         }
     },
 
     /**
      * An index as the target of a multiple assignment (`A[i], b = 1, 2`).
      * @param {object} node - The `[]=` call without a value.
+     * @yields {object} The writings of its parts (./run.js).
      * @returns {string} The Ruby.
      */
-    simpleTarget(node) {
-        return `${this.operand(node.receiver, PRIMARY, false)}[${this.expression(node.arguments[0])}]`;
+    *simpleTarget(node) {
+        return `${yield this.operand(node.receiver, PRIMARY, false)}[${yield this.expression(node.arguments[0])}]`;
     },
 };
 
@@ -240,7 +256,7 @@ class LineWriter {
             // after its `end`, as the current reader (`dnclToRuby`) puts them.
             this.fill(node.closeLine);
         }
-        before.forEach((s) => this.line(depth + 1, TEXT.simpleStatement(s), node.closeLine, s.comment));
+        before.forEach((s) => this.line(depth + 1, run(TEXT.simpleStatement(s)), node.closeLine, s.comment));
         this.line(depth, 'end', node.closeLine, node.closeComment);
     }
 }
@@ -250,21 +266,22 @@ class LineWriter {
  * @param {LineWriter} out - Where to write.
  * @param {Array<object>} statements - The statements.
  * @param {number} depth - The block depth.
+ * @yields {object} The writings of the statements and their parts (./run.js).
  */
-const writeStatements = (out, statements, depth) => {
-    statements.forEach((node) => {
+const writeStatements = function* (out, statements, depth) {
+    for (const node of statements) {
         switch (node.type) {
             case 'IfNode': {
-                out.statement(depth, `if ${TEXT.expression(node.predicate)}`, node);
-                writeStatements(out, node.statements, depth + 1);
+                out.statement(depth, `if ${yield TEXT.expression(node.predicate)}`, node);
+                yield writeStatements(out, node.statements, depth + 1);
                 let next = node.subsequent;
                 while (next) {
                     if (next.type === 'IfNode') {
-                        out.statement(depth, `elsif ${TEXT.expression(next.predicate)}`, next);
+                        out.statement(depth, `elsif ${yield TEXT.expression(next.predicate)}`, next);
                     } else {
                         out.statement(depth, 'else', next);
                     }
-                    writeStatements(out, next.statements, depth + 1);
+                    yield writeStatements(out, next.statements, depth + 1);
                     next = next.type === 'IfNode' ? next.subsequent : null;
                 }
                 out.end(depth, node);
@@ -273,21 +290,21 @@ const writeStatements = (out, statements, depth) => {
             case 'WhileNode':
             case 'UntilNode': {
                 const keyword = node.type === 'WhileNode' ? 'while' : 'until';
-                out.statement(depth, `${keyword} ${TEXT.expression(node.predicate)}`, node);
+                out.statement(depth, `${keyword} ${yield TEXT.expression(node.predicate)}`, node);
                 const body = node.increment ? node.statements.slice(0, -1) : node.statements;
-                writeStatements(out, body, depth + 1);
+                yield writeStatements(out, body, depth + 1);
                 out.end(depth, node, node.increment ? [node.increment] : []);
                 break;
             }
             case 'DefNode':
                 out.statement(depth, `def ${node.name}(${node.parameters.join(', ')})`, node);
-                writeStatements(out, node.statements, depth + 1);
+                yield writeStatements(out, node.statements, depth + 1);
                 out.end(depth, node);
                 break;
             default:
-                out.statement(depth, TEXT.simpleStatement(node), node);
+                out.statement(depth, yield TEXT.simpleStatement(node), node);
         }
-    });
+    }
 };
 
 /**
@@ -300,7 +317,7 @@ const writeStatements = (out, statements, depth) => {
  */
 const writeRuby = (program, jaLineCount = 0) => {
     const out = new LineWriter();
-    writeStatements(out, program.statements, 0);
+    run(writeStatements(out, program.statements, 0));
     out.fill(jaLineCount);
     return { ruby: out.lines.join('\n'), jaLines: out.jaLines };
 };

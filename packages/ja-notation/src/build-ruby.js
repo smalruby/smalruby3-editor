@@ -11,6 +11,7 @@
 //
 // Every Ruby statement has `jaLine` (the Japanese line it comes from) and may
 // have `comment`; a block has `closeLine` / `closeAfter` (see ./ja-ast.js).
+import { each, run } from './run.js';
 import { indexToRuby, settingsOf } from './settings.js';
 
 /**
@@ -71,42 +72,52 @@ const RUBY = {
 const SAME_OPERATORS = new Set(['+', '-', '*', '/', '%', '==', '!=', '<', '<=', '>', '>=']);
 
 /**
- * Walk the statements of a JaAST (into blocks), calling `visit` on each.
+ * Walk the statements of a JaAST (into blocks), calling `visit` on each. The
+ * blocks are followed with a stack of their own, so blocks in blocks of any
+ * depth do not run out of the call stack (./run.js).
  * @param {Array<object>} body - The statements.
  * @param {function(object): void} visit - Called with each statement.
  */
 const walkStatements = (body, visit) => {
-    body.forEach((statement) => {
-        visit(statement);
-        if (statement.type === 'If') {
-            statement.branches.forEach((branch) => walkStatements(branch.body, visit));
-            if (statement.elseBody) walkStatements(statement.elseBody, visit);
-        } else if (statement.body) {
-            walkStatements(statement.body, visit);
-        }
-    });
+    const bodies = [body];
+    while (bodies.length > 0) {
+        bodies.pop().forEach((statement) => {
+            visit(statement);
+            if (statement.type === 'If') {
+                statement.branches.forEach((branch) => bodies.push(branch.body));
+                if (statement.elseBody) bodies.push(statement.elseBody);
+            } else if (statement.body) {
+                bodies.push(statement.body);
+            }
+        });
+    }
 };
 
 /**
- * Walk the expressions under a node (a statement or an expression).
- * @param {object} node - The node.
+ * Walk the expressions under a node (a statement or an expression), with a
+ * stack of its own: an expression of thousands of terms is as deep.
+ * @param {object} root - The node.
  * @param {function(object): void} visit - Called with each expression.
  */
-const walkExpressions = (node, visit) => {
-    if (!node || typeof node !== 'object') return;
-    if (Array.isArray(node)) {
-        node.forEach((child) => walkExpressions(child, visit));
-        return;
-    }
-    if (node.type && !node.body && !node.branches) visit(node);
-    Object.entries(node).forEach(([key, value]) => {
-        if (key === 'body' || key === 'elseBody') return;
-        if (key === 'branches') {
-            value.forEach((branch) => walkExpressions(branch.condition, visit));
-            return;
+const walkExpressions = (root, visit) => {
+    const nodes = [root];
+    while (nodes.length > 0) {
+        const node = nodes.pop();
+        if (!node || typeof node !== 'object') continue;
+        if (Array.isArray(node)) {
+            node.forEach((child) => nodes.push(child));
+            continue;
         }
-        if (value && typeof value === 'object') walkExpressions(value, visit);
-    });
+        if (node.type && !node.body && !node.branches) visit(node);
+        Object.entries(node).forEach(([key, value]) => {
+            if (key === 'body' || key === 'elseBody') return;
+            if (key === 'branches') {
+                value.forEach((branch) => nodes.push(branch.condition));
+                return;
+            }
+            if (value && typeof value === 'object') nodes.push(value);
+        });
+    }
 };
 
 /**
@@ -210,18 +221,20 @@ class RubyBuilder {
     /**
      * The Ruby index of an element of an array (the arrays of Ruby start at 0).
      * @param {object} index - The JaAST index.
+     * @yields {object} The walks of its parts (./run.js).
      * @returns {object} The RubyAST index.
      */
-    index(index) {
-        return this.expression(indexToRuby(index, this.settings));
+    *index(index) {
+        return yield this.expression(indexToRuby(index, this.settings));
     }
 
     /**
      * An expression.
      * @param {object} e - The JaAST expression.
+     * @yields {object} The walks of its parts (./run.js).
      * @returns {object} The RubyAST expression.
      */
-    expression(e) {
+    *expression(e) {
         switch (e.type) {
             case 'Number':
                 return { type: e.value.includes('.') ? 'FloatNode' : 'IntegerNode', text: e.value };
@@ -232,15 +245,15 @@ class RubyBuilder {
             case 'Name':
                 return this.name(e);
             case 'Index':
-                return call(this.expression(e.target), '[]', [this.index(e.index)]);
+                return call(yield this.expression(e.target), '[]', [yield this.index(e.index)]);
             case 'ArrayLiteral':
-                return { type: 'ArrayNode', elements: e.elements.map((x) => this.expression(x)) };
+                return { type: 'ArrayNode', elements: yield each(e.elements, (x) => this.expression(x)) };
             case 'Call':
-                return this.call(e);
+                return yield this.call(e);
             case 'Unary':
-                return this.unary(e);
+                return yield this.unary(e);
             default:
-                return this.binary(e);
+                return yield this.binary(e);
         }
     }
 
@@ -260,10 +273,11 @@ class RubyBuilder {
     /**
      * A call of a function.
      * @param {object} e - The Call.
+     * @yields {object} The walks of its arguments (./run.js).
      * @returns {object} The node.
      */
-    call(e) {
-        const args = e.args.map((a) => this.expression(a));
+    *call(e) {
+        const args = yield each(e.args, (a) => this.expression(a));
         const entry = this.functions[e.name];
         if (entry) {
             const built = entry.build(args, RUBY);
@@ -283,14 +297,15 @@ class RubyBuilder {
     /**
      * A sign or `not`. A minus before a number is a negative number.
      * @param {object} e - The Unary.
+     * @yields {object} The walk of its operand (./run.js).
      * @returns {object} The node.
      */
-    unary(e) {
+    *unary(e) {
         if (e.operator === '-' && e.operand.type === 'Number') {
-            const number = this.expression(e.operand);
+            const number = yield this.expression(e.operand);
             return { ...number, text: `-${number.text}` };
         }
-        const operand = this.expression(e.operand);
+        const operand = yield this.expression(e.operand);
         if (e.operator === 'not') return call(operand, '!');
         return call(operand, e.operator === '-' ? '-@' : '+@');
     }
@@ -298,16 +313,17 @@ class RubyBuilder {
     /**
      * A binary operator.
      * @param {object} e - The Binary.
+     * @yields {object} The walks of its sides (./run.js).
      * @returns {object} The node.
      */
-    binary(e) {
+    *binary(e) {
         // A minus sign before a quotient is the sign of the quotient:
         // `-a ÷ 2` is `-(a ÷ 2)`, not `(-a) ÷ 2` (they differ for an odd `a`).
         if (e.operator === '÷' && e.left.type === 'Unary' && e.left.operator === '-') {
-            return call(this.binary({ ...e, left: e.left.operand }), '-@');
+            return call(yield this.binary({ ...e, left: e.left.operand }), '-@');
         }
-        const left = this.expression(e.left);
-        const right = this.expression(e.right);
+        const left = yield this.expression(e.left);
+        const right = yield this.expression(e.right);
         if (e.operator === 'and') return { type: 'AndNode', left, right };
         if (e.operator === 'or') return { type: 'OrNode', left, right };
         if (e.operator === '..' || e.operator === '...') {
@@ -324,11 +340,12 @@ class RubyBuilder {
      * The node that gives a value to a target.
      * @param {object} target - The JaAST Name or Index.
      * @param {object} value - The RubyAST value.
+     * @yields {object} The walks of the target (./run.js).
      * @returns {object} The node.
      */
-    write(target, value) {
+    *write(target, value) {
         if (target.type === 'Index') {
-            return call(this.expression(target.target), '[]=', [this.index(target.index), value]);
+            return call(yield this.expression(target.target), '[]=', [yield this.index(target.index), value]);
         }
         const name = this.variableName(target.name);
         return { type: name.startsWith('@') ? 'InstanceVariableWriteNode' : 'LocalVariableWriteNode', name, value };
@@ -337,12 +354,13 @@ class RubyBuilder {
     /**
      * Statements.
      * @param {Array<object>} body - The JaAST statements.
+     * @yields {object} The walks of the statements (./run.js).
      * @returns {Array<object>} The RubyAST statements.
      */
-    statements(body) {
+    *statements(body) {
         const out = [];
-        body.forEach((s) => {
-            const built = this.statement(s);
+        for (const s of body) {
+            const built = yield this.statement(s);
             const list = Array.isArray(built) ? built : [built];
             list.forEach((node) => {
                 if (typeof node.jaLine === 'undefined') node.jaLine = s.line;
@@ -352,45 +370,46 @@ class RubyBuilder {
             // The comment of the line goes after the last Ruby statement made from it.
             if (typeof s.comment !== 'undefined' && list.length > 0) list[list.length - 1].comment = s.comment;
             out.push(...list);
-        });
+        }
         return out;
     }
 
     /**
      * One statement (some become more than one Ruby statement).
      * @param {object} s - The JaAST statement.
+     * @yields {object} The walks of its parts (./run.js).
      * @returns {object|Array<object>} The RubyAST statement(s).
      */
-    statement(s) {
+    *statement(s) {
         switch (s.type) {
             case 'Comment':
                 return { type: 'CommentLine', text: s.text };
             case 'Assign':
-                return this.write(s.target, this.expression(s.value));
+                return yield this.write(s.target, yield this.expression(s.value));
             case 'OpAssign':
-                return this.opWrite(s.target, s.operator, this.expression(s.value));
+                return yield this.opWrite(s.target, s.operator, yield this.expression(s.value));
             case 'MultiAssign':
                 return {
                     type: 'MultiWriteNode',
-                    targets: s.targets.map((t) => this.write(t, null)),
-                    values: s.values.map((v) => this.expression(v)),
+                    targets: yield each(s.targets, (t) => this.write(t, null)),
+                    values: yield each(s.values, (v) => this.expression(v)),
                 };
             case 'Input':
-                return this.input(s);
+                return yield this.input(s);
             case 'ExpressionStatement':
-                return this.expressionStatement(s);
+                return yield this.expressionStatement(s);
             case 'If':
-                return this.ifStatement(s);
+                return yield this.ifStatement(s);
             case 'While':
-                return this.whileStatement(s);
+                return yield this.whileStatement(s);
             case 'For':
-                return this.forStatement(s);
+                return yield this.forStatement(s);
             case 'FunctionDef':
-                return this.functionDef(s);
+                return yield this.functionDef(s);
             case 'Return':
-                return { type: 'ReturnNode', value: s.value ? this.expression(s.value) : null };
+                return { type: 'ReturnNode', value: s.value ? yield this.expression(s.value) : null };
             case 'Append':
-                return call(this.expression(s.target), 'push', [this.expression(s.value)]);
+                return call(yield this.expression(s.target), 'push', [yield this.expression(s.value)]);
             default:
                 this.fail('syntax', `「${s.type}」は書けません`, s);
                 return [];
@@ -402,14 +421,15 @@ class RubyBuilder {
      * @param {object} target - The JaAST target.
      * @param {string} operator - The operator (`+`, ...).
      * @param {object} value - The RubyAST value.
+     * @yields {object} The walks of the target (./run.js).
      * @returns {object} The node.
      */
-    opWrite(target, operator, value) {
+    *opWrite(target, operator, value) {
         if (target.type === 'Index') {
             return {
                 type: 'IndexOperatorWriteNode',
-                receiver: this.expression(target.target),
-                index: this.index(target.index),
+                receiver: yield this.expression(target.target),
+                index: yield this.index(target.index),
                 operator,
                 value,
             };
@@ -422,16 +442,17 @@ class RubyBuilder {
     /**
      * An input (`x = 【整数を入力】`), as the table makes it.
      * @param {object} s - The Input.
+     * @yields {object} The walk of the target (./run.js).
      * @returns {Array<object>} The statements.
      */
-    input(s) {
+    *input(s) {
         const make = this.options.input;
         if (!make) {
             this.fail('syntax', '入力は使えません', s);
             return [];
         }
         const { before, value } = make(s.kind, RUBY);
-        return [...before, this.write(s.target, value)];
+        return [...before, yield this.write(s.target, value)];
     }
 
     /**
@@ -439,9 +460,10 @@ class RubyBuilder {
      * program gives it a value or it starts with an uppercase letter, a call
      * when it is a function; else it is a command the Japanese does not have.
      * @param {object} s - The ExpressionStatement.
+     * @yields {object} The walk of the expression (./run.js).
      * @returns {object} The node.
      */
-    expressionStatement(s) {
+    *expressionStatement(s) {
         const e = s.expression;
         if (
             e.type === 'Name' &&
@@ -452,26 +474,27 @@ class RubyBuilder {
         ) {
             this.fail('unknown-command', `「${e.name}」は日本語モードでは書けない命令です`, e, { name: e.name });
         }
-        return this.expression(e);
+        return yield this.expression(e);
     }
 
     /**
      * `もし`.
      * @param {object} s - The If.
+     * @yields {object} The walks of its parts (./run.js).
      * @returns {object} The IfNode.
      */
-    ifStatement(s) {
+    *ifStatement(s) {
         let subsequent = null;
         if (s.elseBody) {
-            subsequent = { type: 'ElseNode', statements: this.statements(s.elseBody), jaLine: s.elseLine };
+            subsequent = { type: 'ElseNode', statements: yield this.statements(s.elseBody), jaLine: s.elseLine };
             if (typeof s.elseComment !== 'undefined') subsequent.comment = s.elseComment;
         }
         for (let i = s.branches.length - 1; i >= 0; i--) {
             const branch = s.branches[i];
             const node = {
                 type: 'IfNode',
-                predicate: this.expression(branch.condition),
-                statements: this.statements(branch.body),
+                predicate: yield this.expression(branch.condition),
+                statements: yield this.statements(branch.body),
                 subsequent,
                 jaLine: branch.line,
             };
@@ -484,14 +507,15 @@ class RubyBuilder {
     /**
      * `の間繰り返す`. A loop whose condition is a `not` is an `until` loop.
      * @param {object} s - The While.
+     * @yields {object} The walks of its parts (./run.js).
      * @returns {object} The node.
      */
-    whileStatement(s) {
+    *whileStatement(s) {
         const negated = s.condition.type === 'Unary' && s.condition.operator === 'not';
         return {
             type: negated ? 'UntilNode' : 'WhileNode',
-            predicate: this.expression(negated ? s.condition.operand : s.condition),
-            statements: this.statements(s.body),
+            predicate: yield this.expression(negated ? s.condition.operand : s.condition),
+            statements: yield this.statements(s.body),
             ...closing(s),
         };
     }
@@ -501,26 +525,27 @@ class RubyBuilder {
      * the start, and the loop runs while it has not passed the end, adding the
      * step at the end of each time.
      * @param {object} s - The For.
+     * @yields {object} The walks of its parts (./run.js).
      * @returns {Array<object>} The assignment and the loop.
      */
-    forStatement(s) {
+    *forStatement(s) {
         const variable = s.variable;
         const up = s.direction === 'up';
-        let step = this.expression(s.step);
+        let step = yield this.expression(s.step);
         if (!up) {
             step =
                 (step.type === 'IntegerNode' || step.type === 'FloatNode') && !step.text.startsWith('-')
                     ? { ...step, text: `-${step.text}` }
                     : call(step, '-@');
         }
-        const init = this.write(variable, this.expression(s.from));
-        const increment = this.opWrite(variable, '+', step);
+        const init = yield this.write(variable, yield this.expression(s.from));
+        const increment = yield this.opWrite(variable, '+', step);
         increment.jaLine = s.closeLine;
-        const body = this.statements(s.body);
+        const body = yield this.statements(s.body);
         body.push(increment);
         const loop = {
             type: 'WhileNode',
-            predicate: call(this.read(variable.name), up ? '<=' : '>=', [this.expression(s.to)]),
+            predicate: call(this.read(variable.name), up ? '<=' : '>=', [yield this.expression(s.to)]),
             statements: body,
             ...closing(s),
             jaLine: s.line,
@@ -533,12 +558,13 @@ class RubyBuilder {
     /**
      * `関数 名前(引数):`. Inside, the parameters are local variables.
      * @param {object} s - The FunctionDef.
+     * @yields {object} The walks of its statements (./run.js).
      * @returns {object} The DefNode.
      */
-    functionDef(s) {
+    *functionDef(s) {
         const outer = this.params;
         this.params = new Set(s.params);
-        const statements = this.statements(s.body);
+        const statements = yield this.statements(s.body);
         this.params = outer;
         return {
             type: 'DefNode',
@@ -566,7 +592,7 @@ class RubyBuilder {
  */
 const buildRuby = (program, options = {}) => {
     const builder = new RubyBuilder(program, options);
-    const statements = builder.statements(program.body);
+    const statements = run(builder.statements(program.body));
     if (builder.errors.length > 0) return { ruby: null, errors: builder.errors };
     return { ruby: { type: 'ProgramNode', statements }, errors: [] };
 };

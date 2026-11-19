@@ -16,6 +16,7 @@
 // the comments at the top (./settings.js), and what they change is changed
 // back on the tree: with indexes from 1, `@A[i - 1]` is read as `A[i]`.
 import { callOf, childrenOf, field, hasFlag, SourceIndex, statementsOf, typeOf, unwrap } from './prism-reader.js';
+import { each, run } from './run.js';
 import { indexToJa, readSettings } from './settings.js';
 
 /** The binary operators of Ruby that are the same in the Japanese. */
@@ -264,9 +265,10 @@ class RubyReader {
      * read, so the calls and numbers in it are told, and when none of them
      * is, the Ruby itself is (`no-ja-form`).
      * @param {object} node - The node.
+     * @yields {object} The readings of its parts (./run.js).
      * @returns {object} The RubyCode.
      */
-    raw(node) {
+    *raw(node) {
         const { start, end } = this.span(node);
         this.useCommentsIn(start, end);
         // An error already told at this Ruby (a call the Japanese does not
@@ -274,7 +276,7 @@ class RubyReader {
         const told = this.errorStarts.some((at) => at >= start && at < end);
         // The Ruby inside it is a part of it: only the outermost is told.
         this.rawDepth += 1;
-        this.scan(node);
+        yield this.scan(node);
         this.rawDepth -= 1;
         if (!told && this.rawDepth === 0 && !this.hasSyntaxErrors) this.failNoForm(node);
         const { line, column } = this.index.place(start);
@@ -284,14 +286,15 @@ class RubyReader {
     /**
      * Read the parts of a node only for their errors.
      * @param {object} node - The node.
+     * @yields {object} The readings of its parts (./run.js).
      */
-    scan(node) {
-        childrenOf(node).forEach((child) => {
+    *scan(node) {
+        for (const child of childrenOf(node)) {
             const type = typeOf(child);
-            if (type === 'StatementsNode') this.statements(statementsOf(child), null);
-            else if (type === 'BlockNode') this.scan(child);
-            else if (type) this.expression(child);
-        });
+            if (type === 'StatementsNode') yield this.statements(statementsOf(child), null);
+            else if (type === 'BlockNode') yield this.scan(child);
+            else if (type) yield this.expression(child);
+        }
     }
 
     /**
@@ -311,23 +314,25 @@ class RubyReader {
      * @param {Array<object>} nodes - The prism statements.
      * @param {?{from: number, to: number}} range - The lines the body has (null
      *   when the statements are only read for their errors).
+     * @yields {object} The readings of its parts (./run.js).
      * @returns {Array<object>} The JaAST statements.
      */
-    statements(nodes, range) {
+    *statements(nodes, range) {
         const out = [];
         for (let i = 0; i < nodes.length; i++) {
-            const pair = this.countingLoop(nodes[i], nodes[i + 1]) || this.input(nodes[i], nodes[i + 1]);
+            const pair =
+                (yield this.countingLoop(nodes[i], nodes[i + 1])) || (yield this.input(nodes[i], nodes[i + 1]));
             if (pair) {
                 out.push(pair);
                 i++;
                 continue;
             }
-            const alone = this.inputAlone(nodes[i]);
+            const alone = yield this.inputAlone(nodes[i]);
             if (alone) {
                 out.push(alone);
                 continue;
             }
-            const statement = this.statement(nodes[i]);
+            const statement = yield this.statement(nodes[i]);
             if (!BLOCK_TYPES.has(statement.type)) {
                 const comment = this.takeComments(statement.line, statement.endLine);
                 if (comment) statement.comment = comment;
@@ -346,60 +351,61 @@ class RubyReader {
     /**
      * One statement.
      * @param {object} node - The prism statement.
+     * @yields {object} The readings of its parts (./run.js).
      * @returns {object} The JaAST statement.
      */
-    statement(node) {
+    *statement(node) {
         const type = typeOf(node);
         switch (type) {
             case 'IfNode':
-                return this.ifStatement(node);
+                return yield this.ifStatement(node);
             case 'WhileNode':
             case 'UntilNode':
-                return this.loopStatement(node, type === 'UntilNode');
+                return yield this.loopStatement(node, type === 'UntilNode');
             case 'DefNode':
-                return this.functionDef(node);
+                return yield this.functionDef(node);
             case 'ReturnNode': {
                 const args = field(node, 'arguments');
                 const values = args ? field(args, 'arguments') : [];
-                if (values.length > 1) return this.rawStatement(node);
-                return this.at(node, { type: 'Return', value: values[0] ? this.expression(values[0]) : null });
+                if (values.length > 1) return yield this.rawStatement(node);
+                return this.at(node, { type: 'Return', value: values[0] ? yield this.expression(values[0]) : null });
             }
             case 'MultiWriteNode':
-                return this.multiAssign(node);
+                return yield this.multiAssign(node);
             case 'GlobalVariableWriteNode':
             case 'GlobalVariableOperatorWriteNode':
             case 'GlobalVariableOrWriteNode':
             case 'GlobalVariableAndWriteNode':
                 this.failStageVariable(node);
-                return this.rawStatement(node);
+                return yield this.rawStatement(node);
             case 'InstanceVariableOperatorWriteNode':
             case 'LocalVariableOperatorWriteNode':
             case 'ConstantOperatorWriteNode':
             case 'IndexOperatorWriteNode':
-                return this.opAssign(node);
+                return yield this.opAssign(node);
             default:
                 break;
         }
         if (VARIABLE_WRITES[type]) {
             const target = this.target(node);
-            if (!target) return this.rawStatement(node);
-            return this.at(node, { type: 'Assign', target, value: this.expression(field(node, 'value')) });
+            if (!target) return yield this.rawStatement(node);
+            return this.at(node, { type: 'Assign', target, value: yield this.expression(field(node, 'value')) });
         }
         if (JUMPS[type]) {
             this.fail('unknown-command', `「${JUMPS[type]}」は日本語では書けない命令です`, node, {
                 name: JUMPS[type],
             });
-            return this.rawStatement(node);
+            return yield this.rawStatement(node);
         }
         const call = callOf(node);
         if (call && call.name === '[]=' && call.receiver && call.args && call.args.length === 2 && !call.block) {
-            const target = this.indexOf(call.receiver, call.args[0]);
-            return this.at(node, { type: 'Assign', target, value: this.expression(call.args[1]) });
+            const target = yield this.indexOf(call.receiver, call.args[0]);
+            return this.at(node, { type: 'Assign', target, value: yield this.expression(call.args[1]) });
         }
-        if (call && call.block) return this.blockCall(call);
-        const append = this.append(node, call);
+        if (call && call.block) return yield this.blockCall(call);
+        const append = yield this.append(node, call);
         if (append) return append;
-        const expression = this.expression(node);
+        const expression = yield this.expression(node);
         if (expression.type === 'RubyCode') return this.at(node, { ...expression, type: 'RubyCode' });
         return this.at(node, { type: 'ExpressionStatement', expression });
     }
@@ -408,28 +414,30 @@ class RubyReader {
      * `A.push(値)` / `A << 値` of an array variable: `A に 値 を追加する` (Issue #1759).
      * @param {object} node - The statement.
      * @param {?object} call - The call of the statement.
+     * @yields {object} The readings of its parts (./run.js).
      * @returns {?object} The Append statement, or null when it is not one.
      */
-    append(node, call) {
+    *append(node, call) {
         if (!call || (call.name !== 'push' && call.name !== '<<') || !call.receiver || call.block) return null;
         if (!call.args || call.args.length !== 1) return null;
         // `$a.push(1)`: the list of the stage is told, not the call (Issue #1706).
         if (STAGE_VARIABLE_TYPES.has(typeOf(call.receiver))) {
             this.failStageVariable(call.receiver);
-            return this.rawStatement(node);
+            return yield this.rawStatement(node);
         }
-        const target = this.expression(call.receiver);
+        const target = yield this.expression(call.receiver);
         if (target.type !== 'Name') return null;
-        return this.at(node, { type: 'Append', target, value: this.expression(call.args[0]) });
+        return this.at(node, { type: 'Append', target, value: yield this.expression(call.args[0]) });
     }
 
     /**
      * A statement with no Japanese form.
      * @param {object} node - The node.
+     * @yields {object} The readings of its parts (./run.js).
      * @returns {object} The RubyCode statement.
      */
-    rawStatement(node) {
-        return this.at(node, this.raw(node));
+    *rawStatement(node) {
+        return this.at(node, yield this.raw(node));
     }
 
     /**
@@ -454,78 +462,96 @@ class RubyReader {
      * An element of an array.
      * @param {object} receiver - The array.
      * @param {object} index - The index.
+     * @yields {object} The readings of its parts (./run.js).
      * @returns {object} The Index.
      */
-    indexOf(receiver, index) {
-        const target = this.expression(receiver);
-        const ja = indexToJa(this.expression(index), this.settings);
+    *indexOf(receiver, index) {
+        const target = yield this.expression(receiver);
+        const ja = indexToJa(yield this.expression(index), this.settings);
         return { type: 'Index', target, index: ja, line: target.line, column: target.column };
+    }
+
+    /**
+     * A target of a multiple assignment: a variable or an element of an array,
+     * or null when it has no Japanese form.
+     * @param {object} left - The prism target.
+     * @yields {object} The reading of an index (./run.js).
+     * @returns {?object} The Name or the Index.
+     */
+    *multiTarget(left) {
+        const type = typeOf(left);
+        if (/^(?:InstanceVariable|LocalVariable|Constant)TargetNode$/.test(type)) return this.target(left);
+        if (STAGE_VARIABLE_TYPES.has(type)) {
+            this.failStageVariable(left);
+            return null;
+        }
+        // `@a[0], @a[1] = @a[1], @a[0]`: an element of an array (Issue #2237).
+        if (type === 'IndexTargetNode') {
+            const args = field(left, 'arguments');
+            const indexes = args ? field(args, 'arguments') : [];
+            if (indexes.length !== 1 || field(left, 'block')) return null;
+            return yield this.indexOf(field(left, 'receiver'), indexes[0]);
+        }
+        return null;
     }
 
     /**
      * `a, b = 1, 2`.
      * @param {object} node - The MultiWriteNode.
+     * @yields {object} The readings of its parts (./run.js).
      * @returns {object} The statement.
      */
-    multiAssign(node) {
+    *multiAssign(node) {
         const lefts = field(node, 'lefts');
         const value = field(node, 'value');
-        const targets = lefts.map((left) => {
-            const type = typeOf(left);
-            if (/^(?:InstanceVariable|LocalVariable|Constant)TargetNode$/.test(type)) return this.target(left);
-            if (STAGE_VARIABLE_TYPES.has(type)) {
-                this.failStageVariable(left);
-                return null;
-            }
-            // `@a[0], @a[1] = @a[1], @a[0]`: an element of an array (Issue #2237).
-            if (type === 'IndexTargetNode') {
-                const args = field(left, 'arguments');
-                const indexes = args ? field(args, 'arguments') : [];
-                if (indexes.length !== 1 || field(left, 'block')) return null;
-                return this.indexOf(field(left, 'receiver'), indexes[0]);
-            }
-            return null;
-        });
+        const targets = yield each(lefts, (left) => this.multiTarget(left));
         const plain =
             field(node, 'rest') === null &&
             field(node, 'rights').length === 0 &&
             targets.every(Boolean) &&
             typeOf(value) === 'ArrayNode' &&
             field(value, 'openingLoc') === null;
-        if (!plain) return this.rawStatement(node);
-        const values = field(value, 'elements').map((element) => this.expression(element));
+        if (!plain) return yield this.rawStatement(node);
+        const values = yield each(field(value, 'elements'), (element) => this.expression(element));
         return this.at(node, { type: 'MultiAssign', targets, values });
     }
 
     /**
      * `i += 1`, `A[i] += 1`.
      * @param {object} node - The operator write.
+     * @yields {object} The readings of its parts (./run.js).
      * @returns {object} The statement.
      */
-    opAssign(node) {
+    *opAssign(node) {
         const operator = field(node, 'binaryOperator');
-        if (!OP_ASSIGN_OPERATORS.has(operator)) return this.rawStatement(node);
+        if (!OP_ASSIGN_OPERATORS.has(operator)) return yield this.rawStatement(node);
         let target;
         if (typeOf(node) === 'IndexOperatorWriteNode') {
             const args = field(node, 'arguments');
             const indexes = args ? field(args, 'arguments') : [];
-            if (indexes.length !== 1 || field(node, 'block')) return this.rawStatement(node);
-            target = this.indexOf(field(node, 'receiver'), indexes[0]);
+            if (indexes.length !== 1 || field(node, 'block')) return yield this.rawStatement(node);
+            target = yield this.indexOf(field(node, 'receiver'), indexes[0]);
         } else {
             target = this.target(node);
         }
-        if (!target) return this.rawStatement(node);
-        return this.at(node, { type: 'OpAssign', target, operator, value: this.expression(field(node, 'value')) });
+        if (!target) return yield this.rawStatement(node);
+        return this.at(node, {
+            type: 'OpAssign',
+            target,
+            operator,
+            value: yield this.expression(field(node, 'value')),
+        });
     }
 
     /**
      * `if`, `elsif`, `else`. A modifier (`x if a`) has no Japanese form.
      * @param {object} node - The IfNode.
+     * @yields {object} The readings of its parts (./run.js).
      * @returns {object} The If.
      */
-    ifStatement(node) {
+    *ifStatement(node) {
         const end = field(node, 'endKeywordLoc');
-        if (!end) return this.rawStatement(node);
+        if (!end) return yield this.rawStatement(node);
         const closeLine = this.lineOf(end);
         const line = this.lineOf(node);
         const parts = [];
@@ -538,22 +564,26 @@ class RubyReader {
         const elseLine = elseNode ? this.lineOf(field(elseNode, 'elseKeywordLoc')) : null;
         const statement = { type: 'If', branches: [], elseBody: null, elseLine, line, column: 0, endLine: closeLine };
         const ends = [...parts.slice(1).map((part) => part.line), elseLine || closeLine, closeLine];
-        parts.forEach((part, i) => {
+        for (let i = 0; i < parts.length; i++) {
+            const part = parts[i];
             const predicate = field(part.node, 'predicate');
-            const condition = this.expression(predicate);
+            const condition = yield this.expression(predicate);
             const comment = this.takeComments(part.line, this.endLineOf(predicate));
             const range = { from: part.line + 1, to: ends[i] - 1 };
-            const branch = { condition, body: this.statements(statementsOf(field(part.node, 'statements')), range) };
+            const branch = {
+                condition,
+                body: yield this.statements(statementsOf(field(part.node, 'statements')), range),
+            };
             branch.line = part.line;
             if (i === 0 && comment) statement.comment = comment;
             if (i > 0 && comment) branch.comment = comment;
             statement.branches.push(branch);
-        });
+        }
         if (elseNode) {
             const elseComment = this.takeComments(elseLine);
             if (elseComment) statement.elseComment = elseComment;
             const range = { from: elseLine + 1, to: closeLine - 1 };
-            statement.elseBody = this.statements(statementsOf(field(elseNode, 'statements')), range);
+            statement.elseBody = yield this.statements(statementsOf(field(elseNode, 'statements')), range);
         }
         statement.closeLine = closeLine;
         const closeComment = this.takeComments(closeLine);
@@ -567,16 +597,17 @@ class RubyReader {
      * `begin ... end while c` (the post-test loop) has no Japanese form.
      * @param {object} node - The WhileNode or UntilNode.
      * @param {boolean} until - Whether it is an `until`.
+     * @yields {object} The readings of its parts (./run.js).
      * @returns {object} The While (or the RubyCode).
      */
-    loopStatement(node, until) {
+    *loopStatement(node, until) {
         const predicate = field(node, 'predicate');
         if (hasFlag(node, 'isBeginModifier')) {
             const message = '後判定の繰り返しは日本語では書けません';
             const body = statementsOf(field(node, 'statements'));
             this.fail('post-test-loop', message, body[0] || node);
             this.fail('post-test-loop', message, field(node, 'keywordLoc'));
-            return this.rawStatement(node);
+            return yield this.rawStatement(node);
         }
         const negate = (condition) => ({
             type: 'Unary',
@@ -590,11 +621,11 @@ class RubyReader {
             const body = statementsOf(field(node, 'statements'));
             const call = body.length === 1 ? callOf(body[0]) : null;
             const isWait = call && call.name === 'wait' && !call.receiver && call.isVariableCall;
-            if (!until || !isWait) return this.rawStatement(node);
+            if (!until || !isWait) return yield this.rawStatement(node);
             const line = this.lineOf(node);
             return {
                 type: 'While',
-                condition: negate(this.expression(predicate)),
+                condition: negate(yield this.expression(predicate)),
                 body: [],
                 line,
                 column: 0,
@@ -603,13 +634,13 @@ class RubyReader {
         }
         const line = this.lineOf(field(node, 'keywordLoc'));
         const closeLine = this.lineOf(closing);
-        const condition = this.expression(predicate);
+        const condition = yield this.expression(predicate);
         const comment = this.takeComments(line, this.endLineOf(predicate));
         const range = { from: line + 1, to: closeLine - 1 };
         const statement = {
             type: 'While',
             condition: until ? negate(condition) : condition,
-            body: this.statements(statementsOf(field(node, 'statements')), range),
+            body: yield this.statements(statementsOf(field(node, 'statements')), range),
             line,
             column: 0,
             endLine: closeLine,
@@ -624,9 +655,10 @@ class RubyReader {
     /**
      * `def name(a, b)`. Only plain parameters have a Japanese form.
      * @param {object} node - The DefNode.
+     * @yields {object} The readings of its parts (./run.js).
      * @returns {object} The FunctionDef.
      */
-    functionDef(node) {
+    *functionDef(node) {
         const parameters = field(node, 'parameters');
         const body = field(node, 'body');
         const end = field(node, 'endKeywordLoc');
@@ -637,9 +669,9 @@ class RubyReader {
             (parameters === null ||
                 ['optionals', 'posts', 'keywords'].every((key) => field(parameters, key).length === 0)) &&
             (parameters === null || ['rest', 'keywordRest', 'block'].every((key) => field(parameters, key) === null));
-        if (!plain) return this.rawStatement(node);
+        if (!plain) return yield this.rawStatement(node);
         const params = parameters ? field(parameters, 'requireds').map((p) => field(p, 'name')) : [];
-        if (params.some((p) => typeof p !== 'string')) return this.rawStatement(node);
+        if (params.some((p) => typeof p !== 'string')) return yield this.rawStatement(node);
         const line = this.lineOf(node);
         const closeLine = this.lineOf(end);
         const comment = this.takeComments(line);
@@ -647,7 +679,7 @@ class RubyReader {
             type: 'FunctionDef',
             name: field(node, 'name'),
             params,
-            body: this.statements(statementsOf(body), { from: line + 1, to: closeLine - 1 }),
+            body: yield this.statements(statementsOf(body), { from: line + 1, to: closeLine - 1 }),
             line,
             column: 0,
             endLine: closeLine,
@@ -663,21 +695,23 @@ class RubyReader {
      * A call with a block. `n.times do`, `(a..b).step(s) do |i|` and
      * `a.step(b, -s) do |i|` are counting loops; any other has no Japanese form.
      * @param {object} call - The call.
+     * @yields {object} The readings of its parts (./run.js).
      * @returns {object} The statement.
      */
-    blockCall(call) {
-        const loop = this.iteratorLoop(call);
+    *blockCall(call) {
+        const loop = yield this.iteratorLoop(call);
         if (loop) return loop;
         if (!this.isKnownCall(call)) this.failCall(call);
-        return this.rawStatement(call.node);
+        return yield this.rawStatement(call.node);
     }
 
     /**
      * The counting loop of a Ruby iterator, or null.
      * @param {object} call - The call.
+     * @yields {object} The readings of its parts (./run.js).
      * @returns {?object} The For.
      */
-    iteratorLoop(call) {
+    *iteratorLoop(call) {
         const block = call.block;
         if (typeOf(block) !== 'BlockNode' || !call.receiver || !call.args) return null;
         const body = field(block, 'body');
@@ -694,20 +728,20 @@ class RubyReader {
         if (call.name === 'times' && call.args.length === 0 && !blockParams) {
             variable = '_';
             from = one;
-            to = this.expression(call.receiver);
+            to = yield this.expression(call.receiver);
             step = one;
         } else if (call.name === 'step' && names.length === 1 && !params.rest) {
             const range = unwrap(call.receiver);
             if (call.args.length === 1 && typeOf(range) === 'RangeNode' && !hasFlag(range, 'isExcludeEnd')) {
                 if (!field(range, 'left') || !field(range, 'right')) return null;
-                from = this.expression(field(range, 'left'));
-                to = this.expression(field(range, 'right'));
-                step = this.expression(call.args[0]);
+                from = yield this.expression(field(range, 'left'));
+                to = yield this.expression(field(range, 'right'));
+                step = yield this.expression(call.args[0]);
             } else if (call.args.length === 2) {
-                const negated = this.negatedOperand(call.args[1]);
+                const negated = yield this.negatedOperand(call.args[1]);
                 if (!negated) return null;
-                from = this.expression(call.receiver);
-                to = this.expression(call.args[0]);
+                from = yield this.expression(call.receiver);
+                to = yield this.expression(call.args[0]);
                 step = negated;
                 direction = 'down';
             } else {
@@ -727,7 +761,7 @@ class RubyReader {
             to,
             step,
             direction,
-            body: this.statements(statementsOf(body), { from: line + 1, to: closeLine - 1 }),
+            body: yield this.statements(statementsOf(body), { from: line + 1, to: closeLine - 1 }),
             line,
             column: 0,
             endLine: closeLine,
@@ -742,16 +776,17 @@ class RubyReader {
     /**
      * The JaAST of `X` when the node is `-X` (or a negative number), else null.
      * @param {object} node - The node.
+     * @yields {object} The readings of its parts (./run.js).
      * @returns {?object} The expression of `X`.
      */
-    negatedOperand(node) {
+    *negatedOperand(node) {
         const type = typeOf(node);
         if ((type === 'IntegerNode' || type === 'FloatNode') && this.text(node).startsWith('-')) {
-            const number = this.expression(node);
+            const number = yield this.expression(node);
             return number.operand;
         }
         const call = callOf(node);
-        if (call && call.name === '-@' && call.receiver) return this.expression(call.receiver);
+        if (call && call.name === '-@' && call.receiver) return yield this.expression(call.receiver);
         return null;
     }
 
@@ -777,13 +812,14 @@ class RubyReader {
      * @param {function(object, object): ?string} kindOf - The kind of input the value is.
      * @param {number} line - The first line of the Input.
      * @param {number} endLine - The last line of the Input.
+     * @yields {object} The readings of its parts (./run.js).
      * @returns {?object} The Input, or null.
      */
-    inputOf(assignment, kindOf, line, endLine) {
+    *inputOf(assignment, kindOf, line, endLine) {
         let target = assignment && assignment.target;
         const kind = target && kindOf(assignment.value, this.helpers());
         if (!kind) return null;
-        if (target.write) target = this.indexOf(target.write.receiver, target.write.args[0]);
+        if (target.write) target = yield this.indexOf(target.write.receiver, target.write.args[0]);
         const statement = { type: 'Input', target, kind, line, column: 0, endLine };
         const comment = this.takeComments(line, endLine);
         if (comment) statement.comment = comment;
@@ -795,14 +831,15 @@ class RubyReader {
      * its answer on the next line, as the caller tells them (`options.input`).
      * @param {object} node - The statement.
      * @param {object} [next] - The statement after it.
+     * @yields {object} The readings of its parts (./run.js).
      * @returns {?object} The Input, or null.
      */
-    input(node, next) {
+    *input(node, next) {
         const input = this.options.input;
         const call = callOf(node);
         if (!input || !input.isQuestion || !next || !call || !input.isQuestion(call, this.helpers())) return null;
         if (this.lineOf(next) !== this.endLineOf(node) + 1) return null;
-        return this.inputOf(
+        return yield this.inputOf(
             this.assignmentOf(next),
             (value, helpers) => input.kindOf(value, helpers),
             this.lineOf(node),
@@ -814,12 +851,13 @@ class RubyReader {
      * `x = 【外部からの入力】` on one line: an assignment of a value that is the
      * input by itself, as the caller tells (`options.input.kindOfAlone`).
      * @param {object} node - The statement.
+     * @yields {object} The readings of its parts (./run.js).
      * @returns {?object} The Input, or null.
      */
-    inputAlone(node) {
+    *inputAlone(node) {
         const input = this.options.input;
         if (!input || !input.kindOfAlone) return null;
-        return this.inputOf(
+        return yield this.inputOf(
             this.assignmentOf(node),
             (value, helpers) => input.kindOfAlone(value, helpers),
             this.lineOf(node),
@@ -835,9 +873,10 @@ class RubyReader {
      * or the step. Any other `while` stays a `の間` loop.
      * @param {object} init - The statement.
      * @param {object} [loop] - The statement after it.
+     * @yields {object} The readings of its parts (./run.js).
      * @returns {?object} The For, or null.
      */
-    countingLoop(init, loop) {
+    *countingLoop(init, loop) {
         if (!loop || typeOf(init) !== 'InstanceVariableWriteNode' || typeOf(loop) !== 'WhileNode') return null;
         if (hasFlag(loop, 'isBeginModifier') || !field(loop, 'closingLoc')) return null;
         if (this.lineOf(loop) !== this.endLineOf(init) + 1) return null;
@@ -866,11 +905,11 @@ class RubyReader {
         const statement = {
             type: 'For',
             variable: target,
-            from: this.expression(field(init, 'value')),
-            to: this.expression(condition.args[0]),
+            from: yield this.expression(field(init, 'value')),
+            to: yield this.expression(condition.args[0]),
             step: increment.negativeNumber
-                ? this.expression(increment.step).operand
-                : this.expression(increment.step),
+                ? (yield this.expression(increment.step)).operand
+                : yield this.expression(increment.step),
             direction: increment.up ? 'up' : 'down',
             body: null,
             line,
@@ -880,7 +919,7 @@ class RubyReader {
         };
         const comment = this.takeComments(line, this.endLineOf(field(loop, 'predicate')));
         if (comment) statement.comment = comment;
-        statement.body = this.statements(body.slice(0, -1), { from: whileLine + 1, to: closeLine - 1 });
+        statement.body = yield this.statements(body.slice(0, -1), { from: whileLine + 1, to: closeLine - 1 });
         const closeComment = this.takeComments(this.lineOf(last), closeLine);
         if (closeComment) statement.closeComment = closeComment;
         return statement;
@@ -1011,7 +1050,7 @@ class RubyReader {
     helpers() {
         if (!this.helperSet) {
             this.helperSet = {
-                expression: (node) => this.expression(node),
+                expression: (node) => run(this.expression(node)),
                 call: (name, args) => ({ type: 'Call', name, args, line: 0, column: 0 }),
                 callOf,
                 typeOf,
@@ -1036,9 +1075,10 @@ class RubyReader {
     /**
      * An expression.
      * @param {object} node - The prism node.
+     * @yields {object} The readings of its parts (./run.js).
      * @returns {object} The JaAST expression.
      */
-    expression(node) {
+    *expression(node) {
         const where = { line: this.lineOf(node), column: this.index.place(this.span(node).start).column };
         const type = typeOf(node);
         switch (type) {
@@ -1053,7 +1093,7 @@ class RubyReader {
             }
             case 'StringNode': {
                 const text = this.text(node);
-                if (!/^["']/.test(text)) return this.raw(node);
+                if (!/^["']/.test(text)) return yield this.raw(node);
                 return { type: 'String', raw: text, ...where };
             }
             case 'TrueNode':
@@ -1061,44 +1101,46 @@ class RubyReader {
                 return { type: 'Boolean', value: type === 'TrueNode', ...where };
             case 'InstanceVariableReadNode': {
                 const name = this.options.variable ? this.options.variable(field(node, 'name')) : field(node, 'name');
-                return name ? { type: 'Name', name, ...where } : this.raw(node);
+                return name ? { type: 'Name', name, ...where } : yield this.raw(node);
             }
             case 'LocalVariableReadNode':
                 return { type: 'Name', name: field(node, 'name'), ...where };
             case 'GlobalVariableReadNode':
                 this.failStageVariable(node);
-                return this.raw(node);
+                return yield this.raw(node);
             case 'ConstantReadNode':
                 // With no table, a name in capitals is a constant (see `target`).
-                return this.options.variable ? this.raw(node) : { type: 'Name', name: field(node, 'name'), ...where };
+                return this.options.variable
+                    ? yield this.raw(node)
+                    : { type: 'Name', name: field(node, 'name'), ...where };
             case 'ArrayNode':
-                if (field(node, 'openingLoc') === null || !/^\[/.test(this.text(node))) return this.raw(node);
+                if (field(node, 'openingLoc') === null || !/^\[/.test(this.text(node))) return yield this.raw(node);
                 return {
                     type: 'ArrayLiteral',
-                    elements: field(node, 'elements').map((element) => this.expression(element)),
+                    elements: yield each(field(node, 'elements'), (element) => this.expression(element)),
                     ...where,
                 };
             case 'ParenthesesNode': {
                 const body = statementsOf(field(node, 'body'));
-                if (body.length !== 1) return this.raw(node);
-                return this.expression(body[0]);
+                if (body.length !== 1) return yield this.raw(node);
+                return yield this.expression(body[0]);
             }
             case 'RangeNode':
-                if (!field(node, 'left') || !field(node, 'right')) return this.raw(node);
-                return this.binary(
+                if (!field(node, 'left') || !field(node, 'right')) return yield this.raw(node);
+                return yield this.binary(
                     hasFlag(node, 'isExcludeEnd') ? '...' : '..',
                     field(node, 'left'),
                     field(node, 'right'),
                     where,
                 );
             case 'AndNode':
-                return this.binary('and', field(node, 'left'), field(node, 'right'), where);
+                return yield this.binary('and', field(node, 'left'), field(node, 'right'), where);
             case 'OrNode':
-                return this.binary('or', field(node, 'left'), field(node, 'right'), where);
+                return yield this.binary('or', field(node, 'left'), field(node, 'right'), where);
             case 'CallNode':
-                return this.callExpression(node, where);
+                return yield this.callExpression(node, where);
             default:
-                return this.raw(node);
+                return yield this.raw(node);
         }
     }
 
@@ -1129,9 +1171,10 @@ class RubyReader {
      * @param {object} left - The prism left side.
      * @param {object} right - The prism right side.
      * @param {object} where - The place.
+     * @yields {object} The readings of its parts (./run.js).
      * @returns {object} The Binary.
      */
-    binary(operator, left, right, where) {
+    *binary(operator, left, right, where) {
         // A long chain (`a && b && ... && z`, thousands of terms) is as deep as
         // its terms on the left: the left side is followed in a loop, not by
         // recursion, so it does not run out of the stack.
@@ -1143,14 +1186,14 @@ class RubyReader {
             chain.push(step);
             base = step.left;
         }
-        let result = this.expression(base);
+        let result = yield this.expression(base);
         for (let i = chain.length - 1; i >= 0; i--) {
             const step = chain[i];
             result = {
                 type: 'Binary',
                 operator: step.operator,
                 left: result,
-                right: this.expression(step.right),
+                right: yield this.expression(step.right),
                 ...step.where,
             };
         }
@@ -1203,33 +1246,41 @@ class RubyReader {
      * table, a function of the program, or one the Japanese does not have.
      * @param {object} node - The CallNode.
      * @param {object} where - The place.
+     * @yields {object} The readings of its parts (./run.js).
      * @returns {object} The expression.
      */
-    callExpression(node, where) {
+    *callExpression(node, where) {
         const call = callOf(node);
         const { name, receiver, args } = call;
         if (call.block || !args) {
             if (!this.isKnownCall(call)) this.failCall(call);
-            return this.raw(node);
+            return yield this.raw(node);
         }
         if (receiver && args.length === 0) {
             if (name === '!') {
-                const negated = this.unary('not', this.expression(receiver), where);
+                const negated = this.unary('not', yield this.expression(receiver), where);
                 if (typeOf(receiver) === 'ParenthesesNode') negated.parens = true;
                 return negated;
             }
-            if (name === '-@' || name === '+@') return this.unary(name[0], this.expression(receiver), where);
+            if (name === '-@' || name === '+@') return this.unary(name[0], yield this.expression(receiver), where);
         }
         if (receiver && args.length === 1 && BINARY_OPERATORS.has(name)) {
-            return this.binary(name, receiver, args[0], where);
+            return yield this.binary(name, receiver, args[0], where);
         }
-        if (receiver && args.length === 1 && name === '[]') return { ...this.indexOf(receiver, args[0]), ...where };
+        if (receiver && args.length === 1 && name === '[]')
+            return { ...(yield this.indexOf(receiver, args[0])), ...where };
         const quotient = name === 'to_i' && receiver && args.length === 0 ? callOf(unwrap(receiver)) : null;
         if (quotient && quotient.name === '/' && quotient.receiver && quotient.args && quotient.args.length === 1) {
-            const left = this.expression(quotient.receiver);
+            const left = yield this.expression(quotient.receiver);
             // `(-a / 2).to_i` is not `-a ÷ 2`, which the Japanese reads as `-(a ÷ 2)`.
             if (!(left.type === 'Unary' && left.operator === '-')) {
-                return { type: 'Binary', operator: '÷', left, right: this.expression(quotient.args[0]), ...where };
+                return {
+                    type: 'Binary',
+                    operator: '÷',
+                    left,
+                    right: yield this.expression(quotient.args[0]),
+                    ...where,
+                };
             }
         }
         const table = this.calls[name];
@@ -1237,16 +1288,16 @@ class RubyReader {
         if (read) return { ...read, ...where };
         if (!receiver && this.functions.has(name)) {
             if (call.isVariableCall) return { type: 'Name', name, ...where };
-            return { type: 'Call', name, args: args.map((arg) => this.expression(arg)), ...where };
+            return { type: 'Call', name, args: yield each(args, (arg) => this.expression(arg)), ...where };
         }
         if (!receiver && this.passthrough.has(name)) {
             if (!call.hasParens && args.length === 0) return { type: 'Name', name, ...where };
-            return { type: 'Call', name, args: args.map((arg) => this.expression(arg)), ...where };
+            return { type: 'Call', name, args: yield each(args, (arg) => this.expression(arg)), ...where };
         }
         this.failCall(call);
-        if (receiver) return this.raw(node);
+        if (receiver) return yield this.raw(node);
         if (call.isVariableCall) return { type: 'Name', name, ...where };
-        return { type: 'Call', name, args: args.map((arg) => this.expression(arg)), ...where };
+        return { type: 'Call', name, args: yield each(args, (arg) => this.expression(arg)), ...where };
     }
 
     /**
@@ -1259,7 +1310,9 @@ class RubyReader {
             this.fail('ruby-syntax', error.message, error.location);
         });
         const lineCount = this.index.lineCount;
-        const body = this.statements(statementsOf(field(result.value, 'statements')), { from: 1, to: lineCount });
+        const body = run(
+            this.statements(statementsOf(field(result.value, 'statements')), { from: 1, to: lineCount }),
+        );
         // A comment no statement took (one at the end of a line of an expression
         // over lines) is kept on its own line rather than lost.
         this.lineComments.forEach((entry) => {

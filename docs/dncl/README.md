@@ -155,6 +155,7 @@ DNCL 風の形の読み方（切りかえる前の変換に合わせたもの）
 | `ja-notation/parse.js` | 日本語を読む。標準の形（行番号・`｜` `⎿`・字下げ・`ならば:`・`and` / `or` / `not`）と DNCL 風の形（閉じる行・`←`・`かつ`・`でない`・「...」）。JaAST の形は `ja-notation/ja-ast.js` |
 | `ja-notation/build-ruby.js` | JaAST → Ruby の構文木（prism のノード名を使う小さな形）。変数の名前・関数・入力は外から受けとる表で決める |
 | `ja-notation/write-ruby.js` | Ruby のテキストと、Ruby の行ごとの日本語の行を書く |
+| `ja-notation/run.js` | 構文木をたどる処理（ジェネレーター）を自前のスタックで動かす（`run`・`each`）。深い構文木で呼び出しのスタックが尽きないように |
 
 名前に使える文字（`ja-notation/lexer.js` の `NAME_HEAD_RE` / `NAME_TAIL_RE`。Issue #1714）:
 
@@ -197,8 +198,10 @@ prism の解析の関数は外から受けとり（`rubyToJa(source, { parse, ..
 - 誤り: 日本語モードに無い命令（`unknown-command`。`(` の付いた名前、括弧の無いメソッド、受け手のあるメソッド、`xxx do` の `xxx`、`break` / `next` / `redo` / `retry`）、
   数の書き方（`bad-number`）、後判定の繰り返し（`post-test-loop`。`begin` と `end while` の行）、日本語に無い書き方（`no-ja-form`。上の `RubyCode`）、ステージの変数（`stage-variable`）、Ruby の文法の誤り（`ruby-syntax`）。行と列は Ruby の行。
   命令と取らないのは、表にある呼び出し、プログラムで `def` した名前、`dncl-keywords.js` の `RUBY_LITERALS`（`answer` / `ask` など）。ローカル変数は prism が変数と分かるので取らない。
-- 構文木を歩く処理は、長い `and` / `+` の並び（左に深い木）をくり返しで歩くので、項が数千あってもスタックが尽きない。prism 自身はおよそ 5000 項の式を解析できないので、それより長い式は誤り
-  （「プログラムが長すぎて日本語にできません」）にする。
+- 構文木をたどる処理（日本語の読み方・Ruby の組み立てと書き出し・prism の構文木の読み方・日本語の書き出し）は、再帰ではなく自前のスタックでたどる
+  （`ja-notation/run.js`。処理はジェネレーターで書き、子をたどるところで `yield` する）。項が数千ある式、数千重ねたかっこ・符号・呼び出し、深く入れ子にしたブロックでも、
+  JavaScript の呼び出しのスタックが尽きない。prism 自身は構文木を JavaScript に読み出すところが再帰なので、数千項の `+` などは解析できず、
+  Ruby → 日本語ではその式を誤り（「プログラムが長すぎて日本語にできません」）にする（`ruby-to-dncl.js`）。
 
 | ファイル | 役割 |
 |---|---|
@@ -558,6 +561,7 @@ Smalruby は **共通テスト用プログラム表記の形のプログラム�
   - `dncl-loop-jump.test.js` — 繰り返しの中の `break` / `next`（後置の `if` / `unless` 付き・1 行だけ・`redo` / `retry`）がその行のエラーで止まり、`@break` のような Ruby にならないこと。同じ名前の変数は往復できること
   - `dncl-no-ja-form.test.js` — 日本語に無い書き方（`case` / `when`・ハッシュ・シンボル・後置の `unless` / `if`・三項演算子）が Ruby → 日本語でその場所の誤り（`unsupportedNotation`）になり、日本語モードにある Ruby は誤りにならないこと
   - `dncl-stage-variable.test.js` — ステージの変数・リスト（`$a`）が Ruby → 日本語でその名前の位置の誤り（`stageVariable`）になり、スプライトの変数（`@a`）は日本語になること
+  - `dncl-long-program.test.js` — 項が数千ある式・数千重ねたかっこ・深いブロックが日本語 → Ruby で変換でき、1000 項の Ruby が日本語になること（ライブラリの `packages/ja-notation/test/deep.test.js` も）
   - `dncl-unsupported-command.test.js` — 日本語モードに無い命令（引数あり・なし・変数と同じ名前・式や条件の中・`xxx do` と `|x|`）がその行のエラーで止まり、定義した関数の呼び出しや組み込み関数は往復できること（DNCL → Ruby と Ruby → DNCL の両方）
   - `dncl-do-block.test.js` — 日本語にしない `xxx do ... end` が `を実行する` で閉じ、外側の `〜の間` / `もし` / `関数` の閉じのことばがずれないこと（入れ子・`until x do`・後判定の中・文字列やコメントの中の `do`）
   - `dncl-roundtrip.test.js` — DNCL ↔ Ruby round-trip 安定性

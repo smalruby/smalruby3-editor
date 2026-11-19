@@ -200,24 +200,43 @@ const leftOfOne = (e, operator) =>
 // `dropsToRuby(e)` / `dropsToJa(e)` say when the middle rule is taken.
 
 /**
+ * Whether the index shift by `operator` takes `e` to its left side: to Ruby
+ * (`+`) `x + 1` → `x` unless `x` would come back as `x + 1` (it is `y - 1`
+ * that is dropped to the Japanese), and so on down the left sides. Each step
+ * is the opposite of the one under it, so the steps are counted in a loop
+ * (a chain of thousands does not run out of the stack): it drops when they
+ * are odd.
+ * @param {object} e - The JaAST expression.
+ * @param {string} operator - `+` (to Ruby) or `-` (to the Japanese).
+ * @returns {boolean} True if it does.
+ */
+const drops = (e, operator) => {
+    let count = 0;
+    let current = e;
+    let op = operator;
+    for (;;) {
+        const x = leftOfOne(current, op);
+        if (x === null || integerOf(x) !== null) break;
+        count++;
+        current = x;
+        op = op === '+' ? '-' : '+';
+    }
+    return count % 2 === 1;
+};
+
+/**
  * Whether the index shift to Ruby takes `e` (`x + 1`) to `x`.
  * @param {object} e - The JaAST expression.
  * @returns {boolean} True if it does.
  */
-const dropsToRuby = (e) => {
-    const x = leftOfOne(e, '+');
-    return x !== null && integerOf(x) === null && !dropsToJa(x);
-};
+const dropsToRuby = (e) => drops(e, '+');
 
 /**
  * Whether the index shift to the Japanese takes `e` (`x - 1`) to `x`.
  * @param {object} e - The JaAST expression.
  * @returns {boolean} True if it does.
  */
-const dropsToJa = (e) => {
-    const x = leftOfOne(e, '-');
-    return x !== null && integerOf(x) === null && !dropsToRuby(x);
-};
+const dropsToJa = (e) => drops(e, '-');
 
 /**
  * Whether an index is a key that is not counted (a string: `X["a"]`), so it is not shifted.
