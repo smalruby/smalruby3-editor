@@ -569,9 +569,11 @@ describe('the Ruby tab adapter in the Japanese (DNCL) mode (#1402)', () => {
         expect(prompt).not.toContain('"Pop"');
     });
 
-    test('asks the rewrite in DNCL, and in Ruby in the other modes', () => {
+    test('asks the rewrite in the standard form, and in Ruby in the other modes', () => {
         const params = { code: 'x ← 1\n', problems: ['p'] };
-        expect(setup({ mode: 'dncl' }).adapter.rewritePrompt(params)).toContain('DNCL の書き方で');
+        expect(setup({ mode: 'dncl' }).adapter.rewritePrompt(params)).toContain(
+            '共通テスト用プログラム表記の書き方で',
+        );
         expect(setup().adapter.rewritePrompt(params)).toContain('```ruby');
         expect(setup().adapter.language).toBe('ruby');
     });

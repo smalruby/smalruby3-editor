@@ -1,6 +1,7 @@
-// The question of "生成AI に相談" in the Ruby tab's Japanese (DNCL) mode (#1402), for
-// the high school students practicing the DNCL of 共通テスト. The code in the editor goes
-// in as DNCL, and the answer comes back as DNCL (Smalruby reads DNCLv2 too). Pure functions.
+// The question of "生成AI に相談" in the Japanese tab (#1402), for the high school
+// students practicing the 共通テスト用プログラム表記 of 情報I. The code in the editor goes
+// in as it is, and the answer comes back in the standard form (docs/dncl/design.md 6 章;
+// the DNCL-like form and line numbers are read too). Pure functions.
 import { DNCL_BUILTIN_NAMES } from './dncl/ja-notation-table';
 import { COPY_END, COPY_START, betweenCopyMarks } from './genai-prompt.js';
 
@@ -11,9 +12,12 @@ const DNCL_TAB_KINDS = ['wrong-answer', 'error', 'how-write', 'how-think'];
 // the unit test checks it turns into ordinary blocks (genai-dncl-prompt.test.js). They are
 // in the standard form the editor shows (Issue #1754); the DNCL 風 answers are read too.
 const SYNTAX_EXAMPLES = [
-    { note: '代入（← でも = でもよい）', code: 'kosuu ← 3\ngoukei = 0' },
+    { note: '代入（1 行に 2 つ書くときは「,」で区切る）', code: 'kosuu = 3\ngoukei = 0, heikin = 0' },
     { note: '配列（添字は 0 から。Data[0] が 3、最後は Data[2]）', code: 'Data = [3, 1, 2]\nData[0] = 5' },
-    { note: '入力（数にするときは 整数(...)）', code: 'kotae = 【外部からの入力】\nn = 整数(kotae)' },
+    {
+        note: '入力（コンソールで答えを受け取る。整数にするときは【整数を入力】）',
+        code: 'namae = 【外部からの入力】\nn = 【整数を入力】',
+    },
     {
         note: '割り算（/ は小数になる割り算、÷ と // は商の整数値で負の数は小さいほうへ丸める（-7 ÷ 2 は -4）、％ は余り。// はコメントではない）',
         code: 'a = 7 / 2\nb = 7 ÷ 2\nc = 7 // 2\nd = 7 ％ 2',
@@ -30,6 +34,10 @@ const SYNTAX_EXAMPLES = [
     { note: '配列の最後に要素を追加する', code: 'Data = []\nData に 3 を追加する\n表示する(要素数(Data))' },
     { note: '減らしながら繰り返す', code: 'i を 10 から 1 まで 1 ずつ減らしながら繰り返す:\n    表示する(i)' },
     {
+        note: '冒頭の説明文（問題文の約束。これを書くと添字は 1 から始まり、Data[1] が最初の要素になる）',
+        code: '# すべての配列の添字は 1 から始まる。\nData = [3, 1, 2]\n表示する(Data[1])',
+    },
+    {
         note: '関数（値は「を返す」で返す）',
         code: '関数 nibai(x):\n    x * 2 を返す\n表示する(nibai(4))',
     },
@@ -37,7 +45,10 @@ const SYNTAX_EXAMPLES = [
 
 // One example per built-in function of ja-notation-table.js (the test checks none is missing).
 const BUILTIN_EXAMPLES = {
-    表示する: { note: '表示する（いくつか並べるとつなげて表示）', code: 'ten = 80\n表示する(ten, "点")' },
+    表示する: {
+        note: '表示する（コンソールに 1 行出す。いくつか並べるとつなげて表示）',
+        code: 'ten = 80\n表示する(ten, "点")',
+    },
     含む: {
         note: '文字列に含まれるか',
         code: 'namae = "さくら"\nもし 含む(namae, "く") ならば:\n    表示する("ある")',
@@ -57,22 +68,23 @@ const DNCL_COMMAND_EXAMPLES = [...SYNTAX_EXAMPLES, ...DNCL_BUILTIN_NAMES.map((na
 
 const fence = (code) => `\`\`\`\n${(code || '').replace(/\s+$/, '')}\n\`\`\``;
 
-// The examples as one program with a comment above each (the AI reads them as DNCL).
+// The examples as one program with a comment above each (the AI reads them as Japanese).
 const examplesBlock = () =>
     fence(DNCL_COMMAND_EXAMPLES.map((example) => `# ${example.note}\n${example.code}`).join('\n\n'));
 
 const dnclRules = () => [
     '生徒は自分のプログラムを言葉で説明するのが苦手です。「どこを直したいかな？」のような質問を返さず、すぐに直したプログラムを出してください。',
-    '答えのプログラムは、Python や Ruby ではなく、下の「書き方と使える命令の例」の DNCL で書いてください。共通テストの DNCL の形（行番号、｜ や ⎿、行の終わりの「:」）で書いてもかまいません。',
-    '配列の添字は 0 から始まります（最初の要素は Data[0]）。問題文が「添字は 1 から」と言っていても、添字を 1 ずらして 0 から書いてください。',
-    '代入は「←」か「=」で書いてください。',
-    '関数の引数には代入できません（引数を変える行はエラーになります）。引数の値を変えたいときは、「x ← a」のようにほかの変数に写してから、その変数を変えてください。',
+    '答えのプログラムは、Python や Ruby ではなく、下の「書き方と使える命令の例」の共通テスト用プログラム表記の形で書いてください。情報関係基礎の DNCL（「←」の代入や「を表示する」）とは別のものです。行番号と ｜ ⎿ の罫線は書かずに、字下げで書いてください（書いてあっても読めます）。',
+    '配列の添字は 0 から始まります（最初の要素は Data[0]）。プログラムの最初に「# すべての配列の添字は 1 から始まる。」のような冒頭の説明文があるときは、その約束どおりに書き、説明文は消さないでください。問題文が「添字は 1 から始まる」と言っていてプログラムに説明文が無いときは、冒頭にその 1 行を書けば、問題文と同じ添字で書けます。',
+    '代入は「=」で書いてください。',
+    '関数の引数には代入できません（引数を変える行はエラーになります）。引数の値を変えたいときは、「x = a」のようにほかの変数に写してから、その変数を変えてください。',
     'ブロックは字下げ（空白 4 つ）で表し、「もし 条件 ならば:」「そうでなければ:」「条件 の間繰り返す:」「i を 1 から 10 まで 1 ずつ増やしながら繰り返す:」「関数 名前(引数):」のように、始まりの行の終わりに「:」を書いてください。「を実行する」「を繰り返す」「と定義する」の行は書かないでください。',
     '「かつ」「または」「でない」ではなく、「and」「or」「not」を使ってください。',
     '繰り返しは「〜の間繰り返す」（前判定）と「〜ずつ増やしながら繰り返す」「〜ずつ減らしながら繰り返す」だけで書いてください。後判定の繰り返し（「繰り返し … を〜になるまで実行する」や Ruby の begin ... end while）は日本語では書けません。先に 1 回動かしたいときは、その 1 回をループの前に書いてから「〜の間繰り返す」にしてください。',
     '答えは、生徒のプログラムを、変えないところも含めて全部書いてください。スモウルビーはエディタのプログラムを丸ごと入れかえます。',
-    'コードの前に、何を変えたかを「「もし x > 0 ならば」の中に「表示する(x)」を足しました」のように、DNCL のことばで 1〜3 行で説明してください。',
-    'コメントは # で書いてください。// は整数の割り算なので、コメントには使えません。',
+    'コードの前に、何を変えたかを「「もし x > 0 ならば:」の中に「表示する(x)」を足しました」のように、プログラムのことばで 1〜3 行で説明してください。',
+    'コメントは # で書いてください。// は整数の割り算なので、コメントには使えません。ただし、冒頭に「# 「//」から行の終わりまでは，処理の対象とならない。」があるプログラムでは // がコメントで、整数の割り算は ÷ で書きます。',
+    '「表示する(…)」はコンソールに 1 行出し、「【外部からの入力】」はコンソールで答えを受け取ります（キャラクターのふきだしではありません）。',
     '命令は、今のプログラムにある書き方か、下の「書き方と使える命令の例」の書き方で書いてください。イベント（旗が押されたとき など）・音・コスチューム・拡張機能の命令は使えません。',
     `直したプログラムは、「${COPY_START}」の行と「${COPY_END}」の行のあいだに、1 つの \`\`\` と \`\`\` で囲んで書いてください。印の外にはコードを書かないでください（生徒は印のあいだだけをコピーします）。`,
     'コードの後に、動かして確かめることを 1 つだけ書いてください。',
@@ -80,9 +92,10 @@ const dnclRules = () => [
 ];
 
 /**
- * The first prompt of the Japanese (DNCL) mode (#1402): the DNCL in the editor as it is,
- * the answer in DNCL (indexes from 0), explained in the words of DNCL. Sounds, costumes and
- * the other sprites are left out: DNCL has no commands for them.
+ * The first prompt of the Japanese tab (#1402): the program in the editor as it is, the
+ * answer in the standard form (indexes from 0 unless the sentence at the top says 1),
+ * explained in the words of the program. Sounds, costumes and the other sprites are left
+ * out: the Japanese has no commands for them.
  * @param {object} params - parameters.
  * @param {string} params.kindLabel - the chosen kind of trouble.
  * @param {string} params.text - the trouble in the student's own words.
@@ -94,7 +107,7 @@ const dnclRules = () => [
 const buildDnclTabPrompt = ({ kindLabel, text, code, errors, assignmentName }) => {
     const lines = [
         'あなたは高校生のプログラミング学習を手伝う先生です。',
-        'スモウルビーの日本語モードで、大学入学共通テストの DNCL（プログラム表記）の形の日本語のプログラムを書いて練習している生徒から相談が来ました。スモウルビーは、DNCL のプログラムを動かせます。',
+        'スモウルビーの日本語タブで、大学入学共通テスト「情報I」の共通テスト用プログラム表記の形の日本語のプログラムを書いて練習している生徒から相談が来ました。スモウルビーは、この形のプログラムをそのまま動かせます。',
         '',
         '【守ってほしいこと】',
         ...dnclRules().map((rule) => `・${rule}`),
@@ -106,9 +119,9 @@ const buildDnclTabPrompt = ({ kindLabel, text, code, errors, assignmentName }) =
     if (errors && errors.length > 0) lines.push('', '【エディタに出ているエラー】', ...errors);
     if (assignmentName) lines.push('', '【課題】', assignmentName);
     lines.push('', '【書き方と使える命令の例】', examplesBlock());
-    lines.push('', '【直すプログラム（生徒がいま書いている DNCL）】');
+    lines.push('', '【直すプログラム（生徒がいま書いている日本語のプログラム）】');
     lines.push(code && code.trim() ? fence(code) : '（まだプログラムはありません）');
-    lines.push('', '直したプログラムを DNCL でください。');
+    lines.push('', '直したプログラムを、共通テスト用プログラム表記の形でください。');
     return lines.join('\n');
 };
 
@@ -150,7 +163,7 @@ const buildDnclRewritePrompt = ({ code, problems }) =>
         '【さっきのプログラム】',
         fence(code),
         '',
-        '最初に送った「書き方と使える命令の例」の DNCL の書き方で、プログラムを全部書き直してください。配列の添字は 0 から始まります。',
+        '最初に送った「書き方と使える命令の例」の共通テスト用プログラム表記の書き方で、プログラムを全部書き直してください。配列の添字は、冒頭の説明文が無ければ 0 から始まります。',
         `コードの前に「${COPY_START}」、後に「${COPY_END}」の行を書き、コードは \`\`\` と \`\`\` で囲んでください。`,
     ].join('\n');
 
