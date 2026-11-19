@@ -87,7 +87,8 @@ describe('Japanese mode: the problem form', () => {
         // Ruby has its own line numbers and the dots of the spaces.
         await driver.executeScript('window.monacoEditor.getContainerDomNode().ownerDocument.activeElement.blur()');
         await waitFor(driver, async () => (await ruleCount(driver)) > 0, 'The rules were not drawn on blur');
-        await clickByTestId(driver, 'ruby-toolbar-mode-ruby');
+        // The Ruby tab (the toolbar has no Japanese mode any more: docs/dncl/design.md 1 章)
+        await clickByTestId(driver, 'gui-tab-ruby');
         await waitFor(
             driver,
             () => driver.executeScript('return window.monacoEditor.getModel().getLanguageId() !== "dncl"'),
