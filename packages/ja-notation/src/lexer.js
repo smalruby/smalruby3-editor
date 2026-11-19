@@ -4,18 +4,19 @@
 
 /**
  * The first character of a name: an ASCII letter, `_`, or a letter of any
- * script (`\p{L}`: kana, kanji with the CJK extensions, `々`, `〆`, `ヶ`, full-width
- * letters, Greek, ...), a letter number (`\p{Nl}`: `〇`, `Ⅱ`), and the marks of
- * the kana blocks (`゛`, `・`). Ruby takes any of them in a name, and Ruby →
+ * script (`\p{L}`: kana, kanji with the CJK extensions, `々`, `〆`, `ヶ`,
+ * Greek, ...), a letter number (`\p{Nl}`: `〇`, `Ⅱ`), and the marks of the
+ * kana blocks (`゛`, `・`). Ruby takes any of them in a name, and Ruby →
  * Japanese writes the name as it is (`@佐々木` → `佐々木`), so the Japanese reads
- * back every name it writes (Issue #1714). A full-width letter is a name of its
- * own (`ｘ` is not `x`): Ruby has them as two variables.
+ * back every name it writes (Issue #1714). A full-width letter or digit out of
+ * a string and a comment is read as the half-width one before (`ｘ１` is
+ * `x1`; see `halfWidthAlphanumerics`), as the auto-correct of the Ruby mode does.
  */
 const NAME_HEAD_RE = /[A-Za-z_\p{L}\p{Nl}\u3040-\u309F\u30A0-\u30FF]/u;
 
 /**
- * A character after the first one of a name: the same, the digits (`\p{Nd}`,
- * full-width ones too) and the combining marks (`\p{M}`: `か` and `゙`).
+ * A character after the first one of a name: the same, the digits (`\p{Nd}`)
+ * and the combining marks (`\p{M}`: `か` and `゙`).
  */
 const NAME_TAIL_RE = /[A-Za-z0-9_\p{L}\p{Nl}\p{Nd}\p{M}\u3040-\u309F\u30A0-\u30FF]/u;
 
@@ -129,20 +130,33 @@ const stringEnd = (text, start) => {
     return -1;
 };
 
-/**
- * A digit, half-width or full-width (`１２` is `12`): only how it looks differs, so a number
- * written with full-width digits is read as the number (docs/dncl/policy.md: 見た目だけの揺れ).
- * In a name (`x１`) a full-width digit stays a part of the name, as Ruby has it.
- */
-const DIGIT_RE = /[0-9０-９]/;
+/** A digit (the full-width ones are made half-width before, see `halfWidthAlphanumerics`). */
+const DIGIT_RE = /[0-9]/;
+
+/** The full-width letters and digits (`Ａ`–`Ｚ`, `ａ`–`ｚ`, `０`–`９`). */
+const FULL_WIDTH_ALPHANUMERIC_RE = /[Ａ-Ｚａ-ｚ０-９]/g;
 
 /**
- * The number as the Ruby writes it: the full-width digits and `．` as half-width ones.
- * @param {string} text - The number as written.
+ * The text with its full-width letters and digits made half-width (`ｘ１ = １２` →
+ * `x1 = 12`). Only how they look differs (docs/dncl/policy.md: 見た目だけの揺れ), and
+ * the Ruby mode makes them half-width too (its auto-correct), so the Japanese reads
+ * them as the half-width ones: `ｘ` is the name `x`, `ｉｆ` would be `if`. Each is one
+ * UTF-16 unit, as the half-width one, so the columns stay the same.
+ * @param {string} text - The code (no string and no comment in it).
+ * @returns {string} The text.
+ */
+const halfWidthAlphanumerics = (text) =>
+    text.replace(FULL_WIDTH_ALPHANUMERIC_RE, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xfee0));
+
+/**
+ * The number as the Ruby writes it: `．` as `.`.
+ * @param {string} text - The number as written (its digits are half-width).
  * @returns {string} The number.
  */
-const halfWidthNumber = (text) =>
-    text.replace(/[０-９．]/g, (ch) => (ch === '．' ? '.' : String.fromCharCode(ch.charCodeAt(0) - 0xfee0)));
+const halfWidthNumber = (text) => text.replace(/．/g, '.');
+
+/** The characters that start a string or a comment, which are not made half-width. */
+const STRING_OR_COMMENT_RE = /["'「“#＃]|\/\//g;
 
 /**
  * The end of a number that starts at `text[start]`, and whether it is written
@@ -185,7 +199,10 @@ const longOperatorAt = (text, i) => LONG_OPERATORS.find((op) => text.startsWith(
 
 /**
  * Read one line of code into tokens. A token is `{type, text, column}` and,
- * for some types, `value`:
+ * for some types, `value`. The full-width letters and digits out of the strings
+ * and the comments are read as the half-width ones (`halfWidthAlphanumerics`):
+ * the `text` of a name or a number has the half-width ones. The strings and the
+ * comments are kept as they are written.
  *
  * - `number` (`value`: the number as written, with half-width digits), `badNumber`, `string` (`text`
  *   is the literal with its quotes), `name`, `op` (`value`: the operator, a
@@ -198,15 +215,27 @@ const longOperatorAt = (text, i) => LONG_OPERATORS.find((op) => text.startsWith(
  * - `forbidden`: `@` or `$`, which Japanese names do not have.
  * - `unknown`: any other character, and a string that is not closed.
  *
- * `column` is the 0-based index in `text` plus `offset`.
- * @param {string} text - The code of the line (without its line number and indent).
+ * `column` is the 0-based index in `source` plus `offset`.
+ * @param {string} source - The code of the line (without its line number and indent).
  * @param {number} [offset] - What to add to each column.
  * @param {string} [commentMarker] - The comment mark of the settings (`#` or
  *   `//`). With `//`, `//` starts a comment (and `#` still does) instead of
  *   being the integer quotient.
  * @returns {Array<object>} The tokens.
  */
-const tokenize = (text, offset = 0, commentMarker = '#') => {
+const tokenize = (source, offset = 0, commentMarker = '#') => {
+    let text = source;
+    // The code is made half-width up to the next string or comment, each time the reading gets there.
+    let halfWidthTo = 0;
+    const makeHalfWidthFrom = (start) => {
+        STRING_OR_COMMENT_RE.lastIndex = start + 1;
+        const next = STRING_OR_COMMENT_RE.exec(text);
+        halfWidthTo = next ? next.index : text.length;
+        text =
+            text.substring(0, start) +
+            halfWidthAlphanumerics(text.substring(start, halfWidthTo)) +
+            text.substring(halfWidthTo);
+    };
     const tokens = [];
     const push = (type, start, end, extra = {}) =>
         tokens.push({ type, text: text.substring(start, end), column: start + offset, ...extra });
@@ -215,6 +244,10 @@ const tokenize = (text, offset = 0, commentMarker = '#') => {
         const ch = text[i];
         if (/\s/.test(ch)) {
             i++;
+            continue;
+        }
+        if (i >= halfWidthTo && !/["'「“#＃]/.test(ch) && !text.startsWith('//', i)) {
+            makeHalfWidthFrom(i);
             continue;
         }
         if (ch === '#' || ch === '＃') {

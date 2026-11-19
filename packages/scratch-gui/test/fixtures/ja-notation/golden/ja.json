@@ -332,7 +332,7 @@
     }
   },
   "ja-906fd1a488": {
-    "ruby": "@x〆 = 1\n@𠮷田 = @x〆 + 2\n@ｘ１ = (@𠮷田 / 2).to_i\nconsole.puts(@ｘ１)",
+    "ruby": "@x〆 = 1\n@𠮷田 = @x〆 + 2\n@x1 = (@𠮷田 / 2).to_i\nconsole.puts(@x1)",
     "errors": [],
     "rubyLines": [
       1,
@@ -341,10 +341,10 @@
       4
     ],
     "converterErrors": [],
-    "blocks": "data_setvariableto(VARIABLE = @x〆, VALUE: \"1\")\ndata_setvariableto(VARIABLE = @𠮷田, VALUE: operator_add(NUM1: @x〆, NUM2: 2))\ndata_setvariableto(VARIABLE = @ｘ１, VALUE: operator_mathop(OPERATOR = \"floor\", NUM: operator_divide(NUM1: @𠮷田, NUM2: 2)) #\"@ruby:method:to_i\")\nsmalrubyConsole_print(TEXT: @ｘ１)",
+    "blocks": "data_setvariableto(VARIABLE = @x〆, VALUE: \"1\")\ndata_setvariableto(VARIABLE = @𠮷田, VALUE: operator_add(NUM1: @x〆, NUM2: 2))\ndata_setvariableto(VARIABLE = @x1, VALUE: operator_mathop(OPERATOR = \"floor\", NUM: operator_divide(NUM1: @𠮷田, NUM2: 2)) #\"@ruby:method:to_i\")\nsmalrubyConsole_print(TEXT: @x1)",
     "shown": {
-      "ruby": "@x〆 = 1\n@𠮷田 = @x〆 + 2\n@ｘ１ = (@𠮷田 / 2).to_i\nconsole.puts(@ｘ１)",
-      "ja": "x〆 = 1\n𠮷田 = x〆 + 2\nｘ１ = 𠮷田 ÷ 2\n表示する(ｘ１)",
+      "ruby": "@x〆 = 1\n@𠮷田 = @x〆 + 2\n@x1 = (@𠮷田 / 2).to_i\nconsole.puts(@x1)",
+      "ja": "x〆 = 1\n𠮷田 = x〆 + 2\nx1 = 𠮷田 ÷ 2\n表示する(x1)",
       "errors": []
     }
   },
