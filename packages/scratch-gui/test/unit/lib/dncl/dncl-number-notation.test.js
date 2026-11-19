@@ -170,8 +170,13 @@ describe('DNCL → Ruby: full-width digits and a name right after a number (issu
         else expect(result.ruby).not.toMatch(/[０-９]/);
     });
 
-    test('full-width digits in a name stay in the name', () => {
-        expect(dnclToRuby('x１ = 1').ruby).toBe('@x１ = 1');
+    // The full-width letters and digits are made half-width, in a name too (W8 of the EPIC #1731).
+    test('full-width letters and digits in a name are read as the half-width ones', () => {
+        expect(dnclToRuby('x１ = 1\nｘ１ = x１ + 1').ruby).toBe('@x1 = 1\n@x1 = @x1 + 1');
+    });
+
+    test('full-width letters and digits in a string and a comment are kept', () => {
+        expect(dnclToRuby('表示する("ｘ１")  # ｘ１ を表示する').ruby).toBe('console.puts("ｘ１") # ｘ１ を表示する');
     });
 
     test.each([

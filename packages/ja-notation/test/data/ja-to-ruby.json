@@ -148,10 +148,10 @@
             "jaLines": [1, 2, 3, 4, 5]
         },
         {
-            "title": "a Greek or full-width letter is a name, of its own (ｘ is not x), and full-width digits are in a name after its first character",
+            "title": "a Greek letter is a name, and a full-width letter or digit is read as the half-width one (ｘ１ is x1, as the Ruby mode makes it)",
             "table": "none",
             "ja": "α = 1\nｘ１ = α ÷ 2\nx = ｘ１",
-            "ruby": "α = 1\nｘ１ = (α / 2).to_i\nx = ｘ１",
+            "ruby": "α = 1\nx1 = (α / 2).to_i\nx = x1",
             "jaLines": [1, 2, 3]
         },
         {
@@ -188,10 +188,38 @@
             "jaLines": [1, 2, 3]
         },
         {
-            "title": "full-width digits are read as the digits (only how they look differs), and the Ruby has the half-width ones",
+            "title": "full-width digits are read as the digits (only how they look differs), in a number and in a name, and the Ruby has the half-width ones",
             "table": "none",
             "ja": "x = １２\ny = ３．５ + x１",
-            "ruby": "x = 12\ny = 3.5 + x１",
+            "ruby": "x = 12\ny = 3.5 + x1",
+            "jaLines": [1, 2]
+        },
+        {
+            "title": "the full-width letters and digits in a string are kept as they are written",
+            "table": "plain",
+            "ja": "表示する(\"ＡＢＣ１２３\")\n表示する(「ｘ＝１」)\nｓ = 'ａ１'",
+            "ruby": "puts(\"ＡＢＣ１２３\")\nputs(\"ｘ＝１\")\ns = 'ａ１'",
+            "jaLines": [1, 2, 3]
+        },
+        {
+            "title": "the full-width letters and digits in a comment are kept as they are written, and the code before it is made half-width",
+            "table": "none",
+            "ja": "# ｘ は １ から\nｘ = １ # ｘ は ２ まで",
+            "ruby": "# ｘ は １ から\nx = 1 # ｘ は ２ まで",
+            "jaLines": [1, 2]
+        },
+        {
+            "title": "a keyword in full-width letters is the keyword (ａｎｄ is and)",
+            "table": "none",
+            "ja": "ｆｌａｇ = ｘ > 0 ａｎｄ ｎｏｔ ｙ",
+            "ruby": "flag = x > 0 && !y",
+            "jaLines": [1]
+        },
+        {
+            "title": "with // as the comment mark, the full-width letters of the comment are kept",
+            "table": "none",
+            "ja": "// 「//」から行の終わりまでは，処理の対象とならない。\nｘ = １ // ｘ を １ に",
+            "ruby": "# 「//」から行の終わりまでは，処理の対象とならない。\nx = 1 # ｘ を １ に",
             "jaLines": [1, 2]
         },
         {
@@ -214,7 +242,7 @@
             "errors": [
                 {
                     "code": "syntax",
-                    "message": "「１０回」は読めません。数と名前の間には、「１０ * 回」のように演算子を書いてください",
+                    "message": "「10回」は読めません。数と名前の間には、「10 * 回」のように演算子を書いてください",
                     "line": 1,
                     "column": 6
                 }
