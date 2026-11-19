@@ -1,6 +1,4 @@
-@import '../../css/colors.css';
-@import '../../css/units.css';
-@import '../../css/z-index.css';
+@import '../../css/smalruby-tokens.css';
 
 .zoomControlsWrapper {
     position: absolute;
@@ -91,6 +89,32 @@ $arrow-rounding: 0.125rem;
     left: 0;
     right: 0;
     bottom: 0;
+}
+
+/* The Japanese tab (docs/dncl/design.md 1 章): the name of the language in a green band over
+   the editor, and the editor moves down by the band. */
+$language-band-height: 1.75rem;
+
+.languageBand {
+    position: absolute;
+    top: 3rem; /* under the toolbar */
+    left: 0;
+    right: 0;
+    height: $language-band-height;
+    display: flex;
+    align-items: center;
+    padding: 0 $space;
+    background-color: $color-language-japanese;
+    color: $ui-white;
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.editorWrapperWithBand {
+    top: calc(3rem + $language-band-height);
 }
 
 /* Override Monaco Editor find widget position */

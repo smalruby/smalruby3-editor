@@ -127,3 +127,9 @@
     background-color: #1f5fbf;
     pointer-events: none;
 }
+
+/* 日本語を使わないレッスンの日本語タブ（押せない） */
+.button:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+}

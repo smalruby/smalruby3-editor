@@ -15,9 +15,9 @@ describe('setupForChallenge', () => {
         });
     });
 
-    test('a DNCL course starts on the Ruby tab in DNCL mode', () => {
+    test('a DNCL course starts on the Japanese tab', () => {
         expect(setupForChallenge(course(LANGUAGES.DNCL), defineChallenge({ id: 'x' }))).toEqual({
-            tab: 'ruby',
+            tab: 'japanese',
             rubyMode: 'dncl',
         });
     });

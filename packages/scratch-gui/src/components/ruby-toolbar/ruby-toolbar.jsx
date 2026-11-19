@@ -6,7 +6,6 @@ import analytics from '../../lib/analytics';
 import { dnclSettingsPatternId } from '../../lib/dncl/dncl-settings';
 import { isJapaneseLocale } from '../../lib/locale-utils.js';
 import { isTouchDevice } from '../../lib/touch-device.js';
-import Spinner from '../spinner/spinner.jsx';
 import iconAutoCorrect from './icon--auto-correct.svg';
 import iconDownload from './icon--download.svg';
 import iconKeyboard from './icon--keyboard.svg';
@@ -147,8 +146,7 @@ const RubyToolbar = (props) => {
     const handleSelectFuriganaMode = useCallback(() => {
         if (props.onDismissBubble) props.onDismissBubble();
         trackModeSwitch('furigana');
-        // Switch to Ruby mode with furigana ON
-        if (props.dnclMode && props.onToggleDnclMode) props.onToggleDnclMode();
+        // Furigana ON. Japanese is the Japanese tab, not a mode of this toolbar (docs/dncl/design.md 1 章)
         if (!props.furiganaEnabled && props.onToggleFurigana) {
             trackFuriganaToggle(true);
             props.onToggleFurigana();
@@ -158,26 +156,13 @@ const RubyToolbar = (props) => {
     const handleSelectRubyMode = useCallback(() => {
         if (props.onDismissBubble) props.onDismissBubble();
         trackModeSwitch('ruby');
-        // Switch to Ruby mode with furigana OFF
-        if (props.dnclMode && props.onToggleDnclMode) props.onToggleDnclMode();
+        // Furigana OFF
         if (props.furiganaEnabled && props.onToggleFurigana) {
             trackFuriganaToggle(false);
             props.onToggleFurigana();
         }
     }, [props, trackModeSwitch, trackFuriganaToggle]);
 
-    const handleSelectDnclMode = useCallback(() => {
-        if (props.onDismissBubble) props.onDismissBubble();
-        // The lesson does not allow the Japanese mode (#1741): the button is disabled, this is a guard
-        if (props.dnclModeLocked) return;
-        trackModeSwitch('dncl');
-        // Switch to DNCL mode (disable furigana since DNCL is already in Japanese)
-        if (!props.dnclMode && props.onToggleDnclMode) props.onToggleDnclMode();
-        if (props.furiganaEnabled && props.onToggleFurigana) {
-            trackFuriganaToggle(false);
-            props.onToggleFurigana();
-        }
-    }, [props, trackModeSwitch, trackFuriganaToggle]);
     // === Smalruby: End of mode selection handlers ===
 
     const handleToggleAutoCorrect = useCallback(() => {
@@ -347,12 +332,13 @@ const RubyToolbar = (props) => {
             </div>
 
             {/* === Smalruby: Start of mode toggle group === */}
-            {isJapaneseLocale(props.locale) && (
+            {/* Furigana / Ruby: the two ways the Ruby tab shows Ruby. Not shown in the Japanese tab */}
+            {isJapaneseLocale(props.locale) && !props.dnclMode && (
                 <div className={`${styles.toolbarPart} ${styles.modDashedBorder}`}>
                     <div className={styles.modeToggleGroup}>
                         <button
                             className={`${styles.modeToggleItem} ${
-                                !props.dnclMode && props.furiganaEnabled ? styles.modeToggleItemActive : ''
+                                props.furiganaEnabled ? styles.modeToggleItemActive : ''
                             }`}
                             data-testid="ruby-toolbar-mode-furigana"
                             disabled={props.dnclValidating}
@@ -370,7 +356,7 @@ const RubyToolbar = (props) => {
                         </button>
                         <button
                             className={`${styles.modeToggleItem} ${
-                                !props.dnclMode && !props.furiganaEnabled ? styles.modeToggleItemActive : ''
+                                props.furiganaEnabled ? '' : styles.modeToggleItemActive
                             }`}
                             data-testid="ruby-toolbar-mode-ruby"
                             disabled={props.dnclValidating}
@@ -378,25 +364,6 @@ const RubyToolbar = (props) => {
                             title={intl.formatMessage(messages.modeRuby)}
                         >
                             {'Ruby'}
-                        </button>
-                        {/* A lesson that does not allow the Japanese mode locks this button (#1741):
-                            its palette filter would hide the blocks of the challenge */}
-                        <button
-                            className={`${styles.modeToggleItem} ${
-                                props.dnclMode ? styles.modeToggleItemActive : ''
-                            } ${props.dnclModeLocked ? styles.modeToggleItemDisabled : ''}`}
-                            data-testid="ruby-toolbar-mode-dncl"
-                            disabled={props.dnclValidating || props.dnclModeLocked}
-                            onClick={handleSelectDnclMode}
-                            title={intl.formatMessage(
-                                props.dnclModeLocked ? messages.modeDnclLockedInLesson : messages.modeDncl,
-                            )}
-                        >
-                            {props.dnclValidating ? (
-                                <Spinner small level="info" />
-                            ) : (
-                                intl.formatMessage(messages.dnclLabel)
-                            )}
                         </button>
                     </div>
                 </div>
@@ -509,8 +476,6 @@ RubyToolbar.propTypes = {
     canRedo: PropTypes.bool,
     dnclMode: PropTypes.bool,
     dnclValidating: PropTypes.bool,
-    dnclModeLocked: PropTypes.bool,
-    onToggleDnclMode: PropTypes.func,
     furiganaEnabled: PropTypes.bool,
     onToggleFurigana: PropTypes.func,
     autoCorrectEnabled: PropTypes.bool,

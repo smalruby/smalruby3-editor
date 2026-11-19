@@ -21,9 +21,15 @@ import {
     COSTUMES_TAB_INDEX,
     SOUNDS_TAB_INDEX,
     // === Smalruby: Start of ruby tab ===
-    RUBY_TAB_INDEX
+    RUBY_TAB_INDEX,
+    JAPANESE_TAB_INDEX,
+    isTextTabIndex
     // === Smalruby: End of ruby tab ===
 } from '../reducers/editor-tab';
+// === Smalruby: Start of Japanese tab ===
+import {isJapaneseLocale} from '../lib/locale-utils';
+import {getLessonDnclModeAllowed} from '../reducers/lesson-mode';
+// === Smalruby: End of Japanese tab ===
 
 import {
     closeCostumeLibrary,
@@ -297,7 +303,12 @@ const mapStateToProps = (state, ownProps) => {
         projectId: state.scratchGui.projectState.projectId,
         soundsTabVisible: state.scratchGui.editorTab.activeTabIndex === SOUNDS_TAB_INDEX,
         // === Smalruby: Start of ruby tab ===
-        rubyTabVisible: state.scratchGui.editorTab.activeTabIndex === RUBY_TAB_INDEX,
+        // The Japanese tab shows the same editor as the Ruby tab (docs/dncl/design.md 1 章)
+        rubyTabVisible: isTextTabIndex(state.scratchGui.editorTab.activeTabIndex),
+        japaneseTabActive: state.scratchGui.editorTab.activeTabIndex === JAPANESE_TAB_INDEX,
+        // Japanese is offered in the Japanese locales only, and not in a lesson that does not allow it
+        japaneseTabAvailable: isJapaneseLocale(state.locales.locale),
+        japaneseTabLocked: !getLessonDnclModeAllowed(state),
         // === Smalruby: End of ruby tab ===
         targetIsStage: (
             state.scratchGui.targets.stage &&
