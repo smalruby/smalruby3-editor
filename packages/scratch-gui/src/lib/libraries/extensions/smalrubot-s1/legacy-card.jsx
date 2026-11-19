@@ -65,7 +65,7 @@ const makeLegacyCard = (canonical) => ({
     ),
     description: (
         <FormattedMessage
-            defaultMessage="The former name of ArtecRobo (Studuino). Choosing it adds ArtecRobo (Studuino)."
+            defaultMessage="The former name of ArtecRobo. Choosing it adds ArtecRobo."
             description="Description of the old card for the ArtecRobo extension"
             id="gui.smalruby3.extension.smalrubotS1Legacy.description"
         />

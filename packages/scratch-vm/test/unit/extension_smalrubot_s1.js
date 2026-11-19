@@ -89,7 +89,7 @@ test('Smalrubot S1 Blocks', (t) => {
         const blocks = new SmalrubotS1Blocks(mockRuntime);
         const info = blocks.getInfo();
         st.equal(info.id, 'smalrubotS1');
-        st.equal(info.name, 'ArtecRobo (Studuino)');
+        st.equal(info.name, 'ArtecRobo');
         st.ok(info.blocks.length > 0);
         st.equal(info.showStatusButton, true);
         st.end();
