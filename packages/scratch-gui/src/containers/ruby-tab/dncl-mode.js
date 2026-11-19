@@ -109,6 +109,17 @@ export const dnclLanguage = {
 
     symbols: /[=><!~?:&|+\-*/^%％÷≦≧←]+/,
 
+    // The tokenizer returns `@brackets` for these, so Monarch must know each pair.
+    // Without 「」 and 【】 here, a stray `【` throws
+    // "@brackets token returned but no bracket defined" (Issue #2255).
+    brackets: [
+        { open: '{', close: '}', token: 'delimiter.curly' },
+        { open: '[', close: ']', token: 'delimiter.square' },
+        { open: '(', close: ')', token: 'delimiter.parenthesis' },
+        { open: '「', close: '」', token: 'delimiter.bracket' },
+        { open: '【', close: '】', token: 'delimiter.bracket' },
+    ],
+
     tokenizer: {
         root: [
             // Comments
