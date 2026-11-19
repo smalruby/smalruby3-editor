@@ -33,6 +33,25 @@ describe('block errors of the DNCL-like form', () => {
         ).toEqual([]);
     });
 
+    test('a reading comma after the words of a block line is read (#2274)', () => {
+        expect(
+            errorsOf([
+                'x < 3 の間，',
+                '  もし x > 1 ならば、',
+                '    x ← x + 2',
+                '  そうでなければ,',
+                '    x ← x + 1',
+                '  を実行する',
+                'を繰り返す',
+                'i を 1 から 3 まで 1 ずつ増やしながら，繰り返す:',
+                '    表示する(i)',
+            ]),
+        ).toEqual([]);
+        expect(errorsOf(['x < 3 の間，', '  x ← x + 1'])[0].message).toBe(
+            '「〜の間」を「を繰り返す」で閉じてください',
+        );
+    });
+
     test('an if without を実行する is reported on its line', () => {
         expect(errorsOf(['もし x > 0 ならば', '  表示する(x)'])).toEqual([
             {
