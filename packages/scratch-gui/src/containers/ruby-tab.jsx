@@ -1854,7 +1854,10 @@ const RubyTab = (props) => {
                             lineNumbers: dnclMode ? problemFormLineNumberLabels : 'on',
                             lineNumbersMinChars: dnclMode ? lineNumbersMinChars : 5,
                             scrollBeyondLastLine: true,
-                            tabSize: 2,
+                            // The Japanese tab writes the standard form indented 4 spaces (as
+                            // ja-notation and the snippets write it), so Enter after `:` and Tab
+                            // indent by 4 there too.
+                            tabSize: dnclMode ? 4 : 2,
                             fixedOverflowWidgets: true,
                             wordBasedSuggestions: 'off',
                             autoIndent: 'full',
