@@ -1,8 +1,9 @@
 // === Smalruby: This file is Smalruby-specific (renamed extension card for the transition period) ===
 import React from 'react';
 import { FormattedMessage } from 'react-intl';
-import smalrubotS1InsetIconURL from './smalrubot-s1-small.png';
-import smalrubotS1IconURL from './smalrubot-s1.png';
+// The pictures of the old card are the Smalrubot S1 robot, as in the old teaching materials.
+import legacyInsetIconURL from './legacy-smalrubot-s1-small.png';
+import legacyIconURL from './legacy-smalrubot-s1.png';
 
 /**
  * The extension that the old card loads. There is only one extension; the old
@@ -48,7 +49,7 @@ const isLegacyCardShown = (now, lastDay = SMALRUBOT_S1_LEGACY_CARD_LAST_DAY) => 
 };
 
 /**
- * Build the old card. It copies the connection settings of the current card so
+ * Build the old card with the old name and the old pictures. It copies the connection settings of the current card so
  * that the library item looks and behaves like a normal extension card.
  * @param {object} canonical - The current "ArtecRobo" card.
  * @returns {object} The old "Smalrubot S1" card.
@@ -70,8 +71,8 @@ const makeLegacyCard = (canonical) => ({
         />
     ),
     extensionId: SMALRUBOT_S1_LEGACY_CARD_ID,
-    iconURL: smalrubotS1IconURL,
-    insetIconURL: smalrubotS1InsetIconURL,
+    iconURL: legacyIconURL,
+    insetIconURL: legacyInsetIconURL,
     featured: true,
     tags: ['smalrubot', 'smalrubot s1', 'スモウルボット', 'スモウルボットS1', 'artecrobo', 'studuino'],
     legacyOf: SMALRUBOT_S1_EXTENSION_ID,
