@@ -81,7 +81,7 @@ describe('DNCL → Ruby: でない negates the condition before it', () => {
 
     test('a negation inside parentheses or a call stays inside', () => {
         expect(toRuby('もし (a > 1) でない ならば\nを実行する')).toBe('if !(@a > 1)\nend');
-        expect(toRuby('表示する(a でない)')).toBe('puts(!@a)');
+        expect(toRuby('表示する(a でない)')).toBe('console.puts(!@a)');
     });
 
     test('a group in parentheses is negated as a whole', () => {

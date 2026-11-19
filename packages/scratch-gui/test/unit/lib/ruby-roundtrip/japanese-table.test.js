@@ -127,24 +127,44 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
             data_setvariableto(VARIABLE = @b, VALUE: "2")
         `,
     },
-    { ja: '表示する(x)', ruby: 'puts(@x)', blocks: `looks_sayforsecs(MESSAGE: @x, SECS: 1) ${PUTS}` },
+    { ja: '表示する(x)', ruby: 'console.puts(@x)', blocks: `smalrubyConsole_print(TEXT: @x)` },
     {
         name: '表示する with two values',
         ja: '表示する("合計", x)',
-        ruby: 'puts("合計" + @x.to_s)',
-        blocks: `looks_sayforsecs(MESSAGE: operator_join(STRING1: "合計",
-            STRING2: operator_join(STRING1: @x, STRING2: "") #"@ruby:method:to_s"), SECS: 1) ${PUTS}`,
+        ruby: 'console.puts("合計" + @x.to_s)',
+        blocks: `smalrubyConsole_print(TEXT: operator_join(STRING1: "合計",
+            STRING2: operator_join(STRING1: @x, STRING2: "") #"@ruby:method:to_s"))`,
     },
     {
         name: 'a name joined with a string that has 「」 in it (issue #2168)',
         ja: '表示する(namae + "には「く」がある")',
-        ruby: 'puts(@namae + "には「く」がある")',
-        blocks: `looks_sayforsecs(MESSAGE: operator_join(STRING1: @namae, STRING2: "には「く」がある"),
-            SECS: 1) ${PUTS}`,
+        ruby: 'console.puts(@namae + "には「く」がある")',
+        blocks: `smalrubyConsole_print(TEXT: operator_join(STRING1: @namae, STRING2: "には「く」がある"))`,
     },
     {
         name: 'an input',
         ja: 'x = 【外部からの入力】',
+        ruby: '@x = console.gets',
+        blocks: 'data_setvariableto(VARIABLE = @x, VALUE: smalrubyConsole_input)',
+    },
+    {
+        name: 'an input of an integer (#1758)',
+        ja: 'x = 【整数を入力】',
+        ruby: '@x = console.gets.to_i',
+        blocks: `data_setvariableto(VARIABLE = @x, VALUE: operator_mathop(OPERATOR = "floor",
+            NUM: smalrubyConsole_input) #"@ruby:method:to_i")`,
+    },
+    {
+        name: 'an input in an element of an array',
+        ja: 'Data[0] = 【外部からの入力】',
+        ruby: '@_array_Data_[0] = console.gets',
+        blocks: `data_replaceitemoflist(LIST = @_array_Data_,
+            INDEX: operator_add(NUM1: 0, NUM2: 1) #"@ruby:array:index", ITEM: smalrubyConsole_input)`,
+    },
+    {
+        name: 'the input of a program before the console (ask and answer) is read as an input',
+        ja: 'x = 【外部からの入力】',
+        jaOnly: 'toJa',
         ruby: `
             ask("")
             @x = answer
@@ -155,17 +175,30 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
         `,
     },
     {
+        name: 'the say of a program before the console (and of puts) is read as 表示する',
+        ja: '表示する(x)',
+        jaOnly: 'toJa',
+        ruby: 'puts(@x)',
+        blocks: `looks_sayforsecs(MESSAGE: @x, SECS: 1) ${PUTS}`,
+    },
+    {
+        name: '表示する of a number prints the number',
+        ja: '表示する(3)',
+        ruby: 'console.puts(3)',
+        blocks: 'smalrubyConsole_print(TEXT: "3") #"@ruby:argument:1:type:Integer"',
+    },
+    {
         ja: `
             もし x > 0 ならば:
                 表示する(x)
         `,
         ruby: `
             if @x > 0
-              puts(@x)
+              console.puts(@x)
             end
         `,
         blocks: `control_if(CONDITION: operator_gt(OPERAND1: @x, OPERAND2: "0")) {
-            looks_sayforsecs(MESSAGE: @x, SECS: 1) ${PUTS}
+            smalrubyConsole_print(TEXT: @x)
         }`,
     },
     {
@@ -178,11 +211,11 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
         `,
         ruby: `
             if @x > 0
-              puts(@x)
+              console.puts(@x)
             end
         `,
         blocks: `control_if(CONDITION: operator_gt(OPERAND1: @x, OPERAND2: "0")) {
-            looks_sayforsecs(MESSAGE: @x, SECS: 1) ${PUTS}
+            smalrubyConsole_print(TEXT: @x)
         }`,
     },
     {
@@ -194,11 +227,11 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
         jaOnly: 'jaToBlocks',
         ruby: `
             if @x > 0
-              puts(@x)
+              console.puts(@x)
             end
         `,
         blocks: `control_if(CONDITION: operator_gt(OPERAND1: @x, OPERAND2: "0")) {
-            looks_sayforsecs(MESSAGE: @x, SECS: 1) ${PUTS}
+            smalrubyConsole_print(TEXT: @x)
         }`,
     },
     {
@@ -210,15 +243,15 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
         `,
         ruby: `
             if @x > 0
-              puts(@x)
+              console.puts(@x)
             else
-              puts(@y)
+              console.puts(@y)
             end
         `,
         blocks: `control_if_else(CONDITION: operator_gt(OPERAND1: @x, OPERAND2: "0")) {
-            looks_sayforsecs(MESSAGE: @x, SECS: 1) ${PUTS}
+            smalrubyConsole_print(TEXT: @x)
         } {
-            looks_sayforsecs(MESSAGE: @y, SECS: 1) ${PUTS}
+            smalrubyConsole_print(TEXT: @y)
         }`,
     },
     {
@@ -233,15 +266,15 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
         `,
         ruby: `
             if @x > 0
-              puts(@x)
+              console.puts(@x)
             else
-              puts(@y)
+              console.puts(@y)
             end
         `,
         blocks: `control_if_else(CONDITION: operator_gt(OPERAND1: @x, OPERAND2: "0")) {
-            looks_sayforsecs(MESSAGE: @x, SECS: 1) ${PUTS}
+            smalrubyConsole_print(TEXT: @x)
         } {
-            looks_sayforsecs(MESSAGE: @y, SECS: 1) ${PUTS}
+            smalrubyConsole_print(TEXT: @y)
         }`,
     },
     {
@@ -252,12 +285,12 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
         `,
         ruby: `
             if @x > 0 && @x < 9
-              puts(@x)
+              console.puts(@x)
             end
         `,
         blocks: `control_if(CONDITION: operator_and(OPERAND1: operator_gt(OPERAND1: @x, OPERAND2: "0"),
             OPERAND2: operator_lt(OPERAND1: @x, OPERAND2: "9"))) {
-            looks_sayforsecs(MESSAGE: @x, SECS: 1) ${PUTS}
+            smalrubyConsole_print(TEXT: @x)
         }`,
     },
     {
@@ -270,12 +303,12 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
         `,
         ruby: `
             if @x > 0 && @x < 9
-              puts(@x)
+              console.puts(@x)
             end
         `,
         blocks: `control_if(CONDITION: operator_and(OPERAND1: operator_gt(OPERAND1: @x, OPERAND2: "0"),
             OPERAND2: operator_lt(OPERAND1: @x, OPERAND2: "9"))) {
-            looks_sayforsecs(MESSAGE: @x, SECS: 1) ${PUTS}
+            smalrubyConsole_print(TEXT: @x)
         }`,
     },
     {
@@ -319,7 +352,7 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
         ruby: `
             @i = 1
             while @i <= 3
-              puts(@i)
+              console.puts(@i)
               @i += 1
             end
         `,
@@ -329,7 +362,7 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
                 OPERAND1: operator_lt(OPERAND1: @i, OPERAND2: "3") #"@ruby:operator:<=:1",
                 OPERAND2: operator_equals(OPERAND1: @i, OPERAND2: "3") #"@ruby:operator:<=:1"
             ) #"@ruby:operator:<=:1")) {
-              looks_sayforsecs(MESSAGE: @i, SECS: 1) ${PUTS}
+              smalrubyConsole_print(TEXT: @i)
               data_changevariableby(VARIABLE = @i, VALUE: 1)
             } #"@ruby:syntax:while"
         `,
@@ -345,7 +378,7 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
         ruby: `
             @i = 1
             while @i <= 3
-              puts(@i)
+              console.puts(@i)
               @i += 1
             end
         `,
@@ -355,7 +388,7 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
                 OPERAND1: operator_lt(OPERAND1: @i, OPERAND2: "3") #"@ruby:operator:<=:1",
                 OPERAND2: operator_equals(OPERAND1: @i, OPERAND2: "3") #"@ruby:operator:<=:1"
             ) #"@ruby:operator:<=:1")) {
-              looks_sayforsecs(MESSAGE: @i, SECS: 1) ${PUTS}
+              smalrubyConsole_print(TEXT: @i)
               data_changevariableby(VARIABLE = @i, VALUE: 1)
             } #"@ruby:syntax:while"
         `,
@@ -369,7 +402,7 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
         ruby: `
             @i = 3
             while @i >= 1
-              puts(@i)
+              console.puts(@i)
               @i += -1
             end
         `,
@@ -379,7 +412,7 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
                 OPERAND1: operator_gt(OPERAND1: @i, OPERAND2: "1") #"@ruby:operator:>=:1",
                 OPERAND2: operator_equals(OPERAND1: @i, OPERAND2: "1") #"@ruby:operator:>=:1"
             ) #"@ruby:operator:>=:1")) {
-              looks_sayforsecs(MESSAGE: @i, SECS: 1) ${PUTS}
+              smalrubyConsole_print(TEXT: @i)
               data_changevariableby(VARIABLE = @i, VALUE: -1)
             } #"@ruby:syntax:while"
         `,
@@ -395,7 +428,7 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
         ruby: `
             @i = 3
             while @i >= 1
-              puts(@i)
+              console.puts(@i)
               @i += -1
             end
         `,
@@ -405,7 +438,7 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
                 OPERAND1: operator_gt(OPERAND1: @i, OPERAND2: "1") #"@ruby:operator:>=:1",
                 OPERAND2: operator_equals(OPERAND1: @i, OPERAND2: "1") #"@ruby:operator:>=:1"
             ) #"@ruby:operator:>=:1")) {
-              looks_sayforsecs(MESSAGE: @i, SECS: 1) ${PUTS}
+              smalrubyConsole_print(TEXT: @i)
               data_changevariableby(VARIABLE = @i, VALUE: -1)
             } #"@ruby:syntax:while"
         `,
@@ -419,11 +452,11 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
         jaOnly: 'jaToBlocks',
         ruby: `
             @x = 1
-            puts(@x)
+            console.puts(@x)
         `,
         blocks: `
             data_setvariableto(VARIABLE = @x, VALUE: "1")
-            looks_sayforsecs(MESSAGE: @x, SECS: 1) ${PUTS}
+            smalrubyConsole_print(TEXT: @x)
         `,
     },
     {
@@ -434,11 +467,11 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
         `,
         ruby: `
             @佐々木 = 7
-            puts(@佐々木)
+            console.puts(@佐々木)
         `,
         blocks: `
             data_setvariableto(VARIABLE = @佐々木, VALUE: "7")
-            looks_sayforsecs(MESSAGE: @佐々木, SECS: 1) ${PUTS}
+            smalrubyConsole_print(TEXT: @佐々木)
         `,
     },
     {

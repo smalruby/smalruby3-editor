@@ -32,7 +32,7 @@ describe('the standard form: ICTL sample notations (Issue #1186)', () => {
             '@t = 1',
             'while @t <= 2',
             '  if @t < 10',
-            '    puts("a" + @t.to_s + "b")',
+            '    console.puts("a" + @t.to_s + "b")',
             '  end',
             '  @t += 1',
             'end',
@@ -44,11 +44,11 @@ describe('the standard form: ICTL sample notations (Issue #1186)', () => {
 
 describe('DNCLv2 input forms (Issue #1186)', () => {
     test('`【整数を入力】` asks and converts the answer to an integer', () => {
-        expect(dnclToRuby('n =【整数を入力】').ruby).toBe('ask("")\n@n = answer.to_i');
+        expect(dnclToRuby('n =【整数を入力】').ruby).toBe('@n = console.gets.to_i');
     });
 
     test('`【文字列を入力】` asks and keeps the answer as a string', () => {
-        expect(dnclToRuby('meishou =【文字列を入力】').ruby).toBe('ask("")\n@meishou = answer');
+        expect(dnclToRuby('meishou =【文字列を入力】').ruby).toBe('@meishou = console.gets');
     });
 });
 

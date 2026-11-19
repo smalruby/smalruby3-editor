@@ -120,8 +120,8 @@ describe('Ruby to blocks: multiple assignment (issue #1814)', () => {
     describe('DNCL', () => {
         test('`i, j = 5, 0` becomes blocks', async () => {
             const ruby = dnclToRuby('i, j = 5, 0\n表示する(i + j)').ruby;
-            expect(ruby).toBe('@i, @j = 5, 0\nputs(@i + @j)');
-            await expectRoundTrip(converter, target, ruby, '@i = 5\n@j = 0\nputs(@i + @j)');
+            expect(ruby).toBe('@i, @j = 5, 0\nconsole.puts(@i + @j)');
+            await expectRoundTrip(converter, target, ruby, '@i = 5\n@j = 0\nconsole.puts(@i + @j)');
         });
 
         test('the swap `a, b = b, a` is the error of a wrong instruction', async () => {

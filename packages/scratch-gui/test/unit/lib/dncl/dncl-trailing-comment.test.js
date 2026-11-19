@@ -33,7 +33,7 @@ const PAIRS = [
         `,
         dedent`
             if @a > 0 # c
-              puts(@a)
+              console.puts(@a)
             end
         `,
     ],
@@ -46,7 +46,7 @@ const PAIRS = [
         `,
         dedent`
             if @a > 0
-              puts(@a)
+              console.puts(@a)
             end # c
         `,
     ],
@@ -63,11 +63,11 @@ const PAIRS = [
         `,
         dedent`
             if @a > 0 # c1
-              puts(@a)
+              console.puts(@a)
             elsif @a < 0 # c2
-              puts(@b)
+              console.puts(@b)
             else # c3
-              puts(@c)
+              console.puts(@c)
             end # c4
         `,
     ],
@@ -94,7 +94,7 @@ const PAIRS = [
         dedent`
             @i = 1
             while @i <= 3 # c
-              puts(@i)
+              console.puts(@i)
               @i += 1
             end # d
         `,
@@ -125,7 +125,7 @@ const PAIRS = [
         dedent`
             while @a < 3 # loop
               if @a > 1 # if
-                puts(@a)
+                console.puts(@a)
               end # end if
               @a = @a + 1 # step
             end # end loop
@@ -145,7 +145,7 @@ const PAIRS = [
             # はじめ
             if @a > 0 # c
               # なか
-              puts(@a)
+              console.puts(@a)
             end
             # おわり
         `,
@@ -178,7 +178,7 @@ describe('trailing # comment on block lines (Issue #1696)', () => {
             ['「#」', '"#"'],
         ])('もし a == %s ならば', (dnclString, rubyString) => {
             const dncl = `もし a == ${dnclString} ならば\n  表示する(a)\nを実行する`;
-            expect(toRuby(dncl)).toBe(`if @a == ${rubyString}\n  puts(@a)\nend`);
+            expect(toRuby(dncl)).toBe(`if @a == ${rubyString}\n  console.puts(@a)\nend`);
         });
 
         test('a string with # and a trailing comment', () => {
@@ -186,13 +186,15 @@ describe('trailing # comment on block lines (Issue #1696)', () => {
         });
 
         test('Ruby → DNCL keeps # inside a string', () => {
-            expect(toDncl('if @a == "#" # c\n  puts(@a)\nend')).toBe('もし a == "#" ならば: # c\n    表示する(a)');
+            expect(toDncl('if @a == "#" # c\n  console.puts(@a)\nend')).toBe(
+                'もし a == "#" ならば: # c\n    表示する(a)',
+            );
         });
     });
 
     test('input keeps the comment both ways', () => {
-        expect(toRuby('x ← 【外部からの入力】 # c')).toBe('ask("")\n@x = answer # c');
-        expect(toDncl('ask("")\n@x = answer # c')).toBe('x = 【外部からの入力】 # c');
+        expect(toRuby('x ← 【外部からの入力】 # c')).toBe('@x = console.gets # c');
+        expect(toDncl('@x = console.gets # c')).toBe('x = 【外部からの入力】 # c');
     });
 
     describe('two Ruby lines that become one DNCL line keep both comments', () => {
@@ -202,16 +204,11 @@ describe('trailing # comment on block lines (Issue #1696)', () => {
         test.each([
             [
                 'counting loop',
-                '@i = 1 # a\nwhile @i <= 3 # b\n  puts(@i) # p\n  @i += 1 # inc\nend # e',
+                '@i = 1 # a\nwhile @i <= 3 # b\n  console.puts(@i) # p\n  @i += 1 # inc\nend # e',
                 'i を 1 から 3 まで 1 ずつ増やしながら繰り返す: # a # b\n    表示する(i) # p\nを繰り返す # inc # e',
-                '@i = 1\nwhile @i <= 3 # a # b\n  puts(@i) # p\n  @i += 1\nend # inc # e',
+                '@i = 1\nwhile @i <= 3 # a # b\n  console.puts(@i) # p\n  @i += 1\nend # inc # e',
             ],
-            [
-                'input',
-                'ask("") # q\n@x = answer # a',
-                'x = 【外部からの入力】 # q # a',
-                'ask("")\n@x = answer # q # a',
-            ],
+            ['input', 'ask("") # q\n@x = answer # a', 'x = 【外部からの入力】 # q # a', '@x = console.gets # q # a'],
         ])('%s', (name, ruby, dncl, rubyBack) => {
             expect(toDncl(ruby)).toBe(dncl);
             expect(toRuby(dncl)).toBe(rubyBack);
@@ -233,12 +230,12 @@ describe('trailing # comment on block lines (Issue #1696)', () => {
         const { sourceMap } = dnclToRuby(
             'x ← 【外部からの入力】 # c\nもし x > 0 ならば: # d\n    表示する(x) # e\n表示する(0)',
         );
-        // ask("") / @x = answer # c / if @x > 0 # d / puts(@x) # e / end / puts(0)
-        expect([1, 2, 3, 4, 5, 6].map((line) => sourceMap.rubyLineToDnclLine(line))).toEqual([1, 1, 2, 3, 3, 4]);
+        // @x = console.gets # c / if @x > 0 # d / console.puts(@x) # e / end / console.puts(0)
+        expect([1, 2, 3, 4, 5].map((line) => sourceMap.rubyLineToDnclLine(line))).toEqual([1, 2, 3, 3, 4]);
     });
 
     test('Ruby → DNCL: a command in a comment is not an unsupported command', () => {
-        expect(rubyToDncl('puts(1) # move(2)').errors).toEqual([]);
+        expect(rubyToDncl('console.puts(1) # move(2)').errors).toEqual([]);
         const { errors } = rubyToDncl('@i = 1 # a\nwhile @i <= 3 # b\n  @i += 1 # c\nend # d\nmove(2) # e');
         expect(errors.map(({ line, column, name }) => ({ line, column, name }))).toEqual([
             { line: 5, column: 1, name: 'move' },
@@ -249,8 +246,8 @@ describe('trailing # comment on block lines (Issue #1696)', () => {
         test.each([
             ['loop do # c', 'loop do'],
             ['# loop do', ''],
-            ['puts("#") # c', 'puts("#")'],
-            ['puts(「#」) # c', 'puts(「#」)'],
+            ['console.puts("#") # c', 'console.puts("#")'],
+            ['console.puts(「#」) # c', 'console.puts(「#」)'],
             ['x = 1', 'x = 1'],
         ])('codeOfLine(%j)', (line, code) => {
             expect(codeOfLine(line)).toBe(code);
@@ -279,7 +276,7 @@ describe('trailing # comment on block lines (Issue #1696)', () => {
                     表示する(a)
                 表示する(b)
             `;
-            expect(toRuby(dncl)).toBe('if @a > 0 # c\n  puts(@a)\nend\nputs(@b)');
+            expect(toRuby(dncl)).toBe('if @a > 0 # c\n  console.puts(@a)\nend\nconsole.puts(@b)');
         });
 
         test('そうでなければ: with a trailing comment stays in the if block', () => {
@@ -290,7 +287,9 @@ describe('trailing # comment on block lines (Issue #1696)', () => {
                     表示する(b)
                 表示する(c)
             `;
-            expect(toRuby(dncl)).toBe('if @a > 0 # c1\n  puts(@a)\nelse # c2\n  puts(@b)\nend\nputs(@c)');
+            expect(toRuby(dncl)).toBe(
+                'if @a > 0 # c1\n  console.puts(@a)\nelse # c2\n  console.puts(@b)\nend\nconsole.puts(@c)',
+            );
         });
 
         test('｜ / ⎿ markers with trailing comments', () => {
@@ -298,7 +297,7 @@ describe('trailing # comment on block lines (Issue #1696)', () => {
                 もし a > 0 ならば: # c
                 ⎿ 表示する(a) # d
             `;
-            expect(toRuby(dncl)).toBe('if @a > 0 # c\n  puts(@a) # d\nend');
+            expect(toRuby(dncl)).toBe('if @a > 0 # c\n  console.puts(@a) # d\nend');
         });
     });
 });

@@ -17,12 +17,15 @@ const DNCL_ALLOWED_BLOCKS = [
     // Operators: all
     'operator_',
 
-    // Looks: 表示する only (say with duration)
+    // Looks: say with duration (表示する of the programs before the console)
     'looks_sayforsecs',
 
-    // Sensing: 【外部からの入力】 only (ask/answer)
+    // Sensing: ask/answer (【外部からの入力】 of the programs before the console)
     'sensing_askandwait',
     'sensing_answer',
+
+    // Console: 表示する and 【外部からの入力】 (docs/dncl/design.md, chapter 5)
+    'smalrubyConsole_',
 
     // Variables: all
     'data_variable',

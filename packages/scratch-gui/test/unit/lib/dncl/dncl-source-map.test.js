@@ -28,26 +28,21 @@ describe('DnclSourceMap', () => {
             expect(map.dnclLineToRubyLine(3)).toBe(3);
         });
 
-        test('input expansion: 1 DNCL line → 2 Ruby lines', () => {
+        test('an input is one Ruby line (console.gets)', () => {
             const dncl = 'a = 【外部からの入力】\nb = 2';
             const map = dnclToRuby(dncl).sourceMap;
 
-            // DNCL line 1 → Ruby lines 1-2
             expect(map.dnclLineToRubyLine(1)).toBe(1);
-            // DNCL line 2 → Ruby line 3 (shifted by expansion)
-            expect(map.dnclLineToRubyLine(2)).toBe(3);
+            expect(map.dnclLineToRubyLine(2)).toBe(2);
         });
 
         test('reverse: Ruby line to DNCL line', () => {
             const dncl = 'a = 【外部からの入力】\nb = 2';
             const map = dnclToRuby(dncl).sourceMap;
 
-            // Ruby line 1 (ask) → DNCL line 1
+            // Ruby line 1 (a = console.gets) → DNCL line 1
             expect(map.rubyLineToDnclLine(1)).toBe(1);
-            // Ruby line 2 (a = answer) → DNCL line 1
-            expect(map.rubyLineToDnclLine(2)).toBe(1);
-            // Ruby line 3 → DNCL line 2
-            expect(map.rubyLineToDnclLine(3)).toBe(2);
+            expect(map.rubyLineToDnclLine(2)).toBe(2);
         });
 
         test('control flow: 1:1 mapping', () => {
@@ -143,13 +138,13 @@ describe('DnclSourceMap', () => {
             expect(sourceMap.rubyLineToDnclLine(3)).toBe(2);
         });
 
-        test('lines after input lines (2 Ruby lines) still map correctly', () => {
+        test('lines after input lines still map correctly', () => {
             const dncl = ['(1) aa = 【整数を入力】', '(2) bb = 【文字列を入力】', '(3) cc = 1'].join('\n');
             const { ruby, sourceMap } = dnclToRuby(dncl);
 
-            expect(ruby.split('\n')).toHaveLength(5);
+            expect(ruby.split('\n')).toHaveLength(3);
             expect(sourceMap.rubyLineToDnclLine(rubyLineOf(ruby, 'cc = 1'))).toBe(3);
-            expect(sourceMap.rubyLineToDnclLine(rubyLineOf(ruby, 'answer.to_i'))).toBe(1);
+            expect(sourceMap.rubyLineToDnclLine(rubyLineOf(ruby, 'console.gets.to_i'))).toBe(1);
         });
 
         test('lines after a counting loop (2 Ruby lines per opener and closer) map correctly', () => {
@@ -189,8 +184,8 @@ describe('DnclSourceMap', () => {
             const dncl = 'a = 【外部からの入力】\nb = 2\nc = error';
             const map = dnclToRuby(dncl).sourceMap;
             const errors = [
-                { row: 1, column: 4, source: 'answer', text: 'e1' },
-                { row: 3, column: 4, source: 'error', text: 'e2' },
+                { row: 0, column: 4, source: 'console.gets', text: 'e1' },
+                { row: 2, column: 4, source: 'error', text: 'e2' },
             ];
 
             expect(map.rubyErrorsToDncl(errors)).toEqual([
@@ -198,7 +193,7 @@ describe('DnclSourceMap', () => {
                 { row: 2, column: 0, source: null, text: 'e2' },
             ]);
             // The input errors are not modified.
-            expect(errors[0]).toEqual({ row: 1, column: 4, source: 'answer', text: 'e1' });
+            expect(errors[0]).toEqual({ row: 0, column: 4, source: 'console.gets', text: 'e1' });
         });
 
         // The converter keeps the error of an `elsif` condition on the `elsif` line (issue #1704),

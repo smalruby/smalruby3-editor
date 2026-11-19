@@ -19,9 +19,9 @@ describe('jaToRuby with the table of Smalruby', () => {
         ['b = -a ÷ 2', '@b = -((@a / 2).to_i)'],
         ['b = -絶対値(5)', '@b = -(5.abs)'],
         ['b = 整数(a ÷ 2)', '@b = (@a / 2).to_i'],
-        ['表示する(a, "は", b + 1)', 'puts(@a.to_s + "は" + (@b + 1).to_s)'],
+        ['表示する(a, "は", b + 1)', 'console.puts(@a.to_s + "は" + (@b + 1).to_s)'],
         ['x = not (a > 0 or b)', '@x = !(@a > 0 || @b)'],
-        ['n = 【整数を入力】', 'ask("")\n@n = answer.to_i'],
+        ['n = 【整数を入力】', '@n = console.gets.to_i'],
         ['x = 平方根(9)', '@x = Math.sqrt(9)'],
     ])('%s', (ja, ruby) => {
         expect(smalruby(ja).ruby).toBe(ruby);
@@ -29,7 +29,7 @@ describe('jaToRuby with the table of Smalruby', () => {
 
     test('a counting loop becomes a while loop that adds the step', () => {
         const { ruby, jaLines } = smalruby('i を 3 から 1 まで 1 ずつ減らしながら繰り返す:\n⎿ 表示する(i)');
-        expect(ruby).toBe('@i = 3\nwhile @i >= 1\n  puts(@i)\n  @i += -1\nend');
+        expect(ruby).toBe('@i = 3\nwhile @i >= 1\n  console.puts(@i)\n  @i += -1\nend');
         expect(jaLines).toEqual([1, 1, 2, 2, 2]);
     });
 
@@ -57,7 +57,7 @@ describe('jaToRuby with the table of Smalruby', () => {
 
     test('a counting loop closed by `を繰り返す` adds the step on that line', () => {
         const { ruby, jaLines } = smalruby('i を 3 から 1 まで -1 ずつ減らしながら\n  表示する(i)\nを繰り返す');
-        expect(ruby).toBe('@i = 3\nwhile @i >= 1\n  puts(@i)\n  @i += -(-1)\nend');
+        expect(ruby).toBe('@i = 3\nwhile @i >= 1\n  console.puts(@i)\n  @i += -(-1)\nend');
         expect(jaLines).toEqual([1, 1, 2, 3, 3]);
     });
 
@@ -65,7 +65,7 @@ describe('jaToRuby with the table of Smalruby', () => {
     // loop closed by `を実行する` never ends there; here every closing line adds it.
     test('a counting loop closed by another closing word adds the step too', () => {
         expect(smalruby('i を 1 から 3 まで 1 ずつ増やしながら\n  表示する(i)\nを実行する').ruby).toBe(
-            '@i = 1\nwhile @i <= 3\n  puts(@i)\n  @i += 1\nend',
+            '@i = 1\nwhile @i <= 3\n  console.puts(@i)\n  @i += 1\nend',
         );
     });
 

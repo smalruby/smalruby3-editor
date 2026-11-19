@@ -21,7 +21,7 @@ describe('DNCL built-in with an expression argument (Issue #1686)', () => {
             ['b = 整数(a + 1)', '@b = (@a + 1).to_i'],
             ['b = 整数(a / 2)', '@b = (@a / 2).to_i'],
             ['b = 文字列(x でない)', '@b = (!@x).to_s'],
-            ['表示する(文字列(a + 1))', 'puts((@a + 1).to_s)'],
+            ['表示する(文字列(a + 1))', 'console.puts((@a + 1).to_s)'],
             ['b = 整数(Data[1] * 3)', '@b = (@_array_Data_[1] * 3).to_i'],
             ['b = 文字列(整数(x / 2))', '@b = (@x / 2).to_i.to_s'],
             ['b = 文字列(a > 1)', '@b = (@a > 1).to_s'],
@@ -112,7 +112,7 @@ describe('Ruby → DNCL with a negative number receiver (Issue #1700)', () => {
         ['@b = -2.5.round', 'b = 四捨五入(-2.5)'],
         ['@b = 3 * -5.abs', 'b = 3 * 絶対値(-5)'],
         ['@b = (-5.abs + 1)', 'b = 絶対値(-5) + 1'],
-        ['puts(-1.to_s + "個")', '表示する(-1, "個")'],
+        ['console.puts(-1.to_s + "個")', '表示する(-1, "個")'],
         ['@b = @a && -5.abs', 'b = a and 絶対値(-5)'],
         ['@b = (@a > 0 || -1.to_s == "x")', 'b = a > 0 or 文字列(-1) == "x"'],
         ['@b = (@a > 0 and -5.abs > 1)', 'b = a > 0 and 絶対値(-5) > 1'],
@@ -161,7 +161,7 @@ describe('DNCL → Ruby with a `-` before a built-in (Issue #1744)', () => {
         ['b = -絶対値(-5)', '@b = -(-5.abs)'],
         ['b = 3 * -絶対値(5)', '@b = 3 * -(5.abs)'],
         ['b = -絶対値(整数(x))', '@b = -(@x.to_i.abs)'],
-        ['表示する(-絶対値(5))', 'puts(-(5.abs))'],
+        ['表示する(-絶対値(5))', 'console.puts(-(5.abs))'],
     ])('%s → %s', (dncl, ruby) => {
         expect(toRuby(dncl)).toBe(ruby);
     });

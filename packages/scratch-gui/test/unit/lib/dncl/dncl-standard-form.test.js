@@ -35,12 +35,12 @@ const ROWS = [
     ],
     [
         'a counting loop',
-        lines('@i = 1', 'while @i <= 10', '  puts(@i)', '  @i += 1', 'end'),
+        lines('@i = 1', 'while @i <= 10', '  console.puts(@i)', '  @i += 1', 'end'),
         lines('i を 1 から 10 まで 1 ずつ増やしながら繰り返す:', '    表示する(i)'),
     ],
     [
         'a counting loop down',
-        lines('@i = 10', 'while @i >= 1', '  puts(@i)', '  @i += -2', 'end'),
+        lines('@i = 10', 'while @i >= 1', '  console.puts(@i)', '  @i += -2', 'end'),
         lines('i を 10 から 1 まで 2 ずつ減らしながら繰り返す:', '    表示する(i)'),
     ],
     [
@@ -59,13 +59,13 @@ const ROWS = [
             '@i = 1',
             'while @i <= 3',
             '  if @i % 2 == 0',
-            '    puts(@i)',
+            '    console.puts(@i)',
             '  else',
-            '    puts(0)',
+            '    console.puts(0)',
             '  end',
             '  @i += 1',
             'end',
-            'puts("end")',
+            'console.puts("end")',
         ),
         lines(
             'i を 1 から 3 まで 1 ずつ増やしながら繰り返す:',
@@ -79,9 +79,9 @@ const ROWS = [
     ['and / or / not', '@c = @a && @b || !@d', 'c = a and b or not d'],
     ['not of a comparison', '@c = !(@a > 1)', 'c = not (a > 1)'],
     ['the remainder', '@c = @a % 3', 'c = a ％ 3'],
-    ['display of some values', 'puts(@i.to_s + "x")', '表示する(i, "x")'],
-    ['input as it is', lines('ask("")', '@a = answer'), 'a = 【外部からの入力】'],
-    ['input as an integer', lines('ask("")', '@n = answer.to_i'), 'n = 【整数を入力】'],
+    ['display of some values', 'console.puts(@i.to_s + "x")', '表示する(i, "x")'],
+    ['input as it is', lines('@a = console.gets'), 'a = 【外部からの入力】'],
+    ['input as an integer', lines('@n = console.gets.to_i'), 'n = 【整数を入力】'],
     [
         'a function and its return value',
         lines('def twice(x)', '  return x * 2', 'end', '@a = twice(3)'),
@@ -135,7 +135,7 @@ const ROWS = [
     ],
     [
         'a program that ends with a block and a new line',
-        lines('if @a > 0', '  puts("big")', 'end', ''),
+        lines('if @a > 0', '  console.puts("big")', 'end', ''),
         lines('もし a > 0 ならば:', '    表示する("big")', ''),
     ],
     [
@@ -205,7 +205,7 @@ describe('the DNCL 風の形 is still read (Issue #1754)', () => {
         [
             'a counting loop',
             lines('i を 1 から 3 まで 1 ずつ増やしながら', '  表示する(i)', 'を繰り返す'),
-            lines('@i = 1', 'while @i <= 3', '  puts(@i)', '  @i += 1', 'end'),
+            lines('@i = 1', 'while @i <= 3', '  console.puts(@i)', '  @i += 1', 'end'),
         ],
         ['かつ / または / でない', 'c = a かつ b または d でない', '@c = @a && @b || !@d'],
         ['the remainder', 'c = a % 3', '@c = @a % 3'],
