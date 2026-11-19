@@ -61,8 +61,8 @@ describe('Japanese mode: the patterns of settings', () => {
             'The sentence was not written',
         );
         const value = await editorValue(driver);
-        // The auto-correct (on by default) makes the full-width `，` of the comments half-width.
-        expect(value).toMatch(/^# 「and」は「かつ」を意味する論理演算子であり[，,]/m);
+        // The auto-correct (on by default) keeps what is written in the comments: the `，` stays.
+        expect(value).toContain('# 「and」は「かつ」を意味する論理演算子であり，');
         expect(value.endsWith('A = [5, 6]\n表示する(A[1])')).toBe(true);
 
         await clickByTestId(driver, 'ruby-toolbar-more-menu');
