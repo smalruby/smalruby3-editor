@@ -133,3 +133,19 @@
     cursor: not-allowed;
     opacity: 0.4;
 }
+
+/*
+ * 日本語タブの「日本語」を足すとボタンが 1 つ増え、iPhone 横（高さ 390px）では一番下の
+ * バックパックがはみ出す（13px）。低い画面ではボタンの上下の余白を詰める。
+ * それでも収まらない画面のために、レールは縦にスクロールできるようにしておく。
+ */
+.rail {
+    overflow-y: auto;
+}
+
+@media (max-height: 420px) {
+    .button {
+        padding: 2px 2px;
+        margin: 1px 4px;
+    }
+}
