@@ -34,15 +34,15 @@ const isActiveByTestId = (d, testId) =>
     );
 
 // 使用例
-await clickByTestId(driver, 'ruby-toolbar-mode-dncl');
-expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(true);
+await clickByTestId(driver, 'ruby-toolbar-mode-furigana');
+expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-furigana')).toBe(true);
 ```
 
 ### Naming Convention
 
 `data-testid` は `<component>-<element>` の形式:
 - Component prefix: コンポーネント名をケバブケース（例: `ruby-toolbar`）
-- Element suffix: 要素の役割をケバブケース（例: `mode-dncl`）
+- Element suffix: 要素の役割をケバブケース（例: `mode-furigana`）
 
 ### Ruby Toolbar (`ruby-toolbar.jsx`)
 
@@ -56,12 +56,34 @@ expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(true);
 | `ruby-toolbar-auto-correct` | button | 自動置換トグル |
 | `ruby-toolbar-mode-furigana` | button | ふりがなモード |
 | `ruby-toolbar-mode-ruby` | button | Rubyモード |
-| `ruby-toolbar-mode-dncl` | button | 日本語(DNCL)モード |
 | `ruby-toolbar-more-menu` | button | その他メニュー |
 | `ruby-toolbar-menu-download` | div | Rubyスクリプト保存 |
 | `ruby-toolbar-menu-insert-class` | div | クラス挿入 |
 | `ruby-toolbar-menu-preview` | div | プレビュー |
 | `ruby-toolbar-menu-auto-correct-settings` | div | 自動置換設定 |
+| `ruby-toolbar-menu-settings-pattern-example` | div | 設定: 例示の形（添字は 0 から）。日本語タブのときだけ |
+| `ruby-toolbar-menu-settings-pattern-index-from-one` | div | 設定: 添字が 1 から始まる問題。日本語タブのときだけ |
+
+日本語モードは、ルビータブのボタンではなく**日本語タブ**（`gui-tab-japanese`）で開く（URL は `?tab=japanese`）。ルビータブのツールバーは、ふりがな・Ruby の 2 つ。
+
+### タブ (`gui.jsx`)
+
+| data-testid | 要素 | 説明 |
+|------------|------|------|
+| `gui-tab-ruby` | li | ルビータブ（いつも Ruby で開く） |
+| `gui-tab-japanese` | li | 日本語タブ（日本語の表示のときだけ。レッスンの `allowDnclMode` が false なら押せない） |
+| `ruby-tab-language-band` | div | 日本語タブのエディタの上の帯 |
+
+### コンソール拡張機能 (`smalruby-console`)
+
+| data-testid | 要素 | 説明 |
+|------------|------|------|
+| `smalruby-console-button` | button | ステージの上のコンソールのボタン（拡張機能を使う作品のときだけ） |
+| `smalruby-console-button-unread` | span | 隠しているあいだに表示した行の数 |
+| `smalruby-console` | div | コンソールの画面 |
+| `smalruby-console-lines` / `smalruby-console-line` | div | 行の一覧 / 1 行 |
+| `smalruby-console-input` | input | 答えの入力（`入力する` の待ちのあいだだけ） |
+| `smalruby-console-clear` / `smalruby-console-close` | button | 行を消す / ステージに戻す |
 | `ruby-toolbar-menu-copy-problem-form` | div | 問題の形でコピー（日本語モードのみ） |
 | `ruby-tab-problem-form-done` | button | 「できた」（日本語モードで、問題の形に切りかえる） |
 
@@ -90,11 +112,11 @@ expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(true);
 // Playwright MCP の browser_click で ref を使う代わりに、
 // browser_evaluate で data-testid を使って操作する
 await page.evaluate(() => {
-    document.querySelector('[data-testid="ruby-toolbar-mode-dncl"]').click();
+    document.querySelector('[data-testid="gui-tab-japanese"]').click();
 });
 
 // または Playwright のロケーターを使う
-await page.getByTestId('ruby-toolbar-mode-dncl').click();
+await page.getByTestId('gui-tab-japanese').click();
 ```
 
 ## スクリーンショット / 一時ファイルの保存先は `tmp/` 配下
@@ -126,9 +148,9 @@ http://localhost:8601?no_beforeunload=1&tab=ruby&ruby_version=2&rubyMode=ruby
 | Parameter | Values | Description |
 |-----------|--------|-------------|
 | `no_beforeunload` | `1` | beforeunload ダイアログを無効化（必須） |
-| `tab` | `ruby` | Ruby タブを初期表示 |
+| `tab` | `ruby`, `japanese` | Ruby タブ / 日本語タブを初期表示 |
 | `ruby_version` | `2` | Ruby バージョン |
-| `rubyMode` | `ruby`, `furigana`, `dncl` | Ruby タブの初期モード |
+| `rubyMode` | `ruby`, `furigana` | Ruby タブの初期モード（前からの `?tab=ruby&rubyMode=dncl` は日本語タブで開く） |
 | `features` | カンマ区切り | 隠し機能の有効化（現在は未使用） |
 
 ### ✅ `?tab=sounds` で直接アクセスしてよい（issue #633 で crash 修正済み）
