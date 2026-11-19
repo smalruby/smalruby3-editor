@@ -50,6 +50,8 @@ src/extensions/*
 !src/extensions/scratch3_tm2scratch/**
 !src/extensions/smalruby_ruby/
 !src/extensions/smalruby_ruby/**
+!src/extensions/smalruby_console/
+!src/extensions/smalruby_console/**
 
 # Level 2: src/serialization/*
 src/serialization/*
@@ -112,6 +114,7 @@ test/unit/*
 !test/unit/extension_text2speech_proxy.js
 !test/unit/util_cors-proxy-url.js
 !test/unit/extension_smalruby_ruby_each.js
+!test/unit/extension_smalruby_console.js
 !test/unit/mesh_service_v2_changed_vars.js
 !test/unit/mesh_service_v2_cost.js
 !test/unit/mesh_service_v2_global_vars.js

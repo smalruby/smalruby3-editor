@@ -197,7 +197,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/lib/alerts/index.jsx` | classroom session expired alert | クラスルームのセッション失効アラートの定義 |
 | `src/components/alerts/alert.jsx` | classroom session expired | セッション失効アラートの表示側 |
 | `src/containers/alert.jsx` | classroom session expired | セッション失効アラートのコンテナ側（3 ペア） |
-| `src/lib/libraries/extensions/index.jsx` | TM2Scratch extension / AkaDako extension / Ruby String extension | 拡張機能ライブラリへの Smalruby 拡張エントリ（各 2 ペア。取り外し可能拡張の分離マーカーと同名系列） |
+| `src/lib/libraries/extensions/index.jsx` | TM2Scratch extension / AkaDako extension / Ruby String extension / Console extension | 拡張機能ライブラリへの Smalruby 拡張エントリ（各 2 ペア。取り外し可能拡張の分離マーカーと同名系列） |
 | `src/components/connection-modal/connection-modal.css` | meshV2 name search / network filter detection feature | mesh v2 グループ名検索 UI とネットワークフィルター検出表示のスタイル |
 | `src/components/connection-modal/connection-modal.css` | mesh header design system | メッシュの接続のモーダルの題（太字 1.2rem。本文のヘルプの CSS は独自ファイル `mesh-v2-help-row.css`） |
 | `src/components/menu-bar/menu-bar.css` | mesh menu icon design system | メッシュのメニューのアイコンの余白を上流の `.help-icon` とそろえる（右から左の言葉も） |

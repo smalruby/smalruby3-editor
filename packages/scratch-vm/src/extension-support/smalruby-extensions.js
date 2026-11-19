@@ -52,6 +52,14 @@ const registerSmalrubyExtensions = (builtinExtensions) => {
         blockClass.formatMessage = formatMessage;
         return blockClass;
     };
+
+    // console extension - 表示する / 入力する of the Japanese mode (docs/dncl/design.md, chapter 5)
+    builtinExtensions.smalrubyConsole = () => {
+        const formatMessage = require('format-message');
+        const blockClass = require('../extensions/smalruby_console/index.js');
+        blockClass.formatMessage = formatMessage;
+        return blockClass;
+    };
 };
 
 module.exports = registerSmalrubyExtensions;
