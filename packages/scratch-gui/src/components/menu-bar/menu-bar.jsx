@@ -1392,7 +1392,7 @@ class MenuBar extends React.Component {
                                 >
                                     <span className={styles.collapsibleLabel}>
                                         <FormattedMessage
-                                            defaultMessage="Studuino"
+                                            defaultMessage="ArtecRobo"
                                             description="Label for SmalrubotS1 menu in menu bar"
                                             id="gui.menuBar.smalrubotS1"
                                         />

@@ -46,7 +46,7 @@ jest.mock('../../../src/lib/analytics', () => ({ event: jest.fn() }));
 jest.mock('../../../src/lib/libraries/extensions/index.jsx', () => [
     {
         extensionId: 'smalrubotS1',
-        name: 'Studuino',
+        name: 'ArtecRobo',
         connectionIconURL: 'icon.png',
         connectionSmallIconURL: 'small-icon.png',
         connectingMessage: 'Connecting...',

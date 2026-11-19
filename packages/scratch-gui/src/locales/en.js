@@ -27,7 +27,7 @@ export default {
     'gui.smalruby3.previewInfo.welcome': 'Welcome to the Smalruby 3.0 Preview',
     'gui.smalruby3.menuBar.downloadRubyCodeToComputer': 'Save Ruby to your computer',
     'gui.menuBar.meshV2': 'Mesh',
-    'gui.menuBar.smalrubotS1': 'Studuino',
+    'gui.menuBar.smalrubotS1': 'ArtecRobo',
     'gui.menuBar.smalrubotS1.flashFirmware': 'Write Firmware',
     'gui.smalrubotFirmware.title': 'Studuino Firmware',
     'gui.smalrubotFirmware.description':
@@ -1005,11 +1005,11 @@ export default {
         'If the host is not displayed, please set the domain. The zip code of a facility such as a school is ideal.',
     'mesh.domainExampleTitle': 'Example',
     'mesh.domainExample': '100-0014',
-    'gui.smalruby3.extension.smalrubotS1.name': 'Studuino',
+    'gui.smalruby3.extension.smalrubotS1.name': 'ArtecRobo',
     'gui.smalruby3.extension.smalrubotS1.description':
-        'Control Studuino®, an Arduino-compatible board designed for building robots. Studuino® is a registered trademark of Artec Co., Ltd.',
+        'Control the Studuino® board of ArtecRobo. ArtecRobo is a product of Artec Co., Ltd., and Studuino® is a registered trademark of Artec Co., Ltd.',
     'gui.smalruby3.extension.smalrubotS1.connectingMessage': 'Connecting the Studuino',
-    'smalrubotS1.categoryName': 'Studuino',
+    'smalrubotS1.categoryName': 'ArtecRobo',
     'smalrubotS1.action': '[ACTION] (M1, M2)',
     'smalrubotS1.actionAndStopAfter': '[ACTION] for [SECS] seconds (M1, M2)',
     'smalrubotS1.bendArm': 'bend arm (servo motor D10) [DEGREE] degrees in [SECS] seconds',

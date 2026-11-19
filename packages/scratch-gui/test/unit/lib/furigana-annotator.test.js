@@ -1308,8 +1308,8 @@ describe('FuriganaAnnotator', () => {
 
     // `studuino.` is written by the blocks; `smalrubot_s1.` is still read (#2190).
     describe.each(['studuino', 'smalrubot_s1'])('%s extension (predefined receiver)', (receiver) => {
-        test('receiver → スタディーノ', () => {
-            expect(labelsAt(annotate(`${receiver}.action("forward")`), 1)).toContain('スタディーノ');
+        test('receiver → アーテックロボ', () => {
+            expect(labelsAt(annotate(`${receiver}.action("forward")`), 1)).toContain('アーテックロボ');
         });
         test('.action("forward") → 動作する + 車を前進させる', () => {
             const labels = labelsAt(annotate(`${receiver}.action("forward")`), 1);

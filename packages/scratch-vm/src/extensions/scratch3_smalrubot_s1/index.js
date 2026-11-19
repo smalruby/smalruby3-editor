@@ -943,7 +943,7 @@ class Scratch3SmalrubotS1Blocks {
      * @returns {string} - the name of this extension.
      */
     static get EXTENSION_NAME() {
-        return 'Studuino';
+        return 'ArtecRobo';
     }
 
     /**
@@ -1262,7 +1262,12 @@ class Scratch3SmalrubotS1Blocks {
     getInfo() {
         return {
             id: Scratch3SmalrubotS1Blocks.EXTENSION_ID,
-            name: Scratch3SmalrubotS1Blocks.EXTENSION_NAME,
+            // The kit is ArtecRobo and its board is Studuino (the teacher's text of the kit uses these names).
+            name: formatMessage({
+                id: 'smalrubotS1.categoryName',
+                default: Scratch3SmalrubotS1Blocks.EXTENSION_NAME,
+                description: 'Label for the ArtecRobo extension category',
+            }),
             blockIconURI: blockIconURI,
             showStatusButton: true,
             blocks: [
