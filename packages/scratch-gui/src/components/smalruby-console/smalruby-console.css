@@ -1,0 +1,104 @@
+@import '../../css/smalruby-tokens.css';
+@import '../../css/z-index.css';
+
+/* The console covers the whole stage (the stage is under it, still running). */
+.console {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: $z-index-stage-question;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    background-color: #1e2529;
+    color: #e6ebee;
+    font-size: $font-size-small;
+    pointer-events: auto;
+}
+
+.header {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: $space-small;
+    padding: 0.25rem $space-small;
+    background-color: #2f3a40;
+}
+
+.title {
+    flex-grow: 1;
+    font-weight: $font-weight-bold;
+}
+
+.header-button {
+    padding: 0.125rem $space-small;
+    border: 1px solid #5c6b73;
+    border-radius: $radius-small;
+    background: transparent;
+    color: #e6ebee;
+    font-size: $font-size-xsmall;
+    cursor: pointer;
+}
+
+.header-button:hover {
+    background-color: #3f4a50;
+}
+
+.header-button:focus-visible,
+.input:focus-visible {
+    outline: 2px solid #8fd3ff;
+    outline-offset: 1px;
+}
+
+.lines {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: $space-small;
+    font-family: 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
+    line-height: 1.5;
+}
+
+.line {
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+/* An answer typed in the console. */
+.input-line {
+    color: #8fd3ff;
+}
+
+.input-line::before {
+    content: '> ';
+}
+
+.empty {
+    color: #8fa1aa;
+}
+
+.input-row {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.prompt {
+    white-space: pre-wrap;
+}
+
+.caret {
+    color: #8fd3ff;
+}
+
+.input {
+    flex-grow: 1;
+    min-width: 0;
+    padding: 0.125rem 0.25rem;
+    border: 1px solid #5c6b73;
+    border-radius: $radius-small;
+    background-color: #11171a;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: inherit;
+}

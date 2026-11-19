@@ -21,6 +21,32 @@ Scratch には「言う」「聞いて待つ」しかないが、日本語のプ
 - **先生**として、日本語のプログラムがブロックではどう表されるかを見せたい（`表示する` はコンソールのブロック、
   ほかはいつものブロック）
 
+## 画面
+
+- ステージの上（緑の旗・停止・メッシュのボタンの後ろ）に **コンソールのボタン**を置く。
+  コンソールの拡張機能を使う作品のとき（または、コンソールを表示しているとき）だけ出す。
+- ボタンを押すと、ステージがコンソールに切りかわる（もう一度押すか、コンソールの［ステージにもどる］で戻る）。
+  コンソールを隠しているあいだに表示した行の数を、ボタンに数字で出す。
+- コンソールは、表示した行を上から順に出す。プログラムが答えを待っているあいだ（`入力する` か「聞いて待つ」）は、
+  いちばん下に入力の欄を出す。Enter キーで答えると、答えも `> 答え` の行として残る。
+  「聞いて待つ」の質問の文字があれば、入力の欄の前に出す。
+- コンソールの表示中は、ステージの質問の欄を出さない（答えはコンソールで入れる）。
+- 緑の旗で作品を始めると、行を消す。［消す］でも消せる。行は 1,000 行まで（古いものから消す）。
+- 日本語タブはコンソールを既定にする（タブからは `src/lib/smalruby-console.js` の
+  `showSmalrubyConsole(vm, dispatch)` / `hideSmalrubyConsole(dispatch)` を呼ぶ。Redux の
+  `setSmalrubyConsoleVisible(bool)` を直接 dispatch してもよい）。
+
+| data-testid                      | 要素                                             |
+| -------------------------------- | ------------------------------------------------ |
+| `smalruby-console-button`        | ステージの上のコンソールのボタン                 |
+| `smalruby-console-button-unread` | ボタンの数字（隠しているあいだに表示した行の数） |
+| `smalruby-console`               | コンソール                                       |
+| `smalruby-console-lines`         | 行の並び                                         |
+| `smalruby-console-line`          | 1 行（`data-kind` は `output` か `input`）       |
+| `smalruby-console-input`         | 答えの入力の欄                                   |
+| `smalruby-console-clear`         | ［消す］                                         |
+| `smalruby-console-close`         | ［ステージにもどる］                             |
+
 ## 関連ブロック
 
 | opcode                  | ブロック（ja）      | 種類     | 説明                               |
@@ -60,6 +86,13 @@ Scratch には「言う」「聞いて待つ」しかないが、日本語のプ
 - `packages/scratch-gui/src/lib/libraries/extensions/smalruby-console/` — 拡張機能ライブラリのエントリ
 - `packages/scratch-gui/src/lib/ruby-generator/smalruby-console.js` — ブロック → Ruby
 - `packages/scratch-gui/src/lib/ruby-to-blocks-converter/smalruby-console.js` — Ruby → ブロック
+- `packages/scratch-gui/src/components/smalruby-console/smalruby-console.jsx` — コンソール（ステージに重ねる。
+  VM の `SMALRUBY_CONSOLE_PRINT` と `PROJECT_START` を聞いて行を足す・消す）
+- `packages/scratch-gui/src/components/smalruby-console/smalruby-console-button.jsx` — ステージの上のボタン
+- `packages/scratch-gui/src/reducers/smalruby-console.js` — 表示するか・行・隠しているあいだの行の数
+- `packages/scratch-gui/src/lib/smalruby-console.js` — ほかの画面（日本語タブ）から表示する口
+- upstream のファイル（マーカー付き）: `src/components/stage/stage.jsx`・`src/containers/stage.jsx`・
+  `src/components/stage-header/stage-header.jsx`（`docs/maintenance/smalruby-markers-gui.md`）
 
 ### infra
 
@@ -67,12 +100,14 @@ Scratch には「言う」「聞いて待つ」しかないが、日本語のプ
 
 ## 設定・データ永続化
 
-なし。表示した行は作品に保存しない。
+なし。表示した行・コンソールを表示しているかは作品に保存しない（Redux だけに持つ）。
 
 ## テスト
 
 - VM: `packages/scratch-vm/test/unit/extension_smalruby_console.js`
 - ブロック ⇔ Ruby: `packages/scratch-gui/test/unit/lib/ruby-roundtrip/extension-smalruby-console-table.test.js`
+- 画面: `packages/scratch-gui/test/unit/components/smalruby-console.test.jsx`、
+  `packages/scratch-gui/test/unit/reducers/smalruby-console-reducer.test.js`
 
 ## 関連ドキュメント
 
