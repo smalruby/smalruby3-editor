@@ -6,7 +6,7 @@
 
 ## 概要
 
-Ruby タブで **日本語のプログラミング言語（DNCL モード）** を使えるようにする機能。`a = 1`, `if`, `while` ではなく `a ← 1`, `もし...ならば`, `を繰り返す` のように、英語キーワードを一切使わずにプログラムを書ける。
+**日本語タブ**で **日本語のプログラミング言語（DNCL モード）** を使えるようにする機能。`a = 1`, `if`, `while` ではなく `a ← 1`, `もし...ならば`, `を繰り返す` のように、英語キーワードを一切使わずにプログラムを書ける。
 
 日本語モードが対応するのは、共通テスト「情報I」の共通テスト用プログラム表記で、その例題に合わせた書き方を**標準の形**、`を実行する` で閉じる・`かつ` を使う以前の書き方を **DNCL 風の形**と呼ぶ（[方針](./policy.md)）。Smalruby はこれを内部的に Ruby コードにトランスパイルしてから Scratch ブロックに変換して実行する。
 
@@ -27,19 +27,23 @@ Ruby タブで **日本語のプログラミング言語（DNCL モード）** �
 
 ## UI / 操作フロー
 
-Ruby タブの **ruby-toolbar** の「日本語(DNCL)」ボタン (`ruby-toolbar-mode-dncl`) で切替。
+日本語は「Ruby の表し方の 1 つ」ではなく**別の言葉**なので、ルビータブとは別の **日本語タブ**（`gui-tab-japanese`。ルビータブ `gui-tab-ruby` の右）で書く（設計は [`design.md`](./design.md) の 1 章）。ルビータブはふりがな・Ruby の 2 つだけになり、ツールバーに「日本語」のボタンは無い。
 
-| モード | 表示内容 |
-|---|---|
-| Ruby | `if x > 0` |
-| 日本語 (DNCL) | `もし x > 0 ならば` |
+![日本語タブ（緑のタブと帯・紙の色）](screenshots/0103-japanese-tab-1280x800.png)
 
-DNCL モードに切り替えると：
-- Monaco Editor の言語定義が DNCL 用に切り替わる（シンタックスハイライト、補完）
-- 既存の Ruby コードは自動的に DNCL 表記に変換されて表示される
-- 編集後 Ruby に戻すと、DNCL 表記が Ruby に戻って表示される
+| タブ | 表示内容 | 見た目 |
+|---|---|---|
+| ルビー | `if x > 0`（ふりがな・Ruby の 2 つ） | 選ばれたタブの文字と上の線が赤（`$color-language-ruby`）。エディタの地は白 |
+| 日本語 | `もし x > 0 ならば:` | 選ばれたタブの文字と上の線が緑（`$color-language-japanese`）。エディタの上に緑の帯「日本語（共通テスト用プログラム表記）」（`ruby-tab-language-band`）。エディタの地は淡い紙の色（`$color-japanese-paper`。Monaco のテーマ `smalruby-japanese-paper`）。行番号は `(01)` |
 
-DNCL モードと**ふりがな**は排他（DNCL 自体が日本語のためふりがな不要）。
+- 2 つのタブは**同じエディタ**を使う（日本語タブは自分のパネルを持たず、ルビータブのパネルを出す）。プログラムの正はいつもブロック（とその Ruby）で、日本語のテキストは保存しない。
+- **日本語タブを開くと**: いまの Ruby を日本語にしてから見せる。日本語にできない Ruby（`move(10)` のような日本語に無い命令、後判定の繰り返しなど）のときは日本語にせず、**ルビータブに移って** Ruby の行にエラーを出す（日本語にして Ruby に戻し、ブロックにできるかまで試してから切りかえる）。調べているあいだは帯が出て、ルビータブのふりがな・Ruby のボタンは押せない。
+- **ルビータブを開くと**: いつも Ruby で見える（日本語タブで書いたプログラムは Ruby になる）。ふりがなは、ルビータブの設定（`smalruby:furiganaEnabled`）のまま。
+- **日本語タブからコード・コスチューム・音のタブに移っても**、日本語で書いている続きとして扱い、コードタブのブロックは日本語で書けるものだけに絞る（下の「ブロック制限の通知」）。ルビータブを開くか、コードタブの通知の「すべてのブロックを使う」を押すと戻る。日本語タブを開くと、また絞る。
+- 日本語タブは**日本語の表示（`ja` / `ja-Hira`）のときだけ**出す。ほかの言葉の表示では隠し、日本語タブにいたらルビータブに移る。
+- **レッスン**: レッスンの `allowDnclMode`（既定 false）が false のあいだは、日本語タブを押せない（薄く出し、ツールチップで「このレッスンでは日本語タブを使えません」）。日本語タブにいるときにそういうレッスンが始まったら、ルビータブに移る。DNCL のコースのチャレンジは日本語タブで始まる（`setupForChallenge` の既定が `tab: 'japanese'`。前の形の setup `tab: 'ruby', rubyMode: 'dncl'` も日本語タブを開く）。
+- **スマホ（MobileGui）**: 左のサイドレールのルビーの次に「日本語」を出す（日本語の表示のときだけ。レッスンで使えないときは押せない）。中身は PC と同じ。
+- 日本語タブとふりがなは別もの（日本語タブではふりがなを描かない）。
 
 ### 問題の形（行番号と罫線）
 
@@ -62,23 +66,23 @@ DNCL モードと**ふりがな**は排他（DNCL 自体が日本語のためふ
   - 空の行と、コメントだけの行は、ブロックを開きも閉じもしない（読み込みと同じ）。前後でつづくブロックの縦線を通す。字下げの無い空の行には、テキストに無い空白を見た目だけ足して縦線を描く。字下げより左に書いたコメントの行は、その行の縦線を省く（文字の位置を動かさない）。
 - **コピー**: ふつうのコピーはテキストのまま。`⋯` メニューの **「問題の形でコピー」**（`ruby-toolbar-menu-copy-problem-form`。日本語モードのときだけ）は、行番号と罫線（`｜` / `⎿`）を文字で付けた形をクリップボードに入れる（行の終わりの空白は落とす）。これを日本語モードに貼り付けると、同じプログラムとして読み込める。
 
-### ブロック制限の通知と DNCL モードからの復帰
+### ブロック制限の通知と、すべてのブロックに戻す導線
 
-DNCL モードではコードタブのブロックが制限される（後述の「関連ブロック」参照）ため、想定外に DNCL モードになっているユーザーが「ブロックが少ない・拡張機能が選べない」状態に気づけるよう、2 つの復帰導線を用意している。
+日本語で書いているあいだ（日本語タブを開いてから、ルビータブを開くまで）はコードタブのブロックが制限される（後述の「関連ブロック」参照）ため、「ブロックが少ない・拡張機能が選べない」状態に気づけるよう、2 つの導線を用意している。
 
-**通知バナー（コードタブ）**: DNCL モード中はワークスペース右上に「日本語モード：ブロックが制限されています」バナー（`data-testid: dncl-mode-notice`）を常時表示する。「Rubyふりがなモードに戻す」ボタン（`data-testid: dncl-mode-notice-exit-button`）を押すと confirm ダイアログを表示し、OK でふりがなモードに戻してタブ切り替えなしで全ブロックを即時復元する。
+**通知バナー（コードタブ）**: ワークスペース右上に「日本語タブで書いています：ブロックが制限されています」バナー（`data-testid: dncl-mode-notice`）を常時表示する。「すべてのブロックを使う」ボタン（`data-testid: dncl-mode-notice-exit-button`）を押すと confirm ダイアログを表示し、OK でタブ切り替えなしで全ブロックを即時復元する。
 
-**拡張機能ボタンの confirm ダイアログ**: DNCL モード中に拡張機能ボタン（`data-testid: extension-button`）を押すと、「日本語モードでは拡張機能は使えません。Rubyふりがなモードに戻すと拡張機能が使えるようになります。戻しますか？」の confirm ダイアログを表示する。OK でふりがなモードに戻して拡張機能ライブラリを開く。キャンセルでは何も変わらない（DNCL モード継続）。
+**拡張機能ボタンの confirm ダイアログ**: 日本語で書いているあいだに拡張機能ボタン（`data-testid: extension-button`）を押すと、「日本語タブで書いているあいだは、拡張機能と一部のブロックは使えません。すべてのブロックと拡張機能を使えるようにしますか？（日本語タブに戻ると、また制限されます）」の confirm ダイアログを表示する。OK で全ブロックに戻して拡張機能ライブラリを開く。キャンセルでは何も変わらない。
 
 どちらの導線も Redux signal パターンで実装している:
 
 ```
 バナー / 拡張機能ボタン (OK)
   → dispatch(setDnclMode(false))             ← blocks.jsx が即座に全ブロック表示に更新
-  → dispatch(requestExternalExitDnclMode())  ← ruby-tab の wasDncl 復元をスキップするシグナル
+  → dispatch(requestExternalExitDnclMode())  ← ruby-tab へのシグナル（日本語タブにいればルビータブへ）
 ```
 
-Ruby タブを次に開いたとき、`exitDnclModeExternallyRequested` フラグが立っていれば DNCL 表示の復元（wasDncl パス）をスキップして Ruby コードを表示し、フラグをクリアする。これにより「バナーで戻したのに Ruby タブを開くと日本語モードに戻ってしまう」事故を防ぐ。
+エディタはこのあと開いたタブに従う（ルビータブなら Ruby、日本語タブならまた日本語にしてブロックを絞る）。レッスンが日本語を許さないとき（`lesson-mode.jsx`）も同じシグナルを使う。
 
 ### 生成AI に相談
 
@@ -257,11 +261,16 @@ DNCL モードでは、DNCL を Ruby に変換してからブロックに変換�
 
 #### UI / 状態管理
 
-- `packages/scratch-gui/src/components/ruby-toolbar/ruby-toolbar.jsx` — DNCL モード切替ボタン
-- `packages/scratch-gui/src/containers/ruby-tab.jsx` — DNCL モード state、エディタ切替制御、外部終了要求時の wasDncl 復元スキップ
-- `packages/scratch-gui/src/reducers/dncl-mode.js` — DNCL モードの Redux state（`dnclMode` + `exitDnclModeExternallyRequested` シグナル）
+- `packages/scratch-gui/src/components/gui/gui.jsx` / `src/containers/gui.jsx` — 日本語タブ（`gui-tab-japanese`）。ルビータブのパネルを共有し、日本語タブのパネルは空で隠す。日本語の表示のときだけ出し、日本語を使わないレッスンでは押せない（upstream ファイル、Smalruby マーカー付き）
+- `packages/scratch-gui/src/components/gui/language-tabs.css` / `icon--japanese.svg` — タブの言葉の色（ルビーは赤・日本語は緑）と日本語タブのアイコン
+- `packages/scratch-gui/src/reducers/editor-tab.js` — `JAPANESE_TAB_INDEX`（4）と `isTextTabIndex`（ルビータブか日本語タブか）
+- `packages/scratch-gui/src/components/ruby-toolbar/ruby-toolbar.jsx` — ルビータブのふりがな・Ruby の切替（日本語タブでは出さない）
+- `packages/scratch-gui/src/containers/ruby-tab.jsx` — タブに合わせてエディタの言葉を切りかえる（`switchLanguage` / `enterJapaneseTab`。日本語にできなければルビータブへ）、緑の帯（`ruby-tab-language-band`）、外部からの終了要求
+- `packages/scratch-gui/src/containers/ruby-tab/editor-themes.js` — 日本語タブの紙の色の Monaco テーマ（色は `constants.js` の `JAPANESE_PAPER_COLOR` = トークン `$color-japanese-paper`）
+- `packages/scratch-gui/src/components/mobile-side-rail/mobile-side-rail.jsx` — スマホのサイドレールの「日本語」
+- `packages/scratch-gui/src/reducers/dncl-mode.js` — 日本語で書いているかの Redux state（`dnclMode` + `exitDnclModeExternallyRequested` シグナル）と、始めの値（`getInitialDnclMode`）
 - `packages/scratch-gui/src/lib/locale-utils.js` — `isJapaneseLocale` (DNCL は日本語ロケール限定)
-- `packages/scratch-gui/src/components/dncl-mode-notice/` — コードタブの「日本語モード：ブロックが制限されています」通知バナー
+- `packages/scratch-gui/src/components/dncl-mode-notice/` — コードタブの「日本語タブで書いています：ブロックが制限されています」通知バナー
 - `packages/scratch-gui/src/components/extension-button/extension-button.jsx` — DNCL モード時の confirm ダイアログ（upstream ファイル、Smalruby マーカー付き）
 - `packages/scratch-gui/src/components/gui/gui.jsx` / `src/containers/gui.jsx` — DnclModeNotice の配置と `onRequestExitDnclMode` の Redux 配線（upstream ファイル、Smalruby マーカー付き）
 - `packages/scratch-gui/src/containers/blocks.jsx` — DNCL モードのブロックフィルタ適用と即時再レンダリング（upstream ファイル、Smalruby マーカー付き）
@@ -306,18 +315,21 @@ DNCL モードは特定のブロックに紐づくものではなく、**Ruby �
 
 ### localStorage
 
-- `smalruby:dnclMode` — DNCL モードのオン/オフ
-  - 値が `'true'` のときのみ ON（デフォルト OFF）
-  - 日本語以外のロケールでは無視される
+- `smalruby:dnclMode` — 最後に日本語で書いていたか（日本語タブを開くと `'true'`、ルビータブを開く・バナーで全ブロックに戻すと `'false'`）
+  - 値が `'true'` のときのみ ON（デフォルト OFF）。日本語以外のロケールでは無視される
+  - `'true'` で開き直すと、コードタブのブロックを絞った状態（バナーあり）で始まる。最初のタブはこれまでどおりコードタブで、日本語タブを開けば続きを日本語で書ける
+  - 日本語タブができる前は「ルビータブを日本語モードで開くか」の意味だった。同じ「最後に日本語で書いていた」の意味として読み続ける（移しかえはしない）。ただしルビータブはいつも Ruby で開く
+- `smalruby:furiganaEnabled` — ルビータブのふりがな（日本語タブを開いても変えない）
 
 ### URL パラメータ
 
-- `?rubyMode=dncl` または `?rubyMode=ja` または `?rubyMode=japanese` — DNCL モード強制 ON
-- `?rubyMode=furigana` または `?rubyMode=ruby` — DNCL モード強制 OFF
+- `?tab=japanese`（`ja` / `dncl` も同じ）— 日本語タブで開く
+- `?rubyMode=dncl`（`dnclv2` / `ja` / `japanese` も同じ）— 日本語で書いている状態で始める。`?tab=ruby&rubyMode=dncl`（日本語タブができる前のリンク）は日本語タブで開く。`tab` が無いときはコードタブでブロックを絞って始める
+- `?rubyMode=furigana` / `?rubyMode=ruby`、`?tab=ruby` — Ruby で始める（ふりがなはルビータブの表し方）
 
 ## Block ↔ Ruby ↔ DNCL の変換マトリクス
 
-Smalruby の Ruby タブは **3 つのモード** (Ruby / DNCL / ふりがな) を切り替えられ、それぞれが内部の Ruby 表現を異なる形式で表示します。さらに **Scratch ブロックタブ** とも双方向変換します。
+Smalruby のルビータブ（Ruby / ふりがな）と日本語タブ（DNCL）は、それぞれが内部の Ruby 表現を異なる形式で表示します。さらに **Scratch ブロックタブ** とも双方向変換します。
 
 ほとんどの構文は **3 方向すべてが round-trip 安定** ですが、いくつかの **意図的に不可逆な変換** があり、設計の根拠とともに本セクションで明示します。
 

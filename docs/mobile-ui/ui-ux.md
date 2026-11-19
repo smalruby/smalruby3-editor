@@ -236,7 +236,6 @@ Monaco Editor + ルビーツールバー。
 | 前/次のスプライト            | `ruby-toolbar-prev-sprite` / `-next-sprite`  | スプライト切替                                              |
 | ふりがな (mode tab)          | `ruby-toolbar-mode-furigana`                 | ふりがなモード                                              |
 | Ruby (mode tab)              | `ruby-toolbar-mode-ruby`                     | Ruby モード                                                 |
-| 日本語 (mode tab)            | `ruby-toolbar-mode-dncl`                     | 日本語(DNCL)モード                                          |
 | ・・・ (もっと)              | `ruby-toolbar-more-menu`                     | 保存 / クラス挿入 / プレビュー / 自動置換設定               |
 
 PC のルビーツールバーには「スプライトを名前で検索」入力欄があるが、SP では `display: none` で省略 (横幅不足)。スプライト切替は ← / → ボタンとスプライトタブ経由。
