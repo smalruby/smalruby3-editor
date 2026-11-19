@@ -21,9 +21,12 @@ import OperatorsConverter from './operators';
 import PenConverter from './pen';
 import SensingConverter from './sensing';
 import SmalrubotS1Converter from './smalrubot_s1';
+// === Smalruby: Start of Console extension ===
+import SmalrubyConsoleConverter from './smalruby-console';
 // === Smalruby: End of G2S (AkaDako) extension ===
 // === Smalruby: Start of Ruby String extension ===
 import SmalrubyRubyConverter from './smalruby-ruby';
+// === Smalruby: End of Console extension ===
 import SoundConverter from './sound';
 import Text2SpeechConverter from './text2speech';
 // === Smalruby: Start of TM2Scratch extension ===
@@ -52,6 +55,7 @@ const registerConverters = function (converter) {
         TM2ScratchConverter,
         G2SConverter,
         SmalrubyRubyConverter,
+        SmalrubyConsoleConverter,
         BoostConverter,
         TranslateConverter,
         SoundConverter,

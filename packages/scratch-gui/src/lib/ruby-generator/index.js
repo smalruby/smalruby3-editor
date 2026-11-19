@@ -30,9 +30,12 @@ import RubyBlocks from './ruby.js';
 import ScrubHandler from './scrub.js';
 import SensingBlocks from './sensing.js';
 import SmalrubotS1Blocks from './smalrubot_s1.js';
+// === Smalruby: Start of Console extension ===
+import SmalrubyConsoleBlocks from './smalruby-console.js';
 // === Smalruby: End of AkaDako extension ===
 // === Smalruby: Start of Ruby String extension ===
 import SmalrubyRubyBlocks from './smalruby-ruby.js';
+// === Smalruby: End of Console extension ===
 import SoundBlocks from './sound.js';
 import SpriteNewGenerator from './sprite-new.js';
 import Text2SpeechBlocks from './text2speech.js';
@@ -223,5 +226,8 @@ G2SBlocks(RubyGenerator);
 // === Smalruby: Start of Ruby String extension ===
 SmalrubyRubyBlocks(RubyGenerator);
 // === Smalruby: End of Ruby String extension ===
+// === Smalruby: Start of Console extension ===
+SmalrubyConsoleBlocks(RubyGenerator);
+// === Smalruby: End of Console extension ===
 
 export default RubyGenerator;

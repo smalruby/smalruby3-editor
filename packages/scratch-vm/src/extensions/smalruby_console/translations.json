@@ -1,0 +1,14 @@
+{
+    "ja": {
+        "smalrubyConsole.categoryName": "コンソール",
+        "smalrubyConsole.print": "[TEXT] を表示する",
+        "smalrubyConsole.print.defaultText": "こんにちは！",
+        "smalrubyConsole.input": "入力する"
+    },
+    "ja-Hira": {
+        "smalrubyConsole.categoryName": "コンソール",
+        "smalrubyConsole.print": "[TEXT] をひょうじする",
+        "smalrubyConsole.print.defaultText": "こんにちは！",
+        "smalrubyConsole.input": "にゅうりょくする"
+    }
+}
