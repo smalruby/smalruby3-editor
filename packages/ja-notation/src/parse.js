@@ -10,6 +10,7 @@
 // The two may be mixed: a block opened with `:` ends where the indentation
 // ends, one opened without `:` ends at its closing line (or a `⎿`).
 import { tokenize } from './lexer.js';
+import { run } from './run.js';
 import { readSettings } from './settings.js';
 
 /** The label of a numbered line: `(1)`, `(01)` and `(00-1)` (a line put before `(01)`). */
@@ -258,7 +259,11 @@ const headerComments = (source) => {
     return comments;
 };
 
-/** Reads an expression from tokens (recursive descent, lowest precedence first). */
+/**
+ * Reads an expression from tokens (recursive descent, lowest precedence first).
+ * The readings are generators run by `run` (./run.js), so an expression nested
+ * thousands deep (parentheses, signs, calls) does not run out of the call stack.
+ */
 class ExpressionReader {
     /**
      * @param {Array<object>} tokens - The tokens of the expression.
@@ -333,23 +338,25 @@ class ExpressionReader {
 
     /**
      * Read the whole tokens as one expression.
+     * @yields {object} The readings of its parts (./run.js).
      * @returns {object} The expression.
      */
-    readAll() {
-        const expression = this.readExpression();
+    *readAll() {
+        const expression = yield this.readExpression();
         if (this.pos < this.tokens.length) this.fail(this.peek(), `「${this.peek().text}」が読めません`);
         return expression;
     }
 
     /**
      * An expression: a range (`1..10`) or anything with a weaker operator.
+     * @yields {object} The readings of its parts (./run.js).
      * @returns {object} The expression.
      */
-    readExpression() {
-        const left = this.readOr();
+    *readExpression() {
+        const left = yield this.readOr();
         if (this.isOp('..') || this.isOp('...')) {
             const op = this.tokens[this.pos++];
-            const right = this.readOr();
+            const right = yield this.readOr();
             return this.binary(op, left, right);
         }
         return left;
@@ -385,26 +392,28 @@ class ExpressionReader {
 
     /**
      * `or` (`または`).
+     * @yields {object} The readings of its parts (./run.js).
      * @returns {object} The expression.
      */
-    readOr() {
-        let left = this.readAnd();
+    *readOr() {
+        let left = yield this.readAnd();
         while (this.isNameIn(OR_WORDS)) {
             const op = this.tokens[this.pos++];
-            left = { ...this.binary(op, left, this.readAnd()), operator: 'or' };
+            left = { ...this.binary(op, left, yield this.readAnd()), operator: 'or' };
         }
         return left;
     }
 
     /**
      * `and` (`かつ`).
+     * @yields {object} The readings of its parts (./run.js).
      * @returns {object} The expression.
      */
-    readAnd() {
-        let left = this.readNegated();
+    *readAnd() {
+        let left = yield this.readNegated();
         while (this.isNameIn(AND_WORDS)) {
             const op = this.tokens[this.pos++];
-            left = { ...this.binary(op, left, this.readNegated()), operator: 'and' };
+            left = { ...this.binary(op, left, yield this.readNegated()), operator: 'and' };
         }
         return left;
     }
@@ -413,17 +422,18 @@ class ExpressionReader {
      * A `でない` after what it negates: it takes all before it up to the
      * nearest `かつ` / `または` (`a > 10 でない` is `not (a > 10)`), as `not`
      * does after it.
+     * @yields {object} The readings of its parts (./run.js).
      * @returns {object} The expression.
      */
-    readNegated() {
-        let operand = this.readNot();
+    *readNegated() {
+        let operand = yield this.readNot();
         while (this.isName(POSTFIX_NOT)) {
             this.pos++;
             const negated = { type: 'Unary', operator: 'not', operand, line: operand.line, column: operand.column };
             const next = this.peek();
             if (next && next.type === 'op' && AFTER_NEGATION.has(next.value)) {
                 this.pending = negated;
-                operand = this.readNot();
+                operand = yield this.readNot();
             } else {
                 operand = negated;
             }
@@ -433,79 +443,85 @@ class ExpressionReader {
 
     /**
      * `not`, weaker than a comparison and stronger than `and` / `or`.
+     * @yields {object} The readings of its parts (./run.js).
      * @returns {object} The expression.
      */
-    readNot() {
+    *readNot() {
         if (!this.pending && this.isName('not')) {
             const op = this.tokens[this.pos++];
-            const operand = this.readNot();
+            const operand = yield this.readNot();
             return { type: 'Unary', operator: 'not', operand, line: op.line, column: op.column };
         }
-        return this.readComparison();
+        return yield this.readComparison();
     }
 
     /**
      * A comparison.
+     * @yields {object} The readings of its parts (./run.js).
      * @returns {object} The expression.
      */
-    readComparison() {
-        const left = this.readAdditive();
+    *readComparison() {
+        const left = yield this.readAdditive();
         const t = this.peek();
         if (t && t.type === 'op' && COMPARISONS.has(t.value)) {
             this.pos++;
-            return this.binary(t, left, this.readAdditive());
+            return this.binary(t, left, yield this.readAdditive());
         }
         return left;
     }
 
     /**
      * `+` / `-`.
+     * @yields {object} The readings of its parts (./run.js).
      * @returns {object} The expression.
      */
-    readAdditive() {
-        let left = this.readMultiplicative();
+    *readAdditive() {
+        let left = yield this.readMultiplicative();
         while (this.isOp('+') || this.isOp('-')) {
             const op = this.tokens[this.pos++];
-            left = this.binary(op, left, this.readMultiplicative());
+            left = this.binary(op, left, yield this.readMultiplicative());
         }
         return left;
     }
 
     /**
      * `*` / `/` / `÷` (and `//`) / `%`.
+     * @yields {object} The readings of its parts (./run.js).
      * @returns {object} The expression.
      */
-    readMultiplicative() {
-        let left = this.readUnary();
+    *readMultiplicative() {
+        let left = yield this.readUnary();
         while (this.isOp('*') || this.isOp('/') || this.isOp('÷') || this.isOp('%')) {
             const op = this.tokens[this.pos++];
-            left = this.binary(op, left, this.readUnary());
+            left = this.binary(op, left, yield this.readUnary());
         }
         return left;
     }
 
     /**
      * A sign before a value.
+     * @yields {object} The readings of its parts (./run.js).
      * @returns {object} The expression.
      */
-    readUnary() {
+    *readUnary() {
         if (!this.pending && (this.isOp('-') || this.isOp('+'))) {
             const op = this.tokens[this.pos++];
-            const operand = this.readUnary();
+            const operand = yield this.readUnary();
             return { type: 'Unary', operator: op.value, operand, line: op.line, column: op.column };
         }
-        return this.readPostfix();
+        return yield this.readPostfix();
     }
 
     /**
      * A value and the indexes after it (`A[i]`, `A[i][j]`).
+     * @yields {object} The readings of its parts (./run.js).
      * @returns {object} The expression.
      */
-    readPostfix() {
-        let value = this.readPrimary();
+    *readPostfix() {
+        let value = yield this.readPrimary();
         while (this.isOp('[')) {
             this.pos++;
-            const index = this.readExpression();
+            const index = yield this.readExpression();
             this.expectOp(']');
             value = { type: 'Index', target: value, index, line: value.line, column: value.column };
         }
@@ -514,16 +530,17 @@ class ExpressionReader {
 
     /**
      * The arguments of a call, after its `(`, up to its `)`.
+     * @yields {object} The readings of its parts (./run.js).
      * @returns {Array<object>} The arguments.
      */
-    readArguments() {
+    *readArguments() {
         const args = [];
         if (this.isOp(')')) {
             this.pos++;
             return args;
         }
         for (;;) {
-            args.push(this.readExpression());
+            args.push(yield this.readExpression());
             if (this.isOp(',')) {
                 this.pos++;
                 continue;
@@ -535,9 +552,10 @@ class ExpressionReader {
 
     /**
      * A value: a number, string, name, call, `( ... )` or `[ ... ]`.
+     * @yields {object} The readings of its parts (./run.js).
      * @returns {object} The expression.
      */
-    readPrimary() {
+    *readPrimary() {
         if (this.pending) {
             const value = this.pending;
             this.pending = null;
@@ -559,13 +577,13 @@ class ExpressionReader {
             if (t.text === '真' || t.text === '偽') return { type: 'Boolean', value: t.text === '真', ...at };
             if (this.isOp('(')) {
                 this.pos++;
-                return { type: 'Call', name: t.text, args: this.readArguments(), ...at };
+                return { type: 'Call', name: t.text, args: yield this.readArguments(), ...at };
             }
             return { type: 'Name', name: t.text, ...at };
         }
         if (t.type === 'op' && t.value === '(') {
             this.pos++;
-            const inner = this.readExpression();
+            const inner = yield this.readExpression();
             this.expectOp(')');
             return inner;
         }
@@ -576,7 +594,7 @@ class ExpressionReader {
                 this.pos++;
             } else {
                 for (;;) {
-                    elements.push(this.readExpression());
+                    elements.push(yield this.readExpression());
                     if (this.isOp(',')) {
                         this.pos++;
                         continue;
@@ -597,7 +615,7 @@ class ExpressionReader {
  * @param {number} line - The line, for an error at the end.
  * @returns {object} The expression.
  */
-const readExpression = (tokens, line) => new ExpressionReader(tokens, line).readAll();
+const readExpression = (tokens, line) => run(new ExpressionReader(tokens, line).readAll());
 
 /**
  * Split tokens at the commas outside brackets.

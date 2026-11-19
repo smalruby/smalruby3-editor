@@ -87,4 +87,5 @@ npm run test:unit --workspace=packages/ja-notation
 - データは **自作のプログラムだけ** にします。**大学入試センターの問題は使いません**（`docs/dncl/policy.md`）。
 - AGPL のコードを写しません（MIT で出すため）。ファイルの先頭に `// SPDX-License-Identifier: MIT` を書きます（`test/boundary.test.js` が確かめます）。
 - `src/` は `src/` の中だけを import します（拡張子 `.js` 付き）。
+- 構文木をたどる処理は再帰で書かず、ジェネレーターにして `src/run.js` の `run` で動かします（子をたどるところで `yield`）。数千項の式や深いブロックでも呼び出しのスタックが尽きないように（`test/deep.test.js`）。
 - スモウルビーの表を通した記録（コーパスとゴールデン）は scratch-gui の `test/fixtures/ja-notation/` にあります。

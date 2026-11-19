@@ -25,8 +25,9 @@ const dnclToRuby = (source) => {
     try {
         result = jaToRuby(source, SMALRUBY_JA_NOTATION);
     } catch (e) {
-        // The syntax tree is as deep as the longest expression: one of thousands
-        // of terms is too deep to read, and must not stop the editor.
+        // ja-notation walks its syntax trees with a stack of its own, so a deep
+        // program is read; one too large to hold (a RangeError of the memory of
+        // JavaScript) must still not stop the editor.
         if (!(e instanceof RangeError)) throw e;
         return {
             ruby: null,

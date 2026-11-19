@@ -27,8 +27,9 @@ const rubyToDncl = (source) => {
         const result = rubyToJa(source, { ...SMALRUBY_RUBY_TO_JA, parse: (ruby) => prism.parse(ruby) });
         return { dncl: result.ja, errors: rubyErrorWords(result.errors) };
     } catch (e) {
-        // The syntax tree is as deep as the longest expression: one of thousands
-        // of terms is too deep to read, and must not stop the editor.
+        // prism reads its syntax tree into JavaScript by recursion, so an expression
+        // of some thousands of terms is too deep for it (ja-notation itself walks
+        // the tree with a stack of its own), and must not stop the editor.
         if (!(e instanceof RangeError)) throw e;
         return { dncl: source, errors: [{ line: 1, column: 1, message: 'プログラムが長すぎて日本語にできません' }] };
     }
