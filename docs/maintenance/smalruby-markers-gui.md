@@ -70,6 +70,9 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/gui/gui.jsx` | meshV2 classroom binding | クラス状態に応じて Mesh v2 ドメインを参加コードに固定する常時マウントの binding |
 | `src/components/gui/gui.jsx` | mesh status popup | メッシュの「状態と履歴」ウィンドウ（`containers/mesh-status-popup.jsx`）の import と、エディターとプレイヤーのツリー（`StageWrapper` 内）への常時マウント（`docs/mesh-v2/README.md`） |
 | `src/components/stage-header/stage-header.jsx` | mesh status button | 緑の旗・停止（`Controls`）とメッシュのボタン（`MeshStatusButton`）を 1 つのまとまり（`controlsGroup`）に入れる。通常表示と全画面の 2 か所 + import |
+| `src/components/stage-header/stage-header.jsx` | console button | コンソールのボタン（`SmalrubyConsoleButton`）をメッシュのボタンの後ろに置く。通常表示と全画面の 2 か所 + import |
+| `src/components/stage/stage.jsx` | console | ステージの上にコンソール（`SmalrubyConsole`）を重ね、質問と答えの口を渡す。コンソールの表示中はステージの質問の欄を出さない（`consoleVisible`）。import・分割代入・propTypes |
+| `src/containers/stage.jsx` | console | `vm` をステージのコンポーネントへ渡す・`consoleVisible` を `state.scratchGui.smalrubyConsole.visible` にマップ |
 | `src/components/menu-bar/menu-bar.jsx` | mesh status popup | メッシュのメニューの「状態と履歴を見る」（`menu-bar-mesh-status`）と、`openMeshV2StatusPopup` の import・`onOpenMeshV2StatusPopup` の dispatch と propType |
 | `src/components/connection-modal/connected-step.jsx` | mesh status popup | メッシュの接続済み画面の［状態と履歴］ボタン（`mesh-v2-open-status`）の import と配置 |
 | `src/components/connection-modal/connection-modal.jsx` | mesh header design system | メッシュの接続のモーダルだけ、ヘッダーの題を太字 1.2rem にし（`.mesh-v2-header-title`）、ヘルプをヘッダーに置かず、どの画面でも本文の下に `MeshV2HelpRow`（`mesh-v2-help-row.jsx`・`meshV2-help`）を出す。その import と `extensionId` の propType（`docs/design-system/components/modal.md` の「つなぐ画面」） |
@@ -190,7 +193,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/lib/vm-manager-hoc.jsx` | koshien mock config wiring | VM 初期化時に `wireKoshienMockConfig(vm)` を呼び、甲子園拡張機能が練習ゲーム設定（マップ/自機サイド/相手AI）を読めるよう runtime に getter を差し込む (import + componentDidMount) |
 | `src/lib/define-dynamic-block.js` | argumentsByMethod support / argumentsByMethod layout / menu field support | 拡張ブロックの `argumentsByMethod`（メソッドごとの引数定義）と menu フィールドのサポート。undo/redo・プロジェクトロードのため複数回の `domToMutation` を許容 |
 | `src/lib/sb-file-uploader-hoc.jsx` | clear Google Drive state on file upload | ローカル sb3 ファイルのアップロード時に Google Drive のロード状態をクリア（3 ペア） |
-| `src/lib/make-toolbox-xml.js` | DNCL hide extensions | DNCL（日本語）モード時にツールボックスから拡張機能カテゴリを隠す |
+| `src/lib/make-toolbox-xml.js` | DNCL hide extensions | DNCL（日本語）モード時にツールボックスから拡張機能カテゴリを隠す（コンソール `smalrubyConsole` だけは残す） |
 | `src/lib/make-toolbox-xml.js` | lesson dynamic category filtering | `isDynamicCategoryAllowed` の import と、引数 `dynamicCategoryIds`（レッスン・チュートリアルの `allowedBlocks`）に変数・ブロック定義の opcode が無ければ「変数」「ブロック定義」のカテゴリを出さない |
 | `src/lib/locale-utils.js` | Japanese locale check | 日本語ロケール（ja / ja-Hira）判定ヘルパー |
 | `src/lib/legacy-storage.ts` | local sprite assets | スプライトの画像アセットをローカル配信の web store から解決する追加登録 |
@@ -198,7 +201,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/lib/alerts/index.jsx` | classroom session expired alert | クラスルームのセッション失効アラートの定義 |
 | `src/components/alerts/alert.jsx` | classroom session expired | セッション失効アラートの表示側 |
 | `src/containers/alert.jsx` | classroom session expired | セッション失効アラートのコンテナ側（3 ペア） |
-| `src/lib/libraries/extensions/index.jsx` | TM2Scratch extension / AkaDako extension / Ruby String extension | 拡張機能ライブラリへの Smalruby 拡張エントリ（各 2 ペア。取り外し可能拡張の分離マーカーと同名系列） |
+| `src/lib/libraries/extensions/index.jsx` | TM2Scratch extension / AkaDako extension / Ruby String extension / Console extension | 拡張機能ライブラリへの Smalruby 拡張エントリ（各 2 ペア。取り外し可能拡張の分離マーカーと同名系列） |
 | `src/components/connection-modal/connection-modal.css` | meshV2 name search / network filter detection feature | mesh v2 グループ名検索 UI とネットワークフィルター検出表示のスタイル |
 | `src/components/connection-modal/connection-modal.css` | mesh header design system | メッシュの接続のモーダルの題（太字 1.2rem。本文のヘルプの CSS は独自ファイル `mesh-v2-help-row.css`） |
 | `src/components/menu-bar/menu-bar.css` | mesh menu icon design system | メッシュのメニューのアイコンの余白を上流の `.help-icon` とそろえる（右から左の言葉も） |

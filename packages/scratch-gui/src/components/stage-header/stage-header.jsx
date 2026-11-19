@@ -11,6 +11,9 @@ import Controls from '../../containers/controls.jsx';
 import MeshStatusButton from '../mesh-status-button/mesh-status-button.jsx';
 import meshStatusButtonStyles from '../mesh-status-button/mesh-status-button.css';
 // === Smalruby: End of mesh status button ===
+// === Smalruby: Start of console button ===
+import SmalrubyConsoleButton from '../smalruby-console/smalruby-console-button.jsx';
+// === Smalruby: End of console button ===
 import {getStageDimensions} from '../../lib/screen-utils';
 import {STAGE_SIZE_MODES} from '../../lib/layout-constants';
 
@@ -249,6 +252,9 @@ const StageHeaderComponent = function (props) {
                     <div className={meshStatusButtonStyles.controlsGroup}>
                         <Controls vm={vm} />
                         <MeshStatusButton vm={vm} />
+                        {/* === Smalruby: Start of console button === */}
+                        <SmalrubyConsoleButton vm={vm} />
+                        {/* === Smalruby: End of console button === */}
                     </div>
                     {/* === Smalruby: End of mesh status button === */}
                     {stageButton}
@@ -298,6 +304,9 @@ const StageHeaderComponent = function (props) {
                     <div className={meshStatusButtonStyles.controlsGroup}>
                         <Controls vm={vm} />
                         <MeshStatusButton vm={vm} />
+                        {/* === Smalruby: Start of console button === */}
+                        <SmalrubyConsoleButton vm={vm} />
+                        {/* === Smalruby: End of console button === */}
                     </div>
                     {/* === Smalruby: End of mesh status button === */}
                     <div className={styles.stageSizeRow}>

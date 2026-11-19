@@ -426,6 +426,9 @@ class Stage extends React.Component {
         } = this.props;
         return (
             <StageComponent
+                // === Smalruby: Start of console ===
+                vm={vm}
+                // === Smalruby: End of console ===
                 canvas={this.canvas}
                 colorInfo={this.state.colorInfo}
                 dragRef={this.setDragCanvas}
@@ -459,6 +462,9 @@ const mapStateToProps = state => ({
     isFullScreen: state.scratchGui.mode.isFullScreen,
     isStarted: state.scratchGui.vmStatus.started,
     micIndicator: state.scratchGui.micIndicator,
+    // === Smalruby: Start of console ===
+    consoleVisible: state.scratchGui.smalrubyConsole.visible,
+    // === Smalruby: End of console ===
     // Do not use editor drag style in fullscreen or player mode.
     useEditorDragStyle: !(state.scratchGui.mode.isFullScreen || state.scratchGui.mode.isPlayerOnly)
 });

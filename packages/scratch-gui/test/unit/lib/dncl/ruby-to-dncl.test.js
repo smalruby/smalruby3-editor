@@ -55,6 +55,20 @@ describe('rubyToDncl', () => {
             expect(convert('say(@a, @b, @c, 1)')).toBe('表示する(a, b, c)');
         });
 
+        test('console.puts (the console block) → 表示する (#1758)', () => {
+            expect(convert('console.puts(@a)')).toBe('表示する(a)');
+            expect(convert('console.puts(@a.to_s + "は" + @b.to_s)')).toBe('表示する(a, "は", b)');
+        });
+
+        test('console.gets (the console block) → 入力 (#1758)', () => {
+            expect(convert('@a = console.gets')).toBe('a = 【外部からの入力】');
+            expect(convert('@n = console.gets.to_i')).toBe('n = 【整数を入力】');
+        });
+
+        test('console.gets that is not the value of an assignment has no Japanese form', () => {
+            expect(rubyToDncl('console.puts(console.gets)').errors).not.toEqual([]);
+        });
+
         test('ask + answer → 入力', () => {
             expect(convert('ask("")\n@a = answer')).toBe('a = 【外部からの入力】');
         });

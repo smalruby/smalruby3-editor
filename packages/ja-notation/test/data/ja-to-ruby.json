@@ -1,5 +1,5 @@
 {
-    "about": "jaToRuby(ja, table): the Ruby and the Japanese line of each Ruby line, or the errors (on Japanese lines) when there is no Ruby. The tables are made by each implementation: \"none\" is no table (names are local variables, no function), \"plain\" has only 表示する → puts (see README.md).",
+    "about": "jaToRuby(ja, table): the Ruby and the Japanese line of each Ruby line, or the errors (on Japanese lines) when there is no Ruby. The tables are made by each implementation: \"none\" is no table (names are local variables, no function), \"plain\" has only 表示する → puts, \"gets\" has the inputs as gets alone (see README.md).",
     "cases": [
         {
             "title": "an assignment",
@@ -247,6 +247,13 @@
             "ja": "A = []\nA に 3 を追加する\nA に x + 1 を追加する",
             "ruby": "A = []\nA.push(3)\nA.push(x + 1)",
             "jaLines": [1, 2, 3]
+        },
+        {
+            "title": "an input that is a value by itself makes no question line",
+            "table": "gets",
+            "ja": "x = 【外部からの入力】\ny = 【整数を入力】",
+            "ruby": "x = gets\ny = gets.to_i",
+            "jaLines": [1, 2]
         }
     ]
 }

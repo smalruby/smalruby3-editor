@@ -48,7 +48,7 @@ describe('DNCL → Ruby → DNCL: calls the Japanese mode has (issue #1679)', ()
     test('a variable with the name of a command', () => {
         const dncl = lines('move = 1', '表示する(move)');
         expect(roundtrip(dncl)).toBe(dncl);
-        expect(dnclToRuby(dncl).ruby).toBe(lines('@move = 1', 'puts(@move)'));
+        expect(dnclToRuby(dncl).ruby).toBe(lines('@move = 1', 'console.puts(@move)'));
     });
 
     test('calls in an expression', () => {
@@ -184,13 +184,13 @@ describe('Ruby → DNCL: a command the Japanese mode does not have is told on it
     });
 
     test('a predicate method is told on its column', () => {
-        expect(rubyErrors(lines('if key_pressed?("space")', '  puts(1)', 'end'))).toEqual([
+        expect(rubyErrors(lines('if key_pressed?("space")', '  console.puts(1)', 'end'))).toEqual([
             { line: 1, column: 4, name: 'key_pressed?' },
         ]);
     });
 
     test('code the Japanese mode has has no error', () => {
-        expect(rubyToDncl(lines('@x = 10', 'say("hello", 1)', 'puts(rand(1..6))')).errors).toEqual([]);
+        expect(rubyToDncl(lines('@x = 10', 'say("hello", 1)', 'console.puts(rand(1..6))')).errors).toEqual([]);
     });
 });
 

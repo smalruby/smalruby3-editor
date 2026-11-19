@@ -18,7 +18,7 @@
       }
     ],
     "back": {
-      "ruby": "if @direction > 90\n  puts(@y_position.to_s)\nend",
+      "ruby": "if @direction > 90\n  console.puts(@y_position.to_s)\nend",
       "errors": []
     }
   },
@@ -34,7 +34,7 @@
       }
     ],
     "back": {
-      "ruby": "puts(@costume_number)",
+      "ruby": "console.puts(@costume_number)",
       "errors": []
     }
   },
@@ -73,7 +73,7 @@
       }
     ],
     "back": {
-      "ruby": "@i = 1\nwhile @i <= @x_position\n  puts(@i)\n  @i += @costume_number\nend",
+      "ruby": "@i = 1\nwhile @i <= @x_position\n  console.puts(@i)\n  @i += @costume_number\nend",
       "errors": []
     }
   },
@@ -105,7 +105,7 @@
     "ja": "表示する(\"x_position\")\na = 1 # x_position",
     "errors": [],
     "back": {
-      "ruby": "puts(\"x_position\")\n@a = 1 # x_position",
+      "ruby": "console.puts(\"x_position\")\n@a = 1 # x_position",
       "errors": []
     }
   },
@@ -129,7 +129,7 @@
     "ja": "i を 1 から 3 まで 1 ずつ増やしながら繰り返す:\n    表示する(i)",
     "errors": [],
     "back": {
-      "ruby": "@i = 1\nwhile @i <= 3\n  puts(@i)\n  @i += 1\nend",
+      "ruby": "@i = 1\nwhile @i <= 3\n  console.puts(@i)\n  @i += 1\nend",
       "errors": []
     }
   },
@@ -137,7 +137,7 @@
     "ja": "関数 greet():\n    表示する(\"hi\")\na = greet",
     "errors": [],
     "back": {
-      "ruby": "def greet()\n  puts(\"hi\")\nend\n@a = greet",
+      "ruby": "def greet()\n  console.puts(\"hi\")\nend\n@a = greet",
       "errors": []
     }
   },
@@ -161,7 +161,7 @@
     "ja": "a = 【外部からの入力】\nb = 乱数(1..6)\nc = 整数(a) + 要素数(b)\n表示する(真 and not 偽)",
     "errors": [],
     "back": {
-      "ruby": "ask(\"\")\n@a = answer\n@b = rand(1..6)\n@c = @a.to_i + @b.length\nputs(true && !false)",
+      "ruby": "@a = console.gets\n@b = rand(1..6)\n@c = @a.to_i + @b.length\nconsole.puts(true && !false)",
       "errors": []
     }
   },
@@ -200,7 +200,7 @@
     "ja": "a, b = 1, 2\n表示する(a + b)",
     "errors": [],
     "back": {
-      "ruby": "@a, @b = 1, 2\nputs(@a + @b)",
+      "ruby": "@a, @b = 1, 2\nconsole.puts(@a + @b)",
       "errors": []
     }
   },
@@ -424,7 +424,7 @@
     "ja": "表示する(文字列(a + 1))",
     "errors": [],
     "back": {
-      "ruby": "puts((@a + 1).to_s)",
+      "ruby": "console.puts((@a + 1).to_s)",
       "errors": []
     }
   },
@@ -568,7 +568,7 @@
     "ja": "表示する(-1, \"個\")",
     "errors": [],
     "back": {
-      "ruby": "puts(-1.to_s + \"個\")",
+      "ruby": "console.puts(-1.to_s + \"個\")",
       "errors": []
     }
   },
@@ -576,7 +576,7 @@
     "ja": "i を 10 から 1 まで 1 ずつ減らしながら繰り返す:\n    表示する(i)",
     "errors": [],
     "back": {
-      "ruby": "@i = 10\nwhile @i >= 1\n  puts(@i)\n  @i += -1\nend",
+      "ruby": "@i = 10\nwhile @i >= 1\n  console.puts(@i)\n  @i += -1\nend",
       "errors": []
     }
   },
@@ -584,7 +584,7 @@
     "ja": "i を 10 から 1 まで 1 ずつ減らしながら繰り返す:\n    表示する(i)",
     "errors": [],
     "back": {
-      "ruby": "@i = 10\nwhile @i >= 1\n  puts(@i)\n  @i += -1\nend",
+      "ruby": "@i = 10\nwhile @i >= 1\n  console.puts(@i)\n  @i += -1\nend",
       "errors": []
     }
   },
@@ -592,7 +592,7 @@
     "ja": "i を 10 から 1 まで a + 1 ずつ減らしながら繰り返す:\n    表示する(i)",
     "errors": [],
     "back": {
-      "ruby": "@i = 10\nwhile @i >= 1\n  puts(@i)\n  @i += -(@a + 1)\nend",
+      "ruby": "@i = 10\nwhile @i >= 1\n  console.puts(@i)\n  @i += -(@a + 1)\nend",
       "errors": []
     }
   },
@@ -600,7 +600,7 @@
     "ja": "i を 10 から 1 まで a + 1 ずつ減らしながら繰り返す:\n    表示する(i)",
     "errors": [],
     "back": {
-      "ruby": "@i = 10\nwhile @i >= 1\n  puts(@i)\n  @i += -(@a + 1)\nend",
+      "ruby": "@i = 10\nwhile @i >= 1\n  console.puts(@i)\n  @i += -(@a + 1)\nend",
       "errors": []
     }
   },
@@ -608,7 +608,7 @@
     "ja": "i を 10 から 1 まで 1 ずつ減らしながら繰り返す:\n    表示する(i)",
     "errors": [],
     "back": {
-      "ruby": "@i = 10\nwhile @i >= 1\n  puts(@i)\n  @i += -1\nend",
+      "ruby": "@i = 10\nwhile @i >= 1\n  console.puts(@i)\n  @i += -1\nend",
       "errors": []
     }
   },
@@ -616,7 +616,7 @@
     "ja": "i を 1 から 10 まで 2 ずつ増やしながら繰り返す:\n    表示する(i)",
     "errors": [],
     "back": {
-      "ruby": "@i = 1\nwhile @i <= 10\n  puts(@i)\n  @i += 2\nend",
+      "ruby": "@i = 1\nwhile @i <= 10\n  console.puts(@i)\n  @i += 2\nend",
       "errors": []
     }
   },
@@ -624,7 +624,7 @@
     "ja": "i を 0 から 10 まで 整数(s) ずつ増やしながら繰り返す:\n    表示する(i)",
     "errors": [],
     "back": {
-      "ruby": "@i = 0\nwhile @i <= 10\n  puts(@i)\n  @i += @s.to_i\nend",
+      "ruby": "@i = 0\nwhile @i <= 10\n  console.puts(@i)\n  @i += @s.to_i\nend",
       "errors": []
     }
   },
@@ -632,7 +632,7 @@
     "ja": "i を 0 から 10 まで s ÷ 2 ずつ増やしながら繰り返す:\n    表示する(i)",
     "errors": [],
     "back": {
-      "ruby": "@i = 0\nwhile @i <= 10\n  puts(@i)\n  @i += (@s / 2).to_i\nend",
+      "ruby": "@i = 0\nwhile @i <= 10\n  console.puts(@i)\n  @i += (@s / 2).to_i\nend",
       "errors": []
     }
   },
@@ -640,7 +640,7 @@
     "ja": "i を 10 から 0 まで s ÷ 2 ずつ減らしながら繰り返す:\n    表示する(i)",
     "errors": [],
     "back": {
-      "ruby": "@i = 10\nwhile @i >= 0\n  puts(@i)\n  @i += -((@s / 2).to_i)\nend",
+      "ruby": "@i = 10\nwhile @i >= 0\n  console.puts(@i)\n  @i += -((@s / 2).to_i)\nend",
       "errors": []
     }
   },
@@ -648,7 +648,7 @@
     "ja": "i を 0 から 10 まで s ずつ増やしながら繰り返す:\n    表示する(i)",
     "errors": [],
     "back": {
-      "ruby": "@i = 0\nwhile @i <= 10\n  puts(@i)\n  @i += @s\nend",
+      "ruby": "@i = 0\nwhile @i <= 10\n  console.puts(@i)\n  @i += @s\nend",
       "errors": []
     }
   },
@@ -656,7 +656,7 @@
     "ja": "i を 1 から 10 まで 1 ずつ増やしながら繰り返す:\n    表示する(i)\n\n",
     "errors": [],
     "back": {
-      "ruby": "@i = 1\nwhile @i <= 10\n  puts(@i)\n  @i += 1\nend\n\n",
+      "ruby": "@i = 1\nwhile @i <= 10\n  console.puts(@i)\n  @i += 1\nend\n\n",
       "errors": []
     }
   },
@@ -664,7 +664,7 @@
     "ja": "i を 1 から 10 まで 1 ずつ増やしながら繰り返す:\n    表示する(i)\n\n",
     "errors": [],
     "back": {
-      "ruby": "@i = 1\nwhile @i <= 10\n  puts(@i)\n  @i += 1\nend\n\n",
+      "ruby": "@i = 1\nwhile @i <= 10\n  console.puts(@i)\n  @i += 1\nend\n\n",
       "errors": []
     }
   },
@@ -672,7 +672,7 @@
     "ja": "i を 1 から 10 まで 1 ずつ増やしながら繰り返す: # a # b\n    表示する(i) # c\nを繰り返す # d # e",
     "errors": [],
     "back": {
-      "ruby": "@i = 1\nwhile @i <= 10 # a # b\n  puts(@i) # c\n  @i += 1\nend # d # e",
+      "ruby": "@i = 1\nwhile @i <= 10 # a # b\n  console.puts(@i) # c\n  @i += 1\nend # d # e",
       "errors": []
     }
   },
@@ -680,7 +680,7 @@
     "ja": "i を 1 から 10 まで 1 ずつ増やしながら繰り返す: # a # b\n    表示する(i) # c\nを繰り返す # d # e",
     "errors": [],
     "back": {
-      "ruby": "@i = 1\nwhile @i <= 10 # a # b\n  puts(@i) # c\n  @i += 1\nend # d # e",
+      "ruby": "@i = 1\nwhile @i <= 10 # a # b\n  console.puts(@i) # c\n  @i += 1\nend # d # e",
       "errors": []
     }
   },
@@ -688,7 +688,7 @@
     "ja": "i を 1 から 3 まで 1 ずつ増やしながら繰り返す:\n    j = 1\n    j <= 3 の間繰り返す:\n        j += 1\n        表示する(j)",
     "errors": [],
     "back": {
-      "ruby": "@i = 1\nwhile @i <= 3\n  @j = 1\n  while @j <= 3\n    @j += 1\n    puts(@j)\n  end\n  @i += 1\nend",
+      "ruby": "@i = 1\nwhile @i <= 3\n  @j = 1\n  while @j <= 3\n    @j += 1\n    console.puts(@j)\n  end\n  @i += 1\nend",
       "errors": []
     }
   },
@@ -696,7 +696,7 @@
     "ja": "i = 1\ni <= 3 の間繰り返す:\n    i += 1\n    j を 1 から 3 まで 1 ずつ増やしながら繰り返す:\n        表示する(j)",
     "errors": [],
     "back": {
-      "ruby": "@i = 1\nwhile @i <= 3\n  @i += 1\n  @j = 1\n  while @j <= 3\n    puts(@j)\n    @j += 1\n  end\nend",
+      "ruby": "@i = 1\nwhile @i <= 3\n  @i += 1\n  @j = 1\n  while @j <= 3\n    console.puts(@j)\n    @j += 1\n  end\nend",
       "errors": []
     }
   },
@@ -704,7 +704,7 @@
     "ja": "i = 1\ni <= 3 の間繰り返す:\n    i を 1 から 3 まで 1 ずつ増やしながら繰り返す:\n        表示する(i)\n    i += 1",
     "errors": [],
     "back": {
-      "ruby": "@i = 1\nwhile @i <= 3\n  @i = 1\n  while @i <= 3\n    puts(@i)\n    @i += 1\n  end\n  @i += 1\nend",
+      "ruby": "@i = 1\nwhile @i <= 3\n  @i = 1\n  while @i <= 3\n    console.puts(@i)\n    @i += 1\n  end\n  @i += 1\nend",
       "errors": []
     }
   },
@@ -720,7 +720,7 @@
     "ja": "i = 1\ni <= 10 の間繰り返す:\n    i += 1\n    表示する(i)",
     "errors": [],
     "back": {
-      "ruby": "@i = 1\nwhile @i <= 10\n  @i += 1\n  puts(@i)\nend",
+      "ruby": "@i = 1\nwhile @i <= 10\n  @i += 1\n  console.puts(@i)\nend",
       "errors": []
     }
   },
@@ -728,7 +728,7 @@
     "ja": "i = 10\ni >= 1 の間繰り返す:\n    表示する(i)\n    i += -a + 1",
     "errors": [],
     "back": {
-      "ruby": "@i = 10\nwhile @i >= 1\n  puts(@i)\n  @i += -@a + 1\nend",
+      "ruby": "@i = 10\nwhile @i >= 1\n  console.puts(@i)\n  @i += -@a + 1\nend",
       "errors": []
     }
   },
@@ -736,7 +736,7 @@
     "ja": "i = 1\ni <= 10 の間繰り返す:\n    表示する(i)\n    i += 乱数(3)",
     "errors": [],
     "back": {
-      "ruby": "@i = 1\nwhile @i <= 10\n  puts(@i)\n  @i += rand(3)\nend",
+      "ruby": "@i = 1\nwhile @i <= 10\n  console.puts(@i)\n  @i += rand(3)\nend",
       "errors": []
     }
   },
@@ -744,7 +744,7 @@
     "ja": "i = 1\ni <= 10 の間繰り返す:\n    表示する(i)\n    i -= 1",
     "errors": [],
     "back": {
-      "ruby": "@i = 1\nwhile @i <= 10\n  puts(@i)\n  @i -= 1\nend",
+      "ruby": "@i = 1\nwhile @i <= 10\n  console.puts(@i)\n  @i -= 1\nend",
       "errors": []
     }
   },
@@ -760,7 +760,7 @@
     "ja": "i = 1\ni <= 100 の間繰り返す:\n    表示する(i)\n    i += i",
     "errors": [],
     "back": {
-      "ruby": "@i = 1\nwhile @i <= 100\n  puts(@i)\n  @i += @i\nend",
+      "ruby": "@i = 1\nwhile @i <= 100\n  console.puts(@i)\n  @i += @i\nend",
       "errors": []
     }
   },
@@ -768,7 +768,7 @@
     "ja": "i = 1\ni <= 10 の間繰り返す:\n    i = i * 2\n    表示する(i)\n    i += 1",
     "errors": [],
     "back": {
-      "ruby": "@i = 1\nwhile @i <= 10\n  @i = @i * 2\n  puts(@i)\n  @i += 1\nend",
+      "ruby": "@i = 1\nwhile @i <= 10\n  @i = @i * 2\n  console.puts(@i)\n  @i += 1\nend",
       "errors": []
     }
   },
@@ -776,7 +776,7 @@
     "ja": "i = 1\ni <= 10 の間繰り返す:\n    i += 1\n    表示する(i)\n    i += 1",
     "errors": [],
     "back": {
-      "ruby": "@i = 1\nwhile @i <= 10\n  @i += 1\n  puts(@i)\n  @i += 1\nend",
+      "ruby": "@i = 1\nwhile @i <= 10\n  @i += 1\n  console.puts(@i)\n  @i += 1\nend",
       "errors": []
     }
   },
@@ -792,7 +792,7 @@
     "ja": "i = 1 # a\ni <= 10 の間繰り返す: # b\n    i += 1 # c\n    表示する(i) # d\nを繰り返す # e",
     "errors": [],
     "back": {
-      "ruby": "@i = 1 # a\nwhile @i <= 10 # b\n  @i += 1 # c\n  puts(@i) # d\nend # e",
+      "ruby": "@i = 1 # a\nwhile @i <= 10 # b\n  @i += 1 # c\n  console.puts(@i) # d\nend # e",
       "errors": []
     }
   },
@@ -800,7 +800,7 @@
     "ja": "表示する(\"a\", \"b\", \"c\")",
     "errors": [],
     "back": {
-      "ruby": "puts(\"a\" + \"b\" + \"c\")",
+      "ruby": "console.puts(\"a\" + \"b\" + \"c\")",
       "errors": []
     }
   },
@@ -808,7 +808,7 @@
     "ja": "表示する(\"添字\", \" \", \"要素\")",
     "errors": [],
     "back": {
-      "ruby": "puts(\"添字\" + \" \" + \"要素\")",
+      "ruby": "console.puts(\"添字\" + \" \" + \"要素\")",
       "errors": []
     }
   },
@@ -816,7 +816,7 @@
     "ja": "表示する(1, \"は\", 2, \"番目\")",
     "errors": [],
     "back": {
-      "ruby": "puts(1.to_s + \"は\" + 2.to_s + \"番目\")",
+      "ruby": "console.puts(1.to_s + \"は\" + 2.to_s + \"番目\")",
       "errors": []
     }
   },
@@ -824,7 +824,7 @@
     "ja": "表示する(a, \"は\", b)",
     "errors": [],
     "back": {
-      "ruby": "puts(@a.to_s + \"は\" + @b.to_s)",
+      "ruby": "console.puts(@a.to_s + \"は\" + @b.to_s)",
       "errors": []
     }
   },
@@ -832,7 +832,7 @@
     "ja": "表示する(a + b)",
     "errors": [],
     "back": {
-      "ruby": "puts(@a + @b)",
+      "ruby": "console.puts(@a + @b)",
       "errors": []
     }
   },
@@ -840,7 +840,7 @@
     "ja": "表示する(a, \"は\", b)",
     "errors": [],
     "back": {
-      "ruby": "puts(@a.to_s + \"は\" + @b.to_s)",
+      "ruby": "console.puts(@a.to_s + \"は\" + @b.to_s)",
       "errors": []
     }
   },
@@ -848,7 +848,7 @@
     "ja": "表示する(x + 1)",
     "errors": [],
     "back": {
-      "ruby": "puts(@x + 1)",
+      "ruby": "console.puts(@x + 1)",
       "errors": []
     }
   },
@@ -856,7 +856,7 @@
     "ja": "表示する(\"a\", \"b\", \"c\")",
     "errors": [],
     "back": {
-      "ruby": "puts(\"a\" + \"b\" + \"c\")",
+      "ruby": "console.puts(\"a\" + \"b\" + \"c\")",
       "errors": []
     }
   },
@@ -864,7 +864,7 @@
     "ja": "表示する(not x, y)",
     "errors": [],
     "back": {
-      "ruby": "puts((!@x).to_s + @y.to_s)",
+      "ruby": "console.puts((!@x).to_s + @y.to_s)",
       "errors": []
     }
   },
@@ -872,7 +872,7 @@
     "ja": "表示する(a, b + 1)",
     "errors": [],
     "back": {
-      "ruby": "puts(@a.to_s + (@b + 1).to_s)",
+      "ruby": "console.puts(@a.to_s + (@b + 1).to_s)",
       "errors": []
     }
   },
@@ -880,7 +880,7 @@
     "ja": "表示する(\"合計\", a * 2)",
     "errors": [],
     "back": {
-      "ruby": "puts(\"合計\" + (@a * 2).to_s)",
+      "ruby": "console.puts(\"合計\" + (@a * 2).to_s)",
       "errors": []
     }
   },
@@ -888,7 +888,7 @@
     "ja": "表示する(a + 1, b)",
     "errors": [],
     "back": {
-      "ruby": "puts((@a + 1).to_s + @b.to_s)",
+      "ruby": "console.puts((@a + 1).to_s + @b.to_s)",
       "errors": []
     }
   },
@@ -1149,7 +1149,7 @@
     "ja": "a < 1 の間繰り返す:\n    表示する(\"do\")\n    表示する(\"a do\")",
     "errors": [],
     "back": {
-      "ruby": "while @a < 1\n  puts(\"do\")\n  puts(\"a do\")\nend",
+      "ruby": "while @a < 1\n  console.puts(\"do\")\n  console.puts(\"a do\")\nend",
       "errors": []
     }
   },
@@ -1729,7 +1729,7 @@
     "ja": "表示する(namae + \"には「く」がある\")",
     "errors": [],
     "back": {
-      "ruby": "puts(@namae + \"には「く」がある\")",
+      "ruby": "console.puts(@namae + \"には「く」がある\")",
       "errors": []
     }
   },
@@ -1737,7 +1737,7 @@
     "ja": "表示する(\"「く」がある\")",
     "errors": [],
     "back": {
-      "ruby": "puts(\"「く」がある\")",
+      "ruby": "console.puts(\"「く」がある\")",
       "errors": []
     }
   },
@@ -1769,7 +1769,7 @@
     "ja": "next = 1\nnext < 10 の間繰り返す:\n    next += 1\nbreak を 1 から 3 まで 1 ずつ増やしながら繰り返す:\n    表示する(break)\nnext == 1",
     "errors": [],
     "back": {
-      "ruby": "@next = 1\nwhile @next < 10\n  @next += 1\nend\n@break = 1\nwhile @break <= 3\n  puts(@break)\n  @break += 1\nend\n@next == 1",
+      "ruby": "@next = 1\nwhile @next < 10\n  @next += 1\nend\n@break = 1\nwhile @break <= 3\n  console.puts(@break)\n  @break += 1\nend\n@next == 1",
       "errors": []
     }
   },
@@ -1777,7 +1777,7 @@
     "ja": "next = 1\nbreak = next + 1\nnext += break\n表示する(next)",
     "errors": [],
     "back": {
-      "ruby": "@next = 1\n@break = @next + 1\n@next += @break\nputs(@next)",
+      "ruby": "@next = 1\n@break = @next + 1\n@next += @break\nconsole.puts(@next)",
       "errors": []
     }
   },
@@ -2120,7 +2120,7 @@
     "ja": "表示する(\"017\")",
     "errors": [],
     "back": {
-      "ruby": "puts(\"017\")",
+      "ruby": "console.puts(\"017\")",
       "errors": []
     }
   },
@@ -2200,7 +2200,7 @@
     "ja": "a = 1.5\n表示する(\"0x5\")\nb = 文字列(1) # 1e3",
     "errors": [],
     "back": {
-      "ruby": "@a = 1.5\nputs(\"0x5\")\n@b = 1.to_s # 1e3",
+      "ruby": "@a = 1.5\nconsole.puts(\"0x5\")\n@b = 1.to_s # 1e3",
       "errors": []
     }
   },
@@ -2477,7 +2477,7 @@
     "ja": "i を 1 から 10 まで 1 ずつ増やしながら繰り返す:\n    表示する(i)",
     "errors": [],
     "back": {
-      "ruby": "@i = 1\nwhile @i <= 10\n  puts(@i)\n  @i += 1\nend",
+      "ruby": "@i = 1\nwhile @i <= 10\n  console.puts(@i)\n  @i += 1\nend",
       "errors": []
     }
   },
@@ -2485,7 +2485,7 @@
     "ja": "i を 10 から 0 まで 1 ずつ減らしながら繰り返す:\n    表示する(i)",
     "errors": [],
     "back": {
-      "ruby": "@i = 10\nwhile @i >= 0\n  puts(@i)\n  @i += -1\nend",
+      "ruby": "@i = 10\nwhile @i >= 0\n  console.puts(@i)\n  @i += -1\nend",
       "errors": []
     }
   },
@@ -2509,7 +2509,7 @@
     "ja": "表示する(乱数(1..10) + 5)",
     "errors": [],
     "back": {
-      "ruby": "puts(rand(1..10) + 5)",
+      "ruby": "console.puts(rand(1..10) + 5)",
       "errors": []
     }
   },
@@ -2517,7 +2517,7 @@
     "ja": "表示する(乱数(1..10))",
     "errors": [],
     "back": {
-      "ruby": "puts(rand(1..10))",
+      "ruby": "console.puts(rand(1..10))",
       "errors": []
     }
   },
@@ -2525,7 +2525,7 @@
     "ja": "表示する(整数(x))",
     "errors": [],
     "back": {
-      "ruby": "puts(@x.to_i)",
+      "ruby": "console.puts(@x.to_i)",
       "errors": []
     }
   },
@@ -2533,7 +2533,7 @@
     "ja": "表示する(絶対値(x))",
     "errors": [],
     "back": {
-      "ruby": "puts(@x.abs)",
+      "ruby": "console.puts(@x.abs)",
       "errors": []
     }
   },
@@ -2541,7 +2541,7 @@
     "ja": "表示する(整数(x))",
     "errors": [],
     "back": {
-      "ruby": "puts(@x.to_i)",
+      "ruby": "console.puts(@x.to_i)",
       "errors": []
     }
   },
@@ -2549,7 +2549,7 @@
     "ja": "表示する(乱数(1..10) + 5)",
     "errors": [],
     "back": {
-      "ruby": "puts(rand(1..10) + 5)",
+      "ruby": "console.puts(rand(1..10) + 5)",
       "errors": []
     }
   },
@@ -2557,7 +2557,7 @@
     "ja": "表示する(乱数(1..10))",
     "errors": [],
     "back": {
-      "ruby": "puts(rand(1..10))",
+      "ruby": "console.puts(rand(1..10))",
       "errors": []
     }
   },
@@ -2581,7 +2581,7 @@
     "ja": "表示する(変数 + \"バナナ\")",
     "errors": [],
     "back": {
-      "ruby": "puts(@変数 + \"バナナ\")",
+      "ruby": "console.puts(@変数 + \"バナナ\")",
       "errors": []
     }
   },
@@ -2589,7 +2589,7 @@
     "ja": "表示する(a, \"x\", b)",
     "errors": [],
     "back": {
-      "ruby": "puts(@a.to_s + \"x\" + @b.to_s)",
+      "ruby": "console.puts(@a.to_s + \"x\" + @b.to_s)",
       "errors": []
     }
   },
@@ -2597,7 +2597,7 @@
     "ja": "表示する(\"\\\"x←1\")",
     "errors": [],
     "back": {
-      "ruby": "puts(\"\\\"x←1\")",
+      "ruby": "console.puts(\"\\\"x←1\")",
       "errors": []
     }
   },
@@ -2613,7 +2613,7 @@
     "ja": "表示する(\"a\\\\b\")",
     "errors": [],
     "back": {
-      "ruby": "puts(\"a\\\\b\")",
+      "ruby": "console.puts(\"a\\\\b\")",
       "errors": []
     }
   },
@@ -2661,7 +2661,7 @@
     "ja": "表示する(含む(a, \"x.include?(y)\"))",
     "errors": [],
     "back": {
-      "ruby": "puts(@a.include?(\"x.include?(y)\"))",
+      "ruby": "console.puts(@a.include?(\"x.include?(y)\"))",
       "errors": []
     }
   },
@@ -2669,7 +2669,7 @@
     "ja": "表示する(含む(\"abc\", \"b\"))",
     "errors": [],
     "back": {
-      "ruby": "puts(\"abc\".include?(\"b\"))",
+      "ruby": "console.puts(\"abc\".include?(\"b\"))",
       "errors": []
     }
   },
@@ -2677,7 +2677,7 @@
     "ja": "表示する('a.include?(b)')",
     "errors": [],
     "back": {
-      "ruby": "puts('a.include?(b)')",
+      "ruby": "console.puts('a.include?(b)')",
       "errors": []
     }
   },
@@ -2685,7 +2685,7 @@
     "ja": "表示する(\"a && b || c\")",
     "errors": [],
     "back": {
-      "ruby": "puts(\"a && b || c\")",
+      "ruby": "console.puts(\"a && b || c\")",
       "errors": []
     }
   },
@@ -2693,7 +2693,7 @@
     "ja": "表示する(\"a.include?(b)\")",
     "errors": [],
     "back": {
-      "ruby": "puts(\"a.include?(b)\")",
+      "ruby": "console.puts(\"a.include?(b)\")",
       "errors": []
     }
   },
@@ -2701,7 +2701,7 @@
     "ja": "表示する(\"rand(3)\")",
     "errors": [],
     "back": {
-      "ruby": "puts(\"rand(3)\")",
+      "ruby": "console.puts(\"rand(3)\")",
       "errors": []
     }
   },
@@ -2709,7 +2709,7 @@
     "ja": "表示する(\"true false\")",
     "errors": [],
     "back": {
-      "ruby": "puts(\"true false\")",
+      "ruby": "console.puts(\"true false\")",
       "errors": []
     }
   },
@@ -2717,7 +2717,7 @@
     "ja": "表示する(\"x = 1\")",
     "errors": [],
     "back": {
-      "ruby": "puts(\"x = 1\")",
+      "ruby": "console.puts(\"x = 1\")",
       "errors": []
     }
   },
@@ -2725,7 +2725,7 @@
     "ja": "表示する(\"x.to_i\")",
     "errors": [],
     "back": {
-      "ruby": "puts(\"x.to_i\")",
+      "ruby": "console.puts(\"x.to_i\")",
       "errors": []
     }
   },
@@ -2733,7 +2733,7 @@
     "ja": "もし a == \"#\" ならば: # c\n    表示する(a)",
     "errors": [],
     "back": {
-      "ruby": "if @a == \"#\" # c\n  puts(@a)\nend",
+      "ruby": "if @a == \"#\" # c\n  console.puts(@a)\nend",
       "errors": []
     }
   },
@@ -2741,7 +2741,7 @@
     "ja": "# はじめ\nもし a > 0 ならば: # c\n    # なか\n    表示する(a)\nを実行する\n# おわり",
     "errors": [],
     "back": {
-      "ruby": "# はじめ\nif @a > 0 # c\n  # なか\n  puts(@a)\nend\n# おわり",
+      "ruby": "# はじめ\nif @a > 0 # c\n  # なか\n  console.puts(@a)\nend\n# おわり",
       "errors": []
     }
   },
@@ -2749,7 +2749,7 @@
     "ja": "i を 1 から 3 まで 1 ずつ増やしながら繰り返す: # c\n    表示する(i)\nを繰り返す # d",
     "errors": [],
     "back": {
-      "ruby": "@i = 1\nwhile @i <= 3 # c\n  puts(@i)\n  @i += 1\nend # d",
+      "ruby": "@i = 1\nwhile @i <= 3 # c\n  console.puts(@i)\n  @i += 1\nend # d",
       "errors": []
     }
   },
@@ -2757,7 +2757,7 @@
     "ja": "もし a > 0 ならば: # c1\n    表示する(a)\nそうでなくもし a < 0 ならば: # c2\n    表示する(b)\nそうでなければ: # c3\n    表示する(c)\nを実行する # c4",
     "errors": [],
     "back": {
-      "ruby": "if @a > 0 # c1\n  puts(@a)\nelsif @a < 0 # c2\n  puts(@b)\nelse # c3\n  puts(@c)\nend # c4",
+      "ruby": "if @a > 0 # c1\n  console.puts(@a)\nelsif @a < 0 # c2\n  console.puts(@b)\nelse # c3\n  console.puts(@c)\nend # c4",
       "errors": []
     }
   },
@@ -2773,7 +2773,7 @@
     "ja": "もし a > 0 ならば:\n    表示する(a)\nを実行する # c",
     "errors": [],
     "back": {
-      "ruby": "if @a > 0\n  puts(@a)\nend # c",
+      "ruby": "if @a > 0\n  console.puts(@a)\nend # c",
       "errors": []
     }
   },
@@ -2781,7 +2781,7 @@
     "ja": "もし a > 0 ならば: # c\n    表示する(a)",
     "errors": [],
     "back": {
-      "ruby": "if @a > 0 # c\n  puts(@a)\nend",
+      "ruby": "if @a > 0 # c\n  console.puts(@a)\nend",
       "errors": []
     }
   },
@@ -2789,7 +2789,7 @@
     "ja": "x = 【外部からの入力】 # c",
     "errors": [],
     "back": {
-      "ruby": "ask(\"\")\n@x = answer # c",
+      "ruby": "@x = console.gets # c",
       "errors": []
     }
   },
@@ -2797,7 +2797,7 @@
     "ja": "a < 3 の間繰り返す: # loop\n    もし a > 1 ならば: # if\n        表示する(a)\n    を実行する # end if\n    a = a + 1 # step\nを繰り返す # end loop",
     "errors": [],
     "back": {
-      "ruby": "while @a < 3 # loop\n  if @a > 1 # if\n    puts(@a)\n  end # end if\n  @a = @a + 1 # step\nend # end loop",
+      "ruby": "while @a < 3 # loop\n  if @a > 1 # if\n    console.puts(@a)\n  end # end if\n  @a = @a + 1 # step\nend # end loop",
       "errors": []
     }
   },
@@ -2805,7 +2805,7 @@
     "ja": "表示する(1) # move(2)",
     "errors": [],
     "back": {
-      "ruby": "puts(1) # move(2)",
+      "ruby": "console.puts(1) # move(2)",
       "errors": []
     }
   },
@@ -2837,7 +2837,7 @@
     "ja": "i を 1 から 3 まで 1 ずつ増やしながら繰り返す: # a # b\n    表示する(i) # p\nを繰り返す # inc # e",
     "errors": [],
     "back": {
-      "ruby": "@i = 1\nwhile @i <= 3 # a # b\n  puts(@i) # p\n  @i += 1\nend # inc # e",
+      "ruby": "@i = 1\nwhile @i <= 3 # a # b\n  console.puts(@i) # p\n  @i += 1\nend # inc # e",
       "errors": []
     }
   },
@@ -2845,7 +2845,7 @@
     "ja": "i を 1 から 3 まで 1 ずつ増やしながら繰り返す: # a # b\n    表示する(i) # p\nを繰り返す # inc # e",
     "errors": [],
     "back": {
-      "ruby": "@i = 1\nwhile @i <= 3 # a # b\n  puts(@i) # p\n  @i += 1\nend # inc # e",
+      "ruby": "@i = 1\nwhile @i <= 3 # a # b\n  console.puts(@i) # p\n  @i += 1\nend # inc # e",
       "errors": []
     }
   },
@@ -2853,7 +2853,7 @@
     "ja": "x = 【外部からの入力】 # q # a",
     "errors": [],
     "back": {
-      "ruby": "ask(\"\")\n@x = answer # q # a",
+      "ruby": "@x = console.gets # q # a",
       "errors": []
     }
   },
@@ -2861,7 +2861,7 @@
     "ja": "x = 【外部からの入力】 # q # a",
     "errors": [],
     "back": {
-      "ruby": "ask(\"\")\n@x = answer # q # a",
+      "ruby": "@x = console.gets # q # a",
       "errors": []
     }
   },
@@ -2885,7 +2885,7 @@
     "ja": "関数 あいさつ():\n    表示する(\"こんにちは\")\nあいさつ()",
     "errors": [],
     "back": {
-      "ruby": "def あいさつ()\n  puts(\"こんにちは\")\nend\nあいさつ()",
+      "ruby": "def あいさつ()\n  console.puts(\"こんにちは\")\nend\nあいさつ()",
       "errors": []
     }
   },
@@ -2893,7 +2893,7 @@
     "ja": "関数 greet():\n    表示する(\"hi\")\ngreet",
     "errors": [],
     "back": {
-      "ruby": "def greet()\n  puts(\"hi\")\nend\ngreet",
+      "ruby": "def greet()\n  console.puts(\"hi\")\nend\ngreet",
       "errors": []
     }
   },
@@ -2901,7 +2901,7 @@
     "ja": "move = 1\n表示する(move)",
     "errors": [],
     "back": {
-      "ruby": "@move = 1\nputs(@move)",
+      "ruby": "@move = 1\nconsole.puts(@move)",
       "errors": []
     }
   },
@@ -3017,7 +3017,7 @@
     "ja": "x = 10\n表示する(\"hello\")\n表示する(乱数(1..6))",
     "errors": [],
     "back": {
-      "ruby": "@x = 10\nputs(\"hello\")\nputs(rand(1..6))",
+      "ruby": "@x = 10\nconsole.puts(\"hello\")\nconsole.puts(rand(1..6))",
       "errors": []
     }
   },
@@ -3384,7 +3384,7 @@
     "ja": "x = 10\n表示する(\"hello\")\n",
     "errors": [],
     "back": {
-      "ruby": "@x = 10\nputs(\"hello\")\n",
+      "ruby": "@x = 10\nconsole.puts(\"hello\")\n",
       "errors": []
     }
   },
@@ -3392,7 +3392,7 @@
     "ja": "x = 10\nもし x > 5 ならば:\n    表示する(\"big\")\n",
     "errors": [],
     "back": {
-      "ruby": "@x = 10\nif @x > 5\n  puts(\"big\")\nend\n",
+      "ruby": "@x = 10\nif @x > 5\n  console.puts(\"big\")\nend\n",
       "errors": []
     }
   },
@@ -3536,7 +3536,7 @@
     "ja": "回数 を 1 から 5 まで 1 ずつ増やしながら繰り返す:\n    表示する(回数)",
     "errors": [],
     "back": {
-      "ruby": "@回数 = 1\nwhile @回数 <= 5\n  puts(@回数)\n  @回数 += 1\nend",
+      "ruby": "@回数 = 1\nwhile @回数 <= 5\n  console.puts(@回数)\n  @回数 += 1\nend",
       "errors": []
     }
   },
@@ -3544,7 +3544,7 @@
     "ja": "合計 = 0\ni を 1 から 10 まで 1 ずつ増やしながら繰り返す:\n    合計 += i\n表示する(合計)",
     "errors": [],
     "back": {
-      "ruby": "@合計 = 0\n@i = 1\nwhile @i <= 10\n  @合計 += @i\n  @i += 1\nend\nputs(@合計)",
+      "ruby": "@合計 = 0\n@i = 1\nwhile @i <= 10\n  @合計 += @i\n  @i += 1\nend\nconsole.puts(@合計)",
       "errors": []
     }
   },
@@ -3616,7 +3616,7 @@
     "ja": "i を 1 から 10 まで 1 ずつ増やしながら繰り返す:\n    表示する(i)",
     "errors": [],
     "back": {
-      "ruby": "@i = 1\nwhile @i <= 10\n  puts(@i)\n  @i += 1\nend",
+      "ruby": "@i = 1\nwhile @i <= 10\n  console.puts(@i)\n  @i += 1\nend",
       "errors": []
     }
   },
@@ -3624,7 +3624,7 @@
     "ja": "i を 10 から 0 まで 1 ずつ減らしながら繰り返す:\n    表示する(i)",
     "errors": [],
     "back": {
-      "ruby": "@i = 10\nwhile @i >= 0\n  puts(@i)\n  @i += -1\nend",
+      "ruby": "@i = 10\nwhile @i >= 0\n  console.puts(@i)\n  @i += -1\nend",
       "errors": []
     }
   },
@@ -3632,7 +3632,7 @@
     "ja": "i を 1 から 10 まで 1 ずつ増やしながら繰り返す:\n    表示する(i)",
     "errors": [],
     "back": {
-      "ruby": "@i = 1\nwhile @i <= 10\n  puts(@i)\n  @i += 1\nend",
+      "ruby": "@i = 1\nwhile @i <= 10\n  console.puts(@i)\n  @i += 1\nend",
       "errors": []
     }
   },
@@ -3640,7 +3640,7 @@
     "ja": "i を 0 から n まで 2 ずつ増やしながら繰り返す:\n    表示する(i)",
     "errors": [],
     "back": {
-      "ruby": "@i = 0\nwhile @i <= @n\n  puts(@i)\n  @i += 2\nend",
+      "ruby": "@i = 0\nwhile @i <= @n\n  console.puts(@i)\n  @i += 2\nend",
       "errors": []
     }
   },
@@ -3648,7 +3648,7 @@
     "ja": "i を 10 から 0 まで 1 ずつ減らしながら繰り返す:\n    表示する(i)",
     "errors": [],
     "back": {
-      "ruby": "@i = 10\nwhile @i >= 0\n  puts(@i)\n  @i += -1\nend",
+      "ruby": "@i = 10\nwhile @i >= 0\n  console.puts(@i)\n  @i += -1\nend",
       "errors": []
     }
   },
@@ -3656,7 +3656,7 @@
     "ja": "i を 1 から 3 まで 1 ずつ増やしながら繰り返す:\n    j を 1 から 3 まで 1 ずつ増やしながら繰り返す:\n        表示する(i)",
     "errors": [],
     "back": {
-      "ruby": "@i = 1\nwhile @i <= 3\n  @j = 1\n  while @j <= 3\n    puts(@i)\n    @j += 1\n  end\n  @i += 1\nend",
+      "ruby": "@i = 1\nwhile @i <= 3\n  @j = 1\n  while @j <= 3\n    console.puts(@i)\n    @j += 1\n  end\n  @i += 1\nend",
       "errors": []
     }
   },
@@ -3736,7 +3736,7 @@
     "ja": "a = 【外部からの入力】",
     "errors": [],
     "back": {
-      "ruby": "ask(\"\")\n@a = answer",
+      "ruby": "@a = console.gets",
       "errors": []
     }
   },
@@ -3744,7 +3744,7 @@
     "ja": "n = 【整数を入力】",
     "errors": [],
     "back": {
-      "ruby": "ask(\"\")\n@n = answer.to_i",
+      "ruby": "@n = console.gets.to_i",
       "errors": []
     }
   },
@@ -3752,7 +3752,7 @@
     "ja": "a = 【外部からの入力】",
     "errors": [],
     "back": {
-      "ruby": "ask(\"\")\n@a = answer",
+      "ruby": "@a = console.gets",
       "errors": []
     }
   },
@@ -3760,7 +3760,7 @@
     "ja": "表示する(a)",
     "errors": [],
     "back": {
-      "ruby": "puts(@a)",
+      "ruby": "console.puts(@a)",
       "errors": []
     }
   },
@@ -3768,7 +3768,7 @@
     "ja": "表示する(a)",
     "errors": [],
     "back": {
-      "ruby": "puts(@a)",
+      "ruby": "console.puts(@a)",
       "errors": []
     }
   },
@@ -3776,7 +3776,7 @@
     "ja": "表示する(a)",
     "errors": [],
     "back": {
-      "ruby": "puts(@a)",
+      "ruby": "console.puts(@a)",
       "errors": []
     }
   },
@@ -3784,7 +3784,7 @@
     "ja": "表示する(a)",
     "errors": [],
     "back": {
-      "ruby": "puts(@a)",
+      "ruby": "console.puts(@a)",
       "errors": []
     }
   },
@@ -3792,7 +3792,7 @@
     "ja": "表示する(a, b, c)",
     "errors": [],
     "back": {
-      "ruby": "puts(@a.to_s + @b.to_s + @c.to_s)",
+      "ruby": "console.puts(@a.to_s + @b.to_s + @c.to_s)",
       "errors": []
     }
   },
@@ -3800,7 +3800,7 @@
     "ja": "表示する(a)",
     "errors": [],
     "back": {
-      "ruby": "puts(@a)",
+      "ruby": "console.puts(@a)",
       "errors": []
     }
   },
@@ -3808,7 +3808,7 @@
     "ja": "表示する(a)",
     "errors": [],
     "back": {
-      "ruby": "puts(@a)",
+      "ruby": "console.puts(@a)",
       "errors": []
     }
   },
@@ -3848,7 +3848,7 @@
     "ja": "表示する(表示する(x))",
     "errors": [],
     "back": {
-      "ruby": "puts(puts(@x))",
+      "ruby": "console.puts(console.puts(@x))",
       "errors": []
     }
   },
@@ -3856,7 +3856,7 @@
     "ja": "表示する(表示する(x))",
     "errors": [],
     "back": {
-      "ruby": "puts(puts(@x))",
+      "ruby": "console.puts(console.puts(@x))",
       "errors": []
     }
   },
@@ -3864,7 +3864,7 @@
     "ja": "表示する(乱数(乱数(乱数(1..10))))",
     "errors": [],
     "back": {
-      "ruby": "puts(rand(rand(rand(1..10))))",
+      "ruby": "console.puts(rand(rand(rand(1..10))))",
       "errors": []
     }
   },
@@ -3872,7 +3872,7 @@
     "ja": "表示する(乱数(乱数(1..10)))",
     "errors": [],
     "back": {
-      "ruby": "puts(rand(rand(1..10)))",
+      "ruby": "console.puts(rand(rand(1..10)))",
       "errors": []
     }
   },
@@ -3976,7 +3976,7 @@
     "ja": "佐々木 = 7\n表示する(佐々木)",
     "errors": [],
     "back": {
-      "ruby": "@佐々木 = 7\nputs(@佐々木)",
+      "ruby": "@佐々木 = 7\nconsole.puts(@佐々木)",
       "errors": []
     }
   },
@@ -4024,7 +4024,7 @@
     "ja": "表示する(x)",
     "errors": [],
     "back": {
-      "ruby": "puts(@x)",
+      "ruby": "console.puts(@x)",
       "errors": []
     }
   },
@@ -4032,7 +4032,7 @@
     "ja": "もし x > 0 ならば:\n    表示する(x)",
     "errors": [],
     "back": {
-      "ruby": "if @x > 0\n  puts(@x)\nend",
+      "ruby": "if @x > 0\n  console.puts(@x)\nend",
       "errors": []
     }
   },
@@ -4040,7 +4040,7 @@
     "ja": "もし x > 0 ならば:\n    表示する(x)\nそうでなければ:\n    表示する(y)",
     "errors": [],
     "back": {
-      "ruby": "if @x > 0\n  puts(@x)\nelse\n  puts(@y)\nend",
+      "ruby": "if @x > 0\n  console.puts(@x)\nelse\n  console.puts(@y)\nend",
       "errors": []
     }
   },
@@ -4064,7 +4064,7 @@
     "ja": "i を 3 から 1 まで 1 ずつ減らしながら繰り返す:\n    表示する(i)",
     "errors": [],
     "back": {
-      "ruby": "@i = 3\nwhile @i >= 1\n  puts(@i)\n  @i += -1\nend",
+      "ruby": "@i = 3\nwhile @i >= 1\n  console.puts(@i)\n  @i += -1\nend",
       "errors": []
     }
   },
@@ -4072,7 +4072,7 @@
     "ja": "i を 1 から 3 まで 1 ずつ増やしながら繰り返す:\n    表示する(i)",
     "errors": [],
     "back": {
-      "ruby": "@i = 1\nwhile @i <= 3\n  puts(@i)\n  @i += 1\nend",
+      "ruby": "@i = 1\nwhile @i <= 3\n  console.puts(@i)\n  @i += 1\nend",
       "errors": []
     }
   },
@@ -4104,7 +4104,7 @@
     "ja": "x = 【外部からの入力】",
     "errors": [],
     "back": {
-      "ruby": "ask(\"\")\n@x = answer",
+      "ruby": "@x = console.gets",
       "errors": []
     }
   },
@@ -4120,7 +4120,7 @@
     "ja": "もし x > 0 and x < 9 ならば:\n    表示する(x)",
     "errors": [],
     "back": {
-      "ruby": "if @x > 0 && @x < 9\n  puts(@x)\nend",
+      "ruby": "if @x > 0 && @x < 9\n  console.puts(@x)\nend",
       "errors": []
     }
   },
@@ -4144,7 +4144,7 @@
     "ja": "表示する(\"合計\", x)",
     "errors": [],
     "back": {
-      "ruby": "puts(\"合計\" + @x.to_s)",
+      "ruby": "console.puts(\"合計\" + @x.to_s)",
       "errors": []
     }
   },

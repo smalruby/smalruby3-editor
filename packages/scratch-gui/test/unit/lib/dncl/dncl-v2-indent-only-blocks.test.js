@@ -24,7 +24,7 @@ describe('DNCLv2 indentation-only blocks: Ruby indent (Issue #1718)', () => {
 
     test('a counting loop indents its body and the added step alike', () => {
         expect(ruby(['i を 1 から 3 まで 1 ずつ増やしながら繰り返す:', '    表示する(i)'])).toBe(
-            '@i = 1\nwhile @i <= 3\n  puts(@i)\n  @i += 1\nend',
+            '@i = 1\nwhile @i <= 3\n  console.puts(@i)\n  @i += 1\nend',
         );
     });
 
@@ -49,13 +49,13 @@ describe('DNCLv2 indentation-only blocks: Ruby indent (Issue #1718)', () => {
                 '@i = 1',
                 'while @i <= 2',
                 '  if @i > 1',
-                '    puts(@i)',
+                '    console.puts(@i)',
                 '  else',
-                '    puts(0)',
+                '    console.puts(0)',
                 '  end',
                 '  @i += 1',
                 'end',
-                'puts("end")',
+                'console.puts("end")',
             ].join('\n'),
         );
     });
@@ -68,7 +68,7 @@ describe('DNCLv2 indentation-only blocks: Ruby indent (Issue #1718)', () => {
 
     test('a function with a Japanese name indents and closes its body', () => {
         expect(ruby(['合計(a) を定義する:', '    もし a > 0 ならば:', '        表示する(a)', '表示する(1)'])).toBe(
-            'def 合計(a)\n  if a > 0\n    puts(a)\n  end\nend\nputs(1)',
+            'def 合計(a)\n  if a > 0\n    console.puts(a)\n  end\nend\nconsole.puts(1)',
         );
     });
 });
@@ -99,13 +99,13 @@ describe('DNCLv2 indentation-only blocks on numbered lines (Issue #1718)', () =>
                 '@i = 1',
                 'while @i <= 2',
                 '  if @i > 1',
-                '    puts(@i)',
+                '    console.puts(@i)',
                 '  else',
-                '    puts(0)',
+                '    console.puts(0)',
                 '  end',
                 '  @i += 1',
                 'end',
-                'puts("end")',
+                'console.puts("end")',
             ].join('\n'),
         );
     });
@@ -139,7 +139,7 @@ describe('DNCLv2 indentation-only blocks on numbered lines (Issue #1718)', () =>
                 '    @migi = @aida - 1',
                 '  end',
                 'end',
-                'puts(@owari)',
+                'console.puts(@owari)',
             ].join('\n'),
         );
         expect(ruby(['(9)  もし x > 0 ならば:', '(10)  y = 1', '(11) z = 2'])).toBe(
@@ -218,12 +218,12 @@ describe('DNCLv2 indentation-only blocks inside `｜` / `⎿` (Issue #1723)', ()
                 '@i = 1',
                 'while @i <= 3',
                 '  if @i > 1',
-                '    puts(@i)',
+                '    console.puts(@i)',
                 '  end',
-                '  puts(0)',
+                '  console.puts(0)',
                 '  @i += 1',
                 'end',
-                'puts(9)',
+                'console.puts(9)',
             ].join('\n'),
         );
     });
@@ -242,10 +242,10 @@ describe('DNCLv2 indentation-only blocks inside `｜` / `⎿` (Issue #1723)', ()
                 '@i = 1',
                 'while @i <= 3',
                 '  if @i > 1',
-                '    puts(@i)',
+                '    console.puts(@i)',
                 '  end',
-                '  puts(0)',
-                '  puts(1)',
+                '  console.puts(0)',
+                '  console.puts(1)',
                 '  @i += 1',
                 'end',
             ].join('\n'),
@@ -267,11 +267,11 @@ describe('DNCLv2 indentation-only blocks inside `｜` / `⎿` (Issue #1723)', ()
                 '@i = 1',
                 'while @i <= 3',
                 '  if @i > 1',
-                '    puts(@i)',
+                '    console.puts(@i)',
                 '  else',
-                '    puts(0)',
+                '    console.puts(0)',
                 '  end',
-                '  puts(1)',
+                '  console.puts(1)',
                 '  @i += 1',
                 'end',
             ].join('\n'),
@@ -292,12 +292,12 @@ describe('DNCLv2 indentation-only blocks inside `｜` / `⎿` (Issue #1723)', ()
                 '@i = 1',
                 'while @i <= 3',
                 '  if @i > 1',
-                '    puts(@i)',
+                '    console.puts(@i)',
                 '  end',
-                '  puts(0)',
+                '  console.puts(0)',
                 '  @i += 1',
                 'end',
-                'puts(9)',
+                'console.puts(9)',
             ].join('\n'),
         );
     });

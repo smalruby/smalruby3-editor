@@ -41,10 +41,10 @@ describe('writeJa through rubyToDncl', () => {
 
 describe('the Smalruby Ruby of the Japanese mode', () => {
     test('a function without parameters goes back to `関数 名前():` and its call (#2166)', () => {
-        const { dncl, errors } = rubyToDncl(lines('def greet', '  puts("hi")', 'end', '', 'greet'));
+        const { dncl, errors } = rubyToDncl(lines('def greet', '  console.puts("hi")', 'end', '', 'greet'));
         expect(errors).toEqual([]);
         expect(dncl).toBe(lines('関数 greet():', '    表示する("hi")', '', 'greet'));
-        expect(dnclToRuby(dncl).ruby).toBe(lines('def greet()', '  puts("hi")', 'end', '', 'greet'));
+        expect(dnclToRuby(dncl).ruby).toBe(lines('def greet()', '  console.puts("hi")', 'end', '', 'greet'));
     });
 
     test('the quotient with a sign keeps its meaning both ways', () => {

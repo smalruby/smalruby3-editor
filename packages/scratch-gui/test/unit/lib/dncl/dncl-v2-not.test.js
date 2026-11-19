@@ -26,7 +26,7 @@ describe('DNCLv2 not → Ruby', () => {
     });
 
     test('もし not x ならば', () => {
-        expect(toRuby('もし not x ならば:\n  表示する(1)')).toBe('if !@x\n  puts(1)\nend');
+        expect(toRuby('もし not x ならば:\n  表示する(1)')).toBe('if !@x\n  console.puts(1)\nend');
     });
 
     test('not x の間', () => {
@@ -34,7 +34,7 @@ describe('DNCLv2 not → Ruby', () => {
     });
 
     test('not in a string stays in the string', () => {
-        expect(toRuby('表示する("not x")')).toBe('puts("not x")');
+        expect(toRuby('表示する("not x")')).toBe('console.puts("not x")');
     });
 
     test('identifiers containing not are kept', () => {
