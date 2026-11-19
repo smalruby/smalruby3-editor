@@ -97,7 +97,8 @@ const STOP_NAMES = new Set([
  * @param {object} [detail] - What a caller may need to say the error in its own
  *   words: `name` (the token), `opener` / `direction` / `colon` / `word` (the
  *   block of a block error), `block` (`stray-closer`, `closer-indent`,
- *   `stray-branch`) and `branch`.
+ *   `closer-kind`, `stray-branch`), `expected` (the closing word of the block
+ *   of a `closer-kind`) and `branch`.
  * @returns {object} The error.
  */
 const makeError = (code, message, line, column = 0, detail = {}) => ({ code, message, line, column, ...detail });
@@ -915,6 +916,33 @@ const tokenError = (tokens) => {
 };
 
 /**
+ * The closing word of a block in the DNCL-like form.
+ * @param {object} node - The block (`If`, `While`, `For`, `FunctionDef`).
+ * @returns {string} `を実行する`, `を繰り返す` or `と定義する`.
+ */
+const closerOf = (node) => {
+    if (node.type === 'If') return 'を実行する';
+    if (node.type === 'FunctionDef') return 'と定義する';
+    return 'を繰り返す';
+};
+
+/**
+ * Where in the open blocks is the nearest one a closing word closes, when only
+ * blocks closed by a line of their own are inside it (so the word closes it and
+ * the blocks inside it were forgotten), or -1.
+ * @param {Array<object>} stack - The open blocks (the innermost last).
+ * @param {string} word - The closing word.
+ * @returns {number} The index in the stack, or -1.
+ */
+const matchingCloser = (stack, word) => {
+    for (let i = stack.length - 1; i >= 0; i--) {
+        if (stack[i].mode !== 'closer') return -1;
+        if (closerOf(stack[i].node) === word) return i;
+    }
+    return -1;
+};
+
+/**
  * Read the Japanese (the standard form, the DNCL-like form or both mixed)
  * into a JaAST.
  *
@@ -947,6 +975,16 @@ const parse = (source) => {
         ...(entry.node.type === 'For' ? { direction: entry.node.direction } : {}),
         colon: entry.colon,
     });
+    // A block closed by a line of its own that was not closed.
+    const unclosed = (entry) => {
+        const word = closerOf(entry.node);
+        errors.push(
+            makeError('unclosed', `「${word}」で閉じていません`, entry.node.line, entry.node.column, {
+                ...openerOf(entry),
+                word,
+            }),
+        );
+    };
     const emptyBlock = (entry) =>
         errors.push(
             makeError(
@@ -1021,6 +1059,33 @@ const parse = (source) => {
                 );
                 return;
             }
+            // The closing word must be the one of the block (Issue #1731, W3): a
+            // `もし` closed by `を繰り返す` is told. `end` closes any block, as in Ruby.
+            if (block.word !== END_WORD && block.word !== closerOf(top.node)) {
+                // A block forgotten to be closed inside the one the word closes (a
+                // `もし` in a loop closed by `を繰り返す`) is told as not closed.
+                const index = matchingCloser(stack, block.word);
+                if (index < 0) {
+                    stack.pop();
+                    const expected = closerOf(top.node);
+                    errors.push(
+                        makeError(
+                            'syntax',
+                            `「${block.word}」ではなく「${expected}」で閉じてください`,
+                            entry.line,
+                            column,
+                            { ...openerOf(top), block: 'closer-kind', word: block.word, expected },
+                        ),
+                    );
+                    return;
+                }
+                while (stack.length > index + 1) unclosed(stack.pop());
+                const found = stack.pop();
+                close(found, entry.line, entry.line);
+                found.node.closeOwnLine = true;
+                lastCodeLine = entry.line;
+                return;
+            }
             stack.pop();
             close(top, entry.line, entry.line);
             top.node.closeOwnLine = true;
@@ -1081,14 +1146,7 @@ const parse = (source) => {
         } else if (top.mode === 'indent') {
             emptyBlock(top);
         } else {
-            const word =
-                top.node.type === 'If' ? 'を実行する' : top.node.type === 'FunctionDef' ? 'と定義する' : 'を繰り返す';
-            errors.push(
-                makeError('unclosed', `「${word}」で閉じていません`, top.node.line, top.node.column, {
-                    ...openerOf(top),
-                    word,
-                }),
-            );
+            unclosed(top);
         }
     }
     return errors.length > 0 ? { program: null, errors } : { program, errors };

@@ -51,6 +51,12 @@ const blockMessage = (error) => {
             ? `${names.standard}の中の行を字下げしてください`
             : `${names.name}を「${names.closer}」で閉じてください`;
     }
+    if (error.block === 'closer-kind') {
+        // A closer of another kind of block (W3 of #1731).
+        const names = BLOCK_NAMES[error.opener === 'For' ? error.direction : error.opener];
+        if (!names) return null;
+        return `${error.colon ? names.standard : names.name}は「${error.word}」ではなく「${names.closer}」で閉じてください`;
+    }
     if (error.block === 'stray-closer') return `「${error.word}」で閉じるものがありません`;
     if (error.block === 'stray-branch') {
         const name = BRANCH_NAMES[error.branch];
@@ -167,10 +173,9 @@ const openerOf = (code) => {
  * block closed by a line of its own), found by the kind of each closing line
  * (Issue #1419): a closing line closes the nearest open block it is the
  * closer of, and the blocks left open inside it are told, so a student who
- * forgot one `を実行する` is told about that `もし`. ja-notation closes the
- * innermost block with any closing line, as Ruby closes it with any `end`,
- * so a program that reads that way has no error, and this is used only to
- * say the errors of one that does not.
+ * forgot one `を実行する` is told about that `もし`. ja-notation tells the same
+ * (a closing line of another kind of block, W3 of #1731), and this is used
+ * only to say the errors of a program it tells, in the words of the blocks.
  * @param {Array<string>} lines - The lines (line numbers and marks blanked out).
  * @returns {?Array<object>} The errors, or null when a block of the program
  *   is opened with `:` (the standard form, whose errors ja-notation says).
