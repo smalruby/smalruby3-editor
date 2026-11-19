@@ -240,6 +240,13 @@
             "ja": "表示する(“やあ”)  ＃ あいさつ",
             "ruby": "puts(\"やあ\") # あいさつ",
             "jaLines": [1]
+        },
+        {
+            "title": "an element added at the end of an array is push",
+            "table": "none",
+            "ja": "A = []\nA に 3 を追加する\nA に x + 1 を追加する",
+            "ruby": "A = []\nA.push(3)\nA.push(x + 1)",
+            "jaLines": [1, 2, 3]
         }
     ]
 }

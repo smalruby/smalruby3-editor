@@ -54,6 +54,9 @@ const assignmentsOf = (s) => {
             return s.targets.flatMap((t) => named(t, null));
         case 'For':
             return named(s.variable, null);
+        // `A に 値 を追加する` changes the length of the array (Issue #1759).
+        case 'Append':
+            return named(s.target, null);
         default:
             return [];
     }

@@ -60,6 +60,9 @@ const AFTER_NEGATION = new Set(['==', '!=', '<', '<=', '>', '>=', '+', '-', '*',
  */
 const END_WORD = 'end';
 
+/** The word that ends `A に 値 を追加する` (an element added at the end of an array). */
+const APPEND_WORD = 'を追加する';
+
 /** The comparison operators. */
 const COMPARISONS = new Set(['==', '!=', '<', '<=', '>', '>=']);
 
@@ -76,6 +79,7 @@ const STOP_NAMES = new Set([
     'の間',
     'の間繰り返す',
     'を返す',
+    APPEND_WORD,
     'and',
     'or',
     'not',
@@ -666,6 +670,35 @@ const readAssignment = (tokens, at, line) => {
 };
 
 /**
+ * Read `A に 値 を追加する` (an element added at the end of the array `A`).
+ * @param {Array<object>} tokens - The tokens of the line, `を追加する` last.
+ * @param {number} line - The line.
+ * @returns {object} The Append statement.
+ */
+const readAppend = (tokens, line) => {
+    const column = tokens[0].column;
+    const ni = tokens.findIndex((t) => t.type === 'name' && t.text === 'に');
+    if (ni === -1) {
+        throw new LineError(makeError('syntax', '「配列 に 値 を追加する」の形で書きます', line, column));
+    }
+    const target = tokens.slice(0, ni);
+    if (target.length !== 1 || target[0].type !== 'name' || STOP_NAMES.has(target[0].text)) {
+        throw new LineError(makeError('syntax', '要素を追加できるのは配列の変数だけです', line, column));
+    }
+    const value = tokens.slice(ni + 1, -1);
+    if (value.length === 0) {
+        throw new LineError(makeError('syntax', `「${APPEND_WORD}」の前に追加する値を書きます`, line, column));
+    }
+    return {
+        type: 'Append',
+        target: { type: 'Name', name: target[0].text, line, column: target[0].column },
+        value: readExpression(value, line),
+        line,
+        column,
+    };
+};
+
+/**
  * Read a simple statement (not one that opens a block).
  * @param {Array<object>} tokens - The tokens of the line.
  * @param {number} line - The line.
@@ -695,6 +728,8 @@ const readSimple = (tokens, line) => {
         const value = { type: 'ArrayLiteral', elements: [], line, column: tokens[1].column };
         return [{ type: 'Assign', target, value, ...where }];
     }
+    // `A に 値 を追加する`: an element at the end of an array (Issue #1759).
+    if (last.type === 'name' && last.text === APPEND_WORD) return [readAppend(tokens, line)];
     const at = assignmentAt(tokens);
     if (at === -1) return [{ type: 'ExpressionStatement', expression: readExpression(tokens, line), ...where }];
     const pieces = splitAtCommas(tokens);

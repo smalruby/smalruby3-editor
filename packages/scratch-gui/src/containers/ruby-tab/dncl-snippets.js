@@ -54,6 +54,11 @@ const DNCL_SNIPPETS = [
         documentation: '関数の値を返す（return）',
     },
     {
+        label: 'を追加する',
+        insertText: '${1:配列名} に ${2:値} を追加する',
+        documentation: '配列の最後に要素を追加する（push）',
+    },
+    {
         label: '表示する',
         insertText: '表示する(${1})',
         documentation: '値を表示する',

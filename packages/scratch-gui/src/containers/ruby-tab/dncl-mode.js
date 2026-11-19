@@ -83,6 +83,9 @@ export const dnclLanguage = {
         '返す',
         'を返す',
         'と定義する',
+        // `A に 値 を追加する` (Issue #1759).
+        'に',
+        'を追加する',
     ],
 
     builtinFunctions: [

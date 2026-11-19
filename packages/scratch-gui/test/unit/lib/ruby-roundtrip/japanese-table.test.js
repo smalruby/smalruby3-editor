@@ -84,6 +84,26 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
         blocks: 'data_setvariableto(VARIABLE = @x, VALUE: data_lengthoflist(LIST = @_array_Data_))',
     },
     {
+        name: 'an element added at the end of an array is the block that adds to the list (#1759)',
+        ja: 'Data に 3 を追加する',
+        ruby: '@_array_Data_.push(3)',
+        blocks: 'data_addtolist(LIST = @_array_Data_, ITEM: "3")',
+    },
+    {
+        name: 'the value added can be an expression',
+        ja: 'Data に x + 1 を追加する',
+        ruby: '@_array_Data_.push(@x + 1)',
+        blocks: 'data_addtolist(LIST = @_array_Data_, ITEM: operator_add(NUM1: @x, NUM2: 1))',
+    },
+    {
+        name: '<< of Ruby is the same block, and is written as を追加する',
+        ja: 'Data に 3 を追加する',
+        jaOnly: 'toJa',
+        ruby: '@_array_Data_ << 3',
+        blocks: 'data_addtolist(LIST = @_array_Data_, ITEM: "3")',
+        only: 'toBlocks',
+    },
+    {
         ja: 'x = 整数(y)',
         ruby: '@x = @y.to_i',
         blocks: 'data_setvariableto(VARIABLE = @x, VALUE: operator_mathop(OPERATOR = "floor", NUM: @y) #"@ruby:method:to_i")',

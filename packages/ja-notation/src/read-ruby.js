@@ -356,9 +356,25 @@ class RubyReader {
             return this.at(node, { type: 'Assign', target, value: this.expression(call.args[1]) });
         }
         if (call && call.block) return this.blockCall(call);
+        const append = this.append(node, call);
+        if (append) return append;
         const expression = this.expression(node);
         if (expression.type === 'RubyCode') return this.at(node, { ...expression, type: 'RubyCode' });
         return this.at(node, { type: 'ExpressionStatement', expression });
+    }
+
+    /**
+     * `A.push(値)` / `A << 値` of an array variable: `A に 値 を追加する` (Issue #1759).
+     * @param {object} node - The statement.
+     * @param {?object} call - The call of the statement.
+     * @returns {?object} The Append statement, or null when it is not one.
+     */
+    append(node, call) {
+        if (!call || (call.name !== 'push' && call.name !== '<<') || !call.receiver || call.block) return null;
+        if (!call.args || call.args.length !== 1) return null;
+        const target = this.expression(call.receiver);
+        if (target.type !== 'Name') return null;
+        return this.at(node, { type: 'Append', target, value: this.expression(call.args[0]) });
     }
 
     /**

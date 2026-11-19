@@ -126,6 +126,11 @@ describe('findArrayIndexHints', () => {
         expect(findArrayIndexHints(src)).toEqual([]);
     });
 
+    test('does not guess the length of an array an element is added to (#1759)', () => {
+        const src = ['Kouka = [1, 5, 10]', 'Kouka に 20 を追加する', '表示する(Kouka[3])'].join('\n');
+        expect(findArrayIndexHints(src)).toEqual([]);
+    });
+
     test('does not guess the length of an array assigned twice', () => {
         const src = ['Kouka = [1, 5, 10]', 'Kouka = [1, 5, 10, 20]', '表示する(Kouka[3])'].join('\n');
         expect(findArrayIndexHints(src)).toEqual([]);
