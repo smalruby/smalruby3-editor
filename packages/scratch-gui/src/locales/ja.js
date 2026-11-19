@@ -18,7 +18,7 @@ export default {
     'gui.rubyVersion.v1': 'バージョン1',
     'gui.rubyVersion.v2': 'バージョン2 (初期設定)',
     'gui.menuBar.meshV2': 'メッシュ',
-    'gui.menuBar.smalrubotS1': 'Studuino',
+    'gui.menuBar.smalrubotS1': 'アーテックロボ',
     'gui.menuBar.smalrubotS1.flashFirmware': 'ファームウェア書き込み',
     'gui.smalrubotFirmware.title': 'Studuino ファームウェア',
     'gui.smalrubotFirmware.description':
@@ -1379,11 +1379,11 @@ export default {
     'faceSensing.topOfHead': '頭のてっぺん',
     'faceSensing.left': '左',
     'faceSensing.right': '右',
-    'gui.smalruby3.extension.smalrubotS1.name': 'Studuino（スタディーノ）',
+    'gui.smalruby3.extension.smalrubotS1.name': 'アーテックロボ（ArtecRobo）',
     'gui.smalruby3.extension.smalrubotS1.description':
-        'ロボット製作に特化した Arduino 互換基板 Studuino®（スタディーノ）を動かす。Studuino® は株式会社アーテックの登録商標です。',
+        'アーテックロボ（ArtecRobo）の Studuino®（スタディーノ）基板を動かす。アーテックロボは株式会社アーテックの製品で、Studuino® は同社の登録商標です。',
     'gui.smalruby3.extension.smalrubotS1.connectingMessage': 'Studuino に接続しています。',
-    'smalrubotS1.categoryName': 'Studuino',
+    'smalrubotS1.categoryName': 'アーテックロボ',
     'smalrubotS1.action': '[ACTION] (M1, M2)',
     'smalrubotS1.actionAndStopAfter': '[SECS] 秒 [ACTION] (M1, M2)',
     'smalrubotS1.bendArm': '[SECS] 秒でアーム（サーボモーター D10）を [DEGREE] 度に曲げる',

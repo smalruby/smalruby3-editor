@@ -18,7 +18,7 @@
 5. [音声合成（Text to Speech）](#5-音声合成text-to-speech)
 6. [翻訳（Translate）](#6-翻訳translate)
 7. [メッシュ V2（Mesh V2）](#7-メッシュ-v2mesh-v2)
-8. [Studuino（スタディーノ）（旧 スモウルボット S1）](#8-studuinoスタディーノ旧-スモウルボット-s1)
+8. [アーテックロボ（ArtecRobo）（旧 スモウルボット S1）](#8-アーテックロボartecrobo旧-スモウルボット-s1)
 9. [マイクロビット モア（Microbit More）](#9-マイクロビット-モアmicrobit-more)
 10. [甲子園（Koshien）](#10-甲子園koshien)
 11. [Ruby 文字列（Ruby String）](#11-ruby-文字列ruby-string)
@@ -155,9 +155,9 @@
 
 ---
 
-## 8. Studuino（スタディーノ）（旧 スモウルボット S1）
+## 8. アーテックロボ（ArtecRobo）（旧 スモウルボット S1）
 
-アーテック社の Studuino（スタディーノ）の基板と、つないだ部品（センサー・LED・モーター・サーボ）を制御します。
+アーテック社のロボットキット「アーテックロボ（ArtecRobo）」の制御基板 Studuino（スタディーノ）と、つないだ部品（センサー・LED・モーター・サーボ）を制御します。
 
 書き出しは `studuino.`。前の書き方の `smalrubot_s1.`（例: `smalrubot_s1.action("forward")`）も読みこめて、メソッド名と引数は同じです。
 

@@ -19,7 +19,7 @@ const activateSmalrubotS1Extension = async () => {
     // Open extension chooser
     await clickXpath('//button[@title="Add Extension"]');
     // Click the smalrubotS1 extension by name
-    await clickText('Studuino');
+    await clickText('ArtecRobo');
     // Wait briefly for the connection modal to mount
     await new Promise((resolve) => setTimeout(resolve, 1000));
 };

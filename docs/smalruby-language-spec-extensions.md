@@ -18,7 +18,7 @@ Only extensions visible in the extension library are listed (those with `default
 5. [Text to Speech](#5-text-to-speech)
 6. [Translate](#6-translate)
 7. [Mesh V2](#7-mesh-v2)
-8. [Studuino (formerly Smalrubot S1)](#8-studuino-formerly-smalrubot-s1)
+8. [ArtecRobo (formerly Smalrubot S1)](#8-artecrobo-formerly-smalrubot-s1)
 9. [Microbit More](#9-microbit-more)
 10. [Koshien](#10-koshien)
 11. [Ruby String](#11-ruby-string)
@@ -155,9 +155,9 @@ Allow users to interact over a computer network. (Requires internet connection)
 
 ---
 
-## 8. Studuino (formerly Smalrubot S1)
+## 8. ArtecRobo (formerly Smalrubot S1)
 
-Control the Artec Studuino board and the parts connected to it (sensors, LEDs, motors, servo).
+Control the Studuino board of Artec's ArtecRobo robot kit and the parts connected to it (sensors, LEDs, motors, servo).
 
 The blocks write `studuino.`. The older receiver `smalrubot_s1.` (e.g. `smalrubot_s1.action("forward")`) is still read; the method names and arguments are the same.
 

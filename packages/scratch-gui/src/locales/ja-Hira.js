@@ -18,7 +18,7 @@ export default {
     'gui.rubyVersion.v1': 'バージョン1',
     'gui.rubyVersion.v2': 'バージョン2 (しょきせってい)',
     'gui.menuBar.meshV2': 'メッシュ',
-    'gui.menuBar.smalrubotS1': 'Studuino (スタディーノ)',
+    'gui.menuBar.smalrubotS1': 'アーテックロボ',
     'gui.menuBar.smalrubotS1.flashFirmware': 'ファームウェアかきこみ',
     'gui.smalrubotFirmware.title': 'Studuino (スタディーノ) ファームウェア',
     'gui.smalrubotFirmware.description':
@@ -1416,11 +1416,11 @@ export default {
     'faceSensing.topOfHead': 'あたまのてっぺん',
     'faceSensing.left': 'ひだり',
     'faceSensing.right': 'みぎ',
-    'gui.smalruby3.extension.smalrubotS1.name': 'Studuino (スタディーノ)',
+    'gui.smalruby3.extension.smalrubotS1.name': 'アーテックロボ (ArtecRobo)',
     'gui.smalruby3.extension.smalrubotS1.description':
-        'ロボットせいさくにとくかした Arduino (アルドゥイーノ) ごかんきばん Studuino® (スタディーノ) をうごかす。Studuino® はかぶしきがいしゃアーテックのとうろくしょうひょうです。',
+        'アーテックロボ (ArtecRobo) の Studuino® (スタディーノ) きばんをうごかす。アーテックロボはかぶしきがいしゃアーテックのせいひんで、Studuino® はどうしゃのとうろくしょうひょうです。',
     'gui.smalruby3.extension.smalrubotS1.connectingMessage': 'スタディーノにせつぞくしています。',
-    'smalrubotS1.categoryName': 'Studuino (スタディーノ)',
+    'smalrubotS1.categoryName': 'アーテックロボ',
     'smalrubotS1.action': '[ACTION] (M1, M2)',
     'smalrubotS1.actionAndStopAfter': '[SECS] びょう [ACTION] (M1, M2)',
     'smalrubotS1.bendArm': '[SECS] びょうでアーム（サーボモーター D10）を [DEGREE] どにまげる',
