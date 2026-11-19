@@ -25,6 +25,7 @@ import meshV2Reducer, { meshV2InitialState } from './mesh-v2';
 import paletteVisibilityReducer, { initialState as paletteVisibilityInitialState } from './palette-visibility';
 import rubyCodeReducer, { rubyCodeInitialState } from './ruby-code';
 import smalrubotFirmwareReducer, { smalrubotFirmwareInitialState } from './smalrubot-firmware';
+import smalrubyConsoleReducer, { smalrubyConsoleInitialState } from './smalruby-console';
 import tutorialOnboardingReducer, { tutorialOnboardingInitialState } from './tutorial-onboarding';
 
 /**
@@ -46,6 +47,7 @@ export const smalrubyReducers = {
     tutorialOnboarding: tutorialOnboardingReducer,
     paletteVisibility: paletteVisibilityReducer,
     lessonMode: lessonModeReducer,
+    smalrubyConsole: smalrubyConsoleReducer,
 };
 
 /**
@@ -67,4 +69,5 @@ export const smalrubyInitialState = {
     tutorialOnboarding: tutorialOnboardingInitialState,
     paletteVisibility: paletteVisibilityInitialState,
     lessonMode: lessonModeInitialState,
+    smalrubyConsole: smalrubyConsoleInitialState,
 };

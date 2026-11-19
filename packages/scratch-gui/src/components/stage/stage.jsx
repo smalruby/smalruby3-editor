@@ -10,6 +10,9 @@ import TargetHighlight from '../../containers/target-highlight.jsx';
 import GreenFlagOverlay from '../../containers/green-flag-overlay.jsx';
 import Question from '../../containers/question.jsx';
 import MicIndicator from '../mic-indicator/mic-indicator.jsx';
+// === Smalruby: Start of console ===
+import SmalrubyConsole from '../smalruby-console/smalruby-console.jsx';
+// === Smalruby: End of console ===
 import {STAGE_DISPLAY_SIZES} from '../../lib/layout-constants.js';
 import {getStageDimensions} from '../../lib/screen-utils.js';
 import styles from './stage.css';
@@ -22,6 +25,10 @@ const StageComponent = props => {
         isFullScreen,
         isStarted,
         colorInfo,
+        // === Smalruby: Start of console ===
+        consoleVisible,
+        vm,
+        // === Smalruby: End of console ===
         micIndicator,
         question,
         stageSize,
@@ -76,6 +83,14 @@ const StageComponent = props => {
                     {isColorPicking && colorInfo ? (
                         <Loupe colorInfo={colorInfo} />
                     ) : null}
+                    {/* === Smalruby: Start of console === */}
+                    {/* the console covers the stage and takes the answers while it is shown */}
+                    <SmalrubyConsole
+                        question={question}
+                        vm={vm}
+                        onQuestionAnswered={onQuestionAnswered}
+                    />
+                    {/* === Smalruby: End of console === */}
                 </Box>
 
                 {/* `stageOverlays` is for items that should *not* have their overflow contained within the stage */}
@@ -98,7 +113,9 @@ const StageComponent = props => {
                                 stageSize={stageDimensions}
                             />
                         ) : null}
-                        {question === null ? null : (
+                        {/* === Smalruby: Start of console === */}
+                        {question === null || consoleVisible ? null : (
+                        // === Smalruby: End of console ===
                             <div
                                 className={styles.questionWrapper}
                                 style={{width: stageDimensions.width}}
@@ -136,6 +153,10 @@ const StageComponent = props => {
 StageComponent.propTypes = {
     canvas: PropTypes.instanceOf(Element).isRequired,
     colorInfo: Loupe.propTypes.colorInfo,
+    // === Smalruby: Start of console ===
+    consoleVisible: PropTypes.bool,
+    vm: PropTypes.object,
+    // === Smalruby: End of console ===
     dragRef: PropTypes.func,
     isColorPicking: PropTypes.bool,
     isFullScreen: PropTypes.bool.isRequired,

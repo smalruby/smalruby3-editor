@@ -110,6 +110,8 @@ src/components/*
 !src/components/koshien-mock-panel/**
 !src/components/mesh-status-button/
 !src/components/mesh-status-button/**
+!src/components/smalruby-console/
+!src/components/smalruby-console/**
 !src/components/mesh-status-popup/
 !src/components/mesh-status-popup/**
 !src/components/mesh-practice-partner/
@@ -331,6 +333,7 @@ src/lib/*
 !src/lib/mesh-practice/
 !src/lib/mesh-practice/**
 !src/lib/use-mesh-v2-presence.js
+!src/lib/smalruby-console.js
 !src/lib/microsoft-auth.js
 !src/lib/microbit-more-update.js
 !src/lib/teacher-auth.js
@@ -427,6 +430,7 @@ src/reducers/*
 !src/reducers/palette-visibility.js
 !src/reducers/ruby-code.js
 !src/reducers/smalrubot-firmware.js
+!src/reducers/smalruby-console.js
 !src/reducers/smalruby-registry.ts
 !src/reducers/tutorial-onboarding.js
 
@@ -553,6 +557,7 @@ test/unit/components/*
 !test/unit/components/lesson-progress-confirm.test.jsx
 !test/unit/components/mesh-status-popup.test.jsx
 !test/unit/components/mesh-status-button.test.jsx
+!test/unit/components/smalruby-console.test.jsx
 !test/unit/components/mesh-v2-help-row.test.jsx
 !test/unit/components/mesh-v2-scanning-step-seats.test.jsx
 !test/unit/components/mesh-v2-seat-connect.test.jsx
@@ -818,6 +823,7 @@ test/unit/lib/*
 test/unit/reducers/*
 !test/unit/reducers/bug-report-reducer.test.js
 !test/unit/reducers/koshien-mock-panel-reducer.test.js
+!test/unit/reducers/smalruby-console-reducer.test.js
 !test/unit/reducers/cards_reducer.test.js
 !test/unit/reducers/dncl-mode-reducer.test.js
 !test/unit/reducers/lesson-mode-reducer.test.js
