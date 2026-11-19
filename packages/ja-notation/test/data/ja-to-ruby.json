@@ -44,6 +44,13 @@
             "jaLines": [1, 1, 2, 2, 2]
         },
         {
+            "title": "reading commas in the block lines are read as without them",
+            "table": "plain",
+            "ja": "n = 0\nn < 6 の間，繰り返す:\n    もし n % 2 == 0 ならば、:\n        表示する(n)\n    そうでなければ,:\n        k を 1 から 2 まで 1 ずつ増やしながら，繰り返す:\n            表示する(k)\n    n = n + 1",
+            "ruby": "n = 0\nwhile n < 6\n  if n % 2 == 0\n    puts(n)\n  else\n    k = 1\n    while k <= 2\n      puts(k)\n      k += 1\n    end\n  end\n  n = n + 1\nend",
+            "jaLines": [1, 2, 3, 4, 5, 6, 6, 7, 7, 7, 7, 8, 8]
+        },
+        {
             "title": "a loop on a `not` is an until loop",
             "table": "none",
             "ja": "not x の間繰り返す:\n  x = 真",

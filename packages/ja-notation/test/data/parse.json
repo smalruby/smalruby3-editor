@@ -1223,6 +1223,56 @@
             "as": "i を 1 から 3 まで 1 ずつ増やしながら繰り返す:\n  表示する(i)"
         },
         {
+            "title": "a reading comma between の間 and 繰り返す (，)",
+            "ja": "n < 5 の間，繰り返す:\n    n = n + 2",
+            "as": "n < 5 の間繰り返す:\n    n = n + 2"
+        },
+        {
+            "title": "a reading comma between の間 and 繰り返す (、 and spaces)",
+            "ja": "n < 5 の間 、 繰り返す:\n    n = n + 2",
+            "as": "n < 5 の間繰り返す:\n    n = n + 2"
+        },
+        {
+            "title": "a reading comma between の間 and 繰り返す (half-width , and a full-width space)",
+            "ja": "n < 5 の間,　繰り返す：\n    n = n + 2",
+            "as": "n < 5 の間繰り返す:\n    n = n + 2"
+        },
+        {
+            "title": "a reading comma after の間 before the colon",
+            "ja": "n < 5 の間，:\n    n = n + 2",
+            "as": "n < 5 の間繰り返す:\n    n = n + 2"
+        },
+        {
+            "title": "DNCL-like: a reading comma after の間",
+            "ja": "n < 5 の間，\n    n = n + 2\nを繰り返す",
+            "as": "n < 5 の間繰り返す:\n    n = n + 2"
+        },
+        {
+            "title": "a reading comma between ずつ増やしながら and 繰り返す",
+            "ja": "k を 2 から 8 まで 2 ずつ増やしながら，繰り返す:\n    表示する(k)",
+            "as": "k を 2 から 8 まで 2 ずつ増やしながら繰り返す:\n    表示する(k)"
+        },
+        {
+            "title": "a reading comma between ずつ 減らしながら and 繰り返す (、)",
+            "ja": "k を 8 から 2 まで 2 ずつ 減らしながら、繰り返す:\n    表示する(k)",
+            "as": "k を 8 から 2 まで 2 ずつ減らしながら繰り返す:\n    表示する(k)"
+        },
+        {
+            "title": "DNCL-like: a reading comma after ずつ増やしながら",
+            "ja": "k を 2 から 8 まで 2 ずつ増やしながら，\n    表示する(k)\nを繰り返す",
+            "as": "k を 2 から 8 まで 2 ずつ増やしながら繰り返す:\n    表示する(k)"
+        },
+        {
+            "title": "a reading comma after ならば, そうでなくもし ... ならば and そうでなければ",
+            "ja": "もし m > 0 ならば，:\n    s = 1\nそうでなくもし m < 0 ならば、:\n    s = 2\nそうでなければ,:\n    s = 3",
+            "as": "もし m > 0 ならば:\n    s = 1\nそうでなくもし m < 0 ならば:\n    s = 2\nそうでなければ:\n    s = 3"
+        },
+        {
+            "title": "DNCL-like: a reading comma after ならば, なら and そうでなければ",
+            "ja": "もし m > 0 ならば，\n    s = 1\nそうでなくもし m < 0 なら，\n    s = 2\nそうでなければ，\n    s = 3\nを実行する",
+            "as": "もし m > 0 ならば:\n    s = 1\nそうでなくもし m < 0 ならば:\n    s = 2\nそうでなければ:\n    s = 3"
+        },
+        {
             "title": "DNCL-like: 関数 ... と定義する",
             "ja": "関数 f(a)\n  a + 1 を返す\nと定義する",
             "as": "関数 f(a):\n  返す a + 1"
@@ -1592,6 +1642,16 @@
                     "column": 0
                 }
             ]
+        },
+        {
+            "title": "a comma after ならば is read only at the end of the line",
+            "ja": "もし m > 0 ならば，s = 1",
+            "errors": [{ "code": "syntax", "message": "「もし」の後に「ならば」が要ります", "line": 1, "column": 0 }]
+        },
+        {
+            "title": "a comma before の間 is not a reading comma of the loop",
+            "ja": "n < 5，の間繰り返す:\n    n = n + 2",
+            "errors": [{ "code": "syntax", "message": "「，」が読めません", "line": 1, "column": 5 }]
         }
     ]
 }

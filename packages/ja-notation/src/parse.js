@@ -809,6 +809,46 @@ const countingLoopEnd = (tokens) => {
 };
 
 /**
+ * Whether a token is a reading comma: `,` (also `，`, read as `,`) or `、`.
+ * @param {object} token - The token.
+ * @returns {boolean} True when it is one.
+ */
+const isReadingComma = (token) =>
+    Boolean(token) &&
+    ((token.type === 'op' && token.value === ',') || (token.type === 'unknown' && token.text === '、'));
+
+/**
+ * Whether a token is a word of a block line after which a reading comma may
+ * be written: `の間`, `ならば` / `なら`, `そうでなければ` and the end of a
+ * counting loop (`ずつ増やしながら`, or `増やしながら` after `ずつ`).
+ * @param {object} token - The token.
+ * @returns {boolean} True when it is one.
+ */
+const takesReadingComma = (token) =>
+    Boolean(token) &&
+    token.type === 'name' &&
+    (['の間', 'ならば', 'なら', 'そうでなければ'].includes(token.text) || /(?:増や|減ら)しながら$/.test(token.text));
+
+/**
+ * The tokens without the reading commas of the block words, as in
+ * `x < 3 の間，繰り返す:`, `ずつ増やしながら、繰り返す:` and `ならば，`: the
+ * comma is taken only right after such a word and before `繰り返す`, the
+ * `:` or the end of the line, so a comma of a value (`f(a, b)`) stays.
+ * Writing gives these lines without the comma.
+ * @param {Array<object>} tokens - The tokens of the line.
+ * @returns {Array<object>} The tokens (the same array when there is no such comma).
+ */
+const withoutReadingCommas = (tokens) => {
+    const dropped = tokens.filter((t, i) => {
+        if (!isReadingComma(t) || !takesReadingComma(tokens[i - 1])) return true;
+        const next = tokens[i + 1];
+        const endsHere = !next || (next.type === 'op' && next.value === ':') || isName(next, '繰り返す');
+        return !endsHere;
+    });
+    return dropped.length === tokens.length ? tokens : dropped;
+};
+
+/**
  * Read a line that opens, continues or closes a block, or null when it is not
  * one. `colon` says the line ends with `:` (the standard form): its block ends
  * where the indentation ends. Without it (the DNCL-like form) the block ends
@@ -1020,7 +1060,8 @@ const parse = (source) => {
             currentBody().push({ type: 'Comment', text: entry.comment, line: entry.line, column: 0 });
             return;
         }
-        const bad = tokenError(entry.tokens);
+        const tokens = withoutReadingCommas(entry.tokens);
+        const bad = tokenError(tokens);
         if (bad) {
             errors.push(bad);
             return;
@@ -1028,8 +1069,8 @@ const parse = (source) => {
         let block;
         let statements = null;
         try {
-            block = readBlockLine(entry.tokens, entry.line);
-            if (!block) statements = readSimple(entry.tokens, entry.line);
+            block = readBlockLine(tokens, entry.line);
+            if (!block) statements = readSimple(tokens, entry.line);
         } catch (e) {
             if (!(e instanceof LineError)) throw e;
             errors.push(e.error);
