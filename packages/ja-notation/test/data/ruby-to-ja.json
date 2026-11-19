@@ -181,6 +181,102 @@
             "ruby": "x = gets\nA[0] = gets.to_i",
             "ja": "x = 【外部からの入力】\nA[0] = 【整数を入力】",
             "errors": []
+        },
+        {
+            "title": "a variable of the stage ($) is told where it is, as the Japanese has no stage (Issue #1706)",
+            "table": "none",
+            "ruby": "$a = 1\nx = $a + 1",
+            "ja": "$a = 1\nx = $a + 1",
+            "errors": [
+                {
+                    "code": "stage-variable",
+                    "message": "ステージの変数（$a）は日本語では書けません",
+                    "line": 1,
+                    "column": 0,
+                    "name": "$a"
+                },
+                {
+                    "code": "stage-variable",
+                    "message": "ステージの変数（$a）は日本語では書けません",
+                    "line": 2,
+                    "column": 4,
+                    "name": "$a"
+                }
+            ]
+        },
+        {
+            "title": "a list of the stage is told once, not as a command it calls (Issue #1706)",
+            "table": "none",
+            "ruby": "$a = []\n$a.push(1)",
+            "ja": "$a = []\n$a.push(1)",
+            "errors": [
+                {
+                    "code": "stage-variable",
+                    "message": "ステージの変数（$a）は日本語では書けません",
+                    "line": 1,
+                    "column": 0,
+                    "name": "$a"
+                },
+                {
+                    "code": "stage-variable",
+                    "message": "ステージの変数（$a）は日本語では書けません",
+                    "line": 2,
+                    "column": 0,
+                    "name": "$a"
+                }
+            ]
+        },
+        {
+            "title": "a variable of the stage changed by an operator is told at its name (Issue #1706)",
+            "table": "none",
+            "ruby": "$a += 1",
+            "ja": "$a += 1",
+            "errors": [
+                {
+                    "code": "stage-variable",
+                    "message": "ステージの変数（$a）は日本語では書けません",
+                    "line": 1,
+                    "column": 0,
+                    "name": "$a"
+                }
+            ]
+        },
+        {
+            "title": "a variable of the stage among the targets of a multiple assignment is told (Issue #1706)",
+            "table": "none",
+            "ruby": "x, $b = 1, 2",
+            "ja": "x, $b = 1, 2",
+            "errors": [
+                {
+                    "code": "stage-variable",
+                    "message": "ステージの変数（$b）は日本語では書けません",
+                    "line": 1,
+                    "column": 3,
+                    "name": "$b"
+                }
+            ]
+        },
+        {
+            "title": "an element of a list of the stage is told at the list (Issue #1706)",
+            "table": "none",
+            "ruby": "$a[0] = 1\nx = $a[1]",
+            "ja": "$a[0] = 1\nx = $a[1]",
+            "errors": [
+                {
+                    "code": "stage-variable",
+                    "message": "ステージの変数（$a）は日本語では書けません",
+                    "line": 1,
+                    "column": 0,
+                    "name": "$a"
+                },
+                {
+                    "code": "stage-variable",
+                    "message": "ステージの変数（$a）は日本語では書けません",
+                    "line": 2,
+                    "column": 4,
+                    "name": "$a"
+                }
+            ]
         }
     ]
 }

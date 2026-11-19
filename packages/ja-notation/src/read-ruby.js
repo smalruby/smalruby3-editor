@@ -43,6 +43,20 @@ const WRITE_TYPES = new Set([
 /** The statements that hold a body (they take the comments of their own lines). */
 const BLOCK_TYPES = new Set(['If', 'While', 'For', 'FunctionDef']);
 
+/**
+ * The nodes of a variable of the stage (`$a`, a variable or a list of the
+ * stage in Smalruby). The Japanese mode is written for a program that runs
+ * alone, as on a terminal, and has no stage: it does not write them (Issue #1706).
+ */
+const STAGE_VARIABLE_TYPES = new Set([
+    'GlobalVariableReadNode',
+    'GlobalVariableWriteNode',
+    'GlobalVariableOperatorWriteNode',
+    'GlobalVariableOrWriteNode',
+    'GlobalVariableAndWriteNode',
+    'GlobalVariableTargetNode',
+]);
+
 /** The keywords that jump in a loop: the Japanese has no such statement. */
 const JUMPS = { BreakNode: 'break', NextNode: 'next', RedoNode: 'redo', RetryNode: 'retry' };
 
@@ -61,6 +75,8 @@ class RubyReader {
         this.errors = [];
         // Where each error is (character index), to tell whether a RubyCode has one in it.
         this.errorStarts = [];
+        // The errors told already (code and place), so a node read twice is told once.
+        this.told = new Set();
         // Ruby prism could not read has nodes of its recovery: only its first error is told.
         this.hasSyntaxErrors = (result.errors || []).length > 0;
         this.rawDepth = 0;
@@ -187,7 +203,8 @@ class RubyReader {
 
     /**
      * Note an error at a node or a location.
-     * @param {string} code - `unknown-command`, `bad-number`, `post-test-loop`, `no-ja-form` or `ruby-syntax`.
+     * @param {string} code - `unknown-command`, `bad-number`, `post-test-loop`, `no-ja-form`,
+     *   `stage-variable` or `ruby-syntax`.
      * @param {string} message - The message.
      * @param {object} at - The node or location.
      * @param {object} [detail] - More (`name`).
@@ -195,9 +212,22 @@ class RubyReader {
     fail(code, message, at, detail = {}) {
         const loc = typeof at.startOffset === 'number' ? at : field(at, 'location');
         const start = this.index.charAt(loc.startOffset);
+        const key = `${code}:${start}`;
+        if (this.told.has(key)) return;
+        this.told.add(key);
         const { line, column } = this.index.place(start);
         this.errors.push({ code, message, line, column, ...detail });
         this.errorStarts.push(start);
+    }
+
+    /**
+     * Note a variable of the stage (`$a`; Issue #1706), at its name.
+     * @param {object} node - A node of `STAGE_VARIABLE_TYPES`.
+     */
+    failStageVariable(node) {
+        const name = field(node, 'name');
+        const at = field(node, 'nameLoc') || node;
+        this.fail('stage-variable', `ステージの変数（${name}）は日本語では書けません`, at, { name });
     }
 
     /**
@@ -336,6 +366,12 @@ class RubyReader {
             }
             case 'MultiWriteNode':
                 return this.multiAssign(node);
+            case 'GlobalVariableWriteNode':
+            case 'GlobalVariableOperatorWriteNode':
+            case 'GlobalVariableOrWriteNode':
+            case 'GlobalVariableAndWriteNode':
+                this.failStageVariable(node);
+                return this.rawStatement(node);
             case 'InstanceVariableOperatorWriteNode':
             case 'LocalVariableOperatorWriteNode':
             case 'ConstantOperatorWriteNode':
@@ -377,6 +413,11 @@ class RubyReader {
     append(node, call) {
         if (!call || (call.name !== 'push' && call.name !== '<<') || !call.receiver || call.block) return null;
         if (!call.args || call.args.length !== 1) return null;
+        // `$a.push(1)`: the list of the stage is told, not the call (Issue #1706).
+        if (STAGE_VARIABLE_TYPES.has(typeOf(call.receiver))) {
+            this.failStageVariable(call.receiver);
+            return this.rawStatement(node);
+        }
         const target = this.expression(call.receiver);
         if (target.type !== 'Name') return null;
         return this.at(node, { type: 'Append', target, value: this.expression(call.args[0]) });
@@ -432,6 +473,10 @@ class RubyReader {
         const targets = lefts.map((left) => {
             const type = typeOf(left);
             if (/^(?:InstanceVariable|LocalVariable|Constant)TargetNode$/.test(type)) return this.target(left);
+            if (STAGE_VARIABLE_TYPES.has(type)) {
+                this.failStageVariable(left);
+                return null;
+            }
             // `@a[0], @a[1] = @a[1], @a[0]`: an element of an array (Issue #2237).
             if (type === 'IndexTargetNode') {
                 const args = field(left, 'arguments');
@@ -1020,6 +1065,9 @@ class RubyReader {
             }
             case 'LocalVariableReadNode':
                 return { type: 'Name', name: field(node, 'name'), ...where };
+            case 'GlobalVariableReadNode':
+                this.failStageVariable(node);
+                return this.raw(node);
             case 'ConstantReadNode':
                 // With no table, a name in capitals is a constant (see `target`).
                 return this.options.variable ? this.raw(node) : { type: 'Name', name: field(node, 'name'), ...where };

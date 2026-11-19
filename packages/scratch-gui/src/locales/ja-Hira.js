@@ -1948,6 +1948,8 @@ export default {
     'gui.rubyTab.dnclForbiddenPrefixError': 'にほんごモードでは、へんすうに「{name}」はつかえません',
     'gui.rubyTab.dnclPostTestLoopError':
         'あとではんていするくりかえし（さきに 1 かいうごかしてからじょうけんをたしかめるくりかえし）は、にほんごではかけません。さいしょの 1 かいをループのまえにかいてから、「〜のあいだくりかえす」にしてください。Ruby モードではかけます。',
+    'gui.rubyTab.dnclStageVariableError':
+        'ステージのへんすう（{name}）は、にほんごモードではかけません。Ruby モードではかけます。',
     'gui.rubyTab.dnclUndefinedFunctionError':
         '「{name}」は、ていぎされていないかんすうです。「関数 {name}(…):」でていぎしてください。',
     'gui.rubyTab.dnclUnsupportedCommandError':

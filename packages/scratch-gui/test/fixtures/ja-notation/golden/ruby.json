@@ -171,9 +171,9 @@
       {
         "line": 1,
         "column": 6,
-        "id": "unsupportedNotation",
+        "id": "stageVariable",
         "name": "$b",
-        "message": "「$b」は日本語モードでは書けません。Ruby モードでは書けます。"
+        "message": "ステージの変数（$b）は日本語モードでは書けません。Ruby モードでは書けます。"
       },
       {
         "line": 3,
