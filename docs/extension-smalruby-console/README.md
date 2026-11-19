@@ -32,6 +32,7 @@ Scratch には「言う」「聞いて待つ」しかないが、日本語のプ
   「聞いて待つ」の質問の文字があれば、入力の欄の前に出す。
 - コンソールの表示中は、ステージの質問の欄を出さない（答えはコンソールで入れる）。
 - 緑の旗で作品を始めると、行を消す。［消す］でも消せる。行は 1,000 行まで（古いものから消す）。
+- 日本語モードのブロックパレットでは、拡張機能のうちコンソールだけを出す（`make-toolbox-xml.js`。ブロックの絞り込みは `dncl-block-filter.js`）。
 - 日本語タブはコンソールを既定にする（タブからは `src/lib/smalruby-console.js` の
   `showSmalrubyConsole(vm, dispatch)` / `hideSmalrubyConsole(dispatch)` を呼ぶ。Redux の
   `setSmalrubyConsoleVisible(bool)` を直接 dispatch してもよい）。
