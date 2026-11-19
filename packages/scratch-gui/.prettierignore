@@ -471,6 +471,7 @@ test/integration/*
 !test/integration/dncl-mode-validation.test.js
 !test/integration/dncl-problem-form.test.js
 !test/integration/dncl-settings-pattern.test.js
+!test/integration/dncl-typing-indent.test.js
 !test/integration/feedback-link.test.js
 !test/integration/ruby-editor-actions.test.js
 !test/integration/ruby-module.test.js
