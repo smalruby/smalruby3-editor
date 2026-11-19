@@ -61,6 +61,14 @@ $color-confirm-text: hsla(30, 60%, 30%, 1);
    白に 2.3:1 で読めないので、同じ色相の濃いほう（#B35900・白に 4.8:1） */
 $color-attention-action: #b35900;
 
+/* 言葉の色（ルビータブと日本語タブ・docs/dncl/design.md 1 章）。タブの文字・帯の地に使う。
+   どちらも白に 4.5:1 以上（ルビーは Ruby のロゴの赤 #CC342D・白に 5.1:1。日本語は #0A7D5C・白に 5.1:1） */
+$color-language-ruby: #cc342d;
+$color-language-japanese: #0a7d5c;
+/* 日本語タブのエディタの地: 淡い紙の色（文字 $text-primary に 6:1 以上）。
+   Monaco のテーマは JS で色を持つので、containers/ruby-tab/constants.js の JAPANESE_PAPER_COLOR と同じ値にする */
+$color-japanese-paper: #fbf7ec;
+
 /* 座席の色（クラス管理: 生徒の番号選び・先生のメンバータブ・状況のパネル・レッスンの座席）。
    どの画面でも同じ意味: 空いている席は白地に点線の枠、人が来た席は色が付き、進むほど濃くなる。
    上流に同じ値が無い淡い色・濃い文字だけ、ここで値を持つ（文字は地に 4.5:1 以上）。 */

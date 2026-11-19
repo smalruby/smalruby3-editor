@@ -30,7 +30,7 @@ import { LESSON_EVENTS, sendLessonEvent } from '../lib/lessons/lesson-analytics'
 import { roleStepNote } from '../lib/lessons/lesson-role';
 import { targetCodeToBlocks } from '../lib/ruby-to-blocks-converter';
 import { colorModeMap } from '../lib/settings/color-mode';
-import { BLOCKS_TAB_INDEX, RUBY_TAB_INDEX, activateTab } from '../reducers/editor-tab';
+import { BLOCKS_TAB_INDEX, JAPANESE_TAB_INDEX, RUBY_TAB_INDEX, activateTab } from '../reducers/editor-tab';
 import {
     finishHint,
     getCurrentChallenge,
@@ -309,14 +309,19 @@ const mapDispatchToProps = (dispatch) => ({
     onShowHint: () => dispatch(showHint()),
     onInsertCode: (code, language, target, rubyVersion) => {
         // カードの insertCodeButton と同じ: Ruby を入れてから目的のタブを出す。ブロックの
-        // コースではコードタブ（Ruby タブが変換してブロックにする）、Ruby / DNCL のコースでは Ruby タブ
+        // コースではコードタブ（Ruby タブが変換してブロックにする）、Ruby のコースでは Ruby タブ
         dispatch(hideHint());
         // 入れる相手が指定されたとき（ステージ・spriteCodes のときのネコ）は、Ruby タブの相手を先に
         // その target にする
         // （Ruby タブは rubyCode.target に向けて変換するため）
         if (target) dispatch(updateRubyCodeTarget(target, rubyVersion));
         dispatch(updateRubyCode(code));
-        dispatch(activateTab(language === LANGUAGES.BLOCKS ? BLOCKS_TAB_INDEX : RUBY_TAB_INDEX));
+        // DNCL のコースは日本語タブ（日本語タブも Ruby を日本語にして見せる）
+        const tabByLanguage = {
+            [LANGUAGES.BLOCKS]: BLOCKS_TAB_INDEX,
+            [LANGUAGES.DNCL]: JAPANESE_TAB_INDEX,
+        };
+        dispatch(activateTab(tabByLanguage[language] ?? RUBY_TAB_INDEX));
     },
 });
 

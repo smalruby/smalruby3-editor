@@ -60,7 +60,7 @@ import {
     activateTab,
     SOUNDS_TAB_INDEX,
     // === Smalruby: Start of ruby tab ===
-    RUBY_TAB_INDEX
+    isTextTabIndex
     // === Smalruby: End of ruby tab ===
 } from '../reducers/editor-tab';
 // === Smalruby: Start of palette toggle ===
@@ -740,8 +740,8 @@ class Blocks extends React.Component {
     }
     onVisualReport (data) {
         // === Smalruby: Start of ruby tab ===
-        // Don't show visual report in Code tab when Ruby tab is active
-        if (this.props.activeTabIndex === RUBY_TAB_INDEX) {
+        // Don't show visual report in Code tab when Ruby tab (or the Japanese tab) is active
+        if (isTextTabIndex(this.props.activeTabIndex)) {
             return;
         }
         // === Smalruby: End of ruby tab ===

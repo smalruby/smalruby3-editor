@@ -167,6 +167,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/lib/project-fetcher-hoc.jsx` | URL params for Playwright | URL パラメーター import |
 | `src/lib/project-fetcher-hoc.jsx` | initial tab from URL param | 初期タブ URL パラメーター |
 | `src/reducers/editor-tab.js` | initial tab from URL param | 初期タブ URL パラメーター |
+| `src/reducers/editor-tab.js` | Japanese tab | 日本語タブ `JAPANESE_TAB_INDEX`（4）と、Ruby タブか日本語タブかを見る `isTextTabIndex`（`docs/dncl/README.md`） |
 | `src/reducers/project-state.js` | restore project state after URL load failure (#972) | Scratch URL 読み込み失敗時に、直前プロジェクトの id + 表示状態へアトミックに復帰する `RESTORE_PROJECT_STATE` アクション/reducer case/`restoreProjectState` action creator（VM 復元内容と redux の projectId 不整合・ERROR 化を防ぐ。4 ペア） |
 | `src/reducers/settings.js` | URL params for Playwright | URL パラメーター import |
 | `src/reducers/settings.js` | ruby_version URL param | Ruby バージョン URL パラメーター |
@@ -249,17 +250,19 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/containers/blocks.jsx` | only blocks filter / toolbox filters | ツールボックスのブロックを絞る（`only_blocks` のステージのコメント・URL パラメーター・ブロック表示の設定・チュートリアル）と、変わったときの再描画 |
 | `src/containers/blocks.jsx` | palette toggle / toolbox filters and palette toggle | ブロックパレットの表示・非表示（ボタン・位置・切りかえ・Redux） |
 | `src/containers/blocks.jsx` | blocks screenshot | スクリプトを画像で保存するボタン |
-| `src/containers/blocks.jsx` | block display modal / ruby tab | ScratchBlocks を Redux に渡す、Ruby タブのときはコードタブで値を表示しない |
+| `src/containers/blocks.jsx` | block display modal / ruby tab | ScratchBlocks を Redux に渡す、Ruby タブ・日本語タブのときはコードタブで値を表示しない（`isTextTabIndex`） |
 | `src/containers/blocks.jsx` | Ruby-converted block positioning | Ruby から変換したブロックを並べたあとの中央へのスクロール（コードタブが隠れていたときは後で） |
 | `src/containers/blocks.jsx` | scratch-blocks v2 variable prompt / scratch-blocks v2 toolbox / VMScratchBlocks without useCatBlocks / toolbox selection null guard / scratch-blocks v2 my blocks toolbox refresh / toolbox refresh on tab show / toolbox refresh after backpack drop | scratch-blocks v2 に合わせた呼び出し・null の確認・ツールボックスの作りなおし |
 | `src/containers/blocks.jsx` | scratch-blocks v2 unmount focus guard | `componentWillUnmount` のフォーカスの確認（scratch-blocks#3460。`postMergeReverts` の意図的な乖離） |
 | `src/containers/blocks.jsx` | sensing_online Japanese translation / messages prop type | 「オンライン?」の日本語訳、`messages` の prop type に object を足す |
-| `src/components/gui/gui.jsx` | url loader / koshien / ruby tab / block display modal / tips library close | URL ローダー・甲子園のモーダルとパネル・Ruby タブ・ブロック表示のモーダル・チュートリアルを閉じるアクション（import・props・propTypes・JSX） |
+| `src/components/gui/gui.jsx` | url loader / koshien / ruby tab / block display modal / tips library close | URL ローダー・甲子園のモーダルとパネル・Ruby タブ・ブロック表示のモーダル・チュートリアルを閉じるアクション（import・props・propTypes・JSX）。ruby tab には日本語タブ（`gui-tab-japanese`。Ruby タブのパネルを共有し、日本語タブのパネルは空で隠す）と、言葉の色（`language-tabs.css`）も入る |
+| `src/components/gui/gui.jsx` | Japanese tab | 日本語タブのツールチップの文言（`japaneseTabMessages`） |
 | `src/components/gui/gui.jsx` | legal links / feedback link confirm | 画面の下のプライバシーポリシー・フィードバックのリンクと、フィードバックの前の確認 |
 | `src/components/gui/gui.jsx` | iPad portrait narrow desktop stage size | `STAGE_DISPLAY_SIZES` の import と、内側の `MediaQuery` を閉じるところ |
 | `src/components/gui/gui.jsx` | tab list container style / new feature callouts removal | タブの並びの `className`、upstream の `showNewFeatureCallouts` を消したところの注記 |
 | `src/containers/gui.jsx` | tab activation handler / onSetPlatform prop rename / set theme | タブ切りかえのハンドラー、`setPlatform` を `onSetPlatform` にした名前、テーマの設定 |
-| `src/containers/gui.jsx` | ruby tab / koshien / url loader / tips library close / welcome modal | 上の機能の import・アクション・state |
+| `src/containers/gui.jsx` | ruby tab / koshien / url loader / tips library close / welcome modal | 上の機能の import・アクション・state。ruby tab は Ruby タブ・日本語タブのどちらでもエディタを出す `rubyTabVisible` と、日本語タブの `japaneseTabActive` / `japaneseTabAvailable`（日本語の表示のとき）/ `japaneseTabLocked`（日本語を使わないレッスン） |
+| `src/containers/gui.jsx` | Japanese tab | `isJapaneseLocale` と `getLessonDnclModeAllowed` の import |
 | `src/containers/gui.jsx` | smalruby gui props / smalruby gui state / smalruby modal close actions | 上の機能が使う propTypes・`mapStateToProps`・モーダルを閉じるアクションのまとまり |
 
 > 注: `src/lib/url-params.js` は Smalruby 固有ファイル（`.prettierignore` ホワイトリスト対象）の

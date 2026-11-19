@@ -3,16 +3,20 @@ import React, { useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { FormattedMessage } from 'react-intl';
 import { connect } from 'react-redux';
+import { isJapaneseLocale } from '../../lib/locale-utils.js';
 import {
     activateTab,
     BLOCKS_TAB_INDEX,
     COSTUMES_TAB_INDEX,
+    JAPANESE_TAB_INDEX,
     RUBY_TAB_INDEX,
     SOUNDS_TAB_INDEX,
 } from '../../reducers/editor-tab.js';
+import { getLessonDnclModeAllowed } from '../../reducers/lesson-mode.js';
 import { setFullScreen } from '../../reducers/mode.js';
 import codeIcon from '../gui/icon--code.svg';
 import costumesIcon from '../gui/icon--costumes.svg';
+import japaneseIcon from '../gui/icon--japanese.svg';
 import rubyIcon from '../gui/icon--ruby.svg';
 import soundsIcon from '../gui/icon--sounds.svg';
 import spriteIcon from '../mobile-bottom-tabs/icon--sprite-cat.svg';
@@ -50,6 +54,8 @@ const SPRITE_KEY = 'sprite';
  * @param {Function} props.onSpriteTabActiveChange - スプライトタブ active 切替
  * @param {boolean} props.backpackOpen - バックパックパネルが開いているか (親管理)
  * @param {Function} props.onToggleBackpack - バックパックパネル開閉切替 (親管理)
+ * @param {boolean} [props.japaneseTabAvailable] - 日本語タブを出すか（日本語の表示のときだけ）
+ * @param {boolean} [props.japaneseTabLocked] - 日本語タブを押せなくするか（日本語を使わないレッスン）
  * @param {boolean} [props.submitReminderDue] - 「提出しよう」の吹き出しを出す時か (#1835)。
  *   スマホでは「提出する」が ☰ のドロワーの中にあるので、☰ に小さな点を出して知らせる
  * @returns {JSX.Element|null} portal で document.body 直下にレンダリング
@@ -61,6 +67,8 @@ const MobileSideRailComponent = ({
     activeTabIndex,
     spriteTabActive,
     submitReminderDue = false,
+    japaneseTabAvailable = false,
+    japaneseTabLocked = false,
     onSetFullScreen,
     onActivateTab,
     onOpenDrawer,
@@ -118,7 +126,7 @@ const MobileSideRailComponent = ({
 
     if (typeof document === 'undefined') return null;
 
-    // 順序は PC 版と揃える: コード / コスチューム / 音 / ルビー / スプライト
+    // 順序は PC 版と揃える: コード / コスチューム / 音 / ルビー / 日本語 / スプライト
     const tabs = [
         {
             key: 'code',
@@ -168,6 +176,24 @@ const MobileSideRailComponent = ({
                 />
             ),
         },
+        // 日本語タブ（docs/dncl/design.md 1 章）。PC と同じくルビーの次。日本語の表示のときだけ出す
+        ...(japaneseTabAvailable
+            ? [
+                  {
+                      key: 'japanese',
+                      tabIndex: JAPANESE_TAB_INDEX,
+                      iconSrc: japaneseIcon,
+                      disabled: japaneseTabLocked,
+                      label: (
+                          <FormattedMessage
+                              defaultMessage="Japanese"
+                              description="Button to get to the Japanese (共通テスト用プログラム表記) panel"
+                              id="gui.smalruby3.gui.japaneseTab"
+                          />
+                      ),
+                  },
+              ]
+            : []),
         {
             key: SPRITE_KEY,
             tabIndex: null,
@@ -227,6 +253,7 @@ const MobileSideRailComponent = ({
                     data-tab-key={tab.key}
                     data-tab-index={tab.tabIndex ?? ''}
                     data-active={isTabActive(tab) ? 'true' : 'false'}
+                    disabled={tab.disabled}
                     onClick={handleTabClick}
                 >
                     <img alt="" aria-hidden="true" className={styles.icon} draggable={false} src={tab.iconSrc} />
@@ -277,6 +304,8 @@ MobileSideRailComponent.propTypes = {
     backpackOpen: PropTypes.bool.isRequired,
     onToggleBackpack: PropTypes.func.isRequired,
     submitReminderDue: PropTypes.bool,
+    japaneseTabAvailable: PropTypes.bool,
+    japaneseTabLocked: PropTypes.bool,
 };
 
 const mapStateToProps = (state) => ({
@@ -285,6 +314,8 @@ const mapStateToProps = (state) => ({
     isStarted: state.scratchGui.vmStatus.started,
     activeTabIndex: state.scratchGui.editorTab.activeTabIndex,
     submitReminderDue: !!state.scratchGui.classroom?.submitReminderVisible,
+    japaneseTabAvailable: isJapaneseLocale(state.locales?.locale),
+    japaneseTabLocked: !getLessonDnclModeAllowed(state),
 });
 
 const mapDispatchToProps = (dispatch) => ({

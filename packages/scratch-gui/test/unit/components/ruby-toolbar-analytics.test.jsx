@@ -38,7 +38,6 @@ const renderToolbar = (overrides = {}) => {
         furiganaEnabled: false,
         dnclMode: false,
         onToggleFurigana: jest.fn(),
-        onToggleDnclMode: jest.fn(),
         // Sprite selector props
         targets: [],
         editingTargetId: null,
@@ -79,18 +78,6 @@ describe('ruby-toolbar analytics events', () => {
             category: 'mode_switch',
             action: 'change',
             label: 'ruby',
-        });
-    });
-
-    test('mode_switch fires with label "dncl" when DNCL モードボタンをクリック', () => {
-        const { container } = renderToolbar({ furiganaEnabled: false, dnclMode: false });
-        const button = container.querySelector('[data-testid="ruby-toolbar-mode-dncl"]');
-        expect(button).toBeTruthy();
-        fireEvent.click(button);
-        expect(analytics.event).toHaveBeenCalledWith({
-            category: 'mode_switch',
-            action: 'change',
-            label: 'dncl',
         });
     });
 

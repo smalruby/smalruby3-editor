@@ -75,22 +75,20 @@
 クラス管理の課題で絞ったレッスン表（「はじめる」で開いたとき・`restrictCourseStatus`）は、`checkCount` を使わず、**課題のチャレンジが
 全部**で数える（テーマを選ぶレッスンでも同じ。課題の残りは課題の帯が「あと n つ」で出し、先生は課題の「n つできたら」でテーマの数を決める）。
 
-#### 日本語モードの切りかえ（`allowDnclMode`）
+#### 日本語タブ（`allowDnclMode`）
 
 日本語モードでは、パレットが日本語で書けるブロックに絞られる。レッスン中にこれが重なると、チャレンジの
 パレットの絞り込み（`allowedBlocks`）とあわせてチャレンジで使うブロックが消える。そこでレッスンごとに
-切りかえてよいかを持ち、既定は不可にしている。
+日本語タブを使ってよいかを持ち、既定は不可にしている。
 
-- **不可のレッスンのあいだ**: Ruby タブのツールバーの「日本語」ボタン（`ruby-toolbar-mode-dncl`）を押せない
-  （薄く表示し、title に「このレッスンでは日本語モードに切りかえられません」）。ふりがな・Ruby のボタンは押せる。
-  レッスンをおえる（`closeLesson`）と元どおり押せる。
+- **不可のレッスンのあいだ**: 日本語タブ（`gui-tab-japanese`）を押せない（薄く表示し、title に
+  「このレッスンでは日本語タブを使えません」）。スマホのサイドレールの「日本語」も押せない。ルビータブは使える。
+  日本語タブにいるときに不可のレッスンが始まったら、ルビータブに移る。レッスンをおえる（`closeLesson`）と元どおり押せる。
 - **ほかの入口**:
-  - Ruby タブを開き直したときに日本語モードへ戻す処理・日本語の locale に戻したときに保存済みの日本語モードを
-    戻す処理も、不可のレッスンのあいだは日本語モードに入らない（`containers/ruby-tab.jsx` の
-    `handleToggleDnclMode` と locale の切りかえ）。
+  - エディタの言葉はタブに従うので、ルビータブを開き直しても日本語にはならない。日本語に入るのは日本語タブを
+    開いたときだけで、不可のレッスンのあいだは入らない（`containers/ruby-tab.jsx` の `switchLanguage`）。
   - URL の `rubyMode=dncl` は起動時の初期値だけで、レッスンに入るとき（`startChallenge`）にふりがなモードへ戻すので
     塞がない。
-  - SP（MobileGui）のメニューには日本語モードの切りかえが無い（Ruby タブのツールバーは同じものを使う）。
   - レッスンの setup の `rubyMode: 'dncl'`（DNCL のコースの既定を含む）: **setup で日本語モードにするレッスンは
     `allowDnclMode: true` にする**。不可のままだと、日本語モードで始まったあとにふりがな・Ruby へ切りかえると
     日本語に戻れなくなる。`test/unit/lib/lessons/courses.test.js` が、チャレンジの setup が日本語モードになる
@@ -1220,7 +1218,7 @@ partner: {
 | `focusLessonsLibrary(challengeId)` / `clearLessonsLibraryFocus()` | レッスン表で見せるチャレンジを入れる / 消す（知らない id は無視）。開くのは modals の `openLessonsLibrary`。2 つをまとめて出すのは `openLessonsLibraryAt(dispatch, challengeId)` |
 | `reloadProgress()` | localStorage の最新を写しに取り込む（別のタブが書いた分を、レッスン表を開くときなどに反映する。書かない） |
 | `isLessonMode(state)` / `getCurrentChallenge(state)` | レッスンモードか / `{course, lesson, challenge}` |
-| `getLessonDnclModeAllowed(state)` | Ruby タブを日本語モードに切りかえてよいか（レッスンモードでなければ true、レッスンモードならいまのレッスンの `allowDnclMode`）。`containers/ruby-tab.jsx` が読んで「日本語」ボタンを押せなくする |
+| `getLessonDnclModeAllowed(state)` | 日本語タブを使ってよいか（レッスンモードでなければ true、レッスンモードならいまのレッスンの `allowDnclMode`）。`containers/ruby-tab.jsx` が読んで「日本語」ボタンを押せなくする |
 | `getLessonAllowedBlocks(state)` | パレットに出すブロック（チャレンジの `allowedBlocks`。無ければ null）。Blocks コンテナがこれでパレットを絞る（prop の名前は `tutorialAllowedBlocks` のまま） |
 | `getCurrentHint(state)` | `{visible, index, count, step, spotlight, lastResort, debug, code, session}`（レッスンモードでなければ null）。`count` は最後の手段のページを含む。`step` はいまのヒント（最後の手段のページでは null）、`spotlight` はこのページで周りを暗くするか、`lastResort` は最後の手段のページか。吹き出しのコンテナ（`containers/lesson-hint.jsx`）はこれを読む |
 

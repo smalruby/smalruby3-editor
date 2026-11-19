@@ -8,18 +8,18 @@ const messages = defineMessages({
     message: {
         id: 'gui.dnclModeNotice.message',
         description: 'Notice shown in blocks tab when DNCL mode is active',
-        defaultMessage: 'Japanese mode: blocks are restricted',
+        defaultMessage: 'Writing in the Japanese tab: blocks are restricted.',
     },
     exitButton: {
         id: 'gui.dnclModeNotice.exitButton',
         description: 'Button label to exit DNCL mode from the blocks tab notice',
-        defaultMessage: 'Return to Ruby furigana mode',
+        defaultMessage: 'Use all blocks',
     },
     exitConfirm: {
         id: 'gui.extensionButton.dnclExtensionConfirm',
         description: 'Confirm dialog when switching out of DNCL mode',
         defaultMessage:
-            'Extensions are not available in Japanese mode.\nReturn to Ruby furigana mode to enable extensions.\nSwitch now?',
+            'While you write in the Japanese tab, extensions and some blocks are not available.\nUse all blocks and extensions?\n(They are restricted again when you go back to the Japanese tab.)',
     },
 });
 

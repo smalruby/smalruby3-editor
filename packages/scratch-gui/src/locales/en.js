@@ -17,6 +17,10 @@ export default {
         'We are so sorry, but it looks like Smalruby has crashed. This bug has been automatically reported to the Smalruby Team. Please refresh your page to try again.',
     'gui.smalruby3.gui.defaultProjectTitle': 'Smalruby Project',
     'gui.smalruby3.gui.rubyTab': 'Ruby',
+    'gui.smalruby3.gui.japaneseTab': 'Japanese',
+    'gui.smalruby3.gui.japaneseTabTitle': 'Write the program in Japanese (the notation of the common test)',
+    'gui.smalruby3.gui.japaneseTabLockedInLesson': 'You cannot use the Japanese tab in this lesson',
+    'gui.rubyTab.japaneseLanguageBand': 'Japanese (the program notation of the common test)',
     'gui.smalruby3.SpriteInfo.sizeIcon': 'Size (%)',
     'gui.smalruby3.SpriteInfo.directionIcon': 'Direction (degrees)',
     'gui.rubyTab.paste': 'Paste',
@@ -1407,7 +1411,6 @@ export default {
     'gui.rubyToolbar.search': 'Search',
     'gui.rubyToolbar.keyboardShow': 'Show keyboard',
     'gui.rubyToolbar.keyboardHide': 'Hide keyboard',
-    'gui.rubyToolbar.modeDnclLockedInLesson': 'You cannot switch to the Japanese mode in this lesson',
     'gui.rubyToolbar.prevSprite': 'Previous sprite',
     'gui.rubyToolbar.nextSprite': 'Next sprite',
     'gui.rubyToolbar.undo': 'Undo',
@@ -1549,9 +1552,9 @@ export default {
     'gui.welcomeTooltip.label': 'Welcome to Smalruby',
     'gui.aria.clearButton': 'Clear',
     'gui.extensionButton.dnclExtensionConfirm':
-        'Extensions are not available in Japanese mode.\nReturn to Ruby furigana mode to enable extensions.\nSwitch now?',
-    'gui.dnclModeNotice.message': 'Japanese mode: blocks are restricted.',
-    'gui.dnclModeNotice.exitButton': 'Return to Ruby furigana mode',
+        'While you write in the Japanese tab, extensions and some blocks are not available.\nUse all blocks and extensions?\n(They are restricted again when you go back to the Japanese tab.)',
+    'gui.dnclModeNotice.message': 'Writing in the Japanese tab: blocks are restricted.',
+    'gui.dnclModeNotice.exitButton': 'Use all blocks',
     'gui.rubyTab.dnclDoubleSlashHint':
         'In Smalruby, // is not a comment (it is integer division). Use # for comments.',
     'gui.rubyTab.dnclStringArithmeticHint':

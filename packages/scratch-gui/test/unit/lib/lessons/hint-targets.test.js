@@ -230,15 +230,22 @@ describe('hint targets: CSS Modules class names of upstream components', () => {
         selector_wrapper_: ['asset-panel/selector.css', 'wrapper'],
     };
 
-    // タブは並び順（nth-child）で探す。ルビータブ（Smalruby が足したタブ）が 4 つめのままかを見張る（#2142）
-    test('the tabs are Code, Costumes, Sounds and Ruby in this order in gui.jsx', () => {
+    // タブは並び順（nth-child）で探す。ルビータブ（Smalruby が足したタブ）が 4 つめのままかを見張る（#2142）。
+    // 日本語タブ（docs/dncl/design.md 1 章）はルビータブの後ろの 5 つめ
+    test('the tabs are Code, Costumes, Sounds, Ruby and Japanese in this order in gui.jsx', () => {
         const gui = fs.readFileSync(path.join(srcDir, 'components/gui/gui.jsx'), 'utf8');
-        const ids = ['gui.gui.codeTab', 'gui.gui.costumesTab', 'gui.gui.soundsTab', 'gui.smalruby3.gui.rubyTab'];
+        const ids = [
+            'gui.gui.codeTab',
+            'gui.gui.costumesTab',
+            'gui.gui.soundsTab',
+            'gui.smalruby3.gui.rubyTab',
+            'gui.smalruby3.gui.japaneseTab',
+        ];
         const at = ids.map((id) => gui.indexOf(`id="${id}"`));
         at.forEach((i) => expect(i).toBeGreaterThan(0));
         expect([...at].sort((x, y) => x - y)).toEqual(at);
         const tabList = gui.slice(gui.indexOf('<TabList'), gui.indexOf('</TabList>'));
-        expect(tabList.match(/<Tab\b/g)).toHaveLength(4);
+        expect(tabList.match(/<Tab\b/g)).toHaveLength(5);
     });
 
     test('every class prefix used by the selectors is listed here', () => {

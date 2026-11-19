@@ -7,6 +7,7 @@ import { MobileSideRailComponent } from '../../../src/components/mobile-side-rai
 import {
     BLOCKS_TAB_INDEX,
     COSTUMES_TAB_INDEX,
+    JAPANESE_TAB_INDEX,
     RUBY_TAB_INDEX,
     SOUNDS_TAB_INDEX,
 } from '../../../src/reducers/editor-tab.js';
@@ -142,5 +143,35 @@ describe('MobileSideRail — 「提出しよう」の点', () => {
     test('出す時でなければ点を出さない', () => {
         const { queryByTestId } = renderWithIntl();
         expect(queryByTestId('mobile-side-rail-menu-dot')).toBeNull();
+    });
+});
+
+// 日本語タブ（docs/dncl/design.md 1 章）: 日本語の表示のときだけ、ルビーの次に出す
+describe('MobileSideRail — 日本語タブ', () => {
+    test('日本語の表示でなければ出さない', () => {
+        const { queryByTestId } = renderWithIntl();
+        expect(queryByTestId('mobile-side-rail-japanese')).toBeNull();
+    });
+
+    test('日本語の表示ならルビーの次に出し、押すと日本語タブにする', () => {
+        const { getByTestId, props } = renderWithIntl({ japaneseTabAvailable: true });
+        const japanese = getByTestId('mobile-side-rail-japanese');
+        expect(getByTestId('mobile-side-rail-ruby').nextElementSibling).toBe(japanese);
+        fireEvent.click(japanese);
+        expect(props.onActivateTab).toHaveBeenCalledWith(JAPANESE_TAB_INDEX);
+    });
+
+    test('日本語を使わないレッスンでは押せない', () => {
+        const { getByTestId, props } = renderWithIntl({ japaneseTabAvailable: true, japaneseTabLocked: true });
+        const japanese = getByTestId('mobile-side-rail-japanese');
+        expect(japanese).toBeDisabled();
+        fireEvent.click(japanese);
+        expect(props.onActivateTab).not.toHaveBeenCalled();
+    });
+
+    test('日本語タブのあいだは日本語が選ばれて見える', () => {
+        const { getByTestId } = renderWithIntl({ japaneseTabAvailable: true, activeTabIndex: JAPANESE_TAB_INDEX });
+        expect(getByTestId('mobile-side-rail-japanese')).toHaveAttribute('data-active', 'true');
+        expect(getByTestId('mobile-side-rail-ruby')).toHaveAttribute('data-active', 'false');
     });
 });

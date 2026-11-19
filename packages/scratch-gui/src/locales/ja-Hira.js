@@ -1144,6 +1144,10 @@ export default {
         'もうしわけありません。スモウルビーがクラッシュしたようです。このバグはじどうてきにスモウルビーチームにほうこくされました。ページをさいよみこみしてください。',
     'gui.smalruby3.gui.defaultProjectTitle': 'スモウルビーのプロジェクト',
     'gui.smalruby3.gui.rubyTab': 'ルビー',
+    'gui.smalruby3.gui.japaneseTab': 'にほんご',
+    'gui.smalruby3.gui.japaneseTabTitle': 'プログラムを にほんご（きょうつうテストようプログラムひょうき）で かく',
+    'gui.smalruby3.gui.japaneseTabLockedInLesson': 'このレッスンでは にほんごタブを つかえません',
+    'gui.rubyTab.japaneseLanguageBand': 'にほんご（きょうつうテストようプログラムひょうき）',
     'gui.smalruby3.SpriteInfo.sizeIcon': 'おおきさ（%）',
     'gui.smalruby3.SpriteInfo.directionIcon': 'むき（ど）',
     'gui.smalruby3.previewInfo.betawelcome': 'スモウルビー3.0 ベータばんにようこそ!',
@@ -1762,13 +1766,10 @@ export default {
     // Ruby Toolbar messages
     'gui.rubyToolbar.executeLine': 'カーソルぎょうをじっこう',
     'gui.rubyToolbar.executeAll': 'すべてじっこう',
-    'gui.rubyToolbar.dnclLabel': 'にほんご',
     'gui.rubyToolbar.modeFurigana': 'Rubyふりがなモード',
     'gui.rubyToolbar.modeFuriganaLine1': 'ルビー',
     'gui.rubyToolbar.modeFuriganaLine2': 'Ruby',
     'gui.rubyToolbar.modeRuby': 'Rubyモード',
-    'gui.rubyToolbar.modeDncl': 'にほんごモード',
-    'gui.rubyToolbar.modeDnclLockedInLesson': 'このレッスンでは にほんごモードに きりかえられません',
     'gui.rubyToolbar.stopExecution': 'じっこうをていし',
     'gui.rubyToolbar.search': 'けんさく',
     'gui.rubyToolbar.keyboardShow': 'キーボードをひょうじ',
@@ -1929,9 +1930,9 @@ export default {
     'gui.welcomeTooltip.label': 'スモウルビーへようこそ',
     'gui.aria.clearButton': 'クリア',
     'gui.extensionButton.dnclExtensionConfirm':
-        'にほんごモードではかくちょうきのうはつかえません。\nRubyふりがなモードにもどすとかくちょうきのうがつかえるようになります。\nもどしますか？',
-    'gui.dnclModeNotice.message': 'にほんごモード：ブロックがせいげんされています',
-    'gui.dnclModeNotice.exitButton': 'Rubyふりがなモードにもどす',
+        'にほんごタブでかいているあいだは、かくちょうきのうといちぶのブロックはつかえません。\nすべてのブロックとかくちょうきのうをつかえるようにしますか？\n（にほんごタブにもどると、またせいげんされます）',
+    'gui.dnclModeNotice.message': 'にほんごタブでかいています：ブロックがせいげんされています',
+    'gui.dnclModeNotice.exitButton': 'すべてのブロックをつかう',
     'gui.rubyTab.dnclDoubleSlashHint':
         'スモウルビーでは // はコメントではありません（せいすうのわりざんです）。コメントには # をつかってください。',
     'gui.rubyTab.dnclStringArithmeticHint':

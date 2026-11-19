@@ -17,6 +17,9 @@ const DNCL_SLASH_COMMENT_OWNER = 'smalruby-dncl-slash-comment';
 // Monaco marker owner for the warnings on `-` / `*` / `/` with a string
 // (Issue #1465).
 const DNCL_STRING_ARITHMETIC_OWNER = 'smalruby-dncl-string-arithmetic';
+// The pale paper color of the Japanese tab's editor. The same value as the design token
+// $color-japanese-paper (src/css/smalruby-tokens.css): Monaco takes its theme colors in JS.
+const JAPANESE_PAPER_COLOR = '#fbf7ec';
 
 export {
     FONT_SIZES,
@@ -29,4 +32,5 @@ export {
     DNCL_UNSUPPORTED_OWNER,
     DNCL_SLASH_COMMENT_OWNER,
     DNCL_STRING_ARITHMETIC_OWNER,
+    JAPANESE_PAPER_COLOR,
 };

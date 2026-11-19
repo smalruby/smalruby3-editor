@@ -12,11 +12,6 @@ const messages = defineMessages({
         defaultMessage: 'Run all',
         description: 'Tooltip for execute all button in DNCL mode',
     },
-    dnclLabel: {
-        id: 'gui.rubyToolbar.dnclLabel',
-        defaultMessage: 'DNCL',
-        description: 'Label for DNCL mode in mode toggle button',
-    },
     modeFurigana: {
         id: 'gui.rubyToolbar.modeFurigana',
         defaultMessage: 'Ruby with furigana',
@@ -36,16 +31,6 @@ const messages = defineMessages({
         id: 'gui.rubyToolbar.modeRuby',
         defaultMessage: 'Ruby mode',
         description: 'Tooltip for Ruby mode button',
-    },
-    modeDncl: {
-        id: 'gui.rubyToolbar.modeDncl',
-        defaultMessage: 'DNCL mode',
-        description: 'Tooltip for DNCL mode button',
-    },
-    modeDnclLockedInLesson: {
-        id: 'gui.rubyToolbar.modeDnclLockedInLesson',
-        defaultMessage: 'You cannot switch to the Japanese mode in this lesson',
-        description: 'Tooltip for the DNCL mode button while the current lesson does not allow the Japanese mode',
     },
     stopExecution: {
         id: 'gui.rubyToolbar.stopExecution',

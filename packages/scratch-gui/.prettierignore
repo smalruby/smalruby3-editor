@@ -150,7 +150,12 @@ src/components/*
 !src/components/genai-concierge/**
 # Mixed directories
 !src/components/connection-modal/
+!src/components/gui/
 !src/components/menu-bar/
+
+# Level 3: src/components/gui/*
+src/components/gui/*
+!src/components/gui/language-tabs.css
 
 # Level 3: src/components/connection-modal/*
 src/components/connection-modal/*
@@ -604,7 +609,7 @@ test/unit/components/*
 !test/unit/components/ruby-toolbar-analytics.test.jsx
 !test/unit/components/ruby-toolbar-no-rubytee.test.jsx
 !test/unit/components/ruby-toolbar-keyboard.test.jsx
-!test/unit/components/ruby-toolbar-dncl-lock.test.jsx
+!test/unit/components/ruby-toolbar-japanese-tab.test.jsx
 !test/unit/components/ruby-toolbar-settings-pattern.test.jsx
 !test/unit/components/scanning-step-name-search.test.js
 !test/unit/components/student-join-form.test.js

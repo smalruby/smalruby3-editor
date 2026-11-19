@@ -7,6 +7,7 @@ import {
     activateTab,
     BLOCKS_TAB_INDEX,
     COSTUMES_TAB_INDEX,
+    JAPANESE_TAB_INDEX,
     RUBY_TAB_INDEX,
     SOUNDS_TAB_INDEX,
 } from '../../reducers/editor-tab';
@@ -22,6 +23,7 @@ const TAB_INDEX_MAP = {
     costumes: COSTUMES_TAB_INDEX,
     sounds: SOUNDS_TAB_INDEX,
     ruby: RUBY_TAB_INDEX,
+    japanese: JAPANESE_TAB_INDEX,
 };
 
 const VALID_RUBY_MODES = new Set(['ruby', 'furigana', 'dncl']);
@@ -45,7 +47,7 @@ export const normalizeRubyVersion = (value) => {
  * setup の形（レッスンは `lib/lessons/challenge-setup.js` の setupForChallenge が作る）:
  *
  *     {
- *         tab: 'ruby',                       // 'code' | 'costumes' | 'sounds' | 'ruby'
+ *         tab: 'japanese',                   // 'code' | 'costumes' | 'sounds' | 'ruby' | 'japanese'
  *         rubyMode: 'dncl',                  // 'ruby' | 'furigana' | 'dncl'
  *         extensions: ['pen', 'microbitMore'],
  *         rubyVersion: 2,                    // 1 | 2（省くといまのまま）
@@ -61,9 +63,11 @@ export const normalizeRubyVersion = (value) => {
 export const applySetup = async (setup, dispatch, vm) => {
     if (!setup || typeof setup !== 'object') return;
 
-    // 1. Tab
+    // 1. Tab. Japanese is written in the Japanese tab (docs/dncl/design.md 1 章): a setup made
+    // before the tab was split (`tab: 'ruby', rubyMode: 'dncl'`) opens the Japanese tab.
     if (setup.tab && Object.prototype.hasOwnProperty.call(TAB_INDEX_MAP, setup.tab)) {
-        dispatch(activateTab(TAB_INDEX_MAP[setup.tab]));
+        const tab = setup.tab === 'ruby' && setup.rubyMode === 'dncl' ? 'japanese' : setup.tab;
+        dispatch(activateTab(TAB_INDEX_MAP[tab]));
     }
 
     // 2. Ruby mode. The furigana flag is stored in localStorage and read by
@@ -73,7 +77,8 @@ export const applySetup = async (setup, dispatch, vm) => {
     if (setup.rubyMode && VALID_RUBY_MODES.has(setup.rubyMode)) {
         const mode = setup.rubyMode;
         dispatch(setDnclMode(mode === 'dncl'));
-        if (typeof window !== 'undefined' && window.localStorage) {
+        // Furigana is a setting of the Ruby tab only: writing in Japanese leaves it as it is.
+        if (mode !== 'dncl' && typeof window !== 'undefined' && window.localStorage) {
             window.localStorage.setItem(FURIGANA_ENABLED_KEY, mode === 'furigana' ? 'true' : 'false');
         }
     }

@@ -27,7 +27,6 @@ describe('RubyToolbar without the Rubytee chat (#1401)', () => {
                     onDismissBubble={jest.fn()}
                     onOpenRubyteeModal={jest.fn()}
                     onToggleFurigana={jest.fn()}
-                    onToggleDnclMode={jest.fn()}
                     onSelectTarget={jest.fn()}
                 />
             </IntlProvider>,

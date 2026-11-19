@@ -5,7 +5,7 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { NullRubyToBlocksConverter, targetCodeToBlocks } from '../lib/ruby-to-blocks-converter';
 import { showAlertWithTimeout } from '../reducers/alerts';
-import { activateTab, RUBY_TAB_INDEX } from '../reducers/editor-tab';
+import { activateTab, JAPANESE_TAB_INDEX, RUBY_TAB_INDEX } from '../reducers/editor-tab';
 import { rubyCodeShape, updateRubyCodeErrors, convertedRubyCode } from '../reducers/ruby-code';
 import { highlightTarget } from '../reducers/targets';
 
@@ -39,7 +39,9 @@ const RubyToBlocksConverterHOC = function (WrappedComponent) {
                     if (!this.props.rubyCode.target.isStage) {
                         this.props.onHighlightTarget(this.props.rubyCode.target.id);
                     }
-                    this.props.onActivateRubyTab();
+                    // Show the errors in the language the program is written in: a program
+                    // written in Japanese goes back to the Japanese tab, not to the Ruby tab.
+                    this.props.onActivateRubyTab(this.props.dnclMode);
                     this.props.onShowConvertRubyToBlocksErrorAlert();
                     this.props.updateRubyCodeErrorsState(converter.errors);
                     return converter;
@@ -64,6 +66,7 @@ const RubyToBlocksConverterHOC = function (WrappedComponent) {
             const {
                 editingTarget: _editingTarget,
                 convertedRubyCodeState: _convertedRubyCodeState,
+                dnclMode: _dnclMode,
                 onActivateRubyTab: _onActivateRubyTab,
                 onHighlightTarget: _onHighlightTarget,
                 onShowConvertRubyToBlocksErrorAlert: _onShowConvertRubyToBlocksErrorAlert,
@@ -77,6 +80,7 @@ const RubyToBlocksConverterHOC = function (WrappedComponent) {
 
     RubyToBlocksConverterComponent.propTypes = {
         convertedRubyCodeState: PropTypes.func,
+        dnclMode: PropTypes.bool,
         editingTarget: PropTypes.string,
         onActivateRubyTab: PropTypes.func,
         onHighlightTarget: PropTypes.func,
@@ -88,6 +92,7 @@ const RubyToBlocksConverterHOC = function (WrappedComponent) {
     };
 
     const mapStateToProps = (state) => ({
+        dnclMode: Boolean(state.scratchGui.dnclMode?.dnclMode),
         editingTarget: state.scratchGui.targets.editingTarget,
         rubyCode: state.scratchGui.rubyCode,
         rubyVersion: state.scratchGui.settings.rubyVersion,
@@ -96,7 +101,7 @@ const RubyToBlocksConverterHOC = function (WrappedComponent) {
 
     const mapDispatchToProps = (dispatch) => ({
         convertedRubyCodeState: () => dispatch(convertedRubyCode()),
-        onActivateRubyTab: () => dispatch(activateTab(RUBY_TAB_INDEX)),
+        onActivateRubyTab: (japanese) => dispatch(activateTab(japanese ? JAPANESE_TAB_INDEX : RUBY_TAB_INDEX)),
         onHighlightTarget: (id) => dispatch(highlightTarget(id)),
         onShowConvertRubyToBlocksErrorAlert: () => showAlertWithTimeout(dispatch, 'convertRubyToBlocksError'),
         updateRubyCodeErrorsState: (errors) => dispatch(updateRubyCodeErrors(errors)),

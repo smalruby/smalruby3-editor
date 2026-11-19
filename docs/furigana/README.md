@@ -27,7 +27,8 @@ Ruby タブの **ruby-toolbar** 内にある「ふりがな」モード切替ボ
 |---|---|---|
 | ふりがな | `ruby-toolbar-mode-furigana` | ✅ ON |
 | Ruby | `ruby-toolbar-mode-ruby` | ❌ OFF |
-| 日本語 (DNCL) | `ruby-toolbar-mode-dncl` | ❌ OFF（DNCL モード自体が日本語のため不要）|
+
+日本語（DNCL）はルビータブのモードではなく、別の **日本語タブ** で書く（[`docs/dncl/`](../dncl/)）。日本語タブではふりがなを描かず、ルビータブのふりがなの設定も変えない。
 
 **初期状態**:
 - 日本語ロケール (`ja`, `ja-Hira`) のときのみ有効化対象
@@ -73,7 +74,7 @@ Ruby タブの **ruby-toolbar** 内にある「ふりがな」モード切替ボ
   - `'false'` 以外（未設定含む）→ ON
   - `'false'` のみ OFF
   - 日本語以外のロケールでは無視される
-- **URL パラメータ**: `?rubyMode=furigana` または `?rubyMode=rubi` で強制 ON。`?rubyMode=ruby` または `?rubyMode=dncl` で強制 OFF。`src/lib/url-params.js` で解析
+- **URL パラメータ**: `?rubyMode=furigana` または `?rubyMode=rubi` で強制 ON。`?rubyMode=ruby` で強制 OFF（`?rubyMode=dncl` は日本語タブ。ふりがなの設定は変えず、日本語タブでは描かない）。`src/lib/url-params.js` で解析
 
 ## 実装のポイント / ハマりどころ
 

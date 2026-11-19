@@ -1,0 +1,34 @@
+/* The colors of the Ruby tab and the Japanese tab (docs/dncl/design.md 1 章):
+   Ruby is red and Japanese is green, so that the two languages look different. */
+@import '../../css/smalruby-tokens.css';
+
+.ruby-tab-selected,
+.japanese-tab-selected {
+    box-shadow: inset 0 $size-tab-indicator 0 var(--language-tab-color);
+}
+
+.ruby-tab-selected {
+    --language-tab-color: $color-language-ruby;
+    color: $color-language-ruby !important;
+}
+
+.japanese-tab-selected {
+    --language-tab-color: $color-language-japanese;
+    color: $color-language-japanese !important;
+}
+
+/* Japanese is offered in the Japanese locales only */
+.japanese-tab-hidden {
+    display: none !important;
+}
+
+/* A lesson that does not allow Japanese: the tab is shown but cannot be pressed */
+.japanese-tab-locked {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+/* The Japanese tab shows the Ruby tab's panel: its own panel stays empty and hidden */
+.japanese-tab-panel {
+    display: none !important;
+}

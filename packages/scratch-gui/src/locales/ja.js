@@ -1116,6 +1116,10 @@ export default {
         '申し訳ありません。スモウルビーがクラッシュしたようです。このバグは自動的にスモウルビーチームに報告されました。ページを再読み込みしてください。',
     'gui.smalruby3.gui.defaultProjectTitle': 'スモウルビーのプロジェクト',
     'gui.smalruby3.gui.rubyTab': 'ルビー',
+    'gui.smalruby3.gui.japaneseTab': '日本語',
+    'gui.smalruby3.gui.japaneseTabTitle': 'プログラムを日本語（共通テスト用プログラム表記）で書く',
+    'gui.smalruby3.gui.japaneseTabLockedInLesson': 'このレッスンでは日本語タブを使えません',
+    'gui.rubyTab.japaneseLanguageBand': '日本語（共通テスト用プログラム表記）',
     'gui.smalruby3.SpriteInfo.sizeIcon': '大きさ（%）',
     'gui.smalruby3.SpriteInfo.directionIcon': '向き（度）',
     'gui.smalruby3.previewInfo.betawelcome': 'スモウルビー3.0 ベータ版にようこそ!',
@@ -1715,13 +1719,10 @@ export default {
     // Ruby Toolbar messages
     'gui.rubyToolbar.executeLine': 'カーソル行を実行',
     'gui.rubyToolbar.executeAll': 'すべて実行',
-    'gui.rubyToolbar.dnclLabel': '日本語',
     'gui.rubyToolbar.modeFurigana': 'Rubyふりがなモード',
     'gui.rubyToolbar.modeFuriganaLine1': 'ルビー',
     'gui.rubyToolbar.modeFuriganaLine2': 'Ruby',
     'gui.rubyToolbar.modeRuby': 'Rubyモード',
-    'gui.rubyToolbar.modeDncl': '日本語モード',
-    'gui.rubyToolbar.modeDnclLockedInLesson': 'このレッスンでは日本語モードに切りかえられません',
     'gui.rubyToolbar.stopExecution': '実行を停止',
     'gui.rubyToolbar.search': '検索',
     'gui.rubyToolbar.keyboardShow': 'キーボードを表示',
@@ -1888,9 +1889,9 @@ export default {
     'gui.welcomeTooltip.label': 'スモウルビーへようこそ',
     'gui.aria.clearButton': 'クリア',
     'gui.extensionButton.dnclExtensionConfirm':
-        '日本語モードでは拡張機能は使えません。\nRubyふりがなモードに戻すと拡張機能が使えるようになります。\n戻しますか？',
-    'gui.dnclModeNotice.message': '日本語モード：ブロックが制限されています',
-    'gui.dnclModeNotice.exitButton': 'Rubyふりがなモードに戻す',
+        '日本語タブで書いているあいだは、拡張機能と一部のブロックは使えません。\nすべてのブロックと拡張機能を使えるようにしますか？\n（日本語タブに戻ると、また制限されます）',
+    'gui.dnclModeNotice.message': '日本語タブで書いています：ブロックが制限されています',
+    'gui.dnclModeNotice.exitButton': 'すべてのブロックを使う',
     'gui.rubyTab.dnclDoubleSlashHint':
         'スモウルビーでは // はコメントではありません（整数の割り算です）。コメントには # をつかってください。',
     'gui.rubyTab.dnclStringArithmeticHint':
