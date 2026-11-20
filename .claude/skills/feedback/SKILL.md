@@ -67,11 +67,23 @@ gh api graphql -f query='
 
 ### メールアドレスのマスク処理
 
-- ローカルパート（`@` の前）: 先頭3文字を残して `***` に置換
-- ドメイン（`@` の後）: 最後のドット以降（TLD）を残して `***` に置換
-- 例: `example@example.ed.jp` → `exa***@***.ed.jp`
-- 例: `tanaka123@gmail.com` → `tan***@***.com`
-- ローカルパートが3文字以下の場合: 先頭1文字を残して `***` に置換
+本人が「自分の報告だ」と確かめられて、ほかの人には誰か分からない程度に伏せる。
+本人が見分ける一番の手がかりは日時と原文なので、伏せ字は確かめの補助と考え、名前が分からないほうを優先する。
+
+- **ローカルパート（`@` の前）**: 先頭 2 文字と最後の 1 文字を残し、あいだを `***` にする
+  - 4 文字以下のときは先頭 1 文字だけを残す（`abc` → `a***`）
+  - 先頭を 3 文字にしない。名前入りのアカウント（`tsujimura.kosuke...`）で名字が当てられるため
+- **ドメイン（`@` の後）**:
+  - 末尾の区分（`ed.jp` / `ac.jp` / `co.jp` / `ne.jp` / `or.jp` / `go.jp` / `lg.jp` / `<都道府県>.jp`。どれでもなければ最後のラベル）を残す
+  - その直前のラベル（学校・市を表す部分）の先頭 3 文字だけを残し、`***<先頭3文字>***.<末尾の区分>` にする
+  - それより前のラベル（`g.` / `i.` / `school.` / `city.` など）は出さない
+  - 誰でも作れるメール（`gmail.com` / `icloud.com` / `outlook.com` / `outlook.jp` / `hotmail.com` / `yahoo.co.jp` / `yahoo.com`）はドメインをそのまま出す
+- 例:
+  - `s20180513@g.musashino-city.ed.jp` → `s2***3@***mus***.ed.jp`
+  - `tanaka.taro@school.example-city.ed.jp` → `ta***o@***exa***.ed.jp`
+  - `20192590@manabi.city.fukuyama.hiroshima.jp` → `20***0@***fuk***.hiroshima.jp`
+  - `kc801164@kgc.keio.ac.jp` → `kc***4@***kei***.ac.jp`
+  - `nabi.example@gmail.com` → `na***e@gmail.com`
 
 ### タイトル生成
 
@@ -118,7 +130,7 @@ YYYY/MM/DD HH:MM:SS に <マスク済みメール> からの smalruby.app への
 **title:** 2026/02/26 11:53 [機能要望] ｛なにかと言っているとき｝というブロックが欲しいです。
 
 **body:**
-2026/02/26 11:53:55 に exa***@***.ed.jp からの smalruby.app への機能要望をいただきました。
+2026/02/26 11:53:55 に ex***e@***exa***.ed.jp からの smalruby.app への機能要望をいただきました。
 
 (内容省略)
 ---
