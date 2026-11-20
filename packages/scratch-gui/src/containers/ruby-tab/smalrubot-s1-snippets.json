@@ -1,59 +1,59 @@
 {
     "studuino.action": {
         "snippet": "studuino.action(\"${1:forward}\")",
-        "description": "[車を前進させる▼]",
+        "description": "[進める▼]",
         "type": "function",
-        "labelJa": "車を前進させる",
-        "filterText": "kurumawo zenshinsaseru 車を前進させる studuino smalrubot action forward",
-        "sortText": "17_kurumawo_zenshinsaseru"
+        "labelJa": "進める",
+        "filterText": "susumeru 進める studuino smalrubot action forward",
+        "sortText": "17_susumeru"
     },
     "studuino.a-forward": {
         "snippet": "forward",
-        "description": "車を前進させる",
+        "description": "進める",
         "type": "enum_member",
-        "labelJa": "車を前進させる",
-        "filterText": "kurumawo zenshinsaseru 車を前進させる forward",
-        "sortText": "17z_kurumawo_zenshinsaseru"
+        "labelJa": "進める",
+        "filterText": "susumeru 進める forward",
+        "sortText": "17z_susumeru"
     },
     "studuino.a-backward": {
         "snippet": "backward",
-        "description": "車を後退させる",
+        "description": "バックさせる",
         "type": "enum_member",
-        "labelJa": "車を後退させる",
-        "filterText": "kurumawo koutaisaseru 車を後退させる backward",
-        "sortText": "17z_kurumawo_koutaisaseru"
+        "labelJa": "バックさせる",
+        "filterText": "bakkusaseru バックさせる backward",
+        "sortText": "17z_bakkusaseru"
     },
     "studuino.a-turn-left": {
         "snippet": "left",
-        "description": "車を左に曲げる",
+        "description": "左に曲げる",
         "type": "enum_member",
-        "labelJa": "車を左に曲げる",
-        "filterText": "kurumawo hidarini mageru 車を左に曲げる turn left",
-        "sortText": "17z_kurumawo_hidarini_mageru"
+        "labelJa": "左に曲げる",
+        "filterText": "hidarini mageru 左に曲げる turn left",
+        "sortText": "17z_hidarini_mageru"
     },
     "studuino.a-turn-right": {
         "snippet": "right",
-        "description": "車を右に曲げる",
+        "description": "右に曲げる",
         "type": "enum_member",
-        "labelJa": "車を右に曲げる",
-        "filterText": "kurumawo migini mageru 車を右に曲げる turn right",
-        "sortText": "17z_kurumawo_migini_mageru"
+        "labelJa": "右に曲げる",
+        "filterText": "migini mageru 右に曲げる turn right",
+        "sortText": "17z_migini_mageru"
     },
     "studuino.a-stop": {
         "snippet": "stop",
-        "description": "車を止める",
+        "description": "止める",
         "type": "enum_member",
-        "labelJa": "車を止める",
-        "filterText": "kurumawo tomeru 車を止める stop",
-        "sortText": "17z_kurumawo_tomeru"
+        "labelJa": "止める",
+        "filterText": "tomeru 止める stop",
+        "sortText": "17z_tomeru"
     },
     "studuino.action-in": {
         "snippet": "studuino.action(\"${1:forward}\", ${2:0.5})",
-        "description": "(0.5) 秒 [車を前進させる▼]",
+        "description": "(0.5) 秒 [進める▼]",
         "type": "function",
-        "labelJa": "秒車を前進させる",
-        "filterText": "byou kurumawo zenshinsaseru 秒車を前進させる studuino studuino smalrubot action seconds",
-        "sortText": "17_byou_kurumawo_zenshinsaseru"
+        "labelJa": "秒進める",
+        "filterText": "byou susumeru 秒進める studuino smalrubot action seconds",
+        "sortText": "17_byou_susumeru"
     },
     "studuino.bend_arm": {
         "snippet": "studuino.bend_arm(${1:90}, ${2:1})",
@@ -158,6 +158,62 @@
         "labelJa": "DCモーターの速度にする",
         "filterText": "diishii motaano sokudoni suru DCモーターの速度にする studuino smalrubot set motor speed",
         "sortText": "17_motaano_sokudoni_suru"
+    },
+    "studuino.dc_motor": {
+        "snippet": "studuino.dc_motor(\"${1:M1}\", \"${2:normal}\")",
+        "description": "DCモーター [M1▼] を [正転させる▼]",
+        "type": "function",
+        "labelJa": "DCモーターを正転させる",
+        "filterText": "dcmoutaawo seitensaseru DCモーターを正転させる studuino smalrubot dc_motor motor M1 M2",
+        "sortText": "17_dcmoutaawo_ugokasu"
+    },
+    "studuino.dc_motor-in": {
+        "snippet": "studuino.dc_motor(\"${1:M1}\", \"${2:normal}\", ${3:0.5})",
+        "description": "(0.5) 秒 DCモーター [M1▼] を [正転させる▼]",
+        "type": "function",
+        "labelJa": "秒DCモーターを正転させる",
+        "filterText": "byou dcmoutaawo seitensaseru 秒DCモーターを正転させる studuino smalrubot dc_motor motor seconds",
+        "sortText": "17_byou_dcmoutaawo_ugokasu"
+    },
+    "studuino.m-normal": {
+        "snippet": "normal",
+        "description": "正転させる",
+        "type": "enum_member",
+        "labelJa": "正転させる",
+        "filterText": "seitensaseru 正転させる normal",
+        "sortText": "17z_motor_seitensaseru"
+    },
+    "studuino.m-reverse": {
+        "snippet": "reverse",
+        "description": "逆転させる",
+        "type": "enum_member",
+        "labelJa": "逆転させる",
+        "filterText": "gyakutensaseru 逆転させる reverse",
+        "sortText": "17z_motor_gyakutensaseru"
+    },
+    "studuino.m-stop": {
+        "snippet": "stop",
+        "description": "止める",
+        "type": "enum_member",
+        "labelJa": "止める",
+        "filterText": "tomeru 止める stop",
+        "sortText": "17z_motor_tomeru"
+    },
+    "studuino.p-M1": {
+        "snippet": "M1",
+        "description": "DCモーター M1",
+        "type": "enum_member",
+        "labelJa": "DCモーター M1",
+        "filterText": "dcmoutaa m1 DCモーター M1",
+        "sortText": "17z_dcmoutaa_m1"
+    },
+    "studuino.p-M2": {
+        "snippet": "M2",
+        "description": "DCモーター M2",
+        "type": "enum_member",
+        "labelJa": "DCモーター M2",
+        "filterText": "dcmoutaa m2 DCモーター M2",
+        "sortText": "17z_dcmoutaa_m2"
     },
     "studuino.arm_calibration=": {
         "snippet": "studuino.arm_calibration = ${1:0}",

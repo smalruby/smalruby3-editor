@@ -536,7 +536,7 @@ describe('Studuino (Smalrubot S1) snippets (#2190)', () => {
         for (const [caption] of entries) {
             expect(caption).toMatch(/^studuino\./);
         }
-        expect(methods.length).toBe(9);
+        expect(methods.length).toBe(11);
         for (const [, item] of methods) {
             expect(item.snippet).toMatch(/^studuino\./);
             expect(item.snippet).not.toContain('smalrubot_s1');

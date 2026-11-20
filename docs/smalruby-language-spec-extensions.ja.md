@@ -170,6 +170,8 @@
 | `studuino.bend_arm(角度, 秒数)` | アームを曲げる | `studuino.bend_arm(90, 1)` |
 | `studuino.led(位置, true/false)` | LEDのオン/オフ | `studuino.led("left", true)` |
 | `studuino.set_motor_speed(位置, 速度)` | モーター速度を設定 | `studuino.set_motor_speed("left", 100)` |
+| `studuino.dc_motor(モーター, 向き)` | DC モーターを 1 つだけ動かす | `studuino.dc_motor("M1", "normal")` |
+| `studuino.dc_motor(モーター, 向き, 秒数)` | DC モーターを秒数だけ動かして止める | `studuino.dc_motor("M1", "normal", 0.5)` |
 | `studuino.arm_calibration = 角度` | アームのキャリブレーション | `studuino.arm_calibration = 0` |
 
 ### レポーター
@@ -179,7 +181,9 @@
 | `studuino.sensor_value(位置)` | センサー値を取得 | `studuino.sensor_value("left")` |
 | `studuino.get_motor_speed(位置)` | モーター速度を取得 | `studuino.get_motor_speed("left")` |
 
-**アクションの値**: `"forward"`（車を前進させる）, `"backward"`（車を後退させる）, `"left"`（車を左に曲げる）, `"right"`（車を右に曲げる）, `"stop"`（車を止める）
+**アクションの値**: `"forward"`（進める）, `"backward"`（バックさせる）, `"left"`（左に曲げる）, `"right"`（右に曲げる）, `"stop"`（止める）
+
+**DC モーターの値**（`dc_motor`）: モーターは `"M1"` / `"M2"`、向きは `"normal"`（正転させる）, `"reverse"`（逆転させる）, `"stop"`（止める）
 
 **位置の値**（`led` / `set_motor_speed` / `get_motor_speed`）: `"left"`（左。LED は A0・DC モーターは M1）, `"right"`（右。LED は A1・DC モーターは M2）
 

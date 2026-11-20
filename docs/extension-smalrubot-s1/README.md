@@ -57,13 +57,13 @@ Ruby の書き方は `studuino.` のまま（下の「Ruby の書き方」）。
 | ライブラリのカードの説明 | スモウルボットS1を制御する。 | アーテック社の表記に合わせた紹介と、登録商標の一文（下の「ライブラリの絵と商標の表記」） |
 | Ruby タブのふりがな（`studuino` / `smalrubot_s1` の上に出る名前） | スモウルボットS1 | アーテックロボ |
 | Ruby の書き出し | `smalrubot_s1.` | **`studuino.`**（読みこみは `smalrubot_s1.` も受けつける。下の「Ruby の書き方」） |
-| ブロック・選択肢の表示 | ロボットの部品の名前（「左のセンサー」など） | 一般的な名前（下の「ブロックと選択肢」）。センサーの選択肢を足し、ロボットのブロックを「ロボットカー」の見出しの下にまとめた |
+| ブロック・選択肢の表示 | ロボットの部品の名前（「左のセンサー」など） | 一般的な名前（下の「ブロックと選択肢」）。センサーの選択肢を足した。ブロックの並びと動きの選択肢の文言は前のまま。DC モーターを 1 つずつ動かすブロックを足した |
 
 ### ライブラリの絵と商標の表記
 
 - **絵**: 人間が Gemini で描いた、ケースに入った青い基板を斜めから見たオレンジ背景のイラストを **もとにして** 作った。アーテック社の製品の写真やロゴは使っていない。左下の小さいアイコンと外側の白い枠は取り除いた（左下は上の背景で塗りつぶした）。
   - カード（600×372）は背景ごと切り出して縮小した。接続モーダルの絵（95×95）とカテゴリ・カードの小さい絵（40×40）は、基板とケースを正方形に切り出し、同じオレンジの背景で余白を埋めた。カテゴリの絵（VM の `blockIconURI`）は 40×40 と同じ絵。
-- **商標の表記**: カードの説明は「アーテックロボの Studuino®（スタディーノ）基板を動かす。**アーテックロボは株式会社アーテックの製品で、Studuino® は同社の登録商標です。**」。Studuino® は登録商標なので ® を付ける。アーテックロボは商標の扱いを確かめていないので、「登録商標」と言い切らず「株式会社アーテックの製品」と書く。カードには「協力: Artec Co., Ltd.」も出る（実際に協力いただき、基板も提供いただいている）。紹介ページ（`pages/about.html`）の紹介にも同じ一文を入れ、写真はこの基板の絵にした。
+- **商標の表記**: カードの説明は「アーテックロボの Studuino®（スタディーノ）基板を動かす。**アーテックロボは株式会社アーテックの製品で、Studuino® は同社の登録商標です。**」。Studuino® は登録商標なので ® を付ける。アーテックロボは商標の扱いを確かめていないので、「登録商標」と言い切らず「株式会社アーテックの製品」と書く。カードには「協力: Artec Co., Ltd.」も出る（実際に協力いただき、基板も提供いただいている）。紹介ページ（`pages/about.html`）の紹介にも同じ一文を入れ、絵はカードと同じ絵（ケースに入った基板）にした。
 
   ![紹介ページの計測と制御のカード](screenshots/0701-about-page-1280x800.png)
 
@@ -121,18 +121,19 @@ Ruby の書き方は `studuino.` のまま（下の「Ruby の書き方」）。
 
 ### ブロックの一覧
 
-パレットの上から順に並べた。「ロボットカー」の見出しより下が、ロボットとして動かすブロック。
+パレットの上から順に並べた。並びは前（スモウルボットS1）のままで、DC モーターを 1 つずつ動かすブロックを速さのブロックのあとに足した。見出しは付けない。
 
 | opcode | 表示（日本語） | ポート |
 |---|---|---|
+| `action` | `[進める▼] (M1, M2)` | M1 / M2 |
+| `actionAndStopAfter` | `(0.5) 秒 [進める▼] (M1, M2)` | M1 / M2 |
+| `bendArm` | `(1) 秒でアーム（サーボモーター D10）を (90) 度に曲げる` | D10 |
 | `getSensorValue` | `[光センサー (A6)▼] の値` | A2 / A4 / A5 / A6 / A7 |
 | `turnLedOn` / `turnLedOff` | `[左▼] のLED (左:A0, 右:A1) をオン（オフ）にする` | A0 / A1 |
 | `getMotorSpeed` | `[左▼] のDCモーター (左:M1, 右:M2) の速度 (%)` | M1 / M2 |
 | `setMotorSpeed` | `[左▼] のDCモーター (左:M1, 右:M2) の速度を (50) (%) にする` | M1 / M2 |
-| （見出し） | **ロボットカー** | — |
-| `action` | `[車を前進させる▼] (M1, M2)` | M1 / M2 |
-| `actionAndStopAfter` | `(0.5) 秒 [車を前進させる▼] (M1, M2)` | M1 / M2 |
-| `bendArm` | `(1) 秒でアーム（サーボモーター D10）を (90) 度に曲げる` | D10 |
+| `controlMotor`（新しいブロック） | `DCモーター [M1▼] を [正転させる▼]` | M1 または M2 |
+| `controlMotorAndStopAfter`（新しいブロック） | `(0.5) 秒 DCモーター [M1▼] を [正転させる▼]` | M1 または M2 |
 | `setArmCalibration` | `アーム（サーボモーター D10）を (0) 度調整する` | D10 |
 
 ### センサーの選択肢（`sensorPositions` メニュー）
@@ -153,19 +154,24 @@ Ruby の書き方は `studuino.` のまま（下の「Ruby の書き方」）。
 
 ### 動きの選択肢（`actions` メニュー）
 
+2 つのモーター（M1・M2）をいっしょに使って車を動かす。文言は前（スモウルボットS1）のまま。
+
 | 値 | 表示 |
 |---|---|
-| `forward` | 車を前進させる |
-| `backward` | 車を後退させる |
-| `left` | 車を左に曲げる |
-| `right` | 車を右に曲げる |
-| `stop` | 車を止める |
+| `forward` | 進める |
+| `backward` | バックさせる |
+| `left` | 左に曲げる |
+| `right` | 右に曲げる |
+| `stop` | 止める |
 
-### 「ロボットカー」の見出し
+### DC モーターを 1 つずつ動かすブロック
 
-ロボットとして動かすブロック（前進・後退・回転、アームを曲げる、アームを調整する）は **残したまま**、パレットの後ろの方に「**ロボットカー**」の見出しをつけてまとめた。ブロックは足さず、opcode とメニューの値も変えていない（並べる順番と表示だけが変わった）。
+`action` は 2 つのモーターを同時に動かす。1 つのモーターだけを動かすときは `controlMotor`（DC モーター [M1▼] を [正転させる▼]）を使う。
 
-見出しは、拡張機能のブロックの情報に `blockType: BlockType.LABEL` を書くと出る（Smalruby が scratch-vm に足した種類。Blockly のフライアウトの見出し `<label>` になる）。ブロックではないので、作品には保存されない。
+- **`motors` メニュー**: 値と表示はポートの名前 `M1` / `M2`。
+- **`motorDirections` メニュー**: `normal`（正転させる）/ `reverse`（逆転させる）/ `stop`（止める）。値は練習用の基板の `direction` と命令の記録の `value` と同じ。
+- 速さは `setMotorSpeed` の値を使う（M1 = 左、M2 = 右）。`action` と同じく、止めるときは速さを送らない。
+- **秒数つきのブロック**（`controlMotorAndStopAfter`）は、動かして、秒数が経ったらそのモーターだけを止める。「M1 を正転させる → 0.5 秒待つ → M1 を止める」と 3 つのブロックで書くと、ブロックの間の通信の時間が入って 0.5 秒より長く動くことが多い。1 つのブロックの中で止めるので、ミリ秒の単位で決めた時間だけ動かせる（`actionAndStopAfter` と同じ作り）。もう一方のモーターは止めない。
 
 ## Ruby の書き方
 
@@ -180,9 +186,11 @@ Ruby の書き方は `studuino.` のまま（下の「Ruby の書き方」）。
 | `turnLedOn` / `turnLedOff` | `studuino.led("left", true)` / `studuino.led("left", false)` |
 | `getMotorSpeed` | `studuino.get_motor_speed("left")` |
 | `setMotorSpeed` | `studuino.set_motor_speed("left", 50)` |
+| `controlMotor` | `studuino.dc_motor("M1", "normal")` |
+| `controlMotorAndStopAfter` | `studuino.dc_motor("M1", "normal", 0.5)` |
 | `setArmCalibration` | `studuino.arm_calibration = 0` |
 
-引数の文字列はメニューの値（`forward` / `backward` / `left` / `right` / `stop`、`light` / `ir_a4` / `ir_a5` / `touch` / `sound` / `left` / `right`）。
+引数の文字列はメニューの値（`forward` / `backward` / `left` / `right` / `stop`、`light` / `ir_a4` / `ir_a5` / `touch` / `sound` / `left` / `right`、`M1` / `M2`、`normal` / `reverse` / `stop`）。`dc_motor` は `studuino.` の新しいメソッドで、`smalrubot_s1.dc_motor` も読みこめる。
 
 ```ruby
 # 前の書き方（読みこめる）
@@ -225,7 +233,7 @@ studuino.sensor_value("ir_a4")
 }
 ```
 
-- `direction` は `'normal'`（正転）・`'reverse'`（逆転）・`'stop'`（停止）。前進 = M1/M2 とも正転、後退 = とも逆転、左に回る = M1 逆転・M2 正転、右に回る = M1 正転・M2 逆転。
+- `direction` は `'normal'`（正転）・`'reverse'`（逆転）・`'stop'`（停止）。`controlMotor` はそのモーターだけを変える。前進 = M1/M2 とも正転、後退 = とも逆転、左に回る = M1 逆転・M2 正転、右に回る = M1 正転・M2 逆転。
 - `speed` は、最後に動かしたときの速さ（%）。実機と同じく、速さのブロックは次に動かしたときから使われる。止めても `speed` は残る。
 - `bendArm` は実機と同じく、秒数のあいだ角度を少しずつ変える（`degree` がフレームごとに変わる）。
 
@@ -328,7 +336,7 @@ GUI は、イベントを聞いて表示し、センサーの値はこのメソ�
 | `speed` | モーターの速さ（%。止めたときは 0） |
 | `sensor` | `touch` / `irPhotoreflector` / `light` / `sound`（センサー） |
 
-- ブロックの名前ではなく **ポートと値** で残す。「車を前進させる」などの `action` は `M1`・`M2` の 2 件になる。速さを決めるブロックは記録しない（次の `action` の `speed` に出る）。
+- ブロックの名前ではなく **ポートと値** で残す。「進める」などの `action` は `M1`・`M2` の 2 件になる。`controlMotor` は動かした 1 つのモーターの 1 件になる。速さを決めるブロックは記録しない（次の `action` の `speed` に出る）。
 - **同じ命令をくり返しても毎回記録する**（練習用の基板の状態のイベント `STUDUINO_PRACTICE_BOARD_STATE` は、値が変わったときだけ出る）。ただし秒数つきの「アームを曲げる」は毎フレーム角度を送るので、途中の角度は変わったときだけ記録する（最後の角度はいつも記録する）。
 - 停止ボタン（`stopAll`）で LED を消し、モーターを止めるのは作品の命令ではないので記録しない。
 - 上限は 1000 件（古いものから捨てる）。
@@ -436,7 +444,6 @@ Ruby タブのふりがなでは、`studuino` の上に「アーテックロボ�
 - `packages/scratch-vm/src/extensions/scratch3_smalrubot_s1/index.js` — 拡張機能本体（Web Serial 通信、コマンド送受信、センサー値ポーリング、ポートの初期化、実機と練習用の基板の切りかえ）
 - `packages/scratch-vm/src/extensions/scratch3_smalrubot_s1/practice-board.js` — 練習用の基板（状態と、実機と同じ操作）
 - `packages/scratch-vm/src/extensions/scratch3_smalrubot_s1/command-log.js` — 出した命令と読んだセンサーの値の記録（レッスンの判定用・上限つき）
-- `packages/scratch-vm/src/extension-support/block-type.js` / `extension-manager.js` / `src/engine/runtime.js` — 見出し（`BlockType.LABEL`）の Smalruby マーカー（`docs/maintenance/smalruby-markers-vm.md`）
 
 ### infra / ruby
 

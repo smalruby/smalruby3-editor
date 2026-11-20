@@ -8,6 +8,10 @@ const ACTIONS = ['forward', 'backward', 'left', 'right', 'stop'];
 
 const POSITIONS = ['left', 'right'];
 
+const MOTORS = ['M1', 'M2'];
+
+const MOTOR_DIRECTIONS = ['normal', 'reverse', 'stop'];
+
 // `ir_a4` / `ir_a5` are the textbook names of `left` / `right` (#2189). Only add values, never remove them.
 const SENSOR_POSITIONS = ['left', 'right', 'touch', 'light', 'sound', 'ir_a4', 'ir_a5'];
 
@@ -116,6 +120,39 @@ const registerForReceiver = (converter, receiverName) => {
         const block = converter.changeRubyExpressionBlock(receiver, 'smalrubotS1_setMotorSpeed', 'statement');
         converter.addField(block, 'POSITION', args[0]);
         converter.addNumberInput(block, 'SPEED', 'math_number', args[1], 100);
+        return block;
+    });
+
+    const isMotorAndDirection = (args) =>
+        converter.isString(args[0]) &&
+        MOTORS.includes(args[0].toString()) &&
+        converter.isString(args[1]) &&
+        MOTOR_DIRECTIONS.includes(args[1].toString());
+
+    converter.registerOnSend(receiverName, 'dc_motor', 2, (params) => {
+        const { receiver, args } = params;
+
+        if (!isMotorAndDirection(args)) return null;
+
+        const block = converter.changeRubyExpressionBlock(receiver, 'smalrubotS1_controlMotor', 'statement');
+        converter.addField(block, 'MOTOR', args[0]);
+        converter.addField(block, 'DIRECTION', args[1]);
+        return block;
+    });
+
+    converter.registerOnSend(receiverName, 'dc_motor', 3, (params) => {
+        const { receiver, args } = params;
+
+        if (!isMotorAndDirection(args) || !converter.isNumberOrBlock(args[2])) return null;
+
+        const block = converter.changeRubyExpressionBlock(
+            receiver,
+            'smalrubotS1_controlMotorAndStopAfter',
+            'statement',
+        );
+        converter.addField(block, 'MOTOR', args[0]);
+        converter.addField(block, 'DIRECTION', args[1]);
+        converter.addNumberInput(block, 'SECS', 'math_number', args[2], 0.5);
         return block;
     });
 

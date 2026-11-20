@@ -48,6 +48,23 @@ export default function (Generator) {
         return `studuino.set_motor_speed(${position}, ${speed})\n`;
     };
 
+    Generator.smalrubotS1_controlMotor = function (block) {
+        const motor = Generator.quote_(Generator.getFieldValue(block, 'MOTOR', Generator.ORDER_NONE) || 'M1');
+        const direction = Generator.quote_(
+            Generator.getFieldValue(block, 'DIRECTION', Generator.ORDER_NONE) || 'normal',
+        );
+        return `studuino.dc_motor(${motor}, ${direction})\n`;
+    };
+
+    Generator.smalrubotS1_controlMotorAndStopAfter = function (block) {
+        const motor = Generator.quote_(Generator.getFieldValue(block, 'MOTOR', Generator.ORDER_NONE) || 'M1');
+        const direction = Generator.quote_(
+            Generator.getFieldValue(block, 'DIRECTION', Generator.ORDER_NONE) || 'normal',
+        );
+        const secs = Generator.valueToCode(block, 'SECS', Generator.ORDER_NONE) || 0.5;
+        return `studuino.dc_motor(${motor}, ${direction}, ${secs})\n`;
+    };
+
     Generator.smalrubotS1_setArmCalibration = function (block) {
         const degree = Generator.valueToCode(block, 'DEGREE', Generator.ORDER_NONE) || 0;
         return `studuino.arm_calibration = ${degree}\n`;
