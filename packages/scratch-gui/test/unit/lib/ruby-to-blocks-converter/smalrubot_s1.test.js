@@ -274,4 +274,58 @@ describe.each(['studuino', 'smalrubot_s1'])('RubyToBlocksConverter/SmalrubotS1 (
             }
         }
     });
+    test('smalrubotS1_controlMotor', async () => {
+        for (const motor of ['M1', 'M2']) {
+            for (const direction of ['normal', 'reverse', 'stop']) {
+                code = `${receiver}.dc_motor("${motor}", "${direction}")`;
+                expected = [
+                    {
+                        opcode: 'smalrubotS1_controlMotor',
+                        fields: [
+                            { name: 'MOTOR', value: motor },
+                            { name: 'DIRECTION', value: direction },
+                        ],
+                    },
+                ];
+                await convertAndExpectToEqualBlocks(converter, target, code, expected);
+            }
+        }
+
+        for (const s of [
+            `${receiver}.dc_motor`,
+            `${receiver}.dc_motor("M1")`,
+            `${receiver}.dc_motor("M3", "normal")`,
+            `${receiver}.dc_motor("M1", "forward")`,
+            `${receiver}.dc_motor(1, "normal")`,
+        ]) {
+            await convertAndExpectRubyBlockError(converter, target, s);
+        }
+    });
+
+    test('smalrubotS1_controlMotorAndStopAfter', async () => {
+        code = `${receiver}.dc_motor("M2", "reverse", 0.25)`;
+        expected = [
+            {
+                opcode: 'smalrubotS1_controlMotorAndStopAfter',
+                inputs: [
+                    {
+                        name: 'SECS',
+                        block: expectedInfo.makeNumber(0.25),
+                    },
+                ],
+                fields: [
+                    { name: 'MOTOR', value: 'M2' },
+                    { name: 'DIRECTION', value: 'reverse' },
+                ],
+            },
+        ];
+        await convertAndExpectToEqualBlocks(converter, target, code, expected);
+
+        for (const s of [
+            `${receiver}.dc_motor("M1", "normal", "invalid sec")`,
+            `${receiver}.dc_motor("M1", "normal", 0.5, 1)`,
+        ]) {
+            await convertAndExpectRubyBlockError(converter, target, s);
+        }
+    });
 });

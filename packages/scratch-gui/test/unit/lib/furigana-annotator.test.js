@@ -1311,16 +1311,21 @@ describe('FuriganaAnnotator', () => {
         test('receiver → アーテックロボ', () => {
             expect(labelsAt(annotate(`${receiver}.action("forward")`), 1)).toContain('アーテックロボ');
         });
-        test('.action("forward") → 動作する + 車を前進させる', () => {
+        test('.action("forward") → 動作する + 進める', () => {
             const labels = labelsAt(annotate(`${receiver}.action("forward")`), 1);
             expect(labels).toContain('動作する');
-            expect(labels).toContain('車を前進させる');
+            expect(labels).toContain('進める');
         });
-        test('.action("backward") → 車を後退させる', () => {
-            expect(labelsAt(annotate(`${receiver}.action("backward")`), 1)).toContain('車を後退させる');
+        test('.action("backward") → バックさせる', () => {
+            expect(labelsAt(annotate(`${receiver}.action("backward")`), 1)).toContain('バックさせる');
         });
-        test('.action("left") → 車を左に曲げる', () => {
-            expect(labelsAt(annotate(`${receiver}.action("left")`), 1)).toContain('車を左に曲げる');
+        test('.action("left") → 左に曲げる', () => {
+            expect(labelsAt(annotate(`${receiver}.action("left")`), 1)).toContain('左に曲げる');
+        });
+        test('.dc_motor("M1", "reverse") → DCモーターを動かす + 逆転させる', () => {
+            const labels = labelsAt(annotate(`${receiver}.dc_motor("M1", "reverse")`), 1);
+            expect(labels).toContain('DCモーターを動かす');
+            expect(labels).toContain('逆転させる');
         });
         test('.sensor_value("light") → 光センサー (A6)', () => {
             expect(labelsAt(annotate(`${receiver}.sensor_value("light")`), 1)).toContain('光センサー (A6)');

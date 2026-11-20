@@ -63,6 +63,10 @@ const SERVO_MOTOR_PORT = PORT_D10;
 
 const FPS = 30;
 
+// The DC motor blocks name the motor by its port; the speed is kept per position (M1 = left, M2 = right).
+const POSITION_BY_MOTOR_PORT = { M1: 'left', M2: 'right' };
+const DC_MOTOR_VALUE_BY_DIRECTION = { normal: NORMAL, reverse: REVERSE, stop: COAST };
+
 class SmalrubotError extends Error {
     constructor(message) {
         super(message);
@@ -814,6 +818,25 @@ class SmalrubotS1 extends Smalrubot {
             .then(() => this.writeCommand('dc_motor_control', PORT_M2, rightValue));
     }
 
+    dcMotor(port, direction) {
+        debug(() => `dcMotor: port=<${port}> direction=<${direction}>`);
+
+        const position = POSITION_BY_MOTOR_PORT[port];
+        const value = DC_MOTOR_VALUE_BY_DIRECTION[direction];
+        if (!position || typeof value === 'undefined') {
+            return Promise.reject(
+                new Error(
+                    `Could not dcMotor: reason=<Invalid port or direction> port=<${port}> direction=<${direction}>`,
+                ),
+            );
+        }
+        const pin = port === 'M2' ? PORT_M2 : PORT_M1;
+
+        return Promise.resolve()
+            .then(() => (direction === 'stop' ? Promise.resolve() : this.applyDcMotorPower(position)))
+            .then(() => this.writeCommand('dc_motor_control', pin, value));
+    }
+
     bendArm(degree) {
         if (degree < 0) {
             degree = 0;
@@ -961,7 +984,7 @@ class Scratch3SmalrubotS1Blocks {
             {
                 text: formatMessage({
                     id: 'smalrubotS1.actionMenu.forward',
-                    default: 'move the car forward',
+                    default: 'forward',
                     description: 'label for "forward" element in action picker for Smalrubot S1 extension',
                 }),
                 value: 'forward',
@@ -969,7 +992,7 @@ class Scratch3SmalrubotS1Blocks {
             {
                 text: formatMessage({
                     id: 'smalrubotS1.actionMenu.backward',
-                    default: 'move the car backward',
+                    default: 'backward',
                     description: 'label for "backward" element in action picker for Smalrubot S1 extension',
                 }),
                 value: 'backward',
@@ -977,7 +1000,7 @@ class Scratch3SmalrubotS1Blocks {
             {
                 text: formatMessage({
                     id: 'smalrubotS1.actionMenu.turnLeft',
-                    default: 'turn the car left',
+                    default: 'turn left',
                     description: 'label for "turn left" element in action picker for Smalrubot S1 extension',
                 }),
                 value: 'left',
@@ -985,7 +1008,7 @@ class Scratch3SmalrubotS1Blocks {
             {
                 text: formatMessage({
                     id: 'smalrubotS1.actionMenu.turnRight',
-                    default: 'turn the car right',
+                    default: 'turn right',
                     description: 'label for "turn right" element in action picker for Smalrubot S1 extension',
                 }),
                 value: 'right',
@@ -993,7 +1016,7 @@ class Scratch3SmalrubotS1Blocks {
             {
                 text: formatMessage({
                     id: 'smalrubotS1.actionMenu.stop',
-                    default: 'stop the car',
+                    default: 'stop',
                     description: 'label for "stop" element in action picker for Smalrubot S1 extension',
                 }),
                 value: 'stop',
@@ -1021,6 +1044,56 @@ class Scratch3SmalrubotS1Blocks {
                     description: 'label for "right" element in position picker for Smalrubot S1 extension',
                 }),
                 value: 'right',
+            },
+        ];
+    }
+
+    /**
+     * @returns {Array} - text and values for each DC motor menu element
+     */
+    get MOTORS_MENU() {
+        // The values are the port names. They are saved in projects: never rename or remove them.
+        return [
+            {
+                text: 'M1',
+                value: 'M1',
+            },
+            {
+                text: 'M2',
+                value: 'M2',
+            },
+        ];
+    }
+
+    /**
+     * @returns {Array} - text and values for each DC motor direction menu element
+     */
+    get MOTOR_DIRECTIONS_MENU() {
+        // The same names as the command record (`normal` / `reverse` / `stop`).
+        return [
+            {
+                text: formatMessage({
+                    id: 'smalrubotS1.motorDirectionsMenu.normal',
+                    default: 'turn forward',
+                    description: 'label for "normal" (forward rotation) in DC motor direction picker',
+                }),
+                value: 'normal',
+            },
+            {
+                text: formatMessage({
+                    id: 'smalrubotS1.motorDirectionsMenu.reverse',
+                    default: 'turn backward',
+                    description: 'label for "reverse" (backward rotation) in DC motor direction picker',
+                }),
+                value: 'reverse',
+            },
+            {
+                text: formatMessage({
+                    id: 'smalrubotS1.motorDirectionsMenu.stop',
+                    default: 'stop',
+                    description: 'label for "stop" in DC motor direction picker',
+                }),
+                value: 'stop',
             },
         ];
     }
@@ -1272,6 +1345,61 @@ class Scratch3SmalrubotS1Blocks {
             showStatusButton: true,
             blocks: [
                 {
+                    opcode: 'action',
+                    text: formatMessage({
+                        id: 'smalrubotS1.action',
+                        default: '[ACTION]',
+                        description: 'action block text',
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        ACTION: {
+                            type: ArgumentType.STRING,
+                            menu: 'actions',
+                            defaultValue: this.ACTIONS_MENU[0].value,
+                        },
+                    },
+                },
+                {
+                    opcode: 'actionAndStopAfter',
+                    text: formatMessage({
+                        id: 'smalrubotS1.actionAndStopAfter',
+                        default: '[ACTION] for [SECS] seconds',
+                        description: 'actionAndStopAfter block text',
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        ACTION: {
+                            type: ArgumentType.STRING,
+                            menu: 'actions',
+                            defaultValue: this.ACTIONS_MENU[0].value,
+                        },
+                        SECS: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 0.5,
+                        },
+                    },
+                },
+                {
+                    opcode: 'bendArm',
+                    text: formatMessage({
+                        id: 'smalrubotS1.bendArm',
+                        default: 'bend arm [DEGREE] degrees in [SECS] seconds',
+                        description: 'bendArm block text',
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        DEGREE: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 90,
+                        },
+                        SECS: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 1,
+                        },
+                    },
+                },
+                {
                     opcode: 'getSensorValue',
                     text: formatMessage({
                         id: 'smalrubotS1.getSensorValue',
@@ -1355,68 +1483,49 @@ class Scratch3SmalrubotS1Blocks {
                         },
                     },
                 },
-                '---',
                 {
-                    // A heading for the robot blocks (#2189). They stay in the palette for compatibility.
-                    blockType: BlockType.LABEL,
+                    opcode: 'controlMotor',
                     text: formatMessage({
-                        id: 'smalrubotS1.robotCarLabel',
-                        default: 'Robot car',
-                        description: 'heading label for the robot car blocks in Smalrubot S1 extension',
-                    }),
-                },
-                {
-                    opcode: 'action',
-                    text: formatMessage({
-                        id: 'smalrubotS1.action',
-                        default: '[ACTION]',
-                        description: 'action block text',
+                        id: 'smalrubotS1.controlMotor',
+                        default: 'DC motor [MOTOR] [DIRECTION]',
+                        description: 'controlMotor block text',
                     }),
                     blockType: BlockType.COMMAND,
                     arguments: {
-                        ACTION: {
+                        MOTOR: {
                             type: ArgumentType.STRING,
-                            menu: 'actions',
-                            defaultValue: this.ACTIONS_MENU[0].value,
+                            menu: 'motors',
+                            defaultValue: this.MOTORS_MENU[0].value,
+                        },
+                        DIRECTION: {
+                            type: ArgumentType.STRING,
+                            menu: 'motorDirections',
+                            defaultValue: this.MOTOR_DIRECTIONS_MENU[0].value,
                         },
                     },
                 },
                 {
-                    opcode: 'actionAndStopAfter',
+                    opcode: 'controlMotorAndStopAfter',
                     text: formatMessage({
-                        id: 'smalrubotS1.actionAndStopAfter',
-                        default: '[ACTION] for [SECS] seconds',
-                        description: 'actionAndStopAfter block text',
+                        id: 'smalrubotS1.controlMotorAndStopAfter',
+                        default: 'DC motor [MOTOR] [DIRECTION] for [SECS] seconds',
+                        description: 'controlMotorAndStopAfter block text',
                     }),
                     blockType: BlockType.COMMAND,
                     arguments: {
-                        ACTION: {
+                        MOTOR: {
                             type: ArgumentType.STRING,
-                            menu: 'actions',
-                            defaultValue: this.ACTIONS_MENU[0].value,
+                            menu: 'motors',
+                            defaultValue: this.MOTORS_MENU[0].value,
+                        },
+                        DIRECTION: {
+                            type: ArgumentType.STRING,
+                            menu: 'motorDirections',
+                            defaultValue: this.MOTOR_DIRECTIONS_MENU[0].value,
                         },
                         SECS: {
                             type: ArgumentType.NUMBER,
                             defaultValue: 0.5,
-                        },
-                    },
-                },
-                {
-                    opcode: 'bendArm',
-                    text: formatMessage({
-                        id: 'smalrubotS1.bendArm',
-                        default: 'bend arm [DEGREE] degrees in [SECS] seconds',
-                        description: 'bendArm block text',
-                    }),
-                    blockType: BlockType.COMMAND,
-                    arguments: {
-                        DEGREE: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 90,
-                        },
-                        SECS: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 1,
                         },
                     },
                 },
@@ -1448,6 +1557,14 @@ class Scratch3SmalrubotS1Blocks {
                 positions: {
                     acceptReporters: false,
                     items: this.POSITIONS_MENU,
+                },
+                motors: {
+                    acceptReporters: false,
+                    items: this.MOTORS_MENU,
+                },
+                motorDirections: {
+                    acceptReporters: false,
+                    items: this.MOTOR_DIRECTIONS_MENU,
                 },
             },
         };
@@ -1481,6 +1598,53 @@ class Scratch3SmalrubotS1Blocks {
                 if (args.ACTION !== 'stop') {
                     this.recordAction('stop');
                     this.board.action('stop');
+                }
+            } else {
+                util.yield();
+            }
+        } catch (error) {
+            log.error(error);
+        }
+    }
+
+    recordDcMotor(port, direction) {
+        const position = POSITION_BY_MOTOR_PORT[port];
+        if (!position || !Object.prototype.hasOwnProperty.call(DC_MOTOR_VALUE_BY_DIRECTION, direction)) {
+            return;
+        }
+        const speed = direction === 'stop' ? 0 : Number(this.board.getMotorSpeed(position)) || 0;
+        this.recordCommand({ kind: 'motor', port, value: direction, speed });
+    }
+
+    controlMotor(args) {
+        try {
+            debug(() => `controlMotor: args=<${JSON.stringify(args, null, 2)}>`);
+
+            this.recordDcMotor(args.MOTOR, args.DIRECTION);
+            this.board.dcMotor(args.MOTOR, args.DIRECTION).catch((error) => log.error(error));
+        } catch (error) {
+            log.error(error);
+        }
+    }
+
+    // One block turns the motor and stops it, so the time does not include a second block's communication.
+    controlMotorAndStopAfter(args, util) {
+        try {
+            if (util.stackTimerNeedsInit()) {
+                debug(() => `controlMotorAndStopAfter: args=<${JSON.stringify(args, null, 2)}>`);
+
+                const duration = Math.max(0, 1000 * Cast.toNumber(args.SECS));
+                util.startStackTimer(duration);
+                this.runtime.requestRedraw();
+
+                this.recordDcMotor(args.MOTOR, args.DIRECTION);
+                this.board.dcMotor(args.MOTOR, args.DIRECTION).catch((error) => log.error(error));
+
+                util.yield();
+            } else if (util.stackTimerFinished()) {
+                if (args.DIRECTION !== 'stop') {
+                    this.recordDcMotor(args.MOTOR, 'stop');
+                    this.board.dcMotor(args.MOTOR, 'stop').catch((error) => log.error(error));
                 }
             } else {
                 util.yield();

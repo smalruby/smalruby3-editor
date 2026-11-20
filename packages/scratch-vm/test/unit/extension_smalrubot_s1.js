@@ -293,10 +293,18 @@ test('Smalrubot S1 Blocks', (t) => {
     t.test('menus keep the saved names and values', (st) => {
         const blocks = new SmalrubotS1Blocks(createMockRuntime());
         const info = blocks.getInfo();
-        st.same(Object.keys(info.menus).sort(), ['actions', 'positions', 'sensorPositions']);
+        st.same(Object.keys(info.menus).sort(), [
+            'actions',
+            'motorDirections',
+            'motors',
+            'positions',
+            'sensorPositions',
+        ]);
         const values = (name) => info.menus[name].items.map((item) => item.value);
         st.same(values('actions').sort(), ['backward', 'forward', 'left', 'right', 'stop']);
         st.same(values('positions').sort(), ['left', 'right']);
+        st.same(values('motors'), ['M1', 'M2']);
+        st.same(values('motorDirections'), ['normal', 'reverse', 'stop']);
         ['left', 'right', 'touch', 'light', 'sound'].forEach((value) => {
             st.ok(values('sensorPositions').includes(value), `sensorPositions keeps "${value}"`);
         });
@@ -305,25 +313,27 @@ test('Smalrubot S1 Blocks', (t) => {
         st.end();
     });
 
-    t.test('blocks keep their opcodes and the robot car blocks come after the heading', (st) => {
+    t.test('blocks keep the order of Smalrubot S1 and add the DC motor blocks', (st) => {
         const blocks = new SmalrubotS1Blocks(createMockRuntime());
         const info = blocks.getInfo();
-        const opcodes = info.blocks.filter((b) => b.opcode).map((b) => b.opcode);
+        const opcodes = info.blocks.map((b) => b.opcode);
         st.same(opcodes, [
+            'action',
+            'actionAndStopAfter',
+            'bendArm',
             'getSensorValue',
             'turnLedOn',
             'turnLedOff',
             'getMotorSpeed',
             'setMotorSpeed',
-            'action',
-            'actionAndStopAfter',
-            'bendArm',
+            'controlMotor',
+            'controlMotorAndStopAfter',
             'setArmCalibration',
         ]);
-        const labelIndex = info.blocks.findIndex((b) => b.blockType === 'label');
-        st.ok(labelIndex > 0, 'has a heading label');
-        st.equal(info.blocks[labelIndex].text, 'Robot car');
-        st.equal(info.blocks[labelIndex + 1].opcode, 'action');
+        st.notOk(
+            info.blocks.some((b) => b.blockType === 'label'),
+            'no heading',
+        );
         st.end();
     });
 
@@ -607,6 +617,81 @@ test('Smalrubot S1 Blocks', (t) => {
         finished = true;
         blocks.actionAndStopAfter({ ACTION: 'backward', SECS: 1 }, util);
         st.equal(blocks.getPracticeBoardState().motors.M1.direction, 'stop');
+        st.end();
+    });
+
+    t.test('practice board: controlMotor turns one motor with its speed', (st) => {
+        const blocks = new SmalrubotS1Blocks(createRecordingRuntime());
+        blocks.setMotorSpeed({ POSITION: 'right', SPEED: 30 });
+        blocks.controlMotor({ MOTOR: 'M2', DIRECTION: 'reverse' });
+        st.same(blocks.getPracticeBoardState().motors, {
+            M1: { direction: 'stop', speed: 50 },
+            M2: { direction: 'reverse', speed: 30 },
+        });
+        blocks.controlMotor({ MOTOR: 'M1', DIRECTION: 'normal' });
+        blocks.controlMotor({ MOTOR: 'M2', DIRECTION: 'stop' });
+        st.same(blocks.getPracticeBoardState().motors, {
+            M1: { direction: 'normal', speed: 50 },
+            M2: { direction: 'stop', speed: 30 },
+        });
+        blocks.controlMotor({ MOTOR: 'M3', DIRECTION: 'normal' });
+        blocks.controlMotor({ MOTOR: 'M1', DIRECTION: 'up' });
+        st.equal(blocks.getPracticeBoardState().motors.M1.direction, 'normal', 'unknown values change nothing');
+        st.end();
+    });
+
+    t.test('practice board: controlMotorAndStopAfter stops only that motor at the end', (st) => {
+        const blocks = new SmalrubotS1Blocks(createRecordingRuntime());
+        let finished = false;
+        const util = {
+            stackTimerNeedsInit: () => !util.started,
+            startStackTimer: (ms) => {
+                util.started = true;
+                util.duration = ms;
+            },
+            stackTimerFinished: () => finished,
+            yield: () => {},
+        };
+        blocks.runtime.requestRedraw = () => {};
+        blocks.controlMotor({ MOTOR: 'M2', DIRECTION: 'normal' });
+        blocks.controlMotorAndStopAfter({ MOTOR: 'M1', DIRECTION: 'reverse', SECS: 0.25 }, util);
+        st.equal(util.duration, 250);
+        st.equal(blocks.getPracticeBoardState().motors.M1.direction, 'reverse');
+        finished = true;
+        blocks.controlMotorAndStopAfter({ MOTOR: 'M1', DIRECTION: 'reverse', SECS: 0.25 }, util);
+        st.equal(blocks.getPracticeBoardState().motors.M1.direction, 'stop');
+        st.equal(blocks.getPracticeBoardState().motors.M2.direction, 'normal', 'the other motor keeps turning');
+        st.end();
+    });
+
+    t.test('switching: while connected, controlMotor writes the power and the direction of one motor', (st) => {
+        const blocks = new SmalrubotS1Blocks(createRecordingRuntime());
+        const written = connectWithRecordingWriter(blocks);
+        blocks.setMotorSpeed({ POSITION: 'right', SPEED: 20 });
+        blocks.controlMotor({ MOTOR: 'M2', DIRECTION: 'reverse' });
+        return new Promise((resolve) => setTimeout(resolve, 10))
+            .then(() => {
+                st.same(written, ['!4201051.', '!4301001.']);
+                written.length = 0;
+                blocks.controlMotor({ MOTOR: 'M1', DIRECTION: 'stop' });
+                return new Promise((resolve) => setTimeout(resolve, 10));
+            })
+            .then(() => {
+                st.same(written, ['!4300003.'], 'stop writes no power');
+                st.end();
+            });
+    });
+
+    t.test('command log: controlMotor records one motor', (st) => {
+        const blocks = new SmalrubotS1Blocks(createRecordingRuntime());
+        blocks.setMotorSpeed({ POSITION: 'right', SPEED: 20 });
+        blocks.controlMotor({ MOTOR: 'M2', DIRECTION: 'normal' });
+        blocks.controlMotor({ MOTOR: 'M2', DIRECTION: 'stop' });
+        const log = blocks.getCommandLog().map(({ kind, port, value, speed }) => ({ kind, port, value, speed }));
+        st.same(log, [
+            { kind: 'motor', port: 'M2', value: 'normal', speed: 20 },
+            { kind: 'motor', port: 'M2', value: 'stop', speed: 0 },
+        ]);
         st.end();
     });
 

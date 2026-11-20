@@ -42,6 +42,10 @@ const STUDUINO_RUBY = dedent`
         studuino.get_motor_speed("right")
 
         studuino.set_motor_speed("left", 50)
+        studuino.dc_motor("M1", "normal")
+        studuino.dc_motor("M2", "reverse")
+        studuino.dc_motor("M1", "stop")
+        studuino.dc_motor("M2", "normal", 0.5)
         studuino.arm_calibration = 0
 `;
 

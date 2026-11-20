@@ -35,13 +35,6 @@ const BlockType = {
      */
     HAT: 'hat',
 
-    // === Smalruby: Start of label block type ===
-    /**
-     * A heading label in the palette (not an actual block), e.g. "Robot car" in the Studuino extension.
-     */
-    LABEL: 'label',
-    // === Smalruby: End of label block type ===
-
     /**
      * Specialized command block which may or may not run a child branch
      * If a child branch runs, the thread evaluates the loop block again.

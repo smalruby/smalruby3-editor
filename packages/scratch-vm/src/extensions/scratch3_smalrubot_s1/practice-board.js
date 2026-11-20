@@ -3,7 +3,7 @@
  * blocks' commands while no real board is connected (#2191, E8 = A).
  *
  * It has the same operations as the real board (`SmalrubotS1`): `led`,
- * `getMotorSpeed` / `setMotorSpeed`, `setArmCalibration`, `action`,
+ * `getMotorSpeed` / `setMotorSpeed`, `setArmCalibration`, `action`, `dcMotor`,
  * `bendArm`, `getSensorValue` and `stopAll`, and returns the same types.
  * It never writes to a serial port.
  *
@@ -22,6 +22,8 @@ const DEFAULT_ARM_DEGREE = 90;
 const LED_PORT_BY_POSITION = { left: 'A0', right: 'A1' };
 const MOTOR_PORT_BY_POSITION = { left: 'M1', right: 'M2' };
 const SERVO_PORT = 'D10';
+const POSITION_BY_MOTOR_PORT = { M1: 'left', M2: 'right' };
+const MOTOR_DIRECTIONS = ['normal', 'reverse', 'stop'];
 // Old values (`left` / `right`) and the textbook names (`ir_a4` / `ir_a5`) are the same sensors (#2189).
 const SENSOR_PORT_BY_POSITION = {
     touch: 'A2',
@@ -180,6 +182,29 @@ class StuduinoPracticeBoard {
         if (direction !== 'stop') {
             this.motors.M1.speed = this.dcMotorPowerRatios.left;
             this.motors.M2.speed = this.dcMotorPowerRatios.right;
+        }
+        this.emitState();
+        return Promise.resolve();
+    }
+
+    /**
+     * Turn one DC motor, as the real board does.
+     * @param {string} port - 'M1' or 'M2'.
+     * @param {string} direction - 'normal', 'reverse' or 'stop'.
+     * @returns {Promise} - resolved when done, rejected for an unknown port or direction.
+     */
+    dcMotor(port, direction) {
+        const position = POSITION_BY_MOTOR_PORT[port];
+        if (!position || !MOTOR_DIRECTIONS.includes(direction)) {
+            return Promise.reject(
+                new Error(
+                    `Could not dcMotor: reason=<Invalid port or direction> port=<${port}> direction=<${direction}>`,
+                ),
+            );
+        }
+        this.motors[port].direction = direction;
+        if (direction !== 'stop') {
+            this.motors[port].speed = this.dcMotorPowerRatios[position];
         }
         this.emitState();
         return Promise.resolve();
