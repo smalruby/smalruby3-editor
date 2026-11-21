@@ -97,6 +97,7 @@ Scratch の変数・リストの名前で、Ruby の情報を持たせている�
 | `__lit_<番号>__1_` | 何もしないリテラルだけの行（`"Jimmy"`） | スプライトの変数・リスト | `finish.js` の `_convertBareLiteralToAssignment` |
 | `_super_<メソッド>_<番号>_` | `super` で呼ばれる、module 側の同じ名前のメソッド | 定義ブロック（手続き名） | `class-visitor.js` |
 | `_<名前>`（`_1_文字えらぶ`・`_end`。1 けたの数字は `__1`） | 数字で始まる名前・予約語の名前の定義ブロック（「1 文字えらぶ」「end」） | 定義ブロック（Ruby のメソッド名だけ。ブロックの名前には `_` を付けない） | `src/lib/ruby-method-name.js`（P20） |
+| `Studuino`（class の名前） | Studuino モードのポートの設定（`class Studuino`） | 作品の `extensionStorage.smalrubotS1`（ブロックにしない） | `studuino-ruby/studuino-ruby.js`・`ruby-to-blocks-converter/studuino-mode.js`（P21） |
 
 生成器だけが使う、出力の途中の目印もある（Ruby には残らない）。
 
@@ -767,6 +768,37 @@ _1_文字えらぶ(1)
 **できないこと**: 名前の中の空白は `_` になり、ブロックに戻しても `_` のまま（「1 文字えらぶ」は「1_文字えらぶ」になる）。`-` などメソッド名に使えない記号の入った名前は、そのまま書くので Ruby の文法エラーになる。自分で `def without_screen_refresh` を定義したコードでは、`without_screen_refresh def foo` をその呼び出しとして読む（置きかえない）。日本語モードは `without_screen_refresh def` を読めない。
 
 **テスト**: `ruby-roundtrip/my-block-warp-and-name.test.js`、`ruby-roundtrip/my_blocks.test.js`。
+
+### P21. Studuino モードのポートの設定（`class Studuino`）と部品の呼び出し
+
+**Ruby で書きたいこと**: Studuino モードの作品の、ポートにつないだ部品（入出力の設定）と、その部品を動かす・読むこと。例: `class Studuino` の中の `light_sensor :A6` と、`studuino.light_sensor_a6`・`studuino.dc_motor_m1.speed = 200`。
+
+**Scratch での表し方**: ポートの設定はブロックではなく、作品の `extensionStorage.smalrubotS1`（`docs/studuino-mode/README.md` の「保存の形」）。部品はポートのメニューを持つ部品のブロック（`smalrubotS1_studuino*`）。
+
+- **class**: 生成器は、Studuino モードのときだけ、ステージのコードの先頭に `class Studuino ... end` を設定から書く（`ruby-generator/smalrubot_s1.js` の `studuinoClass_` を `code-finisher.js` が呼ぶ）。変換器は、変換の前（分析の段）にステージの一番外の `class Studuino` を読み（`studuino-mode.js` の `_analyzeStuduino`）、ブロックは作らず、ブロックを書きこむときに設定を置きかえて Studuino モードにする（`target-applier.js` から `_applyStuduinoSettings`）。注釈は使わない（設定は `extensionStorage` にあるので）。
+- **部品の名前**: `studuino.<部品の内部の名前>_<ポートの小文字>`。宣言から機械的に決まる。この規則と、部品・メソッド・opcode・引数の表は `src/lib/studuino-ruby/studuino-ruby.js` の 1 か所にあり、生成器・変換器・ふりがなが使う。`studuino.led_a0` はいったん `ruby_expression`（文字は `studuino.led_a0`）になり、続く `.on` の変換器が部品のブロックに変える。
+- **宣言**: class が無いコード（スプライト・通常モード・class を消したステージ）は、いまの作品の設定を宣言とみなす。
+
+**往復の例**:
+
+```ruby
+class Studuino
+  dc_motor :M1, calibration: 90
+  light_sensor :A6
+end
+
+when_flag_clicked do
+  if studuino.light_sensor_a6 < 300
+    studuino.dc_motor_m1.forward
+  end
+end
+```
+
+- 同じコードに戻り、ポートの設定は M1 = DC モーター（補正 90）・A6 = 光センサーになる。
+
+**できないこと**: class の中に部品の宣言以外は書けない。宣言していないポートの部品・ポートに合わない部品・知らない部品・同じポートの 2 回の宣言・範囲の外の補正値・ステージ以外や一番外でない `class Studuino`・Studuino モードでの通常モードの呼び出し（`studuino.action(...)`）はエラー（P17）。`x = studuino.led_a0` のように部品だけを値にすると `ruby_expression` のまま残る（`studuino` だけを書いたときと同じ）。
+
+**テスト**: `ruby-roundtrip/studuino-mode.test.js`、`furigana-annotator.test.js`。
 
 ## 注釈 `@ruby:*` の一覧（仕様）
 

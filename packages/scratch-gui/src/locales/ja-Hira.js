@@ -1327,6 +1327,32 @@ export default {
         '「{ SOURCE }」— シンボルは +、-、*、/ などのけいさんにはつかえません。\n{ SUGGESTION } のように .to_s するとけいさんにつかえます。',
     'gui.smalruby3.rubyToBlocksConverter.symbolCannotCompare':
         '「{ SOURCE }」— シンボルとシンボルいがいのあたいは >、<、>=、<= でくらべられません。\n== でくらべるか、.to_s でもじれつにへんかんしてください。',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoClassOnlyInStage':
+        'class Studuino（Studuino のポートのせってい）はステージにだけかけます。\nステージのスクリプトのせんとうにうつしてください。',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoClassDuplicated':
+        'class Studuino は 1 つだけかけます。\nぶひんはすべて 1 つの class Studuino にまとめてください。',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoClassNotAtTop':
+        'class Studuino は、ほかの class やブロックのなかではなく、ステージのスクリプトのせんとうにかいてください。',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoWrongDeclaration':
+        '「{ SOURCE }」はぶひんのせんげんではありません。\nぶひんとポートをかいてください（れい: light_sensor :A6）。',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoUnknownPart':
+        '「{ SOURCE }」: Studuino のぶひんではありません。\nつぎのどれかをつかってください: { PARTS }',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoUnknownPort':
+        '「{ PORT }」は Studuino のポートではありません。\nD2・D4・D7〜D12・M1・M2・A0〜A7 のどれかをつかってください。',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoPartNotForPort':
+        '{ PART } はポート { PORT } につなげません。\nそのぶひんをつなげるポートをえらんでください。',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoPortDuplicated':
+        'ポート { PORT } を 2 かいせんげんしています。\n1 つのポートにつなげるぶひんは 1 つだけです。',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoNoCalibration':
+        '{ PART } にはほせいちがありません。\ncalibration: をかけるのは dc_motor と servo_motor だけです。',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoBadCalibration':
+        '{ PART } のほせいちは { MIN } から { MAX } までのせいすうにしてください。',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoPartNotDeclared':
+        '「{ SOURCE }」: ポート { PORT } に { PART } をつないでいません。\nclass Studuino に { DECLARATION } とかくか、にゅうしゅつりょくのせっていでポートにわりあててください。',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoServoMotorsArgs':
+        'servo_motors には、ちがう 2 つのサーボモーターとかくどをかきます。\nstuduino.servo_motors(d9: 90, d10: 45) のようにかいてください。',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoNormalModeCall':
+        '「{ SOURCE }」はつないでうごかすときのブロックなので、Studuino モードではつかえません。\nclass Studuino でせんげんしたぶひんをつかってください（れい: studuino.dc_motor_m1.forward）。',
     'gui.smalruby3.prismError.expectedCloseArgs': '`)` がたりません。\n`)` をついかしてひきすうをとじてください。',
     'gui.smalruby3.prismError.expectedCloseArray': '`]` がたりません。\n`]` をついかしてはいれつをとじてください。',
     'gui.smalruby3.prismError.expectedCloseHash': '`}` がたりません。\n`}` をついかしてハッシュをとじてください。',

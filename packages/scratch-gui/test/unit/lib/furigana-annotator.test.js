@@ -1311,6 +1311,10 @@ describe('FuriganaAnnotator', () => {
         test('receiver → アーテックロボ', () => {
             expect(labelsAt(annotate(`${receiver}.action("forward")`), 1)).toContain('アーテックロボ');
         });
+        // Studuino mode (#2218)
+        test('.light_sensor_a6 → 光センサー(A6)', () => {
+            expect(labelsAt(annotate(`${receiver}.light_sensor_a6`), 1)).toContain('光センサー(A6)');
+        });
         test('.action("forward") → 動作する + 進める', () => {
             const labels = labelsAt(annotate(`${receiver}.action("forward")`), 1);
             expect(labels).toContain('動作する');

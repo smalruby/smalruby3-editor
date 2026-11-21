@@ -1295,6 +1295,32 @@ export default {
         '「{ SOURCE }」— シンボルは +、-、*、/ などの計算には使えません。\n{ SUGGESTION } のように .to_s すると計算に使えます。',
     'gui.smalruby3.rubyToBlocksConverter.symbolCannotCompare':
         '「{ SOURCE }」— シンボルとシンボル以外の値は >、<、>=、<= で比較できません。\n== で比較するか、.to_s で文字列に変換してください。',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoClassOnlyInStage':
+        'class Studuino（Studuino のポートの設定）はステージにだけ書けます。\nステージのスクリプトの先頭に移してください。',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoClassDuplicated':
+        'class Studuino は 1 つだけ書けます。\n部品はすべて 1 つの class Studuino にまとめてください。',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoClassNotAtTop':
+        'class Studuino は、ほかの class やブロックの中ではなく、ステージのスクリプトの先頭に書いてください。',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoWrongDeclaration':
+        '「{ SOURCE }」は部品の宣言ではありません。\n部品とポートを書いてください（例: light_sensor :A6）。',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoUnknownPart':
+        '「{ SOURCE }」: Studuino の部品ではありません。\n次のどれかを使ってください: { PARTS }',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoUnknownPort':
+        '「{ PORT }」は Studuino のポートではありません。\nD2・D4・D7〜D12・M1・M2・A0〜A7 のどれかを使ってください。',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoPartNotForPort':
+        '{ PART } はポート { PORT } につなげません。\nその部品をつなげるポートを選んでください。',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoPortDuplicated':
+        'ポート { PORT } を 2 回宣言しています。\n1 つのポートにつなげる部品は 1 つだけです。',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoNoCalibration':
+        '{ PART } には補正値がありません。\ncalibration: を書けるのは dc_motor と servo_motor だけです。',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoBadCalibration':
+        '{ PART } の補正値は { MIN } から { MAX } までの整数にしてください。',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoPartNotDeclared':
+        '「{ SOURCE }」: ポート { PORT } に { PART } をつないでいません。\nclass Studuino に { DECLARATION } と書くか、入出力の設定でポートに割り当ててください。',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoServoMotorsArgs':
+        'servo_motors には、ちがう 2 つのサーボモーターと角度を書きます。\nstuduino.servo_motors(d9: 90, d10: 45) のように書いてください。',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoNormalModeCall':
+        '「{ SOURCE }」はつないで動かすときのブロックなので、Studuino モードでは使えません。\nclass Studuino で宣言した部品を使ってください（例: studuino.dc_motor_m1.forward）。',
     'gui.smalruby3.prismError.expectedCloseArgs': '`)` が足りません。\n`)` を追加して引数を閉じてください。',
     'gui.smalruby3.prismError.expectedCloseArray': '`]` が足りません。\n`]` を追加して配列を閉じてください。',
     'gui.smalruby3.prismError.expectedCloseHash': '`}` が足りません。\n`}` を追加してハッシュを閉じてください。',

@@ -309,6 +309,9 @@ const TargetApplier = {
                 );
             });
 
+            // `class Studuino` sets the port settings of Studuino mode (#2218)
+            this._applyStuduinoSettings();
+
             // Apply classInfo attributes to the target using VM setter methods
             // to trigger renderer updates and Redux state changes.
             const classInfo = this._context.classInfo;

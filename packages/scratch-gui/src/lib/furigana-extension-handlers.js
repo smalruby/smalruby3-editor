@@ -1,9 +1,25 @@
 // === Smalruby: This file is Smalruby-specific (furigana extension handlers) ===
-
 /**
  * Extension-specific furigana handler methods and configuration.
  * Mixed into FuriganaAnnotator.prototype via Object.assign.
  */
+import { parsePartMethodName } from './studuino-ruby/studuino-ruby';
+
+/**
+ * The names of the parts of Studuino mode (docs/studuino-mode/README.md の「部品の内部の名前」).
+ */
+const STUDUINO_PART_LABELS = {
+    servo_motor: 'サーボモーター',
+    dc_motor: 'DCモーター',
+    led: 'LED',
+    buzzer: 'ブザー',
+    light_sensor: '光センサー',
+    sound_sensor: '音センサー',
+    ir_photoreflector: '赤外線フォトリフレクタ',
+    temperature_sensor: '温度センサー',
+    touch_sensor: 'タッチセンサー',
+    push_switch: 'ボタン',
+};
 
 // ---- Dispatch configuration ----
 
@@ -344,7 +360,9 @@ const extensionHandlers = {
             dc_motor: 'DCモーターを動かす',
             'arm_calibration=': 'アーム調整',
         };
-        const label = labels[name];
+        // Studuino mode (#2218): `studuino.light_sensor_a6` → 光センサー(A6)
+        const part = parsePartMethodName(name);
+        const label = labels[name] || (part ? `${STUDUINO_PART_LABELS[part.kind]}(${part.port})` : null);
         if (label) this._addAnnotation(node.messageLoc, label);
     },
 

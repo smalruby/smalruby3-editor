@@ -1,4 +1,5 @@
 import _ from 'lodash';
+import { registerStuduinoParts } from './studuino-mode';
 
 // Ruby is written with `studuino.` (#2190). `smalrubot_s1.` is still read so that older programs
 // and teaching materials open as blocks. Both receivers share the same table below.
@@ -28,8 +29,20 @@ const registerForReceiver = (converter, receiverName) => {
         return converter.createRubyExpressionBlock(receiverName, node);
     });
 
+    // The methods below are the blocks of normal mode (running while connected). A program of
+    // Studuino mode cannot use them (docs/studuino-mode/README.md, #2218).
+    const registerOnSend = (name, numArgs, createBlockFunc) =>
+        converter.registerOnSend(receiverName, name, numArgs, (params) => {
+            if (converter._isStuduinoModeCode()) {
+                throw converter._studuinoError(params.node, 'studuinoNormalModeCall', {
+                    SOURCE: converter._truncateSource(converter._getSource(params.node)),
+                });
+            }
+            return createBlockFunc(params);
+        });
+
     // Method calls on the receiver
-    converter.registerOnSend(receiverName, 'action', 1, (params) => {
+    registerOnSend('action', 1, (params) => {
         const { receiver, args } = params;
 
         if (!converter.isString(args[0]) || !ACTIONS.includes(args[0].toString())) return null;
@@ -39,7 +52,7 @@ const registerForReceiver = (converter, receiverName) => {
         return block;
     });
 
-    converter.registerOnSend(receiverName, 'action', 2, (params) => {
+    registerOnSend('action', 2, (params) => {
         const { receiver, args } = params;
 
         if (
@@ -55,7 +68,7 @@ const registerForReceiver = (converter, receiverName) => {
         return block;
     });
 
-    converter.registerOnSend(receiverName, 'bend_arm', 2, (params) => {
+    registerOnSend('bend_arm', 2, (params) => {
         const { receiver, args } = params;
 
         if (!converter.isNumberOrBlock(args[0]) || !converter.isNumberOrBlock(args[1])) return null;
@@ -66,7 +79,7 @@ const registerForReceiver = (converter, receiverName) => {
         return block;
     });
 
-    converter.registerOnSend(receiverName, 'sensor_value', 1, (params) => {
+    registerOnSend('sensor_value', 1, (params) => {
         const { receiver, args } = params;
 
         if (!converter.isString(args[0]) || !SENSOR_POSITIONS.includes(args[0].toString())) return null;
@@ -76,7 +89,7 @@ const registerForReceiver = (converter, receiverName) => {
         return block;
     });
 
-    converter.registerOnSend(receiverName, 'led', 2, (params) => {
+    registerOnSend('led', 2, (params) => {
         const { receiver, args } = params;
 
         if (
@@ -97,7 +110,7 @@ const registerForReceiver = (converter, receiverName) => {
         return block;
     });
 
-    converter.registerOnSend(receiverName, 'get_motor_speed', 1, (params) => {
+    registerOnSend('get_motor_speed', 1, (params) => {
         const { receiver, args } = params;
 
         if (!converter.isString(args[0]) || !POSITIONS.includes(args[0].toString())) return null;
@@ -107,7 +120,7 @@ const registerForReceiver = (converter, receiverName) => {
         return block;
     });
 
-    converter.registerOnSend(receiverName, 'set_motor_speed', 2, (params) => {
+    registerOnSend('set_motor_speed', 2, (params) => {
         const { receiver, args } = params;
 
         if (
@@ -129,7 +142,7 @@ const registerForReceiver = (converter, receiverName) => {
         converter.isString(args[1]) &&
         MOTOR_DIRECTIONS.includes(args[1].toString());
 
-    converter.registerOnSend(receiverName, 'dc_motor', 2, (params) => {
+    registerOnSend('dc_motor', 2, (params) => {
         const { receiver, args } = params;
 
         if (!isMotorAndDirection(args)) return null;
@@ -140,7 +153,7 @@ const registerForReceiver = (converter, receiverName) => {
         return block;
     });
 
-    converter.registerOnSend(receiverName, 'dc_motor', 3, (params) => {
+    registerOnSend('dc_motor', 3, (params) => {
         const { receiver, args } = params;
 
         if (!isMotorAndDirection(args) || !converter.isNumberOrBlock(args[2])) return null;
@@ -156,7 +169,7 @@ const registerForReceiver = (converter, receiverName) => {
         return block;
     });
 
-    converter.registerOnSend(receiverName, 'arm_calibration=', 1, (params) => {
+    registerOnSend('arm_calibration=', 1, (params) => {
         const { receiver, args } = params;
 
         if (!converter.isNumberOrBlock(args[0])) return null;
@@ -173,6 +186,8 @@ const registerForReceiver = (converter, receiverName) => {
 const SmalrubotS1Converter = {
     register: function (converter) {
         RECEIVERS.forEach((receiver) => registerForReceiver(converter, receiver));
+        // Studuino mode: `studuino.<part>_<port>` (#2218)
+        registerStuduinoParts(converter);
     },
 };
 
