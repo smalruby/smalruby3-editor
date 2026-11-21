@@ -216,15 +216,15 @@ const MOTION_SENDS = [
 registerSendTable(converter, MOTION_SENDS);
 ```
 
-| 引数の種類                                                                               | 受けつけるもの                                                                          | ブロックへの入れ方                                      |
-| ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| `numberArg(input, 既定値, 影の opcode)`                                                  | 数・値のブロック（`_isNumberOrBlock`）                                                  | 数の影つきの入力（`_addNumberInput`）                   |
-| `textArg(input, 既定値)`                                                                 | 文字列・値のブロック（`_isStringOrBlock`）                                              | 文字の影つきの入力（`_addTextInput`）                   |
-| `menuArg(input, メニューの opcode, field, { validate, number })`                         | 文字列（`number` なら数・値のブロック）                                                 | メニューのブロックを入力に入れる（`_createFieldBlock`） |
-| `menuInputArg(input, メニューの opcode, field, 既定値, { choices, validate, anyBlock })` | 文字列（`choices` があればその中のもの）・値のブロック（`anyBlock` ならどのブロックも） | メニューの影つきの入力（`_addFieldInput`）              |
-| `noteArg(input, 既定値)`                                                                 | 数・値のブロック（`_isNumberOrBlock`）                                                  | 音符の影つきの入力（`_addNoteInput`）                   |
-| `colorArg(input, 既定値)`                                                                | 色・値のブロック（`_isColorOrBlock`）                                                   | 色の入力（`_addColorFieldInput`）                       |
-| `fieldArg(field, 選べる値, { normalize })`                                               | 文字列（選べる値があれば、`normalize` したものがその中にあるもの）                      | ブロックのフィールド（`_addField`）                     |
+| 引数の種類                                                                                          | 受けつけるもの                                                                                                                                                                                                 | ブロックへの入れ方                                      |
+| --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `numberArg(input, 既定値, 影の opcode)`                                                             | 数・値のブロック（`_isNumberOrBlock`）                                                                                                                                                                         | 数の影つきの入力（`_addNumberInput`）                   |
+| `textArg(input, 既定値)`                                                                            | 文字列・値のブロック（`_isStringOrBlock`）                                                                                                                                                                     | 文字の影つきの入力（`_addTextInput`）                   |
+| `menuArg(input, メニューの opcode, field, { validate, number })`                                    | 文字列（`number` なら数・値のブロック）                                                                                                                                                                        | メニューのブロックを入力に入れる（`_createFieldBlock`） |
+| `menuInputArg(input, メニューの opcode, field, 既定値, { choices, validate, anyBlock, normalize })` | 文字列（`choices` があればその中のもの。`normalize` があれば直した値で比べ、直した値を入れる）・値のブロック（`anyBlock` ならどのブロックも）。既定値は `(converter) => 値` でもよい（作品の設定で決まるとき） | メニューの影つきの入力（`_addFieldInput`）              |
+| `noteArg(input, 既定値)`                                                                            | 数・値のブロック（`_isNumberOrBlock`）                                                                                                                                                                         | 音符の影つきの入力（`_addNoteInput`）                   |
+| `colorArg(input, 既定値)`                                                                           | 色・値のブロック（`_isColorOrBlock`）                                                                                                                                                                          | 色の入力（`_addColorFieldInput`）                       |
+| `fieldArg(field, 選べる値, { normalize })`                                                          | 文字列（選べる値があれば、`normalize` したものがその中にあるもの）                                                                                                                                             | ブロックのフィールド（`_addField`）                     |
 
 `validate(converter, arg, params)` は、すべての引数を受けつけたあと、ブロックを作る前に呼ぶ（衣装・背景・音が無いときのエラー。ブロックを作ってから断ると、作りかけのブロックが残る）。
 
@@ -235,20 +235,21 @@ registerSendTable(converter, MOTION_SENDS);
 
 領域ごとの表（各変換器の `sends` が表。`send-table.test.js` は、すべての表の opcode とメニューの opcode に生成器があることを確かめる）:
 
-| 領域      | 表の行 | handler のまま残したもの                                                                                                                                         |
-| --------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| motion    | 12     | `go_to`・`glide`（配列・キーワード引数）、演算代入                                                                                                               |
-| looks     | 25     | `say` / `think`（`secs:`・シンボル）、`print` / `puts` / `p`（引数の数が決まらない）、演算代入                                                                   |
-| sound     | 8      | 演算代入                                                                                                                                                         |
-| control   | 5      | `repeat`・本体のある `loop` / `forever`・`N.times`（`wait` を除く・ブロック引数）、`create_clone` / `clone`、`with_screen_refresh`、`if` / `until`、v1 の `when` |
-| event     | 6      | `when_receive`・`broadcast`（メッセージを引く）、v1 の `when`                                                                                                    |
-| sensing   | 16     | Ruby の式のレシーバーを使う v2 の形（`mouse.x`・`stage.volume`・`sprite("A").x`・`Time.now.year`）、`gets`、`drag_mode=`                                         |
-| operators | 6      | `[]`・`empty?`・`+`・比べる演算・`=~`・算術（`operators-math.js`。`Math.sqrt` など、引数が配列のときがあるもの）                                                 |
-| data      | 0      | すべて（変数・リスト・ハッシュを引き、リストに変える。表の 1 行では書けない）                                                                                    |
-| pen       | 17     | `pen.color =`（数か色で opcode を選ぶ）、`pen.size += 1` の下ごしらえ、演算代入                                                                                  |
-| music     | 12     | `music`（Ruby の式のレシーバーを作る）、演算代入（`music.tempo += 20`）                                                                                          |
+| 領域        | 表の行 | handler のまま残したもの                                                                                                                                         |
+| ----------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| motion      | 12     | `go_to`・`glide`（配列・キーワード引数）、演算代入                                                                                                               |
+| looks       | 25     | `say` / `think`（`secs:`・シンボル）、`print` / `puts` / `p`（引数の数が決まらない）、演算代入                                                                   |
+| sound       | 8      | 演算代入                                                                                                                                                         |
+| control     | 5      | `repeat`・本体のある `loop` / `forever`・`N.times`（`wait` を除く・ブロック引数）、`create_clone` / `clone`、`with_screen_refresh`、`if` / `until`、v1 の `when` |
+| event       | 6      | `when_receive`・`broadcast`（メッセージを引く）、v1 の `when`                                                                                                    |
+| sensing     | 16     | Ruby の式のレシーバーを使う v2 の形（`mouse.x`・`stage.volume`・`sprite("A").x`・`Time.now.year`）、`gets`、`drag_mode=`                                         |
+| operators   | 6      | `[]`・`empty?`・`+`・比べる演算・`=~`・算術（`operators-math.js`。`Math.sqrt` など、引数が配列のときがあるもの）                                                 |
+| data        | 0      | すべて（変数・リスト・ハッシュを引き、リストに変える。表の 1 行では書けない）                                                                                    |
+| pen         | 17     | `pen.color =`（数か色で opcode を選ぶ）、`pen.size += 1` の下ごしらえ、演算代入                                                                                  |
+| music       | 12     | `music`（Ruby の式のレシーバーを作る）、演算代入（`music.tempo += 20`）                                                                                          |
+| text2speech | 3      | `text2speech`（Ruby の式のレシーバーを作る）                                                                                                                     |
 
-拡張機能は pen と music を移した。残り（video・text2speech・translate・ev3・wedo2・microbit・micro:bit More・g2s・koshien・mesh など）は、同じ形（`changesReceiver` と `menus`）で 1 つずつ移す。
+拡張機能は pen・music・text2speech を移した。残り（video・translate・ev3・wedo2・microbit・micro:bit More・g2s・koshien・mesh など）は、同じ形（`changesReceiver` と `menus`）で 1 つずつ移す。
 
 ### 表の列
 
