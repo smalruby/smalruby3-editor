@@ -249,8 +249,9 @@ registerSendTable(converter, MOTION_SENDS);
 | music       | 12     | `music`（Ruby の式のレシーバーを作る）、演算代入（`music.tempo += 20`）                                                                                          |
 | text2speech | 3      | `text2speech`（Ruby の式のレシーバーを作る）                                                                                                                     |
 | translate   | 4      | `translate`（Ruby の式のレシーバーを作る）                                                                                                                       |
+| video       | 4      | `video_sensing`（Ruby の式のレシーバーを作る）                                                                                                                   |
 
-拡張機能は pen・music・text2speech・translate を移した。残り（video・ev3・wedo2・microbit・micro:bit More・g2s・koshien・mesh など）は、同じ形（`changesReceiver` と `menus`）で 1 つずつ移す。
+拡張機能は pen・music・text2speech・translate・video を移した。残り（ev3・wedo2・microbit・micro:bit More・g2s・koshien・mesh など）は、同じ形（`changesReceiver` と `menus`）で 1 つずつ移す。
 
 ### 表の列
 

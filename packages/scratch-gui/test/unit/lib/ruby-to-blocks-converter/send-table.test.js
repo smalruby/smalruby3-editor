@@ -18,6 +18,7 @@ import SensingConverter from '../../../../src/lib/ruby-to-blocks-converter/sensi
 import SoundConverter from '../../../../src/lib/ruby-to-blocks-converter/sound';
 import Text2SpeechConverter from '../../../../src/lib/ruby-to-blocks-converter/text2speech';
 import TranslateConverter from '../../../../src/lib/ruby-to-blocks-converter/translate';
+import VideoConverter from '../../../../src/lib/ruby-to-blocks-converter/video';
 import { makeConverter, makeStageTarget } from '../../helpers/ruby-roundtrip-helper';
 
 /**
@@ -47,6 +48,7 @@ describe('RubyToBlocksConverter/send table', () => {
         music: MusicConverter,
         text2speech: Text2SpeechConverter,
         translate: TranslateConverter,
+        video: VideoConverter,
     };
 
     test.each(Object.keys(tables))('every opcode of the %s table has a generator', (area) => {
