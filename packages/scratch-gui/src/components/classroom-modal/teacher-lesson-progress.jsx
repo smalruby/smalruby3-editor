@@ -7,9 +7,12 @@ import {
     SORT_ORDERS,
     challengeHeadText,
     columnTotals,
+    noteNames,
     progressTableRows,
+    seatNote,
     sortProgressRows,
 } from '../../lib/classroom-lesson-progress.js';
+import { courseReadinessCheck } from '../../lib/lessons/courses.js';
 import { DEFAULT_MODE, getColorsForMode } from '../../lib/settings/color-mode';
 import styles from './classroom-modal.css';
 import { lessonSeatMessages } from './lesson-seat-tile.jsx';
@@ -130,6 +133,43 @@ const messages = defineMessages({
         description: 'Lesson progress tab: the course of the assignment does not exist here',
         id: 'gui.classroom.lessonProgress.unknownCourse',
     },
+    noteHead: {
+        defaultMessage: 'Prep / review',
+        description:
+            'Header of the note column of the lesson progress table: the readiness check result and the review challenge (#2301)',
+        id: 'gui.classroom.lessonProgress.noteHead',
+    },
+    readinessReady: {
+        defaultMessage: 'Prep ✓',
+        description: 'Lesson progress table note: the student got every readiness check question right (not graded)',
+        id: 'gui.classroom.lessonProgress.readinessReady',
+    },
+    readinessMissing: {
+        defaultMessage: 'Prep △ {names}',
+        description:
+            'Lesson progress table note: the base challenges the student missed in the readiness check (short names; not graded)',
+        id: 'gui.classroom.lessonProgress.readinessMissing',
+    },
+    noteMore: {
+        defaultMessage: '{names} +{count}',
+        description: 'Lesson progress table note: the first names and how many more (「ほか N」)',
+        id: 'gui.classroom.lessonProgress.noteMore',
+    },
+    noteSeparator: {
+        defaultMessage: ', ',
+        description: 'Lesson progress table note: the separator between challenge names',
+        id: 'gui.classroom.lessonProgress.noteSeparator',
+    },
+    reviewing: {
+        defaultMessage: 'Reviewing',
+        description: 'Lesson progress table note: the student is on a review challenge outside the assignment',
+        id: 'gui.classroom.lessonProgress.reviewing',
+    },
+    reviewingChallenge: {
+        defaultMessage: 'Reviewing: {name}',
+        description: 'Lesson progress table note: the student is reviewing this challenge (outside the assignment)',
+        id: 'gui.classroom.lessonProgress.reviewingChallenge',
+    },
     minutes: {
         defaultMessage: '{minutes} min',
         description: 'Tooltip of a ▶ / ! cell of the lesson progress table: minutes on the challenge',
@@ -198,11 +238,52 @@ const STATE_MESSAGES = {
 };
 
 /**
+ * The texts of a seat note (#2301): the review challenge and the readiness check
+ * result (the review first: it is about now and should not be cut by …).
+ * `title` lists every missing name; the cell shows 2 and 「ほか N」.
+ * @param {object} intl - react-intl
+ * @param {object} note - seatNote()
+ * @returns {Array<{key: string, text: string, title: string}>} texts (empty when there is nothing to show)
+ */
+const noteTexts = (intl, note) => {
+    const texts = [];
+    // おさらい中を先に置く（いまのことなので、長いときに … で切られないように）
+    if (note.review) {
+        const text = note.review.challenge
+            ? intl.formatMessage(messages.reviewingChallenge, {
+                  name: intl.formatMessage(note.review.challenge.name),
+              })
+            : intl.formatMessage(messages.reviewing);
+        texts.push({ key: 'review', text, title: text });
+    }
+    const separator = intl.formatMessage(messages.noteSeparator);
+    if (note.readiness && note.readiness.ready) {
+        const text = intl.formatMessage(messages.readinessReady);
+        texts.push({ key: 'readiness', text, title: text });
+    } else if (note.readiness) {
+        const all = note.readiness.missing.map((challenge) => intl.formatMessage(challenge.name));
+        const { names, more } = noteNames(all, note.readiness.unknownCount);
+        const shown =
+            more > 0
+                ? intl.formatMessage(messages.noteMore, { names: names.join(separator), count: more })
+                : names.join(separator);
+        texts.push({
+            key: 'readiness',
+            text: intl.formatMessage(messages.readinessMissing, { names: shown }),
+            title: intl.formatMessage(messages.readinessMissing, { names: all.join(separator) || shown }),
+        });
+    }
+    return texts;
+};
+
+/**
  * The 「進み具合」 tab of a lesson assignment (#1602): seat × challenge table.
  * The header (vertical challenge names and the 「できた人」 row, whose top
  * line is the challenge colour; lessons are separated by a line) and the seat
  * column stay fixed; only the seat rows scroll inside the table frame. The
  * header is kept low so 12+ seat rows show at 1300×600 (#1767 M1).
+ * The last column is a small note (じゅんびチェック・おさらい中, #2301), shown
+ * when the course has a readiness check or a seat sent a note; it is not graded.
  * @param {object} props - component props
  * @param {?object} props.ctx - lessonProgressContext (null when the course is unknown here)
  * @param {string} [props.status] - 'loading' | 'error' (first fetch) | 'ready'
@@ -241,6 +322,11 @@ const TeacherLessonProgress = ({
         [ctx, members, rowsByMember, studentCount, at],
     );
     const sorted = useMemo(() => sortProgressRows(rows, order), [rows, order]);
+    const notes = useMemo(() => {
+        const map = {};
+        for (const row of rows) map[row.memberId] = seatNote(rowsByMember[row.memberId] || null, at);
+        return map;
+    }, [rows, rowsByMember, at]);
 
     if (status === 'loading' || status === 'error') {
         return (
@@ -260,7 +346,10 @@ const TeacherLessonProgress = ({
 
     const totals = columnTotals(rows, ctx);
     const clearedCount = rows.filter((r) => r.progress.cleared).length;
-    const extraColumns = 2;
+    const showNotes =
+        Boolean(courseReadinessCheck(ctx.course)) ||
+        Object.values(notes).some((note) => note.readiness || note.review);
+    const extraColumns = showNotes ? 3 : 2;
 
     return (
         <div className={styles.lessonProgress} data-testid="classroom-lesson-progress">
@@ -327,6 +416,11 @@ const TeacherLessonProgress = ({
                                 {intl.formatMessage(messages.doneCount)}
                             </th>
                             <th className={styles.lessonProgressBottomHead}>{intl.formatMessage(messages.state)}</th>
+                            {showNotes ? (
+                                <th className={styles.lessonProgressBottomHead}>
+                                    {intl.formatMessage(messages.noteHead)}
+                                </th>
+                            ) : null}
                         </tr>
                         <tr className={styles.lessonProgressTotalsRow} data-testid="classroom-lesson-progress-totals">
                             <th className={styles.lessonProgressSeatCol}>{intl.formatMessage(messages.totalsRow)}</th>
@@ -439,6 +533,23 @@ const TeacherLessonProgress = ({
                                         {intl.formatMessage(STATE_MESSAGES[row.progress.state])}
                                     </span>
                                 </td>
+                                {showNotes ? (
+                                    <td className={styles.lessonProgressNoteCell}>
+                                        {noteTexts(intl, notes[row.memberId]).map(({ key, text, title }) => (
+                                            <span
+                                                className={classNames(
+                                                    styles.lessonProgressNote,
+                                                    key === 'review' && styles.lessonProgressNoteReview,
+                                                )}
+                                                data-testid={`classroom-lesson-progress-${key}-${row.memberId}`}
+                                                key={key}
+                                                title={title}
+                                            >
+                                                {text}
+                                            </span>
+                                        ))}
+                                    </td>
+                                ) : null}
                             </tr>
                         ))}
                     </tbody>
