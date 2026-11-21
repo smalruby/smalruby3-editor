@@ -21,6 +21,8 @@ export const HINT_TARGETS = Object.freeze({
     HINT_BUTTON: 'hint-button',
     // メッシュの練習相手のパネル（閉じているときは小さな「練習相手」のボタン）
     PRACTICE_PARTNER: 'practice-partner',
+    // アーテックロボの練習用の基板のパネル（たたんでいるときは小さな「練習用の基板」のボタン・#2170）
+    PRACTICE_BOARD: 'practice-board',
     // 課題バーの役のボタン（役のあるチャレンジの「役を決めよう」のページ）
     ROLE_PICKER: 'role-picker',
     // 「どこでしょう？」のクイズの問い（components/lesson-part-quiz/・#2134）
@@ -29,9 +31,13 @@ export const HINT_TARGETS = Object.freeze({
 });
 
 // 吹き出しをかぶせない部品（出ているときだけ）。練習相手のパネルはボタンを押しながらヒントを読むので、
-// 吹き出しで隠さない（#1643）。コスチュームタブ・音タブの左の一覧（components/asset-panel/selector.jsx）も、
+// 吹き出しで隠さない（#1643）。練習用の基板のパネルも、スライダーを動かしながらヒントを読むので隠さない（#2170）。コスチュームタブ・音タブの左の一覧（components/asset-panel/selector.jsx）も、
 // ヒントを読みながら絵や音をえらぶので隠さない（タブの下に置くと一覧にかぶり、2 つめの絵が見えなかった・#2146）
-const AVOID_SELECTORS = ['[data-testid="lesson-practice-partner"]', '[class*="selector_wrapper_"]'];
+const AVOID_SELECTORS = [
+    '[data-testid="lesson-practice-partner"]',
+    '[data-testid="studuino-practice-board"]',
+    '[class*="selector_wrapper_"]',
+];
 
 /** 吹き出しを置く側。`inside` は指す場所の中、`center` は画面の真ん中（矢印なし）。 */
 export const HINT_SIDES = Object.freeze({
@@ -128,6 +134,10 @@ const TARGET_SPECS = {
     },
     [HINT_TARGETS.PRACTICE_PARTNER]: {
         selectors: ['[data-testid="lesson-practice-partner"]', '[data-testid="lesson-practice-partner-open"]'],
+        sides: [HINT_SIDES.LEFT, HINT_SIDES.BOTTOM, HINT_SIDES.INSIDE],
+    },
+    [HINT_TARGETS.PRACTICE_BOARD]: {
+        selectors: ['[data-testid="studuino-practice-board"]', '[data-testid="studuino-practice-board-open"]'],
         sides: [HINT_SIDES.LEFT, HINT_SIDES.BOTTOM, HINT_SIDES.INSIDE],
     },
     [HINT_TARGETS.ROLE_PICKER]: {

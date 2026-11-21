@@ -659,6 +659,38 @@ design.md の「中 2 のコース」。コースの ✓ もこれで数える�
 
 ![チャットをつくろう 5-5 のヒントの 1 ページ目（図と練習相手のパネル・1300×600）](screenshots/0725-chat-l5-stamp-hint1-1300x600.png)
 
+### コース「自動でセンサーとモーターでうごかそう」のチャレンジ
+
+中学 3 年の計測・制御の授業のコース（方針は [`design.md` の「中 3 のコース「自動でセンサーとモーターでうごかそう」」](design.md#中-3-のコース自動でセンサーとモーターでうごかそう)）。
+コース id は `jidou-sensor-motor`、文言は `control.locale.js`（ja / ja-Hira / en。`lessons.locale.js` に spread する）。
+チャレンジ id は `ctrl-l<n>-...`。拡張機能「アーテックロボ」（id `smalrubotS1`・Ruby は `studuino.`。
+[`docs/extension-smalrubot-s1/`](../extension-smalrubot-s1/README.md)）を使う。
+
+- **始め方**: 新しい作品（ネコ）から始める。1-1 だけは生徒が拡張機能を足し（ヒントの 2 ページ目が「拡張機能を追加」を指す）、
+  ほかは `setup.extensions: ['smalrubotS1']` で読みこんでおく。
+- **練習用の基板**: 実機がつながっていなければ、拡張機能の練習用の基板で動く。センサーの値を変えて試すページは
+  `practice-board`（`HINT_TARGETS.PRACTICE_BOARD`。パネルか、たたんだときの「練習用の基板」のボタン）を指す。ヒントの吹き出しは
+  パネルにかぶせない（`hint-targets.js` の `AVOID_SELECTORS`）。
+- **判定**: 拡張機能の命令とセンサーの値の記録（`boardCommand` / `sensorRead`）と、同じスクリプトで「ずっと」「もし」と
+  センサーのブロックが動いたこと（`uses`）で見る。`whenSensor` にはセンサーの種類（`port` / `sensor`）を書かない（代わりの
+  センサーでも「できた」）。
+- **変数**: 「明るさ」（ja-Hira「あかるさ」、en `brightness`。Ruby の `$`）。判定はどの名前でも通す。
+- **アクティビティ図**: 全チャレンジ `activityDiagram: true`。ヒントの 1 ページ目は「課題の説明と、アクティビティ図を理解しよう」
+  （`withDiagramFirst`）。
+
+レッスン 1「センサーと LED をためそう」（`ctrl-l1`。ja-Hira「センサーと LED を ためそう」、en "Try the Sensors and LEDs"。ワークシート第 2 時）:
+
+| # | id | 課題 | 答え（ja） | できた の条件（`goal`） | クイズの正解 |
+|---|----|------|-----------|------------------------|-------------|
+| 1 | `ctrl-l1-measure` | 拡張機能を足し、光センサーの値を変数「明るさ」に入れて、ずっと言う | `loop do` 〔`$明るさ = studuino.sensor_value("light")` → `say($明るさ)`〕 | 拡張機能を読みこんだ ＋ 旗のスクリプトで `control_forever`・「明るさ」への `data_setvariableto`・センサーの値・`looks_say` が 2 種類の値で動いた（値が変わった）＋ センサーを読んだ | ②Studuino（インタフェース） |
+| 2 | `ctrl-l1-blink` | LED (A0) を 1 秒ごとにつけたり消したりする | `loop do` 〔`studuino.led("left", true)` → `sleep(1)` → `studuino.led("left", false)` → `sleep(1)`〕 | 旗のスクリプトの 1 回の実行で `control_forever`・`control_wait` と LED のオン・オフが 2 回ずつ動いた ＋ LED のオン・オフの命令 | ②仕事を行う部分 |
+| 3 | `ctrl-l1-touch-led` | タッチセンサー (A2) を押しているあいだだけ LED をつける | `if studuino.sensor_value("touch") == 0` 〔オン〕 `else` 〔オフ〕 | 旗のスクリプトで `control_forever`・`control_if_else`・センサーの値 ＋ センサーが 0 のときに LED オン ＋ 1 以上のときに LED オフ | ②デジタル |
+| 4 | `ctrl-l1-threshold` | 光センサーの値がさかい目 500 より小さければ「暗い」、そうでなければ「明るい」と言う | `if studuino.sensor_value("light") < 500` 〔`say("暗い")`〕 `else` 〔`say("明るい")`〕 | 旗のスクリプトで `control_forever`・`control_if_else`・センサーの値・`<` か `>` ＋ 「暗い」（ja-Hira「くらい」、en "dark"）と「明るい」（「あかるい」・"bright"）の両方を言った | ①部屋の明るさで値が変わるから |
+
+- **タッチセンサー**は押すと 0、はなすと 1（拡張機能のライブラリと同じ）。3 は「0 のときにオン・1 以上のときにオフ」で見るので、
+  タッチセンサーが無ければ、ほかのセンサー（練習用の基板ならスライダーを 0 にする）で試しても通る。
+- **さかい目の 500** は答えの値。教室の明るさで変わるので、4 の判定は値そのものを見ない（言い分けたことを見る）。
+
 ## 記録の形（端末）
 
 `packages/scratch-gui/src/lib/lessons/lesson-progress.js`。localStorage の **`smalruby:lessonProgress`** に、
@@ -2329,6 +2361,7 @@ GTM・GA4 の設定（トリガー・データレイヤー変数・カスタム�
 | `packages/scratch-gui/src/lib/lessons/courses.js` | コース・レッスン・チャレンジのデータと検索。locale ごとの Ruby を選ぶ `localizeCode` / `challengeCodeFor` / `challengeCodeCandidates`。ふりかえりのクイズを作る `challengeQuiz` と形を確かめる `validateQuiz` |
 | `packages/scratch-gui/src/lib/lessons/lessons.locale.js` | 文言（en / ja / ja-Hira。`src/locales/*.js` に spread） |
 | `packages/scratch-gui/src/lib/lessons/chat.locale.js` | コース「チャットをつくろう」の文言（en / ja / ja-Hira。`lessons.locale.js` に spread） |
+| `packages/scratch-gui/src/lib/lessons/control.locale.js` | コース「自動でセンサーとモーターでうごかそう」の文言（en / ja / ja-Hira。`lessons.locale.js` に spread） |
 | `packages/scratch-gui/src/lib/lessons/readiness.js` | じゅんびチェックの記録（`smalruby:lessonReadiness`）と、結果・「おすすめ」・「先にじゅんびチェックをする？」の決め方（純粋関数） |
 | `packages/scratch-gui/src/components/lesson-readiness-check/` | じゅんびチェックの問いのパネル（`lesson-readiness-check.jsx`）と「先にじゅんびチェックをする？」（`lesson-readiness-offer.jsx`） |
 | `packages/scratch-gui/src/containers/lesson-readiness-check.jsx` | 問いのパネルのコンテナ（問いのブロックを XML にし、選ぶ・進むを dispatch） |
