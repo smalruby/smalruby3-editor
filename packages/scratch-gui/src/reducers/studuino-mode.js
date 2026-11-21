@@ -28,18 +28,20 @@ const reducer = (state, action) => {
 const setStuduinoModeSettings = (settings) => ({ type: SET_SETTINGS, settings });
 
 /**
- * Studuino モードか（GUI のどこからでもこれで判定する。緑の旗＝書きこみ・停止＝中断（#2219）もこれを見る）。
- * @param {object} state - redux の state。
- * @returns {boolean} Studuino モードなら true。
- */
-const isStuduinoMode = (state) => isStuduinoModeSettings(state.scratchGui.studuinoMode.settings);
-
-/**
  * Studuino の設定（ポート・補正値を含む）。
  * @param {object} state - redux の state。
  * @returns {object} 設定。
  */
-const getStuduinoModeSettings = (state) => state.scratchGui.studuinoMode.settings;
+// state を部分だけ持つ（テストのにせものの store など）ときも落ちないように、無ければ既定の設定
+const getStuduinoModeSettings = (state) =>
+    (state.scratchGui.studuinoMode && state.scratchGui.studuinoMode.settings) || initialState.settings;
+
+/**
+ * Studuino モードか（GUI のどこからでもこれで判定する。緑の旗＝書きこみ・停止＝中断（#2219）もこれを見る）。
+ * @param {object} state - redux の state。
+ * @returns {boolean} Studuino モードなら true。
+ */
+const isStuduinoMode = (state) => isStuduinoModeSettings(getStuduinoModeSettings(state));
 
 export {
     reducer as default,
