@@ -152,7 +152,7 @@ const PenConverter = {
                 switch (code) {
                     case 'self.pen_size':
                         block = converter._changeBlock(lh, 'pen_changePenSizeBy', 'statement');
-                        delete converter._context.blocks[block.inputs.STATEMENT.block];
+                        converter._context.store.deleteBlock(block.inputs.STATEMENT.block);
                         delete block.inputs.STATEMENT;
 
                         converter._addNumberInput(block, 'SIZE', 'math_number', rh, 1);
@@ -162,7 +162,7 @@ const PenConverter = {
                     case 'self.pen_brightness':
                     case 'self.pen_transparency':
                         block = converter._changeBlock(lh, 'pen_changePenColorParamBy', 'statement');
-                        delete converter._context.blocks[block.inputs.STATEMENT.block];
+                        converter._context.store.deleteBlock(block.inputs.STATEMENT.block);
                         delete block.inputs.STATEMENT;
 
                         converter._addFieldInput(
@@ -181,7 +181,7 @@ const PenConverter = {
                     case 'self.brightness':
                     case 'self.transparency':
                         block = converter._changeBlock(lh, 'pen_changePenColorParamBy', 'statement');
-                        delete converter._context.blocks[block.inputs.STATEMENT.block];
+                        converter._context.store.deleteBlock(block.inputs.STATEMENT.block);
                         delete block.inputs.STATEMENT;
 
                         converter._addFieldInput(

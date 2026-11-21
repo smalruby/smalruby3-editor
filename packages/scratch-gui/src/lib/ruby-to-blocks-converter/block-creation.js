@@ -27,7 +27,7 @@ const BlockCreation = {
         // because Blockly preserves their `<comment id>` attribute through
         // serialization.
         const id = blockId ? `${blockId}_comment` : Blockly.utils.idGenerator.genUid();
-        this._context.comments[id] = {
+        this._context.store.setComment({
             id: id,
             text: text,
             blockId: blockId,
@@ -36,7 +36,7 @@ const BlockCreation = {
             width: 200,
             height: 200,
             minimized: minimized,
-        };
+        });
         return id;
     },
 
@@ -63,8 +63,7 @@ const BlockCreation = {
         if (attributes.comment) {
             block.comment = this._createComment(attributes.comment, block.id);
         }
-        this._context.blocks[block.id] = block;
-        this._context.blockTypes[block.id] = type;
+        this._context.store.setBlock(block, type);
 
         // Map current node to block ID for line execution feature
         if (!block.shadow && this._context.currentNode) {
@@ -162,8 +161,7 @@ const BlockCreation = {
             inputs: {},
             fields: _.cloneDeep(block.fields),
         });
-        this._context.blocks[newBlock.id] = newBlock;
-        this._context.blockTypes[newBlock.id] = this._context.blockTypes[block.id];
+        this._context.store.setBlock(newBlock, this._context.blockTypes[block.id]);
 
         for (const inputName in block.inputs) {
             const input = block.inputs[inputName];
@@ -206,7 +204,7 @@ const BlockCreation = {
     _changeRubyExpressionBlock(block, opcode, blockType) {
         this._changeBlock(block, opcode, blockType);
 
-        delete this._context.blocks[block.inputs.EXPRESSION.block];
+        this._context.store.deleteBlock(block.inputs.EXPRESSION.block);
         delete block.inputs.EXPRESSION;
 
         return block;

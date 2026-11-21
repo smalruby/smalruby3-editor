@@ -149,8 +149,11 @@ module は、本体の行（`structure.statements`）だけを分析で決め、
 - `visitXxxNode` がノードごとにブロックを作る（prism の `Visitor` の形はそのまま）。
 - メソッド呼び出しは、登録の表（次の節）を `receiver → 名前 → 引数の数 → ブロック引数の数` で引く（いまの `callMethod` の引き方と同じ）。
 - 変数の種類・ローカル変数の名前・手続きの数は `Analysis` を読む。変換の途中でこれらを決めない。
-- 作ったものは `BlockStore` に入れる。うまく変換できなかった試み（いまの `_saveContext` / `_restoreContext`）は、
-  **書いたものの記録（journal）を巻き戻す** 形にする。いまは試みのたびに、それまでに作ったすべてのブロック・コメント・変数の表を写しており、これが長いコードでいちばん遅い（「実行の効率」）。
+- 作ったものは `BlockStore`（`block-store.js`）に入れる。表は `blocks`・`blockTypes`・`comments`・`variables`・`lists`・`localVariables`・`broadcastMsgs`・`procedures`・`literalCallIndices`・`symbols`。
+  変換はストアのメソッド（`setBlock`・`setBlockType`・`deleteBlock`・`setComment`・`deleteComment`・`setVariable`・`deleteVariable`・`setProcedure`・`setLiteralCallIndex`・`addSymbol`）を通してだけ書き、
+  表は `_context.blocks` などから読む（`_context` はストアの表を指す）。表へ直接書く所が無いことは `block-store.test.js` がソースを調べて確かめる。
+- うまく変換できなかった試み（`_saveContext` / `_restoreContext`）は、ストアの中の **書いたものの記録（journal、`context-journal.js`）を巻き戻す**（`mark` / `rollback` / `storeAt`）。
+  `symbols` は巻き戻さない（あきらめた試みで使ったシンボルも残る。これまでと同じ）。
 
 ### 4. 仕上げ（finish）
 
