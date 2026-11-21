@@ -22,18 +22,6 @@ const REAUTH_TIMEOUT_MS = 5000;
 // modals give their own login buttons so the two never look mismatched.
 const GOOGLE_BUTTON_WIDTH_PX = 208;
 
-/**
- * Whether this browser can show Google's own sign-in prompt (FedCM).
- *
- * Without it — Safari, older Firefox, embedded webviews, anything with
- * third-party sign-in blocked — `prompt()` has nothing to show and the user
- * would sit in front of a button that never reacts. There we skip the prompt
- * and offer Google's rendered button straight away instead of waiting on a
- * timer, which raced with the prompt the user was still reading.
- * @returns {boolean} true when the browser mediates the Google prompt itself
- */
-export const isGoogleBrowserPromptSupported = () => typeof window !== 'undefined' && 'IdentityCredential' in window;
-
 // The login attempt currently owning the GIS sign-in UI, or null.
 // Only one may exist at a time so the rendered button can never accumulate
 // (#1149: repeated login attempts used to stack up overlays under <body>).
@@ -53,56 +41,36 @@ export const cancelGoogleLogin = () => {
 };
 
 /**
- * Whether a Google login is waiting for the user right now.
- * @returns {boolean} true while an attempt owns the sign-in UI
- */
-export const isGoogleLoginInFlight = () => activeGoogleLogin !== null;
-
-/**
- * Put Google's own button in front of the user for the login already running.
- *
- * The dismissal signal is not guaranteed to arrive — a browser prompt can also
- * be closed in ways GIS never reports — so pressing our login button again
- * ("nothing happened, let me try that once more") is treated as the request
- * for the button. Safe to call when no login is in flight.
- */
-export const revealGoogleSignInButton = () => {
-    if (activeGoogleLogin) {
-        activeGoogleLogin.handOver('retry');
-    }
-};
-
-/**
- * Perform Google interactive login via One Tap plus an in-place button.
+ * Perform Google interactive login through Google's own sign-in button.
  *
  * The button is rendered into `container` (a node owned by the calling modal)
  * rather than into a fixed overlay under `document.body`, so unmounting the
- * modal takes the button with it.
+ * modal takes the button with it (#1149).
  *
- * There is only ever one Google entry point on screen. The caller shows its own
- * login button; this function asks for the button to take its place — never to
- * sit next to it — through `onFallbackVisible`:
- *
- * - browser prompt available: try the prompt, and swap in the rendered button
- *   only once the prompt is dismissed without a credential (`'dismissed'`);
- * - browser prompt unavailable: swap it in immediately (`'unsupported'`),
- *   since nothing is going to appear on its own.
- *
- * Dismissal is the one prompt moment that survives the FedCM migration, so it
- * is the only one consulted — `isNotDisplayed()` / `isSkippedMoment()` are not.
- * @see https://developers.google.com/identity/gsi/web/guides/fedcm-migration
+ * Google's button is the entry point from the start, and the One Tap prompt is
+ * not used. Chrome stops showing the prompt for a while after the user closes
+ * it once (FedCM cooldown), and it does not tell the page, so a button that
+ * asked for the prompt did nothing on the first press. A press on Google's own
+ * button always opens Google's sign-in (FedCM button mode in Chrome, a popup
+ * elsewhere), so one press is enough.
  * @param {object} [options] - login options
  * @param {HTMLElement} [options.container] - node to render the sign-in button
- *   into. Without it only the browser prompt is offered.
- * @param {Function} [options.onFallbackVisible] - called once with the reason
- *   the button took over: `'dismissed'` or `'unsupported'`.
+ *   into. Without it no button is rendered.
+ * @param {Function} [options.onButtonVisible] - called once Google's button has
+ *   been rendered, so the caller can show it in place of its own button.
  * @returns {Promise<string>} Google ID token
  */
-export const loginWithGoogle = async ({ container, onFallbackVisible } = {}) => {
+export const loginWithGoogle = async ({ container, onButtonVisible } = {}) => {
     await loadGoogleIdentity();
 
     // Supersede any previous attempt (its promise is rejected by abort()).
     cancelGoogleLogin();
+
+    // The login UI may have gone away while the script loaded; a button
+    // rendered into a detached node could never be pressed.
+    if (container && !container.isConnected) {
+        throw new Error('Google Sign-In cancelled');
+    }
 
     return new Promise((resolve, reject) => {
         let mount = null;
@@ -122,30 +90,18 @@ export const loginWithGoogle = async ({ container, onFallbackVisible } = {}) => 
             }
         };
 
-        let handedOver = false;
-        const handOverToButton = (why) => {
-            if (handedOver || !mount) {
-                return;
-            }
-            handedOver = true;
-            if (onFallbackVisible) {
-                onFallbackVisible(why);
-            }
-        };
-
         const session = {
             abort: () => {
                 cleanup();
                 reject(new Error('Google Sign-In cancelled'));
             },
-            handOver: handOverToButton,
         };
         activeGoogleLogin = session;
 
         /* global google */
         google.accounts.id.initialize({
             client_id: GOOGLE_CLIENT_ID,
-            use_fedcm_for_prompt: true,
+            use_fedcm_for_button: true,
             callback: (response) => {
                 cleanup();
                 if (response && response.credential) {
@@ -167,31 +123,10 @@ export const loginWithGoogle = async ({ container, onFallbackVisible } = {}) => 
                 // one is on screen the row keeps its shape (13rem at 16px).
                 width: GOOGLE_BUTTON_WIDTH_PX,
             });
-        }
-
-        if (mount && !isGoogleBrowserPromptSupported()) {
-            // Nothing would come up, so do not ask and do not make the user wait.
-            handOverToButton('unsupported');
-            return;
-        }
-
-        google.accounts.id.prompt((notification) => {
-            // `isDismissedMoment()` is the one moment method that survives the
-            // FedCM migration. A dismissal that returned a credential is the
-            // success path — the callback above already settled the promise.
-            const dismissed =
-                notification &&
-                typeof notification.isDismissedMoment === 'function' &&
-                notification.isDismissedMoment();
-            if (!dismissed) {
-                return;
+            if (onButtonVisible) {
+                onButtonVisible();
             }
-            const reason =
-                typeof notification.getDismissedReason === 'function' ? notification.getDismissedReason() : null;
-            if (reason !== 'credential_returned') {
-                handOverToButton('dismissed');
-            }
-        });
+        }
     });
 };
 

@@ -213,7 +213,7 @@ const BugReportModal = (props) => {
         reports,
         reportsLoading,
         submitProgressLabel,
-        googleFallbackReason,
+        googleButtonShown,
         googleSignInRef,
         onRequestClose,
         onLoginGoogle,
@@ -249,7 +249,9 @@ const BugReportModal = (props) => {
                             <p>
                                 <FormattedMessage {...messages.loginIntro} />
                             </p>
-                            {googleFallbackReason === null && (
+                            {/* Ours only stands in while Google's script loads or
+                            if it failed to load; pressing it tries again. */}
+                            {!googleButtonShown && (
                                 <button
                                     className={styles.loginButton}
                                     disabled={isBusy}
@@ -259,13 +261,12 @@ const BugReportModal = (props) => {
                                     <FormattedMessage {...messages.loginGoogle} />
                                 </button>
                             )}
-                            {/* Google's own button takes this button's place when
-                            the browser prompt cannot sign the user in (#1149). */}
+                            {/* Google's own button is the entry point, rendered
+                            inside the modal so it cannot outlive it (#1149). */}
                             <GoogleSignInSlot
-                                active={googleFallbackReason !== null}
+                                active={googleButtonShown}
                                 className={styles.googleSignInSlot}
                                 ref={googleSignInRef}
-                                showHint={googleFallbackReason !== null && googleFallbackReason !== 'unsupported'}
                             />
                             {microsoftAvailable ? (
                                 <button
@@ -420,7 +421,7 @@ BugReportModal.propTypes = {
     reportsLoading: PropTypes.bool,
     submitProgressLabel: PropTypes.string,
     onRequestClose: PropTypes.func.isRequired,
-    googleFallbackReason: PropTypes.oneOf(['dismissed', 'retry', 'unsupported']),
+    googleButtonShown: PropTypes.bool,
     googleSignInRef: PropTypes.shape({ current: PropTypes.any }),
     onLoginGoogle: PropTypes.func.isRequired,
     onLoginMicrosoft: PropTypes.func.isRequired,
