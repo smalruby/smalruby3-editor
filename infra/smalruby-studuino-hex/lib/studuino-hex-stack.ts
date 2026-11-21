@@ -136,6 +136,9 @@ export class StuduinoHexStack extends cdk.Stack {
         COMPILE_TIMEOUT_MS: env.STUDUINO_COMPILE_TIMEOUT_MS || '25000',
         RATE_LIMIT_PER_MINUTE: env.STUDUINO_RATE_LIMIT_PER_MINUTE || '12',
         RATE_LIMIT_PER_DAY: env.STUDUINO_RATE_LIMIT_PER_DAY || '600',
+        MAX_IR_NODES: env.STUDUINO_MAX_IR_NODES || '10000',
+        MAX_IR_DEPTH: env.STUDUINO_MAX_IR_DEPTH || '100',
+        MAX_IR_VARIABLES: env.STUDUINO_MAX_IR_VARIABLES || '64',
       },
     });
     rateLimitTable.grantReadWriteData(compileFn);
