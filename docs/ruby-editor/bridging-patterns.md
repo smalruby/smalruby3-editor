@@ -743,6 +743,8 @@ say(mesh.message_value)
 
 **テスト**: `ruby-to-blocks-converter/mesh_v2.test.js`、`ruby-roundtrip/extension_mesh.test.js`、`furigana-annotator.test.js`。
 
+**気をつけること（見つけた不具合）**: テキストの入力に数を入れるときは、数字の文字列にしてから入れる。`_addTextInput` に数をそのまま渡すと、入力が空のままになり、数が黙って消える。いま `translate.call(1, "ja")`（翻訳の言葉が数）がこの形で、ブロックに言葉が入らない（`ruby-roundtrip/translate-table.test.js` はいまの出力を固定している。直すときはこの行を直す）。
+
 ### P20. 定義ブロックの名前と「画面を再描画せずに実行する」
 
 **Ruby で書きたいこと**: 定義ブロック（ブロックを作る）の名前と設定を、Ruby の `def` で書く。名前が数字で始まる・予約語のものもある。
