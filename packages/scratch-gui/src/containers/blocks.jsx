@@ -79,9 +79,10 @@ import {
     STUDUINO_ALLOWED_BLOCKS,
     STUDUINO_PORT_SETTINGS_CALLBACK,
     makeStuduinoCategoryXml,
+    makeStuduinoPartBlocksXml,
     prependToolboxCategory
 } from '../lib/studuino-mode';
-import {isStuduinoMode, openStuduinoPortSettings} from '../reducers/studuino-mode';
+import {getStuduinoModeSettings, isStuduinoMode, openStuduinoPortSettings} from '../reducers/studuino-mode';
 // === Smalruby: End of studuino mode palette ===
 // === Smalruby: Start of stale block delete event guard ===
 import {createStaleBlockDeleteGuard} from '../lib/stale-block-delete-guard';
@@ -349,7 +350,8 @@ class Blocks extends React.Component {
             this.props.tutorialAllowedBlocks !== nextProps.tutorialAllowedBlocks ||
             this.props.paletteVisible !== nextProps.paletteVisible ||
             this.props.dnclMode !== nextProps.dnclMode || // === Smalruby: DNCL block filtering ===
-            this.props.studuinoMode !== nextProps.studuinoMode
+            this.props.studuinoMode !== nextProps.studuinoMode ||
+            this.props.studuinoSettings !== nextProps.studuinoSettings // === Smalruby: studuino mode palette ===
             // === Smalruby: End of toolbox filters and palette toggle ===
         );
     }
@@ -364,7 +366,8 @@ class Blocks extends React.Component {
         if (this.props.selectedBlocks !== prevProps.selectedBlocks ||
             this.props.tutorialAllowedBlocks !== prevProps.tutorialAllowedBlocks ||
             this.props.dnclMode !== prevProps.dnclMode || // === Smalruby: DNCL block filtering ===
-            this.props.studuinoMode !== prevProps.studuinoMode) {
+            this.props.studuinoMode !== prevProps.studuinoMode ||
+            this.props.studuinoSettings !== prevProps.studuinoSettings) { // === Smalruby: studuino mode palette ===
             const toolboxXML = this.getToolboxXML();
             if (toolboxXML) {
                 this.props.updateToolboxState(toolboxXML);
@@ -832,7 +835,9 @@ class Blocks extends React.Component {
         return makeStuduinoCategoryXml({
             name: messages['gui.studuinoMode.categoryName'] || 'ArtecRobo',
             buttonText: messages['gui.studuinoMode.portSettingsButton'] || 'Port Settings',
-            colors
+            colors,
+            // the part blocks of the assigned parts only (#2216)
+            blocksXml: makeStuduinoPartBlocksXml(this.props.studuinoSettings)
         });
     }
     // === Smalruby: End of studuino mode palette ===
@@ -1352,6 +1357,7 @@ class Blocks extends React.Component {
             colorMode,
             // === Smalruby: Start of studuino mode palette ===
             studuinoMode: _studuinoMode,
+            studuinoSettings: _studuinoSettings,
             onOpenStuduinoPortSettings: _onOpenStuduinoPortSettings,
             // === Smalruby: End of studuino mode palette ===
             ...props
@@ -1469,6 +1475,7 @@ Blocks.propTypes = {
     dnclMode: PropTypes.bool, // === Smalruby: DNCL block filtering ===
     // === Smalruby: Start of studuino mode palette ===
     studuinoMode: PropTypes.bool,
+    studuinoSettings: PropTypes.shape({ports: PropTypes.object}),
     onOpenStuduinoPortSettings: PropTypes.func,
     // === Smalruby: End of studuino mode palette ===
     toolboxXML: PropTypes.string,
@@ -1531,6 +1538,7 @@ const mapStateToProps = state => ({
     dnclMode: state.scratchGui.dnclMode.dnclMode, // === Smalruby: DNCL block filtering ===
     // === Smalruby: Start of studuino mode palette ===
     studuinoMode: isStuduinoMode(state),
+    studuinoSettings: getStuduinoModeSettings(state),
     // === Smalruby: End of studuino mode palette ===
     // === Smalruby: Start of toolbox filters ===
     selectedBlocks: state.scratchGui.blockDisplay.selectedBlocks,

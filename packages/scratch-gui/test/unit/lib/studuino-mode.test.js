@@ -9,6 +9,7 @@ import {
     isStuduinoAllowedBlock,
     isStuduinoModeSettings,
     makeStuduinoCategoryXml,
+    makeStuduinoPartBlocksXml,
     prependToolboxCategory,
     setStuduinoMode,
     STUDUINO_ALLOWED_BLOCKS,
@@ -164,5 +165,46 @@ describe('studuino-mode', () => {
         test('leaves an empty toolbox alone', () => {
             expect(prependToolboxCategory(null, '<category/>')).toBeNull();
         });
+    });
+});
+
+describe('部品のブロック（#2216）', () => {
+    const settings = (ports) => ({ mode: 'studuino', ports, calibration: { dcMotor: {}, servoMotor: {} } });
+
+    test('使えるブロックの一覧に 14 個の部品のブロックが入る', () => {
+        const parts = STUDUINO_ALLOWED_BLOCKS.filter((op) => op.startsWith('smalrubotS1_studuino'));
+        expect(parts).toHaveLength(14);
+        expect(isStuduinoAllowedBlock('smalrubotS1_studuinoLightSensor')).toBe(true);
+        // 通常モードのブロックは使えない
+        expect(isStuduinoAllowedBlock('smalrubotS1_setMotorSpeed')).toBe(false);
+    });
+
+    test('割り当てた部品のブロックだけを、最初のポートで並べる', () => {
+        const xml = makeStuduinoPartBlocksXml(settings({ A6: 'light_sensor', A3: 'light_sensor', A0: 'led' }));
+        const types = [...xml.matchAll(/<block type="([^"]+)">/g)].map((m) => m[1]);
+        expect(types).toEqual(['smalrubotS1_studuinoLed', 'smalrubotS1_studuinoLightSensor']);
+        expect(xml).toContain(
+            '<block type="smalrubotS1_studuinoLed"><field name="PORT">A0</field><field name="STATE">on</field></block>',
+        );
+        expect(xml).toContain('<block type="smalrubotS1_studuinoLightSensor"><field name="PORT">A3</field></block>');
+    });
+
+    test('数の引数は math_number の影・2 つを同時はサーボが 2 つ以上のとき', () => {
+        const one = makeStuduinoPartBlocksXml(settings({ M1: 'dc_motor', D9: 'servo_motor' }));
+        expect(one).toContain(
+            '<value name="SPEED"><shadow type="math_number"><field name="NUM">100</field></shadow></value>',
+        );
+        expect(one).not.toContain('studuinoServoPair');
+        const two = makeStuduinoPartBlocksXml(settings({ D9: 'servo_motor', D12: 'servo_motor' }));
+        expect(two).toContain('<field name="PORT1">D9</field>');
+        expect(two).toContain('<field name="PORT2">D12</field>');
+    });
+
+    test('何も割り当てていなければ部品のブロックは出さない（ボタンだけのカテゴリ）', () => {
+        expect(makeStuduinoPartBlocksXml(settings({}))).toBe('');
+        const colors = { colourPrimary: '#000', colourTertiary: '#111' };
+        expect(
+            makeStuduinoCategoryXml({ name: 'a', buttonText: 'b', colors, blocksXml: '<block type="x"></block>' }),
+        ).toContain('</button><block type="x"></block></category>');
     });
 });
