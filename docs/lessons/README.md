@@ -137,7 +137,7 @@
 | `target` | string \| null | null | 指す場所（`lib/lessons/hint-targets.js` の `HINT_TARGETS`）: `palette`（ブロックパレット）・`code-area`（スクリプトエリア）・`stage`（ステージ）・`sprite-list`（スプライトペイン）・`sounds-tab`（音タブ）・`costumes-tab`（コスチュームタブ）・`backdrop`（背景を選ぶ）・`extension-button`（拡張機能のボタン）・`green-flag`（緑の旗）・`stop-button`（停止ボタン）・`code-tab`（コードタブ）・`ruby-tab`（ルビータブ）・`task-bar`（課題バー）・`hint-button`（課題バーの「ヒント」）・`practice-partner`（メッシュの練習相手のパネル。閉じているときは小さな「練習相手」のボタン）・`role-picker`（課題バーの役のボタン。役のあるチャレンジの「役を決めよう」のページ）・`keyboard`（場所の無いもの。画面の真ん中に出す） |
 | `focus` | object \| null | null | `target` の場所の中の、**押すもの 1 つ**（`lib/lessons/hint-targets.js` の `HINT_FOCUS`）。見つかればそれを指して照らし、見つからなければ `target` の場所を指す（何も指さない・落ちる、はしない）。`{kind: 'paletteBlock', opcode, category}`（ブロックパレットのブロック。パレットの見えている範囲に無ければ、左のなかまのボタン `category` を指す）・`{kind: 'codeBlock', opcode}`（スクリプトエリアのブロック 1 つ。下につながったブロックは入れない）・`{kind: 'codeField', opcode, shadow}`（そのブロックの白いところ・▼。`shadow` は入れてある影のブロックの opcode。数は `math_number`、▼ は `motion_goto_menu` など）・`{kind: 'stageSprite'}`（ステージのいま選んでいるスプライト。DOM が無いので描画の位置から求める）・`{kind: 'costume', number}`（コスチュームタブの一覧の n 番目の絵）・`{kind: 'soundPlay'}`（音タブの再生ボタン）・`{kind: 'spriteAdd'}` / `{kind: 'backdropAdd'}`（スプライトを選ぶボタン・背景を選ぶボタン） |
 | `blocks` | string \| `{ja, 'ja-Hira', en}` \| null | null | 吹き出しに描くブロック（Ruby。`code` と同じ変換でブロックにする）。`code` と同じく locale ごとにも書ける |
-| `spotlight` | boolean | false | はじめて開いたチャレンジだけ、周りを暗くして `target`（`focus` が見つかればそれ）を照らす |
+| `spotlight` | boolean | false | はじめて開いたチャレンジだけ（レッスン 0 は開くたびに）、周りを暗くして `target`（`focus` が見つかればそれ）を照らす |
 | `advanceOn` | object \| null | null | そのページの操作ができたら自分で次のページへ進む（レッスンが `autoAdvanceHints` のときだけ）。1 つだけ書く: `{click: 'palette', block}`（パレットのそのブロックを押した）・`{placed: opcode}`（スクリプトエリアに置いた）・`{together: [opcode, ...]}`（1 つのスクリプトにつながった）・`{tab}`（そのタブを開いた）・`{costume: n}`（n 番目の絵になった）・`{spriteAdded: true}`・`{backdropChanged: true}`・`{field: {opcode, input, ne}}`（入れるところの値が `ne` でなくなった）・`{focusClicked: true}`（`focus` を押した）。無いページは今までどおり「進める」で進む |
 
 `steps` の後ろには、`debug` か `code` があれば**最後の手段のページ**（「うまく動かないときは」と「プログラムを入れる」）が
@@ -1208,7 +1208,7 @@ partner: {
 | `hintVisible` / `hintIndex` | ヒントの吹き出しを出しているか・何番めのヒントか（チャレンジを開く・閉じるたびに最初にもどる。開いたときは、ヒントがあれば出す） |
 | `hintMinimized` | ヒントを小さくして札だけを残しているか（`hideHint` で true、`showHint`・`finishHint`・できた・チャレンジを開く・閉じるで false） |
 | `hintSession` | チャレンジを開いた回数（`openChallenge` のたびに増える。同じチャレンジを開き直しても増える）。吹き出しの `key` にして、開き直したらドラッグした位置・確認・入れられなかったわけを持ち越さない（吹き出しは開いたまま次のチャレンジに移ることがあり、そのときは作り直されないため） |
-| `hintSpotlight` | はじめて開いたチャレンジか（`spotlight` のヒントで周りを暗くする）。`openChallenge` で `smalruby:lessonSpotlightSeen` を見て決め、同時に「見た」と記録する |
+| `hintSpotlight` | はじめて開いたチャレンジか（`spotlight` のヒントで周りを暗くする）。`openChallenge` で `smalruby:lessonSpotlightSeen` を見て決め、同時に「見た」と記録する。レッスン 0（`warmup`）は画面を知らない子のためのもので、やり直す子ほど迷っているので、開くたびに true |
 | `progress` | 記録の写し（起動時に localStorage から読む） |
 | `justCompletedId` | 「できた！」を出しているチャレンジ id（null なら出していない） |
 | `libraryFocusChallengeId` | レッスン表を開いたときに見せるチャレンジ（「次のチャレンジ」で開いたとき）。レッスン表はこれから見せるレッスンと次のチャレンジを決める（`lessonsLibraryFocus`）。レッスンを閉じても消さず、レッスン表が閉じるときに消す |
@@ -1609,7 +1609,7 @@ partner: {
   ページへは行かない）。吹き出しを小さくしていても進む（札のページが変わる）が、閉じているときは進まない。
 - **まちがった場所の一言（`wrongPlaceTip`）**: 同じ hook が、スクリプトエリアで押したブロックを見て
   `isWrongPlaceClick` なら、吹き出しの文言の上に一言（`lesson-hint-tip`・`role="alert"`）を出す。
-- **スポットライト**: `spotlight: true` のヒントで、かつ `hintSpotlight`（はじめて開いたチャレンジ）のときだけ、
+- **スポットライト**: `spotlight: true` のヒントで、かつ `hintSpotlight`（はじめて開いたチャレンジ。レッスン 0 は開くたび）のときだけ、
   指す場所（`focus` が見つかればその 1 つ）の矩形に穴を開けた巨大な box-shadow で周りを暗くする。`pointer-events: none` なので、照らした
   パレットやステージはそのまま操作できる（ドラッグ中のブロックは吹き出しより上を通る）。
 - **進める・もどる・小さくする**: `nextHint` / `prevHint` / `hideHint`。最初で「もどる」が無効。最後のページは
@@ -2129,6 +2129,7 @@ GTM・GA4 の設定（トリガー・データレイヤー変数・カスタム�
 | `answer_view` | 「正解のプログラムを確認する」で、正解のプログラムを入れた（「はい」で入れたとき。「いいえ」・入れられなかったときは送らない） | チャレンジ id | 上の 4 つ |
 | `other_challenge` | 課題バーの「ほかのチャレンジへ」を押した | チャレンジ id | 上の 4 つ |
 | `lesson_end` | 課題バーの「レッスンをおえる」を押した | チャレンジ id | 上の 4 つ |
+| `lesson_skip` | レッスン 0 の「どこでしょう？」を 1 回もまちがえずに答え、「できた！」の「レッスン n へ進む」を押した（飛ばした回数を見て、レッスン 0 が要らない子の割合を知る） | チャレンジ id（押したときの「どこでしょう？」） | 上の 4 つ |
 | `activity_diagram_open` | ブロックを右クリック →「アクティビティ図」でパネルを開いた（下の「アクティビティ図（ブロックを右クリックして描く）」。**レッスンモードの外でも送る**。メニューから開くたびに 1 回送る（開いたまま別のブロックで開き直したときも送る）） | `sprite`／`stage`（図にしたスクリプトがスプライトのものかステージのものか） | レッスンモードの中なら上の 4 つ（いまのチャレンジ）、外なら 4 つとも `undefined`（レッスン中かどうかは `challenge_id` があるかで見る） |
 
 - **ヒントの滞在時間**（`hint_view` の `seconds`）: ページごとに、**そのページを出してから、次のページ・前のページへ
@@ -2153,7 +2154,7 @@ GTM・GA4 の設定（トリガー・データレイヤー変数・カスタム�
 - 計測の失敗（`dataLayer` が無いなど）は握りつぶし、レッスンの動きを止めない。
 - 判断は純粋関数 `lib/lessons/lesson-analytics.js`（`stepLessonAnalytics`。前の状態と今の状態と時刻から、送るイベントを
   決める）、送るのは `containers/lesson-analytics.jsx`（gui.jsx のマーカー `lesson mode` の中に常時マウント）。
-  ボタンで決まる `answer_view` / `other_challenge` / `lesson_end` は、押したところ（`containers/lesson-hint.jsx` /
+  ボタンで決まる `answer_view` / `other_challenge` / `lesson_end` / `lesson_skip` は、押したところ（`containers/lesson-hint.jsx` / `containers/lesson-goal-watcher.jsx` /
   `containers/lesson-mode.jsx`）から `sendLessonEvent` で送る。
   `activity_diagram_open` は、イベントを決める純粋関数 `activityDiagramEvent` を `containers/block-activity-diagram.jsx` が
   `sendActivityDiagramEvent` で送る（新しい項目は足していない。GTM の共通タグのパラメータは 25 個で満杯のため）。

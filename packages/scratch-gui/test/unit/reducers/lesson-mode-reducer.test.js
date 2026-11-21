@@ -401,6 +401,15 @@ describe('lesson-mode reducer: hints', () => {
         expect(state.hintSpotlight).toBe(true);
     });
 
+    test('lesson 0 (warmup) spotlights every time it is opened', () => {
+        markSpotlightSeen('blocks-l0-where', window.localStorage, '2026-01-01T00:00:00.000Z');
+        let state = reducer(lessonModeInitialState, openChallenge('blocks-l0-where'));
+        expect(state.hintSpotlight).toBe(true);
+        state = reducer(state, closeLesson());
+        state = reducer(state, openChallenge('blocks-l0-where'));
+        expect(state.hintSpotlight).toBe(true);
+    });
+
     test('debug tips or code add a last-resort page after the steps', () => {
         extra = { debug: [{ id: 'd1' }], code: 'when_clicked do\nend\n' };
         let state = withSteps(reducer(lessonModeInitialState, openChallenge('blocks-l1-click-say')));

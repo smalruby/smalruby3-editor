@@ -10,6 +10,7 @@ import {
 import { findChallenge, lessonNumberOf } from '../lib/lessons/courses.js';
 import { attachGoalMonitor } from '../lib/lessons/goal-monitor.js';
 import { EDITOR_TABS, evaluateGoal, validateGoal } from '../lib/lessons/goal.js';
+import { LESSON_EVENTS, sendLessonEvent } from '../lib/lessons/lesson-analytics.js';
 import {
     completedAction,
     courseProgress,
@@ -52,6 +53,7 @@ const LessonGoalWatcher = ({
     partQuizMissed = false,
     partQuizSolved = 0,
     progress,
+    teacherLoggedIn = false,
 }) => {
     const found = useMemo(() => (challengeId === null ? null : findChallenge(challengeId)), [challengeId]);
     const challenge = found ? found.challenge : null;
@@ -124,9 +126,10 @@ const LessonGoalWatcher = ({
     );
     const handleSkipLesson = useCallback(() => {
         if (!skipOffer || !onSkipLesson) return;
+        sendLessonEvent(LESSON_EVENTS.LESSON_SKIP, found, { fromAssignment, teacherLoggedIn });
         onDismiss();
         onSkipLesson(skipOffer.challengeId, fromAssignment && isAssignmentChallenge(lesson, skipOffer.challengeId));
-    }, [fromAssignment, lesson, onDismiss, onSkipLesson, skipOffer]);
+    }, [found, fromAssignment, lesson, onDismiss, onSkipLesson, skipOffer, teacherLoggedIn]);
 
     const handleSubmitAssignment = useCallback(() => {
         onDismiss();
@@ -201,6 +204,7 @@ LessonGoalWatcher.propTypes = {
     onSubmitAssignment: PropTypes.func.isRequired,
     // lesson-progress.js の記録（「できた！」のボタンを決める）
     progress: PropTypes.shape({ challenges: PropTypes.object.isRequired }).isRequired,
+    teacherLoggedIn: PropTypes.bool,
     vm: PropTypes.object,
 };
 
@@ -217,6 +221,7 @@ const mapStateToProps = (state) => ({
     justCompletedNew: Boolean(state.scratchGui.lessonMode.justCompletedNew),
     lesson: selectStudentLesson(state),
     progress: state.scratchGui.lessonMode.progress,
+    teacherLoggedIn: Boolean(state.scratchGui.classroom && state.scratchGui.classroom.teacherLoggedIn),
 });
 
 const mapDispatchToProps = (dispatch) => ({

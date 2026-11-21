@@ -5,6 +5,7 @@ import EventEmitter from 'events';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import { LessonGoalWatcher } from '../../../src/containers/lesson-goal-watcher.jsx';
+import analytics from '../../../src/lib/analytics';
 
 jest.mock('../../../src/lib/lessons/courses.js', () => {
     const makeChallenge = (id, name) => ({
@@ -304,6 +305,30 @@ describe('LessonGoalWatcher', () => {
             fireEvent.click(getByTestId('lesson-completed-toast-skip'));
             expect(onDismiss).toHaveBeenCalled();
             expect(onSkipLesson).toHaveBeenCalledWith('test-challenge', false);
+        });
+
+        test('sends lesson_skip to GA when skipping, but not for a teacher', () => {
+            const spy = jest.spyOn(analytics, 'event').mockImplementation(() => {});
+            try {
+                const student = skipWatcher({ onSkipLesson: jest.fn() });
+                fireEvent.click(student.getByTestId('lesson-completed-toast-skip'));
+                expect(spy).toHaveBeenCalledTimes(1);
+                expect(spy).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        category: 'lessons',
+                        action: 'lesson_skip',
+                        label: 'where-challenge',
+                        lesson_id: 'w',
+                        from_assignment: false,
+                    }),
+                );
+                student.unmount();
+                const teacher = skipWatcher({ onSkipLesson: jest.fn(), teacherLoggedIn: true });
+                fireEvent.click(teacher.getByTestId('lesson-completed-toast-skip'));
+                expect(spy).toHaveBeenCalledTimes(1);
+            } finally {
+                spy.mockRestore();
+            }
         });
 
         test('keeps "from the assignment" only when the next challenge is in the assignment', () => {
