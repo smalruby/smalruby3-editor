@@ -151,7 +151,7 @@ import {isFirmwareFlashSupported} from '../../lib/smalrubot-firmware-flasher';
 // === Smalruby: End of smalrubot firmware menu ===
 // === Smalruby: Start of studuino mode menu ===
 import {setStuduinoMode} from '../../lib/studuino-mode';
-import {isStuduinoMode} from '../../reducers/studuino-mode';
+import {isStuduinoMode, openStuduinoPortSettings} from '../../reducers/studuino-mode';
 // === Smalruby: End of studuino mode menu ===
 // === Smalruby: Start of classroom button ===
 import {openClassroomModal} from '../../reducers/classroom';
@@ -361,6 +361,7 @@ class MenuBar extends React.Component {
             'handleMeshV2MenuClick',
             'handleSmalrubotS1FirmwareFlash',
             'handleToggleStuduinoMode', // === Smalruby: studuino mode menu ===
+            'handleOpenStuduinoPortSettings', // === Smalruby: studuino mode menu ===
             'handleClickWelcomeTooltip', // === Smalruby: welcome tooltip ===
             'handleUpdateAvailable',
             'handleUpdateNotificationClick',
@@ -663,7 +664,14 @@ class MenuBar extends React.Component {
     handleToggleStuduinoMode () {
         this.props.onRequestCloseSmalrubotS1();
         // The settings live in the VM (extensionStorage); the redux copy follows its change event.
-        setStuduinoMode(this.props.vm, !this.props.studuinoMode);
+        const entering = !this.props.studuinoMode;
+        setStuduinoMode(this.props.vm, entering);
+        // Open the port settings once right after entering the mode (S4)
+        if (entering) this.props.onOpenStuduinoPortSettings();
+    }
+    handleOpenStuduinoPortSettings () {
+        this.props.onRequestCloseSmalrubotS1();
+        this.props.onOpenStuduinoPortSettings();
     }
     // === Smalruby: End of studuino mode menu ===
     // === Smalruby: Start of mesh v2 menu ===
@@ -1440,6 +1448,16 @@ class MenuBar extends React.Component {
                                                     />
                                                 )}
                                             </MenuItem>
+                                            <MenuItem
+                                                data-testid="menu-smalrubot-s1-port-settings"
+                                                onClick={this.handleOpenStuduinoPortSettings}
+                                            >
+                                                <FormattedMessage
+                                                    defaultMessage="Port Settings"
+                                                    description="Menu item to open the Studuino port settings"
+                                                    id="gui.menuBar.smalrubotS1.portSettings"
+                                                />
+                                            </MenuItem>
                                         </MenuSection>
                                         {firmwareFlashSupported ? (
                                             <MenuSection>
@@ -1979,6 +1997,7 @@ MenuBar.propTypes = {
     smalrubotS1MenuOpen: PropTypes.bool, // === Smalruby: smalrubot firmware menu ===
     // === Smalruby: Start of studuino mode menu ===
     studuinoMode: PropTypes.bool,
+    onOpenStuduinoPortSettings: PropTypes.func,
     // === Smalruby: End of studuino mode menu ===
     // === Smalruby: End of extension menus ===
     mode1920: PropTypes.bool,
@@ -2230,6 +2249,9 @@ const mapDispatchToProps = (dispatch, ownProps) => ({
     onRequestCloseSmalrubotS1: () => dispatch(closeSmalrubotS1Menu()),
     onOpenSmalrubotFirmwareModal: () => dispatch(openSmalrubotFirmwareModal()),
     // === Smalruby: End of smalrubot firmware menu ===
+    // === Smalruby: Start of studuino mode menu ===
+    onOpenStuduinoPortSettings: () => dispatch(openStuduinoPortSettings()),
+    // === Smalruby: End of studuino mode menu ===
     // === Smalruby: Start of classroom button ===
     onOpenClassroomModal: () => dispatch(openClassroomModal()),
     // === Smalruby: End of classroom button ===

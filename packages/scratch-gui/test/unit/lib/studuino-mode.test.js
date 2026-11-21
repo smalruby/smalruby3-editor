@@ -8,6 +8,8 @@ import makeToolboxXML from '../../../src/lib/make-toolbox-xml';
 import {
     isStuduinoAllowedBlock,
     isStuduinoModeSettings,
+    makeStuduinoCategoryXml,
+    prependToolboxCategory,
     setStuduinoMode,
     STUDUINO_ALLOWED_BLOCKS,
 } from '../../../src/lib/studuino-mode';
@@ -142,6 +144,25 @@ describe('studuino-mode', () => {
 
         test('does nothing without a VM', () => {
             expect(setStuduinoMode(null, true)).toBeNull();
+        });
+    });
+
+    describe('ArtecRobo category', () => {
+        test('puts the port settings button first in the palette', () => {
+            const category = makeStuduinoCategoryXml({
+                name: 'アーテックロボ & <ロボ>',
+                buttonText: '入出力の設定',
+                colors: { colourPrimary: '#0fBD8C', colourTertiary: '#0B8E69' },
+            });
+            expect(category).toContain('callbackKey="STUDUINO_PORT_SETTINGS"');
+            expect(category).toContain('name="アーテックロボ &amp; &lt;ロボ&gt;"');
+            const xml = prependToolboxCategory(studuinoToolbox(), category);
+            expect(xml.indexOf('STUDUINO_PORT_SETTINGS')).toBeLessThan(xml.indexOf('toolboxitemid="events"'));
+            expect(xml.startsWith('<xml')).toBe(true);
+        });
+
+        test('leaves an empty toolbox alone', () => {
+            expect(prependToolboxCategory(null, '<category/>')).toBeNull();
         });
     });
 });
