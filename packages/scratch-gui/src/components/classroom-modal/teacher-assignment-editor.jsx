@@ -190,8 +190,21 @@ const AssignmentPageEditor = ({
                 value={page.text}
                 onChange={handleChangeText}
             />
-            <div className={styles.assignmentPageCharCount}>
-                {`${(page.text || '').length} / ${MAX_ASSIGNMENT_PAGE_TEXT_LENGTH}`}
+            <div className={styles.assignmentPageTextFooter}>
+                {/* The marks of AssignmentPageText; the student-view preview on the right shows the result. */}
+                <span
+                    className={styles.assignmentPageFormatHint}
+                    data-testid={`classroom-assignment-page-hint-${index}`}
+                >
+                    <FormattedMessage
+                        defaultMessage="1st line = heading · *word* = marker · lines starting with 1. or ・ = list · 【 】 = label · blank line = new paragraph"
+                        description="Assignment editor: the short rules of the page text formatting, under the textarea"
+                        id="gui.classroom.assignmentEditor.formatHint"
+                    />
+                </span>
+                <span className={styles.assignmentPageCharCount}>
+                    {`${(page.text || '').length} / ${MAX_ASSIGNMENT_PAGE_TEXT_LENGTH}`}
+                </span>
             </div>
         </div>
     );

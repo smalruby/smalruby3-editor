@@ -224,6 +224,8 @@ const pickSeat = async (page, seat, label) => {
     await clickTid(page, 'classroom-confirm-seat');
     await page.waitForSelector(tid('classroom-start-main'), { state: 'attached', timeout: 30000 });
     await sleep(2500); // continuable-submissions を待つ
+    // 課題パネルは参加した直後に「よく読もう… n」の間は始められない（無ければすぐ進む）
+    await page.waitForSelector(tid('classroom-start-wait'), { state: 'detached', timeout: 10000 });
 };
 
 // 提出: メニューバーの「提出する」→ 確認 → 提出できました
