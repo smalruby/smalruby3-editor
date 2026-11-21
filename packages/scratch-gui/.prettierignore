@@ -119,6 +119,8 @@ src/components/*
 !src/components/mesh-status-popup/**
 !src/components/mesh-practice-partner/
 !src/components/mesh-practice-partner/**
+!src/components/studuino-practice-board/
+!src/components/studuino-practice-board/**
 !src/components/mobile-bottom-tabs/
 !src/components/mobile-bottom-tabs/**
 !src/components/mobile-drawer/
@@ -232,6 +234,7 @@ src/containers/*
 !src/containers/koshien-mock-panel.jsx
 !src/containers/lesson-hint.jsx
 !src/containers/lesson-practice-partner.jsx
+!src/containers/studuino-practice-board.jsx
 !src/containers/lesson-analytics.jsx
 !src/containers/lesson-progress-sync.jsx
 !src/containers/lesson-goal-watcher.jsx
@@ -403,6 +406,8 @@ src/lib/libraries/extensions/*
 !src/lib/libraries/extensions/microbitMore/**
 !src/lib/libraries/extensions/smalruby-ruby/
 !src/lib/libraries/extensions/smalruby-ruby/**
+!src/lib/libraries/extensions/smalrubot-s1/
+!src/lib/libraries/extensions/smalrubot-s1/**
 !src/lib/libraries/extensions/tm2scratch/
 !src/lib/libraries/extensions/tm2scratch/**
 
@@ -479,6 +484,7 @@ test/integration/*
 !test/integration/ruby-tab.test.js
 !test/integration/smalrubot-firmware.test.js
 !test/integration/smalrubot-s1-connection-flow.test.js
+!test/integration/smalrubot-s1-legacy-card.test.js
 !test/integration/lesson-goal.test.js
 !test/integration/smalruby-lesson1-challenges-5-8.test.js
 !test/integration/smalruby-lesson1-challenges-9-11.test.js
@@ -545,6 +551,7 @@ test/unit/components/*
 !test/unit/components/lesson-hint.test.jsx
 !test/unit/components/lesson-hint-nudge.test.jsx
 !test/unit/containers/lesson-practice-partner.test.jsx
+!test/unit/containers/studuino-practice-board.test.jsx
 !test/unit/components/balloon.test.jsx
 !test/unit/components/classroom-tutorial.test.jsx
 !test/unit/components/lessons-library.test.jsx

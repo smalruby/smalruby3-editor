@@ -1,13 +1,13 @@
 {
-    "smalrubot_s1.action": {
-        "snippet": "smalrubot_s1.action(\"${1:forward}\")",
+    "studuino.action": {
+        "snippet": "studuino.action(\"${1:forward}\")",
         "description": "[進める▼]",
         "type": "function",
         "labelJa": "進める",
-        "filterText": "susumeru 進める smalrubot action forward",
+        "filterText": "susumeru 進める studuino smalrubot action forward",
         "sortText": "17_susumeru"
     },
-    "smalrubot_s1.a-forward": {
+    "studuino.a-forward": {
         "snippet": "forward",
         "description": "進める",
         "type": "enum_member",
@@ -15,7 +15,7 @@
         "filterText": "susumeru 進める forward",
         "sortText": "17z_susumeru"
     },
-    "smalrubot_s1.a-backward": {
+    "studuino.a-backward": {
         "snippet": "backward",
         "description": "バックさせる",
         "type": "enum_member",
@@ -23,7 +23,7 @@
         "filterText": "bakkusaseru バックさせる backward",
         "sortText": "17z_bakkusaseru"
     },
-    "smalrubot_s1.a-turn-left": {
+    "studuino.a-turn-left": {
         "snippet": "left",
         "description": "左に曲げる",
         "type": "enum_member",
@@ -31,7 +31,7 @@
         "filterText": "hidarini mageru 左に曲げる turn left",
         "sortText": "17z_hidarini_mageru"
     },
-    "smalrubot_s1.a-turn-right": {
+    "studuino.a-turn-right": {
         "snippet": "right",
         "description": "右に曲げる",
         "type": "enum_member",
@@ -39,7 +39,7 @@
         "filterText": "migini mageru 右に曲げる turn right",
         "sortText": "17z_migini_mageru"
     },
-    "smalrubot_s1.a-stop": {
+    "studuino.a-stop": {
         "snippet": "stop",
         "description": "止める",
         "type": "enum_member",
@@ -47,31 +47,71 @@
         "filterText": "tomeru 止める stop",
         "sortText": "17z_tomeru"
     },
-    "smalrubot_s1.action-in": {
-        "snippet": "smalrubot_s1.action(\"${1:forward}\", ${2:0.5})",
+    "studuino.action-in": {
+        "snippet": "studuino.action(\"${1:forward}\", ${2:0.5})",
         "description": "(0.5) 秒 [進める▼]",
         "type": "function",
         "labelJa": "秒進める",
-        "filterText": "byou susumeru 秒進める smalrubot action seconds",
+        "filterText": "byou susumeru 秒進める studuino smalrubot action seconds",
         "sortText": "17_byou_susumeru"
     },
-    "smalrubot_s1.bend_arm": {
-        "snippet": "smalrubot_s1.bend_arm(${1:90}, ${2:1})",
-        "description": "(1) 秒でアームを (90) 度に曲げる",
+    "studuino.bend_arm": {
+        "snippet": "studuino.bend_arm(${1:90}, ${2:1})",
+        "description": "(1) 秒でアーム（サーボモーター D10）を (90) 度に曲げる",
         "type": "function",
         "labelJa": "アームを曲げる",
-        "filterText": "aamuwo mageru アームを曲げる smalrubot bend arm",
+        "filterText": "aamuwo mageru アームを曲げる studuino smalrubot bend arm",
         "sortText": "17_aamuwo_mageru"
     },
-    "smalrubot_s1.sensor_value": {
-        "snippet": "smalrubot_s1.sensor_value(\"${1:left}\")",
-        "description": "[左▼] のセンサー",
+    "studuino.sensor_value": {
+        "snippet": "studuino.sensor_value(\"${1:light}\")",
+        "description": "[光センサー (A6)▼] の値",
         "type": "variable",
         "labelJa": "センサーの値",
-        "filterText": "sensaano atai センサーの値 smalrubot sensor value",
+        "filterText": "sensaano atai センサーの値 studuino smalrubot sensor value",
         "sortText": "17_sensaano_atai"
     },
-    "smalrubot_s1.d-left": {
+    "studuino.s-light": {
+        "snippet": "light",
+        "description": "光センサー (A6)",
+        "type": "enum_member",
+        "labelJa": "光センサー (A6)",
+        "filterText": "hikari sensaa 光センサー (A6) light",
+        "sortText": "17z_hikari_sensaa"
+    },
+    "studuino.s-ir-a4": {
+        "snippet": "ir_a4",
+        "description": "赤外線センサー（フォトリフレクタ）(A4)",
+        "type": "enum_member",
+        "labelJa": "赤外線センサー（フォトリフレクタ）(A4)",
+        "filterText": "sekigaisen sensaa foto rifurekuta 赤外線センサー（フォトリフレクタ）(A4) ir_a4",
+        "sortText": "17z_sekigaisen_sensaa_foto_rifurekuta_ir_a4"
+    },
+    "studuino.s-ir-a5": {
+        "snippet": "ir_a5",
+        "description": "赤外線センサー（フォトリフレクタ）(A5)",
+        "type": "enum_member",
+        "labelJa": "赤外線センサー（フォトリフレクタ）(A5)",
+        "filterText": "sekigaisen sensaa foto rifurekuta 赤外線センサー（フォトリフレクタ）(A5) ir_a5",
+        "sortText": "17z_sekigaisen_sensaa_foto_rifurekuta_ir_a5"
+    },
+    "studuino.s-touch": {
+        "snippet": "touch",
+        "description": "タッチセンサー (A2)",
+        "type": "enum_member",
+        "labelJa": "タッチセンサー (A2)",
+        "filterText": "tacchi sensaa タッチセンサー (A2) touch",
+        "sortText": "17z_tacchi_sensaa"
+    },
+    "studuino.s-sound": {
+        "snippet": "sound",
+        "description": "音センサー (A7)",
+        "type": "enum_member",
+        "labelJa": "音センサー (A7)",
+        "filterText": "oto sensaa 音センサー (A7) sound",
+        "sortText": "17z_oto_sensaa"
+    },
+    "studuino.d-left": {
         "snippet": "left",
         "description": "左",
         "type": "enum_member",
@@ -79,7 +119,7 @@
         "filterText": "hidari 左 left",
         "sortText": "17z_hidari"
     },
-    "smalrubot_s1.d-right": {
+    "studuino.d-right": {
         "snippet": "right",
         "description": "右",
         "type": "enum_member",
@@ -87,44 +127,100 @@
         "filterText": "migi 右 right",
         "sortText": "17z_migi"
     },
-    "smalrubot_s1.led_on": {
-        "snippet": "smalrubot_s1.led(\"${1:left}\", true)",
-        "description": "[左▼] のLEDをオンにする",
+    "studuino.led_on": {
+        "snippet": "studuino.led(\"${1:left}\", true)",
+        "description": "[左▼] のLED (左:A0, 右:A1) をオンにする",
         "type": "function",
         "labelJa": "LEDをオンにする",
-        "filterText": "ledwo on ni suru LEDをオンにする smalrubot led on",
+        "filterText": "ledwo on ni suru LEDをオンにする studuino smalrubot led on",
         "sortText": "17_ledwo_on_ni_suru"
     },
-    "smalrubot_s1.led_off": {
-        "snippet": "smalrubot_s1.led(\"${1:left}\", false)",
-        "description": "[左▼] のLEDをオフにする",
+    "studuino.led_off": {
+        "snippet": "studuino.led(\"${1:left}\", false)",
+        "description": "[左▼] のLED (左:A0, 右:A1) をオフにする",
         "type": "function",
         "labelJa": "LEDをオフにする",
-        "filterText": "ledwo off ni suru LEDをオフにする smalrubot led off",
+        "filterText": "ledwo off ni suru LEDをオフにする studuino smalrubot led off",
         "sortText": "17_ledwo_off_ni_suru"
     },
-    "smalrubot_s1.get_motor_speed": {
-        "snippet": "smalrubot_s1.get_motor_speed(\"${1:left}\")",
-        "description": "[左▼] DCモーターの速度 (%)",
+    "studuino.get_motor_speed": {
+        "snippet": "studuino.get_motor_speed(\"${1:left}\")",
+        "description": "[左▼] のDCモーター (左:M1, 右:M2) の速度 (%)",
         "type": "variable",
         "labelJa": "DCモーターの速度",
-        "filterText": "diiishii motaano sokudo DCモーターの速度 smalrubot motor speed",
+        "filterText": "diiishii motaano sokudo DCモーターの速度 studuino smalrubot motor speed",
         "sortText": "17_moatano_sokudo"
     },
-    "smalrubot_s1.set_motor_speed": {
-        "snippet": "smalrubot_s1.set_motor_speed(\"${1:left}\", ${1:50})",
-        "description": "[左▼] DCモーターの速度を (50) (%) にする",
+    "studuino.set_motor_speed": {
+        "snippet": "studuino.set_motor_speed(\"${1:left}\", ${1:50})",
+        "description": "[左▼] のDCモーター (左:M1, 右:M2) の速度を (50) (%) にする",
         "type": "function",
         "labelJa": "DCモーターの速度にする",
-        "filterText": "diishii motaano sokudoni suru DCモーターの速度にする smalrubot set motor speed",
+        "filterText": "diishii motaano sokudoni suru DCモーターの速度にする studuino smalrubot set motor speed",
         "sortText": "17_motaano_sokudoni_suru"
     },
-    "smalrubot_s1.arm_calibration=": {
-        "snippet": "smalrubot_s1.arm_calibration = ${1:0}",
-        "description": "アームを (0) 度調整する",
+    "studuino.dc_motor": {
+        "snippet": "studuino.dc_motor(\"${1:M1}\", \"${2:normal}\")",
+        "description": "DCモーター [M1▼] を [正転させる▼]",
+        "type": "function",
+        "labelJa": "DCモーターを正転させる",
+        "filterText": "dcmoutaawo seitensaseru DCモーターを正転させる studuino smalrubot dc_motor motor M1 M2",
+        "sortText": "17_dcmoutaawo_ugokasu"
+    },
+    "studuino.dc_motor-in": {
+        "snippet": "studuino.dc_motor(\"${1:M1}\", \"${2:normal}\", ${3:0.5})",
+        "description": "(0.5) 秒 DCモーター [M1▼] を [正転させる▼]",
+        "type": "function",
+        "labelJa": "秒DCモーターを正転させる",
+        "filterText": "byou dcmoutaawo seitensaseru 秒DCモーターを正転させる studuino smalrubot dc_motor motor seconds",
+        "sortText": "17_byou_dcmoutaawo_ugokasu"
+    },
+    "studuino.m-normal": {
+        "snippet": "normal",
+        "description": "正転させる",
+        "type": "enum_member",
+        "labelJa": "正転させる",
+        "filterText": "seitensaseru 正転させる normal",
+        "sortText": "17z_motor_seitensaseru"
+    },
+    "studuino.m-reverse": {
+        "snippet": "reverse",
+        "description": "逆転させる",
+        "type": "enum_member",
+        "labelJa": "逆転させる",
+        "filterText": "gyakutensaseru 逆転させる reverse",
+        "sortText": "17z_motor_gyakutensaseru"
+    },
+    "studuino.m-stop": {
+        "snippet": "stop",
+        "description": "止める",
+        "type": "enum_member",
+        "labelJa": "止める",
+        "filterText": "tomeru 止める stop",
+        "sortText": "17z_motor_tomeru"
+    },
+    "studuino.p-M1": {
+        "snippet": "M1",
+        "description": "DCモーター M1",
+        "type": "enum_member",
+        "labelJa": "DCモーター M1",
+        "filterText": "dcmoutaa m1 DCモーター M1",
+        "sortText": "17z_dcmoutaa_m1"
+    },
+    "studuino.p-M2": {
+        "snippet": "M2",
+        "description": "DCモーター M2",
+        "type": "enum_member",
+        "labelJa": "DCモーター M2",
+        "filterText": "dcmoutaa m2 DCモーター M2",
+        "sortText": "17z_dcmoutaa_m2"
+    },
+    "studuino.arm_calibration=": {
+        "snippet": "studuino.arm_calibration = ${1:0}",
+        "description": "アーム（サーボモーター D10）を (0) 度調整する",
         "type": "function",
         "labelJa": "アームを調整する",
-        "filterText": "aamuwo chouseisuru アームを調整する smalrubot arm calibration",
+        "filterText": "aamuwo chouseisuru アームを調整する studuino smalrubot arm calibration",
         "sortText": "17_aamuwo_chouseisuru"
     }
 }

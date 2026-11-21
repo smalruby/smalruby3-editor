@@ -13,7 +13,7 @@ const SmalrubotS1InitialStep = (props) => (
             <div className={initialStyles.intro}>
                 <FormattedMessage
                     defaultMessage={
-                        'How do you want to use Smalrubot S1? ' +
+                        'How do you want to use Studuino? ' +
                         'If this is your first time, please write the firmware first.'
                     }
                     description="Introduction text on the Smalrubot S1 initial step"
@@ -35,7 +35,7 @@ const SmalrubotS1InitialStep = (props) => (
                     </div>
                     <div className={initialStyles.buttonDescription}>
                         <FormattedMessage
-                            defaultMessage="Connect to a Smalrubot S1 with firmware already written."
+                            defaultMessage="Connect to a Studuino with firmware already written."
                             description="Description for the connect option"
                             id="gui.connection.smalrubotS1Initial.connectDescription"
                         />
@@ -55,7 +55,7 @@ const SmalrubotS1InitialStep = (props) => (
                     </div>
                     <div className={initialStyles.buttonDescription}>
                         <FormattedMessage
-                            defaultMessage="Write firmware to a new Smalrubot S1."
+                            defaultMessage="Write firmware to a new Studuino."
                             description="Description for the flash firmware option"
                             id="gui.connection.smalrubotS1Initial.flashFirmwareDescription"
                         />
