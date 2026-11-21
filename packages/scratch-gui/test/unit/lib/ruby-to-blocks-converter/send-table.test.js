@@ -5,6 +5,7 @@ import ControlConverter from '../../../../src/lib/ruby-to-blocks-converter/contr
 import EventConverter from '../../../../src/lib/ruby-to-blocks-converter/event';
 import FaceSensingConverter from '../../../../src/lib/ruby-to-blocks-converter/face_sensing';
 import LooksConverter from '../../../../src/lib/ruby-to-blocks-converter/looks';
+import MakeyMakeyConverter from '../../../../src/lib/ruby-to-blocks-converter/makeymakey';
 import MotionConverter from '../../../../src/lib/ruby-to-blocks-converter/motion';
 import MusicConverter from '../../../../src/lib/ruby-to-blocks-converter/music';
 import OperatorsConverter from '../../../../src/lib/ruby-to-blocks-converter/operators';
@@ -55,6 +56,7 @@ describe('RubyToBlocksConverter/send table', () => {
         boost: BoostConverter,
         wedo2: Wedo2Converter,
         faceSensing: FaceSensingConverter,
+        makeymakey: MakeyMakeyConverter,
     };
 
     test.each(Object.keys(tables))('every opcode of the %s table has a generator', (area) => {

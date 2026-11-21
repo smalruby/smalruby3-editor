@@ -254,8 +254,9 @@ registerSendTable(converter, MOTION_SENDS);
 | boost        | 10     | `self.when(:boost_color, ...)` / `self.when(:boost_tilted, ...)`（シンボルでハットを選ぶ）                                                                       |
 | wedo2        | 11     | `wedo2`（Ruby の式のレシーバーを作る）                                                                                                                           |
 | face_sensing | 9      | `face_sensing`（Ruby の式のレシーバーを作る）                                                                                                                    |
+| makeymakey   | 2      | `makey`（Ruby の式のレシーバーを作る）、v1 の `self.when(:makey_key_pressed, ...)`（シンボルでハットを選ぶ。ほかの `self.when` のあとに登録する）                |
 
-拡張機能は pen・music・text2speech・translate・video・boost・wedo2・face_sensing を移した。残り（ev3・microbit・micro:bit More・g2s・koshien・mesh など）は、同じ形（`changesReceiver` と `menus`）で 1 つずつ移す。
+拡張機能は pen・music・text2speech・translate・video・boost・wedo2・face_sensing・makeymakey を移した。残り（ev3・microbit・micro:bit More・g2s・koshien・mesh など）は、同じ形（`changesReceiver` と `menus`）で 1 つずつ移す。
 
 ### 表の列
 
