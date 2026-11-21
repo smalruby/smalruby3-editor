@@ -653,6 +653,14 @@ const serialize = function (runtime, targetId) {
     // Assemble extension list
     obj.extensions = Array.from(extensions);
 
+    // === Smalruby: Start of extensionStorage ===
+    // Project-wide extension settings (e.g. Studuino mode and port settings). Only written when not empty
+    // so that ordinary projects keep the same project.json. Scratch ignores unknown top-level keys.
+    if (runtime.extensionStorage && Object.keys(runtime.extensionStorage).length > 0) {
+        obj.extensionStorage = JSON.parse(JSON.stringify(runtime.extensionStorage));
+    }
+    // === Smalruby: End of extensionStorage ===
+
     // Assemble metadata
     const meta = Object.create(null);
     meta.semver = '3.0.0';
@@ -1455,6 +1463,15 @@ const deserialize = function (json, runtime, zip, isSingleSprite) {
     } else {
         runtime.origin = null;
     }
+
+    // === Smalruby: Start of extensionStorage ===
+    // Restore project-wide extension settings (whole projects only; a sprite has no such settings).
+    if (!isSingleSprite) {
+        const storage = json.extensionStorage;
+        runtime.extensionStorage = (storage && typeof storage === 'object' && !Array.isArray(storage)) ?
+            JSON.parse(JSON.stringify(storage)) : {};
+    }
+    // === Smalruby: End of extensionStorage ===
 
     // First keep track of the current target order in the json,
     // then sort by the layer order property before parsing the targets

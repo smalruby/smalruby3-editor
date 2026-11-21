@@ -28,6 +28,8 @@ scratch-vm の **upstream ファイルに埋め込んだ Smalruby マーカー**
 | `webpack.config.js` | scratch api proxy endpoint | `DefinePlugin` に `process.env.SCRATCH_API_PROXY_ENDPOINT` を追加。scratch-vm 単体ビルド（`dist/web`・playground）で `process` が未定義にならないようにする。scratch-gui は scratch-vm を `src` からバンドルし、自前の `DefinePlugin`（同名キー・既定 `https://api.smalruby.app`）で置き換える |
 | `src/virtual-machine.js` | mesh v1 to v2 migration | mesh v1→v2 移行の統合（**同名マーカー 4 ペア**）: ① `serialization/smalruby-migration.js` からの import、② プロジェクトロード時の `options.migrateMeshV1ToV2` 分岐、③ `hasMeshV1Project` / `hasKoshienProject` / `migrateMeshV1InBackpackBlocks` / `migrateMeshV1InBackpackSprite` メソッド群、④ `shareBlocksToTarget` での stray v1 opcode 書き換え。mesh v1 サービス廃止後もプロジェクト/バックパックを壊さないための後方互換 |
 | `src/virtual-machine.js` | mesh v1 to v2 migration on install | `installTargets` の先頭で、読み込んだターゲットの v1 opcode と拡張 ID `mesh` を v2 に書き換える（`migrateMeshV1InTargets`）。v1 の拡張機能本体を削除したので、`migrateMeshV1ToV2` を付けない読み込み（初期プロジェクト・スプライト追加など）でも `mesh` をロードしに行かないようにする |
+| `src/engine/runtime.js` | extensionStorage / extensionStorage reset | 作品全体の拡張機能の設定 `runtime.extensionStorage`（拡張機能の ID → 値。TurboWarp と同じ形）を constructor で用意し、`dispose()` で空にする（前の作品の設定を持ちこさない）。Studuino モードの状態とポートの設定（`smalrubotS1`）が使う |
+| `src/serialization/sb3.js` | extensionStorage | `serialize` で `runtime.extensionStorage` が空でなければ project.json のトップレベル `extensionStorage` に書き、`deserialize` で作品全体を読むとき（スプライトでないとき）に戻す（無ければ `{}`）。空なら書かないので、通常の作品の project.json は変わらない。本家 Scratch は知らないキーを無視して読む |
 | `src/extension-support/extension-manager.js` | builtin extension entries | `builtinExtensions` オブジェクトリテラル内の直書き 2 行（`meshV2` / `smalrubotS1`）。新規拡張はこの形式ではなく `smalruby-extensions.js` 経由で登録する（`.claude/rules/scratch-vm/development.md`） |
 
 ## 関連ファイル
