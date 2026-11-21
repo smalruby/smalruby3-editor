@@ -3644,6 +3644,225 @@ const ctrlLesson3 = defineLesson({
     ],
 });
 
+// レッスン 4「はなれた場所から計測・制御しよう（IoT）」（#2173・ワークシート第 5 時）: メッシュで、計測する側（4-1）と
+// 仕事をする側（4-2）に分かれ、合図でもモーターを動かす（4-3）。ペアなら 1 人が 4-1、もう 1 人が 4-2 を同時にやって
+// 交代する。ひとりのときはチャットのコースと同じ練習相手（シマネコ）。メッシュのつなぎ方のページはチャットのコースの
+// 共通の文（connectStep）。メッシュで相手に届く名前は ja と ja-Hira で同じ（漢字を使わない）、en は別の名前
+const CTRL_MESH_START = { extensions: [CTRL_EXTENSION, 'meshV2'] };
+const CTRL_L4_WORDS = {
+    ja: {
+        v: '$あかるさ',
+        name: 'あかるさ',
+        go: 'うごけ',
+        partner: 'シマネコ',
+        bright: '明るくする',
+        dark: '暗くする',
+    },
+    'ja-Hira': {
+        v: '$あかるさ',
+        name: 'あかるさ',
+        go: 'うごけ',
+        partner: 'シマネコ',
+        bright: 'あかるくする',
+        dark: 'くらくする',
+    },
+    en: { v: '$brightness', name: 'brightness', go: 'move', partner: 'Shimacat', bright: 'Brighten', dark: 'Darken' },
+};
+const ctrlL4Code = (make) =>
+    Object.fromEntries(Object.entries(CTRL_L4_WORDS).map(([locale, words]) => [locale, make(words)]));
+const ctrlL4Text = (key) =>
+    Object.fromEntries(Object.entries(CTRL_L4_WORDS).map(([locale, words]) => [locale, words[key]]));
+const CTRL_MESH_BRIGHTNESS = ['あかるさ', 'brightness'];
+const CTRL_MESH_BRIGHTNESS_NAME = new RegExp(`^(${CTRL_MESH_BRIGHTNESS.join('|')})$`);
+const CTRL_GO_MESSAGE = ['うごけ', 'move'];
+// モーターを動かすブロック（どれで動かしてもよい）
+const CTRL_MOTOR_OPCODES = ['controlMotorAndStopAfter', 'controlMotor', 'action', 'actionAndStopAfter'].map(
+    studuinoOpcode,
+);
+const ctrlLesson4 = defineLesson({
+    id: 'ctrl-l4',
+    challenges: [
+        // 1 明るさを届けよう（計測する側）: 光センサーの値を、メッシュで共有する変数「あかるさ」に入れ続ける。届いた値は
+        // 練習相手のパネルの「〈相手〉に届いた」に出る（watch だけの練習相手）
+        {
+            id: 'ctrl-l4-send',
+            card: { category: CATEGORIES.EXTENSIONS, main: CATEGORIES.EXTENSIONS },
+            task: challengeMessage('ctrl-l4-send', 'task'),
+            setup: CTRL_MESH_START,
+            activityDiagram: true,
+            allowedBlocks: {
+                event: ['event_whenflagclicked'],
+                control: ['control_forever'],
+                data: ['data_setvariableto', 'data_variable'],
+                [CTRL_EXTENSION]: [CTRL_SENSOR],
+            },
+            partner: { name: ctrlL4Text('partner'), buttons: [], replies: [], watch: [ctrlL4Text('name')] },
+            steps: withDiagramFirst('ctrl-l4-send', [
+                connectStep(),
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: ctrlL4Code(
+                        (w) =>
+                            `when_flag_clicked do\n  loop do\n    ${w.v} = studuino.sensor_value("light")\n  end\nend\n`,
+                    ),
+                },
+                { target: HINT_TARGETS.PRACTICE_BOARD },
+            ]),
+            debug: debugTips('ctrl-l4-send', 2),
+            // 旗のスクリプトで、センサーの値をすべてのスプライト用の変数「あかるさ」に入れ続け、2 種類以上の値を入れた
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenflagclicked' },
+                    blocks: [
+                        'control_forever',
+                        CTRL_SENSOR,
+                        {
+                            opcode: 'data_setvariableto',
+                            args: { VARIABLE: CTRL_MESH_BRIGHTNESS_NAME },
+                            distinct: 'VALUE',
+                            count: 2,
+                        },
+                    ],
+                },
+                { type: 'variable', name: CTRL_MESH_BRIGHTNESS, target: 'stage', value: { gte: 0 } },
+            ],
+            quiz: challengeQuiz('ctrl-l4-send', 0),
+            code: ctrlL4Code(
+                (w) => `when_flag_clicked do\n  loop do\n    ${w.v} = studuino.sensor_value("light")\n  end\nend\n`,
+            ),
+        },
+        // 2 届いた明るさで LED（仕事をする側）: 相手から届いた「あかるさ」（メッシュのセンサーの値）が 500 より小さければ
+        // LED をつける。ひとりなら練習相手の「明るくする」「暗くする」ボタンで値を変える
+        {
+            id: 'ctrl-l4-receive-led',
+            card: { category: CATEGORIES.EXTENSIONS, main: CATEGORIES.EXTENSIONS },
+            task: challengeMessage('ctrl-l4-receive-led', 'task'),
+            setup: CTRL_MESH_START,
+            activityDiagram: true,
+            allowedBlocks: {
+                event: ['event_whenflagclicked'],
+                control: ['control_forever', 'control_if_else'],
+                operators: [{ opcode: 'operator_lt', inputs: { OPERAND2: 500 } }],
+                [CTRL_EXTENSION]: [CTRL_LED_ON, CTRL_LED_OFF],
+                meshV2: ['meshV2_getSensorValue'],
+            },
+            partner: {
+                name: ctrlL4Text('partner'),
+                buttons: [
+                    { label: ctrlL4Text('bright'), set: { variable: ctrlL4Text('name'), value: '800' } },
+                    { label: ctrlL4Text('dark'), set: { variable: ctrlL4Text('name'), value: '100' } },
+                ],
+                replies: [],
+            },
+            steps: withDiagramFirst('ctrl-l4-receive-led', [
+                connectStep(),
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: 'when_flag_clicked do\n  loop do\n    if false\n    else\n    end\n  end\nend\n',
+                },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: ctrlL4Code((w) => `if mesh.sensor_value("${w.name}") < 500\nelse\nend\n`),
+                },
+                {
+                    target: HINT_TARGETS.CODE_AREA,
+                    blocks: ctrlL4Code(
+                        (w) =>
+                            `if mesh.sensor_value("${w.name}") < 500\n  studuino.led("left", true)\nelse\n` +
+                            '  studuino.led("left", false)\nend\n',
+                    ),
+                },
+                { target: HINT_TARGETS.GREEN_FLAG },
+            ]),
+            debug: debugTips('ctrl-l4-receive-led', 2),
+            // 旗のスクリプトで、メッシュで届いた「あかるさ」を読んで分岐し、LED をつけたり消したりした
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenflagclicked' },
+                    blocks: [
+                        'control_forever',
+                        'control_if_else',
+                        { opcode: 'meshV2_getSensorValue', args: { NAME: CTRL_MESH_BRIGHTNESS_NAME } },
+                        CTRL_LED_ON,
+                        CTRL_LED_OFF,
+                    ],
+                },
+                { type: 'boardCommand', kind: 'led', value: 'on' },
+                { type: 'boardCommand', kind: 'led', value: 'off' },
+            ],
+            quiz: challengeQuiz('ctrl-l4-receive-led', 0),
+            code: ctrlL4Code(
+                (w) =>
+                    `when_flag_clicked do\n  loop do\n    if mesh.sensor_value("${w.name}") < 500\n` +
+                    '      studuino.led("left", true)\n    else\n      studuino.led("left", false)\n    end\n' +
+                    '  end\nend\n',
+            ),
+        },
+        // 3 合図でモーターを動かそう: スペースキーで合図「うごけ」を送り、「うごけ」を受け取ったら DC モーター (M1) を
+        // 1 秒正転させる。自分の送った合図も自分に届くので、ひとりでもできる（練習相手のボタンでも送れる）
+        {
+            id: 'ctrl-l4-signal-motor',
+            card: { category: CATEGORIES.EVENTS, main: CATEGORIES.EVENTS },
+            task: challengeMessage('ctrl-l4-signal-motor', 'task'),
+            setup: CTRL_MESH_START,
+            activityDiagram: true,
+            allowedBlocks: {
+                event: [
+                    { opcode: 'event_whenkeypressed', fields: { KEY_OPTION: 'space' } },
+                    'event_broadcast',
+                    'event_whenbroadcastreceived',
+                ],
+                [CTRL_EXTENSION]: [CTRL_MOTOR_SECS],
+            },
+            partner: {
+                name: ctrlL4Text('partner'),
+                buttons: [{ label: ctrlL4Text('go'), broadcast: ctrlL4Text('go') }],
+                replies: [],
+            },
+            steps: withDiagramFirst('ctrl-l4-signal-motor', [
+                connectStep(),
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: ctrlL4Code((w) => `when_key_pressed("space") do\n  broadcast("${w.go}")\nend\n`),
+                },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: ctrlL4Code(
+                        (w) => `when_receive("${w.go}") do\n  studuino.dc_motor("M1", "normal", 1)\nend\n`,
+                    ),
+                },
+                { target: HINT_TARGETS.KEYBOARD },
+            ]),
+            debug: debugTips('ctrl-l4-signal-motor', 2),
+            // スペースキーのスクリプトで「うごけ」を送り、「うごけ」を受け取ったスクリプトでモーターを動かした（メッシュで
+            // 届いた合図は送り手を記録しないので sentBy は使わない）
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenkeypressed', key: 'space' },
+                    blocks: [
+                        { opcode: CHAT_SEND_OPCODES, args: { BROADCAST_OPTION: messageMatcher(CTRL_GO_MESSAGE) } },
+                    ],
+                },
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenbroadcastreceived', message: CTRL_GO_MESSAGE },
+                    blocks: [{ opcode: CTRL_MOTOR_OPCODES }],
+                },
+                { type: 'boardCommand', kind: 'motor', value: 'normal' },
+            ],
+            quiz: challengeQuiz('ctrl-l4-signal-motor', 0),
+            code: ctrlL4Code(
+                (w) =>
+                    `when_key_pressed("space") do\n  broadcast("${w.go}")\nend\n\n` +
+                    `when_receive("${w.go}") do\n  studuino.dc_motor("M1", "normal", 1)\nend\n`,
+            ),
+        },
+    ],
+});
+
 export const COURSES = [
     defineCourse({
         id: 'kyou-kara-programmer',
@@ -3662,7 +3881,7 @@ export const COURSES = [
     defineCourse({
         id: 'jidou-sensor-motor',
         language: LANGUAGES.BLOCKS,
-        lessons: [ctrlLesson1, ctrlLesson2, ctrlLesson3],
+        lessons: [ctrlLesson1, ctrlLesson2, ctrlLesson3, ctrlLesson4],
     }),
 ];
 
