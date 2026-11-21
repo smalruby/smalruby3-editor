@@ -25,7 +25,7 @@ const SmalrubotS1ConnectingStep = (props) => (
                 <div className={connectingStyles.description}>
                     <FormattedMessage
                         defaultMessage={
-                            'Please select your Smalrubot S1 in the serial port dialog. ' +
+                            'Please select your Studuino in the serial port dialog. ' +
                             'If the dialog does not appear, click "Back" and try again.'
                         }
                         description="Instruction shown while waiting for serial port selection"
