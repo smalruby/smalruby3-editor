@@ -46,16 +46,28 @@ describe('StudentJoinedConfirmation', () => {
         expect(onClose).toHaveBeenCalledTimes(1);
     });
 
-    test('レッスンの課題はお知らせと「はじめる」（レッスン表を開く）', () => {
+    test('レッスンの課題はゴールのカードと「はじめる」（レッスン表を開く）', () => {
         const onStartLesson = jest.fn();
         const onClose = jest.fn();
         const { getByTestId } = renderJoined({
-            studentLesson: { submitWork: false },
+            studentLesson: {
+                courseId: 'kyou-kara-programmer',
+                challengeIds: ['blocks-l1-key-sound', 'blocks-l1-arrow-move', 'blocks-l1-click-say'],
+                requiredChallengeIds: ['blocks-l1-click-say'],
+                completion: { type: 'count', count: 2 },
+                submitWork: false,
+            },
             startMethod: { main: 'lesson', others: [] },
             onClose,
             onStartLesson,
         });
         expect(getByTestId('classroom-joined-lesson-notice')).toBeInTheDocument();
+        expect(getByTestId('classroom-joined-goal-count')).toHaveTextContent(
+            'Clear 2 challenges (be sure to do the 1 marked ★)',
+        );
+        expect(getByTestId('classroom-joined-goal-next')).toHaveTextContent('Then the assignment is cleared!');
+        // no wait on the joined confirmation (there are no pages to read)
+        expect(getByTestId('classroom-start-main')).not.toBeDisabled();
         fireEvent.click(getByTestId('classroom-start-main'));
         expect(onStartLesson).toHaveBeenCalledTimes(1);
         expect(onClose).not.toHaveBeenCalled();

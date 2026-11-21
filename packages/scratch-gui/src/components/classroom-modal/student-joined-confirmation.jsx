@@ -4,37 +4,9 @@ import { FormattedMessage } from 'react-intl';
 import { formatStudentClassName } from '../../lib/classroom-class-label.js';
 import styles from './classroom-modal.css';
 import ErrorDisplay from './error-display.jsx';
+import StudentAssignmentGoal from './student-assignment-goal.jsx';
 import StudentPreviousComment from './student-previous-comment.jsx';
 import StudentStartMethod from './student-start-method.jsx';
-
-/**
- * The one-line notice of a lesson assignment (#1599): tell right after joining
- * that it is a lesson assignment and when to submit, so students do not ask
- * "where is the submit button?".
- * @param {object} props - component props
- * @param {object} props.lesson - normalized lesson setting
- * @returns {React.ReactElement} the text
- */
-const LessonNextSteps = ({ lesson }) =>
-    lesson.submitWork ? (
-        <FormattedMessage
-            defaultMessage="This is a lesson assignment. Go through the lessons; once you meet the goal, make your own program and submit it."
-            description="Next steps after joining a lesson assignment that also asks for a work submission"
-            id="gui.classroom.studentJoined.lessonNextSteps"
-        />
-    ) : (
-        <FormattedMessage
-            defaultMessage="This is a lesson assignment. Go through the lessons; once you meet the goal, the assignment is cleared."
-            description="Next steps after joining a lesson assignment (no work submission)"
-            id="gui.classroom.studentJoined.lessonNextStepsNoSubmit"
-        />
-    );
-
-LessonNextSteps.propTypes = {
-    lesson: PropTypes.shape({ submitWork: PropTypes.bool }).isRequired,
-};
-
-export { LessonNextSteps };
 
 const StudentJoinedConfirmation = ({
     continueOptions,
@@ -75,11 +47,11 @@ const StudentJoinedConfirmation = ({
             )}
         </div>
         {/* No "what to do next" text: the step band at the top tells where the
-            student is (#1792). A lesson assignment keeps its one-line notice of
-            when to submit (#1599). */}
+            student is (#1792). A lesson assignment shows its goal card: how many
+            challenges to clear and when to submit (#1599). */}
         {studentLesson && (
-            <div className={styles.joinHintText} data-testid="classroom-joined-lesson-notice">
-                <LessonNextSteps lesson={studentLesson} />
+            <div data-testid="classroom-joined-lesson-notice">
+                <StudentAssignmentGoal dataTestId="classroom-joined-goal" lesson={studentLesson} />
             </div>
         )}
         <StudentPreviousComment previousComment={joinedInfo.previousComment} />
@@ -113,7 +85,10 @@ StudentJoinedConfirmation.propTypes = {
         previousComment: PropTypes.object,
     }).isRequired,
     // normalized lesson setting of the joined assignment (null = not a lesson assignment)
-    studentLesson: PropTypes.shape({ submitWork: PropTypes.bool }),
+    studentLesson: PropTypes.shape({
+        challengeIds: PropTypes.arrayOf(PropTypes.string),
+        submitWork: PropTypes.bool,
+    }),
     // decideStartMethod の結果 (#1793)
     startMethod: PropTypes.shape({
         main: PropTypes.string.isRequired,
