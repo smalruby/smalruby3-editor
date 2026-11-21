@@ -32,10 +32,12 @@ const numberArg = (input, defaultValue, shadow = 'math_number') => ({ kind: 'num
 /**
  * A string (or a value block) put into an input with a text shadow (`ask("name?")`).
  * @param {string} input - The name of the input (`QUESTION`).
- * @param {string} defaultValue - The value of the shadow when the argument is a block.
+ * @param {string} [defaultValue] - The value of the shadow when the argument is a block.
+ * @param {object} [options] - Options.
+ * @param {boolean} [options.number] - Takes a number too (`translate.call(1, "ja")`).
  * @returns {object} The argument of a row.
  */
-const textArg = (input, defaultValue) => ({ kind: 'text', input, defaultValue });
+const textArg = (input, defaultValue, { number = false } = {}) => ({ kind: 'text', input, defaultValue, number });
 
 /**
  * A string put into a menu block of an input (`go_to("Abby")` → `motion_goto_menu`).
@@ -48,15 +50,18 @@ const textArg = (input, defaultValue) => ({ kind: 'text', input, defaultValue })
  *     sprite does not have, ...).
  * @param {boolean} [options.number] - Takes a number or a block (put into the input as it is)
  *     instead of a string (`play_drum(drum: 1, ...)` → `music_menu_DRUM`).
+ * @param {boolean} [options.orBlock] - Takes a string or a value block (put into the input as it
+ *     is, without a menu behind it: `translate.call("hi", $l)`).
  * @returns {object} The argument of a row.
  */
-const menuArg = (input, menuOpcode, field = input, { validate = null, number = false } = {}) => ({
+const menuArg = (input, menuOpcode, field = input, { validate = null, number = false, orBlock = false } = {}) => ({
     kind: 'menu',
     input,
     menuOpcode,
     field,
     validate,
     number,
+    orBlock,
 });
 
 /**
@@ -150,9 +155,10 @@ const acceptsArg = (converter, spec, arg) => {
         case 'number':
             return converter._isNumberOrBlock(arg);
         case 'text':
-            return converter._isStringOrBlock(arg);
+            return spec.number ? converter._isNumberOrStringOrBlock(arg) : converter._isStringOrBlock(arg);
         case 'menu':
-            return spec.number ? converter._isNumberOrBlock(arg) : converter._isString(arg);
+            if (spec.number) return converter._isNumberOrBlock(arg);
+            return spec.orBlock ? converter._isStringOrBlock(arg) : converter._isString(arg);
         case 'note':
             return converter._isNumberOrBlock(arg);
         case 'menuInput':
