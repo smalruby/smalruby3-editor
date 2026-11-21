@@ -74,6 +74,10 @@ import {downloadBlocksAsImage} from '../lib/blocks-screenshot';
 // === Smalruby: Start of DNCL block filtering ===
 import {DNCL_ALLOWED_BLOCKS} from '../lib/dncl/dncl-block-filter';
 // === Smalruby: End of DNCL block filtering ===
+// === Smalruby: Start of studuino mode palette ===
+import {STUDUINO_ALLOWED_BLOCKS} from '../lib/studuino-mode';
+import {isStuduinoMode} from '../reducers/studuino-mode';
+// === Smalruby: End of studuino mode palette ===
 // === Smalruby: Start of stale block delete event guard ===
 import {createStaleBlockDeleteGuard} from '../lib/stale-block-delete-guard';
 // === Smalruby: End of stale block delete event guard ===
@@ -335,7 +339,8 @@ class Blocks extends React.Component {
             this.props.selectedBlocks !== nextProps.selectedBlocks ||
             this.props.tutorialAllowedBlocks !== nextProps.tutorialAllowedBlocks ||
             this.props.paletteVisible !== nextProps.paletteVisible ||
-            this.props.dnclMode !== nextProps.dnclMode // === Smalruby: DNCL block filtering ===
+            this.props.dnclMode !== nextProps.dnclMode || // === Smalruby: DNCL block filtering ===
+            this.props.studuinoMode !== nextProps.studuinoMode
             // === Smalruby: End of toolbox filters and palette toggle ===
         );
     }
@@ -349,7 +354,8 @@ class Blocks extends React.Component {
         // If selectedBlocks, tutorialAllowedBlocks, or dnclMode changed, update toolbox
         if (this.props.selectedBlocks !== prevProps.selectedBlocks ||
             this.props.tutorialAllowedBlocks !== prevProps.tutorialAllowedBlocks ||
-            this.props.dnclMode !== prevProps.dnclMode) { // === Smalruby: DNCL block filtering ===
+            this.props.dnclMode !== prevProps.dnclMode || // === Smalruby: DNCL block filtering ===
+            this.props.studuinoMode !== prevProps.studuinoMode) {
             const toolboxXML = this.getToolboxXML();
             if (toolboxXML) {
                 this.props.updateToolboxState(toolboxXML);
@@ -780,6 +786,11 @@ class Blocks extends React.Component {
      * @returns {?Array.<string>} allowed opcodes.
      */
     getTutorialAllowedBlockIds () {
+        // === Smalruby: Start of studuino mode palette ===
+        // Studuino mode narrows the palette the same way (the Variables flyout keeps only number variables,
+        // My Blocks is hidden). It has priority over DNCL mode and lessons: the project can only use these blocks.
+        if (this.props.studuinoMode) return STUDUINO_ALLOWED_BLOCKS.slice();
+        // === Smalruby: End of studuino mode palette ===
         if (this.props.dnclMode) return null;
         const ids = allowedBlocksToIds(this.props.tutorialAllowedBlocks);
         if (!ids || ids.length === 0 || ids.length >= TOTAL_DEFAULT_BLOCKS) return null;
@@ -793,6 +804,9 @@ class Blocks extends React.Component {
      * @returns {?object} `{opcode: {fields, inputs}}` (lib/lessons/block-defaults.js).
      */
     getTutorialBlockDefaults () {
+        // === Smalruby: Start of studuino mode palette ===
+        if (this.props.studuinoMode) return null;
+        // === Smalruby: End of studuino mode palette ===
         if (this.props.dnclMode) return null;
         return allowedBlockDefaults(this.props.tutorialAllowedBlocks, this.props.locale);
     }
@@ -820,7 +834,7 @@ class Blocks extends React.Component {
 
             // === Smalruby: Start of DNCL block filtering ===
             // DNCL mode has the absolute highest priority for block filtering.
-            if (this.props.dnclMode) {
+            if (this.props.dnclMode && !this.props.studuinoMode) { // === Smalruby: studuino mode palette ===
                 onlyBlocks = DNCL_ALLOWED_BLOCKS.join(',');
             }
             // === Smalruby: End of DNCL block filtering ===
@@ -862,7 +876,8 @@ class Blocks extends React.Component {
                 getColorsForMode(this.props.colorMode),
                 onlyBlocks,
                 !!onlyBlocks, // isOnlyBlocksSpecified: true if onlyBlocks has a value
-                this.props.dnclMode, // === Smalruby: hide extensions in DNCL mode ===
+                // === Smalruby: hide extensions in DNCL mode and studuino mode ===
+                this.props.dnclMode || this.props.studuinoMode,
                 dynamicCategoryIds // === Smalruby: lesson dynamic category filtering ===
             // === Smalruby: End of only blocks filter ===
             );
@@ -1417,6 +1432,9 @@ Blocks.propTypes = {
     stageSize: PropTypes.oneOf(Object.keys(STAGE_DISPLAY_SIZES)).isRequired,
     colorMode: PropTypes.oneOf(Object.keys(colorModeMap)),
     dnclMode: PropTypes.bool, // === Smalruby: DNCL block filtering ===
+    // === Smalruby: Start of studuino mode palette ===
+    studuinoMode: PropTypes.bool,
+    // === Smalruby: End of studuino mode palette ===
     toolboxXML: PropTypes.string,
     updateMetrics: PropTypes.func,
     updateToolboxState: PropTypes.func,
@@ -1475,6 +1493,9 @@ const mapStateToProps = state => ({
     locale: state.locales.locale,
     messages: state.locales.messages,
     dnclMode: state.scratchGui.dnclMode.dnclMode, // === Smalruby: DNCL block filtering ===
+    // === Smalruby: Start of studuino mode palette ===
+    studuinoMode: isStuduinoMode(state),
+    // === Smalruby: End of studuino mode palette ===
     // === Smalruby: Start of toolbox filters ===
     selectedBlocks: state.scratchGui.blockDisplay.selectedBlocks,
     // === Smalruby: End of toolbox filters ===

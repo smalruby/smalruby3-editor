@@ -20,6 +20,8 @@ export default {
     'gui.menuBar.meshV2': 'メッシュ',
     'gui.menuBar.smalrubotS1': 'アーテックロボ',
     'gui.menuBar.smalrubotS1.flashFirmware': 'ファームウェア書き込み',
+    'gui.menuBar.smalrubotS1.enterStuduinoMode': 'Studuino モード（Studuino に書きこむ）',
+    'gui.menuBar.smalrubotS1.exitStuduinoMode': '通常モード（つないで動かす）にもどす',
     'gui.smalrubotFirmware.title': 'Studuino ファームウェア',
     'gui.smalrubotFirmware.description':
         'Studuino 用のファームウェアを基板に書き込みます。USBケーブルで基板を接続してから、下のボタンを押してシリアルポート選択ダイアログで、お使いの Studuino を選んでください。',

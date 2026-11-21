@@ -5,7 +5,7 @@
 - **Smalruby ランタイム対応**: ❌（smalruby3 gem では動かない。プログラムを hex にして Studuino に書きこむ、ブラウザ専用の機能）
 - **デフォルト表示**: —（拡張機能ではなく「動かし方」。アーテックロボ（Studuino）の拡張機能の中で選ぶ）
 
-> **🚧 このページはすべて設計（これから作る）**。まだ実装していない。このあとの sub-issue
+> **🚧 このページは設計で、実装の途中**。「実装」と書いたところは実装済み。このあとの sub-issue
 > （🧱 infra の Lambda と GUI）は、このページを正として実装する。実装して形が変わったら、
 > このページを実装に合わせて直す。「案」と書いたところは、担当の sub-issue で決めてよい。
 
@@ -66,6 +66,16 @@ Studuino の拡張機能そのもの（通常モード。パソコンにつな�
 
 - Studuino の拡張機能のメニュー（メニューバーの Studuino のメニュー）から「Studuino モード」に入る。
 - 入ると、パレットが **使えるブロックだけ** になる。出ると元にもどる。
+- **実装**: メニューバーの「アーテックロボ」のメニュー（拡張機能を読みこむと出る）の 1 つ目の項目。
+  通常モードでは「Studuino モード（Studuino に書きこむ）」、Studuino モードでは「通常モード（つないで動かす）にもどす」
+  （`data-testid="menu-smalrubot-s1-studuino-mode"`）。このメニューは **Web Serial の無いブラウザでも出す**
+  （モードから出られなくならないように。ファームウェアの書きこみの項目だけを Web Serial のあるときに出す）。
+- モードは VM の設定（`extensionStorage` の `mode`）にあり、作品に保存される。作品を読みこんで `mode` が
+  `studuino` なら、そのモードで開く。そのとき拡張機能を読みこんでいなければ GUI が読みこむ（メニューを出すため）。
+- GUI で「いま Studuino モードか」は redux の selector `isStuduinoMode(state)`（`reducers/studuino-mode.js`）で
+  判定する。緑の旗＝書きこみ・停止＝中断（書きこみの体験）もこれを見る。
+- 第 1 弾では、モードを切り替えるときに使えないブロックの検査・確認のダイアログはまだ無い（使えないブロックの印と
+  モード切替の確認で足す）。パレットの切り替えだけを行う。
 - モードに入った直後に、**入出力の設定**（ポートの設定のモーダル）を自動で 1 回開く。
 - 入出力の設定は、次の 2 か所からも開ける:
   - Studuino モードのパレットの先頭の「入出力の設定」ボタン（「変数を作る」ボタンと同じ形）
@@ -135,6 +145,13 @@ Studuino の拡張機能そのもの（通常モード。パソコンにつな�
 | 調べる | `sensing_timer` / `sensing_resettimer` |
 | 変数 | `data_setvariableto` / `data_changevariableby` / `data_variable`（**数値だけ**） |
 
+- この一覧の正は `packages/scratch-gui/src/lib/studuino-mode.js` の `STUDUINO_ALLOWED_BLOCKS`
+  （パレットの絞り込みも、使えないブロックの印も、この一覧を使う。部品のブロックはここに足す）。
+- パレット: 上のカテゴリだけを出す。「変数」は「変数を作る」と数値の変数のブロック（表示・非表示は出さない）だけ、
+  リスト・「ブロック定義」・拡張機能のカテゴリ（アーテックロボを含む）は出さない。いまのアーテックロボのブロック
+  （ポートが決まっている通常モードのもの）は書きこみでは使わないので出さない。部品のブロックができたら、
+  アーテックロボのカテゴリに部品のブロックだけを出す。
+- パレットの絞り込みは日本語モード・レッスンのチャレンジより優先する（作品で使えるのがこのブロックだけのため）。
 - 使えないもの: クローン・すべてを止める・文字列の演算（つなぐ・文字・長さ・含む）・数学の関数
   （絶対値・平方根など）・変数の表示/非表示（モニターは基板に無い）・見た目・音・ペン・メッシュなど。
 - 変数は数値として扱う。文字列を入れている（例: 「にする」に文字を入れた）ブロックは使えないブロック扱い（S6）。
@@ -603,6 +620,11 @@ prod に出す前に回答を待つ必要は無い。
 
 ## 主要ファイル
 
+- `packages/scratch-gui/src/lib/studuino-mode.js` — Studuino モードで使えるブロックの一覧（`STUDUINO_ALLOWED_BLOCKS`）・モードの切り替え（`setStuduinoMode`）
+- `packages/scratch-gui/src/reducers/studuino-mode.js` — VM の設定の写しと selector（`isStuduinoMode` / `getStuduinoModeSettings`）
+- `packages/scratch-gui/src/containers/studuino-mode-sync.jsx` — VM の設定を redux へ写す（`STUDUINO_SETTINGS_CHANGED`・`PROJECT_LOADED`）
+- `packages/scratch-gui/src/containers/blocks.jsx` — Studuino モードのパレットの絞り込み（マーカーつき）
+- `packages/scratch-gui/src/components/menu-bar/menu-bar.jsx` — アーテックロボのメニューの「Studuino モード」（マーカーつき）
 - `packages/scratch-vm/src/extensions/scratch3_smalrubot_s1/studuino-settings.js` — 状態とポートの設定（保存の形・読みこみの直し・`runtime.extensionStorage` の読み書き・イベント `STUDUINO_SETTINGS_CHANGED`）
 - `packages/scratch-vm/src/serialization/sb3.js` / `src/engine/runtime.js` — `extensionStorage` の保存・読みこみ（マーカーつき）
 - `infra/smalruby-studuino-hex/lambda/ir.ts` / `codegen.ts` — 構文木の検査と C++ の書き出し（Lambda）
