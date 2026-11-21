@@ -123,4 +123,5 @@ const mapDispatchToProps = (dispatch) => ({
     onClose: () => dispatch(closeStuduinoWrite()),
 });
 
+export { StuduinoWriteModalContainer as WriteModal };
 export default connect(mapStateToProps, mapDispatchToProps)(StuduinoWriteModalContainer);

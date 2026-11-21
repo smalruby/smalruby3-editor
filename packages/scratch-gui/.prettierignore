@@ -577,7 +577,9 @@ test/unit/components/*
 !test/unit/containers/lesson-practice-partner.test.jsx
 !test/unit/containers/studuino-practice-board.test.jsx
 !test/unit/containers/studuino-port-settings-modal.test.jsx
+!test/unit/containers/studuino-write-modal.test.jsx
 !test/unit/containers/studuino-port-settings-modal.test.jsx
+!test/unit/containers/studuino-write-modal.test.jsx
 !test/unit/components/balloon.test.jsx
 !test/unit/components/classroom-tutorial.test.jsx
 !test/unit/components/lessons-library.test.jsx
