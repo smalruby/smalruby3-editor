@@ -137,6 +137,100 @@ describe('RubyToBlocksConverter/Analysis', () => {
             const units = Object.keys(analysis.locals.groups).map(Number);
             expect(units.filter((u) => analysis.locals.groups[u] === u && u !== 0)).toHaveLength(1);
         });
+
+        // The scope indexes (the `2` of `_a_2_`), in the order in which the conversion makes them (issue #2092)
+        const scopeIndexesOf = (source) => {
+            const root = parse(source);
+            const { scopeIndexOfDef, scopeIndexOfUnit, unitOfNode, lastScopeIndex } = analyze(root, {
+                source,
+            }).locals;
+            const indexes = [];
+            forEachNode(root, {
+                enter(node, type) {
+                    if (type === 'DefNode') {
+                        indexes.push([
+                            `def ${node.name}`,
+                            scopeIndexOfDef.has(node) ? scopeIndexOfDef.get(node) : null,
+                        ]);
+                    } else if (unitOfNode.has(node)) {
+                        const unit = unitOfNode.get(node);
+                        indexes.push([`block ${unit}`, unit in scopeIndexOfUnit ? scopeIndexOfUnit[unit] : null]);
+                    }
+                },
+            });
+            return { indexes, lastScopeIndex };
+        };
+
+        test('numbers the methods and the blocks that split a local, in the order of the code', () => {
+            expect(
+                scopeIndexesOf(dedent`
+                    when_flag_clicked do
+                      a = "x"
+                    end
+                    def foo
+                      b = 1
+                    end
+                    when_clicked do
+                      move(10)
+                    end
+                    when_key_pressed("space") do
+                      a = []
+                    end
+                    def bar
+                      b = 2
+                    end
+                `),
+            ).toEqual({
+                indexes: [
+                    ['block 1', 2],
+                    ['def foo', 3],
+                    ['block 3', null],
+                    ['block 4', 4],
+                    ['def bar', 5],
+                ],
+                lastScopeIndex: 5,
+            });
+        });
+
+        test('numbers the methods of a module where a class includes it, and not def initialize', () => {
+            expect(
+                scopeIndexesOf(dedent`
+                    module Greet
+                      def hello
+                        x = 1
+                      end
+                    end
+
+                    def top
+                      y = 1
+                    end
+
+                    class Cat < ::Smalruby3::Sprite
+                      include Greet
+
+                      def initialize
+                        super
+                      end
+
+                      def walk
+                        z = 1
+                      end
+                    end
+
+                    def other.foo
+                    end
+                `),
+            ).toEqual({
+                indexes: [
+                    ['def hello', 3],
+                    ['def top', 2],
+                    ['def initialize', null],
+                    ['def walk', 4],
+                    ['def foo', null],
+                ],
+                lastScopeIndex: 4,
+            });
+        });
     });
 
     describe('procedures', () => {
