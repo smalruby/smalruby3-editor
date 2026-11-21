@@ -2,6 +2,7 @@ import RubyGenerator from '../../../../src/lib/ruby-generator';
 import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
 import BoostConverter from '../../../../src/lib/ruby-to-blocks-converter/boost';
 import ControlConverter from '../../../../src/lib/ruby-to-blocks-converter/control';
+import EV3Converter from '../../../../src/lib/ruby-to-blocks-converter/ev3';
 import EventConverter from '../../../../src/lib/ruby-to-blocks-converter/event';
 import FaceSensingConverter from '../../../../src/lib/ruby-to-blocks-converter/face_sensing';
 import LooksConverter from '../../../../src/lib/ruby-to-blocks-converter/looks';
@@ -59,6 +60,7 @@ describe('RubyToBlocksConverter/send table', () => {
         faceSensing: FaceSensingConverter,
         makeymakey: MakeyMakeyConverter,
         microbit: MicroBitConverter,
+        ev3: EV3Converter,
     };
 
     test.each(Object.keys(tables))('every opcode of the %s table has a generator', (area) => {

@@ -52,9 +52,16 @@ const textArg = (input, defaultValue, { number = false } = {}) => ({ kind: 'text
  *     instead of a string (`play_drum(drum: 1, ...)` → `music_menu_DRUM`).
  * @param {boolean} [options.orBlock] - Takes a string or a value block (put into the input as it
  *     is, without a menu behind it: `translate.call("hi", $l)`).
+ * @param {?Function} [options.normalize] - Makes the value of the menu from a string (the port
+ *     `"A"` of EV3 → its index `"0"`).
  * @returns {object} The argument of a row.
  */
-const menuArg = (input, menuOpcode, field = input, { validate = null, number = false, orBlock = false } = {}) => ({
+const menuArg = (
+    input,
+    menuOpcode,
+    field = input,
+    { validate = null, number = false, orBlock = false, normalize = null } = {},
+) => ({
     kind: 'menu',
     input,
     menuOpcode,
@@ -62,6 +69,7 @@ const menuArg = (input, menuOpcode, field = input, { validate = null, number = f
     validate,
     number,
     orBlock,
+    normalize,
 });
 
 /**
@@ -203,7 +211,15 @@ const putArg = (converter, block, spec, arg) => {
             converter._addTextInput(block, spec.input, arg, spec.defaultValue);
             break;
         case 'menu':
-            converter._addInput(block, spec.input, converter._createFieldBlock(spec.menuOpcode, spec.field, arg));
+            converter._addInput(
+                block,
+                spec.input,
+                converter._createFieldBlock(
+                    spec.menuOpcode,
+                    spec.field,
+                    spec.normalize && converter._isString(arg) ? spec.normalize(arg.toString()) : arg,
+                ),
+            );
             break;
         case 'note':
             converter._addNoteInput(block, spec.input, arg, spec.defaultValue);
