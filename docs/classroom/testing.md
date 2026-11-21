@@ -211,7 +211,8 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-joined-class-name` | span | クラス（学級）名 |
 | `classroom-joined-seat-number` | span | 出席番号（0埋め2桁） |
 | `classroom-joined-assignment` | div | 課題名（課題名がある場合のみ） |
-| `classroom-joined-lesson-notice` | div | レッスンの課題の 1 行のお知らせ（レッスンの課題であることと提出のタイミング。レッスンの課題のときだけ） |
+| `classroom-joined-lesson-notice` | div | レッスンの課題のゴールのカードの入れ物（レッスンの課題のときだけ） |
+| `classroom-joined-goal` | section | ゴールのカード（「チャレンジを N つクリア（★ M つはかならず）」・レッスン・提出）。中の `classroom-joined-goal-count` / `-lessons` / `-next` は課題パネルの `classroom-assignment-goal-*` と同じ |
 
 ### 生徒: ステータス（おかえりなさい）
 
@@ -294,6 +295,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 |------------|------|------|
 | `classroom-assignment-page-{n}` | div | ページ n（0-indexed）のカード |
 | `classroom-assignment-page-text-{n}` | textarea | ページ n の本文（最大500文字） |
+| `classroom-assignment-page-hint-{n}` | span | 本文の欄の下の書き方の短い説明（1 行目＝見出し・`*ことば*`＝マーカー・箇条書き・`【 】`＝ラベル・空行＝段落） |
 | `classroom-assignment-page-up-{n}` / `classroom-assignment-page-down-{n}` | button | ページの並べ替え |
 | `classroom-assignment-page-remove-{n}` | button | ページ削除 |
 | `classroom-assignment-page-image-attach-{n}` | button | 画像を追加（png/jpeg） |
@@ -351,6 +353,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-start-method` | div | 始め方のまとまり。`data-main` = 決めた始め方（`current` この課題で出した作品 / `previous` 前回の作品 / `starter` スターター / `keep` いまの作品のまま / `lesson` レッスン表を開く） |
 | `classroom-start-main` | button | 主ボタン（決めた始め方 1 つ）。押すとその作品で始める（読み込んでモーダルを閉じる。`keep` は何も読み込まずに閉じる・`lesson` はレッスン表を開く） |
 | `classroom-start-main-note` | small | 主ボタンの 2 行目（何を開くか。提出日時・前回の課題名など） |
+| `classroom-start-wait` | span | 参加した直後の課題パネルで、読むのを待つ間の主ボタンの文字「よく読もう… 3」（待つ間は主ボタンと「ほかの始め方」を押せない。待ち終わると消える） |
 | `classroom-start-others-toggle` | button | 小さなリンク「ほかの始め方」（`aria-expanded`）。ほかに始め方が無いときは描画しない |
 | `classroom-start-others` | div | 開いたときに同じ行に並ぶ残りの始め方 |
 | `classroom-start-other-{kind}` | button | 残りの始め方の小さなリンク（`kind` = `current` / `previous` / `starter` / `keep`） |
@@ -362,13 +365,18 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-phase-student-assignment` | div | 課題パネルフェーズのルート（join 直後に自動表示） |
 | `classroom-assignment-joined-notice` | div | 「参加しました！」通知（join 直後のみ） |
 | `classroom-assignment-view-page` | div | 現在の課題ページ |
-| `classroom-assignment-view-text` | div | ページ本文 |
+| `classroom-assignment-view-text` | div | ページ本文（先生の文を見出し・マーカー・箇条書き・ラベルで出したもの） |
+| `classroom-assignment-text-heading` | p | ページ本文の 1 行目の見出し（先生の画面のプレビュー・みんなの課題の詳細でも同じ） |
 | `classroom-assignment-view-image` | img | ページ画像 |
 | `classroom-assignment-prev-page` / `classroom-assignment-next-page` | button | ページ送り |
 | `classroom-assignment-page-indicator` | span | ページ位置（`1 / 3`） |
 | `classroom-assignment-main-next` | button | 主ボタン「つぎのページ」（最後のページより前） |
 | `classroom-assignment-close` | button | 主ボタン「とじる」（「課題を見る」から開き直したときの最後のページ。始め方は出さない） |
-| `classroom-assignment-lesson-notice` | div | レッスンの課題の説明（参加直後の最後のページのみ） |
+| `classroom-assignment-lesson-notice` | div | レッスンの課題のゴールのカードの入れ物（最後のページ。開き直したときも出す） |
+| `classroom-assignment-goal` | section | ゴールのカード |
+| `classroom-assignment-goal-count` | p | 「チャレンジを N つクリア（★ M つはかならず）」（★ が 0 なら括弧は出さない） |
+| `classroom-assignment-goal-lessons` | p | 「レッスン: レッスン 1「…」、レッスン 2「…」」（課題のチャレンジがあるレッスン） |
+| `classroom-assignment-goal-next` | p | 作品も提出する課題は「そのあと、自分のプログラムをつくって提出しよう」、提出しない課題は「クリアしたら課題クリア！」 |
 
 ### 組（グループ）管理
 
@@ -571,10 +579,12 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-description-editor` | div | 説明タブの課題編集フォーム（埋め込み） |
 | `classroom-description-preview` | div | 右ペインの生徒視点プレビュー |
 | `classroom-description-preview-body` | div | プレビュー本文（テキスト+画像） |
+| `classroom-description-preview-text` | div | プレビューのページ本文（生徒の課題パネルと同じ書式） |
 | `classroom-description-preview-empty` | p | どのページも空のときの 1 行「ページを書くとここに出ます」（本文・ページ送り・「参加したとき」の代わり） |
 | `classroom-description-preview-prev` / `-next` | button | プレビューのページ送り |
 | `classroom-description-preview-start` | div | プレビュー下の「参加したとき: …」（スターターの有無で文言が変わる） |
-| `classroom-description-preview-lesson` | div | プレビュー下の「レッスン: 6 つのうち 4 つ（★ 2 つをふくむ）」と丸（★ = 必須）（レッスンを紐付けたときだけ） |
+| `classroom-description-preview-lesson` | div | プレビュー下のゴールのカードの入れ物（レッスンを紐付けたときだけ） |
+| `classroom-description-preview-goal` | section | 生徒に出るのと同じゴールのカード（中は `-count` / `-lessons` / `-next`。保存前の設定で出す） |
 | `classroom-avatar-email` | span | アカウントメニュー内のユーザーメール（OIDC トークンに email がある場合のみ。旧 `classroom-teacher-email` は廃止） |
 | `classroom-board-create-cancel` / `classroom-board-reuse-cancel` | button | インラインフォームのキャンセル |
 | `classroom-google-course-imported-{courseId}` | span | GC コースの「インポート済み」バッジ |
