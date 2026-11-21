@@ -230,7 +230,7 @@ const MyBlocksConverter = {
             // Clear arguments from localVariables to allow reuse of names across different methods
             Object.keys(converter._context.localVariables).forEach((key) => {
                 if (converter._context.localVariables[key].isArgument) {
-                    delete converter._context.localVariables[key];
+                    converter._context.store.deleteVariable('localVariables', key);
                 }
             });
 
@@ -491,7 +491,7 @@ const MyBlocksConverter = {
                         const inputBlock = converter._context.blocks[input.block];
                         if (inputBlock) {
                             if (!inputBlock.shadow && input.shadow) {
-                                delete converter._context.blocks[input.shadow];
+                                converter._context.store.deleteBlock(input.shadow);
                                 input.shadow = null;
                             }
                         }

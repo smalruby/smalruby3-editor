@@ -134,7 +134,7 @@ const VariableUtils = {
                     isArgument: isArgument,
                     dataType: null,
                 };
-                this._context[storeName][transformedName] = variable;
+                this._context.store.setVariable(storeName, transformedName, variable);
             }
 
             // Track in current scope (the first entry stays: it tells an argument of the method)
@@ -161,7 +161,7 @@ const VariableUtils = {
                 type: type,
                 dataType: null,
             };
-            this._context[storeName][varName] = variable;
+            this._context.store.setVariable(storeName, varName, variable);
         }
         return variable;
     },
@@ -203,7 +203,7 @@ const VariableUtils = {
                 name: name,
                 scope: 'global',
             };
-            this._context.broadcastMsgs[key] = broadcastMsg;
+            this._context.store.setVariable('broadcastMsgs', key, broadcastMsg);
         }
         return broadcastMsg;
     },
@@ -264,12 +264,12 @@ const VariableUtils = {
             argumentVariables: [],
             argumentBlocks: [],
         };
-        this._context.procedures[name] = procedure;
+        this._context.store.setProcedure(name, procedure);
         return procedure;
     },
 
     _collectSymbol(name) {
-        this._context.symbols.add(`:${name}`);
+        this._context.store.addSymbol(`:${name}`);
     },
 
     _createSymbolsList() {
@@ -681,7 +681,7 @@ const VariableUtils = {
         });
         madeForHash.forEach(({ storeName, name, id }) => {
             if (!usedIds.has(id)) {
-                delete this._context[storeName][name];
+                this._context.store.deleteVariable(storeName, name);
             }
         });
     },

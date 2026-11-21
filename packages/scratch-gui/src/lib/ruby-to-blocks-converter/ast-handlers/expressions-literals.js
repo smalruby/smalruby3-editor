@@ -38,7 +38,7 @@ const ExpressionsLiterals = {
 
     visitTrueNode(node) {
         const index = (this._context.literalCallIndices.true || 0) + 1;
-        this._context.literalCallIndices.true = index;
+        this._context.store.setLiteralCallIndex('true', index);
 
         const block = this._createBlock('operator_equals', 'value_boolean');
         block.node = node;
@@ -50,7 +50,7 @@ const ExpressionsLiterals = {
 
     visitFalseNode(node) {
         const index = (this._context.literalCallIndices.false || 0) + 1;
-        this._context.literalCallIndices.false = index;
+        this._context.store.setLiteralCallIndex('false', index);
 
         const block = this._createBlock('operator_lt', 'value_boolean');
         block.node = node;
