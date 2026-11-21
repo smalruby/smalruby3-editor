@@ -194,9 +194,11 @@ const reducer = function (state, action) {
             const found = findChallenge(action.challengeId);
             if (!found) return state;
             // はじめて開いたチャレンジだけスポットライトを出す。開いた時点で「見た」と記録し、
-            // このチャレンジを開いているあいだは state の値で照らし続ける
-            const hintSpotlight = !isSpotlightSeen(found.challenge.id);
-            if (hintSpotlight) markSpotlightSeen(found.challenge.id);
+            // このチャレンジを開いているあいだは state の値で照らし続ける。レッスン 0（warmup）は
+            // 画面を知らない子のためのもので、やり直す子ほど迷っているので、開くたびに照らす
+            const firstOpen = !isSpotlightSeen(found.challenge.id);
+            if (firstOpen) markSpotlightSeen(found.challenge.id);
+            const hintSpotlight = firstOpen || found.lesson.warmup;
             const roleState = openedRoleState(found.challenge, action, state);
             // 役を選びなおして同じチャレンジを始めなおしたときは、ヒントのページをそのままにする（「メッシュにつなごう」の
             // ページで役を変えても 1 ページ目にもどらない）
