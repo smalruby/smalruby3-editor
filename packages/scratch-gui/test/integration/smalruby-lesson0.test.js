@@ -3,6 +3,7 @@
  * - レッスン表: レッスン 0 がコースの最初に出て、コースの数（n / 11）には入らない。
  * - 0-1: ステージのネコをマウスでつかんで動かすと「できた！」。
  * - 0-3: 2 つのブロックをくっつけたプログラムを、コードエリアで押すと「できた！」。
+ * - 0-7: ヒントは押すもの 1 つを指し、そのページの操作（タブ・2 つめの絵）ができたら自分で次のページへ進む。
  * - 0-8: 画面の部分をクリックして答えるクイズ。まちがえると正しい場所が光り、クリックは下の部品に届かない。
  *   5 問とも正しい場所をクリックすると「できた！」。
  * 窓は授業のパソコンと同じ 1300×600。
@@ -146,6 +147,30 @@ describe('Lesson 0 (#2134)', () => {
         const block = await centerOf('[class*="blocks_blocks_"] .blocklyBlockCanvas > .blocklyDraggable');
         await clickAt(block);
         await waitForCompletedToast('blocks-l0-snap');
+        expect(await getLogs()).toEqual([]);
+    });
+
+    // ヒントは押すもの 1 つを指し、そのページの操作ができたら自分で次のページへ進む（レッスン 0 だけ）
+    test('0-7: the hint points at the one thing to press and goes on by itself', async () => {
+        await loadEditor();
+        await openChallenge('blocks-l0-tabs');
+        const page = () =>
+            driver.executeScript(`return document.querySelector('[data-testid="lesson-hint-position"]').textContent`);
+        const waitForPage = (n) =>
+            driver.wait(async () => new RegExp(`\\b${n}\\D+6\\b`).test(await page()), 5000, `hint page ${n}`);
+        await waitForPage(1);
+        expect(await attrByTestId('lesson-hint', 'data-target')).toBe('costumes-tab');
+        await clickAt(await centerOf('[class*="gui_tab_"]:nth-child(2)'));
+        await waitForPage(2);
+        // 2 つめの絵（一覧の 2 つめ）を押すと、音タブのページへ
+        const second = await driver.executeScript(
+            `const r = document.querySelectorAll('[class*="selector_list-item_"]')[1].getBoundingClientRect();
+            return { x: Math.round((r.left + r.right) / 2), y: Math.round((r.top + r.bottom) / 2) };`,
+        );
+        await clickAt(second);
+        await waitForPage(3);
+        await clickAt(await centerOf('[class*="gui_tab_"]:nth-child(3)'));
+        await waitForPage(4);
         expect(await getLogs()).toEqual([]);
     });
 

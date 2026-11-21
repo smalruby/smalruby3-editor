@@ -1,7 +1,7 @@
 // === Smalruby: This file is Smalruby-specific (lesson courses data) ===
 // コース › レッスン › チャレンジのデータ。形の説明は docs/lessons/README.md。
 // 文言は lessons.locale.js（message descriptor の id で引く）。
-import { HINT_TARGETS } from './hint-targets';
+import { HINT_FOCUS, HINT_TARGETS } from './hint-targets';
 import arrowKeysImage from './images/arrow-keys.svg';
 import { ROLE_STEP_KIND } from './lesson-role';
 import { ja } from './lessons.locale';
@@ -157,14 +157,21 @@ export const defineChallenge = (def) =>
         mode: null,
         // 読んで作るチャレンジのヒントの 1 ページ目の説明（message descriptor）。無ければ task を出す
         explanation: null,
+        // まちがった場所での操作にすぐ出す一言（任意）: {click: 'codeArea', blocks: [opcode], message}。そのブロックを
+        // スクリプトエリアで押したら、ヒントの吹き出しに message を出す（lib/lessons/hint-advance.js の isWrongPlaceClick）
+        wrongPlaceTip: null,
         ...def,
-        // ヒント。title = 文言、target = 指す場所、blocks = 吹き出しに描くブロック、
-        // spotlight = はじめて開いたチャレンジだけ周りを暗くして指す場所を照らす
+        // ヒント。title = 文言、target = 指す場所、focus = 場所の中の指す 1 つのもの（見つからなければ target。
+        // hint-targets.js の HINT_FOCUS）、blocks = 吹き出しに描くブロック、
+        // spotlight = はじめて開いたチャレンジだけ周りを暗くして指す場所を照らす、
+        // advanceOn = できたら自分で次のページへ進む操作（`autoAdvanceHints` のレッスンだけ・hint-advance.js）
         steps: (def.steps || []).map((step) => ({
             title: null,
             target: null,
+            focus: null,
             blocks: null,
             spotlight: false,
+            advanceOn: null,
             ...step,
         })),
     });
@@ -185,6 +192,8 @@ export const defineChallenge = (def) =>
  *   テーマを 1 つ以上選んでやるレッスンは 1（#1616 の Q17）。
  * @param {boolean} [def.showPartNames] - チャレンジを開いたときから画面の部分の名前の札を出しておくか
  *   （「ガイド」ボタンで消せる。画面の部分の名前を覚えるレッスン 0 で使う・#2133）。書いていなければ出さない。
+ * @param {boolean} [def.autoAdvanceHints] - ヒントのページの操作ができたら、自分で次のページへ進めるか（ページの
+ *   `advanceOn`・lib/lessons/hint-advance.js）。書いていなければ進めない（「次へ」で進める）。レッスン 0 で使う。
  * @param {boolean} [def.warmup] - コースの数に入れない、はじめのレッスン（レッスン 0・#2134）か。レッスン表では
  *   コースの最初に「レッスン 0」として出すが、コースの数（進みぐあい・クラスの課題・先生の表）には入れない
  *   （defineCourse が `lessons` から分けて `warmupLessons` に置く）。書いていなければ数えるレッスン。
@@ -196,12 +205,14 @@ export const defineLesson = ({
     allowDnclMode = false,
     checkCount = null,
     showPartNames = false,
+    autoAdvanceHints = false,
     warmup = false,
 }) => ({
     id,
     name: message(`gui.lessons.lesson.${id}.name`),
     allowDnclMode: Boolean(allowDnclMode),
     showPartNames: Boolean(showPartNames),
+    autoAdvanceHints: Boolean(autoAdvanceHints),
     warmup: Boolean(warmup),
     checkCount: checkCount === null ? challenges.length : Math.min(checkCount, challenges.length),
     challenges: challenges.map((def, index) => defineChallenge({ ...def, number: index + 1 })),
@@ -328,6 +339,13 @@ const L0_FLAG_MOVE_TURN = 'when_flag_clicked do\n  move(10)\n  turn_right(15)\ne
 // 「歩動かす」には ▼ で選ぶ相手のブロックが無く、ヒント 2 が置いていないブロックを指していたため（#2146）
 const L0_FLAG_TURN_GOTO = 'when_flag_clicked do\n  turn_right(15)\n  go_to("_mouse_")\nend\n';
 const L0_FLAG_TURN_GOTO_CHANGED = 'when_flag_clicked do\n  turn_right(90)\n  go_to("_random_")\nend\n';
+// ヒントが指す 1 つのもの（hint-targets.js の HINT_FOCUS）。ステージのネコと、パレットの「10 歩動かす」
+const L0_CAT = Object.freeze({ kind: HINT_FOCUS.STAGE_SPRITE });
+const L0_PALETTE_MOVE = Object.freeze({
+    kind: HINT_FOCUS.PALETTE_BLOCK,
+    opcode: 'motion_movesteps',
+    category: 'motion',
+});
 // 「どこでしょう？」の 5 問（名前の札（「ガイド」）の名前・lib/lessons/part-names.js）。9 つの名前から、手で操作した場所をえらぶ
 export const LESSON0_QUIZ_PARTS = Object.freeze(['palette', 'codeArea', 'soundsTab', 'greenFlag', 'spriteList']);
 
@@ -335,6 +353,9 @@ const blocksLesson0 = defineLesson({
     id: 'blocks-l0',
     warmup: true,
     showPartNames: true,
+    // ヒントは押すもの 1 つを指し（`focus`）、そのページの操作ができたら自分で次のページへ進む（`advanceOn`）。
+    // 授業で、子どもが「何を押すのか」をまちがえた・「タブ」がわからずコードタブを見つけられなかったため
+    autoAdvanceHints: true,
     challenges: [
         // 0-1 どこでしょう？（画面の場所の名前を覚える・はじめに）: 画面の部分をクリックして答える 5 問に、全部正しく答えた。
         // まちがえると答えの場所が光るので、知らなくても答えながら覚えられる。1 回もまちがえずに全部答えられたら
@@ -353,7 +374,7 @@ const blocksLesson0 = defineLesson({
             id: 'blocks-l0-drag-cat',
             card: { category: CATEGORIES.MOTION, main: CATEGORIES.MOTION },
             task: challengeMessage('blocks-l0-drag-cat', 'task'),
-            steps: withTitles('blocks-l0-drag-cat', [{ target: HINT_TARGETS.STAGE, spotlight: true }]),
+            steps: withTitles('blocks-l0-drag-cat', [{ target: HINT_TARGETS.STAGE, focus: L0_CAT, spotlight: true }]),
             debug: debugTips('blocks-l0-drag-cat', 1),
             goal: [{ type: 'moved' }],
         },
@@ -364,10 +385,16 @@ const blocksLesson0 = defineLesson({
             card: { category: CATEGORIES.MOTION, main: CATEGORIES.MOTION },
             task: challengeMessage('blocks-l0-click-block', 'task'),
             steps: withTitles('blocks-l0-click-block', [
-                { target: HINT_TARGETS.PALETTE, blocks: 'move(10)\n', spotlight: true },
-                { target: HINT_TARGETS.STAGE },
+                { target: HINT_TARGETS.PALETTE, focus: L0_PALETTE_MOVE, blocks: 'move(10)\n', spotlight: true },
+                { target: HINT_TARGETS.STAGE, focus: L0_CAT },
             ]),
             debug: debugTips('blocks-l0-click-block', 1),
+            // 授業で、パレットのブロックをスクリプトエリアに置いてから押し、できたにならない理由がわからなかった
+            wrongPlaceTip: {
+                click: 'codeArea',
+                blocks: ['motion_movesteps'],
+                message: challengeMessage('blocks-l0-click-block', 'wrongPlace'),
+            },
             goal: [{ type: 'uses', trigger: { click: 'palette' }, blocks: ['motion_movesteps'] }],
         },
         // 0-4 置いて、くっつけよう（コードエリア・ドラッグ・くっつける）: コードエリアで押した 1 つの実行で 2 つとも動いた
@@ -377,9 +404,25 @@ const blocksLesson0 = defineLesson({
             card: { category: CATEGORIES.MOTION, main: CATEGORIES.MOTION },
             task: challengeMessage('blocks-l0-snap', 'task'),
             steps: withTitles('blocks-l0-snap', [
-                { target: HINT_TARGETS.PALETTE, blocks: 'move(10)\n', spotlight: true },
-                { target: HINT_TARGETS.PALETTE, blocks: L0_MOVE_TURN, spotlight: true },
-                { target: HINT_TARGETS.CODE_AREA, spotlight: true },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    focus: L0_PALETTE_MOVE,
+                    blocks: 'move(10)\n',
+                    spotlight: true,
+                    advanceOn: { placed: 'motion_movesteps' },
+                },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    focus: { kind: HINT_FOCUS.PALETTE_BLOCK, opcode: 'motion_turnright', category: 'motion' },
+                    blocks: L0_MOVE_TURN,
+                    spotlight: true,
+                    advanceOn: { together: ['motion_movesteps', 'motion_turnright'] },
+                },
+                {
+                    target: HINT_TARGETS.CODE_AREA,
+                    focus: { kind: HINT_FOCUS.CODE_BLOCK, opcode: 'motion_movesteps' },
+                    spotlight: true,
+                },
             ]),
             debug: debugTips('blocks-l0-snap', 2),
             goal: [
@@ -399,9 +442,17 @@ const blocksLesson0 = defineLesson({
             task: challengeMessage('blocks-l0-flag', 'task'),
             setup: { code: L0_MOVE_TURN },
             steps: withTitles('blocks-l0-flag', [
-                { target: HINT_TARGETS.PALETTE, blocks: L0_FLAG_MOVE_TURN },
-                // 止めるボタンは、試すヒント（旗）より前（できたら吹き出しが閉じて見られない・#1576）
-                { target: HINT_TARGETS.STOP_BUTTON },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    // パレットの見えている範囲に無いときは、黄色い「イベント」のボタンを指す
+                    focus: { kind: HINT_FOCUS.PALETTE_BLOCK, opcode: 'event_whenflagclicked', category: 'events' },
+                    blocks: L0_FLAG_MOVE_TURN,
+                    spotlight: true,
+                    advanceOn: { together: ['event_whenflagclicked', 'motion_movesteps'] },
+                },
+                // 止めるボタンは、試すヒント（旗）より前（できたら吹き出しが閉じて見られない・#1576）。押してもしなくても
+                // よいので、自分では進まない（「次へ」）
+                { target: HINT_TARGETS.STOP_BUTTON, spotlight: true },
                 { target: HINT_TARGETS.GREEN_FLAG, spotlight: true },
             ]),
             debug: debugTips('blocks-l0-flag', 1),
@@ -423,10 +474,22 @@ const blocksLesson0 = defineLesson({
             task: challengeMessage('blocks-l0-change-number', 'task'),
             setup: { code: L0_FLAG_TURN_GOTO },
             steps: withTitles('blocks-l0-change-number', [
-                { target: HINT_TARGETS.CODE_AREA, blocks: 'turn_right(90)\n' },
+                {
+                    target: HINT_TARGETS.CODE_AREA,
+                    focus: { kind: HINT_FOCUS.CODE_FIELD, opcode: 'motion_turnright', shadow: 'math_number' },
+                    blocks: 'turn_right(90)\n',
+                    spotlight: true,
+                    advanceOn: { field: { opcode: 'motion_turnright', input: 'DEGREES', ne: 15 } },
+                },
                 // ▼ とブロックの消し方は、試すヒントより前（#1576）
-                { target: HINT_TARGETS.CODE_AREA, blocks: 'go_to("_random_")\n', spotlight: true },
-                { target: HINT_TARGETS.GREEN_FLAG },
+                {
+                    target: HINT_TARGETS.CODE_AREA,
+                    focus: { kind: HINT_FOCUS.CODE_FIELD, opcode: 'motion_goto', shadow: 'motion_goto_menu' },
+                    blocks: 'go_to("_random_")\n',
+                    spotlight: true,
+                    advanceOn: { field: { opcode: 'motion_goto', input: 'TO', ne: '_mouse_' } },
+                },
+                { target: HINT_TARGETS.GREEN_FLAG, spotlight: true },
             ]),
             debug: debugTips('blocks-l0-change-number', 1),
             goal: [
@@ -450,9 +513,22 @@ const blocksLesson0 = defineLesson({
             task: challengeMessage('blocks-l0-tabs', 'task'),
             setup: { sprites: ['Shimaraby'] },
             steps: withTitles('blocks-l0-tabs', [
-                { target: HINT_TARGETS.COSTUMES_TAB },
-                { target: HINT_TARGETS.SOUNDS_TAB },
-                { target: HINT_TARGETS.CODE_TAB },
+                // 1 ページで 1 つの操作（タブを押す → 絵を押す → タブを押す → ▶ を押す → タブを押す）
+                { target: HINT_TARGETS.COSTUMES_TAB, spotlight: true, advanceOn: { tab: 'costumes' } },
+                {
+                    target: HINT_TARGETS.COSTUMES_TAB,
+                    focus: { kind: HINT_FOCUS.COSTUME, number: 2 },
+                    spotlight: true,
+                    advanceOn: { costume: 2 },
+                },
+                { target: HINT_TARGETS.SOUNDS_TAB, spotlight: true, advanceOn: { tab: 'sounds' } },
+                {
+                    target: HINT_TARGETS.SOUNDS_TAB,
+                    focus: { kind: HINT_FOCUS.SOUND_PLAY },
+                    spotlight: true,
+                    advanceOn: { focusClicked: true },
+                },
+                { target: HINT_TARGETS.CODE_TAB, spotlight: true },
             ]),
             debug: debugTips('blocks-l0-tabs', 1),
             goal: [
@@ -466,8 +542,13 @@ const blocksLesson0 = defineLesson({
             card: { category: CATEGORIES.LOOKS, main: CATEGORIES.LOOKS },
             task: challengeMessage('blocks-l0-sprite-backdrop', 'task'),
             steps: withTitles('blocks-l0-sprite-backdrop', [
-                { target: HINT_TARGETS.SPRITE_LIST },
-                { target: HINT_TARGETS.BACKDROP },
+                {
+                    target: HINT_TARGETS.SPRITE_LIST,
+                    focus: { kind: HINT_FOCUS.SPRITE_ADD },
+                    spotlight: true,
+                    advanceOn: { spriteAdded: true },
+                },
+                { target: HINT_TARGETS.BACKDROP, focus: { kind: HINT_FOCUS.BACKDROP_ADD }, spotlight: true },
             ]),
             debug: debugTips('blocks-l0-sprite-backdrop', 1),
             goal: [
