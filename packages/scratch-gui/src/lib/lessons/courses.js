@@ -3863,6 +3863,281 @@ const ctrlLesson4 = defineLesson({
     ],
 });
 
+// レッスン 5「計測・制御システムを作ろう」（#2174・ワークシート第 6〜10 時）: 身のまわりの問題を解決するシステムのテーマを
+// 1 つ以上選んで、最低限のシステムを作る。その先の工夫は判定せず、クラスの課題の「作品の提出もする」で提出した作品を
+// 先生が見る（チャットのコースのレッスン 5 と同じ）。テーマは生徒が選ぶので、1 つ「できた」でレッスンの ✓（checkCount: 1）。
+// 教科書の例の部品（超音波センサーなど）は Studuino の部品に置きかえる（#2158 Q8）。5-1 は読んで作る。5-4・5-5 は
+// 前のレッスンのプログラム（setup の code）を土台にして、3〜5 ブロックを足す
+const CTRL_SET_SPEED = studuinoOpcode('setMotorSpeed');
+// 5-4 の土台: 近づいたら止まり、そうでなければ進む車（3-4 のタッチセンサーを赤外線センサーにしたもの）
+const CTRL_L5_CAR_BASE =
+    'when_flag_clicked do\n  loop do\n    if studuino.sensor_value("ir_a4") > 700\n      studuino.action("stop")\n' +
+    '    else\n      studuino.action("forward")\n    end\n  end\nend\n';
+const CTRL_L5_CAR =
+    'when_flag_clicked do\n  loop do\n    if studuino.sensor_value("ir_a4") > 700\n      studuino.action("stop")\n' +
+    '    else\n      if studuino.sensor_value("ir_a4") > 300\n        studuino.set_motor_speed("left", 20)\n' +
+    '        studuino.set_motor_speed("right", 20)\n      else\n        studuino.set_motor_speed("left", 60)\n' +
+    '        studuino.set_motor_speed("right", 60)\n      end\n      studuino.action("forward")\n    end\n  end\nend\n';
+const CTRL_L5_WORDS = { ja: { call: 'よびだし' }, 'ja-Hira': { call: 'よびだし' }, en: { call: 'call' } };
+const ctrlL5Code = (make) =>
+    Object.fromEntries(Object.entries(CTRL_L5_WORDS).map(([locale, words]) => [locale, make(words)]));
+const CTRL_CALL_MESSAGE = ['よびだし', 'call'];
+// 5-5 の土台: 合図「よびだし」を受け取ったら LED を 3 回点滅させる（仕事をする側）
+const ctrlL5Receiver = (w) =>
+    `when_receive("${w.call}") do\n  3.times do\n    studuino.led("left", true)\n    sleep(0.3)\n` +
+    '    studuino.led("left", false)\n    sleep(0.3)\n  end\nend\n';
+const ctrlL5Sender = (w) =>
+    `when_flag_clicked do\n  loop do\n    if studuino.sensor_value("touch") == 0\n      broadcast("${w.call}")\n` +
+    '      sleep(1)\n    end\n  end\nend\n';
+const ctrlLesson5 = defineLesson({
+    id: 'ctrl-l5',
+    checkCount: 1,
+    challenges: [
+        // 1 暗いろうかを自動で照らす（読んで作る）: 人が近づいた「かつ」暗いときに LED を 3 秒つける
+        {
+            id: 'ctrl-l5-hallway',
+            mode: 'readDiagram',
+            card: { category: CATEGORIES.EXTENSIONS, main: CATEGORIES.OPERATORS },
+            task: challengeMessage('ctrl-l5-hallway', 'task'),
+            explanation: challengeMessage('ctrl-l5-hallway', 'explanation'),
+            setup: CTRL_START,
+            allowedBlocks: {
+                event: ['event_whenflagclicked'],
+                control: ['control_forever', 'control_if_else', { opcode: 'control_wait', inputs: { DURATION: 3 } }],
+                operators: [
+                    'operator_and',
+                    { opcode: 'operator_gt', inputs: { OPERAND2: 500 } },
+                    { opcode: 'operator_lt', inputs: { OPERAND2: 500 } },
+                ],
+                [CTRL_EXTENSION]: [CTRL_SENSOR, CTRL_LED_ON, CTRL_LED_OFF],
+            },
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenflagclicked' },
+                    blocks: [
+                        'control_forever',
+                        'control_if_else',
+                        'operator_and',
+                        'control_wait',
+                        { opcode: CTRL_SENSOR, count: 2 },
+                    ],
+                },
+                { type: 'boardCommand', kind: 'led', value: 'on' },
+                { type: 'boardCommand', kind: 'led', value: 'off' },
+            ],
+            quiz: challengeQuiz('ctrl-l5-hallway', 0),
+            code:
+                'when_flag_clicked do\n  loop do\n' +
+                '    if studuino.sensor_value("ir_a4") > 500 && studuino.sensor_value("light") < 500\n' +
+                '      studuino.led("left", true)\n      sleep(3)\n    else\n      studuino.led("left", false)\n' +
+                '    end\n  end\nend\n',
+        },
+        // 2 冷蔵庫の開けっぱなしを知らせる: 冷蔵庫の中の光センサーが明るい（とびらが開いている）あいだ、LED を点滅させる
+        {
+            id: 'ctrl-l5-fridge',
+            card: { category: CATEGORIES.EXTENSIONS, main: CATEGORIES.EXTENSIONS },
+            task: challengeMessage('ctrl-l5-fridge', 'task'),
+            setup: CTRL_START,
+            activityDiagram: true,
+            allowedBlocks: {
+                event: ['event_whenflagclicked'],
+                control: [
+                    'control_forever',
+                    'control_if_else',
+                    { opcode: 'control_wait', inputs: { DURATION: 0.5 } },
+                ],
+                operators: [{ opcode: 'operator_gt', inputs: { OPERAND2: 500 } }],
+                [CTRL_EXTENSION]: [CTRL_SENSOR, CTRL_LED_ON, CTRL_LED_OFF],
+            },
+            steps: withDiagramFirst('ctrl-l5-fridge', [
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks:
+                        'when_flag_clicked do\n  loop do\n    if studuino.sensor_value("light") > 500\n    else\n' +
+                        '    end\n  end\nend\n',
+                },
+                {
+                    target: HINT_TARGETS.CODE_AREA,
+                    blocks:
+                        'if studuino.sensor_value("light") > 500\n  studuino.led("left", true)\n  sleep(0.5)\n' +
+                        '  studuino.led("left", false)\n  sleep(0.5)\nelse\n  studuino.led("left", false)\nend\n',
+                },
+                { target: HINT_TARGETS.PRACTICE_BOARD },
+            ]),
+            debug: debugTips('ctrl-l5-fridge', 2),
+            // 明るい（開いている）あいだ LED を点滅させ（オンを 2 回）、暗い（閉じている）ときに消した
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenflagclicked' },
+                    blocks: [
+                        'control_forever',
+                        'control_if_else',
+                        CTRL_SENSOR,
+                        'control_wait',
+                        { opcode: CTRL_LED_ON, count: 2 },
+                    ],
+                },
+                { type: 'boardCommand', kind: 'led', value: 'on', whenSensor: { value: CTRL_BRIGHT } },
+                { type: 'boardCommand', kind: 'led', value: 'off', whenSensor: { value: CTRL_DARK } },
+            ],
+            quiz: challengeQuiz('ctrl-l5-fridge', 0),
+            code:
+                'when_flag_clicked do\n  loop do\n    if studuino.sensor_value("light") > 500\n' +
+                '      studuino.led("left", true)\n      sleep(0.5)\n      studuino.led("left", false)\n      sleep(0.5)\n' +
+                '    else\n      studuino.led("left", false)\n    end\n  end\nend\n',
+        },
+        // 3 自動で開くごみ箱: 手を近づけたら（赤外線センサーの値が大きい）アームでふたを開け、2 秒待って閉める
+        {
+            id: 'ctrl-l5-trash-can',
+            card: { category: CATEGORIES.EXTENSIONS, main: CATEGORIES.EXTENSIONS },
+            task: challengeMessage('ctrl-l5-trash-can', 'task'),
+            setup: CTRL_START,
+            activityDiagram: true,
+            allowedBlocks: {
+                event: ['event_whenflagclicked'],
+                control: ['control_forever', 'control_if', { opcode: 'control_wait', inputs: { DURATION: 2 } }],
+                operators: [{ opcode: 'operator_gt', inputs: { OPERAND2: 500 } }],
+                [CTRL_EXTENSION]: [CTRL_SENSOR, CTRL_ARM],
+            },
+            steps: withDiagramFirst('ctrl-l5-trash-can', [
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: 'when_flag_clicked do\n  loop do\n    if studuino.sensor_value("ir_a4") > 500\n    end\n  end\nend\n',
+                },
+                {
+                    target: HINT_TARGETS.CODE_AREA,
+                    blocks:
+                        'if studuino.sensor_value("ir_a4") > 500\n  studuino.bend_arm(90, 0.5)\n  sleep(2)\n' +
+                        '  studuino.bend_arm(0, 0.5)\nend\n',
+                },
+                { target: HINT_TARGETS.PRACTICE_BOARD },
+            ]),
+            debug: debugTips('ctrl-l5-trash-can', 2),
+            // 近づいた（値が大きい）ときにアームを大きい角度へ動かし、そのあと小さい角度にもどした
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenflagclicked' },
+                    blocks: [
+                        'control_forever',
+                        'control_if',
+                        CTRL_SENSOR,
+                        'control_wait',
+                        { opcode: CTRL_ARM, count: 2 },
+                    ],
+                },
+                { type: 'boardCommand', kind: 'servo', value: CTRL_ARM_UP, whenSensor: { value: CTRL_BRIGHT } },
+                { type: 'boardCommand', kind: 'servo', value: CTRL_ARM_DOWN },
+            ],
+            quiz: challengeQuiz('ctrl-l5-trash-can', 0),
+            code:
+                'when_flag_clicked do\n  loop do\n    if studuino.sensor_value("ir_a4") > 500\n' +
+                '      studuino.bend_arm(90, 0.5)\n      sleep(2)\n      studuino.bend_arm(0, 0.5)\n    end\n  end\nend\n',
+        },
+        // 4 ぶつかる前にゆっくり止まる車: 近づいたら止まる車（土台）に、少し近いときはゆっくり（速さ 20）、遠いときは
+        // ふつう（速さ 60）で進む分岐を足す。教科書の超音波センサーの例を赤外線センサーにしたもの
+        {
+            id: 'ctrl-l5-slow-car',
+            card: { category: CATEGORIES.EXTENSIONS, main: CATEGORIES.EXTENSIONS },
+            task: challengeMessage('ctrl-l5-slow-car', 'task'),
+            setup: { ...CTRL_START, code: CTRL_L5_CAR_BASE },
+            activityDiagram: true,
+            allowedBlocks: {
+                event: ['event_whenflagclicked'],
+                control: ['control_forever', 'control_if_else'],
+                operators: [
+                    { opcode: 'operator_gt', inputs: { OPERAND2: 700 } },
+                    { opcode: 'operator_gt', inputs: { OPERAND2: 300 } },
+                ],
+                [CTRL_EXTENSION]: [CTRL_SENSOR, CTRL_ACTION, CTRL_SET_SPEED],
+            },
+            steps: withDiagramFirst('ctrl-l5-slow-car', [
+                // 最初から入っているプログラム（土台）をそのまま描く（帽子のブロックをどこかのヒントに描く決まり）
+                { target: HINT_TARGETS.CODE_AREA, blocks: CTRL_L5_CAR_BASE },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: 'if studuino.sensor_value("ir_a4") > 300\nelse\nend\nstuduino.action("forward")\n',
+                },
+                {
+                    target: HINT_TARGETS.CODE_AREA,
+                    blocks:
+                        'if studuino.sensor_value("ir_a4") > 300\n  studuino.set_motor_speed("left", 20)\n' +
+                        '  studuino.set_motor_speed("right", 20)\nelse\n  studuino.set_motor_speed("left", 60)\n' +
+                        '  studuino.set_motor_speed("right", 60)\nend\nstuduino.action("forward")\n',
+                },
+                { target: HINT_TARGETS.PRACTICE_BOARD },
+            ]),
+            debug: debugTips('ctrl-l5-slow-car', 2),
+            // 遅い速さ（30 まで）と速い速さ（50 から）の両方で進み、止まった（速さを決めるブロックが動いた）
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenflagclicked' },
+                    blocks: ['control_forever', CTRL_SENSOR, CTRL_SET_SPEED, CTRL_ACTION],
+                },
+                { type: 'boardCommand', kind: 'motor', value: 'normal', speed: { lte: 30 } },
+                { type: 'boardCommand', kind: 'motor', value: 'normal', speed: { gte: 50 } },
+                { type: 'boardCommand', kind: 'motor', value: 'stop' },
+            ],
+            quiz: challengeQuiz('ctrl-l5-slow-car', 0),
+            code: CTRL_L5_CAR,
+        },
+        // 5 はなれた場所に知らせる（IoT）: タッチセンサー（よびだしボタン）を押したら、メッシュで合図「よびだし」を送る。
+        // 受け取る側（LED を 3 回点滅）は土台に入れておく。自分の合図も自分に届くので、ひとりでもできる
+        {
+            id: 'ctrl-l5-doorbell',
+            card: { category: CATEGORIES.CONTROL, main: CATEGORIES.EVENTS },
+            task: challengeMessage('ctrl-l5-doorbell', 'task'),
+            setup: { ...CTRL_MESH_START, code: ctrlL5Code(ctrlL5Receiver) },
+            activityDiagram: true,
+            allowedBlocks: {
+                event: ['event_whenflagclicked', 'event_broadcast', 'event_whenbroadcastreceived'],
+                control: ['control_forever', 'control_if', { opcode: 'control_wait', inputs: { DURATION: 1 } }],
+                operators: [{ opcode: 'operator_equals', inputs: { OPERAND2: 0 } }],
+                [CTRL_EXTENSION]: [CTRL_SENSOR],
+            },
+            partner: {
+                name: ctrlL4Text('partner'),
+                buttons: [{ label: ctrlL5Code((w) => w.call), broadcast: ctrlL5Code((w) => w.call) }],
+                replies: [],
+            },
+            steps: withDiagramFirst('ctrl-l5-doorbell', [
+                connectStep(),
+                // 最初から入っている受け取る側のプログラム（帽子のブロックをどこかのヒントに描く決まり）
+                { target: HINT_TARGETS.CODE_AREA, blocks: ctrlL5Code(ctrlL5Receiver) },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: ctrlL5Code(ctrlL5Sender),
+                },
+                { target: HINT_TARGETS.PRACTICE_BOARD },
+            ]),
+            debug: debugTips('ctrl-l5-doorbell', 2),
+            // 旗のスクリプトでセンサーの値を見て「よびだし」を送り、受け取ったスクリプトで LED をつけた
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenflagclicked' },
+                    blocks: [
+                        'control_forever',
+                        CTRL_SENSOR,
+                        { opcode: CHAT_SEND_OPCODES, args: { BROADCAST_OPTION: messageMatcher(CTRL_CALL_MESSAGE) } },
+                    ],
+                },
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenbroadcastreceived', message: CTRL_CALL_MESSAGE },
+                    blocks: [CTRL_LED_ON],
+                },
+                { type: 'boardCommand', kind: 'led', value: 'on' },
+            ],
+            quiz: challengeQuiz('ctrl-l5-doorbell', 0),
+            code: ctrlL5Code((w) => `${ctrlL5Sender(w)}\n${ctrlL5Receiver(w)}`),
+        },
+    ],
+});
+
 export const COURSES = [
     defineCourse({
         id: 'kyou-kara-programmer',
@@ -3881,7 +4156,7 @@ export const COURSES = [
     defineCourse({
         id: 'jidou-sensor-motor',
         language: LANGUAGES.BLOCKS,
-        lessons: [ctrlLesson1, ctrlLesson2, ctrlLesson3, ctrlLesson4],
+        lessons: [ctrlLesson1, ctrlLesson2, ctrlLesson3, ctrlLesson4, ctrlLesson5],
     }),
 ];
 

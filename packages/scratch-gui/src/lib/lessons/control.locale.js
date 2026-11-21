@@ -310,6 +310,100 @@ export const ja = {
     [`${C}ctrl-l4-signal-motor.quiz.choice3`]: '合図は数しか送れない',
     [`${C}ctrl-l4-signal-motor.quiz.explanation`]:
         '合図は「いま〜して」というきっかけを送り、受け取るとすぐにプログラムが動く。変数は明るさのような値（中身）を伝え、相手が読みたいときに読むよ。',
+    // レッスン 5「計測・制御システムを作ろう」（#2174・ワークシート第 6〜10 時）。テーマを 1 つ以上選ぶ
+    'gui.lessons.lesson.ctrl-l5.name': '計測・制御システムを作ろう',
+    [`${C}ctrl-l5-hallway.name`]: '図から作ろう：暗いろうかを自動で照らす',
+    [`${C}ctrl-l5-hallway.task`]:
+        '図を読んで、人が近づいた（赤外線センサー (A4) の値が 500 より大きい）「かつ」暗い（光センサーの値が 500 より小さい）ときに、LED (A0) を 3 秒つけるプログラムを作ろう。\nできたら、自分の工夫を足して作品にしよう',
+    [`${C}ctrl-l5-hallway.explanation`]:
+        '夜のろうかで、人が来たときだけ明かりをつけて電気を節約するシステム。図だけを見て作ってみよう。',
+    [`${C}ctrl-l5-hallway.quiz.question`]: 'このシステムで、昼に人が来たら LED はどうなる？',
+    [`${C}ctrl-l5-hallway.quiz.choice1`]: 'つかない',
+    [`${C}ctrl-l5-hallway.quiz.choice2`]: '3 秒つく',
+    [`${C}ctrl-l5-hallway.quiz.choice3`]: 'ずっとつく',
+    [`${C}ctrl-l5-hallway.quiz.explanation`]:
+        '「近づいた」かつ「暗い」の両方に合うときだけつく。昼は明るいので、人が来てもつかない。むだな電気を使わない工夫だよ。',
+    [`${C}ctrl-l5-fridge.name`]: '冷蔵庫の開けっぱなしを知らせる',
+    [`${C}ctrl-l5-fridge.task`]:
+        '冷蔵庫の中の光センサーの値が 500 より大きい（とびらが開いて明るい）あいだ、LED (A0) を 0.5 秒ごとに点滅させて知らせよう。閉じたら（暗い）消そう。\nできたら、時間をはかって長く開いたときだけ知らせるなど、自分の工夫を足そう',
+    [`${C}ctrl-l5-fridge.step1`]:
+        '課題の説明と、アクティビティ図を理解しよう。明るい（開いている）ほうの道で、LED をつけて消すをくり返すよ。',
+    [`${C}ctrl-l5-fridge.step2`]:
+        '「旗が押されたとき」の下に「ずっと」をつなげ、その中に「もし〜なら でなければ」を入れて、白いところに「(光センサー (A6) の値) > 500」を入れよう。',
+    [`${C}ctrl-l5-fridge.step3`]:
+        '「もし」の中に「LED をオンにする・0.5 秒待つ・LED をオフにする・0.5 秒待つ」、「でなければ」の中に「LED をオフにする」を入れよう。',
+    [`${C}ctrl-l5-fridge.step4`]:
+        '緑の旗を押して、センサーを明るくしたり暗くしたりしよう。練習用の基板なら、光センサーのスライダーを 500 より大きく、小さく動かそう。',
+    [`${C}ctrl-l5-fridge.debug1`]: '点滅しないときは、「オフにする」のあとにも「0.5 秒待つ」があるか見よう。',
+    [`${C}ctrl-l5-fridge.debug2`]: '光センサーが無ければ、▼でほかのセンサーを選んでもいいよ。',
+    [`${C}ctrl-l5-fridge.quiz.question`]: '「開けっぱなし」を知らせるのに、光センサーを選んだのはなぜ？',
+    [`${C}ctrl-l5-fridge.quiz.choice1`]: '開くと中が明るくなるから',
+    [`${C}ctrl-l5-fridge.quiz.choice2`]: '冷蔵庫の音を聞くから',
+    [`${C}ctrl-l5-fridge.quiz.choice3`]: '冷蔵庫を動かすから',
+    [`${C}ctrl-l5-fridge.quiz.explanation`]:
+        '冷蔵庫の中は、とびらを閉じると暗く、開けると明るくなる。知りたいこと（開いたか）が、計測できる量（明るさ）に変わるセンサーを選ぶよ。',
+    [`${C}ctrl-l5-trash-can.name`]: '自動で開くごみ箱',
+    [`${C}ctrl-l5-trash-can.task`]:
+        '手を近づけたら（赤外線センサー (A4) の値が 500 より大きい）、0.5 秒でアームを 90 度にしてふたを開け、2 秒待って 0 度にもどして閉めよう。\nできたら、開いている時間や角度など、自分の工夫を足そう',
+    [`${C}ctrl-l5-trash-can.step1`]:
+        '課題の説明と、アクティビティ図を理解しよう。近づいたときだけ「開ける → 待つ → 閉める」の仕事をするよ。',
+    [`${C}ctrl-l5-trash-can.step2`]:
+        '「旗が押されたとき」の下に「ずっと」をつなげ、その中に「もし〜なら」を入れて、白いところに「(赤外線センサー (A4) の値) > 500」を入れよう。',
+    [`${C}ctrl-l5-trash-can.step3`]:
+        '「もし」の中に「0.5 秒でアームを 90 度に曲げる・2 秒待つ・0.5 秒でアームを 0 度に曲げる」を入れよう。',
+    [`${C}ctrl-l5-trash-can.step4`]:
+        '緑の旗を押して、センサーに手を近づけよう。練習用の基板なら、赤外線センサー (A4) のスライダーを 500 より大きくして、アームの角度を見よう。',
+    [`${C}ctrl-l5-trash-can.debug1`]: 'ふたがすぐ閉まるときは、「2 秒待つ」の数を大きくしよう。',
+    [`${C}ctrl-l5-trash-can.debug2`]: 'ふたが重くて開かないときは、てこを使うなど、しくみを工夫しよう。',
+    [`${C}ctrl-l5-trash-can.quiz.question`]: 'ふたをさわらずに開けられると、どんなよいことがある？',
+    [`${C}ctrl-l5-trash-can.quiz.choice1`]: '手がよごれず、衛生的',
+    [`${C}ctrl-l5-trash-can.quiz.choice2`]: 'ごみが減る',
+    [`${C}ctrl-l5-trash-can.quiz.choice3`]: '電気を使わない',
+    [`${C}ctrl-l5-trash-can.quiz.explanation`]:
+        'ふたにさわらないので衛生的。いっぽう、電気を使い、こわれることもある。よいところと気をつけることの両方を考えて、システムを選ぼう。',
+    [`${C}ctrl-l5-slow-car.name`]: 'ぶつかる前にゆっくり止まる車',
+    [`${C}ctrl-l5-slow-car.task`]:
+        '最初から入っている「近づいたら止まる車」に足して、少し近いとき（赤外線センサーの値が 300 より大きい）は速さ 20 でゆっくり、遠いときは速さ 60 で進むようにしよう。\nできたら、さかい目や速さを変えるなど、自分の工夫を足そう',
+    [`${C}ctrl-l5-slow-car.step1`]:
+        '課題の説明と、アクティビティ図を理解しよう。ひし形が 2 つあり、近さで「止まる・ゆっくり・ふつう」の 3 つに分かれるよ。',
+    [`${C}ctrl-l5-slow-car.step2`]:
+        '最初から入っているのは、近い（700 より大きい）と止まり、そうでなければ進む車のプログラム。この「でなければ」の中に足していくよ。',
+    [`${C}ctrl-l5-slow-car.step3`]:
+        '「でなければ」の中の「進める (M1, M2)」の上に、「もし〜なら でなければ」を入れ、白いところに「(赤外線センサー (A4) の値) > 300」を入れよう。',
+    [`${C}ctrl-l5-slow-car.step4`]:
+        '新しい「もし」の中に「左 のDCモーターの速度を 20 にする」「右 の〜を 20 にする」、「でなければ」の中に 60 の 2 つを入れよう。',
+    [`${C}ctrl-l5-slow-car.step5`]:
+        '緑の旗を押して、センサーに手をゆっくり近づけよう。練習用の基板なら、赤外線センサー (A4) のスライダーを 0 → 500 → 900 と動かして、DC モーターの速さを見よう。',
+    [`${C}ctrl-l5-slow-car.debug1`]:
+        'ゆっくりにならないときは、速さのブロックが「進める」より上にあるか見よう。速さは次に進めたときから使われるよ。',
+    [`${C}ctrl-l5-slow-car.debug2`]: '左だけ・右だけ速さが変わるときは、左と右の両方の速さを決めたか見よう。',
+    [`${C}ctrl-l5-slow-car.quiz.question`]:
+        '教科書の超音波センサーの代わりに、ここではどのセンサーで近さをはかった？',
+    [`${C}ctrl-l5-slow-car.quiz.choice1`]: '赤外線センサー',
+    [`${C}ctrl-l5-slow-car.quiz.choice2`]: '音センサー',
+    [`${C}ctrl-l5-slow-car.quiz.choice3`]: 'タッチセンサー',
+    [`${C}ctrl-l5-slow-car.quiz.explanation`]:
+        '赤外線センサー（フォトリフレクタ）は、ものが近いほど値が大きくなる。手元の部品で、同じことを計測できるものを選んで置きかえるのも工夫だよ。',
+    [`${C}ctrl-l5-doorbell.name`]: 'はなれた場所に知らせる（IoT）',
+    [`${C}ctrl-l5-doorbell.task`]:
+        'タッチセンサー（よびだしボタン）を押したら、メッシュで合図「よびだし」を送ろう。受け取ると LED が 3 回点滅するプログラムは、最初から入っているよ。\nペアなら、相手のボタンで自分の LED が光る。できたら、自分の工夫を足そう',
+    [`${C}ctrl-l5-doorbell.step1`]:
+        '課題の説明と、アクティビティ図を理解しよう。ボタンを押す側（計測する側）が合図を送り、受け取った側（仕事をする側）が LED で知らせるよ。',
+    [`${C}ctrl-l5-doorbell.step3`]:
+        '最初から入っているのは、「よびだし」を受け取ったら LED を 3 回点滅させる、受け取る側のプログラムだよ。',
+    [`${C}ctrl-l5-doorbell.step4`]:
+        '送る側を作ろう。「旗が押されたとき」の下に「ずっと」をつなげ、その中に「もし (タッチセンサー (A2) の値) = 0 なら」を入れて、その中に「よびだし を送る」と「1 秒待つ」を入れよう。',
+    [`${C}ctrl-l5-doorbell.step5`]:
+        '緑の旗を押して、タッチセンサーを押そう。練習用の基板なら、タッチセンサーのボタンを押して、パネルの LED (A0) を見よう。',
+    [`${C}ctrl-l5-doorbell.debug1`]: '光らないときは、送る合図と受け取る合図の名前が同じ「よびだし」か見よう。',
+    [`${C}ctrl-l5-doorbell.debug2`]:
+        '1 回押しただけで何度も光るときは、「1 秒待つ」があるか見よう。押しているあいだ、ずっと送り続けてしまうよ。',
+    [`${C}ctrl-l5-doorbell.quiz.question`]: 'この IoT のシステムは、身のまわりのどれに近い？',
+    [`${C}ctrl-l5-doorbell.quiz.choice1`]: '病院のナースコール',
+    [`${C}ctrl-l5-doorbell.quiz.choice2`]: '目覚まし時計',
+    [`${C}ctrl-l5-doorbell.quiz.choice3`]: '電卓',
+    [`${C}ctrl-l5-doorbell.quiz.explanation`]:
+        'ナースコールは、ボタンを押すと、はなれた場所のランプや音で知らせる。計測する場所と知らせる場所をネットワークでつなぐしくみだよ。',
 };
 
 export const jaHira = {
@@ -622,6 +716,102 @@ export const jaHira = {
     [`${C}ctrl-l4-signal-motor.quiz.choice3`]: 'あいずは かずしか おくれない',
     [`${C}ctrl-l4-signal-motor.quiz.explanation`]:
         'あいずは「いま〜して」という きっかけを おくり、うけとると すぐに プログラムが うごく。へんすうは あかるさのような あたい（なかみ）を つたえ、あいてが よみたいときに よむよ。',
+    'gui.lessons.lesson.ctrl-l5.name': 'けいそく・せいぎょ システムを つくろう',
+    [`${C}ctrl-l5-hallway.name`]: 'ずから つくろう：くらい ろうかを じどうで てらす',
+    [`${C}ctrl-l5-hallway.task`]:
+        'ずを よんで、ひとが ちかづいた（せきがいせんセンサー (A4) の あたいが 500 より おおきい）「かつ」くらい（ひかりセンサーの あたいが 500 より ちいさい）ときに、LED (A0) を 3 びょう つける プログラムを つくろう。\nできたら、じぶんの くふうを たして さくひんに しよう',
+    [`${C}ctrl-l5-hallway.explanation`]:
+        'よるの ろうかで、ひとが きたときだけ あかりを つけて でんきを せつやくする システム。ずだけを みて つくってみよう。',
+    [`${C}ctrl-l5-hallway.quiz.question`]: 'この システムで、ひるに ひとが きたら LED は どうなる？',
+    [`${C}ctrl-l5-hallway.quiz.choice1`]: 'つかない',
+    [`${C}ctrl-l5-hallway.quiz.choice2`]: '3 びょう つく',
+    [`${C}ctrl-l5-hallway.quiz.choice3`]: 'ずっと つく',
+    [`${C}ctrl-l5-hallway.quiz.explanation`]:
+        '「ちかづいた」かつ「くらい」の りょうほうに あうときだけ つく。ひるは あかるいので、ひとが きても つかない。むだな でんきを つかわない くふうだよ。',
+    [`${C}ctrl-l5-fridge.name`]: 'れいぞうこの あけっぱなしを しらせる',
+    [`${C}ctrl-l5-fridge.task`]:
+        'れいぞうこの なかの ひかりセンサーの あたいが 500 より おおきい（とびらが ひらいて あかるい）あいだ、LED (A0) を 0.5 びょうごとに てんめつさせて しらせよう。とじたら（くらい）けそう。\nできたら、じかんを はかって ながく ひらいたときだけ しらせるなど、じぶんの くふうを たそう',
+    [`${C}ctrl-l5-fridge.step1`]:
+        'かだいの せつめいと、アクティビティずを りかいしよう。あかるい（ひらいている）ほうの みちで、LED を つけて けすを くりかえすよ。',
+    [`${C}ctrl-l5-fridge.step2`]:
+        '「はたが おされたとき」の したに「ずっと」を つなげ、その なかに「もし〜なら でなければ」を いれて、しろいところに「(ひかりセンサー (A6) の あたい) > 500」を いれよう。',
+    [`${C}ctrl-l5-fridge.step3`]:
+        '「もし」の なかに「LED を オンにする・0.5 びょう まつ・LED を オフにする・0.5 びょう まつ」、「でなければ」の なかに「LED を オフにする」を いれよう。',
+    [`${C}ctrl-l5-fridge.step4`]:
+        'みどりのはたを おして、センサーを あかるく したり くらく したり しよう。れんしゅうようの きばんなら、ひかりセンサーの スライダーを 500 より おおきく、ちいさく うごかそう。',
+    [`${C}ctrl-l5-fridge.debug1`]:
+        'てんめつしないときは、「オフにする」の あとにも「0.5 びょう まつ」が あるか みよう。',
+    [`${C}ctrl-l5-fridge.debug2`]: 'ひかりセンサーが なければ、▼で ほかの センサーを えらんでも いいよ。',
+    [`${C}ctrl-l5-fridge.quiz.question`]: '「あけっぱなし」を しらせるのに、ひかりセンサーを えらんだのは なぜ？',
+    [`${C}ctrl-l5-fridge.quiz.choice1`]: 'ひらくと なかが あかるく なるから',
+    [`${C}ctrl-l5-fridge.quiz.choice2`]: 'れいぞうこの おとを きくから',
+    [`${C}ctrl-l5-fridge.quiz.choice3`]: 'れいぞうこを うごかすから',
+    [`${C}ctrl-l5-fridge.quiz.explanation`]:
+        'れいぞうこの なかは、とびらを とじると くらく、あけると あかるく なる。しりたいこと（ひらいたか）が、けいそくできる りょう（あかるさ）に かわる センサーを えらぶよ。',
+    [`${C}ctrl-l5-trash-can.name`]: 'じどうで ひらく ごみばこ',
+    [`${C}ctrl-l5-trash-can.task`]:
+        'てを ちかづけたら（せきがいせんセンサー (A4) の あたいが 500 より おおきい）、0.5 びょうで アームを 90 どに して ふたを あけ、2 びょう まって 0 どに もどして しめよう。\nできたら、ひらいている じかんや かくどなど、じぶんの くふうを たそう',
+    [`${C}ctrl-l5-trash-can.step1`]:
+        'かだいの せつめいと、アクティビティずを りかいしよう。ちかづいたときだけ「あける → まつ → しめる」の しごとを するよ。',
+    [`${C}ctrl-l5-trash-can.step2`]:
+        '「はたが おされたとき」の したに「ずっと」を つなげ、その なかに「もし〜なら」を いれて、しろいところに「(せきがいせんセンサー (A4) の あたい) > 500」を いれよう。',
+    [`${C}ctrl-l5-trash-can.step3`]:
+        '「もし」の なかに「0.5 びょうで アームを 90 どに まげる・2 びょう まつ・0.5 びょうで アームを 0 どに まげる」を いれよう。',
+    [`${C}ctrl-l5-trash-can.step4`]:
+        'みどりのはたを おして、センサーに てを ちかづけよう。れんしゅうようの きばんなら、せきがいせんセンサー (A4) の スライダーを 500 より おおきく して、アームの かくどを みよう。',
+    [`${C}ctrl-l5-trash-can.debug1`]: 'ふたが すぐ しまるときは、「2 びょう まつ」の かずを おおきく しよう。',
+    [`${C}ctrl-l5-trash-can.debug2`]: 'ふたが おもくて ひらかないときは、てこを つかうなど、しくみを くふうしよう。',
+    [`${C}ctrl-l5-trash-can.quiz.question`]: 'ふたを さわらずに あけられると、どんな よいことが ある？',
+    [`${C}ctrl-l5-trash-can.quiz.choice1`]: 'てが よごれず、えいせいてき',
+    [`${C}ctrl-l5-trash-can.quiz.choice2`]: 'ごみが へる',
+    [`${C}ctrl-l5-trash-can.quiz.choice3`]: 'でんきを つかわない',
+    [`${C}ctrl-l5-trash-can.quiz.explanation`]:
+        'ふたに さわらないので えいせいてき。いっぽう、でんきを つかい、こわれることも ある。よいところと きをつけることの りょうほうを かんがえて、システムを えらぼう。',
+    [`${C}ctrl-l5-slow-car.name`]: 'ぶつかる まえに ゆっくり とまる くるま',
+    [`${C}ctrl-l5-slow-car.task`]:
+        'さいしょから はいっている「ちかづいたら とまる くるま」に たして、すこし ちかいとき（せきがいせんセンサーの あたいが 300 より おおきい）は はやさ 20 で ゆっくり、とおいときは はやさ 60 で すすむように しよう。\nできたら、さかいめや はやさを かえるなど、じぶんの くふうを たそう',
+    [`${C}ctrl-l5-slow-car.step1`]:
+        'かだいの せつめいと、アクティビティずを りかいしよう。ひしがたが 2 つ あり、ちかさで「とまる・ゆっくり・ふつう」の 3 つに わかれるよ。',
+    [`${C}ctrl-l5-slow-car.step2`]:
+        'さいしょから はいっているのは、ちかい（700 より おおきい）と とまり、そうでなければ すすむ くるまの プログラム。この「でなければ」の なかに たしていくよ。',
+    [`${C}ctrl-l5-slow-car.step3`]:
+        '「でなければ」の なかの「すすめる (M1, M2)」の うえに、「もし〜なら でなければ」を いれ、しろいところに「(せきがいせんセンサー (A4) の あたい) > 300」を いれよう。',
+    [`${C}ctrl-l5-slow-car.step4`]:
+        'あたらしい「もし」の なかに「ひだり の DC モーターの そくどを 20 にする」「みぎ の〜を 20 にする」、「でなければ」の なかに 60 の 2 つを いれよう。',
+    [`${C}ctrl-l5-slow-car.step5`]:
+        'みどりのはたを おして、センサーに てを ゆっくり ちかづけよう。れんしゅうようの きばんなら、せきがいせんセンサー (A4) の スライダーを 0 → 500 → 900 と うごかして、DC モーターの はやさを みよう。',
+    [`${C}ctrl-l5-slow-car.debug1`]:
+        'ゆっくりに ならないときは、はやさの ブロックが「すすめる」より うえに あるか みよう。はやさは つぎに すすめたときから つかわれるよ。',
+    [`${C}ctrl-l5-slow-car.debug2`]:
+        'ひだりだけ・みぎだけ はやさが かわるときは、ひだりと みぎの りょうほうの はやさを きめたか みよう。',
+    [`${C}ctrl-l5-slow-car.quiz.question`]:
+        'きょうかしょの ちょうおんぱセンサーの かわりに、ここでは どの センサーで ちかさを はかった？',
+    [`${C}ctrl-l5-slow-car.quiz.choice1`]: 'せきがいせんセンサー',
+    [`${C}ctrl-l5-slow-car.quiz.choice2`]: 'おとセンサー',
+    [`${C}ctrl-l5-slow-car.quiz.choice3`]: 'タッチセンサー',
+    [`${C}ctrl-l5-slow-car.quiz.explanation`]:
+        'せきがいせんセンサー（フォトリフレクタ）は、ものが ちかいほど あたいが おおきく なる。てもとの ぶひんで、おなじことを けいそくできる ものを えらんで おきかえるのも くふうだよ。',
+    [`${C}ctrl-l5-doorbell.name`]: 'はなれた ばしょに しらせる（IoT）',
+    [`${C}ctrl-l5-doorbell.task`]:
+        'タッチセンサー（よびだしボタン）を おしたら、メッシュで あいず「よびだし」を おくろう。うけとると LED が 3 かい てんめつする プログラムは、さいしょから はいっているよ。\nペアなら、あいての ボタンで じぶんの LED が ひかる。できたら、じぶんの くふうを たそう',
+    [`${C}ctrl-l5-doorbell.step1`]:
+        'かだいの せつめいと、アクティビティずを りかいしよう。ボタンを おす がわ（けいそくする がわ）が あいずを おくり、うけとった がわ（しごとを する がわ）が LED で しらせるよ。',
+    [`${C}ctrl-l5-doorbell.step3`]:
+        'さいしょから はいっているのは、「よびだし」を うけとったら LED を 3 かい てんめつさせる、うけとる がわの プログラムだよ。',
+    [`${C}ctrl-l5-doorbell.step4`]:
+        'おくる がわを つくろう。「はたが おされたとき」の したに「ずっと」を つなげ、その なかに「もし (タッチセンサー (A2) の あたい) = 0 なら」を いれて、その なかに「よびだし を おくる」と「1 びょう まつ」を いれよう。',
+    [`${C}ctrl-l5-doorbell.step5`]:
+        'みどりのはたを おして、タッチセンサーを おそう。れんしゅうようの きばんなら、タッチセンサーの ボタンを おして、パネルの LED (A0) を みよう。',
+    [`${C}ctrl-l5-doorbell.debug1`]:
+        'ひからないときは、おくる あいずと うけとる あいずの なまえが おなじ「よびだし」か みよう。',
+    [`${C}ctrl-l5-doorbell.debug2`]:
+        '1 かい おしただけで なんども ひかるときは、「1 びょう まつ」が あるか みよう。おしている あいだ、ずっと おくりつづけて しまうよ。',
+    [`${C}ctrl-l5-doorbell.quiz.question`]: 'この IoT の システムは、みのまわりの どれに ちかい？',
+    [`${C}ctrl-l5-doorbell.quiz.choice1`]: 'びょういんの ナースコール',
+    [`${C}ctrl-l5-doorbell.quiz.choice2`]: 'めざましどけい',
+    [`${C}ctrl-l5-doorbell.quiz.choice3`]: 'でんたく',
+    [`${C}ctrl-l5-doorbell.quiz.explanation`]:
+        'ナースコールは、ボタンを おすと、はなれた ばしょの ランプや おとで しらせる。けいそくする ばしょと しらせる ばしょを ネットワークで つなぐ しくみだよ。',
 };
 
 export const en = {
@@ -923,4 +1113,100 @@ export const en = {
     [`${C}ctrl-l4-signal-motor.quiz.choice3`]: 'A signal can send only numbers',
     [`${C}ctrl-l4-signal-motor.quiz.explanation`]:
         'A signal sends a cue "do it now", and the program runs as soon as it is received. A variable carries a value like the brightness, and the partner reads it when needed.',
+    'gui.lessons.lesson.ctrl-l5.name': 'Build a Measurement and Control System',
+    [`${C}ctrl-l5-hallway.name`]: 'Build from the Diagram: Light a Dark Hallway',
+    [`${C}ctrl-l5-hallway.task`]:
+        'Read the diagram and make a program that turns on the LED (A0) for 3 seconds when a person comes near (infrared sensor (A4) value more than 500) "and" it is dark (light sensor value less than 500).\nThen add your own ideas to make your work',
+    [`${C}ctrl-l5-hallway.explanation`]:
+        'A system that saves power by lighting a hallway at night only when a person comes. Try to make it only from the diagram.',
+    [`${C}ctrl-l5-hallway.quiz.question`]:
+        'With this system, what does the LED do when a person comes in the daytime?',
+    [`${C}ctrl-l5-hallway.quiz.choice1`]: 'It stays off',
+    [`${C}ctrl-l5-hallway.quiz.choice2`]: 'It is on for 3 seconds',
+    [`${C}ctrl-l5-hallway.quiz.choice3`]: 'It stays on',
+    [`${C}ctrl-l5-hallway.quiz.explanation`]:
+        'It lights only when both "near" and "dark" are true. In the daytime it is bright, so it does not light even when a person comes. It saves power.',
+    [`${C}ctrl-l5-fridge.name`]: 'Tell That the Fridge Is Left Open',
+    [`${C}ctrl-l5-fridge.task`]:
+        'While the light sensor in the fridge is more than 500 (the door is open and it is bright), blink the LED (A0) every 0.5 seconds. When it is closed (dark), turn it off.\nThen add your own ideas, such as telling only when it stays open for a long time',
+    [`${C}ctrl-l5-fridge.step1`]:
+        'Understand the task and the activity diagram. On the bright (open) path, it repeats turning the LED on and off.',
+    [`${C}ctrl-l5-fridge.step2`]:
+        'Attach "forever" under "when flag clicked", put "if then else" into it, and put "(light sensor (A6) value) > 500" into its white part.',
+    [`${C}ctrl-l5-fridge.step3`]: 'Put "LED on, wait 0.5, LED off, wait 0.5" into "if", and "LED off" into "else".',
+    [`${C}ctrl-l5-fridge.step4`]:
+        'Click the green flag and make the sensor bright and dark. On the practice board, move the light sensor slider above and below 500.',
+    [`${C}ctrl-l5-fridge.debug1`]: 'If it does not blink, check that "wait 0.5 seconds" is also after "off".',
+    [`${C}ctrl-l5-fridge.debug2`]: 'If you have no light sensor, you may choose another sensor with ▼.',
+    [`${C}ctrl-l5-fridge.quiz.question`]: 'Why did we choose the light sensor to tell that the fridge is left open?',
+    [`${C}ctrl-l5-fridge.quiz.choice1`]: 'It gets bright inside when open',
+    [`${C}ctrl-l5-fridge.quiz.choice2`]: 'It listens to the fridge',
+    [`${C}ctrl-l5-fridge.quiz.choice3`]: 'It moves the fridge',
+    [`${C}ctrl-l5-fridge.quiz.explanation`]:
+        'Inside a fridge it is dark when the door is closed and bright when open. Choose a sensor that turns what you want to know (open?) into something you can measure (brightness).',
+    [`${C}ctrl-l5-trash-can.name`]: 'A Trash Can That Opens by Itself',
+    [`${C}ctrl-l5-trash-can.task`]:
+        'When a hand comes near (infrared sensor (A4) value more than 500), move the arm to 90 degrees in 0.5 seconds to open the lid, wait 2 seconds, and move it back to 0 degrees to close it.\nThen add your own ideas, such as the open time or the angle',
+    [`${C}ctrl-l5-trash-can.step1`]:
+        'Understand the task and the activity diagram. Only when something is near, it does the work "open → wait → close".',
+    [`${C}ctrl-l5-trash-can.step2`]:
+        'Attach "forever" under "when flag clicked", put "if then" into it, and put "(infrared sensor (A4) value) > 500" into its white part.',
+    [`${C}ctrl-l5-trash-can.step3`]:
+        'Put "bend the arm to 90 degrees in 0.5 seconds, wait 2 seconds, bend the arm to 0 degrees in 0.5 seconds" into "if".',
+    [`${C}ctrl-l5-trash-can.step4`]:
+        'Click the green flag and bring your hand near the sensor. On the practice board, move the infrared sensor (A4) slider above 500 and watch the angle of the arm.',
+    [`${C}ctrl-l5-trash-can.debug1`]: 'If the lid closes too soon, make the number of "wait 2 seconds" bigger.',
+    [`${C}ctrl-l5-trash-can.debug2`]:
+        'If the lid is too heavy to open, improve the mechanism, for example with a lever.',
+    [`${C}ctrl-l5-trash-can.quiz.question`]: 'What is good about opening the lid without touching it?',
+    [`${C}ctrl-l5-trash-can.quiz.choice1`]: 'Your hands stay clean',
+    [`${C}ctrl-l5-trash-can.quiz.choice2`]: 'There is less trash',
+    [`${C}ctrl-l5-trash-can.quiz.choice3`]: 'It uses no electricity',
+    [`${C}ctrl-l5-trash-can.quiz.explanation`]:
+        'You do not touch the lid, so it is clean. On the other hand, it uses electricity and can break. Think about both the good points and the cautions when you choose a system.',
+    [`${C}ctrl-l5-slow-car.name`]: 'A Car That Slows Down Before It Bumps',
+    [`${C}ctrl-l5-slow-car.task`]:
+        'Add to the "car that stops when something is near" already in the project: move slowly at speed 20 when a little near (infrared sensor value more than 300), and at speed 60 when far.\nThen add your own ideas, such as changing the border values or the speeds',
+    [`${C}ctrl-l5-slow-car.step1`]:
+        'Understand the task and the activity diagram. There are 2 diamonds; by the distance it splits into "stop", "slow" and "normal".',
+    [`${C}ctrl-l5-slow-car.step2`]:
+        'The program already in the project is a car that stops when near (more than 700) and goes when not. You add to its "else".',
+    [`${C}ctrl-l5-slow-car.step3`]:
+        'Above "move forward (M1, M2)" in "else", put "if then else", and put "(infrared sensor (A4) value) > 300" into its white part.',
+    [`${C}ctrl-l5-slow-car.step4`]:
+        'Put "set left DC motor speed to 20" and "set right ... to 20" into the new "if", and the two with 60 into its "else".',
+    [`${C}ctrl-l5-slow-car.step5`]:
+        'Click the green flag and slowly bring your hand near the sensor. On the practice board, move the infrared sensor (A4) slider 0 → 500 → 900 and watch the speed of the DC motors.',
+    [`${C}ctrl-l5-slow-car.debug1`]:
+        'If it does not slow down, check that the speed blocks are above "move forward". The speed is used from the next move.',
+    [`${C}ctrl-l5-slow-car.debug2`]:
+        'If only one side changes the speed, check that you set the speed of both left and right.',
+    [`${C}ctrl-l5-slow-car.quiz.question`]:
+        'Instead of the ultrasonic sensor in the textbook, which sensor measured the distance here?',
+    [`${C}ctrl-l5-slow-car.quiz.choice1`]: 'The infrared sensor',
+    [`${C}ctrl-l5-slow-car.quiz.choice2`]: 'The sound sensor',
+    [`${C}ctrl-l5-slow-car.quiz.choice3`]: 'The touch sensor',
+    [`${C}ctrl-l5-slow-car.quiz.explanation`]:
+        'The value of the infrared sensor (photoreflector) gets bigger as something comes near. Choosing a part you have that measures the same thing is also a good idea.',
+    [`${C}ctrl-l5-doorbell.name`]: 'Tell a Far Place (IoT)',
+    [`${C}ctrl-l5-doorbell.task`]:
+        'When the touch sensor (call button) is pressed, send the signal "call" over the mesh. The program that blinks the LED 3 times when it receives the signal is already in the project.\nIn a pair, the button of your partner lights your LED. Then add your own ideas',
+    [`${C}ctrl-l5-doorbell.step1`]:
+        'Understand the task and the activity diagram. The side that presses the button (measuring side) sends a signal, and the side that receives it (working side) tells with the LED.',
+    [`${C}ctrl-l5-doorbell.step3`]:
+        'The program already in the project is the receiving side: it blinks the LED 3 times when it receives "call".',
+    [`${C}ctrl-l5-doorbell.step4`]:
+        'Make the sending side. Attach "forever" under "when flag clicked", put "if (touch sensor (A2) value) = 0 then" into it, and put "broadcast call" and "wait 1 seconds" into it.',
+    [`${C}ctrl-l5-doorbell.step5`]:
+        'Click the green flag and press the touch sensor. On the practice board, press the touch sensor button and watch LED (A0) of the panel.',
+    [`${C}ctrl-l5-doorbell.debug1`]:
+        'If it does not light, check that the sent and received signals have the same name "call".',
+    [`${C}ctrl-l5-doorbell.debug2`]:
+        'If one press lights it many times, check that there is "wait 1 seconds". Without it, it keeps sending while you press.',
+    [`${C}ctrl-l5-doorbell.quiz.question`]: 'Which thing around you is this IoT system like?',
+    [`${C}ctrl-l5-doorbell.quiz.choice1`]: 'A nurse call button',
+    [`${C}ctrl-l5-doorbell.quiz.choice2`]: 'An alarm clock',
+    [`${C}ctrl-l5-doorbell.quiz.choice3`]: 'A calculator',
+    [`${C}ctrl-l5-doorbell.quiz.explanation`]:
+        'A nurse call lights a lamp or makes a sound at a far place when the button is pressed. It connects the place to measure and the place to tell with a network.',
 };

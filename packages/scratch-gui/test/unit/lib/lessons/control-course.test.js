@@ -34,6 +34,7 @@ const COURSE_ID = 'jidou-sensor-motor';
 const L1 = ['ctrl-l1-measure', 'ctrl-l1-blink', 'ctrl-l1-touch-led', 'ctrl-l1-threshold'];
 const L2 = ['ctrl-l2-auto-light', 'ctrl-l2-near-light', 'ctrl-l2-read-diagram'];
 const L4 = ['ctrl-l4-send', 'ctrl-l4-receive-led', 'ctrl-l4-signal-motor'];
+const L5 = ['ctrl-l5-hallway', 'ctrl-l5-fridge', 'ctrl-l5-trash-can', 'ctrl-l5-slow-car', 'ctrl-l5-doorbell'];
 const L3 = ['ctrl-l3-dc-motor', 'ctrl-l3-servo', 'ctrl-l3-auto-switch', 'ctrl-l3-bumper-car'];
 const challenge = (id) => findChallenge(id).challenge;
 const ext = (name) => `smalrubotS1_${name}`;
@@ -62,8 +63,8 @@ describe('control course "自動でセンサーとモーターでうごかそう
         expect(COURSES[2]).toBe(course);
         expect(course.language).toBe(LANGUAGES.BLOCKS);
         expect(ja[course.name.id]).toBe('自動でセンサーとモーターでうごかそう');
-        expect(course.lessons.map((l) => l.id)).toEqual(['ctrl-l1', 'ctrl-l2', 'ctrl-l3', 'ctrl-l4']);
-        expect(courseSize(course)).toEqual({ lessonCount: 4, challengeCount: 14 });
+        expect(course.lessons.map((l) => l.id)).toEqual(['ctrl-l1', 'ctrl-l2', 'ctrl-l3', 'ctrl-l4', 'ctrl-l5']);
+        expect(courseSize(course)).toEqual({ lessonCount: 5, challengeCount: 19 });
     });
 
     test('every message of the course is in en / ja / ja-Hira, and ja-Hira has no kanji', () => {
@@ -512,6 +513,75 @@ describe('control course lesson 4 "はなれた場所から計測・制御しよ
         });
         recordExecution(facts, receive, ext('controlMotorAndStopAfter'));
         board(facts, [{ kind: 'motor', port: 'M1', value: 'normal', speed: 50 }]);
+        expect(satisfied(c, facts)).toBe(true);
+    });
+});
+
+describe('control course lesson 5 "計測・制御システムを作ろう" (#2174)', () => {
+    test('has 5 themes, a ✓ with one of them, and a read-and-build challenge', () => {
+        const lesson = findLesson('ctrl-l5');
+        expect(ja[lesson.name.id]).toBe('計測・制御システムを作ろう');
+        expect(lesson.checkCount).toBe(1);
+        expect(lesson.challenges.map((c) => `${c.number} ${c.id}`)).toEqual(L5.map((id, i) => `${i + 1} ${id}`));
+        expect(isReadDiagram(challenge('ctrl-l5-hallway'))).toBe(true);
+        L5.map(challenge).forEach((c) => {
+            expect({ id: c.id, errors: validateGoal(c.goal) }).toEqual({ id: c.id, errors: [] });
+            expect({ id: c.id, errors: validateQuiz(c.quiz) }).toEqual({ id: c.id, errors: [] });
+        });
+    });
+
+    test('5-4 and 5-5 start with the program of the earlier lessons (setup.code)', () => {
+        const car = challenge('ctrl-l5-slow-car');
+        expect(car.setup.code).toMatch(/studuino\.action\("stop"\)/);
+        expect(car.code).toContain('set_motor_speed');
+        const bell = challenge('ctrl-l5-doorbell');
+        expect(localizeCode(bell.setup.code, 'ja')).toMatch(/^when_receive\("よびだし"\)/);
+        expect(localizeCode(bell.code, 'en')).toContain('broadcast("call")');
+        expect(bell.setup.extensions).toEqual(['smalrubotS1', 'meshV2']);
+    });
+
+    test('5-2: blinks while bright and is off while dark', () => {
+        const c = challenge('ctrl-l5-fridge');
+        const facts = createFacts();
+        flagRun(facts, [
+            ['control_forever'],
+            ['control_if_else'],
+            [ext('getSensorValue')],
+            [ext('turnLedOn')],
+            ['control_wait'],
+            [ext('turnLedOn')],
+        ]);
+        board(facts, [read(900), led('on'), led('off'), read(100), led('off')]);
+        expect(satisfied(c, facts)).toBe(true);
+    });
+
+    test('5-3: opens when near and closes again', () => {
+        const c = challenge('ctrl-l5-trash-can');
+        const facts = createFacts();
+        flagRun(facts, [
+            ['control_forever'],
+            ['control_if'],
+            [ext('getSensorValue')],
+            [ext('bendArm')],
+            ['control_wait'],
+            [ext('bendArm')],
+        ]);
+        board(facts, [
+            read(800, 'A4', 'irPhotoreflector'),
+            { kind: 'servo', port: 'D10', value: 90 },
+            { kind: 'servo', port: 'D10', value: 0 },
+        ]);
+        expect(satisfied(c, facts)).toBe(true);
+    });
+
+    test('5-4: moved slowly and fast, and stopped', () => {
+        const c = challenge('ctrl-l5-slow-car');
+        const facts = createFacts();
+        flagRun(facts, [['control_forever'], [ext('getSensorValue')], [ext('setMotorSpeed')], [ext('action')]]);
+        const motor = (value, speed) => ({ kind: 'motor', port: 'M1', value, speed });
+        board(facts, [motor('normal', 60), motor('stop', 0)]);
+        expect(satisfied(c, facts)).toBe(false);
+        board(facts, [motor('normal', 20)]);
         expect(satisfied(c, facts)).toBe(true);
     });
 });

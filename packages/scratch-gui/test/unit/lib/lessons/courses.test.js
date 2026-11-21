@@ -1706,6 +1706,7 @@ describe('chat course: how to connect over the mesh, in and outside a class', ()
         ['ctrl-l4-send', 'pair'],
         ['ctrl-l4-receive-led', 'pair'],
         ['ctrl-l4-signal-motor', 'pair'],
+        ['ctrl-l5-doorbell', 'pair'],
     ];
     const ALL_CONNECT = [...CONNECT_STEPS, ...SHARED_CONNECT.map(([id]) => [id, 2])];
 
