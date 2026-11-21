@@ -21,6 +21,30 @@ const AnalyzeStage = {
         // One `@a` used as both a variable and a list is an error (issues #1593 / #1622)
         this._rejectRubyNameOfVariableAndList();
     },
+
+    /**
+     * Analyze the code of a module read from another sprite, whose defs are converted with this
+     * code (`_importModuleFromOtherSprites`).
+     * @param {object} root - The root node of the module's code.
+     * @param {string} code - The module's code.
+     */
+    _analyzeImported(root, code) {
+        this._context.importedAnalyses.push(analyze(root, { source: code }));
+    },
+
+    /**
+     * The entry of `procedures.definitions` of a DefNode, from the analysis of this code or of a
+     * module read from another sprite.
+     * @param {object} defNode - The DefNode.
+     * @returns {?object} The entry, or null.
+     */
+    _definitionOf(defNode) {
+        const analyses = [this._context.analysis, ...this._context.importedAnalyses];
+        for (const analysis of analyses) {
+            if (analysis && analysis.procedures.ofNode.has(defNode)) return analysis.procedures.ofNode.get(defNode);
+        }
+        return null;
+    },
 };
 
 export default AnalyzeStage;
