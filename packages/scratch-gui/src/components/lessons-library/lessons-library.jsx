@@ -20,6 +20,7 @@ import { LANGUAGES } from '../../lib/lessons/courses';
 import {
     filterCourseStatuses,
     libraryLanguages,
+    matchesQuery,
     normalizeQuery,
     showCourseNav,
 } from '../../lib/lessons/library-filter';
@@ -111,6 +112,19 @@ const messages = defineMessages({
             'Mark on a challenge that the readiness check recommends (the student missed its question). It goes ' +
             'away when the question is answered right later or the challenge is completed',
         defaultMessage: 'Recommended',
+    },
+    reviewTitle: {
+        id: 'gui.lessons.review.title',
+        description:
+            'Heading of the section after the assignment challenges in a lesson library limited to a class ' +
+            'assignment: the readiness check and the challenges it recommends, outside the assignment',
+        defaultMessage: 'Review (outside the assignment)',
+    },
+    reviewNote: {
+        id: 'gui.lessons.review.note',
+        description:
+            'Note under the heading of the review section: these challenges do not count toward the assignment',
+        defaultMessage: 'The readiness check and what it recommends. These do not count toward the assignment.',
     },
     next: {
         id: 'gui.lessonsLibrary.next',
@@ -461,6 +475,48 @@ LessonSection.propTypes = {
     onToggle: PropTypes.func.isRequired,
 };
 
+/**
+ * 課題だけのレッスン表の「おさらい（課題の外）」（#2300）。課題のチャレンジのあとに、じゅんびチェックとそのおすすめだけを出す。
+ * 課題の数には入らない（開くと課題バーに「おさらい中」）。
+ * @param {object} props - props。
+ * @param {Array<{challenge: object, completed: boolean}>} props.challenges - 出すチャレンジ。
+ * @param {string} props.colorMode - 色のモード。
+ * @param {Array<string>} props.recommendedChallengeIds - 「おすすめ」の印を付けるチャレンジ id。
+ * @param {function(string): void} props.onSelectChallenge - カードを押した。
+ * @returns {React.ReactElement} 区切り。
+ */
+const ReviewSection = ({ challenges, colorMode, recommendedChallengeIds, onSelectChallenge }) => {
+    const intl = useIntl();
+    return (
+        <section className={styles.review} data-testid="lessons-library-review">
+            <h3 className={styles.reviewTitle}>{intl.formatMessage(messages.reviewTitle)}</h3>
+            <p className={styles.reviewNote}>{intl.formatMessage(messages.reviewNote)}</p>
+            <ul className={styles.cards}>
+                {challenges.map(({ challenge, completed }) => (
+                    <ChallengeCard
+                        key={challenge.id}
+                        challenge={challenge}
+                        colorMode={colorMode}
+                        completed={completed}
+                        next={false}
+                        recommended={recommendedChallengeIds.includes(challenge.id)}
+                        onSelect={onSelectChallenge}
+                    />
+                ))}
+            </ul>
+        </section>
+    );
+};
+
+ReviewSection.propTypes = {
+    challenges: PropTypes.arrayOf(
+        PropTypes.shape({ challenge: PropTypes.object.isRequired, completed: PropTypes.bool.isRequired }),
+    ).isRequired,
+    colorMode: PropTypes.string.isRequired,
+    recommendedChallengeIds: PropTypes.arrayOf(PropTypes.string).isRequired,
+    onSelectChallenge: PropTypes.func.isRequired,
+};
+
 const CourseSection = ({
     status,
     colorMode,
@@ -586,6 +642,8 @@ CourseSection.propTypes = {
     onToggleLesson: PropTypes.func.isRequired,
 };
 
+const NO_REVIEW_CHALLENGES = [];
+
 const LessonsLibrary = ({
     assignmentBand = null,
     assignmentChallengeIds = null,
@@ -597,6 +655,7 @@ const LessonsLibrary = ({
     nextChallengeId = null,
     recommendedChallengeIds = [],
     requiredChallengeIds = [],
+    reviewChallenges = NO_REVIEW_CHALLENGES,
     onRequestClose,
     onSelectChallenge,
 }) => {
@@ -621,6 +680,20 @@ const LessonsLibrary = ({
             .map((status) => restrictCourseStatus(status, assignmentChallengeIds))
             .filter((status) => status.lessons.length > 0);
     }, [languageCourses, progress, query, nameOf, assignmentChallengeIds]);
+
+    // 「おさらい（課題の外）」は課題だけのときだけ。検索中は名前で絞る。課題の言語のタブのときだけ出す
+    const reviewItems = useMemo(
+        () =>
+            assignmentChallengeIds
+                ? reviewChallenges
+                      .filter(
+                          (found) =>
+                              found.course.language === language && matchesQuery(nameOf(found.challenge), query),
+                      )
+                      .map(({ challenge }) => ({ challenge, completed: Boolean(progress.challenges[challenge.id]) }))
+                : [],
+        [assignmentChallengeIds, reviewChallenges, language, nameOf, query, progress],
+    );
 
     // 開き方: 表を開いたときの決まり（initialFoldState）に、見出しを押して変えた分（toggled）を重ねる。
     const searching = Boolean(normalizeQuery(query));
@@ -727,7 +800,7 @@ const LessonsLibrary = ({
                 ) : null}
                 {assignmentBand}
                 <div className={styles.content} ref={contentRef}>
-                    {statuses.length === 0 && query.trim() ? (
+                    {statuses.length === 0 && reviewItems.length === 0 && query.trim() ? (
                         <p className={styles.noMatch} data-testid="lessons-library-no-match">
                             {intl.formatMessage(messages.noMatch, { query: query.trim() })}
                         </p>
@@ -750,6 +823,14 @@ const LessonsLibrary = ({
                             />
                         ))
                     )}
+                    {reviewItems.length > 0 ? (
+                        <ReviewSection
+                            challenges={reviewItems}
+                            colorMode={colorMode}
+                            recommendedChallengeIds={recommendedChallengeIds}
+                            onSelectChallenge={onSelectChallenge}
+                        />
+                    ) : null}
                 </div>
             </div>
         </Modal>
@@ -775,6 +856,11 @@ LessonsLibrary.propTypes = {
     // 課題で先生が必須にしたチャレンジ（★）
     recommendedChallengeIds: PropTypes.arrayOf(PropTypes.string),
     requiredChallengeIds: PropTypes.arrayOf(PropTypes.string),
+    // 課題だけのときに、課題のチャレンジのあとに出す「おさらい（課題の外）」のチャレンジ（readiness.js の
+    // assignmentReviewChallenges の結果）。課題だけでないときは出さない
+    reviewChallenges: PropTypes.arrayOf(
+        PropTypes.shape({ course: PropTypes.object.isRequired, challenge: PropTypes.object.isRequired }),
+    ),
     onRequestClose: PropTypes.func.isRequired,
     onSelectChallenge: PropTypes.func.isRequired,
 };

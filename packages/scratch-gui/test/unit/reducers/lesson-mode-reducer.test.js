@@ -240,6 +240,32 @@ describe('lesson-mode reducer: starting a challenge', () => {
         expect(state.fromAssignment).toBe(false);
     });
 
+    test('fromReview is carried like fromAssignment, and the last assignment challenge is kept (#2300)', () => {
+        let state = reducer(lessonModeInitialState, startChallenge('chat-l1-sequence', { fromAssignment: true }));
+        state = reducer(state, openChallenge('chat-l1-sequence'));
+        expect(state.lastAssignmentChallengeId).toBe('chat-l1-sequence');
+        expect(state.fromReview).toBe(false);
+        state = reducer(state, startChallenge('chat-l0-readiness', { fromReview: true }));
+        expect(state.pendingFromReview).toBe(true);
+        state = reducer(state, openChallenge('chat-l0-readiness'));
+        expect(state.fromReview).toBe(true);
+        expect(state.fromAssignment).toBe(false);
+        expect(state.pendingFromReview).toBe(false);
+        // おさらいの中でも、前の課題のチャレンジを覚えたまま。閉じても消さない（「課題にもどる」の行き先）
+        expect(state.lastAssignmentChallengeId).toBe('chat-l1-sequence');
+        state = reducer(state, closeLesson());
+        expect(state.fromReview).toBe(false);
+        expect(state.lastAssignmentChallengeId).toBe('chat-l1-sequence');
+        // startChallenge を通らずに開いたときは false
+        state = reducer(state, startChallenge('chat-l0-readiness', { fromReview: true }));
+        state = reducer(state, openChallenge('blocks-l1-quiz'));
+        expect(state.fromReview).toBe(false);
+        // 取り消したら消す
+        state = reducer(state, startChallenge('chat-l0-readiness', { fromReview: true }));
+        state = reducer(state, cancelStartChallenge());
+        expect(state.pendingFromReview).toBe(false);
+    });
+
     test('closeLesson also drops a pending challenge', () => {
         let state = reducer(lessonModeInitialState, startChallenge('blocks-l1-click-say'));
         state = reducer(state, closeLesson());

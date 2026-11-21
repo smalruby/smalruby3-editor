@@ -322,13 +322,44 @@ describe('LessonGoalWatcher', () => {
 
         test('a miss recommends the challenge and opens it', () => {
             const onDismiss = jest.fn();
-            const onSkipLesson = jest.fn();
-            const { getAllByTestId } = checkWatcher({ readiness: answers(true, false), onDismiss, onSkipLesson });
+            const onStartChallenge = jest.fn();
+            const { getAllByTestId } = checkWatcher({ readiness: answers(true, false), onDismiss, onStartChallenge });
             const buttons = getAllByTestId('lesson-readiness-recommended');
             expect(buttons.map((b) => b.dataset.challengeId)).toEqual(['test-challenge']);
             fireEvent.click(buttons[0]);
             expect(onDismiss).toHaveBeenCalled();
-            expect(onSkipLesson).toHaveBeenCalledWith('test-challenge', false);
+            expect(onStartChallenge).toHaveBeenCalledWith('test-challenge', {
+                fromAssignment: false,
+                fromReview: false,
+            });
+        });
+
+        test('in a review of an assignment, opens a recommended challenge as a review too (#2300)', () => {
+            const onStartChallenge = jest.fn();
+            const onNextChallenge = jest.fn();
+            const { getAllByTestId, getByTestId } = checkWatcher({
+                readiness: answers(true, false),
+                fromReview: true,
+                lastAssignmentChallengeId: 'drag-challenge',
+                lesson: {
+                    courseId: 'c',
+                    challengeIds: ['drag-challenge'],
+                    requiredChallengeIds: [],
+                    completion: { type: 'all' },
+                    submitWork: false,
+                },
+                onNextChallenge,
+                onStartChallenge,
+            });
+            fireEvent.click(getAllByTestId('lesson-readiness-recommended')[0]);
+            expect(onStartChallenge).toHaveBeenCalledWith('test-challenge', {
+                fromAssignment: false,
+                fromReview: true,
+            });
+            // 「次のチャレンジ」は課題だけのレッスン表（おさらいの前の課題のチャレンジの次から）
+            const next = getByTestId('lesson-completed-toast-next');
+            fireEvent.click(next);
+            expect(onNextChallenge).toHaveBeenCalledWith('drag-challenge', true);
         });
 
         test('other challenges show no readiness result', () => {

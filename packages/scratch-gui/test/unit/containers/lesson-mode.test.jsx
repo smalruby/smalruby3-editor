@@ -743,6 +743,7 @@ describe('LessonMode container: the role of a pair challenge (#2062)', () => {
         // 3-3 も始めなおす（先に作った変数と、入れかわった練習相手の変数の名前がぶつからないように）
         expect(props.onStartChallenge).toHaveBeenCalledWith('chat-l3-mesh-variable', {
             fromAssignment: false,
+            fromReview: false,
             role: 'shimacat',
             roleSource: 'chosen',
         });
@@ -787,6 +788,7 @@ describe('LessonMode container: the role of a pair challenge (#2062)', () => {
         act(() => vm.emit('PERIPHERAL_CONNECTED'));
         expect(props.onStartChallenge).toHaveBeenCalledWith('chat-l3-mesh-variable', {
             fromAssignment: false,
+            fromReview: false,
             role: 'shimacat',
             roleSource: 'seat',
         });
@@ -856,8 +858,34 @@ describe('LessonMode container: the readiness check (#2299)', () => {
         expect(getByTestId('lesson-readiness-offer')).toBeInTheDocument();
         expect(props.onMarkReadinessOffered).toHaveBeenCalledWith('chat-wo-tsukurou');
         fireEvent.click(getByTestId('lesson-readiness-offer-yes'));
-        expect(props.onStartChallenge).toHaveBeenCalledWith('chat-l0-readiness');
+        expect(props.onStartChallenge).toHaveBeenCalledWith('chat-l0-readiness', {
+            fromAssignment: false,
+            fromReview: false,
+        });
         expect(queryByTestId('lesson-readiness-offer')).not.toBeInTheDocument();
+    });
+
+    test('also asks in 1-1 opened from an assignment, and opens the check as a review (#2300)', () => {
+        const props = {
+            ...baseProps(),
+            assignmentLesson: {
+                courseId: 'chat-wo-tsukurou',
+                challengeIds: ['chat-l1-sequence'],
+                requiredChallengeIds: [],
+                completion: { type: 'all' },
+                submitWork: false,
+            },
+            current: findChallenge('chat-l1-sequence'),
+            progress: { challenges: {} },
+            fromAssignment: true,
+            readiness: empty,
+        };
+        const { getByTestId } = renderLessonMode(props);
+        fireEvent.click(getByTestId('lesson-readiness-offer-yes'));
+        expect(props.onStartChallenge).toHaveBeenCalledWith('chat-l0-readiness', {
+            fromAssignment: false,
+            fromReview: true,
+        });
     });
 
     test('skip closes it; it is not asked again or elsewhere', () => {
@@ -881,14 +909,6 @@ describe('LessonMode container: the readiness check (#2299)', () => {
             readiness: empty,
         });
         expect(other.queryByTestId('lesson-readiness-offer')).not.toBeInTheDocument();
-        cleanup();
-        const assignment = renderLessonMode({
-            ...baseProps(),
-            current: findChallenge('chat-l1-sequence'),
-            readiness: empty,
-            fromAssignment: true,
-        });
-        expect(assignment.queryByTestId('lesson-readiness-offer')).not.toBeInTheDocument();
     });
 
     test('shows the check panel only in the readiness check challenge', () => {
@@ -905,5 +925,54 @@ describe('LessonMode container: the readiness check (#2299)', () => {
             readiness: empty,
         });
         expect(other.queryByTestId('mock-readiness-check')).not.toBeInTheDocument();
+    });
+});
+
+// 課題の「おさらい（課題の外）」（#2300）
+describe('LessonMode container: a review outside the assignment (#2300)', () => {
+    const assignmentLesson = {
+        courseId: 'chat-wo-tsukurou',
+        challengeIds: ['chat-l1-sequence', 'chat-l1-repeat'],
+        requiredChallengeIds: [],
+        completion: { type: 'all' },
+        submitWork: false,
+    };
+    const reviewProps = (overrides = {}) => ({
+        ...baseProps(),
+        assignmentLesson,
+        current: findChallenge('chat-l0-readiness'),
+        fromReview: true,
+        hint: { visible: false, index: 0, count: 0, step: null },
+        lastAssignmentChallengeId: 'chat-l1-repeat',
+        progress: { challenges: {} },
+        readiness: { version: 1, courses: {}, offered: { 'chat-wo-tsukurou': '2026-11-21T00:00:00.000Z' } },
+        ...overrides,
+    });
+
+    test('shows "Reviewing" instead of the assignment count, and goes back to the assignment challenge', () => {
+        const props = reviewProps();
+        const { getByTestId, queryByTestId } = renderLessonMode(props);
+        expect(getByTestId('lesson-task-bar-review')).toHaveTextContent(
+            'Reviewing — does not count toward the assignment',
+        );
+        expect(queryByTestId('lesson-task-bar-assignment')).not.toBeInTheDocument();
+        fireEvent.click(getByTestId('lesson-task-bar-review-back'));
+        expect(props.onStartChallenge).toHaveBeenCalledWith('chat-l1-repeat', { fromAssignment: true });
+    });
+
+    test('goes back to the assignment lessons when that challenge is done, and "another" stays in them', () => {
+        const done = { completedAt: '2026-11-21T00:00:00.000Z', courseId: 'chat-wo-tsukurou', lessonId: 'chat-l1' };
+        const props = reviewProps({ progress: { challenges: { 'chat-l1-repeat': done } } });
+        const { getByTestId } = renderLessonMode(props);
+        fireEvent.click(getByTestId('lesson-task-bar-review-back'));
+        expect(props.onStartChallenge).not.toHaveBeenCalled();
+        expect(props.onCloseLesson).toHaveBeenLastCalledWith({ assignmentOnly: true, afterId: 'chat-l1-repeat' });
+        fireEvent.click(getByTestId('lesson-task-bar-quit'));
+        expect(props.onCloseLesson).toHaveBeenLastCalledWith({ assignmentOnly: true, afterId: 'chat-l1-repeat' });
+    });
+
+    test('shows nothing about the review outside a class assignment', () => {
+        const { queryByTestId } = renderLessonMode(reviewProps({ assignmentLesson: null }));
+        expect(queryByTestId('lesson-task-bar-review')).not.toBeInTheDocument();
     });
 });

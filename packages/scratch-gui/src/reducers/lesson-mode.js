@@ -91,6 +91,10 @@ const closedState = {
     // 課題の ID は持たない。lib/lessons/lesson-analytics.js）
     pendingFromAssignment: false,
     fromAssignment: false,
+    // 開こうとしている・開いているチャレンジを、課題の「おさらい（課題の外）」として開いたか（#2300）。課題の数には
+    // 入れない。課題バーに「おさらい中」と「課題にもどる」を出し、クラスへは current に `review: true` を付けて送る
+    pendingFromReview: false,
+    fromReview: false,
     ...hintClosedState,
     // はじめて開いたチャレンジか（spotlight のヒントで周りを暗くする。開いたときに決める）
     hintSpotlight: false,
@@ -144,6 +148,8 @@ const initialState = {
     // レッスン表を、クラスの課題のチャレンジだけで開くか（「はじめる」「レッスンを続ける」・#1599）。
     // メニューの「レッスン」から開くときは false（コース全体＋課題の帯）。レッスン表が閉じるときに消す
     libraryAssignmentOnly: false,
+    // 最後に課題から開いた課題のチャレンジ id（#2300）。「おさらい」の「課題にもどる」の行き先。レッスンを閉じても消さない
+    lastAssignmentChallengeId: null,
     // クラスの課題へ進み具合を送ってほしい回数（クラスの画面を開いたとき・#1600）。
     // containers/lesson-progress-sync.jsx が、増えたら送る（取りこぼしの追いつき）
     progressSendRequest: 0,
@@ -194,6 +200,7 @@ const reducer = function (state, action) {
                 ...state,
                 pendingChallengeId: action.challengeId,
                 pendingFromAssignment: Boolean(action.fromAssignment),
+                pendingFromReview: Boolean(action.fromReview) && !action.fromAssignment,
                 pendingRole: isRole(action.role) ? action.role : null,
                 pendingRoleSource: isRole(action.role) ? action.roleSource || ROLE_SOURCES.CHOSEN : null,
             };
@@ -205,6 +212,7 @@ const reducer = function (state, action) {
                       ...state,
                       pendingChallengeId: null,
                       pendingFromAssignment: false,
+                      pendingFromReview: false,
                       pendingRole: null,
                       pendingRoleSource: null,
                   };
@@ -220,6 +228,8 @@ const reducer = function (state, action) {
             const roleState = openedRoleState(found.challenge, action, state);
             // 役を選びなおして同じチャレンジを始めなおしたときは、ヒントのページをそのままにする（「メッシュにつなごう」の
             // ページで役を変えても 1 ページ目にもどらない）
+            const fromStart = state.pendingChallengeId === found.challenge.id;
+            const fromAssignment = fromStart && Boolean(state.pendingFromAssignment);
             const restartedInRole =
                 state.challengeId === found.challenge.id &&
                 state.pendingChallengeId === found.challenge.id &&
@@ -235,12 +245,16 @@ const reducer = function (state, action) {
                 challengeId: found.challenge.id,
                 pendingChallengeId: null,
                 pendingFromAssignment: false,
+                pendingFromReview: false,
                 pendingRole: null,
                 pendingRoleSource: null,
                 ...roleState,
-                // startChallenge から来たときだけ、そのときの「課題からか」を引き継ぐ
-                fromAssignment:
-                    state.pendingChallengeId === found.challenge.id ? Boolean(state.pendingFromAssignment) : false,
+                // startChallenge から来たときだけ、そのときの「課題からか」「おさらいか」を引き継ぐ
+                fromAssignment,
+                fromReview: fromStart && Boolean(state.pendingFromReview),
+                lastAssignmentChallengeId: fromAssignment
+                    ? found.challenge.id
+                    : state.lastAssignmentChallengeId || null,
                 ...hintState,
                 hintSession: (state.hintSession || 0) + 1,
                 hintSpotlight,
@@ -440,14 +454,19 @@ const reducer = function (state, action) {
  * @param {string} challengeId - チャレンジ id（知らない id は無視）。
  * @param {object} [options] - オプション。
  * @param {boolean} [options.fromAssignment] - クラスの課題から開いたか（GA の計測で送る）。
+ * @param {boolean} [options.fromReview] - 課題の「おさらい（課題の外）」として開いたか（#2300）。
  * @param {?string} [options.role] - この役で始める（役を選びなおして始めなおすとき・#2061）。
  * @param {?string} [options.roleSource] - その役をどう決めたか（無ければ生徒が選んだ）。
  * @returns {object} action。
  */
-const startChallenge = (challengeId, { fromAssignment = false, role = null, roleSource = null } = {}) => ({
+const startChallenge = (
+    challengeId,
+    { fromAssignment = false, fromReview = false, role = null, roleSource = null } = {},
+) => ({
     type: START_CHALLENGE,
     challengeId,
     fromAssignment: Boolean(fromAssignment),
+    fromReview: Boolean(fromReview),
     role,
     roleSource,
 });

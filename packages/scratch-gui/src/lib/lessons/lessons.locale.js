@@ -335,6 +335,10 @@ export const ja = {
         'レッスンで学んだことをつかって、自由にプログラムをつくろう。できたら作品を提出しよう',
     'gui.lessons.assignment.submit': '課題を提出する',
     'gui.lessons.assignment.unknownChallenges': '新しいレッスンがあります。ページを読み込み直してね',
+    'gui.lessons.review.title': 'おさらい（課題の外）',
+    'gui.lessons.review.note': 'じゅんびチェックと、そのおすすめ。課題の数には入らないよ',
+    'gui.lessons.review.band': 'おさらい中 — 課題の数には入らない',
+    'gui.lessons.review.back': '課題にもどる',
     'gui.lessons.progressConfirm.title': 'このパソコンのレッスンの記録',
     'gui.lessons.progressConfirm.question': 'あなたがやった記録ですか？',
     'gui.lessons.progressConfirm.found':
@@ -696,6 +700,10 @@ export const jaHira = {
         'レッスンで まなんだことを つかって、じゆうに プログラムを つくろう。できたら さくひんを ていしゅつしよう',
     'gui.lessons.assignment.submit': 'かだいを ていしゅつする',
     'gui.lessons.assignment.unknownChallenges': 'あたらしい レッスンが あります。ページを よみこみなおしてね',
+    'gui.lessons.review.title': 'おさらい（かだいの そと）',
+    'gui.lessons.review.note': 'じゅんびチェックと、その おすすめ。かだいの かずには はいらないよ',
+    'gui.lessons.review.band': 'おさらいちゅう — かだいの かずには はいらない',
+    'gui.lessons.review.back': 'かだいに もどる',
     'gui.lessons.progressConfirm.title': 'このパソコンの レッスンの きろく',
     'gui.lessons.progressConfirm.question': 'あなたが やった きろくですか？',
     'gui.lessons.progressConfirm.found':
@@ -1050,6 +1058,11 @@ export const en = {
         'Use what you learned in the lessons to make your own program. When it is ready, submit it.',
     'gui.lessons.assignment.submit': 'Submit assignment',
     'gui.lessons.assignment.unknownChallenges': 'There are new lessons. Please reload the page.',
+    'gui.lessons.review.title': 'Review (outside the assignment)',
+    'gui.lessons.review.note':
+        'The readiness check and what it recommends. These do not count toward the assignment.',
+    'gui.lessons.review.band': 'Reviewing — does not count toward the assignment',
+    'gui.lessons.review.back': 'Back to the assignment',
     'gui.lessons.progressConfirm.title': 'Lesson records on this computer',
     'gui.lessons.progressConfirm.question': 'Are these your records?',
     'gui.lessons.progressConfirm.found':
