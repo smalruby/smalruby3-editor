@@ -6054,6 +6054,29 @@ $seat-tile-min: 36px;
     font-variant-numeric: tabular-nums;
 }
 
+/* 席のメモ（じゅんびチェック・おさらい中・#2301）: 小さい文字で 1 行。長いと … にして title で全部読める。点数には使わない */
+.lesson-progress-table .lesson-progress-note-cell {
+    max-width: 20rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+}
+
+.lesson-progress-note {
+    font-size: 0.65rem;
+    color: #575e75;
+}
+
+.lesson-progress-note + .lesson-progress-note {
+    margin-left: 6px;
+}
+
+.lesson-progress-note-review {
+    color: #1e5fc2;
+    font-weight: bold;
+}
+
 .lesson-progress-empty {
     padding: 1rem;
     color: #8a90a6;

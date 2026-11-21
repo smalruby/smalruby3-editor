@@ -963,6 +963,13 @@ export default {
     'gui.classroom.lessonProgress.unknownCourse':
         'このコースは、このスモウルビーにはありません。進み具合を表示できません。',
     'gui.classroom.lessonProgress.minutes': '{minutes} 分',
+    'gui.classroom.lessonProgress.noteHead': 'じゅんび・おさらい',
+    'gui.classroom.lessonProgress.readinessReady': 'じゅんび ✓',
+    'gui.classroom.lessonProgress.readinessMissing': 'じゅんび △ {names}',
+    'gui.classroom.lessonProgress.noteMore': '{names} ほか {count}',
+    'gui.classroom.lessonProgress.noteSeparator': '・',
+    'gui.classroom.lessonProgress.reviewing': 'おさらい中',
+    'gui.classroom.lessonProgress.reviewingChallenge': 'おさらい中: {name}',
     'gui.classroom.assignmentEditor.errorLessonUnknownCourse':
         'レッスンのコースが見つかりません。別のコースか「レッスンを使わない」を選んでください。',
     'gui.classroom.assignmentEditor.errorLessonNoChallenges': 'レッスンのチャレンジを 1 つ以上選んでください。',
@@ -1898,6 +1905,7 @@ export default {
     'gui.lessonsLibrary.closeCourse': 'レッスンをしまう',
     'gui.lessonsLibrary.done': 'できた',
     'gui.lessonsLibrary.next': '次はこれ！',
+    'gui.lessonsLibrary.recommended': 'おすすめ',
     'gui.lessonsLibrary.required': '必須',
     'gui.classroom.studentStatus.lessonProgress': '進み具合',
     'gui.classroom.studentStatus.continueLesson': 'レッスンを続ける',

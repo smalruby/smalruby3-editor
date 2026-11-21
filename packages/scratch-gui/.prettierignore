@@ -90,6 +90,8 @@ src/components/*
 !src/components/lesson-part-names/**
 !src/components/lesson-part-quiz/
 !src/components/lesson-part-quiz/**
+!src/components/lesson-readiness-check/
+!src/components/lesson-readiness-check/**
 !src/components/lesson-practice-partner/
 !src/components/lesson-practice-partner/**
 !src/components/block-activity-diagram/
@@ -238,6 +240,7 @@ src/containers/*
 !src/containers/lesson-goal-watcher.jsx
 !src/containers/block-activity-diagram.jsx
 !src/containers/lesson-mode.jsx
+!src/containers/lesson-readiness-check.jsx
 !src/containers/lessons-library.jsx
 !src/containers/mesh-status-popup.jsx
 !src/containers/mesh-v2-seat-connect.jsx
@@ -542,6 +545,7 @@ test/unit/components/*
 !test/unit/components/lesson-task-bar.test.jsx
 !test/unit/components/lesson-part-names.test.jsx
 !test/unit/components/lesson-part-quiz.test.jsx
+!test/unit/components/lesson-readiness-check.test.jsx
 !test/unit/components/sprite-info-compact.test.jsx
 !test/unit/components/stage-selector-compact.test.jsx
 !test/unit/components/lesson-hint.test.jsx

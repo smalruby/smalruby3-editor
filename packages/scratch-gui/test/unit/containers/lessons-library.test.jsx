@@ -179,7 +179,9 @@ describe('LessonsLibrary container: class assignment (#1599)', () => {
         expect(getByTestId('lessons-library-course-kyou-kara-programmer')).toBeInTheDocument();
         expect(queryByTestId('lessons-library-course-progress')).toBeNull();
         fireEvent.click(getByTestId('lessons-library-challenge-blocks-l1-if'));
-        expect(onStartChallenge).toHaveBeenCalledWith('blocks-l1-if', { fromAssignment: true });
+        expect(onStartChallenge).toHaveBeenCalledWith('blocks-l1-if', { fromAssignment: true, fromReview: false });
+        // きょうからプログラマーにはじゅんびチェックが無いので「おさらい」は出さない
+        expect(queryByTestId('lessons-library-review')).toBeNull();
     });
 
     test('from the menu the whole course is shown under the band', () => {
@@ -198,5 +200,57 @@ describe('LessonsLibrary container: class assignment (#1599)', () => {
         const { queryByTestId } = renderUnconnected();
         expect(queryByTestId('lesson-assignment-band')).toBeNull();
         expect(queryByTestId('lessons-library-challenge-required')).toBeNull();
+    });
+});
+
+describe('LessonsLibrary container: the review outside the assignment (#2300)', () => {
+    const lesson = normalizeAssignmentLesson({
+        courseId: 'chat-wo-tsukurou',
+        challengeIds: ['chat-l1-sequence', 'chat-l1-repeat'],
+    });
+    const AT = '2026-11-21T00:00:00.000Z';
+    const readiness = {
+        version: 1,
+        courses: {
+            'chat-wo-tsukurou': {
+                answers: {
+                    'blocks-l0-where': { correct: true, answeredAt: AT },
+                    'blocks-l1-count': { correct: false, answeredAt: AT },
+                },
+            },
+        },
+        offered: {},
+    };
+
+    test('shows the check and the recommended challenges after the assignment, opened as a review', () => {
+        const { getByTestId, onStartChallenge } = renderUnconnected({ lesson, assignmentOnly: true, readiness });
+        const review = getByTestId('lessons-library-review');
+        expect(review).toHaveTextContent('Review (outside the assignment)');
+        const cards = [...review.querySelectorAll('[data-testid^="lessons-library-challenge-"][data-completed]')];
+        expect(cards.map((card) => card.dataset.testid)).toEqual([
+            'lessons-library-challenge-chat-l0-readiness',
+            'lessons-library-challenge-blocks-l1-count',
+        ]);
+        expect(cards[1]).toHaveAttribute('data-recommended', 'true');
+        fireEvent.click(cards[1]);
+        expect(onStartChallenge).toHaveBeenCalledWith('blocks-l1-count', { fromAssignment: false, fromReview: true });
+        fireEvent.click(getByTestId('lessons-library-challenge-chat-l1-repeat'));
+        expect(onStartChallenge).toHaveBeenLastCalledWith('chat-l1-repeat', {
+            fromAssignment: true,
+            fromReview: false,
+        });
+    });
+
+    test('keeps the check there with nothing recommended, and shows no review from the menu', () => {
+        const restricted = renderUnconnected({ lesson, assignmentOnly: true, readiness: null });
+        const cards = restricted
+            .getByTestId('lessons-library-review')
+            .querySelectorAll('[data-testid^="lessons-library-challenge-"][data-completed]');
+        expect([...cards].map((card) => card.dataset.testid)).toEqual([
+            'lessons-library-challenge-chat-l0-readiness',
+        ]);
+        restricted.unmount();
+        const menu = renderUnconnected({ lesson, assignmentOnly: false, readiness });
+        expect(menu.queryByTestId('lessons-library-review')).toBeNull();
     });
 });

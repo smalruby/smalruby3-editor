@@ -7,10 +7,13 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
 import { connect } from 'react-redux';
-import LessonAssignmentBand from '../components/lesson-assignment-band/lesson-assignment-band.jsx';
+import LessonAssignmentBand, {
+    AssignmentReviewBand,
+} from '../components/lesson-assignment-band/lesson-assignment-band.jsx';
 import LessonHintNudge from '../components/lesson-hint/lesson-hint-nudge.jsx';
 import LessonPartNames from '../components/lesson-part-names/lesson-part-names.jsx';
 import LessonPartQuiz from '../components/lesson-part-quiz/lesson-part-quiz.jsx';
+import LessonReadinessOffer from '../components/lesson-readiness-check/lesson-readiness-offer.jsx';
 import LessonTaskBar from '../components/lesson-task-bar/lesson-task-bar.jsx';
 import { useChallengeActivityDiagram } from '../lib/lessons/activity-diagram/use-challenge-activity-diagram';
 import { applySetup, normalizeRubyVersion } from '../lib/lessons/apply-setup';
@@ -29,6 +32,7 @@ import {
     saveRememberedRole,
 } from '../lib/lessons/lesson-role';
 import { openAssignmentLessonsLibrary } from '../lib/lessons/open-lessons-library';
+import { challengeOpenContext, readinessOffer, reviewReturnTarget } from '../lib/lessons/readiness';
 import { challengeForRole } from '../lib/lessons/role-swap';
 import { useIdleNudge } from '../lib/lessons/use-idle-nudge';
 import { computeBoundSeat } from '../lib/mesh-v2-classroom-binding.jsx';
@@ -47,6 +51,7 @@ import {
     getCurrentRole,
     hideCompleted,
     hideHint,
+    markReadinessOffered,
     missPartQuiz,
     openChallenge,
     setLessonRole,
@@ -66,6 +71,7 @@ import {
 import { updateRubyCodeTarget } from '../reducers/ruby-code';
 import LessonHint from './lesson-hint.jsx';
 import LessonPracticePartner from './lesson-practice-partner.jsx';
+import LessonReadinessCheck from './lesson-readiness-check.jsx';
 
 const LessonMode = ({
     assignmentLesson = null,
@@ -74,10 +80,12 @@ const LessonMode = ({
     dispatch,
     dnclMode,
     fromAssignment = false,
+    fromReview = false,
     hint,
     isAnyCreatingNewState,
     isShowingProject,
     isShowingWithoutId,
+    lastAssignmentChallengeId = null,
     menuOpen,
     mySeat = null,
     onCancelStart,
@@ -87,6 +95,7 @@ const LessonMode = ({
     onExitDnclMode,
     onHideCompleted,
     onHideHint,
+    onMarkReadinessOffered,
     onMissPartQuiz,
     onOpenChallenge,
     onRequestNewProject,
@@ -101,6 +110,7 @@ const LessonMode = ({
     pendingRoleSource = null,
     progress,
     projectChanged,
+    readiness = null,
     role = null,
     rolePair = null,
     rubyVersion,
@@ -260,12 +270,12 @@ const LessonMode = ({
                 saveRememberedRole({ role: next, pair: pairKeyOf(connectedGroupSeats(vm)) || rolePair });
             }
             if (roleChangeRestarts(found.challenge) && next !== (role && role.role)) {
-                onStartChallenge(currentId, { fromAssignment, role: next, roleSource });
+                onStartChallenge(currentId, { fromAssignment, fromReview, role: next, roleSource });
             } else {
                 onSetRole(next, { roleSource, rolePair: pair });
             }
         },
-        [currentId, fromAssignment, onSetRole, onStartChallenge, role, rolePair, vm],
+        [currentId, fromAssignment, fromReview, onSetRole, onStartChallenge, role, rolePair, vm],
     );
     const handleChooseRole = useCallback((next) => changeRole(next), [changeRole]);
 
@@ -317,6 +327,40 @@ const LessonMode = ({
         if (currentId) onMissPartQuiz(currentId);
     }, [currentId, onMissPartQuiz]);
 
+    // 「先にじゅんびチェックをする？」（#2299）: じゅんびチェックのあるコースのレッスン 1 の最初のチャレンジを、はじめて
+    // 開いたときに 1 回だけ聞く（lib/lessons/readiness.js の readinessOffer）。聞いたらすぐ覚える（閉じずにページを
+    // 離れても、もう聞かない）。出しているあいだはこの部品の state に持つ（覚えると readinessOffer が null になるため）
+    const [offer, setOffer] = useState(null);
+    const offerInputRef = useRef({ readiness, fromAssignment });
+    offerInputRef.current = { readiness, fromAssignment };
+    useEffect(() => {
+        if (!currentId) {
+            setOffer(null);
+            return;
+        }
+        const input = offerInputRef.current;
+        const next = input.readiness
+            ? readinessOffer({
+                  challengeId: currentId,
+                  readiness: input.readiness,
+                  fromAssignment: input.fromAssignment,
+              })
+            : null;
+        setOffer(next);
+        if (next) onMarkReadinessOffered(next.courseId);
+    }, [currentId, onMarkReadinessOffered]);
+    // 課題から開いた 1-1 で聞いたときは、じゅんびチェックを課題の「おさらい」として開く（課題に入っていれば課題から・#2300）
+    const handleOfferYes = useCallback(() => {
+        if (!offer) return;
+        setOffer(null);
+        onStartChallenge(
+            offer.checkChallengeId,
+            challengeOpenContext(assignmentLesson, offer.checkChallengeId, fromAssignment || fromReview),
+        );
+    }, [assignmentLesson, fromAssignment, fromReview, offer, onStartChallenge]);
+    const handleOfferSkip = useCallback(() => setOffer(null), []);
+    const offerCount = offer ? findChallenge(offer.checkChallengeId).challenge.readinessCheck.questions.length : 0;
+
     const handleHint = useCallback(() => {
         if (hint && hint.visible) onHideHint();
         else onShowHint();
@@ -348,10 +392,21 @@ const LessonMode = ({
 
     // 課題バーのボタンの GA 計測（どのチャレンジで押したか。lib/lessons/lesson-analytics.js）
     // 課題のチャレンジからは、レッスン表を課題のチャレンジだけで開き直す（#1599）
+    // 「おさらい」のチャレンジからも課題のチャレンジだけで開き直す（おさらいの前にやっていた課題のチャレンジの次から）
     const handleQuit = useCallback(() => {
         sendLessonEvent(LESSON_EVENTS.OTHER_CHALLENGE, current, { fromAssignment, teacherLoggedIn });
-        onCloseLesson(fromAssignment ? current.challenge.id : null);
-    }, [current, fromAssignment, onCloseLesson, teacherLoggedIn]);
+        if (fromAssignment) onCloseLesson({ assignmentOnly: true, afterId: current.challenge.id });
+        else if (fromReview) onCloseLesson({ assignmentOnly: true, afterId: lastAssignmentChallengeId });
+        else onCloseLesson();
+    }, [current, fromAssignment, fromReview, lastAssignmentChallengeId, onCloseLesson, teacherLoggedIn]);
+
+    // 「課題にもどる」（おさらいのチャレンジの中・#2300）: おさらいの前にやっていた課題のチャレンジがまだできていなければ、
+    // それを開きなおす。ほかは課題だけのレッスン表を開く
+    const handleBackToAssignment = useCallback(() => {
+        const target = reviewReturnTarget(assignmentLesson, progress, lastAssignmentChallengeId);
+        if (target.challengeId) onStartChallenge(target.challengeId, { fromAssignment: true });
+        else onCloseLesson({ assignmentOnly: true, afterId: target.libraryAfterId });
+    }, [assignmentLesson, lastAssignmentChallengeId, onCloseLesson, onStartChallenge, progress]);
 
     const handleEnd = useCallback(() => {
         sendLessonEvent(LESSON_EVENTS.LESSON_END, current, { fromAssignment, teacherLoggedIn });
@@ -363,15 +418,18 @@ const LessonMode = ({
     const assignmentStatus = isAssignmentChallenge(assignmentLesson, current.challenge.id)
         ? assignmentProgress(assignmentLesson, progress)
         : null;
+    // 課題の「おさらい（課題の外）」のチャレンジの中では、課題の数に入らないことと「課題にもどる」を出す（#2300）
+    const reviewing = Boolean(fromReview && assignmentLesson && !assignmentStatus);
+    let assignmentBand = null;
+    if (assignmentStatus) assignmentBand = <LessonAssignmentBand status={assignmentStatus} variant="compact" />;
+    else if (reviewing) assignmentBand = <AssignmentReviewBand onBack={handleBackToAssignment} />;
     // ヒントの吹き出し（containers/lesson-hint.jsx）は document.body に portal で出るので、
     // ここに置いても本体のレイアウトには影響しない
     return (
         <>
             <LessonTaskBar
                 activityDiagram={activityDiagram}
-                assignmentBand={
-                    assignmentStatus ? <LessonAssignmentBand status={assignmentStatus} variant="compact" /> : null
-                }
+                assignmentBand={assignmentBand}
                 challenge={current.challenge}
                 challengeCount={current.lesson.challenges.length}
                 hintAvailable={Boolean(hint && hint.count > 0)}
@@ -407,6 +465,10 @@ const LessonMode = ({
                     onSolve={handleSolvePartQuiz}
                 />
             )}
+            {/* じゅんびチェックの問い（チャレンジに readinessCheck があるときだけ。これも document.body への portal） */}
+            {current.challenge.readinessCheck && <LessonReadinessCheck />}
+            {/* 「先にじゅんびチェックをする？」（これも document.body への portal） */}
+            {offer && <LessonReadinessOffer count={offerCount} onSkip={handleOfferSkip} onYes={handleOfferYes} />}
             {/* メッシュの練習相手（チャレンジに partner があるときだけ。これも document.body への portal） */}
             <LessonPracticePartner />
         </>
@@ -427,6 +489,8 @@ LessonMode.propTypes = {
     dnclMode: PropTypes.bool,
     // クラスの課題から開いたか（GA の計測で送る）
     fromAssignment: PropTypes.bool,
+    // 課題の「おさらい（課題の外）」として開いたか（課題バーに「おさらい中」と「課題にもどる」・#2300）
+    fromReview: PropTypes.bool,
     hint: PropTypes.shape({
         visible: PropTypes.bool.isRequired,
         minimized: PropTypes.bool,
@@ -437,6 +501,8 @@ LessonMode.propTypes = {
     isAnyCreatingNewState: PropTypes.bool.isRequired,
     isShowingProject: PropTypes.bool.isRequired,
     isShowingWithoutId: PropTypes.bool.isRequired,
+    // 最後に課題から開いた課題のチャレンジ id（「課題にもどる」の行き先）
+    lastAssignmentChallengeId: PropTypes.string,
     menuOpen: PropTypes.bool,
     onCancelStart: PropTypes.func.isRequired,
     onCloseLesson: PropTypes.func.isRequired,
@@ -449,6 +515,8 @@ LessonMode.propTypes = {
     onEndLesson: PropTypes.func.isRequired,
     onExitDnclMode: PropTypes.func.isRequired,
     onHideHint: PropTypes.func.isRequired,
+    // 「先にじゅんびチェックをする？」を聞いたことを覚える（コース id）
+    onMarkReadinessOffered: PropTypes.func.isRequired,
     // 「どこでしょう？」のクイズでまちがえた（1 回もまちがえずに答えたら、レッスンを飛ばせる）
     onMissPartQuiz: PropTypes.func.isRequired,
     onOpenChallenge: PropTypes.func.isRequired,
@@ -473,6 +541,8 @@ LessonMode.propTypes = {
     // lesson-progress.js の記録（課題の帯の数）
     progress: PropTypes.shape({ challenges: PropTypes.object.isRequired }),
     projectChanged: PropTypes.bool.isRequired,
+    // じゅんびチェックの記録（lib/lessons/readiness.js）
+    readiness: PropTypes.shape({ courses: PropTypes.object, offered: PropTypes.object }),
     rubyVersion: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     // 対応していないブロックの名前を図に書くときの Msg（reducers/block-display）
     scratchBlocks: PropTypes.object,
@@ -495,6 +565,8 @@ const mapStateToProps = (state) => {
         current: getCurrentChallenge(state),
         dnclMode: state.scratchGui.dnclMode.dnclMode,
         fromAssignment: Boolean(state.scratchGui.lessonMode.fromAssignment),
+        fromReview: Boolean(state.scratchGui.lessonMode.fromReview),
+        lastAssignmentChallengeId: state.scratchGui.lessonMode.lastAssignmentChallengeId || null,
         // 先生（クラス管理にログイン中）のときは GA に送らない
         teacherLoggedIn: Boolean(state.scratchGui.classroom && state.scratchGui.classroom.teacherLoggedIn),
         hint: getCurrentHint(state),
@@ -512,6 +584,7 @@ const mapStateToProps = (state) => {
         rolePair: state.scratchGui.lessonMode.rolePair || null,
         progress: state.scratchGui.lessonMode.progress,
         projectChanged: state.scratchGui.projectChanged,
+        readiness: state.scratchGui.lessonMode.readiness || null,
         rubyVersion: state.scratchGui.settings.rubyVersion,
         scratchBlocks: state.scratchGui.blockDisplay.scratchBlocks,
         // lesson-goal-watcher.jsx が「できた！」の toast を出す条件と同じ（いっとき隠しているあいだは出ていない）
@@ -527,11 +600,11 @@ const mapStateToProps = (state) => {
 const mapDispatchToProps = (dispatch) => ({
     dispatch,
     onCancelStart: () => dispatch(cancelStartChallenge()),
-    onCloseLesson: (assignmentChallengeId = null) => {
+    onCloseLesson: ({ assignmentOnly = false, afterId = null } = {}) => {
         // 「ほかのチャレンジへ」: いまのチャレンジを終えてレッスン表を開く（次のチャレンジをすぐ選べるように）。
-        // 課題のチャレンジからは、課題のチャレンジだけで開き、次の課題のチャレンジに「次はこれ！」
+        // 課題のチャレンジ・おさらいのチャレンジからは、課題のチャレンジだけで開き、次の課題のチャレンジに「次はこれ！」
         dispatch(closeLesson());
-        if (assignmentChallengeId) openAssignmentLessonsLibrary(dispatch, assignmentChallengeId);
+        if (assignmentOnly) openAssignmentLessonsLibrary(dispatch, afterId);
         else dispatch(openLessonsLibrary());
     },
     onDismissCompleted: () => dispatch(dismissCompleted()),
@@ -547,6 +620,7 @@ const mapDispatchToProps = (dispatch) => ({
         dispatch(requestExternalExitDnclMode());
     },
     onHideHint: () => dispatch(hideHint()),
+    onMarkReadinessOffered: (courseId) => dispatch(markReadinessOffered(courseId)),
     onMissPartQuiz: (challengeId) => dispatch(missPartQuiz(challengeId)),
     onOpenChallenge: (challengeId, roleInfo) =>
         dispatch(

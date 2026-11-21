@@ -450,6 +450,52 @@
     white-space: nowrap;
 }
 
+/* じゅんびチェックの「おすすめ」。右下に出す（「次はこれ！」もあるときはその左）。色は「おすすめ」の結果と同じ紫 */
+.recommended-mark {
+    position: absolute;
+    right: 0.375rem;
+    bottom: 0.25rem;
+    padding: 0 0.375rem;
+    border-radius: 0.25rem;
+    background-color: $looks-secondary-dark;
+    color: $ui-white;
+    font-size: 0.6875rem;
+    font-weight: bold;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+.recommended-mark-with-next {
+    right: 4.75rem;
+}
+
+/* 印が名前にかからないよう下をあける */
+.card-recommended {
+    padding-bottom: 1.125rem;
+}
+
+/*
+    課題だけのレッスン表の「おさらい（課題の外）」（#2300）。課題のチャレンジと分かるよう、点線の枠で囲む
+*/
+.review {
+    margin: 1.5rem 0 0.5rem;
+    padding: 0.75rem;
+    border: 2px dashed $color-border;
+    border-radius: 0.5rem;
+}
+
+.review-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: bold;
+}
+
+.review-note {
+    margin: 0.25rem 0 0.75rem;
+    color: $color-text-muted;
+    font-size: 0.8125rem;
+}
+
 /* パソコンの幅が狭いとき・SP 横は 3 列 */
 @media (max-width: 860px) {
     .cards {

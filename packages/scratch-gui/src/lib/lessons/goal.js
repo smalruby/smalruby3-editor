@@ -16,6 +16,7 @@
 //   currentCostume いまのコスチューム（背景）の番号・始めから変わったか
 //   tab       いま開いているタブ（コード・コスチューム・音）。エディタの画面の状態（snapshot.ui）
 //   partQuiz  画面の部分をクリックして答えるクイズ（「どこでしょう？」）に、決めた数だけ正しく答えた（snapshot.ui）
+//   readinessCheck じゅんびチェック（#2299）の問いに、決めた数だけ答えた（正しいかは見ない・snapshot.ui）
 //   boardCommand 拡張機能（Studuino）が基板に出した命令（LED・モーター・サーボ）。`whenSensor` で、そのときに読んで
 //             いたセンサーの値も見る（「暗いときに LED をオンにした」）。実機でも練習用の基板でも同じ記録（#2193）
 //   sensorRead  拡張機能（Studuino）がセンサーの値を読んだ（どのセンサーか・いくつだったか）
@@ -34,6 +35,7 @@ export const CONDITION_TYPES = Object.freeze([
     'currentCostume',
     'tab',
     'partQuiz',
+    'readinessCheck',
     'boardCommand',
     'sensorRead',
 ]);
@@ -570,6 +572,8 @@ const evaluateTab = (condition, snapshot) => uiOf(snapshot).activeTab === condit
 
 const evaluatePartQuiz = (condition, snapshot) => (uiOf(snapshot).partQuizSolved || 0) >= condition.count;
 
+const evaluateReadinessCheck = (condition, snapshot) => (uiOf(snapshot).readinessAnswered || 0) >= condition.count;
+
 /**
  * 条件 1 つを判定する。
  * @param {object} condition - 条件。
@@ -601,6 +605,8 @@ export const evaluateCondition = (condition, facts, snapshot) => {
             return evaluateTab(condition, snapshot);
         case 'partQuiz':
             return evaluatePartQuiz(condition, snapshot);
+        case 'readinessCheck':
+            return evaluateReadinessCheck(condition, snapshot);
         case 'boardCommand':
             return evaluateBoardCommand(condition, facts);
         case 'sensorRead':
@@ -821,8 +827,9 @@ export const validateGoal = (goal) => {
                 }
                 break;
             case 'partQuiz':
+            case 'readinessCheck':
                 if (!(Number.isInteger(condition.count) && condition.count >= 1)) {
-                    errors.push(`${at}: partQuiz.count must be a positive integer`);
+                    errors.push(`${at}: ${condition.type}.count must be a positive integer`);
                 }
                 break;
             case 'boardCommand': {

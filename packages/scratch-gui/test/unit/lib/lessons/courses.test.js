@@ -21,8 +21,11 @@ import {
     challengeCodeFor,
     challengeQuiz,
     courseLessons,
+    courseReadinessCheck,
     courseSize,
     lessonNumberOf,
+    readinessQuestion,
+    validateReadinessCheck,
     findLesson,
     localizeCode,
     validateQuiz,
@@ -92,6 +95,12 @@ const collectMessages = () => {
                 // ふりかえりのクイズ（#1639）
                 if (challenge.quiz) {
                     messages.push(challenge.quiz.question, ...challenge.quiz.choices, challenge.quiz.explanation);
+                }
+                // じゅんびチェック（#2299）
+                if (challenge.readinessCheck) {
+                    challenge.readinessCheck.questions.forEach((q) =>
+                        messages.push(q.question, ...q.choices, q.explanation),
+                    );
                 }
             });
         });
@@ -163,6 +172,114 @@ describe('reflection quiz (#1639)', () => {
         allChallenges()
             .filter((c) => c.quiz)
             .forEach((c) => expect({ id: c.id, errors: validateQuiz(c.quiz) }).toEqual({ id: c.id, errors: [] }));
+    });
+});
+
+// じゅんびチェック（#2299）: コースの土台のチャレンジ 1 つに 1 問。形はふりかえりのクイズと同じ
+describe('readiness check (#2299)', () => {
+    const chat = () => findCourse('chat-wo-tsukurou');
+    const check = () => courseReadinessCheck(chat());
+    // 文言の長さの目安（ふりかえりのクイズと同じ・docs/lessons/README.md）: 問い 50 字・選択肢 20 字・解説 75 字
+    const LIMITS = { question: 50, choice: 20, explanation: 75 };
+
+    test('readinessQuestion makes the message ids under the check, keyed by the base challenge', () => {
+        const q = readinessQuestion('chat-l0-x', 'blocks-l1-count', 2, 'say(1)\n');
+        expect(q.baseChallengeId).toBe('blocks-l1-count');
+        expect(q.blocks).toBe('say(1)\n');
+        expect(q.question.id).toBe('gui.lessons.challenge.chat-l0-x.blocks-l1-count.question');
+        expect(q.choices.map((c) => c.id)).toEqual([
+            'gui.lessons.challenge.chat-l0-x.blocks-l1-count.choice1',
+            'gui.lessons.challenge.chat-l0-x.blocks-l1-count.choice2',
+            'gui.lessons.challenge.chat-l0-x.blocks-l1-count.choice3',
+        ]);
+        expect(q.answer).toBe(2);
+        expect(q.explanation.id).toBe('gui.lessons.challenge.chat-l0-x.blocks-l1-count.explanation');
+        expect(validateReadinessCheck({ questions: [q] })).toEqual([]);
+    });
+
+    test('validateReadinessCheck finds what is wrong', () => {
+        const q = readinessQuestion('c', 'b', 0, 'say(1)\n');
+        expect(validateReadinessCheck(null)).toEqual(['readinessCheck.questions must be a non-empty array']);
+        expect(validateReadinessCheck({ questions: [] })).toEqual([
+            'readinessCheck.questions must be a non-empty array',
+        ]);
+        expect(validateReadinessCheck({ questions: [{ ...q, answer: 3 }] })).toEqual([
+            'readinessCheck.questions[0]: answer must be 0, 1 or 2 (the index of choices)',
+        ]);
+        expect(validateReadinessCheck({ questions: [{ ...q, blocks: null }] })).toEqual([
+            'readinessCheck.questions[0]: blocks must be a Ruby program',
+        ]);
+        expect(validateReadinessCheck({ questions: [q, q] })).toEqual([
+            'readinessCheck.questions must ask each base challenge once',
+        ]);
+    });
+
+    test('chat course has the check in lesson 0 (warmup, not counted)', () => {
+        const course = chat();
+        expect(course.warmupLessons.map((l) => l.id)).toEqual(['chat-l0']);
+        expect(courseLessons(course)[0].id).toBe('chat-l0');
+        expect(ja[course.warmupLessons[0].name.id]).toBe('始める前に');
+        expect(check().id).toBe('chat-l0-readiness');
+        expect(ja[check().name.id]).toBe('じゅんびチェック');
+        expect(check().goal).toEqual([{ type: 'readinessCheck', count: 4 }]);
+        expect(validateGoal(check().goal)).toEqual([]);
+        // コースの数（レッスン 5・チャレンジ 20）は変えない
+        expect(courseSize(course)).toEqual({ lessonCount: 5, challengeCount: 20 });
+        // きょうからプログラマーにはまだ無い（「どこでしょう？」がその役）
+        expect(courseReadinessCheck(COURSES[0])).toBeNull();
+        expect(COURSES[0].baseChallenges).toEqual([]);
+    });
+
+    test('chat course asks one question per base challenge, in the order of baseChallenges', () => {
+        const course = chat();
+        expect(course.baseChallenges).toEqual([
+            'blocks-l0-where',
+            'blocks-l1-ask-answer',
+            'blocks-l1-count',
+            'blocks-l1-broadcast',
+        ]);
+        course.baseChallenges.forEach((id) => expect(findChallenge(id)).not.toBeNull());
+        expect(check().readinessCheck.questions.map((q) => q.baseChallengeId)).toEqual(course.baseChallenges);
+        expect(validateReadinessCheck(check().readinessCheck)).toEqual([]);
+        // 正解（ja）
+        expect(check().readinessCheck.questions.map((q) => ja[q.choices[q.answer].id])).toEqual([
+            '緑の旗',
+            '「こんにちはたろう」と言う',
+            '3 と言う',
+            'ペンギンが「やあ！」と言う',
+        ]);
+    });
+
+    test.each(['ja', 'ja-Hira', 'en'])('the question blocks (%s) convert to blocks', async (locale) => {
+        for (const q of check().readinessCheck.questions) {
+            const { xml, errors } = await rubyToBlocksXml(null, null, localizeCode(q.blocks, locale), null);
+            expect({ id: q.baseChallengeId, errors }).toEqual({ id: q.baseChallengeId, errors: [] });
+            expect(xml).toMatch(/<xml/);
+        }
+    });
+
+    test('the words keep the length guide and ja-Hira has no kanji', () => {
+        const c = check();
+        const ids = [c.name, c.task, findLesson('chat-l0').name].map((m) => m.id);
+        c.readinessCheck.questions.forEach((q) => {
+            expect({ id: q.question.id, len: ja[q.question.id].length <= LIMITS.question }).toEqual({
+                id: q.question.id,
+                len: true,
+            });
+            q.choices.forEach((m) =>
+                expect({ id: m.id, len: ja[m.id].length <= LIMITS.choice }).toEqual({ id: m.id, len: true }),
+            );
+            expect({ id: q.explanation.id, len: ja[q.explanation.id].length <= LIMITS.explanation }).toEqual({
+                id: q.explanation.id,
+                len: true,
+            });
+            ids.push(q.question.id, ...q.choices.map((m) => m.id), q.explanation.id);
+        });
+        ids.forEach((id) => {
+            expect({ id, text: jaHira[id] }).toEqual({ id, text: expect.not.stringMatching(/\p{Script=Han}/u) });
+            expect(typeof en[id]).toBe('string');
+        });
+        expect(localizeCode(c.readinessCheck.questions[2].blocks, 'ja-Hira')).not.toMatch(/\p{Script=Han}/u);
     });
 });
 
@@ -321,6 +438,7 @@ describe('lesson courses', () => {
             debug: [],
             quiz: null,
             partQuiz: null,
+            readinessCheck: null,
             activityDiagram: false,
             partner: null,
             roles: false,

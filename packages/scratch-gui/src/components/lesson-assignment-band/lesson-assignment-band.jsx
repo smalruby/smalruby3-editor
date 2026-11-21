@@ -3,6 +3,8 @@
 // どのチャレンジができたか・必須かはカードの ✓ と ★ で分かるので、帯にはチャレンジごとの丸を出さない。
 //   - variant="full": レッスン表の上（components/lessons-library）
 //   - variant="compact": チャレンジの中の課題バーの同じ行（高さを変えない・「あと 5 つ（★ 5 つ）」だけ）
+//   - AssignmentReviewBand: 課題の「おさらい（課題の外）」のチャレンジの中の課題バー（「おさらい中 — 課題の数には入らない」と
+//     ［課題にもどる］・#2300）
 // 数え方は lib/lessons/assignment-progress.js（assignmentProgress の結果を `status` で受け、
 // 文の数は assignmentRemainingParts で決める）。
 // 丸（AssignmentDots）・AssignmentRemaining・AssignmentDoneCount はクラスの画面の「進み具合」で使う。
@@ -100,6 +102,20 @@ const messages = defineMessages({
         description:
             'Shown when the class assignment has challenges this (older) page does not know yet: reload the page',
         defaultMessage: 'There are new lessons. Please reload the page.',
+    },
+    reviewBand: {
+        id: 'gui.lessons.review.band',
+        description:
+            'Shown in the lesson task bar while the student does a review challenge outside the class assignment ' +
+            '(the readiness check or a challenge it recommends): it does not count toward the assignment',
+        defaultMessage: 'Reviewing — does not count toward the assignment',
+    },
+    reviewBack: {
+        id: 'gui.lessons.review.back',
+        description:
+            'Button in the lesson task bar of a review challenge: go back to the assignment challenge the student ' +
+            'was on (or the assignment lessons)',
+        defaultMessage: 'Back to the assignment',
     },
     submit: {
         id: 'gui.lessons.assignment.submit',
@@ -292,6 +308,33 @@ export const UnknownChallengesNote = ({ className, testId }) => {
 UnknownChallengesNote.propTypes = {
     className: PropTypes.string,
     testId: PropTypes.string.isRequired,
+};
+
+/**
+ * 「おさらい中 — 課題の数には入らない」と［課題にもどる］（課題の外のチャレンジの中の課題バー・#2300）。
+ * @param {object} props - props。
+ * @param {function(): void} props.onBack - ［課題にもどる］。
+ * @returns {React.ReactElement} 帯。
+ */
+export const AssignmentReviewBand = ({ onBack }) => {
+    const intl = useIntl();
+    return (
+        <span className={styles.review} data-testid="lesson-task-bar-review">
+            <span className={styles.reviewText}>{intl.formatMessage(messages.reviewBand)}</span>
+            <button
+                type="button"
+                className={styles.reviewBack}
+                data-testid="lesson-task-bar-review-back"
+                onClick={onBack}
+            >
+                {intl.formatMessage(messages.reviewBack)}
+            </button>
+        </span>
+    );
+};
+
+AssignmentReviewBand.propTypes = {
+    onBack: PropTypes.func.isRequired,
 };
 
 const LessonAssignmentBand = ({

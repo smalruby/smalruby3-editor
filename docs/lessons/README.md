@@ -48,6 +48,7 @@
 | `name` | message | コースの名前 |
 | `lessons` | レッスン[] | 並び順。**コースの数に入れるレッスンだけ**（`warmup` のレッスンは入らない） |
 | `warmupLessons` | レッスン[] | コースの数に入れない、はじめのレッスン（レッスン 0）。`defineCourse` が渡されたレッスンから `warmup: true` のものを分けて置く |
+| `baseChallenges` | string[] | コースの土台のチャレンジ id（始める前にできていてほしいことを教えるチャレンジ。ほかのコースのものでもよい）。じゅんびチェック（下の「じゅんびチェック」）はこの 1 つに 1 問ずつ聞く。書いていなければ `[]` |
 
 `course.lessons` はコースの数（レッスン表の進みぐあいのバーと「n / 11」・コースの ✓・クラス管理の課題に選べるチャレンジ・
 先生の進みぐあいの表・ウェルカムの案内の数）に使う。レッスン 0 を `lessons` から外して `warmupLessons` に置くので、レッスン 0 を
@@ -124,6 +125,7 @@
 | `partner` | object \| null | null | メッシュの練習相手の定義 `{name, buttons: [{label, set, broadcast}], replies: [{onBroadcast, set, broadcast}], watch}`（`set` = `{variable, value}` か、その配列。`watch` は任意で、パネルの「〜に届いた」に出す生徒の変数の名前の配列）。あればチャレンジ中に練習相手のパネルを出す（下の「メッシュの練習相手」）。図では相手のスイムレーンになる。無ければ自分のプログラムだけを描く |
 | `quiz` | `{question, choices, answer, explanation}` \| null | null | ふりかえりのクイズ（3 択）。「できた！」の表示の中に出す（下の「ふりかえりのクイズ」）。`question` / `choices`（3 つ）/ `explanation` は message、`answer` は正解が `choices` の何番目か（0 から）。ふつうは `challengeQuiz(id, answer)` で書く |
 | `partQuiz` | `{questions: [label, ...], offerLessonSkip?: boolean}` \| null | null | 「どこでしょう？」のクイズ（下の「どこでしょう？のクイズ」）。`offerLessonSkip: true` なら、1 回もまちがえずに全部答えたとき「できた！」で次のレッスンへ進むこともえらべる。`label` は名前の札の名前（`lib/lessons/part-names.js` の `PART_NAMES`）。クイズのあいだは画面のクリックをクイズが受け、名前の札と「ガイド」のボタンは出さない。`validatePartQuiz` が形を確かめる |
+| `readinessCheck` | `{questions: [{baseChallengeId, blocks, question, choices, answer, explanation}]}` \| null | null | じゅんびチェック（下の「じゅんびチェック」）。問いはふりかえりのクイズと同じ形に、土台のチャレンジ id と問いの上に描くブロック（`blocks`。ヒントの `blocks` と同じ Ruby・locale ごとにも書ける）を足したもの。ふつうは `readinessQuestion(checkId, baseChallengeId, answer, blocks)` で書く。文言の id は `gui.lessons.challenge.<checkId>.<baseChallengeId>.question` / `.choice1`〜`3` / `.explanation`。`validateReadinessCheck` が形を確かめる |
 | `mode` | `'readDiagram'` \| null | null | チャレンジの形。null = ふつう。`'readDiagram'` = **読んで作る**（説明とアクティビティ図だけで指示する）。図を必ず出し（`activityDiagram` は true になる）、ヒントを 3 ページ（図と説明 → 試す → 答えを見る）に置き換える（`steps` は使わない）。最後の手段のページ（「正解のプログラムを確認する」）は付かない。答えは `code`。下の「読んで作るチャレンジ」 |
 | `explanation` | message \| null | null | 読んで作るチャレンジのヒントの 1 ページ目の説明。無ければ `task` を出す |
 | `wrongPlaceTip` | `{click: 'codeArea', blocks: [opcode], message}` \| null | null | まちがった場所での操作に**すぐ出す一言**。そのブロックを**スクリプトエリアで押した**ら、ヒントの吹き出しの文言の上に `message` を出す（小さくしていたら吹き出しを出す。ページが変わる・パレットで押すと消える）。判定は `lib/lessons/hint-advance.js` の `isWrongPlaceClick`、パレットかスクリプトエリアかは「できた」の `trigger: {click}` と同じ `describeThread`（`goal-monitor.js`）で分ける。いまは 0-3 だけ |
@@ -361,7 +363,18 @@ with its partner`）が、文言の言い方（正規表現 `NAMES_A_PARTNER`）
 
 中学 2 年の授業のコース（方針は [`design.md` の「中 2 のコース「チャットをつくろう」」](design.md#中-2-のコースチャットをつくろう)）。
 コース id は `chat-wo-tsukurou`、文言は `chat.locale.js`（ja / ja-Hira / en。`lessons.locale.js` に spread する）。
-レッスン 1〜5 が入っている。
+レッスン 0（じゅんびチェック）とレッスン 1〜5 が入っている。
+
+レッスン 0「始める前に」（`chat-l0`・`warmup`。ja-Hira「はじめる まえに」、en "Before You Start"）は、チャレンジ
+`chat-l0-readiness`「じゅんびチェック」1 つ（下の「じゅんびチェック」）。コースの土台（`baseChallenges`）は「きょうからプログラマー」の
+4 つで、問いのプログラムはそのチャレンジの答えと同じネコのプログラム（このチャレンジだけシマラビにしない）:
+
+| # | 土台のチャレンジ | 問いのブロック（ja） | 問い（ja） | 正解 |
+|---|----------------|--------------------|-----------|------|
+| 1 | `blocks-l0-where` どこでしょう？ | 旗が押されたとき → 10 歩動かす | このプログラムを動かすには、画面のどこを押す？ | ①緑の旗 |
+| 2 | `blocks-l1-ask-answer` 聞いて答えよう（2-2） | このスプライトが押されたとき → 「名前は？」と聞いて待つ → 「こんにちは」と（答え）を 2 秒言う | ネコを押して「たろう」と入力したら、ネコは何と言う？ | ②「こんにちはたろう」と言う |
+| 3 | `blocks-l1-count` 数えよう（3-1） | 旗で（回数）を 0 にする ／ 押されたら（回数）を 1 ずつ変えて（回数）と言う | 緑の旗を押してから、ネコを 3 回押した。ネコは何と言う？ | ③3 と言う |
+| 4 | `blocks-l1-broadcast` なかまに合図しよう（3-2） | 押されたら「あいさつ」を送る ／ 「あいさつ」を受け取ったとき「やあ！」と 2 秒言う（2 つのスクリプトは左と右に並べて描く） | 左はネコ、右はペンギンのプログラム。ネコを押すと、どうなる？ | ①ペンギンが「やあ！」と言う |
 
 - **始め方**: どのチャレンジも、新しい作品のネコを**シマラビ**（ライブラリの Shimaraby）に置きかえて始める
   （`setup.sprites: ['Shimaraby']`）。「プログラムを入れる」の `code` もシマラビに入る。レッスン 1・2 はメッシュを使わない。
@@ -710,11 +723,12 @@ design.md の「中 2 のコース」。コースの ✓ もこれで数える�
 | `currentCostume` | いまのコスチューム（`target: 'stage'` なら背景）。`number` = 何番め（1 から）、`changed: true` = 開いたときと別のコスチュームになった。始めにいたものだけ見る | `number`, `changed`, `target`（どちらか 1 つは要る） |
 | `tab` | いま開いているタブ（エディタの画面の状態。`code` / `costumes` / `sounds`） | `tab` |
 | `partQuiz` | 「どこでしょう？」のクイズに `count` 問正しく答えた（エディタの画面の状態） | `count` |
+| `readinessCheck` | じゅんびチェックの問いに `count` 問答えて進んだ（正しかったかは見ない。エディタの画面の状態） | `count` |
 | `boardCommand` | アーテックロボの拡張機能が基板に出した命令（実機でも練習用の基板でも同じ記録） | `kind`（必須。`led` / `motor` / `servo` / `servoCalibration`。配列も可）, `port`, `value`, `speed`, `whenSensor` |
 | `sensorRead` | アーテックロボの拡張機能がセンサーの値を読んだ | `port`, `sensor`, `value` |
 
 `tab` と `partQuiz` は VM ではなく**エディタの画面の状態**を見る。見張り（`attachGoalMonitor`）に `getUi`（`{activeTab, partQuizSolved}` を
-返す関数）を渡し、`containers/lesson-goal-watcher.jsx` がタブ・クイズの答えが変わったら `refresh()` で判定を予約する。
+返す関数。じゅんびチェックの `readinessAnswered` も入る）を渡し、`containers/lesson-goal-watcher.jsx` がタブ・クイズの答えが変わったら `refresh()` で判定を予約する。
 `tab` は「タブを開いた」ことを数えるのではなく、ほかの条件（コスチュームを変えた）を満たしたあとに**いまそのタブにいる**ことを見る。
 
 **`uses` の項目**
@@ -1250,12 +1264,17 @@ partner: {
 | `libraryFocusChallengeId` | レッスン表を開いたときに見せるチャレンジ（「次のチャレンジ」で開いたとき）。レッスン表はこれから見せるレッスンと次のチャレンジを決める（`lessonsLibraryFocus`）。レッスンを閉じても消さず、レッスン表が閉じるときに消す |
 | `role` / `roleSource` / `rolePair` | いまのチャレンジの役（`shimaraby` / `shimacat`。役のあるチャレンジだけ）・どう決めたか（`default` / `remembered` / `seat` / `chosen`）・出席番号のペアの印（`'3-7'`）。上の「ペアの役」 |
 | `pendingRole` / `pendingRoleSource` | 役を選びなおして始めなおすときの役（開くまでの間だけ入る） |
+| `readiness` | じゅんびチェックの記録の写し（起動時に localStorage から読む。下の「じゅんびチェック」） |
+| `fromAssignment` / `fromReview` | いまのチャレンジを、クラスの課題から開いたか / 課題の「おさらい（課題の外）」として開いたか（`startChallenge` の引数を `openChallenge` まで引き継ぐ。`pendingFromAssignment` / `pendingFromReview` はその間だけ）。閉じると false |
+| `lastAssignmentChallengeId` | 最後に課題から開いた課題のチャレンジ id（「課題にもどる」の行き先）。レッスンを閉じても消さない |
+| `readinessAnswered` / `readinessChoice` | じゅんびチェックで答えて進んだ問いの数（いまの問いの番号）と、いまの問いで選んだもの（`{index, choice}`。1 回めだけ）。チャレンジを開くたびに 0 / null |
 | `libraryStartFocus` | レッスン表を、ウェルカムの「レッスンを始める」で開いたか。レッスン表は記録から次にやるチャレンジを決める（`startLessonsFocus`）。レッスン表が閉じるときに消す |
 
 | action / selector | 説明 |
 |------|------|
 | `startChallenge(challengeId)` | **チャレンジを開く入口**（レッスン表が呼ぶ）。新しい作品 → setup → `openChallenge` の順にコンテナが進める（知らない id は無視）。日本語モードのときは、作品の置きかえが決まってから、ふりがなモードに戻す（日本語モードのパレットの絞り込みとチャレンジの絞り込みが重なってブロックが出なくなるため。置きかえを断ったときは変えない） |
 | `startChallenge(challengeId, {role, roleSource})` | 役を選びなおして始めなおす（その役で始める。ヒントのページは保つ） |
+| `startChallenge(challengeId, {fromAssignment, fromReview})` | クラスの課題から / 課題の「おさらい」として開く（GA・クラスへ送る current・課題バーの帯が使う） |
 | `setLessonRole(role, {roleSource, rolePair})` | いまのチャレンジの役・決め方を変える（始めなおさない変更。役の無いチャレンジでは何もしない）。端末には書かない（選んだ役を覚えるのはコンテナ） |
 | `getCurrentRole(state)` | `{role, source}`（役の無いチャレンジでは null） |
 | `cancelStartChallenge()` | 開こうとしていたチャレンジを取り消す（「保存しますか」で取りやめたとき） |
@@ -1265,6 +1284,8 @@ partner: {
 | `finishHint()` | 「おわり」で閉じる（次に開くときは 1 ページ目から） |
 | `markChallengeCompleted(challengeId, completedAt?)` | 「できた」にして localStorage にも書く。書く前に localStorage の最新と合わせる（別のタブが書いた分を消さない）。`justCompletedId` をそのチャレンジにする（すでにできていても）。いま開いているチャレンジなら、ヒントの吹き出しを閉じる（ページは保つ） |
 | `dismissCompleted()` | 「できた！」を閉じる |
+| `answerReadiness(challengeId, index, choice)` / `nextReadiness(challengeId)` | じゅんびチェックのいまの問いで選ぶ（1 回めだけ記録に入れ、localStorage にも書く）/ 次の問いへ進む（答えたあとだけ） |
+| `markReadinessOffered(courseId)` | 「先にじゅんびチェックをする？」を聞いたことを覚える（localStorage にも書く） |
 | `focusLessonsLibraryStart()` | レッスン表を開いたときに、記録から次にやるチャレンジを目立たせる（ウェルカムの「レッスンを始める」）。2 つをまとめて出すのは `openLessonsLibraryToStart(dispatch)` |
 | `focusLessonsLibrary(challengeId)` / `clearLessonsLibraryFocus()` | レッスン表で見せるチャレンジを入れる / 消す（知らない id は無視）。開くのは modals の `openLessonsLibrary`。2 つをまとめて出すのは `openLessonsLibraryAt(dispatch, challengeId)` |
 | `reloadProgress()` | localStorage の最新を写しに取り込む（別のタブが書いた分を、レッスン表を開くときなどに反映する。書かない） |
@@ -1417,6 +1438,8 @@ partner: {
 | `lesson-assignment-band-submit-guide` / `lesson-assignment-band-submit` | span / button | 作品も提出する課題で課題クリアのあと（または、この版に無いチャレンジがあるとき）の案内と「課題を提出する」。はじめて提出するまで |
 | `lesson-assignment-band-unknown` | span | 「新しいレッスンがあります。ページを読み込み直してね」（この版のコースに無いチャレンジがあるとき） |
 | `lesson-task-bar-assignment` | span | 課題バーの同じ行の小さな帯（課題のチャレンジのときだけ） |
+| `lessons-library-review` | section | 課題だけのレッスン表の「おさらい（課題の外）」（課題のコースにじゅんびチェックがあるときだけ。中のカードは `lessons-library-challenge-<challengeId>`） |
+| `lesson-task-bar-review` / `lesson-task-bar-review-back` | span / button | 「おさらい」のチャレンジの課題バーの「おさらい中 — 課題の数には入らない」と［課題にもどる］ |
 
 ## レッスンモード
 
@@ -1975,6 +1998,97 @@ partner: {
   チャレンジをすぐ始める（レッスン表は開かない。課題から開いていて、そのチャレンジも課題のものなら課題から開いたまま）。
   飛ばしたチャレンジは「できた」にしない（記録は変えない）。
 
+### じゅんびチェック（`readinessCheck`）
+
+コースの最初に、そのコースの土台（`baseChallenges`）ができているかを確かめるチャレンジ（方針は
+[`design.md` の「じゅんびチェック」](design.md#じゅんびチェックコースの土台を確かめる)）。いまは「チャットをつくろう」のレッスン 0 にある
+（上の「コース「チャットをつくろう」のチャレンジ」）。
+
+- **問いのパネル**: コードエリアの上に 1 問ずつ出す（`components/lesson-readiness-check/lesson-readiness-check.jsx`・
+  document.body への portal。クリックは止めない）。上に問いのブロックの絵（ヒントの吹き出しと同じ `LessonHintBlocks`。Ruby は
+  `rubyToBlocksXml` で XML にするだけで、作品には入れない）、下にふりかえりのクイズと同じ 3 択（`LessonCompletedQuiz` の
+  `oneTry`。見出しは「じゅんびチェック n / 4」）。
+- **1 回めだけ**: 選んだら選びなおせない。まちがえたら、その場で正しい選択肢に ○ を付け、「はずれ。正しい答えは n」と解説を出す。
+  答えたら「次の問いへ」（最後は「結果を見る」）で進む。最後まで進むと goal の `readinessCheck`（`count: 4`）を満たし、
+  パネルを閉じて「できた！」に結果を出す。
+- **結果**（「できた！」の中）: 全部 1 回で正解なら「じゅんび OK！」。ほかは「n / 4 問 正解」と、まちがえた問いのチャレンジを
+  「おすすめ」として並べる（コースの名前とレッスン・番号も添える。押すと「できた！」を閉じてそのチャレンジを始める。課題の流れの
+  中（課題・おさらいのチャレンジ）なら、課題に入っているものは課題から、課題の外のものは「おさらい」として開く。下の「課題の
+  「おさらい（課題の外）」」）。
+- **「おすすめ」の印**: レッスン表のカードの右下に「おすすめ」（「次はこれ！」もあるときはその左）。どれかのコースで
+  「おすすめ」のチャレンジに付ける（`recommendedChallengeIds`）。あとでその問いに正しく答えなおすか、そのチャレンジが「できた」に
+  なったら消える（`markChallengeCompleted` が記録に `clearedAt` を入れる）。チェックをやりなおすと、答えた問いから上書きする。
+- **「先にじゅんびチェックをする？」**: じゅんびチェックのあるコースのレッスン 1 の最初のチャレンジ（チャットの 1-1）を、はじめて
+  開いたときに 1 回だけ聞く（`readinessOffer`。もう聞いた・チェックの問いに 1 つでも答えたときは聞かない）。クラスの課題から
+  開いたときも聞く（じゅんびチェックは課題の「おさらい」にいつも出ていて、「課題にもどる」で 1-1 にもどれるため）。そのときは
+  チェックを「おさらい」として開く（課題に入っていれば課題から）。
+  「じゅんびチェックをする」でチェックを始め、「このまま始める」で閉じる。聞いたらすぐ覚える（`markReadinessOffered`）。
+- **記録**: localStorage の `smalruby:lessonReadiness`（`lib/lessons/readiness.js`。読み書きの失敗では落ちない）。
+  本人の確認で「消す」（`clearProgress`）を選ぶと、レッスンの記録といっしょに消す。
+- **クラスへ送る結果**: クラスのレッスンの課題では、進み具合といっしょに結果（`readiness: {checkedAt, missing}`）を送る
+  （`readinessPayloadOf`・`lib/lessons/lesson-progress-sync.js`）。先生の「進み具合」の表に小さく出すだけで、できた数・課題クリア・
+  得点・CSV には使わない（[`docs/classroom/ui-ux.md` の「先生: 「進み具合」タブ」](../classroom/ui-ux.md#先生-進み具合タブ)）。
+  - 送るのは、課題のコースにじゅんびチェックがあり、**全部の問いに答えた**とき（途中までの答えでは「じゅんび ✓」に見えてしまうので
+    送らない）。
+  - `missing` は `readinessResult` の `recommendedIds`（1 回めにまちがえ、そのあと正しく答えなおしても「できた」にもしていない
+    土台のチャレンジ。`baseChallenges` の並び・20 件まで）。`checkedAt` は一番新しい答えの日時。
+  - ほかの進み具合と同じ本人の確認に従う: 答えた日時が本人の確認の答え（`decidedAt`）より後の答えだけを使う。じゅんびチェックの
+    チャレンジを本人の確認で「わたしの記録です」にした（課題にじゅんびチェックが入っている）ときは、その前の答えも使う。
+  - 結果が変わったとき（答えなおした・「おすすめ」のチャレンジができた）に送る。最後に送れたものと同じなら送らない。
+
+ほかの画面（課題の「おさらい」・先生の表）から使う関数（どれも純粋関数・`lib/lessons/readiness.js`）:
+
+| 関数 | 返すもの |
+|------|---------|
+| `readinessResult(course, readiness)` | `{total, answeredCount, correctIds, wrongIds, recommendedIds, allCorrect}`。`wrongIds` はまちがえた問いの土台のチャレンジ（あとでできたものも入る）、`recommendedIds` はそのうちまだ「おすすめ」のもの |
+| `recommendedChallenges(course, readiness)` | 「おすすめ」のチャレンジ（`findChallenge` の結果 `{course, lesson, challenge}` の配列。`baseChallenges` の並び） |
+| `recommendedChallengeIds(readiness)` | どれかのコースで「おすすめ」のチャレンジ id |
+| `readinessOffer({challengeId, readiness})` | 「先にじゅんびチェックをする？」を聞くなら `{courseId, checkChallengeId}`、聞かないなら null |
+| `assignmentReviewChallenges(lesson, readiness)` | 課題の「おさらい（課題の外）」に出すチャレンジ（課題のコースのじゅんびチェックと、いまの「おすすめ」。課題に入っているものは外す。じゅんびチェックの無いコースでは `[]`） |
+| `challengeOpenContext(lesson, challengeId, inAssignmentFlow)` | 課題の流れの中で開くときの `{fromAssignment, fromReview}`（課題のチャレンジなら課題から、課題の外なら「おさらい」。流れの外ではどちらも false） |
+| `reviewReturnTarget(lesson, progress, lastAssignmentChallengeId)` | 「課題にもどる」の行き先。`{challengeId}`（おさらいの前の課題のチャレンジが、まだ課題にあってできていない）か `{libraryAfterId}`（課題だけのレッスン表） |
+| `courseReadinessCheck(course)`（`courses.js`） | コースのじゅんびチェックのチャレンジ（無ければ null） |
+
+| data-testid | 要素 | 説明 |
+|------------|------|------|
+| `lesson-readiness-check` | div | 問いのパネル（`data-index` = いまの問いの番号、`data-base-challenge-id` = 土台のチャレンジ）。中の 3 択は `lesson-quiz` / `lesson-quiz-choice` / `lesson-quiz-result` / `lesson-quiz-explanation` |
+| `lesson-readiness-check-blocks` | div | 問いのブロックの絵 |
+| `lesson-readiness-check-next` | button | 「次の問いへ」/「結果を見る」（`data-last`）。答えたあとだけある |
+| `lesson-readiness-result` | div | 「できた！」の中の結果（`data-all-correct`） |
+| `lesson-readiness-result-ok` / `lesson-readiness-result-score` | div | 「じゅんび OK！」/「n / 4 問 正解」 |
+| `lesson-readiness-recommended` | button | 「おすすめ」のチャレンジ（`data-challenge-id`） |
+| `lessons-library-challenge-recommended` | span | レッスン表のカードの「おすすめ」（カードの `data-recommended` も `true`） |
+| `lesson-readiness-offer` / `-yes` / `-skip` | div / button | 「先にじゅんびチェックをする？」と、その 2 つのボタン |
+
+![チャットをつくろう のじゅんびチェック（まちがえて、正しい答えと解説が出たところ・1300×600）](screenshots/0735-chat-readiness-check-wrong-1300x600.png)
+
+![じゅんびチェックの結果（2 問まちがえて「おすすめ」が出たところ・1300×600）](screenshots/0736-chat-readiness-result-recommended-1300x600.png)
+
+#### 課題の「おさらい（課題の外）」
+
+クラスの課題がチャレンジを絞っているとき、生徒が課題の外の土台のチャレンジへ行けるようにする（方針は
+[`design.md` の「じゅんびチェック」](design.md#じゅんびチェックコースの土台を確かめる)）。先生がこれを止める設定は無い（まず授業で様子を見る）。
+
+- **レッスン表**: 課題だけのレッスン表（「はじめる」「レッスンを続ける」で開いたとき）の、課題のチャレンジのあとに
+  「おさらい（課題の外）」の区切り（点線の枠）を出す。中は、課題のコースのじゅんびチェック（いつも出す）と、そのチェックで
+  いま「おすすめ」のチャレンジだけ（`assignmentReviewChallenges`。ほかのコースのチャレンジもある）。課題に入っているものは
+  課題のほうに出るので外す。じゅんびチェックの無いコース（きょうからプログラマー）の課題では出さない。検索中は名前で絞る。
+  メニューの「レッスン」から開いた（コース全体の）レッスン表には出さない。
+- **開く**: 区切りのカードを押すと「おさらい」として開く（`startChallenge(id, {fromReview: true})`）。課題バーの課題の帯の
+  かわりに「おさらい中 — 課題の数には入らない」と［課題にもどる］を出す。
+- **課題の数に入れない**: 課題の帯・課題クリア・クラスへ送る「できた」は、課題のチャレンジだけで数える（いままでどおり）。
+  おさらいで「できた」になったものは端末の記録に残るので、あとの課題に入っていれば、いままでどおり引き継げる。
+- **課題にもどる**: おさらいの前にやっていた課題のチャレンジ（`lastAssignmentChallengeId`）が、まだ課題にあってできていなければ
+  開きなおす。ほかは課題だけのレッスン表を開く（そのチャレンジの次から「次はこれ！」・`reviewReturnTarget`）。おさらいの
+  「ほかのチャレンジへ」と「できた！」の「次のチャレンジ」も、課題だけのレッスン表を開く。
+- **クラスへ送る**: おさらいのチャレンジを開いているあいだは、current に `review: true` を付けて送る
+  （`{challengeId, openedAt, review: true}`。本人の確認など、進み具合を送る決まりはいままでどおり）。サーバーは課題の外でも
+  current に残すので、先生の表で「おさらい中」と分かる。課題のチャレンジにもどったら、ふつうの current を送る。
+
+![課題の「おさらい（課題の外）」（じゅんびチェックとおすすめ・1300×600）](screenshots/0737-chat-assignment-review-1300x600.png)
+
+![おさらいのチャレンジの課題バー（「おさらい中」と［課題にもどる］・1300×600）](screenshots/0738-chat-review-task-bar-1300x600.png)
+
 ### data-testid
 
 | data-testid | 要素 | 説明 |
@@ -2215,6 +2329,9 @@ GTM・GA4 の設定（トリガー・データレイヤー変数・カスタム�
 | `packages/scratch-gui/src/lib/lessons/courses.js` | コース・レッスン・チャレンジのデータと検索。locale ごとの Ruby を選ぶ `localizeCode` / `challengeCodeFor` / `challengeCodeCandidates`。ふりかえりのクイズを作る `challengeQuiz` と形を確かめる `validateQuiz` |
 | `packages/scratch-gui/src/lib/lessons/lessons.locale.js` | 文言（en / ja / ja-Hira。`src/locales/*.js` に spread） |
 | `packages/scratch-gui/src/lib/lessons/chat.locale.js` | コース「チャットをつくろう」の文言（en / ja / ja-Hira。`lessons.locale.js` に spread） |
+| `packages/scratch-gui/src/lib/lessons/readiness.js` | じゅんびチェックの記録（`smalruby:lessonReadiness`）と、結果・「おすすめ」・「先にじゅんびチェックをする？」の決め方（純粋関数） |
+| `packages/scratch-gui/src/components/lesson-readiness-check/` | じゅんびチェックの問いのパネル（`lesson-readiness-check.jsx`）と「先にじゅんびチェックをする？」（`lesson-readiness-offer.jsx`） |
+| `packages/scratch-gui/src/containers/lesson-readiness-check.jsx` | 問いのパネルのコンテナ（問いのブロックを XML にし、選ぶ・進むを dispatch） |
 | `packages/scratch-gui/src/lib/lessons/lesson-progress.js` | 端末への記録（いまの定義での読みかえ）・レッスン／コースの進み具合・「できた！」のボタンとレッスン表で見せるもの |
 | `packages/scratch-gui/src/lib/lessons/role-swap.js` | ペアの役の名前の入れかえ（`swapRoleText` / `swapChallengeRoles` / `challengeForRole` / `formatRoleMessage` / `roleOfChallenge`） |
 | `packages/scratch-gui/src/lib/lessons/lesson-role.js` | 役の決め方（`resolveChallengeRole`・出席番号のペア `seatRoleFor` / `connectedGroupSeats`）・前回の役の保存（`smalruby:lessonRole`）・役を変えたら始めなおすか（`roleChangeRestarts`） |
@@ -2313,6 +2430,7 @@ GTM・GA4 の設定（トリガー・データレイヤー変数・カスタム�
 | 種類 | キー | 説明 |
 |------|------|------|
 | localStorage | `smalruby:lessonProgress` | チャレンジ ID → できた日時（とコース・レッスン） |
+| localStorage | `smalruby:lessonReadiness` | じゅんびチェックの記録（コース → 土台のチャレンジ → `{correct, answeredAt, clearedAt?}`）と、「先にじゅんびチェックをする？」を聞いた日時（コース → 日時）。下の「じゅんびチェック」 |
 | localStorage | `smalruby:lessonAssignmentConsent` | 本人の確認の答え（課題 × 席 × 席に入った人（参加した時刻、無ければトークンの短いハッシュ）→ `{answer: mine\|cleared\|none, beforeIds, decidedAt}`。新しいものから 50 件） |
 | localStorage | `smalruby:lessonRole` | ペアのチャレンジで生徒が前回**選んだ**役と、そのときの出席番号のペアの印（`{role: 'shimaraby'\|'shimacat', pair: '3-7'\|null}`）。既定の役・出席番号で決まった役は書かない |
 | localStorage | `smalruby:lessonSpotlightSeen` | チャレンジ ID → はじめて開いた日時（ヒントのスポットライトを 2 回目から出さないため） |

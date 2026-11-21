@@ -984,6 +984,13 @@ export default {
     'gui.classroom.lessonProgress.unknownCourse':
         'このコースは、このスモウルビーにはありません。すすみぐあいをひょうじできません。',
     'gui.classroom.lessonProgress.minutes': '{minutes} ふん',
+    'gui.classroom.lessonProgress.noteHead': 'じゅんび・おさらい',
+    'gui.classroom.lessonProgress.readinessReady': 'じゅんび ✓',
+    'gui.classroom.lessonProgress.readinessMissing': 'じゅんび △ {names}',
+    'gui.classroom.lessonProgress.noteMore': '{names} ほか {count}',
+    'gui.classroom.lessonProgress.noteSeparator': '・',
+    'gui.classroom.lessonProgress.reviewing': 'おさらいちゅう',
+    'gui.classroom.lessonProgress.reviewingChallenge': 'おさらいちゅう: {name}',
     'gui.classroom.assignmentEditor.errorLessonUnknownCourse':
         'レッスンのコースがみつかりません。べつのコースか「レッスンをつかわない」をえらんでください。',
     'gui.classroom.assignmentEditor.errorLessonNoChallenges': 'レッスンのチャレンジを 1 ついじょうえらんでください。',
@@ -1949,6 +1956,7 @@ export default {
     'gui.lessonsLibrary.closeCourse': 'レッスンを しまう',
     'gui.lessonsLibrary.done': 'できた',
     'gui.lessonsLibrary.next': 'つぎはこれ！',
+    'gui.lessonsLibrary.recommended': 'おすすめ',
     'gui.lessonsLibrary.required': 'ひっす',
     'gui.classroom.studentStatus.lessonProgress': 'すすみぐあい',
     'gui.classroom.studentStatus.continueLesson': 'レッスンを つづける',

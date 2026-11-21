@@ -70,7 +70,7 @@ const variablesOf = (target) => Object.values(target.variables || {});
  * @param {object} vm - VM。
  * @param {object} baselineCostumes - 見張りを始めたときの takeCostumeCounts。
  * @param {object} [baselinePositions] - 見張りを始めたときの takePositions。
- * @param {object} [ui] - エディタの画面の状態（`{activeTab, partQuizSolved}`）。
+ * @param {object} [ui] - エディタの画面の状態（`{activeTab, partQuizSolved, readinessAnswered}`）。
  * @returns {object} snapshot。
  */
 export const takeSnapshot = (vm, baselineCostumes, baselinePositions = {}, ui = {}) => {
@@ -212,7 +212,7 @@ const copyArgs = (args) => {
  * @param {Array<object>} goal - チャレンジの goal（goal.js）。
  * @param {function(): void} onSatisfied - 満たしたときに呼ぶ。
  * @param {object} [options] - 任意。
- * @param {function(): object} [options.getUi] - エディタの画面の状態（`{activeTab, partQuizSolved}`）を返す。
+ * @param {function(): object} [options.getUi] - エディタの画面の状態（`{activeTab, partQuizSolved, readinessAnswered}`）を返す。
  *   `tab` / `partQuiz` の条件が見る。画面の状態が変わったら、返す関数の `refresh()` で判定を予約する。
  * @returns {function(): void} 見張りをやめる関数（`refresh()` で次の step に判定し直す）。
  */

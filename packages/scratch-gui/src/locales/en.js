@@ -875,6 +875,13 @@ export default {
     'gui.classroom.lessonProgress.unknownCourse':
         "This course isn't in this version of Smalruby, so its progress can't be shown.",
     'gui.classroom.lessonProgress.minutes': '{minutes} min',
+    'gui.classroom.lessonProgress.noteHead': 'Prep / review',
+    'gui.classroom.lessonProgress.readinessReady': 'Prep ✓',
+    'gui.classroom.lessonProgress.readinessMissing': 'Prep △ {names}',
+    'gui.classroom.lessonProgress.noteMore': '{names} +{count}',
+    'gui.classroom.lessonProgress.noteSeparator': ', ',
+    'gui.classroom.lessonProgress.reviewing': 'Reviewing',
+    'gui.classroom.lessonProgress.reviewingChallenge': 'Reviewing: {name}',
     'gui.classroom.assignmentEditor.errorLessonUnknownCourse':
         'The course of the lesson is not available. Choose another course or "Don\'t use lessons".',
     'gui.classroom.assignmentEditor.errorLessonNoChallenges': 'Choose at least one challenge for the lesson.',
@@ -1571,6 +1578,7 @@ export default {
     'gui.lessonsLibrary.closeCourse': 'Hide the lessons',
     'gui.lessonsLibrary.done': 'Done',
     'gui.lessonsLibrary.next': 'Next!',
+    'gui.lessonsLibrary.recommended': 'Recommended',
     'gui.lessonsLibrary.required': 'Required',
     'gui.classroom.studentStatus.lessonProgress': 'Progress',
     'gui.classroom.studentStatus.continueLesson': 'Continue the lesson',
