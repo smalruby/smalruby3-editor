@@ -12,8 +12,10 @@ import {
     columnTotals,
     formatCsvTime,
     lessonProgressContext,
+    noteNames,
     progressRowsByMember,
     progressTableRows,
+    seatNote,
     seatProgress,
     seatTile,
     sortProgressRows,
@@ -292,5 +294,85 @@ describe('challengeHeadText（#1779 Q8）', () => {
     test('ja / ja-Hira は今のまま名前', () => {
         expect(challengeHeadText(column, '矢印キーで動かす', 'ja')).toBe('矢印キーで動かす');
         expect(challengeHeadText({ ...column, required: true }, 'やじるし', 'ja-Hira')).toBe('★やじるし');
+    });
+});
+
+describe('席のメモ: じゅんびチェックとおさらい（#2301）', () => {
+    const notes = [
+        {
+            id: 'l1',
+            challenges: [
+                { id: 'a', name: 'A' },
+                { id: 'b', name: 'B' },
+            ],
+        },
+        { id: 'l2', challenges: [{ id: 'd', name: 'D' }] },
+    ];
+    const courses = [{ id: 'c', lessons: notes }];
+
+    test('結果が無い席は何も出さない', () => {
+        expect(seatNote(null, NOW, courses)).toEqual({ readiness: null, review: null });
+        expect(seatNote({ challenges: {}, readiness: null }, NOW, courses).readiness).toBeNull();
+    });
+
+    test('missing が空なら ✓、あれば知っているチャレンジと知らない数', () => {
+        expect(seatNote({ readiness: { checkedAt: minutesAgo(5), missing: [] } }, NOW, courses).readiness).toEqual({
+            ready: true,
+            missing: [],
+            unknownCount: 0,
+        });
+        const note = seatNote(
+            { readiness: { checkedAt: minutesAgo(5), missing: ['d', 'zz', 'a', 'd'] } },
+            NOW,
+            courses,
+        );
+        expect(note.readiness.ready).toBe(false);
+        expect(note.readiness.missing.map((c) => c.id)).toEqual(['d', 'a']);
+        expect(note.readiness.unknownCount).toBe(1);
+    });
+
+    test('おさらいは、最後の送信が新しいあいだだけ出す', () => {
+        const row = (updatedAt) => ({
+            challenges: {},
+            current: { challengeId: 'b', openedAt: minutesAgo(3), review: true },
+            updatedAt,
+        });
+        expect(seatNote(row(minutesAgo(2)), NOW, courses).review).toEqual({
+            challengeId: 'b',
+            challenge: notes[0].challenges[1],
+        });
+        expect(seatNote(row(new Date(NOW - CURRENT_FRESH_MS).toISOString()), NOW, courses).review).toBeNull();
+        const plain = { ...row(minutesAgo(2)), current: { challengeId: 'b', openedAt: minutesAgo(3) } };
+        expect(seatNote(plain, NOW, courses).review).toBeNull();
+        const unknown = {
+            ...row(minutesAgo(2)),
+            current: { challengeId: 'zz', openedAt: minutesAgo(3), review: true },
+        };
+        expect(seatNote(unknown, NOW, courses).review).toEqual({ challengeId: 'zz', challenge: null });
+    });
+
+    test('名前は 2 つまで、残りは「ほか N」', () => {
+        expect(noteNames(['A', 'B'], 0)).toEqual({ names: ['A', 'B'], more: 0 });
+        expect(noteNames(['A', 'B', 'C'], 1)).toEqual({ names: ['A', 'B'], more: 2 });
+    });
+
+    test('できた数・課題クリア・得点・CSV には使わない', () => {
+        const base = { memberId: 'seat-01', challenges: { a: done() }, current: null, updatedAt: minutesAgo(1) };
+        const withNote = {
+            ...base,
+            readiness: { checkedAt: minutesAgo(5), missing: ['a'] },
+            current: { challengeId: 'zz', openedAt: minutesAgo(2), review: true },
+        };
+        expect(seatProgress(withNote, ctx, NOW)).toEqual(seatProgress(base, ctx, NOW));
+        const m = [{ memberId: 'seat-01', displayName: 'あ' }];
+        const csv = (row) =>
+            buildLessonProgressCsv(
+                progressTableRows(m, { 'seat-01': row }, 1, ctx, NOW),
+                { 'seat-01': row },
+                ctx,
+                ['A', 'B', 'D', 'E'],
+                NOW,
+            );
+        expect(csv(withNote)).toBe(csv(base));
     });
 });

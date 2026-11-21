@@ -1996,8 +1996,18 @@ partner: {
   開いたときも聞く（じゅんびチェックは課題の「おさらい」にいつも出ていて、「課題にもどる」で 1-1 にもどれるため）。そのときは
   チェックを「おさらい」として開く（課題に入っていれば課題から）。
   「じゅんびチェックをする」でチェックを始め、「このまま始める」で閉じる。聞いたらすぐ覚える（`markReadinessOffered`）。
-- **記録**: localStorage の `smalruby:lessonReadiness`（`lib/lessons/readiness.js`。読み書きの失敗では落ちない）。クラスには送らない。
+- **記録**: localStorage の `smalruby:lessonReadiness`（`lib/lessons/readiness.js`。読み書きの失敗では落ちない）。
   本人の確認で「消す」（`clearProgress`）を選ぶと、レッスンの記録といっしょに消す。
+- **クラスへ送る結果**: クラスのレッスンの課題では、進み具合といっしょに結果（`readiness: {checkedAt, missing}`）を送る
+  （`readinessPayloadOf`・`lib/lessons/lesson-progress-sync.js`）。先生の「進み具合」の表に小さく出すだけで、できた数・課題クリア・
+  得点・CSV には使わない（[`docs/classroom/ui-ux.md` の「先生: 「進み具合」タブ」](../classroom/ui-ux.md#先生-進み具合タブ)）。
+  - 送るのは、課題のコースにじゅんびチェックがあり、**全部の問いに答えた**とき（途中までの答えでは「じゅんび ✓」に見えてしまうので
+    送らない）。
+  - `missing` は `readinessResult` の `recommendedIds`（1 回めにまちがえ、そのあと正しく答えなおしても「できた」にもしていない
+    土台のチャレンジ。`baseChallenges` の並び・20 件まで）。`checkedAt` は一番新しい答えの日時。
+  - ほかの進み具合と同じ本人の確認に従う: 答えた日時が本人の確認の答え（`decidedAt`）より後の答えだけを使う。じゅんびチェックの
+    チャレンジを本人の確認で「わたしの記録です」にした（課題にじゅんびチェックが入っている）ときは、その前の答えも使う。
+  - 結果が変わったとき（答えなおした・「おすすめ」のチャレンジができた）に送る。最後に送れたものと同じなら送らない。
 
 ほかの画面（課題の「おさらい」・先生の表）から使う関数（どれも純粋関数・`lib/lessons/readiness.js`）:
 

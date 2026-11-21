@@ -107,6 +107,8 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-lesson-progress-row-{memberId}` | tr | 席の行 |
 | `classroom-lesson-progress-seat-{memberId}` | button | 席番号（押すと右にメンバーの詳細） |
 | `classroom-lesson-progress-cell-{memberId}-{challengeId}` | span | セル（`data-kind` = `done` / `before` / `current` / `stuck` / `todo`） |
+| `classroom-lesson-progress-readiness-{memberId}` | span | じゅんび・おさらいの列の「じゅんび ✓」/「じゅんび △ …」（結果を送った席だけ・`title` に全部の名前） |
+| `classroom-lesson-progress-review-{memberId}` | span | じゅんび・おさらいの列の「おさらい中: <チャレンジ>」（おさらい中の席だけ） |
 | `classroom-lesson-progress-unknown-course` | p | このスモウルビーに無いコースのとき表の代わりに出す文 |
 | `classroom-lesson-progress-csv` | button (menuitem) | ⋮の「進み具合を CSV でダウンロード」（「進み具合」タブのときだけ） |
 
