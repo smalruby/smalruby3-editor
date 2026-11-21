@@ -1888,17 +1888,23 @@ partner: {
   部分の探し方はヒントの吹き出しと同じ（`findHintTargetRect`）で、いまの画面に無い部分（コスチュームタブを開いているときの
   ブロックパレットなど）は出さない。ルビータブは 4 つめのタブ（SP はサイドレールの `mobile-side-rail-ruby`）。
 - **置き方**（`lib/lessons/part-names.js` の `computePartNameLayout`。純粋関数）: 小さな部分（ボタン・タブ）は札をすぐ下
-  （入らなければ横）に、広い部分は中の左上に置く。札が画面の外にはみ出さず、札どうし・ほかの小さな部分・ヒントの
+  （入らなければ横）に、広い部分は中の左上に置く。札が画面の外にはみ出さず、札どうし・小さな部分（自分の部分も）・ヒントの
   吹き出し・練習相手のパネルに重ならない置き場所を、部分に近いものから選ぶ。部分が動く（タブの切りかえ・画面の
   大きさの変化）のに合わせて 0.5 秒ごとに置き直す。
+- **小さな部分の札は吹き出し**（タブ・緑の旗・停止ボタン・ヒント）: 札は部分の外にあるので、札だけを見ると押す場所が
+  わからない（授業で、札「コードタブ」を押して何も起きなかった子がいた）。そこで、札にしっぽを付けて部分の真ん中を指す。
+  しっぽの辺は札を置いた側で決まる（下に置けば上の辺、左に置けば右の辺。`computePartNameLayout` が返す `arrow`）。
+  しっぽが入るよう、部分とのすき間は広い部分より広い（10px）。さらに、**札を押すと部分を押したことにする**
+  （`clickPartNameTarget`。探し方は `findHintTargetRect` と同じ候補で、緑の旗・停止ボタンは絵を包むボタン、タブはタブそのものを押す）。
+  「ガイド」で出したときは、押したあとに札を消す。キーボードで操作するのは部分そのもので、札はフォーカスを取らない（`aria-hidden`）。
 - **出し方**: 課題バーの「ガイド」（「ヒント」の左。en は "Guide"）で出し、**6 秒たつか、どこかを押すか、
   Esc で消える**。もう一度「ガイド」を押しても消える。押した操作はそのまま下の部品に届く。
 - **「ガイド」のボタン**: 大きさ・字・枠は「ヒント」と同じ（`lesson-task-bar.css` の `.button`。字は `$font-size-small`・
   上下の余白は `$space-small`）。字の左に目のアイコンを付け、札を出しているときは開いた目と白地（`aria-pressed="true"`）、
   隠しているときは斜めの線で消した目（`aria-pressed="false"`）にして、出し入れの状態がわかるようにする。
 - **最初から出す**: レッスンの `showPartNames: true` なら、チャレンジを開いたときから出したままにする（時間でも
-  押しても消えない。「ガイド」で消せ、もう一度押すと出したままにもどる）。枠と札は `pointer-events: none` なので、
-  出したままでもブロックのドラッグやクリックを邪魔しない。
+  押しても消えない。「ガイド」で消せ、もう一度押すと出したままにもどる）。枠と広い部分の札は `pointer-events: none` なので、
+  出したままでもブロックのドラッグやクリックを邪魔しない（小さな部分の札は押せるが、押すと部分を押したことになる）。
 - 層はヒントの吹き出し・課題バーより下（吹き出しを読みながら操作するため）。
 
 ### どこでしょう？のクイズ（`partQuiz`）
@@ -1966,7 +1972,8 @@ partner: {
 | `lesson-part-quiz-done` | div | 全部答えたときの「5 問ぜんぶ せいかい！」 |
 | `lesson-completed-toast-skip-detail` | div | 「どこでしょう？」を 1 回もまちがえずに答えたときの、レッスンを飛ばせることを伝える行 |
 | `lesson-completed-toast-skip` | button | 「レッスン n へ進む」（`data-lesson-number`）。このとき `lesson-completed-toast-next` は「続けてレッスン 0 をやる」 |
-| `lesson-part-names-label-<label>` | span | 部分の名前の札（置いたものは `data-placed="true"`、画面に無い部分は `false` で見えない） |
+| `lesson-part-names-label-<label>` | span | 部分の名前の札（置いたものは `data-placed="true"`、画面に無い部分は `false` で見えない。小さな部分の札は `data-part-names-small="true"` で、押すと部分を押す） |
+| `lesson-part-names-arrow-<label>` | span | 小さな部分の札のしっぽ（`data-side` = しっぽを出す札の辺 `top` / `bottom` / `left` / `right`。札が部分に重なるときは無い） |
 | `lesson-task-bar-quit` | button | ほかのチャレンジへ（いまのチャレンジを終えてレッスン表を開く。白地で目立たせる） |
 | `lesson-task-bar-end` | button | レッスンをおえる（右端。レッスンから出て、いつもの画面にもどる。レッスン表は開かない） |
 | `lesson-hint` | div | ヒントの吹き出し（`data-side` = 置いた側 `right` / `left` / `bottom` / `top` / `inside` / `center`、`data-target` = 指す場所） |
@@ -2182,7 +2189,7 @@ GTM・GA4 の設定（トリガー・データレイヤー変数・カスタム�
 | `packages/scratch-gui/src/lib/lessons/hint-advance.js` | ヒントのページを自分で次へ進めるか（`isStepAdvanced` / `canAutoAdvance`）・まちがった場所の操作か（`isWrongPlaceClick`）・エディタの様子を VM から集める（`takeHintObservation`）（純粋関数） |
 | `packages/scratch-gui/src/lib/lessons/use-hint-auto-advance.js` | 上を使う hook（押したブロック・`focus` を押したこと・300ms ごとの様子を集め、`nextHint` と一言を出す）。`containers/lesson-hint.jsx` が使う |
 | `packages/scratch-gui/src/lib/lessons/hint-targets.js` | 指す場所の名前（`HINT_TARGETS`）・押すもの 1 つ（`HINT_FOCUS`・`findHintFocusRect` / `findHintFocusElement`・`stageBoundsToRect`）・DOM の探し方・置き方・ドラッグした位置を画面に収める（`clampHintPosition`）・置いてよい範囲（`hintViewport`。SP のサイドレールの右・課題バーの下）（純粋関数） |
-| `packages/scratch-gui/src/lib/lessons/part-names.js` | 名前の札を出す部分（`PART_NAMES`）・探し方（`findPartNameRects`）・札の置き方（`computePartNameLayout`。純粋関数） |
+| `packages/scratch-gui/src/lib/lessons/part-names.js` | 名前の札を出す部分（`PART_NAMES`）・探し方（`findPartNameRects`）・札の置き方としっぽ（`computePartNameLayout`。純粋関数）・小さな部分の札を押したときに押す部品（`clickPartNameTarget`） |
 | `packages/scratch-gui/src/components/lesson-part-names/` | 名前の札の重ね（枠と札・置き直し・6 秒で消す） |
 | `packages/scratch-gui/src/lib/lessons/part-quiz.js` | 「どこでしょう？」のクイズの判定（`isPartQuizAnswer` / `partQuizTarget` / `validatePartQuiz`。純粋関数） |
 | `packages/scratch-gui/src/components/lesson-part-quiz/` | 「どこでしょう？」のクイズ（問いの札・クリックを受ける受け皿・まちがえたときに光らせる） |
