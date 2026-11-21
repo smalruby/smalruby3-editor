@@ -5,8 +5,10 @@
  * compiler.ts / rate-limit.ts に置き、handler.ts がつなぐ。
  */
 
+import { DEFAULT_IR_LIMITS, type IrLimits } from './ir';
+
 /** 上限（S12 = C: 推奨の倍からはじめる。環境変数で変えられる）。 */
-export interface Limits {
+export interface Limits extends IrLimits {
   /** リクエストの本文の上限（バイト）。超えたら 413。 */
   maxRequestBytes: number;
   /** コンパイルを打ち切るまでの時間（ミリ秒）。超えたら 504。 */
@@ -24,6 +26,7 @@ export const DEFAULT_LIMITS: Limits = {
   compileTimeoutMs: 25_000,
   perMinute: 12,
   perDay: 600,
+  ...DEFAULT_IR_LIMITS,
 };
 
 const positiveInt = (value: string | undefined, fallback: number): number => {
@@ -42,6 +45,9 @@ export const parseLimits = (env: Record<string, string | undefined>): Limits => 
   compileTimeoutMs: positiveInt(env.COMPILE_TIMEOUT_MS, DEFAULT_LIMITS.compileTimeoutMs),
   perMinute: positiveInt(env.RATE_LIMIT_PER_MINUTE, DEFAULT_LIMITS.perMinute),
   perDay: positiveInt(env.RATE_LIMIT_PER_DAY, DEFAULT_LIMITS.perDay),
+  maxNodes: positiveInt(env.MAX_IR_NODES, DEFAULT_LIMITS.maxNodes),
+  maxDepth: positiveInt(env.MAX_IR_DEPTH, DEFAULT_LIMITS.maxDepth),
+  maxVariables: positiveInt(env.MAX_IR_VARIABLES, DEFAULT_LIMITS.maxVariables),
 });
 
 /**
@@ -140,6 +146,7 @@ export const rateDecision = (
 /** 失敗の種類（docs/studuino-mode/README.md の「Lambda の API」と同じ名前）。 */
 export type ErrorCode =
   | 'invalid_request'
+  | 'invalid_ir'
   | 'forbidden_origin'
   | 'too_large'
   | 'compile_failed'
@@ -149,6 +156,7 @@ export type ErrorCode =
 
 export const STATUS_BY_ERROR: Record<ErrorCode, number> = {
   invalid_request: 400,
+  invalid_ir: 400,
   forbidden_origin: 403,
   too_large: 413,
   compile_failed: 422,
@@ -159,6 +167,7 @@ export const STATUS_BY_ERROR: Record<ErrorCode, number> = {
 
 export const MESSAGE_BY_ERROR: Record<ErrorCode, string> = {
   invalid_request: 'リクエストの形が正しくありません。',
+  invalid_ir: 'プログラムに使えないものが入っています。',
   forbidden_origin: 'この場所からは呼び出せません。',
   too_large: 'プログラムが大きすぎます。',
   compile_failed: 'プログラムを hex にできませんでした。',
@@ -241,6 +250,9 @@ export interface RequestRecord {
   /** 失敗の細かい理由（library_missing・flash_overflow など）。 */
   reason?: string;
   sample?: string;
+  /** 構文木のノードの数・入れ子の深さ（構文木を送ったとき）。 */
+  irNodes?: number;
+  irDepth?: number;
   requestBytes: number;
   compileMs?: number;
   hexBytes?: number;
@@ -265,7 +277,7 @@ export const metricLog = (
   stage: string,
   nowMs: number,
 ): Record<string, unknown> => {
-  const rejected = ['forbidden_origin', 'too_large', 'rate_limited', 'invalid_request'].includes(
+  const rejected = ['forbidden_origin', 'too_large', 'rate_limited', 'invalid_request', 'invalid_ir'].includes(
     record.outcome,
   );
   const failed = !rejected && record.outcome !== 'ok';
@@ -288,6 +300,10 @@ export const metricLog = (
   if (record.compileMs !== undefined) {
     metrics.push({ Name: 'CompileTime', Unit: 'Milliseconds' });
     values.CompileTime = record.compileMs;
+  }
+  if (record.irNodes !== undefined) {
+    metrics.push({ Name: 'IrNodes', Unit: 'Count' });
+    values.IrNodes = record.irNodes;
   }
   if (record.hexBytes !== undefined) {
     metrics.push({ Name: 'HexBytes', Unit: 'Bytes' });
