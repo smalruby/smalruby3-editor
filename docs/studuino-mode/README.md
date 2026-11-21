@@ -399,10 +399,56 @@ end
 
 - `sr_*` は、Lambda が C++ の先頭に入れる小さな補助関数（Scratch の計算の決まりに合わせるため）。
 - 型の検査（数値の所に真偽を入れていないか）は Lambda でも行う。Scratch の真偽を数値の所に入れたブロック
-  （`<>` を `( )` に入れる）のために、Lambda は `to_num` を受け付ける。ブラウザが使うか、使えないブロックにするかは #2217 で決める。
+  （`<>` を `( )` に入れる）のために、Lambda は `to_num` を受け付ける。ブラウザは、真偽のブロックを数の所に入れたら `to_num` にする
+  （使えないブロックにはしない。Scratch と同じく真 = 1・偽 = 0）。
 - 変数は C++ では `sr_v0` のように `sr_` を付ける。数値のリテラルは `300.0`・`(-3.0)` の形で書く。
 - 温度は生の値（0〜1023）を返す。摂氏にするブロックを足すかは第 1 弾では決めない
   （摂氏 = ((値 ÷ 1024 × 3.3) − 0.5) ÷ 0.01）。
+
+### ブラウザでの作り方（構文木の生成）
+
+`packages/scratch-gui/src/lib/studuino-ir/` の純粋関数が、ステージと全スプライトのブロック
+（VM の `target.blocks._blocks` の形）とポートの設定（`getStuduinoSettings(runtime)`）から構文木を作る。
+Lambda の検査（`validateIr`）を必ず通る形にし、通らないものはブラウザで先に止める。
+
+- `buildStuduinoIr({ targets, settings })` → `{ ok: true, ir }` か `{ ok: false, errors }`。
+  `errors` の 1 つは `{ blockId, targetId, reason }`（GUI が「そのブロックへ移る」ために使う。上限のときは
+  `detail` と `limit` も付く）。`buildStuduinoIrFromVm(vm, settings)` は VM の元の target（クローンを除く）から作る。
+- `reason` は機械の名前。子ども向けの文言は、使えないブロックの印と書きこみのモーダルで付ける。
+
+| `reason` | いつ |
+|---|---|
+| `no_flag` | 「旗が押されたとき」が 1 つも無い（`blockId` は null） |
+| `too_many_flags` | 旗が 2 つ以上（2 つ目以降のそれぞれ） |
+| `unsupported_block` | 第 1 弾のブロックでない（ほかのハット・見た目・リスト・ブロックを作る・通常モードの部品のブロックなど） |
+| `string_value` | 数の所に数にできない文字がある（S6） |
+| `not_boolean` | 真偽の所に数のブロックがある（Scratch では起きない） |
+| `unknown_variable` | 変数が見つからない・リストの変数 |
+| `port_not_assigned` | 入出力の設定で割り当てていないポート・ポートが空（S5） |
+| `wrong_part` | そのポートに別の部品を割り当てている（S5） |
+| `unknown_port` | ポートの名前を知らない |
+| `unknown_value` | メニューの値を知らない（正転/逆転・ブレーキ/惰性・オン/オフ） |
+| `duplicate_port` | 「2 つを同時に動かす」のサーボが同じポート |
+| `too_large` | 上限をこえた。`detail` は `too_many_nodes` / `too_deep` / `too_many_variables` / `too_many_bytes` |
+
+決まりごと:
+
+- **根は旗 1 つ**（M4）。旗の下だけを書きこむ。
+- **旗の下にないスクリプト**（ほかのハットの下・ばらばらのブロック）は書きこまないが、**検査はする**。
+  その中に使えないブロック・文字の値・割り当てていないポートがあればエラーにする（使えないブロックの印は、
+  どこにあっても同じ理由で付けるため）。使えるブロックだけのばらばらのスクリプトは、エラーにせず無視する
+  （Scratch でも旗では動かないので）。
+- **数の入力**: 影のリテラル（`math_number`・`text` など）は数にする。**空欄（空白だけを含む）は Scratch と同じく 0**。
+  数にできない文字は `string_value`。入力そのものが無いときも 0。
+- **真偽の入力**: 空（`<>` が空）は偽（`{ "bool": false }`）。
+- **メニューの値**: フィールドに直接あっても、影のメニューのブロックにあっても読む（部品のブロックの形にあわせる）。
+  数のメニュー（音の高さなど）の値は数として読む。
+- **変数**: 旗の下で使った変数だけを、はじめて使った順に `v0`, `v1` … にする。ステージの変数と各スプライトの
+  変数は別の ID。**はじめの値はいまの値が数にできればそれ、できなければ 0**（書きこむときの値。文字の値のまま
+  エラーにすると、変数のモニターを直す手段が無いため）。
+- `ports` と `calibration` は設定をそのまま入れる（はじめの値の補正は入れない。Lambda がはじめの値を使う）。
+- **上限**はブラウザでも Lambda と同じ数字で先に止める（`src/lib/studuino-ir/limits.js`。Lambda の値を変えたら
+  ここも変える）。ノードの数と深さは Lambda と同じ数え方。本文の大きさは `{"ir": ...}` の JSON の長さで見る。
 
 ### ポートの定数の表
 
@@ -610,6 +656,8 @@ prod に出す前に回答を待つ必要は無い。
 
 - `packages/scratch-vm/src/extensions/scratch3_smalrubot_s1/studuino-settings.js` — 状態とポートの設定（保存の形・読みこみの直し・`runtime.extensionStorage` の読み書き・イベント `STUDUINO_SETTINGS_CHANGED`）
 - `packages/scratch-vm/src/serialization/sb3.js` / `src/engine/runtime.js` — `extensionStorage` の保存・読みこみ（マーカーつき）
+- `packages/scratch-gui/src/lib/studuino-ir/build-studuino-ir.js` — ブロックから構文木を作る（純粋関数。エラーの理由の一覧）
+- `packages/scratch-gui/src/lib/studuino-ir/limits.js` — 構文木の上限（Lambda と同じ数字）
 - `infra/smalruby-studuino-hex/lambda/ir.ts` / `codegen.ts` — 構文木の検査と C++ の書き出し（Lambda）
 
 参考にする、いまあるファイル:
