@@ -114,3 +114,28 @@ $quiz-wrong: hsla(0, 70%, 42%, 1); /* #B62020 */
     line-height: 1.4;
     overflow-wrap: anywhere;
 }
+
+/* 1 回だけ選べる問い（じゅんびチェック）で、選んだあと */
+.choice[aria-disabled='true'] {
+    cursor: default;
+}
+
+.choice[aria-disabled='true']:hover {
+    border-color: $ui-tertiary;
+}
+
+.choice-correct[aria-disabled='true']:hover {
+    border-color: $quiz-correct;
+}
+
+.choice-wrong[aria-disabled='true']:hover {
+    border-color: $quiz-wrong;
+}
+
+/* 結果の行（右に「次の問いへ」などを置けるように） */
+.result-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}

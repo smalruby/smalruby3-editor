@@ -151,6 +151,13 @@ export const defineChallenge = (def) =>
         // goal の `partQuiz` を満たす（lib/lessons/part-quiz.js・components/lesson-part-quiz/）。クイズのあいだは
         // 画面のクリックをクイズが受ける（下の部品は動かない）・名前の札は出さない
         partQuiz: null,
+        // じゅんびチェック（任意・#2299）: {questions: [{baseChallengeId, blocks, question, choices, answer, explanation}]}。
+        // コースの土台のチャレンジ（コースの `baseChallenges`）1 つに 3 択の問いを 1 つ。問いの上に `blocks`（Ruby。
+        // ヒントの `blocks` と同じ描き方）のブロックの絵を出す。1 回めに選んだものだけを数え、まちがえたらその場で正しい
+        // 答えと解説を出す。全部の問いに答えたら goal の `readinessCheck` を満たす（lib/lessons/readiness.js・
+        // components/lesson-readiness-check/）。ふつうは readinessQuestion(checkId, baseChallengeId, answer, blocks) で書く。
+        // 形は validateReadinessCheck
+        readinessCheck: null,
         // チャレンジの形。null = ふつう、'readDiagram' = 読んで作る（説明とアクティビティ図だけで指示する。
         // 図は必ず出し、ヒントは「図と説明 → 試す → 答えを見る」の 3 ページに置き換える。`steps` は使わない。
         // 「正解のプログラムを確認する」（置き換え）は置かない。lib/lessons/read-diagram.js）
@@ -227,9 +234,10 @@ export const defineLesson = ({
  * @param {string} def.id - コース id。
  * @param {string} def.language - 言語（`LANGUAGES`）。
  * @param {Array<object>} def.lessons - レッスン（並び順。レッスン 0 も入れてよい）。
+ * @param {Array<string>} [def.baseChallenges] - コースの土台のチャレンジ id（じゅんびチェックで聞く・#2299）。
  * @returns {object} コース。
  */
-export const defineCourse = ({ id, language, lessons }) => ({
+export const defineCourse = ({ id, language, lessons, baseChallenges = [] }) => ({
     id,
     language,
     name: message(`gui.lessons.course.${id}.name`),
@@ -239,6 +247,9 @@ export const defineCourse = ({ id, language, lessons }) => ({
     lessons: lessons.filter((lesson) => !lesson.warmup),
     // 数えない、はじめのレッスン（レッスン 0）
     warmupLessons: lessons.filter((lesson) => lesson.warmup),
+    // コースの土台のチャレンジ（#2299）: このコースを始める前にできていてほしいことを教えるチャレンジ id（ほかのコースの
+    // チャレンジでもよい）。じゅんびチェック（レッスン 0 の `readinessCheck`）は、この 1 つに 1 問ずつ聞く
+    baseChallenges: [...baseChallenges],
 });
 
 /**
@@ -295,6 +306,50 @@ export const validateQuiz = (quiz) => {
         errors.push('answer must be 0, 1 or 2 (the index of choices)');
     }
     if (!isMessage(quiz.explanation)) errors.push('explanation must be a message');
+    return errors;
+};
+
+/**
+ * じゅんびチェックの問い 1 つ（#2299）。文言はふりかえりのクイズと同じ形で、チャレンジの中に土台のチャレンジ id で置く:
+ * `gui.lessons.challenge.<checkId>.<baseChallengeId>.question` / `.choice1`〜`3` / `.explanation`（en / ja / ja-Hira）。
+ * @param {string} checkId - じゅんびチェックのチャレンジ id。
+ * @param {string} baseChallengeId - この問いで確かめる土台のチャレンジ id（まちがえたら「おすすめ」にする）。
+ * @param {number} answer - 正解の choices の何番目か（0 から）。
+ * @param {string|object} blocks - 問いの上に描くブロック（Ruby。locale ごとの `{ja, 'ja-Hira', en}` でもよい）。
+ * @returns {{baseChallengeId: string, blocks: (string|object), question: object, choices: Array<object>,
+ *   answer: number, explanation: object}} 問い。
+ */
+export const readinessQuestion = (checkId, baseChallengeId, answer, blocks) => ({
+    baseChallengeId,
+    blocks,
+    question: challengeMessage(checkId, `${baseChallengeId}.question`),
+    choices: Array.from({ length: QUIZ_CHOICE_COUNT }, (_, i) =>
+        challengeMessage(checkId, `${baseChallengeId}.choice${i + 1}`),
+    ),
+    answer,
+    explanation: challengeMessage(checkId, `${baseChallengeId}.explanation`),
+});
+
+/**
+ * じゅんびチェックの形を確かめる（定義の誤りをテストで見つけるため。アプリでは投げない）。問いはふりかえりのクイズと
+ * 同じ形（validateQuiz）に、土台のチャレンジ id とブロックの絵を足したもの。
+ * @param {*} check - チャレンジの `readinessCheck`。
+ * @returns {Array<string>} 誤り（無ければ空）。
+ */
+export const validateReadinessCheck = (check) => {
+    if (!check || typeof check !== 'object' || !Array.isArray(check.questions) || check.questions.length === 0) {
+        return ['readinessCheck.questions must be a non-empty array'];
+    }
+    const errors = [];
+    check.questions.forEach((q, i) => {
+        validateQuiz(q).forEach((e) => errors.push(`readinessCheck.questions[${i}]: ${e}`));
+        if (!q || typeof q.baseChallengeId !== 'string' || q.baseChallengeId === '') {
+            errors.push(`readinessCheck.questions[${i}]: baseChallengeId must be a challenge id`);
+        }
+        if (!q || !q.blocks) errors.push(`readinessCheck.questions[${i}]: blocks must be a Ruby program`);
+    });
+    const ids = check.questions.map((q) => q && q.baseChallengeId);
+    if (new Set(ids).size !== ids.length) errors.push('readinessCheck.questions must ask each base challenge once');
     return errors;
 };
 // ヒントの文言は並びの番号（step1, step2, ...）で引く。`classroom: true` の手順は、クラスに参加中の生徒には
@@ -1209,6 +1264,55 @@ const CHAT_WORDS = {
 };
 const chatCode = (make) =>
     Object.fromEntries(Object.entries(CHAT_WORDS).map(([locale, words]) => [locale, make(words)]));
+
+// レッスン 0「始める前に」（#2299）: じゅんびチェック。「きょうからプログラマー」で覚えた、このコースの土台
+// （コースの `baseChallenges`）を 1 つ 1 問の 3 択で確かめる。まちがえた問いのチャレンジは「おすすめ」になる（やるかは生徒が
+// 決める）。コースの数には入れない（`warmup`）。チャットのコースはシマラビで始めるが、ここの問いは土台のチャレンジと同じ
+// ネコのプログラムで聞く（そのチャレンジをやると同じプログラムを作る）
+const CHAT_READINESS = 'chat-l0-readiness';
+const chatLesson0 = defineLesson({
+    id: 'chat-l0',
+    warmup: true,
+    challenges: [
+        {
+            id: CHAT_READINESS,
+            card: { category: CATEGORIES.SENSING, main: CATEGORIES.SENSING },
+            task: challengeMessage(CHAT_READINESS, 'task'),
+            readinessCheck: {
+                questions: [
+                    // どこでしょう？（画面の場所の名前）: 旗のプログラムを動かすには、緑の旗を押す
+                    readinessQuestion(
+                        CHAT_READINESS,
+                        'blocks-l0-where',
+                        0,
+                        'when_flag_clicked do\n  move(10)\nend\n',
+                    ),
+                    // 聞いて答えよう（入力と「答え」）: 入れたことばが「答え」に入り、「と」でつないで言う
+                    readinessQuestion(CHAT_READINESS, 'blocks-l1-ask-answer', 1, {
+                        ja: 'when_clicked do\n  ask("名前は？")\n  say("こんにちは" + answer, 2)\nend\n',
+                        'ja-Hira': 'when_clicked do\n  ask("なまえは？")\n  say("こんにちは" + answer, 2)\nend\n',
+                        en: 'when_clicked do\n  ask("What\'s your name?")\n  say("Hello " + answer, 2)\nend\n',
+                    }),
+                    // 数えよう（変数）: 旗で 0 にもどし、押すたびに 1 ずつふやして言う（3-1 の答えと同じ）
+                    readinessQuestion(CHAT_READINESS, 'blocks-l1-count', 2, {
+                        ja: 'when_flag_clicked do\n  $回数 = 0\nend\n\nwhen_clicked do\n  $回数 += 1\n  say($回数)\nend\n',
+                        'ja-Hira':
+                            'when_flag_clicked do\n  $かいすう = 0\nend\n\nwhen_clicked do\n  $かいすう += 1\n  say($かいすう)\nend\n',
+                        en: 'when_flag_clicked do\n  $count = 0\nend\n\nwhen_clicked do\n  $count += 1\n  say($count)\nend\n',
+                    }),
+                    // なかまに合図しよう（メッセージ）: 左はネコ、右はペンギンのプログラム（3-2 の答えと同じ。絵はスクリプトごとに横に並べる）
+                    readinessQuestion(CHAT_READINESS, 'blocks-l1-broadcast', 0, {
+                        ja: 'when_clicked do\n  broadcast("あいさつ")\nend\n\nwhen_receive("あいさつ") do\n  say("やあ！", 2)\nend\n',
+                        'ja-Hira':
+                            'when_clicked do\n  broadcast("あいさつ")\nend\n\nwhen_receive("あいさつ") do\n  say("やあ！", 2)\nend\n',
+                        en: 'when_clicked do\n  broadcast("hello")\nend\n\nwhen_receive("hello") do\n  say("Hi!", 2)\nend\n',
+                    }),
+                ],
+            },
+            goal: [{ type: 'readinessCheck', count: 4 }],
+        },
+    ],
+});
 
 const chatLesson1 = defineLesson({
     id: 'chat-l1',
@@ -2979,7 +3083,10 @@ export const COURSES = [
     defineCourse({
         id: 'chat-wo-tsukurou',
         language: LANGUAGES.BLOCKS,
-        lessons: [chatLesson1, chatLesson2, chatLesson3, chatLesson4, chatLesson5],
+        // レッスン 0（じゅんびチェック）は warmup（コースの数に入れない・#2299）
+        lessons: [chatLesson0, chatLesson1, chatLesson2, chatLesson3, chatLesson4, chatLesson5],
+        // じゅんびチェックで聞く土台: どこでしょう？・聞いて答えよう（2-2）・数えよう（3-1）・なかまに合図しよう（3-2）
+        baseChallenges: ['blocks-l0-where', 'blocks-l1-ask-answer', 'blocks-l1-count', 'blocks-l1-broadcast'],
     }),
 ];
 
@@ -3025,6 +3132,19 @@ export const findChallenge = (challengeId, courses = COURSES) => {
             const challenge = lesson.challenges.find((c) => c.id === challengeId);
             if (challenge) return { course, lesson, challenge };
         }
+    }
+    return null;
+};
+
+/**
+ * コースのじゅんびチェック（`readinessCheck` のあるチャレンジ。レッスン 0 に置く・#2299）。
+ * @param {object} course - コース。
+ * @returns {?object} チャレンジ。無いコースは null。
+ */
+export const courseReadinessCheck = (course) => {
+    for (const lesson of courseLessons(course)) {
+        const challenge = lesson.challenges.find((c) => c.readinessCheck);
+        if (challenge) return challenge;
     }
     return null;
 };

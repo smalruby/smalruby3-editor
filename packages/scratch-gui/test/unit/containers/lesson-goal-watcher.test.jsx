@@ -38,6 +38,14 @@ jest.mock('../../../src/lib/lessons/courses.js', () => {
                 goal: [{ type: 'partQuiz', count: 1 }],
             },
             makeChallenge('drag-challenge', 'Drag'),
+            // じゅんびチェック（#2299）: 土台は drag-challenge と test-challenge
+            {
+                id: 'check-challenge',
+                name: { id: 'gui.lessons.challenge.check-challenge.name', defaultMessage: 'Check' },
+                readinessCheck: { questions: [] },
+                goal: [{ type: 'readinessCheck', count: 2 }],
+                number: 3,
+            },
         ],
     };
     const course = {
@@ -46,6 +54,7 @@ jest.mock('../../../src/lib/lessons/courses.js', () => {
         name: { id: 'gui.lessons.course.c.name', defaultMessage: 'Starter course' },
         lessons: [lesson],
         warmupLessons: [warmup],
+        baseChallenges: ['drag-challenge', 'test-challenge'],
     };
     return {
         COURSES: [course],
@@ -280,6 +289,58 @@ describe('LessonGoalWatcher', () => {
             justCompletedId: 'test-challenge',
         });
         expect(without.queryByTestId('lesson-quiz')).toBeNull();
+    });
+
+    describe('the readiness check result (#2299)', () => {
+        const checkDone = { version: 1, challenges: { 'check-challenge': { ...doneRecord, lessonId: 'w' } } };
+        const answers = (a, b) => ({
+            version: 1,
+            courses: {
+                c: {
+                    answers: {
+                        'drag-challenge': { correct: a, answeredAt: '2026-11-21T00:00:00.000Z' },
+                        'test-challenge': { correct: b, answeredAt: '2026-11-21T00:00:00.000Z' },
+                    },
+                },
+            },
+            offered: {},
+        });
+        const checkWatcher = (props) =>
+            renderWatcher({
+                vm: makeVm(),
+                challengeId: 'check-challenge',
+                justCompletedId: 'check-challenge',
+                justCompletedNew: true,
+                progress: checkDone,
+                ...props,
+            });
+
+        test('all right shows "Ready to go!"', () => {
+            const { getByTestId } = checkWatcher({ readiness: answers(true, true) });
+            expect(getByTestId('lesson-readiness-result')).toHaveAttribute('data-all-correct', 'true');
+        });
+
+        test('a miss recommends the challenge and opens it', () => {
+            const onDismiss = jest.fn();
+            const onSkipLesson = jest.fn();
+            const { getAllByTestId } = checkWatcher({ readiness: answers(true, false), onDismiss, onSkipLesson });
+            const buttons = getAllByTestId('lesson-readiness-recommended');
+            expect(buttons.map((b) => b.dataset.challengeId)).toEqual(['test-challenge']);
+            fireEvent.click(buttons[0]);
+            expect(onDismiss).toHaveBeenCalled();
+            expect(onSkipLesson).toHaveBeenCalledWith('test-challenge', false);
+        });
+
+        test('other challenges show no readiness result', () => {
+            const { queryByTestId } = renderWatcher({
+                vm: makeVm(),
+                challengeId: 'drag-challenge',
+                justCompletedId: 'drag-challenge',
+                progress: checkDone,
+                readiness: answers(false, false),
+            });
+            expect(queryByTestId('lesson-readiness-result')).not.toBeInTheDocument();
+        });
     });
 
     describe('the lesson skip after a perfect "where is it?" quiz', () => {

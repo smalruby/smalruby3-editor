@@ -422,3 +422,22 @@ describe('LessonsLibrary', () => {
         expect(getByTestId('lessons-library-challenge-blocks-l1-count')).toBeVisible();
     });
 });
+
+// じゅんびチェックの「おすすめ」（#2299）
+describe('LessonsLibrary: recommended mark of the readiness check (#2299)', () => {
+    test('marks the cards of the recommended challenges only', () => {
+        const { getByTestId, getAllByTestId } = renderLibrary({ recommendedChallengeIds: ['blocks-l1-ask-answer'] });
+        const card = getByTestId('lessons-library-challenge-blocks-l1-ask-answer');
+        expect(card).toHaveAttribute('data-recommended', 'true');
+        expect(card.querySelector('[data-testid="lessons-library-challenge-recommended"]')).toHaveTextContent(
+            'Recommended',
+        );
+        expect(getAllByTestId('lessons-library-challenge-recommended')).toHaveLength(1);
+        expect(getByTestId('lessons-library-challenge-blocks-l1-count')).toHaveAttribute('data-recommended', 'false');
+    });
+
+    test('shows no mark without recommendations', () => {
+        const { queryByTestId } = renderLibrary();
+        expect(queryByTestId('lessons-library-challenge-recommended')).not.toBeInTheDocument();
+    });
+});

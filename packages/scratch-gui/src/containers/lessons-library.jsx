@@ -24,6 +24,7 @@ import {
 } from '../lib/lessons/assignment-progress';
 import { COURSES, findCourse } from '../lib/lessons/courses';
 import { lessonsLibraryFocus, startLessonsFocus } from '../lib/lessons/lesson-progress';
+import { recommendedChallengeIds } from '../lib/lessons/readiness';
 import { requestStudentSubmit, selectStudentLesson } from '../reducers/classroom';
 import { clearLessonsLibraryFocus, reloadProgress, startChallenge } from '../reducers/lesson-mode';
 import { closeLessonsLibrary } from '../reducers/modals';
@@ -39,6 +40,7 @@ const LessonsLibrary = ({
     onStartChallenge,
     onSubmitAssignment,
     progress,
+    readiness = null,
     startFocus = false,
     submitted = false,
     visible,
@@ -57,6 +59,8 @@ const LessonsLibrary = ({
     }, [restricted, lesson, focusChallengeId, startFocus, progress]);
     const status = useMemo(() => assignmentProgress(lesson, progress), [lesson, progress]);
     const courses = useMemo(() => (restricted ? [assignmentCourse] : COURSES), [restricted, assignmentCourse]);
+    // じゅんびチェックで「おすすめ」になったチャレンジ（カードに「おすすめ」の印・#2299）
+    const recommendedIds = useMemo(() => (readiness ? recommendedChallengeIds(readiness) : []), [readiness]);
 
     const handleSelectChallenge = useCallback(
         (challengeId) => {
@@ -91,6 +95,7 @@ const LessonsLibrary = ({
             colorMode={colorMode}
             courses={courses}
             progress={progress}
+            recommendedChallengeIds={recommendedIds}
             requiredChallengeIds={lesson ? lesson.requiredChallengeIds : []}
             {...(focus ? { initialLanguage: focus.language } : {})}
             focusLessonId={focus ? focus.lessonId : null}
@@ -123,6 +128,8 @@ LessonsLibrary.propTypes = {
     onStartChallenge: PropTypes.func.isRequired,
     onSubmitAssignment: PropTypes.func.isRequired,
     progress: PropTypes.shape({ challenges: PropTypes.object.isRequired }).isRequired,
+    // じゅんびチェックの記録（lib/lessons/readiness.js）
+    readiness: PropTypes.shape({ courses: PropTypes.object }),
     // ウェルカムの「レッスンを始める」で開いたか（記録から次にやるチャレンジを目立たせる）
     startFocus: PropTypes.bool,
     // 作品をもう提出したか（帯の提出の案内はクラスの画面と同じく、はじめて提出するまで）
@@ -138,6 +145,7 @@ const mapStateToProps = (state) => ({
     colorMode: state.scratchGui.settings.colorMode,
     focusChallengeId: state.scratchGui.lessonMode.libraryFocusChallengeId,
     progress: state.scratchGui.lessonMode.progress,
+    readiness: state.scratchGui.lessonMode.readiness || null,
     startFocus: Boolean(state.scratchGui.lessonMode.libraryStartFocus),
     visible: state.scratchGui.modals.lessonsLibrary,
 });
