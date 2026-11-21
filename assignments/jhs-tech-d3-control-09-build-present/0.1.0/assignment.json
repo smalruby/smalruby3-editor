@@ -1,0 +1,50 @@
+{
+    "schemaVersion": 1,
+    "id": "jhs-tech-d3-control-09-build-present",
+    "version": "0.1.0",
+    "series": "jhs-tech-d3-control",
+    "number": 9,
+    "title": "作ろう（制作とデバッグ 2・発表の準備）",
+    "goal": "制作とデバッグを続けてシステムを仕上げ（とちゅうでもよい）、できたところ・できなかったところを記録して、発表の準備をする。",
+    "schoolType": "jhs",
+    "subject": "技術・家庭科〈技術分野〉",
+    "curriculum": "D(3) 計測・制御のプログラミングによる問題解決",
+    "grade": 3,
+    "hours": 1,
+    "starter": null,
+    "license": "CC0-1.0",
+    "worksheetPages": [
+        10
+    ],
+    "lessons": [
+        {
+            "course": "jidou-sensor-motor",
+            "lessons": [
+                "ctrl-l5"
+            ],
+            "challenges": [
+                "ctrl-l5-hallway",
+                "ctrl-l5-fridge",
+                "ctrl-l5-trash-can",
+                "ctrl-l5-slow-car",
+                "ctrl-l5-doorbell"
+            ]
+        }
+    ],
+    "submit": {
+        "project": "06_◯◯システム",
+        "worksheet": true
+    },
+    "files": [
+        {
+            "file": "worksheet.pdf",
+            "kind": "worksheet",
+            "audience": "student"
+        },
+        {
+            "file": "worksheet-teacher.pdf",
+            "kind": "worksheet",
+            "audience": "teacher"
+        }
+    ]
+}

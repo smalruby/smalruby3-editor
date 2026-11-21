@@ -1,0 +1,50 @@
+{
+    "schemaVersion": 1,
+    "id": "jhs-tech-d3-control-08-build",
+    "version": "0.1.0",
+    "series": "jhs-tech-d3-control",
+    "number": 8,
+    "title": "作ろう（制作とデバッグ 1）",
+    "goal": "制作工程表のとおりに作り、思ったとおりに動かないところを見つけて直す（デバッグ）。次の時間にやることを書く。",
+    "schoolType": "jhs",
+    "subject": "技術・家庭科〈技術分野〉",
+    "curriculum": "D(3) 計測・制御のプログラミングによる問題解決",
+    "grade": 3,
+    "hours": 1,
+    "starter": null,
+    "license": "CC0-1.0",
+    "worksheetPages": [
+        10
+    ],
+    "lessons": [
+        {
+            "course": "jidou-sensor-motor",
+            "lessons": [
+                "ctrl-l5"
+            ],
+            "challenges": [
+                "ctrl-l5-hallway",
+                "ctrl-l5-fridge",
+                "ctrl-l5-trash-can",
+                "ctrl-l5-slow-car",
+                "ctrl-l5-doorbell"
+            ]
+        }
+    ],
+    "submit": {
+        "project": "06_◯◯システム",
+        "worksheet": true
+    },
+    "files": [
+        {
+            "file": "worksheet.pdf",
+            "kind": "worksheet",
+            "audience": "student"
+        },
+        {
+            "file": "worksheet-teacher.pdf",
+            "kind": "worksheet",
+            "audience": "teacher"
+        }
+    ]
+}

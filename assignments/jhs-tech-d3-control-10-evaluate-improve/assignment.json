@@ -1,0 +1,37 @@
+{
+    "schemaVersion": 1,
+    "id": "jhs-tech-d3-control-10-evaluate-improve",
+    "version": "0.1.0",
+    "series": "jhs-tech-d3-control",
+    "number": 10,
+    "title": "発表・評価・改善とまとめ",
+    "goal": "作ったシステムを動かして見せ、おたがいに評価し、評価をもとに改善して、単元をふりかえる。",
+    "schoolType": "jhs",
+    "subject": "技術・家庭科〈技術分野〉",
+    "curriculum": "D(3) 計測・制御のプログラミングによる問題解決",
+    "grade": 3,
+    "hours": 1,
+    "starter": null,
+    "license": "CC0-1.0",
+    "worksheetPages": [
+        11,
+        12
+    ],
+    "lessons": [],
+    "submit": {
+        "project": "06_◯◯システム",
+        "worksheet": true
+    },
+    "files": [
+        {
+            "file": "worksheet.pdf",
+            "kind": "worksheet",
+            "audience": "student"
+        },
+        {
+            "file": "worksheet-teacher.pdf",
+            "kind": "worksheet",
+            "audience": "teacher"
+        }
+    ]
+}

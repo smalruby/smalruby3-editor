@@ -1,0 +1,49 @@
+{
+    "schemaVersion": 1,
+    "id": "jhs-tech-d3-control-04-motor",
+    "version": "0.1.0",
+    "series": "jhs-tech-d3-control",
+    "number": 4,
+    "title": "モーターでスイッチを動かそう",
+    "goal": "DC モーターとサーボモーターを動かし、本物のスイッチを押せるか試して、力（トルク）の不足を工夫で解決する方法を考える。",
+    "schoolType": "jhs",
+    "subject": "技術・家庭科〈技術分野〉",
+    "curriculum": "D(3) 計測・制御のプログラミングによる問題解決",
+    "grade": 3,
+    "hours": 1,
+    "starter": null,
+    "license": "CC0-1.0",
+    "worksheetPages": [
+        6
+    ],
+    "lessons": [
+        {
+            "course": "jidou-sensor-motor",
+            "lessons": [
+                "ctrl-l3"
+            ],
+            "challenges": [
+                "ctrl-l3-dc-motor",
+                "ctrl-l3-servo",
+                "ctrl-l3-auto-switch",
+                "ctrl-l3-bumper-car"
+            ]
+        }
+    ],
+    "submit": {
+        "project": "04_モーター",
+        "worksheet": true
+    },
+    "files": [
+        {
+            "file": "worksheet.pdf",
+            "kind": "worksheet",
+            "audience": "student"
+        },
+        {
+            "file": "worksheet-teacher.pdf",
+            "kind": "worksheet",
+            "audience": "teacher"
+        }
+    ]
+}
