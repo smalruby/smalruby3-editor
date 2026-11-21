@@ -258,8 +258,9 @@ registerSendTable(converter, MOTION_SENDS);
 | microbit     | 8      | `microbit_v1`（Ruby の式のレシーバーを作る）、`display`（5 つの文字列を 1 つの模様にする）、`when_pin_connected`（0〜2 の数だけ）、v1 の `self.when(:microbit_*, ...)`（シンボルでハットを選ぶ） |
 | ev3          | 18     | `ev3`（Ruby の式のレシーバーを作る）、`when_button_pressed`（ブロックの引数をメニューに入れない形を残す）、v1 の `self.when(:ev3_*, ...)`（シンボルでハットを選ぶ）                              |
 | gdx_for      | 15     | `gdx_for`（Ruby の式のレシーバーを作る）、v1 の `self.when(:gdx_for_*, ...)`（シンボルでハットを選ぶ）                                                                                           |
+| tm2scratch   | 17     | `tm`（Ruby の式のレシーバーを作る）                                                                                                                                                              |
 
-拡張機能は pen・music・text2speech・translate・video・boost・wedo2・face_sensing・makeymakey・microbit・ev3・gdx_for を移した。残り（micro:bit More・g2s・koshien・mesh など）は、同じ形（`changesReceiver` と `menus`）で 1 つずつ移す。
+拡張機能は pen・music・text2speech・translate・video・boost・wedo2・face_sensing・makeymakey・microbit・ev3・gdx_for・tm2scratch を移した。残り（micro:bit More・g2s・koshien・mesh など）は、同じ形（`changesReceiver` と `menus`）で 1 つずつ移す。
 
 ### 表の列
 

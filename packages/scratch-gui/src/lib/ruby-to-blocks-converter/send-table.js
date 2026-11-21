@@ -84,6 +84,7 @@ const menuArg = (
  * @param {?Array<string>} [options.choices] - The strings that the menu takes, or null for any.
  * @param {?Function} [options.validate] - As of `menuArg`.
  * @param {boolean} [options.anyBlock] - Takes any block, not only a value block.
+ * @param {boolean} [options.stringOnly] - Takes only a string, not a block (the hats of TM2Scratch).
  * @param {?Function} [options.normalize] - Makes the value of the menu from a string (`'alto'` →
  *     `'ALTO'`); the choices are of the made values, and the menu gets the made value.
  * @returns {object} The argument of a row.
@@ -93,7 +94,7 @@ const menuInputArg = (
     menuOpcode,
     field,
     defaultValue,
-    { choices = null, validate = null, anyBlock = false, normalize = null } = {},
+    { choices = null, validate = null, anyBlock = false, stringOnly = false, normalize = null } = {},
 ) => ({
     kind: 'menuInput',
     input,
@@ -103,6 +104,7 @@ const menuInputArg = (
     choices,
     validate,
     anyBlock,
+    stringOnly,
     normalize,
 });
 
@@ -184,7 +186,9 @@ const acceptsArg = (converter, spec, arg) => {
         case 'note':
             return converter._isNumberOrBlock(arg);
         case 'menuInput':
-            if (spec.anyBlock ? converter._isBlock(arg) : converter._isValueBlock(arg)) return true;
+            if (!spec.stringOnly && (spec.anyBlock ? converter._isBlock(arg) : converter._isValueBlock(arg))) {
+                return true;
+            }
             return converter._isString(arg) && (!spec.choices || spec.choices.indexOf(fieldValueOf(spec, arg)) >= 0);
         case 'color':
             return converter._isColorOrBlock(arg);
