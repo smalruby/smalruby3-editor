@@ -237,6 +237,23 @@ export const findHintTargetRect = (target, doc) => {
 const firstVisible = (doc, selector) =>
     Array.from(doc.querySelectorAll(selector)).find((el) => isVisibleRect(el.getBoundingClientRect())) || null;
 
+/**
+ * 指す場所の DOM の要素（候補のうち、最初に見えたもの）。名前の札を押したときに、その部分を押すのに使う
+ * （part-names.js）。矩形を合わせる場所（`union`）は 1 つの要素にならないので null。
+ * @param {string} target - 指す場所（`HINT_TARGETS`）。
+ * @param {Document} doc - 探す document。
+ * @returns {?Element} 見つかった要素。無ければ null。
+ */
+export const findHintTargetElement = (target, doc) => {
+    const spec = TARGET_SPECS[target];
+    if (!spec || spec.union || !doc) return null;
+    for (const selector of spec.selectors) {
+        const found = firstVisible(doc, selector);
+        if (found) return found;
+    }
+    return null;
+};
+
 // 矩形が見えている範囲（パレット・スクリプトエリア）の中にあるか。パレットのブロックは上下に全部入っていること
 // （半分見えているブロックは押しにくい）、スクリプトエリアのブロックは真ん中が入っていること
 const insideVertically = (r, clip) => r.top >= clip.top - 1 && r.bottom <= clip.bottom + 1;
