@@ -24,12 +24,14 @@ import {
     validateGoal,
 } from '../../../../src/lib/lessons/goal';
 import { HINT_TARGETS } from '../../../../src/lib/lessons/hint-targets';
+import { isReadDiagram } from '../../../../src/lib/lessons/read-diagram';
 import en from '../../../../src/locales/en';
 import ja from '../../../../src/locales/ja';
 import jaHira from '../../../../src/locales/ja-Hira';
 
 const COURSE_ID = 'jidou-sensor-motor';
 const L1 = ['ctrl-l1-measure', 'ctrl-l1-blink', 'ctrl-l1-touch-led', 'ctrl-l1-threshold'];
+const L2 = ['ctrl-l2-auto-light', 'ctrl-l2-near-light', 'ctrl-l2-read-diagram'];
 const challenge = (id) => findChallenge(id).challenge;
 const ext = (name) => `smalrubotS1_${name}`;
 
@@ -57,8 +59,8 @@ describe('control course "自動でセンサーとモーターでうごかそう
         expect(COURSES[2]).toBe(course);
         expect(course.language).toBe(LANGUAGES.BLOCKS);
         expect(ja[course.name.id]).toBe('自動でセンサーとモーターでうごかそう');
-        expect(course.lessons.map((l) => l.id)).toEqual(['ctrl-l1']);
-        expect(courseSize(course)).toEqual({ lessonCount: 1, challengeCount: 4 });
+        expect(course.lessons.map((l) => l.id)).toEqual(['ctrl-l1', 'ctrl-l2']);
+        expect(courseSize(course)).toEqual({ lessonCount: 2, challengeCount: 7 });
     });
 
     test('every message of the course is in en / ja / ja-Hira, and ja-Hira has no kanji', () => {
@@ -254,5 +256,98 @@ describe('control course lesson 1 "センサーと LED をためそう" (#2170)'
             ['くらい', 'dark'].forEach((text) => expect(c.goal[1].text.test(text)).toBe(true));
             ['あかるい', 'bright'].forEach((text) => expect(c.goal[2].text.test(text)).toBe(true));
         });
+    });
+});
+
+describe('control course lesson 2 "自動で動かそう" (#2171)', () => {
+    test('has the 3 challenges in order, all with the extension loaded and the diagram', () => {
+        const lesson = findLesson('ctrl-l2');
+        expect(ja[lesson.name.id]).toBe('自動で動かそう');
+        expect(lesson.challenges.map((c) => `${c.number} ${c.id}`)).toEqual(L2.map((id, i) => `${i + 1} ${id}`));
+        L2.map(challenge).forEach((c) => {
+            expect({ id: c.id, setup: c.setup }).toEqual({ id: c.id, setup: { extensions: ['smalrubotS1'] } });
+            expect({ id: c.id, errors: validateGoal(c.goal) }).toEqual({ id: c.id, errors: [] });
+            expect({ id: c.id, errors: validateQuiz(c.quiz) }).toEqual({ id: c.id, errors: [] });
+        });
+        expect(isReadDiagram(challenge('ctrl-l2-read-diagram'))).toBe(true);
+        expect(challenge('ctrl-l2-read-diagram').steps.map((s) => s.kind)).toEqual(['read', 'try', 'answer']);
+        expect(L2.map((id) => ja[challenge(id).quiz.choices[challenge(id).quiz.answer].id])).toEqual([
+            '1 回はかるだけで、あとは変わらない',
+            '何を計測したいか',
+            '「〜かつ〜」',
+        ]);
+    });
+
+    test('the palettes are the spec', () => {
+        expect(allowedOpcodes(challenge('ctrl-l2-auto-light'))).toEqual({
+            event: ['event_whenflagclicked'],
+            control: ['control_forever', 'control_if_else'],
+            operators: ['operator_lt'],
+            data: ['data_setvariableto', 'data_variable'],
+            smalrubotS1: [ext('getSensorValue'), ext('turnLedOn'), ext('turnLedOff')],
+        });
+        expect(allowedOpcodes(challenge('ctrl-l2-near-light')).operators).toEqual(['operator_gt']);
+        expect(allowedOpcodes(challenge('ctrl-l2-read-diagram')).operators).toEqual([
+            'operator_and',
+            'operator_lt',
+            'operator_equals',
+        ]);
+    });
+
+    const autoRun = (facts, extra = []) =>
+        flagRun(facts, [
+            ['control_forever'],
+            [ext('getSensorValue'), { POSITION: 'light' }],
+            ['data_setvariableto', { VARIABLE: 'あかるさ', VALUE: 100 }],
+            ['control_if_else'],
+            ...extra,
+        ]);
+
+    test('2-1: on when dark and off when bright, whatever border value the student chose', () => {
+        const c = challenge('ctrl-l2-auto-light');
+        const facts = createFacts();
+        autoRun(facts);
+        // さかい目を 300 にした生徒: 100 でつけ、800 で消した
+        board(facts, [read(100), led('on'), read(800), led('off')]);
+        expect(satisfied(c, facts)).toBe(true);
+        // 逆（明るいときにつけた）は通らない
+        const wrong = createFacts();
+        autoRun(wrong);
+        board(wrong, [read(100), led('off'), read(800), led('on')]);
+        expect(satisfied(c, wrong)).toBe(false);
+        // 命令だけを順に出すプログラム（分岐が無い）は通らない
+        const noBranch = createFacts();
+        flagRun(noBranch, [['control_forever'], [ext('getSensorValue'), { POSITION: 'light' }]]);
+        board(noBranch, [read(100), led('on'), read(800), led('off')]);
+        expect(satisfied(c, noBranch)).toBe(false);
+    });
+
+    test('2-2: on when near (a large value) and off when far, with any sensor', () => {
+        const c = challenge('ctrl-l2-near-light');
+        const facts = createFacts();
+        flagRun(facts, [['control_forever'], ['control_if_else'], [ext('getSensorValue'), { POSITION: 'ir_a4' }]]);
+        board(facts, [
+            read(50, 'A4', 'irPhotoreflector'),
+            led('off'),
+            read(900, 'A4', 'irPhotoreflector'),
+            led('on'),
+        ]);
+        expect(satisfied(c, facts)).toBe(true);
+    });
+
+    test('2-3: two sensors read with "and"; on when both are small, off when it is bright', () => {
+        const c = challenge('ctrl-l2-read-diagram');
+        const facts = createFacts();
+        flagRun(facts, [
+            ['control_forever'],
+            ['control_if_else'],
+            ['operator_and'],
+            [ext('getSensorValue'), { POSITION: 'light' }],
+            [ext('getSensorValue'), { POSITION: 'touch' }],
+        ]);
+        board(facts, [read(100), read(0, 'A2', 'touch'), led('on')]);
+        expect(satisfied(c, facts)).toBe(false);
+        board(facts, [read(900), read(0, 'A2', 'touch'), led('off')]);
+        expect(satisfied(c, facts)).toBe(true);
     });
 });
