@@ -5,6 +5,7 @@ import ControlConverter from '../../../../src/lib/ruby-to-blocks-converter/contr
 import EV3Converter from '../../../../src/lib/ruby-to-blocks-converter/ev3';
 import EventConverter from '../../../../src/lib/ruby-to-blocks-converter/event';
 import FaceSensingConverter from '../../../../src/lib/ruby-to-blocks-converter/face_sensing';
+import GdxForConverter from '../../../../src/lib/ruby-to-blocks-converter/gdx_for';
 import LooksConverter from '../../../../src/lib/ruby-to-blocks-converter/looks';
 import MakeyMakeyConverter from '../../../../src/lib/ruby-to-blocks-converter/makeymakey';
 import MicroBitConverter from '../../../../src/lib/ruby-to-blocks-converter/microbit';
@@ -61,6 +62,7 @@ describe('RubyToBlocksConverter/send table', () => {
         makeymakey: MakeyMakeyConverter,
         microbit: MicroBitConverter,
         ev3: EV3Converter,
+        gdxFor: GdxForConverter,
     };
 
     test.each(Object.keys(tables))('every opcode of the %s table has a generator', (area) => {
