@@ -745,7 +745,7 @@ say(mesh.message_value)
 
 **気をつけること（見つけた不具合）**: テキストの入力に数を入れるときは、数字の文字列にしてから入れる。`_addTextInput` に数をそのまま渡すと、入力が空のままになり、数が黙って消える。いま `translate.call(1, "ja")`（翻訳の言葉が数）がこの形で、ブロックに言葉が入らない（`ruby-roundtrip/translate-table.test.js` はいまの出力を固定している。直すときはこの行を直す）。
 
-**気をつけること（見つけた不具合）**: 値のブロック（reporter）の生成器は `[コード, Generator.ORDER_xxx]` を返す（文の生成器のように `` `...\n` `` の文字列を返さない）。LEGO BOOST の `boost_getMotorPosition` / `boost_seeingColor` / `boost_getTiltAngle` と WeDo 2.0 の `wedo2_isTilted` と micro:bit の `microbit_isButtonPressed` は文字列を返しているので、`say(...)` などの値の場所に入れると Ruby が壊れる（`say(b)`）。`ruby-roundtrip/boost-table.test.js`・`wedo2-table.test.js`・`microbit-table.test.js` は該当の行を `only: 'toBlocks'` にしている（直すときは外す）。
+**気をつけること（見つけた不具合）**: 値のブロック（reporter）の生成器は `[コード, Generator.ORDER_xxx]` を返す（文の生成器のように `` `...\n` `` の文字列を返さない）。LEGO BOOST の `boost_getMotorPosition` / `boost_seeingColor` / `boost_getTiltAngle` と WeDo 2.0 の `wedo2_isTilted` と micro:bit の `microbit_isButtonPressed` と micro:bit More の `microbitMore_getPinEventValue`（`microbit.value_of(...)`）は文字列を返しているので、`say(...)` などの値の場所に入れると Ruby が壊れる（`say(b)`）。`ruby-roundtrip/boost-table.test.js`・`wedo2-table.test.js`・`microbit-table.test.js` は該当の行を `only: 'toBlocks'` にしている（直すときは外す）。
 
 **気をつけること（見つけた不具合）**: EV3 の `ev3.when_button_pressed(...)` の変換器は、引数にブロックを受け付けるのに、そのブロックをメニューに入れず（どこにもつながらないブロックが残る）、ポートを `"-1"` にする（`toString()` で探すため）。また、変換のたびに `console.log` を出す。表には移さず、元の handler のまま残している。
 
