@@ -160,7 +160,7 @@ Studuino の拡張機能そのもの（通常モード。パソコンにつな�
 | A4 / A5 | 光センサー・音センサー・赤外線フォトリフレクタ・温度センサー・タッチセンサー・LED・ブザー（ボタンは選べない） |
 | A6 / A7 | 光センサー・音センサー・赤外線フォトリフレクタ・温度センサー（アナログ入力専用のピン） |
 
-- どのポートも「つながない」（未選択）を選べる。はじめは全部未選択。
+- どのポートも「つながない」（未選択）を選べる。はじめはロボットカーの配線（下の「保存の形」）。
 - A0〜A3 は基板の十字ボタンとつながっているので「ボタン」が選べる。
 - 部品の内部の名前（構文木・保存・Ruby で使う）:
 
@@ -206,13 +206,13 @@ Studuino の拡張機能そのもの（通常モード。パソコンにつな�
   "targets": [ ... ],
   "meta": { ... },
   "extensionStorage": {
-    "studuino": {
+    "smalrubotS1": {
       "version": 1,
       "mode": "studuino",
-      "ports": { "M1": "dc_motor", "D9": "servo_motor", "A0": "led", "A6": "light_sensor" },
+      "ports": { "D9": "servo_motor", "M1": "dc_motor", "A0": "led", "A6": "light_sensor" },
       "calibration": {
-        "dcMotor": { "M1": 100, "M2": 100 },
-        "servoMotor": { "D9": 0 }
+        "dcMotor": { "M2": 90 },
+        "servoMotor": { "D9": -5 }
       }
     }
   }
@@ -220,12 +220,16 @@ Studuino の拡張機能そのもの（通常モード。パソコンにつな�
 ```
 
 - 置き場所はトップレベル（ステージの target ではない）。Studuino の設定は作品に 1 つだけなので。
-- キー（`studuino`）は案。実装（#2212）で拡張機能の ID に合わせて決める（「人間・実装で決めること」）。
+- キーは拡張機能の ID（`smalrubotS1`）。TurboWarp の `extensionStorage` も拡張機能の ID をキーにする。
+- **既定の設定（通常モード・ロボットカーの配線・補正なし）と同じなら書かない**。通常の作品の project.json は変わらない。
+  ロボットカーの配線: M1・M2 = DC モーター、D10 = サーボモーター、A0・A1 = LED、A2 = タッチセンサー、
+  A4・A5 = 赤外線フォトリフレクタ、A6 = 光センサー、A7 = 音センサー。
 - `mode`: `"studuino"` なら Studuino モードの作品。読みこんだらそのモードで開く。キーが無い・`mode` が
   ほかの値なら通常モード。
-- `ports`: 割り当てたポートだけを書く（未選択のポートは書かない）。値は上の「部品の内部の名前」。
-- `calibration`: はじめの値（DC モーター 100・サーボ 0）のものは省いてよい。
-- `version`: 形を変えるときに上げる。知らない `version` は読みこめるところだけ読み、通常モードで開いて知らせる（案）。
+- `ports`: 割り当てたポートだけを、ポートの表の順（D2〜D12・M1・M2・A0〜A7）に書く。値は上の「部品の内部の名前」。
+  `ports` が無いときはロボットカーの配線、`{}` なら「どこにもつながない」。知らないポート・ポートに合わない部品は読むときに捨てる。
+- `calibration`: はじめの値（DC モーター 100・サーボ 0）のものは書かない。範囲の外の値は読むときに範囲に収める（整数に丸める）。
+- `version`: 形を変えるときに上げる。知らない `version` は読めるところだけ読み、通常モードで開く（GUI が知らせる）。
 - 書く場所は upstream のファイル（scratch-vm の `serialization/sb3.js`）。**マーカーつきで小さく足す**
   （`docs/maintenance/smalruby-markers-vm.md` に載せる）。
 - 本家の Scratch は知らないキーを無視して読む（保存し直すと消える）。
@@ -354,22 +358,22 @@ end
 
 | op | フィールド | C++ |
 |---|---|---|
-| `wait` | `secs` | `board.Timer(E(secs));` |
-| `repeat` | `times`, `body` | `for (long i = 0, n = sr_round(E(times)); i < n; i++) { body }` |
+| `wait` | `secs` | `board.Timer((float)sr_clamp(E(secs), 0.0, 1000000.0));`（0 未満は 0） |
+| `repeat` | `times`, `body` | `for (long sr_i0 = 0, sr_n0 = (long)sr_round(E(times)); sr_i0 < sr_n0; sr_i0++) { body }`（入れ子ごとに番号を進める） |
 | `forever` | `body` | `for (;;) { body }` |
 | `if` | `cond`, `then`, `else`（省略可） | `if (E(cond)) { then } else { else }` |
 | `wait_until` | `cond` | `while (!E(cond)) { }` |
 | `repeat_until` | `cond`, `body` | `while (!E(cond)) { body }` |
-| `set` | `var`, `value` | `v0 = E(value);` |
-| `change` | `var`, `by` | `v0 += E(by);` |
+| `set` | `var`, `value` | `sr_v0 = E(value);` |
+| `change` | `var`, `by` | `sr_v0 += E(by);` |
 | `timer_reset` | — | `sr_timer_start = millis();` |
-| `dc_motor_speed` | `port`, `speed` | `board.DCMotorPower(P(port), sr_clamp(E(speed), 0, 255));` |
+| `dc_motor_speed` | `port`, `speed` | `board.DCMotorPower(P(port), (byte)sr_round(sr_clamp(E(speed), 0.0, 255.0)));` |
 | `dc_motor_dir` | `port`, `dir`（`normal` / `reverse`） | `board.DCMotorControl(P(port), NORMAL);` / `REVERSE` |
 | `dc_motor_stop` | `port`, `mode`（`brake` / `coast`） | `board.DCMotorControl(P(port), BRAKE);` / `COAST` |
-| `servo` | `port`, `angle` | `board.Servomotor(P(port), sr_clamp(E(angle), 0, 180));` |
-| `servo_multi` | `items: [{port, angle}]`, `msPerDegree`（省略可） | `board.AsyncServomotors(ports, degrees, n);`（`msPerDegree` があれば `SyncServomotors`。3 以上） |
+| `servo` | `port`, `angle` | `board.Servomotor(P(port), (byte)sr_round(sr_clamp(E(angle), 0.0, 180.0)));` |
+| `servo_multi` | `items: [{port, angle}]`（1〜8 個・ポートは重ならない）, `msPerDegree`（省略可） | `board.AsyncServomotors(ports, degrees, n);`（`msPerDegree` があれば `SyncServomotors`。3〜255 の整数） |
 | `led` | `port`, `on` | `board.LED(P(port), ON);` / `OFF` |
-| `buzzer_on` | `port`, `pitch` | `board.BuzzerControl(P(port), ON, sr_clamp(E(pitch), 130, 4186));` |
+| `buzzer_on` | `port`, `pitch` | `board.BuzzerControl(P(port), ON, (word)sr_round(sr_clamp(E(pitch), 130.0, 4186.0)));` |
 | `buzzer_off` | `port` | `board.BuzzerControl(P(port), OFF, 0);` |
 
 ### 式の op と C++ の書き出し
@@ -383,13 +387,15 @@ end
 | `<` `>` `=` | `a`, `b` | 真偽 | `(E(a) < E(b))` など |
 | `and` `or` | `a`, `b` | 真偽 | `(E(a) && E(b))` / `(E(a) \|\| E(b))` |
 | `not` | `a` | 真偽 | `(!E(a))` |
-| `sensor` | `kind`, `port` | 数値 | `light_sensor` → `board.GetLightSensorValue(P(port))`、`sound_sensor` → `GetSoundSensorValue`、`ir_photoreflector` → `GetIRPhotoreflectorValue`、`temperature_sensor` → `GetTemperatureSensorValue`（どれも 0〜1023） |
+| `to_num` | `a`（真偽） | 数値 | `(E(a) ? 1.0 : 0.0)`（真偽のブロックを数の所に入れたとき） |
+| `sensor` | `kind`, `port` | 数値 | `light_sensor` → `((double)board.GetLightSensorValue(P(port)))`、`sound_sensor` → `GetSoundSensorValue`、`ir_photoreflector` → `GetIRPhotoreflectorValue`、`temperature_sensor` → `GetTemperatureSensorValue`（どれも 0〜1023） |
 | `button` | `kind`, `port` | 真偽 | `touch_sensor` → `(board.GetTouchSensorValue(P(port)) == 0)`、`push_switch` → `(board.GetPushSwitchValue(P(port)) == 0)`（**0 が「押した」なので反転する**） |
-| `timer` | — | 数値 | `((millis() - sr_timer_start) / 1000.0)`（ライブラリにタイマーが無いので `millis()` で作る） |
+| `timer` | — | 数値 | `sr_timer()` = `(millis() - sr_timer_start) / 1000.0`（ライブラリにタイマーが無いので `millis()` で作る） |
 
 - `sr_*` は、Lambda が C++ の先頭に入れる小さな補助関数（Scratch の計算の決まりに合わせるため）。
-- 型の検査（数値の所に真偽を入れていないか）は Lambda でも行う。ブラウザでは、Scratch の真偽を数値の所に
-  入れたブロック（`<>` を `( )` に入れる）を、0 / 1 に変える op を足すか使えないブロックにするかを #2217 で決める。
+- 型の検査（数値の所に真偽を入れていないか）は Lambda でも行う。Scratch の真偽を数値の所に入れたブロック
+  （`<>` を `( )` に入れる）のために、Lambda は `to_num` を受け付ける。ブラウザが使うか、使えないブロックにするかは #2217 で決める。
+- 変数は C++ では `sr_v0` のように `sr_` を付ける。数値のリテラルは `300.0`・`(-3.0)` の形で書く。
 - 温度は生の値（0〜1023）を返す。摂氏にするブロックを足すかは第 1 弾では決めない
   （摂氏 = ((値 ÷ 1024 × 3.3) − 0.5) ÷ 0.01）。
 
@@ -477,7 +483,8 @@ Content-Type: application/json
 | 構文木の大きさ | 128KB |
 | ノードの数 | 10,000 個 |
 | 入れ子の深さ | 100 |
-| コンパイルの時間 | 60 秒で打ち切り（まず測ってから決め直す） |
+| 変数の数 | 64 個（ATmega168PA の RAM は 1KB） |
+| コンパイルの時間 | 25 秒で打ち切り（S12 の目安は 60 秒だが、API Gateway が 30 秒で切るため。まず測ってから決め直す） |
 | IP ごとの回数 | 1 分 12 回・1 日 600 回 |
 
 - 学校は NAT で IP が同じになるので、IP ごとの上限は厳しくしすぎない。
@@ -591,13 +598,16 @@ prod に出す前に回答を待つ必要は無い。
 
 ## 人間・実装で決めること
 
-- `extensionStorage` のキーの名前。部品のブロックは `smalrubotS1` に足す（M1・M4 で決まった）。#2212・#2216。
 - 補正値を入出力の設定のどこで変えるか。#2215。
 - タッチセンサーを真偽のブロックにするか（本家は丸い値のブロック）。#2216。
 
 ## 主要ファイル
 
-まだ無い（実装したら足す）。参考にする、いまあるファイル:
+- `packages/scratch-vm/src/extensions/scratch3_smalrubot_s1/studuino-settings.js` — 状態とポートの設定（保存の形・読みこみの直し・`runtime.extensionStorage` の読み書き・イベント `STUDUINO_SETTINGS_CHANGED`）
+- `packages/scratch-vm/src/serialization/sb3.js` / `src/engine/runtime.js` — `extensionStorage` の保存・読みこみ（マーカーつき）
+- `infra/smalruby-studuino-hex/lambda/ir.ts` / `codegen.ts` — 構文木の検査と C++ の書き出し（Lambda）
+
+参考にする、いまあるファイル:
 
 - `packages/scratch-gui/src/lib/smalrubot-firmware-flasher.js` — Web Serial・STK500v1 の書きこみ
 - `packages/scratch-gui/src/lib/smalrubot-firmware.hex.js` — ファームウェア（書きもどしに使う）

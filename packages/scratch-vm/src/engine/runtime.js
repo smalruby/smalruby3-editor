@@ -304,6 +304,15 @@ class Runtime extends EventEmitter {
          */
         this._monitorState = OrderedMap({});
 
+        // === Smalruby: Start of extensionStorage ===
+        /**
+         * Project-wide storage for extensions, keyed by extension ID (same shape as TurboWarp).
+         * Saved as `extensionStorage` in project.json by sb3 serialization.
+         * @type {Object<string, object>}
+         */
+        this.extensionStorage = {};
+        // === Smalruby: End of extensionStorage ===
+
         /**
          * Monitor state from last tick
          */
@@ -1995,6 +2004,9 @@ class Runtime extends EventEmitter {
 
         this.targets.map(this.disposeTarget, this);
         this._monitorState = OrderedMap({});
+        // === Smalruby: Start of extensionStorage reset ===
+        this.extensionStorage = {};
+        // === Smalruby: End of extensionStorage reset ===
         this.emit(Runtime.RUNTIME_DISPOSED);
         this.ioDevices.clock.resetProjectTimer();
         // @todo clear out extensions? turboMode? etc.
