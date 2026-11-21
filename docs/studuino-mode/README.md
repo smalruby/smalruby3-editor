@@ -102,23 +102,28 @@ Studuino の拡張機能そのもの（通常モード。パソコンにつな�
 
 ### 部品のブロック（Studuino モード専用・新しく作る）
 
-| 種類 | 表示（案） | 対応する部品 | 構文木の op |
-|---|---|---|---|
-| 文 | DC モーター [ポート] の速さを (n) にする | DC モーター | `dc_motor_speed` |
-| 文 | DC モーター [ポート] を [正転 / 逆転] で回す | DC モーター | `dc_motor_dir` |
-| 文 | DC モーター [ポート] を [ブレーキ / 惰性] で止める | DC モーター | `dc_motor_stop` |
-| 文 | サーボモーター [ポート] を (n) 度にする | サーボモーター | `servo` |
-| 文 | 割り当てたサーボモーターをまとめて動かす | サーボモーター（2 個以上） | `servo_multi` |
-| 文 | LED [ポート] を [オン / オフ] にする | LED | `led` |
-| 文 | ブザー [ポート] を (音の高さ) で鳴らす | ブザー | `buzzer_on` |
-| 文 | ブザー [ポート] を止める | ブザー | `buzzer_off` |
-| 値 | 光センサー [ポート] | 光センサー | `sensor`（`kind: light_sensor`） |
-| 値 | 音センサー [ポート] | 音センサー | `sensor`（`kind: sound_sensor`） |
-| 値 | 赤外線フォトリフレクタ [ポート] | 赤外線フォトリフレクタ | `sensor`（`kind: ir_photoreflector`） |
-| 値 | 温度センサー [ポート] | 温度センサー | `sensor`（`kind: temperature_sensor`） |
-| 真偽 | タッチセンサー [ポート] が押された | タッチセンサー | `button`（`kind: touch_sensor`） |
-| 真偽 | ボタン [ポート] が押された | ボタン（基板の十字ボタン） | `button`（`kind: push_switch`） |
+opcode は拡張機能 `smalrubotS1` のブロック（実行時は `smalrubotS1_<opcode>`）。引数の名前とメニューの値は、
+構文木の生成（#2217）と Ruby（#2218）が使う約束。ポートの引数 `PORT` の値はポート名（`A6` など）。
 
+| 種類 | 表示（案） | opcode（引数） | 対応する部品 | 構文木の op |
+|---|---|---|---|---|
+| 文 | DC モーター [ポート] の速さを (n) にする | `studuinoDcMotorSpeed`（`PORT`, `SPEED`） | DC モーター | `dc_motor_speed` |
+| 文 | DC モーター [ポート] を [正転 / 逆転] で回す | `studuinoDcMotorDirection`（`PORT`, `DIRECTION`: `normal` / `reverse`） | DC モーター | `dc_motor_dir` |
+| 文 | DC モーター [ポート] を [ブレーキ / 惰性] で止める | `studuinoDcMotorStop`（`PORT`, `MODE`: `brake` / `coast`） | DC モーター | `dc_motor_stop` |
+| 文 | サーボモーター [ポート] を (n) 度にする | `studuinoServo`（`PORT`, `ANGLE`） | サーボモーター | `servo` |
+| 文 | サーボモーター [ポート] を (n) 度、[ポート] を (n) 度に同時に動かす | `studuinoServoPair`（`PORT1`, `ANGLE1`, `PORT2`, `ANGLE2`） | サーボモーター（2 個以上） | `servo_multi`（2 つ。同じポートなら使えないブロック） |
+| 文 | LED [ポート] を [オン / オフ] にする | `studuinoLed`（`PORT`, `STATE`: `on` / `off`） | LED | `led` |
+| 文 | ブザー [ポート] を (音の高さ) で鳴らす | `studuinoBuzzerOn`（`PORT`, `PITCH`。Hz） | ブザー | `buzzer_on` |
+| 文 | ブザー [ポート] を止める | `studuinoBuzzerOff`（`PORT`） | ブザー | `buzzer_off` |
+| 値 | 光センサー [ポート] | `studuinoLightSensor`（`PORT`） | 光センサー | `sensor`（`kind: light_sensor`） |
+| 値 | 音センサー [ポート] | `studuinoSoundSensor`（`PORT`） | 音センサー | `sensor`（`kind: sound_sensor`） |
+| 値 | 赤外線フォトリフレクタ [ポート] | `studuinoIrPhotoreflector`（`PORT`） | 赤外線フォトリフレクタ | `sensor`（`kind: ir_photoreflector`） |
+| 値 | 温度センサー [ポート] | `studuinoTemperatureSensor`（`PORT`） | 温度センサー | `sensor`（`kind: temperature_sensor`） |
+| 真偽 | タッチセンサー [ポート] が押された | `studuinoTouchSensorPressed`（`PORT`） | タッチセンサー | `button`（`kind: touch_sensor`） |
+| 真偽 | ボタン [ポート] が押された | `studuinoButtonPressed`（`PORT`） | ボタン（基板の十字ボタン） | `button`（`kind: push_switch`） |
+
+- 「割り当てたサーボモーターをまとめて動かす」は、Scratch のブロックは引数の数を変えられないので、
+  **2 つを同時に動かすブロック**にした（3 つ以上はこのブロックを続けて置く。構文木の `servo_multi` は 8 つまで受け付ける）。
 - [ポート] のドロップダウンには、**その部品を割り当てたポートだけ** を「光センサー (A6)」のように
   部品とポートが分かる形で出す（S2）。
 - 本家のタッチセンサーは丸い値のブロック（0 / 1）に見えるが、スモウルビーでは真偽のブロックにする案
