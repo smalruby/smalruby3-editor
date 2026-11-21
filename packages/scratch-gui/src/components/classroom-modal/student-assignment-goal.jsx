@@ -63,13 +63,17 @@ const lessonsLine = (intl, lessons) =>
         .map((l) => intl.formatMessage(messages.lesson, { number: l.number, name: intl.formatMessage(l.name) }))
         .join(String(intl.locale).startsWith('ja') ? '、' : ', ');
 
-const StudentAssignmentGoal = ({ dataTestId = 'classroom-assignment-goal', lesson }) => {
+const StudentAssignmentGoal = ({ compact = false, dataTestId = 'classroom-assignment-goal', lesson }) => {
     const intl = useIntl();
     const goal = useMemo(() => assignmentGoal(lesson), [lesson]);
     const isJapanese = String(intl.locale).startsWith('ja');
     if (!goal) return null;
     return (
-        <section aria-labelledby={`${dataTestId}-title`} className={styles.assignmentGoal} data-testid={dataTestId}>
+        <section
+            aria-labelledby={`${dataTestId}-title`}
+            className={compact ? `${styles.assignmentGoal} ${styles.assignmentGoalCompact}` : styles.assignmentGoal}
+            data-testid={dataTestId}
+        >
             <h3 className={styles.assignmentGoalTitle} id={`${dataTestId}-title`}>
                 {intl.formatMessage(messages.title)}
             </h3>
@@ -88,7 +92,7 @@ const StudentAssignmentGoal = ({ dataTestId = 'classroom-assignment-goal', lesso
                         intl.formatMessage(messages.noCount)
                     )}
                 </p>
-                {goal.lessons.length > 0 && (
+                {!compact && goal.lessons.length > 0 && (
                     <p className={styles.assignmentGoalLessons} data-testid={`${dataTestId}-lessons`}>
                         {intl.formatMessage(messages.lessons, { lessons: lessonsLine(intl, goal.lessons) })}
                     </p>
@@ -102,6 +106,9 @@ const StudentAssignmentGoal = ({ dataTestId = 'classroom-assignment-goal', lesso
 };
 
 StudentAssignmentGoal.propTypes = {
+    // one line (the count and the next step side by side, no lessons): the assignment panel, where a long
+    // page with an image must still fit 1300x600 with the start buttons (the lessons library shows the lessons)
+    compact: PropTypes.bool,
     // data-testid of the card (its parts are `<dataTestId>-count` / `-lessons` / `-next`)
     dataTestId: PropTypes.string,
     // the lesson setting (normalizeAssignmentLesson, or the teacher's draft)

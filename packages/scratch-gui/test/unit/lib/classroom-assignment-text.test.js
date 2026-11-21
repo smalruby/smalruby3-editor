@@ -150,6 +150,22 @@ describe('parseAssignmentText', () => {
         ]);
     });
 
+    test('a long first line (a whole paragraph) is not a heading', () => {
+        const long =
+            'ねこを矢印キーで動かして、迷路の壁に当たったらはじめの場所にもどるようにしよう。ゴールに着いたら音を鳴らそう。';
+        expect(parseAssignmentText(`${long}\nつぎの行`)).toEqual({
+            heading: null,
+            blocks: [{ type: 'paragraph', lines: [[text(long)], [text('つぎの行')]] }],
+        });
+        expect(parseAssignmentText(long).heading).toBeNull();
+    });
+
+    test('a first line of up to 40 characters is a heading', () => {
+        const forty = 'あ'.repeat(40);
+        expect(parseAssignmentText(`${forty}\n本文`).heading).toEqual([text(forty)]);
+        expect(parseAssignmentText(`${forty}い\n本文`).heading).toBeNull();
+    });
+
     test('a first line that is a list item is not a heading', () => {
         expect(parseAssignmentText('・あ\n・い')).toEqual({
             heading: null,

@@ -150,7 +150,7 @@ const StudentAssignmentPanel = ({
 
             {lessonNotice && (
                 <div data-testid="classroom-assignment-lesson-notice">
-                    <StudentAssignmentGoal dataTestId="classroom-assignment-goal" lesson={studentLesson} />
+                    <StudentAssignmentGoal compact dataTestId="classroom-assignment-goal" lesson={studentLesson} />
                 </div>
             )}
 
