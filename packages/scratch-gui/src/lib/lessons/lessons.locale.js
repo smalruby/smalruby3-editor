@@ -12,29 +12,32 @@ export const ja = {
     'gui.lessons.challenge.blocks-l0-drag-cat.name': 'ネコをつかんで動かそう',
     'gui.lessons.challenge.blocks-l0-drag-cat.task': 'ステージのネコを、マウスでつかんで\n好きなところへ動かそう',
     'gui.lessons.challenge.blocks-l0-drag-cat.step1':
-        'ここがステージ。ネコのようなキャラクターをスプライトというよ。ネコをつかんで動かそう。',
+        'ここがステージ。ネコのようなキャラクターをスプライトというよ。ステージのネコをつかんで動かそう。',
     'gui.lessons.challenge.blocks-l0-drag-cat.debug1': 'ネコの上でマウスのボタンを押したまま動かして、はなそう。',
     'gui.lessons.challenge.blocks-l0-click-block.name': 'ブロックを押してみよう',
     'gui.lessons.challenge.blocks-l0-click-block.task':
-        'ブロックパレットの「10 歩動かす」を押してみよう。\nネコが動くよ',
+        'ブロックパレット（左の、ブロックがならんでいるところ）の「10 歩動かす」を押してみよう。\nネコが動くよ',
     'gui.lessons.challenge.blocks-l0-click-block.step1':
-        'ここがブロックパレット。青い「動き」の「10 歩動かす」を、ここで押そう。',
+        'ここがブロックパレット。青い「動き」の「10 歩動かす」を、ブロックパレットの中で押そう。',
     'gui.lessons.challenge.blocks-l0-click-block.step2': 'ステージのネコが動いたか見よう。',
+    'gui.lessons.challenge.blocks-l0-click-block.wrongPlace':
+        'それはスクリプトエリアのブロックだよ。ブロックパレットの中の「10 歩動かす」を押そう。',
     'gui.lessons.challenge.blocks-l0-click-block.debug1': 'ドラッグしないで、ブロックパレットの中で 1 回押そう。',
     'gui.lessons.challenge.blocks-l0-snap.name': '置いて、くっつけよう',
     'gui.lessons.challenge.blocks-l0-snap.task':
         '「10 歩動かす」と「15 度回す」をスクリプトエリアに置いて、\nくっつけて押そう',
     'gui.lessons.challenge.blocks-l0-snap.step1':
         '「10 歩動かす」を、ブロックパレットから右の広いところへドラッグしよう。そこがスクリプトエリア。',
-    'gui.lessons.challenge.blocks-l0-snap.step2': '「15 度回す」を、下にくっつけよう。カチッとはまれば OK。',
+    'gui.lessons.challenge.blocks-l0-snap.step2':
+        '「15 度回す」を、「10 歩動かす」の下にくっつけよう。カチッとはまれば OK。',
     'gui.lessons.challenge.blocks-l0-snap.step3': 'スクリプトエリアのブロックを押そう。2 つとも動くよ。',
     'gui.lessons.challenge.blocks-l0-snap.debug1': 'はなれていると、1 つしか動かないよ。',
     'gui.lessons.challenge.blocks-l0-snap.debug2': 'ブロックパレットではなく、スクリプトエリアのブロックを押そう。',
     'gui.lessons.challenge.blocks-l0-flag.name': '緑の旗で動かそう・止めよう',
     'gui.lessons.challenge.blocks-l0-flag.task':
-        '「旗が押されたとき」をいちばん上にくっつけて、緑の旗を押そう。\n止めるときは停止ボタン（赤い ●）',
+        '「旗が押されたとき」をいちばん上にくっつけて、緑の旗（ステージの左上の旗）を押そう。\n止めるときは停止ボタン（緑の旗の右の赤い ●）',
     'gui.lessons.challenge.blocks-l0-flag.step1':
-        '黄色い「イベント」の「旗が押されたとき」を、ブロックのいちばん上にくっつけよう。',
+        '黄色い「イベント」の「旗が押されたとき」を、ブロックのいちばん上にくっつけよう。見つからないときは、左の黄色い「イベント」を押そう。',
     'gui.lessons.challenge.blocks-l0-flag.step2': '停止ボタン（赤い ●）を押すと、動いているプログラムが止まるよ。',
     'gui.lessons.challenge.blocks-l0-flag.step3': 'ステージの上の緑の旗を押そう。',
     'gui.lessons.challenge.blocks-l0-flag.debug1': '「旗が押されたとき」は、ブロックの上にくっつけよう。',
@@ -49,26 +52,31 @@ export const ja = {
     'gui.lessons.challenge.blocks-l0-change-number.debug1': '数と ▼ を変えたら、もう一度緑の旗を押そう。',
     'gui.lessons.challenge.blocks-l0-tabs.name': 'タブをめぐろう',
     'gui.lessons.challenge.blocks-l0-tabs.task':
-        'シマラビには絵が 2 つあるよ。コスチュームタブで、2 つめの絵をえらぼう。\n音タブで ▶ を押して「Chirp」という名前の音を聞こう。さいごにコードタブにもどろう',
+        'シマラビには絵が 2 つあるよ。コスチュームタブ（左上の「コスチューム」と書いてあるところ）で、2 つめの絵をえらぼう。\n音タブ（左上の「音」と書いてあるところ）で ▶ を押して「Chirp」という名前の音を聞こう。さいごにコードタブ（左上の「コード」と書いてあるところ）にもどろう',
     'gui.lessons.challenge.blocks-l0-tabs.step1':
-        'コスチュームタブを押して、左にならんだ絵の 2 つめを押そう。ステージのシマラビの絵が変わるよ。',
-    'gui.lessons.challenge.blocks-l0-tabs.step2': '音タブを押して、「Chirp」という名前の音の ▶ を押そう。',
-    'gui.lessons.challenge.blocks-l0-tabs.step3': 'コードタブを押して、もどろう。',
+        'コスチュームタブ（左上の「コスチューム」と書いてあるところ）を押そう。',
+    'gui.lessons.challenge.blocks-l0-tabs.step2':
+        '左にならんだ絵の 2 つめを押そう。ステージのシマラビの絵が変わるよ。',
+    'gui.lessons.challenge.blocks-l0-tabs.step3': '音タブ（左上の「音」と書いてあるところ）を押そう。',
+    'gui.lessons.challenge.blocks-l0-tabs.step4':
+        '「Chirp」という名前の音がえらばれているよ。▶（再生ボタン）を押して、音を聞こう。',
+    'gui.lessons.challenge.blocks-l0-tabs.step5':
+        'コードタブ（左上の「コード」と書いてあるところ）を押して、もどろう。',
     'gui.lessons.challenge.blocks-l0-tabs.debug1': 'ステージのシマラビが、2 つめの絵になっているか見よう。',
     'gui.lessons.challenge.blocks-l0-sprite-backdrop.name': 'なかまと背景をふやそう',
     'gui.lessons.challenge.blocks-l0-sprite-backdrop.task':
-        'スプライトペインのボタンから、好きなスプライトを 1 つ足そう。\n背景も 1 つえらぼう',
+        'スプライトを選ぶボタン（右下の、ネコの顔の丸いボタン）から、好きなスプライトを 1 つ足そう。\n背景（ステージのうしろの絵）も、背景を選ぶボタン（いちばん右下の丸いボタン）で 1 つえらぼう',
     'gui.lessons.challenge.blocks-l0-sprite-backdrop.step1':
-        'スプライトペインの右下のボタンを押して、好きなスプライトをえらぼう。',
+        'スプライトを選ぶボタン（ネコの顔の丸いボタン）を押して、好きなスプライトをえらぼう。',
     'gui.lessons.challenge.blocks-l0-sprite-backdrop.step2':
-        'その右の「背景」のボタンを押して、好きな背景をえらぼう。',
+        '背景を選ぶボタン（いちばん右下の丸いボタン）を押して、好きな背景（ステージのうしろの絵）をえらぼう。',
     'gui.lessons.challenge.blocks-l0-sprite-backdrop.debug1':
         'ボタンを押すと、えらぶページが開くよ。好きなものを押そう。',
     'gui.lessons.challenge.blocks-l0-where.name': 'どこでしょう？',
     'gui.lessons.challenge.blocks-l0-where.task':
-        '「ブロックパレットはどこ？」のように聞かれたら、\n画面のその場所をクリックして答えよう。5 問あるよ',
+        'まず、画面の場所の名前を覚えよう。「ブロックパレットはどこ？」のように聞かれたら、\nその場所をクリックしよう。まちがえると、答えの場所が光るよ。5 問あるよ',
     'gui.lessons.challenge.blocks-l0-where.step1':
-        'ここに問題が出るよ。答えの場所をクリックしよう。まちがえると、答えの場所が光るよ。',
+        'ここに問題が出るよ。知らなくても大丈夫。ここかなと思う場所をクリックしよう。まちがえると、答えの場所が光るよ。',
     'gui.lessons.lesson.blocks-l1.name': 'うごかしてみよう',
     'gui.lessons.lesson.blocks-l2.name': 'えらんで たずねよう',
     'gui.lessons.lesson.blocks-l3.name': 'おぼえて つたえよう',
@@ -236,6 +244,10 @@ export const ja = {
     'gui.lessons.completed.nextLesson': '次のレッスンへ',
     'gui.lessons.completed.library': 'レッスン表へ',
     'gui.lessons.completed.close': 'もう少し見る',
+    'gui.lessons.completed.skipDetail':
+        '1 回もまちがえずに全問正解！ 画面のことをもう知っているなら、レッスン {number} へ進んでもいいよ。',
+    'gui.lessons.completed.skipLesson': 'レッスン {number} へ進む',
+    'gui.lessons.completed.continueLesson': '続けてレッスン {number} をやる',
     'gui.lessons.completed.assignmentTitle': '課題クリア！',
     'gui.lessons.completed.assignmentDetail': '「{name}」の条件を満たしました',
     'gui.lessons.completed.assignmentDetailNoName': '課題の条件を満たしました',
@@ -284,15 +296,17 @@ export const jaHira = {
     'gui.lessons.challenge.blocks-l0-drag-cat.task':
         'ステージの ネコを、マウスで つかんで\nすきな ところへ うごかそう',
     'gui.lessons.challenge.blocks-l0-drag-cat.step1':
-        'ここが ステージ。ネコのような キャラクターを スプライトと いうよ。ネコを つかんで うごかそう。',
+        'ここが ステージ。ネコのような キャラクターを スプライトと いうよ。ステージの ネコを つかんで うごかそう。',
     'gui.lessons.challenge.blocks-l0-drag-cat.debug1':
         'ネコの うえで マウスの ボタンを おしたまま うごかして、はなそう。',
     'gui.lessons.challenge.blocks-l0-click-block.name': 'ブロックを おしてみよう',
     'gui.lessons.challenge.blocks-l0-click-block.task':
-        'ブロックパレットの「10 ほうごかす」を おしてみよう。\nネコが うごくよ',
+        'ブロックパレット（ひだりの、ブロックが ならんでいる ところ）の「10 ほうごかす」を おしてみよう。\nネコが うごくよ',
     'gui.lessons.challenge.blocks-l0-click-block.step1':
-        'ここが ブロックパレット。あおい「うごき」の「10 ほうごかす」を、ここで おそう。',
+        'ここが ブロックパレット。あおい「うごき」の「10 ほうごかす」を、ブロックパレットの なかで おそう。',
     'gui.lessons.challenge.blocks-l0-click-block.step2': 'ステージの ネコが うごいたか みよう。',
+    'gui.lessons.challenge.blocks-l0-click-block.wrongPlace':
+        'それは スクリプトエリアの ブロックだよ。ブロックパレットの なかの「10 ほうごかす」を おそう。',
     'gui.lessons.challenge.blocks-l0-click-block.debug1':
         'ドラッグしないで、ブロックパレットの なかで 1 かい おそう。',
     'gui.lessons.challenge.blocks-l0-snap.name': 'おいて、くっつけよう',
@@ -300,15 +314,16 @@ export const jaHira = {
         '「10 ほうごかす」と「15 どまわす」を スクリプトエリアに おいて、\nくっつけて おそう',
     'gui.lessons.challenge.blocks-l0-snap.step1':
         '「10 ほうごかす」を、ブロックパレットから みぎの ひろい ところへ ドラッグしよう。そこが スクリプトエリア。',
-    'gui.lessons.challenge.blocks-l0-snap.step2': '「15 どまわす」を、したに くっつけよう。カチッと はまれば OK。',
+    'gui.lessons.challenge.blocks-l0-snap.step2':
+        '「15 どまわす」を、「10 ほうごかす」の したに くっつけよう。カチッと はまれば OK。',
     'gui.lessons.challenge.blocks-l0-snap.step3': 'スクリプトエリアの ブロックを おそう。2 つとも うごくよ。',
     'gui.lessons.challenge.blocks-l0-snap.debug1': 'はなれていると、1 つしか うごかないよ。',
     'gui.lessons.challenge.blocks-l0-snap.debug2': 'ブロックパレットではなく、スクリプトエリアの ブロックを おそう。',
     'gui.lessons.challenge.blocks-l0-flag.name': 'みどりのはたで うごかそう・とめよう',
     'gui.lessons.challenge.blocks-l0-flag.task':
-        '「はたが おされたとき」を いちばん うえに くっつけて、みどりのはたを おそう。\nとめるときは ていしボタン（あかい ●）',
+        '「はたが おされたとき」を いちばん うえに くっつけて、みどりのはた（ステージの ひだりうえの はた）を おそう。\nとめるときは ていしボタン（みどりのはたの みぎの あかい ●）',
     'gui.lessons.challenge.blocks-l0-flag.step1':
-        'きいろい「イベント」の「はたが おされたとき」を、ブロックの いちばん うえに くっつけよう。',
+        'きいろい「イベント」の「はたが おされたとき」を、ブロックの いちばん うえに くっつけよう。みつからないときは、ひだりの きいろい「イベント」を おそう。',
     'gui.lessons.challenge.blocks-l0-flag.step2':
         'ていしボタン（あかい ●）を おすと、うごいている プログラムが とまるよ。',
     'gui.lessons.challenge.blocks-l0-flag.step3': 'ステージの うえの みどりのはたを おそう。',
@@ -326,26 +341,31 @@ export const jaHira = {
         'かずと ▼ を かえたら、もう いちど みどりのはたを おそう。',
     'gui.lessons.challenge.blocks-l0-tabs.name': 'タブを めぐろう',
     'gui.lessons.challenge.blocks-l0-tabs.task':
-        'シマラビには えが 2 つ あるよ。コスチュームタブで、2 つめの えを えらぼう。\nおとタブで ▶ を おして「Chirp」という なまえの おとを きこう。さいごに コードタブに もどろう',
+        'シマラビには えが 2 つ あるよ。コスチュームタブ（ひだりうえの「コスチューム」と かいてある ところ）で、2 つめの えを えらぼう。\nおとタブ（ひだりうえの「おと」と かいてある ところ）で ▶ を おして「Chirp」という なまえの おとを きこう。さいごに コードタブ（ひだりうえの「コード」と かいてある ところ）に もどろう',
     'gui.lessons.challenge.blocks-l0-tabs.step1':
-        'コスチュームタブを おして、ひだりに ならんだ えの 2 つめを おそう。ステージの シマラビの えが かわるよ。',
-    'gui.lessons.challenge.blocks-l0-tabs.step2': 'おとタブを おして、「Chirp」という なまえの おとの ▶ を おそう。',
-    'gui.lessons.challenge.blocks-l0-tabs.step3': 'コードタブを おして、もどろう。',
+        'コスチュームタブ（ひだりうえの「コスチューム」と かいてある ところ）を おそう。',
+    'gui.lessons.challenge.blocks-l0-tabs.step2':
+        'ひだりに ならんだ えの 2 つめを おそう。ステージの シマラビの えが かわるよ。',
+    'gui.lessons.challenge.blocks-l0-tabs.step3': 'おとタブ（ひだりうえの「おと」と かいてある ところ）を おそう。',
+    'gui.lessons.challenge.blocks-l0-tabs.step4':
+        '「Chirp」という なまえの おとが えらばれているよ。▶（さいせいボタン）を おして、おとを きこう。',
+    'gui.lessons.challenge.blocks-l0-tabs.step5':
+        'コードタブ（ひだりうえの「コード」と かいてある ところ）を おして、もどろう。',
     'gui.lessons.challenge.blocks-l0-tabs.debug1': 'ステージの シマラビが、2 つめの えに なっているか みよう。',
     'gui.lessons.challenge.blocks-l0-sprite-backdrop.name': 'なかまと はいけいを ふやそう',
     'gui.lessons.challenge.blocks-l0-sprite-backdrop.task':
-        'スプライトペインの ボタンから、すきな スプライトを 1 つ たそう。\nはいけいも 1 つ えらぼう',
+        'スプライトを えらぶ ボタン（みぎしたの、ネコの かおの まるい ボタン）から、すきな スプライトを 1 つ たそう。\nはいけい（ステージの うしろの え）も、はいけいを えらぶ ボタン（いちばん みぎしたの まるい ボタン）で 1 つ えらぼう',
     'gui.lessons.challenge.blocks-l0-sprite-backdrop.step1':
-        'スプライトペインの みぎしたの ボタンを おして、すきな スプライトを えらぼう。',
+        'スプライトを えらぶ ボタン（ネコの かおの まるい ボタン）を おして、すきな スプライトを えらぼう。',
     'gui.lessons.challenge.blocks-l0-sprite-backdrop.step2':
-        'その みぎの「はいけい」の ボタンを おして、すきな はいけいを えらぼう。',
+        'はいけいを えらぶ ボタン（いちばん みぎしたの まるい ボタン）を おして、すきな はいけい（ステージの うしろの え）を えらぼう。',
     'gui.lessons.challenge.blocks-l0-sprite-backdrop.debug1':
         'ボタンを おすと、えらぶ ページが ひらくよ。すきな ものを おそう。',
     'gui.lessons.challenge.blocks-l0-where.name': 'どこでしょう？',
     'gui.lessons.challenge.blocks-l0-where.task':
-        '「ブロックパレットは どこ？」のように きかれたら、\nがめんの その ばしょを クリックして こたえよう。5 もん あるよ',
+        'まず、がめんの ばしょの なまえを おぼえよう。「ブロックパレットは どこ？」のように きかれたら、\nその ばしょを クリックしよう。まちがえると、こたえの ばしょが ひかるよ。5 もん あるよ',
     'gui.lessons.challenge.blocks-l0-where.step1':
-        'ここに もんだいが でるよ。こたえの ばしょを クリックしよう。まちがえると、こたえの ばしょが ひかるよ。',
+        'ここに もんだいが でるよ。しらなくても だいじょうぶ。ここかなと おもう ばしょを クリックしよう。まちがえると、こたえの ばしょが ひかるよ。',
     'gui.lessons.lesson.blocks-l1.name': 'うごかしてみよう',
     'gui.lessons.lesson.blocks-l2.name': 'えらんで たずねよう',
     'gui.lessons.lesson.blocks-l3.name': 'おぼえて つたえよう',
@@ -520,6 +540,10 @@ export const jaHira = {
     'gui.lessons.completed.nextLesson': 'つぎのレッスンへ',
     'gui.lessons.completed.library': 'レッスンひょうへ',
     'gui.lessons.completed.close': 'もうすこしみる',
+    'gui.lessons.completed.skipDetail':
+        '1 かいも まちがえずに ぜんもん せいかい！ がめんの ことを もう しっているなら、レッスン {number} へ すすんでも いいよ。',
+    'gui.lessons.completed.skipLesson': 'レッスン {number} へ すすむ',
+    'gui.lessons.completed.continueLesson': 'つづけて レッスン {number} を やる',
     'gui.lessons.completed.assignmentTitle': 'かだいクリア！',
     'gui.lessons.completed.assignmentDetail': '「{name}」の じょうけんを みたしました',
     'gui.lessons.completed.assignmentDetailNoName': 'かだいの じょうけんを みたしました',
@@ -568,29 +592,33 @@ export const en = {
     'gui.lessons.challenge.blocks-l0-drag-cat.task':
         'Drag the cat on the stage with the mouse\nto any place you like',
     'gui.lessons.challenge.blocks-l0-drag-cat.step1':
-        'This is the stage. A character like the cat is called a sprite. Drag the cat.',
+        'This is the stage. A character like the cat is called a sprite. Drag the cat on the stage.',
     'gui.lessons.challenge.blocks-l0-drag-cat.debug1':
         'Hold the mouse button down on the cat, move the mouse, and let go.',
     'gui.lessons.challenge.blocks-l0-click-block.name': 'Click a block',
-    'gui.lessons.challenge.blocks-l0-click-block.task': 'Click "move 10 steps" in the Block Palette.\nThe cat moves',
+    'gui.lessons.challenge.blocks-l0-click-block.task':
+        'Click "move 10 steps" in the Block Palette (the list of blocks on the left).\nThe cat moves',
     'gui.lessons.challenge.blocks-l0-click-block.step1':
-        'This is the Block Palette. Click the blue Motion block "move 10 steps" here.',
+        'This is the Block Palette. Click the blue Motion block "move 10 steps" right here in the Block Palette.',
     'gui.lessons.challenge.blocks-l0-click-block.step2': 'Look at the cat on the stage. Did it move?',
+    'gui.lessons.challenge.blocks-l0-click-block.wrongPlace':
+        'That is a block in the Code Area. Click "move 10 steps" in the Block Palette.',
     'gui.lessons.challenge.blocks-l0-click-block.debug1': 'Do not drag it. Click it once in the Block Palette.',
     'gui.lessons.challenge.blocks-l0-snap.name': 'Place and snap',
     'gui.lessons.challenge.blocks-l0-snap.task':
         'Put "move 10 steps" and "turn 15 degrees" in the Code Area,\nsnap them together and click them',
     'gui.lessons.challenge.blocks-l0-snap.step1':
         'Drag "move 10 steps" from the Block Palette to the big space on the right. That is the Code Area.',
-    'gui.lessons.challenge.blocks-l0-snap.step2': 'Snap "turn 15 degrees" under it. It clicks into place.',
+    'gui.lessons.challenge.blocks-l0-snap.step2':
+        'Snap "turn 15 degrees" under "move 10 steps". It clicks into place.',
     'gui.lessons.challenge.blocks-l0-snap.step3': 'Click the blocks in the Code Area. Both run.',
     'gui.lessons.challenge.blocks-l0-snap.debug1': 'If the blocks are apart, only one runs.',
     'gui.lessons.challenge.blocks-l0-snap.debug2': 'Click the blocks in the Code Area, not in the Block Palette.',
     'gui.lessons.challenge.blocks-l0-flag.name': 'Start with the Green Flag, then stop',
     'gui.lessons.challenge.blocks-l0-flag.task':
-        'Snap "when flag clicked" on top and click the Green Flag.\nThe Stop Button (red ●) stops it',
+        'Snap "when flag clicked" on top and click the Green Flag (the flag at the top left of the stage).\nThe Stop Button (the red ● right of the Green Flag) stops it',
     'gui.lessons.challenge.blocks-l0-flag.step1':
-        'Snap the yellow Events block "when flag clicked" on top of the blocks.',
+        'Snap the yellow Events block "when flag clicked" on top of the blocks. If you cannot find it, click the yellow "Events" on the left.',
     'gui.lessons.challenge.blocks-l0-flag.step2': 'The Stop Button (red ●) stops the running program.',
     'gui.lessons.challenge.blocks-l0-flag.step3': 'Click the Green Flag above the stage.',
     'gui.lessons.challenge.blocks-l0-flag.debug1': 'Snap "when flag clicked" on top of the blocks.',
@@ -606,26 +634,29 @@ export const en = {
         'After you change the number and the ▼, click the Green Flag again.',
     'gui.lessons.challenge.blocks-l0-tabs.name': 'Visit the tabs',
     'gui.lessons.challenge.blocks-l0-tabs.task':
-        'Shimaraby has 2 costumes. In the Costumes tab, choose the 2nd costume.\nIn the Sounds tab, click ▶ to hear the sound named "Chirp". Then go back to the Code tab',
-    'gui.lessons.challenge.blocks-l0-tabs.step1':
-        'Click the Costumes tab and click the 2nd costume in the list on the left. Shimaraby on the stage changes.',
-    'gui.lessons.challenge.blocks-l0-tabs.step2': 'Click the Sounds tab and click ▶ of the sound named "Chirp".',
-    'gui.lessons.challenge.blocks-l0-tabs.step3': 'Click the Code tab to go back.',
+        'Shimaraby has 2 costumes. In the Costumes tab (the word "Costumes" at the top left), choose the 2nd costume.\nIn the Sounds tab (the word "Sounds" at the top left), click ▶ to hear the sound named "Chirp". Then go back to the Code tab (the word "Code" at the top left)',
+    'gui.lessons.challenge.blocks-l0-tabs.step1': 'Click the Costumes tab (the word "Costumes" at the top left).',
+    'gui.lessons.challenge.blocks-l0-tabs.step2':
+        'Click the 2nd costume in the list on the left. Shimaraby on the stage changes.',
+    'gui.lessons.challenge.blocks-l0-tabs.step3': 'Click the Sounds tab (the word "Sounds" at the top left).',
+    'gui.lessons.challenge.blocks-l0-tabs.step4':
+        'The sound named "Chirp" is chosen. Click ▶ (the play button) to hear it.',
+    'gui.lessons.challenge.blocks-l0-tabs.step5': 'Click the Code tab (the word "Code" at the top left) to go back.',
     'gui.lessons.challenge.blocks-l0-tabs.debug1': 'Look at the stage. Is Shimaraby showing the 2nd costume?',
     'gui.lessons.challenge.blocks-l0-sprite-backdrop.name': 'Add a friend and a backdrop',
     'gui.lessons.challenge.blocks-l0-sprite-backdrop.task':
-        'Add a sprite you like with the button in the Sprite Pane.\nAlso choose a backdrop',
+        'Add a sprite you like with the Choose a Sprite button (the round cat-face button at the bottom right).\nAlso choose a backdrop (the picture behind the stage) with the Choose a Backdrop button (the round button at the very bottom right)',
     'gui.lessons.challenge.blocks-l0-sprite-backdrop.step1':
-        'Click the button at the bottom right of the Sprite Pane and choose a sprite.',
+        'Click the Choose a Sprite button (the round cat-face button) and choose a sprite.',
     'gui.lessons.challenge.blocks-l0-sprite-backdrop.step2':
-        'Click the backdrop button on its right and choose a backdrop.',
+        'Click the Choose a Backdrop button (the round button at the very bottom right) and choose a backdrop (the picture behind the stage).',
     'gui.lessons.challenge.blocks-l0-sprite-backdrop.debug1':
         'The button opens a page to choose from. Click the one you like.',
     'gui.lessons.challenge.blocks-l0-where.name': 'Where is it?',
     'gui.lessons.challenge.blocks-l0-where.task':
-        'When asked "Where is the Block Palette?",\nclick that part of the screen. There are 5 questions',
+        'First, learn the names of the parts of the screen. When asked "Where is the Block Palette?",\nclick that part. If you are wrong, the right part glows. There are 5 questions',
     'gui.lessons.challenge.blocks-l0-where.step1':
-        'The question shows here. Click the right part. If you are wrong, the right part glows.',
+        'The question shows here. It is OK if you do not know yet. Click where you think it is. If you are wrong, the right part glows.',
     'gui.lessons.lesson.blocks-l1.name': "Let's Move",
     'gui.lessons.lesson.blocks-l2.name': 'Choose and Ask',
     'gui.lessons.lesson.blocks-l3.name': 'Remember and Tell',
@@ -801,6 +832,10 @@ export const en = {
     'gui.lessons.completed.nextLesson': 'Next lesson',
     'gui.lessons.completed.library': 'Go to the lessons',
     'gui.lessons.completed.close': 'Keep looking',
+    'gui.lessons.completed.skipDetail':
+        'All correct without a single mistake! If you already know the screen, you can go on to lesson {number}.',
+    'gui.lessons.completed.skipLesson': 'Go to lesson {number}',
+    'gui.lessons.completed.continueLesson': 'Keep going with lesson {number}',
     'gui.lessons.completed.assignmentTitle': 'Assignment cleared!',
     'gui.lessons.completed.assignmentDetail': 'You met the goal of "{name}".',
     'gui.lessons.completed.assignmentDetailNoName': 'You met the goal of the assignment.',

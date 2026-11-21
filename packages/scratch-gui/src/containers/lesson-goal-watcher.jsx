@@ -2,14 +2,30 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { connect } from 'react-redux';
 import LessonCompletedToast from '../components/lesson-completed-toast/lesson-completed-toast.jsx';
-import { assignmentProgress, isAssignmentJustCleared } from '../lib/lessons/assignment-progress.js';
+import {
+    assignmentProgress,
+    isAssignmentChallenge,
+    isAssignmentJustCleared,
+} from '../lib/lessons/assignment-progress.js';
 import { findChallenge, lessonNumberOf } from '../lib/lessons/courses.js';
 import { attachGoalMonitor } from '../lib/lessons/goal-monitor.js';
 import { EDITOR_TABS, evaluateGoal, validateGoal } from '../lib/lessons/goal.js';
-import { completedAction, courseProgress, isChallengeCompleted } from '../lib/lessons/lesson-progress.js';
+import { LESSON_EVENTS, sendLessonEvent } from '../lib/lessons/lesson-analytics.js';
+import {
+    completedAction,
+    courseProgress,
+    isChallengeCompleted,
+    lessonSkipOffer,
+} from '../lib/lessons/lesson-progress.js';
 import { openAssignmentLessonsLibrary, openLessonsLibraryAt } from '../lib/lessons/open-lessons-library.js';
 import { requestStudentSubmit, selectStudentLesson } from '../reducers/classroom.js';
-import { closeLesson, dismissCompleted, markChallengeCompleted, openChallenge } from '../reducers/lesson-mode.js';
+import {
+    closeLesson,
+    dismissCompleted,
+    markChallengeCompleted,
+    openChallenge,
+    startChallenge,
+} from '../reducers/lesson-mode.js';
 
 // Always-mounted container. While a challenge is open (lesson mode) it watches the VM
 // for the challenge's goal; when the goal is met it records the challenge as completed
@@ -32,9 +48,12 @@ const LessonGoalWatcher = ({
     onNextChallenge,
     onOpenChallenge,
     onCloseLesson,
+    onSkipLesson,
     onSubmitAssignment,
+    partQuizMissed = false,
     partQuizSolved = 0,
     progress,
+    teacherLoggedIn = false,
 }) => {
     const found = useMemo(() => (challengeId === null ? null : findChallenge(challengeId)), [challengeId]);
     const challenge = found ? found.challenge : null;
@@ -89,6 +108,29 @@ const LessonGoalWatcher = ({
         onNextChallenge(challengeId, fromAssignment);
     }, [challengeId, fromAssignment, onDismiss, onNextChallenge]);
 
+    // 「どこでしょう？」を 1 回もまちがえずに答えたときに出す、次のレッスンへの道（lesson-progress.js の
+    // lessonSkipOffer）。飛ばしたチャレンジは「できた」にしない。課題から開いていて、進む先も課題のチャレンジなら、
+    // 課題から開いたままにする
+    const skipOffer = useMemo(
+        () =>
+            challengeId !== null && justCompletedId === challengeId
+                ? lessonSkipOffer({
+                      challengeId,
+                      progress,
+                      isNew: justCompletedNew,
+                      missed: partQuizMissed,
+                      assignmentLesson: lesson,
+                  })
+                : null,
+        [challengeId, justCompletedId, justCompletedNew, lesson, partQuizMissed, progress],
+    );
+    const handleSkipLesson = useCallback(() => {
+        if (!skipOffer || !onSkipLesson) return;
+        sendLessonEvent(LESSON_EVENTS.LESSON_SKIP, found, { fromAssignment, teacherLoggedIn });
+        onDismiss();
+        onSkipLesson(skipOffer.challengeId, fromAssignment && isAssignmentChallenge(lesson, skipOffer.challengeId));
+    }, [found, fromAssignment, lesson, onDismiss, onSkipLesson, skipOffer, teacherLoggedIn]);
+
     const handleSubmitAssignment = useCallback(() => {
         onDismiss();
         onSubmitAssignment();
@@ -123,6 +165,8 @@ const LessonGoalWatcher = ({
             onClose={onDismiss}
             onNextChallenge={handleNextChallenge}
             quiz={challenge.quiz || null}
+            skipLesson={skipOffer}
+            onSkipLesson={skipOffer && onSkipLesson ? handleSkipLesson : null}
         />
     );
 };
@@ -132,6 +176,8 @@ LessonGoalWatcher.propTypes = {
     activeTabIndex: PropTypes.number,
     // 「どこでしょう？」のクイズで正しく答えた数（reducers/lesson-mode.js の partQuizSolved）
     partQuizSolved: PropTypes.number,
+    // 「どこでしょう？」のクイズで 1 回でもまちがえたか（reducers/lesson-mode.js の partQuizMissed）
+    partQuizMissed: PropTypes.bool,
     // 参加している課題の名前（「課題クリア！」の 2 行目）
     assignmentName: PropTypes.string,
     challengeId: PropTypes.string,
@@ -153,9 +199,12 @@ LessonGoalWatcher.propTypes = {
     onDismiss: PropTypes.func.isRequired,
     onNextChallenge: PropTypes.func.isRequired,
     onOpenChallenge: PropTypes.func,
+    // 「レッスン n へ進む」: そのチャレンジを始める（(challengeId, fromAssignment)）
+    onSkipLesson: PropTypes.func,
     onSubmitAssignment: PropTypes.func.isRequired,
     // lesson-progress.js の記録（「できた！」のボタンを決める）
     progress: PropTypes.shape({ challenges: PropTypes.object.isRequired }).isRequired,
+    teacherLoggedIn: PropTypes.bool,
     vm: PropTypes.object,
 };
 
@@ -163,6 +212,7 @@ const mapStateToProps = (state) => ({
     vm: state.scratchGui.vm,
     activeTabIndex: state.scratchGui.editorTab ? state.scratchGui.editorTab.activeTabIndex : 0,
     partQuizSolved: state.scratchGui.lessonMode.partQuizSolved || 0,
+    partQuizMissed: Boolean(state.scratchGui.lessonMode.partQuizMissed),
     assignmentName: state.scratchGui.classroom ? state.scratchGui.classroom.assignmentName : null,
     challengeId: state.scratchGui.lessonMode.challengeId,
     completedHidden: Boolean(state.scratchGui.lessonMode.completedHidden),
@@ -171,6 +221,7 @@ const mapStateToProps = (state) => ({
     justCompletedNew: Boolean(state.scratchGui.lessonMode.justCompletedNew),
     lesson: selectStudentLesson(state),
     progress: state.scratchGui.lessonMode.progress,
+    teacherLoggedIn: Boolean(state.scratchGui.classroom && state.scratchGui.classroom.teacherLoggedIn),
 });
 
 const mapDispatchToProps = (dispatch) => ({
@@ -182,6 +233,7 @@ const mapDispatchToProps = (dispatch) => ({
             : openLessonsLibraryAt(dispatch, challengeId),
     onOpenChallenge: (challengeId) => dispatch(openChallenge(challengeId)),
     onCloseLesson: () => dispatch(closeLesson()),
+    onSkipLesson: (challengeId, fromAssignment) => dispatch(startChallenge(challengeId, { fromAssignment })),
     onSubmitAssignment: () => dispatch(requestStudentSubmit('lesson_clear')),
 });
 

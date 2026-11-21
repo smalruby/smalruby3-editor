@@ -38,6 +38,7 @@ import reducer, {
     getCurrentRole,
     setLessonRole,
     solvePartQuiz,
+    missPartQuiz,
 } from '../../../src/reducers/lesson-mode';
 
 const wrap = (lessonMode) => ({ scratchGui: { lessonMode } });
@@ -397,6 +398,15 @@ describe('lesson-mode reducer: hints', () => {
         let state = reducer(lessonModeInitialState, openChallenge('blocks-l1-click-say'));
         expect(state.hintSpotlight).toBe(false);
         state = reducer(state, openChallenge('blocks-l1-quiz'));
+        expect(state.hintSpotlight).toBe(true);
+    });
+
+    test('lesson 0 (warmup) spotlights every time it is opened', () => {
+        markSpotlightSeen('blocks-l0-where', window.localStorage, '2026-01-01T00:00:00.000Z');
+        let state = reducer(lessonModeInitialState, openChallenge('blocks-l0-where'));
+        expect(state.hintSpotlight).toBe(true);
+        state = reducer(state, closeLesson());
+        state = reducer(state, openChallenge('blocks-l0-where'));
         expect(state.hintSpotlight).toBe(true);
     });
 
@@ -786,5 +796,29 @@ describe('the "where is it?" quiz of lesson 0 (#2134)', () => {
         // クイズの無いチャレンジでは数えない
         const tabs = open('blocks-l0-tabs');
         expect(reducer(tabs, solvePartQuiz('blocks-l0-tabs', 0))).toBe(tabs);
+    });
+
+    test('remembers a wrong answer until the challenge is opened again (for the lesson skip)', () => {
+        let state = open('blocks-l0-where');
+        expect(state.partQuizMissed).toBe(false);
+        state = reducer(state, solvePartQuiz('blocks-l0-where', 0));
+        state = reducer(state, missPartQuiz('blocks-l0-where'));
+        expect(state.partQuizMissed).toBe(true);
+        // 2 回目は同じ state
+        expect(reducer(state, missPartQuiz('blocks-l0-where'))).toBe(state);
+        // 正しく答えても消えない
+        state = reducer(state, solvePartQuiz('blocks-l0-where', 1));
+        expect(state.partQuizMissed).toBe(true);
+        expect(reducer(state, openChallenge('blocks-l0-where')).partQuizMissed).toBe(false);
+    });
+
+    test('ignores a wrong answer for another challenge, a challenge without the quiz or a finished quiz', () => {
+        const where = open('blocks-l0-where');
+        expect(reducer(where, missPartQuiz('blocks-l0-tabs'))).toBe(where);
+        const tabs = open('blocks-l0-tabs');
+        expect(reducer(tabs, missPartQuiz('blocks-l0-tabs'))).toBe(tabs);
+        let done = where;
+        for (let i = 0; i < 5; i++) done = reducer(done, solvePartQuiz('blocks-l0-where', i));
+        expect(reducer(done, missPartQuiz('blocks-l0-where'))).toBe(done);
     });
 });

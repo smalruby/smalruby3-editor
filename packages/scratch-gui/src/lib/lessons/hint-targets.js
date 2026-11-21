@@ -45,6 +45,8 @@ export const HINT_SIDES = Object.freeze({
 
 // Blockly のワークスペースは吹き出しの中にもあるので、コードタブの Blocks の中に限る
 const BLOCKS = '[class*="blocks_blocks_"]';
+// スクリプトエリアに置いてあるスクリプト（いちばん上のブロックの組）
+const CODE_SCRIPTS = `${BLOCKS} .blocklySvg > .blocklyWorkspace > .blocklyBlockCanvas > .blocklyBlock`;
 
 // DOM の探し方。selectors は候補（最初に見えたもの。`union` なら見えたもの全部を合わせた矩形）。
 // Smalruby の部品（サイドレール・拡張機能のボタン）は data-testid で探す。upstream の部品は
@@ -67,7 +69,7 @@ const TARGET_SPECS = {
         // スクリプトエリアに置いてあるスクリプト（いちばん上のブロックの組）にはかぶせない。「「15 度回す」の数を
         // 変えよう」のように、置いてあるブロックを指して操作させるヒントで、そのブロックが吹き出しに隠れないように
         // （#2146）。パレットのブロックは別の svg（.blocklyFlyout）なので入らない
-        avoid: [`${BLOCKS} .blocklySvg > .blocklyWorkspace > .blocklyBlockCanvas > .blocklyBlock`],
+        avoid: [CODE_SCRIPTS],
     },
     [HINT_TARGETS.STAGE]: {
         selectors: ['[class*="stage_stage-wrapper_"]'],
@@ -140,6 +142,48 @@ const TARGET_SPECS = {
     [HINT_TARGETS.KEYBOARD]: { selectors: [], sides: [] },
 };
 
+/**
+ * 指す場所の中の 1 つのもの（`steps[].focus` の `kind`）。場所（`target`）より細かく、押すもの 1 つを指す
+ * （レッスン 0 で、子どもが「どこを押すのか」をまちがえたため）。見つからないときは `target` の場所を指す。
+ * - `paletteBlock` {opcode, category}: ブロックパレットのブロック。パレットの見えている範囲に無いときは、
+ *   左のなかま（category = ツールボックスの id）のボタンを指す（押すとパレットがそこへ動き、次に測るとブロックを指す）
+ * - `codeBlock` {opcode}: スクリプトエリアのブロック（その 1 つだけ。下につながったブロックは入れない）
+ * - `codeField` {opcode, shadow}: スクリプトエリアのブロックの白いところ・▼（入れてある影のブロック。
+ *   shadow は影のブロックの opcode。数なら `math_number`、▼ なら `motion_goto_menu` など）
+ * - `stageSprite`: ステージに映っているスプライト（いま選んでいるスプライト。DOM が無いので VM の描画の位置から求める）
+ * - `costume` {number}: コスチュームタブの左の一覧の、何番目の絵か（1 から）
+ * - `soundPlay`: 音タブの再生ボタン（▶。押すと選んでいる音が鳴る）
+ * - `spriteAdd` / `backdropAdd`: スプライトを選ぶボタン・背景を選ぶボタン（スプライトペインの右下の丸いボタン）
+ */
+export const HINT_FOCUS = Object.freeze({
+    PALETTE_BLOCK: 'paletteBlock',
+    CODE_BLOCK: 'codeBlock',
+    CODE_FIELD: 'codeField',
+    STAGE_SPRITE: 'stageSprite',
+    COSTUME: 'costume',
+    SOUND_PLAY: 'soundPlay',
+    SPRITE_ADD: 'spriteAdd',
+    BACKDROP_ADD: 'backdropAdd',
+});
+
+// opcode・なかまの id はブロックの g の class と、ツールボックスのなかまの id になる（scratch-blocks が付ける）。
+// セレクタに入れるので、英数字と _ だけを通す
+const safeName = (name) => (typeof name === 'string' && /^[A-Za-z0-9_]+$/.test(name) ? name : null);
+const FLYOUT = `${BLOCKS} .blocklyFlyout`;
+// スクリプトエリアのブロック（パレットのブロックは別の svg の .blocklyFlyout にあるので入らない）
+const CODE_CANVAS = `${BLOCKS} .blocklySvg > .blocklyWorkspace > .blocklyBlockCanvas`;
+
+const FOCUS_SIDES = {
+    [HINT_FOCUS.PALETTE_BLOCK]: [HINT_SIDES.RIGHT, HINT_SIDES.BOTTOM],
+    [HINT_FOCUS.CODE_BLOCK]: [HINT_SIDES.BOTTOM, HINT_SIDES.TOP, HINT_SIDES.RIGHT, HINT_SIDES.LEFT],
+    [HINT_FOCUS.CODE_FIELD]: [HINT_SIDES.BOTTOM, HINT_SIDES.TOP, HINT_SIDES.RIGHT, HINT_SIDES.LEFT],
+    [HINT_FOCUS.STAGE_SPRITE]: [HINT_SIDES.LEFT, HINT_SIDES.BOTTOM],
+    [HINT_FOCUS.COSTUME]: [HINT_SIDES.RIGHT, HINT_SIDES.BOTTOM],
+    [HINT_FOCUS.SOUND_PLAY]: [HINT_SIDES.TOP, HINT_SIDES.RIGHT],
+    [HINT_FOCUS.SPRITE_ADD]: [HINT_SIDES.LEFT, HINT_SIDES.TOP],
+    [HINT_FOCUS.BACKDROP_ADD]: [HINT_SIDES.LEFT, HINT_SIDES.TOP],
+};
+
 const toRect = (r) => ({ left: r.left, top: r.top, right: r.right, bottom: r.bottom });
 const isVisibleRect = (r) => r.right - r.left > 0 && r.bottom - r.top > 0;
 const union = (a, b) =>
@@ -190,16 +234,186 @@ export const findHintTargetRect = (target, doc) => {
     return rect && isVisibleRect(rect) ? rect : null;
 };
 
+const firstVisible = (doc, selector) =>
+    Array.from(doc.querySelectorAll(selector)).find((el) => isVisibleRect(el.getBoundingClientRect())) || null;
+
+/**
+ * 指す場所の DOM の要素（候補のうち、最初に見えたもの）。名前の札を押したときに、その部分を押すのに使う
+ * （part-names.js）。矩形を合わせる場所（`union`）は 1 つの要素にならないので null。
+ * @param {string} target - 指す場所（`HINT_TARGETS`）。
+ * @param {Document} doc - 探す document。
+ * @returns {?Element} 見つかった要素。無ければ null。
+ */
+export const findHintTargetElement = (target, doc) => {
+    const spec = TARGET_SPECS[target];
+    if (!spec || spec.union || !doc) return null;
+    for (const selector of spec.selectors) {
+        const found = firstVisible(doc, selector);
+        if (found) return found;
+    }
+    return null;
+};
+
+// 矩形が見えている範囲（パレット・スクリプトエリア）の中にあるか。パレットのブロックは上下に全部入っていること
+// （半分見えているブロックは押しにくい）、スクリプトエリアのブロックは真ん中が入っていること
+const insideVertically = (r, clip) => r.top >= clip.top - 1 && r.bottom <= clip.bottom + 1;
+const centerInside = (r, clip) => {
+    const cx = (r.left + r.right) / 2;
+    const cy = (r.top + r.bottom) / 2;
+    return cx >= clip.left && cx <= clip.right && cy >= clip.top && cy <= clip.bottom;
+};
+
+// スクリプトエリアに置いてあるブロック（影でないもの）で、見えている範囲に真ん中があるもの
+const findCodeBlock = (doc, opcode) => {
+    const name = safeName(opcode);
+    if (!name) return null;
+    const area = findHintTargetRect(HINT_TARGETS.CODE_AREA, doc);
+    if (!area) return null;
+    return (
+        Array.from(doc.querySelectorAll(`${CODE_CANVAS} g.blocklyBlock.${name}:not(.blocklyShadow)`)).find((el) => {
+            const r = el.getBoundingClientRect();
+            return isVisibleRect(r) && centerInside(r, area);
+        }) || null
+    );
+};
+
+/**
+ * 指す 1 つのもの（`focus`）の DOM の要素を探す。DOM を読むだけ（Blockly のメソッドは呼ばない）。
+ * ステージのスプライトは DOM が無いので null（`findHintFocusRect` が VM から求める）。
+ * @param {?object} focus - 指す 1 つのもの（`{kind, ...}`。`HINT_FOCUS`）。
+ * @param {Document} doc - 探す document。
+ * @returns {?Element} 見えている要素。無ければ null。
+ */
+export const findHintFocusElement = (focus, doc) => {
+    if (!focus || !doc) return null;
+    switch (focus.kind) {
+        case HINT_FOCUS.PALETTE_BLOCK: {
+            const name = safeName(focus.opcode);
+            const flyout = firstVisible(doc, FLYOUT);
+            if (!name || !flyout) return null;
+            const clip = flyout.getBoundingClientRect();
+            const block = Array.from(doc.querySelectorAll(`${FLYOUT} g.blocklyBlock.${name}`)).find((el) => {
+                const r = el.getBoundingClientRect();
+                return isVisibleRect(r) && insideVertically(r, clip);
+            });
+            if (block) return block;
+            // パレットの見えている範囲に無い: なかまのボタンを押すと、パレットがそのなかまへ動く
+            const category = safeName(focus.category);
+            return category ? firstVisible(doc, `${BLOCKS} .blocklyToolboxCategory[id="${category}"]`) : null;
+        }
+        case HINT_FOCUS.CODE_BLOCK: {
+            const block = findCodeBlock(doc, focus.opcode);
+            // ブロックの g は下につながったブロックも含むので、そのブロックの形（path）だけにする
+            return block ? block.querySelector(':scope > path.blocklyPath') || block : null;
+        }
+        case HINT_FOCUS.CODE_FIELD: {
+            const block = findCodeBlock(doc, focus.opcode);
+            const shadow = safeName(focus.shadow);
+            return block && shadow ? block.querySelector(`:scope > g.${shadow}`) : null;
+        }
+        case HINT_FOCUS.COSTUME: {
+            const items = Array.from(
+                doc.querySelectorAll('[class*="selector_wrapper_"] [class*="selector_list-item_"]'),
+            ).filter((el) => isVisibleRect(el.getBoundingClientRect()));
+            return Number.isInteger(focus.number) ? items[focus.number - 1] || null : null;
+        }
+        case HINT_FOCUS.SOUND_PLAY:
+            // 再生ボタン（鳴っているあいだは同じ場所の止めるボタンになる）
+            return firstVisible(doc, '[class*="sound-editor_round-button_"]');
+        case HINT_FOCUS.SPRITE_ADD:
+            return firstVisible(doc, '[class*="sprite-selector_add-button_"] [class*="action-menu_main-button_"]');
+        case HINT_FOCUS.BACKDROP_ADD:
+            return firstVisible(doc, '[class*="stage-selector_add-button_"] [class*="action-menu_main-button_"]');
+        default:
+            return null;
+    }
+};
+
+/**
+ * ステージの座標（VM。真ん中が 0・上が +y）の矩形を、画面の canvas の上の矩形（viewport 座標）にする。
+ * canvas の外にはみ出した分は切る。
+ * @param {{left: number, right: number, top: number, bottom: number}} bounds - ステージの座標の矩形
+ *   （renderer.getBounds）。
+ * @param {{left: number, top: number, right: number, bottom: number}} canvas - canvas の矩形。
+ * @param {Array<number>} [nativeSize] - ステージの大きさ（[幅, 高さ]。既定は 480×360）。
+ * @returns {?{left: number, top: number, right: number, bottom: number}} 矩形。canvas に入らなければ null。
+ */
+export const stageBoundsToRect = (bounds, canvas, nativeSize = [480, 360]) => {
+    if (!bounds || !canvas) return null;
+    const [w, h] = nativeSize;
+    const sx = (canvas.right - canvas.left) / w;
+    const sy = (canvas.bottom - canvas.top) / h;
+    const rect = {
+        left: Math.max(canvas.left, canvas.left + (bounds.left + w / 2) * sx),
+        right: Math.min(canvas.right, canvas.left + (bounds.right + w / 2) * sx),
+        top: Math.max(canvas.top, canvas.top + (h / 2 - bounds.top) * sy),
+        bottom: Math.min(canvas.bottom, canvas.top + (h / 2 - bounds.bottom) * sy),
+    };
+    return isVisibleRect(rect) ? rect : null;
+};
+
+// ステージに映っているスプライト（いま選んでいるスプライト。ステージを選んでいれば最初のスプライト）の矩形
+const findStageSpriteRect = (doc, vm) => {
+    const renderer = vm && vm.renderer;
+    const runtime = vm && vm.runtime;
+    if (!renderer || typeof renderer.getBounds !== 'function' || !runtime) return null;
+    const editing = vm.editingTarget;
+    const sprite =
+        editing && !editing.isStage ? editing : (runtime.targets || []).find((t) => !t.isStage && t.isOriginal);
+    if (!sprite || typeof sprite.drawableID !== 'number' || sprite.visible === false) return null;
+    const canvas = firstVisible(doc, '[class*="stage_stage-wrapper_"] canvas');
+    if (!canvas) return null;
+    let bounds = null;
+    try {
+        bounds = renderer.getBounds(sprite.drawableID);
+    } catch (e) {
+        return null;
+    }
+    const canvasRect = toRect(canvas.getBoundingClientRect());
+    return typeof renderer.getNativeSize === 'function'
+        ? stageBoundsToRect(bounds, canvasRect, renderer.getNativeSize())
+        : stageBoundsToRect(bounds, canvasRect);
+};
+
+/**
+ * 指す 1 つのもの（`focus`）の矩形（viewport 座標）。見つからなければ null（呼ぶ側は `target` の場所を指す）。
+ * @param {?object} focus - 指す 1 つのもの（`HINT_FOCUS`）。
+ * @param {Document} doc - 探す document。
+ * @param {object} [options] - 任意。
+ * @param {object} [options.vm] - VM（ステージのスプライトの位置を求める）。
+ * @returns {?{left: number, top: number, right: number, bottom: number}} 矩形。
+ */
+export const findHintFocusRect = (focus, doc, { vm = null } = {}) => {
+    if (!focus || !doc) return null;
+    if (focus.kind === HINT_FOCUS.STAGE_SPRITE) return findStageSpriteRect(doc, vm);
+    const el = findHintFocusElement(focus, doc);
+    if (!el) return null;
+    const rect = toRect(el.getBoundingClientRect());
+    return isVisibleRect(rect) ? rect : null;
+};
+
+/**
+ * 指す 1 つのものの、吹き出しを置く側の候補。
+ * @param {?object} focus - 指す 1 つのもの。
+ * @returns {Array<string>} 候補（`HINT_SIDES`）。知らないものは空。
+ */
+export const focusSides = (focus) => (focus && FOCUS_SIDES[focus.kind]) || [];
+
 /**
  * 吹き出しをかぶせない部品の矩形（viewport 座標。出ているものだけ）。
  * @param {Document} doc - 探す document。
  * @param {string} [target] - 指す場所。かぶってでも指す場所（役のボタン）なら、よけるものは無い。
+ * @param {?object} [focus] - 指す 1 つのもの。パレットのブロックを指すときは、スクリプトエリアに置いたスクリプトも
+ *   よける（パレットからドラッグして置いたブロックが、右に出した吹き出しに隠れて押せなかった）。
  * @returns {Array<{left: number, top: number, right: number, bottom: number}>} 矩形。
  */
-export const findHintAvoidRects = (doc, target) => {
+export const findHintAvoidRects = (doc, target, focus = null) => {
     const spec = target ? TARGET_SPECS[target] : null;
     if (!doc || (spec && spec.coverAvoid)) return [];
-    return visibleRects(doc, [...AVOID_SELECTORS, ...((spec && spec.avoid) || [])]);
+    // パレットのブロックを指すときは、スクリプトエリアのスクリプトもよける。なかまのボタンを指すときはパレットに
+    // かぶるが、押すとブロックを指しなおして吹き出しも動く（パレットをよけると、吹き出しが遠くへ行ってしまう）
+    const focusAvoid = focus && focus.kind === HINT_FOCUS.PALETTE_BLOCK ? [CODE_SCRIPTS] : [];
+    return visibleRects(doc, [...AVOID_SELECTORS, ...((spec && spec.avoid) || []), ...focusAvoid]);
 };
 
 /**

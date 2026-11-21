@@ -306,3 +306,53 @@ describe('LessonCompletedToast: reflection quiz (#1639)', () => {
         expect(queryByTestId('lesson-quiz-result')).toBeNull();
     });
 });
+
+describe('LessonCompletedToast: skip the rest of lesson 0 after a perfect "where is it?" quiz', () => {
+    const skipProps = (props = {}) => ({
+        lessonNumber: 0,
+        skipLesson: { lessonNumber: 1 },
+        onSkipLesson: jest.fn(),
+        ...props,
+    });
+
+    test('offers "Go to lesson 1" next to "Keep going with lesson 0"', () => {
+        const onNextChallenge = jest.fn();
+        const props = skipProps({ onNextChallenge });
+        const { getByTestId } = renderToast(props);
+        expect(getByTestId('lesson-completed-toast-title')).toHaveTextContent('You did it!');
+        expect(getByTestId('lesson-completed-toast-skip-detail')).toHaveTextContent('go on to lesson 1');
+        expect(getByTestId('lesson-completed-toast-next')).toHaveTextContent('Keep going with lesson 0');
+        expect(getByTestId('lesson-completed-toast-skip')).toHaveTextContent('Go to lesson 1');
+        fireEvent.click(getByTestId('lesson-completed-toast-skip'));
+        expect(props.onSkipLesson).toHaveBeenCalled();
+        expect(onNextChallenge).not.toHaveBeenCalled();
+        fireEvent.click(getByTestId('lesson-completed-toast-next'));
+        expect(onNextChallenge).toHaveBeenCalled();
+        expect(getByTestId('lesson-completed-toast-close')).toBeInTheDocument();
+    });
+
+    test('uses the Japanese and the hiragana strings', () => {
+        const { getByTestId, unmount } = renderToast(skipProps(), { locale: 'ja', messages: ja });
+        expect(getByTestId('lesson-completed-toast-next')).toHaveTextContent('続けてレッスン 0 をやる');
+        expect(getByTestId('lesson-completed-toast-skip')).toHaveTextContent('レッスン 1 へ進む');
+        expect(getByTestId('lesson-completed-toast-skip-detail')).toHaveTextContent('全問正解');
+        unmount();
+        const hira = renderToast(skipProps(), { locale: 'ja-Hira', messages: jaHira });
+        expect(hira.getByTestId('lesson-completed-toast-next')).toHaveTextContent('つづけて レッスン 0 を やる');
+        expect(hira.getByTestId('lesson-completed-toast-skip')).toHaveTextContent('レッスン 1 へ すすむ');
+        expect(hira.getByTestId('lesson-completed-toast-skip-detail').textContent).not.toMatch(/\p{sc=Han}/u);
+    });
+
+    test('is not offered without skipLesson, nor when the lesson is done or the assignment is cleared', () => {
+        const none = renderToast({ lessonNumber: 0 });
+        expect(none.queryByTestId('lesson-completed-toast-skip')).not.toBeInTheDocument();
+        expect(none.getByTestId('lesson-completed-toast-next')).toHaveTextContent('Next challenge');
+        none.unmount();
+        const lessonDone = renderToast(skipProps({ action: 'otherLessons', challenges: allDone }));
+        expect(lessonDone.queryByTestId('lesson-completed-toast-skip')).not.toBeInTheDocument();
+        lessonDone.unmount();
+        const cleared = renderToast(skipProps({ assignmentCleared: true }));
+        expect(cleared.queryByTestId('lesson-completed-toast-skip')).not.toBeInTheDocument();
+        expect(cleared.queryByTestId('lesson-completed-toast-skip-detail')).not.toBeInTheDocument();
+    });
+});
