@@ -236,7 +236,8 @@ try {
         summary,
     );
     const preview = await text('classroom-description-preview-lesson');
-    record('student preview shows the lesson', preview.includes('★ 2 つをふくむ'), preview);
+    // the student preview shows the goal card (the count with ★ and the lessons)
+    record('student preview shows the lesson', preview.includes('★ 2 つはかならず') && preview.includes('レッスン 1'), preview);
 
     // 4. Scoring in「詳しい設定」.
     await page.locator(tid('classroom-assignment-advanced-toggle')).click();
