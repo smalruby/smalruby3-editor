@@ -222,6 +222,7 @@ registerSendTable(converter, MOTION_SENDS);
 | `textArg(input, 既定値, { number })`                                                                | 文字列・値のブロック（`_isStringOrBlock`。`number` なら数も）                                                                                                                                                  | 文字の影つきの入力（`_addTextInput`）                                             |
 | `menuArg(input, メニューの opcode, field, { validate, number, orBlock })`                           | 文字列（`number` なら数・値のブロック、`orBlock` なら文字列・値のブロック）                                                                                                                                    | メニューのブロックを入力に入れる（`_createFieldBlock`。ブロックはそのまま入れる） |
 | `menuInputArg(input, メニューの opcode, field, 既定値, { choices, validate, anyBlock, normalize })` | 文字列（`choices` があればその中のもの。`normalize` があれば直した値で比べ、直した値を入れる）・値のブロック（`anyBlock` ならどのブロックも）。既定値は `(converter) => 値` でもよい（作品の設定で決まるとき） | メニューの影つきの入力（`_addFieldInput`）                                        |
+| `anyCase(choices)`                                                                                  | `menuInputArg` の `normalize` に渡す。文字列を大文字小文字を問わずに選択肢から引き、メニューに書かれた形にする（無ければ選択肢でない）                                                                         | —                                                                                 |
 | `noteArg(input, 既定値)`                                                                            | 数・値のブロック（`_isNumberOrBlock`）                                                                                                                                                                         | 音符の影つきの入力（`_addNoteInput`）                                             |
 | `colorArg(input, 既定値)`                                                                           | 色・値のブロック（`_isColorOrBlock`）                                                                                                                                                                          | 色の入力（`_addColorFieldInput`）                                                 |
 | `fieldArg(field, 選べる値, { normalize })`                                                          | 文字列（選べる値があれば、`normalize` したものがその中にあるもの）                                                                                                                                             | ブロックのフィールド（`_addField`）                                               |
@@ -251,8 +252,9 @@ registerSendTable(converter, MOTION_SENDS);
 | translate   | 4      | `translate`（Ruby の式のレシーバーを作る）                                                                                                                       |
 | video       | 4      | `video_sensing`（Ruby の式のレシーバーを作る）                                                                                                                   |
 | boost       | 10     | `self.when(:boost_color, ...)` / `self.when(:boost_tilted, ...)`（シンボルでハットを選ぶ）                                                                       |
+| wedo2       | 11     | `wedo2`（Ruby の式のレシーバーを作る）                                                                                                                           |
 
-拡張機能は pen・music・text2speech・translate・video・boost を移した。残り（ev3・wedo2・microbit・micro:bit More・g2s・koshien・mesh など）は、同じ形（`changesReceiver` と `menus`）で 1 つずつ移す。
+拡張機能は pen・music・text2speech・translate・video・boost・wedo2 を移した。残り（ev3・microbit・micro:bit More・g2s・koshien・mesh など）は、同じ形（`changesReceiver` と `menus`）で 1 つずつ移す。
 
 ### 表の列
 
