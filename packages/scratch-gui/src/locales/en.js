@@ -29,6 +29,8 @@ export default {
     'gui.menuBar.meshV2': 'Mesh',
     'gui.menuBar.smalrubotS1': 'ArtecRobo',
     'gui.menuBar.smalrubotS1.flashFirmware': 'Write Firmware',
+    'gui.menuBar.smalrubotS1.enterStuduinoMode': 'Studuino Mode (Write to Studuino)',
+    'gui.menuBar.smalrubotS1.exitStuduinoMode': 'Back to Normal Mode (Run from PC)',
     'gui.smalrubotFirmware.title': 'Studuino Firmware',
     'gui.smalrubotFirmware.description':
         'Write the firmware to the Studuino board. Connect the board via USB cable, then press the button below and select your Studuino in the serial port dialog.',

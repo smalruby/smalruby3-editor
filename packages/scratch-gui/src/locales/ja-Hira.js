@@ -20,6 +20,8 @@ export default {
     'gui.menuBar.meshV2': 'メッシュ',
     'gui.menuBar.smalrubotS1': 'アーテックロボ',
     'gui.menuBar.smalrubotS1.flashFirmware': 'ファームウェアかきこみ',
+    'gui.menuBar.smalrubotS1.enterStuduinoMode': 'Studuino モード（Studuino にかきこむ）',
+    'gui.menuBar.smalrubotS1.exitStuduinoMode': 'つうじょうモード（つないでうごかす）にもどす',
     'gui.smalrubotFirmware.title': 'Studuino (スタディーノ) ファームウェア',
     'gui.smalrubotFirmware.description':
         'スタディーノようのファームウェアをきばんにかきこみます。USBケーブルできばんをせつぞくしてから、したのボタンをおしてシリアルポートせんたくダイアログで、おつかいのスタディーノをえらんでください。',

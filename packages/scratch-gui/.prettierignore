@@ -235,6 +235,7 @@ src/containers/*
 !src/containers/lesson-hint.jsx
 !src/containers/lesson-practice-partner.jsx
 !src/containers/studuino-practice-board.jsx
+!src/containers/studuino-mode-sync.jsx
 !src/containers/lesson-analytics.jsx
 !src/containers/lesson-progress-sync.jsx
 !src/containers/lesson-goal-watcher.jsx
@@ -359,6 +360,7 @@ src/lib/*
 !src/lib/ruby-screenshot.js
 !src/lib/smalrubot-firmware-flasher.js
 !src/lib/smalrubot-firmware.hex.js
+!src/lib/studuino-mode.js
 !src/lib/stale-block-delete-guard.js
 !src/lib/storage-worker-timeout.js
 !src/lib/storage-worker-timeout-hoc.jsx
@@ -444,6 +446,7 @@ src/reducers/*
 !src/reducers/ruby-code.js
 !src/reducers/smalrubot-firmware.js
 !src/reducers/smalruby-registry.ts
+!src/reducers/studuino-mode.js
 !src/reducers/tutorial-onboarding.js
 
 # ============================================================
@@ -488,6 +491,7 @@ test/integration/*
 !test/integration/ruby-tab.test.js
 !test/integration/smalrubot-firmware.test.js
 !test/integration/smalrubot-s1-connection-flow.test.js
+!test/integration/studuino-mode.test.js
 !test/integration/smalrubot-s1-legacy-card.test.js
 !test/integration/lesson-goal.test.js
 !test/integration/smalruby-lesson1-challenges-5-8.test.js
@@ -829,6 +833,7 @@ test/unit/lib/*
 !test/unit/lib/screen-utils.test.js
 !test/unit/lib/stale-block-delete-guard.test.js
 !test/unit/lib/smalrubot-firmware-flasher.test.js
+!test/unit/lib/studuino-mode.test.js
 !test/unit/lib/smalruby-original-sprites.test.js
 !test/unit/lib/setup-prism.js
 !test/unit/lib/version-checker.test.js
@@ -843,6 +848,7 @@ test/unit/reducers/*
 !test/unit/reducers/koshien-mock-panel-reducer.test.js
 !test/unit/reducers/cards_reducer.test.js
 !test/unit/reducers/dncl-mode-reducer.test.js
+!test/unit/reducers/studuino-mode-reducer.test.js
 !test/unit/reducers/lesson-mode-reducer.test.js
 !test/unit/reducers/tutorial-onboarding-reducer.test.js
 !test/unit/reducers/classroom-reducer.test.js
