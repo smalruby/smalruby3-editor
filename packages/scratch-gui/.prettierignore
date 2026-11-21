@@ -266,6 +266,8 @@ src/lib/*
 !src/lib/dncl/**
 !src/lib/ruby-to-blocks-converter/
 !src/lib/ruby-to-blocks-converter/**
+!src/lib/studuino-ir/
+!src/lib/studuino-ir/**
 !src/lib/settings/
 # Mixed directory
 !src/lib/libraries/
@@ -694,6 +696,8 @@ test/unit/lib/*
 !test/unit/lib/mesh-practice/
 !test/unit/lib/mesh-practice/**
 !test/unit/lib/dncl/**
+!test/unit/lib/studuino-ir/
+!test/unit/lib/studuino-ir/**
 !test/unit/lib/ja-notation/
 !test/unit/lib/ja-notation/**
 !test/unit/lib/ruby-generator/
