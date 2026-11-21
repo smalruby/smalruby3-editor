@@ -11,6 +11,7 @@ import KoshienConverter from '../../../../src/lib/ruby-to-blocks-converter/koshi
 import LooksConverter from '../../../../src/lib/ruby-to-blocks-converter/looks';
 import MakeyMakeyConverter from '../../../../src/lib/ruby-to-blocks-converter/makeymakey';
 import MicroBitConverter from '../../../../src/lib/ruby-to-blocks-converter/microbit';
+import MicrobitMoreConverter from '../../../../src/lib/ruby-to-blocks-converter/microbit_more';
 import MotionConverter from '../../../../src/lib/ruby-to-blocks-converter/motion';
 import MusicConverter from '../../../../src/lib/ruby-to-blocks-converter/music';
 import OperatorsConverter from '../../../../src/lib/ruby-to-blocks-converter/operators';
@@ -69,6 +70,7 @@ describe('RubyToBlocksConverter/send table', () => {
         tm2scratch: TM2ScratchConverter,
         koshien: KoshienConverter,
         g2s: G2SConverter,
+        microbitMore: MicrobitMoreConverter,
     };
 
     test.each(Object.keys(tables))('every opcode of the %s table has a generator', (area) => {
