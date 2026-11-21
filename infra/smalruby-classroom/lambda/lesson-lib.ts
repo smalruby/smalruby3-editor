@@ -16,6 +16,8 @@ export const LESSON_ID_REGEX = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 export const MAX_LESSON_CHALLENGES = 100;
 /** 満点の上限。 */
 export const MAX_SCORING_TOTAL = 1000;
+/** じゅんびチェックで「まだ」のチャレンジの数の上限（コースの基本のチャレンジの数より十分大きい）。 */
+export const MAX_READINESS_MISSING = 20;
 /** これより前の日時は端末の時計の壊れとみなして受け付けない。 */
 const MIN_TIMESTAMP_MS = Date.parse('2020-01-01T00:00:00.000Z');
 const MAX_TIMESTAMP_LENGTH = 40;
@@ -53,17 +55,30 @@ export interface ChallengeProgress {
 export interface CurrentChallenge {
   challengeId: string;
   openedAt: string;
+  /** 課題の対象外のチャレンジ（おさらい）をやっている。対象外のときだけ true を保存する。 */
+  review?: true;
+}
+
+/** コースのじゅんびチェックの結果。 */
+export interface LessonReadiness {
+  checkedAt: string;
+  /** まだできていない基本のチャレンジの ID。 */
+  missing: string[];
 }
 
 export interface LessonProgress {
   challenges: Record<string, ChallengeProgress>;
   current: CurrentChallenge | null;
+  /** 省略 = じゅんびチェックの結果を保存していない（古い行）。 */
+  readiness?: LessonReadiness | null;
 }
 
 export interface LessonProgressInput {
   challenges: Record<string, ChallengeProgress>;
   /** undefined = 送られていない（保存値を保つ）、null = いまやっていない。 */
   current: CurrentChallenge | null | undefined;
+  /** undefined = 送られていない（保存値を保つ）、null = 外す。 */
+  readiness?: LessonReadiness | null;
 }
 
 /** 入力の誤り。handler が 400 に変える。 */
@@ -89,15 +104,15 @@ function validateId(value: unknown, label: string): string {
   return value;
 }
 
-function validateIdList(value: unknown, label: string, allowEmpty: boolean): string[] {
+function validateIdList(value: unknown, label: string, allowEmpty: boolean, max = MAX_LESSON_CHALLENGES): string[] {
   if (!Array.isArray(value)) {
     throw new LessonInputError(`${label} must be an array`);
   }
   if (!allowEmpty && value.length === 0) {
     throw new LessonInputError(`${label} must not be empty`);
   }
-  if (value.length > MAX_LESSON_CHALLENGES) {
-    throw new LessonInputError(`${label} may have at most ${MAX_LESSON_CHALLENGES} items`);
+  if (value.length > max) {
+    throw new LessonInputError(`${label} may have at most ${max} items`);
   }
   const ids = value.map((id, i) => validateId(id, `${label}[${i}]`));
   if (new Set(ids).size !== ids.length) {
@@ -251,12 +266,29 @@ export function validateLessonProgressInput(body: Record<string, unknown>, nowMs
     if (!isPlainObject(body.current)) {
       throw new LessonInputError('current must be an object or null');
     }
+    if (body.current.review !== undefined && typeof body.current.review !== 'boolean') {
+      throw new LessonInputError('current.review must be a boolean');
+    }
     current = {
       challengeId: validateId(body.current.challengeId, 'current.challengeId'),
       openedAt: normalizeTimestamp(body.current.openedAt, 'current.openedAt', nowMs),
+      ...(body.current.review === true ? { review: true as const } : {}),
     };
   }
-  return { challenges, current };
+
+  let readiness: LessonReadiness | null | undefined;
+  if (body.readiness === null) {
+    readiness = null;
+  } else if (body.readiness !== undefined) {
+    if (!isPlainObject(body.readiness)) {
+      throw new LessonInputError('readiness must be an object or null');
+    }
+    readiness = {
+      checkedAt: normalizeTimestamp(body.readiness.checkedAt, 'readiness.checkedAt', nowMs),
+      missing: validateIdList(body.readiness.missing, 'readiness.missing', true, MAX_READINESS_MISSING),
+    };
+  }
+  return { challenges, current, readiness };
 }
 
 // `challenges` は通常のオブジェクトなので、`constructor` のような ID は in / [] だと
@@ -264,7 +296,12 @@ export function validateLessonProgressInput(body: Record<string, unknown>, nowMs
 const hasOwn = (obj: object, key: string): boolean => Object.prototype.hasOwnProperty.call(obj, key);
 
 const sameCurrent = (a: CurrentChallenge | null, b: CurrentChallenge | null): boolean =>
-  a === b || (!!a && !!b && a.challengeId === b.challengeId && a.openedAt === b.openedAt);
+  a === b || (!!a && !!b && a.challengeId === b.challengeId && a.openedAt === b.openedAt &&
+    a.review === b.review);
+
+const sameReadiness = (a: LessonReadiness | null, b: LessonReadiness | null): boolean =>
+  a === b || (!!a && !!b && a.checkedAt === b.checkedAt &&
+    a.missing.length === b.missing.length && a.missing.every((id, i) => id === b.missing[i]));
 
 /**
  * 保存されている進み具合に、送られた進み具合をマージする。
@@ -273,6 +310,10 @@ const sameCurrent = (a: CurrentChallenge | null, b: CurrentChallenge | null): bo
  * - 既にできた記録は変えない（できた時刻を過去にも未来にも動かさない・`before` も変えない）。
  * - 保存されている記録は、送られなくても・課題から外されても消さない（先生が戻したときに見える）。
  * - current は送られたときだけ変える。対象外のチャレンジの current は無視する。
+ *   ただし review: true（おさらい）なら対象外でも保つ（review: true を付けて保存）。
+ *   対象のチャレンジなら review は付けない（課題の中のチャレンジはおさらいではない）。
+ *   対象外のチャレンジのできた記録は、review でも捨てる。
+ * - readiness（じゅんびチェックの結果）は送られたときだけ変える。null で外す。
  * - 保存値から何も変わらなければ changed=false（はじめてで中身が空のときも書かない）。
  * @param existing - 保存されている進み具合（はじめてなら null）
  * @param input - validateLessonProgressInput の結果
@@ -298,10 +339,17 @@ export function mergeLessonProgress(
   if (input.current === null) {
     current = null;
   } else if (input.current && allowed.has(input.current.challengeId)) {
-    current = input.current;
+    current = { challengeId: input.current.challengeId, openedAt: input.current.openedAt };
+  } else if (input.current && input.current.review === true) {
+    current = { challengeId: input.current.challengeId, openedAt: input.current.openedAt, review: true };
   }
   if (!sameCurrent(prevCurrent, current)) changed = true;
+
+  const prevReadiness = existing?.readiness ?? null;
+  const readiness = input.readiness === undefined ? prevReadiness : input.readiness;
+  if (!sameReadiness(prevReadiness, readiness)) changed = true;
   // はじめての送信でも、中身が空（{} や対象外だけ）なら空の行は書かない（D8）。
 
-  return { progress: { challenges, current }, changed };
+  // readiness が無い行は今までと同じ形のまま（キーを足さない）。
+  return { progress: { challenges, current, ...(readiness ? { readiness } : {}) }, changed };
 }
