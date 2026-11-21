@@ -691,6 +691,18 @@ design.md の「中 2 のコース」。コースの ✓ もこれで数える�
   タッチセンサーが無ければ、ほかのセンサー（練習用の基板ならスライダーを 0 にする）で試しても通る。
 - **さかい目の 500** は答えの値。教室の明るさで変わるので、4 の判定は値そのものを見ない（言い分けたことを見る）。
 
+レッスン 2「自動で動かそう」（`ctrl-l2`。ja-Hira「じどうで うごかそう」、en "Move It Automatically"。ワークシート第 3 時）:
+
+| # | id | 課題 | 答え（ja） | できた の条件（`goal`） | クイズの正解 |
+|---|----|------|-----------|------------------------|-------------|
+| 1 | `ctrl-l2-auto-light` | 自動点灯 LED ライト: 明るさを変数「明るさ」に入れ、500 より小さければ LED をつけ、そうでなければ消す | `loop do` 〔`$明るさ = studuino.sensor_value("light")` → `if $明るさ < 500` 〔オン〕 `else` 〔オフ〕〕 | 旗のスクリプトで `control_forever`・`control_if_else`・センサーの値・「明るさ」への `data_setvariableto` ＋ 値が 512 より小さいときに LED オン ＋ 512 以上のときに LED オフ | ①1 回はかるだけで、あとは変わらない |
+| 2 | `ctrl-l2-near-light` | 近づいたらつけよう: 赤外線センサー（フォトリフレクタ）(A4) の値が 500 より大きければ LED をつける | `if studuino.sensor_value("ir_a4") > 500` 〔オン〕 `else` 〔オフ〕 | 旗のスクリプトで `control_forever`・`control_if_else`・センサーの値 ＋ 512 以上のときにオン ＋ 512 より小さいときにオフ | ①何を計測したいか |
+| 3 | `ctrl-l2-read-diagram` | 読んで作る（夜だけ押しボタン式）: 暗い「かつ」タッチセンサーを押しているときだけ LED をつける | `if studuino.sensor_value("light") < 500 && studuino.sensor_value("touch") == 0` 〔オン〕 `else` 〔オフ〕 | 旗のスクリプトの 1 回の実行で `control_forever`・`control_if_else`・`operator_and` とセンサーの値 2 回 ＋ 512 より小さいときにオン ＋ 512 以上（明るい）のときにオフ | ①「〜かつ〜」 |
+
+- **さかい目は判定の 512 と別**。答えは 500 にしてあるが、生徒が教室で決めた値（300 など）でも、暗くしてつけ・明るくして消せば通る。
+  逆の向き（明るいときにつける）は通らない。
+- 2 は 1 とプログラムの形が同じで、センサーと判断だけが変わる（教科書の「センサーの選択」）。
+
 ## 記録の形（端末）
 
 `packages/scratch-gui/src/lib/lessons/lesson-progress.js`。localStorage の **`smalruby:lessonProgress`** に、

@@ -3082,6 +3082,9 @@ const chatLesson5 = defineLesson({
 // どのチャレンジも新しい作品（ネコ）から始める。1-1 だけは生徒が拡張機能を足す（つなぎ方を覚える）
 const CTRL_EXTENSION = 'smalrubotS1';
 const CTRL_START = { extensions: [CTRL_EXTENSION] };
+// さかい目（しきい値）は生徒が決めるので、判定はセンサーの値の真ん中（0〜1023 の 512）より小さい／大きいで見る
+const CTRL_DARK = { lt: 512 };
+const CTRL_BRIGHT = { gte: 512 };
 // locale ごとの名前。変数の名前は ja-Hira が漢字を使わない・en は英語。判定はどの名前でも通す
 const CTRL_WORDS = {
     ja: { v: '$明るさ', dark: '暗い', bright: '明るい' },
@@ -3313,6 +3316,158 @@ const ctrlLesson1 = defineLesson({
     ],
 });
 
+// レッスン 2「自動で動かそう」（#2171・ワークシート第 3 時）: 計測 → 判断 → 仕事 をずっとくり返す、計測・制御の基本形。
+// 2-1 が自動点灯 LED ライト、2-2 はセンサーを替えて別のシステムにする、2-3 は読んで作る（2 つの条件の「かつ」）
+const ctrlLesson2 = defineLesson({
+    id: 'ctrl-l2',
+    challenges: [
+        // 1 自動点灯 LED ライト（課題④）: 明るさを計測して変数に入れ、さかい目より小さい（暗い）ときに LED をつける
+        {
+            id: 'ctrl-l2-auto-light',
+            card: { category: CATEGORIES.EXTENSIONS, main: CATEGORIES.CONTROL },
+            task: challengeMessage('ctrl-l2-auto-light', 'task'),
+            setup: CTRL_START,
+            activityDiagram: true,
+            allowedBlocks: {
+                event: ['event_whenflagclicked'],
+                control: ['control_forever', 'control_if_else'],
+                operators: [{ opcode: 'operator_lt', inputs: { OPERAND2: 500 } }],
+                data: ['data_setvariableto', 'data_variable'],
+                [CTRL_EXTENSION]: [CTRL_SENSOR, CTRL_LED_ON, CTRL_LED_OFF],
+            },
+            steps: withDiagramFirst('ctrl-l2-auto-light', [
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: ctrlCode(
+                        (w) =>
+                            `when_flag_clicked do\n  loop do\n    ${w.v} = studuino.sensor_value("light")\n  end\nend\n`,
+                    ),
+                },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: ctrlCode((w) => `${w.v} = studuino.sensor_value("light")\nif ${w.v} < 500\nelse\nend\n`),
+                },
+                {
+                    target: HINT_TARGETS.CODE_AREA,
+                    blocks: ctrlCode(
+                        (w) =>
+                            `if ${w.v} < 500\n  studuino.led("left", true)\nelse\n` +
+                            '  studuino.led("left", false)\nend\n',
+                    ),
+                },
+                { target: HINT_TARGETS.PRACTICE_BOARD },
+            ]),
+            debug: debugTips('ctrl-l2-auto-light', 2),
+            // 旗のスクリプトで、明るさを計測して変数に入れ、分岐した ＋ 暗いとき（値が小さいとき）につけ、明るいときに消した
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenflagclicked' },
+                    blocks: [
+                        'control_forever',
+                        'control_if_else',
+                        CTRL_SENSOR,
+                        { opcode: 'data_setvariableto', args: { VARIABLE: CTRL_BRIGHTNESS_NAME } },
+                    ],
+                },
+                { type: 'boardCommand', kind: 'led', value: 'on', whenSensor: { value: CTRL_DARK } },
+                { type: 'boardCommand', kind: 'led', value: 'off', whenSensor: { value: CTRL_BRIGHT } },
+            ],
+            quiz: challengeQuiz('ctrl-l2-auto-light', 0),
+            code: ctrlCode(
+                (w) =>
+                    `when_flag_clicked do\n  loop do\n    ${w.v} = studuino.sensor_value("light")\n` +
+                    `    if ${w.v} < 500\n      studuino.led("left", true)\n    else\n` +
+                    '      studuino.led("left", false)\n    end\n  end\nend\n',
+            ),
+        },
+        // 2 近づいたらつけよう: センサーを赤外線センサー（フォトリフレクタ）に替え、近づいた（値が大きい）ときに LED を
+        // つける。計測したいものに合わせてセンサーを選ぶ（教科書の「センサーの選択」）
+        {
+            id: 'ctrl-l2-near-light',
+            card: { category: CATEGORIES.EXTENSIONS, main: CATEGORIES.EXTENSIONS },
+            task: challengeMessage('ctrl-l2-near-light', 'task'),
+            setup: CTRL_START,
+            activityDiagram: true,
+            allowedBlocks: {
+                event: ['event_whenflagclicked'],
+                control: ['control_forever', 'control_if_else'],
+                operators: [{ opcode: 'operator_gt', inputs: { OPERAND2: 500 } }],
+                [CTRL_EXTENSION]: [CTRL_SENSOR, CTRL_LED_ON, CTRL_LED_OFF],
+            },
+            steps: withDiagramFirst('ctrl-l2-near-light', [
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: 'when_flag_clicked do\n  loop do\n    if false\n    else\n    end\n  end\nend\n',
+                },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: 'if studuino.sensor_value("ir_a4") > 500\nelse\nend\n',
+                },
+                {
+                    target: HINT_TARGETS.CODE_AREA,
+                    blocks:
+                        'if studuino.sensor_value("ir_a4") > 500\n  studuino.led("left", true)\nelse\n' +
+                        '  studuino.led("left", false)\nend\n',
+                },
+                { target: HINT_TARGETS.PRACTICE_BOARD },
+            ]),
+            debug: debugTips('ctrl-l2-near-light', 2),
+            // 近づいたとき（値が大きいとき）につけ、はなれたとき（値が小さいとき）に消した
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenflagclicked' },
+                    blocks: ['control_forever', 'control_if_else', CTRL_SENSOR],
+                },
+                { type: 'boardCommand', kind: 'led', value: 'on', whenSensor: { value: CTRL_BRIGHT } },
+                { type: 'boardCommand', kind: 'led', value: 'off', whenSensor: { value: CTRL_DARK } },
+            ],
+            quiz: challengeQuiz('ctrl-l2-near-light', 0),
+            code:
+                'when_flag_clicked do\n  loop do\n    if studuino.sensor_value("ir_a4") > 500\n' +
+                '      studuino.led("left", true)\n    else\n      studuino.led("left", false)\n    end\n' +
+                '  end\nend\n',
+        },
+        // 3 図から作ろう：夜だけ押しボタン式（読んで作る）: 暗い「かつ」タッチセンサーを押している ときだけ LED をつける
+        {
+            id: 'ctrl-l2-read-diagram',
+            mode: 'readDiagram',
+            card: { category: CATEGORIES.EXTENSIONS, main: CATEGORIES.OPERATORS },
+            task: challengeMessage('ctrl-l2-read-diagram', 'task'),
+            explanation: challengeMessage('ctrl-l2-read-diagram', 'explanation'),
+            setup: CTRL_START,
+            allowedBlocks: {
+                event: ['event_whenflagclicked'],
+                control: ['control_forever', 'control_if_else'],
+                operators: [
+                    'operator_and',
+                    { opcode: 'operator_lt', inputs: { OPERAND2: 500 } },
+                    { opcode: 'operator_equals', inputs: { OPERAND2: 0 } },
+                ],
+                [CTRL_EXTENSION]: [CTRL_SENSOR, CTRL_LED_ON, CTRL_LED_OFF],
+            },
+            // 1 回の実行で 2 つのセンサーを読んで「かつ」で分岐し、条件に合うとき（どちらも値が小さい）につけ、合わない
+            // とき（明るい）に消した
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenflagclicked' },
+                    blocks: ['control_forever', 'control_if_else', 'operator_and', { opcode: CTRL_SENSOR, count: 2 }],
+                },
+                { type: 'boardCommand', kind: 'led', value: 'on', whenSensor: { value: CTRL_DARK } },
+                { type: 'boardCommand', kind: 'led', value: 'off', whenSensor: { value: CTRL_BRIGHT } },
+            ],
+            quiz: challengeQuiz('ctrl-l2-read-diagram', 0),
+            code:
+                'when_flag_clicked do\n  loop do\n' +
+                '    if studuino.sensor_value("light") < 500 && studuino.sensor_value("touch") == 0\n' +
+                '      studuino.led("left", true)\n    else\n      studuino.led("left", false)\n    end\n' +
+                '  end\nend\n',
+        },
+    ],
+});
+
 export const COURSES = [
     defineCourse({
         id: 'kyou-kara-programmer',
@@ -3331,7 +3486,7 @@ export const COURSES = [
     defineCourse({
         id: 'jidou-sensor-motor',
         language: LANGUAGES.BLOCKS,
-        lessons: [ctrlLesson1],
+        lessons: [ctrlLesson1, ctrlLesson2],
     }),
 ];
 
