@@ -181,6 +181,7 @@ describe('RubyToBlocksConverter/Analysis', () => {
                     requireds: ['a'],
                     optionals: ['b'],
                     returnsValue: true,
+                    hasReturn: true,
                     usesSuper: false,
                 },
                 {
@@ -190,8 +191,36 @@ describe('RubyToBlocksConverter/Analysis', () => {
                     requireds: [],
                     optionals: [],
                     returnsValue: false,
+                    hasReturn: false,
                     usesSuper: false,
                 },
+            ]);
+            analysis.procedures.definitions.forEach((d) => expect(analysis.procedures.ofNode.get(d.node)).toBe(d));
+        });
+
+        test('a bare `return` and a `return` in a block are returns of the method', () => {
+            const analysis = analyzeRuby(dedent`
+                def foo
+                  return
+                end
+
+                def bar(n)
+                  3.times do
+                    return n if n > 1
+                  end
+                end
+
+                def foo_bar
+                  def baz
+                    return 1
+                  end
+                end
+            `);
+            expect(analysis.procedures.definitions.map((d) => [d.name, d.hasReturn, d.returnsValue])).toEqual([
+                ['foo', true, false],
+                ['bar', true, true],
+                ['foo_bar', false, false],
+                ['baz', true, true],
             ]);
         });
     });

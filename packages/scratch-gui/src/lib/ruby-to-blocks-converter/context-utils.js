@@ -67,6 +67,9 @@ const ContextUtils = {
             // each variable name is used (issue #1613), where each local is used (issue #1630), how
             // many times each method is called as a value, ...
             analysis: null,
+            // The analyses of the modules read from other sprites (`_importModuleFromOtherSprites`),
+            // whose defs are not in the tree of this code
+            importedAnalyses: [],
             // The scope index of each unit of locals of the script, decided while converting (issue #1630)
             localScopeIndexes: Object.create(null),
             // The list blocks that read `@a` / `$a` of Ruby version 2 (issue #1622)

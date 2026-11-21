@@ -7,8 +7,8 @@ import { childNodesOf, forEachNode, nodeTypeName } from './node-walk';
 // the source; it does not read the converter or the VM.
 //
 // The converter analyzes the code in `targetCodeToBlocks` before it converts (`_context.analysis`)
-// and reads `variables` / `locals` (`variable-utils.js`), `procedures.valueCallCounts`
-// (`my-blocks.js`), `classes` (`class-visitor.js` / `module-visitor.js` / `initialize-handler.js`)
+// and reads `variables` / `locals` (`variable-utils.js`), `procedures` (`my-blocks.js`), `classes`
+// (`class-visitor.js` / `module-visitor.js` / `initialize-handler.js`)
 // and `errors` (`_rejectRubyNameOfVariableAndList`) from here.
 
 // Methods that the converter turns into list blocks only (a String has no such block), so calling
@@ -380,12 +380,14 @@ const valueCallCounter = () => {
 };
 
 /**
- * Collect the methods made with `def` (`procedures.definitions`).
+ * Collect the methods made with `def` (`procedures.definitions`). `ofNode` finds the entry of a
+ * DefNode, which `my-blocks.js` reads when it converts the def.
  * @param {function(object): number} lineOf - The line of a node.
  * @returns {object} `{enter, leave, finish}`.
  */
 const definitionCollector = (lineOf) => {
     const definitions = [];
+    const ofNode = new Map();
     const open = [];
     const enter = (node, type) => {
         if (type === 'DefNode') {
@@ -398,17 +400,22 @@ const definitionCollector = (lineOf) => {
                 requireds: names(params && params.requireds),
                 optionals: names(params && params.optionals),
                 returnsValue: false,
+                hasReturn: false,
                 usesSuper: false,
                 node,
             };
             definitions.push(definition);
+            ofNode.set(node, definition);
             open.push(definition);
             return;
         }
         const current = open[open.length - 1];
         if (!current) return;
-        if (type === 'ReturnNode' && node.arguments_ && node.arguments_.arguments_.length > 0) {
-            current.returnsValue = true;
+        if (type === 'ReturnNode') {
+            // Any `return` (a bare one too) sets `_return_<name>_`, so the method returns a value and
+            // its definition starts by resetting that variable (`@ruby:return:<name>:initialize`).
+            current.hasReturn = true;
+            if (node.arguments_ && node.arguments_.arguments_.length > 0) current.returnsValue = true;
         } else if (type === 'SuperNode' || type === 'ForwardingSuperNode') {
             current.usesSuper = true;
         }
@@ -416,7 +423,7 @@ const definitionCollector = (lineOf) => {
     const leave = (node, type) => {
         if (type === 'DefNode') open.pop();
     };
-    return { enter, leave, finish: () => definitions };
+    return { enter, leave, finish: () => ({ definitions, ofNode: readOnlyMap(ofNode) }) };
 };
 
 /**
@@ -490,8 +497,10 @@ const classCollector = (lineOf) => {
  * - `locals`: the units of local variables: `unitOfNode` (the node that starts a unit -> its id),
  *   `uses[unit][name]`, `groups[unit]` (whose locals the unit sees: itself for a method, 0 for a
  *   block of the script) and `splitNames` (locals that are separate in each block of the script).
- * - `procedures`: `valueCallCounts[name]` (calls whose value is used) and
- *   `definitions` (the methods made with `def`).
+ * - `procedures`: `valueCallCounts[name]` (calls whose value is used),
+ *   `definitions` (the methods made with `def`: the parameters, whether a `return` is in the body
+ *   (`hasReturn`) and whether one returns a value (`returnsValue`)) and `ofNode` (a DefNode -> its
+ *   entry).
  * - `classes`: `classes` and `modules`, with what is directly in their bodies and their
  *   `structure` (`class-analysis.js`), and `ofNode` (a ClassNode / ModuleNode -> its entry).
  * - `symbols`: every symbol that the code writes (`:name`), the candidates of `$_symbols_`.
@@ -531,7 +540,7 @@ const analyze = (root, { source }) => {
     return deepFreeze({
         variables: variableTable,
         locals,
-        procedures: { valueCallCounts: calls.finish(), definitions: definitions.finish() },
+        procedures: { valueCallCounts: calls.finish(), ...definitions.finish() },
         classes: classes.finish(),
         symbols: [...symbols].sort(),
         errors,
