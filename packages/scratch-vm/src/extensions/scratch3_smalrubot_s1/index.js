@@ -9,6 +9,7 @@ const Cast = require('../../util/cast');
 const Timer = require('../../util/timer');
 const StuduinoPracticeBoard = require('./practice-board');
 const StuduinoCommandLog = require('./command-log');
+const studuinoBlocks = require('./studuino-blocks');
 
 /**
  * Icon svg to be displayed at the left edge of each extension block, encoded as a data URI.
@@ -1551,6 +1552,8 @@ class Scratch3SmalrubotS1Blocks {
                         },
                     },
                 },
+                // Studuino モードの部品のブロック（#2216）。通常モードのパレットには出さない
+                ...studuinoBlocks.blockInfos(formatMessage),
             ],
             menus: {
                 actions: {
@@ -1573,6 +1576,7 @@ class Scratch3SmalrubotS1Blocks {
                     acceptReporters: false,
                     items: this.MOTOR_DIRECTIONS_MENU,
                 },
+                ...studuinoBlocks.menuInfos(formatMessage),
             },
         };
     }
@@ -1826,5 +1830,11 @@ class Scratch3SmalrubotS1Blocks {
         return stopped;
     }
 }
+
+// Studuino モードの部品のブロックの実行と、ポートの動的メニュー（#2216）
+Object.assign(
+    Scratch3SmalrubotS1Blocks.prototype,
+    studuinoBlocks.makeMethods(() => formatMessage),
+);
 
 module.exports = Scratch3SmalrubotS1Blocks;
