@@ -167,4 +167,37 @@ describe('Studuino mode', () => {
         expect(await existsByTestId('studuino-mode-switch-dialog')).toBe(false);
         expect(hasCategory(await categoryNames(), 'Motion')).toBe(true);
     });
+    test('the green flag opens the write modal in the Studuino mode (#2219)', async () => {
+        await loadUri(`${uri}?no_beforeunload=1`);
+        await activateSmalrubotS1Extension();
+        await toggleStuduinoMode();
+        await driver.wait(() => existsByTestId('studuino-port-settings-modal'), 5000, 'Port settings did not open');
+        await clickByTestId('studuino-port-settings-assign');
+        await sleep(500);
+        await driver.executeScript(`
+            window.smalruby.vm.editingTarget.blocks.createBlock({
+                id: 'studuino-write-flag', opcode: 'event_whenflagclicked', next: null, parent: null,
+                inputs: {}, fields: {}, topLevel: true, shadow: false, x: 0, y: 0,
+            });
+        `);
+        await clickXpath('//img[@title="Go"]');
+        await driver.wait(() => existsByTestId('studuino-write-modal'), 5000, 'Write modal did not open');
+        // 検査は通る（CI のビルドには API の場所が無いので、hex を作るところで止まる）
+        await driver.wait(
+            () =>
+                driver.executeScript(
+                    `return document.querySelector('[data-testid="studuino-write-step-check"]').dataset.status === 'done'`,
+                ),
+            5000,
+            'The check step did not finish',
+        );
+        const background = await driver.executeScript(
+            `return getComputedStyle(document.querySelector('[data-testid="studuino-write-modal"]')).backgroundColor`,
+        );
+        expect(background).toBe('rgb(255, 255, 255)');
+        expect(await existsByTestId('studuino-write-license')).toBe(true);
+        await clickByTestId('studuino-write-close');
+        await sleep(300);
+        expect(await existsByTestId('studuino-write-modal')).toBe(false);
+    });
 });

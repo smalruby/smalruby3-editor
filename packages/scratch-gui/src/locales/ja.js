@@ -32,6 +32,40 @@ export default {
     'gui.studuinoMode.switchDialog.showBlocks': 'ブロックを見る',
     'gui.studuinoMode.switchDialog.clearAndSwitch': 'すべて消して切り替える',
     'gui.studuinoMode.switchDialog.cancel': 'やめる',
+    'gui.studuinoWrite.title': 'Studuino に書きこむ',
+    'gui.studuinoWrite.step.check': 'プログラムを調べる',
+    'gui.studuinoWrite.step.compile': 'Studuino 用のプログラムを作る',
+    'gui.studuinoWrite.step.write': 'Studuino に書きこむ',
+    'gui.studuinoWrite.noFlag':
+        '「緑の旗が押されたとき」のブロックを置いてください。Studuino の電源を入れると、その下のプログラムが動きます。',
+    'gui.studuinoWrite.unusableBlocks':
+        '使えないブロックが {count} 個あります。直してから、もう一度ためしてください。',
+    'gui.studuinoWrite.ready': 'Studuino を USB ケーブルでつないで、［書きこむ］を押してください。',
+    'gui.studuinoWrite.noWebSerial': 'このブラウザでは Studuino に書きこめません。Chrome か Edge を使ってください。',
+    'gui.studuinoWrite.writeFailed':
+        'Studuino に書きこめませんでした。USB ケーブルを確かめて、もう一度ためしてください。',
+    'gui.studuinoWrite.aborted':
+        '止めました。もう一度書きこむか、パソコンから動かすときはファームウェアを書きもどしてください。',
+    'gui.studuinoWrite.done': 'できました！ USB ケーブルを抜いて電池をつなぐと、プログラムが動きます。',
+    'gui.studuinoWrite.retry': 'もう一度ためす',
+    'gui.studuinoWrite.write': '書きこむ',
+    'gui.studuinoWrite.close': '閉じる',
+    'gui.studuinoWrite.license':
+        '書きこむプログラムは、アーテック社の Studuino ライブラリ（GPL）を使っています。ライブラリのソースは {library}、このページのソースは {smalruby} にあります。',
+    'gui.studuinoWrite.saveSource': 'このプログラムの C++ を保存する',
+    'gui.studuinoWrite.trademark': 'Studuino®（スタディーノ）は株式会社アーテックの登録商標です。',
+    'gui.studuinoWrite.error.notConfigured': 'ここでは Studuino に書きこめません。',
+    'gui.studuinoWrite.error.network':
+        'サーバーにつながりませんでした。ネットワークを確かめて、もう一度ためしてください。',
+    'gui.studuinoWrite.error.invalidIr': '書きこめないものがプログラムに入っています。',
+    'gui.studuinoWrite.error.forbidden': 'このページからは Studuino に書きこめません。',
+    'gui.studuinoWrite.error.tooLarge': 'プログラムが大きすぎます。小さくしてください。',
+    'gui.studuinoWrite.error.compileFailed': 'Studuino 用のプログラムを作れませんでした。',
+    'gui.studuinoWrite.error.flashOverflow': 'Studuino に入りきらない大きさです。プログラムを小さくしてください。',
+    'gui.studuinoWrite.error.rateLimited':
+        '短い時間に何度も書きこんでいます。少し待ってから、もう一度ためしてください。',
+    'gui.studuinoWrite.error.timeout': '作るのに時間がかかりすぎました。もう一度ためしてください。',
+    'gui.studuinoWrite.error.internal': 'サーバーで問題が起きました。もう一度ためしてください。',
     'gui.studuinoPortSettings.title': '入出力の設定',
     'gui.studuinoPortSettings.description':
         '基板のポートごとに、つないだ部品を選びます。割り当てた部品だけがブロックに出ます。',
@@ -70,6 +104,8 @@ export default {
     'gui.smalrubotFirmware.macSetupInstruction': 'アプリの説明に従ってインストール・セットアップを行ってください。',
     'gui.smalrubotFirmware.macSetupProceed': 'セットアップ完了、書き込みに進む',
     'gui.connection.error.flashFirmwareButton': 'ファームウェア書き込み',
+    'gui.connection.error.flashFirmwareHint':
+        'Studuino モードで書きこんだあとは、パソコンから操作するためのプログラム（ファームウェア）を書きもどしてください（［ファームウェア書き込み］）。',
     'gui.classroom.title': 'クラス',
     'gui.menuBar.classroom': 'クラス',
     'gui.classroomTeacherMenu.label': 'クラス管理',

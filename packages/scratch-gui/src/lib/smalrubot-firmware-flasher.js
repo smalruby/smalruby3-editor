@@ -432,7 +432,19 @@ class FirmwareFlasher {
      * @param {Function} [onStatus] - Status message callback.
      */
     async flashDefaultFirmware(onProgress = null, onStatus = null) {
-        const hexData = parseIntelHex(SR_STUDU_FIRMWARE_HEX);
+        await this.flashHexText(SR_STUDU_FIRMWARE_HEX, onProgress, onStatus);
+    }
+
+    /**
+     * Flash an Intel HEX text (e.g. a Studuino mode program from the compile API) using a new port
+     * selection. Must be called from a user gesture (navigator.serial.requestPort).
+     * Throwing from onProgress stops the flash (used to cancel the write).
+     * @param {string} hexText - Intel HEX text.
+     * @param {Function} [onProgress] - Progress callback (written, total).
+     * @param {Function} [onStatus] - Status message callback.
+     */
+    async flashHexText(hexText, onProgress = null, onStatus = null) {
+        const hexData = parseIntelHex(hexText);
 
         const port = await navigator.serial.requestPort({
             filters: SMALRUBOT_S1_BOARD.usbFilters,

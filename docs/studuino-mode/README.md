@@ -635,6 +635,22 @@ Content-Type: application/json
 - モーダルには「使っているライブラリとライセンス（ソースの入手方法）」のリンクを置く（下の「ライセンス」）。
 - hex のダウンロード（他の書きこみツール用）は第 1 弾では作らない。
 
+#### 実装（#2219）
+
+- 緑の旗（`containers/controls.jsx`）でモーダル（`containers/studuino-write-modal.jsx` / `components/studuino-write-modal/`）を開き、
+  **検査**（`buildStuduinoIrFromVm`）→ **hex を作る**（`lib/studuino-compile.js` の `compileStuduinoIr`）まで自動で進む。
+  hex ができたら［書きこむ］を押す（Web Serial のポートを選ぶ `navigator.serial.requestPort` は、利用者が押したその場でしか呼べないため、
+  緑の旗から hex を作るまでの待ちのあとにもう 1 回押してもらう）。書きこみは `FirmwareFlasher.flashHexText`（ファームウェアと同じ STK500v1）。
+- 進み具合は 3 つの段階（調べる・作る・書きこむ）の印と、書きこみの %（`lib/studuino-write-steps.js`）。
+- 失敗の言葉は Lambda の `error`（と `reason: flash_overflow`）ごと（`studuinoCompileErrorMessageId`・`gui.studuinoWrite.error.*`）。
+- 停止は、hex を作っている途中なら `fetch` を止め、書きこみの途中ならページの書きこみの間で止める。
+- モーダルの下に、ライブラリ（GPL）のソースの入手先（アーテック社の配布元）・スモウルビーのソース・
+  ［このプログラムの C++ を保存する］（Lambda が返した `source` を `studuino_program.ino` で保存）・商標の表記を出す。
+- API の場所は webpack で埋めこむ `STUDUINO_COMPILE_ENDPOINT`（`.env`・GitHub Actions）。無いときは「ここでは書きこめません」。
+- data-testid: `studuino-write-modal`（本文）、`studuino-write-step-check` / `-compile` / `-write`（`data-status` に todo・doing・done・failed）、
+  `studuino-write-message`、`studuino-write-write` / `-retry` / `-show-blocks` / `-close` / `-save-source`、`studuino-write-license`。
+- MobileGui の緑の旗（`mobile-top-bar` / `mobile-side-rail`）は、Studuino モードの書きこみにつないでいない（Web Serial が無いため）。
+
 ### 緑の旗と停止
 
 Studuino モードでは、ステージの緑の旗・停止は意味を持たない（プログラムはブラウザでは動かさない）。そのため:
@@ -652,6 +668,10 @@ Studuino モードで書きこむと、パソコンから操作するための�
   「パソコンから操作するためのプログラムを書きもどしますか」と出し、**ボタン 1 つで** 書きもどす。
 - 書きもどしは、いまのファームウェアの書きこみ（[`docs/extension-smalrubot-s1/`](../extension-smalrubot-s1/) の
   「ファームウェアフラッシュ」）をそのまま使う。
+- 実装: ファームウェアでない基板につなぐと、つなぐときの検査（`reset_v2` の答え）が失敗して接続の失敗の画面になる。
+  その画面の［ファームウェア書き込み］の上に「Studuino モードで書きこんだあとは、パソコンから操作するためのプログラム
+  （ファームウェア）を書きもどしてください」を出す（`connection-error-flash-firmware-hint`）。押すといまのファームウェアの
+  書きこみのモーダルが開く（ボタン 1 つで書きこみまで進む形ではない）。
 
 ## ライブラリとライセンス（S7）
 

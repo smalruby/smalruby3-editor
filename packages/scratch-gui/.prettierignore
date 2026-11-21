@@ -125,6 +125,8 @@ src/components/*
 !src/components/studuino-port-settings-modal/**
 !src/components/studuino-mode-switch-dialog/
 !src/components/studuino-mode-switch-dialog/**
+!src/components/studuino-write-modal/
+!src/components/studuino-write-modal/**
 !src/components/mobile-bottom-tabs/
 !src/components/mobile-bottom-tabs/**
 !src/components/mobile-drawer/
@@ -244,6 +246,7 @@ src/containers/*
 !src/containers/studuino-mode-switch-dialog.jsx
 !src/containers/studuino-unusable-blocks.jsx
 !src/containers/studuino-unusable-blocks.css
+!src/containers/studuino-write-modal.jsx
 !src/containers/lesson-analytics.jsx
 !src/containers/lesson-progress-sync.jsx
 !src/containers/lesson-goal-watcher.jsx
@@ -372,6 +375,8 @@ src/lib/*
 !src/lib/studuino-port-settings.js
 !src/lib/studuino-mode-check.js
 !src/lib/studuino-block-marks.js
+!src/lib/studuino-compile.js
+!src/lib/studuino-write-steps.js
 !src/lib/stale-block-delete-guard.js
 !src/lib/storage-worker-timeout.js
 !src/lib/storage-worker-timeout-hoc.jsx
@@ -849,6 +854,8 @@ test/unit/lib/*
 !test/unit/lib/studuino-mode.test.js
 !test/unit/lib/studuino-port-settings.test.js
 !test/unit/lib/studuino-mode-check.test.js
+!test/unit/lib/studuino-compile.test.js
+!test/unit/lib/studuino-write-steps.test.js
 !test/unit/lib/smalruby-original-sprites.test.js
 !test/unit/lib/setup-prism.js
 !test/unit/lib/version-checker.test.js

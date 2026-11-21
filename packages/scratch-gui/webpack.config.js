@@ -156,6 +156,9 @@ const baseConfig = new ScratchWebpackConfigBuilder(
         'process.env.CLASSROOM_TEACHER_KICK_POLL_INTERVAL_MS': `"${process.env.CLASSROOM_TEACHER_KICK_POLL_INTERVAL_MS || '10000'}"`,
         'process.env.MICROSOFT_CLIENT_ID': `"${process.env.MICROSOFT_CLIENT_ID || ''}"`,
         // === Smalruby: End of classroom API ===
+        // === Smalruby: Start of studuino compile API ===
+        'process.env.STUDUINO_COMPILE_ENDPOINT': `"${process.env.STUDUINO_COMPILE_ENDPOINT || ''}"`,
+        // === Smalruby: End of studuino compile API ===
         // === Smalruby: Start of bug report API ===
         'process.env.BUG_REPORT_API_ENDPOINT': `"${process.env.BUG_REPORT_API_ENDPOINT || ''}"`,
         // === Smalruby: End of bug report API ===

@@ -40,6 +40,21 @@ const ErrorStep = props => (
                     />
                 </div>
             )}
+            {/* === Smalruby: Start of studuino mode firmware hint === */}
+            {props.onFlashFirmware && (
+                // After writing a Studuino mode program the board has no firmware (M7)
+                <div
+                    className={classNames(styles.bottomAreaItem, styles.instructions)}
+                    data-testid="connection-error-flash-firmware-hint"
+                >
+                    <FormattedMessage
+                        defaultMessage="If you wrote a program in the Studuino mode, write back the program to control Studuino from the computer (Write Firmware)."
+                        description="Hint shown with the firmware button when SmalrubotS1 is not found (after the Studuino mode)"
+                        id="gui.connection.error.flashFirmwareHint"
+                    />
+                </div>
+            )}
+            {/* === Smalruby: End of studuino mode firmware hint === */}
             <Dots
                 error
                 className={styles.bottomAreaItem}

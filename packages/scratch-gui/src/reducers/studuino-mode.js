@@ -7,6 +7,9 @@ const SET_SETTINGS = 'scratch-gui/studuino-mode/SET_SETTINGS';
 const OPEN_PORT_SETTINGS = 'scratch-gui/studuino-mode/OPEN_PORT_SETTINGS';
 const CLOSE_PORT_SETTINGS = 'scratch-gui/studuino-mode/CLOSE_PORT_SETTINGS';
 const SET_PENDING_SETTINGS = 'scratch-gui/studuino-mode/SET_PENDING_SETTINGS';
+const OPEN_WRITE = 'scratch-gui/studuino-mode/OPEN_WRITE';
+const CLOSE_WRITE = 'scratch-gui/studuino-mode/CLOSE_WRITE';
+const ABORT_WRITE = 'scratch-gui/studuino-mode/ABORT_WRITE';
 const OPEN_SWITCH_DIALOG = 'scratch-gui/studuino-mode/OPEN_SWITCH_DIALOG';
 const CLOSE_SWITCH_DIALOG = 'scratch-gui/studuino-mode/CLOSE_SWITCH_DIALOG';
 
@@ -19,6 +22,9 @@ const initialState = {
     pendingSettings: null,
     // 切り替えられないときのダイアログ（#2214・S11）: { toStuduino, blocks } か null
     switchDialog: null,
+    // 書きこみのモーダル（#2219・S13）を開いているか、と停止（＝書きこみの中断）を押した回数
+    writeVisible: false,
+    writeAbortCount: 0,
 };
 
 const reducer = (state, action) => {
@@ -30,6 +36,12 @@ const reducer = (state, action) => {
             return { ...state, portSettingsVisible: true };
         case CLOSE_PORT_SETTINGS:
             return { ...state, portSettingsVisible: false };
+        case OPEN_WRITE:
+            return { ...state, writeVisible: true };
+        case CLOSE_WRITE:
+            return { ...state, writeVisible: false };
+        case ABORT_WRITE:
+            return { ...state, writeAbortCount: (state.writeAbortCount || 0) + 1 };
         case OPEN_SWITCH_DIALOG:
             return { ...state, switchDialog: { toStuduino: action.toStuduino, blocks: action.blocks } };
         case CLOSE_SWITCH_DIALOG:
@@ -121,8 +133,40 @@ const closeStuduinoSwitchDialog = () => ({ type: CLOSE_SWITCH_DIALOG });
 const getStuduinoSwitchDialog = (state) =>
     (state.scratchGui.studuinoMode && state.scratchGui.studuinoMode.switchDialog) || null;
 
+/**
+ * 書きこみのモーダルを開く（Studuino モードの緑の旗）。
+ * @returns {object} action
+ */
+const openStuduinoWrite = () => ({ type: OPEN_WRITE });
+
+/**
+ * 書きこみのモーダルを閉じる。
+ * @returns {object} action
+ */
+const closeStuduinoWrite = () => ({ type: CLOSE_WRITE });
+
+/**
+ * 書きこみを中断する（Studuino モードの停止）。
+ * @returns {object} action
+ */
+const abortStuduinoWrite = () => ({ type: ABORT_WRITE });
+
+/**
+ * 書きこみのモーダルの状態。
+ * @param {object} state - redux の state。
+ * @returns {{visible: boolean, abortCount: number}} 状態。
+ */
+const getStuduinoWriteState = (state) => {
+    const s = state.scratchGui.studuinoMode || initialState;
+    return { visible: Boolean(s.writeVisible), abortCount: s.writeAbortCount || 0 };
+};
+
 export {
     reducer as default,
+    abortStuduinoWrite,
+    closeStuduinoWrite,
+    getStuduinoWriteState,
+    openStuduinoWrite,
     closeStuduinoSwitchDialog,
     getStuduinoSwitchDialog,
     openStuduinoSwitchDialog,
