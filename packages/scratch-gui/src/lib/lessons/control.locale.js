@@ -161,6 +161,93 @@ export const ja = {
     [`${C}ctrl-l2-read-diagram.quiz.choice3`]: '「〜ではない」',
     [`${C}ctrl-l2-read-diagram.quiz.explanation`]:
         '「かつ」は両方に合うとき、「または」はどちらかに合うときに真になる。昼にボタンを押しても、夜でなければつかないよ。',
+    // レッスン 3「モーターで動かそう」（#2172・ワークシート第 4 時）
+    'gui.lessons.lesson.ctrl-l3.name': 'モーターで動かそう',
+    [`${C}ctrl-l3-dc-motor.name`]: 'DC モーターを動かそう',
+    [`${C}ctrl-l3-dc-motor.task`]:
+        '緑の旗を押したら、DC モーター (M1) を 0.5 秒正転させ、1 秒待って、0.5 秒逆転させよう。\n実機では電池ボックスのスイッチを ON にしよう（USB だけではモーターは回らない）',
+    [`${C}ctrl-l3-dc-motor.step1`]:
+        '課題の説明と、アクティビティ図を理解しよう。上から順に、正転 → 待つ → 逆転と仕事をするよ。DC モーターは回り続け、向きを変えられる。',
+    [`${C}ctrl-l3-dc-motor.step2`]:
+        '「旗が押されたとき」の下に、「アーテックロボ」の「0.5 秒 DCモーター M1 を 正転させる」をつなげよう。',
+    [`${C}ctrl-l3-dc-motor.step3`]:
+        'その下に「1 秒待つ」と、もう 1 つの「0.5 秒 DCモーター M1 を 〜」をつなげ、▼で「逆転させる」を選ぼう。',
+    [`${C}ctrl-l3-dc-motor.step4`]:
+        '緑の旗を押して、モーターが回る向きを見よう（練習用の基板なら、パネルの DC モーター (M1) の ↻ と ↺）。',
+    [`${C}ctrl-l3-dc-motor.debug1`]:
+        '実機で回らないときは、電池ボックスのスイッチが ON か、モーターが M1 にささっているか見よう。',
+    [`${C}ctrl-l3-dc-motor.debug2`]: '同じ向きにしか回らないときは、2 つめのブロックの ▼ が「逆転させる」か見よう。',
+    [`${C}ctrl-l3-dc-motor.quiz.question`]: 'DC モーターの回る向きを反対にするには？',
+    [`${C}ctrl-l3-dc-motor.quiz.choice1`]: '逆転させる',
+    [`${C}ctrl-l3-dc-motor.quiz.choice2`]: '角度を変える',
+    [`${C}ctrl-l3-dc-motor.quiz.choice3`]: '速さを 0 にする',
+    [`${C}ctrl-l3-dc-motor.quiz.explanation`]:
+        'DC モーターは、流す電気の向きを変えると反対に回る。正転・逆転で、タイヤを前にも後ろにも回せるよ。',
+    [`${C}ctrl-l3-servo.name`]: 'サーボで角度を決めよう',
+    [`${C}ctrl-l3-servo.task`]:
+        '緑の旗を押したら、1 秒でアーム（サーボモーター D10）を 0 度にし、1 秒待って、1 秒で 90 度にしよう。\nスイッチをちょうど押せる角度をさがしてもいいよ',
+    [`${C}ctrl-l3-servo.step1`]:
+        '課題の説明と、アクティビティ図を理解しよう。サーボモーターは、決めた角度まで動いて止まるよ。',
+    [`${C}ctrl-l3-servo.step2`]:
+        '「旗が押されたとき」の下に「1 秒でアーム（サーボモーター D10）を 0 度に曲げる」をつなげよう（90 を 0 に変えよう）。',
+    [`${C}ctrl-l3-servo.step3`]: 'その下に「1 秒待つ」と、もう 1 つの「1 秒でアームを 90 度に曲げる」をつなげよう。',
+    [`${C}ctrl-l3-servo.step4`]:
+        '緑の旗を押して、アームの角度が変わるのを見よう（練習用の基板なら、パネルのサーボモーター (D10) の角度）。',
+    [`${C}ctrl-l3-servo.debug1`]:
+        '実機で動かないときは、サーボモーターが D10 にささっているか、電池ボックスが ON か見よう。',
+    [`${C}ctrl-l3-servo.debug2`]:
+        'いきなり大きく動かすとはずれることがある。10 度ずつ変えて、ちょうどよい角度をさがそう。',
+    [`${C}ctrl-l3-servo.quiz.question`]: 'DC モーターとちがって、サーボモーターが得意なことは？',
+    [`${C}ctrl-l3-servo.quiz.choice1`]: '決めた角度で止まる',
+    [`${C}ctrl-l3-servo.quiz.choice2`]: 'ずっと回り続ける',
+    [`${C}ctrl-l3-servo.quiz.choice3`]: '明るさをはかる',
+    [`${C}ctrl-l3-servo.quiz.explanation`]:
+        'サーボモーターは角度を決めて止まるので、スイッチを押す・ふたを開けるのに向いている。DC モーターはタイヤを回すのに向いているよ。',
+    [`${C}ctrl-l3-auto-switch.name`]: '自動スイッチを作ろう',
+    [`${C}ctrl-l3-auto-switch.task`]:
+        '光センサーの値が 500 より小さい（暗い）ときはアームを 90 度にしてスイッチを押し、そうでなければ 0 度にもどそう。\n暗くなったら自動でスイッチを入れるしくみだよ',
+    [`${C}ctrl-l3-auto-switch.step1`]:
+        '課題の説明と、アクティビティ図を理解しよう。自動点灯 LED ライトの「LED」を「アーム」に替えた形だよ。',
+    [`${C}ctrl-l3-auto-switch.step2`]:
+        '「旗が押されたとき」の下に「ずっと」をつなげ、その中に「もし〜なら でなければ」を入れよう。',
+    [`${C}ctrl-l3-auto-switch.step3`]: '白いところに「〜 < 500」を入れ、左に「光センサー (A6) の値」を入れよう。',
+    [`${C}ctrl-l3-auto-switch.step4`]:
+        '「もし」の中に「1 秒でアームを 90 度に曲げる」、「でなければ」の中に「1 秒でアームを 0 度に曲げる」を入れよう。',
+    [`${C}ctrl-l3-auto-switch.step5`]:
+        '緑の旗を押して、センサーを手でおおったり、はなしたりしよう。練習用の基板なら、光センサーのスライダーを動かして、アームの角度を見よう。',
+    [`${C}ctrl-l3-auto-switch.debug1`]: '逆に動くときは、「<」の向きか、90 と 0 を入れかえよう。',
+    [`${C}ctrl-l3-auto-switch.debug2`]:
+        '光センサーが無ければ、▼でほかのセンサーを選んでもいいよ（値が 500 より小さいときに 90 度になる）。',
+    [`${C}ctrl-l3-auto-switch.quiz.question`]:
+        'アームの力が足りずスイッチを押せない。力（トルク）を大きくする工夫は？',
+    [`${C}ctrl-l3-auto-switch.quiz.choice1`]: 'ギヤ比を変えて大きい歯車を回す',
+    [`${C}ctrl-l3-auto-switch.quiz.choice2`]: '角度を 180 度にする',
+    [`${C}ctrl-l3-auto-switch.quiz.choice3`]: 'プログラムを速くする',
+    [`${C}ctrl-l3-auto-switch.quiz.explanation`]:
+        '小さい歯車から大きい歯車に回すと、回る速さはおそくなるが力は大きくなる。てこを使う・押す場所を変える工夫もあるよ。実物で試そう。',
+    [`${C}ctrl-l3-bumper-car.name`]: 'ぶつかったら止まる車',
+    [`${C}ctrl-l3-bumper-car.task`]:
+        'タッチセンサー (A2) が押された（ぶつかった）ら車を止め、そうでなければ前に進めよう。\n車は 2 つの DC モーター (M1, M2) で動くよ',
+    [`${C}ctrl-l3-bumper-car.step1`]:
+        '課題の説明と、アクティビティ図を理解しよう。ひし形で「ぶつかった？」と判断して、止めるか進めるかを決めるよ。',
+    [`${C}ctrl-l3-bumper-car.step2`]:
+        '「旗が押されたとき」の下に「ずっと」をつなげ、その中に「もし〜なら でなければ」を入れよう。',
+    [`${C}ctrl-l3-bumper-car.step3`]:
+        '白いところに「〜 = 0」を入れ、左に「〜の値」を入れて、▼で「タッチセンサー (A2)」を選ぼう。',
+    [`${C}ctrl-l3-bumper-car.step4`]:
+        '「もし」の中に「止める (M1, M2)」、「でなければ」の中に「進める (M1, M2)」を入れよう（「アーテックロボ」のいちばん上のブロックの ▼）。',
+    [`${C}ctrl-l3-bumper-car.step5`]:
+        '緑の旗を押して、タッチセンサーを押したり、はなしたりしよう。練習用の基板なら、タッチセンサーのボタンを押して、DC モーターの ↻ と ■ を見よう。',
+    [`${C}ctrl-l3-bumper-car.debug1`]:
+        '実機で動かないときは、電池ボックスが ON か、モーターが M1 と M2 にささっているか見よう。',
+    [`${C}ctrl-l3-bumper-car.debug2`]:
+        'タッチセンサーが無ければ、▼でほかのセンサーを選んでもいいよ（練習用の基板なら、スライダーを 0 にすると止まる）。',
+    [`${C}ctrl-l3-bumper-car.quiz.question`]: 'ぶつかったことを知って止まるしくみは、身のまわりのどこにある？',
+    [`${C}ctrl-l3-bumper-car.quiz.choice1`]: 'エレベーターのドア',
+    [`${C}ctrl-l3-bumper-car.quiz.choice2`]: 'テレビのリモコン',
+    [`${C}ctrl-l3-bumper-car.quiz.choice3`]: 'えんぴつけずり',
+    [`${C}ctrl-l3-bumper-car.quiz.explanation`]:
+        'エレベーターのドアは、人やものにふれたことをセンサーで計測すると、閉まるのをやめて開く。安全のための計測・制御システムだよ。',
 };
 
 export const jaHira = {
@@ -321,6 +408,95 @@ export const jaHira = {
     [`${C}ctrl-l2-read-diagram.quiz.choice3`]: '「〜ではない」',
     [`${C}ctrl-l2-read-diagram.quiz.explanation`]:
         '「かつ」は りょうほうに あうとき、「または」は どちらかに あうときに しんに なる。ひるに ボタンを おしても、よるで なければ つかないよ。',
+    'gui.lessons.lesson.ctrl-l3.name': 'モーターで うごかそう',
+    [`${C}ctrl-l3-dc-motor.name`]: 'DC モーターを うごかそう',
+    [`${C}ctrl-l3-dc-motor.task`]:
+        'みどりのはたを おしたら、DC モーター (M1) を 0.5 びょう せいてんさせ、1 びょう まって、0.5 びょう ぎゃくてんさせよう。\nじっきでは でんちボックスの スイッチを ON に しよう（USB だけでは モーターは まわらない）',
+    [`${C}ctrl-l3-dc-motor.step1`]:
+        'かだいの せつめいと、アクティビティずを りかいしよう。うえから じゅんに、せいてん → まつ → ぎゃくてん と しごとを するよ。DC モーターは まわりつづけ、むきを かえられる。',
+    [`${C}ctrl-l3-dc-motor.step2`]:
+        '「はたが おされたとき」の したに、「アーテックロボ」の「0.5 びょう DC モーター M1 を せいてんさせる」を つなげよう。',
+    [`${C}ctrl-l3-dc-motor.step3`]:
+        'その したに「1 びょう まつ」と、もう 1 つの「0.5 びょう DC モーター M1 を 〜」を つなげ、▼で「ぎゃくてんさせる」を えらぼう。',
+    [`${C}ctrl-l3-dc-motor.step4`]:
+        'みどりのはたを おして、モーターが まわる むきを みよう（れんしゅうようの きばんなら、パネルの DC モーター (M1) の ↻ と ↺）。',
+    [`${C}ctrl-l3-dc-motor.debug1`]:
+        'じっきで まわらないときは、でんちボックスの スイッチが ON か、モーターが M1 に ささっているか みよう。',
+    [`${C}ctrl-l3-dc-motor.debug2`]:
+        'おなじ むきにしか まわらないときは、2 つめの ブロックの ▼ が「ぎゃくてんさせる」か みよう。',
+    [`${C}ctrl-l3-dc-motor.quiz.question`]: 'DC モーターの まわる むきを はんたいに するには？',
+    [`${C}ctrl-l3-dc-motor.quiz.choice1`]: 'ぎゃくてんさせる',
+    [`${C}ctrl-l3-dc-motor.quiz.choice2`]: 'かくどを かえる',
+    [`${C}ctrl-l3-dc-motor.quiz.choice3`]: 'はやさを 0 に する',
+    [`${C}ctrl-l3-dc-motor.quiz.explanation`]:
+        'DC モーターは、ながす でんきの むきを かえると はんたいに まわる。せいてん・ぎゃくてんで、タイヤを まえにも うしろにも まわせるよ。',
+    [`${C}ctrl-l3-servo.name`]: 'サーボで かくどを きめよう',
+    [`${C}ctrl-l3-servo.task`]:
+        'みどりのはたを おしたら、1 びょうで アーム（サーボモーター D10）を 0 どに し、1 びょう まって、1 びょうで 90 どに しよう。\nスイッチを ちょうど おせる かくどを さがしても いいよ',
+    [`${C}ctrl-l3-servo.step1`]:
+        'かだいの せつめいと、アクティビティずを りかいしよう。サーボモーターは、きめた かくどまで うごいて とまるよ。',
+    [`${C}ctrl-l3-servo.step2`]:
+        '「はたが おされたとき」の したに「1 びょうで アーム（サーボモーター D10）を 0 どに まげる」を つなげよう（90 を 0 に かえよう）。',
+    [`${C}ctrl-l3-servo.step3`]:
+        'その したに「1 びょう まつ」と、もう 1 つの「1 びょうで アームを 90 どに まげる」を つなげよう。',
+    [`${C}ctrl-l3-servo.step4`]:
+        'みどりのはたを おして、アームの かくどが かわるのを みよう（れんしゅうようの きばんなら、パネルの サーボモーター (D10) の かくど）。',
+    [`${C}ctrl-l3-servo.debug1`]:
+        'じっきで うごかないときは、サーボモーターが D10 に ささっているか、でんちボックスが ON か みよう。',
+    [`${C}ctrl-l3-servo.debug2`]:
+        'いきなり おおきく うごかすと はずれることが ある。10 どずつ かえて、ちょうどよい かくどを さがそう。',
+    [`${C}ctrl-l3-servo.quiz.question`]: 'DC モーターと ちがって、サーボモーターが とくいなことは？',
+    [`${C}ctrl-l3-servo.quiz.choice1`]: 'きめた かくどで とまる',
+    [`${C}ctrl-l3-servo.quiz.choice2`]: 'ずっと まわりつづける',
+    [`${C}ctrl-l3-servo.quiz.choice3`]: 'あかるさを はかる',
+    [`${C}ctrl-l3-servo.quiz.explanation`]:
+        'サーボモーターは かくどを きめて とまるので、スイッチを おす・ふたを あけるのに むいている。DC モーターは タイヤを まわすのに むいているよ。',
+    [`${C}ctrl-l3-auto-switch.name`]: 'じどう スイッチを つくろう',
+    [`${C}ctrl-l3-auto-switch.task`]:
+        'ひかりセンサーの あたいが 500 より ちいさい（くらい）ときは アームを 90 どに して スイッチを おし、そうでなければ 0 どに もどそう。\nくらく なったら じどうで スイッチを いれる しくみだよ',
+    [`${C}ctrl-l3-auto-switch.step1`]:
+        'かだいの せつめいと、アクティビティずを りかいしよう。じどう てんとう LED ライトの「LED」を「アーム」に かえた かたちだよ。',
+    [`${C}ctrl-l3-auto-switch.step2`]:
+        '「はたが おされたとき」の したに「ずっと」を つなげ、その なかに「もし〜なら でなければ」を いれよう。',
+    [`${C}ctrl-l3-auto-switch.step3`]:
+        'しろいところに「〜 < 500」を いれ、ひだりに「ひかりセンサー (A6) の あたい」を いれよう。',
+    [`${C}ctrl-l3-auto-switch.step4`]:
+        '「もし」の なかに「1 びょうで アームを 90 どに まげる」、「でなければ」の なかに「1 びょうで アームを 0 どに まげる」を いれよう。',
+    [`${C}ctrl-l3-auto-switch.step5`]:
+        'みどりのはたを おして、センサーを てで おおったり、はなしたり しよう。れんしゅうようの きばんなら、ひかりセンサーの スライダーを うごかして、アームの かくどを みよう。',
+    [`${C}ctrl-l3-auto-switch.debug1`]: 'ぎゃくに うごくときは、「<」の むきか、90 と 0 を いれかえよう。',
+    [`${C}ctrl-l3-auto-switch.debug2`]:
+        'ひかりセンサーが なければ、▼で ほかの センサーを えらんでも いいよ（あたいが 500 より ちいさいときに 90 どに なる）。',
+    [`${C}ctrl-l3-auto-switch.quiz.question`]:
+        'アームの ちからが たりず スイッチを おせない。ちから（トルク）を おおきくする くふうは？',
+    [`${C}ctrl-l3-auto-switch.quiz.choice1`]: 'ギヤひを かえて おおきい はぐるまを まわす',
+    [`${C}ctrl-l3-auto-switch.quiz.choice2`]: 'かくどを 180 どに する',
+    [`${C}ctrl-l3-auto-switch.quiz.choice3`]: 'プログラムを はやく する',
+    [`${C}ctrl-l3-auto-switch.quiz.explanation`]:
+        'ちいさい はぐるまから おおきい はぐるまに まわすと、まわる はやさは おそく なるが ちからは おおきく なる。てこを つかう・おす ばしょを かえる くふうも あるよ。じつぶつで ためそう。',
+    [`${C}ctrl-l3-bumper-car.name`]: 'ぶつかったら とまる くるま',
+    [`${C}ctrl-l3-bumper-car.task`]:
+        'タッチセンサー (A2) が おされた（ぶつかった）ら くるまを とめ、そうでなければ まえに すすめよう。\nくるまは 2 つの DC モーター (M1, M2) で うごくよ',
+    [`${C}ctrl-l3-bumper-car.step1`]:
+        'かだいの せつめいと、アクティビティずを りかいしよう。ひしがたで「ぶつかった？」と はんだんして、とめるか すすめるかを きめるよ。',
+    [`${C}ctrl-l3-bumper-car.step2`]:
+        '「はたが おされたとき」の したに「ずっと」を つなげ、その なかに「もし〜なら でなければ」を いれよう。',
+    [`${C}ctrl-l3-bumper-car.step3`]:
+        'しろいところに「〜 = 0」を いれ、ひだりに「〜の あたい」を いれて、▼で「タッチセンサー (A2)」を えらぼう。',
+    [`${C}ctrl-l3-bumper-car.step4`]:
+        '「もし」の なかに「とめる (M1, M2)」、「でなければ」の なかに「すすめる (M1, M2)」を いれよう（「アーテックロボ」の いちばん うえの ブロックの ▼）。',
+    [`${C}ctrl-l3-bumper-car.step5`]:
+        'みどりのはたを おして、タッチセンサーを おしたり、はなしたり しよう。れんしゅうようの きばんなら、タッチセンサーの ボタンを おして、DC モーターの ↻ と ■ を みよう。',
+    [`${C}ctrl-l3-bumper-car.debug1`]:
+        'じっきで うごかないときは、でんちボックスが ON か、モーターが M1 と M2 に ささっているか みよう。',
+    [`${C}ctrl-l3-bumper-car.debug2`]:
+        'タッチセンサーが なければ、▼で ほかの センサーを えらんでも いいよ（れんしゅうようの きばんなら、スライダーを 0 に すると とまる）。',
+    [`${C}ctrl-l3-bumper-car.quiz.question`]: 'ぶつかったことを しって とまる しくみは、みのまわりの どこに ある？',
+    [`${C}ctrl-l3-bumper-car.quiz.choice1`]: 'エレベーターの ドア',
+    [`${C}ctrl-l3-bumper-car.quiz.choice2`]: 'テレビの リモコン',
+    [`${C}ctrl-l3-bumper-car.quiz.choice3`]: 'えんぴつけずり',
+    [`${C}ctrl-l3-bumper-car.quiz.explanation`]:
+        'エレベーターの ドアは、ひとや ものに ふれたことを センサーで けいそくすると、しまるのを やめて ひらく。あんぜんの ための けいそく・せいぎょ システムだよ。',
 };
 
 export const en = {
@@ -473,4 +649,90 @@ export const en = {
     [`${C}ctrl-l2-read-diagram.quiz.choice3`]: '"not"',
     [`${C}ctrl-l2-read-diagram.quiz.explanation`]:
         '"and" is true when both are true; "or" is true when either is. Pressing the button in the daytime does not turn it on.',
+    'gui.lessons.lesson.ctrl-l3.name': 'Move It with Motors',
+    [`${C}ctrl-l3-dc-motor.name`]: 'Run the DC Motor',
+    [`${C}ctrl-l3-dc-motor.task`]:
+        'When the green flag is clicked, run the DC motor (M1) forward for 0.5 seconds, wait 1 second, and run it in reverse for 0.5 seconds.\nOn the real board, turn the battery box switch ON (USB alone cannot turn the motor)',
+    [`${C}ctrl-l3-dc-motor.step1`]:
+        'Understand the task and the activity diagram. From the top: forward → wait → reverse. A DC motor keeps turning and can change its direction.',
+    [`${C}ctrl-l3-dc-motor.step2`]:
+        'Attach "0.5 seconds DC motor M1 forward" from "ArtecRobo" under "when flag clicked".',
+    [`${C}ctrl-l3-dc-motor.step3`]:
+        'Attach "wait 1 seconds" and another "0.5 seconds DC motor M1" under it, and choose "reverse" with ▼.',
+    [`${C}ctrl-l3-dc-motor.step4`]:
+        'Click the green flag and watch the direction of the motor (on the practice board, ↻ and ↺ of DC motor (M1) of the panel).',
+    [`${C}ctrl-l3-dc-motor.debug1`]:
+        'If it does not turn on the real board, check that the battery box is ON and the motor is in M1.',
+    [`${C}ctrl-l3-dc-motor.debug2`]: 'If it turns only one way, check that ▼ of the 2nd block is "reverse".',
+    [`${C}ctrl-l3-dc-motor.quiz.question`]: 'How do you make the DC motor turn the other way?',
+    [`${C}ctrl-l3-dc-motor.quiz.choice1`]: 'Run it in reverse',
+    [`${C}ctrl-l3-dc-motor.quiz.choice2`]: 'Change the angle',
+    [`${C}ctrl-l3-dc-motor.quiz.choice3`]: 'Set the speed to 0',
+    [`${C}ctrl-l3-dc-motor.quiz.explanation`]:
+        'A DC motor turns the other way when the electric current flows the other way. With forward and reverse, you can turn a tire both ways.',
+    [`${C}ctrl-l3-servo.name`]: 'Set the Angle with the Servo',
+    [`${C}ctrl-l3-servo.task`]:
+        'When the green flag is clicked, move the arm (servo motor D10) to 0 degrees in 1 second, wait 1 second, and move it to 90 degrees in 1 second.\nYou may look for the angle that just presses the switch',
+    [`${C}ctrl-l3-servo.step1`]:
+        'Understand the task and the activity diagram. A servo motor moves to the angle you set and stops.',
+    [`${C}ctrl-l3-servo.step2`]:
+        'Attach "bend the arm (servo motor D10) to 0 degrees in 1 seconds" under "when flag clicked" (change 90 to 0).',
+    [`${C}ctrl-l3-servo.step3`]:
+        'Attach "wait 1 seconds" and another "bend the arm to 90 degrees in 1 seconds" under it.',
+    [`${C}ctrl-l3-servo.step4`]:
+        'Click the green flag and watch the angle of the arm change (on the practice board, the angle of servo motor (D10) of the panel).',
+    [`${C}ctrl-l3-servo.debug1`]:
+        'If it does not move on the real board, check that the servo motor is in D10 and the battery box is ON.',
+    [`${C}ctrl-l3-servo.debug2`]:
+        'A big move at once may knock things off. Change it 10 degrees at a time to find a good angle.',
+    [`${C}ctrl-l3-servo.quiz.question`]: 'Unlike a DC motor, what is a servo motor good at?',
+    [`${C}ctrl-l3-servo.quiz.choice1`]: 'Stopping at a set angle',
+    [`${C}ctrl-l3-servo.quiz.choice2`]: 'Turning forever',
+    [`${C}ctrl-l3-servo.quiz.choice3`]: 'Measuring brightness',
+    [`${C}ctrl-l3-servo.quiz.explanation`]:
+        'A servo motor stops at a set angle, so it is good for pressing a switch or opening a lid. A DC motor is good for turning tires.',
+    [`${C}ctrl-l3-auto-switch.name`]: 'Make an Automatic Switch',
+    [`${C}ctrl-l3-auto-switch.task`]:
+        'When the light sensor value is less than 500 (dark), move the arm to 90 degrees to press the switch; when it is not, move it back to 0 degrees.\nIt turns the switch on by itself when it gets dark',
+    [`${C}ctrl-l3-auto-switch.step1`]:
+        'Understand the task and the activity diagram. It is the automatic LED light with the "LED" changed to the "arm".',
+    [`${C}ctrl-l3-auto-switch.step2`]: 'Attach "forever" under "when flag clicked", and put "if then else" into it.',
+    [`${C}ctrl-l3-auto-switch.step3`]:
+        'Put "< 500" into its white part, and put "light sensor (A6) value" on the left.',
+    [`${C}ctrl-l3-auto-switch.step4`]:
+        'Put "bend the arm to 90 degrees in 1 seconds" into "if" and "bend the arm to 0 degrees in 1 seconds" into "else".',
+    [`${C}ctrl-l3-auto-switch.step5`]:
+        'Click the green flag, and cover the sensor with your hand and take it away. On the practice board, move the light sensor slider and watch the angle of the arm.',
+    [`${C}ctrl-l3-auto-switch.debug1`]: 'If it moves the opposite way, change the direction of "<" or swap 90 and 0.',
+    [`${C}ctrl-l3-auto-switch.debug2`]:
+        'If you have no light sensor, you may choose another sensor with ▼ (it goes to 90 degrees when the value is less than 500).',
+    [`${C}ctrl-l3-auto-switch.quiz.question`]:
+        'The arm is not strong enough to press the switch. How can you make the force (torque) bigger?',
+    [`${C}ctrl-l3-auto-switch.quiz.choice1`]: 'Change the gear ratio to turn a big gear',
+    [`${C}ctrl-l3-auto-switch.quiz.choice2`]: 'Set the angle to 180 degrees',
+    [`${C}ctrl-l3-auto-switch.quiz.choice3`]: 'Make the program faster',
+    [`${C}ctrl-l3-auto-switch.quiz.explanation`]:
+        'Turning a big gear with a small gear makes it slower but stronger. Using a lever or pressing at another place also helps. Try it with the real parts.',
+    [`${C}ctrl-l3-bumper-car.name`]: 'A Car That Stops When It Bumps',
+    [`${C}ctrl-l3-bumper-car.task`]:
+        'Stop the car when the touch sensor (A2) is pressed (it bumped), and move it forward when it is not.\nThe car moves with 2 DC motors (M1, M2)',
+    [`${C}ctrl-l3-bumper-car.step1`]:
+        'Understand the task and the activity diagram. The diamond judges "bumped?" and decides to stop or to go.',
+    [`${C}ctrl-l3-bumper-car.step2`]: 'Attach "forever" under "when flag clicked", and put "if then else" into it.',
+    [`${C}ctrl-l3-bumper-car.step3`]:
+        'Put "= 0" into its white part, put "value" on the left, and choose "touch sensor (A2)" with ▼.',
+    [`${C}ctrl-l3-bumper-car.step4`]:
+        'Put "stop (M1, M2)" into "if" and "move forward (M1, M2)" into "else" (▼ of the top block of "ArtecRobo").',
+    [`${C}ctrl-l3-bumper-car.step5`]:
+        'Click the green flag, and press and release the touch sensor. On the practice board, press the touch sensor button and watch ↻ and ■ of the DC motors.',
+    [`${C}ctrl-l3-bumper-car.debug1`]:
+        'If it does not move on the real board, check that the battery box is ON and the motors are in M1 and M2.',
+    [`${C}ctrl-l3-bumper-car.debug2`]:
+        'If you have no touch sensor, you may choose another sensor with ▼ (on the practice board, a slider at 0 stops it).',
+    [`${C}ctrl-l3-bumper-car.quiz.question`]: 'Where around you is a system that stops when it touches something?',
+    [`${C}ctrl-l3-bumper-car.quiz.choice1`]: 'An elevator door',
+    [`${C}ctrl-l3-bumper-car.quiz.choice2`]: 'A TV remote',
+    [`${C}ctrl-l3-bumper-car.quiz.choice3`]: 'A pencil sharpener',
+    [`${C}ctrl-l3-bumper-car.quiz.explanation`]:
+        'When a sensor of an elevator door measures that it touched a person or a thing, the door stops closing and opens. It is a measurement and control system for safety.',
 };

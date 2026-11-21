@@ -32,6 +32,7 @@ import jaHira from '../../../../src/locales/ja-Hira';
 const COURSE_ID = 'jidou-sensor-motor';
 const L1 = ['ctrl-l1-measure', 'ctrl-l1-blink', 'ctrl-l1-touch-led', 'ctrl-l1-threshold'];
 const L2 = ['ctrl-l2-auto-light', 'ctrl-l2-near-light', 'ctrl-l2-read-diagram'];
+const L3 = ['ctrl-l3-dc-motor', 'ctrl-l3-servo', 'ctrl-l3-auto-switch', 'ctrl-l3-bumper-car'];
 const challenge = (id) => findChallenge(id).challenge;
 const ext = (name) => `smalrubotS1_${name}`;
 
@@ -59,8 +60,8 @@ describe('control course "自動でセンサーとモーターでうごかそう
         expect(COURSES[2]).toBe(course);
         expect(course.language).toBe(LANGUAGES.BLOCKS);
         expect(ja[course.name.id]).toBe('自動でセンサーとモーターでうごかそう');
-        expect(course.lessons.map((l) => l.id)).toEqual(['ctrl-l1', 'ctrl-l2']);
-        expect(courseSize(course)).toEqual({ lessonCount: 2, challengeCount: 7 });
+        expect(course.lessons.map((l) => l.id)).toEqual(['ctrl-l1', 'ctrl-l2', 'ctrl-l3']);
+        expect(courseSize(course)).toEqual({ lessonCount: 3, challengeCount: 11 });
     });
 
     test('every message of the course is in en / ja / ja-Hira, and ja-Hira has no kanji', () => {
@@ -348,6 +349,83 @@ describe('control course lesson 2 "自動で動かそう" (#2171)', () => {
         board(facts, [read(100), read(0, 'A2', 'touch'), led('on')]);
         expect(satisfied(c, facts)).toBe(false);
         board(facts, [read(900), read(0, 'A2', 'touch'), led('off')]);
+        expect(satisfied(c, facts)).toBe(true);
+    });
+});
+
+describe('control course lesson 3 "モーターで動かそう" (#2172)', () => {
+    const motor = (value, port = 'M1') => ({ kind: 'motor', port, value, speed: value === 'stop' ? 0 : 50 });
+    const servo = (value) => ({ kind: 'servo', port: 'D10', value });
+
+    test('has the 4 challenges in order, all with the extension loaded', () => {
+        const lesson = findLesson('ctrl-l3');
+        expect(ja[lesson.name.id]).toBe('モーターで動かそう');
+        expect(lesson.challenges.map((c) => `${c.number} ${c.id}`)).toEqual(L3.map((id, i) => `${i + 1} ${id}`));
+        L3.map(challenge).forEach((c) => {
+            expect({ id: c.id, setup: c.setup }).toEqual({ id: c.id, setup: { extensions: ['smalrubotS1'] } });
+            expect({ id: c.id, errors: validateGoal(c.goal) }).toEqual({ id: c.id, errors: [] });
+            expect({ id: c.id, errors: validateQuiz(c.quiz) }).toEqual({ id: c.id, errors: [] });
+        });
+        // トルク・ギヤ比はクイズで少しふれるだけ（#2158 Q13）
+        expect(L3.map((id) => ja[challenge(id).quiz.choices[challenge(id).quiz.answer].id])).toEqual([
+            '逆転させる',
+            '決めた角度で止まる',
+            'ギヤ比を変えて大きい歯車を回す',
+            'エレベーターのドア',
+        ]);
+        expect(allowedOpcodes(challenge('ctrl-l3-dc-motor')).smalrubotS1).toEqual([ext('controlMotorAndStopAfter')]);
+        expect(allowedOpcodes(challenge('ctrl-l3-servo')).smalrubotS1).toEqual([ext('bendArm')]);
+        expect(allowedOpcodes(challenge('ctrl-l3-bumper-car')).smalrubotS1).toEqual([
+            ext('getSensorValue'),
+            ext('action'),
+        ]);
+    });
+
+    test('3-1: the DC motor turned forward and in reverse', () => {
+        const c = challenge('ctrl-l3-dc-motor');
+        const facts = createFacts();
+        flagRun(facts, [[ext('controlMotorAndStopAfter')], ['control_wait', { DURATION: 1 }]]);
+        board(facts, [motor('normal'), motor('stop')]);
+        expect(satisfied(c, facts)).toBe(false);
+        board(facts, [motor('reverse'), motor('stop')]);
+        expect(satisfied(c, facts)).toBe(true);
+    });
+
+    test('3-2: the arm moved to a small angle and to a large angle', () => {
+        const c = challenge('ctrl-l3-servo');
+        const facts = createFacts();
+        flagRun(facts, [[ext('bendArm')], ['control_wait'], [ext('bendArm')]]);
+        board(facts, [servo(0), servo(45)]);
+        expect(satisfied(c, facts)).toBe(false);
+        board(facts, [servo(80)]);
+        expect(satisfied(c, facts)).toBe(true);
+    });
+
+    test('3-3: the arm went up when dark and down when bright', () => {
+        const c = challenge('ctrl-l3-auto-switch');
+        const run = [['control_forever'], ['control_if_else'], [ext('getSensorValue')], [ext('bendArm')]];
+        const facts = createFacts();
+        flagRun(facts, run);
+        board(facts, [read(100), servo(90), read(900), servo(0)]);
+        expect(satisfied(c, facts)).toBe(true);
+        const wrong = createFacts();
+        flagRun(wrong, run);
+        board(wrong, [read(100), servo(0), read(900), servo(90)]);
+        expect(satisfied(c, wrong)).toBe(false);
+    });
+
+    test('3-4: the car went while released and stopped when it bumped', () => {
+        const c = challenge('ctrl-l3-bumper-car');
+        const facts = createFacts();
+        flagRun(facts, [['control_forever'], ['control_if_else'], [ext('getSensorValue')], [ext('action')]]);
+        board(facts, [
+            read(1, 'A2', 'touch'),
+            motor('normal', 'M1'),
+            motor('normal', 'M2'),
+            read(0, 'A2', 'touch'),
+            motor('stop', 'M1'),
+            motor('stop', 'M2'),
+        ]);
         expect(satisfied(c, facts)).toBe(true);
     });
 });

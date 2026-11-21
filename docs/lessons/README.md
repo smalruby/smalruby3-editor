@@ -703,6 +703,18 @@ design.md の「中 2 のコース」。コースの ✓ もこれで数える�
   逆の向き（明るいときにつける）は通らない。
 - 2 は 1 とプログラムの形が同じで、センサーと判断だけが変わる（教科書の「センサーの選択」）。
 
+レッスン 3「モーターで動かそう」（`ctrl-l3`。ja-Hira「モーターで うごかそう」、en "Move It with Motors"。ワークシート第 4 時）:
+
+| # | id | 課題 | 答え（ja） | できた の条件（`goal`） | クイズの正解 |
+|---|----|------|-----------|------------------------|-------------|
+| 1 | `ctrl-l3-dc-motor` | DC モーター (M1) を 0.5 秒正転 → 1 秒待つ → 0.5 秒逆転 | `studuino.dc_motor("M1", "normal", 0.5)` → `sleep(1)` → `studuino.dc_motor("M1", "reverse", 0.5)` | 旗のスクリプトで `control_wait` ＋ モーターの正転と逆転の命令（どのモーター・どのブロックでもよい） | ①逆転させる |
+| 2 | `ctrl-l3-servo` | 1 秒でアームを 0 度 → 1 秒待つ → 1 秒で 90 度 | `studuino.bend_arm(0, 1)` → `sleep(1)` → `studuino.bend_arm(90, 1)` | 旗のスクリプトでアームが 2 回動いた ＋ 30 度までの角度 ＋ 60 度からの角度 | ①決めた角度で止まる |
+| 3 | `ctrl-l3-auto-switch` | 自動スイッチ: 暗いときはアームを 90 度、明るいときは 0 度 | `if studuino.sensor_value("light") < 500` 〔`bend_arm(90, 1)`〕 `else` 〔`bend_arm(0, 1)`〕 | `control_forever`・`control_if_else`・センサーの値・アーム ＋ 512 より小さいときに 60 度から ＋ 512 以上のときに 30 度まで | ①ギヤ比を変えて大きい歯車を回す |
+| 4 | `ctrl-l3-bumper-car` | ぶつかったら止まる車: タッチセンサーが押されたら止め、そうでなければ進める | `if studuino.sensor_value("touch") == 0` 〔`action("stop")`〕 `else` 〔`action("forward")`〕 | `control_forever`・`control_if_else`・センサーの値・`action` ＋ 1 以上のときにモーター正転 ＋ 0 のときに停止 | ①エレベーターのドア |
+
+- **サーボの角度**は、生徒がスイッチに合わせて変えるので、判定は 30 度まで／60 度からで見る（ちょうど 0 度・90 度でなくてよい）。
+- **トルク・ギヤ比・てこ**はワークシートと実物でやる（3 のクイズで少しふれるだけ）。電池ボックスのことは課題とつまずきに書く。
+
 ## 記録の形（端末）
 
 `packages/scratch-gui/src/lib/lessons/lesson-progress.js`。localStorage の **`smalruby:lessonProgress`** に、
