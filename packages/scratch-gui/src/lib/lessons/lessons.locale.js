@@ -3,6 +3,7 @@
 // spread into src/locales/{en,ja,ja-Hira}.js. Keys: `gui.lessons.<course|lesson|challenge>.<field>`.
 // The strings of the course "チャットをつくろう" are in chat.locale.js (spread at the end of each locale).
 import { en as chatEn, ja as chatJa, jaHira as chatJaHira } from './chat.locale';
+import { en as controlEn, ja as controlJa, jaHira as controlJaHira } from './control.locale';
 
 export const ja = {
     'gui.lessons.course.kyou-kara-programmer.name': 'きょうからプログラマー',
@@ -352,6 +353,7 @@ export const ja = {
     'gui.lessons.progressConfirm.back': '戻る',
     'gui.lessons.progressConfirm.clear': '消す',
     ...chatJa,
+    ...controlJa,
 };
 
 export const jaHira = {
@@ -717,6 +719,7 @@ export const jaHira = {
     'gui.lessons.progressConfirm.back': 'もどる',
     'gui.lessons.progressConfirm.clear': 'けす',
     ...chatJaHira,
+    ...controlJaHira,
 };
 
 export const en = {
@@ -1076,4 +1079,5 @@ export const en = {
     'gui.lessons.progressConfirm.back': 'Back',
     'gui.lessons.progressConfirm.clear': 'Clear',
     ...chatEn,
+    ...controlEn,
 };

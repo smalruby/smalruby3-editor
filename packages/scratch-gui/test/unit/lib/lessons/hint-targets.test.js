@@ -177,6 +177,15 @@ describe('findHintTargetRect', () => {
         expect(findHintAvoidRects(document)).toEqual([rect(746, 132, 922, 331)]);
     });
 
+    test('the practice board panel of ArtecRobo (or its open button) is found and is avoided (#2170)', () => {
+        addEl('', rect(1100, 540, 1180, 570), { 'data-testid': 'studuino-practice-board-open' });
+        expect(findHintTargetRect(HINT_TARGETS.PRACTICE_BOARD, document)).toEqual(rect(1100, 540, 1180, 570));
+        expect(findHintAvoidRects(document)).toEqual([]);
+        addEl('', rect(560, 132, 740, 420), { 'data-testid': 'studuino-practice-board' });
+        expect(findHintTargetRect(HINT_TARGETS.PRACTICE_BOARD, document)).toEqual(rect(560, 132, 740, 420));
+        expect(findHintAvoidRects(document)).toEqual([rect(560, 132, 740, 420)]);
+    });
+
     test('the list of costumes or sounds is avoided, so the balloon does not hide the 2nd costume (#2146)', () => {
         expect(findHintAvoidRects(document, HINT_TARGETS.COSTUMES_TAB)).toEqual([]);
         addEl('selector_wrapper_abc', rect(0, 117, 150, 563));
