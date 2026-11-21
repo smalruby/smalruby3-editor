@@ -66,9 +66,9 @@ export const ja = {
         'ボタンを押すと、えらぶページが開くよ。好きなものを押そう。',
     'gui.lessons.challenge.blocks-l0-where.name': 'どこでしょう？',
     'gui.lessons.challenge.blocks-l0-where.task':
-        '「ブロックパレットはどこ？」のように聞かれたら、\n画面のその場所をクリックして答えよう。5 問あるよ',
+        'まず、画面の場所の名前を覚えよう。「ブロックパレットはどこ？」のように聞かれたら、\nその場所をクリックしよう。まちがえると、答えの場所が光るよ。5 問あるよ',
     'gui.lessons.challenge.blocks-l0-where.step1':
-        'ここに問題が出るよ。答えの場所をクリックしよう。まちがえると、答えの場所が光るよ。',
+        'ここに問題が出るよ。知らなくても大丈夫。ここかなと思う場所をクリックしよう。まちがえると、答えの場所が光るよ。',
     'gui.lessons.lesson.blocks-l1.name': 'うごかしてみよう',
     'gui.lessons.lesson.blocks-l2.name': 'えらんで たずねよう',
     'gui.lessons.lesson.blocks-l3.name': 'おぼえて つたえよう',
@@ -236,6 +236,10 @@ export const ja = {
     'gui.lessons.completed.nextLesson': '次のレッスンへ',
     'gui.lessons.completed.library': 'レッスン表へ',
     'gui.lessons.completed.close': 'もう少し見る',
+    'gui.lessons.completed.skipDetail':
+        '1 回もまちがえずに全問正解！ 画面のことをもう知っているなら、レッスン {number} へ進んでもいいよ。',
+    'gui.lessons.completed.skipLesson': 'レッスン {number} へ進む',
+    'gui.lessons.completed.continueLesson': '続けてレッスン {number} をやる',
     'gui.lessons.completed.assignmentTitle': '課題クリア！',
     'gui.lessons.completed.assignmentDetail': '「{name}」の条件を満たしました',
     'gui.lessons.completed.assignmentDetailNoName': '課題の条件を満たしました',
@@ -343,9 +347,9 @@ export const jaHira = {
         'ボタンを おすと、えらぶ ページが ひらくよ。すきな ものを おそう。',
     'gui.lessons.challenge.blocks-l0-where.name': 'どこでしょう？',
     'gui.lessons.challenge.blocks-l0-where.task':
-        '「ブロックパレットは どこ？」のように きかれたら、\nがめんの その ばしょを クリックして こたえよう。5 もん あるよ',
+        'まず、がめんの ばしょの なまえを おぼえよう。「ブロックパレットは どこ？」のように きかれたら、\nその ばしょを クリックしよう。まちがえると、こたえの ばしょが ひかるよ。5 もん あるよ',
     'gui.lessons.challenge.blocks-l0-where.step1':
-        'ここに もんだいが でるよ。こたえの ばしょを クリックしよう。まちがえると、こたえの ばしょが ひかるよ。',
+        'ここに もんだいが でるよ。しらなくても だいじょうぶ。ここかなと おもう ばしょを クリックしよう。まちがえると、こたえの ばしょが ひかるよ。',
     'gui.lessons.lesson.blocks-l1.name': 'うごかしてみよう',
     'gui.lessons.lesson.blocks-l2.name': 'えらんで たずねよう',
     'gui.lessons.lesson.blocks-l3.name': 'おぼえて つたえよう',
@@ -520,6 +524,10 @@ export const jaHira = {
     'gui.lessons.completed.nextLesson': 'つぎのレッスンへ',
     'gui.lessons.completed.library': 'レッスンひょうへ',
     'gui.lessons.completed.close': 'もうすこしみる',
+    'gui.lessons.completed.skipDetail':
+        '1 かいも まちがえずに ぜんもん せいかい！ がめんの ことを もう しっているなら、レッスン {number} へ すすんでも いいよ。',
+    'gui.lessons.completed.skipLesson': 'レッスン {number} へ すすむ',
+    'gui.lessons.completed.continueLesson': 'つづけて レッスン {number} を やる',
     'gui.lessons.completed.assignmentTitle': 'かだいクリア！',
     'gui.lessons.completed.assignmentDetail': '「{name}」の じょうけんを みたしました',
     'gui.lessons.completed.assignmentDetailNoName': 'かだいの じょうけんを みたしました',
@@ -623,9 +631,9 @@ export const en = {
         'The button opens a page to choose from. Click the one you like.',
     'gui.lessons.challenge.blocks-l0-where.name': 'Where is it?',
     'gui.lessons.challenge.blocks-l0-where.task':
-        'When asked "Where is the Block Palette?",\nclick that part of the screen. There are 5 questions',
+        'First, learn the names of the parts of the screen. When asked "Where is the Block Palette?",\nclick that part. If you are wrong, the right part glows. There are 5 questions',
     'gui.lessons.challenge.blocks-l0-where.step1':
-        'The question shows here. Click the right part. If you are wrong, the right part glows.',
+        'The question shows here. It is OK if you do not know yet. Click where you think it is. If you are wrong, the right part glows.',
     'gui.lessons.lesson.blocks-l1.name': "Let's Move",
     'gui.lessons.lesson.blocks-l2.name': 'Choose and Ask',
     'gui.lessons.lesson.blocks-l3.name': 'Remember and Tell',
@@ -801,6 +809,10 @@ export const en = {
     'gui.lessons.completed.nextLesson': 'Next lesson',
     'gui.lessons.completed.library': 'Go to the lessons',
     'gui.lessons.completed.close': 'Keep looking',
+    'gui.lessons.completed.skipDetail':
+        'All correct without a single mistake! If you already know the screen, you can go on to lesson {number}.',
+    'gui.lessons.completed.skipLesson': 'Go to lesson {number}',
+    'gui.lessons.completed.continueLesson': 'Keep going with lesson {number}',
     'gui.lessons.completed.assignmentTitle': 'Assignment cleared!',
     'gui.lessons.completed.assignmentDetail': 'You met the goal of "{name}".',
     'gui.lessons.completed.assignmentDetailNoName': 'You met the goal of the assignment.',

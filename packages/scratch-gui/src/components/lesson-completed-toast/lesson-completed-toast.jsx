@@ -90,6 +90,28 @@ const messages = defineMessages({
         defaultMessage: 'You met the goal of the assignment.',
         description: 'Second line of the completed toast when the class assignment (without a name) is cleared',
     },
+    skipDetail: {
+        id: 'gui.lessons.completed.skipDetail',
+        defaultMessage:
+            'All correct without a single mistake! If you already know the screen, you can go on to lesson {number}.',
+        description:
+            'Line of the completed toast of the "where is it?" quiz of lesson 0 when every question was answered ' +
+            'right on the first click: the student may skip the rest of the lesson. {number} is the next lesson',
+    },
+    skipLesson: {
+        id: 'gui.lessons.completed.skipLesson',
+        defaultMessage: 'Go to lesson {number}',
+        description:
+            'Button on the completed toast of a perfect "where is it?" quiz: skips the rest of lesson 0 and starts ' +
+            'the next lesson. {number} is the next lesson',
+    },
+    continueLesson: {
+        id: 'gui.lessons.completed.continueLesson',
+        defaultMessage: 'Keep going with lesson {number}',
+        description:
+            'Main button on the completed toast of a perfect "where is it?" quiz (instead of "Next challenge"): ' +
+            'goes on with the current lesson. {number} is the current lesson',
+    },
     close: {
         id: 'gui.lessons.completed.close',
         defaultMessage: 'Keep looking',
@@ -112,6 +134,9 @@ const BUTTON_MESSAGES = {
  *   - library: 全部できて、後ろに残っているレッスンが無い。2 行目はコース名の行（コースが全部できたとき。
  *     前のレッスンを飛ばしているときはレッスン名の行）（オレンジ・🏆）
  * チャレンジの名前は出さない（課題バーに出ている）。「もう少し見る」は閉じるだけ。
+ * レッスンを飛ばせるとき（`skipLesson`。「どこでしょう？」を 1 回もまちがえずに全部答えた・lesson-progress.js の
+ * lessonSkipOffer）は、「できた！」の場面だけ、そのことを書いた行と「レッスン n へ進む」を足し、主ボタンを
+ * 「続けてレッスン n をやる」にする（主ボタンの動きは「次のチャレンジへ」と同じ）。
  * @param {object} props - props。
  * @param {string} props.action - 場面（lesson-progress.js の COMPLETED_ACTIONS）。
  * @param {Array<object>} props.assignmentChallenges - 課題クリアのときの、課題のチャレンジ（丸）。
@@ -128,6 +153,8 @@ const BUTTON_MESSAGES = {
  * @param {Function} props.onNextChallenge - 「次のチャレンジへ」など（レッスン表を開く）。
  * @param {boolean} props.hidden - いっとき隠すか（描いたまま見えなくする。クイズで選んだものを残す・#1639）。
  * @param {?object} props.quiz - できたチャレンジのふりかえりのクイズ（#1639。無ければ出さない）。
+ * @param {?{lessonNumber: number}} props.skipLesson - 飛ばして進めるレッスン（無ければ出さない）。
+ * @param {?Function} props.onSkipLesson - 「レッスン n へ進む」。
  * @param {object} props.intl - react-intl。
  * @returns {React.ReactElement} toast。
  */
@@ -147,6 +174,8 @@ const LessonCompletedToast = ({
     onClose,
     onNextChallenge,
     quiz = null,
+    skipLesson = null,
+    onSkipLesson = null,
     intl,
 }) => {
     // 課題クリア（#1599）: 段 1 の「レッスン n ぜんぶできた！」より優先。同じお祝いの形で、丸は課題のチャレンジ
@@ -154,6 +183,8 @@ const LessonCompletedToast = ({
     const dots = assignmentCleared ? assignmentChallenges : challenges;
     const total = dots.length;
     const remaining = challenges.filter((c) => !c.completed).length;
+    // 「できた！」の場面（レッスンの途中・課題クリアでない）でだけ、レッスンを飛ばす道を出す
+    const skip = !lessonDone && skipLesson && onSkipLesson && onNextChallenge ? skipLesson : null;
     let detail = null;
     // 「これで全部です」はコースのチャレンジが全部できたときだけ。library は「後ろに残っているレッスンが無い」
     // だけなので、前のレッスンを飛ばした生徒には出さず、レッスン名の行にする
@@ -233,6 +264,11 @@ const LessonCompletedToast = ({
                 {/* ふりかえりのクイズ（#1639）: どの場面（できた！／レッスン n ぜんぶできた！／課題クリア！）でも出す。
                     答えなくてもボタンで先へ進める。チャレンジが変わったら選んだものを消す（key） */}
                 {quiz && <LessonCompletedQuiz key={challengeId} quiz={quiz} />}
+                {skip && (
+                    <div className={styles.skipDetail} data-testid="lesson-completed-toast-skip-detail">
+                        {intl.formatMessage(messages.skipDetail, { number: skip.lessonNumber })}
+                    </div>
+                )}
                 <div className={styles.actions}>
                     {assignmentCleared && onSubmitAssignment ? (
                         <button
@@ -251,9 +287,22 @@ const LessonCompletedToast = ({
                             data-testid="lesson-completed-toast-next"
                             data-action={action}
                         >
-                            {intl.formatMessage(BUTTON_MESSAGES[action])}
+                            {skip
+                                ? intl.formatMessage(messages.continueLesson, { number: lessonNumber })
+                                : intl.formatMessage(BUTTON_MESSAGES[action])}
                         </button>
                     ) : null}
+                    {skip && (
+                        <button
+                            type="button"
+                            className={styles.close}
+                            onClick={onSkipLesson}
+                            data-testid="lesson-completed-toast-skip"
+                            data-lesson-number={skip.lessonNumber}
+                        >
+                            {intl.formatMessage(messages.skipLesson, { number: skip.lessonNumber })}
+                        </button>
+                    )}
                     <button
                         type="button"
                         className={styles.close}
@@ -304,6 +353,10 @@ LessonCompletedToast.propTypes = {
     onClose: PropTypes.func.isRequired,
     // 「次のチャレンジへ」など。レッスン表を開く。無ければボタンを出さない
     onNextChallenge: PropTypes.func,
+    // 「レッスン n へ進む」（レッスンを飛ばす）。skipLesson と onNextChallenge もあるときだけ出す
+    onSkipLesson: PropTypes.func,
+    // 飛ばして進めるレッスン（lesson-progress.js の lessonSkipOffer）。無ければ出さない
+    skipLesson: PropTypes.shape({ lessonNumber: PropTypes.number.isRequired }),
     // ふりかえりのクイズ（courses.js の challengeQuiz の形）。無ければ出さない
     quiz: PropTypes.shape({
         question: PropTypes.object.isRequired,

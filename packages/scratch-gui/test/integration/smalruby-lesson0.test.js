@@ -98,7 +98,7 @@ describe('Lesson 0 (#2134)', () => {
         expect(await getLogs()).toEqual([]);
     });
 
-    test('0-1: dragging the cat on the stage completes it', async () => {
+    test('0-2: dragging the cat on the stage completes it', async () => {
         await loadEditor();
         await openChallenge('blocks-l0-drag-cat');
         // 名前の札（「ガイド」）はレッスン 0 では最初から出ている
@@ -117,7 +117,7 @@ describe('Lesson 0 (#2134)', () => {
         expect(await getLogs()).toEqual([]);
     });
 
-    test('0-3: clicking the two snapped blocks in the code area completes it', async () => {
+    test('0-4: clicking the two snapped blocks in the code area completes it', async () => {
         await loadEditor();
         await openChallenge('blocks-l0-snap');
         // 置いてくっつけたのと同じ状態にする（ヒントの「プログラムを入れる」と同じ変換）
@@ -149,7 +149,7 @@ describe('Lesson 0 (#2134)', () => {
         expect(await getLogs()).toEqual([]);
     });
 
-    test('0-8: answering the 5 questions by clicking the parts completes it', async () => {
+    test('0-1: answering the 5 questions by clicking the parts completes it', async () => {
         await loadEditor();
         await openChallenge('blocks-l0-where');
         // クイズでは名前の札も「ガイド」のボタンも出さない
@@ -193,6 +193,8 @@ describe('Lesson 0 (#2134)', () => {
         }
         await findByXpath(byTestId('lesson-part-quiz-done'));
         await waitForCompletedToast('blocks-l0-where');
+        // 1 回まちがえたので、レッスン 1 へ進む道は出さない（1 回もまちがえずに全部答えたときだけ）
+        expect(await countByTestId('lesson-completed-toast-skip')).toBe(0);
         // 答えのクリックで、緑の旗（プログラム）もタブも動いていない
         expect(
             await driver.executeScript(

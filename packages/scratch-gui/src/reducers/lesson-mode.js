@@ -39,6 +39,7 @@ const CLEAR_LESSONS_LIBRARY_FOCUS = 'scratch-gui/lesson-mode/CLEAR_LESSONS_LIBRA
 const SET_LIBRARY_ASSIGNMENT_ONLY = 'scratch-gui/lesson-mode/SET_LIBRARY_ASSIGNMENT_ONLY';
 const SET_ROLE = 'scratch-gui/lesson-mode/SET_ROLE';
 const SOLVE_PART_QUIZ = 'scratch-gui/lesson-mode/SOLVE_PART_QUIZ';
+const MISS_PART_QUIZ = 'scratch-gui/lesson-mode/MISS_PART_QUIZ';
 // チュートリアルのカードを開く action（reducers/cards.js の ACTIVATE_DECK）。カードの
 // allowedBlocks / setup がレッスンのものと食い違うので、開いたらレッスンモードを抜ける
 const ACTIVATE_DECK = 'scratch-gui/cards/ACTIVATE_DECK';
@@ -103,6 +104,9 @@ const closedState = {
     // 画面の部分をクリックして答えるクイズ（チャレンジの `partQuiz`・#2134）で、正しく答えた問いの数。
     // いまの問いは、この数の番め（0 から）。チャレンジを開くたびに 0 にもどす
     partQuizSolved: 0,
+    // そのクイズで 1 回でもまちがえたか。1 回もまちがえずに全部答えたら、「できた！」で次のレッスンへ進むことも
+    // えらべる（lesson-progress.js の lessonSkipOffer）。チャレンジを開くたびに false にもどす
+    partQuizMissed: false,
 };
 
 const initialState = {
@@ -224,6 +228,7 @@ const reducer = function (state, action) {
                 justCompletedNew: false,
                 completedHidden: false,
                 partQuizSolved: 0,
+                partQuizMissed: false,
             };
         }
         case SOLVE_PART_QUIZ: {
@@ -233,6 +238,13 @@ const reducer = function (state, action) {
             const solved = state.partQuizSolved || 0;
             if (solved >= questions || action.index !== solved) return state;
             return { ...state, partQuizSolved: solved + 1 };
+        }
+        case MISS_PART_QUIZ: {
+            // ちがうチャレンジ・クイズの無いチャレンジ・答えおわったクイズのまちがいは覚えない
+            const found = state.challengeId === action.challengeId ? findChallenge(state.challengeId) : null;
+            const questions = found && found.challenge.partQuiz ? found.challenge.partQuiz.questions.length : 0;
+            if (state.partQuizMissed || (state.partQuizSolved || 0) >= questions) return state;
+            return { ...state, partQuizMissed: true };
         }
         case CLOSE_LESSON:
         case ACTIVATE_DECK:
@@ -415,6 +427,14 @@ const closeLesson = () => ({ type: CLOSE_LESSON });
  */
 const solvePartQuiz = (challengeId, index) => ({ type: SOLVE_PART_QUIZ, challengeId, index });
 
+/**
+ * 画面の部分をクリックして答えるクイズで、まちがえた（ちがう場所をクリックした）。1 回もまちがえずに全部答えたかを
+ * 見るために覚える（lesson-progress.js の lessonSkipOffer）。
+ * @param {string} challengeId - クイズのあるチャレンジ id。
+ * @returns {object} action。
+ */
+const missPartQuiz = (challengeId) => ({ type: MISS_PART_QUIZ, challengeId });
+
 const showHint = () => ({ type: SHOW_HINT });
 
 const hideHint = () => ({ type: HIDE_HINT });
@@ -575,6 +595,7 @@ export {
     openChallenge,
     closeLesson,
     solvePartQuiz,
+    missPartQuiz,
     showHint,
     hideHint,
     finishHint,

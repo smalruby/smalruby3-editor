@@ -8,6 +8,7 @@ import {
     exportProgress,
     isChallengeCompleted,
     lessonProgress,
+    lessonSkipOffer,
     lessonsLibraryFocus,
     loadProgress,
     markChallengeCompleted,
@@ -518,7 +519,7 @@ describe('startLessonsFocus (welcome 「レッスンを始める」 #1888)', () 
             language: 'blocks',
             courseId: 'kyou-kara-programmer',
             lessonId: 'blocks-l0',
-            nextChallengeId: 'blocks-l0-drag-cat',
+            nextChallengeId: 'blocks-l0-where',
         });
     });
 
@@ -566,7 +567,7 @@ describe('startLessonsFocus (welcome 「レッスンを始める」 #1888)', () 
     test('when the later lessons are done but an earlier one is not, still marks a challenge not done', () => {
         // まだできていない、いちばん前のチャレンジ（レッスン 0 が先頭）
         expect(startLessonsFocus(doneInOrder(8, 9, 10, 11))).toEqual(
-            expect.objectContaining({ lessonId: 'blocks-l0', nextChallengeId: 'blocks-l0-drag-cat' }),
+            expect.objectContaining({ lessonId: 'blocks-l0', nextChallengeId: 'blocks-l0-where' }),
         );
     });
 
@@ -609,6 +610,92 @@ describe('startLessonsFocus (welcome 「レッスンを始める」 #1888)', () 
     test('ignores records of challenges that are not in the courses', () => {
         const progress = emptyProgress();
         progress.challenges['no-such'] = { completedAt: LATER, courseId: 'x', lessonId: 'y' };
-        expect(startLessonsFocus(progress).nextChallengeId).toBe('blocks-l0-drag-cat');
+        expect(startLessonsFocus(progress).nextChallengeId).toBe('blocks-l0-where');
+    });
+});
+
+describe('lessonSkipOffer (「どこでしょう？」を 1 回もまちがえずに全部答えたら、レッスン 1 へ進める)', () => {
+    const WHERE = 'blocks-l0-where';
+    const done = (...ids) => ids.reduce((p, id) => markChallengeCompleted(p, id, NOW), emptyProgress());
+    const offer = (overrides = {}) =>
+        lessonSkipOffer({
+            challengeId: WHERE,
+            progress: done(WHERE),
+            isNew: true,
+            missed: false,
+            assignmentLesson: null,
+            ...overrides,
+        });
+
+    test('offers the first challenge of lesson 1 after a perfect first try', () => {
+        expect(offer()).toEqual({ lessonId: 'blocks-l1', lessonNumber: 1, challengeId: challengeId(1) });
+    });
+
+    test('does not offer it after a mistake, or when the quiz was already done before', () => {
+        expect(offer({ missed: true })).toBeNull();
+        expect(offer({ isNew: false })).toBeNull();
+    });
+
+    test('does not offer it for the other challenges of lesson 0 or of other lessons', () => {
+        expect(offer({ challengeId: 'blocks-l0-drag-cat', progress: done('blocks-l0-drag-cat') })).toBeNull();
+        expect(offer({ challengeId: challengeId(1), progress: done(challengeId(1)) })).toBeNull();
+        expect(offer({ challengeId: 'no-such-challenge' })).toBeNull();
+    });
+
+    test('does not offer it when lesson 0 is all done (the toast already leads to the next lesson)', () => {
+        const ids = findLesson('blocks-l0').challenges.map((c) => c.id);
+        expect(offer({ progress: done(...ids) })).toBeNull();
+    });
+
+    test('goes to the first challenge not done of the next lesson not all done', () => {
+        expect(offer({ progress: done(WHERE, challengeId(1)) })).toEqual(
+            expect.objectContaining({ lessonId: 'blocks-l1', challengeId: challengeId(2) }),
+        );
+        const lesson1Ids = findLesson('blocks-l1').challenges.map((c) => c.id);
+        expect(offer({ progress: done(WHERE, ...lesson1Ids) })).toEqual(
+            expect.objectContaining({ lessonId: 'blocks-l2', lessonNumber: 2 }),
+        );
+    });
+
+    test('in a class assignment, does not offer it when a lesson 0 challenge is required (★)', () => {
+        const assignment = (requiredChallengeIds) => ({
+            courseId: 'kyou-kara-programmer',
+            challengeIds: ['blocks-l0-where', 'blocks-l0-drag-cat', challengeId(1)],
+            requiredChallengeIds,
+            completion: { type: 'all' },
+            submitWork: false,
+            scoring: null,
+        });
+        expect(offer({ assignmentLesson: assignment(['blocks-l0-drag-cat']) })).toBeNull();
+        expect(offer({ assignmentLesson: assignment([WHERE]) })).toBeNull();
+        // ★ がレッスン 0 の外だけなら出す
+        expect(offer({ assignmentLesson: assignment([challengeId(1)]) })).toEqual(
+            expect.objectContaining({ lessonId: 'blocks-l1' }),
+        );
+        expect(offer({ assignmentLesson: assignment([]) })).not.toBeNull();
+    });
+
+    test('only for a quiz that offers it (offerLessonSkip)', () => {
+        const courses = [
+            defineCourse({
+                id: 'c',
+                language: 'blocks',
+                lessons: [
+                    defineLesson({
+                        id: 'w',
+                        warmup: true,
+                        challenges: [{ id: 'q', partQuiz: { questions: ['palette'] } }, { id: 'r' }],
+                    }),
+                    defineLesson({ id: 'l', challenges: [{ id: 's' }] }),
+                ],
+            }),
+        ];
+        const progress = markChallengeCompleted(emptyProgress(), 'q', NOW, courses);
+        expect(
+            lessonSkipOffer(
+                { challengeId: 'q', progress, isNew: true, missed: false, assignmentLesson: null },
+                courses,
+            ),
+        ).toBeNull();
     });
 });

@@ -324,7 +324,7 @@ const debugTips = (challengeId, count) =>
 // 判定は結果で見る（タブを開いたことは見ない）
 const L0_MOVE_TURN = 'move(10)\nturn_right(15)\n';
 const L0_FLAG_MOVE_TURN = 'when_flag_clicked do\n  move(10)\n  turn_right(15)\nend\n';
-// 0-5 は「数を変える」ブロック（15 度回す）と「▼ を変える」ブロック（マウスのポインターへ行く）を最初から置いておく。
+// 0-6 は「数を変える」ブロック（15 度回す）と「▼ を変える」ブロック（マウスのポインターへ行く）を最初から置いておく。
 // 「歩動かす」には ▼ で選ぶ相手のブロックが無く、ヒント 2 が置いていないブロックを指していたため（#2146）
 const L0_FLAG_TURN_GOTO = 'when_flag_clicked do\n  turn_right(15)\n  go_to("_mouse_")\nend\n';
 const L0_FLAG_TURN_GOTO_CHANGED = 'when_flag_clicked do\n  turn_right(90)\n  go_to("_random_")\nend\n';
@@ -336,7 +336,19 @@ const blocksLesson0 = defineLesson({
     warmup: true,
     showPartNames: true,
     challenges: [
-        // 0-1 ネコをつかんで動かそう（ステージ・スプライト）: ネコの位置が最初と変わった
+        // 0-1 どこでしょう？（画面の場所の名前を覚える・はじめに）: 画面の部分をクリックして答える 5 問に、全部正しく答えた。
+        // まちがえると答えの場所が光るので、知らなくても答えながら覚えられる。1 回もまちがえずに全部答えられたら
+        // （はじめてのとき）、「できた！」で次のレッスンへ進むこともえらべる（`offerLessonSkip`・lesson-progress.js の
+        // lessonSkipOffer）。クイズのあいだは名前の札を出さない（答えが見えてしまう・containers/lesson-mode.jsx）
+        {
+            id: 'blocks-l0-where',
+            card: { category: CATEGORIES.SENSING, main: CATEGORIES.SENSING },
+            task: challengeMessage('blocks-l0-where', 'task'),
+            partQuiz: { questions: LESSON0_QUIZ_PARTS, offerLessonSkip: true },
+            steps: withTitles('blocks-l0-where', [{ target: HINT_TARGETS.PART_QUIZ }]),
+            goal: [{ type: 'partQuiz', count: LESSON0_QUIZ_PARTS.length }],
+        },
+        // 0-2 ネコをつかんで動かそう（ステージ・スプライト）: ネコの位置が最初と変わった
         {
             id: 'blocks-l0-drag-cat',
             card: { category: CATEGORIES.MOTION, main: CATEGORIES.MOTION },
@@ -345,7 +357,7 @@ const blocksLesson0 = defineLesson({
             debug: debugTips('blocks-l0-drag-cat', 1),
             goal: [{ type: 'moved' }],
         },
-        // 0-2 ブロックを押してみよう（パレット）: ブロックを置かずに、パレットで押して動いた（コードエリアで押したものや、
+        // 0-3 ブロックを押してみよう（パレット）: ブロックを置かずに、パレットで押して動いた（コードエリアで押したものや、
         // ネコをつかんで動かしたものは数えない）
         {
             id: 'blocks-l0-click-block',
@@ -358,7 +370,7 @@ const blocksLesson0 = defineLesson({
             debug: debugTips('blocks-l0-click-block', 1),
             goal: [{ type: 'uses', trigger: { click: 'palette' }, blocks: ['motion_movesteps'] }],
         },
-        // 0-3 置いて、くっつけよう（コードエリア・ドラッグ・くっつける）: コードエリアで押した 1 つの実行で 2 つとも動いた
+        // 0-4 置いて、くっつけよう（コードエリア・ドラッグ・くっつける）: コードエリアで押した 1 つの実行で 2 つとも動いた
         // （= つながっている）
         {
             id: 'blocks-l0-snap',
@@ -380,7 +392,7 @@ const blocksLesson0 = defineLesson({
             ],
             code: L0_MOVE_TURN,
         },
-        // 0-4 旗で動かそう・止めよう（旗・止める）: 前の答え（くっつけた 2 つ）から始める。旗のスクリプトで動いた
+        // 0-5 旗で動かそう・止めよう（旗・止める）: 前の答え（くっつけた 2 つ）から始める。旗のスクリプトで動いた
         {
             id: 'blocks-l0-flag',
             card: { category: CATEGORIES.MOTION, main: CATEGORIES.EVENTS },
@@ -402,7 +414,7 @@ const blocksLesson0 = defineLesson({
             ],
             code: L0_FLAG_MOVE_TURN,
         },
-        // 0-5 数と ▼ を変えよう（白いところ・▼・消す）: 「15 度回す」と「マウスのポインターへ行く」の旗のスクリプトから
+        // 0-6 数と ▼ を変えよう（白いところ・▼・消す）: 「15 度回す」と「マウスのポインターへ行く」の旗のスクリプトから
         // 始める。15 でない数の「度回す」と、▼ でマウスのポインター以外をえらんだ「へ行く」が動いた（旗でも、押してでも。
         // 別々の実行でもよい）
         {
@@ -429,7 +441,7 @@ const blocksLesson0 = defineLesson({
             ],
             code: L0_FLAG_TURN_GOTO_CHANGED,
         },
-        // 0-6 タブをめぐろう（タブ）: 絵（コスチューム）が 2 つあるシマラビで始める（スモウルビーのネコは絵が 1 つで、
+        // 0-7 タブをめぐろう（タブ）: 絵（コスチューム）が 2 つあるシマラビで始める（スモウルビーのネコは絵が 1 つで、
         // 絵を足す操作が要った・#2146）。2 つめの絵をえらんでコスチュームが変わり、コードタブにもどった（音の再生は
         // 判定しない）。シマラビはこのチャレンジだけ（ほかのレッスン 0 と レッスン 1 の課題・ヒントはネコで書いている）
         {
@@ -448,7 +460,7 @@ const blocksLesson0 = defineLesson({
                 { type: 'tab', tab: 'code' },
             ],
         },
-        // 0-7 なかまと背景をふやそう（スプライトリスト・背景）: スプライトが 2 つ以上・背景が変わった
+        // 0-8 なかまと背景をふやそう（スプライトリスト・背景）: スプライトが 2 つ以上・背景が変わった
         {
             id: 'blocks-l0-sprite-backdrop',
             card: { category: CATEGORIES.LOOKS, main: CATEGORIES.LOOKS },
@@ -462,15 +474,6 @@ const blocksLesson0 = defineLesson({
                 { type: 'sprites', min: 2 },
                 { type: 'currentCostume', target: 'stage', changed: true },
             ],
-        },
-        // 0-8 どこでしょう？（ふりかえり）: 画面の部分をクリックして答える 5 問に、全部正しく答えた
-        {
-            id: 'blocks-l0-where',
-            card: { category: CATEGORIES.SENSING, main: CATEGORIES.SENSING },
-            task: challengeMessage('blocks-l0-where', 'task'),
-            partQuiz: { questions: LESSON0_QUIZ_PARTS },
-            steps: withTitles('blocks-l0-where', [{ target: HINT_TARGETS.PART_QUIZ }]),
-            goal: [{ type: 'partQuiz', count: LESSON0_QUIZ_PARTS.length }],
         },
     ],
 });

@@ -20,7 +20,9 @@ export const partQuizTarget = (label) => {
 
 /**
  * チャレンジの `partQuiz` の形を確かめる（定義の誤りをテストで見つけるため。アプリでは投げない）。
- * @param {*} quiz - チャレンジの `partQuiz`（`{questions: [label, ...]}`）。
+ * @param {*} quiz - チャレンジの `partQuiz`（`{questions: [label, ...], offerLessonSkip?: boolean}`）。
+ *   `offerLessonSkip` は、1 回もまちがえずに全部答えたとき「できた！」で次のレッスンへ進めるようにするか
+ *   （lesson-progress.js の lessonSkipOffer）。
  * @returns {Array<string>} 誤り（無ければ空）。
  */
 export const validatePartQuiz = (quiz) => {
@@ -32,6 +34,9 @@ export const validatePartQuiz = (quiz) => {
         if (partQuizTarget(label) === null) errors.push(`partQuiz.questions[${i}]: unknown part name ${label}`);
     });
     if (new Set(quiz.questions).size !== quiz.questions.length) errors.push('partQuiz.questions must be unique');
+    if (typeof quiz.offerLessonSkip !== 'undefined' && typeof quiz.offerLessonSkip !== 'boolean') {
+        errors.push('partQuiz.offerLessonSkip must be a boolean');
+    }
     return errors;
 };
 

@@ -111,7 +111,7 @@ const partNameMessages = defineMessages({
     },
 });
 
-const LessonPartQuiz = ({ questions, solved, onSolve }) => {
+const LessonPartQuiz = ({ questions, solved, onMiss = null, onSolve }) => {
     const intl = useIntl();
     const [feedback, setFeedback] = useState(null);
     const [reveal, setReveal] = useState(null);
@@ -155,13 +155,14 @@ const LessonPartQuiz = ({ questions, solved, onSolve }) => {
                 return;
             }
             setFeedback('wrong');
+            if (onMiss) onMiss(solved);
             const rect = findHintTargetRect(partQuizTarget(label), document);
             if (rect) {
                 setReveal(rect);
                 revealTimerRef.current = setTimeout(() => setReveal(null), PART_QUIZ_REVEAL_MS);
             }
         },
-        [label, onSolve, solved],
+        [label, onMiss, onSolve, solved],
     );
     // クリック・右クリックのメニューも下の部品へ届けない
     const swallow = useCallback((event) => {
@@ -239,6 +240,8 @@ LessonPartQuiz.propTypes = {
     questions: PropTypes.arrayOf(PropTypes.string).isRequired,
     // 正しく答えた数（いまの問いの番号）
     solved: PropTypes.number.isRequired,
+    // `index` 番めの問いでまちがえた（1 回もまちがえずに全部答えたかを見る・lesson-progress.js の lessonSkipOffer）
+    onMiss: PropTypes.func,
     // `index` 番めの問いに正しく答えた
     onSolve: PropTypes.func.isRequired,
 };
