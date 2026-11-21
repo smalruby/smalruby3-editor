@@ -547,7 +547,8 @@ const VariableUtils = {
     /**
      * The scope index of a local variable being made (the `1` of `_a_1_`). A method has its own
      * (`_enterScope`). In the script, a local that blocks use as different things gets one for
-     * each block (issue #1630); any other local of the script is `1`, shared by its blocks.
+     * each block (issue #1630); any other local of the script is `1`, shared by its blocks. The
+     * indexes are decided by the analysis stage (`locals.scopeIndexOfDef` / `scopeIndexOfUnit`).
      * @param {string} varName - The Ruby name of the local.
      * @returns {number} The scope index.
      */
@@ -565,13 +566,7 @@ const VariableUtils = {
         ) {
             return scopeIndex;
         }
-        // Decided while converting (in the order of the scopes), so not in the frozen analysis.
-        const scopeIndexes = this._context.localScopeIndexes;
-        if (!scopeIndexes[unit]) {
-            this._context.scopeCounter++;
-            scopeIndexes[unit] = this._context.scopeCounter;
-        }
-        return scopeIndexes[unit];
+        return units.scopeIndexOfUnit[unit];
     },
 
     /**

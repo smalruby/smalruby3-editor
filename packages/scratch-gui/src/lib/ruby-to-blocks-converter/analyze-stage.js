@@ -33,6 +33,21 @@ const AnalyzeStage = {
     },
 
     /**
+     * The scope index of the locals of a method (the `2` of `_a_2_`), decided by the analysis stage
+     * (`locals.scopeIndexOfDef`). The methods of a module read from another sprite are not in this
+     * code: they get the indexes after the last one of this code, in the order they are converted.
+     * @param {object} defNode - The DefNode.
+     * @returns {number} The scope index.
+     */
+    _scopeIndexOfDef(defNode) {
+        const locals = this._context.analysis.locals;
+        if (locals.scopeIndexOfDef.has(defNode)) return locals.scopeIndexOfDef.get(defNode);
+        const imported = this._context.importedScopeIndexes;
+        if (!imported.has(defNode)) imported.set(defNode, locals.lastScopeIndex + imported.size + 1);
+        return imported.get(defNode);
+    },
+
+    /**
      * The entry of `procedures.definitions` of a DefNode, from the analysis of this code or of a
      * module read from another sprite.
      * @param {object} defNode - The DefNode.
