@@ -34,6 +34,13 @@ export default {
     'gui.menuBar.smalrubotS1.portSettings': 'Port Settings',
     'gui.studuinoMode.categoryName': 'ArtecRobo',
     'gui.studuinoMode.portSettingsButton': 'Port Settings',
+    'gui.studuinoMode.unusableBlocks': '{count} blocks can not be used in the Studuino mode',
+    'gui.studuinoMode.switchDialog.toStuduinoTitle': 'Switch to the Studuino mode',
+    'gui.studuinoMode.switchDialog.toNormalTitle': 'Switch to the normal mode',
+    'gui.studuinoMode.switchDialog.message': '{count} blocks can not be used, so the mode can not be switched.',
+    'gui.studuinoMode.switchDialog.showBlocks': 'Show the blocks',
+    'gui.studuinoMode.switchDialog.clearAndSwitch': 'Delete all and switch',
+    'gui.studuinoMode.switchDialog.cancel': 'Cancel',
     'gui.studuinoPortSettings.title': 'Port Settings',
     'gui.studuinoPortSettings.description':
         'Choose the part connected to each port of the board. Only the parts you assign appear in the blocks.',

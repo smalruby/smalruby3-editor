@@ -140,4 +140,31 @@ describe('Studuino mode', () => {
         );
         expect(background).toBe('rgb(255, 255, 255)');
     });
+    test('a block that can not be used keeps the mode and the dialog can show it (#2214)', async () => {
+        await loadUri(`${uri}?no_beforeunload=1`);
+        await activateSmalrubotS1Extension();
+        // 見た目のブロック（Studuino モードでは使えない）を置く
+        await driver.executeScript(`
+            window.smalruby.vm.editingTarget.blocks.createBlock({
+                id: 'studuino-unusable-test', opcode: 'looks_nextcostume', next: null, parent: null,
+                inputs: {}, fields: {}, topLevel: true, shadow: false, x: 0, y: 0,
+            });
+        `);
+        await toggleStuduinoMode();
+        await driver.wait(() => existsByTestId('studuino-mode-switch-dialog'), 5000, 'Switch dialog did not open');
+        const text = await driver.executeScript(
+            `return document.querySelector('[data-testid="studuino-mode-switch-dialog"]').textContent`,
+        );
+        expect(text).toContain('1 blocks can not be used');
+        // 本文は不透明
+        const background = await driver.executeScript(
+            `return getComputedStyle(document.querySelector('[data-testid="studuino-mode-switch-dialog"]')).backgroundColor`,
+        );
+        expect(background).toBe('rgb(255, 255, 255)');
+        // やめる → モードは変わらない（パレットはそのまま）
+        await clickByTestId('studuino-mode-switch-dialog-cancel');
+        await sleep(500);
+        expect(await existsByTestId('studuino-mode-switch-dialog')).toBe(false);
+        expect(hasCategory(await categoryNames(), 'Motion')).toBe(true);
+    });
 });
