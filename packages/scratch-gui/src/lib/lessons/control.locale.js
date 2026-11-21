@@ -248,6 +248,68 @@ export const ja = {
     [`${C}ctrl-l3-bumper-car.quiz.choice3`]: 'えんぴつけずり',
     [`${C}ctrl-l3-bumper-car.quiz.explanation`]:
         'エレベーターのドアは、人やものにふれたことをセンサーで計測すると、閉まるのをやめて開く。安全のための計測・制御システムだよ。',
+    // レッスン 4「はなれた場所から計測・制御しよう（IoT）」（#2173・ワークシート第 5 時）。メッシュで相手に届く名前
+    // （あかるさ・うごけ）は ja-Hira と同じにする
+    'gui.lessons.lesson.ctrl-l4.name': 'はなれた場所から計測・制御しよう（IoT）',
+    [`${C}ctrl-l4-send.name`]: '明るさを届けよう',
+    [`${C}ctrl-l4-send.task`]:
+        '計測する側になろう。光センサーの値を、メッシュで共有する変数「あかるさ」にずっと入れ続けよう。\nペアなら、1 人がこの 4-1、もう 1 人が 4-2 を同時にやって、終わったら交代しよう',
+    [`${C}ctrl-l4-send.step1`]:
+        '課題の説明と、アクティビティ図を理解しよう。計測した明るさを、メッシュで相手（仕事をする側）に届け続けるよ。「すべてのスプライト用」の変数は、メッシュでつながった相手と共有される。',
+    [`${C}ctrl-l4-send.step3`]:
+        '「変数を作る」で「すべてのスプライト用」の変数「あかるさ」を作ろう。「旗が押されたとき」の下に「ずっと」をつなげ、その中に「あかるさを (光センサー (A6) の値) にする」を入れよう。',
+    [`${C}ctrl-l4-send.step4`]:
+        '緑の旗を押して、センサーに手をかざそう（練習用の基板ならスライダーを動かそう）。練習相手のパネルの「シマネコに届いた」に、あかるさが出るよ。',
+    [`${C}ctrl-l4-send.debug1`]:
+        '相手に届かないときは、変数を「すべてのスプライト用」で作ったか、名前が「あかるさ」か見よう（ひらがなで同じ名前にする）。',
+    [`${C}ctrl-l4-send.debug2`]: 'メッシュに 1 秒に 1 回くらい届くので、少し待ってから見よう。',
+    [`${C}ctrl-l4-send.quiz.question`]: 'IoT（モノのインターネット）とは、どんなしくみ？',
+    [`${C}ctrl-l4-send.quiz.choice1`]: 'はなれた場所のようすで機器が動く',
+    [`${C}ctrl-l4-send.quiz.choice2`]: 'ロボットの名前',
+    [`${C}ctrl-l4-send.quiz.choice3`]: 'センサーの名前',
+    [`${C}ctrl-l4-send.quiz.explanation`]:
+        'IoT は、身のまわりのモノがネットワークにつながり、はなれた場所のセンサーの値などで機器を動かすしくみ。メッシュはそのネットワークの役目だよ。',
+    [`${C}ctrl-l4-receive-led.name`]: '届いた明るさで LED',
+    [`${C}ctrl-l4-receive-led.task`]:
+        '仕事をする側になろう。メッシュで届いた「あかるさ」が 500 より小さい（相手のところが暗い）ときは LED (A0) をつけ、そうでなければ消そう。\nひとりなら、練習相手の「明るくする」「暗くする」ボタンで、あかるさを変えよう',
+    [`${C}ctrl-l4-receive-led.step1`]:
+        '課題の説明と、アクティビティ図を理解しよう。計測は相手（シマネコ）がして、自分は届いた値で判断して仕事をするよ。計測する側と仕事をする側が別の場所にある。',
+    [`${C}ctrl-l4-receive-led.step3`]:
+        '「旗が押されたとき」の下に「ずっと」をつなげ、その中に「もし〜なら でなければ」を入れよう。',
+    [`${C}ctrl-l4-receive-led.step4`]:
+        '白いところに「〜 < 500」を入れ、左に「メッシュ」の「(　) センサーの値」を入れて、▼で「あかるさ」を選ぼう。相手のあかるさが届くと ▼ に出る（ひとりなら、先に練習相手のパネルの「暗くする」を押そう）。',
+    [`${C}ctrl-l4-receive-led.step5`]:
+        '「もし」の中に「左 のLED をオンにする」、「でなければ」の中に「左 のLED をオフにする」を入れよう。',
+    [`${C}ctrl-l4-receive-led.step6`]:
+        '緑の旗を押して、練習相手のパネルの「暗くする」「明るくする」を押そう（ペアなら、相手が 4-1 のセンサーに手をかざす）。',
+    [`${C}ctrl-l4-receive-led.debug1`]:
+        'LED が変わらないときは、「センサーの値」の ▼ が、相手の変数と同じ「あかるさ」か見よう。',
+    [`${C}ctrl-l4-receive-led.debug2`]: '自分で変数「あかるさ」を作らなくてよい。相手から届いた値を読むよ。',
+    [`${C}ctrl-l4-receive-led.quiz.question`]: '計測する側と仕事をする側が別の場所にあると、どんなよいことがある？',
+    [`${C}ctrl-l4-receive-led.quiz.choice1`]: 'はなれた場所のようすで動かせる',
+    [`${C}ctrl-l4-receive-led.quiz.choice2`]: '電池がいらなくなる',
+    [`${C}ctrl-l4-receive-led.quiz.choice3`]: 'センサーがいらなくなる',
+    [`${C}ctrl-l4-receive-led.quiz.explanation`]:
+        'たとえば、畑の明るさや温度を家で知って、家から水やりの機器を動かせる。計測する場所と仕事をする場所をネットワークでつなぐのが IoT だよ。',
+    [`${C}ctrl-l4-signal-motor.name`]: '合図でモーターを動かそう',
+    [`${C}ctrl-l4-signal-motor.task`]:
+        'スペースキーを押したら、メッシュで合図「うごけ」を送ろう。「うごけ」を受け取ったら、DC モーター (M1) を 1 秒正転させよう。\nペアなら相手のスペースキーでも動くよ（ひとりなら練習相手の「うごけ」ボタン）',
+    [`${C}ctrl-l4-signal-motor.step1`]:
+        '課題の説明と、アクティビティ図を理解しよう。とがった図形が合図を送る、くぼんだ図形が合図を受け取るところ。値ではなく「いま動いて」を知らせるよ。',
+    [`${C}ctrl-l4-signal-motor.step3`]:
+        '「スペースキーが押されたとき」の下に「〜を送る」をつなげ、▼の「新しいメッセージ」で「うごけ」を作って選ぼう。',
+    [`${C}ctrl-l4-signal-motor.step4`]:
+        '「うごけ を受け取ったとき」を置き、その下に「1 秒 DCモーター M1 を 正転させる」をつなげよう。',
+    [`${C}ctrl-l4-signal-motor.step5`]:
+        'スペースキーを押そう（練習相手のパネルの「うごけ」でもよい）。練習用の基板なら、パネルの DC モーター (M1) の ↻ を見よう。',
+    [`${C}ctrl-l4-signal-motor.debug1`]: '動かないときは、送る合図と受け取る合図の名前が同じ「うごけ」か見よう。',
+    [`${C}ctrl-l4-signal-motor.debug2`]: '実機で回らないときは、電池ボックスのスイッチが ON か見よう。',
+    [`${C}ctrl-l4-signal-motor.quiz.question`]: '合図（メッセージ）と、共有する変数のちがいは？',
+    [`${C}ctrl-l4-signal-motor.quiz.choice1`]: '合図は「いま」、変数は値を伝える',
+    [`${C}ctrl-l4-signal-motor.quiz.choice2`]: 'どちらも同じ',
+    [`${C}ctrl-l4-signal-motor.quiz.choice3`]: '合図は数しか送れない',
+    [`${C}ctrl-l4-signal-motor.quiz.explanation`]:
+        '合図は「いま〜して」というきっかけを送り、受け取るとすぐにプログラムが動く。変数は明るさのような値（中身）を伝え、相手が読みたいときに読むよ。',
 };
 
 export const jaHira = {
@@ -497,6 +559,69 @@ export const jaHira = {
     [`${C}ctrl-l3-bumper-car.quiz.choice3`]: 'えんぴつけずり',
     [`${C}ctrl-l3-bumper-car.quiz.explanation`]:
         'エレベーターの ドアは、ひとや ものに ふれたことを センサーで けいそくすると、しまるのを やめて ひらく。あんぜんの ための けいそく・せいぎょ システムだよ。',
+    'gui.lessons.lesson.ctrl-l4.name': 'はなれた ばしょから けいそく・せいぎょ しよう（IoT）',
+    [`${C}ctrl-l4-send.name`]: 'あかるさを とどけよう',
+    [`${C}ctrl-l4-send.task`]:
+        'けいそくする がわに なろう。ひかりセンサーの あたいを、メッシュで きょうゆうする へんすう「あかるさ」に ずっと いれつづけよう。\nペアなら、1 にんが この 4-1、もう 1 にんが 4-2 を どうじに やって、おわったら こうたい しよう',
+    [`${C}ctrl-l4-send.step1`]:
+        'かだいの せつめいと、アクティビティずを りかいしよう。けいそくした あかるさを、メッシュで あいて（しごとを する がわ）に とどけつづけるよ。「すべての スプライトよう」の へんすうは、メッシュで つながった あいてと きょうゆう される。',
+    [`${C}ctrl-l4-send.step3`]:
+        '「へんすうを つくる」で「すべての スプライトよう」の へんすう「あかるさ」を つくろう。「はたが おされたとき」の したに「ずっと」を つなげ、その なかに「あかるさを (ひかりセンサー (A6) の あたい) にする」を いれよう。',
+    [`${C}ctrl-l4-send.step4`]:
+        'みどりのはたを おして、センサーに てを かざそう（れんしゅうようの きばんなら スライダーを うごかそう）。れんしゅうあいての パネルの「シマネコに とどいた」に、あかるさが でるよ。',
+    [`${C}ctrl-l4-send.debug1`]:
+        'あいてに とどかないときは、へんすうを「すべての スプライトよう」で つくったか、なまえが「あかるさ」か みよう（ひらがなで おなじ なまえに する）。',
+    [`${C}ctrl-l4-send.debug2`]: 'メッシュに 1 びょうに 1 かいくらい とどくので、すこし まってから みよう。',
+    [`${C}ctrl-l4-send.quiz.question`]: 'IoT（モノの インターネット）とは、どんな しくみ？',
+    [`${C}ctrl-l4-send.quiz.choice1`]: 'はなれた ばしょの ようすで ききが うごく',
+    [`${C}ctrl-l4-send.quiz.choice2`]: 'ロボットの なまえ',
+    [`${C}ctrl-l4-send.quiz.choice3`]: 'センサーの なまえ',
+    [`${C}ctrl-l4-send.quiz.explanation`]:
+        'IoT は、みのまわりの モノが ネットワークに つながり、はなれた ばしょの センサーの あたいなどで ききを うごかす しくみ。メッシュは その ネットワークの やくめだよ。',
+    [`${C}ctrl-l4-receive-led.name`]: 'とどいた あかるさで LED',
+    [`${C}ctrl-l4-receive-led.task`]:
+        'しごとを する がわに なろう。メッシュで とどいた「あかるさ」が 500 より ちいさい（あいての ところが くらい）ときは LED (A0) を つけ、そうでなければ けそう。\nひとりなら、れんしゅうあいての「あかるくする」「くらくする」ボタンで、あかるさを かえよう',
+    [`${C}ctrl-l4-receive-led.step1`]:
+        'かだいの せつめいと、アクティビティずを りかいしよう。けいそくは あいて（シマネコ）が して、じぶんは とどいた あたいで はんだんして しごとを するよ。けいそくする がわと しごとを する がわが べつの ばしょに ある。',
+    [`${C}ctrl-l4-receive-led.step3`]:
+        '「はたが おされたとき」の したに「ずっと」を つなげ、その なかに「もし〜なら でなければ」を いれよう。',
+    [`${C}ctrl-l4-receive-led.step4`]:
+        'しろいところに「〜 < 500」を いれ、ひだりに「メッシュ」の「(　) センサーの あたい」を いれて、▼で「あかるさ」を えらぼう。あいての あかるさが とどくと ▼ に でる（ひとりなら、さきに れんしゅうあいての パネルの「くらくする」を おそう）。',
+    [`${C}ctrl-l4-receive-led.step5`]:
+        '「もし」の なかに「ひだり の LED を オンにする」、「でなければ」の なかに「ひだり の LED を オフにする」を いれよう。',
+    [`${C}ctrl-l4-receive-led.step6`]:
+        'みどりのはたを おして、れんしゅうあいての パネルの「くらくする」「あかるくする」を おそう（ペアなら、あいてが 4-1 の センサーに てを かざす）。',
+    [`${C}ctrl-l4-receive-led.debug1`]:
+        'LED が かわらないときは、「センサーの あたい」の ▼ が、あいての へんすうと おなじ「あかるさ」か みよう。',
+    [`${C}ctrl-l4-receive-led.debug2`]:
+        'じぶんで へんすう「あかるさ」を つくらなくて よい。あいてから とどいた あたいを よむよ。',
+    [`${C}ctrl-l4-receive-led.quiz.question`]:
+        'けいそくする がわと しごとを する がわが べつの ばしょに あると、どんな よいことが ある？',
+    [`${C}ctrl-l4-receive-led.quiz.choice1`]: 'はなれた ばしょの ようすで うごかせる',
+    [`${C}ctrl-l4-receive-led.quiz.choice2`]: 'でんちが いらなく なる',
+    [`${C}ctrl-l4-receive-led.quiz.choice3`]: 'センサーが いらなく なる',
+    [`${C}ctrl-l4-receive-led.quiz.explanation`]:
+        'たとえば、はたけの あかるさや おんどを いえで しって、いえから みずやりの ききを うごかせる。けいそくする ばしょと しごとを する ばしょを ネットワークで つなぐのが IoT だよ。',
+    [`${C}ctrl-l4-signal-motor.name`]: 'あいずで モーターを うごかそう',
+    [`${C}ctrl-l4-signal-motor.task`]:
+        'スペースキーを おしたら、メッシュで あいず「うごけ」を おくろう。「うごけ」を うけとったら、DC モーター (M1) を 1 びょう せいてんさせよう。\nペアなら あいての スペースキーでも うごくよ（ひとりなら れんしゅうあいての「うごけ」ボタン）',
+    [`${C}ctrl-l4-signal-motor.step1`]:
+        'かだいの せつめいと、アクティビティずを りかいしよう。とがった ずけいが あいずを おくる、くぼんだ ずけいが あいずを うけとる ところ。あたいではなく「いま うごいて」を しらせるよ。',
+    [`${C}ctrl-l4-signal-motor.step3`]:
+        '「スペースキーが おされたとき」の したに「〜を おくる」を つなげ、▼の「あたらしい メッセージ」で「うごけ」を つくって えらぼう。',
+    [`${C}ctrl-l4-signal-motor.step4`]:
+        '「うごけ を うけとったとき」を おき、その したに「1 びょう DC モーター M1 を せいてんさせる」を つなげよう。',
+    [`${C}ctrl-l4-signal-motor.step5`]:
+        'スペースキーを おそう（れんしゅうあいての パネルの「うごけ」でも よい）。れんしゅうようの きばんなら、パネルの DC モーター (M1) の ↻ を みよう。',
+    [`${C}ctrl-l4-signal-motor.debug1`]:
+        'うごかないときは、おくる あいずと うけとる あいずの なまえが おなじ「うごけ」か みよう。',
+    [`${C}ctrl-l4-signal-motor.debug2`]: 'じっきで まわらないときは、でんちボックスの スイッチが ON か みよう。',
+    [`${C}ctrl-l4-signal-motor.quiz.question`]: 'あいず（メッセージ）と、きょうゆうする へんすうの ちがいは？',
+    [`${C}ctrl-l4-signal-motor.quiz.choice1`]: 'あいずは「いま」、へんすうは あたいを つたえる',
+    [`${C}ctrl-l4-signal-motor.quiz.choice2`]: 'どちらも おなじ',
+    [`${C}ctrl-l4-signal-motor.quiz.choice3`]: 'あいずは かずしか おくれない',
+    [`${C}ctrl-l4-signal-motor.quiz.explanation`]:
+        'あいずは「いま〜して」という きっかけを おくり、うけとると すぐに プログラムが うごく。へんすうは あかるさのような あたい（なかみ）を つたえ、あいてが よみたいときに よむよ。',
 };
 
 export const en = {
@@ -735,4 +860,67 @@ export const en = {
     [`${C}ctrl-l3-bumper-car.quiz.choice3`]: 'A pencil sharpener',
     [`${C}ctrl-l3-bumper-car.quiz.explanation`]:
         'When a sensor of an elevator door measures that it touched a person or a thing, the door stops closing and opens. It is a measurement and control system for safety.',
+    'gui.lessons.lesson.ctrl-l4.name': 'Measure and Control from Far Away (IoT)',
+    [`${C}ctrl-l4-send.name`]: 'Send the Brightness',
+    [`${C}ctrl-l4-send.task`]:
+        'Be the measuring side. Keep putting the light sensor value into the variable "brightness" shared over the mesh.\nIn a pair, one does this 4-1 and the other does 4-2 at the same time, then swap',
+    [`${C}ctrl-l4-send.step1`]:
+        'Understand the task and the activity diagram. You keep sending the measured brightness over the mesh to your partner (the working side). A variable "for all sprites" is shared with the partners on the mesh.',
+    [`${C}ctrl-l4-send.step3`]:
+        'Make the variable "brightness" "for all sprites" with "Make a Variable". Attach "forever" under "when flag clicked", and put "set brightness to (light sensor (A6) value)" into it.',
+    [`${C}ctrl-l4-send.step4`]:
+        'Click the green flag and hold your hand over the sensor (or move the slider of the practice board). The brightness shows in "Reached Shimacat" of the practice partner panel.',
+    [`${C}ctrl-l4-send.debug1`]:
+        'If it does not arrive, check that the variable is "for all sprites" and its name is "brightness".',
+    [`${C}ctrl-l4-send.debug2`]: 'It arrives about once a second over the mesh, so wait a little.',
+    [`${C}ctrl-l4-send.quiz.question`]: 'What is IoT (the Internet of Things)?',
+    [`${C}ctrl-l4-send.quiz.choice1`]: 'Machines move by things far away',
+    [`${C}ctrl-l4-send.quiz.choice2`]: 'The name of a robot',
+    [`${C}ctrl-l4-send.quiz.choice3`]: 'The name of a sensor',
+    [`${C}ctrl-l4-send.quiz.explanation`]:
+        'With IoT, things around us connect to a network and machines move by sensor values from far away. The mesh works as that network.',
+    [`${C}ctrl-l4-receive-led.name`]: 'Light the LED by the Brightness That Arrived',
+    [`${C}ctrl-l4-receive-led.task`]:
+        'Be the working side. Turn on the LED (A0) when the "brightness" that arrived over the mesh is less than 500 (dark at your partner), and off when it is not.\nAlone, change the brightness with the "Brighten" and "Darken" buttons of the practice partner',
+    [`${C}ctrl-l4-receive-led.step1`]:
+        'Understand the task and the activity diagram. Your partner (Shimacat) measures, and you judge by the value that arrived and do the work. The measuring side and the working side are in different places.',
+    [`${C}ctrl-l4-receive-led.step3`]: 'Attach "forever" under "when flag clicked", and put "if then else" into it.',
+    [`${C}ctrl-l4-receive-led.step4`]:
+        'Put "< 500" into its white part, put "( ) sensor value" from "Mesh" on the left, and choose "brightness" with ▼. It appears in ▼ when the brightness of your partner arrives (alone, press "Darken" of the practice partner panel first).',
+    [`${C}ctrl-l4-receive-led.step5`]: 'Put "turn left LED on" into "if" and "turn left LED off" into "else".',
+    [`${C}ctrl-l4-receive-led.step6`]:
+        'Click the green flag, and press "Darken" and "Brighten" of the practice partner panel (in a pair, your partner holds a hand over the sensor of 4-1).',
+    [`${C}ctrl-l4-receive-led.debug1`]:
+        'If the LED does not change, check that ▼ of "sensor value" is "brightness", the same as the variable of your partner.',
+    [`${C}ctrl-l4-receive-led.debug2`]:
+        'You do not need to make the variable "brightness" yourself. You read the value that arrived from your partner.',
+    [`${C}ctrl-l4-receive-led.quiz.question`]:
+        'What is good about having the measuring side and the working side in different places?',
+    [`${C}ctrl-l4-receive-led.quiz.choice1`]: 'You can move things by a far place',
+    [`${C}ctrl-l4-receive-led.quiz.choice2`]: 'You do not need batteries',
+    [`${C}ctrl-l4-receive-led.quiz.choice3`]: 'You do not need sensors',
+    [`${C}ctrl-l4-receive-led.quiz.explanation`]:
+        'For example, you can know the light and temperature of a field at home and run a watering machine from home. Connecting the place to measure and the place to work with a network is IoT.',
+    [`${C}ctrl-l4-signal-motor.name`]: 'Move the Motor with a Signal',
+    [`${C}ctrl-l4-signal-motor.task`]:
+        'When the space key is pressed, send the signal "move" over the mesh. When "move" is received, run the DC motor (M1) forward for 1 second.\nIn a pair, the space key of your partner also moves it (alone, the "move" button of the practice partner)',
+    [`${C}ctrl-l4-signal-motor.step1`]:
+        'Understand the task and the activity diagram. The pointed shape sends a signal and the notched shape receives it. It tells "move now", not a value.',
+    [`${C}ctrl-l4-signal-motor.step3`]:
+        'Attach "broadcast" under "when space key pressed", and make and choose "move" with "New message" of ▼.',
+    [`${C}ctrl-l4-signal-motor.step4`]:
+        'Place "when I receive move" and attach "1 seconds DC motor M1 forward" under it.',
+    [`${C}ctrl-l4-signal-motor.step5`]:
+        'Press the space key (or "move" of the practice partner panel). On the practice board, watch ↻ of DC motor (M1) of the panel.',
+    [`${C}ctrl-l4-signal-motor.debug1`]:
+        'If it does not move, check that the sent and received signals have the same name "move".',
+    [`${C}ctrl-l4-signal-motor.debug2`]:
+        'If it does not turn on the real board, check that the battery box switch is ON.',
+    [`${C}ctrl-l4-signal-motor.quiz.question`]:
+        'What is the difference between a signal (message) and a shared variable?',
+    [`${C}ctrl-l4-signal-motor.quiz.choice1`]: 'A signal says "now", a variable a value',
+    [`${C}ctrl-l4-signal-motor.quiz.choice2`]: 'They are the same',
+    [`${C}ctrl-l4-signal-motor.quiz.choice3`]: 'A signal can send only numbers',
+    [`${C}ctrl-l4-signal-motor.quiz.explanation`]:
+        'A signal sends a cue "do it now", and the program runs as soon as it is received. A variable carries a value like the brightness, and the partner reads it when needed.',
 };

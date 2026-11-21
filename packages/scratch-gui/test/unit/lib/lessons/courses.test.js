@@ -1702,6 +1702,10 @@ describe('chat course: how to connect over the mesh, in and outside a class', ()
         ['chat-l5-auto-reply', 'pair'],
         ['chat-l5-password', 'pair'],
         ['chat-l5-stamp', 'pair'],
+        // 計測・制御のコースのレッスン 4（IoT）も同じ文を使う（#2173）
+        ['ctrl-l4-send', 'pair'],
+        ['ctrl-l4-receive-led', 'pair'],
+        ['ctrl-l4-signal-motor', 'pair'],
     ];
     const ALL_CONNECT = [...CONNECT_STEPS, ...SHARED_CONNECT.map(([id]) => [id, 2])];
 

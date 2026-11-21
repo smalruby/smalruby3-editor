@@ -24,6 +24,7 @@ import {
     validateGoal,
 } from '../../../../src/lib/lessons/goal';
 import { HINT_TARGETS } from '../../../../src/lib/lessons/hint-targets';
+import { normalizePartner } from '../../../../src/lib/lessons/practice-partner';
 import { isReadDiagram } from '../../../../src/lib/lessons/read-diagram';
 import en from '../../../../src/locales/en';
 import ja from '../../../../src/locales/ja';
@@ -32,6 +33,7 @@ import jaHira from '../../../../src/locales/ja-Hira';
 const COURSE_ID = 'jidou-sensor-motor';
 const L1 = ['ctrl-l1-measure', 'ctrl-l1-blink', 'ctrl-l1-touch-led', 'ctrl-l1-threshold'];
 const L2 = ['ctrl-l2-auto-light', 'ctrl-l2-near-light', 'ctrl-l2-read-diagram'];
+const L4 = ['ctrl-l4-send', 'ctrl-l4-receive-led', 'ctrl-l4-signal-motor'];
 const L3 = ['ctrl-l3-dc-motor', 'ctrl-l3-servo', 'ctrl-l3-auto-switch', 'ctrl-l3-bumper-car'];
 const challenge = (id) => findChallenge(id).challenge;
 const ext = (name) => `smalrubotS1_${name}`;
@@ -60,8 +62,8 @@ describe('control course "自動でセンサーとモーターでうごかそう
         expect(COURSES[2]).toBe(course);
         expect(course.language).toBe(LANGUAGES.BLOCKS);
         expect(ja[course.name.id]).toBe('自動でセンサーとモーターでうごかそう');
-        expect(course.lessons.map((l) => l.id)).toEqual(['ctrl-l1', 'ctrl-l2', 'ctrl-l3']);
-        expect(courseSize(course)).toEqual({ lessonCount: 3, challengeCount: 11 });
+        expect(course.lessons.map((l) => l.id)).toEqual(['ctrl-l1', 'ctrl-l2', 'ctrl-l3', 'ctrl-l4']);
+        expect(courseSize(course)).toEqual({ lessonCount: 4, challengeCount: 14 });
     });
 
     test('every message of the course is in en / ja / ja-Hira, and ja-Hira has no kanji', () => {
@@ -426,6 +428,90 @@ describe('control course lesson 3 "モーターで動かそう" (#2172)', () => 
             motor('stop', 'M1'),
             motor('stop', 'M2'),
         ]);
+        expect(satisfied(c, facts)).toBe(true);
+    });
+});
+
+describe('control course lesson 4 "はなれた場所から計測・制御しよう（IoT）" (#2173)', () => {
+    test('has the 3 challenges, all with the extension and the mesh loaded and the practice partner', () => {
+        const lesson = findLesson('ctrl-l4');
+        expect(ja[lesson.name.id]).toBe('はなれた場所から計測・制御しよう（IoT）');
+        expect(lesson.challenges.map((c) => `${c.number} ${c.id}`)).toEqual(L4.map((id, i) => `${i + 1} ${id}`));
+        L4.map(challenge).forEach((c) => {
+            expect({ id: c.id, setup: c.setup }).toEqual({
+                id: c.id,
+                setup: { extensions: ['smalrubotS1', 'meshV2'] },
+            });
+            expect({ id: c.id, errors: validateGoal(c.goal) }).toEqual({ id: c.id, errors: [] });
+            expect({ id: c.id, errors: validateQuiz(c.quiz) }).toEqual({ id: c.id, errors: [] });
+            // 2 ページ目はメッシュのつなぎ方（チャットのコースと同じ文）
+            expect({ id: c.id, connect: c.steps[1].title.id }).toEqual({
+                id: c.id,
+                connect: 'gui.lessons.chat.connect.pair',
+            });
+        });
+    });
+
+    test('the practice partner: 4-1 only watches the brightness, 4-2 changes it, 4-3 sends the signal', () => {
+        expect(normalizePartner(challenge('ctrl-l4-send').partner, 'ja')).toEqual({
+            name: 'シマネコ',
+            buttons: [],
+            replies: [],
+            watch: ['あかるさ'],
+        });
+        const led = normalizePartner(challenge('ctrl-l4-receive-led').partner, 'ja-Hira');
+        expect(led.buttons.map((b) => [b.label, b.set[0].name, b.set[0].value])).toEqual([
+            ['あかるくする', 'あかるさ', '800'],
+            ['くらくする', 'あかるさ', '100'],
+        ]);
+        expect(normalizePartner(challenge('ctrl-l4-signal-motor').partner, 'en').buttons[0].broadcast).toBe('move');
+    });
+
+    test('the names that go over the mesh are the same in ja and ja-Hira (no kanji)', () => {
+        L4.forEach((id) => {
+            expect(localizeCode(challenge(id).code, 'ja')).toBe(localizeCode(challenge(id).code, 'ja-Hira'));
+            expect(localizeCode(challenge(id).code, 'ja')).not.toMatch(/\p{Script=Han}/u);
+        });
+    });
+
+    test('4-1: the sensor value went into the shared variable, with 2 values or more', () => {
+        const c = challenge('ctrl-l4-send');
+        const facts = createFacts();
+        const run = flagRun(facts, [
+            ['control_forever'],
+            [ext('getSensorValue')],
+            ['data_setvariableto', { VARIABLE: 'あかるさ', VALUE: 100 }],
+        ]);
+        const snapshot = { variables: [{ name: 'あかるさ', value: 100, isStage: true }] };
+        expect(evaluateGoal(c.goal, facts, snapshot).satisfied).toBe(false);
+        recordExecution(facts, run, 'data_setvariableto', { VARIABLE: 'あかるさ', VALUE: 700 });
+        expect(evaluateGoal(c.goal, facts, snapshot).results[0]).toBe(true);
+    });
+
+    test('4-2: the LED followed the brightness that arrived over the mesh', () => {
+        const c = challenge('ctrl-l4-receive-led');
+        const facts = createFacts();
+        flagRun(facts, [
+            ['control_forever'],
+            ['control_if_else'],
+            ['meshV2_getSensorValue', { NAME: 'あかるさ' }],
+            [ext('turnLedOn')],
+            [ext('turnLedOff')],
+        ]);
+        board(facts, [led('on'), led('off')]);
+        expect(satisfied(c, facts)).toBe(true);
+    });
+
+    test('4-3: the space key sent うごけ and the script that received it ran the motor', () => {
+        const c = challenge('ctrl-l4-signal-motor');
+        const facts = createFacts();
+        const send = startRun(facts, { trigger: { hat: 'event_whenkeypressed', fields: { KEY_OPTION: 'space' } } });
+        recordExecution(facts, send, 'event_broadcast', { BROADCAST_OPTION: 'うごけ' });
+        const receive = startRun(facts, {
+            trigger: { hat: 'event_whenbroadcastreceived', fields: { BROADCAST_OPTION: 'うごけ' } },
+        });
+        recordExecution(facts, receive, ext('controlMotorAndStopAfter'));
+        board(facts, [{ kind: 'motor', port: 'M1', value: 'normal', speed: 50 }]);
         expect(satisfied(c, facts)).toBe(true);
     });
 });
