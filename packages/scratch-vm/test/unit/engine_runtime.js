@@ -121,6 +121,68 @@ test('getLabelForOpcode', t => {
     t.end();
 });
 
+// === Smalruby: Start of extension monitor label arguments ===
+test('getLabelForOpcode fills in the arguments of an extension monitor', t => {
+    const r = new Runtime();
+
+    r._blockInfo.push({
+        id: 'fakeExtension',
+        name: 'Fake Extension',
+        menuInfo: {
+            positions: {
+                items: [
+                    {text: 'Left', value: 'left'},
+                    {text: 'Right', value: 'right'}
+                ]
+            },
+            sensors: {
+                acceptReporters: true,
+                items: ['light', 'sound']
+            },
+            dynamic: {
+                items: () => [['Dynamic', 'dyn']]
+            }
+        },
+        blocks: [
+            {
+                info: {
+                    opcode: 'speed',
+                    text: '[POSITION] speed',
+                    arguments: {POSITION: {type: 'string', menu: 'positions'}}
+                }
+            },
+            {
+                info: {
+                    opcode: 'sensor',
+                    text: '[SENSOR] of [NUM] at [DYN]',
+                    arguments: {
+                        SENSOR: {type: 'string', menu: 'sensors'},
+                        NUM: {type: 'number'},
+                        DYN: {type: 'string', menu: 'dynamic'}
+                    }
+                }
+            }
+        ]
+    });
+
+    const speed = r.getLabelForOpcode('fakeExtension_speed');
+    t.equal(speed.label, 'Fake Extension: [POSITION] speed');
+    t.equal(speed.labelFn({POSITION: 'right'}), 'Fake Extension: Right speed');
+    // An unknown value is shown as it is, a missing one keeps the placeholder.
+    t.equal(speed.labelFn({POSITION: 'up'}), 'Fake Extension: up speed');
+    t.equal(speed.labelFn({}), 'Fake Extension: [POSITION] speed');
+
+    // A menu that accepts reporters keeps its value in the shadow's field, named after the menu.
+    const sensor = r.getLabelForOpcode('fakeExtension_sensor');
+    t.equal(
+        sensor.labelFn({sensors: 'sound', NUM: 3, DYN: 'dyn'}),
+        'Fake Extension: sound of 3 at dyn'
+    );
+
+    t.end();
+});
+// === Smalruby: End of extension monitor label arguments ===
+
 test('Project loaded emits runtime event', t => {
     const vm = new VirtualMachine();
     const projectUri = path.resolve(__dirname, '../fixtures/default.sb2');

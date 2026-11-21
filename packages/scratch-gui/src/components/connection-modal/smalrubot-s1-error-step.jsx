@@ -21,10 +21,7 @@ const SmalrubotS1ErrorStep = (props) => (
                 </div>
                 <div className={errorStyles.description}>
                     <FormattedMessage
-                        defaultMessage={
-                            'Could not connect to Smalrubot S1. ' +
-                            'Make sure your device is plugged in and try again.'
-                        }
+                        defaultMessage="Could not connect to Studuino. Make sure your device is plugged in and try again."
                         description="Description shown when connection has failed"
                         id="gui.connection.smalrubotS1Error.description"
                     />

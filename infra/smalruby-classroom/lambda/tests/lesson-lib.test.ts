@@ -8,10 +8,14 @@
  * 2. 進み具合の入力は ID の形と件数を検証し、日時は ISO に正規化して未来は今に丸める。
  * 3. マージ: 課題の対象外のチャレンジは捨てる・できた記録は消えない・できた時刻は
  *    動かない（あとから来た記録で上書きしない）・current は送られたときだけ変える。
+ * 4. じゅんびチェックの結果（readiness）とおさらい（current.review）は任意。どちらも
+ *    送らない古い画面は今までどおり。review: true の current は対象外でも保つが、
+ *    対象外のできた記録は捨てる。readiness は undefined = 保つ、null = 外す。
  */
 import {
   LessonInputError,
   MAX_LESSON_CHALLENGES,
+  MAX_READINESS_MISSING,
   lessonSettingOf,
   mergeLessonProgress,
   validateLessonProgressInput,
@@ -272,5 +276,111 @@ describe('mergeLessonProgress', () => {
       challenges: { a1: { completedAt: '2026-11-15T02:00:00.000Z', before: false } },
       current: { challengeId: 'a2', openedAt: '2026-11-15T02:10:00.000Z' },
     }, allowed).changed).toBe(false);
+  });
+});
+
+describe('readiness と current.review（issue #2298）', () => {
+  const allowed = ['a1', 'a2', 'a3'];
+
+  test('readiness を正規化する（日時は ISO・未来は今に丸める）', () => {
+    expect(validateLessonProgressInput({
+      readiness: { checkedAt: '2026-11-15T02:00:00Z', missing: ['b1', 'b2'] },
+    }, NOW).readiness).toEqual({ checkedAt: '2026-11-15T02:00:00.000Z', missing: ['b1', 'b2'] });
+    expect(validateLessonProgressInput({
+      readiness: { checkedAt: '2030-01-01T00:00:00Z', missing: [] },
+    }, NOW).readiness).toEqual({ checkedAt: new Date(NOW).toISOString(), missing: [] });
+    expect(validateLessonProgressInput({ readiness: null }, NOW).readiness).toBeNull();
+    expect(validateLessonProgressInput({}, NOW).readiness).toBeUndefined();
+  });
+
+  test('current.review: true を残し、false や省略では付けない', () => {
+    const at = '2026-11-15T02:00:00Z';
+    expect(validateLessonProgressInput({ current: { challengeId: 'b1', openedAt: at, review: true } }, NOW).current)
+      .toEqual({ challengeId: 'b1', openedAt: '2026-11-15T02:00:00.000Z', review: true });
+    expect(validateLessonProgressInput({ current: { challengeId: 'b1', openedAt: at, review: false } }, NOW).current)
+      .toEqual({ challengeId: 'b1', openedAt: '2026-11-15T02:00:00.000Z' });
+  });
+
+  test.each([
+    ['readiness がオブジェクトでない', { readiness: ['b1'] }],
+    ['readiness.checkedAt が無い', { readiness: { missing: [] } }],
+    ['readiness.checkedAt が日時でない', { readiness: { checkedAt: 'now', missing: [] } }],
+    ['readiness.missing が配列でない', { readiness: { checkedAt: '2026-11-15T00:00:00Z', missing: 'b1' } }],
+    ['readiness.missing の ID の形が違う', { readiness: { checkedAt: '2026-11-15T00:00:00Z', missing: ['B 1'] } }],
+    ['readiness.missing に予約された名前', { readiness: { checkedAt: '2026-11-15T00:00:00Z', missing: ['__proto__'] } }],
+    ['readiness.missing が重複', { readiness: { checkedAt: '2026-11-15T00:00:00Z', missing: ['b1', 'b1'] } }],
+    ['readiness.missing が多すぎる', {
+      readiness: { checkedAt: '2026-11-15T00:00:00Z', missing: ids(MAX_READINESS_MISSING + 1) },
+    }],
+    ['current.review が真偽でない', { current: { challengeId: 'a1', openedAt: '2026-11-15T00:00:00Z', review: 'yes' } }],
+  ])('不正な入力は LessonInputError: %s', (_label, body) => {
+    expect(() => validateLessonProgressInput(body as Record<string, unknown>, NOW)).toThrow(LessonInputError);
+  });
+
+  test('review: true なら対象外のチャレンジの current も保つ（できた記録は捨てる）', () => {
+    const { progress, changed } = mergeLessonProgress(null, {
+      challenges: { other: { completedAt: '2026-11-15T02:00:00.000Z', before: false } },
+      current: { challengeId: 'other', openedAt: '2026-11-15T02:10:00.000Z', review: true },
+    }, allowed);
+    expect(changed).toBe(true);
+    expect(progress).toEqual({
+      challenges: {},
+      current: { challengeId: 'other', openedAt: '2026-11-15T02:10:00.000Z', review: true },
+    });
+  });
+
+  test('対象のチャレンジに review: true が来ても review は付けない', () => {
+    const { progress } = mergeLessonProgress(null, {
+      challenges: {},
+      current: { challengeId: 'a1', openedAt: '2026-11-15T02:10:00.000Z', review: true },
+    }, allowed);
+    expect(progress.current).toEqual({ challengeId: 'a1', openedAt: '2026-11-15T02:10:00.000Z' });
+  });
+
+  test('おさらいから課題のチャレンジに戻ると変わったと見る（review の違いも比べる）', () => {
+    const existing = {
+      challenges: {},
+      current: { challengeId: 'other', openedAt: '2026-11-15T02:10:00.000Z', review: true as const },
+    };
+    expect(mergeLessonProgress(existing, {
+      challenges: {},
+      current: { challengeId: 'other', openedAt: '2026-11-15T02:10:00.000Z', review: true },
+    }, allowed).changed).toBe(false);
+    const back = mergeLessonProgress(existing, {
+      challenges: {},
+      current: { challengeId: 'a2', openedAt: '2026-11-15T02:20:00.000Z' },
+    }, allowed);
+    expect(back.changed).toBe(true);
+    expect(back.progress.current).toEqual({ challengeId: 'a2', openedAt: '2026-11-15T02:20:00.000Z' });
+  });
+
+  test('readiness: undefined は保つ、null は外す、同じなら changed=false、違えば置きかえる', () => {
+    const readiness = { checkedAt: '2026-11-15T02:00:00.000Z', missing: ['b1'] };
+    const existing = { challenges: {}, current: null, readiness };
+    expect(mergeLessonProgress(existing, { challenges: {}, current: undefined }, allowed))
+      .toEqual({ progress: existing, changed: false });
+    expect(mergeLessonProgress(existing, {
+      challenges: {}, current: undefined, readiness: { checkedAt: '2026-11-15T02:00:00.000Z', missing: ['b1'] },
+    }, allowed).changed).toBe(false);
+    const removed = mergeLessonProgress(existing, { challenges: {}, current: undefined, readiness: null }, allowed);
+    expect(removed.changed).toBe(true);
+    expect(removed.progress).toEqual({ challenges: {}, current: null });
+    const next = { checkedAt: '2026-11-15T02:30:00.000Z', missing: [] };
+    const replaced = mergeLessonProgress(existing, { challenges: {}, current: undefined, readiness: next }, allowed);
+    expect(replaced.changed).toBe(true);
+    expect(replaced.progress.readiness).toEqual(next);
+  });
+
+  test('はじめての送信が readiness だけでも書く。readiness を送らない古い画面は今までの形', () => {
+    const first = mergeLessonProgress(null, {
+      challenges: {}, current: undefined, readiness: { checkedAt: '2026-11-15T02:00:00.000Z', missing: ['b1'] },
+    }, allowed);
+    expect(first.changed).toBe(true);
+    expect(mergeLessonProgress(null, { challenges: {}, current: undefined, readiness: null }, allowed).changed).toBe(false);
+    const old = mergeLessonProgress(null, {
+      challenges: { a1: { completedAt: '2026-11-15T02:00:00.000Z', before: false } }, current: undefined,
+    }, allowed);
+    expect(old.progress).toEqual({ challenges: { a1: { completedAt: '2026-11-15T02:00:00.000Z', before: false } }, current: null });
+    expect('readiness' in old.progress).toBe(false);
   });
 });

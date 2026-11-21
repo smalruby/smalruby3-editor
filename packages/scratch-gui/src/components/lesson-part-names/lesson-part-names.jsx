@@ -1,8 +1,11 @@
 // 名前の札（「ガイド」）（#2133）。画面の部分（タブ・ブロックパレット・スクリプトエリア・ステージ・緑の旗と停止ボタン・
 // スプライトペイン・背景・課題バー・ヒント）を枠で囲み、名前の札を重ねて出す。部分の探し方と札の置き方は lib/lessons/part-names.js。
-// 札も枠も pointer-events を通すので、出したままでもドラッグやクリックを邪魔しない（レッスン 0 は最初から出す）。
+// 枠と広い部分の札は pointer-events を通すので、出したままでもドラッグやクリックを邪魔しない（レッスン 0 は最初から出す）。
+// 小さな部分（タブ・緑の旗・停止ボタン・ヒント）の札は外に置く吹き出しで、しっぽで部分を指し、押すと部分を押したことに
+// する（札だけを見て札を押しても、何も起きないことが無いように）。キーボードで操作するのは部分そのもの（札は aria-hidden）。
 // 課題バーの「ガイド」で出したときは、数秒たつか、どこかを押すか、Esc で消す（押した操作はそのまま下に届く）。
 // document.body への portal で出し、部分の場所が変わる（タブを切りかえる・画面の大きさが変わる）のに合わせて置き直す。
+import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -10,6 +13,7 @@ import { defineMessages, useIntl } from 'react-intl';
 import {
     PART_NAMES,
     PART_NAMES_DURATION_MS,
+    clickPartNameTarget,
     computePartNameLayout,
     findPartNameRects,
 } from '../../lib/lessons/part-names';
@@ -92,8 +96,9 @@ const AVOID_SELECTORS = [
     '[data-testid="lesson-hint-minimized"]',
     '[data-testid="lesson-practice-partner"]',
 ];
-// 押しても札を消さない場所（「ガイド」のボタン。押すと出し入れが切りかわる）
+// 押しても札を消さない場所（「ガイド」のボタン。押すと出し入れが切りかわる）と、小さな部分の札（押すと部分を押してから消す）
 const TOGGLE_SELECTOR = '[data-testid="lesson-task-bar-part-names"]';
+const SMALL_LABEL_SELECTOR = '[data-part-names-small="true"]';
 
 const sameLayout = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
@@ -146,7 +151,8 @@ const LessonPartNames = ({ onClose, timed }) => {
         const close = () => onCloseRef.current();
         const timer = setTimeout(close, PART_NAMES_DURATION_MS);
         const handlePointer = (e) => {
-            if (e.target && e.target.closest && e.target.closest(TOGGLE_SELECTOR)) return;
+            if (e.target && e.target.closest && e.target.closest(`${TOGGLE_SELECTOR}, ${SMALL_LABEL_SELECTOR}`))
+                return;
             close();
         };
         const handleKey = (e) => {
@@ -160,6 +166,14 @@ const LessonPartNames = ({ onClose, timed }) => {
             document.removeEventListener('keydown', handleKey);
         };
     }, [timed]);
+
+    const handleLabelClick = useCallback(
+        (e) => {
+            clickPartNameTarget(e.currentTarget.getAttribute('data-part-names-label'), document);
+            if (timed) onCloseRef.current();
+        },
+        [timed],
+    );
 
     if (typeof document === 'undefined') return null;
     const placed = new Map(layout.labels.map((l) => [l.label, l]));
@@ -179,20 +193,36 @@ const LessonPartNames = ({ onClose, timed }) => {
                 />
             ))}
             {/* 札は全部描いて大きさを測り、見つかった部分の札だけを置く（置くまでは見せない） */}
-            {PART_NAMES.map(({ label }) => {
+            {PART_NAMES.map(({ label, small }) => {
                 const at = placed.get(label);
+                const clickable = Boolean(small && at);
                 return (
                     <span
                         key={label}
                         ref={(el) => {
                             labelRefs.current[label] = el;
                         }}
-                        className={styles.label}
+                        className={classNames(styles.label, { [styles.small]: small })}
                         data-testid={`lesson-part-names-label-${label}`}
                         data-placed={at ? 'true' : 'false'}
+                        data-part-names-label={label}
+                        data-part-names-small={small ? 'true' : 'false'}
                         style={at ? { left: at.left, top: at.top } : { left: 0, top: 0, visibility: 'hidden' }}
+                        onClick={clickable ? handleLabelClick : null}
                     >
                         {intl.formatMessage(messages[label])}
+                        {at && at.arrow && (
+                            <span
+                                className={styles.arrow}
+                                data-testid={`lesson-part-names-arrow-${label}`}
+                                data-side={at.arrow.side}
+                                style={
+                                    at.arrow.side === 'top' || at.arrow.side === 'bottom'
+                                        ? { left: at.arrow.offset }
+                                        : { top: at.arrow.offset }
+                                }
+                            />
+                        )}
                     </span>
                 );
             })}

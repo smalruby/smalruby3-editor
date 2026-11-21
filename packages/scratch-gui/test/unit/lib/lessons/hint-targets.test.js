@@ -3,14 +3,19 @@
  */
 import { COURSES } from '../../../../src/lib/lessons/courses';
 import {
+    HINT_FOCUS,
     HINT_SIDES,
     HINT_TARGETS,
     clampHintPosition,
     computeHintPlacement,
     findHintAvoidRects,
+    findHintFocusElement,
+    findHintFocusRect,
     findHintTargetRect,
+    focusSides,
     hintViewport,
     preferredSides,
+    stageBoundsToRect,
 } from '../../../../src/lib/lessons/hint-targets';
 
 const rect = (left, top, right, bottom) => ({ left, top, right, bottom });
@@ -210,6 +215,158 @@ describe('findHintTargetRect', () => {
     });
 });
 
+// 指す 1 つのもの（focus）。jsdom は layout をしないので、HTML で組んでから要素ごとに矩形を差し替える
+const setRect = (selector, r) => {
+    const el = document.querySelector(selector);
+    el.getBoundingClientRect = () => ({ ...r, width: r.right - r.left, height: r.bottom - r.top });
+    return el;
+};
+
+describe('findHintFocusRect / findHintFocusElement (one thing to press)', () => {
+    beforeEach(() => {
+        document.body.innerHTML = `
+            <div class="blocks_blocks_x">
+                <div class="blocklyToolbox">
+                    <div class="blocklyToolboxCategory" id="motion"></div>
+                    <div class="blocklyToolboxCategory" id="events"></div>
+                </div>
+                <svg class="blocklySvg"><g class="blocklyWorkspace"><g class="blocklyBlockCanvas">
+                    <g class="event_whenflagclicked blocklyBlock" id="hat">
+                        <path class="blocklyPath"></path>
+                        <g class="motion_turnright blocklyBlock" id="turn">
+                            <path class="blocklyPath"></path>
+                            <g class="math_number blocklyBlock blocklyShadow" id="num"></g>
+                        </g>
+                    </g>
+                </g></g></svg>
+                <svg class="blocklyFlyout">
+                    <g class="motion_movesteps blocklyBlock" id="fmove"></g>
+                    <g class="event_whenflagclicked blocklyBlock" id="fhat"></g>
+                </svg>
+            </div>
+            <div class="selector_wrapper_x">
+                <div class="selector_list-item_x" id="c1"></div><div class="selector_list-item_x" id="c2"></div>
+            </div>
+            <div class="sprite-selector_add-button_x"><button class="action-menu_main-button_x" id="sadd"></button></div>
+            <div class="stage-selector_add-button_x"><button class="action-menu_main-button_x" id="badd"></button></div>
+            <button class="sound-editor_round-button_x" id="play"></button>
+            <div class="stage_stage-wrapper_x"><canvas id="canvas"></canvas></div>`;
+        setRect('.blocklyFlyout', rect(62, 77, 313, 565));
+        setRect('.blocklyToolbox', rect(0, 77, 61, 565));
+        setRect('#motion', rect(1, 77, 61, 125));
+        setRect('#events', rect(1, 221, 61, 269));
+        setRect('.blocklySvg', rect(0, 77, 920, 565));
+        setRect('#fmove', rect(70, 110, 184, 148));
+        // 「旗が押されたとき」はパレットの見えている範囲の下（スクロールしないと見えない）
+        setRect('#fhat', rect(70, 2528, 180, 2577));
+        setRect('#hat', rect(500, 300, 700, 420));
+        setRect('#hat > path', rect(500, 300, 640, 350));
+        setRect('#turn', rect(500, 340, 620, 380));
+        setRect('#turn > path', rect(500, 340, 620, 380));
+        setRect('#num', rect(543, 345, 578, 375));
+        setRect('#c1', rect(36, 125, 116, 205));
+        setRect('#c2', rect(36, 221, 116, 301));
+        setRect('#sadd', rect(1151, 544, 1195, 588));
+        setRect('#badd', rect(1234, 544, 1278, 588));
+        setRect('#play', rect(168, 456, 216, 504));
+        setRect('#canvas', rect(931, 85, 1291, 355));
+    });
+
+    test('a block in the palette, by its opcode (the class of its g)', () => {
+        const focus = { kind: HINT_FOCUS.PALETTE_BLOCK, opcode: 'motion_movesteps', category: 'motion' };
+        expect(findHintFocusElement(focus, document).id).toBe('fmove');
+        expect(findHintFocusRect(focus, document)).toEqual(rect(70, 110, 184, 148));
+    });
+
+    test('a block out of the visible palette points at the button of its category', () => {
+        const focus = { kind: HINT_FOCUS.PALETTE_BLOCK, opcode: 'event_whenflagclicked', category: 'events' };
+        expect(findHintFocusElement(focus, document).id).toBe('events');
+        expect(findHintFocusRect(focus, document)).toEqual(rect(1, 221, 61, 269));
+    });
+
+    test('a block in the code area is only that block (its path), not the blocks under it', () => {
+        const focus = { kind: HINT_FOCUS.CODE_BLOCK, opcode: 'event_whenflagclicked' };
+        expect(findHintFocusRect(focus, document)).toEqual(rect(500, 300, 640, 350));
+        // パレットのブロックは数えない
+        expect(findHintFocusRect({ kind: HINT_FOCUS.CODE_BLOCK, opcode: 'motion_movesteps' }, document)).toBeNull();
+    });
+
+    test('the number (shadow) in a block of the code area', () => {
+        const focus = { kind: HINT_FOCUS.CODE_FIELD, opcode: 'motion_turnright', shadow: 'math_number' };
+        expect(findHintFocusRect(focus, document)).toEqual(rect(543, 345, 578, 375));
+        expect(
+            findHintFocusRect({ kind: HINT_FOCUS.CODE_FIELD, opcode: 'motion_turnright', shadow: 'x' }, document),
+        ).toBeNull();
+    });
+
+    test('the nth costume, the play button, the choose-a-sprite and choose-a-backdrop buttons', () => {
+        expect(findHintFocusRect({ kind: HINT_FOCUS.COSTUME, number: 2 }, document)).toEqual(rect(36, 221, 116, 301));
+        expect(findHintFocusRect({ kind: HINT_FOCUS.COSTUME, number: 3 }, document)).toBeNull();
+        expect(findHintFocusRect({ kind: HINT_FOCUS.SOUND_PLAY }, document)).toEqual(rect(168, 456, 216, 504));
+        expect(findHintFocusRect({ kind: HINT_FOCUS.SPRITE_ADD }, document)).toEqual(rect(1151, 544, 1195, 588));
+        expect(findHintFocusRect({ kind: HINT_FOCUS.BACKDROP_ADD }, document)).toEqual(rect(1234, 544, 1278, 588));
+    });
+
+    test('the sprite on the stage, from the bounds the renderer gives', () => {
+        const sprite = { isStage: false, isOriginal: true, drawableID: 3, visible: true };
+        const vm = {
+            editingTarget: sprite,
+            runtime: { targets: [sprite] },
+            renderer: {
+                getBounds: (id) => (id === 3 ? { left: -60, right: 60, top: 45, bottom: -45 } : null),
+                getNativeSize: () => [480, 360],
+            },
+        };
+        // canvas は 360×270（ステージの 0.75 倍）
+        expect(findHintFocusRect({ kind: HINT_FOCUS.STAGE_SPRITE }, document, { vm })).toEqual(
+            rect(931 + 180 * 0.75, 85 + 135 * 0.75, 931 + 300 * 0.75, 85 + 225 * 0.75),
+        );
+        expect(findHintFocusRect({ kind: HINT_FOCUS.STAGE_SPRITE }, document)).toBeNull();
+    });
+
+    test('unknown or missing focus is null (the balloon points at the target instead), and never throws', () => {
+        expect(findHintFocusRect(null, document)).toBeNull();
+        expect(findHintFocusRect({ kind: 'unknown' }, document)).toBeNull();
+        expect(findHintFocusRect({ kind: HINT_FOCUS.PALETTE_BLOCK, opcode: 'a"]b' }, document)).toBeNull();
+        document.body.innerHTML = '';
+        Object.values(HINT_FOCUS).forEach((kind) =>
+            expect(findHintFocusRect({ kind, opcode: 'motion_movesteps', number: 1 }, document)).toBeNull(),
+        );
+    });
+
+    test('every kind has preferred sides', () => {
+        Object.values(HINT_FOCUS).forEach((kind) => expect(focusSides({ kind }).length).toBeGreaterThan(0));
+        expect(focusSides(null)).toEqual([]);
+    });
+
+    test('pointing at a palette block avoids the scripts in the code area', () => {
+        const move = { kind: HINT_FOCUS.PALETTE_BLOCK, opcode: 'motion_movesteps', category: 'motion' };
+        const hat = { kind: HINT_FOCUS.PALETTE_BLOCK, opcode: 'event_whenflagclicked', category: 'events' };
+        expect(findHintAvoidRects(document, HINT_TARGETS.PALETTE, move)).toEqual([rect(500, 300, 700, 420)]);
+        expect(findHintAvoidRects(document, HINT_TARGETS.PALETTE, hat)).toEqual([rect(500, 300, 700, 420)]);
+        expect(findHintAvoidRects(document, HINT_TARGETS.PALETTE)).not.toContainEqual(rect(500, 300, 700, 420));
+    });
+});
+
+describe('stageBoundsToRect', () => {
+    const canvas = rect(100, 50, 580, 410);
+
+    test('maps the stage coordinates (y up, 0 in the middle) onto the canvas', () => {
+        expect(stageBoundsToRect({ left: -240, right: 240, top: 180, bottom: -180 }, canvas)).toEqual(canvas);
+        expect(stageBoundsToRect({ left: 0, right: 10, top: 0, bottom: -10 }, canvas)).toEqual(
+            rect(340, 230, 350, 240),
+        );
+    });
+
+    test('cuts what is outside of the canvas, and is null when nothing is on it', () => {
+        expect(stageBoundsToRect({ left: 200, right: 300, top: 10, bottom: -10 }, canvas)).toEqual(
+            rect(540, 220, 580, 240),
+        );
+        expect(stageBoundsToRect({ left: 300, right: 400, top: 10, bottom: -10 }, canvas)).toBeNull();
+        expect(stageBoundsToRect(null, canvas)).toBeNull();
+    });
+});
+
 // upstream の部品は data-testid を持たないので CSS Modules のクラス名の接頭辞（`<css ファイル名>_<クラス名>_`）で
 // 探している。upstream がクラス名を変えると静かに壊れる（吹き出しが画面の真ん中に出る）ので、
 // 使っている接頭辞の一覧と、そのクラスが css にまだあることを見張る
@@ -228,6 +385,11 @@ describe('hint targets: CSS Modules class names of upstream components', () => {
         'green-flag_green-flag_': ['green-flag/green-flag.css', 'green-flag'],
         'stop-all_stop-all_': ['stop-all/stop-all.css', 'stop-all'],
         selector_wrapper_: ['asset-panel/selector.css', 'wrapper'],
+        'selector_list-item_': ['asset-panel/selector.css', 'list-item'],
+        'sound-editor_round-button_': ['sound-editor/sound-editor.css', 'round-button'],
+        'sprite-selector_add-button_': ['sprite-selector/sprite-selector.css', 'add-button'],
+        'stage-selector_add-button_': ['stage-selector/stage-selector.css', 'add-button'],
+        'action-menu_main-button_': ['action-menu/action-menu.css', 'main-button'],
     };
 
     // タブは並び順（nth-child）で探す。ルビータブ（Smalruby が足したタブ）が 4 つめのままかを見張る（#2142）

@@ -75,6 +75,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/connection-modal/connection-modal.jsx` | mesh header design system | メッシュの接続のモーダルだけ、ヘッダーの題を太字 1.2rem にし（`.mesh-v2-header-title`）、ヘルプをヘッダーに置かず、どの画面でも本文の下に `MeshV2HelpRow`（`mesh-v2-help-row.jsx`・`meshV2-help`）を出す。その import と `extensionId` の propType（`docs/design-system/components/modal.md` の「つなぐ画面」） |
 | `src/components/gui/gui.jsx` | lesson goal watcher | レッスンモードのあいだ VM を見張り、チャレンジの「できた」を判定して記録・「できた！」を出す常時マウントのコンテナ（`containers/lesson-goal-watcher.jsx`）の import と配置 |
 | `src/components/gui/gui.jsx` | block activity diagram | ブロックを右クリック →「アクティビティ図」の項目をブロックのメニューに足し、そのスクリプトの図をパネルに描く常時マウントのコンテナ（`containers/block-activity-diagram.jsx`）の import と配置 |
+| `src/components/gui/gui.jsx` | studuino practice board | Studuino の拡張機能を読みこんだときだけ出す練習用の基板のパネル（`containers/studuino-practice-board.jsx`。document.body への portal）の import と配置。MobileGui には置かない |
 | `src/components/gui/gui.jsx` | welcome modal | 初回訪問者向けウェルカムモーダル HOC の import と配置、`onShowWelcomeModal` prop |
 | `src/containers/gui.jsx` | welcome modal | `onShowWelcomeModal` を Redux `openWelcomeModal()` にマップ |
 | `src/components/gui/gui.jsx` | DNCL mode notice | DnclModeNotice コンポーネントの import・配置・`onRequestExitDnclMode` prop |
@@ -116,11 +117,12 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/reducers/menus.js` | display mode menu | `PreferenceMenu` サブメニューの開閉用 Redux state (`displayModeMenu`)。定数/rootMenu への登録/initialState/open・close・selector の追加 (Issue #865) |
 | `webpack.config.js` | classroom API | CLASSROOM_API_ENDPOINT 環境変数注入 |
 | `webpack.config.js` | scratch api proxy endpoint | SCRATCH_API_PROXY_ENDPOINT 環境変数注入 |
-| `webpack.config.js` | self-hosted Monaco Editor (#1171) | Monaco 本体 (`min/vs`) を版付きの `static/monaco/<版>/vs` へコピーする定数（版は monaco-editor の package.json から読む）・CopyWebpackPlugin パターン・`DefinePlugin` の `process.env.MONACO_VS_SUBPATH` 注入と、PWA precache 除外 + runtime caching 設定。マーカーは 2 箇所の `GenerateSW` にも単一行で入る |
-| `webpack.config.js` | lazy tutorial images | 上流のチュートリアルの画像（`src/lib/libraries/decks/` の png・gif・jpg）を `gui.js` に埋めこまず `static/assets/decks/` にファイルで出す規則と、それと言語ごとの `*-steps` チャンクを PWA の precache から外し、開いたときだけ runtime caching（`smalruby-tutorial-images`）する設定。マーカーは 2 箇所の `GenerateSW` にも単一行で入る |
+| `webpack.config.js` | self-hosted Monaco Editor (#1171) | Monaco 本体 (`min/vs`) を版付きの `static/monaco/<版>/vs` へコピーする定数（版は monaco-editor の package.json から読む）・CopyWebpackPlugin パターン・`DefinePlugin` の `process.env.MONACO_VS_SUBPATH` 注入 |
+| `webpack.config.js` | lazy tutorial images | 上流のチュートリアルの画像（`src/lib/libraries/decks/` の png・gif・jpg）を `gui.js` に埋めこまず `static/assets/decks/` にファイルで出す規則（最初の訪問で読まず、チュートリアルを開いたときだけ読む） |
 | `src/lib/tutorial-from-url.js` | unknown tutorial url analytics | `?tutorial=` の値に合うチュートリアルが無いとき、`lib/tutorial-url-analytics.js` で GA に送る（import と呼び出しの 2 ペア。`docs/analytics/README.md`） |
 | `webpack.config.js` | copy-webpack-plugin 14 (#1320) | dist の `libraries/*.json` コピーで、copy-webpack-plugin 7 で廃止された `flatten: true` の代わりに `to: 'libraries/[name][ext]'` を使う |
-| `webpack.config.js` | standard assignments | リポジトリの `assignments/`（標準課題・CC0）を `assignments/` へコピーする CopyWebpackPlugin パターンと、PWA の precache から外す正規表現。マーカーは 2 箇所の `GenerateSW` にも単一行で入る |
+| `webpack.config.js` | standard assignments | リポジトリの `assignments/`（標準課題・CC0）を `assignments/` へコピーする CopyWebpackPlugin パターン |
+| `webpack.config.js` | PWA install (#2182) | PWA としてインストールできるように Web App Manifest だけを出す `pwaManifestPlugin()`（`webpack-pwa-manifest`。name / icons 192・512 / `start_url` / `display` と iOS の apple-touch-icon）と、開発用ビルド・`dist-html` の 2 箇所の `.addPlugin(pwaManifestPlugin())`。service worker（Workbox）は出さない。以前に登録された service worker は `pages/service-worker.js`（Smalruby 固有ファイル・自分を登録解除してキャッシュを消すだけ）で外す |
 | `eslint.config.mjs` | react lifecycle typo detection | `react/no-typos` を error にして getDerivedStateFromProps/Error の static 抜け等を lint で検出 |
 | `eslint.config.mjs` | prettier integration | eslintConfigPrettier を最後に置いて prettier と競合する整形ルールを無効化 |
 | `src/lib/blocks.js` | gesture recovery import | ジェスチャー復旧モジュールの import |
@@ -195,6 +197,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/lib/legacy-storage.ts` | local sprite assets | スプライトの画像アセットをローカル配信の web store から解決する追加登録 |
 | `src/lib/legacy-backpack-storage.ts` | localStorage backpack support | バックパックを localStorage に保存する対応（5 ペア） |
 | `src/lib/alerts/index.jsx` | classroom session expired alert | クラスルームのセッション失効アラートの定義 |
+| `src/lib/alerts/index.jsx` | Smalrubot S1 renamed alert | 移行期間の前の名前のカード（スモウルボットS1）を選んだときの、名前が変わったことの知らせ（`smalrubotS1Renamed`。2027-11-30 の期限のあとに消す） |
 | `src/components/alerts/alert.jsx` | classroom session expired | セッション失効アラートの表示側 |
 | `src/containers/alert.jsx` | classroom session expired | セッション失効アラートのコンテナ側（3 ペア） |
 | `src/lib/libraries/extensions/index.jsx` | TM2Scratch extension / AkaDako extension / Ruby String extension | 拡張機能ライブラリへの Smalruby 拡張エントリ（各 2 ペア。取り外し可能拡張の分離マーカーと同名系列） |
@@ -210,6 +213,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/blocks/blocks.css` | show whole block shape on flyout hover | フライアウトにマウスを乗せている間、長いブロックが右へはみ出して見えるようにする（`clip-path`・RTL 対応）。スクロールバーを左に 4px 離し、ホバー中のスクロールバーの地を不透明度 0.4 にする |
 | `src/components/blocks/blocks.css` | v2 toolbox category label selector | カテゴリ名を 0.65rem に縮める規則のクラス名を、scratch-blocks v2.1.19 が描く `.blocklyToolboxCategoryLabel` にする（上流は v1 の `.scratchCategoryMenuItemLabel` のままで効かない） |
 | `src/components/library/library.jsx` | extension library key | 拡張機能の項目のキーに `extensionId` を使う |
+| `src/containers/extension-library.jsx` | Smalrubot S1 legacy card | 移行期間（2027-11-30 まで）だけ、アーテックロボのカードの後ろに前の名前のカード「スモウルボットS1」を差しこみ、選ばれたら同じ拡張機能 `smalrubotS1` を読みこんで知らせを出す（import・`handleItemSelect`・render・propTypes・mapDispatchToProps の 5 ペア。処理は `src/lib/libraries/extensions/smalrubot-s1/legacy-card.jsx`） |
 | `src/components/library/library.jsx` | modal header actions | `headerActions` を `Modal` に渡す（prop と propType） |
 | `src/components/modal/modal.jsx` | modal header actions | ヘッダーの右のボタン置き場 `headerActions`（拡張機能のライブラリ・甲子園のテストのモーダルが使う）。描画と propType |
 | `src/components/modal/modal.css` | modal header actions | `.header-item-actions`（`headerActions` の置き場。LTR / RTL の余白） |

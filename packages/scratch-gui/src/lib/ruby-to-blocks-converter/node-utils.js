@@ -1,5 +1,5 @@
 import NodeTypeChecks from './node-type-checks';
-import { nodeTypeName } from './node-walk';
+import { nodeTypeName, parentIndexOf } from './node-walk';
 
 // The mark of `not (x = "false")` made for a variable alone as a condition (issue #1611).
 const VARIABLE_CONDITION_MARKER = '@ruby:variable_condition';
@@ -196,6 +196,18 @@ const NodeUtils = {
     },
 
     /**
+     * The parent of each node of the tree being converted (`parentIndexOf`). The parse stage makes it
+     * once; it is made here when a caller set the root without the parse stage.
+     * @returns {?Map<object, object>} The parent of each node, or null when there is no tree.
+     */
+    _parentIndex() {
+        const root = this._context.rootNode;
+        if (!root) return null;
+        if (!this._context.parentOfNode) this._context.parentOfNode = parentIndexOf(root);
+        return this._context.parentOfNode;
+    },
+
+    /**
      * The statement that holds the node, to name in an error about the node.
      * An expression that is not converted becomes a `ruby_*` block, and a call that takes it as its
      * receiver (`wait(1).to_s`) stays a block: the error then named only the inner expression, while a
@@ -204,32 +216,34 @@ const NodeUtils = {
      * A statement is a child of a `StatementsNode`, an `elsif` (an `IfNode` after an `if`) or a `when`
      * / `in` of a `case`, so an error in the condition of `elsif` / `when` stays on its line.
      * The statements inside parentheses (`(move(10); a)`) are parts of an expression, not statements.
-     * `childNodes()` is used, not `compactChildNodes()`: in `@ruby/prism` 1.9.0 the latter drops the
-     * children in arrays (the `when`s of a `case`, the exceptions of a `rescue`, ...).
+     * It goes up from the node by the index of the parents (`_parentIndex`), not down again from the
+     * root, so an error costs the depth of the node and not a walk of the tree (issue #2094). The
+     * index is made by `childNodes()`, so the children in arrays (the `when`s of a `case`, the
+     * exceptions of a `rescue`, ...) have their parents too.
      * @param {object} node - The node of the expression.
      * @returns {object} The statement node that holds it, or the node itself when there is none.
      */
     _statementNodeOf(node) {
         const root = this._context.rootNode;
-        if (!root || !node || !node.location) {
+        const parents = this._parentIndex();
+        if (!root || !parents || !node || !node.location) {
             return node;
         }
-        const startOffset = node.location.startOffset;
-        const endOffset = startOffset + node.location.length;
-        const contains = (n) =>
-            n &&
-            n.location &&
-            n.location.startOffset <= startOffset &&
-            n.location.startOffset + n.location.length >= endOffset;
+        // The nodes from the root down to the node, by going up the parents
+        const path = [node];
+        for (let parent = parents.get(node); parent; parent = parents.get(parent)) {
+            path.push(parent);
+        }
+        if (path[path.length - 1] !== root) {
+            return node;
+        }
+        path.reverse();
         let statement = null;
-        let current = root;
         let parentType = null;
-        while (current && current !== node) {
+        for (let i = 0; i + 1 < path.length; i++) {
+            const current = path[i];
+            const next = path[i + 1];
             const type = nodeTypeName(current);
-            const next = this._childNodesOf(current).find(contains);
-            if (!next) {
-                break;
-            }
             const nextType = nodeTypeName(next);
             if (
                 (type === 'StatementsNode' && parentType !== 'ParenthesesNode') ||
@@ -240,7 +254,6 @@ const NodeUtils = {
                 statement = next;
             }
             parentType = type;
-            current = next;
         }
         return statement || node;
     },

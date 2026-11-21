@@ -172,7 +172,15 @@ describe('Lessons in classroom assignments (stage 2)', () => {
 
         // 「はじめる」 of a lesson assignment (no records on this device, so no confirmation).
         await waitForTestId('classroom-start-main', 'the lesson start button did not appear', 15000);
-        await driver.sleep(500);
+        // Right after joining, the button waits a few seconds so the student reads first (「よく読もう… n」)
+        await driver.wait(
+            async () =>
+                driver.executeScript(
+                    `return !document.querySelector('[data-testid="classroom-start-main"]').disabled;`,
+                ),
+            10000,
+            'the lesson start button did not become pressable',
+        );
         await clickByTestId('classroom-start-main');
         await waitForTestId('lessons-library');
         await waitForTestId('lesson-assignment-band');

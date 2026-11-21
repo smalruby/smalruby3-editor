@@ -22,6 +22,9 @@ const LESSON_EVENTS = {
     ANSWER_VIEW: 'answer_view',
     OTHER_CHALLENGE: 'other_challenge',
     LESSON_END: 'lesson_end',
+    // レッスン 0 の「どこでしょう？」を 1 回もまちがえずに答え、「できた！」の「レッスン n へ進む」を押した
+    // （lesson-progress.js の lessonSkipOffer）。label・challenge_id は押したときのチャレンジ（「どこでしょう？」）
+    LESSON_SKIP: 'lesson_skip',
     // ブロックを右クリック →「アクティビティ図」でパネルを開いた（#1647）。レッスンの外でも送る
     ACTIVITY_DIAGRAM_OPEN: 'activity_diagram_open',
 };
