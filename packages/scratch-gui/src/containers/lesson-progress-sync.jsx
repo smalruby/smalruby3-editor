@@ -3,7 +3,7 @@
 //
 // 送るとき（定期的には送らない）:
 //   - 課題のチャレンジが「できた」とき（端末の記録が増えたとき）
-//   - 課題のチャレンジを開いたとき（current）
+//   - 課題のチャレンジ・課題の「おさらい（課題の外）」のチャレンジを開いたとき（current。おさらいは review: true）
 //   - クラスの画面を開いたとき（lessonMode.progressSendRequest が増えたとき）・課題に参加したとき
 //   - じゅんびチェックの結果（送る readiness）が変わったとき（#2301）
 // 1 回の送信は席 × 課題の 1 件。最後に送れた中身で足りているときは送らない。送れなかったときは
@@ -47,6 +47,8 @@ const LessonProgressSync = () => {
     const studentLesson = useSelector((state) => state.scratchGui.classroom.studentLesson);
     const progress = useSelector((state) => state.scratchGui.lessonMode.progress);
     const challengeId = useSelector((state) => state.scratchGui.lessonMode.challengeId);
+    // 課題の「おさらい（課題の外）」として開いたか（current に review: true を付ける・#2300）
+    const fromReview = useSelector((state) => Boolean(state.scratchGui.lessonMode.fromReview));
     const sendRequest = useSelector((state) => state.scratchGui.lessonMode.progressSendRequest);
     const readiness = useSelector((state) => state.scratchGui.lessonMode.readiness);
 
@@ -59,7 +61,7 @@ const LessonProgressSync = () => {
     if (openedRef.current.challengeId !== challengeId) {
         openedRef.current = { challengeId, openedAt: challengeId ? now() : null };
     }
-    const current = currentChallengeOf(lesson, challengeId, openedRef.current.openedAt);
+    const current = currentChallengeOf(lesson, challengeId, openedRef.current.openedAt, fromReview);
 
     // 送る関数は最新の値を見る（送信中に変わった分は、送信のあとにもう一度送る）
     const latestRef = useRef(null);

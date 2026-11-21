@@ -12,7 +12,8 @@
 //   - clearedAt: まちがえたあとで、そのチャレンジが「できた」になった日時（「おすすめ」が消える）
 //   - offered: 「先にじゅんびチェックをする？」を聞いた日時（1 回だけ聞く）
 // 判定はここの純粋関数で行い、画面（「できた！」・レッスン表のカード・課題の「おさらい」・先生の表）はこれを使う。
-import { COURSES, courseReadinessCheck, findChallenge } from './courses';
+import { isAssignmentChallenge } from './assignment-progress';
+import { COURSES, courseReadinessCheck, findChallenge, findCourse } from './courses';
 
 export const READINESS_STORAGE_KEY = 'smalruby:lessonReadiness';
 const READINESS_VERSION = 1;
@@ -194,16 +195,15 @@ export const recommendedChallengeIds = (readiness, courses = COURSES) => [
 /**
  * チャレンジを開いたときに「先にじゅんびチェックをする？」を聞くか。聞くのは、じゅんびチェックのあるコースの
  * レッスン 1 の最初のチャレンジを、はじめて開いたとき（まだ聞いていない・チェックの問いに 1 つも答えていない）だけ。
- * クラスの課題から開いたときは聞かない（課題の外のチャレンジへ案内しない。課題の「おさらい」は別に扱う）。
+ * クラスの課題から開いたときも聞く（#2300）。じゅんびチェックは課題の「おさらい（課題の外）」にいつも出ているので、
+ * 課題の外へ案内しても、そこから「課題にもどる」で課題のチャレンジにもどれる。
  * @param {object} args - 引数。
  * @param {string} args.challengeId - 開いたチャレンジ id。
  * @param {object} args.readiness - 記録。
- * @param {boolean} [args.fromAssignment] - クラスの課題から開いたか。
  * @param {Array} [courses] - コース（テスト用）。
  * @returns {?{courseId: string, checkChallengeId: string}} 聞くときは、コースとじゅんびチェックのチャレンジ id。
  */
-export const readinessOffer = ({ challengeId, readiness, fromAssignment = false }, courses = COURSES) => {
-    if (fromAssignment) return null;
+export const readinessOffer = ({ challengeId, readiness }, courses = COURSES) => {
     const found = findChallenge(challengeId, courses);
     if (!found) return null;
     const { course, lesson } = found;
@@ -213,4 +213,59 @@ export const readinessOffer = ({ challengeId, readiness, fromAssignment = false 
     if (readiness.offered && readiness.offered[course.id]) return null;
     if (Object.keys(answersOf(readiness, course.id)).length > 0) return null;
     return { courseId: course.id, checkChallengeId: check.id };
+};
+
+/**
+ * 課題のレッスン表の「おさらい（課題の外）」に出すチャレンジ（#2300）。課題のコースのじゅんびチェック（いつも出す）と、
+ * そのチェックでいま「おすすめ」のチャレンジだけ（ほかは出さない）。課題に入っているものは課題のほうに出るので外す。
+ * じゅんびチェックの無いコースの課題では出さない。
+ * @param {?object} lesson - 課題のレッスンの設定（assignment-progress.js の normalizeAssignmentLesson）。
+ * @param {?object} readiness - 記録。
+ * @param {Array} [courses] - コース（テスト用）。
+ * @returns {Array<{course: object, lesson: object, challenge: object}>} チャレンジ（findChallenge の結果）。
+ */
+export const assignmentReviewChallenges = (lesson, readiness, courses = COURSES) => {
+    if (!lesson) return [];
+    const course = findCourse(lesson.courseId, courses);
+    const check = course ? courseReadinessCheck(course) : null;
+    if (!check) return [];
+    const found = [
+        findChallenge(check.id, courses),
+        ...recommendedChallenges(course, readiness || emptyReadiness(), courses),
+    ];
+    const seen = new Set(lesson.challengeIds);
+    return found.filter((item) => {
+        if (!item || seen.has(item.challenge.id)) return false;
+        seen.add(item.challenge.id);
+        return true;
+    });
+};
+
+/**
+ * 課題の流れの中でチャレンジを開くときの、開き方（#2300）。課題のチャレンジなら「課題から」、課題の外なら「おさらい」
+ * （課題の数に入らない。クラスへは current に `review: true` を付けて送る）。課題の流れの外（メニューの「レッスン」から
+ * など）では、どちらでもない。
+ * @param {?object} lesson - 課題のレッスンの設定。
+ * @param {?string} challengeId - 開くチャレンジ id。
+ * @param {boolean} inAssignmentFlow - 課題の流れの中か（課題だけのレッスン表・課題か「おさらい」のチャレンジの中）。
+ * @returns {{fromAssignment: boolean, fromReview: boolean}} 開き方。
+ */
+export const challengeOpenContext = (lesson, challengeId, inAssignmentFlow) => {
+    if (!inAssignmentFlow || !lesson || !challengeId) return { fromAssignment: false, fromReview: false };
+    const fromAssignment = isAssignmentChallenge(lesson, challengeId);
+    return { fromAssignment, fromReview: !fromAssignment };
+};
+
+/**
+ * 「おさらい」の中の「課題にもどる」の行き先（#2300）。おさらいの前にやっていた課題のチャレンジが、まだ課題にあって
+ * できていなければ、それを開きなおす。ほかは課題だけのレッスン表を開く（そのチャレンジの次から「次はこれ！」）。
+ * @param {?object} lesson - 課題のレッスンの設定。
+ * @param {object} progress - 端末のレッスンの記録。
+ * @param {?string} lastAssignmentChallengeId - おさらいの前に開いていた課題のチャレンジ id。
+ * @returns {{challengeId: string}|{libraryAfterId: ?string}} 開くチャレンジか、レッスン表の起点。
+ */
+export const reviewReturnTarget = (lesson, progress, lastAssignmentChallengeId) => {
+    const id = isAssignmentChallenge(lesson, lastAssignmentChallengeId) ? lastAssignmentChallengeId : null;
+    if (id && !(progress && progress.challenges && progress.challenges[id])) return { challengeId: id };
+    return { libraryAfterId: id };
 };

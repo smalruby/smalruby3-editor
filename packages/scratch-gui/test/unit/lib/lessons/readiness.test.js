@@ -1,9 +1,12 @@
 /**
  * じゅんびチェック（#2299）の記録と「おすすめ」の決め方。
  */
-import { findCourse } from '../../../../src/lib/lessons/courses';
+import { COURSES, courseReadinessCheck, findCourse } from '../../../../src/lib/lessons/courses';
 import {
     READINESS_STORAGE_KEY,
+    assignmentReviewChallenges,
+    challengeOpenContext,
+    reviewReturnTarget,
     emptyReadiness,
     loadReadiness,
     markReadinessChallengeCleared,
@@ -160,7 +163,7 @@ describe('readinessOffer (「先にじゅんびチェックをする？」)', ()
         expect(markReadinessOffered(offered, CHAT, LATER)).toBe(offered);
     });
 
-    test('does not ask elsewhere, after an answer, or in an assignment', () => {
+    test('does not ask elsewhere or after an answer', () => {
         const none = emptyReadiness();
         expect(readinessOffer({ challengeId: 'chat-l1-repeat', readiness: none })).toBeNull();
         expect(readinessOffer({ challengeId: 'chat-l2-omikuji', readiness: none })).toBeNull();
@@ -171,6 +174,89 @@ describe('readinessOffer (「先にじゅんびチェックをする？」)', ()
         expect(
             readinessOffer({ challengeId: 'chat-l1-sequence', readiness: answered({ 'blocks-l0-where': true }) }),
         ).toBeNull();
-        expect(readinessOffer({ challengeId: 'chat-l1-sequence', readiness: none, fromAssignment: true })).toBeNull();
+    });
+
+    test('also asks when 1-1 is opened from a class assignment (the check is in the review section)', () => {
+        expect(
+            readinessOffer({ challengeId: 'chat-l1-sequence', readiness: emptyReadiness(), fromAssignment: true }),
+        ).toEqual({ courseId: CHAT, checkChallengeId: 'chat-l0-readiness' });
+    });
+});
+
+describe('assignmentReviewChallenges (「おさらい（課題の外）」)', () => {
+    const lessonOf = (challengeIds, courseId = CHAT) => ({ courseId, challengeIds });
+    const ids = (list) => list.map((found) => found.challenge.id);
+
+    test('shows the check, then the recommended challenges, all outside the assignment', () => {
+        const readiness = answered({
+            'blocks-l0-where': true,
+            'blocks-l1-count': false,
+            'blocks-l1-broadcast': false,
+        });
+        expect(ids(assignmentReviewChallenges(lessonOf(['chat-l1-sequence']), readiness))).toEqual([
+            'chat-l0-readiness',
+            'blocks-l1-count',
+            'blocks-l1-broadcast',
+        ]);
+    });
+
+    test('keeps the check even when nothing is recommended, and leaves out challenges of the assignment', () => {
+        expect(ids(assignmentReviewChallenges(lessonOf(['chat-l1-sequence']), emptyReadiness()))).toEqual([
+            'chat-l0-readiness',
+        ]);
+        expect(ids(assignmentReviewChallenges(lessonOf(['chat-l1-sequence']), null))).toEqual(['chat-l0-readiness']);
+        const readiness = answered({ 'blocks-l1-count': false });
+        expect(
+            ids(assignmentReviewChallenges(lessonOf(['chat-l0-readiness', 'blocks-l1-count']), readiness)),
+        ).toEqual([]);
+    });
+
+    test('is empty without an assignment or for a course without a check', () => {
+        expect(assignmentReviewChallenges(null, emptyReadiness())).toEqual([]);
+        expect(assignmentReviewChallenges(lessonOf(['blocks-l1-key-sound'], 'nope'), emptyReadiness())).toEqual([]);
+        const programmer = COURSES.find((course) => !courseReadinessCheck(course));
+        expect(assignmentReviewChallenges(lessonOf(['x'], programmer.id), emptyReadiness())).toEqual([]);
+    });
+});
+
+describe('challengeOpenContext', () => {
+    const lesson = { courseId: CHAT, challengeIds: ['chat-l1-sequence'] };
+
+    test('is from the assignment for an assignment challenge, a review for one outside it', () => {
+        expect(challengeOpenContext(lesson, 'chat-l1-sequence', true)).toEqual({
+            fromAssignment: true,
+            fromReview: false,
+        });
+        expect(challengeOpenContext(lesson, 'chat-l0-readiness', true)).toEqual({
+            fromAssignment: false,
+            fromReview: true,
+        });
+    });
+
+    test('is neither outside the assignment flow', () => {
+        const neither = { fromAssignment: false, fromReview: false };
+        expect(challengeOpenContext(lesson, 'chat-l1-sequence', false)).toEqual(neither);
+        expect(challengeOpenContext(null, 'chat-l1-sequence', true)).toEqual(neither);
+        expect(challengeOpenContext(lesson, null, true)).toEqual(neither);
+    });
+});
+
+describe('reviewReturnTarget (「課題にもどる」)', () => {
+    const lesson = { courseId: CHAT, challengeIds: ['chat-l1-sequence', 'chat-l1-repeat'] };
+    const done = (id) => ({ challenges: { [id]: { completedAt: AT, courseId: CHAT, lessonId: 'chat-l1' } } });
+
+    test('reopens the assignment challenge the student was on while it is not done', () => {
+        expect(reviewReturnTarget(lesson, { challenges: {} }, 'chat-l1-repeat')).toEqual({
+            challengeId: 'chat-l1-repeat',
+        });
+    });
+
+    test('opens the assignment library otherwise', () => {
+        expect(reviewReturnTarget(lesson, done('chat-l1-repeat'), 'chat-l1-repeat')).toEqual({
+            libraryAfterId: 'chat-l1-repeat',
+        });
+        expect(reviewReturnTarget(lesson, { challenges: {} }, null)).toEqual({ libraryAfterId: null });
+        // 先生が課題からはずしたチャレンジにはもどらない
+        expect(reviewReturnTarget(lesson, { challenges: {} }, 'chat-l2-omikuji')).toEqual({ libraryAfterId: null });
     });
 });

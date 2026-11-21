@@ -156,6 +156,38 @@ $celebrate-light: hsla(45, 100%, 98%, 1);
     color: inherit;
 }
 
+/*
+    課題の外の「おさらい」のチャレンジの中（#2300）。課題の帯（.compact）と同じ白い枠の丸に、課題の数に入らないことと
+    ［課題にもどる］（白地のボタン）を並べる。バーの高さは変えない
+*/
+.review {
+    composes: compact;
+    padding-right: 0.125rem;
+    border-style: dashed;
+}
+
+.review-text {
+    white-space: nowrap;
+}
+
+.review-back {
+    flex-shrink: 0;
+    padding: 0.0625rem 0.5rem;
+    border: none;
+    border-radius: 1rem;
+    background-color: $ui-white;
+    color: $motion-primary;
+    font-size: 0.75rem;
+    font-weight: bold;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.review-back:hover {
+    background-color: $motion-tertiary;
+    color: $ui-white;
+}
+
 /* この版のコースに無いチャレンジがあるとき（読み込み直してね） */
 .unknown-note {
     color: $text-primary;

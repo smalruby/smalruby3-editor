@@ -18,7 +18,7 @@ import {
     lessonSkipOffer,
 } from '../lib/lessons/lesson-progress.js';
 import { openAssignmentLessonsLibrary, openLessonsLibraryAt } from '../lib/lessons/open-lessons-library.js';
-import { readinessResult, recommendedChallenges } from '../lib/lessons/readiness.js';
+import { challengeOpenContext, readinessResult, recommendedChallenges } from '../lib/lessons/readiness.js';
 import { requestStudentSubmit, selectStudentLesson } from '../reducers/classroom.js';
 import {
     closeLesson,
@@ -41,6 +41,8 @@ const LessonGoalWatcher = ({
     challengeId,
     completedHidden = false,
     fromAssignment = false,
+    fromReview = false,
+    lastAssignmentChallengeId = null,
     justCompletedId,
     justCompletedNew = false,
     lesson = null,
@@ -50,6 +52,7 @@ const LessonGoalWatcher = ({
     onOpenChallenge,
     onCloseLesson,
     onSkipLesson,
+    onStartChallenge = null,
     onSubmitAssignment,
     partQuizMissed = false,
     partQuizSolved = 0,
@@ -106,10 +109,12 @@ const LessonGoalWatcher = ({
     // 「次のチャレンジ」: 「できた！」を閉じて、レッスン表をいまのレッスンで開く（#1520）。
     // レッスンモードは抜けない（レッスン表を閉じたら、いまのチャレンジにもどる）
     // 課題のチャレンジからは、レッスン表を課題のチャレンジだけで開く（#1599）
+    // 課題の「おさらい」のチャレンジからも、課題のチャレンジだけで開く（おさらいの前にやっていた課題のチャレンジの次から・#2300）
     const handleNextChallenge = useCallback(() => {
         onDismiss();
-        onNextChallenge(challengeId, fromAssignment);
-    }, [challengeId, fromAssignment, onDismiss, onNextChallenge]);
+        if (fromReview && !fromAssignment) onNextChallenge(lastAssignmentChallengeId, true);
+        else onNextChallenge(challengeId, fromAssignment);
+    }, [challengeId, fromAssignment, fromReview, lastAssignmentChallengeId, onDismiss, onNextChallenge]);
 
     // 「どこでしょう？」を 1 回もまちがえずに答えたときに出す、次のレッスンへの道（lesson-progress.js の
     // lessonSkipOffer）。飛ばしたチャレンジは「できた」にしない。課題から開いていて、進む先も課題のチャレンジなら、
@@ -134,13 +139,15 @@ const LessonGoalWatcher = ({
         onSkipLesson(skipOffer.challengeId, fromAssignment && isAssignmentChallenge(lesson, skipOffer.challengeId));
     }, [found, fromAssignment, lesson, onDismiss, onSkipLesson, skipOffer, teacherLoggedIn]);
 
-    // じゅんびチェックの「おすすめ」のチャレンジを開く（#2299）。課題から開いていても課題の外のチャレンジなので、課題からとはしない
+    // じゅんびチェックの「おすすめ」のチャレンジを開く（#2299）。課題の流れの中（課題・おさらいのチャレンジ）なら、課題に
+    // 入っているものは課題から、課題の外のものは「おさらい」として開く（課題の数に入らない・#2300）
     const handleOpenRecommended = useCallback(
         (id) => {
             onDismiss();
-            onSkipLesson(id, false);
+            if (onStartChallenge)
+                onStartChallenge(id, challengeOpenContext(lesson, id, fromAssignment || fromReview));
         },
-        [onDismiss, onSkipLesson],
+        [fromAssignment, fromReview, lesson, onDismiss, onStartChallenge],
     );
 
     const handleSubmitAssignment = useCallback(() => {
@@ -220,6 +227,10 @@ LessonGoalWatcher.propTypes = {
     completedHidden: PropTypes.bool,
     // いまのチャレンジをクラスの課題から開いたか
     fromAssignment: PropTypes.bool,
+    // いまのチャレンジを課題の「おさらい（課題の外）」として開いたか（#2300）
+    fromReview: PropTypes.bool,
+    // 最後に課題から開いた課題のチャレンジ id（おさらいの「次のチャレンジ」の起点）
+    lastAssignmentChallengeId: PropTypes.string,
     justCompletedId: PropTypes.string,
     // 「できた！」のチャレンジが、この「できた」ではじめて記録に入ったか
     justCompletedNew: PropTypes.bool,
@@ -235,6 +246,8 @@ LessonGoalWatcher.propTypes = {
     onOpenChallenge: PropTypes.func,
     // 「レッスン n へ進む」: そのチャレンジを始める（(challengeId, fromAssignment)）
     onSkipLesson: PropTypes.func,
+    // チャレンジを始める（(challengeId, {fromAssignment, fromReview})。じゅんびチェックの「おすすめ」）
+    onStartChallenge: PropTypes.func,
     onSubmitAssignment: PropTypes.func.isRequired,
     // lesson-progress.js の記録（「できた！」のボタンを決める）
     progress: PropTypes.shape({ challenges: PropTypes.object.isRequired }).isRequired,
@@ -253,6 +266,8 @@ const mapStateToProps = (state) => ({
     challengeId: state.scratchGui.lessonMode.challengeId,
     completedHidden: Boolean(state.scratchGui.lessonMode.completedHidden),
     fromAssignment: Boolean(state.scratchGui.lessonMode.fromAssignment),
+    fromReview: Boolean(state.scratchGui.lessonMode.fromReview),
+    lastAssignmentChallengeId: state.scratchGui.lessonMode.lastAssignmentChallengeId || null,
     justCompletedId: state.scratchGui.lessonMode.justCompletedId,
     justCompletedNew: Boolean(state.scratchGui.lessonMode.justCompletedNew),
     lesson: selectStudentLesson(state),
@@ -270,6 +285,7 @@ const mapDispatchToProps = (dispatch) => ({
     onOpenChallenge: (challengeId) => dispatch(openChallenge(challengeId)),
     onCloseLesson: () => dispatch(closeLesson()),
     onSkipLesson: (challengeId, fromAssignment) => dispatch(startChallenge(challengeId, { fromAssignment })),
+    onStartChallenge: (challengeId, options) => dispatch(startChallenge(challengeId, options)),
     onSubmitAssignment: () => dispatch(requestStudentSubmit('lesson_clear')),
 });
 

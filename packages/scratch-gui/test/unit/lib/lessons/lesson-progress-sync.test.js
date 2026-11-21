@@ -257,6 +257,14 @@ describe('currentChallengeOf', () => {
         expect(currentChallengeOf(null, 'b', T1)).toBeNull();
         expect(currentChallengeOf(lesson, 'b', '2001-01-01T00:00:00.000Z')).toBeNull();
     });
+
+    test('should mark a review challenge outside the assignment (#2300)', () => {
+        expect(currentChallengeOf(lesson, 'z', T1, true)).toEqual({ challengeId: 'z', openedAt: T1, review: true });
+        // 課題のチャレンジはふつうの current
+        expect(currentChallengeOf(lesson, 'b', T1, true)).toEqual({ challengeId: 'b', openedAt: T1 });
+        expect(currentChallengeOf(null, 'z', T1, true)).toBeNull();
+        expect(currentChallengeOf(lesson, 'z', '2001-01-01T00:00:00.000Z', true)).toBeNull();
+    });
 });
 
 describe('buildProgressPayload', () => {

@@ -1238,6 +1238,8 @@ partner: {
 | `role` / `roleSource` / `rolePair` | いまのチャレンジの役（`shimaraby` / `shimacat`。役のあるチャレンジだけ）・どう決めたか（`default` / `remembered` / `seat` / `chosen`）・出席番号のペアの印（`'3-7'`）。上の「ペアの役」 |
 | `pendingRole` / `pendingRoleSource` | 役を選びなおして始めなおすときの役（開くまでの間だけ入る） |
 | `readiness` | じゅんびチェックの記録の写し（起動時に localStorage から読む。下の「じゅんびチェック」） |
+| `fromAssignment` / `fromReview` | いまのチャレンジを、クラスの課題から開いたか / 課題の「おさらい（課題の外）」として開いたか（`startChallenge` の引数を `openChallenge` まで引き継ぐ。`pendingFromAssignment` / `pendingFromReview` はその間だけ）。閉じると false |
+| `lastAssignmentChallengeId` | 最後に課題から開いた課題のチャレンジ id（「課題にもどる」の行き先）。レッスンを閉じても消さない |
 | `readinessAnswered` / `readinessChoice` | じゅんびチェックで答えて進んだ問いの数（いまの問いの番号）と、いまの問いで選んだもの（`{index, choice}`。1 回めだけ）。チャレンジを開くたびに 0 / null |
 | `libraryStartFocus` | レッスン表を、ウェルカムの「レッスンを始める」で開いたか。レッスン表は記録から次にやるチャレンジを決める（`startLessonsFocus`）。レッスン表が閉じるときに消す |
 
@@ -1245,6 +1247,7 @@ partner: {
 |------|------|
 | `startChallenge(challengeId)` | **チャレンジを開く入口**（レッスン表が呼ぶ）。新しい作品 → setup → `openChallenge` の順にコンテナが進める（知らない id は無視）。日本語モードのときは、作品の置きかえが決まってから、ふりがなモードに戻す（日本語モードのパレットの絞り込みとチャレンジの絞り込みが重なってブロックが出なくなるため。置きかえを断ったときは変えない） |
 | `startChallenge(challengeId, {role, roleSource})` | 役を選びなおして始めなおす（その役で始める。ヒントのページは保つ） |
+| `startChallenge(challengeId, {fromAssignment, fromReview})` | クラスの課題から / 課題の「おさらい」として開く（GA・クラスへ送る current・課題バーの帯が使う） |
 | `setLessonRole(role, {roleSource, rolePair})` | いまのチャレンジの役・決め方を変える（始めなおさない変更。役の無いチャレンジでは何もしない）。端末には書かない（選んだ役を覚えるのはコンテナ） |
 | `getCurrentRole(state)` | `{role, source}`（役の無いチャレンジでは null） |
 | `cancelStartChallenge()` | 開こうとしていたチャレンジを取り消す（「保存しますか」で取りやめたとき） |
@@ -1408,6 +1411,8 @@ partner: {
 | `lesson-assignment-band-submit-guide` / `lesson-assignment-band-submit` | span / button | 作品も提出する課題で課題クリアのあと（または、この版に無いチャレンジがあるとき）の案内と「課題を提出する」。はじめて提出するまで |
 | `lesson-assignment-band-unknown` | span | 「新しいレッスンがあります。ページを読み込み直してね」（この版のコースに無いチャレンジがあるとき） |
 | `lesson-task-bar-assignment` | span | 課題バーの同じ行の小さな帯（課題のチャレンジのときだけ） |
+| `lessons-library-review` | section | 課題だけのレッスン表の「おさらい（課題の外）」（課題のコースにじゅんびチェックがあるときだけ。中のカードは `lessons-library-challenge-<challengeId>`） |
+| `lesson-task-bar-review` / `lesson-task-bar-review-back` | span / button | 「おさらい」のチャレンジの課題バーの「おさらい中 — 課題の数には入らない」と［課題にもどる］ |
 
 ## レッスンモード
 
@@ -1980,13 +1985,16 @@ partner: {
   答えたら「次の問いへ」（最後は「結果を見る」）で進む。最後まで進むと goal の `readinessCheck`（`count: 4`）を満たし、
   パネルを閉じて「できた！」に結果を出す。
 - **結果**（「できた！」の中）: 全部 1 回で正解なら「じゅんび OK！」。ほかは「n / 4 問 正解」と、まちがえた問いのチャレンジを
-  「おすすめ」として並べる（コースの名前とレッスン・番号も添える。押すと「できた！」を閉じてそのチャレンジを始める。課題の外の
-  チャレンジなので課題からとはしない）。
+  「おすすめ」として並べる（コースの名前とレッスン・番号も添える。押すと「できた！」を閉じてそのチャレンジを始める。課題の流れの
+  中（課題・おさらいのチャレンジ）なら、課題に入っているものは課題から、課題の外のものは「おさらい」として開く。下の「課題の
+  「おさらい（課題の外）」」）。
 - **「おすすめ」の印**: レッスン表のカードの右下に「おすすめ」（「次はこれ！」もあるときはその左）。どれかのコースで
   「おすすめ」のチャレンジに付ける（`recommendedChallengeIds`）。あとでその問いに正しく答えなおすか、そのチャレンジが「できた」に
   なったら消える（`markChallengeCompleted` が記録に `clearedAt` を入れる）。チェックをやりなおすと、答えた問いから上書きする。
 - **「先にじゅんびチェックをする？」**: じゅんびチェックのあるコースのレッスン 1 の最初のチャレンジ（チャットの 1-1）を、はじめて
-  開いたときに 1 回だけ聞く（`readinessOffer`。もう聞いた・チェックの問いに 1 つでも答えた・クラスの課題から開いたときは聞かない）。
+  開いたときに 1 回だけ聞く（`readinessOffer`。もう聞いた・チェックの問いに 1 つでも答えたときは聞かない）。クラスの課題から
+  開いたときも聞く（じゅんびチェックは課題の「おさらい」にいつも出ていて、「課題にもどる」で 1-1 にもどれるため）。そのときは
+  チェックを「おさらい」として開く（課題に入っていれば課題から）。
   「じゅんびチェックをする」でチェックを始め、「このまま始める」で閉じる。聞いたらすぐ覚える（`markReadinessOffered`）。
 - **記録**: localStorage の `smalruby:lessonReadiness`（`lib/lessons/readiness.js`。読み書きの失敗では落ちない）。
   本人の確認で「消す」（`clearProgress`）を選ぶと、レッスンの記録といっしょに消す。
@@ -2008,7 +2016,10 @@ partner: {
 | `readinessResult(course, readiness)` | `{total, answeredCount, correctIds, wrongIds, recommendedIds, allCorrect}`。`wrongIds` はまちがえた問いの土台のチャレンジ（あとでできたものも入る）、`recommendedIds` はそのうちまだ「おすすめ」のもの |
 | `recommendedChallenges(course, readiness)` | 「おすすめ」のチャレンジ（`findChallenge` の結果 `{course, lesson, challenge}` の配列。`baseChallenges` の並び） |
 | `recommendedChallengeIds(readiness)` | どれかのコースで「おすすめ」のチャレンジ id |
-| `readinessOffer({challengeId, readiness, fromAssignment})` | 「先にじゅんびチェックをする？」を聞くなら `{courseId, checkChallengeId}`、聞かないなら null |
+| `readinessOffer({challengeId, readiness})` | 「先にじゅんびチェックをする？」を聞くなら `{courseId, checkChallengeId}`、聞かないなら null |
+| `assignmentReviewChallenges(lesson, readiness)` | 課題の「おさらい（課題の外）」に出すチャレンジ（課題のコースのじゅんびチェックと、いまの「おすすめ」。課題に入っているものは外す。じゅんびチェックの無いコースでは `[]`） |
+| `challengeOpenContext(lesson, challengeId, inAssignmentFlow)` | 課題の流れの中で開くときの `{fromAssignment, fromReview}`（課題のチャレンジなら課題から、課題の外なら「おさらい」。流れの外ではどちらも false） |
+| `reviewReturnTarget(lesson, progress, lastAssignmentChallengeId)` | 「課題にもどる」の行き先。`{challengeId}`（おさらいの前の課題のチャレンジが、まだ課題にあってできていない）か `{libraryAfterId}`（課題だけのレッスン表） |
 | `courseReadinessCheck(course)`（`courses.js`） | コースのじゅんびチェックのチャレンジ（無ければ null） |
 
 | data-testid | 要素 | 説明 |
@@ -2025,6 +2036,31 @@ partner: {
 ![チャットをつくろう のじゅんびチェック（まちがえて、正しい答えと解説が出たところ・1300×600）](screenshots/0735-chat-readiness-check-wrong-1300x600.png)
 
 ![じゅんびチェックの結果（2 問まちがえて「おすすめ」が出たところ・1300×600）](screenshots/0736-chat-readiness-result-recommended-1300x600.png)
+
+#### 課題の「おさらい（課題の外）」
+
+クラスの課題がチャレンジを絞っているとき、生徒が課題の外の土台のチャレンジへ行けるようにする（方針は
+[`design.md` の「じゅんびチェック」](design.md#じゅんびチェックコースの土台を確かめる)）。先生がこれを止める設定は無い（まず授業で様子を見る）。
+
+- **レッスン表**: 課題だけのレッスン表（「はじめる」「レッスンを続ける」で開いたとき）の、課題のチャレンジのあとに
+  「おさらい（課題の外）」の区切り（点線の枠）を出す。中は、課題のコースのじゅんびチェック（いつも出す）と、そのチェックで
+  いま「おすすめ」のチャレンジだけ（`assignmentReviewChallenges`。ほかのコースのチャレンジもある）。課題に入っているものは
+  課題のほうに出るので外す。じゅんびチェックの無いコース（きょうからプログラマー）の課題では出さない。検索中は名前で絞る。
+  メニューの「レッスン」から開いた（コース全体の）レッスン表には出さない。
+- **開く**: 区切りのカードを押すと「おさらい」として開く（`startChallenge(id, {fromReview: true})`）。課題バーの課題の帯の
+  かわりに「おさらい中 — 課題の数には入らない」と［課題にもどる］を出す。
+- **課題の数に入れない**: 課題の帯・課題クリア・クラスへ送る「できた」は、課題のチャレンジだけで数える（いままでどおり）。
+  おさらいで「できた」になったものは端末の記録に残るので、あとの課題に入っていれば、いままでどおり引き継げる。
+- **課題にもどる**: おさらいの前にやっていた課題のチャレンジ（`lastAssignmentChallengeId`）が、まだ課題にあってできていなければ
+  開きなおす。ほかは課題だけのレッスン表を開く（そのチャレンジの次から「次はこれ！」・`reviewReturnTarget`）。おさらいの
+  「ほかのチャレンジへ」と「できた！」の「次のチャレンジ」も、課題だけのレッスン表を開く。
+- **クラスへ送る**: おさらいのチャレンジを開いているあいだは、current に `review: true` を付けて送る
+  （`{challengeId, openedAt, review: true}`。本人の確認など、進み具合を送る決まりはいままでどおり）。サーバーは課題の外でも
+  current に残すので、先生の表で「おさらい中」と分かる。課題のチャレンジにもどったら、ふつうの current を送る。
+
+![課題の「おさらい（課題の外）」（じゅんびチェックとおすすめ・1300×600）](screenshots/0737-chat-assignment-review-1300x600.png)
+
+![おさらいのチャレンジの課題バー（「おさらい中」と［課題にもどる］・1300×600）](screenshots/0738-chat-review-task-bar-1300x600.png)
 
 ### data-testid
 

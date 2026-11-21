@@ -16,6 +16,7 @@ import lessonModeReducer, {
     markChallengeCompleted,
     openChallenge,
     requestProgressSend,
+    startChallenge,
 } from '../../../src/reducers/lesson-mode';
 
 jest.mock('../../../src/containers/modal.jsx', () => {
@@ -133,6 +134,36 @@ describe('LessonProgressSync', () => {
         });
         await flush();
         expect(classroomAPI.putLessonProgress).toHaveBeenCalledTimes(calls);
+    });
+
+    test('should send a review challenge as current with review: true, but never its "done" (#2300)', async () => {
+        const store = renderSync();
+        await flush();
+        act(() => {
+            store.dispatch(startChallenge(OUTSIDE, { fromReview: true }));
+            store.dispatch(openChallenge(OUTSIDE));
+        });
+        await flush();
+        expect(classroomAPI.putLessonProgress).toHaveBeenLastCalledWith('token-1', 'class-1', {
+            challenges: {},
+            current: { challengeId: OUTSIDE, openedAt: expect.any(String), review: true },
+        });
+        const calls = classroomAPI.putLessonProgress.mock.calls.length;
+        act(() => {
+            store.dispatch(markChallengeCompleted(OUTSIDE, LATER));
+        });
+        await flush();
+        expect(classroomAPI.putLessonProgress).toHaveBeenCalledTimes(calls);
+        // 課題のチャレンジにもどったら、ふつうの current
+        act(() => {
+            store.dispatch(startChallenge(B, { fromAssignment: true }));
+            store.dispatch(openChallenge(B));
+        });
+        await flush();
+        expect(classroomAPI.putLessonProgress).toHaveBeenLastCalledWith('token-1', 'class-1', {
+            challenges: {},
+            current: { challengeId: B, openedAt: expect.any(String) },
+        });
     });
 
     test('should ask once before the first send when the device has records, and send them as before', async () => {
