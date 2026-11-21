@@ -23,6 +23,7 @@ import {
 import SensingConverter from '../../../../src/lib/ruby-to-blocks-converter/sensing';
 import SoundConverter from '../../../../src/lib/ruby-to-blocks-converter/sound';
 import Text2SpeechConverter from '../../../../src/lib/ruby-to-blocks-converter/text2speech';
+import TM2ScratchConverter from '../../../../src/lib/ruby-to-blocks-converter/tm2scratch';
 import TranslateConverter from '../../../../src/lib/ruby-to-blocks-converter/translate';
 import VideoConverter from '../../../../src/lib/ruby-to-blocks-converter/video';
 import Wedo2Converter from '../../../../src/lib/ruby-to-blocks-converter/wedo2';
@@ -63,6 +64,7 @@ describe('RubyToBlocksConverter/send table', () => {
         microbit: MicroBitConverter,
         ev3: EV3Converter,
         gdxFor: GdxForConverter,
+        tm2scratch: TM2ScratchConverter,
     };
 
     test.each(Object.keys(tables))('every opcode of the %s table has a generator', (area) => {
