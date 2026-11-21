@@ -236,27 +236,28 @@ registerSendTable(converter, MOTION_SENDS);
 
 領域ごとの表（各変換器の `sends` が表。`send-table.test.js` は、すべての表の opcode とメニューの opcode に生成器があることを確かめる）:
 
-| 領域         | 表の行 | handler のまま残したもの                                                                                                                                         |
-| ------------ | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| motion       | 12     | `go_to`・`glide`（配列・キーワード引数）、演算代入                                                                                                               |
-| looks        | 25     | `say` / `think`（`secs:`・シンボル）、`print` / `puts` / `p`（引数の数が決まらない）、演算代入                                                                   |
-| sound        | 8      | 演算代入                                                                                                                                                         |
-| control      | 5      | `repeat`・本体のある `loop` / `forever`・`N.times`（`wait` を除く・ブロック引数）、`create_clone` / `clone`、`with_screen_refresh`、`if` / `until`、v1 の `when` |
-| event        | 6      | `when_receive`・`broadcast`（メッセージを引く）、v1 の `when`                                                                                                    |
-| sensing      | 16     | Ruby の式のレシーバーを使う v2 の形（`mouse.x`・`stage.volume`・`sprite("A").x`・`Time.now.year`）、`gets`、`drag_mode=`                                         |
-| operators    | 6      | `[]`・`empty?`・`+`・比べる演算・`=~`・算術（`operators-math.js`。`Math.sqrt` など、引数が配列のときがあるもの）                                                 |
-| data         | 0      | すべて（変数・リスト・ハッシュを引き、リストに変える。表の 1 行では書けない）                                                                                    |
-| pen          | 17     | `pen.color =`（数か色で opcode を選ぶ）、`pen.size += 1` の下ごしらえ、演算代入                                                                                  |
-| music        | 12     | `music`（Ruby の式のレシーバーを作る）、演算代入（`music.tempo += 20`）                                                                                          |
-| text2speech  | 3      | `text2speech`（Ruby の式のレシーバーを作る）                                                                                                                     |
-| translate    | 4      | `translate`（Ruby の式のレシーバーを作る）                                                                                                                       |
-| video        | 4      | `video_sensing`（Ruby の式のレシーバーを作る）                                                                                                                   |
-| boost        | 10     | `self.when(:boost_color, ...)` / `self.when(:boost_tilted, ...)`（シンボルでハットを選ぶ）                                                                       |
-| wedo2        | 11     | `wedo2`（Ruby の式のレシーバーを作る）                                                                                                                           |
-| face_sensing | 9      | `face_sensing`（Ruby の式のレシーバーを作る）                                                                                                                    |
-| makeymakey   | 2      | `makey`（Ruby の式のレシーバーを作る）、v1 の `self.when(:makey_key_pressed, ...)`（シンボルでハットを選ぶ。ほかの `self.when` のあとに登録する）                |
+| 領域         | 表の行 | handler のまま残したもの                                                                                                                                                                         |
+| ------------ | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| motion       | 12     | `go_to`・`glide`（配列・キーワード引数）、演算代入                                                                                                                                               |
+| looks        | 25     | `say` / `think`（`secs:`・シンボル）、`print` / `puts` / `p`（引数の数が決まらない）、演算代入                                                                                                   |
+| sound        | 8      | 演算代入                                                                                                                                                                                         |
+| control      | 5      | `repeat`・本体のある `loop` / `forever`・`N.times`（`wait` を除く・ブロック引数）、`create_clone` / `clone`、`with_screen_refresh`、`if` / `until`、v1 の `when`                                 |
+| event        | 6      | `when_receive`・`broadcast`（メッセージを引く）、v1 の `when`                                                                                                                                    |
+| sensing      | 16     | Ruby の式のレシーバーを使う v2 の形（`mouse.x`・`stage.volume`・`sprite("A").x`・`Time.now.year`）、`gets`、`drag_mode=`                                                                         |
+| operators    | 6      | `[]`・`empty?`・`+`・比べる演算・`=~`・算術（`operators-math.js`。`Math.sqrt` など、引数が配列のときがあるもの）                                                                                 |
+| data         | 0      | すべて（変数・リスト・ハッシュを引き、リストに変える。表の 1 行では書けない）                                                                                                                    |
+| pen          | 17     | `pen.color =`（数か色で opcode を選ぶ）、`pen.size += 1` の下ごしらえ、演算代入                                                                                                                  |
+| music        | 12     | `music`（Ruby の式のレシーバーを作る）、演算代入（`music.tempo += 20`）                                                                                                                          |
+| text2speech  | 3      | `text2speech`（Ruby の式のレシーバーを作る）                                                                                                                                                     |
+| translate    | 4      | `translate`（Ruby の式のレシーバーを作る）                                                                                                                                                       |
+| video        | 4      | `video_sensing`（Ruby の式のレシーバーを作る）                                                                                                                                                   |
+| boost        | 10     | `self.when(:boost_color, ...)` / `self.when(:boost_tilted, ...)`（シンボルでハットを選ぶ）                                                                                                       |
+| wedo2        | 11     | `wedo2`（Ruby の式のレシーバーを作る）                                                                                                                                                           |
+| face_sensing | 9      | `face_sensing`（Ruby の式のレシーバーを作る）                                                                                                                                                    |
+| makeymakey   | 2      | `makey`（Ruby の式のレシーバーを作る）、v1 の `self.when(:makey_key_pressed, ...)`（シンボルでハットを選ぶ。ほかの `self.when` のあとに登録する）                                                |
+| microbit     | 8      | `microbit_v1`（Ruby の式のレシーバーを作る）、`display`（5 つの文字列を 1 つの模様にする）、`when_pin_connected`（0〜2 の数だけ）、v1 の `self.when(:microbit_*, ...)`（シンボルでハットを選ぶ） |
 
-拡張機能は pen・music・text2speech・translate・video・boost・wedo2・face_sensing・makeymakey を移した。残り（ev3・microbit・micro:bit More・g2s・koshien・mesh など）は、同じ形（`changesReceiver` と `menus`）で 1 つずつ移す。
+拡張機能は pen・music・text2speech・translate・video・boost・wedo2・face_sensing・makeymakey・microbit を移した。残り（ev3・micro:bit More・g2s・koshien・mesh など）は、同じ形（`changesReceiver` と `menus`）で 1 つずつ移す。
 
 ### 表の列
 

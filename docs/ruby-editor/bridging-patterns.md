@@ -745,7 +745,7 @@ say(mesh.message_value)
 
 **気をつけること（見つけた不具合）**: テキストの入力に数を入れるときは、数字の文字列にしてから入れる。`_addTextInput` に数をそのまま渡すと、入力が空のままになり、数が黙って消える。いま `translate.call(1, "ja")`（翻訳の言葉が数）がこの形で、ブロックに言葉が入らない（`ruby-roundtrip/translate-table.test.js` はいまの出力を固定している。直すときはこの行を直す）。
 
-**気をつけること（見つけた不具合）**: 値のブロック（reporter）の生成器は `[コード, Generator.ORDER_xxx]` を返す（文の生成器のように `` `...\n` `` の文字列を返さない）。LEGO BOOST の `boost_getMotorPosition` / `boost_seeingColor` / `boost_getTiltAngle` と WeDo 2.0 の `wedo2_isTilted` は文字列を返しているので、`say(...)` などの値の場所に入れると Ruby が壊れる（`say(b)`）。`ruby-roundtrip/boost-table.test.js` と `wedo2-table.test.js` は該当の行を `only: 'toBlocks'` にしている（直すときは外す）。
+**気をつけること（見つけた不具合）**: 値のブロック（reporter）の生成器は `[コード, Generator.ORDER_xxx]` を返す（文の生成器のように `` `...\n` `` の文字列を返さない）。LEGO BOOST の `boost_getMotorPosition` / `boost_seeingColor` / `boost_getTiltAngle` と WeDo 2.0 の `wedo2_isTilted` と micro:bit の `microbit_isButtonPressed` は文字列を返しているので、`say(...)` などの値の場所に入れると Ruby が壊れる（`say(b)`）。`ruby-roundtrip/boost-table.test.js`・`wedo2-table.test.js`・`microbit-table.test.js` は該当の行を `only: 'toBlocks'` にしている（直すときは外す）。
 
 ### P20. 定義ブロックの名前と「画面を再描画せずに実行する」
 
