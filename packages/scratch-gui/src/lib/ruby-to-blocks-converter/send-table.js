@@ -107,6 +107,20 @@ const menuInputArg = (
 const noteArg = (input, defaultValue) => ({ kind: 'note', input, defaultValue });
 
 /**
+ * A `normalize` of `menuInputArg` that looks a string up in the choices without regard to case and
+ * gives the choice as it is written in the menu (`'motor a'` → `'motor A'`), or `''` (not a choice).
+ * @param {Array<string>} choices - The choices of the menu.
+ * @returns {Function} The `normalize`.
+ */
+const anyCase = (choices) => {
+    const lower = choices.map((choice) => choice.toLowerCase());
+    return (value) => {
+        const index = lower.indexOf(value.toLowerCase());
+        return index < 0 ? '' : choices[index];
+    };
+};
+
+/**
  * A color string (or a value block) put into a color input (`touching_color?("#ff0000")`).
  * @param {string} input - The name of the input (`COLOR`).
  * @param {string} defaultValue - The color of the shadow when the argument is a block.
@@ -291,4 +305,4 @@ const registerSendTable = (converter, rows) => {
     });
 };
 
-export { colorArg, fieldArg, menuArg, menuInputArg, noteArg, numberArg, onSelf, registerSendTable, textArg };
+export { anyCase, colorArg, fieldArg, menuArg, menuInputArg, noteArg, numberArg, onSelf, registerSendTable, textArg };

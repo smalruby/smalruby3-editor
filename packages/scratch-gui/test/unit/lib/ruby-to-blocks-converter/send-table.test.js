@@ -20,6 +20,7 @@ import SoundConverter from '../../../../src/lib/ruby-to-blocks-converter/sound';
 import Text2SpeechConverter from '../../../../src/lib/ruby-to-blocks-converter/text2speech';
 import TranslateConverter from '../../../../src/lib/ruby-to-blocks-converter/translate';
 import VideoConverter from '../../../../src/lib/ruby-to-blocks-converter/video';
+import Wedo2Converter from '../../../../src/lib/ruby-to-blocks-converter/wedo2';
 import { makeConverter, makeStageTarget } from '../../helpers/ruby-roundtrip-helper';
 
 /**
@@ -51,6 +52,7 @@ describe('RubyToBlocksConverter/send table', () => {
         translate: TranslateConverter,
         video: VideoConverter,
         boost: BoostConverter,
+        wedo2: Wedo2Converter,
     };
 
     test.each(Object.keys(tables))('every opcode of the %s table has a generator', (area) => {
