@@ -168,6 +168,15 @@ const menuInputValueOf = (spec, arg) =>
     spec.normalize ? new Primitive('str', fieldValueOf(spec, arg), arg.node) : arg;
 
 /**
+ * An argument that takes anything, not checked (some calls of AkaDako put any argument into a
+ * number input or a menu as it is). Kept for the calls that already took anything; a new row
+ * should check its arguments.
+ * @param {object} spec - The argument of a row.
+ * @returns {object} The argument of a row, not checked.
+ */
+const unchecked = (spec) => ({ ...spec, unchecked: true });
+
+/**
  * Whether an argument of a call is of the kind that a row expects.
  * @param {object} converter - The converter.
  * @param {object} spec - The argument of the row.
@@ -175,6 +184,7 @@ const menuInputValueOf = (spec, arg) =>
  * @returns {boolean} true if it is.
  */
 const acceptsArg = (converter, spec, arg) => {
+    if (spec.unchecked) return true;
     switch (spec.kind) {
         case 'number':
             return converter._isNumberOrBlock(arg);
@@ -325,4 +335,16 @@ const registerSendTable = (converter, rows) => {
     });
 };
 
-export { anyCase, colorArg, fieldArg, menuArg, menuInputArg, noteArg, numberArg, onSelf, registerSendTable, textArg };
+export {
+    anyCase,
+    colorArg,
+    fieldArg,
+    menuArg,
+    menuInputArg,
+    noteArg,
+    numberArg,
+    onSelf,
+    registerSendTable,
+    textArg,
+    unchecked,
+};
