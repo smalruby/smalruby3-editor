@@ -260,8 +260,9 @@ registerSendTable(converter, MOTION_SENDS);
 | gdx_for      | 15     | `gdx_for`（Ruby の式のレシーバーを作る）、v1 の `self.when(:gdx_for_*, ...)`（シンボルでハットを選ぶ）                                                                                                                                          |
 | tm2scratch   | 17     | `tm`（Ruby の式のレシーバーを作る）                                                                                                                                                                                                             |
 | koshien      | 23     | `koshien`（Ruby の式のレシーバーを作る）、`connect_game` / `when_connect_game`（v1 と v2 で形が違う・キーワード引数）、`calc_route`・`locate_objects`（キーワード引数・リスト）、`map_from`・`position`（座標のエラーをほかの引数より先に出す） |
+| g2s          | 55     | `akadako`（Ruby の式のレシーバーを作る）                                                                                                                                                                                                        |
 
-拡張機能は pen・music・text2speech・translate・video・boost・wedo2・face_sensing・makeymakey・microbit・ev3・gdx_for・tm2scratch・koshien を移した。残り（micro:bit More・g2s・mesh など）は、同じ形（`changesReceiver` と `menus`）で 1 つずつ移す。
+拡張機能は pen・music・text2speech・translate・video・boost・wedo2・face_sensing・makeymakey・microbit・ev3・gdx_for・tm2scratch・koshien・g2s を移した。残り（micro:bit More・smalrubot_s1・mesh など）は、同じ形（`changesReceiver` と `menus`）で 1 つずつ移す。
 
 ### 表の列
 
