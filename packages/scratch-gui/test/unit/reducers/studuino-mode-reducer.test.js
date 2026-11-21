@@ -1,5 +1,8 @@
 import reducer, {
+    closeStuduinoPortSettings,
     getStuduinoModeSettings,
+    isStuduinoPortSettingsVisible,
+    openStuduinoPortSettings,
     isStuduinoMode,
     setStuduinoModeSettings,
     studuinoModeInitialState,
@@ -30,5 +33,12 @@ describe('studuino-mode reducer', () => {
         const state = reducer(undefined, setStuduinoModeSettings(null));
         expect(isStuduinoMode(wrap(state))).toBe(false);
         expect(state.settings.mode).toBe('normal');
+    });
+
+    test('opens and closes the port settings', () => {
+        let state = reducer(undefined, openStuduinoPortSettings());
+        expect(isStuduinoPortSettingsVisible(wrap(state))).toBe(true);
+        state = reducer(state, closeStuduinoPortSettings());
+        expect(isStuduinoPortSettingsVisible(wrap(state))).toBe(false);
     });
 });

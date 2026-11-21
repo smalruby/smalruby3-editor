@@ -75,8 +75,13 @@ import {downloadBlocksAsImage} from '../lib/blocks-screenshot';
 import {DNCL_ALLOWED_BLOCKS} from '../lib/dncl/dncl-block-filter';
 // === Smalruby: End of DNCL block filtering ===
 // === Smalruby: Start of studuino mode palette ===
-import {STUDUINO_ALLOWED_BLOCKS} from '../lib/studuino-mode';
-import {isStuduinoMode} from '../reducers/studuino-mode';
+import {
+    STUDUINO_ALLOWED_BLOCKS,
+    STUDUINO_PORT_SETTINGS_CALLBACK,
+    makeStuduinoCategoryXml,
+    prependToolboxCategory
+} from '../lib/studuino-mode';
+import {isStuduinoMode, openStuduinoPortSettings} from '../reducers/studuino-mode';
 // === Smalruby: End of studuino mode palette ===
 // === Smalruby: Start of stale block delete event guard ===
 import {createStaleBlockDeleteGuard} from '../lib/stale-block-delete-guard';
@@ -285,6 +290,10 @@ class Blocks extends React.Component {
         toolboxWorkspace.registerButtonCallback('MAKE_A_VARIABLE', varListButtonCallback(''));
         toolboxWorkspace.registerButtonCallback('MAKE_A_LIST', varListButtonCallback('list'));
         toolboxWorkspace.registerButtonCallback('MAKE_A_PROCEDURE', procButtonCallback);
+        // === Smalruby: Start of studuino mode palette ===
+        toolboxWorkspace.registerButtonCallback(STUDUINO_PORT_SETTINGS_CALLBACK,
+            () => this.props.onOpenStuduinoPortSettings());
+        // === Smalruby: End of studuino mode palette ===
 
         // Store the xml of the toolbox that is actually rendered.
         // This is used in componentDidUpdate instead of prevProps, because
@@ -812,6 +821,22 @@ class Blocks extends React.Component {
     }
     // === Smalruby: End of lesson palette block defaults ===
 
+    // === Smalruby: Start of studuino mode palette ===
+    /**
+     * The ArtecRobo category put at the top of the palette in the Studuino mode (the port settings button).
+     * @returns {string} category XML.
+     */
+    getStuduinoCategoryXml () {
+        const messages = this.props.messages || {};
+        const colors = getColorsForMode(this.props.colorMode).pen;
+        return makeStuduinoCategoryXml({
+            name: messages['gui.studuinoMode.categoryName'] || 'ArtecRobo',
+            buttonText: messages['gui.studuinoMode.portSettingsButton'] || 'Port Settings',
+            colors
+        });
+    }
+    // === Smalruby: End of studuino mode palette ===
+
     getToolboxXML () {
         // Use try/catch because this requires digging pretty deep into the VM
         // Code inside intentionally ignores several error situations (no stage, etc.)
@@ -882,7 +907,13 @@ class Blocks extends React.Component {
             // === Smalruby: End of only blocks filter ===
             );
             // === Smalruby: Start of lesson palette block defaults ===
-            return applyBlockDefaultsToToolboxXml(toolboxXML, this.getTutorialBlockDefaults());
+            const xmlWithDefaults = applyBlockDefaultsToToolboxXml(toolboxXML, this.getTutorialBlockDefaults());
+            // === Smalruby: Start of studuino mode palette ===
+            if (this.props.studuinoMode) {
+                return prependToolboxCategory(xmlWithDefaults, this.getStuduinoCategoryXml());
+            }
+            // === Smalruby: End of studuino mode palette ===
+            return xmlWithDefaults;
             // === Smalruby: End of lesson palette block defaults ===
         } catch {
             return null;
@@ -1319,6 +1350,10 @@ class Blocks extends React.Component {
             projectTitle: _projectTitle,
             // === Smalruby: End of blocks screenshot ===
             colorMode,
+            // === Smalruby: Start of studuino mode palette ===
+            studuinoMode: _studuinoMode,
+            onOpenStuduinoPortSettings: _onOpenStuduinoPortSettings,
+            // === Smalruby: End of studuino mode palette ===
             ...props
         } = this.props;
 
@@ -1434,6 +1469,7 @@ Blocks.propTypes = {
     dnclMode: PropTypes.bool, // === Smalruby: DNCL block filtering ===
     // === Smalruby: Start of studuino mode palette ===
     studuinoMode: PropTypes.bool,
+    onOpenStuduinoPortSettings: PropTypes.func,
     // === Smalruby: End of studuino mode palette ===
     toolboxXML: PropTypes.string,
     updateMetrics: PropTypes.func,
@@ -1520,6 +1556,9 @@ const mapStateToProps = state => ({
 
 const mapDispatchToProps = dispatch => ({
     onActivateColorPicker: callback => dispatch(activateColorPicker(callback)),
+    // === Smalruby: Start of studuino mode palette ===
+    onOpenStuduinoPortSettings: () => dispatch(openStuduinoPortSettings()),
+    // === Smalruby: End of studuino mode palette ===
     onActivateCustomProcedures: (data, callback) => dispatch(activateCustomProcedures(data, callback)),
     onOpenConnectionModal: id => {
         dispatch(setConnectionModalExtensionId(id));

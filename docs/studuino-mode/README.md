@@ -199,6 +199,27 @@ opcode は拡張機能 `smalrubotS1` のブロック（実行時は `smalrubotS1
 | タッチセンサー | `touch_sensor` | `PIDTOUCHSENSOR` |
 | ボタン | `push_switch` | `PIDPUSHSWITCH` |
 
+### 入出力の設定のモーダル（実装）
+
+- 開き方は 3 つ: Studuino モードのパレットの先頭の「アーテックロボ」のカテゴリの［入出力の設定］ボタン
+  （「変数を作る」と同じ形のボタン）、モードに入った直後に自動で 1 回、メニューバーの「アーテックロボ」の
+  メニューの「入出力の設定」（通常モードでも開ける。ポートの設定は動かし方にかかわらず 1 つ）。
+- 左の列に D2〜D12・M1・M2、まん中に基板の絵（独自の簡単な絵）、右の列に A0〜A7。各ポートの行に、
+  そのポートで選べる部品と「つながない」のドロップダウン。
+- ［すべて未選択にする］はすべてのポートを「つながない」にする（補正値も消える）。［割り当て］で保存して閉じる。
+  ×で閉じると、変えた内容は捨てる（保存は［割り当て］だけ）。
+- 下に商標の表記（「Studuino®（スタディーノ）は株式会社アーテックの登録商標です。」）。
+
+| data-testid | 要素 |
+|---|---|
+| `menu-smalrubot-s1-studuino-mode` | メニューの「Studuino モード」／「通常モードにもどす」 |
+| `menu-smalrubot-s1-port-settings` | メニューの「入出力の設定」 |
+| `studuino-port-settings-modal` | モーダルの本文 |
+| `studuino-port-settings-port-<ポート>` | ポートのドロップダウン（ポートは小文字。例 `-d9`・`-a6`） |
+| `studuino-port-settings-calibration-<ポート>` | 補正値の入力（`-m1`・`-d9` など） |
+| `studuino-port-settings-clear-all` | ［すべて未選択にする］ |
+| `studuino-port-settings-assign` | ［割り当て］ |
+
 ### ブロックのドロップダウン
 
 - 部品のブロックのドロップダウンには、その種類の部品を割り当てたポートだけを出す。表示は「光センサー (A6)」の形。
@@ -215,7 +236,9 @@ opcode は拡張機能 `smalrubotS1` のブロック（実行時は `smalrubotS1
 
 - **DC モーター**: M1・M2 の最大の速さの割合（0〜100%、はじめは 100）。左右のタイヤの速さをそろえるため。
 - **サーボモーター**: D2〜D12 それぞれの角度のずれ（−15〜15 度、はじめは 0）。
-- 入出力の設定のモーダルで変えられるようにする（置き場所は #2215 で決める）。
+- 入出力の設定のモーダルで変えられる。**置き場所は、そのポートの行のドロップダウンの右**（そのポートに
+  DC モーター・サーボモーターを選んだときだけ数の入力が出る）。部品を変えたり外したりすると、そのポートの補正値は
+  はじめの値にもどる（前の部品の補正値を引き継がない）。範囲の外の値は範囲に収め、整数に丸める。
 - 書きこみのとき、構文木の `calibration` に入れ、C++ の `SetDCMotorCalibration` / `SetServomotorCalibration` になる。
 
 ## 保存の形（S10）
@@ -692,7 +715,9 @@ prod に出す前に回答を待つ必要は無い。
 - `packages/scratch-gui/src/lib/studuino-mode.js` — Studuino モードで使えるブロックの一覧（`STUDUINO_ALLOWED_BLOCKS`）・モードの切り替え（`setStuduinoMode`）
 - `packages/scratch-gui/src/reducers/studuino-mode.js` — VM の設定の写しと selector（`isStuduinoMode` / `getStuduinoModeSettings`）
 - `packages/scratch-gui/src/containers/studuino-mode-sync.jsx` — VM の設定を redux へ写す（`STUDUINO_SETTINGS_CHANGED`・`PROJECT_LOADED`）
-- `packages/scratch-gui/src/containers/blocks.jsx` — Studuino モードのパレットの絞り込み（マーカーつき）
+- `packages/scratch-gui/src/lib/studuino-port-settings.js` — 入出力の設定の下書きを変える純粋な関数（部品・補正値・すべて未選択）
+- `packages/scratch-gui/src/components/studuino-port-settings-modal/` / `src/containers/studuino-port-settings-modal.jsx` — 入出力の設定のモーダル
+- `packages/scratch-gui/src/containers/blocks.jsx` — Studuino モードのパレットの絞り込みと、先頭の「アーテックロボ」のカテゴリ（［入出力の設定］ボタン）（マーカーつき）
 - `packages/scratch-gui/src/components/menu-bar/menu-bar.jsx` — アーテックロボのメニューの「Studuino モード」（マーカーつき）
 - `packages/scratch-vm/src/extensions/scratch3_smalrubot_s1/studuino-settings.js` — 状態とポートの設定（保存の形・読みこみの直し・`runtime.extensionStorage` の読み書き・イベント `STUDUINO_SETTINGS_CHANGED`）
 - `packages/scratch-vm/src/serialization/sb3.js` / `src/engine/runtime.js` — `extensionStorage` の保存・読みこみ（マーカーつき）

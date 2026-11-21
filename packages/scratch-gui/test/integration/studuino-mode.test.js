@@ -72,6 +72,14 @@ describe('Studuino mode', () => {
         expectCategories(await categoryNames(), ['Motion', 'Looks', 'Sound', 'My Blocks'], []);
 
         await toggleStuduinoMode();
+        // 入った直後に入出力の設定を 1 回開く
+        await driver.wait(() => existsByTestId('studuino-port-settings-modal'), 5000, 'Port settings did not open');
+        await clickByTestId('studuino-port-settings-assign');
+        await driver.wait(
+            async () => !(await existsByTestId('studuino-port-settings-modal')),
+            5000,
+            'Port settings did not close',
+        );
         await driver.wait(
             async () => !hasCategory(await categoryNames(), 'Motion'),
             5000,
@@ -79,7 +87,7 @@ describe('Studuino mode', () => {
         );
         expectCategories(
             await categoryNames(),
-            ['Events', 'Control', 'Sensing', 'Operators', 'Variables'],
+            ['ArtecRobo', 'Events', 'Control', 'Sensing', 'Operators', 'Variables'],
             ['Motion', 'Looks', 'Sound', 'My Blocks', 'Pen'],
         );
 
@@ -90,5 +98,46 @@ describe('Studuino mode', () => {
             'The palette was not restored after leaving the Studuino mode',
         );
         expectCategories(await categoryNames(), ['Looks', 'Sound', 'My Blocks'], []);
+    });
+
+    test('the port settings keep the assigned parts', async () => {
+        await loadUri(uri);
+        await activateSmalrubotS1Extension();
+        await driver.wait(() => existsByTestId('menu-smalrubot-s1'), 5000, 'ArtecRobo menu is not shown');
+        await clickByTestId('menu-smalrubot-s1');
+        await driver.wait(
+            () => existsByTestId('menu-smalrubot-s1-port-settings'),
+            5000,
+            'Port settings item missing',
+        );
+        await clickByTestId('menu-smalrubot-s1-port-settings');
+        await driver.wait(() => existsByTestId('studuino-port-settings-modal'), 5000, 'Port settings did not open');
+
+        // React の onChange に届くように、ネイティブの setter で値を入れて change を送る
+        await driver.executeScript(
+            `const s = document.querySelector('[data-testid="studuino-port-settings-port-d9"]');` +
+                `Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(s, 'servo_motor');` +
+                `s.dispatchEvent(new Event('change', { bubbles: true }));`,
+        );
+        await clickByTestId('studuino-port-settings-assign');
+        await sleep(500);
+
+        await clickByTestId('menu-smalrubot-s1');
+        await driver.wait(
+            () => existsByTestId('menu-smalrubot-s1-port-settings'),
+            5000,
+            'Port settings item missing',
+        );
+        await clickByTestId('menu-smalrubot-s1-port-settings');
+        await driver.wait(() => existsByTestId('studuino-port-settings-modal'), 5000, 'Port settings did not reopen');
+        const value = await driver.executeScript(
+            `return document.querySelector('[data-testid="studuino-port-settings-port-d9"]').value`,
+        );
+        expect(value).toBe('servo_motor');
+        // 本文は不透明（青いオーバーレイが透けない）
+        const background = await driver.executeScript(
+            `return getComputedStyle(document.querySelector('[data-testid="studuino-port-settings-modal"]')).backgroundColor`,
+        );
+        expect(background).toBe('rgb(255, 255, 255)');
     });
 });
