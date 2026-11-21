@@ -123,6 +123,8 @@ src/components/*
 !src/components/studuino-practice-board/**
 !src/components/studuino-port-settings-modal/
 !src/components/studuino-port-settings-modal/**
+!src/components/studuino-mode-switch-dialog/
+!src/components/studuino-mode-switch-dialog/**
 !src/components/mobile-bottom-tabs/
 !src/components/mobile-bottom-tabs/**
 !src/components/mobile-drawer/
@@ -239,6 +241,9 @@ src/containers/*
 !src/containers/studuino-practice-board.jsx
 !src/containers/studuino-mode-sync.jsx
 !src/containers/studuino-port-settings-modal.jsx
+!src/containers/studuino-mode-switch-dialog.jsx
+!src/containers/studuino-unusable-blocks.jsx
+!src/containers/studuino-unusable-blocks.css
 !src/containers/lesson-analytics.jsx
 !src/containers/lesson-progress-sync.jsx
 !src/containers/lesson-goal-watcher.jsx
@@ -365,6 +370,8 @@ src/lib/*
 !src/lib/smalrubot-firmware.hex.js
 !src/lib/studuino-mode.js
 !src/lib/studuino-port-settings.js
+!src/lib/studuino-mode-check.js
+!src/lib/studuino-block-marks.js
 !src/lib/stale-block-delete-guard.js
 !src/lib/storage-worker-timeout.js
 !src/lib/storage-worker-timeout-hoc.jsx
@@ -841,6 +848,7 @@ test/unit/lib/*
 !test/unit/lib/smalrubot-firmware-flasher.test.js
 !test/unit/lib/studuino-mode.test.js
 !test/unit/lib/studuino-port-settings.test.js
+!test/unit/lib/studuino-mode-check.test.js
 !test/unit/lib/smalruby-original-sprites.test.js
 !test/unit/lib/setup-prism.js
 !test/unit/lib/version-checker.test.js

@@ -104,6 +104,19 @@ Studuino の拡張機能そのもの（通常モード。パソコンにつな�
   保存していない変更があれば、新規と同じ確認を先に出す。
 - 使えないブロックが無ければ、そのまま切り替わる。
 
+### 実装（#2214）
+
+- 使えないブロックの判断は `lib/studuino-mode-check.js`（純粋関数）。**構文木の生成（`lib/studuino-ir`）がエラーにするブロック**を
+  そのまま使う（印・件数・書きこみの検査が同じ判断になる）。旗が無いこと・全体が大きすぎることは、ブロックに結びつかないので印にしない。
+- Studuino → 通常で止めるのは、書きこまないと動かない**部品のブロック**（`smalrubotS1_studuino*`）だけ。
+- 印は、ブロックの枠を赤い点線にする（CSS のクラス `studuinoUnusableBlock`）。いま開いている target のブロックにつける。
+- 「使えないブロックが n 個あります」はメニューバーの下のまん中に出す。押すと 1 つ目のブロックへ移り（target を開いて、
+  ブロックをまん中に出して選ぶ）、もう一度押すと次のブロックへ移る。ブロックを動かしてから 0.3 秒で数え直す。
+- ［すべて消して切り替える］: 保存していない変更があれば新規と同じ確認を出し、新規の作品を読みこんだあと、
+  **ポートの設定と補正値を残して**動かし方だけ変える。Studuino モードに入ったときは入出力の設定を 1 回開く。
+- data-testid: `studuino-unusable-blocks-banner`、`studuino-mode-switch-dialog`（本文）、
+  `studuino-mode-switch-dialog-show-blocks` / `-clear` / `-cancel`。
+
 ## 第 1 弾のブロック（S1）
 
 第 1 弾は **部品のブロック＋制御・演算・変数（数値）**。部品のブロックは、入出力の設定で割り当てた部品の
@@ -726,6 +739,10 @@ prod に出す前に回答を待つ必要は無い。
 - `packages/scratch-gui/src/components/studuino-port-settings-modal/` / `src/containers/studuino-port-settings-modal.jsx` — 入出力の設定のモーダル
 - `packages/scratch-gui/src/containers/blocks.jsx` — Studuino モードのパレットの絞り込みと、先頭の「アーテックロボ」のカテゴリ（［入出力の設定］ボタン）（マーカーつき）
 - `packages/scratch-gui/src/components/menu-bar/menu-bar.jsx` — アーテックロボのメニューの「Studuino モード」（マーカーつき）
+- `packages/scratch-gui/src/lib/studuino-mode-check.js` — 使えないブロックの判断・切り替えてよいか（純粋関数）
+- `packages/scratch-gui/src/lib/studuino-block-marks.js` — ブロックの印・そのブロックへ移る（ワークスペースを触る）
+- `packages/scratch-gui/src/containers/studuino-unusable-blocks.jsx` — 印と「使えないブロックが n 個あります」
+- `packages/scratch-gui/src/containers/studuino-mode-switch-dialog.jsx` / `components/studuino-mode-switch-dialog/` — 切り替えられないときのダイアログ
 - `packages/scratch-vm/src/extensions/scratch3_smalrubot_s1/studuino-blocks.js` — 部品のブロックの定義（`getInfo` に足す・`hideFromPalette`）、ポートの動的メニュー、パレットに並べるブロックの選び方（`paletteBlocks`）
 - `packages/scratch-vm/src/extensions/scratch3_smalrubot_s1/studuino-settings.js` — 状態とポートの設定（保存の形・読みこみの直し・`runtime.extensionStorage` の読み書き・イベント `STUDUINO_SETTINGS_CHANGED`）
 - `packages/scratch-vm/src/serialization/sb3.js` / `src/engine/runtime.js` — `extensionStorage` の保存・読みこみ（マーカーつき）

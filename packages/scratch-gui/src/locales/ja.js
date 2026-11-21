@@ -25,6 +25,13 @@ export default {
     'gui.menuBar.smalrubotS1.portSettings': '入出力の設定',
     'gui.studuinoMode.categoryName': 'アーテックロボ',
     'gui.studuinoMode.portSettingsButton': '入出力の設定',
+    'gui.studuinoMode.unusableBlocks': '使えないブロックが {count} 個あります',
+    'gui.studuinoMode.switchDialog.toStuduinoTitle': 'Studuino モードに切り替える',
+    'gui.studuinoMode.switchDialog.toNormalTitle': '通常モードに切り替える',
+    'gui.studuinoMode.switchDialog.message': '使えないブロックが {count} 個あるので切り替えられません。',
+    'gui.studuinoMode.switchDialog.showBlocks': 'ブロックを見る',
+    'gui.studuinoMode.switchDialog.clearAndSwitch': 'すべて消して切り替える',
+    'gui.studuinoMode.switchDialog.cancel': 'やめる',
     'gui.studuinoPortSettings.title': '入出力の設定',
     'gui.studuinoPortSettings.description':
         '基板のポートごとに、つないだ部品を選びます。割り当てた部品だけがブロックに出ます。',

@@ -25,6 +25,13 @@ export default {
     'gui.menuBar.smalrubotS1.portSettings': 'にゅうしゅつりょくのせってい',
     'gui.studuinoMode.categoryName': 'アーテックロボ',
     'gui.studuinoMode.portSettingsButton': 'にゅうしゅつりょくのせってい',
+    'gui.studuinoMode.unusableBlocks': 'つかえないブロックが {count} こあります',
+    'gui.studuinoMode.switchDialog.toStuduinoTitle': 'Studuino モードにきりかえる',
+    'gui.studuinoMode.switchDialog.toNormalTitle': 'つうじょうモードにきりかえる',
+    'gui.studuinoMode.switchDialog.message': 'つかえないブロックが {count} こあるので、きりかえられません。',
+    'gui.studuinoMode.switchDialog.showBlocks': 'ブロックをみる',
+    'gui.studuinoMode.switchDialog.clearAndSwitch': 'すべてけしてきりかえる',
+    'gui.studuinoMode.switchDialog.cancel': 'やめる',
     'gui.studuinoPortSettings.title': 'にゅうしゅつりょくのせってい',
     'gui.studuinoPortSettings.description':
         'きばんのポートごとに、つないだぶひんをえらびます。わりあてたぶひんだけがブロックにでます。',

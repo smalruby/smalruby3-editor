@@ -62,7 +62,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/connection-modal/connected-step.jsx` | meshV2 seat connect feature | 接続済み画面の「そろい具合」の 1 行 |
 | `src/components/connection-modal/connected-step.jsx` | meshV2 connected message feature | Mesh v2 接続済みステップ UI |
 | `src/components/menu-bar/menu-bar.jsx` | smalrubot firmware menu | SmalrubotS1 メニューの import、ハンドラー、レンダリング、Redux 接続 |
-| `src/components/menu-bar/menu-bar.jsx` | studuino mode menu | アーテックロボのメニューの「Studuino モード」の項目（`menu-smalrubot-s1-studuino-mode`。入る／通常モードにもどす）・「入出力の設定」（`menu-smalrubot-s1-port-settings`）と `handleToggleStuduinoMode`（入った直後に入出力の設定を開く）・`handleOpenStuduinoPortSettings`・`studuinoMode` / `onOpenStuduinoPortSettings` の propType と Redux 接続。メニューは Web Serial が無くても出し、ファームウェアの書きこみの項目だけを Web Serial のあるときに出す（`docs/studuino-mode/README.md`） |
+| `src/components/menu-bar/menu-bar.jsx` | studuino mode menu | アーテックロボのメニューの「Studuino モード」の項目（`menu-smalrubot-s1-studuino-mode`。入る／通常モードにもどす）・「入出力の設定」（`menu-smalrubot-s1-port-settings`）と `handleToggleStuduinoMode`（入った直後に入出力の設定を開く）・`handleOpenStuduinoPortSettings`・`studuinoMode` / `onOpenStuduinoPortSettings` の propType と Redux 接続。切り替える前に使えないブロックを確かめ、あれば切り替えずにダイアログを開く（`checkModeSwitch`・`onOpenStuduinoSwitchDialog`・`studuinoSettings`）。メニューは Web Serial が無くても出し、ファームウェアの書きこみの項目だけを Web Serial のあるときに出す（`docs/studuino-mode/README.md`） |
 | `src/components/gui/gui.jsx` | smalrubot firmware modal | SmalrubotS1 ファームウェアモーダルの import と配置 |
 | `src/components/gui/gui.jsx` | classroom modal | クラスルームモーダルの import と配置（モーダル非表示中は退室依頼の見張り `ClassroomKickRequestWatcher` を代わりにマウント）。先生のクラス管理は `ClassroomTeacherModalHost` で置く（いちど開いたらログイン中は隠して残す）。`teacherWorkBarVisible` の destructure・propType |
 | `src/components/gui/gui.jsx` | bug report modal | プログラム不具合報告モーダルの import、`legalLinks` の「不具合を報告」リンク、`<BugReportModal />` 配置、`handleBugReportClick` ハンドラ、`onOpenBugReportModal` prop/propType、props 伝播防止リスト |
@@ -77,7 +77,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/gui/gui.jsx` | lesson goal watcher | レッスンモードのあいだ VM を見張り、チャレンジの「できた」を判定して記録・「できた！」を出す常時マウントのコンテナ（`containers/lesson-goal-watcher.jsx`）の import と配置 |
 | `src/components/gui/gui.jsx` | block activity diagram | ブロックを右クリック →「アクティビティ図」の項目をブロックのメニューに足し、そのスクリプトの図をパネルに描く常時マウントのコンテナ（`containers/block-activity-diagram.jsx`）の import と配置 |
 | `src/components/gui/gui.jsx` | studuino practice board | Studuino の拡張機能を読みこんだときだけ出す練習用の基板のパネル（`containers/studuino-practice-board.jsx`。document.body への portal）の import と配置。MobileGui には置かない |
-| `src/components/gui/gui.jsx` | studuino mode | VM の Studuino の設定（extensionStorage）を redux（`studuinoMode`）へ写す常時マウントのコンテナ（`containers/studuino-mode-sync.jsx`。何も描かない）と入出力の設定のモーダル（`containers/studuino-port-settings-modal.jsx`。開いているときだけ描く）の import と配置。MobileGui には置かない |
+| `src/components/gui/gui.jsx` | studuino mode | VM の Studuino の設定（extensionStorage）を redux（`studuinoMode`）へ写す常時マウントのコンテナ（`containers/studuino-mode-sync.jsx`。何も描かない）と入出力の設定のモーダル（`containers/studuino-port-settings-modal.jsx`。開いているときだけ描く）、使えないブロックの印と件数（`containers/studuino-unusable-blocks.jsx`）、切り替えられないときのダイアログ（`containers/studuino-mode-switch-dialog.jsx`）の import と配置。MobileGui には置かない |
 | `src/components/gui/gui.jsx` | welcome modal | 初回訪問者向けウェルカムモーダル HOC の import と配置、`onShowWelcomeModal` prop |
 | `src/containers/gui.jsx` | welcome modal | `onShowWelcomeModal` を Redux `openWelcomeModal()` にマップ |
 | `src/components/gui/gui.jsx` | DNCL mode notice | DnclModeNotice コンポーネントの import・配置・`onRequestExitDnclMode` prop |

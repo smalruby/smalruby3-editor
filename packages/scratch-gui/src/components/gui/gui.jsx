@@ -82,6 +82,8 @@ import StuduinoPracticeBoard from '../../containers/studuino-practice-board.jsx'
 // === Smalruby: Start of studuino mode ===
 import StuduinoModeSync from '../../containers/studuino-mode-sync.jsx';
 import StuduinoPortSettingsModal from '../../containers/studuino-port-settings-modal.jsx';
+import StuduinoModeSwitchDialog from '../../containers/studuino-mode-switch-dialog.jsx';
+import StuduinoUnusableBlocks from '../../containers/studuino-unusable-blocks.jsx';
 // === Smalruby: End of studuino mode ===
 // === Smalruby: Start of block activity diagram ===
 import BlockActivityDiagram from '../../containers/block-activity-diagram.jsx';
@@ -614,6 +616,9 @@ const GUIComponent = props => {
                     <StuduinoModeSync />
                     {/* 入出力の設定のモーダル（開いているときだけ描く） */}
                     <StuduinoPortSettingsModal />
+                    {/* 使えないブロックの印と件数（#2214）・切り替えられないときのダイアログ */}
+                    <StuduinoUnusableBlocks />
+                    <StuduinoModeSwitchDialog />
                     {/* === Smalruby: End of studuino mode === */}
                     {/* === Smalruby: End of smalrubot firmware modal === */}
                     {/* === Smalruby: Start of welcome modal === */}

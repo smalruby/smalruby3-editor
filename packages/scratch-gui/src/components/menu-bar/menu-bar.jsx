@@ -151,7 +151,13 @@ import {isFirmwareFlashSupported} from '../../lib/smalrubot-firmware-flasher';
 // === Smalruby: End of smalrubot firmware menu ===
 // === Smalruby: Start of studuino mode menu ===
 import {setStuduinoMode} from '../../lib/studuino-mode';
-import {isStuduinoMode, openStuduinoPortSettings} from '../../reducers/studuino-mode';
+import {checkModeSwitch, targetsFromVm} from '../../lib/studuino-mode-check';
+import {
+    getStuduinoModeSettings,
+    isStuduinoMode,
+    openStuduinoPortSettings,
+    openStuduinoSwitchDialog
+} from '../../reducers/studuino-mode';
 // === Smalruby: End of studuino mode menu ===
 // === Smalruby: Start of classroom button ===
 import {openClassroomModal} from '../../reducers/classroom';
@@ -665,6 +671,13 @@ class MenuBar extends React.Component {
         this.props.onRequestCloseSmalrubotS1();
         // The settings live in the VM (extensionStorage); the redux copy follows its change event.
         const entering = !this.props.studuinoMode;
+        // Blocks that can not be used in the new mode keep the mode (M6). The dialog offers to show them
+        // or to delete all and switch (S11).
+        const check = checkModeSwitch(targetsFromVm(this.props.vm), this.props.studuinoSettings, entering);
+        if (!check.allowed) {
+            this.props.onOpenStuduinoSwitchDialog(entering, check.blocks);
+            return;
+        }
         setStuduinoMode(this.props.vm, entering);
         // Open the port settings once right after entering the mode (S4)
         if (entering) this.props.onOpenStuduinoPortSettings();
@@ -1997,7 +2010,9 @@ MenuBar.propTypes = {
     smalrubotS1MenuOpen: PropTypes.bool, // === Smalruby: smalrubot firmware menu ===
     // === Smalruby: Start of studuino mode menu ===
     studuinoMode: PropTypes.bool,
+    studuinoSettings: PropTypes.object,
     onOpenStuduinoPortSettings: PropTypes.func,
+    onOpenStuduinoSwitchDialog: PropTypes.func,
     // === Smalruby: End of studuino mode menu ===
     // === Smalruby: End of extension menus ===
     mode1920: PropTypes.bool,
@@ -2149,6 +2164,7 @@ const mapStateToProps = (state, ownProps) => {
         smalrubotS1MenuOpen: smalrubotS1MenuOpen(state), // === Smalruby: smalrubot firmware menu ===
         // === Smalruby: Start of studuino mode menu ===
         studuinoMode: isStuduinoMode(state),
+        studuinoSettings: getStuduinoModeSettings(state),
         // === Smalruby: End of studuino mode menu ===
         // === Smalruby: Start of classroom button ===
         classroomAssignmentName: state.scratchGui.classroom ? state.scratchGui.classroom.assignmentName : null,
@@ -2251,6 +2267,7 @@ const mapDispatchToProps = (dispatch, ownProps) => ({
     // === Smalruby: End of smalrubot firmware menu ===
     // === Smalruby: Start of studuino mode menu ===
     onOpenStuduinoPortSettings: () => dispatch(openStuduinoPortSettings()),
+    onOpenStuduinoSwitchDialog: (toStuduino, blocks) => dispatch(openStuduinoSwitchDialog(toStuduino, blocks)),
     // === Smalruby: End of studuino mode menu ===
     // === Smalruby: Start of classroom button ===
     onOpenClassroomModal: () => dispatch(openClassroomModal()),
