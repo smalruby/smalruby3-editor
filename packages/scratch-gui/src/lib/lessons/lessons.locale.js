@@ -233,6 +233,54 @@ export const ja = {
         '1 つしかたまらないときは、「すべてを削除する」が「押されたとき」のほうに入っていないか見よう。',
     'gui.lessons.challenge.blocks-l1-message-list.debug2':
         '「答え」という文字がたまるときは、丸い「答え」のブロックを入れたか見よう。',
+    // ふりかえりのクイズ（「できた！」の中に出す。courses.js の challengeQuiz）
+    'gui.lessons.challenge.blocks-l1-key-sound.quiz.question':
+        'スペースキーで鳴らせたね。今回できるようになったことは？',
+    'gui.lessons.challenge.blocks-l1-key-sound.quiz.choice1': 'キーを押したら、プログラムを動かす',
+    'gui.lessons.challenge.blocks-l1-key-sound.quiz.choice2': 'ネコの声を自分で録音する',
+    'gui.lessons.challenge.blocks-l1-key-sound.quiz.choice3': 'ブロックを好きな色にかえる',
+    'gui.lessons.challenge.blocks-l1-key-sound.quiz.explanation':
+        '黄色い「〜キーが押されたとき」は、プログラムが動きはじめるきっかけ（イベント）。下にくっつけたブロックが動くよ。',
+    'gui.lessons.challenge.blocks-l1-repeat.quiz.question': '背景が 3 回かわったね。今回できるようになったことは？',
+    'gui.lessons.challenge.blocks-l1-repeat.quiz.choice1': 'ステージに絵を描く',
+    'gui.lessons.challenge.blocks-l1-repeat.quiz.choice2': '同じブロックを 3 組ならべて書く',
+    'gui.lessons.challenge.blocks-l1-repeat.quiz.choice3': '同じことを、決めた回数くり返す',
+    'gui.lessons.challenge.blocks-l1-repeat.quiz.explanation':
+        '「繰り返す」の口の中のブロックが、書いた回数だけくり返される（反復）。ならべて書くより短く、回数もすぐかえられる。',
+    'gui.lessons.challenge.blocks-l1-if.quiz.question':
+        'さわると言うことがかわったね。今回できるようになったことは？',
+    'gui.lessons.challenge.blocks-l1-if.quiz.choice1': 'ずっと同じことを言いつづける',
+    'gui.lessons.challenge.blocks-l1-if.quiz.choice2': 'ようすを調べて、することを分ける',
+    'gui.lessons.challenge.blocks-l1-if.quiz.choice3': 'マウスの形をかえる',
+    'gui.lessons.challenge.blocks-l1-if.quiz.explanation':
+        '「もし〜なら でなければ」は、六角形の条件に合うかどうかで、上と下のどちらを動かすか分ける（分岐）。「ずっと」で何度も調べているよ。',
+    'gui.lessons.challenge.blocks-l1-ask-answer.quiz.question':
+        '名前を聞いて、答えた名前を言えたね。今回できるようになったことは？',
+    'gui.lessons.challenge.blocks-l1-ask-answer.quiz.choice1': '入力してもらったことばを使う',
+    'gui.lessons.challenge.blocks-l1-ask-answer.quiz.choice2': '名前をネコが自分で考える',
+    'gui.lessons.challenge.blocks-l1-ask-answer.quiz.choice3': '「答え」という文字を言う',
+    'gui.lessons.challenge.blocks-l1-ask-answer.quiz.explanation':
+        '「聞いて待つ」で入力してもらったことばは、丸い「答え」に入る。「答え」を使えば、人によってちがうことばをネコが言える。',
+    'gui.lessons.challenge.blocks-l1-count.quiz.question': '押した回数を数えられたね。今回できるようになったことは？',
+    'gui.lessons.challenge.blocks-l1-count.quiz.choice1': '押すたびに 1 から数えなおす',
+    'gui.lessons.challenge.blocks-l1-count.quiz.choice2': '変数に数を覚えて、ふやす',
+    'gui.lessons.challenge.blocks-l1-count.quiz.choice3': 'ネコを 3 びきにふやす',
+    'gui.lessons.challenge.blocks-l1-count.quiz.explanation':
+        '変数は、数やことばを入れておく名前つきの箱。「1 ずつ変える」でふえ、旗で 0 にもどす。覚えた数は「言う」で使える。',
+    'gui.lessons.challenge.blocks-l1-broadcast.quiz.question':
+        'ネコを押したら、ペンギンが言ったね。今回できるようになったことは？',
+    'gui.lessons.challenge.blocks-l1-broadcast.quiz.choice1': 'ネコのプログラムでペンギンを動かす',
+    'gui.lessons.challenge.blocks-l1-broadcast.quiz.choice2': 'ペンギンをネコにかえる',
+    'gui.lessons.challenge.blocks-l1-broadcast.quiz.choice3': 'メッセージで、ほかのスプライトに合図する',
+    'gui.lessons.challenge.blocks-l1-broadcast.quiz.explanation':
+        'プログラムはスプライトごとにある。「送る」と同じ名前の「受け取ったとき」が動くので、スプライトどうしがメッセージで合図し合える。',
+    'gui.lessons.challenge.blocks-l1-message-list.quiz.question':
+        'メッセージを 3 つためたね。今回できるようになったことは？',
+    'gui.lessons.challenge.blocks-l1-message-list.quiz.choice1': '最後の 1 つだけを覚える',
+    'gui.lessons.challenge.blocks-l1-message-list.quiz.choice2': 'いくつものデータを順にためる',
+    'gui.lessons.challenge.blocks-l1-message-list.quiz.choice3': 'メッセージを送って合図する',
+    'gui.lessons.challenge.blocks-l1-message-list.quiz.explanation':
+        'リストは、いくつものデータを順にためられる入れもの。変数は 1 つだけ覚えるが、リストは「追加する」たびに後ろにふえる。',
     'gui.lessons.completed.title': 'できた！',
     'gui.lessons.completed.remaining': 'このレッスンは、あと {count} つ',
     'gui.lessons.completed.lessonTitle': 'レッスン {number} ぜんぶできた！',
@@ -529,6 +577,56 @@ export const jaHira = {
         '1 つしかたまらないときは、「すべてをさくじょする」が「おされたとき」のほうにはいっていないかみよう。',
     'gui.lessons.challenge.blocks-l1-message-list.debug2':
         '「こたえ」というもじがたまるときは、まるい「こたえ」のブロックをいれたかみよう。',
+    // ふりかえりのクイズ（「できた！」の中に出す。courses.js の challengeQuiz）
+    'gui.lessons.challenge.blocks-l1-key-sound.quiz.question':
+        'スペースキーでならせたね。こんかいできるようになったことは？',
+    'gui.lessons.challenge.blocks-l1-key-sound.quiz.choice1': 'キーをおしたら、プログラムをうごかす',
+    'gui.lessons.challenge.blocks-l1-key-sound.quiz.choice2': 'ネコのこえをじぶんでろくおんする',
+    'gui.lessons.challenge.blocks-l1-key-sound.quiz.choice3': 'ブロックをすきないろにかえる',
+    'gui.lessons.challenge.blocks-l1-key-sound.quiz.explanation':
+        'きいろい「〜キーがおされたとき」は、プログラムがうごきはじめるきっかけ（イベント）。したにくっつけたブロックがうごくよ。',
+    'gui.lessons.challenge.blocks-l1-repeat.quiz.question':
+        'はいけいが 3 かいかわったね。こんかいできるようになったことは？',
+    'gui.lessons.challenge.blocks-l1-repeat.quiz.choice1': 'ステージにえをかく',
+    'gui.lessons.challenge.blocks-l1-repeat.quiz.choice2': 'おなじブロックを 3 くみならべてかく',
+    'gui.lessons.challenge.blocks-l1-repeat.quiz.choice3': 'おなじことを、きめたかいすうくりかえす',
+    'gui.lessons.challenge.blocks-l1-repeat.quiz.explanation':
+        '「くりかえす」のくちのなかのブロックが、かいたかいすうだけくりかえされる（はんぷく）。ならべてかくよりみじかく、かいすうもすぐかえられる。',
+    'gui.lessons.challenge.blocks-l1-if.quiz.question':
+        'さわるということがかわったね。こんかいできるようになったことは？',
+    'gui.lessons.challenge.blocks-l1-if.quiz.choice1': 'ずっとおなじことをいいつづける',
+    'gui.lessons.challenge.blocks-l1-if.quiz.choice2': 'ようすをしらべて、することをわける',
+    'gui.lessons.challenge.blocks-l1-if.quiz.choice3': 'マウスのかたちをかえる',
+    'gui.lessons.challenge.blocks-l1-if.quiz.explanation':
+        '「もし〜なら でなければ」は、ろっかくけいのじょうけんにあうかどうかで、うえとしたのどちらをうごかすかわける（ぶんき）。「ずっと」でなんどもしらべているよ。',
+    'gui.lessons.challenge.blocks-l1-ask-answer.quiz.question':
+        'なまえをきいて、こたえたなまえをいえたね。こんかいできるようになったことは？',
+    'gui.lessons.challenge.blocks-l1-ask-answer.quiz.choice1': 'にゅうりょくしてもらったことばをつかう',
+    'gui.lessons.challenge.blocks-l1-ask-answer.quiz.choice2': 'なまえをネコがじぶんでかんがえる',
+    'gui.lessons.challenge.blocks-l1-ask-answer.quiz.choice3': '「こたえ」というもじをいう',
+    'gui.lessons.challenge.blocks-l1-ask-answer.quiz.explanation':
+        '「きいてまつ」でにゅうりょくしてもらったことばは、まるい「こたえ」にはいる。「こたえ」をつかえば、ひとによってちがうことばをネコがいえる。',
+    'gui.lessons.challenge.blocks-l1-count.quiz.question':
+        'おしたかいすうをかぞえられたね。こんかいできるようになったことは？',
+    'gui.lessons.challenge.blocks-l1-count.quiz.choice1': 'おすたびに 1 からかぞえなおす',
+    'gui.lessons.challenge.blocks-l1-count.quiz.choice2': 'へんすうにかずをおぼえて、ふやす',
+    'gui.lessons.challenge.blocks-l1-count.quiz.choice3': 'ネコを 3 びきにふやす',
+    'gui.lessons.challenge.blocks-l1-count.quiz.explanation':
+        'へんすうは、かずやことばをいれておく、なまえのついたはこ。「1 ずつかえる」でふえ、はたで 0 にもどす。おぼえたかずは「いう」でつかえる。',
+    'gui.lessons.challenge.blocks-l1-broadcast.quiz.question':
+        'ネコをおしたら、ペンギンがいったね。こんかいできるようになったことは？',
+    'gui.lessons.challenge.blocks-l1-broadcast.quiz.choice1': 'ネコのプログラムでペンギンをうごかす',
+    'gui.lessons.challenge.blocks-l1-broadcast.quiz.choice2': 'ペンギンをネコにかえる',
+    'gui.lessons.challenge.blocks-l1-broadcast.quiz.choice3': 'メッセージで、ほかのスプライトにあいずする',
+    'gui.lessons.challenge.blocks-l1-broadcast.quiz.explanation':
+        'プログラムはスプライトごとにある。「おくる」とおなじなまえの「うけとったとき」がうごくので、スプライトどうしがメッセージであいずしあえる。',
+    'gui.lessons.challenge.blocks-l1-message-list.quiz.question':
+        'メッセージを 3 つためたね。こんかいできるようになったことは？',
+    'gui.lessons.challenge.blocks-l1-message-list.quiz.choice1': 'さいごの 1 つだけをおぼえる',
+    'gui.lessons.challenge.blocks-l1-message-list.quiz.choice2': 'いくつものデータをじゅんにためる',
+    'gui.lessons.challenge.blocks-l1-message-list.quiz.choice3': 'メッセージをおくってあいずする',
+    'gui.lessons.challenge.blocks-l1-message-list.quiz.explanation':
+        'リストは、いくつものデータをじゅんにためられるいれもの。へんすうは 1 つだけおぼえるが、リストは「ついかする」たびにうしろにふえる。',
     'gui.lessons.completed.title': 'できた！',
     'gui.lessons.completed.remaining': 'このレッスンは、あと {count} つ',
     'gui.lessons.completed.lessonTitle': 'レッスン {number} ぜんぶできた！',
@@ -820,6 +918,53 @@ export const en = {
         'If only one is kept, check that "delete all of" is not under "when this sprite clicked".',
     'gui.lessons.challenge.blocks-l1-message-list.debug2':
         'If the word "answer" is kept, check that you put in the round "answer" block.',
+    // ふりかえりのクイズ（「できた！」の中に出す。courses.js の challengeQuiz）
+    'gui.lessons.challenge.blocks-l1-key-sound.quiz.question':
+        'You played a sound with the space key. What can you do now?',
+    'gui.lessons.challenge.blocks-l1-key-sound.quiz.choice1': 'Start a program with a key press',
+    'gui.lessons.challenge.blocks-l1-key-sound.quiz.choice2': "Record the cat's voice yourself",
+    'gui.lessons.challenge.blocks-l1-key-sound.quiz.choice3': 'Change the color of a block',
+    'gui.lessons.challenge.blocks-l1-key-sound.quiz.explanation':
+        'The yellow "when key pressed" block is the trigger (an event) that starts a program. The blocks snapped under it run.',
+    'gui.lessons.challenge.blocks-l1-repeat.quiz.question': 'The backdrop changed 3 times. What can you do now?',
+    'gui.lessons.challenge.blocks-l1-repeat.quiz.choice1': 'Draw a picture on the stage',
+    'gui.lessons.challenge.blocks-l1-repeat.quiz.choice2': 'Line up 3 sets of the same blocks',
+    'gui.lessons.challenge.blocks-l1-repeat.quiz.choice3': 'Repeat something a set number of times',
+    'gui.lessons.challenge.blocks-l1-repeat.quiz.explanation':
+        'The blocks inside "repeat" run as many times as you write (repetition). It is shorter than lining them up, and easy to change.',
+    'gui.lessons.challenge.blocks-l1-if.quiz.question':
+        'What the cat says changes when you touch it. What can you do now?',
+    'gui.lessons.challenge.blocks-l1-if.quiz.choice1': 'Keep saying the same thing',
+    'gui.lessons.challenge.blocks-l1-if.quiz.choice2': 'Check how things are and choose what to do',
+    'gui.lessons.challenge.blocks-l1-if.quiz.choice3': 'Change the shape of the mouse pointer',
+    'gui.lessons.challenge.blocks-l1-if.quiz.explanation':
+        '"if ... then ... else" runs the top or the bottom part, depending on the hexagon condition (branching). "forever" keeps checking it.',
+    'gui.lessons.challenge.blocks-l1-ask-answer.quiz.question':
+        'The cat asked your name and said it. What can you do now?',
+    'gui.lessons.challenge.blocks-l1-ask-answer.quiz.choice1': 'Use the words someone typed in',
+    'gui.lessons.challenge.blocks-l1-ask-answer.quiz.choice2': 'Let the cat think of a name',
+    'gui.lessons.challenge.blocks-l1-ask-answer.quiz.choice3': 'Say the word "answer"',
+    'gui.lessons.challenge.blocks-l1-ask-answer.quiz.explanation':
+        'The words typed in after "ask and wait" go into the round "answer". With "answer", the cat can say different words to different people.',
+    'gui.lessons.challenge.blocks-l1-count.quiz.question': 'You counted the clicks. What can you do now?',
+    'gui.lessons.challenge.blocks-l1-count.quiz.choice1': 'Count from 1 again on every click',
+    'gui.lessons.challenge.blocks-l1-count.quiz.choice2': 'Keep a number in a variable and add to it',
+    'gui.lessons.challenge.blocks-l1-count.quiz.choice3': 'Make 3 cats',
+    'gui.lessons.challenge.blocks-l1-count.quiz.explanation':
+        'A variable is a named box for a number or words. "change by 1" adds to it, and the green flag sets it back to 0. You can "say" it.',
+    'gui.lessons.challenge.blocks-l1-broadcast.quiz.question':
+        'The penguin spoke when you clicked the cat. What can you do now?',
+    'gui.lessons.challenge.blocks-l1-broadcast.quiz.choice1': "Move the penguin with the cat's program",
+    'gui.lessons.challenge.blocks-l1-broadcast.quiz.choice2': 'Turn the penguin into a cat',
+    'gui.lessons.challenge.blocks-l1-broadcast.quiz.choice3': 'Signal another sprite with a message',
+    'gui.lessons.challenge.blocks-l1-broadcast.quiz.explanation':
+        'Each sprite has its own program. "when I receive" with the same name as "broadcast" runs, so sprites can signal each other.',
+    'gui.lessons.challenge.blocks-l1-message-list.quiz.question': 'You saved 3 messages. What can you do now?',
+    'gui.lessons.challenge.blocks-l1-message-list.quiz.choice1': 'Remember only the last one',
+    'gui.lessons.challenge.blocks-l1-message-list.quiz.choice2': 'Store many items in order',
+    'gui.lessons.challenge.blocks-l1-message-list.quiz.choice3': 'Send a message as a signal',
+    'gui.lessons.challenge.blocks-l1-message-list.quiz.explanation':
+        'A list stores many items in order. A variable holds just one, but a list grows at the end each time you "add" to it.',
     'gui.lessons.completed.title': 'You did it!',
     'gui.lessons.completed.remaining': '{count} more in this lesson',
     'gui.lessons.completed.lessonTitle': 'Lesson {number} complete!',

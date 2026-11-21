@@ -128,6 +128,24 @@ describe('reflection quiz (#1639)', () => {
         expect(validateQuiz({ ...ok, explanation: undefined })).toEqual(['explanation must be a message']);
     });
 
+    // きょうからプログラマーは、新しい考え方が出る要所だけに出す（毎回出すと読まずに押すようになるため・#2288）
+    test('kyou-kara-programmer has a quiz only at the challenges that bring a new idea', () => {
+        const course = COURSES.find((c) => c.id === 'kyou-kara-programmer');
+        const withQuiz = courseLessons(course)
+            .flatMap((lesson) => lesson.challenges)
+            .filter((challenge) => challenge.quiz)
+            .map((challenge) => challenge.id);
+        expect(withQuiz).toEqual([
+            'blocks-l1-key-sound',
+            'blocks-l1-repeat',
+            'blocks-l1-if',
+            'blocks-l1-ask-answer',
+            'blocks-l1-count',
+            'blocks-l1-broadcast',
+            'blocks-l1-message-list',
+        ]);
+    });
+
     // ja-Hira の問い・選択肢・解説に漢字を残さない（FYI2。クイズのあるチャレンジ全部）
     test('the ja-Hira words of every quiz have no kanji', () => {
         Object.keys(jaHira)

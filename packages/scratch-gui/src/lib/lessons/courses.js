@@ -606,6 +606,7 @@ const blocksLesson1 = defineLesson({
                     blocks: [{ opcode: ['sound_playuntildone', 'sound_play'] }],
                 },
             ],
+            quiz: challengeQuiz('blocks-l1-key-sound', 0),
             // ネコの音の名前は作品を作ったときの locale で変わる（ja =「ニャー」、en = "Meow"。ja-Hira は
             // scratch-l10n に訳が無く "Meow"）。作品に合わないときは、ほかの locale の code を試す（lesson-hint.jsx）
             code: {
@@ -735,6 +736,7 @@ const blocksLesson1 = defineLesson({
             ],
             // ステージのプログラムなので、「プログラムを入れる」はステージに入れる
             codeTarget: 'stage',
+            quiz: challengeQuiz('blocks-l1-repeat', 2),
             code:
                 'when_key_pressed("1") do\n  3.times do\n    switch_backdrop("Canyon")\n    sleep(1)\n' +
                 '    switch_backdrop("Arctic")\n    sleep(1)\n  end\nend\n',
@@ -794,6 +796,7 @@ const blocksLesson2 = defineLesson({
                     blocks: ['sensing_touchingobject', { opcode: 'looks_say', distinct: 'MESSAGE', count: 2 }],
                 },
             ],
+            quiz: challengeQuiz('blocks-l1-if', 1),
             code: {
                 ja:
                     'when_flag_clicked do\n  loop do\n    if touching?("_mouse_")\n      say("くすぐったい！")\n' +
@@ -883,6 +886,7 @@ const blocksLesson2 = defineLesson({
                 },
                 { type: 'said', equalsAnswer: true },
             ],
+            quiz: challengeQuiz('blocks-l1-ask-answer', 0),
             // 仕様の Ruby は `timer.value.to_s + "秒でした"` だが、`.to_s` も「(タイマー) と ()」の「と」に
             // なり、入れると子どもが作るのとちがう入れ子の「と」2 つになる。子どもが作ったブロックから
             // 生成される Ruby と同じ `timer.value + "秒でした"`（「と」1 つ）にする
@@ -1008,6 +1012,7 @@ const blocksLesson3 = defineLesson({
                 { type: 'variable', name: ['回数', 'かいすう', 'count'], value: { gte: 3 } },
                 { type: 'said', equalsVariable: ['回数', 'かいすう', 'count'] },
             ],
+            quiz: challengeQuiz('blocks-l1-count', 1),
             code: {
                 ja: 'when_flag_clicked do\n  $回数 = 0\nend\n\nwhen_clicked do\n  $回数 += 1\n  say($回数)\nend\n',
                 'ja-Hira':
@@ -1056,6 +1061,7 @@ const blocksLesson3 = defineLesson({
                     blocks: ['looks_sayforsecs'],
                 },
             ],
+            quiz: challengeQuiz('blocks-l1-broadcast', 2),
             // code はネコのプログラム。ペンギンのプログラムは spriteCodes で入れる（ペンギンがいなければ
             // ライブラリから足す。insert-sprite-code.js）。メッセージとセリフは ja / ja-Hira が「あいさつ」「やあ！」、
             // en が "hello" / "Hi!"（#1514）。キーの無い locale は en に戻るので、ja と同じ ja-Hira も書く
@@ -1163,6 +1169,7 @@ const blocksLesson3 = defineLesson({
             // `$トーク` はステージのリスト =「リストを作る」の既定（すべてのスプライト用）と同じ。
             // en の課題はリスト "talk"・質問 "Message?" と書く（#1514）。判定はどちらのリストの名前でもよい
             goal: [{ type: 'list', name: ['トーク', 'talk'], length: { gte: 3 }, itemsFromAnswers: true }],
+            quiz: challengeQuiz('blocks-l1-message-list', 1),
             code: {
                 ja:
                     'when_flag_clicked do\n  $トーク.clear\nend\n\nwhen_clicked do\n  ask("メッセージは？")\n' +
