@@ -211,7 +211,7 @@ const MyBlocksConverter = {
                 return null;
             }
 
-            converter._enterScope('method');
+            converter._enterScope('method', converter._scopeIndexOfDef(node));
 
             // Use renamed name if this is a module method being renamed for super
             const procedureName = converter._context.superRenameTarget || node.name;

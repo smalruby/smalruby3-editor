@@ -46,7 +46,6 @@ const ContextUtils = {
             // be placed but a value can (it is the return value); null for a script or a class.
             statementBodyKind: null,
             scopeStack: [],
-            scopeCounter: 1,
             currentScopeIndex: 1,
             currentProcedureName: null,
             nodeToBlockMap: new Map(),
@@ -70,8 +69,9 @@ const ContextUtils = {
             // The analyses of the modules read from other sprites (`_importModuleFromOtherSprites`),
             // whose defs are not in the tree of this code
             importedAnalyses: [],
-            // The scope index of each unit of locals of the script, decided while converting (issue #1630)
-            localScopeIndexes: Object.create(null),
+            // The scope indexes of the methods of modules read from other sprites, which are not in
+            // the analysis of this code (`_scopeIndexOfDef`)
+            importedScopeIndexes: new Map(),
             // The list blocks that read `@a` / `$a` of Ruby version 2 (issue #1622)
             listReadBlockIds: new Set(),
             // The unit of locals being converted (issue #1630)

@@ -3,10 +3,13 @@
  * @mixes RubyToBlocksConverter
  */
 const ScopeManager = {
-    _enterScope(scopeType) {
-        this._context.scopeCounter++;
-        const newScopeIndex = this._context.scopeCounter;
-
+    /**
+     * Enter the scope of a method.
+     * @param {string} scopeType - The type of the scope ('method').
+     * @param {number} newScopeIndex - Its scope index, from the analysis stage (`_scopeIndexOfDef`).
+     * @returns {number} The scope index.
+     */
+    _enterScope(scopeType, newScopeIndex) {
         this._context.scopeStack.push({
             index: newScopeIndex,
             type: scopeType,
