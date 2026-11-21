@@ -2292,7 +2292,7 @@ describe('lesson 0 "スモウルビーをたんけんしよう" (#2134)', () => 
         expect(findChallenge('blocks-l0-where')).toEqual({
             course,
             lesson: lesson0,
-            challenge: lesson0.challenges[7],
+            challenge: lesson0.challenges[0],
         });
     });
 
@@ -2304,14 +2304,14 @@ describe('lesson 0 "スモウルビーをたんけんしよう" (#2134)', () => 
 
     test('has the 8 challenges of the spec, with 1 to 3 hint pages each', () => {
         expect(lesson0.challenges.map((c) => `0-${c.number} ${ja[c.name.id]}`)).toEqual([
-            '0-1 ネコをつかんで動かそう',
-            '0-2 ブロックを押してみよう',
-            '0-3 置いて、くっつけよう',
-            '0-4 緑の旗で動かそう・止めよう',
-            '0-5 数と ▼ を変えよう',
-            '0-6 タブをめぐろう',
-            '0-7 なかまと背景をふやそう',
-            '0-8 どこでしょう？',
+            '0-1 どこでしょう？',
+            '0-2 ネコをつかんで動かそう',
+            '0-3 ブロックを押してみよう',
+            '0-4 置いて、くっつけよう',
+            '0-5 緑の旗で動かそう・止めよう',
+            '0-6 数と ▼ を変えよう',
+            '0-7 タブをめぐろう',
+            '0-8 なかまと背景をふやそう',
         ]);
         lesson0.challenges.forEach((c) => {
             expect(c.steps.length).toBeGreaterThanOrEqual(1);
@@ -2349,10 +2349,15 @@ describe('lesson 0 "スモウルビーをたんけんしよう" (#2134)', () => 
         expect(goals['blocks-l0-where']).toEqual([{ type: 'partQuiz', count: 5 }]);
     });
 
-    test('the last challenge is the 5-question "where is it?" quiz on the part names', () => {
+    test('the first challenge is the 5-question "where is it?" quiz on the part names, which offers the skip', () => {
         const where = findChallenge('blocks-l0-where').challenge;
+        expect(lesson0.challenges[0]).toBe(where);
         expect(validatePartQuiz(where.partQuiz)).toEqual([]);
         expect(where.partQuiz.questions).toHaveLength(5);
+        expect(where.partQuiz.offerLessonSkip).toBe(true);
+        // はじめに見る説明にする（ふりかえりではない）: 名前を覚えること・まちがえると答えが光ること
+        expect(ja[where.task.id]).toContain('名前を覚えよう');
+        expect(ja[where.task.id]).toContain('光る');
         expect(where.steps[0].target).toBe(HINT_TARGETS.PART_QUIZ);
         // ほかのチャレンジはクイズを持たない
         lesson0.challenges.filter((c) => c !== where).forEach((c) => expect(c.partQuiz).toBeNull());

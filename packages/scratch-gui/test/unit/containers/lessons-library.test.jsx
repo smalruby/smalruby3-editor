@@ -110,7 +110,7 @@ describe('LessonsLibrary container', () => {
         const lesson = getByTestId('lessons-library-lesson-blocks-l0');
         expect(lesson).toHaveAttribute('data-focused', 'true');
         const first = lesson.querySelector('[data-next="true"]');
-        expect(first.getAttribute('data-testid')).toBe('lessons-library-challenge-blocks-l0-drag-cat');
+        expect(first.getAttribute('data-testid')).toBe('lessons-library-challenge-blocks-l0-where');
         expect(first).toContainElement(getByTestId('lessons-library-challenge-next'));
     });
 
@@ -139,7 +139,7 @@ describe('LessonsLibrary container', () => {
                 </IntlProvider>
             </Provider>,
         );
-        expect(getByTestId('lessons-library-challenge-blocks-l0-drag-cat')).toHaveAttribute('data-next', 'true');
+        expect(getByTestId('lessons-library-challenge-blocks-l0-where')).toHaveAttribute('data-next', 'true');
     });
 
     test('connected: closing the library also clears the focus', () => {

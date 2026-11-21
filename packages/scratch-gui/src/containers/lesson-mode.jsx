@@ -47,6 +47,7 @@ import {
     getCurrentRole,
     hideCompleted,
     hideHint,
+    missPartQuiz,
     openChallenge,
     setLessonRole,
     showCompleted,
@@ -86,6 +87,7 @@ const LessonMode = ({
     onExitDnclMode,
     onHideCompleted,
     onHideHint,
+    onMissPartQuiz,
     onOpenChallenge,
     onRequestNewProject,
     onSetRole,
@@ -311,6 +313,9 @@ const LessonMode = ({
         },
         [currentId, onSolvePartQuiz],
     );
+    const handleMissPartQuiz = useCallback(() => {
+        if (currentId) onMissPartQuiz(currentId);
+    }, [currentId, onMissPartQuiz]);
 
     const handleHint = useCallback(() => {
         if (hint && hint.visible) onHideHint();
@@ -398,6 +403,7 @@ const LessonMode = ({
                     key={currentId}
                     questions={partQuiz.questions}
                     solved={partQuizSolved}
+                    onMiss={handleMissPartQuiz}
                     onSolve={handleSolvePartQuiz}
                 />
             )}
@@ -443,6 +449,8 @@ LessonMode.propTypes = {
     onEndLesson: PropTypes.func.isRequired,
     onExitDnclMode: PropTypes.func.isRequired,
     onHideHint: PropTypes.func.isRequired,
+    // 「どこでしょう？」のクイズでまちがえた（1 回もまちがえずに答えたら、レッスンを飛ばせる）
+    onMissPartQuiz: PropTypes.func.isRequired,
     onOpenChallenge: PropTypes.func.isRequired,
     // いまのチャレンジの役を選びなおす（始めなおさない役の変更・#2062）
     onSetRole: PropTypes.func.isRequired,
@@ -539,6 +547,7 @@ const mapDispatchToProps = (dispatch) => ({
         dispatch(requestExternalExitDnclMode());
     },
     onHideHint: () => dispatch(hideHint()),
+    onMissPartQuiz: (challengeId) => dispatch(missPartQuiz(challengeId)),
     onOpenChallenge: (challengeId, roleInfo) =>
         dispatch(
             openChallenge(

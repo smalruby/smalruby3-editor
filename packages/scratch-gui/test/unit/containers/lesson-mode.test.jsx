@@ -45,6 +45,7 @@ const baseProps = () => ({
     onExitDnclMode: jest.fn(),
     onHideCompleted: jest.fn(),
     onHideHint: jest.fn(),
+    onMissPartQuiz: jest.fn(),
     onShowCompleted: jest.fn(),
     onOpenChallenge: jest.fn(),
     onSetRole: jest.fn(),
@@ -243,6 +244,27 @@ describe('LessonMode container', () => {
         } finally {
             jest.useRealTimers();
         }
+    });
+
+    test('lesson 0 starts with the "where is it?" quiz: no part names, and a wrong click is remembered', () => {
+        const found = findChallenge('blocks-l0-where');
+        // レッスン 0 の最初のチャレンジ（名前の札を出すレッスンでも、クイズのあいだは出さない）
+        expect(found.lesson.challenges[0]).toBe(found.challenge);
+        expect(found.lesson.showPartNames).toBe(true);
+        const onMissPartQuiz = jest.fn();
+        const props = {
+            ...baseProps(),
+            current: found,
+            hint: { visible: false, index: 0, count: 1, step: {} },
+            onMissPartQuiz,
+            onSolvePartQuiz: jest.fn(),
+        };
+        const { getByTestId, queryByTestId } = renderLessonMode(props);
+        expect(queryByTestId('lesson-part-names')).not.toBeInTheDocument();
+        expect(queryByTestId('lesson-task-bar-part-names')).not.toBeInTheDocument();
+        // jsdom は layout をしないので、どこを押してもまちがい
+        fireEvent.pointerDown(getByTestId('lesson-part-quiz-catcher'), { clientX: 5, clientY: 5 });
+        expect(onMissPartQuiz).toHaveBeenCalledWith('blocks-l0-where');
     });
 
     test('hint button shows the hint, and hides it when it is visible', () => {
