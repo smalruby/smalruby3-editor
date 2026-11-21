@@ -10,6 +10,8 @@ import GdxForConverter from '../../../../src/lib/ruby-to-blocks-converter/gdx_fo
 import KoshienConverter from '../../../../src/lib/ruby-to-blocks-converter/koshien';
 import LooksConverter from '../../../../src/lib/ruby-to-blocks-converter/looks';
 import MakeyMakeyConverter from '../../../../src/lib/ruby-to-blocks-converter/makeymakey';
+import MeshConverter from '../../../../src/lib/ruby-to-blocks-converter/mesh';
+import MeshV2Converter from '../../../../src/lib/ruby-to-blocks-converter/mesh_v2';
 import MicroBitConverter from '../../../../src/lib/ruby-to-blocks-converter/microbit';
 import MicrobitMoreConverter from '../../../../src/lib/ruby-to-blocks-converter/microbit_more';
 import MotionConverter from '../../../../src/lib/ruby-to-blocks-converter/motion';
@@ -71,6 +73,8 @@ describe('RubyToBlocksConverter/send table', () => {
         koshien: KoshienConverter,
         g2s: G2SConverter,
         microbitMore: MicrobitMoreConverter,
+        mesh: MeshConverter,
+        meshV2: MeshV2Converter,
     };
 
     test.each(Object.keys(tables))('every opcode of the %s table has a generator', (area) => {
