@@ -36,6 +36,22 @@ const reducer = (state, action) => {
 const setStuduinoModeSettings = (settings) => ({ type: SET_SETTINGS, settings });
 
 /**
+ * Studuino の設定（ポート・補正値を含む）。
+ * @param {object} state - redux の state。
+ * @returns {object} 設定。
+ */
+// state を部分だけ持つ（テストのにせものの store など）ときも落ちないように、無ければ既定の設定
+const getStuduinoModeSettings = (state) =>
+    (state.scratchGui.studuinoMode && state.scratchGui.studuinoMode.settings) || initialState.settings;
+
+/**
+ * Studuino モードか（GUI のどこからでもこれで判定する。緑の旗＝書きこみ・停止＝中断（#2219）もこれを見る）。
+ * @param {object} state - redux の state。
+ * @returns {boolean} Studuino モードなら true。
+ */
+const isStuduinoMode = (state) => isStuduinoModeSettings(getStuduinoModeSettings(state));
+
+/**
  * 入出力の設定のモーダルを開く。
  * @returns {object} action
  */
@@ -52,30 +68,17 @@ const closeStuduinoPortSettings = () => ({ type: CLOSE_PORT_SETTINGS });
  * @param {object} state - redux の state。
  * @returns {boolean} 開いていれば true。
  */
-const isStuduinoPortSettingsVisible = (state) => state.scratchGui.studuinoMode.portSettingsVisible;
-
-/**
- * Studuino モードか（GUI のどこからでもこれで判定する。緑の旗＝書きこみ・停止＝中断（#2219）もこれを見る）。
- * @param {object} state - redux の state。
- * @returns {boolean} Studuino モードなら true。
- */
-const isStuduinoMode = (state) => isStuduinoModeSettings(state.scratchGui.studuinoMode.settings);
-
-/**
- * Studuino の設定（ポート・補正値を含む）。
- * @param {object} state - redux の state。
- * @returns {object} 設定。
- */
-const getStuduinoModeSettings = (state) => state.scratchGui.studuinoMode.settings;
+const isStuduinoPortSettingsVisible = (state) =>
+    Boolean(state.scratchGui.studuinoMode && state.scratchGui.studuinoMode.portSettingsVisible);
 
 export {
     reducer as default,
     initialState as studuinoModeInitialState,
     SET_SETTINGS,
     closeStuduinoPortSettings,
-    getStuduinoModeSettings,
     isStuduinoPortSettingsVisible,
     openStuduinoPortSettings,
+    getStuduinoModeSettings,
     isStuduinoMode,
     setStuduinoModeSettings,
 };
