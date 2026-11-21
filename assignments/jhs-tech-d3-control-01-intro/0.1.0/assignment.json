@@ -1,0 +1,47 @@
+{
+    "schemaVersion": 1,
+    "id": "jhs-tech-d3-control-01-intro",
+    "version": "0.1.0",
+    "series": "jhs-tech-d3-control",
+    "number": 1,
+    "title": "計測・制御システムとスモウルビー",
+    "goal": "単元の見通しをもち、計測・制御システムの言葉と流れ（計測 → 判断 → 仕事のくり返し）と、スモウルビーの画面を知る。",
+    "schoolType": "jhs",
+    "subject": "技術・家庭科〈技術分野〉",
+    "curriculum": "D(3) 計測・制御のプログラミングによる問題解決",
+    "grade": 3,
+    "hours": 1,
+    "starter": null,
+    "license": "CC0-1.0",
+    "worksheetPages": [
+        0,
+        1,
+        2
+    ],
+    "lessons": [
+        {
+            "course": "kyou-kara-programmer",
+            "lessons": [
+                "blocks-l1",
+                "blocks-l2",
+                "blocks-l3"
+            ]
+        }
+    ],
+    "submit": {
+        "project": "00_れんしゅう",
+        "worksheet": false
+    },
+    "files": [
+        {
+            "file": "worksheet.pdf",
+            "kind": "worksheet",
+            "audience": "student"
+        },
+        {
+            "file": "worksheet-teacher.pdf",
+            "kind": "worksheet",
+            "audience": "teacher"
+        }
+    ]
+}

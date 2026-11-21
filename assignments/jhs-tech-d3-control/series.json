@@ -1,0 +1,26 @@
+{
+    "schemaVersion": 1,
+    "id": "jhs-tech-d3-control",
+    "version": "0.1.0",
+    "title": "計測・制御のプログラミングによる問題解決（自動でセンサーとモーターでうごかそう）",
+    "description": "中学校 技術・家庭科〈技術分野〉D(3) の 10 時間の単元。アーテックロボの Studuino 基板で、センサーの計測と LED・モーターの制御、ネットワーク（メッシュ）でつなぐ IoT を学び、問題の発見・構想・制作・評価・改善を一巡する。1 時間が 1 つの課題。",
+    "schoolType": "jhs",
+    "subject": "技術・家庭科〈技術分野〉",
+    "curriculum": "D(3) 計測・制御のプログラミングによる問題解決",
+    "grade": 3,
+    "license": "CC0-1.0",
+    "hours": 10,
+    "assignments": [
+        "jhs-tech-d3-control-01-intro",
+        "jhs-tech-d3-control-02-sensor-led",
+        "jhs-tech-d3-control-03-auto-light",
+        "jhs-tech-d3-control-04-motor",
+        "jhs-tech-d3-control-05-iot",
+        "jhs-tech-d3-control-06-find-problems",
+        "jhs-tech-d3-control-07-design",
+        "jhs-tech-d3-control-08-build",
+        "jhs-tech-d3-control-09-build-present",
+        "jhs-tech-d3-control-10-evaluate-improve"
+    ],
+    "files": []
+}

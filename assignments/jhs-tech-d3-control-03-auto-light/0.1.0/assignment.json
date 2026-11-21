@@ -1,0 +1,48 @@
+{
+    "schemaVersion": 1,
+    "id": "jhs-tech-d3-control-03-auto-light",
+    "version": "0.1.0",
+    "series": "jhs-tech-d3-control",
+    "number": 3,
+    "title": "自動点灯 LED ライトを作ろう",
+    "goal": "計測（センサー）と制御（LED）を分岐と反復でつなぎ、暗くなったら自動で点くライトを作る。",
+    "schoolType": "jhs",
+    "subject": "技術・家庭科〈技術分野〉",
+    "curriculum": "D(3) 計測・制御のプログラミングによる問題解決",
+    "grade": 3,
+    "hours": 1,
+    "starter": null,
+    "license": "CC0-1.0",
+    "worksheetPages": [
+        5
+    ],
+    "lessons": [
+        {
+            "course": "jidou-sensor-motor",
+            "lessons": [
+                "ctrl-l2"
+            ],
+            "challenges": [
+                "ctrl-l2-auto-light",
+                "ctrl-l2-near-light",
+                "ctrl-l2-read-diagram"
+            ]
+        }
+    ],
+    "submit": {
+        "project": "03_自動点灯ライト",
+        "worksheet": true
+    },
+    "files": [
+        {
+            "file": "worksheet.pdf",
+            "kind": "worksheet",
+            "audience": "student"
+        },
+        {
+            "file": "worksheet-teacher.pdf",
+            "kind": "worksheet",
+            "audience": "teacher"
+        }
+    ]
+}

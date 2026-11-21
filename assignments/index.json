@@ -71,6 +71,74 @@
                     "title": "評価・改善とまとめ"
                 }
             ]
+        },
+        {
+            "id": "jhs-tech-d3-control",
+            "version": "0.1.0",
+            "title": "計測・制御のプログラミングによる問題解決（自動でセンサーとモーターでうごかそう）",
+            "schoolType": "jhs",
+            "assignments": [
+                {
+                    "id": "jhs-tech-d3-control-01-intro",
+                    "version": "0.1.0",
+                    "number": 1,
+                    "title": "計測・制御システムとスモウルビー"
+                },
+                {
+                    "id": "jhs-tech-d3-control-02-sensor-led",
+                    "version": "0.1.0",
+                    "number": 2,
+                    "title": "機器をつなぎ、センサーと LED をためそう"
+                },
+                {
+                    "id": "jhs-tech-d3-control-03-auto-light",
+                    "version": "0.1.0",
+                    "number": 3,
+                    "title": "自動点灯 LED ライトを作ろう"
+                },
+                {
+                    "id": "jhs-tech-d3-control-04-motor",
+                    "version": "0.1.0",
+                    "number": 4,
+                    "title": "モーターでスイッチを動かそう"
+                },
+                {
+                    "id": "jhs-tech-d3-control-05-iot",
+                    "version": "0.1.0",
+                    "number": 5,
+                    "title": "はなれた場所から計測・制御しよう（IoT）"
+                },
+                {
+                    "id": "jhs-tech-d3-control-06-find-problems",
+                    "version": "0.1.0",
+                    "number": 6,
+                    "title": "問題を見つけて課題を決めよう"
+                },
+                {
+                    "id": "jhs-tech-d3-control-07-design",
+                    "version": "0.1.0",
+                    "number": 7,
+                    "title": "システムを構想しよう"
+                },
+                {
+                    "id": "jhs-tech-d3-control-08-build",
+                    "version": "0.1.0",
+                    "number": 8,
+                    "title": "作ろう（制作とデバッグ 1）"
+                },
+                {
+                    "id": "jhs-tech-d3-control-09-build-present",
+                    "version": "0.1.0",
+                    "number": 9,
+                    "title": "作ろう（制作とデバッグ 2・発表の準備）"
+                },
+                {
+                    "id": "jhs-tech-d3-control-10-evaluate-improve",
+                    "version": "0.1.0",
+                    "number": 10,
+                    "title": "発表・評価・改善とまとめ"
+                }
+            ]
         }
     ]
 }
