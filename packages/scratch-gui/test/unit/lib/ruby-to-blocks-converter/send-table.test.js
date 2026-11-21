@@ -9,12 +9,14 @@ import OperatorsConverter from '../../../../src/lib/ruby-to-blocks-converter/ope
 import PenConverter from '../../../../src/lib/ruby-to-blocks-converter/pen';
 import {
     menuArg,
+    menuInputArg,
     numberArg,
     onSelf,
     registerSendTable,
 } from '../../../../src/lib/ruby-to-blocks-converter/send-table';
 import SensingConverter from '../../../../src/lib/ruby-to-blocks-converter/sensing';
 import SoundConverter from '../../../../src/lib/ruby-to-blocks-converter/sound';
+import Text2SpeechConverter from '../../../../src/lib/ruby-to-blocks-converter/text2speech';
 import { makeConverter, makeStageTarget } from '../../helpers/ruby-roundtrip-helper';
 
 /**
@@ -42,6 +44,7 @@ describe('RubyToBlocksConverter/send table', () => {
         operators: OperatorsConverter,
         pen: PenConverter,
         music: MusicConverter,
+        text2speech: Text2SpeechConverter,
     };
 
     test.each(Object.keys(tables))('every opcode of the %s table has a generator', (area) => {
@@ -124,6 +127,35 @@ describe('RubyToBlocksConverter/send table', () => {
         expect(await converter.targetCodeToBlocks(null, 'jump("far")')).toBe(false);
         expect(converter.errors.map((error) => error.text)).toEqual(['no such costume']);
         expect(Object.values(converter.blocks).map((block) => block.opcode)).not.toContain('looks_switchcostumeto');
+    });
+
+    test('a menu input can normalize the string and take its default from the converter', async () => {
+        const converter = new RubyToBlocksConverter(null, { version: '2' });
+        registerSendTable(converter, [
+            {
+                receiver: 'sprite',
+                name: 'jump',
+                opcode: 'looks_switchcostumeto',
+                args: [
+                    menuInputArg('COSTUME', 'looks_costume', 'COSTUME', () => 'B', {
+                        choices: ['A', 'B'],
+                        normalize: (value) => value.toUpperCase(),
+                    }),
+                ],
+            },
+        ]);
+        const menuValues = () =>
+            Object.values(converter.blocks)
+                .filter((block) => block.opcode === 'looks_costume')
+                .map((block) => block.fields.COSTUME.value);
+
+        expect(await converter.targetCodeToBlocks(null, 'jump("a")')).toBe(true);
+        expect(menuValues()).toEqual(['A']);
+
+        expect(await converter.targetCodeToBlocks(null, 'jump($v)')).toBe(true);
+        expect(menuValues()).toEqual(['B']);
+
+        expect(await converter.targetCodeToBlocks(null, 'jump("c")')).toBe(false);
     });
 
     test('a row on self takes self.xxx and xxx, not a Ruby expression of the same name', async () => {
