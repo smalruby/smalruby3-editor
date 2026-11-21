@@ -14,6 +14,14 @@ import {
 } from '../lib/lessons/lesson-progress';
 import { ROLE_SOURCES } from '../lib/lessons/lesson-role';
 import { isReadDiagram } from '../lib/lessons/read-diagram';
+import {
+    emptyReadiness,
+    loadReadiness,
+    markReadinessChallengeCleared,
+    markReadinessOffered,
+    recordReadinessAnswer,
+    saveReadiness,
+} from '../lib/lessons/readiness';
 import { DEFAULT_ROLE, challengeForRole, isRole } from '../lib/lessons/role-swap';
 import { isSpotlightSeen, markSpotlightSeen } from '../lib/lessons/spotlight-seen';
 
@@ -40,6 +48,9 @@ const SET_LIBRARY_ASSIGNMENT_ONLY = 'scratch-gui/lesson-mode/SET_LIBRARY_ASSIGNM
 const SET_ROLE = 'scratch-gui/lesson-mode/SET_ROLE';
 const SOLVE_PART_QUIZ = 'scratch-gui/lesson-mode/SOLVE_PART_QUIZ';
 const MISS_PART_QUIZ = 'scratch-gui/lesson-mode/MISS_PART_QUIZ';
+const ANSWER_READINESS = 'scratch-gui/lesson-mode/ANSWER_READINESS';
+const NEXT_READINESS = 'scratch-gui/lesson-mode/NEXT_READINESS';
+const MARK_READINESS_OFFERED = 'scratch-gui/lesson-mode/MARK_READINESS_OFFERED';
 // チュートリアルのカードを開く action（reducers/cards.js の ACTIVATE_DECK）。カードの
 // allowedBlocks / setup がレッスンのものと食い違うので、開いたらレッスンモードを抜ける
 const ACTIVATE_DECK = 'scratch-gui/cards/ACTIVATE_DECK';
@@ -107,6 +118,11 @@ const closedState = {
     // そのクイズで 1 回でもまちがえたか。1 回もまちがえずに全部答えたら、「できた！」で次のレッスンへ進むことも
     // えらべる（lesson-progress.js の lessonSkipOffer）。チャレンジを開くたびに false にもどす
     partQuizMissed: false,
+    // じゅんびチェック（チャレンジの `readinessCheck`・#2299）で、答えて「次へ」まで進んだ問いの数。いまの問いは、この数の
+    // 番め（0 から）。goal の `readinessCheck` が見る。チャレンジを開くたびに 0 にもどす
+    readinessAnswered: 0,
+    // いまの問いで選んだ選択肢（`{index, choice}`）。1 回めに選んだものだけを数えるので、選んだら変えない。無ければ null
+    readinessChoice: null,
 };
 
 const initialState = {
@@ -116,6 +132,8 @@ const initialState = {
     // 自動で開くので、前のチャレンジから開いたままのときは unmount されないため
     hintSession: 0,
     progress: loadProgress(),
+    // じゅんびチェックの記録（lib/lessons/readiness.js）。正は localStorage で、ここはその写し
+    readiness: loadReadiness(),
     // レッスン表を開くときに見せるチャレンジ（「次のチャレンジ」で開いたとき・#1520）。
     // レッスン表は、これが入っているレッスンへスクロールし、次のまだできていないチャレンジを
     // 目立たせる（lessonsLibraryFocus）。レッスンを閉じても消さない（レッスン表が閉じるときに消す）
@@ -231,7 +249,40 @@ const reducer = function (state, action) {
                 completedHidden: false,
                 partQuizSolved: 0,
                 partQuizMissed: false,
+                readinessAnswered: 0,
+                readinessChoice: null,
             };
+        }
+        case ANSWER_READINESS: {
+            // いまの問いに 1 回めに選んだものだけを記録する（ちがうチャレンジ・前の問い・選びなおしは数えない）
+            const found = state.challengeId === action.challengeId ? findChallenge(state.challengeId) : null;
+            const check = found ? found.challenge.readinessCheck : null;
+            const index = state.readinessAnswered || 0;
+            if (!check || action.index !== index || index >= check.questions.length || state.readinessChoice) {
+                return state;
+            }
+            const question = check.questions[index];
+            const correct = action.choice === question.answer;
+            const readiness = recordReadinessAnswer(
+                state.readiness || emptyReadiness(),
+                found.course.id,
+                question.baseChallengeId,
+                correct,
+                action.answeredAt,
+            );
+            saveReadiness(readiness);
+            return { ...state, readiness, readinessChoice: { index, choice: action.choice } };
+        }
+        case NEXT_READINESS: {
+            if (state.challengeId !== action.challengeId || !state.readinessChoice) return state;
+            if (state.readinessChoice.index !== (state.readinessAnswered || 0)) return state;
+            return { ...state, readinessAnswered: (state.readinessAnswered || 0) + 1, readinessChoice: null };
+        }
+        case MARK_READINESS_OFFERED: {
+            const readiness = markReadinessOffered(state.readiness || emptyReadiness(), action.courseId, action.at);
+            if (readiness === state.readiness) return state;
+            saveReadiness(readiness);
+            return { ...state, readiness };
         }
         case SOLVE_PART_QUIZ: {
             // ちがうチャレンジ（開きなおした後に届いたもの）の答えは数えない
@@ -278,6 +329,13 @@ const reducer = function (state, action) {
             const latest = mergeProgress(state.progress, loadProgress());
             const progress = markProgress(latest, action.challengeId, action.completedAt);
             if (progress !== state.progress) saveProgress(progress);
+            // じゅんびチェックで「おすすめ」にしたチャレンジができたら、「おすすめ」を消す（#2299）
+            const readiness = markReadinessChallengeCleared(
+                state.readiness || emptyReadiness(),
+                action.challengeId,
+                action.completedAt,
+            );
+            if (readiness !== state.readiness) saveReadiness(readiness);
             // もう一度できたときも「できた！」は出す（記録は最初の日時のまま）
             const justCompletedId = findChallenge(action.challengeId) ? action.challengeId : state.justCompletedId;
             // いま開いているチャレンジができたら、ヒントの吹き出しを閉じる（#1528）。できたあとは
@@ -292,6 +350,7 @@ const reducer = function (state, action) {
             const completedHidden = justCompletedId === action.challengeId ? false : state.completedHidden;
             if (
                 progress === state.progress &&
+                readiness === state.readiness &&
                 justCompletedId === state.justCompletedId &&
                 hintVisible === state.hintVisible &&
                 hintMinimized === state.hintMinimized &&
@@ -303,6 +362,7 @@ const reducer = function (state, action) {
             return {
                 ...state,
                 progress,
+                readiness,
                 justCompletedId,
                 hintVisible,
                 hintMinimized,
@@ -347,10 +407,20 @@ const reducer = function (state, action) {
                 ? state
                 : { ...state, libraryAssignmentOnly: Boolean(action.assignmentOnly) };
         case CLEAR_PROGRESS: {
-            // 本人の確認で「ちがう」→「消す」（#1600）。端末のレッスンの記録だけを空にする
+            // 本人の確認で「ちがう」→「消す」（#1600）。端末のレッスンの記録だけを空にする。じゅんびチェックの記録も
+            // 同じ人のものなので消す（ほかの人の「おすすめ」を残さない）
             const progress = emptyProgress();
             saveProgress(progress);
-            return { ...state, progress, justCompletedId: null, justCompletedNew: false, completedHidden: false };
+            const readiness = emptyReadiness();
+            saveReadiness(readiness);
+            return {
+                ...state,
+                progress,
+                readiness,
+                justCompletedId: null,
+                justCompletedNew: false,
+                completedHidden: false,
+            };
         }
         case REQUEST_PROGRESS_SEND:
             return { ...state, progressSendRequest: (state.progressSendRequest || 0) + 1 };
@@ -436,6 +506,41 @@ const solvePartQuiz = (challengeId, index) => ({ type: SOLVE_PART_QUIZ, challeng
  * @returns {object} action。
  */
 const missPartQuiz = (challengeId) => ({ type: MISS_PART_QUIZ, challengeId });
+
+/**
+ * じゅんびチェックのいまの問いで選んだ（#2299）。1 回めに選んだものだけを記録に入れる（正しいかは reducer が決める）。
+ * @param {string} challengeId - じゅんびチェックのチャレンジ id。
+ * @param {number} index - 問いの番号（0 から）。
+ * @param {number} choice - 選んだ選択肢の番号（0 から）。
+ * @param {string} [answeredAt] - 答えた日時（ISO 文字列）。
+ * @returns {object} action。
+ */
+const answerReadiness = (challengeId, index, choice, answeredAt = new Date().toISOString()) => ({
+    type: ANSWER_READINESS,
+    challengeId,
+    index,
+    choice,
+    answeredAt,
+});
+
+/**
+ * じゅんびチェックの次の問いへ進む（いまの問いに答えたあとだけ）。最後の問いで進むと、goal の `readinessCheck` を満たす。
+ * @param {string} challengeId - じゅんびチェックのチャレンジ id。
+ * @returns {object} action。
+ */
+const nextReadiness = (challengeId) => ({ type: NEXT_READINESS, challengeId });
+
+/**
+ * 「先にじゅんびチェックをする？」を聞いたことを覚える（1 回だけ聞く）。
+ * @param {string} courseId - コース id。
+ * @param {string} [at] - 聞いた日時（ISO 文字列）。
+ * @returns {object} action。
+ */
+const markReadinessOfferedAction = (courseId, at = new Date().toISOString()) => ({
+    type: MARK_READINESS_OFFERED,
+    courseId,
+    at,
+});
 
 const showHint = () => ({ type: SHOW_HINT });
 
@@ -598,6 +703,9 @@ export {
     closeLesson,
     solvePartQuiz,
     missPartQuiz,
+    answerReadiness,
+    nextReadiness,
+    markReadinessOfferedAction as markReadinessOffered,
     showHint,
     hideHint,
     finishHint,

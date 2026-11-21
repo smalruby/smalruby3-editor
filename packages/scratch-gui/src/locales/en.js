@@ -1531,6 +1531,7 @@ export default {
     'gui.lessonsLibrary.closeCourse': 'Hide the lessons',
     'gui.lessonsLibrary.done': 'Done',
     'gui.lessonsLibrary.next': 'Next!',
+    'gui.lessonsLibrary.recommended': 'Recommended',
     'gui.lessonsLibrary.required': 'Required',
     'gui.classroom.studentStatus.lessonProgress': 'Progress',
     'gui.classroom.studentStatus.continueLesson': 'Continue the lesson',

@@ -105,6 +105,13 @@ const messages = defineMessages({
         description: 'Label of the ★ mark on a challenge the teacher made required for the class assignment',
         defaultMessage: 'Required',
     },
+    recommended: {
+        id: 'gui.lessonsLibrary.recommended',
+        description:
+            'Mark on a challenge that the readiness check recommends (the student missed its question). It goes ' +
+            'away when the question is answered right later or the challenge is completed',
+        defaultMessage: 'Recommended',
+    },
     next: {
         id: 'gui.lessonsLibrary.next',
         description: 'Mark on the challenge to do next (opened from "Next challenge" on the completed toast)',
@@ -217,7 +224,15 @@ CardBand.propTypes = {
     colorMode: PropTypes.string.isRequired,
 };
 
-const ChallengeCard = ({ challenge, colorMode, completed, next, required = false, onSelect }) => {
+const ChallengeCard = ({
+    challenge,
+    colorMode,
+    completed,
+    next,
+    recommended = false,
+    required = false,
+    onSelect,
+}) => {
     const intl = useIntl();
     const handleClick = useCallback(() => onSelect(challenge.id), [challenge.id, onSelect]);
     return (
@@ -228,11 +243,13 @@ const ChallengeCard = ({ challenge, colorMode, completed, next, required = false
                     [styles.cardDone]: completed,
                     [styles.cardNext]: next,
                     [styles.cardRequired]: required,
+                    [styles.cardRecommended]: recommended,
                 })}
                 data-testid={`lessons-library-challenge-${challenge.id}`}
                 data-completed={completed ? 'true' : 'false'}
                 data-next={next ? 'true' : 'false'}
                 data-required={required ? 'true' : 'false'}
+                data-recommended={recommended ? 'true' : 'false'}
                 onClick={handleClick}
             >
                 <CardBand challenge={challenge} colorMode={colorMode} />
@@ -240,6 +257,14 @@ const ChallengeCard = ({ challenge, colorMode, completed, next, required = false
                 {next ? (
                     <span className={styles.nextMark} data-testid="lessons-library-challenge-next">
                         {intl.formatMessage(messages.next)}
+                    </span>
+                ) : null}
+                {recommended ? (
+                    <span
+                        className={classNames(styles.recommendedMark, { [styles.recommendedMarkWithNext]: next })}
+                        data-testid="lessons-library-challenge-recommended"
+                    >
+                        {intl.formatMessage(messages.recommended)}
                     </span>
                 ) : null}
                 {required ? (
@@ -278,6 +303,8 @@ ChallengeCard.propTypes = {
     colorMode: PropTypes.string.isRequired,
     completed: PropTypes.bool.isRequired,
     next: PropTypes.bool,
+    // じゅんびチェックで「おすすめ」になったチャレンジ（「おすすめ」をカードの右下に出す・#2299）
+    recommended: PropTypes.bool,
     // クラスの課題で先生が必須にしたチャレンジ（★ をカードの右に出す・課題に紐付いたときだけ）
     required: PropTypes.bool,
     onSelect: PropTypes.func.isRequired,
@@ -329,6 +356,7 @@ const LessonSection = ({
     expanded,
     focused,
     nextChallengeId,
+    recommendedChallengeIds = [],
     requiredChallengeIds = [],
     onSelectChallenge,
     onToggle,
@@ -397,6 +425,7 @@ const LessonSection = ({
                         colorMode={colorMode}
                         completed={completed}
                         next={challenge.id === nextChallengeId}
+                        recommended={recommendedChallengeIds.includes(challenge.id)}
                         required={requiredChallengeIds.includes(challenge.id)}
                         onSelect={onSelectChallenge}
                     />
@@ -426,6 +455,7 @@ LessonSection.propTypes = {
     expanded: PropTypes.bool.isRequired,
     focused: PropTypes.bool,
     nextChallengeId: PropTypes.string,
+    recommendedChallengeIds: PropTypes.arrayOf(PropTypes.string),
     requiredChallengeIds: PropTypes.arrayOf(PropTypes.string),
     onSelectChallenge: PropTypes.func.isRequired,
     onToggle: PropTypes.func.isRequired,
@@ -438,6 +468,7 @@ const CourseSection = ({
     isLessonExpanded,
     focusLessonId,
     nextChallengeId,
+    recommendedChallengeIds,
     requiredChallengeIds,
     showProgress = true,
     onSelectChallenge,
@@ -516,6 +547,7 @@ const CourseSection = ({
                         expanded={isLessonExpanded(lessonStatus.lesson.id)}
                         focused={lessonStatus.lesson.id === focusLessonId}
                         nextChallengeId={nextChallengeId}
+                        recommendedChallengeIds={recommendedChallengeIds}
                         requiredChallengeIds={requiredChallengeIds}
                         onSelectChallenge={onSelectChallenge}
                         onToggle={onToggleLesson}
@@ -545,6 +577,7 @@ CourseSection.propTypes = {
     isLessonExpanded: PropTypes.func.isRequired,
     focusLessonId: PropTypes.string,
     nextChallengeId: PropTypes.string,
+    recommendedChallengeIds: PropTypes.arrayOf(PropTypes.string),
     requiredChallengeIds: PropTypes.arrayOf(PropTypes.string),
     // コース名の横の進み具合（バーと「n / 全部」）を出すか。課題のチャレンジだけのときは出さない
     showProgress: PropTypes.bool,
@@ -562,6 +595,7 @@ const LessonsLibrary = ({
     initialLanguage = LANGUAGES.BLOCKS,
     focusLessonId = null,
     nextChallengeId = null,
+    recommendedChallengeIds = [],
     requiredChallengeIds = [],
     onRequestClose,
     onSelectChallenge,
@@ -707,6 +741,7 @@ const LessonsLibrary = ({
                                 isLessonExpanded={isLessonExpanded}
                                 focusLessonId={focusLessonId}
                                 nextChallengeId={nextChallengeId}
+                                recommendedChallengeIds={recommendedChallengeIds}
                                 requiredChallengeIds={requiredChallengeIds}
                                 showProgress={!assignmentChallengeIds}
                                 onSelectChallenge={onSelectChallenge}
@@ -738,6 +773,7 @@ LessonsLibrary.propTypes = {
     focusLessonId: PropTypes.string,
     nextChallengeId: PropTypes.string,
     // 課題で先生が必須にしたチャレンジ（★）
+    recommendedChallengeIds: PropTypes.arrayOf(PropTypes.string),
     requiredChallengeIds: PropTypes.arrayOf(PropTypes.string),
     onRequestClose: PropTypes.func.isRequired,
     onSelectChallenge: PropTypes.func.isRequired,

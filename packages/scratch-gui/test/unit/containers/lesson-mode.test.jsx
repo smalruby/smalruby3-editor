@@ -1,6 +1,6 @@
 /* eslint-env jest */
 import '@testing-library/jest-dom';
-import { act, fireEvent, render, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import { LessonMode } from '../../../src/containers/lesson-mode.jsx';
@@ -27,6 +27,9 @@ jest.mock('../../../src/lib/lessons/challenge-start', () => ({
 // 吹き出しのコンテナは Redux の store が要るので、ここでは出さない（containers/lesson-hint.test.jsx で確かめる）
 jest.mock('../../../src/containers/lesson-hint.jsx', () => () => null);
 jest.mock('../../../src/containers/lesson-practice-partner.jsx', () => () => null);
+jest.mock('../../../src/containers/lesson-readiness-check.jsx', () => () => (
+    <div data-testid="mock-readiness-check" />
+));
 
 const CHALLENGE_ID = 'blocks-l1-click-say';
 
@@ -45,6 +48,7 @@ const baseProps = () => ({
     onExitDnclMode: jest.fn(),
     onHideCompleted: jest.fn(),
     onHideHint: jest.fn(),
+    onMarkReadinessOffered: jest.fn(),
     onMissPartQuiz: jest.fn(),
     onShowCompleted: jest.fn(),
     onOpenChallenge: jest.fn(),
@@ -839,5 +843,67 @@ describe('LessonMode container: the role of a pair challenge (#2062)', () => {
         act(() => vm.emit('PERIPHERAL_CONNECTED'));
         expect(props.onStartChallenge).not.toHaveBeenCalled();
         expect(props.onSetRole).not.toHaveBeenCalled();
+    });
+});
+
+// 「先にじゅんびチェックをする？」とじゅんびチェックの問い（#2299）
+describe('LessonMode container: the readiness check (#2299)', () => {
+    const empty = { version: 1, courses: {}, offered: {} };
+
+    test('asks once on the first open of chat 1-1, and yes opens the check', () => {
+        const props = { ...baseProps(), current: findChallenge('chat-l1-sequence'), readiness: empty };
+        const { getByTestId, queryByTestId } = renderLessonMode(props);
+        expect(getByTestId('lesson-readiness-offer')).toBeInTheDocument();
+        expect(props.onMarkReadinessOffered).toHaveBeenCalledWith('chat-wo-tsukurou');
+        fireEvent.click(getByTestId('lesson-readiness-offer-yes'));
+        expect(props.onStartChallenge).toHaveBeenCalledWith('chat-l0-readiness');
+        expect(queryByTestId('lesson-readiness-offer')).not.toBeInTheDocument();
+    });
+
+    test('skip closes it; it is not asked again or elsewhere', () => {
+        const props = { ...baseProps(), current: findChallenge('chat-l1-sequence'), readiness: empty };
+        const { getByTestId, queryByTestId } = renderLessonMode(props);
+        fireEvent.click(getByTestId('lesson-readiness-offer-skip'));
+        expect(queryByTestId('lesson-readiness-offer')).not.toBeInTheDocument();
+        expect(props.onStartChallenge).not.toHaveBeenCalled();
+        cleanup();
+        const offered = { ...empty, offered: { 'chat-wo-tsukurou': '2026-11-21T00:00:00.000Z' } };
+        const again = renderLessonMode({
+            ...baseProps(),
+            current: findChallenge('chat-l1-sequence'),
+            readiness: offered,
+        });
+        expect(again.queryByTestId('lesson-readiness-offer')).not.toBeInTheDocument();
+        cleanup();
+        const other = renderLessonMode({
+            ...baseProps(),
+            current: findChallenge('chat-l1-repeat'),
+            readiness: empty,
+        });
+        expect(other.queryByTestId('lesson-readiness-offer')).not.toBeInTheDocument();
+        cleanup();
+        const assignment = renderLessonMode({
+            ...baseProps(),
+            current: findChallenge('chat-l1-sequence'),
+            readiness: empty,
+            fromAssignment: true,
+        });
+        expect(assignment.queryByTestId('lesson-readiness-offer')).not.toBeInTheDocument();
+    });
+
+    test('shows the check panel only in the readiness check challenge', () => {
+        const check = renderLessonMode({
+            ...baseProps(),
+            current: findChallenge('chat-l0-readiness'),
+            readiness: empty,
+        });
+        expect(check.getByTestId('mock-readiness-check')).toBeInTheDocument();
+        check.unmount();
+        const other = renderLessonMode({
+            ...baseProps(),
+            current: findChallenge('chat-l1-repeat'),
+            readiness: empty,
+        });
+        expect(other.queryByTestId('mock-readiness-check')).not.toBeInTheDocument();
     });
 });

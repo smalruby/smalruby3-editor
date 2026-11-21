@@ -16,6 +16,7 @@
 //   currentCostume いまのコスチューム（背景）の番号・始めから変わったか
 //   tab       いま開いているタブ（コード・コスチューム・音）。エディタの画面の状態（snapshot.ui）
 //   partQuiz  画面の部分をクリックして答えるクイズ（「どこでしょう？」）に、決めた数だけ正しく答えた（snapshot.ui）
+//   readinessCheck じゅんびチェック（#2299）の問いに、決めた数だけ答えた（正しいかは見ない・snapshot.ui）
 //
 // プログラムの形は見ない（ブロックの並びや個数は条件にしない）。
 
@@ -31,6 +32,7 @@ export const CONDITION_TYPES = Object.freeze([
     'currentCostume',
     'tab',
     'partQuiz',
+    'readinessCheck',
 ]);
 
 /** `tab` の条件のタブ（エディタのタブの並び。reducers/editor-tab.js の index と同じ順）。 */
@@ -486,6 +488,8 @@ const evaluateTab = (condition, snapshot) => uiOf(snapshot).activeTab === condit
 
 const evaluatePartQuiz = (condition, snapshot) => (uiOf(snapshot).partQuizSolved || 0) >= condition.count;
 
+const evaluateReadinessCheck = (condition, snapshot) => (uiOf(snapshot).readinessAnswered || 0) >= condition.count;
+
 /**
  * 条件 1 つを判定する。
  * @param {object} condition - 条件。
@@ -517,6 +521,8 @@ export const evaluateCondition = (condition, facts, snapshot) => {
             return evaluateTab(condition, snapshot);
         case 'partQuiz':
             return evaluatePartQuiz(condition, snapshot);
+        case 'readinessCheck':
+            return evaluateReadinessCheck(condition, snapshot);
         default:
             return false;
     }
@@ -721,8 +727,9 @@ export const validateGoal = (goal) => {
                 }
                 break;
             case 'partQuiz':
+            case 'readinessCheck':
                 if (!(Number.isInteger(condition.count) && condition.count >= 1)) {
-                    errors.push(`${at}: partQuiz.count must be a positive integer`);
+                    errors.push(`${at}: ${condition.type}.count must be a positive integer`);
                 }
                 break;
             default:

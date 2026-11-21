@@ -1,6 +1,6 @@
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
-import React from 'react';
+import React, { useCallback } from 'react';
 import { defineMessages, injectIntl } from 'react-intl';
 import intlShape from '../../lib/intlShape.js';
 import { COMPLETED_ACTIONS } from '../../lib/lessons/lesson-progress.js';
@@ -112,6 +112,32 @@ const messages = defineMessages({
             'Main button on the completed toast of a perfect "where is it?" quiz (instead of "Next challenge"): ' +
             'goes on with the current lesson. {number} is the current lesson',
     },
+    readinessOk: {
+        id: 'gui.lessons.readiness.ok',
+        defaultMessage: 'Ready to go!',
+        description: 'Result of the readiness check when every question was answered right on the first try',
+    },
+    readinessOkDetail: {
+        id: 'gui.lessons.readiness.okDetail',
+        defaultMessage: 'All {count} right on the first try. You know the basics of this course.',
+        description: 'Line under "Ready to go!" of the readiness check. {count} is the number of questions',
+    },
+    readinessScore: {
+        id: 'gui.lessons.readiness.score',
+        defaultMessage: '{correct} of {count} right',
+        description: 'Score of the readiness check: questions answered right on the first try / all questions',
+    },
+    readinessRecommended: {
+        id: 'gui.lessons.readiness.recommended',
+        defaultMessage: 'Recommended',
+        description:
+            'Heading of the challenges recommended by the readiness check (the questions the student missed)',
+    },
+    readinessRecommendedDetail: {
+        id: 'gui.lessons.readiness.recommendedDetail',
+        defaultMessage: 'You can practice what you missed in these challenges. It is up to you to do them.',
+        description: 'Line under the "Recommended" heading of the readiness check result',
+    },
     close: {
         id: 'gui.lessons.completed.close',
         defaultMessage: 'Keep looking',
@@ -155,6 +181,9 @@ const BUTTON_MESSAGES = {
  * @param {?object} props.quiz - できたチャレンジのふりかえりのクイズ（#1639。無ければ出さない）。
  * @param {?{lessonNumber: number}} props.skipLesson - 飛ばして進めるレッスン（無ければ出さない）。
  * @param {?Function} props.onSkipLesson - 「レッスン n へ進む」。
+ * @param {?object} props.readiness - じゅんびチェックの結果（#2299。じゅんびチェックの「できた！」だけ）。全部 1 回で
+ *   正解なら「じゅんび OK！」、ほかは正解の数と「おすすめ」のチャレンジ（押すとそのチャレンジを開く）。
+ * @param {?Function} props.onOpenRecommended - 「おすすめ」のチャレンジを開く（チャレンジ id を渡す）。
  * @param {object} props.intl - react-intl。
  * @returns {React.ReactElement} toast。
  */
@@ -176,8 +205,16 @@ const LessonCompletedToast = ({
     quiz = null,
     skipLesson = null,
     onSkipLesson = null,
+    readiness = null,
+    onOpenRecommended = null,
     intl,
 }) => {
+    const handleOpenRecommended = useCallback(
+        (event) => {
+            if (onOpenRecommended) onOpenRecommended(event.currentTarget.dataset.challengeId);
+        },
+        [onOpenRecommended],
+    );
     // 課題クリア（#1599）: 段 1 の「レッスン n ぜんぶできた！」より優先。同じお祝いの形で、丸は課題のチャレンジ
     const lessonDone = assignmentCleared || action !== COMPLETED_ACTIONS.NEXT;
     const dots = assignmentCleared ? assignmentChallenges : challenges;
@@ -205,7 +242,10 @@ const LessonCompletedToast = ({
     }
     return (
         <div
-            className={classNames(styles.toast, { [styles.lessonDone]: lessonDone, [styles.withQuiz]: quiz })}
+            className={classNames(styles.toast, {
+                [styles.lessonDone]: lessonDone,
+                [styles.withQuiz]: quiz || readiness,
+            })}
             role="status"
             hidden={hidden}
             data-testid="lesson-completed-toast"
@@ -264,6 +304,64 @@ const LessonCompletedToast = ({
                 {/* ふりかえりのクイズ（#1639）: どの場面（できた！／レッスン n ぜんぶできた！／課題クリア！）でも出す。
                     答えなくてもボタンで先へ進める。チャレンジが変わったら選んだものを消す（key） */}
                 {quiz && <LessonCompletedQuiz key={challengeId} quiz={quiz} />}
+                {readiness && (
+                    <div
+                        className={styles.readiness}
+                        data-testid="lesson-readiness-result"
+                        data-all-correct={readiness.allCorrect ? 'true' : 'false'}
+                    >
+                        {readiness.allCorrect ? (
+                            <>
+                                <div className={styles.readinessTitle} data-testid="lesson-readiness-result-ok">
+                                    {intl.formatMessage(messages.readinessOk)}
+                                </div>
+                                <div className={styles.readinessDetail}>
+                                    {intl.formatMessage(messages.readinessOkDetail, { count: readiness.total })}
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className={styles.readinessDetail} data-testid="lesson-readiness-result-score">
+                                    {intl.formatMessage(messages.readinessScore, {
+                                        correct: readiness.correctCount,
+                                        count: readiness.total,
+                                    })}
+                                </div>
+                                {readiness.recommended.length > 0 && (
+                                    <>
+                                        <div className={styles.readinessTitle}>
+                                            {intl.formatMessage(messages.readinessRecommended)}
+                                        </div>
+                                        <div className={styles.readinessDetail}>
+                                            {intl.formatMessage(messages.readinessRecommendedDetail)}
+                                        </div>
+                                        <ul className={styles.recommendedList}>
+                                            {readiness.recommended.map((r) => (
+                                                <li key={r.id}>
+                                                    <button
+                                                        type="button"
+                                                        className={styles.recommended}
+                                                        onClick={handleOpenRecommended}
+                                                        disabled={!onOpenRecommended}
+                                                        data-testid="lesson-readiness-recommended"
+                                                        data-challenge-id={r.id}
+                                                    >
+                                                        <span className={styles.recommendedName}>
+                                                            {intl.formatMessage(r.name)}
+                                                        </span>
+                                                        <span className={styles.recommendedWhere}>
+                                                            {`${intl.formatMessage(r.courseName)} ${r.lessonNumber}-${r.number}`}
+                                                        </span>
+                                                    </button>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </>
+                                )}
+                            </>
+                        )}
+                    </div>
+                )}
                 {skip && (
                     <div className={styles.skipDetail} data-testid="lesson-completed-toast-skip-detail">
                         {intl.formatMessage(messages.skipDetail, { number: skip.lessonNumber })}
@@ -357,6 +455,23 @@ LessonCompletedToast.propTypes = {
     onSkipLesson: PropTypes.func,
     // 飛ばして進めるレッスン（lesson-progress.js の lessonSkipOffer）。無ければ出さない
     skipLesson: PropTypes.shape({ lessonNumber: PropTypes.number.isRequired }),
+    // 「おすすめ」のチャレンジを開く（チャレンジ id）。readiness があるときだけ
+    onOpenRecommended: PropTypes.func,
+    // じゅんびチェックの結果（containers/lesson-goal-watcher.jsx が lib/lessons/readiness.js から作る）
+    readiness: PropTypes.shape({
+        allCorrect: PropTypes.bool.isRequired,
+        correctCount: PropTypes.number.isRequired,
+        total: PropTypes.number.isRequired,
+        recommended: PropTypes.arrayOf(
+            PropTypes.shape({
+                id: PropTypes.string.isRequired,
+                name: PropTypes.object.isRequired,
+                courseName: PropTypes.object.isRequired,
+                lessonNumber: PropTypes.number.isRequired,
+                number: PropTypes.number.isRequired,
+            }),
+        ).isRequired,
+    }),
     // ふりかえりのクイズ（courses.js の challengeQuiz の形）。無ければ出さない
     quiz: PropTypes.shape({
         question: PropTypes.object.isRequired,

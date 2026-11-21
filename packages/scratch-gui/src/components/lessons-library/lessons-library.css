@@ -450,6 +450,30 @@
     white-space: nowrap;
 }
 
+/* じゅんびチェックの「おすすめ」。右下に出す（「次はこれ！」もあるときはその左）。色は「おすすめ」の結果と同じ紫 */
+.recommended-mark {
+    position: absolute;
+    right: 0.375rem;
+    bottom: 0.25rem;
+    padding: 0 0.375rem;
+    border-radius: 0.25rem;
+    background-color: $looks-secondary-dark;
+    color: $ui-white;
+    font-size: 0.6875rem;
+    font-weight: bold;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+.recommended-mark-with-next {
+    right: 4.75rem;
+}
+
+/* 印が名前にかからないよう下をあける */
+.card-recommended {
+    padding-bottom: 1.125rem;
+}
+
 /* パソコンの幅が狭いとき・SP 横は 3 列 */
 @media (max-width: 860px) {
     .cards {

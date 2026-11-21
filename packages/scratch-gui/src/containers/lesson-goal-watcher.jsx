@@ -18,6 +18,7 @@ import {
     lessonSkipOffer,
 } from '../lib/lessons/lesson-progress.js';
 import { openAssignmentLessonsLibrary, openLessonsLibraryAt } from '../lib/lessons/open-lessons-library.js';
+import { readinessResult, recommendedChallenges } from '../lib/lessons/readiness.js';
 import { requestStudentSubmit, selectStudentLesson } from '../reducers/classroom.js';
 import {
     closeLesson,
@@ -53,6 +54,8 @@ const LessonGoalWatcher = ({
     partQuizMissed = false,
     partQuizSolved = 0,
     progress,
+    readiness = null,
+    readinessAnswered = 0,
     teacherLoggedIn = false,
 }) => {
     const found = useMemo(() => (challengeId === null ? null : findChallenge(challengeId)), [challengeId]);
@@ -64,7 +67,7 @@ const LessonGoalWatcher = ({
 
     // エディタの画面の状態（goal の `tab` / `partQuiz` が見る・#2134）。見張りは ref から読み、変わったら判定を予約する
     const uiRef = useRef({});
-    uiRef.current = { activeTab: tabName(activeTabIndex), partQuizSolved };
+    uiRef.current = { activeTab: tabName(activeTabIndex), partQuizSolved, readinessAnswered };
     const monitorRef = useRef(null);
     useEffect(() => {
         if (!vm || !goal || challengeId === null) return () => {};
@@ -79,7 +82,7 @@ const LessonGoalWatcher = ({
     }, [vm, goal, challengeId]);
     useEffect(() => {
         if (monitorRef.current && monitorRef.current.refresh) monitorRef.current.refresh();
-    }, [activeTabIndex, partQuizSolved]);
+    }, [activeTabIndex, partQuizSolved, readinessAnswered]);
 
     // Debug / test hook (like window.smalruby.vm): attach a goal to the live VM without
     // opening a challenge, or open / complete a challenge without the lesson UI. Used by
@@ -131,6 +134,15 @@ const LessonGoalWatcher = ({
         onSkipLesson(skipOffer.challengeId, fromAssignment && isAssignmentChallenge(lesson, skipOffer.challengeId));
     }, [found, fromAssignment, lesson, onDismiss, onSkipLesson, skipOffer, teacherLoggedIn]);
 
+    // じゅんびチェックの「おすすめ」のチャレンジを開く（#2299）。課題から開いていても課題の外のチャレンジなので、課題からとはしない
+    const handleOpenRecommended = useCallback(
+        (id) => {
+            onDismiss();
+            onSkipLesson(id, false);
+        },
+        [onDismiss, onSkipLesson],
+    );
+
     const handleSubmitAssignment = useCallback(() => {
         onDismiss();
         onSubmitAssignment();
@@ -141,6 +153,23 @@ const LessonGoalWatcher = ({
     // この「できた」ではじめて課題クリアになったときだけ「課題クリア！」（段 1 の「レッスン n ぜんぶできた！」
     // より優先・1 回だけ）。課題クリアのあとにできたものはふつうの「できた！」に戻る
     const assignmentCleared = isAssignmentJustCleared(lesson, progress, challenge.id, justCompletedNew);
+    // じゅんびチェックの結果（#2299）: 全部 1 回で正解なら「じゅんび OK！」、ほかは「おすすめ」のチャレンジ
+    let readinessSummary = null;
+    if (challenge.readinessCheck && readiness) {
+        const result = readinessResult(course, readiness);
+        readinessSummary = {
+            allCorrect: result.allCorrect,
+            correctCount: result.correctIds.length,
+            total: result.total,
+            recommended: recommendedChallenges(course, readiness).map((r) => ({
+                id: r.challenge.id,
+                name: r.challenge.name,
+                courseName: r.course.name,
+                lessonNumber: lessonNumberOf(r.course, r.lesson),
+                number: r.challenge.number,
+            })),
+        };
+    }
     return (
         <LessonCompletedToast
             action={completedAction(challenge.id, progress)}
@@ -165,6 +194,8 @@ const LessonGoalWatcher = ({
             onClose={onDismiss}
             onNextChallenge={handleNextChallenge}
             quiz={challenge.quiz || null}
+            readiness={readinessSummary}
+            onOpenRecommended={readinessSummary ? handleOpenRecommended : null}
             skipLesson={skipOffer}
             onSkipLesson={skipOffer && onSkipLesson ? handleSkipLesson : null}
         />
@@ -178,6 +209,9 @@ LessonGoalWatcher.propTypes = {
     partQuizSolved: PropTypes.number,
     // 「どこでしょう？」のクイズで 1 回でもまちがえたか（reducers/lesson-mode.js の partQuizMissed）
     partQuizMissed: PropTypes.bool,
+    // じゅんびチェックの記録（lib/lessons/readiness.js）と、答えて進んだ問いの数（goal の `readinessCheck` が見る）
+    readiness: PropTypes.shape({ courses: PropTypes.object }),
+    readinessAnswered: PropTypes.number,
     // 参加している課題の名前（「課題クリア！」の 2 行目）
     assignmentName: PropTypes.string,
     challengeId: PropTypes.string,
@@ -213,6 +247,8 @@ const mapStateToProps = (state) => ({
     activeTabIndex: state.scratchGui.editorTab ? state.scratchGui.editorTab.activeTabIndex : 0,
     partQuizSolved: state.scratchGui.lessonMode.partQuizSolved || 0,
     partQuizMissed: Boolean(state.scratchGui.lessonMode.partQuizMissed),
+    readiness: state.scratchGui.lessonMode.readiness || null,
+    readinessAnswered: state.scratchGui.lessonMode.readinessAnswered || 0,
     assignmentName: state.scratchGui.classroom ? state.scratchGui.classroom.assignmentName : null,
     challengeId: state.scratchGui.lessonMode.challengeId,
     completedHidden: Boolean(state.scratchGui.lessonMode.completedHidden),
