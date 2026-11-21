@@ -3031,6 +3031,20 @@ $seat-tile-min: 36px;
     font-size: $font-size-medium;
 }
 
+/* One line in the assignment panel: the count and the next step side by side (wrapping when narrow). */
+.assignment-goal-compact {
+    align-items: center;
+    margin-top: 0.4rem;
+    padding: 0.35rem 0.75rem;
+}
+
+.assignment-goal-compact .assignment-goal-body {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 0.75rem;
+}
+
 .assignment-pager {
     display: flex;
     align-items: center;

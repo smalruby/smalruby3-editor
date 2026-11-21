@@ -22,6 +22,17 @@ const renderGoal = (lesson, locale = 'en', messages = {}) =>
     );
 
 describe('StudentAssignmentGoal', () => {
+    test('compact: the count and the next step only (no lessons line)', () => {
+        const { getByTestId, queryByTestId } = render(
+            <IntlProvider locale="en" messages={{}}>
+                <StudentAssignmentGoal compact dataTestId="g" lesson={LESSON} />
+            </IntlProvider>,
+        );
+        expect(getByTestId('g-count')).toHaveTextContent('Clear 2 challenges');
+        expect(getByTestId('g-next')).toHaveTextContent('Then the assignment is cleared!');
+        expect(queryByTestId('g-lessons')).toBeNull();
+    });
+
     test('nothing for a non-lesson assignment', () => {
         const { queryByTestId } = renderGoal(null);
         expect(queryByTestId('g')).not.toBeInTheDocument();

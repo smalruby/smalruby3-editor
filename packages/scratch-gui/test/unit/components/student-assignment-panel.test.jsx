@@ -213,7 +213,7 @@ describe('StudentAssignmentPanel', () => {
         expect(getByTestId('classroom-assignment-view-text')).toHaveTextContent('<b>右</b>へ');
     });
 
-    test('レッスンの課題は最後のページにゴールのカード（N つ・★ M つ・レッスン・提出）', () => {
+    test('レッスンの課題は最後のページにゴールのカード（1 行: N つ・★ M つ・提出。レッスンは出さない）', () => {
         const { getByTestId, queryByTestId } = renderPanel({
             pageIndex: 1,
             joinedInfo: { seatNumber: 2 },
@@ -223,7 +223,7 @@ describe('StudentAssignmentPanel', () => {
         expect(getByTestId('classroom-assignment-goal-count')).toHaveTextContent(
             'Clear 2 challenges (be sure to do the 1 marked ★)',
         );
-        expect(getByTestId('classroom-assignment-goal-lessons')).toHaveTextContent('Lesson 1');
+        expect(queryByTestId('classroom-assignment-goal-lessons')).toBeNull();
         expect(getByTestId('classroom-assignment-goal-next')).toHaveTextContent(
             'Then make your own program and submit it',
         );
