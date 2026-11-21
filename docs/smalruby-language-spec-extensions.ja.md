@@ -189,6 +189,41 @@
 
 **センサーの値**（`sensor_value`）: `"light"`（光センサー (A6)）, `"ir_a4"`（赤外線センサー（フォトリフレクタ）(A4)）, `"ir_a5"`（赤外線センサー（フォトリフレクタ）(A5)）, `"touch"`（タッチセンサー (A2)）, `"sound"`（音センサー (A7)）, `"left"`（左のセンサー (A4)。`"ir_a4"` と同じ）, `"right"`（右のセンサー (A5)。`"ir_a5"` と同じ）
 
+### Studuino モード（ポートの設定と部品）
+
+Studuino モード（Studuino に書きこんで動かす）では、ステージのスクリプトの先頭の `class Studuino` に、ポートにつないだ部品を
+`<部品> :<ポート>` で宣言し、部品を `studuino.<部品>_<ポートの小文字>` で呼びます。詳しくは
+[`docs/studuino-mode/README.md`](studuino-mode/README.md) の「Ruby」。
+
+```ruby
+class Studuino
+  dc_motor :M1, calibration: 90
+  servo_motor :D9
+  led :A0
+  light_sensor :A6
+end
+
+when_flag_clicked do
+  studuino.dc_motor_m1.speed = 200
+  studuino.dc_motor_m1.forward
+  studuino.servo_motor_d9.angle = 90
+  if studuino.light_sensor_a6 < 300
+    studuino.led_a0.on
+  end
+end
+```
+
+| 部品 | 呼び出し |
+|---|---|
+| `dc_motor`（M1・M2） | `.speed = 速さ` / `.forward` / `.backward` / `.brake` / `.coast` |
+| `servo_motor`（D2・D4・D7〜D12） | `.angle = 角度`、2 つ同時は `studuino.servo_motors(d9: 90, d10: 45)` |
+| `led` | `.on` / `.off` |
+| `buzzer` | `.on(音の高さ)` / `.off` |
+| `light_sensor` / `sound_sensor` / `ir_photoreflector` / `temperature_sensor` | 値（`studuino.light_sensor_a6`） |
+| `touch_sensor` / `push_switch` | `.pressed?` |
+
+補正値は `calibration:`（`dc_motor` は 0〜100、`servo_motor` は −15〜15）。Studuino モードでは上の通常モードのメソッド（`studuino.action` など）は使えません。
+
 ---
 
 ## 9. マイクロビット モア（Microbit More）

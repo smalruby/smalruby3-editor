@@ -934,6 +934,32 @@ export default {
         '"{ METHOD }" cannot be used directly on a hash literal.\nPut the hash in a variable first (e.g. @h), then use @h.{ METHOD }.',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInClass':
         '"{ SOURCE }" cannot be placed directly inside a class definition. Use it inside an event block (e.g. when_flag_clicked) or a method definition (def).',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoClassOnlyInStage':
+        'class Studuino (the port settings of Studuino) can only be written in the Stage.\nMove it to the top of the Stage script.',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoClassDuplicated':
+        'class Studuino can be written only once.\nPut all the parts in one class Studuino.',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoClassNotAtTop':
+        'class Studuino must be written at the top of the Stage script, not inside another class or block.',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoWrongDeclaration':
+        '"{ SOURCE }" is not a declaration of a part.\nWrite a part and its port (e.g. light_sensor :A6).',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoUnknownPart':
+        '"{ SOURCE }": this part is not a part of Studuino.\nUse one of: { PARTS }.',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoUnknownPort':
+        '"{ PORT }" is not a port of Studuino.\nUse D2, D4, D7-D12, M1, M2 or A0-A7.',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoPartNotForPort':
+        '{ PART } cannot be connected to port { PORT }.\nChoose a port that the part can be connected to.',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoPortDuplicated':
+        'Port { PORT } is declared twice.\nOne port can have only one part.',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoNoCalibration':
+        '{ PART } has no calibration.\nOnly dc_motor and servo_motor take calibration:.',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoBadCalibration':
+        'The calibration of { PART } must be an integer from { MIN } to { MAX }.',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoPartNotDeclared':
+        '"{ SOURCE }": { PART } is not connected to port { PORT }.\nWrite { DECLARATION } in class Studuino, or set the port in the port settings.',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoServoMotorsArgs':
+        'servo_motors takes two different servo motors and their angles.\nWrite it like studuino.servo_motors(d9: 90, d10: 45).',
+    'gui.smalruby3.rubyToBlocksConverter.studuinoNormalModeCall':
+        '"{ SOURCE }" is a block for running while connected, so it cannot be used in Studuino mode.\nUse the parts declared in class Studuino (e.g. studuino.dc_motor_m1.forward).',
     'gui.smalruby3.rubyToBlocksConverter.includeNotStatementBlocks':
         '"{ SOURCE }" is not a command, so it cannot be written here.\nWrite a command (e.g. move(10)) instead, or delete this line.',
     'gui.smalruby3.rubyToBlocksConverter.eventInsideBlock':

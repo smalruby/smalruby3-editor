@@ -295,32 +295,50 @@ when_flag_clicked do
 end
 ```
 
-### 部品の呼び出し（案。#2218 で決める）
+### 部品の呼び出し
 
-| 部品 | 呼び出し | 構文木の op |
-|---|---|---|
-| DC モーター | `.speed = n` / `.forward` / `.backward` / `.brake` / `.coast` | `dc_motor_speed` / `dc_motor_dir` / `dc_motor_stop` |
-| サーボモーター | `.angle = n` | `servo` |
-| （まとめて） | `studuino.servo_motors(d9: 90, d10: 45)` | `servo_multi` |
-| LED | `.on` / `.off` | `led` |
-| ブザー | `.on(pitch)` / `.off` | `buzzer_on` / `buzzer_off` |
-| 光・音・赤外線フォトリフレクタ・温度センサー | 値（例 `studuino.light_sensor_a6`） | `sensor` |
-| タッチセンサー・ボタン | `.pressed?` | `button` |
+部品は `studuino.<部品の内部の名前>_<ポートの小文字>` で、続けて書くメソッドがブロックになる。
+
+| 部品のブロック（opcode） | Ruby |
+|---|---|
+| `studuinoDcMotorSpeed`（`PORT`, `SPEED`） | `studuino.dc_motor_m1.speed = 200` |
+| `studuinoDcMotorDirection`（`DIRECTION`: `normal` / `reverse`） | `studuino.dc_motor_m1.forward` / `studuino.dc_motor_m1.backward` |
+| `studuinoDcMotorStop`（`MODE`: `brake` / `coast`） | `studuino.dc_motor_m1.brake` / `studuino.dc_motor_m1.coast` |
+| `studuinoServo`（`PORT`, `ANGLE`） | `studuino.servo_motor_d9.angle = 90` |
+| `studuinoServoPair`（`PORT1`, `ANGLE1`, `PORT2`, `ANGLE2`） | `studuino.servo_motors(d9: 90, d10: 45)`（キーはポートの小文字。ちがう 2 つ） |
+| `studuinoLed`（`STATE`: `on` / `off`） | `studuino.led_a0.on` / `studuino.led_a0.off` |
+| `studuinoBuzzerOn`（`PORT`, `PITCH`） | `studuino.buzzer_a1.on(440)` |
+| `studuinoBuzzerOff`（`PORT`） | `studuino.buzzer_a1.off` |
+| `studuinoLightSensor` / `studuinoSoundSensor` / `studuinoIrPhotoreflector` / `studuinoTemperatureSensor`（`PORT`） | `studuino.light_sensor_a6` / `studuino.sound_sensor_a7` / `studuino.ir_photoreflector_a4` / `studuino.temperature_sensor_a3`（値） |
+| `studuinoTouchSensorPressed` / `studuinoButtonPressed`（`PORT`） | `studuino.touch_sensor_a2.pressed?` / `studuino.push_switch_a0.pressed?`（真偽） |
+
+- メニューの引数（`PORT` など）は、いまはブロックのフィールドとして読み書きする（いまの拡張機能のブロックと同じ）。
+  部品のブロックでメニューが影のブロックになったら、`src/lib/studuino-ruby/studuino-ruby.js` の `MENU_FORM` だけを変える。
+- ポートが空の部品のブロックは、その種類の既定のポート（ロボットカーの配線など）で書き出す（`FALLBACK_PORTS`）。
+- ふりがなは部品の名前とポート（`studuino.light_sensor_a6` の上に「光センサー(A6)」）。補完（スニペット）は第 1 弾では足さない。
 
 ### 決まりごと
 
 - `class Studuino` は **ステージのスクリプトの先頭に 1 つだけ**。Ruby → ブロックの変換では、この class を読んで
   ポートの設定（`extensionStorage`）を置きかえ、ブロックには出さない。ブロック → Ruby では保存されたポートの
-  設定から class を作る。
-- **`class Studuino` がある Ruby は Studuino モードの作品** として扱う。
+  設定から class を作る（ポートの表の順。はじめの値の補正値は書かない。部品が 1 つも無ければ中が空の class）。
+- **`class Studuino` がある Ruby は Studuino モードの作品** として扱う（変換すると Studuino モードになる）。
+- class が無いコード（スプライト、通常モード、class を消したステージ）は、**いまの作品のポートの設定を宣言とみなす**。
+  ステージから class を消しても設定とモードは変わらない（通常モードに戻すのはモードの切り替えで行う）。
+  Studuino モードでは、ステージの Ruby にまた class が書き出される。
 - 通常モードの書き出しも `studuino.` になる（[`docs/extension-smalrubot-s1/`](../extension-smalrubot-s1/) の
   「Ruby の書き方」）。名前はぶつからない（通常モードは `studuino.action(...)` / `studuino.sensor_value(...)` などの
-  メソッド、Studuino モードは `studuino.<部品>_<ポート>` の部品）。モードに合わない呼び出しは、使えないブロックと
-  同じ扱いでエラーにする。
-- 宣言していないポートの部品を呼んだら（`studuino.led_a1` で A1 を宣言していない）、変換のエラーにする。
+  メソッド、Studuino モードは `studuino.<部品>_<ポート>` の部品）。
+- **Studuino モードのコードで通常モードの呼び出し**（`studuino.action(...)`・`smalrubot_s1.led(...)` など）は変換のエラー
+  （つないで動かすときのブロックで、Studuino モードでは使えないため）。部品の呼び出しは通常モードでも変換する
+  （ブロックは 1 組・M2。使えるかの印は部品のブロックの側で決める）。
+- 変換のエラー: 宣言していないポートの部品を呼んだ（`studuino.led_a1` で A1 を宣言していない）・ポートに合わない部品
+  （`led :A6`・`studuino.led_a6`）・知らない部品（`lamp :A0`）・知らないポート・同じポートを 2 回宣言・部品の宣言でない行・
+  範囲の外か整数でない補正値・補正値の無い部品の `calibration:`・ステージ以外や一番外でない `class Studuino`・
+  `servo_motors` の引数がちがう 2 つのサーボモーターでない。
 - 「旗が押されたとき」は既存の `when_flag_clicked do` のまま。2 つ以上なら警告（M4）。
 - いまの Ruby v2 には `@ruby:class:` のコメントで class の情報を持つ前例がある。Studuino の class は保存の形が
-  `extensionStorage` なので、コメントには持たない。
+  `extensionStorage` なので、コメントには持たない（`docs/ruby-editor/bridging-patterns.md` の P21）。
 
 ## 構文木（Studuino IR・S6）
 
@@ -658,6 +676,9 @@ prod に出す前に回答を待つ必要は無い。
 - `packages/scratch-vm/src/serialization/sb3.js` / `src/engine/runtime.js` — `extensionStorage` の保存・読みこみ（マーカーつき）
 - `packages/scratch-gui/src/lib/studuino-ir/build-studuino-ir.js` — ブロックから構文木を作る（純粋関数。エラーの理由の一覧）
 - `packages/scratch-gui/src/lib/studuino-ir/limits.js` — 構文木の上限（Lambda と同じ数字）
+- `packages/scratch-gui/src/lib/studuino-ruby/studuino-ruby.js` — Ruby の約束（部品の名前の規則・部品と opcode とメソッドの表・メニューの形・`class Studuino` の書き出し）
+- `packages/scratch-gui/src/lib/ruby-to-blocks-converter/studuino-mode.js` — Ruby → ブロック（`class Studuino` の読みこみと検査・部品の呼び出し・設定の置きかえ）
+- `packages/scratch-gui/src/lib/ruby-generator/smalrubot_s1.js` — ブロック → Ruby（部品のブロックと `class Studuino`。`code-finisher.js` がステージの先頭に置く）
 - `infra/smalruby-studuino-hex/lambda/ir.ts` / `codegen.ts` — 構文木の検査と C++ の書き出し（Lambda）
 
 参考にする、いまあるファイル:

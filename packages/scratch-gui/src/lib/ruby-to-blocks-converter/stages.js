@@ -15,6 +15,7 @@ import NodeUtils from './node-utils';
 import ParseStage from './parse-stage';
 import ReturnValueTemps from './return-value-temps';
 import ScopeManager from './scope-manager';
+import StuduinoMode from './studuino-mode';
 import TargetApplier from './target-applier';
 import VariableUtils from './variable-utils';
 
@@ -25,7 +26,7 @@ import VariableUtils from './variable-utils';
 const STAGES = Object.freeze([
     { name: 'shared', parts: { ContextUtils, NodeUtils } },
     { name: 'parse', parts: { ParseStage } },
-    { name: 'analyze', parts: { AnalyzeStage } },
+    { name: 'analyze', parts: { AnalyzeStage, StuduinoMode } },
     {
         name: 'convert',
         parts: {
