@@ -223,16 +223,19 @@ export const makeConsent = (answer, shownIds, decidedAt, previous = null) => {
 };
 
 /**
- * いまやっているチャレンジ（current）。課題のチャレンジを開いているときだけ。
+ * いまやっているチャレンジ（current）。課題のチャレンジを開いているときと、課題の「おさらい（課題の外）」のチャレンジを
+ * 開いているとき（`review: true` を付ける。サーバーは課題の外でも current に残す・#2300）だけ。
  * @param {?object} lesson - normalizeAssignmentLesson の結果。
  * @param {?string} challengeId - 開いているチャレンジ id。
  * @param {?string} openedAt - 開いた日時（ISO 文字列）。
- * @returns {?{challengeId: string, openedAt: string}} current。無ければ null（送らない）。
+ * @param {boolean} [review] - 「おさらい」として開いたか。
+ * @returns {?{challengeId: string, openedAt: string, review: (true|undefined)}} current。無ければ null（送らない）。
  */
-export const currentChallengeOf = (lesson, challengeId, openedAt) =>
-    lesson && challengeId && isSendableTimestamp(openedAt) && lesson.challengeIds.includes(challengeId)
-        ? { challengeId, openedAt }
-        : null;
+export const currentChallengeOf = (lesson, challengeId, openedAt, review = false) => {
+    if (!lesson || !challengeId || !isSendableTimestamp(openedAt)) return null;
+    if (lesson.challengeIds.includes(challengeId)) return { challengeId, openedAt };
+    return review ? { challengeId, openedAt, review: true } : null;
+};
 
 /**
  * 送る中身（PUT /classrooms/{id}/lesson-progress の本文）。課題のチャレンジの記録のうち、同意したもの
