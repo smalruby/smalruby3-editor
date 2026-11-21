@@ -747,6 +747,8 @@ say(mesh.message_value)
 
 **気をつけること（見つけた不具合）**: 値のブロック（reporter）の生成器は `[コード, Generator.ORDER_xxx]` を返す（文の生成器のように `` `...\n` `` の文字列を返さない）。LEGO BOOST の `boost_getMotorPosition` / `boost_seeingColor` / `boost_getTiltAngle` と WeDo 2.0 の `wedo2_isTilted` と micro:bit の `microbit_isButtonPressed` は文字列を返しているので、`say(...)` などの値の場所に入れると Ruby が壊れる（`say(b)`）。`ruby-roundtrip/boost-table.test.js`・`wedo2-table.test.js`・`microbit-table.test.js` は該当の行を `only: 'toBlocks'` にしている（直すときは外す）。
 
+**気をつけること（見つけた不具合）**: EV3 の `ev3.when_button_pressed(...)` の変換器は、引数にブロックを受け付けるのに、そのブロックをメニューに入れず（どこにもつながらないブロックが残る）、ポートを `"-1"` にする（`toString()` で探すため）。また、変換のたびに `console.log` を出す。表には移さず、元の handler のまま残している。
+
 ### P20. 定義ブロックの名前と「画面を再描画せずに実行する」
 
 **Ruby で書きたいこと**: 定義ブロック（ブロックを作る）の名前と設定を、Ruby の `def` で書く。名前が数字で始まる・予約語のものもある。
