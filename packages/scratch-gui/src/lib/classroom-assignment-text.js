@@ -4,7 +4,8 @@
  * Students closed the assignment panel without reading it, so the teacher's
  * plain text is shown with a few marks the teacher can type in the textarea
  * (docs/classroom/ui-ux.md 「課題のページの書き方」):
- *   - the first line is a heading (unless it is a list item)
+ *   - the first line is a heading (unless it is a list item, or longer than
+ *     HEADING_MAX_LENGTH: a long first line is a paragraph, not a title)
  *   - `*words*` (or `**words**`) is highlighted
  *   - lines starting with `1.` (any number and `.`), `・` or `- ` are list items
  *   - `【…】` is a coloured label
@@ -14,6 +15,10 @@
  * made at display time only, so the stored text stays as the teacher wrote it
  * and old assignments get the formatting too.
  */
+
+// A first line longer than this is a whole paragraph (a teacher who wrote one long sentence), not a
+// title: shown as a heading it is large, bold and pushes the start button below 1300x600.
+export const HEADING_MAX_LENGTH = 40;
 
 // `*words*` / `**words**`: the words do not start or end with a space (so 「2 * 3 * 4」 stays as it is)
 // and hold no `*`. `【…】` holds no bracket and is not empty.
@@ -70,7 +75,11 @@ export const parseAssignmentText = (text) => {
     let start = 0;
     while (start < lines.length && !lines[start].trim()) start++;
     let heading = null;
-    if (start < lines.length && !listItemOf(lines[start])) {
+    if (
+        start < lines.length &&
+        !listItemOf(lines[start]) &&
+        Array.from(lines[start].trim()).length <= HEADING_MAX_LENGTH
+    ) {
         heading = parseInline(lines[start].trim());
         start++;
     }
