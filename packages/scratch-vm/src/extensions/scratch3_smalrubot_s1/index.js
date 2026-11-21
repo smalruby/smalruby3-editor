@@ -7,6 +7,8 @@ const debug = debugLogger(process.env.DEBUG);
 const formatMessage = require('format-message');
 const Cast = require('../../util/cast');
 const Timer = require('../../util/timer');
+const StuduinoPracticeBoard = require('./practice-board');
+const StuduinoCommandLog = require('./command-log');
 
 /**
  * Icon svg to be displayed at the left edge of each extension block, encoded as a data URI.
@@ -14,7 +16,7 @@ const Timer = require('../../util/timer');
  */
 
 const blockIconURI =
-    'data:image/png;base64,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';
+    'data:image/png;base64,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';
 
 const _PORT_D2 = 0;
 const _PORT_D4 = 1;
@@ -60,6 +62,10 @@ const DEFAULT_DC_MOTOR_POWER_RATIO = 50;
 const SERVO_MOTOR_PORT = PORT_D10;
 
 const FPS = 30;
+
+// The DC motor blocks name the motor by its port; the speed is kept per position (M1 = left, M2 = right).
+const POSITION_BY_MOTOR_PORT = { M1: 'left', M2: 'right' };
+const DC_MOTOR_VALUE_BY_DIRECTION = { normal: NORMAL, reverse: REVERSE, stop: COAST };
 
 class SmalrubotError extends Error {
     constructor(message) {
@@ -491,6 +497,11 @@ class Smalrubot {
                 this.emitRuntime('PERIPHERAL_DISCONNECTED');
                 break;
         }
+
+        // Lets the extension switch between the real board and the practice board (#2191).
+        if (typeof this.onConnectionStateChange === 'function') {
+            this.onConnectionStateChange(connectionState);
+        }
     }
 
     stopAll() {
@@ -807,6 +818,25 @@ class SmalrubotS1 extends Smalrubot {
             .then(() => this.writeCommand('dc_motor_control', PORT_M2, rightValue));
     }
 
+    dcMotor(port, direction) {
+        debug(() => `dcMotor: port=<${port}> direction=<${direction}>`);
+
+        const position = POSITION_BY_MOTOR_PORT[port];
+        const value = DC_MOTOR_VALUE_BY_DIRECTION[direction];
+        if (!position || typeof value === 'undefined') {
+            return Promise.reject(
+                new Error(
+                    `Could not dcMotor: reason=<Invalid port or direction> port=<${port}> direction=<${direction}>`,
+                ),
+            );
+        }
+        const pin = port === 'M2' ? PORT_M2 : PORT_M1;
+
+        return Promise.resolve()
+            .then(() => (direction === 'stop' ? Promise.resolve() : this.applyDcMotorPower(position)))
+            .then(() => this.writeCommand('dc_motor_control', pin, value));
+    }
+
     bendArm(degree) {
         if (degree < 0) {
             degree = 0;
@@ -837,11 +867,14 @@ class SmalrubotS1 extends Smalrubot {
                 commandName = 'get_touch_sensor_value';
                 pin = PORT_A2;
                 break;
+            // `ir_a4` / `ir_a5` are the textbook names of `left` / `right` (same sensors and ports, #2189).
             case 'left':
+            case 'ir_a4':
                 commandName = 'get_ir_photoreflector_value';
                 pin = PORT_A4;
                 break;
             case 'right':
+            case 'ir_a5':
                 commandName = 'get_ir_photoreflector_value';
                 pin = PORT_A5;
                 break;
@@ -903,6 +936,26 @@ class SmalrubotS1 extends Smalrubot {
     }
 }
 
+// The ports and names in the command record (#2193): the fixed S1 layout, the same for both boards.
+const LOG_LED_PORT_BY_POSITION = { left: 'A0', right: 'A1' };
+const LOG_MOTOR_PORT_BY_POSITION = { left: 'M1', right: 'M2' };
+const LOG_MOTOR_DIRECTIONS_BY_ACTION = {
+    forward: ['normal', 'normal'],
+    backward: ['reverse', 'reverse'],
+    left: ['reverse', 'normal'],
+    right: ['normal', 'reverse'],
+    stop: ['stop', 'stop'],
+};
+const LOG_SENSOR_BY_POSITION = {
+    touch: { port: 'A2', kind: 'touch' },
+    left: { port: 'A4', kind: 'irPhotoreflector' },
+    ir_a4: { port: 'A4', kind: 'irPhotoreflector' },
+    right: { port: 'A5', kind: 'irPhotoreflector' },
+    ir_a5: { port: 'A5', kind: 'irPhotoreflector' },
+    light: { port: 'A6', kind: 'light' },
+    sound: { port: 'A7', kind: 'sound' },
+};
+
 /**
  * Host for the Smalrubot S1-related blocks
  * @param {Runtime} runtime - the runtime instantiating this block package.
@@ -913,7 +966,7 @@ class Scratch3SmalrubotS1Blocks {
      * @returns {string} - the name of this extension.
      */
     static get EXTENSION_NAME() {
-        return 'Smalrubot S1';
+        return 'ArtecRobo';
     }
 
     /**
@@ -996,49 +1049,119 @@ class Scratch3SmalrubotS1Blocks {
     }
 
     /**
-     * @returns {Array} - text and values for each sensor positions menu element
+     * @returns {Array} - text and values for each DC motor menu element
      */
-    get SENSOR_POSITIONS_MENU() {
+    get MOTORS_MENU() {
+        // The values are the port names. They are saved in projects: never rename or remove them.
+        return [
+            {
+                text: 'M1',
+                value: 'M1',
+            },
+            {
+                text: 'M2',
+                value: 'M2',
+            },
+        ];
+    }
+
+    /**
+     * @returns {Array} - text and values for each DC motor direction menu element
+     */
+    get MOTOR_DIRECTIONS_MENU() {
+        // The same names as the command record (`normal` / `reverse` / `stop`).
         return [
             {
                 text: formatMessage({
+                    id: 'smalrubotS1.motorDirectionsMenu.normal',
+                    default: 'turn forward',
+                    description: 'label for "normal" (forward rotation) in DC motor direction picker',
+                }),
+                value: 'normal',
+            },
+            {
+                text: formatMessage({
+                    id: 'smalrubotS1.motorDirectionsMenu.reverse',
+                    default: 'turn backward',
+                    description: 'label for "reverse" (backward rotation) in DC motor direction picker',
+                }),
+                value: 'reverse',
+            },
+            {
+                text: formatMessage({
+                    id: 'smalrubotS1.motorDirectionsMenu.stop',
+                    default: 'stop',
+                    description: 'label for "stop" in DC motor direction picker',
+                }),
+                value: 'stop',
+            },
+        ];
+    }
+
+    /**
+     * @returns {Array} - text and values for each sensor positions menu element
+     */
+    get SENSOR_POSITIONS_MENU() {
+        // The textbook names come first (#2189). The values are saved in projects:
+        // never rename or remove them, only add new ones.
+        return [
+            {
+                text: formatMessage({
+                    id: 'smalrubotS1.sensorPositionsMenu.light',
+                    default: 'light sensor (A6)',
+                    description: 'label for "light" sensor in sensor picker for Smalrubot S1 extension',
+                }),
+                value: 'light',
+            },
+            {
+                text: formatMessage({
+                    id: 'smalrubotS1.sensorPositionsMenu.irA4',
+                    default: 'infrared sensor (photoreflector) (A4)',
+                    description:
+                        'label for infrared sensor on A4 (same as "left") sensor in sensor picker for Smalrubot S1 extension',
+                }),
+                value: 'ir_a4',
+            },
+            {
+                text: formatMessage({
+                    id: 'smalrubotS1.sensorPositionsMenu.irA5',
+                    default: 'infrared sensor (photoreflector) (A5)',
+                    description:
+                        'label for infrared sensor on A5 (same as "right") sensor in sensor picker for Smalrubot S1 extension',
+                }),
+                value: 'ir_a5',
+            },
+            {
+                text: formatMessage({
+                    id: 'smalrubotS1.sensorPositionsMenu.touch',
+                    default: 'touch sensor (A2)',
+                    description: 'label for "touch" sensor in sensor picker for Smalrubot S1 extension',
+                }),
+                value: 'touch',
+            },
+            {
+                text: formatMessage({
+                    id: 'smalrubotS1.sensorPositionsMenu.sound',
+                    default: 'sound sensor (A7)',
+                    description: 'label for "sound" sensor in sensor picker for Smalrubot S1 extension',
+                }),
+                value: 'sound',
+            },
+            {
+                text: formatMessage({
                     id: 'smalrubotS1.sensorPositionsMenu.left',
-                    default: 'left(A4)',
-                    description: 'label for "left" sensor in position picker for Smalrubot S1 extension',
+                    default: 'left sensor (A4)',
+                    description: 'label for "left" sensor in sensor picker for Smalrubot S1 extension',
                 }),
                 value: 'left',
             },
             {
                 text: formatMessage({
                     id: 'smalrubotS1.sensorPositionsMenu.right',
-                    default: 'right(A5)',
-                    description: 'label for "right" sensor in position picker for Smalrubot S1 extension',
+                    default: 'right sensor (A5)',
+                    description: 'label for "right" sensor in sensor picker for Smalrubot S1 extension',
                 }),
                 value: 'right',
-            },
-            {
-                text: formatMessage({
-                    id: 'smalrubotS1.sensorPositionsMenu.touch',
-                    default: 'touch(A2)',
-                    description: 'label for "touch" sensor in position picker for Smalrubot S1 extension',
-                }),
-                value: 'touch',
-            },
-            {
-                text: formatMessage({
-                    id: 'smalrubotS1.sensorPositionsMenu.light',
-                    default: 'light(A6)',
-                    description: 'label for "light" sensor in position picker for Smalrubot S1 extension',
-                }),
-                value: 'light',
-            },
-            {
-                text: formatMessage({
-                    id: 'smalrubotS1.sensorPositionsMenu.sound',
-                    default: 'sound(A7)',
-                    description: 'label for "sound" sensor in position picker for Smalrubot S1 extension',
-                }),
-                value: 'sound',
             },
         ];
     }
@@ -1054,12 +1177,126 @@ class Scratch3SmalrubotS1Blocks {
         this.runtime.registerPeripheralExtension(Scratch3SmalrubotS1Blocks.EXTENSION_ID, this);
 
         this._smalrubot = null;
+
+        /**
+         * The board in the browser that receives the commands while no real board is connected (#2191).
+         * @type {StuduinoPracticeBoard}
+         */
+        this.practiceBoard = new StuduinoPracticeBoard(this.runtime);
+        this.practiceBoard.emitState();
+
+        /**
+         * The record of the commands sent and the sensor values read, for the lessons (#2193).
+         * It is written here in the block methods, so the real board and the practice board make the same entries.
+         * @type {StuduinoCommandLog}
+         */
+        this.commandLog = new StuduinoCommandLog(this.runtime);
+        // A new run (green flag) and a new project start a new record.
+        this.runtime.on('PROJECT_START', () => this.commandLog.clear());
+        this.runtime.on('PROJECT_LOADED', () => this.commandLog.clear());
+    }
+
+    /**
+     * @returns {string} - the runtime event sent with every new entry of the command record.
+     */
+    static get COMMAND_LOG_EVENT() {
+        return StuduinoCommandLog.ENTRY_EVENT;
+    }
+
+    /**
+     * @returns {string} - the runtime event sent when the command record is cleared.
+     */
+    static get COMMAND_LOG_CLEAR_EVENT() {
+        return StuduinoCommandLog.CLEAR_EVENT;
+    }
+
+    /**
+     * The commands sent and the sensor values read (for the lessons' "done" check).
+     * @param {number} [limit] - only the latest `limit` entries.
+     * @returns {Array<object>} - copies of the entries, oldest first. The shape is in command-log.js.
+     */
+    getCommandLog(limit) {
+        return this.commandLog.getEntries(limit);
+    }
+
+    /**
+     * Remove all entries of the command record (for example when a lesson challenge starts).
+     */
+    clearCommandLog() {
+        this.commandLog.clear();
+    }
+
+    /**
+     * Add an entry to the command record. Never throws: the record must not stop the blocks.
+     * @param {object} fact - `{kind, port, value}` and `speed` / `sensor` when they apply.
+     */
+    recordCommand(fact) {
+        try {
+            this.commandLog.record(this.isConnected() ? 'device' : 'practice', fact);
+        } catch (error) {
+            log.error(error);
+        }
+    }
+
+    recordLed(position, on) {
+        this.recordCommand({
+            kind: 'led',
+            port: LOG_LED_PORT_BY_POSITION[position] || 'A1',
+            value: on ? 'on' : 'off',
+        });
+    }
+
+    recordAction(direction) {
+        const directions = LOG_MOTOR_DIRECTIONS_BY_ACTION[direction];
+        if (!directions) {
+            return;
+        }
+        ['left', 'right'].forEach((position, index) => {
+            const value = directions[index];
+            const speed = value === 'stop' ? 0 : Number(this.board.getMotorSpeed(position)) || 0;
+            this.recordCommand({ kind: 'motor', port: LOG_MOTOR_PORT_BY_POSITION[position], value, speed });
+        });
+    }
+
+    /**
+     * bendArm the board and record the angle.
+     * @param {number} degree - degrees.
+     * @param {boolean} [onTheWay] - true for an angle on the way of a timed bendArm: it is recorded only when the
+     *   angle changes (the arm moves every frame, often by less than 1 degree). The last angle is always recorded.
+     */
+    bendBoardArm(degree, onTheWay = false) {
+        let value = Cast.toNumber(degree);
+        value = value < 0 ? 0 : value > 180 ? 180 : Math.round(value);
+        if (!onTheWay || this.board.armDegree !== value) {
+            this.recordCommand({ kind: 'servo', port: 'D10', value });
+        }
+        this.board.bendArm(degree);
+    }
+
+    recordSensorRead(position, value) {
+        const sensor = LOG_SENSOR_BY_POSITION[position];
+        if (!sensor) {
+            return;
+        }
+        this.recordCommand({ kind: 'sensorRead', port: sensor.port, sensor: sensor.kind, value: Number(value) });
+    }
+
+    /**
+     * @returns {string} - the runtime event sent on every change of the practice board's state.
+     */
+    static get PRACTICE_BOARD_STATE_EVENT() {
+        return StuduinoPracticeBoard.STATE_EVENT;
     }
 
     get smalrubot() {
         try {
             if (!this._smalrubot) {
                 this._smalrubot = new SmalrubotS1(this.runtime);
+                // Keep the speeds set before the real board was made (they used to be kept on it).
+                this._smalrubot.dcMotorPowerRatios = Object.assign({}, this.practiceBoard.dcMotorPowerRatios);
+                this._smalrubot.onConnectionStateChange = () => {
+                    this.practiceBoard.setMode(this.isConnected() ? 'device' : 'practice');
+                };
             }
         } catch (e) {
             log.error(e);
@@ -1068,12 +1305,42 @@ class Scratch3SmalrubotS1Blocks {
     }
 
     /**
+     * The board the blocks talk to: the real board while it is connected, otherwise the practice board.
+     * @returns {SmalrubotS1|StuduinoPracticeBoard} - the board.
+     */
+    get board() {
+        return this.isConnected() ? this._smalrubot : this.practiceBoard;
+    }
+
+    /**
+     * @returns {object} - a copy of the practice board's state (for the GUI panel).
+     */
+    getPracticeBoardState() {
+        return this.practiceBoard.getState();
+    }
+
+    /**
+     * Change a sensor value of the practice board (for the GUI panel).
+     * @param {string} portOrPosition - a port ('A6') or a sensor menu value ('light').
+     * @param {number|string} value - the new value.
+     * @returns {boolean} - true when the value was changed.
+     */
+    setPracticeSensorValue(portOrPosition, value) {
+        return this.practiceBoard.setSensorValue(portOrPosition, value);
+    }
+
+    /**
      * @returns {object} metadata for this extension and its blocks.
      */
     getInfo() {
         return {
             id: Scratch3SmalrubotS1Blocks.EXTENSION_ID,
-            name: Scratch3SmalrubotS1Blocks.EXTENSION_NAME,
+            // The kit is ArtecRobo and its board is Studuino (the teacher's text of the kit uses these names).
+            name: formatMessage({
+                id: 'smalrubotS1.categoryName',
+                default: Scratch3SmalrubotS1Blocks.EXTENSION_NAME,
+                description: 'Label for the ArtecRobo extension category',
+            }),
             blockIconURI: blockIconURI,
             showStatusButton: true,
             blocks: [
@@ -1136,7 +1403,7 @@ class Scratch3SmalrubotS1Blocks {
                     opcode: 'getSensorValue',
                     text: formatMessage({
                         id: 'smalrubotS1.getSensorValue',
-                        default: '[POSITION] sensor value',
+                        default: 'value of [POSITION]',
                         description: 'getSnsorValue block text',
                     }),
                     blockType: BlockType.REPORTER,
@@ -1217,6 +1484,52 @@ class Scratch3SmalrubotS1Blocks {
                     },
                 },
                 {
+                    opcode: 'controlMotor',
+                    text: formatMessage({
+                        id: 'smalrubotS1.controlMotor',
+                        default: 'DC motor [MOTOR] [DIRECTION]',
+                        description: 'controlMotor block text',
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        MOTOR: {
+                            type: ArgumentType.STRING,
+                            menu: 'motors',
+                            defaultValue: this.MOTORS_MENU[0].value,
+                        },
+                        DIRECTION: {
+                            type: ArgumentType.STRING,
+                            menu: 'motorDirections',
+                            defaultValue: this.MOTOR_DIRECTIONS_MENU[0].value,
+                        },
+                    },
+                },
+                {
+                    opcode: 'controlMotorAndStopAfter',
+                    text: formatMessage({
+                        id: 'smalrubotS1.controlMotorAndStopAfter',
+                        default: 'DC motor [MOTOR] [DIRECTION] for [SECS] seconds',
+                        description: 'controlMotorAndStopAfter block text',
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        MOTOR: {
+                            type: ArgumentType.STRING,
+                            menu: 'motors',
+                            defaultValue: this.MOTORS_MENU[0].value,
+                        },
+                        DIRECTION: {
+                            type: ArgumentType.STRING,
+                            menu: 'motorDirections',
+                            defaultValue: this.MOTOR_DIRECTIONS_MENU[0].value,
+                        },
+                        SECS: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 0.5,
+                        },
+                    },
+                },
+                {
                     opcode: 'setArmCalibration',
                     text: formatMessage({
                         id: 'smalrubotS1.setArmCalibration',
@@ -1245,6 +1558,14 @@ class Scratch3SmalrubotS1Blocks {
                     acceptReporters: false,
                     items: this.POSITIONS_MENU,
                 },
+                motors: {
+                    acceptReporters: false,
+                    items: this.MOTORS_MENU,
+                },
+                motorDirections: {
+                    acceptReporters: false,
+                    items: this.MOTOR_DIRECTIONS_MENU,
+                },
             },
         };
     }
@@ -1253,11 +1574,8 @@ class Scratch3SmalrubotS1Blocks {
         try {
             debug(() => `action: args=<${JSON.stringify(args, null, 2)}>`);
 
-            if (!this.smalrubot) {
-                return;
-            }
-
-            this.smalrubot.action(args.ACTION);
+            this.recordAction(args.ACTION);
+            this.board.action(args.ACTION).catch((error) => log.error(error));
         } catch (error) {
             log.error(error);
         }
@@ -1265,10 +1583,6 @@ class Scratch3SmalrubotS1Blocks {
 
     actionAndStopAfter(args, util) {
         try {
-            if (!this.smalrubot) {
-                return;
-            }
-
             if (util.stackTimerNeedsInit()) {
                 debug(() => `actionAndStopAfter: args=<${JSON.stringify(args, null, 2)}>`);
 
@@ -1276,12 +1590,61 @@ class Scratch3SmalrubotS1Blocks {
                 util.startStackTimer(duration);
                 this.runtime.requestRedraw();
 
-                this.smalrubot.action(args.ACTION);
+                this.recordAction(args.ACTION);
+                this.board.action(args.ACTION).catch((error) => log.error(error));
 
                 util.yield();
             } else if (util.stackTimerFinished()) {
                 if (args.ACTION !== 'stop') {
-                    this.smalrubot.action('stop');
+                    this.recordAction('stop');
+                    this.board.action('stop');
+                }
+            } else {
+                util.yield();
+            }
+        } catch (error) {
+            log.error(error);
+        }
+    }
+
+    recordDcMotor(port, direction) {
+        const position = POSITION_BY_MOTOR_PORT[port];
+        if (!position || !Object.prototype.hasOwnProperty.call(DC_MOTOR_VALUE_BY_DIRECTION, direction)) {
+            return;
+        }
+        const speed = direction === 'stop' ? 0 : Number(this.board.getMotorSpeed(position)) || 0;
+        this.recordCommand({ kind: 'motor', port, value: direction, speed });
+    }
+
+    controlMotor(args) {
+        try {
+            debug(() => `controlMotor: args=<${JSON.stringify(args, null, 2)}>`);
+
+            this.recordDcMotor(args.MOTOR, args.DIRECTION);
+            this.board.dcMotor(args.MOTOR, args.DIRECTION).catch((error) => log.error(error));
+        } catch (error) {
+            log.error(error);
+        }
+    }
+
+    // One block turns the motor and stops it, so the time does not include a second block's communication.
+    controlMotorAndStopAfter(args, util) {
+        try {
+            if (util.stackTimerNeedsInit()) {
+                debug(() => `controlMotorAndStopAfter: args=<${JSON.stringify(args, null, 2)}>`);
+
+                const duration = Math.max(0, 1000 * Cast.toNumber(args.SECS));
+                util.startStackTimer(duration);
+                this.runtime.requestRedraw();
+
+                this.recordDcMotor(args.MOTOR, args.DIRECTION);
+                this.board.dcMotor(args.MOTOR, args.DIRECTION).catch((error) => log.error(error));
+
+                util.yield();
+            } else if (util.stackTimerFinished()) {
+                if (args.DIRECTION !== 'stop') {
+                    this.recordDcMotor(args.MOTOR, 'stop');
+                    this.board.dcMotor(args.MOTOR, 'stop').catch((error) => log.error(error));
                 }
             } else {
                 util.yield();
@@ -1294,33 +1657,25 @@ class Scratch3SmalrubotS1Blocks {
     bendArm(args, util) {
         try {
             if (util.stackFrame.timer) {
-                if (!this.smalrubot || !this.isConnected()) {
-                    return;
-                }
-
                 const timeElapsed = util.stackFrame.timer.timeElapsed();
                 if (timeElapsed < util.stackFrame.duration * 1000) {
                     const frac = timeElapsed / (util.stackFrame.duration * 1000);
                     const d = frac * (util.stackFrame.endDegree - util.stackFrame.startDegree);
-                    this.smalrubot.bendArm(util.stackFrame.startDegree + d);
+                    this.bendBoardArm(util.stackFrame.startDegree + d, true);
                     util.yield();
                 } else {
-                    this.smalrubot.bendArm(util.stackFrame.endDegree);
+                    this.bendBoardArm(util.stackFrame.endDegree);
                 }
             } else {
                 debug(() => `bendArm: args=<${JSON.stringify(args, null, 2)}>`);
 
-                if (!this.smalrubot || !this.isConnected()) {
-                    return;
-                }
-
                 util.stackFrame.timer = new Timer();
                 util.stackFrame.timer.start();
                 util.stackFrame.duration = Cast.toNumber(args.SECS);
-                util.stackFrame.startDegree = this.smalrubot.armDegree;
+                util.stackFrame.startDegree = this.board.armDegree;
                 util.stackFrame.endDegree = Cast.toNumber(args.DEGREE);
                 if (util.stackFrame.duration <= 0) {
-                    this.smalrubot.bendArm(util.stackFrame.endDegree);
+                    this.bendBoardArm(util.stackFrame.endDegree);
                     return;
                 }
                 util.yield();
@@ -1334,11 +1689,10 @@ class Scratch3SmalrubotS1Blocks {
         try {
             debug(() => `getSensorValue: args=<${JSON.stringify(args, null, 2)}>`);
 
-            if (!this.smalrubot) {
-                return Promise.resolve(0);
-            }
-
-            return this.smalrubot.getSensorValue(args.POSITION);
+            return this.board.getSensorValue(args.POSITION).then((value) => {
+                this.recordSensorRead(args.POSITION, value);
+                return value;
+            });
         } catch (error) {
             log.error(error);
         }
@@ -1349,11 +1703,8 @@ class Scratch3SmalrubotS1Blocks {
         try {
             debug(() => `turnLedOn: args=<${JSON.stringify(args, null, 2)}>`);
 
-            if (!this.smalrubot) {
-                return Promise.resolve();
-            }
-
-            return this.smalrubot.led(args.POSITION, true);
+            this.recordLed(args.POSITION, true);
+            return this.board.led(args.POSITION, true);
         } catch (error) {
             log.error(error);
         }
@@ -1364,11 +1715,8 @@ class Scratch3SmalrubotS1Blocks {
         try {
             debug(() => `turnLedOff: args=<${JSON.stringify(args, null, 2)}>`);
 
-            if (!this.smalrubot) {
-                return Promise.resolve();
-            }
-
-            return this.smalrubot.led(args.POSITION, false);
+            this.recordLed(args.POSITION, false);
+            return this.board.led(args.POSITION, false);
         } catch (error) {
             log.error(error);
         }
@@ -1379,11 +1727,7 @@ class Scratch3SmalrubotS1Blocks {
         try {
             debug(() => `getMotorSpeed: args=<${JSON.stringify(args, null, 2)}>`);
 
-            if (!this.smalrubot) {
-                return 0;
-            }
-
-            return this.smalrubot.getMotorSpeed(args.POSITION);
+            return this.board.getMotorSpeed(args.POSITION);
         } catch (error) {
             log.error(error);
         }
@@ -1394,11 +1738,12 @@ class Scratch3SmalrubotS1Blocks {
         try {
             debug(() => `setMotorSpeed: args=<${JSON.stringify(args, null, 2)}>`);
 
-            if (!this.smalrubot) {
-                return;
+            // The speed is a setting, so both boards keep it: it is still used after connecting or disconnecting.
+            const speed = Cast.toNumber(args.SPEED);
+            this.practiceBoard.setMotorSpeed(args.POSITION, speed);
+            if (this._smalrubot) {
+                this._smalrubot.setMotorSpeed(args.POSITION, speed);
             }
-
-            this.smalrubot.setMotorSpeed(args.POSITION, Cast.toNumber(args.SPEED));
         } catch (error) {
             log.error(error);
         }
@@ -1408,11 +1753,9 @@ class Scratch3SmalrubotS1Blocks {
         try {
             debug(() => `setArmCalibration: args=<${JSON.stringify(args, null, 2)}>`);
 
-            if (!this.smalrubot) {
-                return Promise.resolve();
-            }
-
-            return this.smalrubot.setArmCalibration(Cast.toNumber(args.DEGREE));
+            const degree = Cast.toNumber(args.DEGREE);
+            this.recordCommand({ kind: 'servoCalibration', port: 'D10', value: Math.min(15, Math.max(-15, degree)) });
+            return this.board.setArmCalibration(degree);
         } catch (error) {
             log.error(error);
         }
@@ -1422,7 +1765,8 @@ class Scratch3SmalrubotS1Blocks {
     isConnected() {
         debug(() => `isConnected`);
 
-        return this.smalrubot ? this.smalrubot.isConnected() : false;
+        // Use the board only if it was made (by scan / connect): making it without Web Serial reports an error.
+        return this._smalrubot ? this._smalrubot.isConnected() : false;
     }
 
     scan() {
@@ -1466,11 +1810,13 @@ class Scratch3SmalrubotS1Blocks {
     }
 
     stopAll() {
-        if (!this.smalrubot) {
-            return;
-        }
+        // The practice board stops too, so a project stopped while connected does not leave it running.
+        const stopped = this.practiceBoard.stopAll();
 
-        this.smalrubot.stopAll();
+        if (this._smalrubot) {
+            this._smalrubot.stopAll();
+        }
+        return stopped;
     }
 }
 

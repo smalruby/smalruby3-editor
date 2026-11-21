@@ -22,9 +22,9 @@ const SmalrubotS1UnsupportedStep = (props) => (
                 <div className={unsupportedStyles.description}>
                     <FormattedMessage
                         defaultMessage={
-                            'Smalrubot S1 requires WebSerial API support, which is available in ' +
+                            'Studuino requires WebSerial API support, which is available in ' +
                             'Google Chrome, Microsoft Edge, and Opera on desktop. ' +
-                            'Please use one of these browsers to use Smalrubot S1.'
+                            'Please use one of these browsers to use Studuino.'
                         }
                         description="Description shown when WebSerial API is unavailable"
                         id="gui.connection.smalrubotS1Unsupported.description"

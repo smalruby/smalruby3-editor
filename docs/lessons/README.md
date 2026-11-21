@@ -710,6 +710,8 @@ design.md の「中 2 のコース」。コースの ✓ もこれで数える�
 | `currentCostume` | いまのコスチューム（`target: 'stage'` なら背景）。`number` = 何番め（1 から）、`changed: true` = 開いたときと別のコスチュームになった。始めにいたものだけ見る | `number`, `changed`, `target`（どちらか 1 つは要る） |
 | `tab` | いま開いているタブ（エディタの画面の状態。`code` / `costumes` / `sounds`） | `tab` |
 | `partQuiz` | 「どこでしょう？」のクイズに `count` 問正しく答えた（エディタの画面の状態） | `count` |
+| `boardCommand` | アーテックロボの拡張機能が基板に出した命令（実機でも練習用の基板でも同じ記録） | `kind`（必須。`led` / `motor` / `servo` / `servoCalibration`。配列も可）, `port`, `value`, `speed`, `whenSensor` |
+| `sensorRead` | アーテックロボの拡張機能がセンサーの値を読んだ | `port`, `sensor`, `value` |
 
 `tab` と `partQuiz` は VM ではなく**エディタの画面の状態**を見る。見張り（`attachGoalMonitor`）に `getUi`（`{activeTab, partQuizSolved}` を
 返す関数）を渡し、`containers/lesson-goal-watcher.jsx` がタブ・クイズの答えが変わったら `refresh()` で判定を予約する。
@@ -770,6 +772,30 @@ RegExp で両方を許す（例: `/^(正解です|せいかいです|correct)$/i
 
 **`list` の項目**: `length`（matcher。例: `{gte: 3}`）、`itemsFromAnswers: true`（中身が全部「聞いて待つ」に
 入力した答え）。
+
+**`boardCommand` / `sensorRead` の項目**（Studuino の命令とセンサーの値の記録。形は `docs/extension-smalrubot-s1/README.md` の「命令とセンサーの値の記録」）
+
+- 実機（`board: 'device'`）か練習用の基板（`'practice'`）かは見ない。どちらでも同じ事実で「できた」にする。
+- `port`（`A0` / `M1` / `D10` / `A6` ...）と `sensor`（`touch` / `irPhotoreflector` / `light` / `sound`）は、文字列か配列（どれか 1 つに合えばよい）。
+  `value` と `speed` は matcher。LED の `value` は `on` / `off`、モーターは `normal` / `reverse` / `stop`、サーボは角度。
+- `whenSensor: {port, sensor, value}`: 命令を出したときに、**最後に読んでいたセンサーの値**（ポートごと）のどれかが合った。
+  `port` も `sensor` も書かなければ、どのセンサーでもよい（手元に無いセンサーの代わりに、ほかのセンサーで試してもよいため）。
+  緑の旗・作品の読みこみで記録が消えたら、その前に読んだ値は使わない（前の実行の値で合わない）。
+- 命令・読みの事実はチャレンジのあいだ残る（上限はそれぞれ 1000 件）。一度でも満たせばよい。
+
+```js
+// 暗いとき（光センサー < 50）に LED をオンにし、明るいとき（>= 50）にオフにした
+[
+    { type: 'boardCommand', kind: 'led', value: 'on', whenSensor: { sensor: 'light', value: { lt: 50 } } },
+    { type: 'boardCommand', kind: 'led', value: 'off', whenSensor: { sensor: 'light', value: { gte: 50 } } },
+]
+
+// どれかのセンサーの値で車を前に動かした（センサーの種類はしばらない）
+[{ type: 'boardCommand', kind: 'motor', port: 'M1', value: 'normal', whenSensor: { value: { gte: 1 } } }]
+
+// 光センサーの値を読んだ
+[{ type: 'sensorRead', sensor: 'light' }]
+```
 
 `validateGoal(goal)` が形を確かめる（courses.js に入れる前のテスト用）。
 
@@ -857,6 +883,7 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | 誰がメッセージを送ったか | `event_broadcast` / `event_broadcastandwait` / `meshV2_broadcastWithValue`（メッシュの「といっしょに送る」）の実行を記録（メッセージ名 → ターゲット id）。受け取ったスクリプトの run に送り主を持つ |
 | 言った文字 | runtime の `SAY` イベント（`say` / `think` も。空の文字は吹き出しを消すだけなので記録しない）。言った時点の変数の値も一緒に持つ |
 | 答え | runtime の `ANSWER` イベント |
+| Studuino の命令・センサーの読み | 拡張機能の runtime のイベント `STUDUINO_COMMAND_LOG`（1 件ずつ）。`STUDUINO_COMMAND_LOG_CLEAR`（緑の旗・作品の読みこみ）で「そのときのセンサーの値」を消す。この記録だけは scratch-vm の拡張機能が出す |
 | 変数・リスト・スプライト数・コスチューム数・拡張機能 | 判定のたびに VM を読む（`takeSnapshot`）。コスチューム数は見張りを始めたときの数と比べる |
 
 注意:

@@ -604,23 +604,28 @@ TryRuby 対応で追加された Ruby メソッドのふりがな。
 | `mesh_v1`（レシーバー） | `メッシュ(従来)` | — |
 | `mesh_v1.sensor_value("x")` | `メッシュ(従来)` `センサーの値` | 「xセンサーの値」 |
 
-### スモウルボットS1（Smalrubot S1拡張機能）
+### アーテックロボ拡張機能（旧 スモウルボットS1）
 
-`smalrubot_s1` は事前定義レシーバー。レシーバー自体に `スモウルボットS1` のふりがなが付く。
+`studuino` は事前定義レシーバー。レシーバー自体に `アーテックロボ` のふりがなが付く（読みの「スタディーノ」ではなく、意味としてキットの名前を書く）。ブロックからは `studuino.` を書き出す。前の書き方の `smalrubot_s1` も同じふりがな（レシーバー・メソッド・選択肢）が付く。
 
 | Ruby | ふりがな | Scratchブロック |
 | ------ | --------- | ------ |
-| `smalrubot_s1`（レシーバー） | `スモウルボットS1` | — |
-| `smalrubot_s1.action("forward")` | `スモウルボットS1` `動作する` `進める` | 「進める」 |
-| `smalrubot_s1.action("backward")` | `スモウルボットS1` `動作する` `バックさせる` | 「バックさせる」 |
-| `smalrubot_s1.action("turnLeft")` | `スモウルボットS1` `動作する` `左に曲げる` | 「左に曲げる」 |
-| `smalrubot_s1.action("turnRight")` | `スモウルボットS1` `動作する` `右に曲げる` | 「右に曲げる」 |
-| `smalrubot_s1.action("stop")` | `スモウルボットS1` `動作する` `止める` | 「止める」 |
-| `smalrubot_s1.bend_arm(90, 1)` | `スモウルボットS1` `アームを曲げる` | 「アームを曲げる」 |
-| `smalrubot_s1.sensor_value("left")` | `スモウルボットS1` `センサーの値` | 「左のセンサー」 |
-| `smalrubot_s1.get_motor_speed("left")` | `スモウルボットS1` `モーター速度` | 「左DCモーターの速度」 |
-| `smalrubot_s1.set_motor_speed("left", 50)` | `スモウルボットS1` `モーター速度を設定` | 「左DCモーターの速度を50にする」 |
-| `smalrubot_s1.led("left", true)` | `スモウルボットS1` `LED設定` | 「左のLEDをオンにする」 |
+| `studuino` / `smalrubot_s1`（レシーバー） | `アーテックロボ` | — |
+| `studuino.action("forward")` | `アーテックロボ` `動作する` `車を前進させる` | 「車を前進させる」 |
+| `studuino.action("backward")` | `アーテックロボ` `動作する` `車を後退させる` | 「車を後退させる」 |
+| `studuino.action("left")` | `アーテックロボ` `動作する` `車を左に曲げる` | 「車を左に曲げる」 |
+| `studuino.action("right")` | `アーテックロボ` `動作する` `車を右に曲げる` | 「車を右に曲げる」 |
+| `studuino.action("stop")` | `アーテックロボ` `動作する` `車を止める` | 「車を止める」 |
+| `studuino.bend_arm(90, 1)` | `アーテックロボ` `アームを曲げる` | 「アーム（サーボモーター D10）を曲げる」 |
+| `studuino.sensor_value("light")` | `アーテックロボ` `センサーの値` `光センサー (A6)` | 「光センサー (A6) の値」 |
+| `studuino.sensor_value("ir_a4")` | `アーテックロボ` `センサーの値` `赤外線センサー（フォトリフレクタ）(A4)` | 「赤外線センサー（フォトリフレクタ）(A4) の値」 |
+| `studuino.sensor_value("left")` | `アーテックロボ` `センサーの値` `左のセンサー (A4)` | 「左のセンサー (A4) の値」 |
+| `studuino.get_motor_speed("left")` | `アーテックロボ` `モーター速度` `左` | 「左の DC モーターの速度」 |
+| `studuino.set_motor_speed("left", 50)` | `アーテックロボ` `モーター速度を設定` `左` | 「左の DC モーターの速度を 50 にする」 |
+| `studuino.led("left", true)` | `アーテックロボ` `LED設定` `左` | 「左の LED をオンにする」 |
+| `studuino.arm_calibration = 0` | `アーテックロボ` `アーム調整` | 「アームを 0 度調整する」 |
+
+センサーの選択肢は、ほかに `ir_a5`（赤外線センサー（フォトリフレクタ）(A5)）・`touch`（タッチセンサー (A2)）・`sound`（音センサー (A7)）・`right`（右のセンサー (A5)）。
 
 ### スモウルビー甲子園（Koshien拡張機能）
 
