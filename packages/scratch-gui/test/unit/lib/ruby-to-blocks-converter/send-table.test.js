@@ -3,6 +3,7 @@ import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter'
 import BoostConverter from '../../../../src/lib/ruby-to-blocks-converter/boost';
 import ControlConverter from '../../../../src/lib/ruby-to-blocks-converter/control';
 import EventConverter from '../../../../src/lib/ruby-to-blocks-converter/event';
+import FaceSensingConverter from '../../../../src/lib/ruby-to-blocks-converter/face_sensing';
 import LooksConverter from '../../../../src/lib/ruby-to-blocks-converter/looks';
 import MotionConverter from '../../../../src/lib/ruby-to-blocks-converter/motion';
 import MusicConverter from '../../../../src/lib/ruby-to-blocks-converter/music';
@@ -53,6 +54,7 @@ describe('RubyToBlocksConverter/send table', () => {
         video: VideoConverter,
         boost: BoostConverter,
         wedo2: Wedo2Converter,
+        faceSensing: FaceSensingConverter,
     };
 
     test.each(Object.keys(tables))('every opcode of the %s table has a generator', (area) => {
