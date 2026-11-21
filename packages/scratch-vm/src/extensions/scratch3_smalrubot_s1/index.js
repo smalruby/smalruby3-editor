@@ -772,7 +772,14 @@ class SmalrubotS1 extends Smalrubot {
         } else if (degree < -15) {
             degree = -15;
         }
-        return this.writeCommand('set_servomotor_calibration', SERVO_MOTOR_PORT, degree);
+        return this.writeCommand('set_servomotor_calibration', SERVO_MOTOR_PORT, degree).then(() => {
+            // Send the current angle again so the arm moves to the adjusted position right away (#2202).
+            // Without it, nothing moves until the arm is bent to a different angle.
+            if (typeof this.armDegree !== 'number') {
+                return Promise.resolve();
+            }
+            return this.writeCommand('servo_motor', SERVO_MOTOR_PORT, this.armDegree);
+        });
     }
 
     action(direction) {

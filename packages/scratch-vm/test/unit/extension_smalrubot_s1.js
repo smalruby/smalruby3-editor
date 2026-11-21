@@ -828,6 +828,8 @@ test('Smalrubot S1 Blocks', (t) => {
                     '!4300000.',
                     '!4301000.',
                     '!4405045.',
+                    // The adjustment sends the current angle again so the arm moves at once.
+                    '!4405045.',
                     '!5100001.',
                     '!5101000.',
                     '!6404000.',
