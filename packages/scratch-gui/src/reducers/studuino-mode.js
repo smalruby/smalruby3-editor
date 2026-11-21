@@ -4,10 +4,14 @@ import { defaultSettings } from '@smalruby/scratch-vm/src/extensions/scratch3_sm
 import { isStuduinoModeSettings } from '../lib/studuino-mode';
 
 const SET_SETTINGS = 'scratch-gui/studuino-mode/SET_SETTINGS';
+const OPEN_PORT_SETTINGS = 'scratch-gui/studuino-mode/OPEN_PORT_SETTINGS';
+const CLOSE_PORT_SETTINGS = 'scratch-gui/studuino-mode/CLOSE_PORT_SETTINGS';
 
 const initialState = {
     // VM の getStuduinoSettings の写し（mode・ports・calibration・unknownVersion）
     settings: defaultSettings(),
+    // 入出力の設定のモーダル（#2215）を開いているか
+    portSettingsVisible: false,
 };
 
 const reducer = (state, action) => {
@@ -15,6 +19,10 @@ const reducer = (state, action) => {
     switch (action.type) {
         case SET_SETTINGS:
             return { ...state, settings: action.settings || defaultSettings() };
+        case OPEN_PORT_SETTINGS:
+            return { ...state, portSettingsVisible: true };
+        case CLOSE_PORT_SETTINGS:
+            return { ...state, portSettingsVisible: false };
         default:
             return state;
     }
@@ -26,6 +34,25 @@ const reducer = (state, action) => {
  * @returns {object} action
  */
 const setStuduinoModeSettings = (settings) => ({ type: SET_SETTINGS, settings });
+
+/**
+ * 入出力の設定のモーダルを開く。
+ * @returns {object} action
+ */
+const openStuduinoPortSettings = () => ({ type: OPEN_PORT_SETTINGS });
+
+/**
+ * 入出力の設定のモーダルを閉じる。
+ * @returns {object} action
+ */
+const closeStuduinoPortSettings = () => ({ type: CLOSE_PORT_SETTINGS });
+
+/**
+ * 入出力の設定のモーダルを開いているか。
+ * @param {object} state - redux の state。
+ * @returns {boolean} 開いていれば true。
+ */
+const isStuduinoPortSettingsVisible = (state) => state.scratchGui.studuinoMode.portSettingsVisible;
 
 /**
  * Studuino モードか（GUI のどこからでもこれで判定する。緑の旗＝書きこみ・停止＝中断（#2219）もこれを見る）。
@@ -45,7 +72,10 @@ export {
     reducer as default,
     initialState as studuinoModeInitialState,
     SET_SETTINGS,
+    closeStuduinoPortSettings,
     getStuduinoModeSettings,
+    isStuduinoPortSettingsVisible,
+    openStuduinoPortSettings,
     isStuduinoMode,
     setStuduinoModeSettings,
 };

@@ -12,6 +12,9 @@ import {
 /** 拡張機能の ID（Studuino モードはこの拡張機能の中の動かし方）。 */
 const STUDUINO_EXTENSION_ID = 'smalrubotS1';
 
+/** パレットの「入出力の設定」ボタンの callbackKey（#2215・S4）。 */
+const STUDUINO_PORT_SETTINGS_CALLBACK = 'STUDUINO_PORT_SETTINGS';
+
 /**
  * Studuino モードで使える標準のブロック（第 1 弾・S1。docs の「標準のブロック」）。
  * パレットに出すのも、使えないブロックの印（#2214）を決めるのも、この一覧を使う。
@@ -86,9 +89,49 @@ const setStuduinoMode = (vm, studuino) => {
     });
 };
 
+const xmlEscape = (text) =>
+    String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+
+/**
+ * Studuino モードのパレットの先頭に置くカテゴリ（アーテックロボ）の XML。先頭に「入出力の設定」ボタン
+ * （「変数を作る」と同じ形のボタン・S4）を置く。部品のブロック（#2216）はこのカテゴリに足す。
+ * @param {object} options - 表示の文言と色。
+ * @param {string} options.name - カテゴリの名前。
+ * @param {string} options.buttonText - ボタンの文言。
+ * @param {{colourPrimary: string, colourTertiary: string}} options.colors - カテゴリの色（拡張機能の色）。
+ * @returns {string} category の XML。
+ */
+const makeStuduinoCategoryXml = ({ name, buttonText, colors }) =>
+    `<category name="${xmlEscape(name)}" id="${STUDUINO_EXTENSION_ID}" toolboxitemid="${STUDUINO_EXTENSION_ID}" ` +
+    `colour="${xmlEscape(colors.colourPrimary)}" secondaryColour="${xmlEscape(colors.colourTertiary)}">` +
+    `<button text="${xmlEscape(buttonText)}" callbackKey="${STUDUINO_PORT_SETTINGS_CALLBACK}"></button>` +
+    `</category>`;
+
+/**
+ * toolbox の XML の先頭（最初のカテゴリの前）にカテゴリを入れる。
+ * @param {?string} toolboxXML - makeToolboxXML の戻り値。
+ * @param {string} categoryXML - 入れるカテゴリ。
+ * @returns {?string} 入れたあとの XML（toolboxXML が無ければそのまま）。
+ */
+const prependToolboxCategory = (toolboxXML, categoryXML) => {
+    if (!toolboxXML) return toolboxXML;
+    const match = toolboxXML.match(/^\s*<xml[^>]*>/);
+    if (!match) return toolboxXML;
+    const head = match[0];
+    return `${head}\n${categoryXML}\n<sep gap="36"/>${toolboxXML.slice(head.length)}`;
+};
+
 export {
     STUDUINO_ALLOWED_BLOCKS,
     STUDUINO_EXTENSION_ID,
+    STUDUINO_PORT_SETTINGS_CALLBACK,
+    makeStuduinoCategoryXml,
+    prependToolboxCategory,
     STUDUINO_STANDARD_BLOCKS,
     isStuduinoAllowedBlock,
     isStuduinoModeSettings,

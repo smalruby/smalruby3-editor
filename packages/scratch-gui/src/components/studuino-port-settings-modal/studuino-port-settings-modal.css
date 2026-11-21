@@ -1,0 +1,139 @@
+@import '../../css/colors.css';
+@import '../../css/units.css';
+
+.modal-content {
+    width: 760px;
+    max-width: calc(100vw - 2rem);
+}
+
+/* 本文に不透明な背景（無いと青いオーバーレイが透ける。.claude/rules/scratch-gui/modals.md） */
+.body {
+    background-color: $ui-white;
+    padding: 1rem 1.5rem 1rem;
+    color: $text-primary;
+    max-height: calc(100vh - 180px);
+    overflow-y: auto;
+}
+
+.description {
+    margin: 0 0 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.columns {
+    display: flex;
+    align-items: stretch;
+    gap: 1rem;
+}
+
+.column {
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.port-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.5rem;
+    min-height: 2rem;
+}
+
+.port-name {
+    width: 2.25rem;
+    font-weight: bold;
+    font-size: 0.875rem;
+}
+
+.part-select {
+    flex: 1 1 8rem;
+    min-width: 0;
+    height: 1.75rem;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 0.25rem;
+    background-color: $ui-white;
+    color: $text-primary;
+    font-size: 0.8125rem;
+}
+
+.calibration {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+}
+
+.calibration-label {
+    white-space: nowrap;
+}
+
+.calibration-input {
+    width: 3.5rem;
+    height: 1.5rem;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 0.25rem;
+    font-size: 0.8125rem;
+}
+
+/* 基板の絵（独自の簡単な絵。本家の写真・画面は使わない） */
+.board {
+    flex: 0 0 7rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 0.5rem;
+    background-color: $pen-tertiary;
+    color: $ui-white;
+}
+
+.board-chip {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.25rem;
+    background-color: $ui-black-transparent;
+}
+
+.board-name {
+    font-weight: bold;
+    font-size: 0.875rem;
+}
+
+.button-row {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.primary-button,
+.secondary-button {
+    padding: 0.5rem 1.25rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.primary-button {
+    border: none;
+    background-color: $looks-secondary;
+    color: $ui-white;
+}
+
+.secondary-button {
+    border: 1px solid $ui-black-transparent;
+    background-color: $ui-white;
+    color: $text-primary;
+}
+
+.trademark {
+    margin: 0.75rem 0 0;
+    font-size: 0.6875rem;
+    color: $text-primary-transparent;
+}
