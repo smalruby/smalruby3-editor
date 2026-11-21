@@ -676,7 +676,9 @@ design.md の「中 2 のコース」。コースの ✓ もこれで数える�
   センサーでも「できた」）。
 - **変数**: 「明るさ」（ja-Hira「あかるさ」、en `brightness`。Ruby の `$`）。判定はどの名前でも通す。
 - **アクティビティ図**: 全チャレンジ `activityDiagram: true`。ヒントの 1 ページ目は「課題の説明と、アクティビティ図を理解しよう」
-  （`withDiagramFirst`）。
+  （`withDiagramFirst`）。図の「処理」の箱は、アーテックロボのブロックを教科書の図のように書く（「LED (A0) をつける」「光センサーの値」
+  「0.5秒 DC モーター (M1) を正転させる」「1秒でアームを90度にする」「車を止める」。`activity-diagram/labels.js` と
+  `activity-diagram.locale.js` の `studuino.*`）。
 
 レッスン 1「センサーと LED をためそう」（`ctrl-l1`。ja-Hira「センサーと LED を ためそう」、en "Try the Sensors and LEDs"。ワークシート第 2 時）:
 

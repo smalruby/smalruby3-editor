@@ -56,6 +56,32 @@ const onlyScript = (model) => {
 };
 
 describe('buildActivityModel', () => {
+    test('the ArtecRobo blocks read like the textbook diagram (LED をつける, the sensor name) (#2170)', async () => {
+        const code =
+            'when_flag_clicked do\n  loop do\n    if studuino.sensor_value("light") < 500\n' +
+            '      studuino.led("left", true)\n    else\n      studuino.led("right", false)\n    end\n' +
+            '    studuino.dc_motor("M1", "normal", 0.5)\n    studuino.bend_arm(90, 1)\n    studuino.action("stop")\n' +
+            '  end\nend\n';
+        const labels = (model) => JSON.stringify(onlyScript(model).body);
+        const ja = labels(await modelOf(code));
+        [
+            '光センサーの値 < 500',
+            'LED (A0) をつける',
+            'LED (A1) を消す',
+            '0.5秒 DC モーター (M1) を正転させる',
+            '1秒でアームを90度にする',
+            '車を止める',
+        ].forEach((text) => expect(ja).toContain(text));
+        expect(ja).not.toContain('smalrubotS1_');
+        const enText = labels(await modelOf(code, { format: formatEn }));
+        [
+            'light sensor value < 500',
+            'turn LED (A0) on',
+            'DC motor (M1) forward for 0.5 seconds',
+            'stop the car',
+        ].forEach((text) => expect(enText).toContain(text));
+    });
+
     test('a hat becomes the start label and the stack becomes actions in order', async () => {
         const script = onlyScript(await modelOf('when_flag_clicked do\n  say("こんにちは！", 2)\n  sleep(1)\nend\n'));
         expect(script.start).toBe('旗が押されたとき');
