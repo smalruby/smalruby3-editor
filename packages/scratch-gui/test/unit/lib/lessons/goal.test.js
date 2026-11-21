@@ -702,7 +702,7 @@ describe('validateGoal', () => {
             { type: 'extension' },
         ]);
         expect(errors).toEqual([
-            'goal[0]: type must be one of uses, said, variable, list, sprites, costumes, extension, moved, currentCostume, tab, partQuiz',
+            'goal[0]: type must be one of uses, said, variable, list, sprites, costumes, extension, moved, currentCostume, tab, partQuiz, readinessCheck',
             'goal[1]: uses.blocks must be a non-empty array',
             'goal[2].blocks[0]: opcode is required',
             "goal[2]: trigger.target must be 'stage' or 'sprite'",
@@ -1091,6 +1091,18 @@ describe('lesson 0 conditions: clicks, moved, currentCostume, tab, partQuiz (#21
         const quiz = [{ type: 'partQuiz', count: 5 }];
         expect(evaluateGoal(quiz, createFacts(), snapshot({ ui: { partQuizSolved: 4 } })).satisfied).toBe(false);
         expect(evaluateGoal(quiz, createFacts(), snapshot({ ui: { partQuizSolved: 5 } })).satisfied).toBe(true);
+    });
+
+    // じゅんびチェック（#2299）: 答えた数だけを見る（正しかったかは「できた」に関係しない）
+    test('readinessCheck counts the answered questions (snapshot.ui)', () => {
+        const check = [{ type: 'readinessCheck', count: 4 }];
+        expect(evaluateGoal(check, createFacts(), snapshot()).satisfied).toBe(false);
+        expect(evaluateGoal(check, createFacts(), snapshot({ ui: { readinessAnswered: 3 } })).satisfied).toBe(false);
+        expect(evaluateGoal(check, createFacts(), snapshot({ ui: { readinessAnswered: 4 } })).satisfied).toBe(true);
+        expect(validateGoal(check)).toEqual([]);
+        expect(validateGoal([{ type: 'readinessCheck', count: 0 }])).toEqual([
+            'goal[0]: readinessCheck.count must be a positive integer',
+        ]);
     });
 
     test('validateGoal checks the new conditions', () => {

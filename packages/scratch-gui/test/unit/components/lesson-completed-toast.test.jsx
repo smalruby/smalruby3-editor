@@ -356,3 +356,59 @@ describe('LessonCompletedToast: skip the rest of lesson 0 after a perfect "where
         expect(cleared.queryByTestId('lesson-completed-toast-skip-detail')).not.toBeInTheDocument();
     });
 });
+
+// じゅんびチェックの結果（#2299）
+describe('LessonCompletedToast: the readiness check result', () => {
+    const recommended = [
+        {
+            id: 'blocks-l1-count',
+            name: { id: 'x.count', defaultMessage: 'Count' },
+            courseName: { id: 'x.course', defaultMessage: 'Programmer from Today' },
+            lessonNumber: 3,
+            number: 1,
+        },
+    ];
+
+    test('all right shows "Ready to go!" and no recommendation', () => {
+        const { getByTestId, queryByTestId } = renderToast({
+            readiness: { allCorrect: true, correctCount: 4, total: 4, recommended: [] },
+            onOpenRecommended: jest.fn(),
+        });
+        expect(getByTestId('lesson-readiness-result')).toHaveAttribute('data-all-correct', 'true');
+        expect(getByTestId('lesson-readiness-result-ok')).toHaveTextContent('Ready to go!');
+        expect(queryByTestId('lesson-readiness-recommended')).not.toBeInTheDocument();
+    });
+
+    test('a miss shows the score and the recommended challenges that open on click', () => {
+        const onOpenRecommended = jest.fn();
+        const { getByTestId, getAllByTestId, queryByTestId } = renderToast({
+            readiness: { allCorrect: false, correctCount: 3, total: 4, recommended },
+            onOpenRecommended,
+        });
+        expect(queryByTestId('lesson-readiness-result-ok')).not.toBeInTheDocument();
+        expect(getByTestId('lesson-readiness-result-score')).toHaveTextContent('3 of 4 right');
+        const buttons = getAllByTestId('lesson-readiness-recommended');
+        expect(buttons).toHaveLength(1);
+        expect(buttons[0]).toHaveTextContent('Count');
+        expect(buttons[0]).toHaveTextContent('Programmer from Today 3-1');
+        fireEvent.click(buttons[0]);
+        expect(onOpenRecommended).toHaveBeenCalledWith('blocks-l1-count');
+    });
+
+    test('no readiness, no result', () => {
+        const { queryByTestId } = renderToast();
+        expect(queryByTestId('lesson-readiness-result')).not.toBeInTheDocument();
+    });
+
+    test('the words are in ja and ja-Hira (no kanji)', () => {
+        expect(ja['gui.lessons.readiness.ok']).toBe('じゅんび OK！');
+        expect(ja['gui.lessons.readiness.recommended']).toBe('おすすめ');
+        Object.keys(jaHira)
+            .filter((id) => id.startsWith('gui.lessons.readiness.'))
+            .forEach((id) => {
+                expect(typeof ja[id]).toBe('string');
+                expect(typeof en[id]).toBe('string');
+                expect({ id, text: jaHira[id] }).toEqual({ id, text: expect.not.stringMatching(/\p{Script=Han}/u) });
+            });
+    });
+});

@@ -293,7 +293,9 @@ describe('restrictCourseStatus with a lesson of themes', () => {
         const chat = COURSES.find((c) => c.id === 'chat-wo-tsukurou');
         const themes = chat.lessons[4].challenges.map((c) => c.id);
         const status = { course: chat, ...courseProgress(chat, progressOf(themes[0])) };
-        expect(status.lessons[4]).toEqual(expect.objectContaining({ checkCount: 1, allCompleted: true }));
+        // courseProgress の lessons はレッスン 0（じゅんびチェック・#2299）が先頭なので、id で探す
+        const themeLesson = status.lessons.find((l) => l.lesson.id === 'chat-l5');
+        expect(themeLesson).toEqual(expect.objectContaining({ checkCount: 1, allCompleted: true }));
         const restricted = restrictCourseStatus(status, themes.slice(0, 3));
         expect(restricted.lessons).toHaveLength(1);
         expect(restricted.lessons[0]).toEqual(

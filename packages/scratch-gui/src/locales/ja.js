@@ -1860,6 +1860,7 @@ export default {
     'gui.lessonsLibrary.closeCourse': 'レッスンをしまう',
     'gui.lessonsLibrary.done': 'できた',
     'gui.lessonsLibrary.next': '次はこれ！',
+    'gui.lessonsLibrary.recommended': 'おすすめ',
     'gui.lessonsLibrary.required': '必須',
     'gui.classroom.studentStatus.lessonProgress': '進み具合',
     'gui.classroom.studentStatus.continueLesson': 'レッスンを続ける',
