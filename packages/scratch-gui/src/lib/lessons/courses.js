@@ -3468,6 +3468,182 @@ const ctrlLesson2 = defineLesson({
     ],
 });
 
+// レッスン 3「モーターで動かそう」（#2172・ワークシート第 4 時）: DC モーター（回り続ける・向きを変える）とサーボモーター
+// （角度を決めて止まる）のちがいを知り、センサーの値でモーターを動かす。トルク・ギヤ比・てこはワークシートと実物でやり、
+// ここではクイズで少しふれる（#2158 Q13）
+const CTRL_MOTOR_SECS = studuinoOpcode('controlMotorAndStopAfter');
+const CTRL_ARM = studuinoOpcode('bendArm');
+const CTRL_ACTION = studuinoOpcode('action');
+// サーボの角度は生徒がスイッチに合わせて変えるので、判定は小さい角度（30 度まで）と大きい角度（60 度から）で見る
+const CTRL_ARM_DOWN = { lte: 30 };
+const CTRL_ARM_UP = { gte: 60 };
+const ctrlLesson3 = defineLesson({
+    id: 'ctrl-l3',
+    challenges: [
+        // 1 DC モーターを動かそう（課題⑤A）: M1 を 0.5 秒正転 → 1 秒待つ → 0.5 秒逆転。回り続ける・向きを変えられる
+        {
+            id: 'ctrl-l3-dc-motor',
+            card: { category: CATEGORIES.EXTENSIONS, main: CATEGORIES.EXTENSIONS },
+            task: challengeMessage('ctrl-l3-dc-motor', 'task'),
+            setup: CTRL_START,
+            activityDiagram: true,
+            allowedBlocks: {
+                event: ['event_whenflagclicked'],
+                control: [{ opcode: 'control_wait', inputs: { DURATION: 1 } }],
+                [CTRL_EXTENSION]: [CTRL_MOTOR_SECS],
+            },
+            steps: withDiagramFirst('ctrl-l3-dc-motor', [
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: 'when_flag_clicked do\n  studuino.dc_motor("M1", "normal", 0.5)\nend\n',
+                },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: 'studuino.dc_motor("M1", "normal", 0.5)\nsleep(1)\nstuduino.dc_motor("M1", "reverse", 0.5)\n',
+                },
+                { target: HINT_TARGETS.GREEN_FLAG },
+            ]),
+            debug: debugTips('ctrl-l3-dc-motor', 2),
+            // 旗のスクリプトで、DC モーターを正転させ、逆転させた（どちらのモーター・どのブロックでもよい）
+            goal: [
+                { type: 'uses', trigger: { hat: 'event_whenflagclicked' }, blocks: ['control_wait'] },
+                { type: 'boardCommand', kind: 'motor', value: 'normal' },
+                { type: 'boardCommand', kind: 'motor', value: 'reverse' },
+            ],
+            quiz: challengeQuiz('ctrl-l3-dc-motor', 0),
+            code:
+                'when_flag_clicked do\n  studuino.dc_motor("M1", "normal", 0.5)\n  sleep(1)\n' +
+                '  studuino.dc_motor("M1", "reverse", 0.5)\nend\n',
+        },
+        // 2 サーボで角度を決めよう（課題⑤B）: 1 秒でアームを 0 度 → 1 秒待つ → 1 秒で 90 度。決めた角度で止まる
+        {
+            id: 'ctrl-l3-servo',
+            card: { category: CATEGORIES.EXTENSIONS, main: CATEGORIES.EXTENSIONS },
+            task: challengeMessage('ctrl-l3-servo', 'task'),
+            setup: CTRL_START,
+            activityDiagram: true,
+            allowedBlocks: {
+                event: ['event_whenflagclicked'],
+                control: [{ opcode: 'control_wait', inputs: { DURATION: 1 } }],
+                [CTRL_EXTENSION]: [CTRL_ARM],
+            },
+            steps: withDiagramFirst('ctrl-l3-servo', [
+                { target: HINT_TARGETS.PALETTE, blocks: 'when_flag_clicked do\n  studuino.bend_arm(0, 1)\nend\n' },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: 'studuino.bend_arm(0, 1)\nsleep(1)\nstuduino.bend_arm(90, 1)\n',
+                },
+                { target: HINT_TARGETS.GREEN_FLAG },
+            ]),
+            debug: debugTips('ctrl-l3-servo', 2),
+            // 旗のスクリプトでアームを 2 回動かし、小さい角度と大きい角度の両方にした
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenflagclicked' },
+                    blocks: [{ opcode: CTRL_ARM, count: 2 }],
+                },
+                { type: 'boardCommand', kind: 'servo', value: CTRL_ARM_DOWN },
+                { type: 'boardCommand', kind: 'servo', value: CTRL_ARM_UP },
+            ],
+            quiz: challengeQuiz('ctrl-l3-servo', 0),
+            code: 'when_flag_clicked do\n  studuino.bend_arm(0, 1)\n  sleep(1)\n  studuino.bend_arm(90, 1)\nend\n',
+        },
+        // 3 自動スイッチを作ろう（見本 s6）: 暗いときはアームを 90 度にしてスイッチを押し、明るいときは 0 度にもどす
+        {
+            id: 'ctrl-l3-auto-switch',
+            card: { category: CATEGORIES.EXTENSIONS, main: CATEGORIES.EXTENSIONS },
+            task: challengeMessage('ctrl-l3-auto-switch', 'task'),
+            setup: CTRL_START,
+            activityDiagram: true,
+            allowedBlocks: {
+                event: ['event_whenflagclicked'],
+                control: ['control_forever', 'control_if_else'],
+                operators: [{ opcode: 'operator_lt', inputs: { OPERAND2: 500 } }],
+                [CTRL_EXTENSION]: [CTRL_SENSOR, CTRL_ARM],
+            },
+            steps: withDiagramFirst('ctrl-l3-auto-switch', [
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: 'when_flag_clicked do\n  loop do\n    if false\n    else\n    end\n  end\nend\n',
+                },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: 'if studuino.sensor_value("light") < 500\nelse\nend\n',
+                },
+                {
+                    target: HINT_TARGETS.CODE_AREA,
+                    blocks:
+                        'if studuino.sensor_value("light") < 500\n  studuino.bend_arm(90, 1)\nelse\n' +
+                        '  studuino.bend_arm(0, 1)\nend\n',
+                },
+                { target: HINT_TARGETS.PRACTICE_BOARD },
+            ]),
+            debug: debugTips('ctrl-l3-auto-switch', 2),
+            // 暗いときにアームを大きい角度へ、明るいときに小さい角度へ動かした
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenflagclicked' },
+                    blocks: ['control_forever', 'control_if_else', CTRL_SENSOR, CTRL_ARM],
+                },
+                { type: 'boardCommand', kind: 'servo', value: CTRL_ARM_UP, whenSensor: { value: CTRL_DARK } },
+                { type: 'boardCommand', kind: 'servo', value: CTRL_ARM_DOWN, whenSensor: { value: CTRL_BRIGHT } },
+            ],
+            quiz: challengeQuiz('ctrl-l3-auto-switch', 0),
+            code:
+                'when_flag_clicked do\n  loop do\n    if studuino.sensor_value("light") < 500\n' +
+                '      studuino.bend_arm(90, 1)\n    else\n      studuino.bend_arm(0, 1)\n    end\n  end\nend\n',
+        },
+        // 4 ぶつかったら止まる車: タッチセンサーを押したら（ぶつかったら）車を止め、そうでなければ前に進める
+        {
+            id: 'ctrl-l3-bumper-car',
+            card: { category: CATEGORIES.EXTENSIONS, main: CATEGORIES.EXTENSIONS },
+            task: challengeMessage('ctrl-l3-bumper-car', 'task'),
+            setup: CTRL_START,
+            activityDiagram: true,
+            allowedBlocks: {
+                event: ['event_whenflagclicked'],
+                control: ['control_forever', 'control_if_else'],
+                operators: [{ opcode: 'operator_equals', inputs: { OPERAND2: 0 } }],
+                [CTRL_EXTENSION]: [CTRL_SENSOR, CTRL_ACTION],
+            },
+            steps: withDiagramFirst('ctrl-l3-bumper-car', [
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: 'when_flag_clicked do\n  loop do\n    if false\n    else\n    end\n  end\nend\n',
+                },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: 'if studuino.sensor_value("touch") == 0\nelse\nend\n',
+                },
+                {
+                    target: HINT_TARGETS.CODE_AREA,
+                    blocks:
+                        'if studuino.sensor_value("touch") == 0\n  studuino.action("stop")\nelse\n' +
+                        '  studuino.action("forward")\nend\n',
+                },
+                { target: HINT_TARGETS.PRACTICE_BOARD },
+            ]),
+            debug: debugTips('ctrl-l3-bumper-car', 2),
+            // センサーが 1 以上（はなした）のときにモーターを正転させ、0（押した・ぶつかった）のときに止めた
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenflagclicked' },
+                    blocks: ['control_forever', 'control_if_else', CTRL_SENSOR, CTRL_ACTION],
+                },
+                { type: 'boardCommand', kind: 'motor', value: 'normal', whenSensor: { value: { gte: 1 } } },
+                { type: 'boardCommand', kind: 'motor', value: 'stop', whenSensor: { value: 0 } },
+            ],
+            quiz: challengeQuiz('ctrl-l3-bumper-car', 0),
+            code:
+                'when_flag_clicked do\n  loop do\n    if studuino.sensor_value("touch") == 0\n' +
+                '      studuino.action("stop")\n    else\n      studuino.action("forward")\n    end\n  end\nend\n',
+        },
+    ],
+});
+
 export const COURSES = [
     defineCourse({
         id: 'kyou-kara-programmer',
@@ -3486,7 +3662,7 @@ export const COURSES = [
     defineCourse({
         id: 'jidou-sensor-motor',
         language: LANGUAGES.BLOCKS,
-        lessons: [ctrlLesson1, ctrlLesson2],
+        lessons: [ctrlLesson1, ctrlLesson2, ctrlLesson3],
     }),
 ];
 
