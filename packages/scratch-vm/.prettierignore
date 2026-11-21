@@ -109,6 +109,7 @@ test/unit/*
 !test/unit/extension_mesh_v2_status_snapshot.js
 !test/unit/extension_smalrubot_s1.js
 !test/unit/studuino_settings.js
+!test/unit/studuino_blocks.js
 !test/unit/extension_translate_proxy.js
 !test/unit/extension_text2speech_proxy.js
 !test/unit/util_cors-proxy-url.js

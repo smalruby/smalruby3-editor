@@ -108,7 +108,7 @@ Studuino の拡張機能そのもの（通常モード。パソコンにつな�
 
 第 1 弾は **部品のブロック＋制御・演算・変数（数値）**。部品のブロックは、入出力の設定で割り当てた部品の
 ぶんだけパレットに出る（M3）。できること（機能・ポートと部品の対応）は本家（アーテック社の Web アプリ）に
-合わせ、文言は一般名詞をスモウルビーの言い回しで書く（S14）。下の「表示」は案で、#2216 で決める。
+合わせ、文言は一般名詞をスモウルビーの言い回しで書く（S14）。下の「表示」は日本語の文言の要約（実際の文言は `ja.js` / `ja-Hira.js` の `smalrubotS1.studuino.*`）。
 
 ### 部品のブロック（Studuino モード専用・新しく作る）
 
@@ -136,8 +136,15 @@ opcode は拡張機能 `smalrubotS1` のブロック（実行時は `smalrubotS1
   **2 つを同時に動かすブロック**にした（3 つ以上はこのブロックを続けて置く。構文木の `servo_multi` は 8 つまで受け付ける）。
 - [ポート] のドロップダウンには、**その部品を割り当てたポートだけ** を「光センサー (A6)」のように
   部品とポートが分かる形で出す（S2）。
-- 本家のタッチセンサーは丸い値のブロック（0 / 1）に見えるが、スモウルビーでは真偽のブロックにする案
-  （`もし <タッチセンサー (A2) が押された> なら` と書けるようにする）。決めるのは #2216。
+  割り当てが無いときは、空の値の項目（部品の名前だけ）を 1 つ出す（そのブロックは構文木の生成で使えないブロックになる）。
+- タッチセンサーとボタンは**真偽のブロック**（`もし <タッチセンサー (A2) が押された> なら` と書ける）。本家は丸い値のブロック（0 / 1）。
+- **通常モードのパレットには出さない**（E5）。VM のブロックの定義は `hideFromPalette: true` で、Studuino モードのパレットが
+  アーテックロボのカテゴリ（先頭の［入出力の設定］ボタンの下）に、**割り当てた部品のブロックだけ**を、その部品の最初のポートを
+  選んだ形で並べる（「2 つを同時に」はサーボモーターを 2 つ以上割り当てたとき）。
+- パレットに並べるときの値: DC モーターの速さ 100（ライブラリの 0〜255）、サーボモーター 90 度、ブザー 440 Hz、
+  向き = 正転、止め方 = ブレーキ、LED = オン。
+- **ブラウザでブロックを押しても何もしない**（値のブロックは 0 / 偽を返す）。Studuino モードではプログラムはブラウザで
+  動かさず、緑の旗 = 書きこみ（S13）。練習用の基板で試すことは第 1 弾ではしない。
 - 加速度センサー（I2C・A4/A5）・カラーセンサー・赤外線リモコンは第 1 弾では扱わない。
 
 ### 標準のブロック（Scratch のブロックをそのまま使う）
@@ -719,6 +726,7 @@ prod に出す前に回答を待つ必要は無い。
 - `packages/scratch-gui/src/components/studuino-port-settings-modal/` / `src/containers/studuino-port-settings-modal.jsx` — 入出力の設定のモーダル
 - `packages/scratch-gui/src/containers/blocks.jsx` — Studuino モードのパレットの絞り込みと、先頭の「アーテックロボ」のカテゴリ（［入出力の設定］ボタン）（マーカーつき）
 - `packages/scratch-gui/src/components/menu-bar/menu-bar.jsx` — アーテックロボのメニューの「Studuino モード」（マーカーつき）
+- `packages/scratch-vm/src/extensions/scratch3_smalrubot_s1/studuino-blocks.js` — 部品のブロックの定義（`getInfo` に足す・`hideFromPalette`）、ポートの動的メニュー、パレットに並べるブロックの選び方（`paletteBlocks`）
 - `packages/scratch-vm/src/extensions/scratch3_smalrubot_s1/studuino-settings.js` — 状態とポートの設定（保存の形・読みこみの直し・`runtime.extensionStorage` の読み書き・イベント `STUDUINO_SETTINGS_CHANGED`）
 - `packages/scratch-vm/src/serialization/sb3.js` / `src/engine/runtime.js` — `extensionStorage` の保存・読みこみ（マーカーつき）
 - `packages/scratch-gui/src/lib/studuino-ir/build-studuino-ir.js` — ブロックから構文木を作る（純粋関数。エラーの理由の一覧）

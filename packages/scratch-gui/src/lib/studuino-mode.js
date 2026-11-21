@@ -3,6 +3,11 @@
 // ここは GUI が使う判断（パレットに出すブロック・モードの切り替え）を 1 か所に集める。設計の正は
 // docs/studuino-mode/README.md。
 import {
+    DEFAULTS as STUDUINO_PART_DEFAULTS,
+    paletteBlocks as studuinoPaletteBlocks,
+    STUDUINO_PART_BLOCKS,
+} from '@smalruby/scratch-vm/src/extensions/scratch3_smalrubot_s1/studuino-blocks';
+import {
     getStuduinoSettings,
     MODE_NORMAL,
     MODE_STUDUINO,
@@ -58,7 +63,11 @@ const STUDUINO_STANDARD_BLOCKS = Object.freeze([
  * Studuino モードで使えるブロックの opcode の一覧。
  * @type {ReadonlyArray<string>}
  */
-const STUDUINO_ALLOWED_BLOCKS = STUDUINO_STANDARD_BLOCKS;
+const STUDUINO_ALLOWED_BLOCKS = Object.freeze([
+    ...STUDUINO_STANDARD_BLOCKS,
+    // 部品のブロック（#2216）
+    ...STUDUINO_PART_BLOCKS.map((b) => `${STUDUINO_EXTENSION_ID}_${b.opcode}`),
+]);
 
 /**
  * Studuino モードで使えるブロックか。
@@ -104,13 +113,50 @@ const xmlEscape = (text) =>
  * @param {string} options.name - カテゴリの名前。
  * @param {string} options.buttonText - ボタンの文言。
  * @param {{colourPrimary: string, colourTertiary: string}} options.colors - カテゴリの色（拡張機能の色）。
+ * @param {string} [options.blocksXml] - ボタンのあとに並べる部品のブロックの XML（#2216）。
  * @returns {string} category の XML。
  */
-const makeStuduinoCategoryXml = ({ name, buttonText, colors }) =>
+const makeStuduinoCategoryXml = ({ name, buttonText, colors, blocksXml = '' }) =>
     `<category name="${xmlEscape(name)}" id="${STUDUINO_EXTENSION_ID}" toolboxitemid="${STUDUINO_EXTENSION_ID}" ` +
     `colour="${xmlEscape(colors.colourPrimary)}" secondaryColour="${xmlEscape(colors.colourTertiary)}">` +
     `<button text="${xmlEscape(buttonText)}" callbackKey="${STUDUINO_PORT_SETTINGS_CALLBACK}"></button>` +
-    `</category>`;
+    `${blocksXml}</category>`;
+
+const numberXml = (name, value) =>
+    `<value name="${name}"><shadow type="math_number"><field name="NUM">${value}</field></shadow></value>`;
+const fieldXml = (name, value) => `<field name="${name}">${xmlEscape(value)}</field>`;
+
+/** 部品のブロックの、ポート以外の引数の既定（パレットに並べるときの値）。 */
+const PART_BLOCK_ARGUMENTS = Object.freeze({
+    studuinoDcMotorSpeed: () => numberXml('SPEED', STUDUINO_PART_DEFAULTS.SPEED),
+    studuinoDcMotorDirection: () => fieldXml('DIRECTION', 'normal'),
+    studuinoDcMotorStop: () => fieldXml('MODE', 'brake'),
+    studuinoServo: () => numberXml('ANGLE', STUDUINO_PART_DEFAULTS.ANGLE),
+    studuinoLed: () => fieldXml('STATE', 'on'),
+    studuinoBuzzerOn: () => numberXml('PITCH', STUDUINO_PART_DEFAULTS.PITCH),
+});
+
+/**
+ * Studuino モードのパレットに並べる部品のブロックの XML（#2216・S2）。割り当てた部品のブロックだけを、
+ * その部品の最初のポートを選んだ形で並べる（「2 つを同時に」は 1 つ目と 2 つ目のポート）。
+ * @param {object} settings - getStuduinoSettings の戻り値（redux の写しでもよい）。
+ * @returns {string} block の XML を並べたもの。
+ */
+const makeStuduinoPartBlocksXml = (settings) =>
+    studuinoPaletteBlocks(settings)
+        .map(({ opcode, ports }) => {
+            const type = `${STUDUINO_EXTENSION_ID}_${opcode}`;
+            if (opcode === 'studuinoServoPair') {
+                return (
+                    `<block type="${type}">${fieldXml('PORT1', ports[0])}` +
+                    `${numberXml('ANGLE1', STUDUINO_PART_DEFAULTS.ANGLE)}${fieldXml('PORT2', ports[1])}` +
+                    `${numberXml('ANGLE2', STUDUINO_PART_DEFAULTS.ANGLE)}</block>`
+                );
+            }
+            const rest = PART_BLOCK_ARGUMENTS[opcode] ? PART_BLOCK_ARGUMENTS[opcode]() : '';
+            return `<block type="${type}">${fieldXml('PORT', ports[0])}${rest}</block>`;
+        })
+        .join('');
 
 /**
  * toolbox の XML の先頭（最初のカテゴリの前）にカテゴリを入れる。
@@ -127,6 +173,7 @@ const prependToolboxCategory = (toolboxXML, categoryXML) => {
 };
 
 export {
+    makeStuduinoPartBlocksXml,
     STUDUINO_ALLOWED_BLOCKS,
     STUDUINO_EXTENSION_ID,
     STUDUINO_PORT_SETTINGS_CALLBACK,

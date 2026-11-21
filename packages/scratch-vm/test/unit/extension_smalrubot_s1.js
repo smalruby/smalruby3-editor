@@ -293,13 +293,13 @@ test('Smalrubot S1 Blocks', (t) => {
     t.test('menus keep the saved names and values', (st) => {
         const blocks = new SmalrubotS1Blocks(createMockRuntime());
         const info = blocks.getInfo();
-        st.same(Object.keys(info.menus).sort(), [
-            'actions',
-            'motorDirections',
-            'motors',
-            'positions',
-            'sensorPositions',
-        ]);
+        // Studuino モードのメニュー（#2216・studuino で始まる）は別に検査する（studuino_blocks.js）
+        st.same(
+            Object.keys(info.menus)
+                .filter((name) => !name.startsWith('studuino'))
+                .sort(),
+            ['actions', 'motorDirections', 'motors', 'positions', 'sensorPositions'],
+        );
         const values = (name) => info.menus[name].items.map((item) => item.value);
         st.same(values('actions').sort(), ['backward', 'forward', 'left', 'right', 'stop']);
         st.same(values('positions').sort(), ['left', 'right']);
@@ -316,7 +316,8 @@ test('Smalrubot S1 Blocks', (t) => {
     t.test('blocks keep the order of Smalrubot S1 and add the DC motor blocks', (st) => {
         const blocks = new SmalrubotS1Blocks(createMockRuntime());
         const info = blocks.getInfo();
-        const opcodes = info.blocks.map((b) => b.opcode);
+        // 通常モードのパレットに出るブロック（Studuino モードの部品のブロックは hideFromPalette）
+        const opcodes = info.blocks.filter((b) => !b.hideFromPalette).map((b) => b.opcode);
         st.same(opcodes, [
             'action',
             'actionAndStopAfter',
