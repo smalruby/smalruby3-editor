@@ -2,7 +2,7 @@
 @import '../../css/units.css';
 
 .modal-content {
-    width: 760px;
+    width: 840px;
     max-width: calc(100vw - 2rem);
 }
 
@@ -11,7 +11,8 @@
     background-color: $ui-white;
     padding: 1rem 1.5rem 1rem;
     color: $text-primary;
-    max-height: calc(100vh - 180px);
+    /* 授業 PC（1300×600）でも［割り当て］まで見えるように、本文の高さを画面に合わせてスクロールする */
+    max-height: calc(100vh - 160px);
     overflow-y: auto;
 }
 
@@ -31,16 +32,15 @@
     flex: 1 1 0;
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.125rem;
     min-width: 0;
 }
 
 .port-row {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
-    gap: 0.25rem 0.5rem;
-    min-height: 2rem;
+    gap: 0.5rem;
+    min-height: 1.875rem;
 }
 
 .port-name {
@@ -50,7 +50,7 @@
 }
 
 .part-select {
-    flex: 1 1 8rem;
+    flex: 1 1 6rem;
     min-width: 0;
     height: 1.75rem;
     border: 1px solid $ui-black-transparent;
@@ -61,6 +61,7 @@
 }
 
 .calibration {
+    flex: 0 0 auto;
     display: flex;
     align-items: center;
     gap: 0.25rem;
@@ -105,10 +106,14 @@
 }
 
 .button-row {
+    position: sticky;
+    bottom: -1rem;
     display: flex;
     justify-content: flex-end;
     gap: 0.75rem;
-    margin-top: 1rem;
+    margin-top: 0.75rem;
+    padding: 0.5rem 0 1rem;
+    background-color: $ui-white;
 }
 
 .primary-button,
@@ -133,7 +138,7 @@
 }
 
 .trademark {
-    margin: 0.75rem 0 0;
+    margin: 0;
     font-size: 0.6875rem;
     color: $text-primary-transparent;
 }
