@@ -29,7 +29,7 @@ import {
 } from '../../../../src/lib/lessons/courses';
 import { validateGoal } from '../../../../src/lib/lessons/goal';
 import { rubyToBlocksXml } from '../../../../src/lib/lessons/hint-blocks';
-import { HINT_TARGETS } from '../../../../src/lib/lessons/hint-targets';
+import { HINT_FOCUS, HINT_TARGETS } from '../../../../src/lib/lessons/hint-targets';
 import { ROLE_STEP_KIND } from '../../../../src/lib/lessons/lesson-role';
 import { validatePartQuiz } from '../../../../src/lib/lessons/part-quiz';
 import { normalizePartner } from '../../../../src/lib/lessons/practice-partner';
@@ -308,9 +308,10 @@ describe('lesson courses', () => {
             roles: false,
             mode: null,
             explanation: null,
+            wrongPlaceTip: null,
             steps: [
-                { title: null, target: 'palette', blocks: null, spotlight: true },
-                { title: null, target: null, blocks: 'move(10)', spotlight: false },
+                { title: null, target: 'palette', focus: null, blocks: null, spotlight: true, advanceOn: null },
+                { title: null, target: null, focus: null, blocks: 'move(10)', spotlight: false, advanceOn: null },
             ],
         });
     });
@@ -319,6 +320,11 @@ describe('lesson courses', () => {
         const lesson = defineLesson({ id: 'l', challenges: [{ id: 'a' }, { id: 'b' }, { id: 'c' }] });
         expect(lesson.name.id).toBe('gui.lessons.lesson.l.name');
         expect(lesson.challenges.map((c) => c.number)).toEqual([1, 2, 3]);
+    });
+
+    test('defineLesson does not move the hint pages by itself unless the lesson says so', () => {
+        expect(defineLesson({ id: 'l', challenges: [] }).autoAdvanceHints).toBe(false);
+        expect(defineLesson({ id: 'l', challenges: [], autoAdvanceHints: true }).autoAdvanceHints).toBe(true);
     });
 
     // 日本語モードに切りかえてよいか（#1741）。書いていなければ切りかえ不可
@@ -2302,7 +2308,7 @@ describe('lesson 0 "スモウルビーをたんけんしよう" (#2134)', () => 
         expect(ja[lesson0.name.id]).toBe('スモウルビーをたんけんしよう');
     });
 
-    test('has the 8 challenges of the spec, with 1 to 3 hint pages each', () => {
+    test('has the 8 challenges of the spec, with 1 to 5 hint pages each', () => {
         expect(lesson0.challenges.map((c) => `0-${c.number} ${ja[c.name.id]}`)).toEqual([
             '0-1 どこでしょう？',
             '0-2 ネコをつかんで動かそう',
@@ -2315,7 +2321,7 @@ describe('lesson 0 "スモウルビーをたんけんしよう" (#2134)', () => 
         ]);
         lesson0.challenges.forEach((c) => {
             expect(c.steps.length).toBeGreaterThanOrEqual(1);
-            expect(c.steps.length).toBeLessThanOrEqual(3);
+            expect(c.steps.length).toBeLessThanOrEqual(5);
             expect(validateGoal(c.goal)).toEqual([]);
         });
     });
@@ -2363,11 +2369,77 @@ describe('lesson 0 "スモウルビーをたんけんしよう" (#2134)', () => 
         lesson0.challenges.filter((c) => c !== where).forEach((c) => expect(c.partQuiz).toBeNull());
     });
 
-    test('the spotlight is only on the hints of the basic operations', () => {
-        const spot = lesson0.challenges.flatMap((c) => c.steps.filter((s) => s.spotlight).map((s) => s.target));
-        expect(new Set(spot)).toEqual(
-            new Set([HINT_TARGETS.STAGE, HINT_TARGETS.PALETTE, HINT_TARGETS.CODE_AREA, HINT_TARGETS.GREEN_FLAG]),
+    test('the hints of the operations point at the one thing to press, with the spotlight', () => {
+        const pages = lesson0.challenges.filter((c) => !c.partQuiz).flatMap((c) => c.steps);
+        // 操作するページは照らす（2 ページ目以降の「見よう」だけは照らさない）
+        expect(pages.filter((s) => !s.spotlight).map((s) => s.title.id)).toEqual([
+            'gui.lessons.challenge.blocks-l0-click-block.step2',
+        ]);
+        const kinds = pages.filter((s) => s.focus).map((s) => s.focus.kind);
+        expect(new Set(kinds)).toEqual(new Set(Object.values(HINT_FOCUS)));
+        // ボタン 1 つの場所（タブ・旗・止める）は場所そのものを指す
+        const buttons = pages.filter((s) => !s.focus).map((s) => s.target);
+        expect(new Set(buttons)).toEqual(
+            new Set([
+                HINT_TARGETS.STOP_BUTTON,
+                HINT_TARGETS.GREEN_FLAG,
+                HINT_TARGETS.COSTUMES_TAB,
+                HINT_TARGETS.SOUNDS_TAB,
+                HINT_TARGETS.CODE_TAB,
+            ]),
         );
+    });
+
+    test('the hint goes on by itself when the page is done (lesson 0 only)', () => {
+        expect(lesson0.autoAdvanceHints).toBe(true);
+        courseLessons(course)
+            .filter((l) => l !== lesson0)
+            .forEach((l) => expect(l.autoAdvanceHints).toBe(false));
+        const advance = (id) => findChallenge(id).challenge.steps.map((s) => s.advanceOn);
+        expect(advance('blocks-l0-snap')).toEqual([
+            { placed: 'motion_movesteps' },
+            { together: ['motion_movesteps', 'motion_turnright'] },
+            null,
+        ]);
+        expect(advance('blocks-l0-tabs')).toEqual([
+            { tab: 'costumes' },
+            { costume: 2 },
+            { tab: 'sounds' },
+            { focusClicked: true },
+            null,
+        ]);
+        // 止めるボタンのページは押さなくてもよいので「次へ」で進む
+        expect(advance('blocks-l0-flag')[1]).toBeNull();
+    });
+
+    test('clicking "move 10 steps" in the code area in 0-3 shows a tip at once', () => {
+        const click = findChallenge('blocks-l0-click-block').challenge;
+        expect(click.wrongPlaceTip).toEqual({
+            click: 'codeArea',
+            blocks: ['motion_movesteps'],
+            message: expect.objectContaining({ id: 'gui.lessons.challenge.blocks-l0-click-block.wrongPlace' }),
+        });
+        expect(ja[click.wrongPlaceTip.message.id]).toBe(
+            'それはスクリプトエリアのブロックだよ。ブロックパレットの中の「10 歩動かす」を押そう。',
+        );
+        expect(en[click.wrongPlaceTip.message.id]).toContain('Block Palette');
+        expect(jaHira[click.wrongPlaceTip.message.id]).toContain('スクリプトエリアの ブロック');
+        // ほかのチャレンジは持たない
+        allChallenges()
+            .filter((c) => c !== click)
+            .forEach((c) => expect(c.wrongPlaceTip).toBeNull());
+    });
+
+    test('the words for the parts of the screen come with what is written there', () => {
+        const tabs = findChallenge('blocks-l0-tabs').challenge;
+        expect(ja[tabs.task.id]).toContain('コードタブ（左上の「コード」と書いてあるところ）');
+        expect(ja[tabs.task.id]).toContain('コスチュームタブ（左上の「コスチューム」と書いてあるところ）');
+        expect(ja[tabs.task.id]).toContain('音タブ（左上の「音」と書いてあるところ）');
+        expect(jaHira[tabs.task.id]).toContain('コードタブ（ひだりうえの「コード」と かいてある ところ）');
+        expect(en[tabs.task.id]).toContain('Code tab (the word "Code" at the top left)');
+        const add = findChallenge('blocks-l0-sprite-backdrop').challenge;
+        expect(ja[add.task.id]).toContain('スプライトを選ぶボタン（');
+        expect(ja[add.task.id]).toContain('背景（ステージのうしろの絵）');
     });
 
     test('the ja-Hira strings of lesson 0 have no kanji', () => {
@@ -2397,6 +2469,6 @@ describe('lesson 0 "スモウルビーをたんけんしよう" (#2134)', () => 
         lesson0.challenges.filter((c) => c !== tabs).forEach((c) => expect((c.setup || {}).sprites).toBeUndefined());
         expect(ja['gui.lessons.challenge.blocks-l0-tabs.task']).toContain('「Chirp」という名前の音');
         expect(en['gui.lessons.challenge.blocks-l0-tabs.task']).toContain('"Chirp"');
-        expect(jaHira['gui.lessons.challenge.blocks-l0-tabs.step2']).toContain('「Chirp」という なまえの おと');
+        expect(jaHira['gui.lessons.challenge.blocks-l0-tabs.step4']).toContain('「Chirp」という なまえの おと');
     });
 });

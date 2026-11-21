@@ -1,23 +1,10 @@
 // 名前の札（「ガイド」）（#2133）。画面の部分（タブ・ブロックパレット・スクリプトエリア・ステージ・緑の旗と停止ボタン・
 // スプライトペイン・背景・課題バー・ヒント）に名前の札を重ねて出す。部分の DOM の探し方はヒントの吹き出しと同じ
 // （hint-targets.js の findHintTargetRect）。札の置き方は純粋関数にして unit テストで確かめる。
-import { HINT_TARGETS, findHintTargetRect } from './hint-targets';
+import { HINT_TARGETS, findHintTargetElement, findHintTargetRect } from './hint-targets';
 
 /** 課題バーの「ガイド」を押したときに札を出しておく時間（ms）。 */
 export const PART_NAMES_DURATION_MS = 6000;
-
-// 札を押したときに押す部品の探し方（小さな部分だけ）。hint-targets.js の TARGET_SPECS と同じ候補を同じ順に書く
-// （同じ部品を見つけることを test/unit/lib/lessons/part-names.test.js が確かめる）。緑の旗・停止ボタンは img が
-// 見つかるので、押すのはそれを包むボタン（clickPartNameTarget）
-const CLICK_SELECTORS = Object.freeze({
-    hint: ['[data-testid="lesson-task-bar-hint"]'],
-    codeTab: ['[data-testid="mobile-side-rail-code"]', '[class*="gui_tab_"]:nth-child(1)'],
-    costumesTab: ['[data-testid="mobile-side-rail-costume"]', '[class*="gui_tab_"]:nth-child(2)'],
-    soundsTab: ['[data-testid="mobile-side-rail-sound"]', '[class*="gui_tab_"]:nth-child(3)'],
-    rubyTab: ['[data-testid="mobile-side-rail-ruby"]', '[class*="gui_tab_"]:nth-child(4)'],
-    greenFlag: ['[data-testid="mobile-side-rail-play"]', '[class*="green-flag_green-flag_"]'],
-    stop: ['[class*="stop-all_stop-all_"]'],
-});
 
 // 札を出す部分（先に書いたものから置く）。小さな部分（ボタン・タブ）は、札で隠すと押す場所が
 // わからなくなるので、外側に置き、ほかの札でも隠さない（small）。外側の札は部分を指すしっぽの付いた吹き出しにし、
@@ -50,25 +37,15 @@ export const findPartNameRects = (doc) =>
         .filter((part) => part.rect !== null)
         .map(({ target, ...part }) => part);
 
-const isVisible = (el) => {
-    const r = el.getBoundingClientRect();
-    return r.right - r.left > 0 && r.bottom - r.top > 0;
-};
-
 /**
- * 小さな部分の札を押したときに押す部品を探す（候補のうち、最初に見えたもの）。
+ * 小さな部分の札を押したときに押す部品を探す（探し方はヒントの吹き出しと同じ・hint-targets.js）。
  * @param {string} label - 札の名前（`PART_NAMES` の label）。
  * @param {Document} doc - 探す document。
  * @returns {?Element} 押す部品。広い部分・画面に無い部分は null。
  */
 export const findPartNameClickTarget = (label, doc) => {
-    const selectors = CLICK_SELECTORS[label];
-    if (!selectors || !doc) return null;
-    for (const selector of selectors) {
-        const found = Array.from(doc.querySelectorAll(selector)).find(isVisible);
-        if (found) return found;
-    }
-    return null;
+    const part = PART_NAMES.find((p) => p.label === label);
+    return part && part.small ? findHintTargetElement(part.target, doc) : null;
 };
 
 /**

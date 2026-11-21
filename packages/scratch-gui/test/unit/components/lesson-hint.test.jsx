@@ -4,7 +4,7 @@ import { act, cleanup, fireEvent, render } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import LessonHint from '../../../src/components/lesson-hint/lesson-hint.jsx';
-import { HINT_TARGETS } from '../../../src/lib/lessons/hint-targets';
+import { HINT_FOCUS, HINT_TARGETS } from '../../../src/lib/lessons/hint-targets';
 import en from '../../../src/locales/en';
 import ja from '../../../src/locales/ja';
 
@@ -287,6 +287,51 @@ describe('LessonHint', () => {
         const noPlace = renderHint({ spotlight: true, target: HINT_TARGETS.KEYBOARD });
         expect(noPlace.queryByTestId('lesson-hint-spotlight')).not.toBeInTheDocument();
         expect(noPlace.getByTestId('lesson-hint').getAttribute('data-side')).toBe('center');
+    });
+
+    test('with a focus, the spotlight lights the one thing to press, and the pane when it is not found', () => {
+        const blocks = addTarget('blocks_blocks_x', { left: 0, top: 0, right: 800, bottom: 600 });
+        blocks.innerHTML = '<svg class="blocklyFlyout"><g class="motion_movesteps blocklyBlock"></g></svg>';
+        const setRect = (el, r) => {
+            el.getBoundingClientRect = () => ({ ...r, width: r.right - r.left, height: r.bottom - r.top });
+        };
+        setRect(blocks.querySelector('.blocklyFlyout'), { left: 60, top: 80, right: 300, bottom: 600 });
+        setRect(blocks.querySelector('g'), { left: 70, top: 110, right: 184, bottom: 148 });
+        const focus = { kind: HINT_FOCUS.PALETTE_BLOCK, opcode: 'motion_movesteps', category: 'motion' };
+
+        const lit = renderHint({ spotlight: true, focus });
+        const hole = lit.getByTestId('lesson-hint-spotlight');
+        expect(hole.style.left).toBe('66px');
+        expect(hole.style.top).toBe('106px');
+        expect(hole.style.width).toBe('122px');
+        lit.unmount();
+
+        // パレットに無いブロック（なかまのボタンも無い）: パレットの場所を照らす
+        const fallback = renderHint({ spotlight: true, focus: { ...focus, opcode: 'looks_say', category: 'x' } });
+        const pane = fallback.getByTestId('lesson-hint-spotlight');
+        expect(pane.style.left).toBe('56px');
+        expect(pane.style.width).toBe('248px');
+    });
+
+    test('shows the tip for a click in the wrong place above the title', () => {
+        const tip = { id: 'gui.lessons.challenge.blocks-l0-click-block.wrongPlace', defaultMessage: 'Wrong place' };
+        const { getByTestId, queryByTestId, rerender } = renderHint({ tip });
+        expect(getByTestId('lesson-hint-tip')).toHaveAttribute('role', 'alert');
+        expect(getByTestId('lesson-hint-tip').textContent).toContain('Code Area');
+        rerender(
+            <IntlProvider locale="en" messages={en}>
+                <LessonHint
+                    count={7}
+                    index={1}
+                    target={HINT_TARGETS.PALETTE}
+                    title={title}
+                    onClose={jest.fn()}
+                    onNext={jest.fn()}
+                    onPrev={jest.fn()}
+                />
+            </IntlProvider>,
+        );
+        expect(queryByTestId('lesson-hint-tip')).not.toBeInTheDocument();
     });
 
     test('re-measures when the target appears later (tab switch)', () => {

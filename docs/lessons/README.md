@@ -64,6 +64,7 @@
 | `challenges` | チャレンジ[] | 並び順 |
 | `allowDnclMode` | boolean | レッスンのあいだ Ruby タブを日本語モードに切りかえてよいか。**書いていなければ不可**（`false`）。下の「日本語モードの切りかえ」 |
 | `showPartNames` | boolean | チャレンジを開いたときから画面の部分の名前の札を出しておくか（下の「名前の札」。課題バーの「ガイド」で消せる）。**書いていなければ出さない**（`false`）。画面の部分の名前を覚えるレッスン 0 で使う |
+| `autoAdvanceHints` | boolean | ヒントのページの操作ができたら、吹き出しが**自分で次のページへ進む**か（ヒントの `advanceOn`・下の「ヒントの吹き出し」の「自分で次へ進む」）。**書いていなければ進まない**（`false`。「進める」で進む）。レッスン 0 だけ `true` |
 | `warmup` | boolean | コースの数に入れない、はじめのレッスンか（上の「コース」）。**書いていなければ数える**（`false`）。「きょうからプログラマー」のレッスン 0 だけ `true` |
 | `checkCount` | number | レッスンの ✓（「全部できた」）に要るできた数。**書いていなければチャレンジの数**（全部）。テーマを選んでやるレッスン（「チャットをつくろう」のレッスン 5）だけ `1` |
 
@@ -125,6 +126,7 @@
 | `partQuiz` | `{questions: [label, ...], offerLessonSkip?: boolean}` \| null | null | 「どこでしょう？」のクイズ（下の「どこでしょう？のクイズ」）。`offerLessonSkip: true` なら、1 回もまちがえずに全部答えたとき「できた！」で次のレッスンへ進むこともえらべる。`label` は名前の札の名前（`lib/lessons/part-names.js` の `PART_NAMES`）。クイズのあいだは画面のクリックをクイズが受け、名前の札と「ガイド」のボタンは出さない。`validatePartQuiz` が形を確かめる |
 | `mode` | `'readDiagram'` \| null | null | チャレンジの形。null = ふつう。`'readDiagram'` = **読んで作る**（説明とアクティビティ図だけで指示する）。図を必ず出し（`activityDiagram` は true になる）、ヒントを 3 ページ（図と説明 → 試す → 答えを見る）に置き換える（`steps` は使わない）。最後の手段のページ（「正解のプログラムを確認する」）は付かない。答えは `code`。下の「読んで作るチャレンジ」 |
 | `explanation` | message \| null | null | 読んで作るチャレンジのヒントの 1 ページ目の説明。無ければ `task` を出す |
+| `wrongPlaceTip` | `{click: 'codeArea', blocks: [opcode], message}` \| null | null | まちがった場所での操作に**すぐ出す一言**。そのブロックを**スクリプトエリアで押した**ら、ヒントの吹き出しの文言の上に `message` を出す（小さくしていたら吹き出しを出す。ページが変わる・パレットで押すと消える）。判定は `lib/lessons/hint-advance.js` の `isWrongPlaceClick`、パレットかスクリプトエリアかは「できた」の `trigger: {click}` と同じ `describeThread`（`goal-monitor.js`）で分ける。いまは 0-3 だけ |
 
 ヒント（`steps` の要素）。deck の step と同じ `title` を文言にし、吹き出しのための項目を足す。
 省いた項目は `defineChallenge` が既定値で埋める。
@@ -133,8 +135,10 @@
 |------|----|------|------|
 | `title` | message \| null | null | 吹き出しの文言 |
 | `target` | string \| null | null | 指す場所（`lib/lessons/hint-targets.js` の `HINT_TARGETS`）: `palette`（ブロックパレット）・`code-area`（スクリプトエリア）・`stage`（ステージ）・`sprite-list`（スプライトペイン）・`sounds-tab`（音タブ）・`costumes-tab`（コスチュームタブ）・`backdrop`（背景を選ぶ）・`extension-button`（拡張機能のボタン）・`green-flag`（緑の旗）・`stop-button`（停止ボタン）・`code-tab`（コードタブ）・`ruby-tab`（ルビータブ）・`task-bar`（課題バー）・`hint-button`（課題バーの「ヒント」）・`practice-partner`（メッシュの練習相手のパネル。閉じているときは小さな「練習相手」のボタン）・`role-picker`（課題バーの役のボタン。役のあるチャレンジの「役を決めよう」のページ）・`keyboard`（場所の無いもの。画面の真ん中に出す） |
+| `focus` | object \| null | null | `target` の場所の中の、**押すもの 1 つ**（`lib/lessons/hint-targets.js` の `HINT_FOCUS`）。見つかればそれを指して照らし、見つからなければ `target` の場所を指す（何も指さない・落ちる、はしない）。`{kind: 'paletteBlock', opcode, category}`（ブロックパレットのブロック。パレットの見えている範囲に無ければ、左のなかまのボタン `category` を指す）・`{kind: 'codeBlock', opcode}`（スクリプトエリアのブロック 1 つ。下につながったブロックは入れない）・`{kind: 'codeField', opcode, shadow}`（そのブロックの白いところ・▼。`shadow` は入れてある影のブロックの opcode。数は `math_number`、▼ は `motion_goto_menu` など）・`{kind: 'stageSprite'}`（ステージのいま選んでいるスプライト。DOM が無いので描画の位置から求める）・`{kind: 'costume', number}`（コスチュームタブの一覧の n 番目の絵）・`{kind: 'soundPlay'}`（音タブの再生ボタン）・`{kind: 'spriteAdd'}` / `{kind: 'backdropAdd'}`（スプライトを選ぶボタン・背景を選ぶボタン） |
 | `blocks` | string \| `{ja, 'ja-Hira', en}` \| null | null | 吹き出しに描くブロック（Ruby。`code` と同じ変換でブロックにする）。`code` と同じく locale ごとにも書ける |
-| `spotlight` | boolean | false | はじめて開いたチャレンジだけ、周りを暗くして `target` を照らす |
+| `spotlight` | boolean | false | はじめて開いたチャレンジだけ、周りを暗くして `target`（`focus` が見つかればそれ）を照らす |
+| `advanceOn` | object \| null | null | そのページの操作ができたら自分で次のページへ進む（レッスンが `autoAdvanceHints` のときだけ）。1 つだけ書く: `{click: 'palette', block}`（パレットのそのブロックを押した）・`{placed: opcode}`（スクリプトエリアに置いた）・`{together: [opcode, ...]}`（1 つのスクリプトにつながった）・`{tab}`（そのタブを開いた）・`{costume: n}`（n 番目の絵になった）・`{spriteAdded: true}`・`{backdropChanged: true}`・`{field: {opcode, input, ne}}`（入れるところの値が `ne` でなくなった）・`{focusClicked: true}`（`focus` を押した）。無いページは今までどおり「進める」で進む |
 
 `steps` の後ろには、`debug` か `code` があれば**最後の手段のページ**（「うまく動かないときは」と「プログラムを入れる」）が
 1 つ付く（`getCurrentHint` の `count` はこのページを含む）。
@@ -247,8 +251,16 @@ code: {
 
 画面の部分の名前とレッスンの進め方（ヒントを出したまま操作する）を覚える。8 チャレンジ・合計 約 12〜15 分で、
 1 チャレンジで新しく出る名前は 1〜2 個。`showPartNames: true`（名前の札を最初から出す）で、
-**パレットはしぼらない**（`allowedBlocks: null`）。ヒントは各 1〜3 ページで、吹き出しは `target` で部分を指す（スポットライトは
-つかむ・押す・くっつける・消す・旗の基本操作だけ）。判定は**結果で見る**（タブを開いたことは見ない）。最初の 0-1 は
+**パレットはしぼらない**（`allowedBlocks: null`）。ヒントは各 1〜5 ページで、**1 ページで 1 つの操作**。吹き出しは
+**押すもの 1 つ**（`focus`。パレットの「10 歩動かす」・ステージのネコ・「15」・▼・2 つめの絵・再生ボタン・スプライトを選ぶ
+ボタンなど。タブ・旗・止めるは `target` がもうボタン 1 つ）を指して照らし（「見よう」のページのほかは `spotlight`）、
+そのページの操作ができたら**自分で次のページへ進む**（`autoAdvanceHints: true` と各ページの `advanceOn`。止めるボタンの
+ページは押さなくてよいので「進める」で進む）。授業で、子どもが何を押すのかをまちがえ（0-3 でブロックをスクリプトエリアに
+置いてから押し、なぜできたにならないかわからなかった）、「タブ」という言葉を知らずにコードタブを見つけられなかったため。
+0-3 はスクリプトエリアで「10 歩動かす」を押すと、すぐ「それはスクリプトエリアのブロックだよ。…」と出す（`wrongPlaceTip`）。
+課題・ヒントの文では、画面の部分の名前のあとに見える字・形を添える（「コードタブ（左上の「コード」と書いてあるところ）」・
+「スプライトを選ぶボタン（右下の、ネコの顔の丸いボタン）」・「背景（ステージのうしろの絵）」など）。
+判定は**結果で見る**（タブを開いたことは見ない）。最初の 0-1 は
 「どこでしょう？」（画面の場所の名前を答えながら覚える入口。下の「どこでしょう？のクイズ」）。0-5 は前の答え、0-6 は
 「15 度回す」と「マウスのポインターへ行く」の旗のスクリプト（`setup.code`）から、0-7 はシマラビ（`setup.sprites`。絵が 2 つ）から始める。課題・ヒント・クイズの部分の名前は **Scratch Wiki「Scratchユーザーインターフェース (3.0)」の名前**
 （ブロックパレット・スクリプトエリア・コスチュームタブ・音タブ・コードタブ・ステージ・緑の旗・
@@ -263,8 +275,8 @@ Stop Button / Sprite Pane など）で書く。
 | 0-4 | `blocks-l0-snap` | 「10 歩動かす」と「15 度回す」をスクリプトエリアに置いて、くっつけて押す | スクリプトエリア・ドラッグ・くっつける | `uses`・`trigger: {click: 'codeArea'}`・`together: true`（スクリプトエリアで押した 1 回の実行で 2 つとも動いた = つながっている） |
 | 0-5 | `blocks-l0-flag` | 「旗が押されたとき」をいちばん上にくっつけて緑の旗を押す。止めるときは停止ボタン（赤い ●） | 緑の旗・停止ボタン | `uses`・旗のスクリプトで「歩動かす」か「度回す」が動いた |
 | 0-6 | `blocks-l0-change-number` | 「15 度回す」の「15」を「90」に変え、「マウスのポインターへ行く」の ▼ で「どこかの場所」をえらぶ。いらないブロックはブロックパレットへもどすと消える | 白いところ・▼・消す | `uses`・`trigger: {click: 'any'}`・`DEGREES` が 15 でない「度回す」と、`TO` がマウスのポインターでない「へ行く」が動いた（旗でも押してでも・別々の実行でもよい） |
-| 0-7 | `blocks-l0-tabs` | シマラビ（絵が 2 つ）で始め、コスチュームタブで 2 つめの絵をえらび、音タブで ▶ を押して「Chirp」という名前の音を聞き、コードタブにもどる | タブ | `currentCostume`（`number: 2`）・`tab`（`code`）。音の再生は判定しない |
-| 0-8 | `blocks-l0-sprite-backdrop` | スプライトペインのボタンからスプライトを 1 つ足し、背景も 1 つえらぶ | スプライトペイン・背景 | `sprites`（`min: 2`）・`currentCostume`（`target: 'stage'`・`changed: true`） |
+| 0-7 | `blocks-l0-tabs` | シマラビ（絵が 2 つ）で始め、コスチュームタブで 2 つめの絵をえらび、音タブで ▶ を押して「Chirp」という名前の音を聞き、コードタブにもどる（ヒントは 5 ページ: コスチュームタブ → 2 つめの絵 → 音タブ → 再生ボタン → コードタブ） | タブ | `currentCostume`（`number: 2`）・`tab`（`code`）。音の再生は判定しない |
+| 0-8 | `blocks-l0-sprite-backdrop` | スプライトを選ぶボタンからスプライトを 1 つ足し、背景を選ぶボタンで背景も 1 つえらぶ | スプライトペイン・背景 | `sprites`（`min: 2`）・`currentCostume`（`target: 'stage'`・`changed: true`） |
 
 「足す・えらぶ」場所を指すものと、
 ブロックパレット・スクリプトエリアを指して**本物のブロック**を描くもの、ステージ・キーボードを指して「動かしてみよう」と
@@ -1576,8 +1588,29 @@ partner: {
   ずらした結果、しっぽの位置が次のどれかになるときは、しっぽを出さない（何も指さず、閉じるボタンの横の白いひし形に見えるため）:
   指す場所の真ん中が吹き出しの辺の外、左右の辺でヘッダーの帯の横（1300×600 で旗を指すページ）、上の辺で閉じるボタンの上。
   帯の下の端と閉じるボタンの位置は、吹き出しの DOM から測って渡す。
+- **押すもの 1 つを指す（`focus`）**: ヒントに `focus` があれば、`findHintFocusRect`（`hint-targets.js`）でその 1 つを探して
+  指し、照らす（置く側は `focusSides`）。見つからなければ `target` の場所を指す。DOM を読むだけで、Blockly のメソッドは
+  呼ばない: パレット・スクリプトエリアのブロックは、scratch-blocks がブロックの `g` に付ける **opcode の class**
+  （`g.blocklyBlock.motion_movesteps`）で探し、パレットの見えている範囲（`.blocklyFlyout`）に上下とも入っているものだけを使う
+  （入っていなければツールボックスのなかまのボタン `.blocklyToolboxCategory#<なかまの id>` を指す。押すとパレットがそこへ動き、
+  次に測るとブロックを指す）。スクリプトエリアのブロックは、その形（`:scope > path.blocklyPath`）だけ、白いところ・▼ は
+  子の影のブロックの `g`。ステージのスプライトは `renderer.getBounds` をステージの canvas の上の矩形にする
+  （`stageBoundsToRect`）。絵・再生ボタン・スプライトを選ぶ / 背景を選ぶボタンは CSS Modules の接頭辞
+  （`selector_list-item_`・`sound-editor_round-button_`・`sprite-selector_add-button_` / `stage-selector_add-button_` の中の
+  `action-menu_main-button_`）。パレットのブロックを指すときは、スクリプトエリアに置いたスクリプトにも吹き出しを
+  かぶせない（パレットからドラッグして置いたブロックが吹き出しに隠れて押せなかった）。
+- **自分で次へ進む（`autoAdvanceHints` のレッスンの `advanceOn`）**: `lib/lessons/use-hint-auto-advance.js` が、ページを
+  出したときのエディタの様子（`takeHintObservation`: いまのスプライトのブロック・つながり・入れた値・絵の番号・背景・
+  スプライトの数・タブ）を覚え、300ms ごとに今の様子と比べる。「ページを出したときにはできていなかったことが、
+  できたとき」だけ（`isStepAdvanced`）`nextHint` する（もどるで開いたページは、もうできていてもすぐには進まない）。
+  パレット・スクリプトエリアで押したブロックは「できた」の見張りと同じ `vm-execution-hook.js`、`focus` を押したことは
+  document の `pointerdown`（capture・読むだけ）で知る。白いところに数を入れている・▼ のメニューを開いているあいだ
+  （`.blocklyHtmlInput` / `.blocklyDropDownDiv`）は進めない。最後の手順のページからは進めない（「うまく動かないときは」の
+  ページへは行かない）。吹き出しを小さくしていても進む（札のページが変わる）が、閉じているときは進まない。
+- **まちがった場所の一言（`wrongPlaceTip`）**: 同じ hook が、スクリプトエリアで押したブロックを見て
+  `isWrongPlaceClick` なら、吹き出しの文言の上に一言（`lesson-hint-tip`・`role="alert"`）を出す。
 - **スポットライト**: `spotlight: true` のヒントで、かつ `hintSpotlight`（はじめて開いたチャレンジ）のときだけ、
-  指す場所の矩形に穴を開けた巨大な box-shadow で周りを暗くする。`pointer-events: none` なので、照らした
+  指す場所（`focus` が見つかればその 1 つ）の矩形に穴を開けた巨大な box-shadow で周りを暗くする。`pointer-events: none` なので、照らした
   パレットやステージはそのまま操作できる（ドラッグ中のブロックは吹き出しより上を通る）。
 - **進める・もどる・小さくする**: `nextHint` / `prevHint` / `hideHint`。最初で「もどる」が無効。最後のページは
   そのあとが無いので、「進める」の代わりに **「おわり」**（`lesson-hint-finish`。押すと閉じる）を出す。
@@ -1947,6 +1980,7 @@ partner: {
 | `lesson-hint-spotlight` | div | スポットライトの穴（照らしているときだけある） |
 | `lesson-hint-position` | span | 「ヒント n / N」 |
 | `lesson-hint-title` | p | ヒントの文言 |
+| `lesson-hint-tip` | p | まちがった場所での操作にすぐ出す一言（チャレンジの `wrongPlaceTip`。文言の上・`role="alert"`） |
 | `lesson-hint-emphasis` | strong | ヒントの文言の中の強調（`**…**`） |
 | `lesson-hint-note` | p | 文言の下の一言（読んで作るチャレンジの 1 ページ目の「答えは最後のページ」） |
 | `lesson-hint-blocks-label` | p | 描いたブロックの見出し（読んで作るチャレンジの答えのページで、プログラムが 2 つ以上あるとき「ネコのプログラム」） |
@@ -2152,7 +2186,9 @@ GTM・GA4 の設定（トリガー・データレイヤー変数・カスタム�
 | `packages/scratch-gui/src/lib/lessons/hint-minimized.js` | 小さくしたヒントの札の短い見出し（`shortHintHeading`）と置き場所（`minimizedHintPosition`）（純粋関数） |
 | `packages/scratch-gui/src/containers/lesson-hint.jsx` | 吹き出しのコンテナ（`getCurrentHint` を読み、`blocks` を XML にし、「プログラムを入れる」を dispatch。クラスに参加中の生徒には手順の `classroomTitle` を出す） |
 | `packages/scratch-gui/src/lib/lessons/hint-text.js` | ヒントの文言の決まり（`**…**` の強調を分ける `splitEmphasis`、クラスの中と外で文言を選ぶ `hintStepTitle` / `isSeatedStudent`） |
-| `packages/scratch-gui/src/lib/lessons/hint-targets.js` | 指す場所の名前（`HINT_TARGETS`）・DOM の探し方・置き方・ドラッグした位置を画面に収める（`clampHintPosition`）・置いてよい範囲（`hintViewport`。SP のサイドレールの右・課題バーの下）（純粋関数） |
+| `packages/scratch-gui/src/lib/lessons/hint-advance.js` | ヒントのページを自分で次へ進めるか（`isStepAdvanced` / `canAutoAdvance`）・まちがった場所の操作か（`isWrongPlaceClick`）・エディタの様子を VM から集める（`takeHintObservation`）（純粋関数） |
+| `packages/scratch-gui/src/lib/lessons/use-hint-auto-advance.js` | 上を使う hook（押したブロック・`focus` を押したこと・300ms ごとの様子を集め、`nextHint` と一言を出す）。`containers/lesson-hint.jsx` が使う |
+| `packages/scratch-gui/src/lib/lessons/hint-targets.js` | 指す場所の名前（`HINT_TARGETS`）・押すもの 1 つ（`HINT_FOCUS`・`findHintFocusRect` / `findHintFocusElement`・`stageBoundsToRect`）・DOM の探し方・置き方・ドラッグした位置を画面に収める（`clampHintPosition`）・置いてよい範囲（`hintViewport`。SP のサイドレールの右・課題バーの下）（純粋関数） |
 | `packages/scratch-gui/src/lib/lessons/part-names.js` | 名前の札を出す部分（`PART_NAMES`）・探し方（`findPartNameRects`）・札の置き方としっぽ（`computePartNameLayout`。純粋関数）・小さな部分の札を押したときに押す部品（`clickPartNameTarget`） |
 | `packages/scratch-gui/src/components/lesson-part-names/` | 名前の札の重ね（枠と札・置き直し・6 秒で消す） |
 | `packages/scratch-gui/src/lib/lessons/part-quiz.js` | 「どこでしょう？」のクイズの判定（`isPartQuizAnswer` / `partQuizTarget` / `validatePartQuiz`。純粋関数） |
