@@ -212,4 +212,27 @@ describe('StudentStartMethod の GA (#1831)', () => {
         fireEvent.click(getByTestId('classroom-start-main'));
         expect(h.onKeepCurrent).toHaveBeenCalled();
     });
+
+    test('読むのを待つ間は「よく読もう… n」で押せず、ほかの始め方も開けない', () => {
+        const h = handlers();
+        const { getByTestId, queryByTestId, rerender } = renderMethod({
+            ...h,
+            method: { main: 'starter', others: ['keep'] },
+            waitSeconds: 3,
+        });
+        expect(getByTestId('classroom-start-main')).toBeDisabled();
+        expect(getByTestId('classroom-start-wait')).toHaveTextContent('Read it well… 3');
+        expect(getByTestId('classroom-start-others-toggle')).toBeDisabled();
+        fireEvent.click(getByTestId('classroom-start-main'));
+        expect(h.onLoadStarter).not.toHaveBeenCalled();
+        rerender(
+            <IntlProvider locale="en">
+                <StudentStartMethod {...h} method={{ main: 'starter', others: ['keep'] }} waitSeconds={0} />
+            </IntlProvider>,
+        );
+        expect(queryByTestId('classroom-start-wait')).not.toBeInTheDocument();
+        expect(getByTestId('classroom-start-main')).toHaveTextContent('Start from the starter');
+        fireEvent.click(getByTestId('classroom-start-main'));
+        expect(h.onLoadStarter).toHaveBeenCalledTimes(1);
+    });
 });

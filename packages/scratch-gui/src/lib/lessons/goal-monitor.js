@@ -133,7 +133,7 @@ const readRemoteValues = (runtime) => {
 
 // スレッドの始まり（ハット）を run の形にする。パレットで押したブロックはスプライトのブロックに無く、
 // runtime.flyoutBlocks にある（execute.js も flyoutBlocks から探す）。それを `palette` として分ける（#2134）
-const describeThread = (thread, runtime) => {
+export const describeThread = (thread, runtime) => {
     const container = thread.blockContainer || (thread.target && thread.target.blocks);
     const own = container && typeof container.getBlock === 'function' ? container.getBlock(thread.topBlock) : null;
     const flyout = runtime && runtime.flyoutBlocks;

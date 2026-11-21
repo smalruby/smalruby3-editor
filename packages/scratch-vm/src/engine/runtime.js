@@ -2661,9 +2661,44 @@ class Runtime extends EventEmitter {
         // TODO: we may want to format the label in a locale-specific way.
         return {
             category: 'extension', // This assumes that all extensions have the same monitor color.
-            label: `${categoryInfo.name}: ${block.info.text}`
+            label: `${categoryInfo.name}: ${block.info.text}`,
+            // === Smalruby: Start of extension monitor label arguments ===
+            labelFn: params => `${categoryInfo.name}: ${this._fillMonitorLabelArguments(categoryInfo, block, params)}`
+            // === Smalruby: End of extension monitor label arguments ===
         };
     }
+
+    // === Smalruby: Start of extension monitor label arguments ===
+    /**
+     * Replace the `[ARG]` placeholders of an extension block's text with the monitor's values,
+     * so a monitor shows "Right speed" instead of "[POSITION] speed".
+     * @param {CategoryInfo} categoryInfo - the extension category the block belongs to.
+     * @param {object} block - the block info from the category.
+     * @param {object} params - the monitor's params (field values of the block and its shadows).
+     * @returns {string} the block text with the known values filled in.
+     */
+    _fillMonitorLabelArguments (categoryInfo, block, params) {
+        const text = block.info.text;
+        const args = block.info.arguments;
+        if (typeof text !== 'string' || !args || !params) return text;
+        return text.replace(/\[([^\]]+)\]/g, (placeholder, argName) => {
+            const argInfo = args[argName];
+            if (!argInfo) return placeholder;
+            // A menu that accepts reporters is a shadow block whose field is named after the menu.
+            let value = params[argName];
+            if (typeof value === 'undefined' && argInfo.menu) value = params[argInfo.menu];
+            if (typeof value === 'undefined' || value === null) return placeholder;
+
+            const menuInfo = argInfo.menu && categoryInfo.menuInfo && categoryInfo.menuInfo[argInfo.menu];
+            if (menuInfo && Array.isArray(menuInfo.items)) {
+                const item = this._convertMenuItems(menuInfo.items)
+                    .find(([, itemValue]) => String(itemValue) === String(value));
+                if (item) return item[0];
+            }
+            return String(value);
+        });
+    }
+    // === Smalruby: End of extension monitor label arguments ===
 
     /**
      * Create a new global variable avoiding conflicts with other variable names.

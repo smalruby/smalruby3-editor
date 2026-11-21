@@ -3,6 +3,7 @@
  * - レッスン表: レッスン 0 がコースの最初に出て、コースの数（n / 11）には入らない。
  * - 0-1: ステージのネコをマウスでつかんで動かすと「できた！」。
  * - 0-3: 2 つのブロックをくっつけたプログラムを、コードエリアで押すと「できた！」。
+ * - 0-7: ヒントは押すもの 1 つを指し、そのページの操作（タブ・2 つめの絵）ができたら自分で次のページへ進む。
  * - 0-8: 画面の部分をクリックして答えるクイズ。まちがえると正しい場所が光り、クリックは下の部品に届かない。
  *   5 問とも正しい場所をクリックすると「できた！」。
  * 窓は授業のパソコンと同じ 1300×600。
@@ -98,7 +99,7 @@ describe('Lesson 0 (#2134)', () => {
         expect(await getLogs()).toEqual([]);
     });
 
-    test('0-1: dragging the cat on the stage completes it', async () => {
+    test('0-2: dragging the cat on the stage completes it', async () => {
         await loadEditor();
         await openChallenge('blocks-l0-drag-cat');
         // 名前の札（「ガイド」）はレッスン 0 では最初から出ている
@@ -117,7 +118,7 @@ describe('Lesson 0 (#2134)', () => {
         expect(await getLogs()).toEqual([]);
     });
 
-    test('0-3: clicking the two snapped blocks in the code area completes it', async () => {
+    test('0-4: clicking the two snapped blocks in the code area completes it', async () => {
         await loadEditor();
         await openChallenge('blocks-l0-snap');
         // 置いてくっつけたのと同じ状態にする（ヒントの「プログラムを入れる」と同じ変換）
@@ -149,7 +150,31 @@ describe('Lesson 0 (#2134)', () => {
         expect(await getLogs()).toEqual([]);
     });
 
-    test('0-8: answering the 5 questions by clicking the parts completes it', async () => {
+    // ヒントは押すもの 1 つを指し、そのページの操作ができたら自分で次のページへ進む（レッスン 0 だけ）
+    test('0-7: the hint points at the one thing to press and goes on by itself', async () => {
+        await loadEditor();
+        await openChallenge('blocks-l0-tabs');
+        const page = () =>
+            driver.executeScript(`return document.querySelector('[data-testid="lesson-hint-position"]').textContent`);
+        const waitForPage = (n) =>
+            driver.wait(async () => new RegExp(`\\b${n}\\D+6\\b`).test(await page()), 5000, `hint page ${n}`);
+        await waitForPage(1);
+        expect(await attrByTestId('lesson-hint', 'data-target')).toBe('costumes-tab');
+        await clickAt(await centerOf('[class*="gui_tab_"]:nth-child(2)'));
+        await waitForPage(2);
+        // 2 つめの絵（一覧の 2 つめ）を押すと、音タブのページへ
+        const second = await driver.executeScript(
+            `const r = document.querySelectorAll('[class*="selector_list-item_"]')[1].getBoundingClientRect();
+            return { x: Math.round((r.left + r.right) / 2), y: Math.round((r.top + r.bottom) / 2) };`,
+        );
+        await clickAt(second);
+        await waitForPage(3);
+        await clickAt(await centerOf('[class*="gui_tab_"]:nth-child(3)'));
+        await waitForPage(4);
+        expect(await getLogs()).toEqual([]);
+    });
+
+    test('0-1: answering the 5 questions by clicking the parts completes it', async () => {
         await loadEditor();
         await openChallenge('blocks-l0-where');
         // クイズでは名前の札も「ガイド」のボタンも出さない
@@ -193,6 +218,8 @@ describe('Lesson 0 (#2134)', () => {
         }
         await findByXpath(byTestId('lesson-part-quiz-done'));
         await waitForCompletedToast('blocks-l0-where');
+        // 1 回まちがえたので、レッスン 1 へ進む道は出さない（1 回もまちがえずに全部答えたときだけ）
+        expect(await countByTestId('lesson-completed-toast-skip')).toBe(0);
         // 答えのクリックで、緑の旗（プログラム）もタブも動いていない
         expect(
             await driver.executeScript(

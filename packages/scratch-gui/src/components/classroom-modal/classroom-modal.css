@@ -2756,11 +2756,26 @@ $seat-tile-min: 36px;
     outline: 2px solid transparent;
 }
 
+.assignment-page-text-footer {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-top: 0.15rem;
+}
+
+/* The short rules of the page text formatting, under the textarea. */
+.assignment-page-format-hint {
+    color: $color-text-muted;
+    font-size: 0.75rem;
+    line-height: 1.4;
+}
+
 .assignment-page-char-count {
+    flex: 0 0 auto;
     text-align: right;
     color: #8b93a5;
     font-size: 0.75rem;
-    margin-top: 0.15rem;
 }
 
 .assignment-page-image-row {
@@ -2922,6 +2937,120 @@ $seat-tile-min: 36px;
 /* The one main button under the page (「つぎのページ」 / 「とじる」, #1793). */
 .assignment-main {
     margin-top: 0.6rem;
+}
+
+/* The teacher's page text with the light formatting (AssignmentPageText): first line = heading,
+   `*words*` = marker, `1.` / `・` / `- ` = lists, `【…】` = label, blank line = paragraph. */
+.assignment-text > :first-child {
+    margin-top: 0;
+}
+
+.assignment-text > :last-child {
+    margin-bottom: 0;
+}
+
+.assignment-text-heading {
+    margin: 0 0 0.35rem;
+    color: $color-text;
+    font-size: $font-size-heading-small;
+    font-weight: $font-weight-bold;
+    line-height: 1.4;
+}
+
+.assignment-text-paragraph {
+    margin: 0 0 0.5rem;
+}
+
+.assignment-text-list {
+    margin: 0 0 0.5rem;
+    padding-left: 1.5rem;
+}
+
+.assignment-text-highlight {
+    padding: 0 0.15rem;
+    border-radius: 0.15rem;
+    background-color: $color-highlight-background;
+    color: inherit;
+    font-weight: $font-weight-bold;
+}
+
+.assignment-text-label {
+    display: inline-block;
+    margin-right: 0.25rem;
+    padding: 0 0.45rem;
+    border-radius: $radius-small;
+    background-color: $color-seat-joined;
+    color: $color-seat-joined-text;
+    font-size: 0.85em;
+    font-weight: $font-weight-bold;
+    line-height: 1.6;
+}
+
+/* The 「ゴール」 card of a lesson assignment (StudentAssignmentGoal), above the start buttons. */
+.assignment-goal {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-top: 0.6rem;
+    padding: 0.5rem 0.75rem;
+    border: 2px solid $color-seat-submitted;
+    border-radius: $radius-medium;
+    background-color: $color-surface;
+    color: $color-text;
+}
+
+.assignment-goal-title {
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 0.1rem 0.5rem;
+    border-radius: $radius-small;
+    /* the green of 「クリア」 (white text 5.1:1; $color-success is 4.1:1) */
+    background-color: $color-seat-submitted;
+    color: $color-seat-submitted-text;
+    font-size: $font-size-base;
+    font-weight: $font-weight-bold;
+}
+
+.assignment-goal-body {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.assignment-goal-body p {
+    margin: 0;
+    line-height: 1.5;
+}
+
+.assignment-goal-count {
+    font-size: 1.05rem;
+    font-weight: $font-weight-bold;
+}
+
+.assignment-goal-lessons,
+.assignment-goal-next {
+    font-size: $font-size-medium;
+}
+
+/* One line in the assignment panel: the count and the next step side by side (wrapping when narrow). */
+.assignment-goal-compact {
+    align-items: center;
+    margin-top: 0.25rem;
+    padding: 0.2rem 0.75rem;
+}
+
+.assignment-goal-compact .assignment-goal-body p {
+    line-height: 1.4;
+}
+
+.assignment-goal-compact .assignment-goal-count {
+    font-size: 1rem;
+}
+
+.assignment-goal-compact .assignment-goal-body {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 0.75rem;
 }
 
 .assignment-pager {

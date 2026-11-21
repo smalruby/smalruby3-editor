@@ -8,6 +8,7 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useState } from 'react';
 import { FormattedMessage, defineMessages, useIntl } from 'react-intl';
 import { SCHOOL_LEVELS, SUBJECTS_BY_LEVEL } from '../../lib/shared-assignment-taxonomy.js';
+import AssignmentPageText from './assignment-page-text.jsx';
 import styles from './classroom-modal.css';
 import ClassroomTab from './classroom-tab.jsx';
 import SharedAssignmentForm from './shared-assignment-form.jsx';
@@ -189,7 +190,7 @@ const SharedAssignmentDetail = ({
                     {page.imageUrl ? (
                         <img alt="" className={styles.assignmentPreviewImage} src={page.imageUrl} />
                     ) : null}
-                    <p className={styles.assignmentPreviewText}>{page.text}</p>
+                    <AssignmentPageText className={styles.assignmentPreviewText} text={page.text} />
                 </div>
             ))}
 

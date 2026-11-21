@@ -58,6 +58,15 @@ describe('LessonPartQuiz (#2134)', () => {
         expect(q('lesson-part-quiz-feedback')).toHaveAttribute('data-result', 'correct');
     });
 
+    test('a wrong click calls onMiss with the question, a right click does not', () => {
+        const onMiss = jest.fn();
+        renderQuiz({ onMiss, solved: 1 });
+        fireEvent.pointerDown(q('lesson-part-quiz-catcher'), { clientX: 1150, clientY: 60 });
+        expect(onMiss).not.toHaveBeenCalled();
+        fireEvent.pointerDown(q('lesson-part-quiz-catcher'), { clientX: 200, clientY: 20 });
+        expect(onMiss).toHaveBeenCalledWith(1);
+    });
+
     test('a wrong click says so and lights the right part for a while', () => {
         const onSolve = jest.fn();
         renderQuiz({ onSolve, solved: 1 });

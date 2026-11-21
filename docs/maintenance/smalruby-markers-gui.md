@@ -117,11 +117,12 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/reducers/menus.js` | display mode menu | `PreferenceMenu` サブメニューの開閉用 Redux state (`displayModeMenu`)。定数/rootMenu への登録/initialState/open・close・selector の追加 (Issue #865) |
 | `webpack.config.js` | classroom API | CLASSROOM_API_ENDPOINT 環境変数注入 |
 | `webpack.config.js` | scratch api proxy endpoint | SCRATCH_API_PROXY_ENDPOINT 環境変数注入 |
-| `webpack.config.js` | self-hosted Monaco Editor (#1171) | Monaco 本体 (`min/vs`) を版付きの `static/monaco/<版>/vs` へコピーする定数（版は monaco-editor の package.json から読む）・CopyWebpackPlugin パターン・`DefinePlugin` の `process.env.MONACO_VS_SUBPATH` 注入と、PWA precache 除外 + runtime caching 設定。マーカーは 2 箇所の `GenerateSW` にも単一行で入る |
-| `webpack.config.js` | lazy tutorial images | 上流のチュートリアルの画像（`src/lib/libraries/decks/` の png・gif・jpg）を `gui.js` に埋めこまず `static/assets/decks/` にファイルで出す規則と、それと言語ごとの `*-steps` チャンクを PWA の precache から外し、開いたときだけ runtime caching（`smalruby-tutorial-images`）する設定。マーカーは 2 箇所の `GenerateSW` にも単一行で入る |
+| `webpack.config.js` | self-hosted Monaco Editor (#1171) | Monaco 本体 (`min/vs`) を版付きの `static/monaco/<版>/vs` へコピーする定数（版は monaco-editor の package.json から読む）・CopyWebpackPlugin パターン・`DefinePlugin` の `process.env.MONACO_VS_SUBPATH` 注入 |
+| `webpack.config.js` | lazy tutorial images | 上流のチュートリアルの画像（`src/lib/libraries/decks/` の png・gif・jpg）を `gui.js` に埋めこまず `static/assets/decks/` にファイルで出す規則（最初の訪問で読まず、チュートリアルを開いたときだけ読む） |
 | `src/lib/tutorial-from-url.js` | unknown tutorial url analytics | `?tutorial=` の値に合うチュートリアルが無いとき、`lib/tutorial-url-analytics.js` で GA に送る（import と呼び出しの 2 ペア。`docs/analytics/README.md`） |
 | `webpack.config.js` | copy-webpack-plugin 14 (#1320) | dist の `libraries/*.json` コピーで、copy-webpack-plugin 7 で廃止された `flatten: true` の代わりに `to: 'libraries/[name][ext]'` を使う |
-| `webpack.config.js` | standard assignments | リポジトリの `assignments/`（標準課題・CC0）を `assignments/` へコピーする CopyWebpackPlugin パターンと、PWA の precache から外す正規表現。マーカーは 2 箇所の `GenerateSW` にも単一行で入る |
+| `webpack.config.js` | standard assignments | リポジトリの `assignments/`（標準課題・CC0）を `assignments/` へコピーする CopyWebpackPlugin パターン |
+| `webpack.config.js` | PWA install (#2182) | PWA としてインストールできるように Web App Manifest だけを出す `pwaManifestPlugin()`（`webpack-pwa-manifest`。name / icons 192・512 / `start_url` / `display` と iOS の apple-touch-icon）と、開発用ビルド・`dist-html` の 2 箇所の `.addPlugin(pwaManifestPlugin())`。service worker（Workbox）は出さない。以前に登録された service worker は `pages/service-worker.js`（Smalruby 固有ファイル・自分を登録解除してキャッシュを消すだけ）で外す |
 | `eslint.config.mjs` | react lifecycle typo detection | `react/no-typos` を error にして getDerivedStateFromProps/Error の static 抜け等を lint で検出 |
 | `eslint.config.mjs` | prettier integration | eslintConfigPrettier を最後に置いて prettier と競合する整形ルールを無効化 |
 | `src/lib/blocks.js` | gesture recovery import | ジェスチャー復旧モジュールの import |

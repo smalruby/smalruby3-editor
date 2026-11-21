@@ -118,6 +118,13 @@ $celebrate-light: hsla(45, 100%, 98%, 1); /* #FFFDF6 */
     overflow-wrap: anywhere;
 }
 
+/* 「どこでしょう？」を 1 回もまちがえずに答えたときの、レッスンを飛ばせることを伝える行 */
+.skip-detail {
+    margin-top: 8px;
+    font-size: 14px;
+    overflow-wrap: anywhere;
+}
+
 .actions {
     display: flex;
     flex-wrap: wrap;

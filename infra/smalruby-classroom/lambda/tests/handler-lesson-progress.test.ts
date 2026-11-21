@@ -11,7 +11,9 @@ export {};
  * 2. PUT /classrooms/{id}/lesson-progress（生徒のセッショントークン）は席 × 課題の 1 件を
  *    マージして保存する（対象外のチャレンジは捨てる・できたは消えない・時刻は動かない）。
  *    TTL は課題の TTL を写す。変わらない送信は書き込まない。アーカイブ済み・lesson の無い課題は拒む。
- * 3. GET /classrooms/{id}/lesson-progress（先生）は席ごとの一覧を返す。
+ *    任意の readiness（じゅんびチェックの結果）と current.review（おさらい）も保存する。
+ *    どちらも送らない古い画面は今までどおり。
+ * 3. GET /classrooms/{id}/lesson-progress（先生）は席ごとの一覧を返す（readiness も載る）。
  * 4. 不正な入力・送りすぎは 400。
  * 5. みんなの課題: 共有・取り込みにレッスンの設定を載せる。
  */
@@ -246,6 +248,53 @@ describe('PUT /classrooms/{id}/lesson-progress (student)', () => {
     expect(put.input.ExpressionAttributeValues[':prev']).toBe(4);
   });
 
+  test('readiness と review: true の current を保存して返す（対象外のできた記録は捨てる）', async () => {
+    useData({ item: classroom({ lesson: lesson() }) });
+    const { status, body } = await call('PUT', '/classrooms/c1/lesson-progress', SESSION, {
+      challenges: { b2: { completedAt: '2026-11-10T02:00:00Z' } },
+      current: { challengeId: 'b2', openedAt: '2026-11-10T02:10:00Z', review: true },
+      readiness: { checkedAt: '2026-11-10T01:00:00Z', missing: ['b1', 'b2'] },
+    });
+    expect(status).toBe(200);
+    expect(body.challenges).toEqual({});
+    expect(body.current).toEqual({ challengeId: 'b2', openedAt: '2026-11-10T02:10:00.000Z', review: true });
+    expect(body.readiness).toEqual({ checkedAt: '2026-11-10T01:00:00.000Z', missing: ['b1', 'b2'] });
+    const [put] = commands('PutCommand', PROGRESS_TABLE);
+    expect(put.input.Item.readiness).toEqual({ checkedAt: '2026-11-10T01:00:00.000Z', missing: ['b1', 'b2'] });
+    expect(put.input.Item.current.review).toBe(true);
+  });
+
+  test('readiness を送らない送信は保存されている readiness を保ち、null で外す', async () => {
+    const readiness = { checkedAt: '2026-11-10T01:00:00.000Z', missing: ['b1'] };
+    const row = {
+      classroomId: 'c1', memberId: ME, version: 2, ttl: CLASS_TTL, occupantJoinedAt: JOINED,
+      challenges: {}, current: null, readiness, updatedAt: '2026-11-10T01:00:00.000Z',
+    };
+    useData({ item: classroom({ lesson: lesson() }), progress: [row] });
+    const kept = await call('PUT', '/classrooms/c1/lesson-progress', SESSION, {
+      challenges: { a1: { completedAt: '2026-11-10T02:00:00Z' } },
+    });
+    expect(kept.body.readiness).toEqual(readiness);
+    expect(commands('PutCommand', PROGRESS_TABLE)[0].input.Item.readiness).toEqual(readiness);
+
+    mockSend.mockClear();
+    useData({ item: classroom({ lesson: lesson() }), progress: [row] });
+    const removed = await call('PUT', '/classrooms/c1/lesson-progress', SESSION, { readiness: null });
+    expect(removed.body.readiness).toBeNull();
+    expect(commands('PutCommand', PROGRESS_TABLE)[0].input.Item).not.toHaveProperty('readiness');
+  });
+
+  test('古い画面（readiness も review も送らない）の行には readiness の項目を書かない', async () => {
+    useData({ item: classroom({ lesson: lesson() }) });
+    await call('PUT', '/classrooms/c1/lesson-progress', SESSION, {
+      challenges: { a1: { completedAt: '2026-11-10T02:00:00Z' } },
+      current: { challengeId: 'other', openedAt: '2026-11-10T02:10:00Z' },
+    });
+    const [put] = commands('PutCommand', PROGRESS_TABLE);
+    expect(put.input.Item).not.toHaveProperty('readiness');
+    expect(put.input.Item.current).toBeNull();
+  });
+
   test('同じ内容の送信は書き込まない', async () => {
     useData({
       item: classroom({ lesson: lesson() }),
@@ -267,7 +316,7 @@ describe('PUT /classrooms/{id}/lesson-progress (student)', () => {
     useData({ item: classroom({ lesson: lesson() }) });
     const { status, body } = await call('PUT', '/classrooms/c1/lesson-progress', SESSION, {});
     expect(status).toBe(200);
-    expect(body).toEqual({ memberId: ME, seatNumber: 3, challenges: {}, current: null, updatedAt: null });
+    expect(body).toEqual({ memberId: ME, seatNumber: 3, challenges: {}, current: null, readiness: null, updatedAt: null });
     expect(commands('PutCommand', PROGRESS_TABLE)).toHaveLength(0);
   });
 
@@ -414,8 +463,22 @@ describe('GET /classrooms/{id}/lesson-progress (teacher)', () => {
       seatNumber: 2,
       challenges: { a1: { completedAt: '2026-11-10T02:00:00.000Z', before: false } },
       current: { challengeId: 'a2', openedAt: '2026-11-10T02:10:00.000Z' },
+      readiness: null,
       updatedAt: 'u2',
     });
+  });
+
+  test('じゅんびチェックの結果とおさらいの current も返す', async () => {
+    const readiness = { checkedAt: '2026-11-10T01:00:00.000Z', missing: ['b1'] };
+    const current = { challengeId: 'b2', openedAt: '2026-11-10T02:10:00.000Z', review: true };
+    useData({
+      item: classroom({ lesson: lesson() }),
+      progress: [{ classroomId: 'c1', memberId: 'seat-02', ttl: CLASS_TTL, version: 1,
+        challenges: {}, current, readiness, updatedAt: 'u2' }],
+    });
+    const { body } = await call('GET', '/classrooms/c1/lesson-progress', DEV_TOKEN);
+    expect(body.progress[0].readiness).toEqual(readiness);
+    expect(body.progress[0].current).toEqual(current);
   });
 
   test('席にいま別の生徒が座っている行（前の人の記録）は返さない', async () => {

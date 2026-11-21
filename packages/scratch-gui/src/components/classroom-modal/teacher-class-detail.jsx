@@ -25,6 +25,7 @@ import { retentionLevel } from '../../lib/classroom-retention.js';
 import { findCourse } from '../../lib/lessons/courses.js';
 import googleClassroomIcon from '../classroom-teacher-modal/google-classroom-icon.png';
 import Spinner from '../spinner/spinner.jsx';
+import AssignmentPageText from './assignment-page-text.jsx';
 import BoardMenu, { BoardMenuItem } from './board-menu.jsx';
 import ClassroomButton from './classroom-button.jsx';
 import classroomIconMessages from './classroom-icon-messages.js';
@@ -38,13 +39,13 @@ import ClassroomStatusIcon, {
 import ClassroomTab from './classroom-tab.jsx';
 import ErrorDisplay from './error-display.jsx';
 import LessonSeatTile, { lessonSeatMessages } from './lesson-seat-tile.jsx';
-import { formatCompletionSentence } from './lesson-settings-field.jsx';
 import SeatColorLegend, {
     LESSON_SEAT_COLOR_ITEMS,
     MEMBER_SEAT_COLOR_ITEMS,
     memberSeatColorKind,
     seatColorClass,
 } from './seat-color-legend.jsx';
+import StudentAssignmentGoal from './student-assignment-goal.jsx';
 import TeacherAssignmentEditor from './teacher-assignment-editor.jsx';
 import TeacherCloseRow, { closeRowMessages } from './teacher-close-row.jsx';
 import TeacherLessonProgress from './teacher-lesson-progress.jsx';
@@ -1257,7 +1258,11 @@ const TeacherClassDetail = ({
                                                     src={page.previewUrl || page.imageUrl}
                                                 />
                                             ) : null}
-                                            <p className={styles.assignmentPreviewText}>{page ? page.text : ''}</p>
+                                            <AssignmentPageText
+                                                className={styles.assignmentPreviewText}
+                                                dataTestId="classroom-description-preview-text"
+                                                text={page ? page.text : ''}
+                                            />
                                         </div>
                                         {/* How the student starts on join (#1202). */}
                                         <div
@@ -1283,33 +1288,17 @@ const TeacherClassDetail = ({
                                                 );
                                             })()}
                                         </div>
-                                        {/* The lesson strip students see above the lesson
-                                                    library (#1598): condition and circles (★ = required). */}
+                                        {/* The goal card students see on the last page of a lesson
+                                                    assignment: how many challenges to clear (★ = required). */}
                                         {descEditor.lessonDraft && descEditor.lessonDraft.challengeIds.length > 0 ? (
                                             <div
                                                 className={styles.assignmentPreviewStart}
                                                 data-testid="classroom-description-preview-lesson"
                                             >
-                                                <FormattedMessage
-                                                    defaultMessage="Lesson: {sentence}"
-                                                    description="Student-view preview: the lesson completion condition"
-                                                    id="gui.classroom.teacherDetail.previewLesson"
-                                                    values={{
-                                                        sentence: formatCompletionSentence(
-                                                            intl,
-                                                            descEditor.lessonDraft,
-                                                        ),
-                                                    }}
-                                                />{' '}
-                                                <span aria-hidden="true">
-                                                    {descEditor.lessonDraft.challengeIds
-                                                        .map((id) =>
-                                                            descEditor.lessonDraft.requiredChallengeIds.includes(id)
-                                                                ? '★'
-                                                                : '○',
-                                                        )
-                                                        .join('')}
-                                                </span>
+                                                <StudentAssignmentGoal
+                                                    dataTestId="classroom-description-preview-goal"
+                                                    lesson={descEditor.lessonDraft}
+                                                />
                                             </div>
                                         ) : null}
                                     </React.Fragment>

@@ -9,16 +9,23 @@
  * loaded until the student presses it), with the other ways under
  * 「ほかの始め方」. Reopened later from 「課題を見る」, the last page's main
  * button is 「とじる」 (no start method: the student is already working).
+ *
+ * The page text gets the light formatting of AssignmentPageText; a lesson assignment shows its
+ * 「ゴール」 card on the last page; right after joining, the start buttons wait a few seconds
+ * (「よく読もう… 3」, readWaitSeconds) so the student reads before starting. Reopening never waits.
  */
 import PropTypes from 'prop-types';
 import React from 'react';
 import { FormattedMessage } from 'react-intl';
+import { READ_WAIT_GOAL_CHARS, readWaitSeconds } from '../../lib/classroom-read-wait.js';
+import AssignmentPageText from './assignment-page-text.jsx';
 import styles from './classroom-modal.css';
 import ErrorDisplay from './error-display.jsx';
-import { LessonNextSteps } from './student-joined-confirmation.jsx';
+import StudentAssignmentGoal from './student-assignment-goal.jsx';
 import StudentMainButton from './student-main-button.jsx';
 import StudentPreviousComment from './student-previous-comment.jsx';
 import StudentStartMethod from './student-start-method.jsx';
+import useReadCountdown from './use-read-countdown.js';
 
 const StudentAssignmentPanel = ({
     assignment,
@@ -47,7 +54,18 @@ const StudentAssignmentPanel = ({
     // assignmentReopened; joinedInfo stays set once joined): 「とじる」.
     const justJoined = !assignmentReopened && !!joinedInfo;
     const showStart = isLastPage && justJoined && !!startMethod;
-    const lessonNotice = showStart && !!studentLesson;
+    // The goal card sits on the last page of a lesson assignment (also when reopened: the
+    // student can check how many challenges are left to do).
+    const lessonNotice = isLastPage && !!studentLesson;
+    // Read before starting: the wait grows with the last page's text (and the goal card),
+    // shorter when the student already paged through earlier pages.
+    const waitSeconds = showStart
+        ? readWaitSeconds({
+              textLength: ((page && page.text) || '').length + (lessonNotice ? READ_WAIT_GOAL_CHARS : 0),
+              readEarlierPages: pages.length > 1,
+          })
+        : 0;
+    const waitLeft = useReadCountdown(waitSeconds, showStart);
 
     return (
         <div data-testid="classroom-phase-student-assignment">
@@ -122,15 +140,17 @@ const StudentAssignmentPanel = ({
                             src={page.imageUrl}
                         />
                     )}
-                    <div className={styles.assignmentViewText} data-testid="classroom-assignment-view-text">
-                        {page.text}
-                    </div>
+                    <AssignmentPageText
+                        className={styles.assignmentViewText}
+                        dataTestId="classroom-assignment-view-text"
+                        text={page.text}
+                    />
                 </div>
             )}
 
             {lessonNotice && (
-                <div className={styles.joinHintText} data-testid="classroom-assignment-lesson-notice">
-                    <LessonNextSteps lesson={studentLesson} />
+                <div data-testid="classroom-assignment-lesson-notice">
+                    <StudentAssignmentGoal compact dataTestId="classroom-assignment-goal" lesson={studentLesson} />
                 </div>
             )}
 
@@ -154,6 +174,7 @@ const StudentAssignmentPanel = ({
                     onLoadStarter={onChooseStarter}
                     onLoadSubmission={onLoadSubmission}
                     onStartLesson={onStartLesson}
+                    waitSeconds={waitLeft}
                     onTrack={onTrack}
                 />
             )}
@@ -207,7 +228,10 @@ StudentAssignmentPanel.propTypes = {
     // sends a classroom_student GA event (#1831)
     onTrack: PropTypes.func,
     // normalized lesson setting of the joined assignment (null = not a lesson assignment)
-    studentLesson: PropTypes.shape({ submitWork: PropTypes.bool }),
+    studentLesson: PropTypes.shape({
+        challengeIds: PropTypes.arrayOf(PropTypes.string),
+        submitWork: PropTypes.bool,
+    }),
 };
 
 export default StudentAssignmentPanel;

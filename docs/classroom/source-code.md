@@ -29,6 +29,9 @@ smalruby3-editor/
 │   │   │   │   ├── student-screen-parts.css ← 上の 3 つの部品のスタイル
 │   │   │   │   ├── student-status-view.jsx ← おかえりなさいの画面（主ボタン「つづける」・小さなリンク・「作品を読み込み直す」・「クラスから出る」の確認）
 │   │   │   │   ├── student-start-method.jsx ← 参加したあとの始め方（主ボタン 1 つ + 「ほかの始め方」）#1793
+│   │   │   │   ├── assignment-page-text.jsx ← 課題のページの文を書式（見出し・マーカー・箇条書き・ラベル）にして React の要素で出す
+│   │   │   │   ├── student-assignment-goal.jsx ← レッスンの課題の「ゴール」のカード（チャレンジを N つクリア・★・レッスン・提出）
+│   │   │   │   ├── use-read-countdown.js ← 参加した直後の「よく読もう… 3」の秒読み（hook。unmount で止める）
 │   │   │   │   ├── teacher-class-detail.jsx ← 先生の課題詳細 (退室リクエストバッジ + 退室通知バナー)
 │   │   │   │   ├── teacher-member-detail.jsx ← メンバー詳細パネル (承認/却下ボタン)
 │   │   │   │   ├── lesson-member-detail.jsx ← 席の詳細のレッスンの部分（チャレンジごとの時刻・前・いま）
@@ -91,6 +94,9 @@ smalruby3-editor/
 │   │   │   ├── classroom-teacher-session.js ← 先生ログインの永続化（provider + 最後の課題のみ、トークン非保存）・メニュー出し分け（純粋）#1199
 │   │   │   ├── classroom-teacher-reauth.js ← 先生ログインの有効期限切れ（401 判定・クリックからの再認証、純粋）#1250
 │   │   │   ├── classroom-assignment-utils.js ← 課題エディタの純粋ヘルパー
+│   │   │   ├── classroom-assignment-text.js ← 課題のページの文の書式の解析（純粋。保存する文は変えない）
+│   │   │   ├── classroom-assignment-goal.js ← ゴールのカードの数（N・★ M・レッスン。課題の帯と同じ数え方・純粋）
+│   │   │   ├── classroom-read-wait.js ← 参加した直後に始めるボタンを待たせる秒（文字数で 2〜5 秒・純粋）
 │   │   │   ├── classroom-lesson-settings.js ← 課題のレッスンの設定の純粋ロジック（下書き ↔ API の lesson・完了の条件・採点の点）
 │   │   │   ├── classroom-lesson-progress.js ← 先生の進み具合の純粋ロジック（座席の色・表の記号・できた人・並べ方・CSV）
 │   │   │   ├── classroom-lesson-summary.js ← パネル・席の詳細・［授業］の行・採点・提出状況.csv のレッスンの要約（純粋ロジック）

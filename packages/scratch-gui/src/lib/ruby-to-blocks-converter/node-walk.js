@@ -87,4 +87,21 @@ const forEachNode = (root, { enter, leave } = {}) => {
     }
 };
 
-export { nodeTypeName, childNodesOf, forEachNode };
+/**
+ * The parent of each node of a prism tree, made by one walk (`forEachNode`). Finding the statement
+ * that holds a node (an error) and the block around a node (a comment) go up from the node by it,
+ * so that neither walks the tree again from the root.
+ * @param {object} root - The root prism node.
+ * @returns {Map<object, object>} The parent of each node; the root has none.
+ */
+const parentIndexOf = (root) => {
+    const parents = new Map();
+    forEachNode(root, {
+        enter(node, _type, parent) {
+            if (parent) parents.set(node, parent);
+        },
+    });
+    return parents;
+};
+
+export { nodeTypeName, childNodesOf, forEachNode, parentIndexOf };
