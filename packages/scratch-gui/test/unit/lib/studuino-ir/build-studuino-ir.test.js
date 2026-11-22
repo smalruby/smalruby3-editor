@@ -566,27 +566,51 @@ describe('buildStuduinoIr: エラー', () => {
         expect(result.errors).toEqual([{ blockId: second, targetId: 's1', reason: 'too_many_flags' }]);
     });
 
-    test('使えないブロックは unsupported_block（旗の下・ほかのハットの下・中の入力のどれでも）', () => {
+    test('使えないブロックは unsupported_block（旗の下・中の入力）', () => {
         const ws = workspace();
         const say = ws.add('looks_say', { inputs: { MESSAGE: ws.rep(ws.add('looks_size')) } });
         ws.script(say);
+        const reasons = errorsOf(ws).map((e) => [e.blockId, e.reason]);
+        expect(reasons).toEqual([
+            [say, 'unsupported_block'],
+            [ws.blocks[say].inputs.MESSAGE.block, 'unsupported_block'],
+        ]);
+    });
+
+    test('旗の下に無いスクリプトは、使えないブロックがあっても検査しない（S8・コメントと同じ扱い）', () => {
+        const ws = workspace();
+        ws.script(ws.add('sensing_resettimer'));
         const key = ws.top(ws.add('event_whenkeypressed', { fields: { KEY_OPTION: 'space' } }));
         const list = ws.add('data_addtolist', {
             fields: { LIST: { id: 'l', value: 'リスト' } },
             inputs: { ITEM: ws.txt('a') },
         });
         ws.stack(key, list);
-        const call = ws.top(ws.add('procedures_call'));
-        const reasons = errorsOf(ws).map((e) => [e.blockId, e.reason]);
-        expect(reasons).toEqual(
-            expect.arrayContaining([
-                [say, 'unsupported_block'],
-                [ws.blocks[say].inputs.MESSAGE.block, 'unsupported_block'],
-                [key, 'unsupported_block'],
-                [list, 'unsupported_block'],
-                [call, 'unsupported_block'],
-            ]),
-        );
+        ws.top(ws.add('procedures_call'));
+        ws.top(ws.add('looks_say', { inputs: { MESSAGE: ws.txt('hi') } }));
+        ws.top(ws.add('smalrubotS1_studuinoServo', { fields: { PORT: 'D2' }, inputs: { ANGLE: ws.num(90) } }));
+        expect(mainOf(ws)).toEqual([{ op: 'timer_reset' }]);
+    });
+
+    test('旗の下に無いスクリプトの変数は数えない（変数の上限にも入らない）', () => {
+        const ws = workspace();
+        const variables = {};
+        const loose = [];
+        for (let i = 0; i <= STUDUINO_IR_LIMITS.maxVariables; i++) {
+            variables[`g${i}`] = { id: `g${i}`, name: `n${i}`, type: '', value: 0 };
+            loose.push(
+                ws.add('data_changevariableby', {
+                    fields: { VARIABLE: { id: `g${i}`, value: `n${i}` } },
+                    inputs: { VALUE: ws.num(1) },
+                }),
+            );
+        }
+        ws.top(loose[0]);
+        ws.stack(...loose);
+        ws.script(ws.add('sensing_resettimer'));
+        const result = build(ws, { variables });
+        expect(result.ok).toBe(true);
+        expect(result.ir.variables).toEqual([]);
     });
 
     test('通常モードの拡張機能のブロック（ポートが決まっているもの）は使えない', () => {
@@ -608,11 +632,11 @@ describe('buildStuduinoIr: エラー', () => {
         ]);
     });
 
-    test('ばらばらのスクリプトの中の文字も string_value', () => {
+    test('ばらばらのスクリプトの中の文字は検査しない', () => {
         const ws = workspace();
-        ws.script();
-        const lt = ws.top(ws.add('operator_lt', { inputs: { OPERAND1: ws.txt('a'), OPERAND2: ws.txt('1') } }));
-        expect(errorsOf(ws)).toEqual([{ blockId: lt, targetId: 'stage', reason: 'string_value' }]);
+        ws.script(ws.add('sensing_resettimer'));
+        ws.top(ws.add('operator_lt', { inputs: { OPERAND1: ws.txt('a'), OPERAND2: ws.txt('1') } }));
+        expect(mainOf(ws)).toEqual([{ op: 'timer_reset' }]);
     });
 
     test('真偽の所に数のブロックが来たら not_boolean', () => {
@@ -676,7 +700,7 @@ describe('buildStuduinoIr: エラー', () => {
         expect(errorsOf(ws)).toEqual([{ blockId: pair, targetId: 'stage', reason: 'duplicate_port' }]);
     });
 
-    test('変数が 64 をこえたら too_large', () => {
+    test('変数が 32 をこえたら too_large（S1）', () => {
         const ws = workspace();
         const variables = {};
         const stmts = [];
@@ -696,7 +720,7 @@ describe('buildStuduinoIr: エラー', () => {
                 targetId: 'stage',
                 reason: 'too_large',
                 detail: 'too_many_variables',
-                limit: 64,
+                limit: 32,
             },
         ]);
     });

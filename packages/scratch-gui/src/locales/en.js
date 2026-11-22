@@ -65,6 +65,8 @@ export default {
     'gui.studuinoWrite.error.invalidIr': 'The program has something that can not be written.',
     'gui.studuinoWrite.error.forbidden': 'Writing to Studuino is not available from this page.',
     'gui.studuinoWrite.error.tooLarge': 'The program is too large. Make it smaller.',
+    'gui.studuinoWrite.error.tooManyVariables':
+        'Too many variables. Studuino can use up to {limit} variables. Use fewer variables.',
     'gui.studuinoWrite.error.compileFailed': 'Could not make the program for Studuino.',
     'gui.studuinoWrite.error.flashOverflow': 'The program is too large for Studuino. Make it smaller.',
     'gui.studuinoWrite.error.rateLimited': 'Too many writes in a short time. Wait a little and try again.',

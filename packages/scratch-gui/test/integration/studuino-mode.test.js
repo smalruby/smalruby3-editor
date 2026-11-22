@@ -143,11 +143,16 @@ describe('Studuino mode', () => {
     test('a block that can not be used keeps the mode and the dialog can show it (#2214)', async () => {
         await loadUri(`${uri}?no_beforeunload=1`);
         await activateSmalrubotS1Extension();
-        // 見た目のブロック（Studuino モードでは使えない）を置く
+        // 旗の下に見た目のブロック（Studuino モードでは使えない）を置く（旗の下だけを検査する・S8）
         await driver.executeScript(`
-            window.smalruby.vm.editingTarget.blocks.createBlock({
-                id: 'studuino-unusable-test', opcode: 'looks_nextcostume', next: null, parent: null,
-                inputs: {}, fields: {}, topLevel: true, shadow: false, x: 0, y: 0,
+            const blocks = window.smalruby.vm.editingTarget.blocks;
+            blocks.createBlock({
+                id: 'studuino-unusable-flag', opcode: 'event_whenflagclicked', next: 'studuino-unusable-test',
+                parent: null, inputs: {}, fields: {}, topLevel: true, shadow: false, x: 0, y: 0,
+            });
+            blocks.createBlock({
+                id: 'studuino-unusable-test', opcode: 'looks_nextcostume', next: null, parent: 'studuino-unusable-flag',
+                inputs: {}, fields: {}, topLevel: false, shadow: false,
             });
         `);
         await toggleStuduinoMode();

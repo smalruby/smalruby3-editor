@@ -136,7 +136,7 @@ const createContext = (targets, settings) => {
         errorKeys: new Set(),
         variables: [],
         variableIds: new Map(),
-        // 旗の下の木を作るときだけ変数を登録する（ばらばらのスクリプトは検査だけ）
+        // 1 つ目の旗の下の木を作るときだけ変数を登録する（2 つ目以降の旗の下は検査だけ）
         registerVariables: true,
         // 構文木のノード → ブロック（上限をこえた場所を GUI で示すため）
         nodeBlocks: new Map(),
@@ -647,12 +647,9 @@ export const buildStuduinoIr = ({ targets, settings }) => {
     const ctx = createContext(list, normalized);
 
     const flags = [];
-    const others = [];
     for (const target of list) {
         for (const block of Object.values(target.blocks || {})) {
-            if (!block.topLevel || block.shadow) continue;
-            if (block.opcode === FLAG_OPCODE) flags.push({ target, block });
-            else others.push({ target, block });
+            if (block.topLevel && !block.shadow && block.opcode === FLAG_OPCODE) flags.push({ target, block });
         }
     }
 
@@ -668,9 +665,8 @@ export const buildStuduinoIr = ({ targets, settings }) => {
         addError(ctx, target, block.id, E.TOO_MANY_FLAGS);
         buildStack(ctx, target, block.next, new Set());
     });
-    // ほかのスクリプト（ほかのハット・ばらばらのブロック）は書きこまないが、
-    // その中の使えないブロックはエラーにする（#2214 の印と同じく、どこにあっても示す）
-    others.forEach(({ target, block }) => checkAny(ctx, target, block.id));
+    // ほかのスクリプト（ほかのハット・ばらばらのブロック）は、コメントと同じ扱い（S8）。
+    // 検査しない・印も数も付けない・書きこまない。
 
     if (ctx.errors.length > 0 || !main) return { ok: false, errors: ctx.errors };
 
