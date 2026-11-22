@@ -132,6 +132,22 @@ try {
     assert((await countBodyOverlays()) === 0, 'a completed login leaves nothing under <body>');
     await page.screenshot({ path: `${SHOTS}/1149-4-after-login.png` });
 
+    // The bug report's login lives in a portal that mounts after its container,
+    // so check that Google's button shows up there too.
+    log('opening the bug report login...');
+    await page.goto(`${BASE_URL}/?no_beforeunload=1`, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('[data-testid="bug-report-link"]', { timeout: 90000 });
+    await page.evaluate(() => window.localStorage.removeItem('smalruby:bugReportConsent'));
+    await page.click('[data-testid="bug-report-link"]');
+    const consent = page.locator('[data-testid="bug-report-consent-accept"]');
+    if (await consent.count()) await consent.click();
+    await page.waitForSelector('[data-testid="google-signin-slot"] .fake-gis-button', { timeout: 10000 });
+    assert(
+        (await page.locator('[data-testid="bug-report-login-google"]').count()) === 0,
+        'the bug report shows Google\'s button in place of ours',
+    );
+    await page.screenshot({ path: `${SHOTS}/1149-5-bug-report-login.png` });
+
     ok = true;
     log(`PASS — screenshots in ${SHOTS}`);
 } catch (e) {

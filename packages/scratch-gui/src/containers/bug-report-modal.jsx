@@ -173,6 +173,13 @@ const BugReportModal = () => {
     // The GIS sign-in button is rendered into this in-modal node so it cannot
     // outlive the login phase as a body-level overlay (#1149).
     const googleSignInRef = useRef(null);
+    // The slot lives in the modal's portal, which mounts after this
+    // container's effects run, so the login waits for the node itself.
+    const [googleSignInNode, setGoogleSignInNode] = useState(null);
+    const handleGoogleSignInRef = useCallback((node) => {
+        googleSignInRef.current = node;
+        setGoogleSignInNode(node);
+    }, []);
     // Whether Google's own button is on screen in place of ours. Ours stays
     // only while Google's script has not loaded (or failed to), so pressing it
     // tries again.
@@ -204,12 +211,12 @@ const BugReportModal = () => {
     const handleLoginMicrosoft = useCallback(() => handleLogin(requestMicrosoftIdToken), [handleLogin]);
 
     // Google's button is the entry point, so put it up as soon as the login
-    // phase is on screen.
+    // phase (and with it the slot) is on screen.
     useEffect(() => {
-        if (modalVisible && phase === 'login') {
+        if (googleSignInNode) {
             handleLoginGoogle();
         }
-    }, [modalVisible, phase]);
+    }, [googleSignInNode]);
 
     const handleConsentAccept = useCallback(() => {
         try {
@@ -338,7 +345,7 @@ const BugReportModal = () => {
             submitProgressLabel={submitProgressLabel}
             onRequestClose={handleClose}
             googleButtonShown={googleButtonShown}
-            googleSignInRef={googleSignInRef}
+            googleSignInRef={handleGoogleSignInRef}
             onLoginGoogle={handleLoginGoogle}
             onLoginMicrosoft={handleLoginMicrosoft}
             onDescriptionChange={handleDescriptionChange}

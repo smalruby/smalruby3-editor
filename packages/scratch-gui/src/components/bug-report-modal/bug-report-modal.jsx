@@ -422,7 +422,7 @@ BugReportModal.propTypes = {
     submitProgressLabel: PropTypes.string,
     onRequestClose: PropTypes.func.isRequired,
     googleButtonShown: PropTypes.bool,
-    googleSignInRef: PropTypes.shape({ current: PropTypes.any }),
+    googleSignInRef: PropTypes.oneOfType([PropTypes.func, PropTypes.shape({ current: PropTypes.any })]),
     onLoginGoogle: PropTypes.func.isRequired,
     onLoginMicrosoft: PropTypes.func.isRequired,
     onDescriptionChange: PropTypes.func.isRequired,
