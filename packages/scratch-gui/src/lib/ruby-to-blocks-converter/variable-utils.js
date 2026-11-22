@@ -134,7 +134,7 @@ const VariableUtils = {
                     isArgument: isArgument,
                     dataType: null,
                 };
-                this._context[storeName][transformedName] = variable;
+                this._context.store.setVariable(storeName, transformedName, variable);
             }
 
             // Track in current scope (the first entry stays: it tells an argument of the method)
@@ -161,7 +161,7 @@ const VariableUtils = {
                 type: type,
                 dataType: null,
             };
-            this._context[storeName][varName] = variable;
+            this._context.store.setVariable(storeName, varName, variable);
         }
         return variable;
     },
@@ -203,7 +203,7 @@ const VariableUtils = {
                 name: name,
                 scope: 'global',
             };
-            this._context.broadcastMsgs[key] = broadcastMsg;
+            this._context.store.setVariable('broadcastMsgs', key, broadcastMsg);
         }
         return broadcastMsg;
     },
@@ -274,7 +274,7 @@ const VariableUtils = {
             argumentVariables: [],
             argumentBlocks: [],
         };
-        this._context.procedures[name] = procedure;
+        this._context.store.setProcedure(name, procedure);
         return procedure;
     },
 
@@ -318,7 +318,7 @@ const VariableUtils = {
     },
 
     _collectSymbol(name) {
-        this._context.symbols.add(`:${name}`);
+        this._context.store.addSymbol(`:${name}`);
     },
 
     _createSymbolsList() {
@@ -596,7 +596,8 @@ const VariableUtils = {
     /**
      * The scope index of a local variable being made (the `1` of `_a_1_`). A method has its own
      * (`_enterScope`). In the script, a local that blocks use as different things gets one for
-     * each block (issue #1630); any other local of the script is `1`, shared by its blocks.
+     * each block (issue #1630); any other local of the script is `1`, shared by its blocks. The
+     * indexes are decided by the analysis stage (`locals.scopeIndexOfDef` / `scopeIndexOfUnit`).
      * @param {string} varName - The Ruby name of the local.
      * @returns {number} The scope index.
      */
@@ -614,13 +615,7 @@ const VariableUtils = {
         ) {
             return scopeIndex;
         }
-        // Decided while converting (in the order of the scopes), so not in the frozen analysis.
-        const scopeIndexes = this._context.localScopeIndexes;
-        if (!scopeIndexes[unit]) {
-            this._context.scopeCounter++;
-            scopeIndexes[unit] = this._context.scopeCounter;
-        }
-        return scopeIndexes[unit];
+        return units.scopeIndexOfUnit[unit];
     },
 
     /**
@@ -751,7 +746,7 @@ const VariableUtils = {
         });
         madeForHash.forEach(({ storeName, name, id }) => {
             if (!usedIds.has(id)) {
-                delete this._context[storeName][name];
+                this._context.store.deleteVariable(storeName, name);
             }
         });
     },

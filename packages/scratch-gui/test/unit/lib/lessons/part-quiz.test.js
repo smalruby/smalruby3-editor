@@ -30,6 +30,14 @@ describe('part quiz', () => {
         ]);
     });
 
+    test('validatePartQuiz accepts a boolean offerLessonSkip only', () => {
+        expect(validatePartQuiz({ questions: ['palette'], offerLessonSkip: true })).toEqual([]);
+        expect(validatePartQuiz({ questions: ['palette'], offerLessonSkip: false })).toEqual([]);
+        expect(validatePartQuiz({ questions: ['palette'], offerLessonSkip: 'yes' })).toEqual([
+            'partQuiz.offerLessonSkip must be a boolean',
+        ]);
+    });
+
     test('isPointInRect includes the edges', () => {
         const rect = { left: 10, top: 10, right: 20, bottom: 20 };
         expect(isPointInRect({ x: 10, y: 20 }, rect)).toBe(true);

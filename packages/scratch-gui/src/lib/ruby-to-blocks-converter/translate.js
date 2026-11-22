@@ -1,62 +1,56 @@
-import _ from 'lodash';
+import { menuArg, registerSendTable, textArg } from './send-table';
 
 const Translate = 'translate';
+
+// The words (a number too) and the language (a string or a value block).
+const translateArgs = () => [
+    textArg('WORDS', void 0, { number: true }),
+    menuArg('LANGUAGE', 'translate_menu_languages', 'languages', { orBlock: true }),
+];
+
+// The calls of version 1 (`translate(words, language)`, `language`), read in version 2 too.
+const TRANSLATE_V1_SENDS = [
+    { receiver: 'self', name: 'translate', opcode: 'translate_getTranslate', type: 'value', args: translateArgs() },
+    { receiver: 'self', name: 'language', opcode: 'translate_getViewerLanguage', type: 'value' },
+];
+
+// The calls of version 2 on `translate` (`translate.call(words, language)`, `translate.language`).
+const TRANSLATE_SENDS = [
+    {
+        receiver: Translate,
+        name: 'call',
+        opcode: 'translate_getTranslate',
+        type: 'value',
+        changesReceiver: true,
+        args: translateArgs(),
+    },
+    {
+        receiver: Translate,
+        name: 'language',
+        opcode: 'translate_getViewerLanguage',
+        type: 'value',
+        changesReceiver: true,
+    },
+];
 
 /**
  * Translate converter
  */
 const TranslateConverter = {
+    sends: [...TRANSLATE_V1_SENDS, ...TRANSLATE_SENDS],
+
     register: function (converter) {
-        // v1: translate(words, language)
-        converter.registerOnSend('self', 'translate', 2, (params) => {
-            const { args } = params;
-            if (!converter._isNumberOrStringOrBlock(args[0]) || !converter._isStringOrBlock(args[1])) return null;
+        registerSendTable(converter, TRANSLATE_V1_SENDS);
 
-            const block = converter._createBlock('translate_getTranslate', 'value');
-            converter._addTextInput(block, 'WORDS', args[0]);
-            converter._addInput(
-                block,
-                'LANGUAGE',
-                converter._createFieldBlock('translate_menu_languages', 'languages', args[1]),
-            );
-            return block;
-        });
-
-        // v1: language
-        converter.registerOnSend('self', 'language', 0, () =>
-            converter._createBlock('translate_getViewerLanguage', 'value'),
+        // v2: `translate` itself is a Ruby expression that the calls of the table turn into their blocks.
+        ['sprite', 'stage'].forEach((receiver) =>
+            converter.registerOnSend(receiver, Translate, 0, (params) => {
+                const { node } = params;
+                return converter.createRubyExpressionBlock(Translate, node);
+            }),
         );
 
-        // v2: translate receiver (for translate.call and translate.language)
-        converter.registerOnSend('sprite', Translate, 0, (params) => {
-            const { node } = params;
-            return converter.createRubyExpressionBlock(Translate, node);
-        });
-        converter.registerOnSend('stage', Translate, 0, (params) => {
-            const { node } = params;
-            return converter.createRubyExpressionBlock(Translate, node);
-        });
-
-        // v2: translate.call(words, language)
-        converter.registerOnSend(Translate, 'call', 2, (params) => {
-            const { receiver, args } = params;
-            if (!converter._isNumberOrStringOrBlock(args[0]) || !converter._isStringOrBlock(args[1])) return null;
-
-            const block = converter.changeRubyExpressionBlock(receiver, 'translate_getTranslate', 'value');
-            converter._addTextInput(block, 'WORDS', args[0]);
-            converter._addInput(
-                block,
-                'LANGUAGE',
-                converter._createFieldBlock('translate_menu_languages', 'languages', args[1]),
-            );
-            return block;
-        });
-
-        // v2: translate.language
-        converter.registerOnSend(Translate, 'language', 0, (params) => {
-            const { receiver } = params;
-            return converter.changeRubyExpressionBlock(receiver, 'translate_getViewerLanguage', 'value');
-        });
+        registerSendTable(converter, TRANSLATE_SENDS);
     },
 };
 

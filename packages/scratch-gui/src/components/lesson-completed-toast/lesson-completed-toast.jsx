@@ -1,6 +1,6 @@
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
-import React from 'react';
+import React, { useCallback } from 'react';
 import { defineMessages, injectIntl } from 'react-intl';
 import intlShape from '../../lib/intlShape.js';
 import { COMPLETED_ACTIONS } from '../../lib/lessons/lesson-progress.js';
@@ -90,6 +90,54 @@ const messages = defineMessages({
         defaultMessage: 'You met the goal of the assignment.',
         description: 'Second line of the completed toast when the class assignment (without a name) is cleared',
     },
+    skipDetail: {
+        id: 'gui.lessons.completed.skipDetail',
+        defaultMessage:
+            'All correct without a single mistake! If you already know the screen, you can go on to lesson {number}.',
+        description:
+            'Line of the completed toast of the "where is it?" quiz of lesson 0 when every question was answered ' +
+            'right on the first click: the student may skip the rest of the lesson. {number} is the next lesson',
+    },
+    skipLesson: {
+        id: 'gui.lessons.completed.skipLesson',
+        defaultMessage: 'Go to lesson {number}',
+        description:
+            'Button on the completed toast of a perfect "where is it?" quiz: skips the rest of lesson 0 and starts ' +
+            'the next lesson. {number} is the next lesson',
+    },
+    continueLesson: {
+        id: 'gui.lessons.completed.continueLesson',
+        defaultMessage: 'Keep going with lesson {number}',
+        description:
+            'Main button on the completed toast of a perfect "where is it?" quiz (instead of "Next challenge"): ' +
+            'goes on with the current lesson. {number} is the current lesson',
+    },
+    readinessOk: {
+        id: 'gui.lessons.readiness.ok',
+        defaultMessage: 'Ready to go!',
+        description: 'Result of the readiness check when every question was answered right on the first try',
+    },
+    readinessOkDetail: {
+        id: 'gui.lessons.readiness.okDetail',
+        defaultMessage: 'All {count} right on the first try. You know the basics of this course.',
+        description: 'Line under "Ready to go!" of the readiness check. {count} is the number of questions',
+    },
+    readinessScore: {
+        id: 'gui.lessons.readiness.score',
+        defaultMessage: '{correct} of {count} right',
+        description: 'Score of the readiness check: questions answered right on the first try / all questions',
+    },
+    readinessRecommended: {
+        id: 'gui.lessons.readiness.recommended',
+        defaultMessage: 'Recommended',
+        description:
+            'Heading of the challenges recommended by the readiness check (the questions the student missed)',
+    },
+    readinessRecommendedDetail: {
+        id: 'gui.lessons.readiness.recommendedDetail',
+        defaultMessage: 'You can practice what you missed in these challenges. It is up to you to do them.',
+        description: 'Line under the "Recommended" heading of the readiness check result',
+    },
     close: {
         id: 'gui.lessons.completed.close',
         defaultMessage: 'Keep looking',
@@ -112,6 +160,9 @@ const BUTTON_MESSAGES = {
  *   - library: 全部できて、後ろに残っているレッスンが無い。2 行目はコース名の行（コースが全部できたとき。
  *     前のレッスンを飛ばしているときはレッスン名の行）（オレンジ・🏆）
  * チャレンジの名前は出さない（課題バーに出ている）。「もう少し見る」は閉じるだけ。
+ * レッスンを飛ばせるとき（`skipLesson`。「どこでしょう？」を 1 回もまちがえずに全部答えた・lesson-progress.js の
+ * lessonSkipOffer）は、「できた！」の場面だけ、そのことを書いた行と「レッスン n へ進む」を足し、主ボタンを
+ * 「続けてレッスン n をやる」にする（主ボタンの動きは「次のチャレンジへ」と同じ）。
  * @param {object} props - props。
  * @param {string} props.action - 場面（lesson-progress.js の COMPLETED_ACTIONS）。
  * @param {Array<object>} props.assignmentChallenges - 課題クリアのときの、課題のチャレンジ（丸）。
@@ -128,6 +179,11 @@ const BUTTON_MESSAGES = {
  * @param {Function} props.onNextChallenge - 「次のチャレンジへ」など（レッスン表を開く）。
  * @param {boolean} props.hidden - いっとき隠すか（描いたまま見えなくする。クイズで選んだものを残す・#1639）。
  * @param {?object} props.quiz - できたチャレンジのふりかえりのクイズ（#1639。無ければ出さない）。
+ * @param {?{lessonNumber: number}} props.skipLesson - 飛ばして進めるレッスン（無ければ出さない）。
+ * @param {?Function} props.onSkipLesson - 「レッスン n へ進む」。
+ * @param {?object} props.readiness - じゅんびチェックの結果（#2299。じゅんびチェックの「できた！」だけ）。全部 1 回で
+ *   正解なら「じゅんび OK！」、ほかは正解の数と「おすすめ」のチャレンジ（押すとそのチャレンジを開く）。
+ * @param {?Function} props.onOpenRecommended - 「おすすめ」のチャレンジを開く（チャレンジ id を渡す）。
  * @param {object} props.intl - react-intl。
  * @returns {React.ReactElement} toast。
  */
@@ -147,13 +203,25 @@ const LessonCompletedToast = ({
     onClose,
     onNextChallenge,
     quiz = null,
+    skipLesson = null,
+    onSkipLesson = null,
+    readiness = null,
+    onOpenRecommended = null,
     intl,
 }) => {
+    const handleOpenRecommended = useCallback(
+        (event) => {
+            if (onOpenRecommended) onOpenRecommended(event.currentTarget.dataset.challengeId);
+        },
+        [onOpenRecommended],
+    );
     // 課題クリア（#1599）: 段 1 の「レッスン n ぜんぶできた！」より優先。同じお祝いの形で、丸は課題のチャレンジ
     const lessonDone = assignmentCleared || action !== COMPLETED_ACTIONS.NEXT;
     const dots = assignmentCleared ? assignmentChallenges : challenges;
     const total = dots.length;
     const remaining = challenges.filter((c) => !c.completed).length;
+    // 「できた！」の場面（レッスンの途中・課題クリアでない）でだけ、レッスンを飛ばす道を出す
+    const skip = !lessonDone && skipLesson && onSkipLesson && onNextChallenge ? skipLesson : null;
     let detail = null;
     // 「これで全部です」はコースのチャレンジが全部できたときだけ。library は「後ろに残っているレッスンが無い」
     // だけなので、前のレッスンを飛ばした生徒には出さず、レッスン名の行にする
@@ -174,7 +242,10 @@ const LessonCompletedToast = ({
     }
     return (
         <div
-            className={classNames(styles.toast, { [styles.lessonDone]: lessonDone, [styles.withQuiz]: quiz })}
+            className={classNames(styles.toast, {
+                [styles.lessonDone]: lessonDone,
+                [styles.withQuiz]: quiz || readiness,
+            })}
             role="status"
             hidden={hidden}
             data-testid="lesson-completed-toast"
@@ -233,6 +304,69 @@ const LessonCompletedToast = ({
                 {/* ふりかえりのクイズ（#1639）: どの場面（できた！／レッスン n ぜんぶできた！／課題クリア！）でも出す。
                     答えなくてもボタンで先へ進める。チャレンジが変わったら選んだものを消す（key） */}
                 {quiz && <LessonCompletedQuiz key={challengeId} quiz={quiz} />}
+                {readiness && (
+                    <div
+                        className={styles.readiness}
+                        data-testid="lesson-readiness-result"
+                        data-all-correct={readiness.allCorrect ? 'true' : 'false'}
+                    >
+                        {readiness.allCorrect ? (
+                            <>
+                                <div className={styles.readinessTitle} data-testid="lesson-readiness-result-ok">
+                                    {intl.formatMessage(messages.readinessOk)}
+                                </div>
+                                <div className={styles.readinessDetail}>
+                                    {intl.formatMessage(messages.readinessOkDetail, { count: readiness.total })}
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className={styles.readinessDetail} data-testid="lesson-readiness-result-score">
+                                    {intl.formatMessage(messages.readinessScore, {
+                                        correct: readiness.correctCount,
+                                        count: readiness.total,
+                                    })}
+                                </div>
+                                {readiness.recommended.length > 0 && (
+                                    <>
+                                        <div className={styles.readinessTitle}>
+                                            {intl.formatMessage(messages.readinessRecommended)}
+                                        </div>
+                                        <div className={styles.readinessDetail}>
+                                            {intl.formatMessage(messages.readinessRecommendedDetail)}
+                                        </div>
+                                        <ul className={styles.recommendedList}>
+                                            {readiness.recommended.map((r) => (
+                                                <li key={r.id}>
+                                                    <button
+                                                        type="button"
+                                                        className={styles.recommended}
+                                                        onClick={handleOpenRecommended}
+                                                        disabled={!onOpenRecommended}
+                                                        data-testid="lesson-readiness-recommended"
+                                                        data-challenge-id={r.id}
+                                                    >
+                                                        <span className={styles.recommendedName}>
+                                                            {intl.formatMessage(r.name)}
+                                                        </span>
+                                                        <span className={styles.recommendedWhere}>
+                                                            {`${intl.formatMessage(r.courseName)} ${r.lessonNumber}-${r.number}`}
+                                                        </span>
+                                                    </button>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </>
+                                )}
+                            </>
+                        )}
+                    </div>
+                )}
+                {skip && (
+                    <div className={styles.skipDetail} data-testid="lesson-completed-toast-skip-detail">
+                        {intl.formatMessage(messages.skipDetail, { number: skip.lessonNumber })}
+                    </div>
+                )}
                 <div className={styles.actions}>
                     {assignmentCleared && onSubmitAssignment ? (
                         <button
@@ -251,9 +385,22 @@ const LessonCompletedToast = ({
                             data-testid="lesson-completed-toast-next"
                             data-action={action}
                         >
-                            {intl.formatMessage(BUTTON_MESSAGES[action])}
+                            {skip
+                                ? intl.formatMessage(messages.continueLesson, { number: lessonNumber })
+                                : intl.formatMessage(BUTTON_MESSAGES[action])}
                         </button>
                     ) : null}
+                    {skip && (
+                        <button
+                            type="button"
+                            className={styles.close}
+                            onClick={onSkipLesson}
+                            data-testid="lesson-completed-toast-skip"
+                            data-lesson-number={skip.lessonNumber}
+                        >
+                            {intl.formatMessage(messages.skipLesson, { number: skip.lessonNumber })}
+                        </button>
+                    )}
                     <button
                         type="button"
                         className={styles.close}
@@ -304,6 +451,27 @@ LessonCompletedToast.propTypes = {
     onClose: PropTypes.func.isRequired,
     // 「次のチャレンジへ」など。レッスン表を開く。無ければボタンを出さない
     onNextChallenge: PropTypes.func,
+    // 「レッスン n へ進む」（レッスンを飛ばす）。skipLesson と onNextChallenge もあるときだけ出す
+    onSkipLesson: PropTypes.func,
+    // 飛ばして進めるレッスン（lesson-progress.js の lessonSkipOffer）。無ければ出さない
+    skipLesson: PropTypes.shape({ lessonNumber: PropTypes.number.isRequired }),
+    // 「おすすめ」のチャレンジを開く（チャレンジ id）。readiness があるときだけ
+    onOpenRecommended: PropTypes.func,
+    // じゅんびチェックの結果（containers/lesson-goal-watcher.jsx が lib/lessons/readiness.js から作る）
+    readiness: PropTypes.shape({
+        allCorrect: PropTypes.bool.isRequired,
+        correctCount: PropTypes.number.isRequired,
+        total: PropTypes.number.isRequired,
+        recommended: PropTypes.arrayOf(
+            PropTypes.shape({
+                id: PropTypes.string.isRequired,
+                name: PropTypes.object.isRequired,
+                courseName: PropTypes.object.isRequired,
+                lessonNumber: PropTypes.number.isRequired,
+                number: PropTypes.number.isRequired,
+            }),
+        ).isRequired,
+    }),
     // ふりかえりのクイズ（courses.js の challengeQuiz の形）。無ければ出さない
     quiz: PropTypes.shape({
         question: PropTypes.object.isRequired,

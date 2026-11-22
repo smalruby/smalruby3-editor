@@ -3,11 +3,13 @@
  * VM events are replaced by recording facts directly.
  */
 import {
+    clearBoardSensors,
     compareValues,
     createFacts,
     evaluateGoal,
     matchValue,
     recordAnswer,
+    recordBoardEntry,
     recordExecution,
     recordSay,
     startRun,
@@ -702,7 +704,7 @@ describe('validateGoal', () => {
             { type: 'extension' },
         ]);
         expect(errors).toEqual([
-            'goal[0]: type must be one of uses, said, variable, list, sprites, costumes, extension, moved, currentCostume, tab, partQuiz',
+            'goal[0]: type must be one of uses, said, variable, list, sprites, costumes, extension, moved, currentCostume, tab, partQuiz, readinessCheck, boardCommand, sensorRead',
             'goal[1]: uses.blocks must be a non-empty array',
             'goal[2].blocks[0]: opcode is required',
             "goal[2]: trigger.target must be 'stage' or 'sprite'",
@@ -1093,6 +1095,18 @@ describe('lesson 0 conditions: clicks, moved, currentCostume, tab, partQuiz (#21
         expect(evaluateGoal(quiz, createFacts(), snapshot({ ui: { partQuizSolved: 5 } })).satisfied).toBe(true);
     });
 
+    // じゅんびチェック（#2299）: 答えた数だけを見る（正しかったかは「できた」に関係しない）
+    test('readinessCheck counts the answered questions (snapshot.ui)', () => {
+        const check = [{ type: 'readinessCheck', count: 4 }];
+        expect(evaluateGoal(check, createFacts(), snapshot()).satisfied).toBe(false);
+        expect(evaluateGoal(check, createFacts(), snapshot({ ui: { readinessAnswered: 3 } })).satisfied).toBe(false);
+        expect(evaluateGoal(check, createFacts(), snapshot({ ui: { readinessAnswered: 4 } })).satisfied).toBe(true);
+        expect(validateGoal(check)).toEqual([]);
+        expect(validateGoal([{ type: 'readinessCheck', count: 0 }])).toEqual([
+            'goal[0]: readinessCheck.count must be a positive integer',
+        ]);
+    });
+
     test('validateGoal checks the new conditions', () => {
         expect(
             validateGoal([
@@ -1121,5 +1135,93 @@ describe('lesson 0 conditions: clicks, moved, currentCostume, tab, partQuiz (#21
                 { type: 'partQuiz', count: 5 },
             ]),
         ).toEqual([]);
+    });
+});
+
+describe('boardCommand and sensorRead: the Studuino commands and sensor reads (#2193)', () => {
+    const read = (port, sensor, value) => ({ kind: 'sensorRead', port, sensor, value });
+    const led = (port, value) => ({ kind: 'led', port, value });
+    const record = (entries, board = 'practice') => {
+        const facts = createFacts();
+        entries.forEach((entry) => recordBoardEntry(facts, { board, ...entry }));
+        return facts;
+    };
+
+    // 「暗いとき（光センサー < 50）に LED をオンにした」
+    const darkLedOn = [
+        {
+            type: 'boardCommand',
+            kind: 'led',
+            value: 'on',
+            whenSensor: { sensor: 'light', value: { lt: 50 } },
+        },
+    ];
+
+    test('the command is met with the sensor value read before it', () => {
+        expect(satisfied(darkLedOn, record([read('A6', 'light', 30), led('A0', 'on')]))).toBe(true);
+    });
+
+    test('the same facts on the real board and the practice board', () => {
+        const entries = [read('A6', 'light', 30), led('A1', 'on')];
+        expect(satisfied(darkLedOn, record(entries, 'device'))).toBe(true);
+        expect(satisfied(darkLedOn, record(entries, 'practice'))).toBe(true);
+    });
+
+    test('not met when it was bright, when the LED was turned off, or when the sensor was read only after', () => {
+        expect(satisfied(darkLedOn, record([read('A6', 'light', 80), led('A0', 'on')]))).toBe(false);
+        expect(satisfied(darkLedOn, record([read('A6', 'light', 30), led('A0', 'off')]))).toBe(false);
+        expect(satisfied(darkLedOn, record([led('A0', 'on'), read('A6', 'light', 30)]))).toBe(false);
+    });
+
+    test('the latest read of the port is used at the time of the command', () => {
+        const facts = record([read('A6', 'light', 30), read('A6', 'light', 80), led('A0', 'on')]);
+        expect(satisfied(darkLedOn, facts)).toBe(false);
+    });
+
+    test('without port and sensor, any sensor will do (another sensor in place of a missing one)', () => {
+        const anySensor = [{ type: 'boardCommand', kind: 'led', value: 'on', whenSensor: { value: { lt: 50 } } }];
+        expect(satisfied(anySensor, record([read('A4', 'irPhotoreflector', 10), led('A0', 'on')]))).toBe(true);
+        const lightOrIr = [{ ...anySensor[0], whenSensor: { port: ['A6', 'A4'], value: { lt: 50 } } }];
+        expect(satisfied(lightOrIr, record([read('A4', 'irPhotoreflector', 10), led('A0', 'on')]))).toBe(true);
+        expect(satisfied(lightOrIr, record([read('A7', 'sound', 10), led('A0', 'on')]))).toBe(false);
+    });
+
+    test('a new run (the record cleared) does not use the sensor values of the run before', () => {
+        const facts = record([read('A6', 'light', 30)]);
+        clearBoardSensors(facts);
+        recordBoardEntry(facts, led('A0', 'on'));
+        expect(satisfied(darkLedOn, facts)).toBe(false);
+    });
+
+    test('motors and servos by port, value and speed', () => {
+        const facts = record([
+            { kind: 'motor', port: 'M1', value: 'normal', speed: 80 },
+            { kind: 'motor', port: 'M2', value: 'reverse', speed: 80 },
+            { kind: 'servo', port: 'D10', value: 120 },
+        ]);
+        expect(satisfied([{ type: 'boardCommand', kind: 'motor', port: 'M1', value: 'normal' }], facts)).toBe(true);
+        expect(satisfied([{ type: 'boardCommand', kind: 'motor', value: 'normal', speed: { gt: 50 } }], facts)).toBe(
+            true,
+        );
+        expect(satisfied([{ type: 'boardCommand', kind: 'motor', port: 'M2', value: 'normal' }], facts)).toBe(false);
+        expect(satisfied([{ type: 'boardCommand', kind: 'servo', value: { gte: 90 } }], facts)).toBe(true);
+        expect(satisfied([{ type: 'boardCommand', kind: 'led' }], facts)).toBe(false);
+    });
+
+    test('sensorRead: a sensor was read, with its value', () => {
+        const facts = record([read('A6', 'light', 30), read('A2', 'touch', 1)]);
+        expect(satisfied([{ type: 'sensorRead', sensor: 'light' }], facts)).toBe(true);
+        expect(satisfied([{ type: 'sensorRead', port: 'A6', value: { lt: 50 } }], facts)).toBe(true);
+        expect(satisfied([{ type: 'sensorRead', sensor: 'light', value: { gt: 50 } }], facts)).toBe(false);
+        expect(satisfied([{ type: 'sensorRead', sensor: 'sound' }], facts)).toBe(false);
+        expect(satisfied([{ type: 'sensorRead' }], createFacts())).toBe(false);
+    });
+
+    test('validateGoal checks the shape', () => {
+        expect(validateGoal(darkLedOn)).toEqual([]);
+        expect(validateGoal([{ type: 'sensorRead', sensor: ['light', 'sound'], value: { lt: 3 } }])).toEqual([]);
+        expect(validateGoal([{ type: 'boardCommand', kind: 'buzzer' }])).toHaveLength(1);
+        expect(validateGoal([{ type: 'boardCommand', kind: 'led', whenSensor: 'light' }])).toHaveLength(1);
+        expect(validateGoal([{ type: 'sensorRead', value: { between: 1 } }])).toHaveLength(1);
     });
 });

@@ -7,8 +7,8 @@ import { childNodesOf, forEachNode, nodeTypeName } from './node-walk';
 // the source; it does not read the converter or the VM.
 //
 // The converter analyzes the code in `targetCodeToBlocks` before it converts (`_context.analysis`)
-// and reads `variables` / `locals` (`variable-utils.js`), `procedures.valueCallCounts`
-// (`my-blocks.js`), `classes` (`class-visitor.js` / `module-visitor.js` / `initialize-handler.js`)
+// and reads `variables` / `locals` (`variable-utils.js`), `procedures` (`my-blocks.js`), `classes`
+// (`class-visitor.js` / `module-visitor.js` / `initialize-handler.js`)
 // and `errors` (`_rejectRubyNameOfVariableAndList`) from here.
 
 // Methods that the converter turns into list blocks only (a String has no such block), so calling
@@ -33,6 +33,16 @@ const INSTANCE_OR_GLOBAL_NODE_TYPES = new Set(
         ),
     ),
 );
+// Nodes that name a local (or a parameter): converting one makes or finds the local of that name
+// (`_lookupOrCreateVariableOrList`), which is where a local of a block gets its scope index.
+const LOCAL_NAME_NODE_TYPES = new Set([
+    ...['ReadNode', 'WriteNode', 'OperatorWriteNode', 'OrWriteNode', 'AndWriteNode', 'TargetNode'].map(
+        (suffix) => `LocalVariable${suffix}`,
+    ),
+    'RequiredParameterNode',
+    'OptionalParameterNode',
+    'BlockLocalVariableNode',
+]);
 const STRING_VALUE_NODE_TYPES = new Set(['StringNode', 'InterpolatedStringNode']);
 // Calls whose value is always a String (issue #1659): `gets` / `answer` (no receiver), and `x.to_s`.
 const STRING_CALLS_WITHOUT_RECEIVER = new Set(['gets', 'answer']);
@@ -212,6 +222,8 @@ const variableCollector = (lineOf) => {
     const unitGroups = { 0: 0 };
     const unitOfNode = new Map();
     const unitOfEntered = new Map();
+    // The names of the locals and parameters that each unit names (see LOCAL_NAME_NODE_TYPES)
+    const namesOfUnit = { 0: new Set() };
     const firstUses = Object.create(null);
     const rubyNames = new Set();
     let nextUnit = 1;
@@ -248,9 +260,11 @@ const variableCollector = (lineOf) => {
             unit = nextUnit++;
             unitGroups[unit] = type === 'DefNode' ? unit : 0;
             localUses[unit] = Object.create(null);
+            namesOfUnit[unit] = new Set();
             unitOfNode.set(node, unit);
         }
         unitOfEntered.set(node, unit);
+        if (LOCAL_NAME_NODE_TYPES.has(type)) namesOfUnit[unit].add(String(node.name));
 
         if (INSTANCE_OR_GLOBAL_NODE_TYPES.has(type)) rubyNames.add(String(node.name));
         if (VARIABLE_WRITE_NODE_TYPES.has(type)) {
@@ -318,7 +332,82 @@ const variableCollector = (lineOf) => {
             variables: { uses, firstUses, rubyNames: [...rubyNames].sort() },
             locals: { unitOfNode: readOnlyMap(unitOfNode), uses: localUses, groups: unitGroups, splitNames },
             errors: conflicts,
+            namesOfUnit,
         };
+    };
+
+    // The unit of locals that a node starts (a method or a block of the script), or null.
+    const unitStartedBy = (node) => (unitOfNode.has(node) ? unitOfNode.get(node) : null);
+
+    return { enter, finish, unitStartedBy };
+};
+
+/**
+ * Decide the scope indexes of the locals (the `2` of `_a_2_`, `locals.scopeIndexOfDef` and
+ * `locals.scopeIndexOfUnit`), in the order in which the conversion makes them: the script is 1;
+ * each method that the conversion makes a definition of gets the next index, and so does each block
+ * of the script whose locals are separate in each block (`splitNames`), when it names one of them.
+ *
+ * The conversion goes through the code in its order, except for a module: its methods are made
+ * where a class includes it (before the body of the class), not where it is written. A method
+ * with a receiver other than `self` and `def initialize` of a class are not made into definitions.
+ * @returns {object} `{enter, leave, finish}`.
+ */
+const scopeIndexCollector = () => {
+    // In the order of the conversion: {def}, {unit} or {include} (the methods of a module)
+    const sequence = [];
+    const moduleDefs = Object.create(null);
+    // The defs that come in a module or are `def initialize` of a class: not in `sequence` as they are
+    const notInOrder = new Set();
+    const isMadeIntoDefinition = (def) => !def.receiver || nodeTypeName(def.receiver) === 'SelfNode';
+
+    const enter = (node, type, unit) => {
+        if (type === 'ModuleNode') {
+            const name = constantPath(node.constantPath);
+            const defs = bodyStatements(node).filter((stmt) => nodeTypeName(stmt) === 'DefNode');
+            defs.forEach((def) => notInOrder.add(def));
+            if (!moduleDefs[name]) moduleDefs[name] = defs;
+        } else if (type === 'ClassNode') {
+            bodyStatements(node).forEach((stmt) => {
+                const stmtType = nodeTypeName(stmt);
+                if (stmtType === 'DefNode' && String(stmt.name) === 'initialize') notInOrder.add(stmt);
+                const args = (stmt.arguments_ && stmt.arguments_.arguments_) || [];
+                if (
+                    stmtType === 'CallNode' &&
+                    !stmt.receiver &&
+                    String(stmt.name) === 'include' &&
+                    args.length === 1 &&
+                    nodeTypeName(args[0]) === 'ConstantReadNode'
+                ) {
+                    sequence.push({ include: String(args[0].name) });
+                }
+            });
+        } else if (type === 'DefNode') {
+            if (!notInOrder.has(node) && isMadeIntoDefinition(node)) sequence.push({ def: node });
+        } else if (unit !== null) {
+            sequence.push({ unit });
+        }
+    };
+
+    const finish = ({ groups, splitNames }, namesOfUnit) => {
+        const scopeIndexOfDef = new Map();
+        const scopeIndexOfUnit = Object.create(null);
+        let last = 1;
+        const numberDef = (def) => {
+            if (!scopeIndexOfDef.has(def)) scopeIndexOfDef.set(def, ++last);
+        };
+        sequence.forEach((entry) => {
+            if (entry.def) {
+                numberDef(entry.def);
+            } else if (entry.include) {
+                // A module of another sprite is not in this code: the conversion numbers its methods
+                // after the last index of this code (`_scopeIndexOfDef`).
+                (moduleDefs[entry.include] || []).filter(isMadeIntoDefinition).forEach(numberDef);
+            } else if (groups[entry.unit] === 0 && splitNames.some((name) => namesOfUnit[entry.unit].has(name))) {
+                scopeIndexOfUnit[entry.unit] = ++last;
+            }
+        });
+        return { scopeIndexOfDef: readOnlyMap(scopeIndexOfDef), scopeIndexOfUnit, lastScopeIndex: last };
     };
 
     return { enter, finish };
@@ -380,12 +469,14 @@ const valueCallCounter = () => {
 };
 
 /**
- * Collect the methods made with `def` (`procedures.definitions`).
+ * Collect the methods made with `def` (`procedures.definitions`). `ofNode` finds the entry of a
+ * DefNode, which `my-blocks.js` reads when it converts the def.
  * @param {function(object): number} lineOf - The line of a node.
  * @returns {object} `{enter, leave, finish}`.
  */
 const definitionCollector = (lineOf) => {
     const definitions = [];
+    const ofNode = new Map();
     const open = [];
     const enter = (node, type) => {
         if (type === 'DefNode') {
@@ -398,17 +489,22 @@ const definitionCollector = (lineOf) => {
                 requireds: names(params && params.requireds),
                 optionals: names(params && params.optionals),
                 returnsValue: false,
+                hasReturn: false,
                 usesSuper: false,
                 node,
             };
             definitions.push(definition);
+            ofNode.set(node, definition);
             open.push(definition);
             return;
         }
         const current = open[open.length - 1];
         if (!current) return;
-        if (type === 'ReturnNode' && node.arguments_ && node.arguments_.arguments_.length > 0) {
-            current.returnsValue = true;
+        if (type === 'ReturnNode') {
+            // Any `return` (a bare one too) sets `_return_<name>_`, so the method returns a value and
+            // its definition starts by resetting that variable (`@ruby:return:<name>:initialize`).
+            current.hasReturn = true;
+            if (node.arguments_ && node.arguments_.arguments_.length > 0) current.returnsValue = true;
         } else if (type === 'SuperNode' || type === 'ForwardingSuperNode') {
             current.usesSuper = true;
         }
@@ -416,7 +512,7 @@ const definitionCollector = (lineOf) => {
     const leave = (node, type) => {
         if (type === 'DefNode') open.pop();
     };
-    return { enter, leave, finish: () => definitions };
+    return { enter, leave, finish: () => ({ definitions, ofNode: readOnlyMap(ofNode) }) };
 };
 
 /**
@@ -490,8 +586,10 @@ const classCollector = (lineOf) => {
  * - `locals`: the units of local variables: `unitOfNode` (the node that starts a unit -> its id),
  *   `uses[unit][name]`, `groups[unit]` (whose locals the unit sees: itself for a method, 0 for a
  *   block of the script) and `splitNames` (locals that are separate in each block of the script).
- * - `procedures`: `valueCallCounts[name]` (calls whose value is used) and
- *   `definitions` (the methods made with `def`).
+ * - `procedures`: `valueCallCounts[name]` (calls whose value is used),
+ *   `definitions` (the methods made with `def`: the parameters, whether a `return` is in the body
+ *   (`hasReturn`) and whether one returns a value (`returnsValue`)) and `ofNode` (a DefNode -> its
+ *   entry).
  * - `classes`: `classes` and `modules`, with what is directly in their bodies and their
  *   `structure` (`class-analysis.js`), and `ofNode` (a ClassNode / ModuleNode -> its entry).
  * - `symbols`: every symbol that the code writes (`:name`), the candidates of `$_symbols_`.
@@ -512,6 +610,7 @@ const analyze = (root, { source }) => {
     const calls = valueCallCounter();
     const definitions = definitionCollector(lineOf);
     const classes = classCollector(lineOf);
+    const scopeIndexes = scopeIndexCollector();
     const symbols = new Set();
 
     forEachNode(root, {
@@ -520,6 +619,7 @@ const analyze = (root, { source }) => {
             calls.enter(node, type, parent);
             definitions.enter(node, type, parent);
             classes.enter(node, type, parent);
+            scopeIndexes.enter(node, type, variables.unitStartedBy(node));
             if (type === 'SymbolNode') symbols.add(`:${unescapedValue(node.unescaped)}`);
         },
         leave(node, type) {
@@ -527,11 +627,11 @@ const analyze = (root, { source }) => {
         },
     });
 
-    const { variables: variableTable, locals, errors } = variables.finish();
+    const { variables: variableTable, locals, errors, namesOfUnit } = variables.finish();
     return deepFreeze({
         variables: variableTable,
-        locals,
-        procedures: { valueCallCounts: calls.finish(), definitions: definitions.finish() },
+        locals: { ...locals, ...scopeIndexes.finish(locals, namesOfUnit) },
+        procedures: { valueCallCounts: calls.finish(), ...definitions.finish() },
         classes: classes.finish(),
         symbols: [...symbols].sort(),
         errors,

@@ -7,6 +7,7 @@
  * These helpers turn that editor state into the PUT payload the backend
  * expects and validate client-side limits (mirrors the Lambda validation).
  */
+import { plainAssignmentLine } from './classroom-assignment-text.js';
 
 const MAX_ASSIGNMENT_PAGES = 10;
 const MAX_ASSIGNMENT_PAGE_TEXT_LENGTH = 500;
@@ -136,7 +137,8 @@ const summarizeAssignmentRow = ({ members, studentCount, assignment } = {}) => {
         submitted: joined.filter((m) => m.hasSubmission).length,
         joined: joined.length,
         capacity: studentCount || 0,
-        descriptionLine: lines[0] || '',
+        // the marks of the page text (`*words*`) are not shown in this one plain line
+        descriptionLine: plainAssignmentLine(lines[0] || ''),
     };
 };
 

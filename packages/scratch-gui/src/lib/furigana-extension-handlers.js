@@ -18,6 +18,8 @@ const EXTENSION_HANDLER_MAP = {
     microbit: '_annotateMicrobitMethod',
     mesh_v1: '_annotateMeshV1Method',
     mesh: '_annotateMeshV2Method',
+    // `studuino.` is written by the generator; `smalrubot_s1.` is still read (#2190).
+    studuino: '_annotateSmalrubotS1Method',
     smalrubot_s1: '_annotateSmalrubotS1Method',
     koshien: '_annotateKoshienMethod',
     tm: '_annotateTmMethod',
@@ -41,7 +43,8 @@ const EXTENSION_RECEIVER_LABELS = {
     microbit: 'マイクロビット',
     mesh_v1: 'メッシュ(従来)',
     mesh: 'メッシュ',
-    smalrubot_s1: 'スモウルボットS1',
+    studuino: 'アーテックロボ',
+    smalrubot_s1: 'アーテックロボ',
     koshien: 'スモウルビー甲子園',
     tm: '機械学習',
     akadako: 'AkaDako',
@@ -100,17 +103,35 @@ const MICROBIT_PULL_MODE_LABELS = {
     none: 'なし',
 };
 
+// Keys are the menu values written in Ruby (`left` / `right` are the turn actions).
 const SMALRUBOT_S1_ACTION_LABELS = {
     forward: '進める',
     backward: 'バックさせる',
-    turnLeft: '左に曲げる',
-    turnRight: '右に曲げる',
+    left: '左に曲げる',
+    right: '右に曲げる',
+    stop: '止める',
+};
+
+// `dc_motor` writes the port name ('M1' / 'M2') as it is, so only the direction has a label.
+const SMALRUBOT_S1_MOTOR_DIRECTION_LABELS = {
+    normal: '正転させる',
+    reverse: '逆転させる',
     stop: '止める',
 };
 
 const SMALRUBOT_S1_POSITION_LABELS = {
     left: '左',
     right: '右',
+};
+
+const SMALRUBOT_S1_SENSOR_LABELS = {
+    light: '光センサー (A6)',
+    ir_a4: '赤外線センサー（フォトリフレクタ）(A4)',
+    ir_a5: '赤外線センサー（フォトリフレクタ）(A5)',
+    touch: 'タッチセンサー (A2)',
+    sound: '音センサー (A7)',
+    left: '左のセンサー (A4)',
+    right: '右のセンサー (A5)',
 };
 
 /**
@@ -170,6 +191,18 @@ const TM_VIDEO_STATE_LABELS = {
 };
 
 /**
+ * The string labels of the Studuino (Smalrubot S1) methods, shared by `studuino` and `smalrubot_s1`.
+ */
+const SMALRUBOT_S1_STRING_MAPS = {
+    action: SMALRUBOT_S1_ACTION_LABELS,
+    sensor_value: SMALRUBOT_S1_SENSOR_LABELS,
+    led: SMALRUBOT_S1_POSITION_LABELS,
+    get_motor_speed: SMALRUBOT_S1_POSITION_LABELS,
+    set_motor_speed: SMALRUBOT_S1_POSITION_LABELS,
+    dc_motor: SMALRUBOT_S1_MOTOR_DIRECTION_LABELS,
+};
+
+/**
  * Maps extension receiver names → { methodName: stringLabelMap|function }.
  * Values can be plain objects (exact match) or functions (dynamic transform).
  * Used to set context-specific _stringLabelMap before walking arguments.
@@ -191,9 +224,8 @@ const EXTENSION_STRING_MAPS = {
         acceleration: MICROBIT_AXIS_LABELS,
         set_pin_to_input_pull: MICROBIT_PULL_MODE_LABELS,
     },
-    smalrubot_s1: {
-        action: SMALRUBOT_S1_ACTION_LABELS,
-    },
+    studuino: SMALRUBOT_S1_STRING_MAPS,
+    smalrubot_s1: SMALRUBOT_S1_STRING_MAPS,
     tm: {
         toggle_classification: TM_CLASSIFICATION_STATE_LABELS,
         video_toggle: TM_VIDEO_STATE_LABELS,
@@ -309,6 +341,7 @@ const extensionHandlers = {
             set_motor_speed: 'モーター速度を設定',
             sensor_value: 'センサーの値',
             get_motor_speed: 'モーター速度',
+            dc_motor: 'DCモーターを動かす',
             'arm_calibration=': 'アーム調整',
         };
         const label = labels[name];

@@ -12,14 +12,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import BugReportConsent from '../components/bug-report-consent/bug-report-consent.jsx';
 import BugReportModalComponent from '../components/bug-report-modal/bug-report-modal.jsx';
 import bugReportAPI, { isBugReportConfigured } from '../lib/bug-report-api.js';
-import {
-    cancelGoogleLogin,
-    isGoogleLoginInFlight,
-    revealGoogleSignInButton,
-    loginWithGoogle,
-    requestMicrosoftIdToken,
-    isMicrosoftAuthAvailable,
-} from '../lib/teacher-auth.js';
+import { loginWithGoogle, requestMicrosoftIdToken, isMicrosoftAuthAvailable } from '../lib/teacher-auth.js';
 import { getUrlParams } from '../lib/url-params.js';
 import { closeBugReportModal, setBugReportView, VIEW_MY_REPORTS } from '../reducers/bug-report.js';
 import useBugReportSubmit from './use-bug-report-submit.js';
@@ -180,36 +173,50 @@ const BugReportModal = () => {
     // The GIS sign-in button is rendered into this in-modal node so it cannot
     // outlive the login phase as a body-level overlay (#1149).
     const googleSignInRef = useRef(null);
-    // Why Google's own button replaced ours, or null while ours is the entry
-    // point: 'dismissed' (prompt closed without signing in) or 'unsupported'
-    // (this browser has no prompt of its own) — see #1149.
-    const [googleFallbackReason, setGoogleFallbackReason] = useState(null);
+    // The slot lives in the modal's portal, which mounts after this
+    // container's effects run, so the login waits for the node itself.
+    const [googleSignInNode, setGoogleSignInNode] = useState(null);
+    const handleGoogleSignInRef = useCallback((node) => {
+        googleSignInRef.current = node;
+        setGoogleSignInNode(node);
+    }, []);
+    // Whether Google's own button is on screen in place of ours. Ours stays
+    // only while Google's script has not loaded (or failed to), so pressing it
+    // tries again.
+    const [googleButtonShown, setGoogleButtonShown] = useState(false);
 
+    // Waiting on Google's button is not "busy": the Microsoft button has to
+    // stay usable meanwhile, so this does not go through handleLogin.
     const handleLoginGoogle = useCallback(async () => {
-        // Pressing again while the login runs means the browser prompt did not
-        // help, whether or not GIS reported a dismissal (#1149).
-        if (isGoogleLoginInFlight()) {
-            revealGoogleSignInButton();
-            return;
-        }
-        setGoogleFallbackReason(null);
+        setError(null);
+        let token;
         try {
-            await handleLogin(() =>
-                loginWithGoogle({
-                    container: googleSignInRef.current,
-                    onFallbackVisible: (reason) => setGoogleFallbackReason(reason),
-                }),
-            );
+            token = await loginWithGoogle({
+                container: googleSignInRef.current,
+                onButtonVisible: () => setGoogleButtonShown(true),
+            });
+        } catch {
+            // Cancelled (the login phase went away) or the script failed to
+            // load; our own button comes back for another try.
+            return;
         } finally {
-            setGoogleFallbackReason(null);
+            setGoogleButtonShown(false);
         }
-    }, [handleLogin]);
-    const handleLoginMicrosoft = useCallback(() => {
-        // Switching providers abandons the Google attempt (#1149).
-        cancelGoogleLogin();
-        setGoogleFallbackReason(null);
-        return handleLogin(requestMicrosoftIdToken);
-    }, [handleLogin]);
+        setIdToken(token);
+        advanceAfterAuth(token);
+    }, [advanceAfterAuth]);
+    // Google's button stays up: if the Microsoft sign-in is abandoned the user
+    // can still choose Google. Leaving the login phase unmounts the slot, which
+    // cancels the Google login (#1149).
+    const handleLoginMicrosoft = useCallback(() => handleLogin(requestMicrosoftIdToken), [handleLogin]);
+
+    // Google's button is the entry point, so put it up as soon as the login
+    // phase (and with it the slot) is on screen.
+    useEffect(() => {
+        if (googleSignInNode) {
+            handleLoginGoogle();
+        }
+    }, [googleSignInNode]);
 
     const handleConsentAccept = useCallback(() => {
         try {
@@ -337,8 +344,8 @@ const BugReportModal = () => {
             reportsLoading={reportsLoading}
             submitProgressLabel={submitProgressLabel}
             onRequestClose={handleClose}
-            googleFallbackReason={googleFallbackReason}
-            googleSignInRef={googleSignInRef}
+            googleButtonShown={googleButtonShown}
+            googleSignInRef={handleGoogleSignInRef}
             onLoginGoogle={handleLoginGoogle}
             onLoginMicrosoft={handleLoginMicrosoft}
             onDescriptionChange={handleDescriptionChange}

@@ -5,6 +5,7 @@ import EventEmitter from 'events';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import { LessonGoalWatcher } from '../../../src/containers/lesson-goal-watcher.jsx';
+import analytics from '../../../src/lib/analytics';
 
 jest.mock('../../../src/lib/lessons/courses.js', () => {
     const makeChallenge = (id, name) => ({
@@ -24,19 +25,44 @@ jest.mock('../../../src/lib/lessons/courses.js', () => {
         answer: 2,
         explanation: { id: 'test.quiz.explanation', defaultMessage: 'Because C.' },
     };
+    // レッスン 0（warmup）: 1 回もまちがえずに答えたらレッスンを飛ばせる「どこでしょう？」と、もう 1 つ
+    const warmup = {
+        id: 'w',
+        warmup: true,
+        name: { id: 'gui.lessons.lesson.w.name', defaultMessage: 'Explore' },
+        challenges: [
+            {
+                id: 'where-challenge',
+                name: { id: 'gui.lessons.challenge.where-challenge.name', defaultMessage: 'Where is it?' },
+                partQuiz: { questions: ['palette'], offerLessonSkip: true },
+                goal: [{ type: 'partQuiz', count: 1 }],
+            },
+            makeChallenge('drag-challenge', 'Drag'),
+            // じゅんびチェック（#2299）: 土台は drag-challenge と test-challenge
+            {
+                id: 'check-challenge',
+                name: { id: 'gui.lessons.challenge.check-challenge.name', defaultMessage: 'Check' },
+                readinessCheck: { questions: [] },
+                goal: [{ type: 'readinessCheck', count: 2 }],
+                number: 3,
+            },
+        ],
+    };
     const course = {
         id: 'c',
         language: 'blocks',
         name: { id: 'gui.lessons.course.c.name', defaultMessage: 'Starter course' },
         lessons: [lesson],
+        warmupLessons: [warmup],
+        baseChallenges: ['drag-challenge', 'test-challenge'],
     };
     return {
         COURSES: [course],
         courseLessons: (c) => [...(c.warmupLessons || []), ...c.lessons],
         lessonNumberOf: (c, l) => (l.warmup ? 0 : c.lessons.indexOf(l) + 1),
         findChallenge: (id) => {
-            const challenge = lesson.challenges.find((c) => c.id === id);
-            return challenge ? { course, lesson, challenge } : null;
+            const owner = [warmup, lesson].find((l) => l.challenges.some((c) => c.id === id));
+            return owner ? { course, lesson: owner, challenge: owner.challenges.find((c) => c.id === id) } : null;
         },
     };
 });
@@ -263,5 +289,199 @@ describe('LessonGoalWatcher', () => {
             justCompletedId: 'test-challenge',
         });
         expect(without.queryByTestId('lesson-quiz')).toBeNull();
+    });
+
+    describe('the readiness check result (#2299)', () => {
+        const checkDone = { version: 1, challenges: { 'check-challenge': { ...doneRecord, lessonId: 'w' } } };
+        const answers = (a, b) => ({
+            version: 1,
+            courses: {
+                c: {
+                    answers: {
+                        'drag-challenge': { correct: a, answeredAt: '2026-11-21T00:00:00.000Z' },
+                        'test-challenge': { correct: b, answeredAt: '2026-11-21T00:00:00.000Z' },
+                    },
+                },
+            },
+            offered: {},
+        });
+        const checkWatcher = (props) =>
+            renderWatcher({
+                vm: makeVm(),
+                challengeId: 'check-challenge',
+                justCompletedId: 'check-challenge',
+                justCompletedNew: true,
+                progress: checkDone,
+                ...props,
+            });
+
+        test('all right shows "Ready to go!"', () => {
+            const { getByTestId } = checkWatcher({ readiness: answers(true, true) });
+            expect(getByTestId('lesson-readiness-result')).toHaveAttribute('data-all-correct', 'true');
+        });
+
+        test('a miss recommends the challenge and opens it', () => {
+            const onDismiss = jest.fn();
+            const onStartChallenge = jest.fn();
+            const { getAllByTestId } = checkWatcher({ readiness: answers(true, false), onDismiss, onStartChallenge });
+            const buttons = getAllByTestId('lesson-readiness-recommended');
+            expect(buttons.map((b) => b.dataset.challengeId)).toEqual(['test-challenge']);
+            fireEvent.click(buttons[0]);
+            expect(onDismiss).toHaveBeenCalled();
+            expect(onStartChallenge).toHaveBeenCalledWith('test-challenge', {
+                fromAssignment: false,
+                fromReview: false,
+            });
+        });
+
+        test('in a review of an assignment, opens a recommended challenge as a review too (#2300)', () => {
+            const onStartChallenge = jest.fn();
+            const onNextChallenge = jest.fn();
+            const { getAllByTestId, getByTestId } = checkWatcher({
+                readiness: answers(true, false),
+                fromReview: true,
+                lastAssignmentChallengeId: 'drag-challenge',
+                lesson: {
+                    courseId: 'c',
+                    challengeIds: ['drag-challenge'],
+                    requiredChallengeIds: [],
+                    completion: { type: 'all' },
+                    submitWork: false,
+                },
+                onNextChallenge,
+                onStartChallenge,
+            });
+            fireEvent.click(getAllByTestId('lesson-readiness-recommended')[0]);
+            expect(onStartChallenge).toHaveBeenCalledWith('test-challenge', {
+                fromAssignment: false,
+                fromReview: true,
+            });
+            // 「次のチャレンジ」は課題だけのレッスン表（おさらいの前の課題のチャレンジの次から）
+            const next = getByTestId('lesson-completed-toast-next');
+            fireEvent.click(next);
+            expect(onNextChallenge).toHaveBeenCalledWith('drag-challenge', true);
+        });
+
+        test('other challenges show no readiness result', () => {
+            const { queryByTestId } = renderWatcher({
+                vm: makeVm(),
+                challengeId: 'drag-challenge',
+                justCompletedId: 'drag-challenge',
+                progress: checkDone,
+                readiness: answers(false, false),
+            });
+            expect(queryByTestId('lesson-readiness-result')).not.toBeInTheDocument();
+        });
+    });
+
+    describe('the lesson skip after a perfect "where is it?" quiz', () => {
+        const whereDone = {
+            version: 1,
+            challenges: { 'where-challenge': { ...doneRecord, lessonId: 'w' } },
+        };
+        const skipWatcher = (props) =>
+            renderWatcher({
+                vm: makeVm(),
+                challengeId: 'where-challenge',
+                justCompletedId: 'where-challenge',
+                justCompletedNew: true,
+                progress: whereDone,
+                ...props,
+            });
+
+        test('offers the next lesson and starts its first challenge not done', () => {
+            const onDismiss = jest.fn();
+            const onSkipLesson = jest.fn();
+            const { getByTestId } = skipWatcher({ onDismiss, onSkipLesson });
+            expect(getByTestId('lesson-completed-toast-skip')).toHaveTextContent('Go to lesson 1');
+            fireEvent.click(getByTestId('lesson-completed-toast-skip'));
+            expect(onDismiss).toHaveBeenCalled();
+            expect(onSkipLesson).toHaveBeenCalledWith('test-challenge', false);
+        });
+
+        test('sends lesson_skip to GA when skipping, but not for a teacher', () => {
+            const spy = jest.spyOn(analytics, 'event').mockImplementation(() => {});
+            try {
+                const student = skipWatcher({ onSkipLesson: jest.fn() });
+                fireEvent.click(student.getByTestId('lesson-completed-toast-skip'));
+                expect(spy).toHaveBeenCalledTimes(1);
+                expect(spy).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        category: 'lessons',
+                        action: 'lesson_skip',
+                        label: 'where-challenge',
+                        lesson_id: 'w',
+                        from_assignment: false,
+                    }),
+                );
+                student.unmount();
+                const teacher = skipWatcher({ onSkipLesson: jest.fn(), teacherLoggedIn: true });
+                fireEvent.click(teacher.getByTestId('lesson-completed-toast-skip'));
+                expect(spy).toHaveBeenCalledTimes(1);
+            } finally {
+                spy.mockRestore();
+            }
+        });
+
+        test('keeps "from the assignment" only when the next challenge is in the assignment', () => {
+            const onSkipLesson = jest.fn();
+            const assignment = (challengeIds) => ({
+                courseId: 'c',
+                challengeIds,
+                requiredChallengeIds: [],
+                completion: { type: 'all' },
+                submitWork: false,
+                scoring: null,
+            });
+            const inIt = skipWatcher({
+                onSkipLesson,
+                fromAssignment: true,
+                lesson: assignment(['where-challenge', 'test-challenge']),
+            });
+            fireEvent.click(inIt.getByTestId('lesson-completed-toast-skip'));
+            expect(onSkipLesson).toHaveBeenLastCalledWith('test-challenge', true);
+            inIt.unmount();
+            const outside = skipWatcher({
+                onSkipLesson,
+                fromAssignment: true,
+                lesson: assignment(['where-challenge', 'drag-challenge']),
+            });
+            fireEvent.click(outside.getByTestId('lesson-completed-toast-skip'));
+            expect(onSkipLesson).toHaveBeenLastCalledWith('test-challenge', false);
+        });
+
+        test('is not offered when the quiz clears the assignment ("Assignment cleared!" comes first)', () => {
+            const cleared = skipWatcher({
+                onSkipLesson: jest.fn(),
+                lesson: {
+                    courseId: 'c',
+                    challengeIds: ['where-challenge'],
+                    requiredChallengeIds: [],
+                    completion: { type: 'all' },
+                    submitWork: false,
+                    scoring: null,
+                },
+            });
+            expect(cleared.getByTestId('lesson-completed-toast')).toHaveAttribute('data-assignment-cleared', 'true');
+            expect(cleared.queryByTestId('lesson-completed-toast-skip')).toBeNull();
+        });
+
+        test('is not offered after a mistake or when a lesson 0 challenge of the assignment is required', () => {
+            const missed = skipWatcher({ onSkipLesson: jest.fn(), partQuizMissed: true });
+            expect(missed.queryByTestId('lesson-completed-toast-skip')).toBeNull();
+            missed.unmount();
+            const required = skipWatcher({
+                onSkipLesson: jest.fn(),
+                lesson: {
+                    courseId: 'c',
+                    challengeIds: ['where-challenge', 'drag-challenge'],
+                    requiredChallengeIds: ['drag-challenge'],
+                    completion: { type: 'all' },
+                    submitWork: false,
+                    scoring: null,
+                },
+            });
+            expect(required.queryByTestId('lesson-completed-toast-skip')).toBeNull();
+        });
     });
 });

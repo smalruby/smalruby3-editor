@@ -14,8 +14,11 @@
 //     「記録が無かった」なら、その記録だけについてもう一度聞く（先生があとから課題にチャレンジを足したとき）。
 //     「消す」なら黙って捨てる（別のタブが消す前の記録を書き戻したとき）。答えのあとにできた記録はそのまま送る。
 //   - 送れない日時（読めない・2020 年より前）の記録は送らない（サーバーが 400 で送信ごと拒むため・FYI1）。
+//   - じゅんびチェックの結果（readiness・#2301）も同じ決まりで送る（readinessPayloadOf）。先生の表に小さく出すだけで、
+//     できた数・課題クリア・得点には使わない。
 import { assignmentChallengeRecords } from './assignment-progress';
-import { COURSES, findChallenge } from './courses';
+import { COURSES, courseReadinessCheck, findChallenge, findCourse } from './courses';
+import { readinessResult } from './readiness';
 
 export const LESSON_PROGRESS_CONSENT_STORAGE_KEY = 'smalruby:lessonAssignmentConsent';
 // 覚えておく課題の数の上限（古いものから捨てる。localStorage を際限なく使わない）
@@ -223,16 +226,63 @@ export const makeConsent = (answer, shownIds, decidedAt, previous = null) => {
 };
 
 /**
- * いまやっているチャレンジ（current）。課題のチャレンジを開いているときだけ。
+ * いまやっているチャレンジ（current）。課題のチャレンジを開いているときと、課題の「おさらい（課題の外）」のチャレンジを
+ * 開いているとき（`review: true` を付ける。サーバーは課題の外でも current に残す・#2300）だけ。
  * @param {?object} lesson - normalizeAssignmentLesson の結果。
  * @param {?string} challengeId - 開いているチャレンジ id。
  * @param {?string} openedAt - 開いた日時（ISO 文字列）。
- * @returns {?{challengeId: string, openedAt: string}} current。無ければ null（送らない）。
+ * @param {boolean} [review] - 「おさらい」として開いたか。
+ * @returns {?{challengeId: string, openedAt: string, review: (true|undefined)}} current。無ければ null（送らない）。
  */
-export const currentChallengeOf = (lesson, challengeId, openedAt) =>
-    lesson && challengeId && isSendableTimestamp(openedAt) && lesson.challengeIds.includes(challengeId)
-        ? { challengeId, openedAt }
-        : null;
+export const currentChallengeOf = (lesson, challengeId, openedAt, review = false) => {
+    if (!lesson || !challengeId || !isSendableTimestamp(openedAt)) return null;
+    if (lesson.challengeIds.includes(challengeId)) return { challengeId, openedAt };
+    return review ? { challengeId, openedAt, review: true } : null;
+};
+
+// サーバーが受け付ける missing の数の上限（infra の MAX_READINESS_MISSING）
+export const MAX_READINESS_MISSING = 20;
+
+/**
+ * 送るじゅんびチェックの結果（#2301）。課題のコースにじゅんびチェックがあり、同意した答えで全部の問いに答えているとき
+ * だけ作る（途中までの答えでは「じゅんび ✓」と見えてしまうので送らない）。
+ *   - 同意した答え: 答えた日時が本人の確認の答え（decidedAt）より後のもの。じゅんびチェックのチャレンジを本人の確認で
+ *     「わたしの記録です」にした（beforeIds にある）ときは、その前の答えも本人のもの
+ *   - missing: 1 回めにまちがえて、そのあと正しく答えなおしても「できた」にもしていない土台のチャレンジ
+ *     （readinessResult の recommendedIds。コースの baseChallenges の並び）
+ *   - checkedAt: 同意した答えのうち一番新しい答えの日時
+ * @param {?object} lesson - normalizeAssignmentLesson の結果。
+ * @param {?object} readiness - じゅんびチェックの記録（lib/lessons/readiness.js）。
+ * @param {?object} consent - 本人の確認の答え（無ければ送らない）。
+ * @param {Array} [courses] - コース（テスト用）。
+ * @returns {?{checkedAt: string, missing: Array<string>}} 送る結果。送らないときは null。
+ */
+export const readinessPayloadOf = (lesson, readiness, consent, courses = COURSES) => {
+    if (!lesson || !consent) return null;
+    const course = findCourse(lesson.courseId, courses);
+    const check = course ? courseReadinessCheck(course) : null;
+    if (!check || course.baseChallenges.length === 0) return null;
+    const stored = readiness && readiness.courses && readiness.courses[course.id];
+    const answers = (stored && stored.answers) || {};
+    const decided = timeOf(consent.decidedAt);
+    const confirmed = consent.beforeIds.includes(check.id);
+    const counted = {};
+    Object.entries(answers).forEach(([id, answer]) => {
+        const at = timeOf(answer && answer.answeredAt);
+        if (at === null) return;
+        if (confirmed || (decided !== null && at > decided)) counted[id] = answer;
+    });
+    const result = readinessResult(course, { courses: { [course.id]: { answers: counted } } });
+    if (result.total === 0 || result.answeredCount < result.total) return null;
+    const checkedAt = course.baseChallenges
+        .map((id) => counted[id].answeredAt)
+        .reduce((latest, at) => (timeOf(at) > timeOf(latest) ? at : latest));
+    if (!isSendableTimestamp(checkedAt)) return null;
+    return { checkedAt, missing: result.recommendedIds.slice(0, MAX_READINESS_MISSING) };
+};
+
+const sameReadiness = (a, b) =>
+    Boolean(a && b) && a.checkedAt === b.checkedAt && a.missing.join(',') === b.missing.join(',');
 
 /**
  * 送る中身（PUT /classrooms/{id}/lesson-progress の本文）。課題のチャレンジの記録のうち、同意したもの
@@ -241,10 +291,12 @@ export const currentChallengeOf = (lesson, challengeId, openedAt) =>
  * @param {?object} lesson - normalizeAssignmentLesson の結果。
  * @param {object} progress - 端末の記録。
  * @param {object} consent - 答え（beforeIds を「前」にする）。
+ * じゅんびチェックの結果は、送れるときだけ readiness に入れる（readinessPayloadOf）。
  * @param {?object} current - currentChallengeOf の結果。
- * @returns {{challenges: object, current: (object|undefined)}} 本文。
+ * @param {?object} [readiness] - じゅんびチェックの記録。
+ * @returns {{challenges: object, current: (object|undefined), readiness: (object|undefined)}} 本文。
  */
-export const buildProgressPayload = (lesson, progress, consent, current) => {
+export const buildProgressPayload = (lesson, progress, consent, current, readiness = null) => {
     const records = assignmentChallengeRecords(lesson, progress);
     const skipped = new Set(unconsentedIds(consent, records));
     const before = new Set(consent ? consent.beforeIds : []);
@@ -255,13 +307,15 @@ export const buildProgressPayload = (lesson, progress, consent, current) => {
     });
     const payload = { challenges };
     if (current && isSendableTimestamp(current.openedAt)) payload.current = current;
+    const readinessPayload = readinessPayloadOf(lesson, readiness, consent);
+    if (readinessPayload) payload.readiness = readinessPayload;
     return payload;
 };
 
 /**
  * 最後に送れた中身で、こんどの中身が足りているか（足りていれば送らない）。
  * チャレンジは「できた」が増えていなければ足りている（サーバーは一度できたものを変えない）。
- * current は送るときに、最後に送れたものと同じなら足りている。
+ * current は送るときに、最後に送れたものと同じなら足りている。readiness も送るときに、最後に送れたものと同じなら足りている。
  * @param {object} payload - buildProgressPayload の結果。
  * @param {?object} acked - 最後に送れた中身（無ければ null）。
  * @returns {boolean} 送らなくてよければ true。
@@ -270,6 +324,7 @@ export const isCoveredBy = (payload, acked) => {
     if (!acked) return false;
     const covered = Object.keys(payload.challenges).every((id) => acked.challenges[id]);
     if (!covered) return false;
+    if (payload.readiness && !sameReadiness(payload.readiness, acked.readiness)) return false;
     if (!payload.current) return true;
     const last = acked.current;
     return Boolean(
@@ -286,6 +341,7 @@ export const isCoveredBy = (payload, acked) => {
 export const mergeAcked = (acked, payload) => ({
     challenges: { ...(acked ? acked.challenges : {}), ...payload.challenges },
     current: payload.current || (acked ? acked.current : null) || null,
+    readiness: payload.readiness || (acked ? acked.readiness : null) || null,
 });
 
 /** 送れなかったときにどうするか。 */

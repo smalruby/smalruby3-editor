@@ -306,3 +306,109 @@ describe('LessonCompletedToast: reflection quiz (#1639)', () => {
         expect(queryByTestId('lesson-quiz-result')).toBeNull();
     });
 });
+
+describe('LessonCompletedToast: skip the rest of lesson 0 after a perfect "where is it?" quiz', () => {
+    const skipProps = (props = {}) => ({
+        lessonNumber: 0,
+        skipLesson: { lessonNumber: 1 },
+        onSkipLesson: jest.fn(),
+        ...props,
+    });
+
+    test('offers "Go to lesson 1" next to "Keep going with lesson 0"', () => {
+        const onNextChallenge = jest.fn();
+        const props = skipProps({ onNextChallenge });
+        const { getByTestId } = renderToast(props);
+        expect(getByTestId('lesson-completed-toast-title')).toHaveTextContent('You did it!');
+        expect(getByTestId('lesson-completed-toast-skip-detail')).toHaveTextContent('go on to lesson 1');
+        expect(getByTestId('lesson-completed-toast-next')).toHaveTextContent('Keep going with lesson 0');
+        expect(getByTestId('lesson-completed-toast-skip')).toHaveTextContent('Go to lesson 1');
+        fireEvent.click(getByTestId('lesson-completed-toast-skip'));
+        expect(props.onSkipLesson).toHaveBeenCalled();
+        expect(onNextChallenge).not.toHaveBeenCalled();
+        fireEvent.click(getByTestId('lesson-completed-toast-next'));
+        expect(onNextChallenge).toHaveBeenCalled();
+        expect(getByTestId('lesson-completed-toast-close')).toBeInTheDocument();
+    });
+
+    test('uses the Japanese and the hiragana strings', () => {
+        const { getByTestId, unmount } = renderToast(skipProps(), { locale: 'ja', messages: ja });
+        expect(getByTestId('lesson-completed-toast-next')).toHaveTextContent('続けてレッスン 0 をやる');
+        expect(getByTestId('lesson-completed-toast-skip')).toHaveTextContent('レッスン 1 へ進む');
+        expect(getByTestId('lesson-completed-toast-skip-detail')).toHaveTextContent('全問正解');
+        unmount();
+        const hira = renderToast(skipProps(), { locale: 'ja-Hira', messages: jaHira });
+        expect(hira.getByTestId('lesson-completed-toast-next')).toHaveTextContent('つづけて レッスン 0 を やる');
+        expect(hira.getByTestId('lesson-completed-toast-skip')).toHaveTextContent('レッスン 1 へ すすむ');
+        expect(hira.getByTestId('lesson-completed-toast-skip-detail').textContent).not.toMatch(/\p{sc=Han}/u);
+    });
+
+    test('is not offered without skipLesson, nor when the lesson is done or the assignment is cleared', () => {
+        const none = renderToast({ lessonNumber: 0 });
+        expect(none.queryByTestId('lesson-completed-toast-skip')).not.toBeInTheDocument();
+        expect(none.getByTestId('lesson-completed-toast-next')).toHaveTextContent('Next challenge');
+        none.unmount();
+        const lessonDone = renderToast(skipProps({ action: 'otherLessons', challenges: allDone }));
+        expect(lessonDone.queryByTestId('lesson-completed-toast-skip')).not.toBeInTheDocument();
+        lessonDone.unmount();
+        const cleared = renderToast(skipProps({ assignmentCleared: true }));
+        expect(cleared.queryByTestId('lesson-completed-toast-skip')).not.toBeInTheDocument();
+        expect(cleared.queryByTestId('lesson-completed-toast-skip-detail')).not.toBeInTheDocument();
+    });
+});
+
+// じゅんびチェックの結果（#2299）
+describe('LessonCompletedToast: the readiness check result', () => {
+    const recommended = [
+        {
+            id: 'blocks-l1-count',
+            name: { id: 'x.count', defaultMessage: 'Count' },
+            courseName: { id: 'x.course', defaultMessage: 'Programmer from Today' },
+            lessonNumber: 3,
+            number: 1,
+        },
+    ];
+
+    test('all right shows "Ready to go!" and no recommendation', () => {
+        const { getByTestId, queryByTestId } = renderToast({
+            readiness: { allCorrect: true, correctCount: 4, total: 4, recommended: [] },
+            onOpenRecommended: jest.fn(),
+        });
+        expect(getByTestId('lesson-readiness-result')).toHaveAttribute('data-all-correct', 'true');
+        expect(getByTestId('lesson-readiness-result-ok')).toHaveTextContent('Ready to go!');
+        expect(queryByTestId('lesson-readiness-recommended')).not.toBeInTheDocument();
+    });
+
+    test('a miss shows the score and the recommended challenges that open on click', () => {
+        const onOpenRecommended = jest.fn();
+        const { getByTestId, getAllByTestId, queryByTestId } = renderToast({
+            readiness: { allCorrect: false, correctCount: 3, total: 4, recommended },
+            onOpenRecommended,
+        });
+        expect(queryByTestId('lesson-readiness-result-ok')).not.toBeInTheDocument();
+        expect(getByTestId('lesson-readiness-result-score')).toHaveTextContent('3 of 4 right');
+        const buttons = getAllByTestId('lesson-readiness-recommended');
+        expect(buttons).toHaveLength(1);
+        expect(buttons[0]).toHaveTextContent('Count');
+        expect(buttons[0]).toHaveTextContent('Programmer from Today 3-1');
+        fireEvent.click(buttons[0]);
+        expect(onOpenRecommended).toHaveBeenCalledWith('blocks-l1-count');
+    });
+
+    test('no readiness, no result', () => {
+        const { queryByTestId } = renderToast();
+        expect(queryByTestId('lesson-readiness-result')).not.toBeInTheDocument();
+    });
+
+    test('the words are in ja and ja-Hira (no kanji)', () => {
+        expect(ja['gui.lessons.readiness.ok']).toBe('じゅんび OK！');
+        expect(ja['gui.lessons.readiness.recommended']).toBe('おすすめ');
+        Object.keys(jaHira)
+            .filter((id) => id.startsWith('gui.lessons.readiness.'))
+            .forEach((id) => {
+                expect(typeof ja[id]).toBe('string');
+                expect(typeof en[id]).toBe('string');
+                expect({ id, text: jaHira[id] }).toEqual({ id, text: expect.not.stringMatching(/\p{Script=Han}/u) });
+            });
+    });
+});

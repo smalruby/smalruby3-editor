@@ -4,11 +4,26 @@
 //   - ブロックの実行: vm-execution-hook.js（opcode・引数・スレッド → run）
 //   - 言った文字:     runtime の 'SAY' イベント（looks_say / looks_sayforsecs / think）
 //   - 答え:           runtime の 'ANSWER' イベント（「聞いて待つ」に入力したとき）
+//   - 基板の命令・センサーの読み: Studuino の拡張機能の 'STUDUINO_COMMAND_LOG' イベント（実機でも練習用の基板でも
+//                     同じ記録）。'STUDUINO_COMMAND_LOG_CLEAR'（緑の旗・作品の読みこみ）で「そのときのセンサーの値」を消す
 //   - いまの状態:     takeSnapshot（変数・リスト・スプライト数・コスチューム・位置・拡張機能）と、エディタの画面の状態
 //                     （いまのタブ・クイズの答え。attachGoalMonitor の getUi・#2134）
 // 判定は、何か記録があったあとの次の step（runtime の 'BEFORE_STEP'）で 1 回だけ行う。
-import { createFacts, evaluateGoal, recordAnswer, recordExecution, recordSay, startRun } from './goal';
+import {
+    clearBoardSensors,
+    createFacts,
+    evaluateGoal,
+    recordAnswer,
+    recordBoardEntry,
+    recordExecution,
+    recordSay,
+    startRun,
+} from './goal';
 import { hookOpcodeExecution, resetExecuteCaches } from './vm-execution-hook';
+
+// scratch-vm の scratch3_smalrubot_s1/command-log.js のイベント名（#2193）
+export const STUDUINO_COMMAND_LOG_EVENT = 'STUDUINO_COMMAND_LOG';
+export const STUDUINO_COMMAND_LOG_CLEAR_EVENT = 'STUDUINO_COMMAND_LOG_CLEAR';
 
 const originalTargets = (runtime) => (runtime.targets || []).filter((target) => target.isOriginal !== false);
 
@@ -55,7 +70,7 @@ const variablesOf = (target) => Object.values(target.variables || {});
  * @param {object} vm - VM。
  * @param {object} baselineCostumes - 見張りを始めたときの takeCostumeCounts。
  * @param {object} [baselinePositions] - 見張りを始めたときの takePositions。
- * @param {object} [ui] - エディタの画面の状態（`{activeTab, partQuizSolved}`）。
+ * @param {object} [ui] - エディタの画面の状態（`{activeTab, partQuizSolved, readinessAnswered}`）。
  * @returns {object} snapshot。
  */
 export const takeSnapshot = (vm, baselineCostumes, baselinePositions = {}, ui = {}) => {
@@ -118,7 +133,7 @@ const readRemoteValues = (runtime) => {
 
 // スレッドの始まり（ハット）を run の形にする。パレットで押したブロックはスプライトのブロックに無く、
 // runtime.flyoutBlocks にある（execute.js も flyoutBlocks から探す）。それを `palette` として分ける（#2134）
-const describeThread = (thread, runtime) => {
+export const describeThread = (thread, runtime) => {
     const container = thread.blockContainer || (thread.target && thread.target.blocks);
     const own = container && typeof container.getBlock === 'function' ? container.getBlock(thread.topBlock) : null;
     const flyout = runtime && runtime.flyoutBlocks;
@@ -197,7 +212,7 @@ const copyArgs = (args) => {
  * @param {Array<object>} goal - チャレンジの goal（goal.js）。
  * @param {function(): void} onSatisfied - 満たしたときに呼ぶ。
  * @param {object} [options] - 任意。
- * @param {function(): object} [options.getUi] - エディタの画面の状態（`{activeTab, partQuizSolved}`）を返す。
+ * @param {function(): object} [options.getUi] - エディタの画面の状態（`{activeTab, partQuizSolved, readinessAnswered}`）を返す。
  *   `tab` / `partQuiz` の条件が見る。画面の状態が変わったら、返す関数の `refresh()` で判定を予約する。
  * @returns {function(): void} 見張りをやめる関数（`refresh()` で次の step に判定し直す）。
  */
@@ -257,6 +272,15 @@ export const attachGoalMonitor = (vm, goal, onSatisfied, { getUi = null } = {}) 
         dirty = true;
     };
 
+    const onBoardEntry = (entry) => {
+        recordBoardEntry(facts, entry);
+        dirty = true;
+    };
+
+    const onBoardClear = () => {
+        clearBoardSensors(facts);
+    };
+
     const unhook = hookOpcodeExecution(runtime, onExecute);
     resetExecuteCaches(runtime);
 
@@ -264,6 +288,8 @@ export const attachGoalMonitor = (vm, goal, onSatisfied, { getUi = null } = {}) 
     const listeners = [
         ['SAY', onSay],
         ['ANSWER', onAnswer],
+        [STUDUINO_COMMAND_LOG_EVENT, onBoardEntry],
+        [STUDUINO_COMMAND_LOG_CLEAR_EVENT, onBoardClear],
         ['PROJECT_CHANGED', markDirty],
         ['EXTENSION_ADDED', markDirty],
         ['targetWasCreated', markDirty],

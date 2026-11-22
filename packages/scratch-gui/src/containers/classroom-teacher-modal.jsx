@@ -456,7 +456,7 @@ const ClassroomTeacherModal = ({ visible = true }) => {
         onVerifyGoogleCourseAccess: teacher.handleVerifyGoogleCourseAccess,
         selectedGoogleCourse: teacher.selectedGoogleCourse,
         googleSignInRef: teacher.googleSignInRef,
-        googleFallbackReason: teacher.googleFallbackReason,
+        googleButtonShown: teacher.googleButtonShown,
         onGoogleLogin: teacher.handleGoogleLogin,
         onMicrosoftLogin: teacher.handleMicrosoftLogin,
         isMicrosoftAuthAvailable: teacher.isMicrosoftAuthAvailable,

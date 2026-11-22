@@ -4823,6 +4823,8 @@ function mapLessonProgress(item: Record<string, unknown> | undefined, memberId: 
     seatNumber: seatNumberOfMemberId(memberId),
     challenges: (item?.challenges as LessonProgress['challenges']) || {},
     current: (item?.current as LessonProgress['current']) || null,
+    // Rows written before readiness existed have none: null, like a removed one.
+    readiness: (item?.readiness as LessonProgress['readiness']) || null,
     updatedAt: (item?.updatedAt as string) || null,
   };
 }
@@ -4860,7 +4862,7 @@ async function handleUpsertLessonProgress(
     const ownRow = existing && isSameOccupant(existing, occupantJoinedAt) ? existing : undefined;
     const stored = ownRow ? mapLessonProgress(ownRow, memberId) : null;
     const { progress, changed } = mergeLessonProgress(
-      stored ? { challenges: stored.challenges, current: stored.current } : null,
+      stored ? { challenges: stored.challenges, current: stored.current, readiness: stored.readiness } : null,
       input,
       lesson.challengeIds,
     );
@@ -4875,6 +4877,8 @@ async function handleUpsertLessonProgress(
       memberId,
       challenges: progress.challenges,
       current: progress.current,
+      // Omit the attribute when there is no readiness result (old clients never send one).
+      ...(progress.readiness ? { readiness: progress.readiness } : {}),
       version: prevVersion + 1,
       occupantJoinedAt,
       updatedAt: now,

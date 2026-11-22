@@ -41,8 +41,8 @@ Ruby → ブロックの変換器（`packages/scratch-gui/src/lib/ruby-to-blocks
 | ----------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | 変換そのもの（`visit` と `visitXxxNode`）                               | ノードの種類ごとに手で書く                                            |
 | 分析（`analyze`）                                                       | `forEachNode`（`node-walk.js`。prism の `childNodes()` のすべての子） |
-| `_statementNodeOf`（エラーで文を指す）                                  | `_childNodesOf`。エラーのたびに根からたどる                           |
-| `_associateSourceComments` の一部                                       | `_childNodesOf`                                                       |
+| `_statementNodeOf`（エラーで文を指す）                                  | 解析の段の「子 → 親」の索引（`parentIndexOf`）で、ノードから親へ上る  |
+| `_associateSourceComments` の一部                                       | 同じ索引（ノードの並びがたどる順なので、親のブロックが先に決まる）    |
 | `containsSuper`（`class-analysis.js`。メソッドの中に `super` があるか） | `forEachNode`                                                         |
 
 手続きの呼び出しを数える下調べ（もとの `_countProcedureCallsInNode`）は、子を手で並べたプロパティ名でたどっていた。並べた名前に `CaseNode` の `conditions`（`when` の並び）や
@@ -72,6 +72,7 @@ Scratch のブロック
 - prism の `parse` と、その構文エラーの翻訳（`prism-error-translator.js`）。
 - ソースの索引を **1 回だけ** 作る: バイト → 文字の表（いまの `_buildByteToCharMap`）、改行のバイト位置の表（行番号を二分探索で引く。試作で入れた `_newlineByteOffsets`）。
 - ノードの種類名は、本番のビルドでクラス名が変わるので `accept()` で調べる。`node-walk.js` の `nodeTypeName` が、ノードのクラスごとに一度だけ調べて覚える。変換（`visit` が呼ぶ `visitXxxNode` を決めるところも）と分析は、どちらもこれを使う。
+- 「子 → 親」の索引（`node-walk.js` の `parentIndexOf`。`forEachNode` で 1 回たどって作り、`_context.parentOfNode` に置く）。エラーで文を指す処理（`_statementNodeOf`）とコメントの結びつけは、根からたどり直さずにこれを引く。`without_screen_refresh def` を `def` に変えたあとの木で作る。
 - 出すもの: `{ root, source, index, comments, errors }`。ブロックはまだ作らない。
 - いまの関数: `_indexSource(code)`（ソースとバイト → 文字の表を `_context` に置く。エラーの位置を出すのにどの段でも使うので、`try` の前に作る）と `_parse(prism, code)`（prism の結果を返す。読みこみ済みの prism を受けとる同期の関数で、prism を待つのは `targetCodeToBlocks` が読みこみ前のときだけ。待ちを 1 つ増やすと変換の終わりが遅れ、Ruby タブでスプライトを変えたときのエラーの知らせが消えた。構文エラーは翻訳して `errors` に入れ、`null` を返す）。
 
@@ -80,14 +81,14 @@ Scratch のブロック
 構文木を **1 つのたどり方**（すべての子を見る `forEachNode(root, { enter, leave })`）で 1 回たどり、次を決める。
 分析の結果は `Object.freeze` した表にし、変換は書きかえない。
 
-| 表           | 中身                                                                                             | 決める場所                                                                         |
-| ------------ | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
-| `variables`  | Ruby の名前（`@a` / `$a` / `a`）ごとの使い方（リスト・ハッシュ・値・文字列か）、最初に使われた行 | `analysis.js`（もとは `_collectVariableUses`）。済み                               |
-| `locals`     | ローカル変数の範囲（メソッド・スクリプトのブロックごと）と、範囲ごとの名前（`_x_1_`）            | `analysis.js`（もとは `_collectVariableUses`）。済み                               |
-| `procedures` | `def` の名前・引数・戻り値を返すか、値として呼ばれる数                                           | 数は `analysis.js`（もとは `_countProcedureCallsInNode`）。`def` は `my-blocks.js` |
-| `classes`    | class / module / initialize / super / attr_accessor の構造                                       | `class-analysis.js`（`analysis.js` が `classes` の `structure` に入れる）。済み    |
-| `symbols`    | シンボルの一覧（`$_symbols_` リストのもと）                                                      | 変換の途中で集めている                                                             |
-| `errors`     | 変換の前に断れる誤り（同じ `@a` を変数とリストに使う、など）                                     | `analysis.js`。断るのは `_rejectRubyNameOfVariableAndList`。済み                   |
+| 表           | 中身                                                                                             | 決める場所                                                                                               |
+| ------------ | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| `variables`  | Ruby の名前（`@a` / `$a` / `a`）ごとの使い方（リスト・ハッシュ・値・文字列か）、最初に使われた行 | `analysis.js`（もとは `_collectVariableUses`）。済み                                                     |
+| `locals`     | ローカル変数の範囲（メソッド・スクリプトのブロックごと）と、範囲ごとの名前（`_x_1_`）            | `analysis.js`（もとは `_collectVariableUses`）。済み                                                     |
+| `procedures` | `def` の名前・引数・戻り値を返すか、値として呼ばれる数                                           | `analysis.js`（数はもとは `_countProcedureCallsInNode`、`return` があるかはもとは `my-blocks.js`）。済み |
+| `classes`    | class / module / initialize / super / attr_accessor の構造                                       | `class-analysis.js`（`analysis.js` が `classes` の `structure` に入れる）。済み                          |
+| `symbols`    | シンボルの一覧（`$_symbols_` リストのもと）                                                      | 変換の途中で集めている                                                                                   |
+| `errors`     | 変換の前に断れる誤り（同じ `@a` を変数とリストに使う、など）                                     | `analysis.js`。断るのは `_rejectRubyNameOfVariableAndList`。済み                                         |
 
 分析で決めたことは、[`bridging-patterns.md`](bridging-patterns.md) の P1（ローカル変数）・P2（戻り値）・P4/P5（配列・ハッシュ）・P6（class）・P15（変数の種類）に対応する。
 新しい橋渡しの工夫で「変換の前に全体を見ないと決まらないこと」が出たら、変換の途中で決めずに分析の表に足す。
@@ -100,17 +101,17 @@ prism の `childNodes()` のすべての子を、ソースの順に（親を子�
 `analyze` は構文木とソースだけを読む純粋な関数で、変換器や VM を読まない。結果は `Object.freeze` する（中の prism のノードは凍らせない。`Map` は読むだけの形 `{ get, has, size }` にする）。
 Ruby の名前をキーにする表（`variables.uses`・`locals.uses`・`procedures.valueCallCounts` など）は `Object.create(null)` で作る。`__proto__` や `constructor` も、ほかの名前と同じに扱うため。
 
-| 表                           | 形                                                                                                                                                                                                      | 変換器で読むところ                                                                                                                           |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `variables.uses`             | `{ [Ruby の名前]: { list, scalar, hash, string, notString } }`                                                                                                                                          | `_variableUsesOf`・`_kindOfRubyName`・`_listNameOfAlias`（`variable-utils.js`）                                                              |
-| `variables.firstUses`        | `{ ['@a' / '$a']: { list?: { line, node }, scalar?: { line, node } } }`（いちばん前の行）                                                                                                               | （`errors` のもと）                                                                                                                          |
-| `variables.rubyNames`        | コードが読み書きする `@a` / `$a` の並び                                                                                                                                                                 | `_kindOfRubyName`・`_listNameOfAlias`                                                                                                        |
-| `locals`                     | `unitOfNode`（範囲を始めるノード → 範囲の番号）、`uses[範囲][名前]`、`groups[範囲]`（メソッドは自分、スクリプトのブロックは 0）、`splitNames`                                                           | `_enterLocalUnit`・`_localScopeIndex`・`_variableUsesOf`（範囲ごとの名前の番号は変換の途中で決まるので `_context.localScopeIndexes` に置く） |
-| `procedures.valueCallCounts` | `{ [メソッド名]: 値として呼ばれる数 }`                                                                                                                                                                  | `my-blocks.js`（戻り値を入れる変数の番号）                                                                                                   |
-| `procedures.definitions`     | `def` ごとの `{ name, line, onSelf, requireds, optionals, returnsValue, usesSuper, node }`                                                                                                              | `def` より前の呼び出し（#2167）だけが読む（`_declareProcedureDefinedLater`）。`def` そのものは `my-blocks.js` がその場で調べている           |
-| `classes`                    | `classes`: `{ name, superclass, line, attrs, includes, methods, hasInitialize, node, structure }`、`modules`: `{ name, line, methods, node, structure }`、`ofNode`（ClassNode / ModuleNode → その項目） | `class-visitor.js`・`initialize-handler.js`・`module-visitor.js`（`structure` を読む。次の節）                                               |
-| `symbols`                    | コードに書かれたシンボル（`:name`）の並び。`$_symbols_` に入る候補（変換で使われたものだけが入る）                                                                                                      | まだ読まない（`_context.symbols` は変換の途中で集める）                                                                                      |
-| `errors`                     | `{ kind: 'variableAndList', name, listLine, variableLine, node }` を変数としての行の順に                                                                                                                | `_rejectRubyNameOfVariableAndList`（最初の 1 つで止める）                                                                                    |
+| 表                           | 形                                                                                                                                                                                                                                                                                                 | 変換器で読むところ                                                                                                                                                              |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `variables.uses`             | `{ [Ruby の名前]: { list, scalar, hash, string, notString } }`                                                                                                                                                                                                                                     | `_variableUsesOf`・`_kindOfRubyName`・`_listNameOfAlias`（`variable-utils.js`）                                                                                                 |
+| `variables.firstUses`        | `{ ['@a' / '$a']: { list?: { line, node }, scalar?: { line, node } } }`（いちばん前の行）                                                                                                                                                                                                          | （`errors` のもと）                                                                                                                                                             |
+| `variables.rubyNames`        | コードが読み書きする `@a` / `$a` の並び                                                                                                                                                                                                                                                            | `_kindOfRubyName`・`_listNameOfAlias`                                                                                                                                           |
+| `locals`                     | `unitOfNode`（範囲を始めるノード → 範囲の番号）、`uses[範囲][名前]`、`groups[範囲]`（メソッドは自分、スクリプトのブロックは 0）、`splitNames`、スコープ番号（`_x_2_` の 2）: `scopeIndexOfDef`（DefNode → 番号）・`scopeIndexOfUnit[範囲]`（名前をブロックごとに分ける範囲だけ）・`lastScopeIndex` | `_enterLocalUnit`・`_localScopeIndex`・`_variableUsesOf`・`_scopeIndexOfDef`（`my-blocks.js` が `_enterScope` に渡す）                                                          |
+| `procedures.valueCallCounts` | `{ [メソッド名]: 値として呼ばれる数 }`                                                                                                                                                                                                                                                             | `my-blocks.js`（戻り値を入れる変数の番号）                                                                                                                                      |
+| `procedures.definitions`     | `def` ごとの `{ name, line, onSelf, requireds, optionals, returnsValue, hasReturn, usesSuper, node }`。`procedures.ofNode`（DefNode → その項目）                                                                                                                                                   | `my-blocks.js`（`hasReturn`: 値を返すメソッドか・初期化のブロックを置くか。`_definitionOf`。ほかのスプライトから読んだ module の `def` は、その module のコードの分析から引く） |
+| `classes`                    | `classes`: `{ name, superclass, line, attrs, includes, methods, hasInitialize, node, structure }`、`modules`: `{ name, line, methods, node, structure }`、`ofNode`（ClassNode / ModuleNode → その項目）                                                                                            | `class-visitor.js`・`initialize-handler.js`・`module-visitor.js`（`structure` を読む。次の節）                                                                                  |
+| `symbols`                    | コードに書かれたシンボル（`:name`）の並び。`$_symbols_` に入る候補（変換で使われたものだけが入る）                                                                                                                                                                                                 | まだ読まない（`_context.symbols` は変換の途中で集める）                                                                                                                         |
+| `errors`                     | `{ kind: 'variableAndList', name, listLine, variableLine, node }` を変数としての行の順に                                                                                                                                                                                                           | `_rejectRubyNameOfVariableAndList`（最初の 1 つで止める）                                                                                                                       |
 
 「値として呼ばれる」は、変換が値として変換する所で決める。
 ノードごとに「文として見る」「値として見る」を子に配り、値として見た `CallNode` を数える
@@ -148,8 +149,11 @@ module は、本体の行（`structure.statements`）だけを分析で決め、
 - `visitXxxNode` がノードごとにブロックを作る（prism の `Visitor` の形はそのまま）。
 - メソッド呼び出しは、登録の表（次の節）を `receiver → 名前 → 引数の数 → ブロック引数の数` で引く（いまの `callMethod` の引き方と同じ）。
 - 変数の種類・ローカル変数の名前・手続きの数は `Analysis` を読む。変換の途中でこれらを決めない。
-- 作ったものは `BlockStore` に入れる。うまく変換できなかった試み（いまの `_saveContext` / `_restoreContext`）は、
-  **書いたものの記録（journal）を巻き戻す** 形にする。いまは試みのたびに、それまでに作ったすべてのブロック・コメント・変数の表を写しており、これが長いコードでいちばん遅い（「実行の効率」）。
+- 作ったものは `BlockStore`（`block-store.js`）に入れる。表は `blocks`・`blockTypes`・`comments`・`variables`・`lists`・`localVariables`・`broadcastMsgs`・`procedures`・`literalCallIndices`・`symbols`。
+  変換はストアのメソッド（`setBlock`・`setBlockType`・`deleteBlock`・`setComment`・`deleteComment`・`setVariable`・`deleteVariable`・`setProcedure`・`setLiteralCallIndex`・`addSymbol`）を通してだけ書き、
+  表は `_context.blocks` などから読む（`_context` はストアの表を指す）。表へ直接書く所が無いことは `block-store.test.js` がソースを調べて確かめる。
+- うまく変換できなかった試み（`_saveContext` / `_restoreContext`）は、ストアの中の **書いたものの記録（journal、`context-journal.js`）を巻き戻す**（`mark` / `rollback` / `storeAt`）。
+  `symbols` は巻き戻さない（あきらめた試みで使ったシンボルも残る。これまでと同じ）。
 
 ### 4. 仕上げ（finish）
 
@@ -212,49 +216,68 @@ const MOTION_SENDS = [
 registerSendTable(converter, MOTION_SENDS);
 ```
 
-| 引数の種類                                                                               | 受けつけるもの                                                                          | ブロックへの入れ方                                      |
-| ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| `numberArg(input, 既定値, 影の opcode)`                                                  | 数・値のブロック（`_isNumberOrBlock`）                                                  | 数の影つきの入力（`_addNumberInput`）                   |
-| `textArg(input, 既定値)`                                                                 | 文字列・値のブロック（`_isStringOrBlock`）                                              | 文字の影つきの入力（`_addTextInput`）                   |
-| `menuArg(input, メニューの opcode, field, { validate })`                                 | 文字列                                                                                  | メニューのブロックを入力に入れる（`_createFieldBlock`） |
-| `menuInputArg(input, メニューの opcode, field, 既定値, { choices, validate, anyBlock })` | 文字列（`choices` があればその中のもの）・値のブロック（`anyBlock` ならどのブロックも） | メニューの影つきの入力（`_addFieldInput`）              |
-| `colorArg(input, 既定値)`                                                                | 色・値のブロック（`_isColorOrBlock`）                                                   | 色の入力（`_addColorFieldInput`）                       |
-| `fieldArg(field, 選べる値, { normalize })`                                               | 文字列（選べる値があれば、`normalize` したものがその中にあるもの）                      | ブロックのフィールド（`_addField`）                     |
+| 引数の種類                                                                                          | 受けつけるもの                                                                                                                                                                                                 | ブロックへの入れ方                                                                |
+| --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `numberArg(input, 既定値, 影の opcode)`                                                             | 数・値のブロック（`_isNumberOrBlock`）                                                                                                                                                                         | 数の影つきの入力（`_addNumberInput`）                                             |
+| `textArg(input, 既定値, { number })`                                                                | 文字列・値のブロック（`_isStringOrBlock`。`number` なら数も）                                                                                                                                                  | 文字の影つきの入力（`_addTextInput`。数は数字の文字列にして入れる）               |
+| `menuArg(input, メニューの opcode, field, { validate, number, orBlock })`                           | 文字列（`number` なら数・値のブロック、`orBlock` なら文字列・値のブロック）                                                                                                                                    | メニューのブロックを入力に入れる（`_createFieldBlock`。ブロックはそのまま入れる） |
+| `menuInputArg(input, メニューの opcode, field, 既定値, { choices, validate, anyBlock, normalize })` | 文字列（`choices` があればその中のもの。`normalize` があれば直した値で比べ、直した値を入れる）・値のブロック（`anyBlock` ならどのブロックも）。既定値は `(converter) => 値` でもよい（作品の設定で決まるとき） | メニューの影つきの入力（`_addFieldInput`）                                        |
+| `anyCase(choices)`                                                                                  | `menuInputArg` の `normalize` に渡す。文字列を大文字小文字を問わずに選択肢から引き、メニューに書かれた形にする（無ければ選択肢でない）                                                                         | —                                                                                 |
+| `noteArg(input, 既定値)`                                                                            | 数・値のブロック（`_isNumberOrBlock`）                                                                                                                                                                         | 音符の影つきの入力（`_addNoteInput`）                                             |
+| `colorArg(input, 既定値)`                                                                           | 色・値のブロック（`_isColorOrBlock`）                                                                                                                                                                          | 色の入力（`_addColorFieldInput`）                                                 |
+| `fieldArg(field, 選べる値, { normalize })`                                                          | 文字列（選べる値があれば、`normalize` したものがその中にあるもの）                                                                                                                                             | ブロックのフィールド（`_addField`）                                               |
 
 `validate(converter, arg, params)` は、すべての引数を受けつけたあと、ブロックを作る前に呼ぶ（衣装・背景・音が無いときのエラー。ブロックを作ってから断ると、作りかけのブロックが残る）。
 
 - 行の引数の種類に合わない呼び出しは `null` を返し、同じメソッドの次の登録に譲る（いまの `registerOnSend` の handler と同じ決まり）。
-- 表で書けない形（`go_to([x, y])` の配列、`glide(..., secs: 1)` のキーワード引数、引数で opcode を選ぶもの、`self.x += 1` のような演算代入、変数・リストを引く呼び出し）は、いまの handler のまま表の横に置く。
+- 表で書けない形（`go_to([x, y])` の配列、`glide(x, secs: 1)` のような位置の引数とキーワード引数がまざるもの、引数で opcode を選ぶもの、`self.x += 1` のような演算代入、変数・リストを引く呼び出し）は、いまの handler のまま表の横に置く。
 - 同じキー（レシーバー・名前・引数の数・ブロック引数の数）に handler がいくつかあると、登録した順に試す。表へ移すときは、同じキーの中の順番を変えない。キーの違う handler との前後は結果に関わらないので、表は `register` の中のどこで登録してもよい（sensing と control は先頭で登録している）。
 - 表はデータなので、テストが読める（`send-table.test.js` は「表の opcode にはすべて生成器がある」ことを確かめる）。同じ表から、補完の一覧やふりがなの一覧を作ることもできる。
 
 領域ごとの表（各変換器の `sends` が表。`send-table.test.js` は、すべての表の opcode とメニューの opcode に生成器があることを確かめる）:
 
-| 領域      | 表の行 | handler のまま残したもの                                                                                                                                         |
-| --------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| motion    | 12     | `go_to`・`glide`（配列・キーワード引数）、演算代入                                                                                                               |
-| looks     | 25     | `say` / `think`（`secs:`・シンボル）、`print` / `puts` / `p`（引数の数が決まらない）、演算代入                                                                   |
-| sound     | 8      | 演算代入                                                                                                                                                         |
-| control   | 5      | `repeat`・本体のある `loop` / `forever`・`N.times`（`wait` を除く・ブロック引数）、`create_clone` / `clone`、`with_screen_refresh`、`if` / `until`、v1 の `when` |
-| event     | 6      | `when_receive`・`broadcast`（メッセージを引く）、v1 の `when`                                                                                                    |
-| sensing   | 16     | Ruby の式のレシーバーを使う v2 の形（`mouse.x`・`stage.volume`・`sprite("A").x`・`Time.now.year`）、`gets`、`drag_mode=`                                         |
-| operators | 6      | `[]`・`empty?`・`+`・比べる演算・`=~`・算術（`operators-math.js`。`Math.sqrt` など、引数が配列のときがあるもの）                                                 |
-| data      | 0      | すべて（変数・リスト・ハッシュを引き、リストに変える。表の 1 行では書けない）                                                                                    |
-| pen       | 17     | `pen.color =`（数か色で opcode を選ぶ）、`pen.size += 1` の下ごしらえ、演算代入                                                                                  |
+| 領域           | 表の行 | handler のまま残したもの                                                                                                                                                                                                                                                                       |
+| -------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| motion         | 12     | `go_to`・`glide`（配列・キーワード引数）、演算代入                                                                                                                                                                                                                                             |
+| looks          | 25     | `say` / `think`（`secs:`・シンボル）、`print` / `puts` / `p`（引数の数が決まらない）、演算代入                                                                                                                                                                                                 |
+| sound          | 8      | 演算代入                                                                                                                                                                                                                                                                                       |
+| control        | 5      | `repeat`・本体のある `loop` / `forever`・`N.times`（`wait` を除く・ブロック引数）、`create_clone` / `clone`、`with_screen_refresh`、`if` / `until`、v1 の `when`                                                                                                                               |
+| event          | 6      | `when_receive`・`broadcast`（メッセージを引く）、v1 の `when`                                                                                                                                                                                                                                  |
+| sensing        | 16     | Ruby の式のレシーバーを使う v2 の形（`mouse.x`・`stage.volume`・`sprite("A").x`・`Time.now.year`）、`gets`、`drag_mode=`                                                                                                                                                                       |
+| operators      | 6      | `[]`・`empty?`・`+`・比べる演算・`=~`・算術（`operators-math.js`。`Math.sqrt` など、引数が配列のときがあるもの）                                                                                                                                                                               |
+| data           | 0      | すべて（変数・リスト・ハッシュを引き、リストに変える。表の 1 行では書けない）                                                                                                                                                                                                                  |
+| pen            | 17     | `pen.color =`（数か色で opcode を選ぶ）、`pen.size += 1` の下ごしらえ、演算代入                                                                                                                                                                                                                |
+| music          | 12     | `music`（Ruby の式のレシーバーを作る）、演算代入（`music.tempo += 20`）                                                                                                                                                                                                                        |
+| text2speech    | 3      | `text2speech`（Ruby の式のレシーバーを作る）                                                                                                                                                                                                                                                   |
+| translate      | 4      | `translate`（Ruby の式のレシーバーを作る）                                                                                                                                                                                                                                                     |
+| video          | 4      | `video_sensing`（Ruby の式のレシーバーを作る）                                                                                                                                                                                                                                                 |
+| boost          | 10     | `self.when(:boost_color, ...)` / `self.when(:boost_tilted, ...)`（シンボルでハットを選ぶ）                                                                                                                                                                                                     |
+| wedo2          | 11     | `wedo2`（Ruby の式のレシーバーを作る）                                                                                                                                                                                                                                                         |
+| face_sensing   | 9      | `face_sensing`（Ruby の式のレシーバーを作る）                                                                                                                                                                                                                                                  |
+| makeymakey     | 2      | `makey`（Ruby の式のレシーバーを作る）、v1 の `self.when(:makey_key_pressed, ...)`（シンボルでハットを選ぶ。ほかの `self.when` のあとに登録する）                                                                                                                                              |
+| microbit       | 8      | `microbit_v1`（Ruby の式のレシーバーを作る）、`display`（5 つの文字列を 1 つの模様にする）、`when_pin_connected`（0〜2 の数だけ）、v1 の `self.when(:microbit_*, ...)`（シンボルでハットを選ぶ）                                                                                               |
+| ev3            | 19     | `ev3`（Ruby の式のレシーバーを作る）、v1 の `self.when(:ev3_*, ...)`（シンボルでハットを選ぶ）                                                                                                                                                                                                 |
+| gdx_for        | 15     | `gdx_for`（Ruby の式のレシーバーを作る）、v1 の `self.when(:gdx_for_*, ...)`（シンボルでハットを選ぶ）                                                                                                                                                                                         |
+| tm2scratch     | 17     | `tm`（Ruby の式のレシーバーを作る）                                                                                                                                                                                                                                                            |
+| koshien        | 23     | `koshien`（Ruby の式のレシーバーを作る）、`connect_game` / `when_connect_game`（v1 と v2 で形が違う・キーワード引数）、`calc_route`・`locate_objects`（キーワード引数・リスト）、`map_from`・`position`（座標のエラーをほかの引数より先に出す）                                                |
+| g2s            | 55     | `akadako`（Ruby の式のレシーバーを作る）                                                                                                                                                                                                                                                       |
+| microbit_more  | 64     | `microbit` / 旧名 `microbit_more`（Ruby の式のレシーバーを作る。旧名の行は同じ行のレシーバーを変えたもの）、`when_pin_connected`（数）、`display_pattern` / `display`（模様）、`when_catch_at_pin` / `value_of`、`data` / `data[...]`、`send_data_to_microbit`（引数とブロックの入力の順が逆） |
+| mesh / mesh_v2 | 3      | `mesh` / 旧名 `mesh_v1`（Ruby の式のレシーバーを作る）、`mesh.broadcast(メッセージ, 値)`（プロジェクトのメッセージを引く・数を文字列にする）                                                                                                                                                   |
 
-拡張機能は pen だけ移した。残り（music・video・text2speech・translate・ev3・wedo2・microbit・micro:bit More・g2s・koshien・mesh など）は、同じ形（`changesReceiver` と `menus`）で 1 つずつ移す。
+拡張機能は pen・music・text2speech・translate・video・boost・wedo2・face_sensing・makeymakey・microbit・ev3・gdx_for・tm2scratch・koshien・g2s・micro:bit More・mesh / mesh_v2 を移した。残り（smalrubot_s1 など）は、同じ形（`changesReceiver` と `menus`）で 1 つずつ移す。
 
 ### 表の列
 
-| 列                                      | 使い道                                                                                                         | 例                        |
-| --------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------- |
-| `type`                                  | ブロックの形（`statement`・`value`・`value_boolean`・`terminate`）                                             | `x` → `value`             |
-| `fields: { NAME: 値 }`                  | 決まった値のフィールド                                                                                         | `go_to_front`             |
-| `menus: { INPUT: [opcode, field, 値] }` | 決まった値のメニューの入力                                                                                     | `pen.saturation = 50`     |
-| `receiverArg`                           | レシーバーを入力に入れる（チェックはしない。行の `receiver` が受けつけるものを決める）                         | `"apple".length`          |
-| `changesReceiver: true`                 | レシーバー（Ruby の式）をそのブロックに変える                                                                  | `pen.down`                |
-| `hat: true`                             | ハット。`do ... end`（ブロック引数なし）を取り、その中身を下につなぐ（`registerOnSendWithBlock(..., 0, ...)`） | `when_flag_clicked do`    |
-| `selfReceiver: true`（`onSelf(rows)`）  | `self.xxx` と `xxx` だけを受けつけ、同じ名前になる Ruby の式（`stage`）は受けつけない                          | `stage.volume` は sensing |
+| 列                                      | 使い道                                                                                                         | 例                                |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| `type`                                  | ブロックの形（`statement`・`value`・`value_boolean`・`terminate`）                                             | `x` → `value`                     |
+| `fields: { NAME: 値 }`                  | 決まった値のフィールド                                                                                         | `go_to_front`                     |
+| `menus: { INPUT: [opcode, field, 値] }` | 決まった値のメニューの入力                                                                                     | `pen.saturation = 50`             |
+| `keywords: [[キー, 引数の種類], ...]`   | キーワード引数だけの呼び出し。ちょうどそのキーのハッシュ 1 つを取り、値を行の順に引数として扱う                | `play_drum(drum: 1, beats: 0.25)` |
+| `receiverArg`                           | レシーバーを入力に入れる（チェックはしない。行の `receiver` が受けつけるものを決める）                         | `"apple".length`                  |
+| `changesReceiver: true`                 | レシーバー（Ruby の式）をそのブロックに変える                                                                  | `pen.down`                        |
+| `hat: true`                             | ハット。`do ... end`（ブロック引数なし）を取り、その中身を下につなぐ（`registerOnSendWithBlock(..., 0, ...)`） | `when_flag_clicked do`            |
+| `selfReceiver: true`（`onSelf(rows)`）  | `self.xxx` と `xxx` だけを受けつけ、同じ名前になる Ruby の式（`stage`）は受けつけない                          | `stage.volume` は sensing         |
 
 まだ足していない列（要る領域が出たら足す）:
 

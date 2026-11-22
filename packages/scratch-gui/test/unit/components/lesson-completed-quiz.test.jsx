@@ -107,11 +107,49 @@ describe('LessonCompletedQuiz', () => {
 
     test('the quiz words of the locale files: same keys, ja-Hira without kanji', () => {
         const keys = (messages) => Object.keys(messages).filter((id) => /^gui\.lessons\.completed\.quiz/.test(id));
-        expect(keys(en).length).toBe(3);
+        expect(keys(en).length).toBe(4);
         expect(keys(ja)).toEqual(keys(en));
         expect(keys(jaHira)).toEqual(keys(en));
         keys(jaHira).forEach((id) =>
             expect({ id, text: jaHira[id] }).toEqual({ id, text: expect.not.stringMatching(/\p{Script=Han}/u) }),
         );
+    });
+});
+
+// じゅんびチェック（#2299）: 1 回めに選んだものだけで決める
+describe('LessonCompletedQuiz: one try (readiness check)', () => {
+    test('a wrong choice locks the question and shows the right answer and the explanation', () => {
+        const onChoose = jest.fn();
+        const { getByTestId, getAllByTestId, rerender } = renderQuiz({ oneTry: true, selected: null, onChoose });
+        fireEvent.click(choices(getAllByTestId)[0]);
+        expect(onChoose).toHaveBeenCalledWith(0);
+        // 選んだものは親が持つ
+        rerender(
+            <IntlProvider locale="en" messages={en}>
+                <LessonCompletedQuiz quiz={quiz} oneTry selected={0} onChoose={onChoose} label="Check 1 / 4" />
+            </IntlProvider>,
+        );
+        expect(getByTestId('lesson-quiz-label')).toHaveTextContent('Check 1 / 4');
+        expect(choices(getAllByTestId)[0]).toHaveAttribute('data-result', 'wrong');
+        expect(choices(getAllByTestId)[1]).toHaveAttribute('data-result', 'correct');
+        choices(getAllByTestId).forEach((c) => expect(c).toHaveAttribute('aria-disabled', 'true'));
+        expect(getByTestId('lesson-quiz-result')).toHaveTextContent('1: Not quite. The right answer is 2.');
+        expect(getByTestId('lesson-quiz-explanation')).toHaveTextContent('Broadcast reaches every sprite.');
+        // 選びなおせない
+        fireEvent.click(choices(getAllByTestId)[1]);
+        expect(onChoose).toHaveBeenCalledTimes(1);
+    });
+
+    test('a right choice says it is correct', () => {
+        const { getByTestId, getAllByTestId } = renderQuiz({ oneTry: true, selected: 1 });
+        expect(choices(getAllByTestId)[1]).toHaveAttribute('data-result', 'correct');
+        expect(choices(getAllByTestId)[0]).not.toHaveAttribute('data-result');
+        expect(getByTestId('lesson-quiz-result')).toHaveTextContent('2: Correct!');
+    });
+
+    test('the one-try wrong message is in ja and ja-Hira (no kanji)', () => {
+        expect(ja['gui.lessons.completed.quizWrongOneTry']).toBe('はずれ。正しい答えは {number}');
+        expect(jaHira['gui.lessons.completed.quizWrongOneTry']).not.toMatch(/\p{Script=Han}/u);
+        expect(en['gui.lessons.completed.quizWrongOneTry']).toBe('Not quite. The right answer is {number}.');
     });
 });

@@ -193,6 +193,13 @@ describe('summarizeAssignmentRow (#1301: counts of an opened board row)', () => 
         );
     });
 
+    test('the marks of the page text are dropped from the one line', () => {
+        const assignment = { pages: [{ text: '【課題】*ねこ*を動かそう\n2行目' }] };
+        expect(summarizeAssignmentRow({ members: [], studentCount: 0, assignment }).descriptionLine).toBe(
+            '【課題】ねこを動かそう',
+        );
+    });
+
     test('missing data gives zeros and an empty description', () => {
         expect(summarizeAssignmentRow({})).toEqual({ submitted: 0, joined: 0, capacity: 0, descriptionLine: '' });
     });

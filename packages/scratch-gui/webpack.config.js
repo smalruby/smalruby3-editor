@@ -9,9 +9,7 @@ require('dotenv').config({path: path.resolve(__dirname, '../../.env')});
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
-const WorkboxPlugin = require('workbox-webpack-plugin');
 const WebpackPwaManifest = require('webpack-pwa-manifest');
-const assetsManifest = require('./src/assetsManifest.json');
 
 const ScratchWebpackConfigBuilder = require('scratch-webpack-configuration');
 
@@ -45,54 +43,13 @@ const MONACO_EDITOR_VERSION = JSON.parse(
 // `process.env.MONACO_VS_SUBPATH` で渡すので、パスの定義はここだけにある。
 const MONACO_VS_DEST = `static/monaco/${MONACO_EDITOR_VERSION}/vs`;
 
-// `min/vs` は約 16MB あり、PWA の precache に入れると初回インストールが極端に重くなる。
-// precache からは除外し、runtime caching (StaleWhileRevalidate) でオフライン対応する。
-const monacoPrecacheExclude = /^static[\\/]monaco[\\/]/;
-// === Smalruby: Start of standard assignments ===
-// The PDFs under assignments/ are printed by teachers, not used by the editor. Keep them out of the
-// service worker's precache so that installing the PWA does not download them.
-const assignmentsPrecacheExclude = /^assignments[\\/]/;
-// === Smalruby: End of standard assignments ===
-const monacoRuntimeCaching = {
-    urlPattern: /\/static\/monaco\//,
-    handler: 'StaleWhileRevalidate',
-    options: {
-        cacheName: 'smalruby-monaco-editor',
-        expiration: {
-            maxEntries: 400,
-            maxAgeSeconds: 30 * 24 * 60 * 60 // 30 日
-        },
-        cacheableResponse: {
-            statuses: [0, 200]
-        }
-    }
-};
 // === Smalruby: End of self-hosted Monaco Editor (#1171) ===
 
 // === Smalruby: Start of lazy tutorial images ===
 // The upstream tutorials bring back ~1,400 step images and thumbnails (about 50 MB).
-// Emit them under static/assets/decks/ as files (never inlined into gui.js), keep them and the
-// per-language step chunks out of the service worker precache, and cache them only after a
-// tutorial is opened, so that the first visit does not download them.
+// Emit them under static/assets/decks/ as files (never inlined into gui.js), so that the first
+// visit does not download them: the browser fetches them only when a tutorial is opened.
 const decksImagesDir = path.resolve(__dirname, 'src/lib/libraries/decks');
-const decksPrecacheExclude = [
-    /^static[\\/]assets[\\/]decks[\\/]/,
-    /^chunks[\\/][A-Za-z_]+-steps\./
-];
-const decksRuntimeCaching = {
-    urlPattern: /\/(static\/assets\/decks\/|chunks\/[A-Za-z_]+-steps\.)/,
-    handler: 'CacheFirst',
-    options: {
-        cacheName: 'smalruby-tutorial-images',
-        expiration: {
-            maxEntries: 300,
-            maxAgeSeconds: 30 * 24 * 60 * 60 // 30 日
-        },
-        cacheableResponse: {
-            statuses: [0, 200]
-        }
-    }
-};
 // === Smalruby: End of lazy tutorial images ===
 
 const cssModuleExceptions = [
@@ -351,8 +308,7 @@ const buildConfig = baseConfig.clone()
         chunks: ['gui'],
         template: 'src/playground/index.ejs',
         title: 'Smalruby',
-        originTrials: JSON.parse(fs.readFileSync('origin-trials.json')),
-        pwa: process.env.NODE_ENV === 'production'
+        originTrials: JSON.parse(fs.readFileSync('origin-trials.json'))
     }))
     // Removed unused HTML files to reduce build time:
     // .addPlugin(new HtmlWebpackPlugin({
@@ -361,8 +317,7 @@ const buildConfig = baseConfig.clone()
     //     filename: 'standalone.html',
     //     template: 'src/playground/index.ejs',
     //     title: 'Smalruby: Standalone Mode',
-    //     originTrials: JSON.parse(fs.readFileSync('origin-trials.json')),
-    //     pwa: process.env.NODE_ENV === 'production'
+    //     originTrials: JSON.parse(fs.readFileSync('origin-trials.json'))
     // }))
     // .addPlugin(new HtmlWebpackPlugin({
     //     ...commonHtmlWebpackPluginOptions,
@@ -370,8 +325,7 @@ const buildConfig = baseConfig.clone()
     //     filename: 'blocks-only.html',
     //     template: 'src/playground/index.ejs',
     //     title: 'Smalruby: Blocks Only Example',
-    //     originTrials: JSON.parse(fs.readFileSync('origin-trials.json')),
-    //     pwa: process.env.NODE_ENV === 'production'
+    //     originTrials: JSON.parse(fs.readFileSync('origin-trials.json'))
     // }))
     // .addPlugin(new HtmlWebpackPlugin({
     //     ...commonHtmlWebpackPluginOptions,
@@ -379,8 +333,7 @@ const buildConfig = baseConfig.clone()
     //     filename: 'compatibility-testing.html',
     //     template: 'src/playground/index.ejs',
     //     title: 'Smalruby: Compatibility Testing',
-    //     originTrials: JSON.parse(fs.readFileSync('origin-trials.json')),
-    //     pwa: process.env.NODE_ENV === 'production'
+    //     originTrials: JSON.parse(fs.readFileSync('origin-trials.json'))
     // }))
     // .addPlugin(new HtmlWebpackPlugin({
     //     ...commonHtmlWebpackPluginOptions,
@@ -388,8 +341,7 @@ const buildConfig = baseConfig.clone()
     //     filename: 'player.html',
     //     template: 'src/playground/index.ejs',
     //     title: 'Smalruby: Player Example',
-    //     originTrials: JSON.parse(fs.readFileSync('origin-trials.json')),
-    //     pwa: process.env.NODE_ENV === 'production'
+    //     originTrials: JSON.parse(fs.readFileSync('origin-trials.json'))
     // }))
     .addPlugin(new CopyWebpackPlugin({
         patterns: [
@@ -424,56 +376,55 @@ const buildConfig = baseConfig.clone()
         ]
     }));
 
+// === Smalruby: Start of PWA install (#2182) ===
+// PWA としてインストール（ホーム画面に追加）できるように、Web App Manifest だけを出す。
+// service worker（Workbox の GenerateSW と precache）は出さない。いまの Chrome / Edge は
+// fetch ハンドラを持つ service worker が無くても、メニューからインストールできる。
+// オフラインで使う仕組みは、CloudFront からの配信に合う形で改めて設計する。
+// 以前の smalruby3-gui が登録した service worker を外すため、`pages/service-worker.js`
+// （自分を登録解除してキャッシュを消すだけのもの）をサイトの直下へ出す。
+const pwaManifestPlugin = () => new WebpackPwaManifest({
+    publicPath: './',
+    name: 'Smalruby',
+    short_name: 'Smalruby',
+    description: 'GraphicaL User Interface for creating and running Smalruby 3.0 projects',
+    // インストールの要件 (name / icons 192・512 / start_url / display)。display と start_url は
+    // webpack-pwa-manifest の既定と同じだが、要件なので明示する。
+    display: 'standalone',
+    start_url: '.',
+    background_color: '#ffffff',
+    // ホーム画面に追加された PWA を「横向き」で起動させる (issue #572 Phase 2-I)。
+    // スマホのコスチューム/サウンドエディタは upstream の min-width 制約で
+    // 縦持ちでは見切れるため、横画面前提で運用する。デスクトップやタブレットの
+    // PWA インストール時もこのヒントが入るが、デスクトップブラウザは
+    // orientation ヒントを無視するので影響なし。タブレットはサポートしている
+    // 場合のみ landscape で起動する。
+    orientation: 'landscape',
+    crossorigin: 'use-credentials',
+    inject: true,
+    ios: {
+        'apple-mobile-web-app-title': 'Smalruby',
+        'apple-mobile-web-app-status-bar-style': 'default'
+    },
+    icons: [
+        {
+            src: path.resolve('static/pwa-icon.png'),
+            sizes: [96, 128, 192, 256, 384, 512] // multiple sizes
+        },
+        {
+            // iPad / iPhone の「ホーム画面に追加」で使う apple-touch-icon（180x180）も出す。
+            src: path.resolve('static/pwa-icon.png'),
+            sizes: [180],
+            ios: true
+        }
+    ]
+});
+// === Smalruby: End of PWA install (#2182) ===
+
 const buildWithPwaConfig = buildConfig.clone()
-    .addPlugin(
-        new WorkboxPlugin.GenerateSW({
-            disableDevLogs: !process.env.DEBUG,
-            clientsClaim: true,
-            skipWaiting: true,
-            additionalManifestEntries: assetsManifest,
-            exclude: [
-                /\.DS_Store/,
-                /version\.json$/, // === Smalruby: exclude from precache for version update notification ===
-                monacoPrecacheExclude, // === Smalruby: Monaco is runtime-cached instead (#1171) ===
-                assignmentsPrecacheExclude, // === Smalruby: standard assignments are not precached ===
-                ...decksPrecacheExclude // === Smalruby: tutorial images are runtime-cached (lazy tutorial images) ===
-            ],
-            // === Smalruby: runtime caching for the self-hosted Monaco Editor (#1171) ===
-            // === Smalruby: and for the tutorial images (lazy tutorial images) ===
-            runtimeCaching: [monacoRuntimeCaching, decksRuntimeCaching],
-            maximumFileSizeToCacheInBytes: 64 * 1024 * 1024,
-            // Don't add revision to files that already have hash in filename
-            dontCacheBustURLsMatching: /\.[0-9a-f]{8,}\./
-        })
-    )
-    .addPlugin(
-        new WebpackPwaManifest({
-            publicPath: './',
-            name: 'Smalruby',
-            short_name: 'Smalruby',
-            description: 'GraphicaL User Interface for creating and running Smalruby 3.0 projects',
-            background_color: '#ffffff',
-            // ホーム画面に追加された PWA を「横向き」で起動させる (issue #572 Phase 2-I)。
-            // スマホのコスチューム/サウンドエディタは upstream の min-width 制約で
-            // 縦持ちでは見切れるため、横画面前提で運用する。デスクトップやタブレットの
-            // PWA インストール時もこのヒントが入るが、デスクトップブラウザは
-            // orientation ヒントを無視するので影響なし。タブレットはサポートしている
-            // 場合のみ landscape で起動する。
-            orientation: 'landscape',
-            crossorigin: 'use-credentials',
-            inject: true,
-            ios: {
-                'apple-mobile-web-app-title': 'Smalruby',
-                'apple-mobile-web-app-status-bar-style': 'default'
-            },
-            icons: [
-                {
-                    src: path.resolve('static/pwa-icon.png'),
-                    sizes: [96, 128, 192, 256, 384, 512] // multiple sizes
-                }
-            ]
-        })
-    );
+    // === Smalruby: Start of PWA install (#2182) ===
+    .addPlugin(pwaManifestPlugin());
+// === Smalruby: End of PWA install (#2182) ===
 
 // build the production website in `dist/` with HTML, PWA, and optimized assets
 const distWithHtmlConfig = buildConfig.clone()
@@ -499,55 +450,9 @@ const distWithHtmlConfig = buildConfig.clone()
             ]
         }
     })
-    .addPlugin(
-        new WorkboxPlugin.GenerateSW({
-            disableDevLogs: !process.env.DEBUG,
-            clientsClaim: true,
-            skipWaiting: true,
-            additionalManifestEntries: assetsManifest,
-            exclude: [
-                /\.DS_Store/,
-                /version\.json$/, // === Smalruby: exclude from precache for version update notification ===
-                monacoPrecacheExclude, // === Smalruby: Monaco is runtime-cached instead (#1171) ===
-                assignmentsPrecacheExclude, // === Smalruby: standard assignments are not precached ===
-                ...decksPrecacheExclude // === Smalruby: tutorial images are runtime-cached (lazy tutorial images) ===
-            ],
-            // === Smalruby: runtime caching for the self-hosted Monaco Editor (#1171) ===
-            // === Smalruby: and for the tutorial images (lazy tutorial images) ===
-            runtimeCaching: [monacoRuntimeCaching, decksRuntimeCaching],
-            maximumFileSizeToCacheInBytes: 64 * 1024 * 1024,
-            // Don't add revision to files that already have hash in filename
-            dontCacheBustURLsMatching: /\.[0-9a-f]{8,}\./
-        })
-    )
-    .addPlugin(
-        new WebpackPwaManifest({
-            publicPath: './',
-            name: 'Smalruby',
-            short_name: 'Smalruby',
-            description: 'GraphicaL User Interface for creating and running Smalruby 3.0 projects',
-            background_color: '#ffffff',
-            // ホーム画面に追加された PWA を「横向き」で起動させる (issue #572 Phase 2-I)。
-            // スマホのコスチューム/サウンドエディタは upstream の min-width 制約で
-            // 縦持ちでは見切れるため、横画面前提で運用する。デスクトップやタブレットの
-            // PWA インストール時もこのヒントが入るが、デスクトップブラウザは
-            // orientation ヒントを無視するので影響なし。タブレットはサポートしている
-            // 場合のみ landscape で起動する。
-            orientation: 'landscape',
-            crossorigin: 'use-credentials',
-            inject: true,
-            ios: {
-                'apple-mobile-web-app-title': 'Smalruby',
-                'apple-mobile-web-app-status-bar-style': 'default'
-            },
-            icons: [
-                {
-                    src: path.resolve('static/pwa-icon.png'),
-                    sizes: [96, 128, 192, 256, 384, 512] // multiple sizes
-                }
-            ]
-        })
-    );
+    // === Smalruby: Start of PWA install (#2182) ===
+    .addPlugin(pwaManifestPlugin());
+// === Smalruby: End of PWA install (#2182) ===
 
 // Skip building `dist/` unless explicitly requested
 // It roughly doubles build time and isn't needed for `scratch-gui` development

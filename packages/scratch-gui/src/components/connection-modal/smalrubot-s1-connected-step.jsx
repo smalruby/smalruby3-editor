@@ -23,7 +23,7 @@ const SmalrubotS1ConnectedStep = (props) => (
                 </div>
                 <div className={connectedStyles.description}>
                     <FormattedMessage
-                        defaultMessage="Your Smalrubot S1 is ready to use."
+                        defaultMessage="Your Studuino is ready to use."
                         description="Description shown when the Smalrubot S1 is connected"
                         id="gui.connection.smalrubotS1Connected.description"
                     />
