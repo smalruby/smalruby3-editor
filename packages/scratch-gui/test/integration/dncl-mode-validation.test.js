@@ -166,6 +166,43 @@ describe('the Japanese tab (DNCL) and the check on switching to it', () => {
         await waitForTestIdPresence(driver, 'smalruby-console', false);
     });
 
+    test('the console extension is added only when the program prints', async () => {
+        const isConsoleExtensionLoaded = () =>
+            driver.executeScript("return window.smalruby.vm.extensionManager.isExtensionLoaded('smalrubyConsole')");
+        await loadInRubyMode(driver);
+        await fillInRubyProgram('@x = 10\n');
+        await waitForEditorValue(driver, '@x = 10');
+
+        // Opening the Japanese tab shows only the screen of the console
+        await clickJapaneseTab(driver);
+        await waitForMonacoLanguage(driver, 'dncl');
+        await waitForTestIdPresence(driver, 'smalruby-console', true);
+        expect(await isConsoleExtensionLoaded()).toBe(false);
+
+        // A program that does not print or read keeps the project without the extension
+        await fillInRubyProgram('x = 3\n');
+        await waitForEditorValue(driver, 'x = 3');
+        await clickCodeTab(driver);
+        await driver.wait(
+            () =>
+                driver.executeScript(
+                    'return Object.values(window.smalruby.vm.editingTarget.blocks._blocks)' +
+                        ".some((b) => b.opcode === 'data_setvariableto')",
+                ),
+            10000,
+            'The program was not converted into blocks',
+        );
+        expect(await isConsoleExtensionLoaded()).toBe(false);
+
+        // A program that prints is converted into the blocks of the console extension
+        await clickJapaneseTab(driver);
+        await waitForMonacoLanguage(driver, 'dncl');
+        await fillInRubyProgram('表示する("こんにちは")\n');
+        await waitForEditorValue(driver, '表示する("こんにちは")');
+        await clickCodeTab(driver);
+        await driver.wait(isConsoleExtensionLoaded, 10000, 'The console extension was not added');
+    });
+
     test('invalid code blocks DNCL switch and shows errors', async () => {
         await loadInRubyMode(driver);
         await fillInRubyProgram('move(10)\n');

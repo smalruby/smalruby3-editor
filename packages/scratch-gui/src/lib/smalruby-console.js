@@ -6,23 +6,14 @@ import { setSmalrubyConsoleVisible } from '../reducers/smalruby-console.js';
 const SMALRUBY_CONSOLE_EXTENSION_ID = 'smalrubyConsole';
 
 /**
- * Show the console in place of the stage, adding the console extension to the
- * project first when it has not got it (so its blocks are in the palette).
- * The Japanese tab calls this: the console is the stage of a Japanese program.
- * @param {?object} vm - The VM.
+ * Show the console in place of the stage. The Japanese tab calls this: the console is
+ * the stage of a Japanese program. Only the screen is shown: the console extension is
+ * added to the project by the conversion from Japanese to Ruby, when the program has
+ * `表示する` or `入力する` (its blocks), so a program that does not print or read keeps
+ * the project without the extension.
  * @param {Function} dispatch - The Redux dispatch.
- * @returns {Promise<void>} Resolves when the console is shown.
  */
-const showSmalrubyConsole = async (vm, dispatch) => {
-    const manager = vm && vm.extensionManager;
-    if (manager && !manager.isExtensionLoaded(SMALRUBY_CONSOLE_EXTENSION_ID)) {
-        try {
-            await manager.loadExtensionURL(SMALRUBY_CONSOLE_EXTENSION_ID);
-        } catch (e) {
-            // The console still shows (and takes the answers of 聞いて待つ) without its blocks.
-            console.error('Failed to load the console extension:', e); // eslint-disable-line no-console
-        }
-    }
+const showSmalrubyConsole = (dispatch) => {
     dispatch(setSmalrubyConsoleVisible(true));
 };
 
