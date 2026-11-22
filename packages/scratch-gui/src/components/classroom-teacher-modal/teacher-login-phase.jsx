@@ -6,6 +6,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import ErrorDisplay from '../classroom-modal/error-display.jsx';
 import GoogleSignInSlot from '../google-sign-in-slot/google-sign-in-slot.jsx';
+import SignInButton, { SignInButtonList } from '../sign-in-button/sign-in-button.jsx';
 import carouselImage1 from './carousel-1-submit.png';
 import carouselImage2 from './carousel-2-overview.png';
 import carouselImage3 from './carousel-3-preview.png';
@@ -129,45 +130,40 @@ const TeacherLoginPhase = ({
                         id="gui.classroom.management.loginDescription"
                     />
                 </p>
-                {/* The providers sit side by side where there is room for it, and
-                stack on narrow screens. The hint spans the whole row so the
-                buttons stay on one line. */}
                 <div className={styles.providerRow}>
-                    {/* Our button only stands in while Google's script loads or
-                    if it failed to load; pressing it tries again. */}
-                    {!googleButtonShown && (
-                        <button
-                            className={styles.loginButton}
-                            data-testid="classroom-google-login"
-                            onClick={onGoogleLogin}
-                        >
-                            <FormattedMessage
-                                defaultMessage="Sign in with Google"
-                                description="Google sign in button"
-                                id="gui.classroom.management.loginButton"
-                            />
-                        </button>
-                    )}
-                    {/* Google's own button lives here, inside the modal, so it
-                    cannot float over the screen or outlive the login (#1149). */}
-                    <GoogleSignInSlot
-                        active={googleButtonShown}
-                        className={styles.googleSignInSlot}
-                        ref={googleSignInRef}
-                    />
-                    {isMicrosoftAuthAvailable && (
-                        <button
-                            className={styles.loginButton}
-                            data-testid="classroom-microsoft-login"
-                            onClick={onMicrosoftLogin}
-                        >
-                            <FormattedMessage
-                                defaultMessage="Sign in with Microsoft"
-                                description="Microsoft sign in button"
-                                id="gui.classroom.management.microsoftLoginButton"
-                            />
-                        </button>
-                    )}
+                    <SignInButtonList>
+                        {/* Our button only stands in while Google's script loads
+                        or if it failed to load; pressing it tries again. */}
+                        {!googleButtonShown && (
+                            <SignInButton provider="google" testId="classroom-google-login" onClick={onGoogleLogin}>
+                                <FormattedMessage
+                                    defaultMessage="Sign in with Google"
+                                    description="Google sign in button"
+                                    id="gui.classroom.management.loginButton"
+                                />
+                            </SignInButton>
+                        )}
+                        {/* Google's own button lives here, inside the modal, so it
+                        cannot float over the screen or outlive the login (#1149). */}
+                        <GoogleSignInSlot
+                            active={googleButtonShown}
+                            className={styles.googleSignInSlot}
+                            ref={googleSignInRef}
+                        />
+                        {isMicrosoftAuthAvailable && (
+                            <SignInButton
+                                provider="microsoft"
+                                testId="classroom-microsoft-login"
+                                onClick={onMicrosoftLogin}
+                            >
+                                <FormattedMessage
+                                    defaultMessage="Sign in with Microsoft"
+                                    description="Microsoft sign in button"
+                                    id="gui.classroom.management.microsoftLoginButton"
+                                />
+                            </SignInButton>
+                        )}
+                    </SignInButtonList>
                 </div>
                 <ErrorDisplay error={error} errorTitle={errorTitle} />
             </div>

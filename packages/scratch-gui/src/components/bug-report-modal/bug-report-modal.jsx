@@ -7,6 +7,7 @@ import intlShape from '../../lib/intlShape.js';
 import Box from '../box/box.jsx';
 import closeIcon from '../close-button/icon--close.svg';
 import GoogleSignInSlot from '../google-sign-in-slot/google-sign-in-slot.jsx';
+import SignInButton, { SignInButtonList } from '../sign-in-button/sign-in-button.jsx';
 import styles from './bug-report-modal.css';
 
 const messages = defineMessages({
@@ -249,35 +250,37 @@ const BugReportModal = (props) => {
                             <p>
                                 <FormattedMessage {...messages.loginIntro} />
                             </p>
-                            {/* Ours only stands in while Google's script loads or
-                            if it failed to load; pressing it tries again. */}
-                            {!googleButtonShown && (
-                                <button
-                                    className={styles.loginButton}
-                                    disabled={isBusy}
-                                    onClick={onLoginGoogle}
-                                    data-testid="bug-report-login-google"
-                                >
-                                    <FormattedMessage {...messages.loginGoogle} />
-                                </button>
-                            )}
-                            {/* Google's own button is the entry point, rendered
-                            inside the modal so it cannot outlive it (#1149). */}
-                            <GoogleSignInSlot
-                                active={googleButtonShown}
-                                className={styles.googleSignInSlot}
-                                ref={googleSignInRef}
-                            />
-                            {microsoftAvailable ? (
-                                <button
-                                    className={styles.loginButton}
-                                    disabled={isBusy}
-                                    onClick={onLoginMicrosoft}
-                                    data-testid="bug-report-login-microsoft"
-                                >
-                                    <FormattedMessage {...messages.loginMicrosoft} />
-                                </button>
-                            ) : null}
+                            <SignInButtonList>
+                                {/* Ours only stands in while Google's script loads
+                                or if it failed to load; pressing it tries again. */}
+                                {!googleButtonShown && (
+                                    <SignInButton
+                                        disabled={isBusy}
+                                        provider="google"
+                                        testId="bug-report-login-google"
+                                        onClick={onLoginGoogle}
+                                    >
+                                        <FormattedMessage {...messages.loginGoogle} />
+                                    </SignInButton>
+                                )}
+                                {/* Google's own button is the entry point, rendered
+                                inside the modal so it cannot outlive it (#1149). */}
+                                <GoogleSignInSlot
+                                    active={googleButtonShown}
+                                    className={styles.googleSignInSlot}
+                                    ref={googleSignInRef}
+                                />
+                                {microsoftAvailable ? (
+                                    <SignInButton
+                                        disabled={isBusy}
+                                        provider="microsoft"
+                                        testId="bug-report-login-microsoft"
+                                        onClick={onLoginMicrosoft}
+                                    >
+                                        <FormattedMessage {...messages.loginMicrosoft} />
+                                    </SignInButton>
+                                ) : null}
+                            </SignInButtonList>
                         </div>
                     )}
 

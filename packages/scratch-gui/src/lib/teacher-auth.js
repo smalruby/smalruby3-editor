@@ -18,9 +18,9 @@ import {
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const REAUTH_TIMEOUT_MS = 5000;
 
-// Width of Google's rendered button, in px. Kept in step with the width the
-// modals give their own login buttons so the two never look mismatched.
-const GOOGLE_BUTTON_WIDTH_PX = 208;
+// Width of Google's rendered button, in px. Kept in step with the sign-in
+// buttons we draw next to it (sign-in-button.css), so they line up.
+const GOOGLE_BUTTON_WIDTH_PX = 240;
 
 // The login attempt currently owning the GIS sign-in UI, or null.
 // Only one may exist at a time so the rendered button can never accumulate
@@ -117,10 +117,11 @@ export const loginWithGoogle = async ({ container, onButtonVisible } = {}) => {
             mount.setAttribute('data-testid', 'google-signin-button');
             container.appendChild(mount);
             google.accounts.id.renderButton(mount, {
+                // The shape our sign-in buttons copy (sign-in-button.css).
                 theme: 'outline',
                 size: 'large',
-                // Matches the width our own login buttons use, so whichever
-                // one is on screen the row keeps its shape (13rem at 16px).
+                shape: 'rectangular',
+                logo_alignment: 'left',
                 width: GOOGLE_BUTTON_WIDTH_PX,
             });
             if (onButtonVisible) {
