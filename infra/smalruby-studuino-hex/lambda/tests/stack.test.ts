@@ -54,6 +54,27 @@ describe('StuduinoHexStack', () => {
     });
   });
 
+  test('既存のカスタムドメインの下（/studuino）につなぐ', () => {
+    stg.hasResourceProperties('AWS::ApiGatewayV2::ApiMapping', {
+      DomainName: 'stg.api.smalruby.app',
+      ApiMappingKey: 'studuino',
+      Stage: '$default',
+    });
+    synth('prod').hasResourceProperties('AWS::ApiGatewayV2::ApiMapping', {
+      DomainName: 'api.smalruby.app',
+      ApiMappingKey: 'studuino',
+    });
+  });
+
+  test('STUDUINO_API_CUSTOM_DOMAIN=false ならつながない', () => {
+    process.env.STUDUINO_API_CUSTOM_DOMAIN = 'false';
+    try {
+      synth('dev').resourceCountIs('AWS::ApiGatewayV2::ApiMapping', 0);
+    } finally {
+      delete process.env.STUDUINO_API_CUSTOM_DOMAIN;
+    }
+  });
+
   test('API 全体のスロットリング', () => {
     stg.hasResourceProperties('AWS::ApiGatewayV2::Stage', {
       DefaultRouteSettings: { ThrottlingRateLimit: 5, ThrottlingBurstLimit: 10 },

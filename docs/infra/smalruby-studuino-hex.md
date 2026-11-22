@@ -17,7 +17,7 @@
 |---|---|---|
 | CloudFormation スタック | `StuduinoHexStack` | 新しい CDK プロジェクト。コンテナのビルドが重いので、ほかの Lambda のデプロイを遅くしないよう分けた |
 | Lambda（コンテナ・x86_64） | `smalruby-studuino-hex-compile` | メモリ 2GB・`/tmp` 1GB・タイムアウト 30 秒 |
-| HTTP API | `SmalrubyStuduinoHex` | `POST /compile`。カスタムドメインは無い（`execute-api` のエンドポイントを使う。スタックの出力 `HttpApiEndpoint`） |
+| HTTP API | `SmalrubyStuduinoHex` | `POST /compile`。smalruby-api のカスタムドメインの下の `/studuino` につなぐ（prod `https://api.smalruby.app/studuino`・stg `https://stg.api.smalruby.app/studuino`。スタックの出力 `CustomDomainEndpoint`）。`execute-api` のエンドポイント（出力 `HttpApiEndpoint`）もそのまま使える |
 | DynamoDB | `smalruby-studuino-hex-rate-limit` | IP（のハッシュ）ごとの 1 分・1 日の回数。TTL で消える。DESTROY |
 | ロググループ | `/aws/lambda/smalruby-studuino-hex-compile` | prod 1 か月・stg 1 週間 |
 
@@ -73,7 +73,7 @@ CDK が Docker の build args に渡す（Dockerfile に版を書かない）。
 | `{ "sample": "<名前>" }` | 決まったサンプルをコンパイルする（動作確認とコンパイルの時間の計測） |
 
 ```
-POST <HttpApiEndpoint>/compile
+POST <CustomDomainEndpoint>/compile
 Origin: https://smalruby.app
 Content-Type: application/json
 
@@ -187,10 +187,29 @@ Content-Type: application/json
 
 - コールドスタートの初期化時間は Lambda の `REPORT` 行の `Init Duration` で見る。
 
+## どこにつなぐか（カスタムドメインの下のパス）
+
+ブラウザから呼ぶ URL は、smalruby-api のカスタムドメインの下の `/studuino` にする。スタックは別のまま、
+ドメイン（`api.smalruby.app` / `<stage>.api.smalruby.app`）に API mapping（キー `studuino`）を 1 つ足す。
+ドメインの証明書と DNS は smalruby-api が持つ（[`smalruby-api.md`](smalruby-api.md)）。
+
+- HTTP API のカスタムドメインは、いちばん長く一致するパスへ振り分け、どれにも一致しないものは空のパスの
+  API（smalruby-api）が受ける。なので `/studuino/...` だけがこの API に来て、smalruby-api の動きは変わらない。
+  API に届くパスからは `/studuino` が外れる（`/studuino/compile` → `/compile`）。
+- サブドメイン（`studuino.api.smalruby.app`）にしない理由: 学校のフィルタで許可してもらうドメインを増やさない。
+  CORS と回数の制限はこの API の中で決まるので、パスで分けても変わらない。
+- 生の `execute-api` の URL を使わない理由: ブランチのプレビューは「エンドポイントのホストが `stg.` で始まる」ことで
+  stg を向いているかを確かめる（`.github/workflows/ci-cd.yml`）。
+- smalruby-api のスタックに入れない理由: 重いコンテナの Lambda を、軽いプロキシと同じスタックにすると、
+  どちらを直しても両方を作り直してデプロイすることになる。Studuino だけを止めることもしにくい。
+- `STUDUINO_API_CUSTOM_DOMAIN=false` でつながない（そのドメインが無い環境で試すとき）。
+
+ビルドに入れる `STUDUINO_COMPILE_ENDPOINT` には、`/compile` を付けない値（`https://api.smalruby.app/studuino`）を入れる。
+
 ## 試す（stg）
 
 ```bash
-EP=<スタックの出力 HttpApiEndpoint>
+EP=https://stg.api.smalruby.app/studuino   # スタックの出力 CustomDomainEndpoint
 # hex が返る
 curl -sS -X POST "$EP/compile" -H 'Origin: https://smalruby.app' -H 'Content-Type: application/json' \
   -d '{"sample":"blink"}' | head -c 300
