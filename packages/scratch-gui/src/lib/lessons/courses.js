@@ -3105,6 +3105,62 @@ const CTRL_SENSOR = studuinoOpcode('getSensorValue');
 const CTRL_LED_ON = studuinoOpcode('turnLedOn');
 const CTRL_LED_OFF = studuinoOpcode('turnLedOff');
 
+// レッスン 0「始める前に」（#2359・決定ページ C6）: じゅんびチェック。計測と制御だけをやる学校もあるので、このコースにも
+// 付ける（チャットのコースと同じ作り・#2299）。土台（コースの `baseChallenges`）は「きょうからプログラマー」のうち、このコースで
+// いつも使う 4 つ: 旗で動かす（どこでしょう？）・くり返し（1-4）・もし（2-1）・変数（3-1）。問いのプログラムは土台のチャレンジの
+// 答えと同じネコ（ステージ）のプログラム。コースの数には入れない（`warmup`）
+const CTRL_READINESS = 'ctrl-l0-readiness';
+const ctrlLesson0 = defineLesson({
+    id: 'ctrl-l0',
+    warmup: true,
+    challenges: [
+        {
+            id: CTRL_READINESS,
+            card: { category: CATEGORIES.CONTROL, main: CATEGORIES.CONTROL },
+            task: challengeMessage(CTRL_READINESS, 'task'),
+            readinessCheck: {
+                questions: [
+                    // どこでしょう？（画面の場所の名前）: 旗のプログラムを動かすには、緑の旗を押す
+                    readinessQuestion(
+                        CTRL_READINESS,
+                        'blocks-l0-where',
+                        0,
+                        'when_flag_clicked do\n  move(10)\nend\n',
+                    ),
+                    // くり返そう（1-4・ステージのプログラム）: 「3 回繰り返す」の中で背景を 2 回かえるので、6 回かわる
+                    readinessQuestion(
+                        CTRL_READINESS,
+                        'blocks-l1-repeat',
+                        1,
+                        'when_key_pressed("1") do\n  3.times do\n    switch_backdrop("Canyon")\n    sleep(1)\n' +
+                            '    switch_backdrop("Arctic")\n    sleep(1)\n  end\nend\n',
+                    ),
+                    // もし〜なら（2-1）: ずっと調べて、マウスがさわっているときは「もし」の中を言う
+                    readinessQuestion(CTRL_READINESS, 'blocks-l1-if', 2, {
+                        ja:
+                            'when_flag_clicked do\n  loop do\n    if touching?("_mouse_")\n      say("くすぐったい！")\n' +
+                            '    else\n      say("さわってみて")\n    end\n  end\nend\n',
+                        'ja-Hira':
+                            'when_flag_clicked do\n  loop do\n    if touching?("_mouse_")\n      say("くすぐったい！")\n' +
+                            '    else\n      say("さわってみて")\n    end\n  end\nend\n',
+                        en:
+                            'when_flag_clicked do\n  loop do\n    if touching?("_mouse_")\n      say("That tickles!")\n' +
+                            '    else\n      say("Touch me")\n    end\n  end\nend\n',
+                    }),
+                    // 数えよう（3-1・変数）: 旗で 0 にもどし、押すたびに 1 ずつふやして言う
+                    readinessQuestion(CTRL_READINESS, 'blocks-l1-count', 0, {
+                        ja: 'when_flag_clicked do\n  $回数 = 0\nend\n\nwhen_clicked do\n  $回数 += 1\n  say($回数)\nend\n',
+                        'ja-Hira':
+                            'when_flag_clicked do\n  $かいすう = 0\nend\n\nwhen_clicked do\n  $かいすう += 1\n  say($かいすう)\nend\n',
+                        en: 'when_flag_clicked do\n  $count = 0\nend\n\nwhen_clicked do\n  $count += 1\n  say($count)\nend\n',
+                    }),
+                ],
+            },
+            goal: [{ type: 'readinessCheck', count: 4 }],
+        },
+    ],
+});
+
 const ctrlLesson1 = defineLesson({
     id: 'ctrl-l1',
     challenges: [
@@ -4156,7 +4212,10 @@ export const COURSES = [
     defineCourse({
         id: 'jidou-sensor-motor',
         language: LANGUAGES.BLOCKS,
-        lessons: [ctrlLesson1, ctrlLesson2, ctrlLesson3, ctrlLesson4, ctrlLesson5],
+        // レッスン 0（じゅんびチェック）は warmup（コースの数に入れない・#2359）
+        lessons: [ctrlLesson0, ctrlLesson1, ctrlLesson2, ctrlLesson3, ctrlLesson4, ctrlLesson5],
+        // じゅんびチェックで聞く土台: どこでしょう？・くり返そう（1-4）・もし〜なら（2-1）・数えよう（3-1）
+        baseChallenges: ['blocks-l0-where', 'blocks-l1-repeat', 'blocks-l1-if', 'blocks-l1-count'],
     }),
 ];
 
