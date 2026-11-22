@@ -174,8 +174,8 @@
       "errors": []
     }
   },
-  "ja-e34ce18557": {
-    "ruby": "# 問題文: Nissu の添字は 1 から始まる（Nissu[1] が工芸品 1 の日数）\n@_array_Nissu_ = [4, 1, 3]\n@kougeihin = 1\nwhile @kougeihin <= 3\n  console.puts(@_array_Nissu_[@kougeihin - 1]) # Nissu[kougeihin] と書くと最後に範囲外になる\n  @kougeihin += 1\nend",
+  "ja-4b93eabd83": {
+    "ruby": "# すべての配列の添字は 1 から始まる。\n@_array_Ten_ = [7, 3, 9]\n@kamoku = 1\nwhile @kamoku <= 3\n  console.puts(@_array_Ten_[@kamoku - 1]) # 1 番目から 3 番目まで\n  @kamoku += 1\nend",
     "errors": [],
     "rubyLines": [
       1,
@@ -183,14 +183,34 @@
       3,
       3,
       4,
-      5,
-      5
+      4,
+      4
     ],
     "converterErrors": [],
-    "blocks": "data_deletealloflist(LIST = @_array_Nissu_) #\"問題文: Nissu の添字は 1 から始まる（Nissu[1] が工芸品 1 の日数）\\n@ruby:array:literal:3\"\ndata_addtolist(LIST = @_array_Nissu_, ITEM: \"4\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Nissu_, ITEM: \"1\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Nissu_, ITEM: \"3\") #\"@ruby:array:literal:element\"\ndata_setvariableto(VARIABLE = @kougeihin, VALUE: \"1\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_lt(OPERAND1: @kougeihin, OPERAND2: \"3\") #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @kougeihin, OPERAND2: \"3\") #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\")) {\n  smalrubyConsole_print(TEXT: data_itemoflist(LIST = @_array_Nissu_, INDEX: @kougeihin)) #\"Nissu[kougeihin] と書くと最後に範囲外になる\\n@ruby:comment_position:inline\"\n  data_changevariableby(VARIABLE = @kougeihin, VALUE: 1)\n} #\"@ruby:syntax:while\"",
+    "blocks": "data_deletealloflist(LIST = @_array_Ten_) #\"すべての配列の添字は 1 から始まる。\\n@ruby:array:literal:3\"\ndata_addtolist(LIST = @_array_Ten_, ITEM: \"7\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Ten_, ITEM: \"3\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Ten_, ITEM: \"9\") #\"@ruby:array:literal:element\"\ndata_setvariableto(VARIABLE = @kamoku, VALUE: \"1\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_lt(OPERAND1: @kamoku, OPERAND2: \"3\") #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @kamoku, OPERAND2: \"3\") #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\")) {\n  smalrubyConsole_print(TEXT: data_itemoflist(LIST = @_array_Ten_, INDEX: @kamoku)) #\"1 番目から 3 番目まで\\n@ruby:comment_position:inline\"\n  data_changevariableby(VARIABLE = @kamoku, VALUE: 1)\n} #\"@ruby:syntax:while\"",
     "shown": {
-      "ruby": "# 問題文: Nissu の添字は 1 から始まる（Nissu[1] が工芸品 1 の日数）\n@_array_Nissu_ = [4, 1, 3]\n@kougeihin = 1\nwhile @kougeihin <= 3\n  console.puts(@_array_Nissu_[@kougeihin - 1]) # Nissu[kougeihin] と書くと最後に範囲外になる\n  @kougeihin += 1\nend",
-      "ja": "# 問題文: Nissu の添字は 1 から始まる（Nissu[1] が工芸品 1 の日数）\nNissu = [4, 1, 3]\nkougeihin を 1 から 3 まで 1 ずつ増やしながら繰り返す:\n    表示する(Nissu[kougeihin - 1]) # Nissu[kougeihin] と書くと最後に範囲外になる",
+      "ruby": "# すべての配列の添字は 1 から始まる。\n@_array_Ten_ = [7, 3, 9]\n@kamoku = 1\nwhile @kamoku <= 3\n  console.puts(@_array_Ten_[@kamoku - 1]) # 1 番目から 3 番目まで\n  @kamoku += 1\nend",
+      "ja": "# すべての配列の添字は 1 から始まる。\nTen = [7, 3, 9]\nkamoku を 1 から 3 まで 1 ずつ増やしながら繰り返す:\n    表示する(Ten[kamoku]) # 1 番目から 3 番目まで",
+      "errors": []
+    }
+  },
+  "ja-0619d2686e": {
+    "ruby": "# 問題文: Ten の添字は 1 から始まる（Ten[1] が 1 つめの教科の点数）\n@_array_Ten_ = [7, 3, 9]\n@kamoku = 1\nwhile @kamoku <= 3\n  console.puts(@_array_Ten_[@kamoku - 1]) # Ten[kamoku] と書くと最後に範囲外になる\n  @kamoku += 1\nend",
+    "errors": [],
+    "rubyLines": [
+      1,
+      2,
+      3,
+      3,
+      4,
+      4,
+      4
+    ],
+    "converterErrors": [],
+    "blocks": "data_deletealloflist(LIST = @_array_Ten_) #\"問題文: Ten の添字は 1 から始まる（Ten[1] が 1 つめの教科の点数）\\n@ruby:array:literal:3\"\ndata_addtolist(LIST = @_array_Ten_, ITEM: \"7\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Ten_, ITEM: \"3\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Ten_, ITEM: \"9\") #\"@ruby:array:literal:element\"\ndata_setvariableto(VARIABLE = @kamoku, VALUE: \"1\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_lt(OPERAND1: @kamoku, OPERAND2: \"3\") #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @kamoku, OPERAND2: \"3\") #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\")) {\n  smalrubyConsole_print(TEXT: data_itemoflist(LIST = @_array_Ten_, INDEX: @kamoku)) #\"Ten[kamoku] と書くと最後に範囲外になる\\n@ruby:comment_position:inline\"\n  data_changevariableby(VARIABLE = @kamoku, VALUE: 1)\n} #\"@ruby:syntax:while\"",
+    "shown": {
+      "ruby": "# 問題文: Ten の添字は 1 から始まる（Ten[1] が 1 つめの教科の点数）\n@_array_Ten_ = [7, 3, 9]\n@kamoku = 1\nwhile @kamoku <= 3\n  console.puts(@_array_Ten_[@kamoku - 1]) # Ten[kamoku] と書くと最後に範囲外になる\n  @kamoku += 1\nend",
+      "ja": "# 問題文: Ten の添字は 1 から始まる（Ten[1] が 1 つめの教科の点数）\nTen = [7, 3, 9]\nkamoku を 1 から 3 まで 1 ずつ増やしながら繰り返す:\n    表示する(Ten[kamoku - 1]) # Ten[kamoku] と書くと最後に範囲外になる",
       "errors": []
     }
   },
@@ -422,6 +442,30 @@
         "message": "「len」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
       }
     ]
+  },
+  "ja-0dd1d2e1df": {
+    "ruby": "@_array_Kiroku_ = [12, 35, 8, 27, 41, 19, 30]\n@kazu = 0\n@i = 0\nwhile @i <= @_array_Kiroku_.length - 1\n  if @_array_Kiroku_[@i] > 25\n    @kazu = @kazu + 1\n  end\n  @i += 1\nend\nconsole.puts(@kazu.to_s + \"回\")\n",
+    "errors": [],
+    "rubyLines": [
+      1,
+      2,
+      3,
+      3,
+      4,
+      5,
+      5,
+      5,
+      5,
+      6,
+      7
+    ],
+    "converterErrors": [],
+    "blocks": "data_deletealloflist(LIST = @_array_Kiroku_) #\"@ruby:array:literal:7\"\ndata_addtolist(LIST = @_array_Kiroku_, ITEM: \"12\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kiroku_, ITEM: \"35\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kiroku_, ITEM: \"8\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kiroku_, ITEM: \"27\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kiroku_, ITEM: \"41\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kiroku_, ITEM: \"19\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kiroku_, ITEM: \"30\") #\"@ruby:array:literal:element\"\ndata_setvariableto(VARIABLE = @kazu, VALUE: \"0\")\ndata_setvariableto(VARIABLE = @i, VALUE: \"0\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_lt(OPERAND1: @i, OPERAND2: operator_subtract(NUM1: data_lengthoflist(LIST = @_array_Kiroku_), NUM2: 1)) #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @i, OPERAND2: operator_subtract(NUM1: data_lengthoflist(LIST = @_array_Kiroku_), NUM2: 1)) #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\")) {\n  control_if(CONDITION: operator_gt(OPERAND1: data_itemoflist(LIST = @_array_Kiroku_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\"), OPERAND2: \"25\")) {\n    data_setvariableto(VARIABLE = @kazu, VALUE: operator_add(NUM1: @kazu, NUM2: 1))\n  }\n  data_changevariableby(VARIABLE = @i, VALUE: 1)\n} #\"@ruby:syntax:while\"\nsmalrubyConsole_print(TEXT: operator_join(STRING1: operator_join(STRING1: @kazu, STRING2: \"\") #\"@ruby:method:to_s\", STRING2: \"回\"))",
+    "shown": {
+      "ruby": "@_array_Kiroku_ = [12, 35, 8, 27, 41, 19, 30]\n@kazu = 0\n@i = 0\nwhile @i <= @_array_Kiroku_.length - 1\n  if @_array_Kiroku_[@i] > 25\n    @kazu = @kazu + 1\n  end\n  @i += 1\nend\nconsole.puts(@kazu.to_s + \"回\")",
+      "ja": "Kiroku = [12, 35, 8, 27, 41, 19, 30]\nkazu = 0\ni を 0 から 要素数(Kiroku) - 1 まで 1 ずつ増やしながら繰り返す:\n    もし Kiroku[i] > 25 ならば:\n        kazu = kazu + 1\n表示する(kazu, \"回\")",
+      "errors": []
+    }
   },
   "ja-0850d84775": {
     "ruby": "@_array_Tensu_ = [70, 85, 90, 60]\n@goukei = 0\n@i = 0\nwhile @i <= @_array_Tensu_.length - 1\n  @goukei = @goukei + @_array_Tensu_[@i]\n  @i += 1\nend\nconsole.puts(\"合計\" + @goukei.to_s)\n",
@@ -2890,6 +2934,30 @@
     "shown": {
       "ruby": "@a = 0\nwait until !(@a > 10)",
       "ja": "a = 0\nnot not (a > 10) の間繰り返す:\nを繰り返す",
+      "errors": []
+    }
+  },
+  "ja-e6527e8e04": {
+    "ruby": "@_array_Kiroku_ = [12, 35, 8, 27, 41, 19, 30]\n@kazu = 0\n@i = 0\nwhile @i <= @_array_Kiroku_.length - 1\n  if @_array_Kiroku_[@i] > 25\n    @kazu = @kazu + 1\n  end\n  @i += 1\nend\nconsole.puts(@kazu.to_s + \"回\")\n",
+    "errors": [],
+    "rubyLines": [
+      1,
+      2,
+      3,
+      3,
+      4,
+      5,
+      5,
+      5,
+      5,
+      6,
+      7
+    ],
+    "converterErrors": [],
+    "blocks": "data_deletealloflist(LIST = @_array_Kiroku_) #\"@ruby:array:literal:7\"\ndata_addtolist(LIST = @_array_Kiroku_, ITEM: \"12\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kiroku_, ITEM: \"35\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kiroku_, ITEM: \"8\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kiroku_, ITEM: \"27\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kiroku_, ITEM: \"41\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kiroku_, ITEM: \"19\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kiroku_, ITEM: \"30\") #\"@ruby:array:literal:element\"\ndata_setvariableto(VARIABLE = @kazu, VALUE: \"0\")\ndata_setvariableto(VARIABLE = @i, VALUE: \"0\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_lt(OPERAND1: @i, OPERAND2: operator_subtract(NUM1: data_lengthoflist(LIST = @_array_Kiroku_), NUM2: 1)) #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @i, OPERAND2: operator_subtract(NUM1: data_lengthoflist(LIST = @_array_Kiroku_), NUM2: 1)) #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\")) {\n  control_if(CONDITION: operator_gt(OPERAND1: data_itemoflist(LIST = @_array_Kiroku_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\"), OPERAND2: \"25\")) {\n    data_setvariableto(VARIABLE = @kazu, VALUE: operator_add(NUM1: @kazu, NUM2: 1))\n  }\n  data_changevariableby(VARIABLE = @i, VALUE: 1)\n} #\"@ruby:syntax:while\"\nsmalrubyConsole_print(TEXT: operator_join(STRING1: operator_join(STRING1: @kazu, STRING2: \"\") #\"@ruby:method:to_s\", STRING2: \"回\"))",
+    "shown": {
+      "ruby": "@_array_Kiroku_ = [12, 35, 8, 27, 41, 19, 30]\n@kazu = 0\n@i = 0\nwhile @i <= @_array_Kiroku_.length - 1\n  if @_array_Kiroku_[@i] > 25\n    @kazu = @kazu + 1\n  end\n  @i += 1\nend\nconsole.puts(@kazu.to_s + \"回\")",
+      "ja": "Kiroku = [12, 35, 8, 27, 41, 19, 30]\nkazu = 0\ni を 0 から 要素数(Kiroku) - 1 まで 1 ずつ増やしながら繰り返す:\n    もし Kiroku[i] > 25 ならば:\n        kazu = kazu + 1\n表示する(kazu, \"回\")",
       "errors": []
     }
   },
@@ -8109,6 +8177,272 @@
       "errors": []
     }
   },
+  "ja-957794d24c": {
+    "ruby": "@_array_Shincho_ = [128, 135, 141, 146, 150, 157, 163, 170]\n@ninzu = @_array_Shincho_.length\nconsole.puts(\"さがす身長を入力してください\")\n@sagasu = console.gets\n@sita = 0\n@ue = @ninzu - 1\n@mitsuketa = 0\nwhile @sita <= @ue && @mitsuketa == 0\n  @naka = ((@sita + @ue) / 2).to_i # まん中の番号\n  if @_array_Shincho_[@naka] == @sagasu\n    console.puts(@sagasu.to_s + \"cmは\" + @naka.to_s + \"番の人です\")\n    @mitsuketa = 1\n  elsif @_array_Shincho_[@naka] < @sagasu\n    @sita = @naka + 1\n  else\n    @ue = @naka - 1\n  end\nend\nif @mitsuketa == 0\n  console.puts(@sagasu.to_s + \"cmの人はいませんでした\")\nend\nconsole.puts(\"番号\" + \" \" + \"身長\")\n@i = 0\nwhile @i <= @ninzu - 1\n  console.puts(@i.to_s + \" \" + @_array_Shincho_[@i].to_s)\n  @i += 1\nend",
+    "errors": [],
+    "rubyLines": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      15,
+      15,
+      16,
+      17,
+      17,
+      18,
+      19,
+      19,
+      20,
+      20,
+      20
+    ],
+    "converterErrors": [],
+    "blocks": "data_deletealloflist(LIST = @_array_Shincho_) #\"@ruby:array:literal:8\"\ndata_addtolist(LIST = @_array_Shincho_, ITEM: \"128\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shincho_, ITEM: \"135\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shincho_, ITEM: \"141\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shincho_, ITEM: \"146\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shincho_, ITEM: \"150\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shincho_, ITEM: \"157\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shincho_, ITEM: \"163\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shincho_, ITEM: \"170\") #\"@ruby:array:literal:element\"\ndata_setvariableto(VARIABLE = @ninzu, VALUE: data_lengthoflist(LIST = @_array_Shincho_))\nsmalrubyConsole_print(TEXT: \"さがす身長を入力してください\")\ndata_setvariableto(VARIABLE = @sagasu, VALUE: smalrubyConsole_input)\ndata_setvariableto(VARIABLE = @sita, VALUE: \"0\")\ndata_setvariableto(VARIABLE = @ue, VALUE: operator_subtract(NUM1: @ninzu, NUM2: 1))\ndata_setvariableto(VARIABLE = @mitsuketa, VALUE: \"0\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_and(OPERAND1: operator_or(OPERAND1: operator_lt(OPERAND1: @sita, OPERAND2: @ue) #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @sita, OPERAND2: @ue) #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @mitsuketa, OPERAND2: \"0\")))) {\n  data_setvariableto(VARIABLE = @naka, VALUE: operator_mathop(OPERATOR = \"floor\", NUM: operator_divide(NUM1: operator_add(NUM1: @sita, NUM2: @ue), NUM2: 2)) #\"@ruby:method:to_i\") #\"まん中の番号\\n@ruby:comment_position:inline\"\n  control_if_else(CONDITION: operator_equals(OPERAND1: data_itemoflist(LIST = @_array_Shincho_, INDEX: operator_add(NUM1: @naka, NUM2: 1) #\"@ruby:array:index\"), OPERAND2: @sagasu)) {\n    smalrubyConsole_print(TEXT: operator_join(STRING1: operator_join(STRING1: operator_join(STRING1: operator_join(STRING1: @sagasu, STRING2: \"\") #\"@ruby:method:to_s\", STRING2: \"cmは\"), STRING2: operator_join(STRING1: @naka, STRING2: \"\") #\"@ruby:method:to_s\"), STRING2: \"番の人です\"))\n    data_setvariableto(VARIABLE = @mitsuketa, VALUE: \"1\")\n  } {\n    control_if_else(CONDITION: operator_lt(OPERAND1: data_itemoflist(LIST = @_array_Shincho_, INDEX: operator_add(NUM1: @naka, NUM2: 1) #\"@ruby:array:index\"), OPERAND2: @sagasu)) {\n      data_setvariableto(VARIABLE = @sita, VALUE: operator_add(NUM1: @naka, NUM2: 1))\n    } {\n      data_setvariableto(VARIABLE = @ue, VALUE: operator_subtract(NUM1: @naka, NUM2: 1))\n    } #\"@ruby:syntax:elsif:1\"\n  } #\"@ruby:syntax:elsif:1\"\n} #\"@ruby:syntax:while\"\ncontrol_if(CONDITION: operator_equals(OPERAND1: @mitsuketa, OPERAND2: \"0\")) {\n  smalrubyConsole_print(TEXT: operator_join(STRING1: operator_join(STRING1: @sagasu, STRING2: \"\") #\"@ruby:method:to_s\", STRING2: \"cmの人はいませんでした\"))\n}\nsmalrubyConsole_print(TEXT: operator_join(STRING1: operator_join(STRING1: \"番号\", STRING2: \" \"), STRING2: \"身長\"))\ndata_setvariableto(VARIABLE = @i, VALUE: \"0\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_lt(OPERAND1: @i, OPERAND2: operator_subtract(NUM1: @ninzu, NUM2: 1)) #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @i, OPERAND2: operator_subtract(NUM1: @ninzu, NUM2: 1)) #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\")) {\n  smalrubyConsole_print(TEXT: operator_join(STRING1: operator_join(STRING1: operator_join(STRING1: @i, STRING2: \"\") #\"@ruby:method:to_s\", STRING2: \" \"), STRING2: operator_join(STRING1: data_itemoflist(LIST = @_array_Shincho_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\"), STRING2: \"\") #\"@ruby:method:to_s\"))\n  data_changevariableby(VARIABLE = @i, VALUE: 1)\n} #\"@ruby:syntax:while\"",
+    "shown": {
+      "ruby": "@_array_Shincho_ = [128, 135, 141, 146, 150, 157, 163, 170]\n@ninzu = @_array_Shincho_.length\nconsole.puts(\"さがす身長を入力してください\")\n@sagasu = console.gets\n@sita = 0\n@ue = @ninzu - 1\n@mitsuketa = 0\nwhile @sita <= @ue && @mitsuketa == 0\n  @naka = ((@sita + @ue) / 2).to_i # まん中の番号\n  if @_array_Shincho_[@naka] == @sagasu\n    console.puts(@sagasu.to_s + \"cmは\" + @naka.to_s + \"番の人です\")\n    @mitsuketa = 1\n  elsif @_array_Shincho_[@naka] < @sagasu\n    @sita = @naka + 1\n  else\n    @ue = @naka - 1\n  end\nend\nif @mitsuketa == 0\n  console.puts(@sagasu.to_s + \"cmの人はいませんでした\")\nend\nconsole.puts(\"番号\" + \" \" + \"身長\")\n@i = 0\nwhile @i <= @ninzu - 1\n  console.puts(@i.to_s + \" \" + @_array_Shincho_[@i].to_s)\n  @i += 1\nend",
+      "ja": "Shincho = [128, 135, 141, 146, 150, 157, 163, 170]\nninzu = 要素数(Shincho)\n表示する(\"さがす身長を入力してください\")\nsagasu = 【外部からの入力】\nsita = 0\nue = ninzu - 1\nmitsuketa = 0\nsita <= ue and mitsuketa == 0 の間繰り返す:\n    naka = (sita + ue) ÷ 2 # まん中の番号\n    もし Shincho[naka] == sagasu ならば:\n        表示する(sagasu, \"cmは\", naka, \"番の人です\")\n        mitsuketa = 1\n    そうでなくもし Shincho[naka] < sagasu ならば:\n        sita = naka + 1\n    そうでなければ:\n        ue = naka - 1\nもし mitsuketa == 0 ならば:\n    表示する(sagasu, \"cmの人はいませんでした\")\n表示する(\"番号\", \" \", \"身長\")\ni を 0 から ninzu - 1 まで 1 ずつ増やしながら繰り返す:\n    表示する(i, \" \", Shincho[i])",
+      "errors": []
+    }
+  },
+  "ja-1a59d89cf6": {
+    "ruby": "@_array_Kazu_ = [3, 7, 2, 8, 5]\n@saidai = 2\n@_array_Shirushi_ = [0, 0, 0, 0, 0]\n@_array_Kosuu_ = [0, 0]\n@i = 0\nwhile @i <= @_array_Kazu_.length - 1\n  @g = @_array_Kazu_[@i] % 2\n  if @_array_Kosuu_[@g] < @saidai\n    @_array_Shirushi_[@i] = 1\n    @_array_Kosuu_[@g] = @_array_Kosuu_[@g] + 1\n  end\n  @i += 1\nend",
+    "errors": [],
+    "rubyLines": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      5,
+      6,
+      7,
+      8,
+      9,
+      9,
+      9,
+      9
+    ],
+    "converterErrors": [],
+    "blocks": "data_deletealloflist(LIST = @_array_Kazu_) #\"@ruby:array:literal:5\"\ndata_addtolist(LIST = @_array_Kazu_, ITEM: \"3\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kazu_, ITEM: \"7\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kazu_, ITEM: \"2\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kazu_, ITEM: \"8\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kazu_, ITEM: \"5\") #\"@ruby:array:literal:element\"\ndata_setvariableto(VARIABLE = @saidai, VALUE: \"2\")\ndata_deletealloflist(LIST = @_array_Shirushi_) #\"@ruby:array:literal:5\"\ndata_addtolist(LIST = @_array_Shirushi_, ITEM: \"0\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shirushi_, ITEM: \"0\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shirushi_, ITEM: \"0\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shirushi_, ITEM: \"0\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shirushi_, ITEM: \"0\") #\"@ruby:array:literal:element\"\ndata_deletealloflist(LIST = @_array_Kosuu_) #\"@ruby:array:literal:2\"\ndata_addtolist(LIST = @_array_Kosuu_, ITEM: \"0\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kosuu_, ITEM: \"0\") #\"@ruby:array:literal:element\"\ndata_setvariableto(VARIABLE = @i, VALUE: \"0\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_lt(OPERAND1: @i, OPERAND2: operator_subtract(NUM1: data_lengthoflist(LIST = @_array_Kazu_), NUM2: 1)) #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @i, OPERAND2: operator_subtract(NUM1: data_lengthoflist(LIST = @_array_Kazu_), NUM2: 1)) #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\")) {\n  data_setvariableto(VARIABLE = @g, VALUE: operator_mod(NUM1: data_itemoflist(LIST = @_array_Kazu_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\"), NUM2: 2))\n  control_if(CONDITION: operator_lt(OPERAND1: data_itemoflist(LIST = @_array_Kosuu_, INDEX: operator_add(NUM1: @g, NUM2: 1) #\"@ruby:array:index\"), OPERAND2: @saidai)) {\n    data_replaceitemoflist(LIST = @_array_Shirushi_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\", ITEM: \"1\")\n    data_replaceitemoflist(LIST = @_array_Kosuu_, INDEX: operator_add(NUM1: @g, NUM2: 1) #\"@ruby:array:index\", ITEM: operator_add(NUM1: data_itemoflist(LIST = @_array_Kosuu_, INDEX: operator_add(NUM1: @g, NUM2: 1) #\"@ruby:array:index\"), NUM2: 1))\n  }\n  data_changevariableby(VARIABLE = @i, VALUE: 1)\n} #\"@ruby:syntax:while\"",
+    "shown": {
+      "ruby": "@_array_Kazu_ = [3, 7, 2, 8, 5]\n@saidai = 2\n@_array_Shirushi_ = [0, 0, 0, 0, 0]\n@_array_Kosuu_ = [0, 0]\n@i = 0\nwhile @i <= @_array_Kazu_.length - 1\n  @g = @_array_Kazu_[@i] % 2\n  if @_array_Kosuu_[@g] < @saidai\n    @_array_Shirushi_[@i] = 1\n    @_array_Kosuu_[@g] = @_array_Kosuu_[@g] + 1\n  end\n  @i += 1\nend",
+      "ja": "Kazu = [3, 7, 2, 8, 5]\nsaidai = 2\nShirushi = [0, 0, 0, 0, 0]\nKosuu = [0, 0]\ni を 0 から 要素数(Kazu) - 1 まで 1 ずつ増やしながら繰り返す:\n    g = Kazu[i] ％ 2\n    もし Kosuu[g] < saidai ならば:\n        Shirushi[i] = 1\n        Kosuu[g] = Kosuu[g] + 1",
+      "errors": []
+    }
+  },
+  "ja-2b95818fce": {
+    "ruby": "@n = console.gets.to_i",
+    "errors": [],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "data_setvariableto(VARIABLE = @n, VALUE: operator_mathop(OPERATOR = \"floor\", NUM: smalrubyConsole_input) #\"@ruby:method:to_i\")",
+    "shown": {
+      "ruby": "@n = console.gets.to_i",
+      "ja": "n = 【整数を入力】",
+      "errors": []
+    }
+  },
+  "ja-a8a69ed831": {
+    "ruby": "@meishou = console.gets",
+    "errors": [],
+    "rubyLines": [
+      1
+    ],
+    "converterErrors": [],
+    "blocks": "data_setvariableto(VARIABLE = @meishou, VALUE: smalrubyConsole_input)",
+    "shown": {
+      "ruby": "@meishou = console.gets",
+      "ja": "meishou = 【外部からの入力】",
+      "errors": []
+    }
+  },
+  "ja-74ab881bb2": {
+    "ruby": "@_array_Shurui_ = [1, 2, 2, 1]\n@_array_Kaisuu_ = [3, 1, 2, 4]\n@_array_Kingaku_ = [150, 120, 200, 90]\n@ninzu = 3\n@nomimono = 0\n@okashi = 0\n@i = 1\nwhile @i <= @ninzu\n  if @_array_Kaisuu_[@i] >= 3\n    @nedan = @_array_Kingaku_[@i] - 30\n  else\n    @nedan = @_array_Kingaku_[@i]\n  end\n  if @_array_Shurui_[@i] == 1\n    @nomimono = @nomimono + @nedan\n  else\n    @okashi = @okashi + @nedan\n  end\n  @i += 1\nend\nconsole.puts(\"飲み物の合計は\" + @nomimono.to_s + \"円\")\nconsole.puts(\"お菓子の合計は\" + @okashi.to_s + \"円\")",
+    "errors": [],
+    "rubyLines": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      5,
+      6,
+      6,
+      7,
+      8,
+      9,
+      10,
+      10,
+      11,
+      12,
+      13,
+      14,
+      14,
+      14,
+      14,
+      15,
+      16
+    ],
+    "converterErrors": [],
+    "blocks": "data_deletealloflist(LIST = @_array_Shurui_) #\"@ruby:array:literal:4\"\ndata_addtolist(LIST = @_array_Shurui_, ITEM: \"1\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shurui_, ITEM: \"2\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shurui_, ITEM: \"2\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shurui_, ITEM: \"1\") #\"@ruby:array:literal:element\"\ndata_deletealloflist(LIST = @_array_Kaisuu_) #\"@ruby:array:literal:4\"\ndata_addtolist(LIST = @_array_Kaisuu_, ITEM: \"3\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kaisuu_, ITEM: \"1\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kaisuu_, ITEM: \"2\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kaisuu_, ITEM: \"4\") #\"@ruby:array:literal:element\"\ndata_deletealloflist(LIST = @_array_Kingaku_) #\"@ruby:array:literal:4\"\ndata_addtolist(LIST = @_array_Kingaku_, ITEM: \"150\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kingaku_, ITEM: \"120\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kingaku_, ITEM: \"200\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kingaku_, ITEM: \"90\") #\"@ruby:array:literal:element\"\ndata_setvariableto(VARIABLE = @ninzu, VALUE: \"3\")\ndata_setvariableto(VARIABLE = @nomimono, VALUE: \"0\")\ndata_setvariableto(VARIABLE = @okashi, VALUE: \"0\")\ndata_setvariableto(VARIABLE = @i, VALUE: \"1\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_lt(OPERAND1: @i, OPERAND2: @ninzu) #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @i, OPERAND2: @ninzu) #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\")) {\n  control_if_else(CONDITION: operator_or(OPERAND1: operator_gt(OPERAND1: data_itemoflist(LIST = @_array_Kaisuu_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\"), OPERAND2: \"3\") #\"@ruby:operator:>=:1\", OPERAND2: operator_equals(OPERAND1: data_itemoflist(LIST = @_array_Kaisuu_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\"), OPERAND2: \"3\") #\"@ruby:operator:>=:1\") #\"@ruby:operator:>=:1\") {\n    data_setvariableto(VARIABLE = @nedan, VALUE: operator_subtract(NUM1: data_itemoflist(LIST = @_array_Kingaku_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\"), NUM2: 30))\n  } {\n    data_setvariableto(VARIABLE = @nedan, VALUE: data_itemoflist(LIST = @_array_Kingaku_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\"))\n  }\n  control_if_else(CONDITION: operator_equals(OPERAND1: data_itemoflist(LIST = @_array_Shurui_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\"), OPERAND2: \"1\")) {\n    data_setvariableto(VARIABLE = @nomimono, VALUE: operator_add(NUM1: @nomimono, NUM2: @nedan))\n  } {\n    data_setvariableto(VARIABLE = @okashi, VALUE: operator_add(NUM1: @okashi, NUM2: @nedan))\n  }\n  data_changevariableby(VARIABLE = @i, VALUE: 1)\n} #\"@ruby:syntax:while\"\nsmalrubyConsole_print(TEXT: operator_join(STRING1: operator_join(STRING1: \"飲み物の合計は\", STRING2: operator_join(STRING1: @nomimono, STRING2: \"\") #\"@ruby:method:to_s\"), STRING2: \"円\"))\nsmalrubyConsole_print(TEXT: operator_join(STRING1: operator_join(STRING1: \"お菓子の合計は\", STRING2: operator_join(STRING1: @okashi, STRING2: \"\") #\"@ruby:method:to_s\"), STRING2: \"円\"))",
+    "shown": {
+      "ruby": "@_array_Shurui_ = [1, 2, 2, 1]\n@_array_Kaisuu_ = [3, 1, 2, 4]\n@_array_Kingaku_ = [150, 120, 200, 90]\n@ninzu = 3\n@nomimono = 0\n@okashi = 0\n@i = 1\nwhile @i <= @ninzu\n  if @_array_Kaisuu_[@i] >= 3\n    @nedan = @_array_Kingaku_[@i] - 30\n  else\n    @nedan = @_array_Kingaku_[@i]\n  end\n  if @_array_Shurui_[@i] == 1\n    @nomimono = @nomimono + @nedan\n  else\n    @okashi = @okashi + @nedan\n  end\n  @i += 1\nend\nconsole.puts(\"飲み物の合計は\" + @nomimono.to_s + \"円\")\nconsole.puts(\"お菓子の合計は\" + @okashi.to_s + \"円\")",
+      "ja": "Shurui = [1, 2, 2, 1]\nKaisuu = [3, 1, 2, 4]\nKingaku = [150, 120, 200, 90]\nninzu = 3\nnomimono = 0\nokashi = 0\ni を 1 から ninzu まで 1 ずつ増やしながら繰り返す:\n    もし Kaisuu[i] >= 3 ならば:\n        nedan = Kingaku[i] - 30\n    そうでなければ:\n        nedan = Kingaku[i]\n    もし Shurui[i] == 1 ならば:\n        nomimono = nomimono + nedan\n    そうでなければ:\n        okashi = okashi + nedan\n表示する(\"飲み物の合計は\", nomimono, \"円\")\n表示する(\"お菓子の合計は\", okashi, \"円\")",
+      "errors": []
+    }
+  },
+  "ja-15652180d7": {
+    "ruby": "@n = 2 # 班の番号\n@_array_Kamoku_ = [\"国語\", \"数学\", \"英語\"]\n@kamokusu = 3\nconsole.puts(\"好きな教科は？\")\n@suki = console.gets\n@j = 1\nwhile @j <= @kamokusu\n  if @_array_Kamoku_[@j] == @suki\n    @_array_Sentaku_[@n] = @j\n  end\n  @j += 1\nend",
+    "errors": [],
+    "rubyLines": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      6,
+      7,
+      8,
+      8,
+      8,
+      8
+    ],
+    "converterErrors": [],
+    "blocks": "data_setvariableto(VARIABLE = @n, VALUE: \"2\") #\"班の番号\\n@ruby:comment_position:inline\"\ndata_deletealloflist(LIST = @_array_Kamoku_) #\"@ruby:array:literal:3\"\ndata_addtolist(LIST = @_array_Kamoku_, ITEM: \"国語\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kamoku_, ITEM: \"数学\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kamoku_, ITEM: \"英語\") #\"@ruby:array:literal:element\"\ndata_setvariableto(VARIABLE = @kamokusu, VALUE: \"3\")\nsmalrubyConsole_print(TEXT: \"好きな教科は？\")\ndata_setvariableto(VARIABLE = @suki, VALUE: smalrubyConsole_input)\ndata_setvariableto(VARIABLE = @j, VALUE: \"1\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_lt(OPERAND1: @j, OPERAND2: @kamokusu) #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @j, OPERAND2: @kamokusu) #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\")) {\n  control_if(CONDITION: operator_equals(OPERAND1: data_itemoflist(LIST = @_array_Kamoku_, INDEX: operator_add(NUM1: @j, NUM2: 1) #\"@ruby:array:index\"), OPERAND2: @suki)) {\n    data_replaceitemoflist(LIST = @_array_Sentaku_, INDEX: operator_add(NUM1: @n, NUM2: 1) #\"@ruby:array:index\", ITEM: @j)\n  }\n  data_changevariableby(VARIABLE = @j, VALUE: 1)\n} #\"@ruby:syntax:while\"",
+    "shown": {
+      "ruby": "@n = 2 # 班の番号\n@_array_Kamoku_ = [\"国語\", \"数学\", \"英語\"]\n@kamokusu = 3\nconsole.puts(\"好きな教科は？\")\n@suki = console.gets\n@j = 1\nwhile @j <= @kamokusu\n  if @_array_Kamoku_[@j] == @suki\n    @_array_Sentaku_[@n] = @j\n  end\n  @j += 1\nend",
+      "ja": "n = 2 # 班の番号\nKamoku = [\"国語\", \"数学\", \"英語\"]\nkamokusu = 3\n表示する(\"好きな教科は？\")\nsuki = 【外部からの入力】\nj を 1 から kamokusu まで 1 ずつ増やしながら繰り返す:\n    もし Kamoku[j] == suki ならば:\n        Sentaku[n] = j",
+      "errors": []
+    }
+  },
+  "ja-58eb616c5a": {
+    "ruby": "@_array_Tani_ = [1, 60, 3600]\n@byousu = 4000\n@kazu = 0\n@nokori = @byousu\n@i = 2\nwhile @i >= 0\n  @kazu = (@nokori / @_array_Tani_[@i]).to_i\n  @nokori = @nokori % @_array_Tani_[@i]\n  console.puts(@kazu)\n  @i += -1\nend\nconsole.puts(@nokori)",
+    "errors": [],
+    "rubyLines": [
+      1,
+      2,
+      3,
+      3,
+      4,
+      4,
+      5,
+      6,
+      7,
+      7,
+      7,
+      8
+    ],
+    "converterErrors": [],
+    "blocks": "data_deletealloflist(LIST = @_array_Tani_) #\"@ruby:array:literal:3\"\ndata_addtolist(LIST = @_array_Tani_, ITEM: \"1\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Tani_, ITEM: \"60\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Tani_, ITEM: \"3600\") #\"@ruby:array:literal:element\"\ndata_setvariableto(VARIABLE = @byousu, VALUE: \"4000\")\ndata_setvariableto(VARIABLE = @kazu, VALUE: \"0\")\ndata_setvariableto(VARIABLE = @nokori, VALUE: @byousu)\ndata_setvariableto(VARIABLE = @i, VALUE: \"2\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_gt(OPERAND1: @i, OPERAND2: \"0\") #\"@ruby:operator:>=:1\", OPERAND2: operator_equals(OPERAND1: @i, OPERAND2: \"0\") #\"@ruby:operator:>=:1\") #\"@ruby:operator:>=:1\")) {\n  data_setvariableto(VARIABLE = @kazu, VALUE: operator_mathop(OPERATOR = \"floor\", NUM: operator_divide(NUM1: @nokori, NUM2: data_itemoflist(LIST = @_array_Tani_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\"))) #\"@ruby:method:to_i\")\n  data_setvariableto(VARIABLE = @nokori, VALUE: operator_mod(NUM1: @nokori, NUM2: data_itemoflist(LIST = @_array_Tani_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\")))\n  smalrubyConsole_print(TEXT: @kazu)\n  data_changevariableby(VARIABLE = @i, VALUE: -1)\n} #\"@ruby:syntax:while\"\nsmalrubyConsole_print(TEXT: @nokori)",
+    "shown": {
+      "ruby": "@_array_Tani_ = [1, 60, 3600]\n@byousu = 4000\n@kazu = 0\n@nokori = @byousu\n@i = 2\nwhile @i >= 0\n  @kazu = (@nokori / @_array_Tani_[@i]).to_i\n  @nokori = @nokori % @_array_Tani_[@i]\n  console.puts(@kazu)\n  @i += -1\nend\nconsole.puts(@nokori)",
+      "ja": "Tani = [1, 60, 3600]\nbyousu = 4000\nkazu = 0\nnokori = byousu\ni を 2 から 0 まで 1 ずつ減らしながら繰り返す:\n    kazu = nokori ÷ Tani[i]\n    nokori = nokori ％ Tani[i]\n    表示する(kazu)\n表示する(nokori)",
+      "errors": []
+    }
+  },
+  "ja-e38f350090": {
+    "ruby": "@_array_Ten_ = [6, 8, 5, 9, 7, 4]\n@goukei = 0\n@kumi = 1\nwhile @kumi <= 3\n  @saikou = 0\n  @i = @kumi * 2 - 2\n  while @i <= @kumi * 2 - 1\n    if @_array_Ten_[@i] > @saikou\n      @saikou = @_array_Ten_[@i]\n    end\n    @i += 1\n  end\n  console.puts(\"第\" + @kumi.to_s + \"組 … \" + \"最高点：\" + @saikou.to_s + \"点～\" + \"それまでの合計：\" + (@goukei + @saikou).to_s + \"点\")\n  @goukei = @goukei + @saikou\n  @kumi += 1\nend",
+    "errors": [],
+    "rubyLines": [
+      1,
+      2,
+      3,
+      3,
+      4,
+      5,
+      5,
+      6,
+      7,
+      7,
+      7,
+      7,
+      8,
+      12,
+      12,
+      12
+    ],
+    "converterErrors": [],
+    "blocks": "data_deletealloflist(LIST = @_array_Ten_) #\"@ruby:array:literal:6\"\ndata_addtolist(LIST = @_array_Ten_, ITEM: \"6\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Ten_, ITEM: \"8\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Ten_, ITEM: \"5\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Ten_, ITEM: \"9\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Ten_, ITEM: \"7\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Ten_, ITEM: \"4\") #\"@ruby:array:literal:element\"\ndata_setvariableto(VARIABLE = @goukei, VALUE: \"0\")\ndata_setvariableto(VARIABLE = @kumi, VALUE: \"1\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_lt(OPERAND1: @kumi, OPERAND2: \"3\") #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @kumi, OPERAND2: \"3\") #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\")) {\n  data_setvariableto(VARIABLE = @saikou, VALUE: \"0\")\n  data_setvariableto(VARIABLE = @i, VALUE: operator_subtract(NUM1: operator_multiply(NUM1: @kumi, NUM2: 2), NUM2: 2))\n  control_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_lt(OPERAND1: @i, OPERAND2: operator_subtract(NUM1: operator_multiply(NUM1: @kumi, NUM2: 2), NUM2: 1)) #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @i, OPERAND2: operator_subtract(NUM1: operator_multiply(NUM1: @kumi, NUM2: 2), NUM2: 1)) #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\")) {\n    control_if(CONDITION: operator_gt(OPERAND1: data_itemoflist(LIST = @_array_Ten_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\"), OPERAND2: @saikou)) {\n      data_setvariableto(VARIABLE = @saikou, VALUE: data_itemoflist(LIST = @_array_Ten_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\"))\n    }\n    data_changevariableby(VARIABLE = @i, VALUE: 1)\n  } #\"@ruby:syntax:while\"\n  smalrubyConsole_print(TEXT: operator_join(STRING1: operator_join(STRING1: operator_join(STRING1: operator_join(STRING1: operator_join(STRING1: operator_join(STRING1: operator_join(STRING1: operator_join(STRING1: \"第\", STRING2: operator_join(STRING1: @kumi, STRING2: \"\") #\"@ruby:method:to_s\"), STRING2: \"組 … \"), STRING2: \"最高点：\"), STRING2: operator_join(STRING1: @saikou, STRING2: \"\") #\"@ruby:method:to_s\"), STRING2: \"点～\"), STRING2: \"それまでの合計：\"), STRING2: operator_join(STRING1: operator_add(NUM1: @goukei, NUM2: @saikou), STRING2: \"\") #\"@ruby:method:to_s\"), STRING2: \"点\"))\n  data_setvariableto(VARIABLE = @goukei, VALUE: operator_add(NUM1: @goukei, NUM2: @saikou))\n  data_changevariableby(VARIABLE = @kumi, VALUE: 1)\n} #\"@ruby:syntax:while\"",
+    "shown": {
+      "ruby": "@_array_Ten_ = [6, 8, 5, 9, 7, 4]\n@goukei = 0\n@kumi = 1\nwhile @kumi <= 3\n  @saikou = 0\n  @i = @kumi * 2 - 2\n  while @i <= @kumi * 2 - 1\n    if @_array_Ten_[@i] > @saikou\n      @saikou = @_array_Ten_[@i]\n    end\n    @i += 1\n  end\n  console.puts(\"第\" + @kumi.to_s + \"組 … \" + \"最高点：\" + @saikou.to_s + \"点～\" + \"それまでの合計：\" + (@goukei + @saikou).to_s + \"点\")\n  @goukei = @goukei + @saikou\n  @kumi += 1\nend",
+      "ja": "Ten = [6, 8, 5, 9, 7, 4]\ngoukei = 0\nkumi を 1 から 3 まで 1 ずつ増やしながら繰り返す:\n    saikou = 0\n    i を kumi * 2 - 2 から kumi * 2 - 1 まで 1 ずつ増やしながら繰り返す:\n        もし Ten[i] > saikou ならば:\n            saikou = Ten[i]\n    表示する(\"第\", kumi, \"組 … \", \"最高点：\", saikou, \"点～\", \"それまでの合計：\", goukei + saikou, \"点\")\n    goukei = goukei + saikou",
+      "errors": []
+    }
+  },
+  "ja-ff40d2a1fb": {
+    "ruby": "@_array_Kazu_ = [3, 7, 2, 8, 5]\n@saisho = 10\n@_array_Shirushi_ = [0, 0, 0, 0, 0]\n@kai = 1\nwhile @kai <= 2\n  @_array_Kosuu_ = [0, 0]\n  @i = 0\n  while @i <= @_array_Kazu_.length - 1\n    @g = @_array_Kazu_[@i] % 2\n    if @_array_Kosuu_[@g] < @kai && @_array_Kazu_[@i] * @kai < @saisho\n      @_array_Shirushi_[@i] = @kai\n      @_array_Kosuu_[@g] = @_array_Kosuu_[@g] + 1\n    end\n    @i += 1\n  end\n  @kai += 1\nend\n@i = 0\nwhile @i <= @_array_Kazu_.length - 1\n  if @_array_Shirushi_[@i] > 0\n    console.puts(@_array_Kazu_[@i].to_s + \"には\" + @_array_Shirushi_[@i].to_s + \"回目に印を付けた\")\n  end\n  @i += 1\nend",
+    "errors": [],
+    "rubyLines": [
+      1,
+      2,
+      3,
+      4,
+      4,
+      5,
+      6,
+      6,
+      7,
+      8,
+      9,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      11,
+      11,
+      12,
+      13,
+      13,
+      13,
+      13
+    ],
+    "converterErrors": [],
+    "blocks": "data_deletealloflist(LIST = @_array_Kazu_) #\"@ruby:array:literal:5\"\ndata_addtolist(LIST = @_array_Kazu_, ITEM: \"3\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kazu_, ITEM: \"7\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kazu_, ITEM: \"2\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kazu_, ITEM: \"8\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kazu_, ITEM: \"5\") #\"@ruby:array:literal:element\"\ndata_setvariableto(VARIABLE = @saisho, VALUE: \"10\")\ndata_deletealloflist(LIST = @_array_Shirushi_) #\"@ruby:array:literal:5\"\ndata_addtolist(LIST = @_array_Shirushi_, ITEM: \"0\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shirushi_, ITEM: \"0\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shirushi_, ITEM: \"0\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shirushi_, ITEM: \"0\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shirushi_, ITEM: \"0\") #\"@ruby:array:literal:element\"\ndata_setvariableto(VARIABLE = @kai, VALUE: \"1\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_lt(OPERAND1: @kai, OPERAND2: \"2\") #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @kai, OPERAND2: \"2\") #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\")) {\n  data_deletealloflist(LIST = @_array_Kosuu_) #\"@ruby:array:literal:2\"\n  data_addtolist(LIST = @_array_Kosuu_, ITEM: \"0\") #\"@ruby:array:literal:element\"\n  data_addtolist(LIST = @_array_Kosuu_, ITEM: \"0\") #\"@ruby:array:literal:element\"\n  data_setvariableto(VARIABLE = @i, VALUE: \"0\")\n  control_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_lt(OPERAND1: @i, OPERAND2: operator_subtract(NUM1: data_lengthoflist(LIST = @_array_Kazu_), NUM2: 1)) #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @i, OPERAND2: operator_subtract(NUM1: data_lengthoflist(LIST = @_array_Kazu_), NUM2: 1)) #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\")) {\n    data_setvariableto(VARIABLE = @g, VALUE: operator_mod(NUM1: data_itemoflist(LIST = @_array_Kazu_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\"), NUM2: 2))\n    control_if(CONDITION: operator_and(OPERAND1: operator_lt(OPERAND1: data_itemoflist(LIST = @_array_Kosuu_, INDEX: operator_add(NUM1: @g, NUM2: 1) #\"@ruby:array:index\"), OPERAND2: @kai), OPERAND2: operator_lt(OPERAND1: operator_multiply(NUM1: data_itemoflist(LIST = @_array_Kazu_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\"), NUM2: @kai), OPERAND2: @saisho))) {\n      data_replaceitemoflist(LIST = @_array_Shirushi_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\", ITEM: @kai)\n      data_replaceitemoflist(LIST = @_array_Kosuu_, INDEX: operator_add(NUM1: @g, NUM2: 1) #\"@ruby:array:index\", ITEM: operator_add(NUM1: data_itemoflist(LIST = @_array_Kosuu_, INDEX: operator_add(NUM1: @g, NUM2: 1) #\"@ruby:array:index\"), NUM2: 1))\n    }\n    data_changevariableby(VARIABLE = @i, VALUE: 1)\n  } #\"@ruby:syntax:while\"\n  data_changevariableby(VARIABLE = @kai, VALUE: 1)\n} #\"@ruby:syntax:while\"\ndata_setvariableto(VARIABLE = @i, VALUE: \"0\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_lt(OPERAND1: @i, OPERAND2: operator_subtract(NUM1: data_lengthoflist(LIST = @_array_Kazu_), NUM2: 1)) #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @i, OPERAND2: operator_subtract(NUM1: data_lengthoflist(LIST = @_array_Kazu_), NUM2: 1)) #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\")) {\n  control_if(CONDITION: operator_gt(OPERAND1: data_itemoflist(LIST = @_array_Shirushi_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\"), OPERAND2: \"0\")) {\n    smalrubyConsole_print(TEXT: operator_join(STRING1: operator_join(STRING1: operator_join(STRING1: operator_join(STRING1: data_itemoflist(LIST = @_array_Kazu_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\"), STRING2: \"\") #\"@ruby:method:to_s\", STRING2: \"には\"), STRING2: operator_join(STRING1: data_itemoflist(LIST = @_array_Shirushi_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\"), STRING2: \"\") #\"@ruby:method:to_s\"), STRING2: \"回目に印を付けた\"))\n  }\n  data_changevariableby(VARIABLE = @i, VALUE: 1)\n} #\"@ruby:syntax:while\"",
+    "shown": {
+      "ruby": "@_array_Kazu_ = [3, 7, 2, 8, 5]\n@saisho = 10\n@_array_Shirushi_ = [0, 0, 0, 0, 0]\n@kai = 1\nwhile @kai <= 2\n  @_array_Kosuu_ = [0, 0]\n  @i = 0\n  while @i <= @_array_Kazu_.length - 1\n    @g = @_array_Kazu_[@i] % 2\n    if @_array_Kosuu_[@g] < @kai && @_array_Kazu_[@i] * @kai < @saisho\n      @_array_Shirushi_[@i] = @kai\n      @_array_Kosuu_[@g] = @_array_Kosuu_[@g] + 1\n    end\n    @i += 1\n  end\n  @kai += 1\nend\n@i = 0\nwhile @i <= @_array_Kazu_.length - 1\n  if @_array_Shirushi_[@i] > 0\n    console.puts(@_array_Kazu_[@i].to_s + \"には\" + @_array_Shirushi_[@i].to_s + \"回目に印を付けた\")\n  end\n  @i += 1\nend",
+      "ja": "Kazu = [3, 7, 2, 8, 5]\nsaisho = 10\nShirushi = [0, 0, 0, 0, 0]\nkai を 1 から 2 まで 1 ずつ増やしながら繰り返す:\n    Kosuu = [0, 0]\n    i を 0 から 要素数(Kazu) - 1 まで 1 ずつ増やしながら繰り返す:\n        g = Kazu[i] ％ 2\n        もし Kosuu[g] < kai and Kazu[i] * kai < saisho ならば:\n            Shirushi[i] = kai\n            Kosuu[g] = Kosuu[g] + 1\ni を 0 から 要素数(Kazu) - 1 まで 1 ずつ増やしながら繰り返す:\n    もし Shirushi[i] > 0 ならば:\n        表示する(Kazu[i], \"には\", Shirushi[i], \"回目に印を付けた\")",
+      "errors": []
+    }
+  },
+  "ja-7d69c05382": {
+    "ruby": "@t = 1\nwhile @t <= 2\n  if @t < 10\n    console.puts(\"a\" + @t.to_s + \"b\")\n  end\n  @t += 1\nend\n",
+    "errors": [],
+    "rubyLines": [
+      1,
+      1,
+      2,
+      3,
+      3,
+      3,
+      3,
+      5
+    ],
+    "converterErrors": [],
+    "blocks": "data_setvariableto(VARIABLE = @t, VALUE: \"1\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_lt(OPERAND1: @t, OPERAND2: \"2\") #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @t, OPERAND2: \"2\") #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\")) {\n  control_if(CONDITION: operator_lt(OPERAND1: @t, OPERAND2: \"10\")) {\n    smalrubyConsole_print(TEXT: operator_join(STRING1: operator_join(STRING1: \"a\", STRING2: operator_join(STRING1: @t, STRING2: \"\") #\"@ruby:method:to_s\"), STRING2: \"b\"))\n  }\n  data_changevariableby(VARIABLE = @t, VALUE: 1)\n} #\"@ruby:syntax:while\"",
+    "shown": {
+      "ruby": "@t = 1\nwhile @t <= 2\n  if @t < 10\n    console.puts(\"a\" + @t.to_s + \"b\")\n  end\n  @t += 1\nend",
+      "ja": "t を 1 から 2 まで 1 ずつ増やしながら繰り返す:\n    もし t < 10 ならば:\n        表示する(\"a\", t, \"b\")",
+      "errors": []
+    }
+  },
   "ja-e55de6eafe": {
     "ruby": "@i = 1\nwhile @i <= 3\n  if @i > 1\n    console.puts(@i)\n  end\n  console.puts(0)\n  @i += 1\nend\nconsole.puts(9)",
     "errors": [],
@@ -8245,6 +8579,29 @@
     "shown": {
       "ruby": "if @x > 0\n  @y = 1\nend\n@z = 2",
       "ja": "もし x > 0 ならば:\n    y = 1\nz = 2",
+      "errors": []
+    }
+  },
+  "ja-1b83374d75": {
+    "ruby": "while @kai <= 5\n  if @ten == 3\n    @kekka = 1\n  elsif @ten < 3\n    @kai = @kai + 1\n  else\n    @ten = @ten - 1\n  end\nend\nconsole.puts(@kekka)",
+    "errors": [],
+    "rubyLines": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      7,
+      7,
+      8
+    ],
+    "converterErrors": [],
+    "blocks": "control_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_lt(OPERAND1: @kai, OPERAND2: \"5\") #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @kai, OPERAND2: \"5\") #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\")) {\n  control_if_else(CONDITION: operator_equals(OPERAND1: @ten, OPERAND2: \"3\")) {\n    data_setvariableto(VARIABLE = @kekka, VALUE: \"1\")\n  } {\n    control_if_else(CONDITION: operator_lt(OPERAND1: @ten, OPERAND2: \"3\")) {\n      data_setvariableto(VARIABLE = @kai, VALUE: operator_add(NUM1: @kai, NUM2: 1))\n    } {\n      data_setvariableto(VARIABLE = @ten, VALUE: operator_subtract(NUM1: @ten, NUM2: 1))\n    } #\"@ruby:syntax:elsif:1\"\n  } #\"@ruby:syntax:elsif:1\"\n} #\"@ruby:syntax:while\"\nsmalrubyConsole_print(TEXT: @kekka)",
+    "shown": {
+      "ruby": "while @kai <= 5\n  if @ten == 3\n    @kekka = 1\n  elsif @ten < 3\n    @kai = @kai + 1\n  else\n    @ten = @ten - 1\n  end\nend\nconsole.puts(@kekka)",
+      "ja": "kai <= 5 の間繰り返す:\n    もし ten == 3 ならば:\n        kekka = 1\n    そうでなくもし ten < 3 ならば:\n        kai = kai + 1\n    そうでなければ:\n        ten = ten - 1\n表示する(kekka)",
       "errors": []
     }
   },
@@ -8979,6 +9336,41 @@
     "shown": {
       "ruby": "@_array_Data_ = [3, 1, 2]\n@goukei = 0\n@i = 0\nwhile @i <= 2\n  @goukei = @goukei + @_array_Data_[@i]\n  @i += 1\nend\nconsole.puts(@goukei)",
       "ja": "Data = [3, 1, 2]\ngoukei = 0\ni を 0 から 2 まで 1 ずつ増やしながら繰り返す:\n    goukei = goukei + Data[i]\n表示する(goukei)",
+      "errors": []
+    }
+  },
+  "ja-d7380d3060": {
+    "ruby": "@_array_Shincho_ = [128, 135, 141, 146, 150, 157, 163, 170]\n@ninzu = @_array_Shincho_.length\nconsole.puts(\"身長:\")\n@sagasu = console.gets\n@sita = 0\n@ue = @ninzu - 1\n@mitsuketa = 0\nwhile @sita <= @ue && @mitsuketa == 0\n  @naka = ((@sita + @ue) / 2).to_i\n  if @_array_Shincho_[@naka] == @sagasu\n    console.puts(@sagasu.to_s + \"cmは\" + @naka.to_s + \"番の人です\")\n    @mitsuketa = 1\n  elsif @_array_Shincho_[@naka] < @sagasu\n    @sita = @naka + 1\n  else\n    @ue = @naka - 1\n  end\nend\nif @mitsuketa == 0\n  console.puts(@sagasu.to_s + \"cmの人はいませんでした\")\nend\n",
+    "errors": [],
+    "rubyLines": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      15,
+      15,
+      16,
+      17,
+      17,
+      18
+    ],
+    "converterErrors": [],
+    "blocks": "data_deletealloflist(LIST = @_array_Shincho_) #\"@ruby:array:literal:8\"\ndata_addtolist(LIST = @_array_Shincho_, ITEM: \"128\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shincho_, ITEM: \"135\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shincho_, ITEM: \"141\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shincho_, ITEM: \"146\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shincho_, ITEM: \"150\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shincho_, ITEM: \"157\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shincho_, ITEM: \"163\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shincho_, ITEM: \"170\") #\"@ruby:array:literal:element\"\ndata_setvariableto(VARIABLE = @ninzu, VALUE: data_lengthoflist(LIST = @_array_Shincho_))\nsmalrubyConsole_print(TEXT: \"身長:\")\ndata_setvariableto(VARIABLE = @sagasu, VALUE: smalrubyConsole_input)\ndata_setvariableto(VARIABLE = @sita, VALUE: \"0\")\ndata_setvariableto(VARIABLE = @ue, VALUE: operator_subtract(NUM1: @ninzu, NUM2: 1))\ndata_setvariableto(VARIABLE = @mitsuketa, VALUE: \"0\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_and(OPERAND1: operator_or(OPERAND1: operator_lt(OPERAND1: @sita, OPERAND2: @ue) #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @sita, OPERAND2: @ue) #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @mitsuketa, OPERAND2: \"0\")))) {\n  data_setvariableto(VARIABLE = @naka, VALUE: operator_mathop(OPERATOR = \"floor\", NUM: operator_divide(NUM1: operator_add(NUM1: @sita, NUM2: @ue), NUM2: 2)) #\"@ruby:method:to_i\")\n  control_if_else(CONDITION: operator_equals(OPERAND1: data_itemoflist(LIST = @_array_Shincho_, INDEX: operator_add(NUM1: @naka, NUM2: 1) #\"@ruby:array:index\"), OPERAND2: @sagasu)) {\n    smalrubyConsole_print(TEXT: operator_join(STRING1: operator_join(STRING1: operator_join(STRING1: operator_join(STRING1: @sagasu, STRING2: \"\") #\"@ruby:method:to_s\", STRING2: \"cmは\"), STRING2: operator_join(STRING1: @naka, STRING2: \"\") #\"@ruby:method:to_s\"), STRING2: \"番の人です\"))\n    data_setvariableto(VARIABLE = @mitsuketa, VALUE: \"1\")\n  } {\n    control_if_else(CONDITION: operator_lt(OPERAND1: data_itemoflist(LIST = @_array_Shincho_, INDEX: operator_add(NUM1: @naka, NUM2: 1) #\"@ruby:array:index\"), OPERAND2: @sagasu)) {\n      data_setvariableto(VARIABLE = @sita, VALUE: operator_add(NUM1: @naka, NUM2: 1))\n    } {\n      data_setvariableto(VARIABLE = @ue, VALUE: operator_subtract(NUM1: @naka, NUM2: 1))\n    } #\"@ruby:syntax:elsif:1\"\n  } #\"@ruby:syntax:elsif:1\"\n} #\"@ruby:syntax:while\"\ncontrol_if(CONDITION: operator_equals(OPERAND1: @mitsuketa, OPERAND2: \"0\")) {\n  smalrubyConsole_print(TEXT: operator_join(STRING1: operator_join(STRING1: @sagasu, STRING2: \"\") #\"@ruby:method:to_s\", STRING2: \"cmの人はいませんでした\"))\n}",
+    "shown": {
+      "ruby": "@_array_Shincho_ = [128, 135, 141, 146, 150, 157, 163, 170]\n@ninzu = @_array_Shincho_.length\nconsole.puts(\"身長:\")\n@sagasu = console.gets\n@sita = 0\n@ue = @ninzu - 1\n@mitsuketa = 0\nwhile @sita <= @ue && @mitsuketa == 0\n  @naka = ((@sita + @ue) / 2).to_i\n  if @_array_Shincho_[@naka] == @sagasu\n    console.puts(@sagasu.to_s + \"cmは\" + @naka.to_s + \"番の人です\")\n    @mitsuketa = 1\n  elsif @_array_Shincho_[@naka] < @sagasu\n    @sita = @naka + 1\n  else\n    @ue = @naka - 1\n  end\nend\nif @mitsuketa == 0\n  console.puts(@sagasu.to_s + \"cmの人はいませんでした\")\nend",
+      "ja": "Shincho = [128, 135, 141, 146, 150, 157, 163, 170]\nninzu = 要素数(Shincho)\n表示する(\"身長:\")\nsagasu = 【外部からの入力】\nsita = 0\nue = ninzu - 1\nmitsuketa = 0\nsita <= ue and mitsuketa == 0 の間繰り返す:\n    naka = (sita + ue) ÷ 2\n    もし Shincho[naka] == sagasu ならば:\n        表示する(sagasu, \"cmは\", naka, \"番の人です\")\n        mitsuketa = 1\n    そうでなくもし Shincho[naka] < sagasu ならば:\n        sita = naka + 1\n    そうでなければ:\n        ue = naka - 1\nもし mitsuketa == 0 ならば:\n    表示する(sagasu, \"cmの人はいませんでした\")",
       "errors": []
     }
   },
@@ -9899,377 +10291,5 @@
         "source": null
       }
     ]
-  },
-  "ja-0dd1d2e1df": {
-    "ruby": "@_array_Kiroku_ = [12, 35, 8, 27, 41, 19, 30]\n@kazu = 0\n@i = 0\nwhile @i <= @_array_Kiroku_.length - 1\n  if @_array_Kiroku_[@i] > 25\n    @kazu = @kazu + 1\n  end\n  @i += 1\nend\nconsole.puts(@kazu.to_s + \"回\")\n",
-    "errors": [],
-    "rubyLines": [
-      1,
-      2,
-      3,
-      3,
-      4,
-      5,
-      5,
-      5,
-      5,
-      6,
-      7
-    ],
-    "converterErrors": [],
-    "blocks": "data_deletealloflist(LIST = @_array_Kiroku_) #\"@ruby:array:literal:7\"\ndata_addtolist(LIST = @_array_Kiroku_, ITEM: \"12\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kiroku_, ITEM: \"35\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kiroku_, ITEM: \"8\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kiroku_, ITEM: \"27\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kiroku_, ITEM: \"41\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kiroku_, ITEM: \"19\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kiroku_, ITEM: \"30\") #\"@ruby:array:literal:element\"\ndata_setvariableto(VARIABLE = @kazu, VALUE: \"0\")\ndata_setvariableto(VARIABLE = @i, VALUE: \"0\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_lt(OPERAND1: @i, OPERAND2: operator_subtract(NUM1: data_lengthoflist(LIST = @_array_Kiroku_), NUM2: 1)) #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @i, OPERAND2: operator_subtract(NUM1: data_lengthoflist(LIST = @_array_Kiroku_), NUM2: 1)) #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\")) {\n  control_if(CONDITION: operator_gt(OPERAND1: data_itemoflist(LIST = @_array_Kiroku_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\"), OPERAND2: \"25\")) {\n    data_setvariableto(VARIABLE = @kazu, VALUE: operator_add(NUM1: @kazu, NUM2: 1))\n  }\n  data_changevariableby(VARIABLE = @i, VALUE: 1)\n} #\"@ruby:syntax:while\"\nsmalrubyConsole_print(TEXT: operator_join(STRING1: operator_join(STRING1: @kazu, STRING2: \"\") #\"@ruby:method:to_s\", STRING2: \"回\"))",
-    "shown": {
-      "ruby": "@_array_Kiroku_ = [12, 35, 8, 27, 41, 19, 30]\n@kazu = 0\n@i = 0\nwhile @i <= @_array_Kiroku_.length - 1\n  if @_array_Kiroku_[@i] > 25\n    @kazu = @kazu + 1\n  end\n  @i += 1\nend\nconsole.puts(@kazu.to_s + \"回\")",
-      "ja": "Kiroku = [12, 35, 8, 27, 41, 19, 30]\nkazu = 0\ni を 0 から 要素数(Kiroku) - 1 まで 1 ずつ増やしながら繰り返す:\n    もし Kiroku[i] > 25 ならば:\n        kazu = kazu + 1\n表示する(kazu, \"回\")",
-      "errors": []
-    }
-  },
-  "ja-e6527e8e04": {
-    "ruby": "@_array_Kiroku_ = [12, 35, 8, 27, 41, 19, 30]\n@kazu = 0\n@i = 0\nwhile @i <= @_array_Kiroku_.length - 1\n  if @_array_Kiroku_[@i] > 25\n    @kazu = @kazu + 1\n  end\n  @i += 1\nend\nconsole.puts(@kazu.to_s + \"回\")\n",
-    "errors": [],
-    "rubyLines": [
-      1,
-      2,
-      3,
-      3,
-      4,
-      5,
-      5,
-      5,
-      5,
-      6,
-      7
-    ],
-    "converterErrors": [],
-    "blocks": "data_deletealloflist(LIST = @_array_Kiroku_) #\"@ruby:array:literal:7\"\ndata_addtolist(LIST = @_array_Kiroku_, ITEM: \"12\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kiroku_, ITEM: \"35\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kiroku_, ITEM: \"8\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kiroku_, ITEM: \"27\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kiroku_, ITEM: \"41\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kiroku_, ITEM: \"19\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kiroku_, ITEM: \"30\") #\"@ruby:array:literal:element\"\ndata_setvariableto(VARIABLE = @kazu, VALUE: \"0\")\ndata_setvariableto(VARIABLE = @i, VALUE: \"0\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_lt(OPERAND1: @i, OPERAND2: operator_subtract(NUM1: data_lengthoflist(LIST = @_array_Kiroku_), NUM2: 1)) #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @i, OPERAND2: operator_subtract(NUM1: data_lengthoflist(LIST = @_array_Kiroku_), NUM2: 1)) #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\")) {\n  control_if(CONDITION: operator_gt(OPERAND1: data_itemoflist(LIST = @_array_Kiroku_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\"), OPERAND2: \"25\")) {\n    data_setvariableto(VARIABLE = @kazu, VALUE: operator_add(NUM1: @kazu, NUM2: 1))\n  }\n  data_changevariableby(VARIABLE = @i, VALUE: 1)\n} #\"@ruby:syntax:while\"\nsmalrubyConsole_print(TEXT: operator_join(STRING1: operator_join(STRING1: @kazu, STRING2: \"\") #\"@ruby:method:to_s\", STRING2: \"回\"))",
-    "shown": {
-      "ruby": "@_array_Kiroku_ = [12, 35, 8, 27, 41, 19, 30]\n@kazu = 0\n@i = 0\nwhile @i <= @_array_Kiroku_.length - 1\n  if @_array_Kiroku_[@i] > 25\n    @kazu = @kazu + 1\n  end\n  @i += 1\nend\nconsole.puts(@kazu.to_s + \"回\")",
-      "ja": "Kiroku = [12, 35, 8, 27, 41, 19, 30]\nkazu = 0\ni を 0 から 要素数(Kiroku) - 1 まで 1 ずつ増やしながら繰り返す:\n    もし Kiroku[i] > 25 ならば:\n        kazu = kazu + 1\n表示する(kazu, \"回\")",
-      "errors": []
-    }
-  },
-  "ja-957794d24c": {
-    "ruby": "@_array_Shincho_ = [128, 135, 141, 146, 150, 157, 163, 170]\n@ninzu = @_array_Shincho_.length\nconsole.puts(\"さがす身長を入力してください\")\n@sagasu = console.gets\n@sita = 0\n@ue = @ninzu - 1\n@mitsuketa = 0\nwhile @sita <= @ue && @mitsuketa == 0\n  @naka = ((@sita + @ue) / 2).to_i # まん中の番号\n  if @_array_Shincho_[@naka] == @sagasu\n    console.puts(@sagasu.to_s + \"cmは\" + @naka.to_s + \"番の人です\")\n    @mitsuketa = 1\n  elsif @_array_Shincho_[@naka] < @sagasu\n    @sita = @naka + 1\n  else\n    @ue = @naka - 1\n  end\nend\nif @mitsuketa == 0\n  console.puts(@sagasu.to_s + \"cmの人はいませんでした\")\nend\nconsole.puts(\"番号\" + \" \" + \"身長\")\n@i = 0\nwhile @i <= @ninzu - 1\n  console.puts(@i.to_s + \" \" + @_array_Shincho_[@i].to_s)\n  @i += 1\nend",
-    "errors": [],
-    "rubyLines": [
-      1,
-      2,
-      3,
-      4,
-      5,
-      5,
-      6,
-      7,
-      8,
-      9,
-      10,
-      11,
-      12,
-      13,
-      14,
-      15,
-      15,
-      15,
-      16,
-      17,
-      17,
-      18,
-      19,
-      19,
-      20,
-      20,
-      20
-    ],
-    "converterErrors": [],
-    "blocks": "data_deletealloflist(LIST = @_array_Shincho_) #\"@ruby:array:literal:8\"\ndata_addtolist(LIST = @_array_Shincho_, ITEM: \"128\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shincho_, ITEM: \"135\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shincho_, ITEM: \"141\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shincho_, ITEM: \"146\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shincho_, ITEM: \"150\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shincho_, ITEM: \"157\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shincho_, ITEM: \"163\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shincho_, ITEM: \"170\") #\"@ruby:array:literal:element\"\ndata_setvariableto(VARIABLE = @ninzu, VALUE: data_lengthoflist(LIST = @_array_Shincho_))\nsmalrubyConsole_print(TEXT: \"さがす身長を入力してください\")\ndata_setvariableto(VARIABLE = @sagasu, VALUE: smalrubyConsole_input)\ndata_setvariableto(VARIABLE = @sita, VALUE: \"0\")\ndata_setvariableto(VARIABLE = @ue, VALUE: operator_subtract(NUM1: @ninzu, NUM2: 1))\ndata_setvariableto(VARIABLE = @mitsuketa, VALUE: \"0\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_and(OPERAND1: operator_or(OPERAND1: operator_lt(OPERAND1: @sita, OPERAND2: @ue) #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @sita, OPERAND2: @ue) #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @mitsuketa, OPERAND2: \"0\")))) {\n  data_setvariableto(VARIABLE = @naka, VALUE: operator_mathop(OPERATOR = \"floor\", NUM: operator_divide(NUM1: operator_add(NUM1: @sita, NUM2: @ue), NUM2: 2)) #\"@ruby:method:to_i\") #\"まん中の番号\\n@ruby:comment_position:inline\"\n  control_if_else(CONDITION: operator_equals(OPERAND1: data_itemoflist(LIST = @_array_Shincho_, INDEX: operator_add(NUM1: @naka, NUM2: 1) #\"@ruby:array:index\"), OPERAND2: @sagasu)) {\n    smalrubyConsole_print(TEXT: operator_join(STRING1: operator_join(STRING1: operator_join(STRING1: operator_join(STRING1: @sagasu, STRING2: \"\") #\"@ruby:method:to_s\", STRING2: \"cmは\"), STRING2: operator_join(STRING1: @naka, STRING2: \"\") #\"@ruby:method:to_s\"), STRING2: \"番の人です\"))\n    data_setvariableto(VARIABLE = @mitsuketa, VALUE: \"1\")\n  } {\n    control_if_else(CONDITION: operator_lt(OPERAND1: data_itemoflist(LIST = @_array_Shincho_, INDEX: operator_add(NUM1: @naka, NUM2: 1) #\"@ruby:array:index\"), OPERAND2: @sagasu)) {\n      data_setvariableto(VARIABLE = @sita, VALUE: operator_add(NUM1: @naka, NUM2: 1))\n    } {\n      data_setvariableto(VARIABLE = @ue, VALUE: operator_subtract(NUM1: @naka, NUM2: 1))\n    } #\"@ruby:syntax:elsif:1\"\n  } #\"@ruby:syntax:elsif:1\"\n} #\"@ruby:syntax:while\"\ncontrol_if(CONDITION: operator_equals(OPERAND1: @mitsuketa, OPERAND2: \"0\")) {\n  smalrubyConsole_print(TEXT: operator_join(STRING1: operator_join(STRING1: @sagasu, STRING2: \"\") #\"@ruby:method:to_s\", STRING2: \"cmの人はいませんでした\"))\n}\nsmalrubyConsole_print(TEXT: operator_join(STRING1: operator_join(STRING1: \"番号\", STRING2: \" \"), STRING2: \"身長\"))\ndata_setvariableto(VARIABLE = @i, VALUE: \"0\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_lt(OPERAND1: @i, OPERAND2: operator_subtract(NUM1: @ninzu, NUM2: 1)) #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @i, OPERAND2: operator_subtract(NUM1: @ninzu, NUM2: 1)) #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\")) {\n  smalrubyConsole_print(TEXT: operator_join(STRING1: operator_join(STRING1: operator_join(STRING1: @i, STRING2: \"\") #\"@ruby:method:to_s\", STRING2: \" \"), STRING2: operator_join(STRING1: data_itemoflist(LIST = @_array_Shincho_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\"), STRING2: \"\") #\"@ruby:method:to_s\"))\n  data_changevariableby(VARIABLE = @i, VALUE: 1)\n} #\"@ruby:syntax:while\"",
-    "shown": {
-      "ruby": "@_array_Shincho_ = [128, 135, 141, 146, 150, 157, 163, 170]\n@ninzu = @_array_Shincho_.length\nconsole.puts(\"さがす身長を入力してください\")\n@sagasu = console.gets\n@sita = 0\n@ue = @ninzu - 1\n@mitsuketa = 0\nwhile @sita <= @ue && @mitsuketa == 0\n  @naka = ((@sita + @ue) / 2).to_i # まん中の番号\n  if @_array_Shincho_[@naka] == @sagasu\n    console.puts(@sagasu.to_s + \"cmは\" + @naka.to_s + \"番の人です\")\n    @mitsuketa = 1\n  elsif @_array_Shincho_[@naka] < @sagasu\n    @sita = @naka + 1\n  else\n    @ue = @naka - 1\n  end\nend\nif @mitsuketa == 0\n  console.puts(@sagasu.to_s + \"cmの人はいませんでした\")\nend\nconsole.puts(\"番号\" + \" \" + \"身長\")\n@i = 0\nwhile @i <= @ninzu - 1\n  console.puts(@i.to_s + \" \" + @_array_Shincho_[@i].to_s)\n  @i += 1\nend",
-      "ja": "Shincho = [128, 135, 141, 146, 150, 157, 163, 170]\nninzu = 要素数(Shincho)\n表示する(\"さがす身長を入力してください\")\nsagasu = 【外部からの入力】\nsita = 0\nue = ninzu - 1\nmitsuketa = 0\nsita <= ue and mitsuketa == 0 の間繰り返す:\n    naka = (sita + ue) ÷ 2 # まん中の番号\n    もし Shincho[naka] == sagasu ならば:\n        表示する(sagasu, \"cmは\", naka, \"番の人です\")\n        mitsuketa = 1\n    そうでなくもし Shincho[naka] < sagasu ならば:\n        sita = naka + 1\n    そうでなければ:\n        ue = naka - 1\nもし mitsuketa == 0 ならば:\n    表示する(sagasu, \"cmの人はいませんでした\")\n表示する(\"番号\", \" \", \"身長\")\ni を 0 から ninzu - 1 まで 1 ずつ増やしながら繰り返す:\n    表示する(i, \" \", Shincho[i])",
-      "errors": []
-    }
-  },
-  "ja-1a59d89cf6": {
-    "ruby": "@_array_Kazu_ = [3, 7, 2, 8, 5]\n@saidai = 2\n@_array_Shirushi_ = [0, 0, 0, 0, 0]\n@_array_Kosuu_ = [0, 0]\n@i = 0\nwhile @i <= @_array_Kazu_.length - 1\n  @g = @_array_Kazu_[@i] % 2\n  if @_array_Kosuu_[@g] < @saidai\n    @_array_Shirushi_[@i] = 1\n    @_array_Kosuu_[@g] = @_array_Kosuu_[@g] + 1\n  end\n  @i += 1\nend",
-    "errors": [],
-    "rubyLines": [
-      1,
-      2,
-      3,
-      4,
-      5,
-      5,
-      6,
-      7,
-      8,
-      9,
-      9,
-      9,
-      9
-    ],
-    "converterErrors": [],
-    "blocks": "data_deletealloflist(LIST = @_array_Kazu_) #\"@ruby:array:literal:5\"\ndata_addtolist(LIST = @_array_Kazu_, ITEM: \"3\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kazu_, ITEM: \"7\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kazu_, ITEM: \"2\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kazu_, ITEM: \"8\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kazu_, ITEM: \"5\") #\"@ruby:array:literal:element\"\ndata_setvariableto(VARIABLE = @saidai, VALUE: \"2\")\ndata_deletealloflist(LIST = @_array_Shirushi_) #\"@ruby:array:literal:5\"\ndata_addtolist(LIST = @_array_Shirushi_, ITEM: \"0\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shirushi_, ITEM: \"0\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shirushi_, ITEM: \"0\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shirushi_, ITEM: \"0\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shirushi_, ITEM: \"0\") #\"@ruby:array:literal:element\"\ndata_deletealloflist(LIST = @_array_Kosuu_) #\"@ruby:array:literal:2\"\ndata_addtolist(LIST = @_array_Kosuu_, ITEM: \"0\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kosuu_, ITEM: \"0\") #\"@ruby:array:literal:element\"\ndata_setvariableto(VARIABLE = @i, VALUE: \"0\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_lt(OPERAND1: @i, OPERAND2: operator_subtract(NUM1: data_lengthoflist(LIST = @_array_Kazu_), NUM2: 1)) #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @i, OPERAND2: operator_subtract(NUM1: data_lengthoflist(LIST = @_array_Kazu_), NUM2: 1)) #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\")) {\n  data_setvariableto(VARIABLE = @g, VALUE: operator_mod(NUM1: data_itemoflist(LIST = @_array_Kazu_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\"), NUM2: 2))\n  control_if(CONDITION: operator_lt(OPERAND1: data_itemoflist(LIST = @_array_Kosuu_, INDEX: operator_add(NUM1: @g, NUM2: 1) #\"@ruby:array:index\"), OPERAND2: @saidai)) {\n    data_replaceitemoflist(LIST = @_array_Shirushi_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\", ITEM: \"1\")\n    data_replaceitemoflist(LIST = @_array_Kosuu_, INDEX: operator_add(NUM1: @g, NUM2: 1) #\"@ruby:array:index\", ITEM: operator_add(NUM1: data_itemoflist(LIST = @_array_Kosuu_, INDEX: operator_add(NUM1: @g, NUM2: 1) #\"@ruby:array:index\"), NUM2: 1))\n  }\n  data_changevariableby(VARIABLE = @i, VALUE: 1)\n} #\"@ruby:syntax:while\"",
-    "shown": {
-      "ruby": "@_array_Kazu_ = [3, 7, 2, 8, 5]\n@saidai = 2\n@_array_Shirushi_ = [0, 0, 0, 0, 0]\n@_array_Kosuu_ = [0, 0]\n@i = 0\nwhile @i <= @_array_Kazu_.length - 1\n  @g = @_array_Kazu_[@i] % 2\n  if @_array_Kosuu_[@g] < @saidai\n    @_array_Shirushi_[@i] = 1\n    @_array_Kosuu_[@g] = @_array_Kosuu_[@g] + 1\n  end\n  @i += 1\nend",
-      "ja": "Kazu = [3, 7, 2, 8, 5]\nsaidai = 2\nShirushi = [0, 0, 0, 0, 0]\nKosuu = [0, 0]\ni を 0 から 要素数(Kazu) - 1 まで 1 ずつ増やしながら繰り返す:\n    g = Kazu[i] ％ 2\n    もし Kosuu[g] < saidai ならば:\n        Shirushi[i] = 1\n        Kosuu[g] = Kosuu[g] + 1",
-      "errors": []
-    }
-  },
-  "ja-2b95818fce": {
-    "ruby": "@n = console.gets.to_i",
-    "errors": [],
-    "rubyLines": [
-      1
-    ],
-    "converterErrors": [],
-    "blocks": "data_setvariableto(VARIABLE = @n, VALUE: operator_mathop(OPERATOR = \"floor\", NUM: smalrubyConsole_input) #\"@ruby:method:to_i\")",
-    "shown": {
-      "ruby": "@n = console.gets.to_i",
-      "ja": "n = 【整数を入力】",
-      "errors": []
-    }
-  },
-  "ja-a8a69ed831": {
-    "ruby": "@meishou = console.gets",
-    "errors": [],
-    "rubyLines": [
-      1
-    ],
-    "converterErrors": [],
-    "blocks": "data_setvariableto(VARIABLE = @meishou, VALUE: smalrubyConsole_input)",
-    "shown": {
-      "ruby": "@meishou = console.gets",
-      "ja": "meishou = 【外部からの入力】",
-      "errors": []
-    }
-  },
-  "ja-74ab881bb2": {
-    "ruby": "@_array_Shurui_ = [1, 2, 2, 1]\n@_array_Kaisuu_ = [3, 1, 2, 4]\n@_array_Kingaku_ = [150, 120, 200, 90]\n@ninzu = 3\n@nomimono = 0\n@okashi = 0\n@i = 1\nwhile @i <= @ninzu\n  if @_array_Kaisuu_[@i] >= 3\n    @nedan = @_array_Kingaku_[@i] - 30\n  else\n    @nedan = @_array_Kingaku_[@i]\n  end\n  if @_array_Shurui_[@i] == 1\n    @nomimono = @nomimono + @nedan\n  else\n    @okashi = @okashi + @nedan\n  end\n  @i += 1\nend\nconsole.puts(\"飲み物の合計は\" + @nomimono.to_s + \"円\")\nconsole.puts(\"お菓子の合計は\" + @okashi.to_s + \"円\")",
-    "errors": [],
-    "rubyLines": [
-      1,
-      2,
-      3,
-      4,
-      5,
-      5,
-      6,
-      6,
-      7,
-      8,
-      9,
-      10,
-      10,
-      11,
-      12,
-      13,
-      14,
-      14,
-      14,
-      14,
-      15,
-      16
-    ],
-    "converterErrors": [],
-    "blocks": "data_deletealloflist(LIST = @_array_Shurui_) #\"@ruby:array:literal:4\"\ndata_addtolist(LIST = @_array_Shurui_, ITEM: \"1\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shurui_, ITEM: \"2\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shurui_, ITEM: \"2\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shurui_, ITEM: \"1\") #\"@ruby:array:literal:element\"\ndata_deletealloflist(LIST = @_array_Kaisuu_) #\"@ruby:array:literal:4\"\ndata_addtolist(LIST = @_array_Kaisuu_, ITEM: \"3\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kaisuu_, ITEM: \"1\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kaisuu_, ITEM: \"2\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kaisuu_, ITEM: \"4\") #\"@ruby:array:literal:element\"\ndata_deletealloflist(LIST = @_array_Kingaku_) #\"@ruby:array:literal:4\"\ndata_addtolist(LIST = @_array_Kingaku_, ITEM: \"150\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kingaku_, ITEM: \"120\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kingaku_, ITEM: \"200\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kingaku_, ITEM: \"90\") #\"@ruby:array:literal:element\"\ndata_setvariableto(VARIABLE = @ninzu, VALUE: \"3\")\ndata_setvariableto(VARIABLE = @nomimono, VALUE: \"0\")\ndata_setvariableto(VARIABLE = @okashi, VALUE: \"0\")\ndata_setvariableto(VARIABLE = @i, VALUE: \"1\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_lt(OPERAND1: @i, OPERAND2: @ninzu) #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @i, OPERAND2: @ninzu) #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\")) {\n  control_if_else(CONDITION: operator_or(OPERAND1: operator_gt(OPERAND1: data_itemoflist(LIST = @_array_Kaisuu_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\"), OPERAND2: \"3\") #\"@ruby:operator:>=:1\", OPERAND2: operator_equals(OPERAND1: data_itemoflist(LIST = @_array_Kaisuu_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\"), OPERAND2: \"3\") #\"@ruby:operator:>=:1\") #\"@ruby:operator:>=:1\") {\n    data_setvariableto(VARIABLE = @nedan, VALUE: operator_subtract(NUM1: data_itemoflist(LIST = @_array_Kingaku_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\"), NUM2: 30))\n  } {\n    data_setvariableto(VARIABLE = @nedan, VALUE: data_itemoflist(LIST = @_array_Kingaku_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\"))\n  }\n  control_if_else(CONDITION: operator_equals(OPERAND1: data_itemoflist(LIST = @_array_Shurui_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\"), OPERAND2: \"1\")) {\n    data_setvariableto(VARIABLE = @nomimono, VALUE: operator_add(NUM1: @nomimono, NUM2: @nedan))\n  } {\n    data_setvariableto(VARIABLE = @okashi, VALUE: operator_add(NUM1: @okashi, NUM2: @nedan))\n  }\n  data_changevariableby(VARIABLE = @i, VALUE: 1)\n} #\"@ruby:syntax:while\"\nsmalrubyConsole_print(TEXT: operator_join(STRING1: operator_join(STRING1: \"飲み物の合計は\", STRING2: operator_join(STRING1: @nomimono, STRING2: \"\") #\"@ruby:method:to_s\"), STRING2: \"円\"))\nsmalrubyConsole_print(TEXT: operator_join(STRING1: operator_join(STRING1: \"お菓子の合計は\", STRING2: operator_join(STRING1: @okashi, STRING2: \"\") #\"@ruby:method:to_s\"), STRING2: \"円\"))",
-    "shown": {
-      "ruby": "@_array_Shurui_ = [1, 2, 2, 1]\n@_array_Kaisuu_ = [3, 1, 2, 4]\n@_array_Kingaku_ = [150, 120, 200, 90]\n@ninzu = 3\n@nomimono = 0\n@okashi = 0\n@i = 1\nwhile @i <= @ninzu\n  if @_array_Kaisuu_[@i] >= 3\n    @nedan = @_array_Kingaku_[@i] - 30\n  else\n    @nedan = @_array_Kingaku_[@i]\n  end\n  if @_array_Shurui_[@i] == 1\n    @nomimono = @nomimono + @nedan\n  else\n    @okashi = @okashi + @nedan\n  end\n  @i += 1\nend\nconsole.puts(\"飲み物の合計は\" + @nomimono.to_s + \"円\")\nconsole.puts(\"お菓子の合計は\" + @okashi.to_s + \"円\")",
-      "ja": "Shurui = [1, 2, 2, 1]\nKaisuu = [3, 1, 2, 4]\nKingaku = [150, 120, 200, 90]\nninzu = 3\nnomimono = 0\nokashi = 0\ni を 1 から ninzu まで 1 ずつ増やしながら繰り返す:\n    もし Kaisuu[i] >= 3 ならば:\n        nedan = Kingaku[i] - 30\n    そうでなければ:\n        nedan = Kingaku[i]\n    もし Shurui[i] == 1 ならば:\n        nomimono = nomimono + nedan\n    そうでなければ:\n        okashi = okashi + nedan\n表示する(\"飲み物の合計は\", nomimono, \"円\")\n表示する(\"お菓子の合計は\", okashi, \"円\")",
-      "errors": []
-    }
-  },
-  "ja-15652180d7": {
-    "ruby": "@n = 2 # 班の番号\n@_array_Kamoku_ = [\"国語\", \"数学\", \"英語\"]\n@kamokusu = 3\nconsole.puts(\"好きな教科は？\")\n@suki = console.gets\n@j = 1\nwhile @j <= @kamokusu\n  if @_array_Kamoku_[@j] == @suki\n    @_array_Sentaku_[@n] = @j\n  end\n  @j += 1\nend",
-    "errors": [],
-    "rubyLines": [
-      1,
-      2,
-      3,
-      4,
-      5,
-      6,
-      6,
-      7,
-      8,
-      8,
-      8,
-      8
-    ],
-    "converterErrors": [],
-    "blocks": "data_setvariableto(VARIABLE = @n, VALUE: \"2\") #\"班の番号\\n@ruby:comment_position:inline\"\ndata_deletealloflist(LIST = @_array_Kamoku_) #\"@ruby:array:literal:3\"\ndata_addtolist(LIST = @_array_Kamoku_, ITEM: \"国語\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kamoku_, ITEM: \"数学\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kamoku_, ITEM: \"英語\") #\"@ruby:array:literal:element\"\ndata_setvariableto(VARIABLE = @kamokusu, VALUE: \"3\")\nsmalrubyConsole_print(TEXT: \"好きな教科は？\")\ndata_setvariableto(VARIABLE = @suki, VALUE: smalrubyConsole_input)\ndata_setvariableto(VARIABLE = @j, VALUE: \"1\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_lt(OPERAND1: @j, OPERAND2: @kamokusu) #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @j, OPERAND2: @kamokusu) #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\")) {\n  control_if(CONDITION: operator_equals(OPERAND1: data_itemoflist(LIST = @_array_Kamoku_, INDEX: operator_add(NUM1: @j, NUM2: 1) #\"@ruby:array:index\"), OPERAND2: @suki)) {\n    data_replaceitemoflist(LIST = @_array_Sentaku_, INDEX: operator_add(NUM1: @n, NUM2: 1) #\"@ruby:array:index\", ITEM: @j)\n  }\n  data_changevariableby(VARIABLE = @j, VALUE: 1)\n} #\"@ruby:syntax:while\"",
-    "shown": {
-      "ruby": "@n = 2 # 班の番号\n@_array_Kamoku_ = [\"国語\", \"数学\", \"英語\"]\n@kamokusu = 3\nconsole.puts(\"好きな教科は？\")\n@suki = console.gets\n@j = 1\nwhile @j <= @kamokusu\n  if @_array_Kamoku_[@j] == @suki\n    @_array_Sentaku_[@n] = @j\n  end\n  @j += 1\nend",
-      "ja": "n = 2 # 班の番号\nKamoku = [\"国語\", \"数学\", \"英語\"]\nkamokusu = 3\n表示する(\"好きな教科は？\")\nsuki = 【外部からの入力】\nj を 1 から kamokusu まで 1 ずつ増やしながら繰り返す:\n    もし Kamoku[j] == suki ならば:\n        Sentaku[n] = j",
-      "errors": []
-    }
-  },
-  "ja-58eb616c5a": {
-    "ruby": "@_array_Tani_ = [1, 60, 3600]\n@byousu = 4000\n@kazu = 0\n@nokori = @byousu\n@i = 2\nwhile @i >= 0\n  @kazu = (@nokori / @_array_Tani_[@i]).to_i\n  @nokori = @nokori % @_array_Tani_[@i]\n  console.puts(@kazu)\n  @i += -1\nend\nconsole.puts(@nokori)",
-    "errors": [],
-    "rubyLines": [
-      1,
-      2,
-      3,
-      3,
-      4,
-      4,
-      5,
-      6,
-      7,
-      7,
-      7,
-      8
-    ],
-    "converterErrors": [],
-    "blocks": "data_deletealloflist(LIST = @_array_Tani_) #\"@ruby:array:literal:3\"\ndata_addtolist(LIST = @_array_Tani_, ITEM: \"1\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Tani_, ITEM: \"60\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Tani_, ITEM: \"3600\") #\"@ruby:array:literal:element\"\ndata_setvariableto(VARIABLE = @byousu, VALUE: \"4000\")\ndata_setvariableto(VARIABLE = @kazu, VALUE: \"0\")\ndata_setvariableto(VARIABLE = @nokori, VALUE: @byousu)\ndata_setvariableto(VARIABLE = @i, VALUE: \"2\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_gt(OPERAND1: @i, OPERAND2: \"0\") #\"@ruby:operator:>=:1\", OPERAND2: operator_equals(OPERAND1: @i, OPERAND2: \"0\") #\"@ruby:operator:>=:1\") #\"@ruby:operator:>=:1\")) {\n  data_setvariableto(VARIABLE = @kazu, VALUE: operator_mathop(OPERATOR = \"floor\", NUM: operator_divide(NUM1: @nokori, NUM2: data_itemoflist(LIST = @_array_Tani_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\"))) #\"@ruby:method:to_i\")\n  data_setvariableto(VARIABLE = @nokori, VALUE: operator_mod(NUM1: @nokori, NUM2: data_itemoflist(LIST = @_array_Tani_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\")))\n  smalrubyConsole_print(TEXT: @kazu)\n  data_changevariableby(VARIABLE = @i, VALUE: -1)\n} #\"@ruby:syntax:while\"\nsmalrubyConsole_print(TEXT: @nokori)",
-    "shown": {
-      "ruby": "@_array_Tani_ = [1, 60, 3600]\n@byousu = 4000\n@kazu = 0\n@nokori = @byousu\n@i = 2\nwhile @i >= 0\n  @kazu = (@nokori / @_array_Tani_[@i]).to_i\n  @nokori = @nokori % @_array_Tani_[@i]\n  console.puts(@kazu)\n  @i += -1\nend\nconsole.puts(@nokori)",
-      "ja": "Tani = [1, 60, 3600]\nbyousu = 4000\nkazu = 0\nnokori = byousu\ni を 2 から 0 まで 1 ずつ減らしながら繰り返す:\n    kazu = nokori ÷ Tani[i]\n    nokori = nokori ％ Tani[i]\n    表示する(kazu)\n表示する(nokori)",
-      "errors": []
-    }
-  },
-  "ja-e38f350090": {
-    "ruby": "@_array_Ten_ = [6, 8, 5, 9, 7, 4]\n@goukei = 0\n@kumi = 1\nwhile @kumi <= 3\n  @saikou = 0\n  @i = @kumi * 2 - 2\n  while @i <= @kumi * 2 - 1\n    if @_array_Ten_[@i] > @saikou\n      @saikou = @_array_Ten_[@i]\n    end\n    @i += 1\n  end\n  console.puts(\"第\" + @kumi.to_s + \"組 … \" + \"最高点：\" + @saikou.to_s + \"点～\" + \"それまでの合計：\" + (@goukei + @saikou).to_s + \"点\")\n  @goukei = @goukei + @saikou\n  @kumi += 1\nend",
-    "errors": [],
-    "rubyLines": [
-      1,
-      2,
-      3,
-      3,
-      4,
-      5,
-      5,
-      6,
-      7,
-      7,
-      7,
-      7,
-      8,
-      12,
-      12,
-      12
-    ],
-    "converterErrors": [],
-    "blocks": "data_deletealloflist(LIST = @_array_Ten_) #\"@ruby:array:literal:6\"\ndata_addtolist(LIST = @_array_Ten_, ITEM: \"6\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Ten_, ITEM: \"8\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Ten_, ITEM: \"5\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Ten_, ITEM: \"9\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Ten_, ITEM: \"7\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Ten_, ITEM: \"4\") #\"@ruby:array:literal:element\"\ndata_setvariableto(VARIABLE = @goukei, VALUE: \"0\")\ndata_setvariableto(VARIABLE = @kumi, VALUE: \"1\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_lt(OPERAND1: @kumi, OPERAND2: \"3\") #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @kumi, OPERAND2: \"3\") #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\")) {\n  data_setvariableto(VARIABLE = @saikou, VALUE: \"0\")\n  data_setvariableto(VARIABLE = @i, VALUE: operator_subtract(NUM1: operator_multiply(NUM1: @kumi, NUM2: 2), NUM2: 2))\n  control_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_lt(OPERAND1: @i, OPERAND2: operator_subtract(NUM1: operator_multiply(NUM1: @kumi, NUM2: 2), NUM2: 1)) #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @i, OPERAND2: operator_subtract(NUM1: operator_multiply(NUM1: @kumi, NUM2: 2), NUM2: 1)) #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\")) {\n    control_if(CONDITION: operator_gt(OPERAND1: data_itemoflist(LIST = @_array_Ten_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\"), OPERAND2: @saikou)) {\n      data_setvariableto(VARIABLE = @saikou, VALUE: data_itemoflist(LIST = @_array_Ten_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\"))\n    }\n    data_changevariableby(VARIABLE = @i, VALUE: 1)\n  } #\"@ruby:syntax:while\"\n  smalrubyConsole_print(TEXT: operator_join(STRING1: operator_join(STRING1: operator_join(STRING1: operator_join(STRING1: operator_join(STRING1: operator_join(STRING1: operator_join(STRING1: operator_join(STRING1: \"第\", STRING2: operator_join(STRING1: @kumi, STRING2: \"\") #\"@ruby:method:to_s\"), STRING2: \"組 … \"), STRING2: \"最高点：\"), STRING2: operator_join(STRING1: @saikou, STRING2: \"\") #\"@ruby:method:to_s\"), STRING2: \"点～\"), STRING2: \"それまでの合計：\"), STRING2: operator_join(STRING1: operator_add(NUM1: @goukei, NUM2: @saikou), STRING2: \"\") #\"@ruby:method:to_s\"), STRING2: \"点\"))\n  data_setvariableto(VARIABLE = @goukei, VALUE: operator_add(NUM1: @goukei, NUM2: @saikou))\n  data_changevariableby(VARIABLE = @kumi, VALUE: 1)\n} #\"@ruby:syntax:while\"",
-    "shown": {
-      "ruby": "@_array_Ten_ = [6, 8, 5, 9, 7, 4]\n@goukei = 0\n@kumi = 1\nwhile @kumi <= 3\n  @saikou = 0\n  @i = @kumi * 2 - 2\n  while @i <= @kumi * 2 - 1\n    if @_array_Ten_[@i] > @saikou\n      @saikou = @_array_Ten_[@i]\n    end\n    @i += 1\n  end\n  console.puts(\"第\" + @kumi.to_s + \"組 … \" + \"最高点：\" + @saikou.to_s + \"点～\" + \"それまでの合計：\" + (@goukei + @saikou).to_s + \"点\")\n  @goukei = @goukei + @saikou\n  @kumi += 1\nend",
-      "ja": "Ten = [6, 8, 5, 9, 7, 4]\ngoukei = 0\nkumi を 1 から 3 まで 1 ずつ増やしながら繰り返す:\n    saikou = 0\n    i を kumi * 2 - 2 から kumi * 2 - 1 まで 1 ずつ増やしながら繰り返す:\n        もし Ten[i] > saikou ならば:\n            saikou = Ten[i]\n    表示する(\"第\", kumi, \"組 … \", \"最高点：\", saikou, \"点～\", \"それまでの合計：\", goukei + saikou, \"点\")\n    goukei = goukei + saikou",
-      "errors": []
-    }
-  },
-  "ja-ff40d2a1fb": {
-    "ruby": "@_array_Kazu_ = [3, 7, 2, 8, 5]\n@saisho = 10\n@_array_Shirushi_ = [0, 0, 0, 0, 0]\n@kai = 1\nwhile @kai <= 2\n  @_array_Kosuu_ = [0, 0]\n  @i = 0\n  while @i <= @_array_Kazu_.length - 1\n    @g = @_array_Kazu_[@i] % 2\n    if @_array_Kosuu_[@g] < @kai && @_array_Kazu_[@i] * @kai < @saisho\n      @_array_Shirushi_[@i] = @kai\n      @_array_Kosuu_[@g] = @_array_Kosuu_[@g] + 1\n    end\n    @i += 1\n  end\n  @kai += 1\nend\n@i = 0\nwhile @i <= @_array_Kazu_.length - 1\n  if @_array_Shirushi_[@i] > 0\n    console.puts(@_array_Kazu_[@i].to_s + \"には\" + @_array_Shirushi_[@i].to_s + \"回目に印を付けた\")\n  end\n  @i += 1\nend",
-    "errors": [],
-    "rubyLines": [
-      1,
-      2,
-      3,
-      4,
-      4,
-      5,
-      6,
-      6,
-      7,
-      8,
-      9,
-      10,
-      10,
-      10,
-      10,
-      10,
-      10,
-      11,
-      11,
-      12,
-      13,
-      13,
-      13,
-      13
-    ],
-    "converterErrors": [],
-    "blocks": "data_deletealloflist(LIST = @_array_Kazu_) #\"@ruby:array:literal:5\"\ndata_addtolist(LIST = @_array_Kazu_, ITEM: \"3\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kazu_, ITEM: \"7\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kazu_, ITEM: \"2\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kazu_, ITEM: \"8\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Kazu_, ITEM: \"5\") #\"@ruby:array:literal:element\"\ndata_setvariableto(VARIABLE = @saisho, VALUE: \"10\")\ndata_deletealloflist(LIST = @_array_Shirushi_) #\"@ruby:array:literal:5\"\ndata_addtolist(LIST = @_array_Shirushi_, ITEM: \"0\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shirushi_, ITEM: \"0\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shirushi_, ITEM: \"0\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shirushi_, ITEM: \"0\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shirushi_, ITEM: \"0\") #\"@ruby:array:literal:element\"\ndata_setvariableto(VARIABLE = @kai, VALUE: \"1\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_lt(OPERAND1: @kai, OPERAND2: \"2\") #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @kai, OPERAND2: \"2\") #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\")) {\n  data_deletealloflist(LIST = @_array_Kosuu_) #\"@ruby:array:literal:2\"\n  data_addtolist(LIST = @_array_Kosuu_, ITEM: \"0\") #\"@ruby:array:literal:element\"\n  data_addtolist(LIST = @_array_Kosuu_, ITEM: \"0\") #\"@ruby:array:literal:element\"\n  data_setvariableto(VARIABLE = @i, VALUE: \"0\")\n  control_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_lt(OPERAND1: @i, OPERAND2: operator_subtract(NUM1: data_lengthoflist(LIST = @_array_Kazu_), NUM2: 1)) #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @i, OPERAND2: operator_subtract(NUM1: data_lengthoflist(LIST = @_array_Kazu_), NUM2: 1)) #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\")) {\n    data_setvariableto(VARIABLE = @g, VALUE: operator_mod(NUM1: data_itemoflist(LIST = @_array_Kazu_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\"), NUM2: 2))\n    control_if(CONDITION: operator_and(OPERAND1: operator_lt(OPERAND1: data_itemoflist(LIST = @_array_Kosuu_, INDEX: operator_add(NUM1: @g, NUM2: 1) #\"@ruby:array:index\"), OPERAND2: @kai), OPERAND2: operator_lt(OPERAND1: operator_multiply(NUM1: data_itemoflist(LIST = @_array_Kazu_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\"), NUM2: @kai), OPERAND2: @saisho))) {\n      data_replaceitemoflist(LIST = @_array_Shirushi_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\", ITEM: @kai)\n      data_replaceitemoflist(LIST = @_array_Kosuu_, INDEX: operator_add(NUM1: @g, NUM2: 1) #\"@ruby:array:index\", ITEM: operator_add(NUM1: data_itemoflist(LIST = @_array_Kosuu_, INDEX: operator_add(NUM1: @g, NUM2: 1) #\"@ruby:array:index\"), NUM2: 1))\n    }\n    data_changevariableby(VARIABLE = @i, VALUE: 1)\n  } #\"@ruby:syntax:while\"\n  data_changevariableby(VARIABLE = @kai, VALUE: 1)\n} #\"@ruby:syntax:while\"\ndata_setvariableto(VARIABLE = @i, VALUE: \"0\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_lt(OPERAND1: @i, OPERAND2: operator_subtract(NUM1: data_lengthoflist(LIST = @_array_Kazu_), NUM2: 1)) #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @i, OPERAND2: operator_subtract(NUM1: data_lengthoflist(LIST = @_array_Kazu_), NUM2: 1)) #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\")) {\n  control_if(CONDITION: operator_gt(OPERAND1: data_itemoflist(LIST = @_array_Shirushi_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\"), OPERAND2: \"0\")) {\n    smalrubyConsole_print(TEXT: operator_join(STRING1: operator_join(STRING1: operator_join(STRING1: operator_join(STRING1: data_itemoflist(LIST = @_array_Kazu_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\"), STRING2: \"\") #\"@ruby:method:to_s\", STRING2: \"には\"), STRING2: operator_join(STRING1: data_itemoflist(LIST = @_array_Shirushi_, INDEX: operator_add(NUM1: @i, NUM2: 1) #\"@ruby:array:index\"), STRING2: \"\") #\"@ruby:method:to_s\"), STRING2: \"回目に印を付けた\"))\n  }\n  data_changevariableby(VARIABLE = @i, VALUE: 1)\n} #\"@ruby:syntax:while\"",
-    "shown": {
-      "ruby": "@_array_Kazu_ = [3, 7, 2, 8, 5]\n@saisho = 10\n@_array_Shirushi_ = [0, 0, 0, 0, 0]\n@kai = 1\nwhile @kai <= 2\n  @_array_Kosuu_ = [0, 0]\n  @i = 0\n  while @i <= @_array_Kazu_.length - 1\n    @g = @_array_Kazu_[@i] % 2\n    if @_array_Kosuu_[@g] < @kai && @_array_Kazu_[@i] * @kai < @saisho\n      @_array_Shirushi_[@i] = @kai\n      @_array_Kosuu_[@g] = @_array_Kosuu_[@g] + 1\n    end\n    @i += 1\n  end\n  @kai += 1\nend\n@i = 0\nwhile @i <= @_array_Kazu_.length - 1\n  if @_array_Shirushi_[@i] > 0\n    console.puts(@_array_Kazu_[@i].to_s + \"には\" + @_array_Shirushi_[@i].to_s + \"回目に印を付けた\")\n  end\n  @i += 1\nend",
-      "ja": "Kazu = [3, 7, 2, 8, 5]\nsaisho = 10\nShirushi = [0, 0, 0, 0, 0]\nkai を 1 から 2 まで 1 ずつ増やしながら繰り返す:\n    Kosuu = [0, 0]\n    i を 0 から 要素数(Kazu) - 1 まで 1 ずつ増やしながら繰り返す:\n        g = Kazu[i] ％ 2\n        もし Kosuu[g] < kai and Kazu[i] * kai < saisho ならば:\n            Shirushi[i] = kai\n            Kosuu[g] = Kosuu[g] + 1\ni を 0 から 要素数(Kazu) - 1 まで 1 ずつ増やしながら繰り返す:\n    もし Shirushi[i] > 0 ならば:\n        表示する(Kazu[i], \"には\", Shirushi[i], \"回目に印を付けた\")",
-      "errors": []
-    }
-  },
-  "ja-7d69c05382": {
-    "ruby": "@t = 1\nwhile @t <= 2\n  if @t < 10\n    console.puts(\"a\" + @t.to_s + \"b\")\n  end\n  @t += 1\nend\n",
-    "errors": [],
-    "rubyLines": [
-      1,
-      1,
-      2,
-      3,
-      3,
-      3,
-      3,
-      5
-    ],
-    "converterErrors": [],
-    "blocks": "data_setvariableto(VARIABLE = @t, VALUE: \"1\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_lt(OPERAND1: @t, OPERAND2: \"2\") #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @t, OPERAND2: \"2\") #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\")) {\n  control_if(CONDITION: operator_lt(OPERAND1: @t, OPERAND2: \"10\")) {\n    smalrubyConsole_print(TEXT: operator_join(STRING1: operator_join(STRING1: \"a\", STRING2: operator_join(STRING1: @t, STRING2: \"\") #\"@ruby:method:to_s\"), STRING2: \"b\"))\n  }\n  data_changevariableby(VARIABLE = @t, VALUE: 1)\n} #\"@ruby:syntax:while\"",
-    "shown": {
-      "ruby": "@t = 1\nwhile @t <= 2\n  if @t < 10\n    console.puts(\"a\" + @t.to_s + \"b\")\n  end\n  @t += 1\nend",
-      "ja": "t を 1 から 2 まで 1 ずつ増やしながら繰り返す:\n    もし t < 10 ならば:\n        表示する(\"a\", t, \"b\")",
-      "errors": []
-    }
-  },
-  "ja-1b83374d75": {
-    "ruby": "while @kai <= 5\n  if @ten == 3\n    @kekka = 1\n  elsif @ten < 3\n    @kai = @kai + 1\n  else\n    @ten = @ten - 1\n  end\nend\nconsole.puts(@kekka)",
-    "errors": [],
-    "rubyLines": [
-      1,
-      2,
-      3,
-      4,
-      5,
-      6,
-      7,
-      7,
-      7,
-      8
-    ],
-    "converterErrors": [],
-    "blocks": "control_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_lt(OPERAND1: @kai, OPERAND2: \"5\") #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @kai, OPERAND2: \"5\") #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\")) {\n  control_if_else(CONDITION: operator_equals(OPERAND1: @ten, OPERAND2: \"3\")) {\n    data_setvariableto(VARIABLE = @kekka, VALUE: \"1\")\n  } {\n    control_if_else(CONDITION: operator_lt(OPERAND1: @ten, OPERAND2: \"3\")) {\n      data_setvariableto(VARIABLE = @kai, VALUE: operator_add(NUM1: @kai, NUM2: 1))\n    } {\n      data_setvariableto(VARIABLE = @ten, VALUE: operator_subtract(NUM1: @ten, NUM2: 1))\n    } #\"@ruby:syntax:elsif:1\"\n  } #\"@ruby:syntax:elsif:1\"\n} #\"@ruby:syntax:while\"\nsmalrubyConsole_print(TEXT: @kekka)",
-    "shown": {
-      "ruby": "while @kai <= 5\n  if @ten == 3\n    @kekka = 1\n  elsif @ten < 3\n    @kai = @kai + 1\n  else\n    @ten = @ten - 1\n  end\nend\nconsole.puts(@kekka)",
-      "ja": "kai <= 5 の間繰り返す:\n    もし ten == 3 ならば:\n        kekka = 1\n    そうでなくもし ten < 3 ならば:\n        kai = kai + 1\n    そうでなければ:\n        ten = ten - 1\n表示する(kekka)",
-      "errors": []
-    }
-  },
-  "ja-d7380d3060": {
-    "ruby": "@_array_Shincho_ = [128, 135, 141, 146, 150, 157, 163, 170]\n@ninzu = @_array_Shincho_.length\nconsole.puts(\"身長:\")\n@sagasu = console.gets\n@sita = 0\n@ue = @ninzu - 1\n@mitsuketa = 0\nwhile @sita <= @ue && @mitsuketa == 0\n  @naka = ((@sita + @ue) / 2).to_i\n  if @_array_Shincho_[@naka] == @sagasu\n    console.puts(@sagasu.to_s + \"cmは\" + @naka.to_s + \"番の人です\")\n    @mitsuketa = 1\n  elsif @_array_Shincho_[@naka] < @sagasu\n    @sita = @naka + 1\n  else\n    @ue = @naka - 1\n  end\nend\nif @mitsuketa == 0\n  console.puts(@sagasu.to_s + \"cmの人はいませんでした\")\nend\n",
-    "errors": [],
-    "rubyLines": [
-      1,
-      2,
-      3,
-      4,
-      5,
-      5,
-      6,
-      7,
-      8,
-      9,
-      10,
-      11,
-      12,
-      13,
-      14,
-      15,
-      15,
-      15,
-      16,
-      17,
-      17,
-      18
-    ],
-    "converterErrors": [],
-    "blocks": "data_deletealloflist(LIST = @_array_Shincho_) #\"@ruby:array:literal:8\"\ndata_addtolist(LIST = @_array_Shincho_, ITEM: \"128\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shincho_, ITEM: \"135\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shincho_, ITEM: \"141\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shincho_, ITEM: \"146\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shincho_, ITEM: \"150\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shincho_, ITEM: \"157\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shincho_, ITEM: \"163\") #\"@ruby:array:literal:element\"\ndata_addtolist(LIST = @_array_Shincho_, ITEM: \"170\") #\"@ruby:array:literal:element\"\ndata_setvariableto(VARIABLE = @ninzu, VALUE: data_lengthoflist(LIST = @_array_Shincho_))\nsmalrubyConsole_print(TEXT: \"身長:\")\ndata_setvariableto(VARIABLE = @sagasu, VALUE: smalrubyConsole_input)\ndata_setvariableto(VARIABLE = @sita, VALUE: \"0\")\ndata_setvariableto(VARIABLE = @ue, VALUE: operator_subtract(NUM1: @ninzu, NUM2: 1))\ndata_setvariableto(VARIABLE = @mitsuketa, VALUE: \"0\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_and(OPERAND1: operator_or(OPERAND1: operator_lt(OPERAND1: @sita, OPERAND2: @ue) #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @sita, OPERAND2: @ue) #\"@ruby:operator:<=:1\") #\"@ruby:operator:<=:1\", OPERAND2: operator_equals(OPERAND1: @mitsuketa, OPERAND2: \"0\")))) {\n  data_setvariableto(VARIABLE = @naka, VALUE: operator_mathop(OPERATOR = \"floor\", NUM: operator_divide(NUM1: operator_add(NUM1: @sita, NUM2: @ue), NUM2: 2)) #\"@ruby:method:to_i\")\n  control_if_else(CONDITION: operator_equals(OPERAND1: data_itemoflist(LIST = @_array_Shincho_, INDEX: operator_add(NUM1: @naka, NUM2: 1) #\"@ruby:array:index\"), OPERAND2: @sagasu)) {\n    smalrubyConsole_print(TEXT: operator_join(STRING1: operator_join(STRING1: operator_join(STRING1: operator_join(STRING1: @sagasu, STRING2: \"\") #\"@ruby:method:to_s\", STRING2: \"cmは\"), STRING2: operator_join(STRING1: @naka, STRING2: \"\") #\"@ruby:method:to_s\"), STRING2: \"番の人です\"))\n    data_setvariableto(VARIABLE = @mitsuketa, VALUE: \"1\")\n  } {\n    control_if_else(CONDITION: operator_lt(OPERAND1: data_itemoflist(LIST = @_array_Shincho_, INDEX: operator_add(NUM1: @naka, NUM2: 1) #\"@ruby:array:index\"), OPERAND2: @sagasu)) {\n      data_setvariableto(VARIABLE = @sita, VALUE: operator_add(NUM1: @naka, NUM2: 1))\n    } {\n      data_setvariableto(VARIABLE = @ue, VALUE: operator_subtract(NUM1: @naka, NUM2: 1))\n    } #\"@ruby:syntax:elsif:1\"\n  } #\"@ruby:syntax:elsif:1\"\n} #\"@ruby:syntax:while\"\ncontrol_if(CONDITION: operator_equals(OPERAND1: @mitsuketa, OPERAND2: \"0\")) {\n  smalrubyConsole_print(TEXT: operator_join(STRING1: operator_join(STRING1: @sagasu, STRING2: \"\") #\"@ruby:method:to_s\", STRING2: \"cmの人はいませんでした\"))\n}",
-    "shown": {
-      "ruby": "@_array_Shincho_ = [128, 135, 141, 146, 150, 157, 163, 170]\n@ninzu = @_array_Shincho_.length\nconsole.puts(\"身長:\")\n@sagasu = console.gets\n@sita = 0\n@ue = @ninzu - 1\n@mitsuketa = 0\nwhile @sita <= @ue && @mitsuketa == 0\n  @naka = ((@sita + @ue) / 2).to_i\n  if @_array_Shincho_[@naka] == @sagasu\n    console.puts(@sagasu.to_s + \"cmは\" + @naka.to_s + \"番の人です\")\n    @mitsuketa = 1\n  elsif @_array_Shincho_[@naka] < @sagasu\n    @sita = @naka + 1\n  else\n    @ue = @naka - 1\n  end\nend\nif @mitsuketa == 0\n  console.puts(@sagasu.to_s + \"cmの人はいませんでした\")\nend",
-      "ja": "Shincho = [128, 135, 141, 146, 150, 157, 163, 170]\nninzu = 要素数(Shincho)\n表示する(\"身長:\")\nsagasu = 【外部からの入力】\nsita = 0\nue = ninzu - 1\nmitsuketa = 0\nsita <= ue and mitsuketa == 0 の間繰り返す:\n    naka = (sita + ue) ÷ 2\n    もし Shincho[naka] == sagasu ならば:\n        表示する(sagasu, \"cmは\", naka, \"番の人です\")\n        mitsuketa = 1\n    そうでなくもし Shincho[naka] < sagasu ならば:\n        sita = naka + 1\n    そうでなければ:\n        ue = naka - 1\nもし mitsuketa == 0 ならば:\n    表示する(sagasu, \"cmの人はいませんでした\")",
-      "errors": []
-    }
   }
 }

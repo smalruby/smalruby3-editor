@@ -63,7 +63,7 @@
             }
         },
         {
-            "comments": ["# 添字は 1 から始まる（Nissu[1] が 1 月）"],
+            "comments": ["# 添字は 1 から始まる（Kion[1] が 1 月）"],
             "settings": {
                 "indexBase": 0,
                 "commentMarker": "#",
