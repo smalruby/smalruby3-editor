@@ -55,7 +55,6 @@ export default {
     'gui.studuinoWrite.notice.stringValue': 'There are letters where a number goes.',
     'gui.studuinoWrite.notice.portNotAssigned': 'This port has no part in the I/O settings.',
     'gui.studuinoWrite.notice.wrongPart': 'Another part is set to this port in the I/O settings.',
-    'gui.studuinoWrite.notice.duplicatePort': 'The same servo motor is used twice.',
     'gui.studuinoWrite.notice.tooLarge': 'The program is too large around here.',
     'gui.studuinoWrite.notice.unsupportedBlock': 'This block can not be used in the Studuino mode.',
     'gui.studuinoWrite.notice.label.stop': 'Fix',
@@ -1034,8 +1033,6 @@ export default {
         'The calibration of { PART } must be an integer from { MIN } to { MAX }.',
     'gui.smalruby3.rubyToBlocksConverter.studuinoPartNotDeclared':
         '"{ SOURCE }": { PART } is not connected to port { PORT }.\nWrite { DECLARATION } in class Studuino, or set the port in the port settings.',
-    'gui.smalruby3.rubyToBlocksConverter.studuinoServoMotorsArgs':
-        'servo_motors takes two different servo motors and their angles.\nWrite it like studuino.servo_motors(d9: 90, d10: 45).',
     'gui.smalruby3.rubyToBlocksConverter.studuinoNormalModeCall':
         '"{ SOURCE }" is a block for running while connected, so it cannot be used in Studuino mode.\nUse the parts declared in class Studuino (e.g. studuino.dc_motor_m1.forward).',
     'gui.smalruby3.rubyToBlocksConverter.includeNotStatementBlocks':
@@ -1155,8 +1152,9 @@ export default {
     'smalrubotS1.studuino.dcMotorDirection': 'turn [PORT] [DIRECTION]',
     'smalrubotS1.studuino.dcMotorStop': 'stop [PORT] with [MODE]',
     'smalrubotS1.studuino.servo': 'set [PORT] to [ANGLE] degrees',
-    'smalrubotS1.studuino.servoPair':
-        'set [PORT1] to [ANGLE1] degrees and [PORT2] to [ANGLE2] degrees at the same time',
+    'smalrubotS1.studuino.servoReserve': 'reserve [PORT] at [ANGLE] degrees',
+    'smalrubotS1.studuino.servoMoveReserved': 'move reserved servos',
+    'smalrubotS1.studuino.servoMoveReservedIn': 'move reserved servos in [SECS] seconds',
     'smalrubotS1.studuino.led': 'turn [PORT] [STATE]',
     'smalrubotS1.studuino.buzzerOn': 'play [PORT] at [PITCH] Hz',
     'smalrubotS1.studuino.buzzerOff': 'stop [PORT]',

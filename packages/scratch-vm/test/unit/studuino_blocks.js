@@ -28,7 +28,9 @@ const OPCODES = [
     'studuinoDcMotorDirection',
     'studuinoDcMotorStop',
     'studuinoServo',
-    'studuinoServoPair',
+    'studuinoServoReserve',
+    'studuinoServoMoveReserved',
+    'studuinoServoMoveReservedIn',
     'studuinoLed',
     'studuinoBuzzerOn',
     'studuinoBuzzerOff',
@@ -40,7 +42,7 @@ const OPCODES = [
     'studuinoButtonPressed',
 ];
 
-test('getInfo: docs の 14 個の部品のブロックがあり、どれも通常モードのパレットには出さない', (t) => {
+test('getInfo: docs の 16 個の部品のブロックがあり、どれも通常モードのパレットには出さない', (t) => {
     const ext = new SmalrubotS1Blocks(createRuntime());
     const info = ext.getInfo();
     const blocks = info.blocks.filter((b) => OPCODES.includes(b.opcode));
@@ -60,7 +62,10 @@ test('getInfo: 引数の名前とメニュー（docs の約束）', (t) => {
     t.same(args('studuinoDcMotorSpeed'), ['PORT', 'SPEED']);
     t.same(args('studuinoDcMotorDirection'), ['PORT', 'DIRECTION']);
     t.same(args('studuinoDcMotorStop'), ['PORT', 'MODE']);
-    t.same(args('studuinoServoPair'), ['PORT1', 'ANGLE1', 'PORT2', 'ANGLE2']);
+    t.same(args('studuinoServoReserve'), ['PORT', 'ANGLE']);
+    t.same(args('studuinoServoMoveReserved'), []);
+    t.same(args('studuinoServoMoveReservedIn'), ['SECS']);
+    t.equal(info.blocks.find((b) => b.opcode === 'studuinoServoMoveReservedIn').arguments.SECS.defaultValue, 1);
     t.same(args('studuinoLed'), ['PORT', 'STATE']);
     t.same(args('studuinoBuzzerOn'), ['PORT', 'PITCH']);
     t.same(
@@ -104,21 +109,31 @@ test('ブラウザでは動かさない（値のブロックは 0 / 偽）', (t)
     t.equal(ext.studuinoLightSensor({ PORT: 'A6' }), 0);
     t.equal(ext.studuinoTouchSensorPressed({ PORT: 'A2' }), false);
     t.equal(ext.studuinoLed({ PORT: 'A0', STATE: 'on' }), undefined);
+    t.equal(ext.studuinoServoReserve({ PORT: 'D9', ANGLE: 90 }), undefined);
+    t.equal(ext.studuinoServoMoveReservedIn({ SECS: 1 }), undefined);
     t.end();
 });
 
-test('paletteBlocks: 割り当てた部品のブロックだけ・2 つを同時は 2 つ以上のとき', (t) => {
+test('paletteBlocks: 割り当てた部品のブロックだけ・予約のブロックはサーボモーターが 1 つでも出す', (t) => {
     const one = normalizeSettings({ version: 1, mode: 'studuino', ports: { D9: 'servo_motor', A0: 'led' } });
     t.same(
         studuinoBlocks.paletteBlocks(one).map((b) => b.opcode),
-        ['studuinoServo', 'studuinoLed'],
+        [
+            'studuinoServo',
+            'studuinoServoReserve',
+            'studuinoServoMoveReserved',
+            'studuinoServoMoveReservedIn',
+            'studuinoLed',
+        ],
     );
     const two = normalizeSettings({ version: 1, mode: 'studuino', ports: { D9: 'servo_motor', D10: 'servo_motor' } });
     t.same(
-        studuinoBlocks.paletteBlocks(two).map((b) => [b.opcode, b.ports]),
+        studuinoBlocks.paletteBlocks(two).map((b) => [b.opcode, b.ports, b.hasPort]),
         [
-            ['studuinoServo', ['D9', 'D10']],
-            ['studuinoServoPair', ['D9', 'D10']],
+            ['studuinoServo', ['D9', 'D10'], true],
+            ['studuinoServoReserve', ['D9', 'D10'], true],
+            ['studuinoServoMoveReserved', ['D9', 'D10'], false],
+            ['studuinoServoMoveReservedIn', ['D9', 'D10'], false],
         ],
     );
     t.same(studuinoBlocks.paletteBlocks(normalizeSettings({ version: 1, ports: {} })), []);

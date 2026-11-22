@@ -48,7 +48,6 @@ export default {
     'gui.studuinoWrite.notice.stringValue': '数を入れるところに文字が入っています。',
     'gui.studuinoWrite.notice.portNotAssigned': 'このポートには、入出力の設定で部品を割り当てていません。',
     'gui.studuinoWrite.notice.wrongPart': 'このポートには、入出力の設定で別の部品を割り当てています。',
-    'gui.studuinoWrite.notice.duplicatePort': '同じサーボモーターを 2 回使っています。',
     'gui.studuinoWrite.notice.tooLarge': 'このあたりで、プログラムが大きすぎます。',
     'gui.studuinoWrite.notice.unsupportedBlock': 'このブロックは Studuino モードでは使えません。',
     'gui.studuinoWrite.notice.label.stop': '直す',
@@ -1399,8 +1398,6 @@ export default {
         '{ PART } の補正値は { MIN } から { MAX } までの整数にしてください。',
     'gui.smalruby3.rubyToBlocksConverter.studuinoPartNotDeclared':
         '「{ SOURCE }」: ポート { PORT } に { PART } をつないでいません。\nclass Studuino に { DECLARATION } と書くか、入出力の設定でポートに割り当ててください。',
-    'gui.smalruby3.rubyToBlocksConverter.studuinoServoMotorsArgs':
-        'servo_motors には、ちがう 2 つのサーボモーターと角度を書きます。\nstuduino.servo_motors(d9: 90, d10: 45) のように書いてください。',
     'gui.smalruby3.rubyToBlocksConverter.studuinoNormalModeCall':
         '「{ SOURCE }」はつないで動かすときのブロックなので、Studuino モードでは使えません。\nclass Studuino で宣言した部品を使ってください（例: studuino.dc_motor_m1.forward）。',
     'gui.smalruby3.prismError.expectedCloseArgs': '`)` が足りません。\n`)` を追加して引数を閉じてください。',
@@ -1533,7 +1530,9 @@ export default {
     'smalrubotS1.studuino.dcMotorDirection': '[PORT] を [DIRECTION] で回す',
     'smalrubotS1.studuino.dcMotorStop': '[PORT] を [MODE] で止める',
     'smalrubotS1.studuino.servo': '[PORT] を [ANGLE] 度にする',
-    'smalrubotS1.studuino.servoPair': '[PORT1] を [ANGLE1] 度、[PORT2] を [ANGLE2] 度に同時にする',
+    'smalrubotS1.studuino.servoReserve': '[PORT] を [ANGLE] 度に予約する',
+    'smalrubotS1.studuino.servoMoveReserved': '予約したサーボモーターを動かす',
+    'smalrubotS1.studuino.servoMoveReservedIn': '[SECS] 秒で予約したサーボモーターを動かす',
     'smalrubotS1.studuino.led': '[PORT] を [STATE] にする',
     'smalrubotS1.studuino.buzzerOn': '[PORT] を [PITCH] Hz で鳴らす',
     'smalrubotS1.studuino.buzzerOff': '[PORT] を止める',

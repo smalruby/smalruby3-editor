@@ -7,6 +7,7 @@
 // 構文木には、ブロックの ID・座標・コメント・変数の名前（利用者の文字列）を入れない。
 import {
     normalizeSettings,
+    PORT_NAMES,
     STORAGE_VERSION,
 } from '@smalruby/scratch-vm/src/extensions/scratch3_smalrubot_s1/studuino-settings';
 import { STUDUINO_IR_LIMITS, STUDUINO_IR_VERSION } from './limits';
@@ -23,7 +24,6 @@ export const STUDUINO_IR_ERRORS = Object.freeze({
     PORT_NOT_ASSIGNED: 'port_not_assigned',
     WRONG_PART: 'wrong_part',
     UNKNOWN_VALUE: 'unknown_value',
-    DUPLICATE_PORT: 'duplicate_port',
     TOO_LARGE: 'too_large',
 });
 
@@ -102,7 +102,9 @@ const STATEMENTS = new Set([
     `${EXT}studuinoDcMotorDirection`,
     `${EXT}studuinoDcMotorStop`,
     `${EXT}studuinoServo`,
-    `${EXT}studuinoServoPair`,
+    `${EXT}studuinoServoReserve`,
+    `${EXT}studuinoServoMoveReserved`,
+    `${EXT}studuinoServoMoveReservedIn`,
     `${EXT}studuinoLed`,
     `${EXT}studuinoBuzzerOn`,
     `${EXT}studuinoBuzzerOff`,
@@ -146,6 +148,10 @@ const createContext = (targets, settings) => {
         warnings: [],
         variables: [],
         variableIds: new Map(),
+        // 利用者の変数の数（上限 32 は利用者の変数だけで数える。サーボの予約のための変数は数えない）
+        userVariableCount: 0,
+        // サーボモーターの予約（#2352）。prepareServoReservations が旗の下を見て決める
+        servo: { ports: [], timed: false, target: {}, current: {}, start: null, duration: null },
         // 1 つ目の旗の下の木を作るときだけ変数を登録する（2 つ目以降の旗の下は検査だけ）
         registerVariables: true,
         // 構文木のノード → ブロック（上限をこえた場所を GUI で示すため）
@@ -264,7 +270,7 @@ const variableRef = (ctx, target, block) => {
     if (ctx.variableIds.has(key)) return ctx.variableIds.get(key);
     if (!ctx.registerVariables) return 'v0';
     const id = `v${ctx.variables.length}`;
-    if (ctx.variables.length >= STUDUINO_IR_LIMITS.maxVariables) {
+    if (ctx.userVariableCount >= STUDUINO_IR_LIMITS.maxVariables) {
         addError(ctx, target, block.id, E.TOO_LARGE, {
             detail: 'too_many_variables',
             limit: STUDUINO_IR_LIMITS.maxVariables,
@@ -272,6 +278,7 @@ const variableRef = (ctx, target, block) => {
         return null;
     }
     ctx.variableIds.set(key, id);
+    ctx.userVariableCount += 1;
     // はじめの値: いまの値が数にできればそれ、できなければ 0（書きこむときの値を使う。文字の値は 0）
     const init = toStuduinoNumber(variable.value);
     ctx.variables.push({ id, init: init === null ? 0 : init });
@@ -438,13 +445,189 @@ const buildExpr = (ctx, target, blockId, type, seen) => {
     return null;
 };
 
+// --- サーボモーターの予約（#2352・S6） ---------------------------------------------------------
+//
+// 「角度を予約する」「予約したサーボモーターを動かす」「M 秒で予約したサーボモーターを動かす」は、
+// Lambda の構文木に新しい命令を足さず、いまの命令（変数・もし・まで繰り返す・タイマー・サーボ）の
+// 組み合わせで書く（infra を変えずに済み、いまの Lambda がそのまま検査・書き出しできるため）。
+//
+// - 旗の下で予約するポートごとに、利用者に見えない変数を 1 つ持つ: 予約した角度（0〜180 にそろえる。
+//   予約が無いときは -1）。予約は積み重なり、同じポートをもう一度予約したら、あとの角度になる。
+// - 「動かす」は、予約のあるポートだけを予約の角度にし、予約を -1 にもどす（全部を続けて書くので、
+//   いっしょに動きはじめる）。予約が無ければ何もしない。
+// - 「M 秒で動かす」があるときは、ポートごとに「いまの角度」の変数も持ち（はじめは 90 度。サーボの
+//   はじめの位置）、そのポートを動かすブロックで更新する。動かすときは、いまの角度から予約の角度へ、
+//   全部のサーボを同じ M 秒で、タイマーで測りながら少しずつ動かす（通常モードの「M 秒でアームを
+//   曲げる」と同じ、時間に比例した動き方）。予約が無ければ待たずに何もしない。
+
+/** 予約が無いことを表す値（角度は 0〜180 にそろえるので、負の数は予約にならない）。 */
+const NO_RESERVATION = -1;
+
+/** サーボのはじめの角度（ライブラリのサーボはつないだときに 90 度の位置）。 */
+const SERVO_INITIAL_ANGLE = 90;
+
+const RESERVE_OPCODE = `${EXT}studuinoServoReserve`;
+const MOVE_IN_OPCODE = `${EXT}studuinoServoMoveReservedIn`;
+
+/**
+ * 利用者に見えない変数を足す（予約・いまの角度・時間）。利用者の変数の上限（32）には数えない
+ * （予約で増えるのは多くても 8 ポート × 2 + 2 = 18 個なので、Lambda の 64 には収まる）。
+ * @param {object} ctx - 状態
+ * @param {number} init - はじめの値
+ * @returns {string} 変数の ID
+ */
+const addHiddenVariable = (ctx, init) => {
+    const id = `v${ctx.variables.length}`;
+    ctx.variables.push({ id, init });
+    return id;
+};
+
+/**
+ * 旗の下のブロックをたどり、予約するポートと「M 秒で動かす」を使うかを決め、変数を用意する。
+ * ポートは、入出力の設定でサーボモーターを割り当てたものだけ（ほかは文を作るときにエラーになる）。
+ * @param {object} ctx - 状態
+ * @param {object} target - 旗のあるターゲット
+ * @param {?string} firstId - 旗の下の最初のブロック
+ */
+const prepareServoReservations = (ctx, target, firstId) => {
+    const ports = new Set();
+    let timed = false;
+    const seen = new Set();
+    const queue = firstId ? [firstId] : [];
+    while (queue.length > 0) {
+        const id = queue.pop();
+        const block = target.blocks[id];
+        if (!block || seen.has(id)) continue;
+        seen.add(id);
+        if (block.opcode === RESERVE_OPCODE) {
+            const value = readMenu(target, block, 'PORT');
+            if (ctx.ports[value] === 'servo_motor') ports.add(value);
+        } else if (block.opcode === MOVE_IN_OPCODE) {
+            timed = true;
+        }
+        if (block.next) queue.push(block.next);
+        Object.values(block.inputs || {}).forEach((input) => {
+            if (input.block) queue.push(input.block);
+        });
+    }
+    const servo = ctx.servo;
+    servo.ports = PORT_NAMES.filter((port) => ports.has(port));
+    servo.timed = timed && servo.ports.length > 0;
+    servo.ports.forEach((port) => {
+        servo.target[port] = addHiddenVariable(ctx, NO_RESERVATION);
+        if (servo.timed) servo.current[port] = addHiddenVariable(ctx, SERVO_INITIAL_ANGLE);
+    });
+    if (servo.timed) {
+        servo.start = addHiddenVariable(ctx, 0);
+        servo.duration = addHiddenVariable(ctx, 0);
+    }
+};
+
+const varRef = (id) => ({ var: id });
+const setVar = (id, value) => ({ op: 'set', var: id, value });
+const isReserved = (ctx, port) => ({ op: '>', a: varRef(ctx.servo.target[port]), b: { num: NO_RESERVATION } });
+
+/**
+ * 変数に値を入れ、サーボの角度の範囲（0〜180）にそろえる文。
+ * @param {string} id - 変数の ID
+ * @param {object} value - 式
+ * @returns {Array<object>} 文
+ */
+const setClamped = (id, value) => [
+    setVar(id, value),
+    { op: 'if', cond: { op: '<', a: varRef(id), b: { num: 0 } }, then: [setVar(id, { num: 0 })] },
+    { op: 'if', cond: { op: '>', a: varRef(id), b: { num: 180 } }, then: [setVar(id, { num: 180 })] },
+];
+
+/**
+ * 予約のあるサーボを予約の角度にし、予約を消す文（ポートごと）。
+ * @param {object} ctx - 状態
+ * @returns {Array<object>} 文
+ */
+const finishReserved = (ctx) =>
+    ctx.servo.ports.map((port) => {
+        const target = ctx.servo.target[port];
+        const then = [{ op: 'servo', port, angle: varRef(target) }];
+        if (ctx.servo.timed) then.push(setVar(ctx.servo.current[port], varRef(target)));
+        then.push(setVar(target, { num: NO_RESERVATION }));
+        return { op: 'if', cond: isReserved(ctx, port), then };
+    });
+
+/**
+ * 「予約したサーボモーターを動かす」の文。予約するブロックが無ければ何もしない（文が無い）。
+ * @param {object} ctx - 状態
+ * @returns {Array<object>} 文
+ */
+const moveReservedNow = (ctx) => finishReserved(ctx);
+
+/**
+ * 「M 秒で予約したサーボモーターを動かす」の文。
+ * @param {object} ctx - 状態
+ * @param {object} secs - 秒の式
+ * @returns {Array<object>} 文
+ */
+const moveReservedIn = (ctx, secs) => {
+    const { ports, current, target, start, duration } = ctx.servo;
+    if (ports.length === 0) return [];
+    const elapsed = { op: '-', a: { op: 'timer' }, b: varRef(start) };
+    const step = ports.map((port) => ({
+        op: 'if',
+        cond: isReserved(ctx, port),
+        then: [
+            {
+                op: 'servo',
+                port,
+                // いまの角度 + (予約の角度 − いまの角度) × (たった時間 ÷ M 秒)
+                angle: {
+                    op: '+',
+                    a: varRef(current[port]),
+                    b: {
+                        op: '*',
+                        a: { op: '-', a: varRef(target[port]), b: varRef(current[port]) },
+                        b: { op: '/', a: elapsed, b: varRef(duration) },
+                    },
+                },
+            },
+        ],
+    }));
+    const anyReserved = ports
+        .slice(1)
+        .reduce((cond, port) => ({ op: 'or', a: cond, b: isReserved(ctx, port) }), isReserved(ctx, ports[0]));
+    return [
+        {
+            op: 'if',
+            cond: anyReserved,
+            then: [
+                setVar(duration, secs),
+                setVar(start, { op: 'timer' }),
+                // M 秒たつまで（0 秒以下ならすぐに）少しずつ動かす
+                {
+                    op: 'repeat_until',
+                    cond: { op: 'not', a: { op: '<', a: elapsed, b: varRef(duration) } },
+                    body: step,
+                },
+                ...finishReserved(ctx),
+            ],
+        },
+    ];
+};
+
+/**
+ * 1 つのブロックから作った文（いくつか）のそれぞれを、そのブロックに結びつける。
+ * @param {object} ctx - 状態
+ * @param {Array<object>} stmts - 文
+ * @param {string} blockId - ブロックの ID
+ * @returns {Array<object>} 文
+ */
+const markAll = (ctx, stmts, blockId) => stmts.map((s) => mark(ctx, s, blockId));
+
 /**
  * 文のブロックを 1 つ文にする。
  * @param {object} ctx - 状態
  * @param {object} target - ターゲット
  * @param {object} block - ブロック
  * @param {Set<string>} seen - たどったブロック
- * @returns {?object} 文。エラーがあれば null
+ * @returns {?(object|Array<object>)} 文（予約のブロックなどは文の配列）。エラーがあれば null
  */
 const buildStatement = (ctx, target, block, seen) => {
     const op = block.opcode;
@@ -521,27 +704,28 @@ const buildStatement = (ctx, target, block, seen) => {
         case `${EXT}studuinoServo`: {
             const p = port('servo_motor');
             const angle = num('ANGLE');
-            return all({ op: 'servo', port: p, angle }, [p, angle]);
-        }
-        case `${EXT}studuinoServoPair`: {
-            const p1 = port('servo_motor', 'PORT1');
-            const a1 = num('ANGLE1');
-            const p2 = port('servo_motor', 'PORT2');
-            const a2 = num('ANGLE2');
-            if (p1 && p2 && p1 === p2) {
-                addError(ctx, target, block.id, E.DUPLICATE_PORT);
-                return null;
-            }
-            return all(
-                {
-                    op: 'servo_multi',
-                    items: [
-                        { port: p1, angle: a1 },
-                        { port: p2, angle: a2 },
-                    ],
-                },
-                [p1, a1, p2, a2],
+            if (p === null || angle === null) return null;
+            const current = ctx.servo.current[p];
+            // M 秒で動かすときに「いまの角度」から動かせるよう、予約するポートの角度を覚えておく
+            if (!current) return mark(ctx, { op: 'servo', port: p, angle }, block.id);
+            return markAll(
+                ctx,
+                setClamped(current, angle).concat({ op: 'servo', port: p, angle: { var: current } }),
+                block.id,
             );
+        }
+        case `${EXT}studuinoServoReserve`: {
+            const p = port('servo_motor');
+            const angle = num('ANGLE');
+            if (p === null || angle === null) return null;
+            return markAll(ctx, setClamped(ctx.servo.target[p], angle), block.id);
+        }
+        case `${EXT}studuinoServoMoveReserved`:
+            return markAll(ctx, moveReservedNow(ctx), block.id);
+        case `${EXT}studuinoServoMoveReservedIn`: {
+            const secs = num('SECS');
+            if (secs === null) return null;
+            return markAll(ctx, moveReservedIn(ctx, secs), block.id);
         }
         case `${EXT}studuinoLed`: {
             const p = port('led');
@@ -581,7 +765,8 @@ const buildStack = (ctx, target, firstId, seen) => {
         seen.add(id);
         if (STATEMENTS.has(block.opcode)) {
             const stmt = buildStatement(ctx, target, block, seen);
-            if (stmt) out.push(stmt);
+            if (Array.isArray(stmt)) out.push(...stmt);
+            else if (stmt) out.push(stmt);
             else ok = false;
         } else if (NUMBER_REPORTERS.has(block.opcode) || BOOLEAN_REPORTERS.has(block.opcode)) {
             // 値のブロックが文の所にある（ばらばらの値のブロック）。値として検査だけする
@@ -678,6 +863,7 @@ export const buildStuduinoIr = ({ targets, settings }) => {
     if (flags.length === 0) {
         addError(ctx, null, null, E.NO_FLAG);
     } else {
+        prepareServoReservations(ctx, flags[0].target, flags[0].block.next);
         main = buildStack(ctx, flags[0].target, flags[0].block.next, new Set());
     }
     // 旗の下の木のあとは、変数を登録しない（検査だけ）

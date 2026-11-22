@@ -226,13 +226,6 @@ describe('buildStuduinoIr: 全体の形', () => {
                                     port: 'D9',
                                     angle: { op: 'sensor', kind: 'sound_sensor', port: 'A4' },
                                 },
-                                {
-                                    op: 'servo_multi',
-                                    items: [
-                                        { port: 'D9', angle: { num: 0 } },
-                                        { port: 'D10', angle: { num: 180 } },
-                                    ],
-                                },
                             ],
                         },
                         {
@@ -307,10 +300,6 @@ describe('buildStuduinoIr: 全体の形', () => {
             add('smalrubotS1_studuinoServo', {
                 fields: P('D9'),
                 inputs: { ANGLE: rep(sensor('studuinoSoundSensor', 'A4')) },
-            }),
-            add('smalrubotS1_studuinoServoPair', {
-                fields: { PORT1: 'D9', PORT2: 'D10' },
-                inputs: { ANGLE1: num(0), ANGLE2: num(180) },
             }),
         );
         const buzz = stack(
@@ -543,6 +532,201 @@ describe('buildStuduinoIr: 文と式の表', () => {
     });
 });
 
+describe('buildStuduinoIr: サーボモーターの予約（#2352・S6）', () => {
+    const reserve = (ws, port, angle) =>
+        ws.add('smalrubotS1_studuinoServoReserve', { fields: { PORT: port }, inputs: { ANGLE: angle } });
+    const clamped = (id, value) => [
+        { op: 'set', var: id, value },
+        {
+            op: 'if',
+            cond: { op: '<', a: { var: id }, b: { num: 0 } },
+            then: [{ op: 'set', var: id, value: { num: 0 } }],
+        },
+        {
+            op: 'if',
+            cond: { op: '>', a: { var: id }, b: { num: 180 } },
+            then: [{ op: 'set', var: id, value: { num: 180 } }],
+        },
+    ];
+    const reserved = (id) => ({ op: '>', a: { var: id }, b: { num: -1 } });
+
+    test('予約は見えない変数に入れ、動かすと予約のあるサーボだけを動かして予約を消す', () => {
+        const ws = workspace();
+        ws.script(
+            reserve(ws, 'D10', ws.num(45)),
+            reserve(ws, 'D9', ws.num(200)),
+            // 同じポートをもう一度予約したら、あとの角度
+            reserve(ws, 'D9', ws.num(30)),
+            ws.add('smalrubotS1_studuinoServoMoveReserved'),
+        );
+        const result = build(ws);
+        expect(result.ok).toBe(true);
+        // ポートの表の順（D9, D10）。予約が無いことは -1
+        expect(result.ir.variables).toEqual([
+            { id: 'v0', init: -1 },
+            { id: 'v1', init: -1 },
+        ]);
+        expect(result.ir.main).toEqual([
+            ...clamped('v1', { num: 45 }),
+            ...clamped('v0', { num: 200 }),
+            ...clamped('v0', { num: 30 }),
+            {
+                op: 'if',
+                cond: reserved('v0'),
+                then: [
+                    { op: 'servo', port: 'D9', angle: { var: 'v0' } },
+                    { op: 'set', var: 'v0', value: { num: -1 } },
+                ],
+            },
+            {
+                op: 'if',
+                cond: reserved('v1'),
+                then: [
+                    { op: 'servo', port: 'D10', angle: { var: 'v1' } },
+                    { op: 'set', var: 'v1', value: { num: -1 } },
+                ],
+            },
+        ]);
+    });
+
+    test('予約するブロックが無ければ、動かすブロックは何もしない', () => {
+        const ws = workspace();
+        ws.script(
+            ws.add('smalrubotS1_studuinoServoMoveReserved'),
+            ws.add('smalrubotS1_studuinoServoMoveReservedIn', { inputs: { SECS: ws.num(1) } }),
+            ws.add('sensing_resettimer'),
+        );
+        const result = build(ws);
+        expect(result.ok).toBe(true);
+        expect(result.ir.variables).toEqual([]);
+        expect(result.ir.main).toEqual([{ op: 'timer_reset' }]);
+    });
+
+    test('M 秒で動かすときは、いまの角度から予約の角度へ、タイマーで測りながら動かす', () => {
+        const ws = workspace();
+        const v = { VARIABLE: { id: 'var-s', value: '秒' } };
+        ws.script(
+            ws.add('smalrubotS1_studuinoServo', { fields: { PORT: 'D9' }, inputs: { ANGLE: ws.num(45) } }),
+            // 予約しないポートのサーボはそのまま
+            ws.add('smalrubotS1_studuinoServo', { fields: { PORT: 'D10' }, inputs: { ANGLE: ws.num(10) } }),
+            reserve(ws, 'D9', ws.num(135)),
+            ws.add('smalrubotS1_studuinoServoMoveReservedIn', {
+                inputs: { SECS: ws.rep(ws.add('data_variable', { fields: v })) },
+            }),
+        );
+        const result = build(ws, { variables: { 'var-s': { id: 'var-s', name: '秒', type: '', value: 2 } } });
+        expect(result.ok).toBe(true);
+        // 予約（v0）・いまの角度（v1, はじめは 90 度）・はじめた時刻（v2）・M 秒（v3）・利用者の変数（v4）
+        expect(result.ir.variables).toEqual([
+            { id: 'v0', init: -1 },
+            { id: 'v1', init: 90 },
+            { id: 'v2', init: 0 },
+            { id: 'v3', init: 0 },
+            { id: 'v4', init: 2 },
+        ]);
+        const elapsed = { op: '-', a: { op: 'timer' }, b: { var: 'v2' } };
+        expect(result.ir.main).toEqual([
+            ...clamped('v1', { num: 45 }),
+            { op: 'servo', port: 'D9', angle: { var: 'v1' } },
+            { op: 'servo', port: 'D10', angle: { num: 10 } },
+            ...clamped('v0', { num: 135 }),
+            {
+                op: 'if',
+                cond: reserved('v0'),
+                then: [
+                    { op: 'set', var: 'v3', value: { var: 'v4' } },
+                    { op: 'set', var: 'v2', value: { op: 'timer' } },
+                    {
+                        op: 'repeat_until',
+                        cond: { op: 'not', a: { op: '<', a: elapsed, b: { var: 'v3' } } },
+                        body: [
+                            {
+                                op: 'if',
+                                cond: reserved('v0'),
+                                then: [
+                                    {
+                                        op: 'servo',
+                                        port: 'D9',
+                                        angle: {
+                                            op: '+',
+                                            a: { var: 'v1' },
+                                            b: {
+                                                op: '*',
+                                                a: { op: '-', a: { var: 'v0' }, b: { var: 'v1' } },
+                                                b: { op: '/', a: elapsed, b: { var: 'v3' } },
+                                            },
+                                        },
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                    {
+                        op: 'if',
+                        cond: reserved('v0'),
+                        then: [
+                            { op: 'servo', port: 'D9', angle: { var: 'v0' } },
+                            { op: 'set', var: 'v1', value: { var: 'v0' } },
+                            { op: 'set', var: 'v0', value: { num: -1 } },
+                        ],
+                    },
+                ],
+            },
+        ]);
+    });
+
+    test('予約が 2 つ以上なら、どれかが予約されていれば動かす', () => {
+        const ws = workspace();
+        ws.script(
+            reserve(ws, 'D9', ws.num(0)),
+            reserve(ws, 'D10', ws.num(180)),
+            ws.add('smalrubotS1_studuinoServoMoveReservedIn', { inputs: { SECS: ws.num(1) } }),
+        );
+        const { ir } = build(ws);
+        const move = ir.main[ir.main.length - 1];
+        // v0 = D9 の予約・v1 = D9 のいまの角度・v2 = D10 の予約・v3 = D10 のいまの角度
+        expect(move.cond).toEqual({ op: 'or', a: reserved('v0'), b: reserved('v2') });
+        expect(move.then[2].body).toHaveLength(2);
+        expect(move.then.slice(3).map((s) => s.then[0])).toEqual([
+            { op: 'servo', port: 'D9', angle: { var: 'v0' } },
+            { op: 'servo', port: 'D10', angle: { var: 'v2' } },
+        ]);
+    });
+
+    test('予約の変数は利用者の変数の上限（32）に数えない', () => {
+        const ws = workspace();
+        const variables = {};
+        const stmts = [];
+        for (let i = 0; i < STUDUINO_IR_LIMITS.maxVariables; i++) {
+            variables[`g${i}`] = { id: `g${i}`, name: `n${i}`, type: '', value: 0 };
+            stmts.push(
+                ws.add('data_setvariableto', {
+                    fields: { VARIABLE: { id: `g${i}`, value: `n${i}` } },
+                    inputs: { VALUE: ws.num(1) },
+                }),
+            );
+        }
+        ws.script(
+            reserve(ws, 'D9', ws.num(0)),
+            reserve(ws, 'D10', ws.num(0)),
+            ws.add('smalrubotS1_studuinoServoMoveReservedIn', { inputs: { SECS: ws.num(1) } }),
+            ...stmts,
+        );
+        const result = build(ws, { variables });
+        expect(result.ok).toBe(true);
+        expect(result.ir.variables).toHaveLength(STUDUINO_IR_LIMITS.maxVariables + 6);
+    });
+
+    test('秒に文字を入れたら string_value', () => {
+        const ws = workspace();
+        const move = ws.add('smalrubotS1_studuinoServoMoveReservedIn', { inputs: { SECS: ws.txt('abc') } });
+        ws.script(reserve(ws, 'D9', ws.num(0)), move);
+        const result = build(ws);
+        expect(result.ok).toBe(false);
+        expect(result.errors).toEqual([{ blockId: move, targetId: 'stage', reason: 'string_value' }]);
+    });
+});
+
 describe('buildStuduinoIr: エラー', () => {
     const errorsOf = (ws, opts) => {
         const result = build(ws, opts);
@@ -691,14 +875,14 @@ describe('buildStuduinoIr: エラー', () => {
         expect(errorsOf(ws)).toEqual([{ blockId: dir, targetId: 'stage', reason: 'unknown_value' }]);
     });
 
-    test('2 つのサーボが同じポートなら duplicate_port', () => {
+    test('予約するサーボのポートが割り当てていないポートなら port_not_assigned', () => {
         const ws = workspace();
-        const pair = ws.add('smalrubotS1_studuinoServoPair', {
-            fields: { PORT1: 'D9', PORT2: 'D9' },
-            inputs: { ANGLE1: ws.num(0), ANGLE2: ws.num(90) },
+        const reserve = ws.add('smalrubotS1_studuinoServoReserve', {
+            fields: { PORT: 'D2' },
+            inputs: { ANGLE: ws.num(0) },
         });
-        ws.script(pair);
-        expect(errorsOf(ws)).toEqual([{ blockId: pair, targetId: 'stage', reason: 'duplicate_port' }]);
+        ws.script(reserve, ws.add('smalrubotS1_studuinoServoMoveReserved'));
+        expect(errorsOf(ws)).toEqual([{ blockId: reserve, targetId: 'stage', reason: 'port_not_assigned' }]);
     });
 
     test('変数が 32 をこえたら too_large（S1）', () => {

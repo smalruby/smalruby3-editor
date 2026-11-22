@@ -216,7 +216,7 @@ end
 | 部品 | 呼び出し |
 |---|---|
 | `dc_motor`（M1・M2） | `.speed = 速さ` / `.forward` / `.backward` / `.brake` / `.coast` |
-| `servo_motor`（D2・D4・D7〜D12） | `.angle = 角度`、2 つ同時は `studuino.servo_motors(d9: 90, d10: 45)` |
+| `servo_motor`（D2・D4・D7〜D12） | `.angle = 角度`、`.reserve(角度)`（予約）。予約したものをまとめて動かすのは `studuino.move_reserved_servo_motors`（M 秒でなら `studuino.move_reserved_servo_motors(M)`） |
 | `led` | `.on` / `.off` |
 | `buzzer` | `.on(音の高さ)` / `.off` |
 | `light_sensor` / `sound_sensor` / `ir_photoreflector` / `temperature_sensor` | 値（`studuino.light_sensor_a6`） |
