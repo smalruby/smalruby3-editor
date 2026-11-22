@@ -189,7 +189,7 @@ const accessesOf = (node) => {
  * indexes from 1 are right; ja-notation shifts them for the Ruby).
  * @param {string} source - The DNCL source code.
  * @returns {Array<object>} The hints, each with the 1-based DNCL source
- *   `line`, the `access` text (`Nissu[kougeihin]`), the `array` name, the
+ *   `line`, the `access` text (`Ten[i]`), the `array` name, the
  *   `last` valid index, and a `fixed` access to suggest.
  */
 const findArrayIndexHints = (source) => {

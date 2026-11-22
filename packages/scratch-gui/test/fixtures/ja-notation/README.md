@@ -55,6 +55,7 @@ UPDATE_JA_GOLDEN=1 npx jest test/unit/lib/ja-notation/golden.test.js
 ## 守ること
 
 - データは **自作のプログラムだけ**。**大学入試センターの問題は入れない**（`docs/dncl/policy.md`）。
-  外の例題のページをもとにしたテスト（`collect-corpus.mjs` の `EXCLUDED_TESTS`）は集めない。
+  テストのプログラムも、記法をまねて自分で作ったものにする。外の例題のページのプログラムをそのまま写したテストを足すときは、
+  `collect-corpus.mjs` の `EXCLUDED_TESTS` に入れて集めない（いまは無い）。
 - ライブラリ（`packages/ja-notation/`）は MIT。このコーパスとゴールデンはスモウルビーの表（ブロック・生成器）を通した記録なので scratch-gui に置く。ライブラリだけのテストのデータ（JSON）は `packages/ja-notation/test/data/`。
   ほかから写したプログラムを入れない。

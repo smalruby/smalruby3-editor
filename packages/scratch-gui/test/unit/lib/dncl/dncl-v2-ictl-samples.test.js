@@ -1,10 +1,12 @@
-// DNCLv2 forms used by the ICTL 共通テスト samples (Issue #1186)
+// Standard-form notations found on the ICTL 共通テスト sample pages (Issue #1186)
 //
 // The sample programs on https://nodai2hitc.github.io/ictl_example/ use a
-// few DNCLv2 notations the pre-processor did not handle, so the generated
-// Ruby was syntactically broken (e.g. `end が足りません`). Each block below
-// pins one notation; the end-to-end cases check that whole (shortened)
-// sample programs become Ruby that prism parses without errors.
+// few notations the pre-processor did not handle, so the generated Ruby was
+// syntactically broken (e.g. `end が足りません`). Each block below pins one
+// notation; the end-to-end cases check that whole programs in those notations
+// become Ruby that prism parses without errors. The programs are our own,
+// written in the same notations: the tests do not use the problems of the
+// 大学入試センター (docs/dncl/policy.md).
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
 import { loadPrism } from '../../../../src/lib/prism-parser';
 
@@ -52,7 +54,7 @@ describe('DNCLv2 input forms (Issue #1186)', () => {
     });
 });
 
-describe('ICTL sample programs convert to valid Ruby (Issue #1186)', () => {
+describe('programs in the notations of the ICTL samples convert to valid Ruby (Issue #1186)', () => {
     let prism;
     beforeAll(async () => {
         prism = await loadPrism();
@@ -66,96 +68,95 @@ describe('ICTL sample programs convert to valid Ruby (Issue #1186)', () => {
         return result.ruby;
     };
 
-    test('R8 追・再試験: 問題が重複しない四つのクイズ集を作るプログラム', () => {
+    test('three nested blocks, `もし( … ) and ( … )ならば:` and a print over two lines', () => {
         expectValidRuby(
             [
-                '(01) Bunya = [2, 0, 2, 2, 1, 2, 0, 1]',
-                '(02) saidai = 5',
-                '(03) Saiyou = [0, 0, 0, 0, 0, 0, 0, 0]',
-                '(04) c を 1 から 4 まで 1 ずつ増やしながら繰り返す:',
-                '(05)  ｜ Mondaisu = [0, 0, 0, 0, 0, 0]',
-                '(06)  ｜ i を 0 から 要素数(Bunya) - 1 まで 1 ずつ増やしながら繰り返す:',
-                '(07)  ｜  ｜ b = Bunya[i]',
-                '(08)  ｜  ｜ もし( Mondaisu[b] < saidai ) and ( Saiyou[i] == 0 )ならば:',
-                '(09)  ｜  ｜  ｜ Saiyou[i] = c',
-                '(10)  ⎿  ⎿  ⎿ Mondaisu[b] = Mondaisu[b] + 1',
-                '(11) i を 0 から 要素数(Bunya) - 1 まで 1 ずつ増やしながら繰り返す:',
-                '(12)  ｜ もし Saiyou[i] > 0 ならば:',
-                '(13)  ｜  ｜ 表示する("番号", i, "の問題を",',
-                '      ⎿  ⎿ Saiyou[i], "番のクイズ集に入れる")',
+                '(01) Kazu = [3, 7, 2, 8, 5]',
+                '(02) saisho = 10',
+                '(03) Shirushi = [0, 0, 0, 0, 0]',
+                '(04) kai を 1 から 2 まで 1 ずつ増やしながら繰り返す:',
+                '(05)  ｜ Kosuu = [0, 0]',
+                '(06)  ｜ i を 0 から 要素数(Kazu) - 1 まで 1 ずつ増やしながら繰り返す:',
+                '(07)  ｜  ｜ g = Kazu[i] % 2',
+                '(08)  ｜  ｜ もし( Kosuu[g] < kai ) and ( Kazu[i] * kai < saisho )ならば:',
+                '(09)  ｜  ｜  ｜ Shirushi[i] = kai',
+                '(10)  ⎿  ⎿  ⎿ Kosuu[g] = Kosuu[g] + 1',
+                '(11) i を 0 から 要素数(Kazu) - 1 まで 1 ずつ増やしながら繰り返す:',
+                '(12)  ｜ もし Shirushi[i] > 0 ならば:',
+                '(13)  ｜  ｜ 表示する(Kazu[i], "には",',
+                '      ⎿  ⎿ Shirushi[i], "回目に印を付けた")',
             ].join('\n'),
         );
     });
 
-    test('R7 追・再試験: ごみの総重量を計算するプログラム', () => {
+    test('`(00-1)` line numbers, aligned `=`, two assignments on a line and two if-else in a loop', () => {
         expectValidRuby(
             [
-                '(00-1) Iremono = [2,2,1,1]',
-                '(00-2) Shurui  = [1,1,2,1]',
-                '(00-3) Keiryou = [112,1139,717,1206]',
+                '(00-1) Shurui = [1,2,2,1]',
+                '(00-2) Kaisuu  = [3,1,2,4]',
+                '(00-3) Kingaku = [150,120,200,90]',
                 '(01) ninzu = 3',
-                '(02) kanen = 0, funen = 0',
+                '(02) nomimono = 0, okashi = 0',
                 '(03) i を 1 から ninzu まで 1 ずつ増やしながら繰り返す:',
-                '(04)  ｜ もし Iremono[i] == 1 ならば:',
-                '(05)  ｜  ｜ gomi = Keiryou[i] - 350',
+                '(04)  ｜ もし Kaisuu[i] >= 3 ならば:',
+                '(05)  ｜  ｜ nedan = Kingaku[i] - 30',
                 '(06)  ｜ そうでなければ:',
-                '(07)  ｜  ⎿ gomi = Keiryou[i]',
+                '(07)  ｜  ⎿ nedan = Kingaku[i]',
                 '(08)  ｜ もし Shurui[i] == 1 ならば:',
-                '(09)  ｜  ｜ kanen = kanen + gomi',
+                '(09)  ｜  ｜ nomimono = nomimono + nedan',
                 '(10)  ｜ そうでなければ:',
-                '(11)  ⎿  ⎿ funen = funen + gomi',
-                '(12) 表示する("可燃ごみの総重量は", kanen, "g")',
-                '(13) 表示する("不燃ごみの総重量は", funen, "g")',
+                '(11)  ⎿  ⎿ okashi = okashi + nedan',
+                '(12) 表示する("飲み物の合計は", nomimono, "円")',
+                '(13) 表示する("お菓子の合計は", okashi, "円")',
             ].join('\n'),
         );
     });
 
-    test('R7 追・再試験: ごみ拾いの結果を入力するプログラム改', () => {
+    test('`(00)` with a comment, `=【文字列を入力】` and a block body without `｜`', () => {
         expectValidRuby(
             [
-                '(00) n = 1 # 生徒番号',
-                '(01) Namae = ["可燃ごみ", "不燃ごみ", "ペットボトル"]',
-                '(02) shuruisu = 3',
-                '(03) 表示する("ごみの種類の名称は？")',
-                '(04) meishou =【文字列を入力】',
-                '(05) j を 1 から shuruisu まで 1 ずつ増やしながら繰り返す:',
-                '(06) もし Namae[j] == meishou ならば:',
-                '(07) ⎿⎿ Shurui[n] = j',
+                '(00) n = 2 # 班の番号',
+                '(01) Kamoku = ["国語", "数学", "英語"]',
+                '(02) kamokusu = 3',
+                '(03) 表示する("好きな教科は？")',
+                '(04) suki =【文字列を入力】',
+                '(05) j を 1 から kamokusu まで 1 ずつ増やしながら繰り返す:',
+                '(06) もし Kamoku[j] == suki ならば:',
+                '(07) ⎿⎿ Sentaku[n] = j',
             ].join('\n'),
         );
     });
 
-    test('R7 本試験: 各工芸品の担当と期間の一覧を表示するプログラム', () => {
+    test('a print over four lines continued with `｜` inside nested loops', () => {
         expectValidRuby(
             [
-                '(01) Nissu = [4, 1, 3, 1, 3, 4, 2, 4, 3]',
-                '(02) kougeihinsu = 9',
-                '(03) Akibi = [1, 1, 1]',
-                '(04) buinsu = 3',
-                '(05) kougeihin を 1 から kougeihinsu まで 1 ずつ増やしながら繰り返す:',
-                '(06)  ｜ tantou = 1',
-                '(07)  ｜ buin を 2 から buinsu まで 1 ずつ増やしながら繰り返す:',
-                '(08)  ｜  ｜ もし Akibi[buin] < Akibi[tantou] ならば:',
-                '(09)  ｜  ⎿  ⎿ tantou = buin',
-                '(10)  ｜ 表示する("工芸品", kougeihin, " … ",',
-                '      ｜          "部員", tantou, "：",',
-                '      ｜          Akibi[tantou], "日目～",',
-                '      ｜          Akibi[tantou] + Nissu[kougeihin] - 1, "日目")',
-                '(11)  ⎿ Akibi[tantou] = Akibi[tantou] + Nissu[kougeihin]',
+                '(01) Ten = [6, 8, 5, 9, 7, 4]',
+                '(02) goukei = 0',
+                '(03) kumi を 1 から 3 まで 1 ずつ増やしながら繰り返す:',
+                '(04)  ｜ saikou = 0',
+                '(05)  ｜ i を kumi * 2 - 2 から kumi * 2 - 1 まで 1 ずつ増やしながら繰り返す:',
+                '(06)  ｜  ｜ もし Ten[i] > saikou ならば:',
+                '(07)  ｜  ⎿  ⎿ saikou = Ten[i]',
+                '(08)  ｜ 表示する("第", kumi, "組 … ",',
+                '      ｜          "最高点：", saikou, "点～",',
+                '      ｜          "それまでの合計：",',
+                '      ｜          goukei + saikou, "点")',
+                '(09)  ⎿ goukei = goukei + saikou',
             ].join('\n'),
         );
     });
 
-    test('試作問題2022: 目標の金額ちょうどになる最小の硬貨枚数を計算するプログラム', () => {
+    test('a full-width `：`, `減らしながら`, `÷` and `%`', () => {
         expectValidRuby(
             [
-                '(1) Kouka = [1,5,10,50,100]',
-                '(2) kingaku = 46',
-                '(3) maisu = 0, nokori = kingaku',
-                '(4) i を 4 から 0 まで 1 ずつ減らしながら繰り返す：',
-                '(5)  ｜ maisu = maisu + nokori ÷ Kouka[i]',
-                '(6)  ⎿ nokori = nokori % Kouka[i]',
-                '(7) 表示する(maisu)',
+                '(1) Tani = [1,60,3600]',
+                '(2) byousu = 4000',
+                '(3) kazu = 0, nokori = byousu',
+                '(4) i を 2 から 0 まで 1 ずつ減らしながら繰り返す：',
+                '(5)  ｜ kazu = nokori ÷ Tani[i]',
+                '(6)  ｜ nokori = nokori % Tani[i]',
+                '(7)  ⎿ 表示する(kazu)',
+                '(8) 表示する(nokori)',
             ].join('\n'),
         );
     });
@@ -167,18 +168,18 @@ describe('DNCLv2 blocks written with indentation only (Issue #1186)', () => {
         prism = await loadPrism();
     });
 
-    test('the reported 一つのクイズ集 program (no line numbers / ｜ / ⎿) gets its ends', () => {
+    test('a program with no line numbers / ｜ / ⎿ gets its ends', () => {
         const result = dnclToRuby(
             [
-                'Bunya = [2, 0, 2, 2, 1, 2, 0, 1]',
-                'saidai = 5',
-                'Saiyou = [0, 0, 0, 0, 0, 0, 0, 0]',
-                'Mondaisu = [0, 0, 0, 0, 0, 0]',
-                'i を 0 から 要素数(Bunya) - 1 まで 1 ずつ増やしながら繰り返す:',
-                '    b = Bunya[i]',
-                '    もし Mondaisu[b] < saidai ならば:',
-                '        Saiyou[i] = 1',
-                '        Mondaisu[b] = Mondaisu[b] + 1',
+                'Kazu = [3, 7, 2, 8, 5]',
+                'saidai = 2',
+                'Shirushi = [0, 0, 0, 0, 0]',
+                'Kosuu = [0, 0]',
+                'i を 0 から 要素数(Kazu) - 1 まで 1 ずつ増やしながら繰り返す:',
+                '    g = Kazu[i] % 2',
+                '    もし Kosuu[g] < saidai ならば:',
+                '        Shirushi[i] = 1',
+                '        Kosuu[g] = Kosuu[g] + 1',
             ].join('\n'),
         );
         expect(result.errors).toEqual([]);

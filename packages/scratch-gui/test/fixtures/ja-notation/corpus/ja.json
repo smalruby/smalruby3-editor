@@ -181,13 +181,6 @@
     "ja": "# Python の書き方で答えてしまったもの\ndata = [3, 1, 2]\nfor i in range(len(data)):\n    print(data[i])\n"
   },
   {
-    "id": "ja-414d32486f",
-    "from": [
-      "test/fixtures/dncl/formats/kyoutsu-if-in-loop.dncl"
-    ],
-    "ja": "(01) Data = [3, 18, 29, 33, 48, 52, 62, 77, 89, 97]\n(02) kazu = 0\n(03) i を 0 から 要素数(Data) - 1 まで 1 ずつ増やしながら繰り返す:\n(04) ｜ もし Data[i] > 50 ならば:\n(05) ⎿ ⎿ kazu = kazu + 1\n(06) 表示する(kazu, \"個\")\n"
-  },
-  {
     "id": "ja-0850d84775",
     "from": [
       "test/fixtures/dncl/formats/kyoutsu-sum.dncl"
@@ -1244,13 +1237,6 @@
       "test/unit/lib/dncl/dncl-empty-loop-wait-until.test.js › DNCL empty loops become \"wait until\" an empty 「〜の間」 becomes \"wait until\" of the negated condition"
     ],
     "ja": "a = 0\na > 10 の間\nを繰り返す"
-  },
-  {
-    "id": "ja-097a062948",
-    "from": [
-      "test/unit/lib/dncl/dncl-fixtures.test.js › DNCL examples (test/fixtures/dncl) formats/ turn into blocks kyoutsu-if-in-loop.dncl"
-    ],
-    "ja": "Data = [3, 18, 29, 33, 48, 52, 62, 77, 89, 97]\nkazu = 0\ni を 0 から 要素数(Data) - 1 まで 1 ずつ増やしながら繰り返す:\n｜ もし Data[i] > 50 ならば:\n⎿ ⎿ kazu = kazu + 1\n表示する(kazu, \"個\")\n"
   },
   {
     "id": "ja-4cbef05484",
@@ -3899,13 +3885,6 @@
     "ja": "(9)  もし x > 0 ならば:\n(10)  y = 1\n(11) z = 2"
   },
   {
-    "id": "ja-8fd29ddcab",
-    "from": [
-      "test/unit/lib/dncl/dncl-v2-indent-only-blocks.test.js › DNCLv2 indentation-only blocks on numbered lines (Issue #1718) line numbers aligned by padding (`(9)  x` / `(10) x`) do not look like an indent"
-    ],
-    "ja": "(7)  hidari <= migi の間繰り返す:\n(8)      もし aida == 3 ならば:\n(9)          owari = 1\n(10)     そうでなくもし aida < 3 ならば:\n(11)         hidari = aida + 1\n(12)     そうでなければ:\n(13)         migi = aida - 1\n(14) 表示する(owari)"
-  },
-  {
     "id": "ja-8f79d107e6",
     "from": [
       "test/unit/lib/dncl/dncl-v2-indent-only-blocks.test.js › DNCLv2 indentation-only blocks on numbered lines (Issue #1718) line numbers of different widths (`(00-1)` / `(01)`) do not look like an indent"
@@ -4238,13 +4217,6 @@
       "test/unit/lib/genai-dncl-answer.test.js › checkDnclAnswer an answer with 0-based indexes has no note"
     ],
     "ja": "Data = [3, 1, 2]\ngoukei ← 0\ni を 0 から 2 まで 1 ずつ増やしながら\n  goukei = goukei + Data[i]\nを繰り返す\n表示する(goukei)\n"
-  },
-  {
-    "id": "ja-17ddf0cf15",
-    "from": [
-      "test/unit/lib/genai-dncl-answer.test.js › checkDnclAnswer an answer in the DNCLv2 form (line numbers, ｜ ⎿, colons) is ✔"
-    ],
-    "ja": "Data = [3, 18, 29, 33, 48, 52, 62, 77, 89, 97]\nkazu = 要素数(Data)\n表示する(\"0～99:\")\natai = 【外部からの入力】\nhidari = 0 , migi = kazu - 1\nowari = 0\nhidari <= migi and owari == 0 の間繰り返す:\n｜ aida = (hidari + migi) ÷ 2\n｜ もし Data[aida] == atai ならば:\n｜ ｜ 表示する(atai, \"は\", aida, \"番目にありました\")\n｜ ｜ owari = 1\n｜ そうでなくもし Data[aida] < atai ならば:\n｜ ｜ hidari = aida + 1\n｜ そうでなければ:\n⎿ ⎿ migi = aida - 1\nもし owari == 0 ならば:\n⎿ 表示する(atai, \"は見つかりませんでした\")\n"
   },
   {
     "id": "ja-92aae989b7",
@@ -4662,5 +4634,103 @@
       "test/unit/lib/ruby-roundtrip/multiple-assignment.test.js › Ruby to blocks: multiple assignment (issue #1814) DNCL the swap of elements `A[0], A[1] = A[1], A[0]` is Ruby, and the error of a wrong instruction (issue #2237)"
     ],
     "ja": "A = [1, 2]\nA[0], A[1] = A[1], A[0]"
+  },
+  {
+    "id": "ja-0dd1d2e1df",
+    "from": [
+      "test/fixtures/dncl/formats/kyoutsu-if-in-loop.dncl"
+    ],
+    "ja": "(01) Kiroku = [12, 35, 8, 27, 41, 19, 30]\n(02) kazu = 0\n(03) i を 0 から 要素数(Kiroku) - 1 まで 1 ずつ増やしながら繰り返す:\n(04) ｜ もし Kiroku[i] > 25 ならば:\n(05) ⎿ ⎿ kazu = kazu + 1\n(06) 表示する(kazu, \"回\")\n"
+  },
+  {
+    "id": "ja-e6527e8e04",
+    "from": [
+      "test/unit/lib/dncl/dncl-fixtures.test.js › DNCL examples (test/fixtures/dncl) formats/ turn into blocks kyoutsu-if-in-loop.dncl"
+    ],
+    "ja": "Kiroku = [12, 35, 8, 27, 41, 19, 30]\nkazu = 0\ni を 0 から 要素数(Kiroku) - 1 まで 1 ずつ増やしながら繰り返す:\n｜ もし Kiroku[i] > 25 ならば:\n⎿ ⎿ kazu = kazu + 1\n表示する(kazu, \"回\")\n"
+  },
+  {
+    "id": "ja-957794d24c",
+    "from": [
+      "test/unit/lib/dncl/dncl-v2-example.test.js › the standard form end-to-end: a binary search (Issue #640) dnclToRuby produces the Ruby code agreed in the design"
+    ],
+    "ja": "(1)  Shincho = [128,135,141,146,150,157,163,170]\n(2)  ninzu = 要素数(Shincho)\n(3)  表示する(\"さがす身長を入力してください\")\n(4)  sagasu = 【外部からの入力】\n(5)  sita = 0 , ue = ninzu - 1\n(6)  mitsuketa = 0\n(7)  sita <= ue and mitsuketa == 0 の間繰り返す:\n(8)   ｜ naka = (sita+ue) ÷ 2 # まん中の番号\n(9)   ｜ もし Shincho[naka] == sagasu ならば:\n(10)  ｜  ｜ 表示する(sagasu, \"cmは\", naka, \"番の人です\")\n(11)  ｜  ｜ mitsuketa = 1\n(12)  ｜ そうでなくもし Shincho[naka] < sagasu ならば:\n(13)  ｜  ｜ sita = naka + 1\n(14)  ｜ そうでなければ:\n(15)  ⎿  ⎿ ue = naka - 1\n(16) もし mitsuketa == 0 ならば:\n(17)  ⎿ 表示する(sagasu, \"cmの人はいませんでした\")\n(18) 表示する(\"番号\", \" \", \"身長\")\n(19) i を 0 から ninzu - 1 まで 1 ずつ増やしながら繰り返す:\n(20)  ⎿ 表示する(i, \" \", Shincho[i])"
+  },
+  {
+    "id": "ja-1a59d89cf6",
+    "from": [
+      "test/unit/lib/dncl/dncl-v2-ictl-samples.test.js › DNCLv2 blocks written with indentation only (Issue #1186) a program with no line numbers / ｜ / ⎿ gets its ends"
+    ],
+    "ja": "Kazu = [3, 7, 2, 8, 5]\nsaidai = 2\nShirushi = [0, 0, 0, 0, 0]\nKosuu = [0, 0]\ni を 0 から 要素数(Kazu) - 1 まで 1 ずつ増やしながら繰り返す:\n    g = Kazu[i] % 2\n    もし Kosuu[g] < saidai ならば:\n        Shirushi[i] = 1\n        Kosuu[g] = Kosuu[g] + 1"
+  },
+  {
+    "id": "ja-2b95818fce",
+    "from": [
+      "test/unit/lib/dncl/dncl-v2-ictl-samples.test.js › DNCLv2 input forms (Issue #1186) `【整数を入力】` asks and converts the answer to an integer"
+    ],
+    "ja": "n =【整数を入力】"
+  },
+  {
+    "id": "ja-a8a69ed831",
+    "from": [
+      "test/unit/lib/dncl/dncl-v2-ictl-samples.test.js › DNCLv2 input forms (Issue #1186) `【文字列を入力】` asks and keeps the answer as a string"
+    ],
+    "ja": "meishou =【文字列を入力】"
+  },
+  {
+    "id": "ja-74ab881bb2",
+    "from": [
+      "test/unit/lib/dncl/dncl-v2-ictl-samples.test.js › programs in the notations of the ICTL samples convert to valid Ruby (Issue #1186) `(00-1)` line numbers, aligned `=`, two assignments on a line and two if-else in a loop"
+    ],
+    "ja": "(00-1) Shurui = [1,2,2,1]\n(00-2) Kaisuu  = [3,1,2,4]\n(00-3) Kingaku = [150,120,200,90]\n(01) ninzu = 3\n(02) nomimono = 0, okashi = 0\n(03) i を 1 から ninzu まで 1 ずつ増やしながら繰り返す:\n(04)  ｜ もし Kaisuu[i] >= 3 ならば:\n(05)  ｜  ｜ nedan = Kingaku[i] - 30\n(06)  ｜ そうでなければ:\n(07)  ｜  ⎿ nedan = Kingaku[i]\n(08)  ｜ もし Shurui[i] == 1 ならば:\n(09)  ｜  ｜ nomimono = nomimono + nedan\n(10)  ｜ そうでなければ:\n(11)  ⎿  ⎿ okashi = okashi + nedan\n(12) 表示する(\"飲み物の合計は\", nomimono, \"円\")\n(13) 表示する(\"お菓子の合計は\", okashi, \"円\")"
+  },
+  {
+    "id": "ja-15652180d7",
+    "from": [
+      "test/unit/lib/dncl/dncl-v2-ictl-samples.test.js › programs in the notations of the ICTL samples convert to valid Ruby (Issue #1186) `(00)` with a comment, `=【文字列を入力】` and a block body without `｜`"
+    ],
+    "ja": "(00) n = 2 # 班の番号\n(01) Kamoku = [\"国語\", \"数学\", \"英語\"]\n(02) kamokusu = 3\n(03) 表示する(\"好きな教科は？\")\n(04) suki =【文字列を入力】\n(05) j を 1 から kamokusu まで 1 ずつ増やしながら繰り返す:\n(06) もし Kamoku[j] == suki ならば:\n(07) ⎿⎿ Sentaku[n] = j"
+  },
+  {
+    "id": "ja-58eb616c5a",
+    "from": [
+      "test/unit/lib/dncl/dncl-v2-ictl-samples.test.js › programs in the notations of the ICTL samples convert to valid Ruby (Issue #1186) a full-width `：`, `減らしながら`, `÷` and `%`"
+    ],
+    "ja": "(1) Tani = [1,60,3600]\n(2) byousu = 4000\n(3) kazu = 0, nokori = byousu\n(4) i を 2 から 0 まで 1 ずつ減らしながら繰り返す：\n(5)  ｜ kazu = nokori ÷ Tani[i]\n(6)  ｜ nokori = nokori % Tani[i]\n(7)  ⎿ 表示する(kazu)\n(8) 表示する(nokori)"
+  },
+  {
+    "id": "ja-e38f350090",
+    "from": [
+      "test/unit/lib/dncl/dncl-v2-ictl-samples.test.js › programs in the notations of the ICTL samples convert to valid Ruby (Issue #1186) a print over four lines continued with `｜` inside nested loops"
+    ],
+    "ja": "(01) Ten = [6, 8, 5, 9, 7, 4]\n(02) goukei = 0\n(03) kumi を 1 から 3 まで 1 ずつ増やしながら繰り返す:\n(04)  ｜ saikou = 0\n(05)  ｜ i を kumi * 2 - 2 から kumi * 2 - 1 まで 1 ずつ増やしながら繰り返す:\n(06)  ｜  ｜ もし Ten[i] > saikou ならば:\n(07)  ｜  ⎿  ⎿ saikou = Ten[i]\n(08)  ｜ 表示する(\"第\", kumi, \"組 … \",\n      ｜          \"最高点：\", saikou, \"点～\",\n      ｜          \"それまでの合計：\",\n      ｜          goukei + saikou, \"点\")\n(09)  ⎿ goukei = goukei + saikou"
+  },
+  {
+    "id": "ja-ff40d2a1fb",
+    "from": [
+      "test/unit/lib/dncl/dncl-v2-ictl-samples.test.js › programs in the notations of the ICTL samples convert to valid Ruby (Issue #1186) three nested blocks, `もし( … ) and ( … )ならば:` and a print over two lines"
+    ],
+    "ja": "(01) Kazu = [3, 7, 2, 8, 5]\n(02) saisho = 10\n(03) Shirushi = [0, 0, 0, 0, 0]\n(04) kai を 1 から 2 まで 1 ずつ増やしながら繰り返す:\n(05)  ｜ Kosuu = [0, 0]\n(06)  ｜ i を 0 から 要素数(Kazu) - 1 まで 1 ずつ増やしながら繰り返す:\n(07)  ｜  ｜ g = Kazu[i] % 2\n(08)  ｜  ｜ もし( Kosuu[g] < kai ) and ( Kazu[i] * kai < saisho )ならば:\n(09)  ｜  ｜  ｜ Shirushi[i] = kai\n(10)  ⎿  ⎿  ⎿ Kosuu[g] = Kosuu[g] + 1\n(11) i を 0 から 要素数(Kazu) - 1 まで 1 ずつ増やしながら繰り返す:\n(12)  ｜ もし Shirushi[i] > 0 ならば:\n(13)  ｜  ｜ 表示する(Kazu[i], \"には\",\n      ⎿  ⎿ Shirushi[i], \"回目に印を付けた\")"
+  },
+  {
+    "id": "ja-7d69c05382",
+    "from": [
+      "test/unit/lib/dncl/dncl-v2-ictl-samples.test.js › the standard form: ICTL sample notations (Issue #1186) `⎿` markers on continuation lines and a marker-only line both close blocks"
+    ],
+    "ja": "(1) t を 1 から 2 まで 1 ずつ増やしながら繰り返す：\n(2)  ｜ もし t < 10 ならば：\n(3)  ｜  ｜ 表示する(\"a\", t,\n      ｜  ⎿          \"b\")\n      ⎿ "
+  },
+  {
+    "id": "ja-1b83374d75",
+    "from": [
+      "test/unit/lib/dncl/dncl-v2-indent-only-blocks.test.js › DNCLv2 indentation-only blocks on numbered lines (Issue #1718) line numbers aligned by padding (`(9)  x` / `(10) x`) do not look like an indent"
+    ],
+    "ja": "(7)  kai <= 5 の間繰り返す:\n(8)      もし ten == 3 ならば:\n(9)          kekka = 1\n(10)     そうでなくもし ten < 3 ならば:\n(11)         kai = kai + 1\n(12)     そうでなければ:\n(13)         ten = ten - 1\n(14) 表示する(kekka)"
+  },
+  {
+    "id": "ja-d7380d3060",
+    "from": [
+      "test/unit/lib/genai-dncl-answer.test.js › checkDnclAnswer an answer in the DNCLv2 form (line numbers, ｜ ⎿, colons) is ✔"
+    ],
+    "ja": "Shincho = [128, 135, 141, 146, 150, 157, 163, 170]\nninzu = 要素数(Shincho)\n表示する(\"身長:\")\nsagasu = 【外部からの入力】\nsita = 0 , ue = ninzu - 1\nmitsuketa = 0\nsita <= ue and mitsuketa == 0 の間繰り返す:\n｜ naka = (sita + ue) ÷ 2\n｜ もし Shincho[naka] == sagasu ならば:\n｜ ｜ 表示する(sagasu, \"cmは\", naka, \"番の人です\")\n｜ ｜ mitsuketa = 1\n｜ そうでなくもし Shincho[naka] < sagasu ならば:\n｜ ｜ sita = naka + 1\n｜ そうでなければ:\n⎿ ⎿ ue = naka - 1\nもし mitsuketa == 0 ならば:\n⎿ 表示する(sagasu, \"cmの人はいませんでした\")\n"
   }
 ]
