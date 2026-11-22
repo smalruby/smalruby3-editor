@@ -148,3 +148,62 @@ describe('POST /compile', () => {
     expect((await createHandler(deps)(e)).statusCode).toBe(200);
   });
 });
+
+describe('POST /compile（構文木・#2210）', () => {
+  const ir = {
+    version: 1,
+    board: 'studuino',
+    ports: { A0: 'led' },
+    main: [{ op: 'forever', body: [{ op: 'led', port: 'A0', on: true }, { op: 'wait', secs: { num: 0.5 } }] }],
+  };
+
+  test('構文木を検査して C++ に書き出し、コンパイルして hex を返す', async () => {
+    const { deps, logs } = makeDeps({
+      compile: jest.fn(async (_name: string, files: Record<string, string>) => ({
+        ok: true as const,
+        hex: HEX,
+        source: files['studuino_program.ino'],
+        compileMs: 900,
+      })),
+    });
+    const res = await createHandler(deps)(event({ ir }));
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body).toMatchObject({ hex: HEX, size: 16 });
+    expect(body.source).toContain('board.LED(PORT_A0, ON);');
+    const [name, files] = (deps.compile as jest.Mock).mock.calls[0];
+    expect(name).toBe('studuino_program');
+    expect(Object.keys(files)).toEqual(['studuino_program.ino']);
+    expect(metric(logs)).toMatchObject({ outcome: 'ok', sample: 'ir', irNodes: 4, irDepth: 3, IrNodes: 4 });
+  });
+
+  test('知らない op は 400 invalid_ir と path（コンパイルしない）', async () => {
+    const { deps, logs, compile } = makeDeps();
+    const res = await createHandler(deps)(event({ ir: { ...ir, main: [{ op: 'say' }] } }));
+    expect(res.statusCode).toBe(400);
+    expect(JSON.parse(res.body)).toMatchObject({ error: 'invalid_ir', reason: 'unknown_op', path: 'main[0].op' });
+    expect(compile).not.toHaveBeenCalled();
+    expect(metric(logs)).toMatchObject({ outcome: 'invalid_ir', reason: 'unknown_op', Rejected: 1, Failed: 0 });
+  });
+
+  test('ノードの数の上限をこえたら 413 too_large', async () => {
+    const { deps } = makeDeps({ limits: { ...DEFAULT_LIMITS, maxNodes: 2 } });
+    const res = await createHandler(deps)(event({ ir }));
+    expect(res.statusCode).toBe(413);
+    expect(JSON.parse(res.body)).toMatchObject({ error: 'too_large', reason: 'too_many_nodes', limit: 2 });
+  });
+
+  test('ライブラリが入っていないコンテナでは 422 library_missing', async () => {
+    const { deps, compile } = makeDeps({ toolchain: { ...toolchain, studuinoLib: null } });
+    const res = await createHandler(deps)(event({ ir }));
+    expect(res.statusCode).toBe(422);
+    expect(JSON.parse(res.body).reason).toBe('library_missing');
+    expect(compile).not.toHaveBeenCalled();
+  });
+
+  test('サンプルの形（{ sample }）はいままでどおり使える', async () => {
+    const { deps, compile } = makeDeps();
+    expect((await createHandler(deps)(event({ sample: 'blink' }))).statusCode).toBe(200);
+    expect(compile).toHaveBeenCalledWith('blink', { 'blink.ino': 'void setup(){}' });
+  });
+});

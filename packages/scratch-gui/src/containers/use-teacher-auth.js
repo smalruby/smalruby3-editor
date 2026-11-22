@@ -14,8 +14,6 @@ import {
 } from '../lib/classroom-teacher-session.js';
 import {
     cancelGoogleLogin,
-    isGoogleLoginInFlight,
-    revealGoogleSignInButton,
     loginWithGoogle,
     requestMicrosoftIdToken,
     isMicrosoftAuthAvailable as checkMicrosoftAuth,
@@ -137,25 +135,17 @@ const useTeacherAuth = ({ mode, clearError, setPhase, showSessionExpiredError })
     // must tear the GIS UI down and settle the pending promise.
     useEffect(() => () => cancelGoogleLogin(), []);
 
-    // Why Google's own button took over from our login button, or null while
-    // our button is still the entry point (#1149). 'dismissed' means the
-    // browser prompt was closed without signing in — worth explaining;
-    // 'unsupported' means this browser never had a prompt to show.
-    const [googleFallbackReason, setGoogleFallbackReason] = useState(null);
+    // Whether Google's own button is on screen in place of ours. Ours stays
+    // only while Google's script has not loaded (or failed to), so pressing it
+    // tries again.
+    const [googleButtonShown, setGoogleButtonShown] = useState(false);
 
     const handleGoogleLogin = useCallback(async () => {
-        // A second press while a login is already running means the browser
-        // prompt did not help, whether or not GIS reported it dismissed (#1149).
-        if (isGoogleLoginInFlight()) {
-            revealGoogleSignInButton();
-            return;
-        }
         clearError();
-        setGoogleFallbackReason(null);
         try {
             const token = await loginWithGoogle({
                 container: googleSignInRef.current,
-                onFallbackVisible: (reason) => setGoogleFallbackReason(reason),
+                onButtonVisible: () => setGoogleButtonShown(true),
             });
             setIdToken(token);
             setAuthProvider('google');
@@ -163,15 +153,15 @@ const useTeacherAuth = ({ mode, clearError, setPhase, showSessionExpiredError })
         } catch {
             clearError();
         } finally {
-            setGoogleFallbackReason(null);
+            setGoogleButtonShown(false);
         }
     }, [clearError, setPhase]);
 
     const handleMicrosoftLogin = useCallback(async () => {
         clearError();
-        // Switching providers abandons the Google attempt (#1149).
-        cancelGoogleLogin();
-        setGoogleFallbackReason(null);
+        // Google's button stays up: if the Microsoft sign-in is abandoned the
+        // user can still choose Google. Leaving the login phase unmounts the
+        // slot, which cancels the Google login (#1149).
         try {
             const token = await requestMicrosoftIdToken();
             setIdToken(token);
@@ -248,7 +238,7 @@ const useTeacherAuth = ({ mode, clearError, setPhase, showSessionExpiredError })
         setAuthProvider,
         isMicrosoftAuthAvailable: checkMicrosoftAuth(),
         googleSignInRef,
-        googleFallbackReason,
+        googleButtonShown,
         handleGoogleLogin,
         handleMicrosoftLogin,
         logoutAuth,

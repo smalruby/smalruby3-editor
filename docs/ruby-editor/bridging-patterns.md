@@ -117,7 +117,7 @@ Scratch の変数・リストの名前で、Ruby の情報を持たせている�
 
 **Scratch での表し方**: Scratch にローカル変数は無い。スプライトの変数を `_<名前>_<番号>_` の名前で作り、それを読み書きするブロックに `@ruby:lvar:<名前>:<番号>` を付ける。生成器は注釈から元の名前 `a` を戻す。
 
-- **番号（スコープ番号）**: スクリプトの一番上と、その中のイベントのブロックは 1 を共有する。`def` は入るたびに新しい番号になる（`scope-manager.js` の `_enterScope`）。スクリプトの外側で使わない名前を、イベントごとに別のもの（文字列とリストなど）として使うときは、イベントごとに番号を分ける（`variable-utils.js` の `_localScopeIndex`）。
+- **番号（スコープ番号）**: スクリプトの一番上と、その中のイベントのブロックは 1 を共有する。`def` はそれぞれ新しい番号になる。スクリプトの外側で使わない名前を、イベントごとに別のもの（文字列とリストなど）として使うときは、その名前を使うイベントごとに番号を分ける。番号は変換の前に分析の段（`analysis.js` の `locals.scopeIndexOfDef` / `scopeIndexOfUnit`）がコードの順に決め、変換はそれを読むだけ（`_scopeIndexOfDef`・`_localScopeIndex`）。順番は変換がブロックを作る順と同じにする: module のメソッドは module を書いた所ではなく、class が `include` した所（class の本体より前）で番号を取り、`def initialize` と `self` 以外を受け手にする `def` は番号を取らない。ほかのスプライトから読みこんだ module のメソッドは、この作品のコードの番号の後ろの番号になる。
 - **メソッドの引数**: 番号を付けない。値は引数のブロック（`argument_reporter_string_number`）で読む。
 - **変換のたびに作り直す**: スプライトにある `_x_1_` の形の変数は、変換の前に消してから作り直す（`target-applier.js`）。
 - **生成器が名前だけで判断しない理由**: `_x_1_` は利用者が作った `@_x_1_` かもしれない。フィールドに名前しか残らないブロック（`reverse!` の受け手など）では、ほかのブロックに同じ `@ruby:lvar:x:1` があるときだけローカル変数とみなす（`variables.js` の `hasLocalVariableComment`）。
@@ -154,6 +154,7 @@ end
 - **呼び出し側**: 値として使う呼び出しは、呼び出しのブロック（`procedures_call`）を文の前に置き、値の場所では変数 `_return_foo_` を読む。両方に `@ruby:return:foo` を付ける。
 - **同じ行で 2 回以上呼ぶとき**（`foo(1) + foo(2)`）: 先の呼び出しの値はあとの呼び出しで上書きされるので、`_return_foo_1_ = _return_foo_` のブロックで控えておき、控えを読む。最後の 1 回より前の呼び出しは `@ruby:return:foo:<番号>` になる。
 - **呼び出しのキャッシュ（生成器）**: 生成器は `@ruby:return:foo` の `procedures_call` を書くとき、出力せずに `Generator.returnCallCache_['foo']` へ `foo(3)` を入れる。あとで同じ注釈の変数ブロック（`data_variable`）を書くときにキャッシュから取り出し、変数の代わりに `foo(3)` を書く（`procedure.js` / `data.js`）。控えのブロック（`@ruby:return:foo:1`）と初期化のブロック（`:initialize`）は何も書かない。
+- **`return` があるか**: 定義の中に `return` が 1 つでもあるか（値の無い `return`、`do ... end` や `if` の中の `return` も数える）は、変換の前に分析の段（`procedures.definitions` の `hasReturn`）で `def` ごとに決める。変換の途中に、それまでに作ったブロックの注釈を文字列で探して決めてはいけない（`@ruby:return:foo` を部分一致で探すと、`return` のある `foo_bar` の後に書いた `foo` まで値を返すメソッドになり、初期化のブロックと変数 `_return_foo_` が増えていた）。
 - **`nil` / シンボル / 引数なしの `return` / かっこ**: ブロックに無い値は文字列（入力の文字そのもの。文字列のブロックを別に作らない）にして、`,@ruby:nil` / `,@ruby:symbol:a` / `,@ruby:return-bare` / `,@ruby:return-paren` を `@ruby:return` に足す。
 
 **往復の例**:
@@ -176,7 +177,7 @@ end
 - 同じ行で値を控えたあとに、メソッドがそのメソッド自身を呼ぶ形（`return fib(n - 1) + fib(n - 2)`）。中の呼び出しが控えを上書きするので、Ruby と同じ値にならない。
 - 1 行の中で値として使う `super` が 2 つ以上ある形。
 
-**テスト**: `ruby-to-blocks-converter/method-return/method-return1.test.js`〜`method-return5.test.js`、`ruby-generator/method-return.test.js`、`ruby-roundtrip/my_blocks.test.js`、`ruby-roundtrip/method-return-value-shapes.test.js`、`ruby-roundtrip/return-literal-no-orphan.test.js`、`ruby-roundtrip/return-value-used-twice.test.js`、`ruby-roundtrip/return-call-paren-list-and-self-line.test.js`。
+**テスト**: `ruby-to-blocks-converter/method-return/method-return1.test.js`〜`method-return5.test.js`、`ruby-generator/method-return.test.js`、`ruby-roundtrip/my_blocks.test.js`、`ruby-roundtrip/method-return-value-shapes.test.js`、`ruby-roundtrip/return-literal-no-orphan.test.js`、`ruby-roundtrip/return-value-used-twice.test.js`、`ruby-roundtrip/return-call-paren-list-and-self-line.test.js`、`ruby-roundtrip/method-return-from-analysis.test.js`。
 
 ### P3. メソッドブロックの戻り値（文字列・配列・ハッシュのメソッド）
 
@@ -742,6 +743,14 @@ say(mesh.message_value)
 **できないこと**: `mesh.broadcast("chat", 42)` は `mesh.broadcast("chat", "42")` に戻る（値は文字列で送るため）。引数の数がちがう（`mesh.broadcast("chat")`）、メッセージが数（`mesh.broadcast(1, "x")`）はエラー（P17）。
 
 **テスト**: `ruby-to-blocks-converter/mesh_v2.test.js`、`ruby-roundtrip/extension_mesh.test.js`、`furigana-annotator.test.js`。
+
+**気をつけること（見つけた不具合）**: テキストの入力に数を入れるときは、数字の文字列にしてから入れる。`_addTextInput` に数をそのまま渡すと、入力が空のままになり、数が黙って消える。いま `translate.call(1, "ja")`（翻訳の言葉が数）がこの形で、ブロックに言葉が入らない（`ruby-roundtrip/translate-table.test.js` はいまの出力を固定している。直すときはこの行を直す）。
+
+**気をつけること（見つけた不具合）**: 値のブロック（reporter）の生成器は `[コード, Generator.ORDER_xxx]` を返す（文の生成器のように `` `...\n` `` の文字列を返さない）。LEGO BOOST の `boost_getMotorPosition` / `boost_seeingColor` / `boost_getTiltAngle` と WeDo 2.0 の `wedo2_isTilted` と micro:bit の `microbit_isButtonPressed` と micro:bit More の `microbitMore_getPinEventValue`（`microbit.value_of(...)`）は文字列を返しているので、`say(...)` などの値の場所に入れると Ruby が壊れる（`say(b)`）。`ruby-roundtrip/boost-table.test.js`・`wedo2-table.test.js`・`microbit-table.test.js` は該当の行を `only: 'toBlocks'` にしている（直すときは外す）。
+
+**気をつけること（見つけた不具合）**: EV3 の `ev3.when_button_pressed(...)` の変換器は、引数にブロックを受け付けるのに、そのブロックをメニューに入れず（どこにもつながらないブロックが残る）、ポートを `"-1"` にする（`toString()` で探すため）。また、変換のたびに `console.log` を出す。表には移さず、元の handler のまま残している。
+
+**気をつけること（見つけた不具合）**: AkaDako（g2s）の数の引数（`set_pwm_duty` の値・`servo_turn` の角度と速さ・NeoPixel の位置や明るさ・`i2c_read` の長さ・`number_at` などの位置）は、引数を確かめていない。文字列（`akadako.set_pwm_duty("10", "25")`）を書くと、その入力の無いブロックになる。表では `unchecked(...)` でこの形を残している（`ruby-roundtrip/g2s-table.test.js`）。
 
 ### P20. 定義ブロックの名前と「画面を再描画せずに実行する」
 

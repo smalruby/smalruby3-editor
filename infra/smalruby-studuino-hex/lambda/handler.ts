@@ -1,12 +1,14 @@
 /**
  * Studuino の hex を作る Lambda（#2209: 土台）。
  *
- * `POST /compile` に `{ "sample": "<名前>" }` を送ると、決まったサンプルをコンパイルして hex を返す。
- * 任意の C++ はまだ受け付けない（構文木の検査と C++ の書き出しは #2210 で足す）。
+ * `POST /compile` に `{ "ir": <構文木> }` を送ると、構文木（Studuino IR）を検査して C++ に書き出し、
+ * コンパイルして hex を返す（#2210）。`{ "sample": "<名前>" }` は決まったサンプルをコンパイルする
+ * （動作確認・計測用。#2209）。任意の C++ は受け付けない。
  * 応答と失敗の形は docs/studuino-mode/README.md の「Lambda の API」に合わせる。
  */
 import * as crypto from 'crypto';
 import type { APIGatewayProxyEventV2 } from 'aws-lambda';
+import { generateSketch, IR_SKETCH_NAME } from './codegen';
 import { compileSketch, readSample, readToolchain, type CompileResult, type Toolchain } from './compiler';
 import {
   errorResponse,
@@ -23,6 +25,7 @@ import {
   type Limits,
   type RequestRecord,
 } from './policy';
+import { validateIr } from './ir';
 import { incrementWindows } from './rate-limit';
 
 export interface HandlerDeps {
@@ -100,13 +103,43 @@ export const createHandler = (deps: HandlerDeps) => {
     } catch {
       return fail('invalid_request', { reason: 'invalid_json' });
     }
-    const sample = findSample((body as { sample?: unknown } | null)?.sample);
-    if (!sample) return fail('invalid_request', { reason: 'unknown_sample' });
-    record.sample = sample.name;
-
+    const parsed = (body && typeof body === 'object' ? body : {}) as { sample?: unknown; ir?: unknown };
     const toolchain = deps.toolchain;
+
+    let sketchName: string;
+    let files: Record<string, string>;
+    let needsStuduinoLib: boolean;
+    if ('ir' in parsed) {
+      const check = validateIr(parsed.ir, deps.limits);
+      if (!check.ok) {
+        if (check.error === 'too_large') {
+          return fail('too_large', { reason: check.reason, path: check.path, limit: check.limit });
+        }
+        return fail('invalid_ir', { reason: check.reason, path: check.path });
+      }
+      record.sample = 'ir';
+      record.irNodes = check.nodes;
+      record.irDepth = check.depth;
+      sketchName = IR_SKETCH_NAME;
+      try {
+        files = { [`${IR_SKETCH_NAME}.ino`]: generateSketch(check.program) };
+      } catch (err) {
+        // 検査を通った構文木は必ず書き出せるはず。来たら検査と書き出しの食い違い
+        deps.log({ event: 'studuino_hex_error', error: String(err) });
+        return fail('internal', { reason: 'codegen_failed' });
+      }
+      needsStuduinoLib = true;
+    } else {
+      const sample = findSample(parsed.sample);
+      if (!sample) return fail('invalid_request', { reason: 'unknown_sample' });
+      record.sample = sample.name;
+      sketchName = sample.name;
+      files = deps.loadSample(sample.name);
+      needsStuduinoLib = sample.needsStuduinoLib;
+    }
+
     if (!toolchain) return fail('internal', { reason: 'toolchain_missing' });
-    if (sample.needsStuduinoLib && !toolchain.studuinoLib) {
+    if (needsStuduinoLib && !toolchain.studuinoLib) {
       return fail('compile_failed', {
         reason: 'library_missing',
         ...(toolchain.studuinoLibError ? { libraryError: toolchain.studuinoLibError } : {}),
@@ -115,7 +148,7 @@ export const createHandler = (deps: HandlerDeps) => {
 
     let result: CompileResult;
     try {
-      result = await deps.compile(sample.name, deps.loadSample(sample.name));
+      result = await deps.compile(sketchName, files);
     } catch (err) {
       deps.log({ event: 'studuino_hex_error', error: String(err) });
       return fail('internal');

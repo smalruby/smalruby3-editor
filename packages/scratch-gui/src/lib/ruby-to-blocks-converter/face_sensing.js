@@ -1,5 +1,5 @@
 // === Smalruby: This file is Smalruby-specific (Ruby-to-blocks converter for face_sensing extension) ===
-import Primitive from './primitive';
+import { fieldArg, registerSendTable } from './send-table';
 
 const FaceSensing = 'face_sensing';
 
@@ -17,120 +17,48 @@ const PartMenuKeys = Object.keys(PartMenu);
 
 const TiltMenu = ['left', 'right'];
 
+// A part of the face: a name (without regard to case) that the field keeps as its number.
+const partArg = () =>
+    fieldArg('PART', Object.values(PartMenu), {
+        normalize: (value) => {
+            const key = value.toLowerCase();
+            return Object.prototype.hasOwnProperty.call(PartMenu, key) ? PartMenu[key] : '';
+        },
+    });
+
+// The calls that map one to one onto a block (send-table.js).
+const FACE_SENSING_SENDS = [
+    { name: 'go_to', opcode: 'faceSensing_goToPart', args: [partArg()] },
+    { name: 'point_in_direction_of_face_tilt', opcode: 'faceSensing_pointInFaceTiltDirection' },
+    { name: 'set_size_to_face_size', opcode: 'faceSensing_setSizeToFaceSize' },
+    {
+        name: 'when_face_tilted',
+        opcode: 'faceSensing_whenTilted',
+        hat: true,
+        args: [fieldArg('DIRECTION', TiltMenu, { normalize: (value) => value.toLowerCase() })],
+    },
+    { name: 'when_this_sprite_touch', opcode: 'faceSensing_whenSpriteTouchesPart', hat: true, args: [partArg()] },
+    { name: 'when_face_detected', opcode: 'faceSensing_whenFaceDetected', hat: true },
+    { name: 'face_detected?', opcode: 'faceSensing_faceIsDetected', type: 'value_boolean' },
+    { name: 'face_tilt', opcode: 'faceSensing_faceTilt', type: 'value' },
+    { name: 'face_size', opcode: 'faceSensing_faceSize', type: 'value' },
+].map((row) => ({ receiver: FaceSensing, changesReceiver: true, ...row }));
+
 /**
  * FaceSensing converter
  */
 const FaceSensingConverter = {
+    sends: FACE_SENSING_SENDS,
+
     register: function (converter) {
+        // `face_sensing` itself is a Ruby expression that the calls of the table turn into their blocks.
         converter.registerOnSend('self', FaceSensing, 0, (params) => {
             const { node } = params;
 
             return converter.createRubyExpressionBlock(FaceSensing, node);
         });
 
-        // goToPart: face_sensing.go_to("nose")
-        converter.registerOnSend(FaceSensing, 'go_to', 1, (params) => {
-            const { receiver, args } = params;
-
-            if (!converter.isString(args[0])) return null;
-            const partKey = args[0].toString().toLowerCase();
-            if (!PartMenuKeys.includes(partKey)) return null;
-
-            args[0] = new Primitive('str', PartMenu[partKey], args[0].node);
-
-            const block = converter.changeRubyExpressionBlock(receiver, 'faceSensing_goToPart', 'statement');
-            converter.addField(block, 'PART', args[0]);
-            return block;
-        });
-
-        // pointInFaceTiltDirection: face_sensing.point_in_direction_of_face_tilt
-        converter.registerOnSend(FaceSensing, 'point_in_direction_of_face_tilt', 0, (params) => {
-            const { receiver } = params;
-
-            const block = converter.changeRubyExpressionBlock(
-                receiver,
-                'faceSensing_pointInFaceTiltDirection',
-                'statement',
-            );
-            return block;
-        });
-
-        // setSizeToFaceSize: face_sensing.set_size_to_face_size
-        converter.registerOnSend(FaceSensing, 'set_size_to_face_size', 0, (params) => {
-            const { receiver } = params;
-
-            const block = converter.changeRubyExpressionBlock(receiver, 'faceSensing_setSizeToFaceSize', 'statement');
-            return block;
-        });
-
-        // whenTilted: face_sensing.when_face_tilted("left") do ... end
-        converter.registerOnSendWithBlock(FaceSensing, 'when_face_tilted', 1, 0, (params) => {
-            const { receiver, args, rubyBlock } = params;
-
-            if (!converter.isString(args[0])) return null;
-            const direction = args[0].toString().toLowerCase();
-            if (!TiltMenu.includes(direction)) return null;
-
-            args[0] = new Primitive('str', direction, args[0].node);
-
-            const block = converter.changeRubyExpressionBlock(receiver, 'faceSensing_whenTilted', 'hat');
-            converter.addField(block, 'DIRECTION', args[0]);
-            converter.setParent(rubyBlock, block);
-            return block;
-        });
-
-        // whenSpriteTouchesPart: face_sensing.when_this_sprite_touch("nose") do ... end
-        converter.registerOnSendWithBlock(FaceSensing, 'when_this_sprite_touch', 1, 0, (params) => {
-            const { receiver, args, rubyBlock } = params;
-
-            if (!converter.isString(args[0])) return null;
-            const partKey = args[0].toString().toLowerCase();
-            if (!PartMenuKeys.includes(partKey)) return null;
-
-            args[0] = new Primitive('str', PartMenu[partKey], args[0].node);
-
-            const block = converter.changeRubyExpressionBlock(receiver, 'faceSensing_whenSpriteTouchesPart', 'hat');
-            converter.addField(block, 'PART', args[0]);
-            converter.setParent(rubyBlock, block);
-            return block;
-        });
-
-        // whenFaceDetected: face_sensing.when_face_detected do ... end
-        converter.registerOnSendWithBlock(FaceSensing, 'when_face_detected', 0, 0, (params) => {
-            const { receiver, rubyBlock } = params;
-
-            const block = converter.changeRubyExpressionBlock(receiver, 'faceSensing_whenFaceDetected', 'hat');
-            converter.setParent(rubyBlock, block);
-            return block;
-        });
-
-        // faceIsDetected: face_sensing.face_detected?
-        converter.registerOnSend(FaceSensing, 'face_detected?', 0, (params) => {
-            const { receiver } = params;
-
-            const block = converter.changeRubyExpressionBlock(
-                receiver,
-                'faceSensing_faceIsDetected',
-                'value_boolean',
-            );
-            return block;
-        });
-
-        // faceTilt: face_sensing.face_tilt
-        converter.registerOnSend(FaceSensing, 'face_tilt', 0, (params) => {
-            const { receiver } = params;
-
-            const block = converter.changeRubyExpressionBlock(receiver, 'faceSensing_faceTilt', 'value');
-            return block;
-        });
-
-        // faceSize: face_sensing.face_size
-        converter.registerOnSend(FaceSensing, 'face_size', 0, (params) => {
-            const { receiver } = params;
-
-            const block = converter.changeRubyExpressionBlock(receiver, 'faceSensing_faceSize', 'value');
-            return block;
-        });
+        registerSendTable(converter, FACE_SENSING_SENDS);
     },
 };
 

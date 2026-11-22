@@ -1,9 +1,8 @@
-import Primitive from './primitive';
+import { anyCase, menuInputArg, registerSendTable, textArg } from './send-table';
 
 const MicroBit = 'microbit_v1';
 
 const ButtonsMenu = ['A', 'B', 'any'];
-const ButtonsMenuLower = ButtonsMenu.map((x) => x.toLowerCase());
 
 const GesturesMenu = ['moved', 'shaken', 'jumped'];
 
@@ -11,10 +10,45 @@ const TiltDirectionAnyMenu = ['front', 'back', 'left', 'right', 'any'];
 
 const TiltDirectionMenu = TiltDirectionAnyMenu.slice(0, 4);
 
+// A menu of micro:bit: a string (looked up without regard to case) or any block.
+const microbitMenu = (input, menu, choices, defaultValue) =>
+    menuInputArg(input, `microbit_menu_${menu}`, menu, defaultValue, {
+        choices,
+        normalize: anyCase(choices),
+        anyBlock: true,
+    });
+const buttonsArg = () => microbitMenu('BTN', 'buttons', ButtonsMenu, 'A');
+const tiltDirectionAnyArg = () => microbitMenu('DIRECTION', 'tiltDirectionAny', TiltDirectionAnyMenu, 'any');
+
+// The calls that map one to one onto a block (send-table.js). `display` (a matrix) and
+// `when_pin_connected` (a number from 0 to 2) stay as handlers.
+const MICROBIT_SENDS = [
+    { name: 'when_button_pressed', opcode: 'microbit_whenButtonPressed', hat: true, args: [buttonsArg()] },
+    { name: 'button_pressed?', opcode: 'microbit_isButtonPressed', type: 'value_boolean', args: [buttonsArg()] },
+    {
+        name: 'when',
+        opcode: 'microbit_whenGesture',
+        hat: true,
+        args: [microbitMenu('GESTURE', 'gestures', GesturesMenu, 'moved')],
+    },
+    { name: 'display_text', opcode: 'microbit_displayText', args: [textArg('TEXT', 'Hello!')] },
+    { name: 'clear_display', opcode: 'microbit_displayClear' },
+    { name: 'when_tilted', opcode: 'microbit_whenTilted', hat: true, args: [tiltDirectionAnyArg()] },
+    { name: 'tilted?', opcode: 'microbit_isTilted', type: 'value_boolean', args: [tiltDirectionAnyArg()] },
+    {
+        name: 'tilt_angle',
+        opcode: 'microbit_getTiltAngle',
+        type: 'value',
+        args: [microbitMenu('DIRECTION', 'tiltDirection', TiltDirectionMenu, 'front')],
+    },
+].map((row) => ({ receiver: MicroBit, changesReceiver: true, ...row }));
+
 /**
  * MicroBit converter
  */
 const MicroBitConverter = {
+    sends: MICROBIT_SENDS,
+
     register: function (converter) {
         const createMicrobitBlock = (node) => converter.createRubyExpressionBlock(MicroBit, node);
 
@@ -24,55 +58,7 @@ const MicroBitConverter = {
             return createMicrobitBlock(node);
         });
 
-        converter.registerOnSendWithBlock(MicroBit, 'when_button_pressed', 1, 0, (params) => {
-            const { receiver, args, rubyBlock } = params;
-
-            if (!converter.isStringOrBlock(args[0])) return null;
-            if (converter.isString(args[0])) {
-                const index = ButtonsMenuLower.indexOf(args[0].toString().toLowerCase());
-                if (index < 0) return null;
-
-                args[0] = new Primitive('str', ButtonsMenu[index], args[0].node);
-            }
-
-            const block = converter.changeRubyExpressionBlock(receiver, 'microbit_whenButtonPressed', 'hat');
-            converter.addFieldInput(block, 'BTN', 'microbit_menu_buttons', 'buttons', args[0], 'A');
-            converter.setParent(rubyBlock, block);
-            return block;
-        });
-
-        converter.registerOnSend(MicroBit, 'button_pressed?', 1, (params) => {
-            const { receiver, args } = params;
-
-            if (!converter.isStringOrBlock(args[0])) return null;
-            if (converter.isString(args[0])) {
-                const index = ButtonsMenuLower.indexOf(args[0].toString().toLowerCase());
-                if (index < 0) return null;
-
-                args[0] = new Primitive('str', ButtonsMenu[index], args[0].node);
-            }
-
-            const block = converter.changeRubyExpressionBlock(receiver, 'microbit_isButtonPressed', 'value_boolean');
-            converter.addFieldInput(block, 'BTN', 'microbit_menu_buttons', 'buttons', args[0], 'A');
-            return block;
-        });
-
-        converter.registerOnSendWithBlock(MicroBit, 'when', 1, 0, (params) => {
-            const { receiver, args, rubyBlock } = params;
-
-            if (!converter.isStringOrBlock(args[0])) return null;
-            if (converter.isString(args[0])) {
-                const index = GesturesMenu.indexOf(args[0].toString().toLowerCase());
-                if (index < 0) return null;
-
-                args[0] = new Primitive('str', GesturesMenu[index], args[0].node);
-            }
-
-            const block = converter.changeRubyExpressionBlock(receiver, 'microbit_whenGesture', 'hat');
-            converter.addFieldInput(block, 'GESTURE', 'microbit_menu_gestures', 'gestures', args[0], 'moved');
-            converter.setParent(rubyBlock, block);
-            return block;
-        });
+        registerSendTable(converter, MICROBIT_SENDS);
 
         converter.registerOnSend(MicroBit, 'display', 5, (params) => {
             const { receiver, args } = params;
@@ -97,92 +83,6 @@ const MicroBitConverter = {
 
             const block = converter.changeRubyExpressionBlock(receiver, 'microbit_displaySymbol', 'statement');
             converter.addFieldInput(block, 'MATRIX', 'matrix', 'MATRIX', args[0], '0101010101100010101000100');
-            return block;
-        });
-
-        converter.registerOnSend(MicroBit, 'display_text', 1, (params) => {
-            const { receiver, args } = params;
-
-            if (!converter.isStringOrBlock(args[0])) return null;
-
-            const block = converter.changeRubyExpressionBlock(receiver, 'microbit_displayText', 'statement');
-            converter.addTextInput(block, 'TEXT', args[0], 'Hello!');
-            return block;
-        });
-
-        converter.registerOnSend(MicroBit, 'clear_display', 0, (params) => {
-            const { receiver } = params;
-
-            return converter.changeRubyExpressionBlock(receiver, 'microbit_displayClear', 'statement');
-        });
-
-        converter.registerOnSendWithBlock(MicroBit, 'when_tilted', 1, 0, (params) => {
-            const { receiver, args, rubyBlock } = params;
-
-            if (!converter.isStringOrBlock(args[0])) return null;
-            if (converter.isString(args[0])) {
-                const index = TiltDirectionAnyMenu.indexOf(args[0].toString().toLowerCase());
-                if (index < 0) return null;
-
-                args[0] = new Primitive('str', TiltDirectionAnyMenu[index], args[0].node);
-            }
-
-            const block = converter.changeRubyExpressionBlock(receiver, 'microbit_whenTilted', 'hat');
-            converter.addFieldInput(
-                block,
-                'DIRECTION',
-                'microbit_menu_tiltDirectionAny',
-                'tiltDirectionAny',
-                args[0],
-                'any',
-            );
-            converter.setParent(rubyBlock, block);
-            return block;
-        });
-
-        converter.registerOnSend(MicroBit, 'tilted?', 1, (params) => {
-            const { receiver, args } = params;
-
-            if (!converter.isStringOrBlock(args[0])) return null;
-            if (converter.isString(args[0])) {
-                const index = TiltDirectionAnyMenu.indexOf(args[0].toString().toLowerCase());
-                if (index < 0) return null;
-
-                args[0] = new Primitive('str', TiltDirectionAnyMenu[index], args[0].node);
-            }
-
-            const block = converter.changeRubyExpressionBlock(receiver, 'microbit_isTilted', 'value_boolean');
-            converter.addFieldInput(
-                block,
-                'DIRECTION',
-                'microbit_menu_tiltDirectionAny',
-                'tiltDirectionAny',
-                args[0],
-                'any',
-            );
-            return block;
-        });
-
-        converter.registerOnSend(MicroBit, 'tilt_angle', 1, (params) => {
-            const { receiver, args } = params;
-
-            if (!converter.isStringOrBlock(args[0])) return null;
-            if (converter.isString(args[0])) {
-                const index = TiltDirectionMenu.indexOf(args[0].toString().toLowerCase());
-                if (index < 0) return null;
-
-                args[0] = new Primitive('str', TiltDirectionMenu[index], args[0].node);
-            }
-
-            const block = converter.changeRubyExpressionBlock(receiver, 'microbit_getTiltAngle', 'value');
-            converter.addFieldInput(
-                block,
-                'DIRECTION',
-                'microbit_menu_tiltDirection',
-                'tiltDirection',
-                args[0],
-                'front',
-            );
             return block;
         });
 

@@ -88,7 +88,7 @@ const Finish = {
             );
         }
         const index = (this._context.literalCallIndices._lit_ || 0) + 1;
-        this._context.literalCallIndices._lit_ = index;
+        this._context.store.setLiteralCallIndex('_lit_', index);
         const varName = `_lit_${index}_`;
 
         if (primitive.type === 'array') {

@@ -111,19 +111,25 @@ sequenceDiagram
 
 ### Google サインイン UI の置き場所
 
-One Tap が表示できない環境（Windows や Playwright では毎回）では、GIS が描画する
-「Google でログイン」ボタンを使う。このボタンは **モーダル内のスロット**
+ログインは GIS が描画する「Google でログイン」ボタンだけで行い、One Tap（自動の画面）は使わない。
+ログイン画面を開くとすぐにボタンを描画し（`use_fedcm_for_button: true`。Chrome では FedCM のボタン方式、
+ほかのブラウザではポップアップ）、自前のボタンは GIS が読みこめるまでの代わりにする。
+Chrome は一度閉じられた One Tap をしばらく出さなくなり、それをページに知らせないので、
+One Tap に頼ると 1 回目のクリックが何も起こさない。Google のボタンを押したときは必ず開く。
+
+このボタンは **モーダル内のスロット**
 （`components/google-sign-in-slot/`、教師ログイン画面と不具合報告モーダルに配置）へ
 描画する。React の外（`document.body` 直下の固定オーバーレイ）に描画すると、
 ログインを中断してもカードが画面中央に残り、ログインを開始するたびに増えていく。
 
 - 進行中のログインは常に 1 つだけ（`loginWithGoogle` は開始時に前回を中止する）。
-- スロットのアンマウント（モーダルを閉じる / フェーズ移動）、Microsoft ログインへの
-  切り替え、ログイン完了・失敗のいずれでも `cancelGoogleLogin()` が走り、ボタン削除・
-  One Tap の `cancel()`・Promise の settle をまとめて行う。
-- 表示判定に FedCM 必須化で機能しなくなる `isNotDisplayed()` / `isSkippedMoment()` /
-  `isDisplayMoment()` を使わない（`use_fedcm_for_prompt: true`。サイレント再認証は
-  dismiss とタイムアウトのみで失敗を判定する）。
+- スロットのアンマウント（モーダルを閉じる / フェーズ移動）、ログイン完了・失敗の
+  いずれでも `cancelGoogleLogin()` が走り、ボタン削除・GIS の `cancel()`・Promise の
+  settle をまとめて行う。Microsoft を選んでも Google のボタンは残す（Microsoft を
+  やめたあとも Google を選べるように）。
+- サイレント再認証は One Tap の `auto_select` を使う。FedCM 必須化で機能しなくなる
+  `isNotDisplayed()` / `isSkippedMoment()` / `isDisplayMoment()` は使わず
+  （`use_fedcm_for_prompt: true`）、dismiss とタイムアウトだけで失敗を判定する。
 
 ### 生徒セッション管理
 

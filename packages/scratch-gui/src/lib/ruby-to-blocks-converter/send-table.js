@@ -18,6 +18,7 @@
  * ]);
  * ```
  */
+import Primitive from './primitive';
 
 /**
  * A number (or a value block) put into an input with a number shadow.
@@ -31,10 +32,12 @@ const numberArg = (input, defaultValue, shadow = 'math_number') => ({ kind: 'num
 /**
  * A string (or a value block) put into an input with a text shadow (`ask("name?")`).
  * @param {string} input - The name of the input (`QUESTION`).
- * @param {string} defaultValue - The value of the shadow when the argument is a block.
+ * @param {string} [defaultValue] - The value of the shadow when the argument is a block.
+ * @param {object} [options] - Options.
+ * @param {boolean} [options.number] - Takes a number too (`translate.call(1, "ja")`).
  * @returns {object} The argument of a row.
  */
-const textArg = (input, defaultValue) => ({ kind: 'text', input, defaultValue });
+const textArg = (input, defaultValue, { number = false } = {}) => ({ kind: 'text', input, defaultValue, number });
 
 /**
  * A string put into a menu block of an input (`go_to("Abby")` → `motion_goto_menu`).
@@ -47,15 +50,26 @@ const textArg = (input, defaultValue) => ({ kind: 'text', input, defaultValue })
  *     sprite does not have, ...).
  * @param {boolean} [options.number] - Takes a number or a block (put into the input as it is)
  *     instead of a string (`play_drum(drum: 1, ...)` → `music_menu_DRUM`).
+ * @param {boolean} [options.orBlock] - Takes a string or a value block (put into the input as it
+ *     is, without a menu behind it: `translate.call("hi", $l)`).
+ * @param {?Function} [options.normalize] - Makes the value of the menu from a string (the port
+ *     `"A"` of EV3 → its index `"0"`).
  * @returns {object} The argument of a row.
  */
-const menuArg = (input, menuOpcode, field = input, { validate = null, number = false } = {}) => ({
+const menuArg = (
+    input,
+    menuOpcode,
+    field = input,
+    { validate = null, number = false, orBlock = false, normalize = null } = {},
+) => ({
     kind: 'menu',
     input,
     menuOpcode,
     field,
     validate,
     number,
+    orBlock,
+    normalize,
 });
 
 /**
@@ -64,11 +78,15 @@ const menuArg = (input, menuOpcode, field = input, { validate = null, number = f
  * @param {string} input - The name of the input (`TOUCHINGOBJECTMENU`).
  * @param {string} menuOpcode - The opcode of the menu block.
  * @param {string} field - The field of the menu block.
- * @param {string} defaultValue - The value of the menu shadow when the argument is a block.
+ * @param {string|Function} defaultValue - The value of the menu shadow when the argument is a block,
+ *     or `(converter) => value` when it depends on the project (the language of Text to Speech).
  * @param {object} [options] - Options.
  * @param {?Array<string>} [options.choices] - The strings that the menu takes, or null for any.
  * @param {?Function} [options.validate] - As of `menuArg`.
  * @param {boolean} [options.anyBlock] - Takes any block, not only a value block.
+ * @param {boolean} [options.stringOnly] - Takes only a string, not a block (the hats of TM2Scratch).
+ * @param {?Function} [options.normalize] - Makes the value of the menu from a string (`'alto'` →
+ *     `'ALTO'`); the choices are of the made values, and the menu gets the made value.
  * @returns {object} The argument of a row.
  */
 const menuInputArg = (
@@ -76,7 +94,7 @@ const menuInputArg = (
     menuOpcode,
     field,
     defaultValue,
-    { choices = null, validate = null, anyBlock = false } = {},
+    { choices = null, validate = null, anyBlock = false, stringOnly = false, normalize = null } = {},
 ) => ({
     kind: 'menuInput',
     input,
@@ -86,6 +104,8 @@ const menuInputArg = (
     choices,
     validate,
     anyBlock,
+    stringOnly,
+    normalize,
 });
 
 /**
@@ -95,6 +115,20 @@ const menuInputArg = (
  * @returns {object} The argument of a row.
  */
 const noteArg = (input, defaultValue) => ({ kind: 'note', input, defaultValue });
+
+/**
+ * A `normalize` of `menuInputArg` that looks a string up in the choices without regard to case and
+ * gives the choice as it is written in the menu (`'motor a'` → `'motor A'`), or `''` (not a choice).
+ * @param {Array<string>} choices - The choices of the menu.
+ * @returns {Function} The `normalize`.
+ */
+const anyCase = (choices) => {
+    const lower = choices.map((choice) => choice.toLowerCase());
+    return (value) => {
+        const index = lower.indexOf(value.toLowerCase());
+        return index < 0 ? '' : choices[index];
+    };
+};
 
 /**
  * A color string (or a value block) put into a color input (`touching_color?("#ff0000")`).
@@ -124,6 +158,25 @@ const fieldArg = (field, choices = null, { normalize = null } = {}) => ({ kind: 
 const fieldValueOf = (spec, arg) => (spec.normalize ? spec.normalize(arg.toString()) : arg.toString());
 
 /**
+ * The string of a menu input argument as the menu takes it: normalized (in a Primitive of the same
+ * node) if the row says so, else the argument itself.
+ * @param {object} spec - The argument of the row.
+ * @param {*} arg - The argument of the call (a string).
+ * @returns {*} The value.
+ */
+const menuInputValueOf = (spec, arg) =>
+    spec.normalize ? new Primitive('str', fieldValueOf(spec, arg), arg.node) : arg;
+
+/**
+ * An argument that takes anything, not checked (some calls of AkaDako put any argument into a
+ * number input or a menu as it is). Kept for the calls that already took anything; a new row
+ * should check its arguments.
+ * @param {object} spec - The argument of a row.
+ * @returns {object} The argument of a row, not checked.
+ */
+const unchecked = (spec) => ({ ...spec, unchecked: true });
+
+/**
  * Whether an argument of a call is of the kind that a row expects.
  * @param {object} converter - The converter.
  * @param {object} spec - The argument of the row.
@@ -131,18 +184,22 @@ const fieldValueOf = (spec, arg) => (spec.normalize ? spec.normalize(arg.toStrin
  * @returns {boolean} true if it is.
  */
 const acceptsArg = (converter, spec, arg) => {
+    if (spec.unchecked) return true;
     switch (spec.kind) {
         case 'number':
             return converter._isNumberOrBlock(arg);
         case 'text':
-            return converter._isStringOrBlock(arg);
+            return spec.number ? converter._isNumberOrStringOrBlock(arg) : converter._isStringOrBlock(arg);
         case 'menu':
-            return spec.number ? converter._isNumberOrBlock(arg) : converter._isString(arg);
+            if (spec.number) return converter._isNumberOrBlock(arg);
+            return spec.orBlock ? converter._isStringOrBlock(arg) : converter._isString(arg);
         case 'note':
             return converter._isNumberOrBlock(arg);
         case 'menuInput':
-            if (spec.anyBlock ? converter._isBlock(arg) : converter._isValueBlock(arg)) return true;
-            return converter._isString(arg) && (!spec.choices || spec.choices.indexOf(arg.toString()) >= 0);
+            if (!spec.stringOnly && (spec.anyBlock ? converter._isBlock(arg) : converter._isValueBlock(arg))) {
+                return true;
+            }
+            return converter._isString(arg) && (!spec.choices || spec.choices.indexOf(fieldValueOf(spec, arg)) >= 0);
         case 'color':
             return converter._isColorOrBlock(arg);
         case 'field':
@@ -168,13 +225,28 @@ const putArg = (converter, block, spec, arg) => {
             converter._addTextInput(block, spec.input, arg, spec.defaultValue);
             break;
         case 'menu':
-            converter._addInput(block, spec.input, converter._createFieldBlock(spec.menuOpcode, spec.field, arg));
+            converter._addInput(
+                block,
+                spec.input,
+                converter._createFieldBlock(
+                    spec.menuOpcode,
+                    spec.field,
+                    spec.normalize && converter._isString(arg) ? spec.normalize(arg.toString()) : arg,
+                ),
+            );
             break;
         case 'note':
             converter._addNoteInput(block, spec.input, arg, spec.defaultValue);
             break;
         case 'menuInput':
-            converter._addFieldInput(block, spec.input, spec.menuOpcode, spec.field, arg, spec.defaultValue);
+            converter._addFieldInput(
+                block,
+                spec.input,
+                spec.menuOpcode,
+                spec.field,
+                converter._isString(arg) ? menuInputValueOf(spec, arg) : arg,
+                typeof spec.defaultValue === 'function' ? spec.defaultValue(converter) : spec.defaultValue,
+            );
             break;
         case 'color':
             converter._addColorFieldInput(block, spec.input, arg, spec.defaultValue);
@@ -263,4 +335,16 @@ const registerSendTable = (converter, rows) => {
     });
 };
 
-export { colorArg, fieldArg, menuArg, menuInputArg, noteArg, numberArg, onSelf, registerSendTable, textArg };
+export {
+    anyCase,
+    colorArg,
+    fieldArg,
+    menuArg,
+    menuInputArg,
+    noteArg,
+    numberArg,
+    onSelf,
+    registerSendTable,
+    textArg,
+    unchecked,
+};
