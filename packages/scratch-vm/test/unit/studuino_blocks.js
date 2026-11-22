@@ -99,11 +99,18 @@ test('ポートのメニュー: 割り当てたポートだけを「部品 (ポ�
     t.end();
 });
 
-test('ブラウザでは動かさない（値のブロックは 0 / 偽）', (t) => {
+test('ブラウザでは練習用の基板を動かす（はじめは 0 / 偽）', (t) => {
     const ext = new SmalrubotS1Blocks(createRuntime());
+    // 既定の配線: A6 = 光センサー・A2 = タッチセンサー・A0 = LED
     t.equal(ext.studuinoLightSensor({ PORT: 'A6' }), 0);
     t.equal(ext.studuinoTouchSensorPressed({ PORT: 'A2' }), false);
     t.equal(ext.studuinoLed({ PORT: 'A0', STATE: 'on' }), undefined);
+    const led = ext.getStuduinoPracticeState().ports.find((p) => p.port === 'A0');
+    t.same(led, { port: 'A0', part: 'led', on: true });
+    ext.setStuduinoPracticeInput('A6', 512);
+    t.equal(ext.studuinoLightSensor({ PORT: 'A6' }), 512);
+    ext.setStuduinoPracticeInput('A2', true);
+    t.equal(ext.studuinoTouchSensorPressed({ PORT: 'A2' }), true);
     t.end();
 });
 
