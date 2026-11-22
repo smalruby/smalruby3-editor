@@ -205,4 +205,40 @@ describe('Studuino mode', () => {
         await sleep(300);
         expect(await existsByTestId('studuino-write-modal')).toBe(false);
     });
+
+    test('two green flags: the write modal lists the unused script and a click colors it (#2353)', async () => {
+        await loadUri(`${uri}?no_beforeunload=1`);
+        await activateSmalrubotS1Extension();
+        await toggleStuduinoMode();
+        await driver.wait(() => existsByTestId('studuino-port-settings-modal'), 5000, 'Port settings did not open');
+        await clickByTestId('studuino-port-settings-assign');
+        await driver.wait(
+            async () => !(await existsByTestId('studuino-port-settings-modal')),
+            5000,
+            'Port settings did not close',
+        );
+        await driver.executeScript(`
+            const blocks = window.smalruby.vm.editingTarget.blocks;
+            ['studuino-flag-a', 'studuino-flag-b'].forEach((id, i) => blocks.createBlock({
+                id, opcode: 'event_whenflagclicked', next: null, parent: null,
+                inputs: {}, fields: {}, topLevel: true, shadow: false, x: 0, y: i * 200,
+            }));
+            window.smalruby.vm.emitWorkspaceUpdate();
+        `);
+        await sleep(500);
+        await driver.executeScript(`document.querySelector('img[title="Go"]').click()`);
+        await driver.wait(() => existsByTestId('studuino-write-notices'), 5000, 'Notices did not show');
+        const notices = await driver.executeScript(
+            `return [...document.querySelectorAll('[data-testid^="studuino-write-notice-"]')]` +
+                `.map((e) => e.dataset.reason)`,
+        );
+        expect(notices).toEqual(['used_flag', 'unused_flag']);
+        await clickByTestId('studuino-write-notice-1');
+        await sleep(500);
+        expect(await existsByTestId('studuino-write-modal')).toBe(false);
+        const colored = await driver.executeScript(
+            `return [...document.querySelectorAll('.studuinoNoticeBlock')].map((e) => e.getAttribute('data-id'))`,
+        );
+        expect(colored).toEqual(['studuino-flag-b']);
+    });
 });

@@ -1,5 +1,6 @@
 @import '../css/colors.css';
 @import '../css/units.css';
+@import '../css/smalruby-tokens.css';
 
 /* 画面の上（コードの場所の上）に出す「使えないブロックが n 個あります」 */
 .banner {
@@ -31,4 +32,9 @@
     stroke: #e60000 !important;
     stroke-width: 3px !important;
     stroke-dasharray: 6 3;
+}
+
+/* 書きこみのモーダルの一覧から移ったブロックの色（#2353）。オレンジの光でかこむ（使えないブロックの赤い点線と重ねられる） */
+:global(.studuinoNoticeBlock) > :global(.blocklyPath) {
+    filter: drop-shadow(0 0 4px $color-warning) drop-shadow(0 0 8px $color-warning);
 }

@@ -18,6 +18,8 @@ class WriteAborted extends Error {}
 
 const StuduinoWriteModalContainer = ({ abortCount, visible, vm, onClose }) => {
     const [state, setState] = useState({ step: STEP.CHECKING });
+    // 検査で集めた警告・止めた理由の一覧（#2353）。hex を作る・書きこむの段階に進んでも出し続ける
+    const [notices, setNotices] = useState([]);
     const abortRef = useRef(null);
     const abortedRef = useRef(false);
 
@@ -25,6 +27,7 @@ const StuduinoWriteModalContainer = ({ abortCount, visible, vm, onClose }) => {
         abortedRef.current = false;
         const check = stepAfterCheck(buildStuduinoIrFromVm(vm, getStuduinoSettings(vm.runtime)));
         setState(check);
+        setNotices(check.notices || []);
         if (check.step !== STEP.COMPILING) return;
         const controller = typeof AbortController === 'function' ? new AbortController() : null;
         abortRef.current = controller;
@@ -79,8 +82,17 @@ const StuduinoWriteModalContainer = ({ abortCount, visible, vm, onClose }) => {
     const handleShowBlocks = useCallback(() => {
         const first = state.blocks && state.blocks[0];
         onClose();
-        if (first) jumpToBlock(vm, first);
+        if (first) jumpToBlock(vm, first, { highlight: true });
     }, [state, vm, onClose]);
+
+    // 一覧の項目を押すと、モーダルを閉じてそのブロックのある target に切りかえ、色をつける（#2353）
+    const handleShowNotice = useCallback(
+        (notice) => {
+            onClose();
+            jumpToBlock(vm, notice, { highlight: true });
+        },
+        [vm, onClose],
+    );
 
     const handleSaveSource = useCallback(() => {
         const source = state.compiled && state.compiled.source;
@@ -97,11 +109,13 @@ const StuduinoWriteModalContainer = ({ abortCount, visible, vm, onClose }) => {
     return (
         <StuduinoWriteModal
             {...state}
+            notices={notices}
             webSerialSupported={isWebSerialSupported()}
             onClose={onClose}
             onRetry={start}
             onSaveSource={handleSaveSource}
             onShowBlocks={handleShowBlocks}
+            onShowNotice={handleShowNotice}
             onWrite={handleWrite}
         />
     );

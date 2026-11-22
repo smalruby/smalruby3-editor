@@ -27,6 +27,14 @@ export const STUDUINO_IR_ERRORS = Object.freeze({
     TOO_LARGE: 'too_large',
 });
 
+/**
+ * 警告の理由（#2353）。書きこみは止めないが、書きこむときのモーダルで知らせる。
+ * - `string_initial_value`: 変数のいまの値が数にできないので 0 からはじめる（S7）
+ */
+export const STUDUINO_IR_WARNINGS = Object.freeze({
+    STRING_INITIAL_VALUE: 'string_initial_value',
+});
+
 const E = STUDUINO_IR_ERRORS;
 
 const FLAG_OPCODE = 'event_whenflagclicked';
@@ -134,6 +142,8 @@ const createContext = (targets, settings) => {
         ports: settings.ports,
         errors: [],
         errorKeys: new Set(),
+        // 書きこみは止めない知らせ（#2353）。構文木には入れず、GUI だけが使う
+        warnings: [],
         variables: [],
         variableIds: new Map(),
         // 旗の下の木を作るときだけ変数を登録する（ばらばらのスクリプトは検査だけ）
@@ -265,6 +275,15 @@ const variableRef = (ctx, target, block) => {
     // はじめの値: いまの値が数にできればそれ、できなければ 0（書きこむときの値を使う。文字の値は 0）
     const init = toStuduinoNumber(variable.value);
     ctx.variables.push({ id, init: init === null ? 0 : init });
+    if (init === null) {
+        // はじめて使ったブロックを指す（変数そのものはワークスペースに無いので）
+        ctx.warnings.push({
+            blockId: block.id,
+            targetId: target.id,
+            reason: STUDUINO_IR_WARNINGS.STRING_INITIAL_VALUE,
+            variable: variable.name,
+        });
+    }
     return id;
 };
 
@@ -638,8 +657,10 @@ export const measureStuduinoIr = (ir, limits = STUDUINO_IR_LIMITS) => {
  *   `{id, isStage, blocks: {<id>: block}, variables: {<id>: {id, name, type, value}}}`
  *   （`blocks` は VM の `target.blocks._blocks` の形）
  * @param {object} options.settings - ポートの設定（`getStuduinoSettings` の形。`ports` と `calibration`）
- * @returns {{ok: true, ir: object} | {ok: false, errors: Array<{blockId: ?string, targetId: ?string,
- *   reason: string}>}} 構文木、または使えないブロックの一覧
+ * @returns {{ok: true, ir: object, warnings: Array<object>} | {ok: false, errors: Array<{blockId: ?string,
+ *   targetId: ?string, reason: string}>, warnings: Array<object>, usedFlag?: object}} 構文木、または
+ *   使えないブロックの一覧。`warnings` は書きこみを止めない知らせ（`{blockId, targetId, reason, variable}`）。
+ *   旗が 2 つ以上なら `usedFlag`（動く 1 つ目の旗の `{blockId, targetId}`）
  */
 export const buildStuduinoIr = ({ targets, settings }) => {
     const list = (targets || []).filter(Boolean);
@@ -672,7 +693,13 @@ export const buildStuduinoIr = ({ targets, settings }) => {
     // その中の使えないブロックはエラーにする（#2214 の印と同じく、どこにあっても示す）
     others.forEach(({ target, block }) => checkAny(ctx, target, block.id));
 
-    if (ctx.errors.length > 0 || !main) return { ok: false, errors: ctx.errors };
+    const failed = () => {
+        const result = { ok: false, errors: ctx.errors, warnings: ctx.warnings };
+        // 旗が 2 つ以上のとき、電源を入れて動くのは 1 つ目（#2353・S17。どれが使われないかを示すため）
+        if (flags.length > 1) result.usedFlag = { blockId: flags[0].block.id, targetId: flags[0].target.id };
+        return result;
+    };
+    if (ctx.errors.length > 0 || !main) return failed();
 
     const ir = {
         version: STUDUINO_IR_VERSION,
@@ -695,7 +722,7 @@ export const buildStuduinoIr = ({ targets, settings }) => {
             detail: measured.over.detail,
             limit: measured.over.limit,
         });
-        return { ok: false, errors: ctx.errors };
+        return failed();
     }
     // 構文木には利用者の文字列が入らないので、文字の数 = UTF-8 のバイト数
     const bytes = JSON.stringify({ ir }).length;
@@ -704,9 +731,9 @@ export const buildStuduinoIr = ({ targets, settings }) => {
             detail: 'too_many_bytes',
             limit: STUDUINO_IR_LIMITS.maxRequestBytes,
         });
-        return { ok: false, errors: ctx.errors };
+        return failed();
     }
-    return { ok: true, ir };
+    return { ok: true, ir, warnings: ctx.warnings };
 };
 
 /**

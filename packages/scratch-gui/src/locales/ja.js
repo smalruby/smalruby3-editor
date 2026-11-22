@@ -40,6 +40,21 @@ export default {
         '「緑の旗が押されたとき」のブロックを置いてください。Studuino の電源を入れると、その下のプログラムが動きます。',
     'gui.studuinoWrite.unusableBlocks':
         '使えないブロックが {count} 個あります。直してから、もう一度ためしてください。',
+    'gui.studuinoWrite.notice.usedFlag': 'Studuino で動くのは、この「緑の旗が押されたとき」のスクリプトです。',
+    'gui.studuinoWrite.notice.unusedFlag':
+        'この「緑の旗が押されたとき」のスクリプトは使われません。Studuino で動くのは 1 つだけです。1 つにまとめてください。',
+    'gui.studuinoWrite.notice.stringInitialValue':
+        '変数「{variable}」のいまの値が数ではありません。Studuino では 0 からはじめます。',
+    'gui.studuinoWrite.notice.stringValue': '数を入れるところに文字が入っています。',
+    'gui.studuinoWrite.notice.portNotAssigned': 'このポートには、入出力の設定で部品を割り当てていません。',
+    'gui.studuinoWrite.notice.wrongPart': 'このポートには、入出力の設定で別の部品を割り当てています。',
+    'gui.studuinoWrite.notice.duplicatePort': '同じサーボモーターを 2 回使っています。',
+    'gui.studuinoWrite.notice.tooLarge': 'このあたりで、プログラムが大きすぎます。',
+    'gui.studuinoWrite.notice.unsupportedBlock': 'このブロックは Studuino モードでは使えません。',
+    'gui.studuinoWrite.notice.label.stop': '直す',
+    'gui.studuinoWrite.notice.label.warning': '注意',
+    'gui.studuinoWrite.notice.label.info': '動く',
+    'gui.studuinoWrite.notice.hint': '押すと、そのブロックを見られます。',
     'gui.studuinoWrite.ready': 'Studuino を USB ケーブルでつないで、［書きこむ］を押してください。',
     'gui.studuinoWrite.noWebSerial': 'このブラウザでは Studuino に書きこめません。Chrome か Edge を使ってください。',
     'gui.studuinoWrite.writeFailed':
