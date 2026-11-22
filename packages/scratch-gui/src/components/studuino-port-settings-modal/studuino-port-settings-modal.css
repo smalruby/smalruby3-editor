@@ -2,7 +2,8 @@
 @import '../../css/units.css';
 
 .modal-content {
-    width: 840px;
+    /* 基板の絵を置いても、ドロップダウンの部品の名前が切れない幅 */
+    width: 920px;
     max-width: calc(100vw - 2rem);
 }
 
@@ -82,7 +83,7 @@
 
 /* 基板の絵（ポートの名前が読める大きさ。絵は 2 倍の解像度で持つ） */
 .board {
-    flex: 0 0 12rem;
+    flex: 0 0 11rem;
     display: flex;
     align-items: center;
     justify-content: center;
