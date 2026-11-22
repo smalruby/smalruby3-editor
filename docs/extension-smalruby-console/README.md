@@ -34,8 +34,13 @@ Scratch には「言う」「聞いて待つ」しかないが、日本語のプ
 - 緑の旗で作品を始めると、行を消す。［消す］でも消せる。行は 1,000 行まで（古いものから消す）。
 - 日本語モードのブロックパレットでは、拡張機能のうちコンソールだけを出す（`make-toolbox-xml.js`。ブロックの絞り込みは `dncl-block-filter.js`）。
 - 日本語タブはコンソールを既定にする（タブからは `src/lib/smalruby-console.js` の
-  `showSmalrubyConsole(vm, dispatch)` / `hideSmalrubyConsole(dispatch)` を呼ぶ。Redux の
+  `showSmalrubyConsole(dispatch)` / `hideSmalrubyConsole(dispatch)` を呼ぶ。Redux の
   `setSmalrubyConsoleVisible(bool)` を直接 dispatch してもよい）。
+- 日本語タブを開いても、出すのは**コンソールの画面だけ**で、拡張機能は作品に足さない。拡張機能は、
+  日本語 → Ruby の変換で `表示する` / `【外部からの入力】`（Ruby の `console.puts` / `console.gets`）が
+  出て、そのブロックを作るときに初めて足す（変換器がブロックの opcode から拡張機能を読み込む）。
+  表示も入力もしないプログラムの作品には、拡張機能が入らない。拡張機能が無いあいだは、
+  日本語モードのブロックパレットにコンソールのブロックは出ない。
 
 | data-testid                      | 要素                                             |
 | -------------------------------- | ------------------------------------------------ |

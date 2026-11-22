@@ -1375,12 +1375,13 @@ const RubyTab = (props) => {
     }, [exitDnclModeExternallyRequested, dnclModeLocked, locale, activeTabIndex]);
 
     // The console is the stage of the Japanese tab (docs/dncl/design.md 5 章): it is shown while the
-    // Japanese tab shows the program in Japanese, and the Ruby tab gives the stage back. The
-    // editing target is a dependency so that the console comes back after a project is loaded
-    // (a new project has no console extension yet).
+    // Japanese tab shows the program in Japanese, and the Ruby tab gives the stage back. Only the
+    // screen is shown: the console extension is added by the conversion when the program prints
+    // or reads (`表示する` / `入力する`). The editing target is a dependency so that the console
+    // comes back after a project is loaded.
     const japaneseTabActive = activeTabIndex === JAPANESE_TAB_INDEX;
     useEffect(() => {
-        if (dnclMode && japaneseTabActive) onShowSmalrubyConsole?.(vm);
+        if (dnclMode && japaneseTabActive) onShowSmalrubyConsole?.();
     }, [dnclMode, japaneseTabActive, editingTarget]);
     useEffect(() => {
         if (activeTabIndex === RUBY_TAB_INDEX) onHideSmalrubyConsole?.();
@@ -2006,7 +2007,7 @@ const mapDispatchToProps = (dispatch) => ({
     onSetDnclMode: (dnclMode) => dispatch(setDnclModeAction(dnclMode)),
     onClearExitDnclModeRequest: () => dispatch(clearExternalExitDnclModeRequest()),
     onActivateTab: (tab) => dispatch(activateTab(tab)),
-    onShowSmalrubyConsole: (vm) => showSmalrubyConsole(vm, dispatch),
+    onShowSmalrubyConsole: () => showSmalrubyConsole(dispatch),
     onHideSmalrubyConsole: () => hideSmalrubyConsole(dispatch),
 });
 
