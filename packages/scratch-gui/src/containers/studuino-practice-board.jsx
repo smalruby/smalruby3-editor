@@ -6,15 +6,23 @@
 //     出ているときは、その左に並べて重ならないようにする。ステージの列の下（スプライトの情報）はヒントが指すので使わない。
 //   - コードのタブと Ruby のタブだけで出す（コスチューム・音のタブではエディタの道具に重なるため出さない）。
 //     小さい画面（MobileGui）には置かない（gui.jsx の desktop の木にだけ置く）。
+//   - Studuino モードでは、Studuino モードの練習用の基板（入出力の設定で割り当てた部品だけ・#2355）を出す。
+//     ［旗のスクリプトを試す］で旗のスクリプトをブラウザで動かす（緑の旗は書きこみのまま）。
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
+import { useIntl } from 'react-intl';
 import { connect } from 'react-redux';
+import StuduinoModePracticeBoard from '../components/studuino-practice-board/studuino-mode-practice-board.jsx';
 import StuduinoPracticeBoard from '../components/studuino-practice-board/studuino-practice-board.jsx';
+import log from '../lib/log';
+import RubyToBlocksConverterHOC from '../lib/ruby-to-blocks-converter-hoc.jsx';
 import { BLOCKS_TAB_INDEX, RUBY_TAB_INDEX } from '../reducers/editor-tab';
 import { getCurrentChallenge } from '../reducers/lesson-mode';
+import { isStuduinoMode } from '../reducers/studuino-mode';
 
 export const STATE_EVENT = 'STUDUINO_PRACTICE_BOARD_STATE';
+export const STUDUINO_MODE_STATE_EVENT = 'STUDUINO_MODE_PRACTICE_STATE';
 export const EXTENSION_ID = 'smalrubotS1';
 export const OPEN_STORAGE_KEY = 'smalruby:studuinoPracticeBoardOpen';
 // タッチセンサーの値（Studuino のタッチセンサーは押すと 0、はなすと 1）
@@ -75,8 +83,23 @@ const initialState = (vm) => {
     return vm.runtime.studuinoPracticeBoardState || null;
 };
 
-const StuduinoPracticeBoardContainer = ({ editorVisible = true, partnerKey = null, vm }) => {
+const initialStuduinoModeState = (vm) => {
+    if (!vm || !vm.runtime) return null;
+    const ext = getExtension(vm);
+    if (ext && typeof ext.getStuduinoPracticeState === 'function') return ext.getStuduinoPracticeState();
+    return vm.runtime.studuinoModePracticeState || null;
+};
+
+const StuduinoPracticeBoardContainer = ({
+    editorVisible = true,
+    partnerKey = null,
+    studuinoMode = false,
+    targetCodeToBlocks = null,
+    vm,
+}) => {
+    const intl = useIntl();
     const [boardState, setBoardState] = useState(() => initialState(vm));
+    const [studuinoState, setStuduinoState] = useState(() => initialStuduinoModeState(vm));
     const [open, setOpen] = useState(loadOpen);
     const [position, setPosition] = useState(null);
     // タッチセンサーを「はなした」値にそろえたか（拡張機能を読みこんだ直後は 0 = 押した、になっているため）
@@ -89,6 +112,38 @@ const StuduinoPracticeBoardContainer = ({ editorVisible = true, partnerKey = nul
         vm.runtime.on(STATE_EVENT, handleState);
         return () => vm.runtime.removeListener(STATE_EVENT, handleState);
     }, [vm]);
+
+    useEffect(() => {
+        if (!vm || !vm.runtime) return () => {};
+        const handleState = (state) => setStuduinoState(state);
+        setStuduinoState(initialStuduinoModeState(vm));
+        vm.runtime.on(STUDUINO_MODE_STATE_EVENT, handleState);
+        return () => vm.runtime.removeListener(STUDUINO_MODE_STATE_EVENT, handleState);
+    }, [vm]);
+
+    const setStuduinoInput = useCallback(
+        (port, value) => {
+            const ext = getExtension(vm);
+            if (ext && typeof ext.setStuduinoPracticeInput === 'function') ext.setStuduinoPracticeInput(port, value);
+        },
+        [vm],
+    );
+
+    // ［旗のスクリプトを試す］: 緑の旗と同じく Ruby の変更をブロックにしてから、旗のスクリプトを VM で動かす
+    const handleTry = useCallback(async () => {
+        if (!vm) return;
+        try {
+            if (targetCodeToBlocks) {
+                const converter = await targetCodeToBlocks(intl);
+                if (!converter.result) return;
+                await converter.apply();
+            }
+            if (typeof vm.start === 'function') vm.start();
+            vm.greenFlag();
+        } catch (e) {
+            log.error('Failed to try the flag script on the practice board:', e);
+        }
+    }, [intl, targetCodeToBlocks, vm]);
 
     const setSensor = useCallback(
         (port, value) => {
@@ -106,7 +161,8 @@ const StuduinoPracticeBoardContainer = ({ editorVisible = true, partnerKey = nul
         if (boardState.sensors && boardState.sensors.A2 === 0) setSensor('A2', TOUCH_RELEASED_VALUE);
     }, [boardState, setSensor]);
 
-    const visible = Boolean(boardState && editorVisible);
+    const studuinoVisible = Boolean(studuinoMode && studuinoState);
+    const visible = Boolean((studuinoVisible || boardState) && editorVisible);
 
     // 置く場所（ステージの大きさ・窓の大きさ・練習相手のパネルが出る/たたむで測り直す）
     useEffect(() => {
@@ -144,6 +200,20 @@ const StuduinoPracticeBoardContainer = ({ editorVisible = true, partnerKey = nul
     }, []);
 
     if (!visible || typeof document === 'undefined') return null;
+    if (studuinoVisible) {
+        return ReactDOM.createPortal(
+            <StuduinoModePracticeBoard
+                boardState={studuinoState}
+                onClose={handleClose}
+                onInputChange={setStuduinoInput}
+                onOpen={handleOpen}
+                onTry={handleTry}
+                open={open}
+                position={position}
+            />,
+            document.body,
+        );
+    }
     return ReactDOM.createPortal(
         <StuduinoPracticeBoard
             boardState={boardState}
@@ -164,6 +234,10 @@ StuduinoPracticeBoardContainer.propTypes = {
     editorVisible: PropTypes.bool,
     // 練習相手のパネルが変わったら置く場所を測り直すためのキー（いまのチャレンジの id。相手がいなければ null）
     partnerKey: PropTypes.string,
+    // Studuino モードか（Studuino モードの練習用の基板を出す）
+    studuinoMode: PropTypes.bool,
+    // Ruby の変更をブロックにする（RubyToBlocksConverterHOC が渡す）
+    targetCodeToBlocks: PropTypes.func,
     vm: PropTypes.object,
 };
 
@@ -175,9 +249,10 @@ const mapStateToProps = (state) => {
         editorVisible:
             (tab === BLOCKS_TAB_INDEX || tab === RUBY_TAB_INDEX) && !mode.isFullScreen && !mode.isPlayerOnly,
         partnerKey: current && current.challenge.partner ? current.challenge.id : null,
+        studuinoMode: isStuduinoMode(state),
         vm: state.scratchGui.vm,
     };
 };
 
 export { StuduinoPracticeBoardContainer };
-export default connect(mapStateToProps)(StuduinoPracticeBoardContainer);
+export default RubyToBlocksConverterHOC(connect(mapStateToProps)(StuduinoPracticeBoardContainer));

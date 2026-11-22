@@ -193,9 +193,10 @@ ServoNeedle.propTypes = {
  * @param {Function} props.onTouch - 押した（true）・はなした（false）ときに呼ぶ。
  * @param {string} props.label - ボタンの文字。
  * @param {string} props.labelledBy - センサーの名前の要素の id。
+ * @param {string} [props.testId] - data-testid。
  * @returns {React.ReactElement} ボタン。
  */
-const TouchButton = ({ label, labelledBy, onTouch, pressed }) => {
+const TouchButton = ({ label, labelledBy, onTouch, pressed, testId = 'studuino-practice-board-touch-A2' }) => {
     const downRef = useRef(false);
     const press = useCallback(() => {
         if (downRef.current) return;
@@ -232,7 +233,7 @@ const TouchButton = ({ label, labelledBy, onTouch, pressed }) => {
             aria-describedby={labelledBy}
             aria-pressed={pressed}
             className={classNames(styles.touch, { [styles.touchDown]: pressed })}
-            data-testid="studuino-practice-board-touch-A2"
+            data-testid={testId}
             onBlur={release}
             onKeyDown={handleKeyDown}
             onKeyUp={handleKeyUp}
@@ -252,6 +253,7 @@ TouchButton.propTypes = {
     labelledBy: PropTypes.string.isRequired,
     onTouch: PropTypes.func.isRequired,
     pressed: PropTypes.bool.isRequired,
+    testId: PropTypes.string,
 };
 
 const StuduinoPracticeBoard = ({
@@ -483,4 +485,6 @@ StuduinoPracticeBoard.propTypes = {
     touchPressedValue: PropTypes.number.isRequired,
 };
 
+// Studuino モードの練習用の基板のパネル（studuino-mode-practice-board.jsx）も使う
+export { ServoNeedle, TouchButton };
 export default StuduinoPracticeBoard;

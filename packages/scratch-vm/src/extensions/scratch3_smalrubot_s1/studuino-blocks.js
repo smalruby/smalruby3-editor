@@ -9,12 +9,13 @@
  *   ブロックだけを XML で並べる。
  * - [ポート] のメニューは、その部品を割り当てたポートだけを「光センサー (A6)」の形で出す（S2）。
  *   値はポート名（`A6`）。
- * - Studuino モードではプログラムはブラウザで動かさない（緑の旗 = 書きこみ・S13）ので、
- *   ブロックを押しても何もしない（値のブロックは 0 / 偽を返す）。
+ * - 緑の旗は書きこみ（S13）。ブロックやスクリプトをクリックしたとき・練習用の基板のパネルの
+ *   ［旗のスクリプトを試す］では、Studuino モードの練習用の基板（studuino-mode-practice.js）を動かす（#2355・S16）。
  */
 const ArgumentType = require('../../extension-support/argument-type');
 const BlockType = require('../../extension-support/block-type');
 const { getStuduinoSettings, PORT_NAMES } = require('./studuino-settings');
+const { PRACTICE_HANDLERS } = require('./studuino-mode-practice');
 
 /** 部品の内部の名前 → 表示の名前（formatMessage の id と英語の既定）。 */
 const PART_LABELS = {
@@ -277,10 +278,16 @@ const makeMethods = (getFormatMessage) => {
         };
     });
     STUDUINO_PART_BLOCKS.forEach((b) => {
-        // ブラウザでは動かさない（緑の旗 = 書きこみ）。値のブロックは 0 / 偽
-        if (b.blockType === BlockType.REPORTER) methods[b.opcode] = () => 0;
-        else if (b.blockType === BlockType.BOOLEAN) methods[b.opcode] = () => false;
-        else methods[b.opcode] = () => {};
+        // ブラウザでは練習用の基板（studuino-mode-practice.js）を動かす（#2355）。書きこみは緑の旗。
+        // 練習用の基板で動かせないブロックは何もしない（値のブロックは 0 / 偽）
+        const fallback =
+            b.blockType === BlockType.REPORTER ? 0 : b.blockType === BlockType.BOOLEAN ? false : undefined;
+        methods[b.opcode] = function (args, util) {
+            const handler = PRACTICE_HANDLERS[b.opcode];
+            if (!handler || !this.studuinoPractice) return fallback;
+            const value = handler(this, args || {}, util);
+            return typeof value === 'undefined' ? fallback : value;
+        };
     });
     return methods;
 };

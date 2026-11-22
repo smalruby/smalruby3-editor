@@ -166,8 +166,7 @@ opcode は拡張機能 `smalrubotS1` のブロック（実行時は `smalrubotS1
   選んだ形で並べる（予約したサーボモーターを動かすブロックはポートを持たないので、そのまま並べる）。
 - パレットに並べるときの値: DC モーターの速さ 100（ライブラリの 0〜255）、サーボモーター 90 度、ブザー 440 Hz、
   向き = 正転、止め方 = ブレーキ、LED = オン、秒 = 1。
-- **ブラウザでブロックを押しても何もしない**（値のブロックは 0 / 偽を返す）。Studuino モードではプログラムはブラウザで
-  動かさず、緑の旗 = 書きこみ（S13）。練習用の基板で試すことは第 1 弾ではしない。
+- **ブラウザで動かすと、Studuino モードの練習用の基板が動く**（S16。下の「練習用の基板で試す」）。緑の旗は書きこみのまま（S13）。
 - 加速度センサー（I2C・A4/A5）・カラーセンサー・赤外線リモコンは第 1 弾では扱わない。
 
 ### 標準のブロック（Scratch のブロックをそのまま使う）
@@ -723,9 +722,50 @@ Content-Type: application/json
   作りも 1 つで済む）。
 - data-testid: `studuino-write-notices`（一覧）、`studuino-write-notice-<番号>`（項目のボタン。`data-kind` と `data-reason` を持つ）。
 
+### 練習用の基板で試す（S16）
+
+書きこむ前に、ふるまいをブラウザで確かめられる。通常モードの練習用の基板（パソコンにつないで動かすときの、
+決まった配線のパネル）と同じ場所に、Studuino モードでは **入出力の設定で割り当てた部品だけ** のパネルを出す。
+
+![Studuino モードの練習用の基板](screenshots/0401-practice-board.png)
+
+- **動かし方**: ブロックやスクリプトをクリックしたとき（通常の Scratch と同じ）と、パネルの［旗のスクリプトを試す］。
+  ［旗のスクリプトを試す］は、緑の旗と同じく Ruby の変更をブロックにしてから、旗のスクリプトをブラウザで動かす
+  （書きこみはしない）。止めるのはステージの停止（書きこみの中断と同じボタン）。
+- **センサー**: 光・音・赤外線フォトリフレクタ・温度はスライダー（0〜1023）、タッチセンサー・ボタンは
+  ［押す］を押しているあいだ「押した」（値のブロックは真）。はじめは 0・押していない。
+- **仕事を行う部分**: LED のオン/オフ、DC モーターの向き（正転・逆転・ブレーキ・惰性）と速さ（ライブラリの 0〜255）、
+  サーボモーターの角度（はじめは 90 度。予約があれば「予約 n°」も出す）、ブザーの音の高さ。
+- **値は Studuino IR の決まりに合わせる**（範囲に収めてから四捨五入）: DC モーターの速さ 0〜255、サーボ 0〜180 度、
+  ブザー 130〜4186 Hz。予約は積み重なり（同じポートはあとの角度）、「動かす」で全部いっしょに動かして空にする。
+  「M 秒で動かす」は、いまの角度から時間に比例して動かす。旗のスクリプトを始めると予約は空になる（電源を入れたときと同じ）。
+- **停止**で LED・ブザーを消し、DC モーターを止める（サーボの角度は残す）。
+- **割り当てていないポート・別の部品のポート** への命令は何もしない（書きこみでは使えないブロックになるもの）。
+- **実機（つないで動かすファームウェア）には送らない**。部品のブロックは書きこんで動かすためのもので、
+  ファームウェアのコマンドとは対応しないため。
+- Studuino で使えないブロック（見た目・音など）や変数の上限は、試すときも「使えないブロックが n 個あります」
+  （メニューバーの下）と同じ印で知らせる。試すときはブラウザで動くが、書きこみはできない。
+- 実機とちがいうるところ: 時間（ブラウザの 1 フレームごとに動く）、センサーの値（スライダーで決める）、
+  補正値（練習用の基板では使わない）、モーターの実際の回り方。
+- 状態は VM の `StuduinoModePracticeBoard`（`studuino-mode-practice.js`）が持ち、変わるたびに runtime のイベント
+  `STUDUINO_MODE_PRACTICE_STATE` で送る（`runtime.studuinoModePracticeState` にも置く）。形は
+  `{ ports: [{ port, part, ... }], reservations: { D9: 120 } }`（部品ごとに `on` / `direction`・`speed` / `degree` /
+  `pitch` / `value` / `pressed`）。GUI は拡張機能の `getStuduinoPracticeState()` と `setStuduinoPracticeInput(port, value)` を使う。
+
+| data-testid | 要素 |
+|---|---|
+| `studuino-mode-practice-board` | パネル |
+| `studuino-mode-practice-board-try` | ［旗のスクリプトを試す］ |
+| `studuino-mode-practice-board-close` / `-open` | たたむ / ひらく |
+| `studuino-mode-practice-board-sensor-<ポート>` | センサーのスライダー（ポートは大文字。例 `-A6`） |
+| `studuino-mode-practice-board-press-<ポート>` | タッチセンサー・ボタンの［押す］ |
+| `studuino-mode-practice-board-value-<ポート>` | センサーの値 |
+| `studuino-mode-practice-board-part-<ポート>` | 仕事を行う部分の行（`data-state`） |
+| `studuino-mode-practice-board-empty` | 部品が無いときの案内 |
+
 ### 緑の旗と停止
 
-Studuino モードでは、ステージの緑の旗・停止は意味を持たない（プログラムはブラウザでは動かさない）。そのため:
+Studuino モードでは、ステージの緑の旗・停止を書きこみに使う（ブラウザで試すのは練習用の基板の［旗のスクリプトを試す］）:
 
 - **緑の旗 = 書きこみ**（上のモーダルを開いて始める）
 - **停止 = 書きこみの中断**（hex を作っている途中なら待つのをやめ、書きこみの途中なら書きこみを止める）
@@ -836,6 +876,8 @@ prod に出す前に回答を待つ必要は無い。
 - `packages/scratch-gui/src/containers/studuino-unusable-blocks.jsx` — 印と「使えないブロックが n 個あります」
 - `packages/scratch-gui/src/containers/studuino-mode-switch-dialog.jsx` / `components/studuino-mode-switch-dialog/` — 切り替えられないときのダイアログ
 - `packages/scratch-vm/src/extensions/scratch3_smalrubot_s1/studuino-blocks.js` — 部品のブロックの定義（`getInfo` に足す・`hideFromPalette`）、ポートの動的メニュー、パレットに並べるブロックの選び方（`paletteBlocks`）
+- `packages/scratch-vm/src/extensions/scratch3_smalrubot_s1/studuino-mode-practice.js` — Studuino モードの練習用の基板（状態・値の範囲・予約）と、部品のブロックをブラウザで動かす関数（`PRACTICE_HANDLERS`）
+- `packages/scratch-gui/src/components/studuino-practice-board/studuino-mode-practice-board.jsx` / `src/containers/studuino-practice-board.jsx` — Studuino モードの練習用の基板のパネルと［旗のスクリプトを試す］
 - `packages/scratch-vm/src/extensions/scratch3_smalrubot_s1/studuino-settings.js` — 状態とポートの設定（保存の形・読みこみの直し・`runtime.extensionStorage` の読み書き・イベント `STUDUINO_SETTINGS_CHANGED`）
 - `packages/scratch-vm/src/serialization/sb3.js` / `src/engine/runtime.js` — `extensionStorage` の保存・読みこみ（マーカーつき）
 - `packages/scratch-gui/src/lib/studuino-ir/build-studuino-ir.js` — ブロックから構文木を作る（純粋関数。エラーの理由の一覧）

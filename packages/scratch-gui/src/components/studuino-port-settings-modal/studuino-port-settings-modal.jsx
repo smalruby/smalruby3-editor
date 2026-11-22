@@ -247,4 +247,6 @@ StuduinoPortSettingsModal.propTypes = {
     }).isRequired,
 };
 
+// 部品の名前（Studuino モードの練習用の基板のパネルも使う）
+export { partMessages };
 export default StuduinoPortSettingsModal;

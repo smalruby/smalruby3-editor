@@ -255,3 +255,27 @@
     border-color: $color-action;
     color: $color-action;
 }
+
+/* Studuino モードのパネル: 割り当てた部品が多いと高くなるので、本文はスクロールする */
+.scroll {
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+/* ［旗のスクリプトを試す］（緑の旗は書きこみなので、試すのはこのボタン） */
+.try {
+    padding: 0.25rem 0.5rem;
+    border: 2px solid $color-success;
+    border-radius: 0.375rem;
+    background-color: $ui-white;
+    color: $color-text;
+    font-size: $font-size-xsmall;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.try:hover,
+.try:focus-visible {
+    background-color: $color-success;
+    color: $ui-white;
+}

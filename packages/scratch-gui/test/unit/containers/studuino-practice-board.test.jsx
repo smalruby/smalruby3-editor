@@ -9,6 +9,7 @@ import { IntlProvider } from 'react-intl';
 import {
     OPEN_STORAGE_KEY,
     STATE_EVENT,
+    STUDUINO_MODE_STATE_EVENT,
     StuduinoPracticeBoardContainer,
     TOUCH_PRESSED_VALUE,
     TOUCH_RELEASED_VALUE,
@@ -188,6 +189,148 @@ describe('StuduinoPracticeBoard container', () => {
     test('every panel message is in en, ja and ja-Hira', () => {
         const keys = Object.keys(en).filter((key) => key.startsWith('gui.studuinoPracticeBoard.'));
         expect(keys.length).toBeGreaterThan(10);
+        keys.forEach((key) => {
+            expect(ja[key]).toEqual(expect.any(String));
+            expect(jaHira[key]).toEqual(expect.any(String));
+        });
+    });
+});
+
+// Studuino モードの練習用の基板（#2355）
+const makeStuduinoState = (overrides = {}) => ({
+    ports: [
+        { port: 'D9', part: 'servo_motor', degree: 90 },
+        { port: 'M1', part: 'dc_motor', direction: 'stop', speed: 0 },
+        { port: 'A0', part: 'led', on: false },
+        { port: 'A1', part: 'buzzer', on: false, pitch: 0 },
+        { port: 'A2', part: 'touch_sensor', pressed: false },
+        { port: 'A6', part: 'light_sensor', value: 0 },
+    ],
+    reservations: {},
+    ...overrides,
+});
+
+const makeStuduinoVm = (state = makeStuduinoState()) => {
+    const { vm, ext, emit } = makeVm();
+    let current = state;
+    ext.getStuduinoPracticeState = () => current;
+    ext.setStuduinoPracticeInput = jest.fn((port, value) => {
+        current = {
+            ...current,
+            ports: current.ports.map((p) => {
+                if (p.port !== port) return p;
+                return p.part === 'touch_sensor' ? { ...p, pressed: value } : { ...p, value };
+            }),
+        };
+        vm.runtime.emit(STUDUINO_MODE_STATE_EVENT, current);
+        return true;
+    });
+    vm.start = jest.fn();
+    vm.greenFlag = jest.fn();
+    const emitStuduino = (next) => {
+        current = next;
+        vm.runtime.emit(STUDUINO_MODE_STATE_EVENT, next);
+    };
+    return { vm, ext, emit, emitStuduino };
+};
+
+describe('StuduinoPracticeBoard container in the Studuino mode', () => {
+    beforeEach(() => {
+        window.localStorage.clear();
+    });
+    afterEach(() => {
+        cleanup();
+    });
+
+    test('shows the assigned parts instead of the fixed S1 layout', () => {
+        const { vm } = makeStuduinoVm();
+        renderContainer({ vm, studuinoMode: true });
+        expect(screen.getByTestId('studuino-mode-practice-board')).toBeInTheDocument();
+        expect(screen.queryByTestId('studuino-practice-board')).toBeNull();
+        expect(screen.getByText('Light sensor (A6)')).toBeInTheDocument();
+        expect(screen.getByTestId('studuino-mode-practice-board-part-D9')).toHaveTextContent('90°');
+        expect(screen.getByTestId('studuino-mode-practice-board-part-A0')).toHaveAttribute('data-state', 'off');
+    });
+
+    test('the normal mode keeps the fixed S1 layout', () => {
+        const { vm } = makeStuduinoVm();
+        renderContainer({ vm, studuinoMode: false });
+        expect(screen.getByTestId('studuino-practice-board')).toBeInTheDocument();
+        expect(screen.queryByTestId('studuino-mode-practice-board')).toBeNull();
+    });
+
+    test('follows the state: LED, DC motor, servo with a reservation, buzzer', () => {
+        const { vm, emitStuduino } = makeStuduinoVm();
+        renderContainer({ vm, studuinoMode: true });
+        act(() => {
+            emitStuduino(
+                makeStuduinoState({
+                    ports: [
+                        { port: 'D9', part: 'servo_motor', degree: 30 },
+                        { port: 'M1', part: 'dc_motor', direction: 'normal', speed: 200 },
+                        { port: 'A0', part: 'led', on: true },
+                        { port: 'A1', part: 'buzzer', on: true, pitch: 440 },
+                    ],
+                    reservations: { D9: 120 },
+                }),
+            );
+        });
+        expect(screen.getByTestId('studuino-mode-practice-board-part-A0')).toHaveAttribute('data-state', 'on');
+        expect(screen.getByTestId('studuino-mode-practice-board-part-M1')).toHaveTextContent('forward, speed 200');
+        expect(screen.getByTestId('studuino-mode-practice-board-part-D9')).toHaveTextContent(
+            '30° (reserved 120°)',
+        );
+        expect(screen.getByTestId('studuino-mode-practice-board-part-A1')).toHaveTextContent('playing 440 Hz');
+    });
+
+    test('a slider and a press button change the inputs', () => {
+        const { vm, ext } = makeStuduinoVm();
+        renderContainer({ vm, studuinoMode: true });
+        fireEvent.change(screen.getByTestId('studuino-mode-practice-board-sensor-A6'), { target: { value: '700' } });
+        expect(ext.setStuduinoPracticeInput).toHaveBeenCalledWith('A6', 700);
+        expect(screen.getByTestId('studuino-mode-practice-board-value-A6')).toHaveTextContent('700');
+        const press = screen.getByTestId('studuino-mode-practice-board-press-A2');
+        fireEvent.pointerDown(press);
+        expect(ext.setStuduinoPracticeInput).toHaveBeenLastCalledWith('A2', true);
+        fireEvent.pointerUp(press);
+        expect(ext.setStuduinoPracticeInput).toHaveBeenLastCalledWith('A2', false);
+    });
+
+    test('[Try the flag script] converts the Ruby code and runs the flag scripts', async () => {
+        const { vm } = makeStuduinoVm();
+        const apply = jest.fn(() => Promise.resolve());
+        const targetCodeToBlocks = jest.fn(() => Promise.resolve({ result: true, apply }));
+        renderContainer({ vm, studuinoMode: true, targetCodeToBlocks });
+        await act(async () => {
+            fireEvent.click(screen.getByTestId('studuino-mode-practice-board-try'));
+        });
+        expect(apply).toHaveBeenCalled();
+        expect(vm.start).toHaveBeenCalled();
+        expect(vm.greenFlag).toHaveBeenCalled();
+    });
+
+    test('[Try the flag script] does not run when the Ruby code cannot be converted', async () => {
+        const { vm } = makeStuduinoVm();
+        const targetCodeToBlocks = jest.fn(() => Promise.resolve({ result: false }));
+        renderContainer({ vm, studuinoMode: true, targetCodeToBlocks });
+        await act(async () => {
+            fireEvent.click(screen.getByTestId('studuino-mode-practice-board-try'));
+        });
+        expect(vm.greenFlag).not.toHaveBeenCalled();
+    });
+
+    test('says how to assign parts when no port is assigned', () => {
+        const { vm } = makeStuduinoVm(makeStuduinoState({ ports: [] }));
+        renderContainer({ vm, studuinoMode: true }, ja, 'ja');
+        expect(screen.getByTestId('studuino-mode-practice-board-empty')).toHaveTextContent(
+            '入出力の設定で部品を割り当てると、ここに出ます。',
+        );
+        expect(screen.getByTestId('studuino-mode-practice-board-try')).toHaveTextContent('旗のスクリプトを試す');
+    });
+
+    test('every Studuino mode panel message is in en, ja and ja-Hira', () => {
+        const keys = Object.keys(en).filter((key) => key.startsWith('gui.studuinoModePracticeBoard.'));
+        expect(keys.length).toBeGreaterThan(20);
         keys.forEach((key) => {
             expect(ja[key]).toEqual(expect.any(String));
             expect(jaHira[key]).toEqual(expect.any(String));
