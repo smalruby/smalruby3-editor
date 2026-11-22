@@ -1,74 +1,70 @@
-// === Smalruby: End-to-end test for the DNCLv2 example program from Issue #640 ===
+// End-to-end test for a whole program in the standard form (Issue #640).
 //
-// Verifies that the linear-search example from
-// https://nodai2hitc.github.io/ictl_example/ — the canonical "can the
-// editor accept a paste-and-run DNCLv2 program?" example — converts
-// through the full pipeline:
+// A binary search written for Smalruby in the notation of the 共通テスト用プログラム表記
+// (line numbers, `｜` / `⎿`, trailing `:`, `÷`, a comma between two assignments, the
+// input and a print with many arguments). It is our own program: the tests do not use
+// the problems of the 大学入試センター (docs/dncl/policy.md).
 //
-//   DNCLv2 source → ja-notation → Ruby
+//   standard form → ja-notation → Ruby
 //
-// The expected Ruby output matches what was agreed in Issue #640's
-// design discussion. After turn-around (blocks → Ruby → DNCL) the
-// output is allowed to be the Smalruby DNCL form (i.e. NOT preserve
-// `(N)`, `｜`, `⎿`, trailing `:` — those are unidirectional).
+// After turn-around (blocks → Ruby → Japanese) the output is allowed to be the
+// DNCL-like form (i.e. NOT preserve `(N)`, `｜`, `⎿`, trailing `:` — those are
+// unidirectional).
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
 
-describe('DNCLv2 end-to-end: linear search example (Issue #640)', () => {
+describe('the standard form end-to-end: a binary search (Issue #640)', () => {
     const dnclv2Source = [
-        '(1)  Data = [3,18,29,33,48,52,62,77,89,97]',
-        '(2)  kazu = 要素数(Data)',
-        '(3)  表示する("0～99の数字を入力してください")',
-        '(4)  atai = 【外部からの入力】',
-        '(5)  hidari = 0 , migi = kazu - 1',
-        '(6)  owari = 0',
-        '(7)  hidari <= migi and owari == 0 の間繰り返す:',
-        '(8)   ｜ aida = (hidari+migi) ÷ 2 # 演算子÷は商の整数値を返す',
-        '(9)   ｜ もし Data[aida] == atai ならば:',
-        '(10)  ｜  ｜ 表示する(atai, "は", aida, "番目にありました")',
-        '(11)  ｜  ｜ owari = 1',
-        '(12)  ｜ そうでなくもし Data[aida] < atai ならば:',
-        '(13)  ｜  ｜ hidari = aida + 1',
+        '(1)  Shincho = [128,135,141,146,150,157,163,170]',
+        '(2)  ninzu = 要素数(Shincho)',
+        '(3)  表示する("さがす身長を入力してください")',
+        '(4)  sagasu = 【外部からの入力】',
+        '(5)  sita = 0 , ue = ninzu - 1',
+        '(6)  mitsuketa = 0',
+        '(7)  sita <= ue and mitsuketa == 0 の間繰り返す:',
+        '(8)   ｜ naka = (sita+ue) ÷ 2 # まん中の番号',
+        '(9)   ｜ もし Shincho[naka] == sagasu ならば:',
+        '(10)  ｜  ｜ 表示する(sagasu, "cmは", naka, "番の人です")',
+        '(11)  ｜  ｜ mitsuketa = 1',
+        '(12)  ｜ そうでなくもし Shincho[naka] < sagasu ならば:',
+        '(13)  ｜  ｜ sita = naka + 1',
         '(14)  ｜ そうでなければ:',
-        '(15)  ⎿  ⎿ migi = aida - 1',
-        '(16) もし owari == 0 ならば:',
-        '(17)  ⎿ 表示する(atai, "は見つかりませんでした")',
-        '(18) 表示する("添字", " ", "要素")',
-        '(19) i を 0 から kazu - 1 まで 1 ずつ増やしながら繰り返す:',
-        '(20)  ⎿ 表示する(i, " ", Data[i])',
+        '(15)  ⎿  ⎿ ue = naka - 1',
+        '(16) もし mitsuketa == 0 ならば:',
+        '(17)  ⎿ 表示する(sagasu, "cmの人はいませんでした")',
+        '(18) 表示する("番号", " ", "身長")',
+        '(19) i を 0 から ninzu - 1 まで 1 ずつ増やしながら繰り返す:',
+        '(20)  ⎿ 表示する(i, " ", Shincho[i])',
     ].join('\n');
 
     test('dnclToRuby produces the Ruby code agreed in the design', () => {
         const result = dnclToRuby(dnclv2Source);
         expect(result.errors).toEqual([]);
-        // Note: the existing DNCL → Ruby converter preserves the original
-        // spacing inside expressions (no automatic spaces around operators
-        // or commas), so we keep the same spacing as the source.
         const expected = [
-            '@_array_Data_ = [3, 18, 29, 33, 48, 52, 62, 77, 89, 97]',
-            '@kazu = @_array_Data_.length',
-            'console.puts("0～99の数字を入力してください")',
-            '@atai = console.gets',
-            '@hidari = 0',
-            '@migi = @kazu - 1',
-            '@owari = 0',
-            'while @hidari <= @migi && @owari == 0',
-            '  @aida = ((@hidari + @migi) / 2).to_i # 演算子÷は商の整数値を返す',
-            '  if @_array_Data_[@aida] == @atai',
-            '    console.puts(@atai.to_s + "は" + @aida.to_s + "番目にありました")',
-            '    @owari = 1',
-            '  elsif @_array_Data_[@aida] < @atai',
-            '    @hidari = @aida + 1',
+            '@_array_Shincho_ = [128, 135, 141, 146, 150, 157, 163, 170]',
+            '@ninzu = @_array_Shincho_.length',
+            'console.puts("さがす身長を入力してください")',
+            '@sagasu = console.gets',
+            '@sita = 0',
+            '@ue = @ninzu - 1',
+            '@mitsuketa = 0',
+            'while @sita <= @ue && @mitsuketa == 0',
+            '  @naka = ((@sita + @ue) / 2).to_i # まん中の番号',
+            '  if @_array_Shincho_[@naka] == @sagasu',
+            '    console.puts(@sagasu.to_s + "cmは" + @naka.to_s + "番の人です")',
+            '    @mitsuketa = 1',
+            '  elsif @_array_Shincho_[@naka] < @sagasu',
+            '    @sita = @naka + 1',
             '  else',
-            '    @migi = @aida - 1',
+            '    @ue = @naka - 1',
             '  end',
             'end',
-            'if @owari == 0',
-            '  console.puts(@atai.to_s + "は見つかりませんでした")',
+            'if @mitsuketa == 0',
+            '  console.puts(@sagasu.to_s + "cmの人はいませんでした")',
             'end',
-            'console.puts("添字" + " " + "要素")',
+            'console.puts("番号" + " " + "身長")',
             '@i = 0',
-            'while @i <= @kazu - 1',
-            '  console.puts(@i.to_s + " " + @_array_Data_[@i].to_s)',
+            'while @i <= @ninzu - 1',
+            '  console.puts(@i.to_s + " " + @_array_Shincho_[@i].to_s)',
             '  @i += 1',
             'end',
         ].join('\n');

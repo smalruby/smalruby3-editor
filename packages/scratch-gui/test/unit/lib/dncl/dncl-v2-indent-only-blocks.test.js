@@ -119,27 +119,27 @@ describe('DNCLv2 indentation-only blocks on numbered lines (Issue #1718)', () =>
     test('line numbers aligned by padding (`(9)  x` / `(10) x`) do not look like an indent', () => {
         expect(
             ruby([
-                '(7)  hidari <= migi の間繰り返す:',
-                '(8)      もし aida == 3 ならば:',
-                '(9)          owari = 1',
-                '(10)     そうでなくもし aida < 3 ならば:',
-                '(11)         hidari = aida + 1',
+                '(7)  kai <= 5 の間繰り返す:',
+                '(8)      もし ten == 3 ならば:',
+                '(9)          kekka = 1',
+                '(10)     そうでなくもし ten < 3 ならば:',
+                '(11)         kai = kai + 1',
                 '(12)     そうでなければ:',
-                '(13)         migi = aida - 1',
-                '(14) 表示する(owari)',
+                '(13)         ten = ten - 1',
+                '(14) 表示する(kekka)',
             ]),
         ).toBe(
             [
-                'while @hidari <= @migi',
-                '  if @aida == 3',
-                '    @owari = 1',
-                '  elsif @aida < 3',
-                '    @hidari = @aida + 1',
+                'while @kai <= 5',
+                '  if @ten == 3',
+                '    @kekka = 1',
+                '  elsif @ten < 3',
+                '    @kai = @kai + 1',
                 '  else',
-                '    @migi = @aida - 1',
+                '    @ten = @ten - 1',
                 '  end',
                 'end',
-                'console.puts(@owari)',
+                'console.puts(@kekka)',
             ].join('\n'),
         );
         expect(ruby(['(9)  もし x > 0 ならば:', '(10)  y = 1', '(11) z = 2'])).toBe(
