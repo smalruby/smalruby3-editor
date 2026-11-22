@@ -63,9 +63,6 @@ const rows = [
     {
         blocks: `looks_say(MESSAGE: wedo2_isTilted(TILT_DIRECTION_ANY: ${menu('TILT_DIRECTION_ANY', 'any')}))`,
         ruby: 'say(wedo2.tilted?("any"))',
-        // The generator writes this reporter as a statement (a string, not [code, order]), so inside a
-        // value it comes out broken (`say(w)`). Only the converter is fixed here.
-        only: 'toBlocks',
     },
     {
         blocks: `looks_say(MESSAGE: wedo2_getTiltAngle(TILT_DIRECTION: ${menu('TILT_DIRECTION', 'up')}))`,

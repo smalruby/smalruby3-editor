@@ -16,11 +16,15 @@ defineBlockRubyTable('Translate blocks ⇔ Ruby (v2)', [
         blocks: `looks_say(MESSAGE: translate_getTranslate(WORDS: $w, LANGUAGE: ${language('en')}))`,
         ruby: 'say(translate.call($w, "en"))',
     },
-    // A number of the words is taken, but dropped from the block (the output of today, kept as it is
-    // while the calls move; see the bridging patterns).
+    // A number of the words becomes the text of its digits (and comes back as a string).
     {
-        blocks: `looks_say(MESSAGE: translate_getTranslate(LANGUAGE: ${language('ja')}))`,
+        blocks: `looks_say(MESSAGE: translate_getTranslate(WORDS: "1", LANGUAGE: ${language('ja')}))`,
         ruby: 'say(translate.call(1, "ja"))',
+        only: 'toBlocks',
+    },
+    {
+        blocks: `looks_say(MESSAGE: translate_getTranslate(WORDS: "1.5", LANGUAGE: ${language('ja')}))`,
+        ruby: 'say(translate.call(1.5, "ja"))',
         only: 'toBlocks',
     },
     {
@@ -56,6 +60,11 @@ defineBlockRubyTable(
             ruby: 'say(translate($w, $l))',
         },
         { blocks: 'looks_say(MESSAGE: translate_getViewerLanguage)', ruby: 'say(language)' },
+        {
+            blocks: `looks_say(MESSAGE: translate_getTranslate(WORDS: "1", LANGUAGE: ${language('ja')}))`,
+            ruby: 'say(translate(1, "ja"))',
+            only: 'toBlocks',
+        },
     ],
     { version: '1' },
 );
