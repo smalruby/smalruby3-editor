@@ -109,34 +109,10 @@
                     "title": "はなれた場所から計測・制御しよう（IoT）"
                 },
                 {
-                    "id": "jhs-tech-d3-control-06-find-problems",
+                    "id": "jhs-tech-d3-control-06-problem-solving",
                     "version": "0.1.0",
                     "number": 6,
-                    "title": "問題を見つけて課題を決めよう"
-                },
-                {
-                    "id": "jhs-tech-d3-control-07-design",
-                    "version": "0.1.0",
-                    "number": 7,
-                    "title": "システムを構想しよう"
-                },
-                {
-                    "id": "jhs-tech-d3-control-08-build",
-                    "version": "0.1.0",
-                    "number": 8,
-                    "title": "作ろう（制作とデバッグ 1）"
-                },
-                {
-                    "id": "jhs-tech-d3-control-09-build-present",
-                    "version": "0.1.0",
-                    "number": 9,
-                    "title": "作ろう（制作とデバッグ 2・発表の準備）"
-                },
-                {
-                    "id": "jhs-tech-d3-control-10-evaluate-improve",
-                    "version": "0.1.0",
-                    "number": 10,
-                    "title": "発表・評価・改善とまとめ"
+                    "title": "問題を解決する計測・制御システムを作ろう"
                 }
             ]
         }

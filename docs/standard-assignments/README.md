@@ -3,7 +3,8 @@
 > **🆕 Smalruby 独自** — upstream に存在しない、Smalruby のために新規追加された機能
 
 クラス管理で先生が使える「標準課題」を、エディタと一緒に `https://smalruby.app/assignments/` で公開する。
-授業 1 時間を 1 つの課題とし、単元は課題の並び（シリーズ）にする。ワークシートは課題の資料の 1 つ。
+授業 1 時間を 1 つの課題とし、単元は課題の並び（シリーズ）にする。問題解決のように 1 つの作品を何時間も作り続ける時間は、
+まとめて 1 つの課題（2 時間以上）にする。ワークシートは課題の資料の 1 つ。
 
 いまあるシリーズ:
 
@@ -11,7 +12,7 @@
 |---|---|---|
 | `es-pg-kyou-kara-programmer` | 小学 4〜6 年のプログラミングの時間。1 つめの課題「はじめの一歩」は、スモウルビーの地図（`map.pdf`）と最初の 5 分の台本（先生用・`script.pdf`） | 「きょうからプログラマー」（`docs/lessons/design.md` の「はじめの一歩」） |
 | `jhs-tech-d2-chat` | 中学校 技術・家庭科〈技術分野〉D(2)「双方向性のあるコンテンツ」8 時間 | 「チャットをつくろう」（対応は `docs/lessons/design.md` の「ワークシートとのリンク」） |
-| `jhs-tech-d3-control` | 中学校 技術・家庭科〈技術分野〉D(3)「計測・制御のプログラミングによる問題解決」10 時間（第 8・9 時は同じページを 2 つの課題で使う）。評価規準はまだ無い（`files` は空） | 「自動でセンサーとモーターでうごかそう」（対応は `docs/lessons/design.md` の「中 3 のコース」の「ワークシートとのリンク」） |
+| `jhs-tech-d3-control` | 中学校 技術・家庭科〈技術分野〉D(3)「計測・制御のプログラミングによる問題解決」10 時間・6 つの課題（問題解決の第 6〜10 時・ワークシート 8〜12 ページは 1 つの課題 `jhs-tech-d3-control-06-problem-solving`・5 時間）。評価規準はまだ無い（`files` は空） | 「自動でセンサーとモーターでうごかそう」（対応は `docs/lessons/design.md` の「中 3 のコース」の「ワークシートとのリンク」） |
 
 「はじめの一歩」は単元ではないが、レッスン「きょうからプログラマー」を使う小学校の授業の 1 時間めなので、そのレッスンに合わせたシリーズの 1 つめの課題にした（あとの時間の課題を同じシリーズに足せる）。小学校のプログラミングは決まった教科の単元ではないので、ID の教科と単元の部分は `pg`（プログラミング）とコースの名前（`kyou-kara-programmer`）にした。
 
@@ -21,7 +22,7 @@
 |---|---|
 | 置くもの | **成果物だけ**（課題の説明の JSON・PDF・sb3）。原本（ワークシートの HTML）と生成スクリプトはリポジトリの外に置く |
 | ライセンス | **CC0 1.0**（`assignments/LICENSE`）。リポジトリのほかの部分のライセンスとは別。CC0 にできない素材（Scratch のライブラリの絵など）は入れない |
-| 単位 | 1 時間 = 1 課題（`hours: 1`）。単元はシリーズ（`series.json` の `assignments` の順） |
+| 単位 | ふつうは 1 時間 = 1 課題（`hours: 1`）。問題解決（課題発見 → 設計 → 制作とデバッグ → 発表 → 改修）のように 1 つの作品を何時間も作り続けるときは、まとめて 1 つの課題にし、`hours` に時間数を書いて、時間ごとの流れを `schedule` に書く。単元はシリーズ（`series.json` の `assignments` の順）。シリーズの `hours` は課題の `hours` の合計 |
 | 学校の種類 | `es`（小学校）・`jhs`（中学校）。小学校のように教科の単元が決まっていないときは、ID の教科を `pg`、単元をレッスンのコースの名前にする |
 | ID | `<学校の種類>-<教科>-<学習指導要領の単元>-<題材>-<番号>-<内容>`（例: `jhs-tech-d2-chat-01-intro`）。シリーズの ID は課題の ID の先頭（`jhs-tech-d2-chat`） |
 | URL | `/assignments/<ID>/` が最新、`/assignments/<ID>/<版>/` が版を固定した URL |
@@ -57,15 +58,16 @@ assignments/
 | `id` / `version` | 課題の ID と版 |
 | `series` / `number` | シリーズの ID と、シリーズの中の順番（1 から） |
 | `title` / `goal` | 課題の名前とめあて |
-| `schoolType` / `subject` / `curriculum` / `grade` / `hours` | 学校の種類（`jhs` など）・教科・学習指導要領の単元・学年・時間数 |
+| `schoolType` / `subject` / `curriculum` / `grade` / `hours` | 学校の種類（`jhs` など）・教科・学習指導要領の単元・学年・時間数（1 以上の整数。ふつうは 1） |
 | `worksheetPages` | ワークシート全体の中のページ（0 から）。ワークシートの無い課題（はじめの一歩）には無い |
+| `schedule` | 2 時間以上の課題だけ: 時間ごとの流れ（1 時間に 1 つ。`title` = その時間の名前、`goal` = その時間のめあて、`worksheetPages` = その時間に使うページ）。ページを順に合わせると課題の `worksheetPages` になる。`goal` にも流れを短く書く |
 | `lessons` | 合わせて使うスモウルビーのレッスン（`course` = コースの ID、`lessons` / `challenges` = レッスン・チャレンジの ID。`src/lib/lessons/courses.js`） |
 | `submit` | 提出するもの（`project` = 作品の名前の例、`worksheet` = ワークシートを提出するか） |
 | `files` | 資料（`file` = ファイル名、`kind` = 種類〔`worksheet` / `rubric` / `map`（スモウルビーの地図）/ `script`（授業の台本）〕、`audience` = `student` / `teacher`） |
 | `starter` | スターターの sb3（いまは `null`） |
 | `license` | `CC0-1.0` |
 
-`series.json` は `id` / `version` / `title` / `description` / `assignments`（課題の ID の並び）/ `files`（評価規準など。無ければ空の配列）を持つ。
+`series.json` は `id` / `version` / `title` / `description` / `hours`（単元の時間数）/ `assignments`（課題の ID の並び）/ `files`（評価規準など。無ければ空の配列）を持つ。
 
 課題テンプレート（クラス管理で標準課題から課題を作る機能）は、これらの JSON を読む形にする（まだ無い）。
 
@@ -80,7 +82,7 @@ assignments/
 1. 原本（リポジトリの外）を直し、PDF を作り直す。公開版では、CC0 にできない素材と、公開しない資料への参照を外す。
 2. 新しい版のディレクトリ `<ID>/<新しい版>/` に置き、`<ID>/` をその版と同じ中身にする。`index.json` の版も上げる。
 3. 新しい課題・シリーズは `index.json` と `index.html` に足す。
-4. `packages/scratch-gui/test/unit/standard-assignments.test.js` を流す（最新と版の中身が同じか、ID・版・レッスンの ID が正しいか、一覧のページから全部の資料にリンクしているか）。
+4. `packages/scratch-gui/test/unit/standard-assignments.test.js` を流す（最新と版の中身が同じか、ID・版・レッスンの ID が正しいか、2 時間以上の課題の `schedule` と時間数が合っているか、一覧のページから全部の資料にリンクしているか）。
 
 ## 主要ファイル
 
