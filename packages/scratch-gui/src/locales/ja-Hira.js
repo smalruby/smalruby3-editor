@@ -40,6 +40,24 @@ export default {
         '「みどりのはたがおされたとき」のブロックをおいてください。Studuino のでんげんをいれると、そのしたのプログラムがうごきます。',
     'gui.studuinoWrite.unusableBlocks':
         'つかえないブロックが {count} こあります。なおしてから、もういちどためしてください。',
+    'gui.studuinoWrite.notice.usedFlag':
+        'Studuino でうごくのは、この「みどりのはたがおされたとき」のスクリプトです。',
+    'gui.studuinoWrite.notice.unusedFlag':
+        'この「みどりのはたがおされたとき」のスクリプトはつかわれません。Studuino でうごくのは 1 つだけです。1 つにまとめてください。',
+    'gui.studuinoWrite.notice.stringInitialValue':
+        'へんすう「{variable}」のいまのあたいがかずではありません。Studuino では 0 からはじめます。',
+    'gui.studuinoWrite.notice.stringValue': 'かずをいれるところにもじがはいっています。',
+    'gui.studuinoWrite.notice.portNotAssigned':
+        'このポートには、にゅうしゅつりょくのせっていでぶひんをわりあてていません。',
+    'gui.studuinoWrite.notice.wrongPart':
+        'このポートには、にゅうしゅつりょくのせっていでべつのぶひんをわりあてています。',
+    'gui.studuinoWrite.notice.duplicatePort': 'おなじサーボモーターを 2 かいつかっています。',
+    'gui.studuinoWrite.notice.tooLarge': 'このあたりで、プログラムがおおきすぎます。',
+    'gui.studuinoWrite.notice.unsupportedBlock': 'このブロックは Studuino モードではつかえません。',
+    'gui.studuinoWrite.notice.label.stop': 'なおす',
+    'gui.studuinoWrite.notice.label.warning': 'ちゅうい',
+    'gui.studuinoWrite.notice.label.info': 'うごく',
+    'gui.studuinoWrite.notice.hint': 'おすと、そのブロックをみられます。',
     'gui.studuinoWrite.ready': 'Studuino を USB ケーブルでつないで、［かきこむ］をおしてください。',
     'gui.studuinoWrite.noWebSerial':
         'このブラウザでは Studuino にかきこめません。Chrome か Edge をつかってください。',

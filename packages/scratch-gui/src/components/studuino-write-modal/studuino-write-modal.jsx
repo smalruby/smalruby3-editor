@@ -1,11 +1,11 @@
 // Studuino モードの書きこみのモーダル（#2219・S13・S7）。検査 → hex を作る → 書きこむ の進み具合を出す。
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
-import React from 'react';
+import React, { useCallback } from 'react';
 import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
 import Modal from '../../containers/modal.jsx';
 import { STUDUINO_IR_LIMITS } from '../../lib/studuino-ir/limits';
-import { progressMarks, STEP } from '../../lib/studuino-write-steps';
+import { NOTICE_KIND, progressMarks, STEP } from '../../lib/studuino-write-steps';
 import Box from '../box/box.jsx';
 import styles from './studuino-write-modal.css';
 
@@ -79,12 +79,147 @@ const messages = defineMessages({
 
 const MESSAGE_BY_ID = Object.fromEntries(Object.values(messages).map((m) => [m.id, m]));
 
+// 一覧の項目の文言（#2353・S7・S17）。キーは writeNotices の reason
+const noticeMessages = defineMessages({
+    used_flag: {
+        defaultMessage: 'This "when green flag clicked" script runs on Studuino.',
+        description: 'Notice in the Studuino write modal: the green flag script that runs on Studuino',
+        id: 'gui.studuinoWrite.notice.usedFlag',
+    },
+    unused_flag: {
+        defaultMessage:
+            'This "when green flag clicked" script is not used. Studuino runs only one. Put them together.',
+        description: 'Notice in the Studuino write modal: a second green flag script is not used',
+        id: 'gui.studuinoWrite.notice.unusedFlag',
+    },
+    string_initial_value: {
+        defaultMessage: 'The variable "{variable}" is not a number now. It starts from 0 on Studuino.',
+        description: 'Warning in the Studuino write modal: the current value of a variable is not a number',
+        id: 'gui.studuinoWrite.notice.stringInitialValue',
+    },
+    string_value: {
+        defaultMessage: 'There are letters where a number goes.',
+        description: 'Notice in the Studuino write modal: letters in a number input',
+        id: 'gui.studuinoWrite.notice.stringValue',
+    },
+    port_not_assigned: {
+        defaultMessage: 'This port has no part in the I/O settings.',
+        description: 'Notice in the Studuino write modal: the port is not assigned',
+        id: 'gui.studuinoWrite.notice.portNotAssigned',
+    },
+    wrong_part: {
+        defaultMessage: 'Another part is set to this port in the I/O settings.',
+        description: 'Notice in the Studuino write modal: another part is assigned to the port',
+        id: 'gui.studuinoWrite.notice.wrongPart',
+    },
+    duplicate_port: {
+        defaultMessage: 'The same servo motor is used twice.',
+        description: 'Notice in the Studuino write modal: the same servo port is used twice',
+        id: 'gui.studuinoWrite.notice.duplicatePort',
+    },
+    too_large: {
+        defaultMessage: 'The program is too large around here.',
+        description: 'Notice in the Studuino write modal: the program is too large',
+        id: 'gui.studuinoWrite.notice.tooLarge',
+    },
+    unsupported_block: {
+        defaultMessage: 'This block can not be used in the Studuino mode.',
+        description: 'Notice in the Studuino write modal: a block that can not be used',
+        id: 'gui.studuinoWrite.notice.unsupportedBlock',
+    },
+});
+
+const noticeLabels = defineMessages({
+    stop: {
+        defaultMessage: 'Fix',
+        description: 'Label of a notice that stopped writing to Studuino',
+        id: 'gui.studuinoWrite.notice.label.stop',
+    },
+    warning: {
+        defaultMessage: 'Note',
+        description: 'Label of a warning when writing to Studuino',
+        id: 'gui.studuinoWrite.notice.label.warning',
+    },
+    info: {
+        defaultMessage: 'Used',
+        description: 'Label of the green flag script that runs on Studuino',
+        id: 'gui.studuinoWrite.notice.label.info',
+    },
+});
+
+const NoticeItem = ({ index, notice, onShowNotice }) => {
+    const handleClick = useCallback(() => onShowNotice(notice), [notice, onShowNotice]);
+    return (
+        <li>
+            <button
+                className={classNames(styles.notice, styles[notice.kind])}
+                data-kind={notice.kind}
+                data-reason={notice.reason}
+                data-testid={`studuino-write-notice-${index}`}
+                onClick={handleClick}
+            >
+                <span className={styles.noticeLabel}>
+                    <FormattedMessage {...(noticeLabels[notice.kind] || noticeLabels.stop)} />
+                </span>
+                <span>
+                    <FormattedMessage
+                        {...(noticeMessages[notice.reason] || noticeMessages.unsupported_block)}
+                        values={{ variable: notice.variable }}
+                    />
+                </span>
+            </button>
+        </li>
+    );
+};
+
+const NOTICE_SHAPE = PropTypes.shape({
+    blockId: PropTypes.string,
+    kind: PropTypes.oneOf(Object.values(NOTICE_KIND)),
+    reason: PropTypes.string,
+    targetId: PropTypes.string,
+    variable: PropTypes.string,
+});
+
+NoticeItem.propTypes = {
+    index: PropTypes.number.isRequired,
+    notice: NOTICE_SHAPE.isRequired,
+    onShowNotice: PropTypes.func.isRequired,
+};
+
+const NoticeList = ({ notices, onShowNotice }) => (
+    <div className={styles.notices}>
+        <div className={styles.noticesHint}>
+            <FormattedMessage
+                defaultMessage="Click to see the block."
+                description="Hint above the list of notices in the Studuino write modal"
+                id="gui.studuinoWrite.notice.hint"
+            />
+        </div>
+        <ul className={styles.noticeList} data-testid="studuino-write-notices">
+            {notices.map((notice, index) => (
+                <NoticeItem
+                    index={index}
+                    key={`${notice.targetId}:${notice.blockId}`}
+                    notice={notice}
+                    onShowNotice={onShowNotice}
+                />
+            ))}
+        </ul>
+    </div>
+);
+
+NoticeList.propTypes = {
+    notices: PropTypes.arrayOf(NOTICE_SHAPE).isRequired,
+    onShowNotice: PropTypes.func.isRequired,
+};
+
 const Mark = ({ status }) => <span className={classNames(styles.mark, styles[status])} />;
 Mark.propTypes = { status: PropTypes.string.isRequired };
 
 const StuduinoWriteModal = ({
     step,
     blocks,
+    notices,
     noFlag,
     tooManyVariables,
     percent,
@@ -95,6 +230,7 @@ const StuduinoWriteModal = ({
     onRetry,
     onSaveSource,
     onShowBlocks,
+    onShowNotice,
     onWrite,
 }) => {
     const intl = useIntl();
@@ -200,6 +336,8 @@ const StuduinoWriteModal = ({
                     ) : null}
                 </div>
 
+                {notices.length > 0 ? <NoticeList notices={notices} onShowNotice={onShowNotice} /> : null}
+
                 <div className={styles.buttons}>
                     {step === STEP.CHECK_FAILED && blocks.length > 0 ? (
                         <button
@@ -294,6 +432,7 @@ StuduinoWriteModal.propTypes = {
     compiled: PropTypes.shape({ source: PropTypes.string }),
     messageId: PropTypes.string,
     noFlag: PropTypes.bool,
+    notices: PropTypes.arrayOf(NOTICE_SHAPE),
     tooManyVariables: PropTypes.bool,
     percent: PropTypes.number,
     step: PropTypes.string.isRequired,
@@ -302,11 +441,14 @@ StuduinoWriteModal.propTypes = {
     onRetry: PropTypes.func.isRequired,
     onSaveSource: PropTypes.func.isRequired,
     onShowBlocks: PropTypes.func.isRequired,
+    onShowNotice: PropTypes.func,
     onWrite: PropTypes.func.isRequired,
 };
 
 StuduinoWriteModal.defaultProps = {
     blocks: [],
+    notices: [],
+    onShowNotice: () => {},
 };
 
 export default StuduinoWriteModal;

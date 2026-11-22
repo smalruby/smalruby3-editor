@@ -492,7 +492,10 @@ end
 （VM の `target.blocks._blocks` の形）とポートの設定（`getStuduinoSettings(runtime)`）から構文木を作る。
 Lambda の検査（`validateIr`）を必ず通る形にし、通らないものはブラウザで先に止める。
 
-- `buildStuduinoIr({ targets, settings })` → `{ ok: true, ir }` か `{ ok: false, errors }`。
+- `buildStuduinoIr({ targets, settings })` → `{ ok: true, ir, warnings }` か `{ ok: false, errors, warnings, usedFlag? }`。
+  `warnings` は書きこみを止めない知らせ（`{ blockId, targetId, reason: 'string_initial_value', variable }`。
+  `blockId` はその変数をはじめて使ったブロック、`variable` は変数の名前で、構文木には入れない）。
+  `usedFlag` は旗が 2 つ以上のときに、電源を入れて動く 1 つ目の旗（`{ blockId, targetId }`）。
   `errors` の 1 つは `{ blockId, targetId, reason }`（GUI が「そのブロックへ移る」ために使う。上限のときは
   `detail` と `limit` も付く）。`buildStuduinoIrFromVm(vm, settings)` は VM の元の target（クローンを除く）から作る。
 - `reason` は機械の名前。子ども向けの文言は、使えないブロックの印と書きこみのモーダルで付ける。
@@ -525,7 +528,8 @@ Lambda の検査（`validateIr`）を必ず通る形にし、通らないもの�
   数のメニュー（音の高さなど）の値は数として読む。
 - **変数**: 旗の下で使った変数だけを、はじめて使った順に `v0`, `v1` … にする。ステージの変数と各スプライトの
   変数は別の ID。**はじめの値はいまの値が数にできればそれ、できなければ 0**（書きこむときの値。文字の値のまま
-  エラーにすると、変数のモニターを直す手段が無いため）。
+  エラーにすると、変数のモニターを直す手段が無いため）。0 にした変数は **警告**（`warnings`）として返し、
+  書きこみのモーダルで知らせる（S7。下の「警告と止めた理由の一覧」）。
 - `ports` と `calibration` は設定をそのまま入れる（はじめの値の補正は入れない。Lambda がはじめの値を使う）。
 - **上限**はブラウザでも Lambda と同じ数字で先に止める（`src/lib/studuino-ir/limits.js`。Lambda の値を変えたら
   ここも変える）。ノードの数と深さは Lambda と同じ数え方。本文の大きさは `{"ir": ...}` の JSON の長さで見る。
@@ -655,6 +659,32 @@ Content-Type: application/json
 - data-testid: `studuino-write-modal`（本文）、`studuino-write-step-check` / `-compile` / `-write`（`data-status` に todo・doing・done・failed）、
   `studuino-write-message`、`studuino-write-write` / `-retry` / `-show-blocks` / `-close` / `-save-source`、`studuino-write-license`。
 - MobileGui の緑の旗（`mobile-top-bar` / `mobile-side-rail`）は、Studuino モードの書きこみにつないでいない（Web Serial が無いため）。
+
+#### 警告と止めた理由の一覧（#2353・S7・S17）
+
+検査のときに、**ブロックを指す知らせ**を集め、書きこみのモーダルの進み具合の下に一覧で出す。
+一覧は hex を作る・書きこむの段階に進んでも出し続ける。
+
+![旗が 2 つあるときの一覧](screenshots/0201-write-notices-two-flags.png)
+
+| 種類（`data-kind`） | ラベル | いつ | 書きこみ |
+|---|---|---|---|
+| `info` | 動く | 旗が 2 つ以上のとき、Studuino で動く 1 つ目の旗（`used_flag`） | — |
+| `stop` | 直す | 旗が 2 つ以上のときの 2 つ目以降（`unused_flag`。「このスクリプトは使われません」）・使えないブロック（理由ごとの文言） | 止める |
+| `warning` | 注意 | 変数のいまの値が数ではない（`string_initial_value`。「Studuino では 0 からはじめます」） | 止めない |
+
+- 並びは、使われる旗 → 使われない旗 → ほかの使えないブロック → 警告。同じブロックは 1 回だけ。
+  旗が無い・全体が大きすぎる（ブロックに結びつかない）ものは一覧に出さず、これまでどおり本文の文で知らせる。
+- 項目を押すと、モーダルを閉じて、そのブロックのある target（スプライト・ステージ）に切りかえ、ブロックを
+  まん中に出して選び、**オレンジの光で囲む**（CSS のクラス `studuinoNoticeBlock`。使えないブロックの赤い点線と重ねられる）。
+  色は次の項目を押すか、ワークスペースが作り直される（target を変える）まで残る。［ブロックを見る］も同じく色をつける。
+
+  ![使われない旗のスクリプトへ移ったところ](screenshots/0202-write-notice-jump-to-block-1366x900.png)
+- 一覧を集める判断は `lib/studuino-write-steps.js` の `writeNotices`（純粋関数）。移る・色をつけるのは
+  `lib/studuino-block-marks.js` の `jumpToBlock(vm, where, { highlight: true })`（「使えないブロックが n 個あります」と同じ仕組み）。
+- 警告の一覧は独立のポップアップにせず、書きこみのモーダルの中に出す（緑の旗を押すと必ず開くので、警告を見のがさない。
+  作りも 1 つで済む）。
+- data-testid: `studuino-write-notices`（一覧）、`studuino-write-notice-<番号>`（項目のボタン。`data-kind` と `data-reason` を持つ）。
 
 ### 緑の旗と停止
 

@@ -1,5 +1,6 @@
 @import '../../css/colors.css';
 @import '../../css/units.css';
+@import '../../css/smalruby-tokens.css';
 
 .body {
     /* 青いオーバーレイが透けないよう、本文に不透明な背景（.claude/rules/scratch-gui/modals.md） */
@@ -101,4 +102,86 @@
 
 .trademark {
     margin-top: 0.25rem;
+}
+
+/* 警告・止めた理由の一覧（#2353）。押すとそのブロックへ移る */
+.notices {
+    margin-bottom: $space-large;
+}
+
+.notices-hint {
+    margin-bottom: $space-small;
+    color: $color-text-muted;
+    font-size: $font-size-dialog;
+}
+
+.notice-list {
+    max-height: 12rem;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    list-style: none;
+}
+
+.notice-list li + li {
+    margin-top: $space-small;
+}
+
+.notice {
+    display: flex;
+    align-items: flex-start;
+    gap: $space-medium;
+    width: 100%;
+    padding: $space-medium 0.75rem;
+    border: 1px solid $color-border;
+    border-left-width: 4px;
+    border-radius: $radius-small;
+    background-color: $color-surface;
+    color: $color-text;
+    font-size: $font-size-dialog;
+    text-align: left;
+    cursor: pointer;
+}
+
+.notice:hover,
+.notice:focus-visible {
+    border-color: $color-primary;
+    background-color: $color-info-background;
+}
+
+.notice-label {
+    flex: none;
+    padding: 0 $space-small;
+    border-radius: $radius-small;
+    font-weight: bold;
+}
+
+/* 止めた理由: 赤（使えないブロックの印と同じ色） */
+.notice.stop {
+    border-left-color: #e60000;
+}
+
+.notice.stop .notice-label {
+    background-color: #fff0f0;
+    color: #b00000;
+}
+
+/* 警告: 注意の色 */
+.notice.warning {
+    border-left-color: $color-warning;
+}
+
+.notice.warning .notice-label {
+    background-color: $color-emphasis-background;
+    color: $color-emphasis;
+}
+
+/* 使われる旗: 成功の色 */
+.notice.info {
+    border-left-color: $color-success;
+}
+
+.notice.info .notice-label {
+    background-color: $color-success-background;
+    color: $color-text;
 }

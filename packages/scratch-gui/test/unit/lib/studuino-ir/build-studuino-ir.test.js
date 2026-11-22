@@ -139,6 +139,7 @@ describe('buildStuduinoIr: 全体の形', () => {
                 variables: [{ id: 'v0', init: 7 }],
                 main: [{ op: 'set', var: 'v0', value: { num: 5 } }],
             },
+            warnings: [],
         });
     });
 
@@ -418,7 +419,7 @@ describe('buildStuduinoIr: 全体の形', () => {
                 g1: { id: 'g1', name: 'まつ', type: '', value: '1.5' },
             },
         });
-        expect(result).toEqual({ ok: true, ir: expected });
+        expect(result).toEqual({ ok: true, ir: expected, warnings: [] });
     });
 });
 
@@ -765,6 +766,7 @@ describe('buildStuduinoIr: 本文の大きさ', () => {
         expect(result).toEqual({
             ok: false,
             errors: [{ blockId: null, targetId: null, reason: 'too_large', detail: 'too_many_bytes', limit: 131072 }],
+            warnings: [],
         });
     });
 });
@@ -817,5 +819,70 @@ describe('buildStuduinoIrFromVm', () => {
         const result = buildStuduinoIrFromVm(vm, SETTINGS);
         expect(result.ok).toBe(true);
         expect(result.ir.main).toEqual([{ op: 'timer_reset' }]);
+    });
+});
+
+describe('buildStuduinoIr: 警告と使われる旗（#2353・S7・S17）', () => {
+    test('はじめの値が文字の変数は 0 にして、はじめて使ったブロックで警告する', () => {
+        const ws = workspace();
+        const sprite = workspace();
+        const first = sprite.add('data_changevariableby', {
+            fields: { VARIABLE: { id: 'global', value: 'y' } },
+            inputs: { VALUE: sprite.num(1) },
+        });
+        sprite.script(
+            first,
+            sprite.add('data_changevariableby', {
+                fields: { VARIABLE: { id: 'global', value: 'y' } },
+                inputs: { VALUE: sprite.num(2) },
+            }),
+            sprite.add('data_setvariableto', {
+                fields: { VARIABLE: { id: 'ok', value: 'z' } },
+                inputs: { VALUE: sprite.num(2) },
+            }),
+        );
+        const result = buildStuduinoIr({
+            targets: [
+                stageWith(ws, {
+                    global: { id: 'global', name: 'y', type: '', value: 'abc' },
+                    ok: { id: 'ok', name: 'z', type: '', value: '3' },
+                }),
+                { id: 'sprite1', isStage: false, blocks: sprite.blocks, variables: {} },
+            ],
+            settings: SETTINGS,
+        });
+        expect(result.ok).toBe(true);
+        expect(result.ir.variables[0]).toEqual({ id: 'v0', init: 0 });
+        expect(result.warnings).toEqual([
+            { blockId: first, targetId: 'sprite1', reason: 'string_initial_value', variable: 'y' },
+        ]);
+        // 変数の名前は構文木には入れない
+        expect(JSON.stringify(result.ir)).not.toMatch(/abc/);
+    });
+
+    test('旗の下にない変数は書きこまないので警告しない', () => {
+        const ws = workspace();
+        ws.script(ws.add('sensing_resettimer'));
+        ws.top(
+            ws.add('data_changevariableby', {
+                fields: { VARIABLE: { id: 'g', value: 'y' } },
+                inputs: { VALUE: ws.num(1) },
+            }),
+        );
+        const result = build(ws, { variables: { g: { id: 'g', name: 'y', type: '', value: 'abc' } } });
+        expect(result.warnings).toEqual([]);
+    });
+
+    test('旗が 2 つ以上なら、使われる旗（1 つ目）を usedFlag で返す', () => {
+        const ws = workspace();
+        const sprite = workspace();
+        const first = ws.script();
+        sprite.script();
+        const result = buildStuduinoIr({
+            targets: [stageWith(ws), { id: 's1', isStage: false, blocks: sprite.blocks, variables: {} }],
+            settings: SETTINGS,
+        });
+        expect(result.ok).toBe(false);
+        expect(result.usedFlag).toEqual({ blockId: first, targetId: 'stage' });
     });
 });
