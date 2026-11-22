@@ -32,6 +32,43 @@ export default {
     'gui.studuinoMode.switchDialog.showBlocks': 'ブロックをみる',
     'gui.studuinoMode.switchDialog.clearAndSwitch': 'すべてけしてきりかえる',
     'gui.studuinoMode.switchDialog.cancel': 'やめる',
+    'gui.studuinoWrite.title': 'Studuino にかきこむ',
+    'gui.studuinoWrite.step.check': 'プログラムをしらべる',
+    'gui.studuinoWrite.step.compile': 'Studuino ようのプログラムをつくる',
+    'gui.studuinoWrite.step.write': 'Studuino にかきこむ',
+    'gui.studuinoWrite.noFlag':
+        '「みどりのはたがおされたとき」のブロックをおいてください。Studuino のでんげんをいれると、そのしたのプログラムがうごきます。',
+    'gui.studuinoWrite.unusableBlocks':
+        'つかえないブロックが {count} こあります。なおしてから、もういちどためしてください。',
+    'gui.studuinoWrite.ready': 'Studuino を USB ケーブルでつないで、［かきこむ］をおしてください。',
+    'gui.studuinoWrite.noWebSerial':
+        'このブラウザでは Studuino にかきこめません。Chrome か Edge をつかってください。',
+    'gui.studuinoWrite.writeFailed':
+        'Studuino にかきこめませんでした。USB ケーブルをたしかめて、もういちどためしてください。',
+    'gui.studuinoWrite.aborted':
+        'とめました。もういちどかきこむか、パソコンからうごかすときはファームウェアをかきもどしてください。',
+    'gui.studuinoWrite.done': 'できました！ USB ケーブルをぬいてでんちをつなぐと、プログラムがうごきます。',
+    'gui.studuinoWrite.retry': 'もういちどためす',
+    'gui.studuinoWrite.write': 'かきこむ',
+    'gui.studuinoWrite.close': 'とじる',
+    'gui.studuinoWrite.license':
+        'かきこむプログラムは、アーテックしゃの Studuino ライブラリ（GPL）をつかっています。ライブラリのソースは {library}、このページのソースは {smalruby} にあります。',
+    'gui.studuinoWrite.saveSource': 'このプログラムの C++ をほぞんする',
+    'gui.studuinoWrite.trademark':
+        'Studuino®（スタディーノ）はかぶしきがいしゃアーテックのとうろくしょうひょうです。',
+    'gui.studuinoWrite.error.notConfigured': 'ここでは Studuino にかきこめません。',
+    'gui.studuinoWrite.error.network':
+        'サーバーにつながりませんでした。ネットワークをたしかめて、もういちどためしてください。',
+    'gui.studuinoWrite.error.invalidIr': 'かきこめないものがプログラムにはいっています。',
+    'gui.studuinoWrite.error.forbidden': 'このページからは Studuino にかきこめません。',
+    'gui.studuinoWrite.error.tooLarge': 'プログラムがおおきすぎます。ちいさくしてください。',
+    'gui.studuinoWrite.error.compileFailed': 'Studuino ようのプログラムをつくれませんでした。',
+    'gui.studuinoWrite.error.flashOverflow':
+        'Studuino にはいりきらないおおきさです。プログラムをちいさくしてください。',
+    'gui.studuinoWrite.error.rateLimited':
+        'みじかいじかんになんどもかきこんでいます。すこしまってから、もういちどためしてください。',
+    'gui.studuinoWrite.error.timeout': 'つくるのにじかんがかかりすぎました。もういちどためしてください。',
+    'gui.studuinoWrite.error.internal': 'サーバーでもんだいがおきました。もういちどためしてください。',
     'gui.studuinoPortSettings.title': 'にゅうしゅつりょくのせってい',
     'gui.studuinoPortSettings.description':
         'きばんのポートごとに、つないだぶひんをえらびます。わりあてたぶひんだけがブロックにでます。',
@@ -72,6 +109,8 @@ export default {
         'アプリのせつめいにしたがってインストール・セットアップをおこなってください。',
     'gui.smalrubotFirmware.macSetupProceed': 'セットアップかんりょう、かきこみにすすむ',
     'gui.connection.error.flashFirmwareButton': 'ファームウェアかきこみ',
+    'gui.connection.error.flashFirmwareHint':
+        'Studuino モードでかきこんだあとは、パソコンからそうさするためのプログラム（ファームウェア）をかきもどしてください（［ファームウェアかきこみ］）。',
     'gui.classroom.title': 'クラス',
     'gui.menuBar.classroom': 'クラス',
     'gui.classroomTeacherMenu.label': 'クラスかんり',
