@@ -80,6 +80,8 @@ export default {
     'gui.studuinoWrite.error.invalidIr': 'かきこめないものがプログラムにはいっています。',
     'gui.studuinoWrite.error.forbidden': 'このページからは Studuino にかきこめません。',
     'gui.studuinoWrite.error.tooLarge': 'プログラムがおおきすぎます。ちいさくしてください。',
+    'gui.studuinoWrite.error.tooManyVariables':
+        'へんすうがおおすぎます。Studuino でつかえるへんすうは {limit} こまでです。へんすうをへらしてください。',
     'gui.studuinoWrite.error.compileFailed': 'Studuino ようのプログラムをつくれませんでした。',
     'gui.studuinoWrite.error.flashOverflow':
         'Studuino にはいりきらないおおきさです。プログラムをちいさくしてください。',

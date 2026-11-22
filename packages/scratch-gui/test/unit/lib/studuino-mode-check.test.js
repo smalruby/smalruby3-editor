@@ -67,6 +67,17 @@ describe('findStuduinoUnusableBlocks', () => {
         expect(found.find((b) => b.blockId === second).reason).toBe('too_many_flags');
     });
 
+    test('旗の下に無いスクリプトには印を付けない（S8）', () => {
+        const ws = makeBlocks();
+        ws.add('event_whenflagclicked', { topLevel: true });
+        ws.add('looks_say', { inputs: { MESSAGE: ws.num('hi') }, topLevel: true });
+        ws.chain(
+            ws.add('event_whenkeypressed', { topLevel: true }),
+            ws.add('smalrubotS1_studuinoLed', { fields: { ...port('A1'), STATE: { name: 'STATE', value: 'on' } } }),
+        );
+        expect(findStuduinoUnusableBlocks(stage(ws.blocks), SETTINGS)).toEqual([]);
+    });
+
     test('旗が 1 つも無いことは印にしない（ブロックに結びつかない）', () => {
         const ws = makeBlocks();
         ws.add('control_wait', { inputs: { DURATION: ws.num('1') }, topLevel: true });
@@ -89,12 +100,17 @@ describe('findNormalModeUnusableBlocks', () => {
 describe('checkModeSwitch', () => {
     test('通常 → Studuino は、Studuino モードで使えないブロックがあると止める', () => {
         const ws = makeBlocks();
-        const say = ws.add('looks_say', { topLevel: true });
+        const say = ws.add('looks_say');
+        ws.chain(ws.add('event_whenflagclicked', { topLevel: true }), say);
         expect(checkModeSwitch(stage(ws.blocks), SETTINGS, true)).toEqual({
             allowed: false,
             blocks: [{ targetId: 'stage', blockId: say, reason: 'unsupported_block' }],
         });
         expect(checkModeSwitch(stage({}), SETTINGS, true)).toEqual({ allowed: true, blocks: [] });
+        // 旗の下に無いスクリプトは止める理由にしない（S8）
+        const loose = makeBlocks();
+        loose.add('looks_say', { topLevel: true });
+        expect(checkModeSwitch(stage(loose.blocks), SETTINGS, true)).toEqual({ allowed: true, blocks: [] });
     });
 
     test('Studuino → 通常は、部品のブロックがあると止める', () => {

@@ -61,10 +61,46 @@ describe('StuduinoWriteModal', () => {
     });
 
     test('shows the blocks that can not be used and does not compile', () => {
-        renderModal(makeVm({ f: flag, s: say }));
+        renderModal(makeVm({ f: { ...flag, next: 's' }, s: { ...say, topLevel: false, parent: 'f' } }));
         expect(status('check')).toBe('failed');
         expect(compile).not.toHaveBeenCalled();
         expect(screen.getByTestId('studuino-write-show-blocks')).toBeInTheDocument();
+    });
+
+    test('ignores the scripts that are not under the green flag (S8)', async () => {
+        compile.mockResolvedValue({ ok: false, error: 'not_configured' });
+        renderModal(makeVm({ f: flag, s: say }));
+        await waitFor(() => expect(status('compile')).toBe('failed'));
+        expect(status('check')).toBe('done');
+        expect(compile).toHaveBeenCalled();
+    });
+
+    test('tells that there are too many variables (S1)', () => {
+        const blocks = { f: { ...flag } };
+        const variables = {};
+        let prev = 'f';
+        for (let i = 0; i <= 32; i++) {
+            variables[`g${i}`] = { id: `g${i}`, name: `n${i}`, type: '', value: 0 };
+            blocks[`c${i}`] = {
+                id: `c${i}`,
+                opcode: 'data_changevariableby',
+                topLevel: false,
+                parent: prev,
+                next: null,
+                fields: { VARIABLE: { name: 'VARIABLE', id: `g${i}`, value: `n${i}` } },
+                inputs: {},
+            };
+            blocks[prev].next = `c${i}`;
+            prev = `c${i}`;
+        }
+        const vm = makeVm(blocks);
+        vm.runtime.targets[0].variables = variables;
+        renderModal(vm);
+        expect(status('check')).toBe('failed');
+        expect(compile).not.toHaveBeenCalled();
+        const message = screen.getByTestId('studuino-write-message');
+        expect(message).toHaveTextContent('Too many variables. Studuino can use up to 32 variables.');
+        expect(message).not.toHaveTextContent('can not be used');
     });
 
     test('is ready to write when the hex is made, and can save the C++', async () => {

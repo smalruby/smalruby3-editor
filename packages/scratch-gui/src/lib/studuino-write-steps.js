@@ -62,7 +62,7 @@ const writeNotices = (result) => {
  * 検査（構文木の生成）の結果から、次の段階を決める。
  * @param {object} result - buildStuduinoIr の結果
  * @returns {{step: string, notices: Array<object>, ir?: object, blocks?: Array<object>, noFlag?: boolean,
- *   tooLarge?: boolean}} 次の段階（`notices` は writeNotices の一覧）
+ *   tooLarge?: boolean, tooManyVariables?: boolean}} 次の段階（`notices` は writeNotices の一覧）
  */
 const stepAfterCheck = (result) => {
     const notices = writeNotices(result);
@@ -74,6 +74,10 @@ const stepAfterCheck = (result) => {
         noFlag: errors.some((e) => e.reason === STUDUINO_IR_ERRORS.NO_FLAG),
         tooLarge: errors.some((e) => e.reason === STUDUINO_IR_ERRORS.TOO_LARGE),
         notices,
+        // 変数の数の上限（S1）。ほかの「大きすぎる」と分けて、変数を減らすように知らせる
+        tooManyVariables: errors.some(
+            (e) => e.reason === STUDUINO_IR_ERRORS.TOO_LARGE && e.detail === 'too_many_variables',
+        ),
     };
 };
 

@@ -3,6 +3,7 @@
 // - Studuino モードで使えないブロック = 構文木の生成（lib/studuino-ir）がエラーにするブロック。
 //   一覧に無いブロック・文字の値・割り当てていない（外した）ポート・その部品でないポート・
 //   2 つ目以降の「旗が押されたとき」など。印・件数・書きこみの検査が同じ判断になるよう、生成と同じ関数を使う。
+//   旗の下に無いスクリプトは、コメントと同じ扱いで印を付けない（S8。生成が検査しないので）。
 // - 通常モードで使えないブロック = 書きこまないと動かない Studuino モードの部品のブロック。
 import { buildStuduinoIr, STUDUINO_IR_ERRORS } from './studuino-ir/build-studuino-ir';
 import { STUDUINO_EXTENSION_ID } from './studuino-mode';

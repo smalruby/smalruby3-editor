@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import React, { useCallback } from 'react';
 import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
 import Modal from '../../containers/modal.jsx';
+import { STUDUINO_IR_LIMITS } from '../../lib/studuino-ir/limits';
 import { NOTICE_KIND, progressMarks, STEP } from '../../lib/studuino-write-steps';
 import Box from '../box/box.jsx';
 import styles from './studuino-write-modal.css';
@@ -43,6 +44,11 @@ const messages = defineMessages({
         defaultMessage: 'The program is too large. Make it smaller.',
         description: 'The program is too large for the compile API',
         id: 'gui.studuinoWrite.error.tooLarge',
+    },
+    tooManyVariables: {
+        defaultMessage: 'Too many variables. Studuino can use up to {limit} variables. Use fewer variables.',
+        description: 'The program uses more variables than Studuino can hold',
+        id: 'gui.studuinoWrite.error.tooManyVariables',
     },
     compileFailed: {
         defaultMessage: 'Could not make the program for Studuino.',
@@ -215,6 +221,7 @@ const StuduinoWriteModal = ({
     blocks,
     notices,
     noFlag,
+    tooManyVariables,
     percent,
     messageId,
     compiled,
@@ -228,6 +235,10 @@ const StuduinoWriteModal = ({
 }) => {
     const intl = useIntl();
     const marks = progressMarks(step);
+    // 変数の数の上限（S1）は別の文で知らせるので、「使えないブロック」の数には入れない
+    const unusableCount = blocks.filter(
+        (b) => !(tooManyVariables && b.reason === 'too_large' && b.detail === 'too_many_variables'),
+    ).length;
     return (
         <Modal contentLabel={intl.formatMessage(messages.title)} id="studuinoWriteModal" onRequestClose={onClose}>
             <Box className={styles.body} data-testid="studuino-write-modal">
@@ -267,12 +278,19 @@ const StuduinoWriteModal = ({
                             id="gui.studuinoWrite.noFlag"
                         />
                     ) : null}
-                    {step === STEP.CHECK_FAILED && blocks.length > 0 ? (
+                    {step === STEP.CHECK_FAILED && tooManyVariables ? (
+                        <FormattedMessage
+                            {...messages.tooManyVariables}
+                            values={{ limit: STUDUINO_IR_LIMITS.maxVariables }}
+                        />
+                    ) : null}
+                    {step === STEP.CHECK_FAILED && tooManyVariables && unusableCount > 0 ? ' ' : null}
+                    {step === STEP.CHECK_FAILED && unusableCount > 0 ? (
                         <FormattedMessage
                             defaultMessage="{count} blocks can not be used. Fix them and try again."
                             description="There are blocks that can not be written"
                             id="gui.studuinoWrite.unusableBlocks"
-                            values={{ count: blocks.length }}
+                            values={{ count: unusableCount }}
                         />
                     ) : null}
                     {step === STEP.CHECK_FAILED && !noFlag && blocks.length === 0 ? (
@@ -415,6 +433,7 @@ StuduinoWriteModal.propTypes = {
     messageId: PropTypes.string,
     noFlag: PropTypes.bool,
     notices: PropTypes.arrayOf(NOTICE_SHAPE),
+    tooManyVariables: PropTypes.bool,
     percent: PropTypes.number,
     step: PropTypes.string.isRequired,
     webSerialSupported: PropTypes.bool,
