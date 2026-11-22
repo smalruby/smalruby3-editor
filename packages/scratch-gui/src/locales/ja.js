@@ -973,15 +973,27 @@ export default {
     'gui.classroom.assignmentEditor.errorLessonNoChallenges': 'レッスンのチャレンジを 1 つ以上選んでください。',
     'gui.classroom.assignmentEditor.advancedSummary': '他者参照: {peerView}・メッシュ: {mesh}',
     'gui.classroom.teacherCreate.assignmentNameHint': '人数と課題名はいつでも変更できます。',
-    'gui.classroom.carousel.submitTitle': '生徒が課題を提出できる',
-    'gui.classroom.carousel.submitDesc': '参加コードでクラスに参加して、ワンクリックで作品を提出できます。',
-    'gui.classroom.carousel.overviewTitle': '提出状況がひと目でわかる',
-    'gui.classroom.carousel.overviewDesc': '座席グリッドで、提出済・返却済・作業中がすぐにわかります。',
-    'gui.classroom.carousel.screenshotTitle': '開かなくてもプレビューできる',
-    'gui.classroom.carousel.screenshotDesc':
-        'サムネイルとブロックのスクリーンショットで、作品をすばやく確認できます。',
-    'gui.classroom.carousel.gcTitle': 'Google Classroom と連携',
-    'gui.classroom.carousel.gcDesc': 'Google Classroom からクラス情報をインポートし、課題リンクを配信できます。',
+    'gui.classroom.carousel.label': 'クラス管理でできること',
+    'gui.classroom.carousel.sameAsGcTitle': 'Google Classroom と同じ使い方',
+    'gui.classroom.carousel.sameAsGcDesc':
+        'ストリーム・授業・採点のタブと［＋ 作成］。Google Classroom を使えているなら、新しく覚えることはほとんどありません。',
+    'gui.classroom.carousel.joinCodeTitle': '参加コードを映すだけで始まる',
+    'gui.classroom.carousel.joinCodeDesc':
+        '生徒はメニューの「クラス」にコードを入れて、自分の席を選ぶだけ。生徒のアカウントは要りません。',
+    'gui.classroom.carousel.statusPanelTitle': 'エディタを開いたまま、提出がわかる',
+    'gui.classroom.carousel.statusPanelDesc':
+        '「いまの課題の状況」を出しておけば、自分の画面で授業をしながら、だれが提出したかを席の色で見られます。',
+    'gui.classroom.carousel.lessonProgressTitle': 'つまずいている子がすぐわかる',
+    'gui.classroom.carousel.lessonProgressDesc':
+        'レッスンの進み具合を一覧で。10 分以上止まっている子には印が付くので、声をかけに行けます。',
+    'gui.classroom.carousel.gradingTitle': '採点は AI が下書き、決めるのは先生',
+    'gui.classroom.carousel.gradingDesc':
+        '提出を読み込み、AI が点とコメントを下書きします。先生が直して、そのまま生徒へ返却できます。',
+    'gui.carousel.prev': '前へ',
+    'gui.carousel.next': '次へ',
+    'gui.carousel.pause': '一時停止',
+    'gui.carousel.play': '再生',
+    'gui.carousel.slide': '{total} 枚中 {current} 枚目',
     'gui.classroom.loading': '読み込み中...',
     'gui.sharedMessages.backdrop': '背景{index}',
     'gui.sharedMessages.costume': 'コスチューム{index}',

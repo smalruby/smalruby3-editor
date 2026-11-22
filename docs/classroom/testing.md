@@ -38,6 +38,12 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `google-signin-slot` | div | GIS が描画するサインインボタンのホスト（不具合報告モーダルにも同 testid で存在） |
 | `google-signin-button` | div | 上記スロット内に GIS 用に生成されるノード |
 | `classroom-microsoft-login` | button | Microsoft ログイン |
+| `classroom-login-carousel` | section | ログインの画面の右のカルーセル（クラス管理でできることの紹介。← → で送る） |
+| `classroom-login-carousel-prev` | button | カルーセルの前へ（最初のスライドでは `aria-disabled="true"`） |
+| `classroom-login-carousel-next` | button | カルーセルの次へ（最後のスライドでは `aria-disabled="true"`） |
+| `classroom-login-carousel-pause` | button | カルーセルの［一時停止］／［再生］（動きを減らす設定のときは出ない） |
+| `classroom-login-carousel-slide` | div | いま見えているスライド（見出しは中の `h3`） |
+| `classroom-login-carousel-dots` | div | いまどこかを示す点（押せない） |
 | `classroom-back` | button | 戻る |
 | `classroom-refresh` | button | 更新 (↻)。`aria-label` / `title` は「読み込み直す」 |
 | `classroom-google-import` | button | Google Classroom からインポート |
