@@ -83,7 +83,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onVerifyGoogleCourseAccess,
         selectedGoogleCourse,
         googleSignInRef,
-        googleFallbackReason,
+        googleButtonShown,
         onGoogleLogin,
         onMicrosoftLogin,
         isMicrosoftAuthAvailable,
@@ -299,7 +299,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                 <TeacherLoginPhase
                     error={error}
                     errorTitle={errorTitle}
-                    googleFallbackReason={googleFallbackReason}
+                    googleButtonShown={googleButtonShown}
                     googleSignInRef={googleSignInRef}
                     isMicrosoftAuthAvailable={isMicrosoftAuthAvailable}
                     onGoogleLogin={onGoogleLogin}
