@@ -125,6 +125,7 @@ GUI のビルド（webpack の `DefinePlugin`）が使う環境変数と、そ�
 | `CLASSROOM_API_ENDPOINT` | repo Secret | `stg.classroom.api.smalruby.app` | Environment `stg` の Secret |
 | `BUG_REPORT_API_ENDPOINT` | repo Secret | `stg.bug-report.api.smalruby.app` | Environment `stg` の Secret |
 | `SCRATCH_API_PROXY_ENDPOINT` | repo Variable | `https://stg.api.smalruby.app` | Environment `stg` の Variable（翻訳・音声合成の CORS プロキシにも使う） |
+| `STUDUINO_COMPILE_ENDPOINT` | repo Variable（`https://api.smalruby.app/studuino`） | `https://stg.api.smalruby.app/studuino` | Environment `stg` の Variable（Studuino モードの hex を作る API。`/compile` は付けない） |
 | `GOOGLE_CLIENT_ID` / `MICROSOFT_CLIENT_ID` | repo Secret | prod と同じ値 | そのまま使える |
 | `GOOGLE_API_KEY` | repo Secret | stg 専用は無い | そのまま使える |
 | `MAX_USER_MESSAGE_LENGTH` / `MIN_USER_MESSAGE_LENGTH` | repo Variable | prod と同じ値（250 / 10） | そのまま使える |
