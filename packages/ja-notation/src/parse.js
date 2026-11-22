@@ -1154,7 +1154,12 @@ const parse = (source) => {
         }
         if (continuesIf) {
             const top = stack[stack.length - 1];
-            if (!top || top.node.type !== 'If' || top.node.elseBody) {
+            // A branch of a `もし` opened with `:` is at the indent of the `もし`. One
+            // deeper (even by a space, as after `｜`) is not taken for it, as one
+            // shallower is not (Issue #2030): an error on its line is safer than
+            // another program.
+            const misplaced = top && top.mode === 'indent' && entry.width !== top.width;
+            if (!top || top.node.type !== 'If' || top.node.elseBody || misplaced) {
                 errors.push(
                     makeError('syntax', '対応する「もし」がありません', entry.line, column, {
                         block: 'stray-branch',

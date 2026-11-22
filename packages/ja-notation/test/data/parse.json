@@ -1652,6 +1652,36 @@
             "title": "a comma before の間 is not a reading comma of the loop",
             "ja": "n < 5，の間繰り返す:\n    n = n + 2",
             "errors": [{ "code": "syntax", "message": "「，」が読めません", "line": 1, "column": 5 }]
+        },
+        {
+            "title": "an else deeper than its if (Issue #2030)",
+            "ja": "もし a > 0 ならば:\n    b = 1\n  そうでなければ:\n    b = 2",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "対応する「もし」がありません",
+                    "line": 3,
+                    "column": 2,
+                    "block": "stray-branch",
+                    "branch": "else",
+                    "colon": true
+                }
+            ]
+        },
+        {
+            "title": "an else-if with one space more after `｜` than its if (Issue #2030)",
+            "ja": "i を 1 から 3 まで 1 ずつ増やしながら繰り返す:\n｜ もし i > 1 ならば:\n｜     b = i\n｜  そうでなくもし i > 0 ならば:\n｜     b = 0\n⎿ b = 9",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "対応する「もし」がありません",
+                    "line": 4,
+                    "column": 3,
+                    "block": "stray-branch",
+                    "branch": "elsif",
+                    "colon": true
+                }
+            ]
         }
     ]
 }
