@@ -52,7 +52,7 @@
 }
 
 /* Host for the GIS-rendered sign-in button (#1149). Collapses while empty so
-   the login phase keeps its spacing when One Tap handles the login. */
+   the column of sign-in buttons keeps its spacing. */
 .google-sign-in-slot {
     display: flex;
     justify-content: center;
@@ -91,20 +91,12 @@
     margin-top: 0.5rem;
 }
 
-.login-button,
 .primary-button,
 .secondary-button {
     padding: 0.5rem 1.25rem;
     border-radius: 4px;
     cursor: pointer;
     font-size: 0.9rem;
-}
-
-.login-button {
-    border: 1px solid $motion-primary;
-    background: white;
-    color: $motion-primary;
-    font-weight: bold;
 }
 
 .primary-button {

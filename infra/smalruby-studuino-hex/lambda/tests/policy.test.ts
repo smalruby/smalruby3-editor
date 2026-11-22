@@ -18,6 +18,9 @@ describe('parseLimits', () => {
       compileTimeoutMs: 25000,
       perMinute: 12,
       perDay: 600,
+      maxNodes: 10000,
+      maxDepth: 100,
+      maxVariables: 64,
     });
   });
 
@@ -29,6 +32,14 @@ describe('parseLimits', () => {
       RATE_LIMIT_PER_DAY: '50',
     });
     expect(limits).toEqual({ ...DEFAULT_LIMITS, maxRequestBytes: 1000, perDay: 50 });
+  });
+
+  test('構文木の上限も環境変数で変えられる', () => {
+    expect(parseLimits({ MAX_IR_NODES: '500', MAX_IR_DEPTH: '20', MAX_IR_VARIABLES: 'x' })).toMatchObject({
+      maxNodes: 500,
+      maxDepth: 20,
+      maxVariables: 64,
+    });
   });
 });
 

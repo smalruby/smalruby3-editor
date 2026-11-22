@@ -35,6 +35,9 @@ describe('StuduinoHexStack', () => {
           COMPILE_TIMEOUT_MS: '25000',
           RATE_LIMIT_PER_MINUTE: '12',
           RATE_LIMIT_PER_DAY: '600',
+          MAX_IR_NODES: '10000',
+          MAX_IR_DEPTH: '100',
+          MAX_IR_VARIABLES: '64',
           CORS_ALLOWED_ORIGINS: Match.stringLikeRegexp('https://smalruby\\.app.*https://preview\\.smalruby\\.app'),
         }),
       },
@@ -49,6 +52,27 @@ describe('StuduinoHexStack', () => {
         AllowMethods: ['POST', 'OPTIONS'],
       }),
     });
+  });
+
+  test('既存のカスタムドメインの下（/studuino）につなぐ', () => {
+    stg.hasResourceProperties('AWS::ApiGatewayV2::ApiMapping', {
+      DomainName: 'stg.api.smalruby.app',
+      ApiMappingKey: 'studuino',
+      Stage: '$default',
+    });
+    synth('prod').hasResourceProperties('AWS::ApiGatewayV2::ApiMapping', {
+      DomainName: 'api.smalruby.app',
+      ApiMappingKey: 'studuino',
+    });
+  });
+
+  test('STUDUINO_API_CUSTOM_DOMAIN=false ならつながない', () => {
+    process.env.STUDUINO_API_CUSTOM_DOMAIN = 'false';
+    try {
+      synth('dev').resourceCountIs('AWS::ApiGatewayV2::ApiMapping', 0);
+    } finally {
+      delete process.env.STUDUINO_API_CUSTOM_DOMAIN;
+    }
   });
 
   test('API 全体のスロットリング', () => {

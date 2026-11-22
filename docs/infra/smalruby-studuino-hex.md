@@ -17,7 +17,7 @@
 |---|---|---|
 | CloudFormation スタック | `StuduinoHexStack` | 新しい CDK プロジェクト。コンテナのビルドが重いので、ほかの Lambda のデプロイを遅くしないよう分けた |
 | Lambda（コンテナ・x86_64） | `smalruby-studuino-hex-compile` | メモリ 2GB・`/tmp` 1GB・タイムアウト 30 秒 |
-| HTTP API | `SmalrubyStuduinoHex` | `POST /compile`。カスタムドメインは無い（`execute-api` のエンドポイントを使う。スタックの出力 `HttpApiEndpoint`） |
+| HTTP API | `SmalrubyStuduinoHex` | `POST /compile`。smalruby-api のカスタムドメインの下の `/studuino` につなぐ（prod `https://api.smalruby.app/studuino`・stg `https://stg.api.smalruby.app/studuino`。スタックの出力 `CustomDomainEndpoint`）。`execute-api` のエンドポイント（出力 `HttpApiEndpoint`）もそのまま使える |
 | DynamoDB | `smalruby-studuino-hex-rate-limit` | IP（のハッシュ）ごとの 1 分・1 日の回数。TTL で消える。DESTROY |
 | ロググループ | `/aws/lambda/smalruby-studuino-hex-compile` | prod 1 か月・stg 1 週間 |
 
@@ -65,18 +65,46 @@ CDK が Docker の build args に渡す（Dockerfile に版を書かない）。
 
 ### `POST /compile`
 
-この段階では **決まったサンプルだけ** をコンパイルする（任意の C++ は受け付けない）。構文木を受け取る形は
-次の sub-issue で足す（[`docs/studuino-mode/`](../studuino-mode/) の「Lambda の API」）。
+本文は 2 つの形のどちらか。任意の C++ は受け付けない。
+
+| 本文 | 何をするか |
+|---|---|
+| `{ "ir": <構文木> }` | 構文木（Studuino IR）を検査し、C++ に書き出してコンパイルする（Studuino モードの書きこみ） |
+| `{ "sample": "<名前>" }` | 決まったサンプルをコンパイルする（動作確認とコンパイルの時間の計測） |
 
 ```
-POST <HttpApiEndpoint>/compile
+POST <CustomDomainEndpoint>/compile
 Origin: https://smalruby.app
 Content-Type: application/json
 
-{ "sample": "blink" }
+{ "ir": { "version": 1, "board": "studuino", "ports": { "A0": "led" },
+          "main": [{ "op": "forever", "body": [
+            { "op": "led", "port": "A0", "on": true }, { "op": "wait", "secs": { "num": 0.5 } },
+            { "op": "led", "port": "A0", "on": false }, { "op": "wait", "secs": { "num": 0.5 } } ] }] } }
 ```
 
-大きさの違うサンプルで、コンパイルの時間を測る（打ち切りの 25 秒が足りるかの材料）。
+#### 構文木の検査と書き出し
+
+構文木の形と、op ごとの C++ の書き出しの表は [`docs/studuino-mode/`](../studuino-mode/) の「構文木」が正。
+実装は `lambda/ir.ts`（検査）と `lambda/codegen.ts`（書き出し）で、どちらも純粋関数（単体テストは
+`lambda/tests/ir.test.ts`・`codegen.test.ts`）。
+
+- **厳密に検査する**: 知らない op・知らないキー・知らないポート・ポートに合わない部品・割り当てていないポート・
+  型の合わない式（数の所に真偽など）・宣言していない変数は、すべて `400 invalid_ir` で拒否し、
+  `path`（例 `main[0].body[2].cond.a`）と `reason`（例 `unknown_op`・`port_not_assigned`・`type_mismatch:number`）を返す。
+  第 2 弾の `lists` / `functions` も、まだ知らないキーとして拒否する。
+- **利用者の文字列は C++ に入らない**: 変数は `v0`〜`v9999` の ID だけを受け付け、C++ では `sr_v0` にする。
+  値は数値（有限の数）と真偽だけ。ポートは `PORT_A0` などの定数の名前、部品は `PIDLED` などの決まった名前で書き出す。
+- **書き出しの形**: `Studuino board;`、Scratch の計算に合わせる補助関数（`sr_mod`・`sr_round`・`sr_random`・
+  `sr_clamp`・`sr_timer`）、変数（`double`）、`sr_main()`（「旗が押されたとき」の下）。`setup()` でポートを
+  表の順に初期化し、補正値を設定し、`sr_main()` を 1 回呼ぶ。`loop()` は空。
+- 値はライブラリの範囲に収める（DC モーターの速さ 0〜255・サーボ 0〜180 度・ブザー 130〜4186 Hz に
+  `sr_clamp` してから四捨五入）。待つ秒数は 0 未満を 0 にする。
+- 真偽を数の所に入れる（Scratch で `<>` を `( )` に入れる）ための `to_num`（真 = 1・偽 = 0）も受け付ける。
+  ブラウザが使うかは構文木の生成の sub-issue で決める。
+- 応答の `source` は書き出した C++（画面には出さない。ソースの入手のため）。
+
+サンプル（`{ "sample": ... }`）は、大きさの違うもので、コンパイルの時間を測る（打ち切りの 25 秒が足りるかの材料）。
 
 | サンプル | 大きさ | 中身 | Studuino ライブラリ |
 |---|---|---|---|
@@ -104,8 +132,9 @@ Content-Type: application/json
 | HTTP | `error` | いつ |
 |---|---|---|
 | 400 | `invalid_request` | JSON が壊れている（`reason: "invalid_json"`）・知らないサンプル（`reason: "unknown_sample"`） |
+| 400 | `invalid_ir` | 構文木の検査に通らない（`reason`・`path`） |
 | 403 | `forbidden_origin` | 許していない Origin・Origin が無い |
-| 413 | `too_large` | 本文が上限を超えた（`maxBytes`） |
+| 413 | `too_large` | 本文が上限を超えた（`maxBytes`）・構文木のノードの数・深さ・変数の数が上限を超えた（`reason`: `too_many_nodes` / `too_deep` / `too_many_variables`・`limit`・`path`） |
 | 422 | `compile_failed` | コンパイルの失敗（`reason`: `compile_failed` / `flash_overflow` / `library_missing`） |
 | 429 | `rate_limited` | IP ごとの回数を超えた（`retryAfter` 秒・`Retry-After` ヘッダ） |
 | 504 | `timeout` | コンパイルを打ち切った（`timeoutMs`） |
@@ -126,6 +155,9 @@ Content-Type: application/json
 | 本文の大きさ | 128KB | `STUDUINO_MAX_REQUEST_BYTES` |
 | コンパイルの打ち切り | 25 秒 | `STUDUINO_COMPILE_TIMEOUT_MS` |
 | IP ごとの回数 | 1 分 12 回・1 日 600 回 | `STUDUINO_RATE_LIMIT_PER_MINUTE`・`STUDUINO_RATE_LIMIT_PER_DAY` |
+| 構文木のノードの数 | 10,000 個 | `STUDUINO_MAX_IR_NODES` |
+| 構文木の入れ子の深さ | 100 | `STUDUINO_MAX_IR_DEPTH` |
+| 変数の数 | 64 個（ATmega168PA の RAM は 1KB） | `STUDUINO_MAX_IR_VARIABLES` |
 | API 全体 | prod 毎秒 10（バースト 20）・stg 5（10） | （CDK の中） |
 
 - **コンパイルの打ち切りは 60 秒にできない**: API Gateway（HTTP API）の統合は 30 秒で切れる。Lambda のタイムアウトも
@@ -141,9 +173,9 @@ Content-Type: application/json
 
 - **メトリクス**: 名前空間 `Smalruby/StuduinoHex`・ディメンション `Stage`。
   `Requests`（回数）・`Succeeded`・`Failed`（コンパイルの失敗・打ち切り・内部エラー）・`Rejected`（403 / 413 / 429 / 400）・
-  `CompileTime`（ms）・`HexBytes`・`RequestBytes`・`TotalTime`（ms）。
+  `CompileTime`（ms）・`IrNodes`（構文木のノードの数）・`HexBytes`・`RequestBytes`・`TotalTime`（ms）。
   CloudWatch のコンソール →「メトリクス」→「すべてのメトリクス」→ `Smalruby/StuduinoHex` で見る。
-- **ログの項目**: `outcome`（`ok` か失敗の名前）・`reason`・`sample`・`requestBytes`・`compileMs`・`hexBytes`・`totalMs`・
+- **ログの項目**: `outcome`（`ok` か失敗の名前）・`reason`・`sample`（構文木のときは `ir`）・`irNodes`・`irDepth`・`requestBytes`・`compileMs`・`hexBytes`・`totalMs`・
   `coldStart`・`rateLimitFailOpen`。コンパイラの出力は別の行（`event: "studuino_hex_compile_log"`）。
 - Logs Insights の例（コールドとウォームのコンパイル時間）:
 
@@ -155,13 +187,35 @@ Content-Type: application/json
 
 - コールドスタートの初期化時間は Lambda の `REPORT` 行の `Init Duration` で見る。
 
+## どこにつなぐか（カスタムドメインの下のパス）
+
+ブラウザから呼ぶ URL は、smalruby-api のカスタムドメインの下の `/studuino` にする。スタックは別のまま、
+ドメイン（`api.smalruby.app` / `<stage>.api.smalruby.app`）に API mapping（キー `studuino`）を 1 つ足す。
+ドメインの証明書と DNS は smalruby-api が持つ（[`smalruby-api.md`](smalruby-api.md)）。
+
+- HTTP API のカスタムドメインは、いちばん長く一致するパスへ振り分け、どれにも一致しないものは空のパスの
+  API（smalruby-api）が受ける。なので `/studuino/...` だけがこの API に来て、smalruby-api の動きは変わらない。
+  API に届くパスからは `/studuino` が外れる（`/studuino/compile` → `/compile`）。
+- サブドメイン（`studuino.api.smalruby.app`）にしない理由: 学校のフィルタで許可してもらうドメインを増やさない。
+  CORS と回数の制限はこの API の中で決まるので、パスで分けても変わらない。
+- 生の `execute-api` の URL を使わない理由: ブランチのプレビューは「エンドポイントのホストが `stg.` で始まる」ことで
+  stg を向いているかを確かめる（`.github/workflows/ci-cd.yml`）。
+- smalruby-api のスタックに入れない理由: 重いコンテナの Lambda を、軽いプロキシと同じスタックにすると、
+  どちらを直しても両方を作り直してデプロイすることになる。Studuino だけを止めることもしにくい。
+- `STUDUINO_API_CUSTOM_DOMAIN=false` でつながない（そのドメインが無い環境で試すとき）。
+
+ビルドに入れる `STUDUINO_COMPILE_ENDPOINT` には、`/compile` を付けない値（`https://api.smalruby.app/studuino`）を入れる。
+
 ## 試す（stg）
 
 ```bash
-EP=<スタックの出力 HttpApiEndpoint>
+EP=https://stg.api.smalruby.app/studuino   # スタックの出力 CustomDomainEndpoint
 # hex が返る
 curl -sS -X POST "$EP/compile" -H 'Origin: https://smalruby.app' -H 'Content-Type: application/json' \
   -d '{"sample":"blink"}' | head -c 300
+# 構文木から hex が返る（第 1 弾の op をすべて使う本文）
+curl -sS -X POST "$EP/compile" -H 'Origin: https://smalruby.app' -H 'Content-Type: application/json' \
+  -d @infra/smalruby-studuino-hex/lambda/tests/fixtures/all-ops.request.json | head -c 300
 # 許可外の Origin は 403
 curl -sS -o /dev/null -w '%{http_code}\n' -X POST "$EP/compile" -H 'Origin: https://evil.example' -d '{"sample":"blink"}'
 ```

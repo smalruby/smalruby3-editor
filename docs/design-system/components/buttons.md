@@ -94,3 +94,22 @@
 - 主ボタンは 1 画面に 1 つ（クラス管理の R2）。カードの下の「採点」「⚙ 設定」のような軽い操作はテキストボタンにする。
 - `variant="danger"`（採点を離れる確認の［戻る］だけ）は形だけ同じにしてあり、色は画面ごとの Issue で R4 に合わせて見直す。
 - 並べ方（副が左・主が右）は `TeacherScreen` / `TeacherSubView` の `footer` が持つ（[`../../classroom/source-code.md`](../../classroom/source-code.md)）。
+
+## 外部アカウントでログインするボタン（`sign-in-button/sign-in-button.jsx`）
+
+スモウルビー独自。Google・Microsoft などのアカウントでログインするボタン。クラス管理（先生）のログインと、不具合の報告のログインが使う。見本: [`../../classroom/screenshots/0201-teacher-login.png`](../../classroom/screenshots/0201-teacher-login.png)（Google のスクリプトが読めないときの形。読めたときは上の Google のボタンが Google の描くボタンに入れかわる）。
+
+Google のボタンは Google（Identity Services の `renderButton`）が描き、見た目は options でしか変えられない。そこで**ほかのログインのボタンを Google のボタンの形にそろえる**。主ボタン・副ボタン（青・紫の塗り）にはしない。ログインの手段は並んだ選択肢で、どれも同じ重さで見せたいことと、Google と Microsoft の決まり（白い地にロゴと文字）に合わせるため。
+
+| 状態 | 値 | トークン |
+|---|---|---|
+| ふつう | 幅 15rem（240px）・高さ 2.5rem（40px）・地 白・枠 `1px solid $color-border`・角丸 4px・文字 14px・太さ 500・文字の色 `$color-text`。ロゴ（1.125rem）を左に置き、文字はボタンの真ん中に | `$color-surface`・`$color-border`・`$radius-small`・`$font-size-medium`・`$color-text` |
+| ホバー・押した | 地 `$color-background` | `$color-background` |
+| 押せない | 地 `$color-disabled`・文字 `$color-disabled-text`・`cursor: not-allowed` | `$color-disabled`・`$color-disabled-text` |
+| フォーカス | `:focus-visible` で `outline: 2px solid $color-action; outline-offset: 2px`（クラス管理のボタンと同じ） | `$color-action` |
+| 並べ方 | 縦に 1 列・真ん中ぞろえ・ボタンの間 0.75rem（`SignInButtonList`）。画面の幅で横に並べ替えない（幅をそろえたまま見せるため） | |
+
+- Google の描くボタンは `theme: 'outline'`・`size: 'large'`（高さ 40px）・`shape: 'rectangular'`・`logo_alignment: 'left'`・`width: 240`（`src/lib/teacher-auth.js` の `GOOGLE_BUTTON_WIDTH_PX`）で出す。幅を変えるときは `sign-in-button.css` の `$sign-in-button-width` と両方を直す。
+- ロゴは各社のマークなので色を変えない（トークンにしない）。
+- 文字は「〇〇でログイン」にそろえる。Google の描くボタンの文字は Google が決める（ログインしたことのあるブラウザでは「〇〇 でログイン」と名前とメールアドレスが出る）。
+- Google のボタンが出るまで（スクリプトの読み込み中・読めなかったとき）は、同じ形の自前の Google のボタンを代わりに出す。押すと Google のボタンを出し直す。
