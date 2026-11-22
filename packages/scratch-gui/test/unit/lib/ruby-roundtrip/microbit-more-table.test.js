@@ -106,6 +106,11 @@ const rows = [
         ruby: 'microbit.listen_event_on("pulse", "P0")',
     },
     {
+        blocks: say('microbitMore_getPinEventValue(EVENT = "PULSE_LOW", PIN = "0")'),
+        ruby: 'say(microbit.value_of("low pulse", "P0"))',
+    },
+    { blocks: 'microbitMore_getPinEventValue(EVENT = "RISE", PIN = "16")', ruby: 'microbit.value_of("rise", "P16")' },
+    {
         blocks: 'microbitMore_whenDataReceived(LABEL: "label-01")',
         ruby: 'microbit.when_data_received_from_microbit("label-01") do\nend',
     },

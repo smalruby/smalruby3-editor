@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import { menuArg, noteArg, numberArg, registerSendTable } from './send-table';
 
 const Ev3 = 'ev3';
@@ -33,6 +32,8 @@ const EV3_CALLS = [
 
 const EV3_SENDS = [
     ...EV3_CALLS,
+    // The port is a string only (a block is an error): the generator never writes a block there.
+    { name: 'when_button_pressed', opcode: 'ev3_whenButtonPressed', hat: true, args: [sensorArg()] },
     { name: 'when_distance_lt', opcode: 'ev3_whenDistanceLessThan', hat: true, args: [numberArg('DISTANCE', 5)] },
     {
         name: 'when_brightness_lt',
@@ -60,28 +61,6 @@ const EV3Converter = {
 
         registerSendTable(converter, EV3_SENDS);
 
-        converter.registerOnSendWithBlock(Ev3, 'when_button_pressed', 1, 0, (params) => {
-            console.log(Ev3, 'when_button_pressed', 1, 0, params);
-            const { receiver, args, rubyBlock } = params;
-
-            if (!converter.isStringOrBlock(args[0])) return null;
-            console.log('a');
-
-            const block = converter.changeRubyExpressionBlock(receiver, 'ev3_whenButtonPressed', 'hat');
-            console.log('b');
-            const sensor = Ev3SensorMenu.indexOf(args[0].toString());
-            console.log('c');
-            converter.addInput(
-                block,
-                'PORT',
-                converter.createFieldBlock('ev3_menu_sensorPorts', 'sensorPorts', sensor.toString()),
-            );
-            console.log('d');
-            converter.setParent(rubyBlock, block);
-            console.log('e');
-            return block;
-        });
-
         // backward compatibility
         converter.registerOnSendWithBlock('self', 'when', 2, 0, (params) => {
             const { args, rubyBlock } = params;
@@ -91,7 +70,8 @@ const EV3Converter = {
             let block;
             switch (converter._getSymbolValue(args[0])) {
                 case 'ev3_button_pressed': {
-                    if (!converter.isStringOrBlock(args[1])) return null;
+                    // A string only, as `ev3.when_button_pressed` (a block was left connected to nothing).
+                    if (!converter.isString(args[1])) return null;
 
                     block = converter.createBlock('ev3_whenButtonPressed', 'hat');
                     const sensor = Ev3SensorMenu.indexOf(args[1].toString());

@@ -36,9 +36,11 @@ const rows = [
     { blocks: 'microbit_whenButtonPressed(BTN: $b)', ruby: 'microbit_v1.when_button_pressed($b) do\nend' },
     {
         blocks: `looks_say(MESSAGE: microbit_isButtonPressed(BTN: ${buttons('A')}))`,
+        ruby: 'say(microbit_v1.button_pressed?("A"))',
+    },
+    {
+        blocks: `looks_say(MESSAGE: microbit_isButtonPressed(BTN: ${buttons('A')}))`,
         ruby: 'say(microbit_v1.button_pressed?("a"))',
-        // The generator writes this reporter as a statement (a string, not [code, order]), so inside a
-        // value it comes out broken. Only the converter is fixed here.
         only: 'toBlocks',
     },
     {
