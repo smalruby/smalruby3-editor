@@ -173,14 +173,19 @@ describe('Studuino mode', () => {
         await toggleStuduinoMode();
         await driver.wait(() => existsByTestId('studuino-port-settings-modal'), 5000, 'Port settings did not open');
         await clickByTestId('studuino-port-settings-assign');
-        await sleep(500);
+        await driver.wait(
+            async () => !(await existsByTestId('studuino-port-settings-modal')),
+            5000,
+            'Port settings did not close',
+        );
         await driver.executeScript(`
             window.smalruby.vm.editingTarget.blocks.createBlock({
                 id: 'studuino-write-flag', opcode: 'event_whenflagclicked', next: null, parent: null,
                 inputs: {}, fields: {}, topLevel: true, shadow: false, x: 0, y: 0,
             });
         `);
-        await clickXpath('//img[@title="Go"]');
+        // ほかの表示（メニューなど）が旗に重なってもクリックが届くよう、JS で押す
+        await driver.executeScript(`document.querySelector('img[title="Go"]').click()`);
         await driver.wait(() => existsByTestId('studuino-write-modal'), 5000, 'Write modal did not open');
         // 検査は通る（CI のビルドには API の場所が無いので、hex を作るところで止まる）
         await driver.wait(
