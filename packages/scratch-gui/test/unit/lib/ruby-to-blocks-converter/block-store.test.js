@@ -85,6 +85,16 @@ describe('RubyToBlocksConverter/BlockStore', () => {
         expect(store.blockTypes).toEqual({ a: 'value' });
     });
 
+    test('removes a procedure, and a rollback puts it back', () => {
+        const store = new BlockStore();
+        store.setProcedure('foo', { id: 'p1' });
+        const mark = store.mark();
+        store.deleteProcedure('foo');
+        expect(Object.keys(store.procedures)).toEqual([]);
+        store.rollback(mark);
+        expect(store.procedures.foo).toEqual({ id: 'p1' });
+    });
+
     test('only the tables of variables take variables', () => {
         const store = new BlockStore();
         expect(() => store.setVariable('blocks', 'x', {})).toThrow('not a table of variables');

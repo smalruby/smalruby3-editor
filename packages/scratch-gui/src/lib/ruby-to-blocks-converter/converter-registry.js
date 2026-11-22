@@ -158,7 +158,7 @@ const ConverterRegistry = {
         if (block) {
             procedure.callNodesBeforeDefinition.push(node);
         } else {
-            delete this._context.procedures[procedure.name];
+            this._context.store.deleteProcedure(procedure.name);
         }
         return block;
     },
