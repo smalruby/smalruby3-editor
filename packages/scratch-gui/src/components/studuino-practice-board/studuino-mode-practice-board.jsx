@@ -138,20 +138,6 @@ const messages = defineMessages({
     },
 });
 
-/** 部品の内部の名前 → partMessages のキー。 */
-const PART_KEYS = {
-    servo_motor: 'servoMotor',
-    dc_motor: 'dcMotor',
-    led: 'led',
-    buzzer: 'buzzer',
-    light_sensor: 'lightSensor',
-    sound_sensor: 'soundSensor',
-    ir_photoreflector: 'irPhotoreflector',
-    temperature_sensor: 'temperatureSensor',
-    touch_sensor: 'touchSensor',
-    push_switch: 'pushSwitch',
-};
-
 export const ANALOG_PARTS = ['light_sensor', 'sound_sensor', 'ir_photoreflector', 'temperature_sensor'];
 export const BUTTON_PARTS = ['touch_sensor', 'push_switch'];
 
@@ -222,6 +208,39 @@ const outputView = (intl, item, reservations) => {
     }
 };
 
+/**
+ * タッチセンサー・ボタンの「押す」ボタン。押した・はなしたをポートつきで知らせる。
+ * 関数をレンダーごとに作り直すと、押しているあいだに TouchButton が「はなした」と見なしてしまうので、
+ * ポートごとに useCallback で固定する。
+ * @param {object} props - props.
+ * @param {string} props.label - ボタンの文字。
+ * @param {string} props.labelledBy - 部品の名前の要素の id。
+ * @param {Function} props.onInputChange - (ポート, 押したか) で呼ぶ。
+ * @param {string} props.port - ポート名。
+ * @param {boolean} props.pressed - いま押しているか。
+ * @returns {React.ReactElement} ボタン。
+ */
+const PressButton = ({ label, labelledBy, onInputChange, port, pressed }) => {
+    const handleTouch = useCallback((value) => onInputChange(port, value), [onInputChange, port]);
+    return (
+        <TouchButton
+            label={label}
+            labelledBy={labelledBy}
+            onTouch={handleTouch}
+            pressed={pressed}
+            testId={`studuino-mode-practice-board-press-${port}`}
+        />
+    );
+};
+
+PressButton.propTypes = {
+    label: PropTypes.string.isRequired,
+    labelledBy: PropTypes.string.isRequired,
+    onInputChange: PropTypes.func.isRequired,
+    port: PropTypes.string.isRequired,
+    pressed: PropTypes.bool.isRequired,
+};
+
 const StuduinoModePracticeBoard = ({ boardState, onClose, onInputChange, onOpen, onTry, open, position = null }) => {
     const intl = useIntl();
     const idPrefix = useId();
@@ -262,7 +281,7 @@ const StuduinoModePracticeBoard = ({ boardState, onClose, onInputChange, onOpen,
     const outputs = ports.filter((p) => !ANALOG_PARTS.includes(p.part) && !BUTTON_PARTS.includes(p.part));
     const label = (item) =>
         intl.formatMessage(messages.partWithPort, {
-            part: intl.formatMessage(partMessages[PART_KEYS[item.part]]),
+            part: intl.formatMessage(partMessages[item.part]),
             port: item.port,
         });
     const title = intl.formatMessage(messages.title);
@@ -316,13 +335,12 @@ const StuduinoModePracticeBoard = ({ boardState, onClose, onInputChange, onOpen,
                                             <span className={styles.label} id={labelId}>
                                                 {label(item)}
                                             </span>
-                                            <TouchButton
+                                            <PressButton
                                                 label={intl.formatMessage(messages.press)}
                                                 labelledBy={labelId}
-                                                // eslint-disable-next-line react/jsx-no-bind
-                                                onTouch={(pressed) => onInputChange(item.port, pressed)}
+                                                onInputChange={onInputChange}
+                                                port={item.port}
                                                 pressed={Boolean(item.pressed)}
-                                                testId={`studuino-mode-practice-board-press-${item.port}`}
                                             />
                                             <span
                                                 className={styles.number}
