@@ -2,7 +2,8 @@
 @import '../../css/units.css';
 
 .modal-content {
-    width: 840px;
+    /* 基板の絵を置いても、ドロップダウンの部品の名前が切れない幅 */
+    width: 920px;
     max-width: calc(100vw - 2rem);
 }
 
@@ -80,29 +81,19 @@
     font-size: 0.8125rem;
 }
 
-/* 基板の絵（独自の簡単な絵。本家の写真・画面は使わない） */
+/* 基板の絵（ポートの名前が読める大きさ。絵は 2 倍の解像度で持つ） */
 .board {
-    flex: 0 0 7rem;
+    flex: 0 0 11rem;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-    border-radius: 0.5rem;
-    background-color: $pen-tertiary;
-    color: $ui-white;
 }
 
-.board-chip {
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 0.25rem;
-    background-color: $ui-black-transparent;
-}
-
-.board-name {
-    font-weight: bold;
-    font-size: 0.875rem;
+.board-image {
+    display: block;
+    width: 100%;
+    height: auto;
+    user-select: none;
 }
 
 .button-row {
