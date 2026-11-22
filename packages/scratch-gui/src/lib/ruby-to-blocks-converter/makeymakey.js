@@ -1,41 +1,42 @@
-import _ from 'lodash';
+import { menuArg, registerSendTable } from './send-table';
 
 const Makey = 'makey';
+
+// The hats of `makey` (send-table.js). The key and the sequence are a string or a value block.
+const MAKEY_SENDS = [
+    {
+        receiver: Makey,
+        name: 'when_key_pressed',
+        opcode: 'makeymakey_whenMakeyKeyPressed',
+        hat: true,
+        changesReceiver: true,
+        args: [menuArg('KEY', 'makeymakey_menu_KEY', 'KEY', { orBlock: true })],
+    },
+    {
+        receiver: Makey,
+        name: 'when_pressed_in_oder',
+        opcode: 'makeymakey_whenCodePressed',
+        hat: true,
+        changesReceiver: true,
+        args: [menuArg('SEQUENCE', 'makeymakey_menu_SEQUENCE', 'SEQUENCE', { orBlock: true })],
+    },
+];
 
 /**
  * MakeyMakey converter
  */
 const MakeyMakeyConverter = {
+    sends: MAKEY_SENDS,
+
     register: function (converter) {
+        // `makey` itself is a Ruby expression that the calls of the table turn into their blocks.
         converter.registerOnSend('self', Makey, 0, (params) => {
             const { node } = params;
 
             return converter.createRubyExpressionBlock(Makey, node);
         });
 
-        converter.registerOnSendWithBlock(Makey, 'when_key_pressed', 1, 0, (params) => {
-            const { receiver, args, rubyBlock } = params;
-            if (!converter.isStringOrBlock(args[0])) return null;
-
-            const block = converter.changeRubyExpressionBlock(receiver, 'makeymakey_whenMakeyKeyPressed', 'hat');
-            converter.addInput(block, 'KEY', converter.createFieldBlock('makeymakey_menu_KEY', 'KEY', args[0]));
-            converter.setParent(rubyBlock, block);
-            return block;
-        });
-
-        converter.registerOnSendWithBlock(Makey, 'when_pressed_in_oder', 1, 0, (params) => {
-            const { receiver, args, rubyBlock } = params;
-            if (!converter.isStringOrBlock(args[0])) return null;
-
-            const block = converter.changeRubyExpressionBlock(receiver, 'makeymakey_whenCodePressed', 'hat');
-            converter.addInput(
-                block,
-                'SEQUENCE',
-                converter.createFieldBlock('makeymakey_menu_SEQUENCE', 'SEQUENCE', args[0]),
-            );
-            converter.setParent(rubyBlock, block);
-            return block;
-        });
+        registerSendTable(converter, MAKEY_SENDS);
     },
 
     /**

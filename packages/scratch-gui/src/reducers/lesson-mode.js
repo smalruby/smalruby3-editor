@@ -14,6 +14,14 @@ import {
 } from '../lib/lessons/lesson-progress';
 import { ROLE_SOURCES } from '../lib/lessons/lesson-role';
 import { isReadDiagram } from '../lib/lessons/read-diagram';
+import {
+    emptyReadiness,
+    loadReadiness,
+    markReadinessChallengeCleared,
+    markReadinessOffered,
+    recordReadinessAnswer,
+    saveReadiness,
+} from '../lib/lessons/readiness';
 import { DEFAULT_ROLE, challengeForRole, isRole } from '../lib/lessons/role-swap';
 import { isSpotlightSeen, markSpotlightSeen } from '../lib/lessons/spotlight-seen';
 
@@ -39,6 +47,10 @@ const CLEAR_LESSONS_LIBRARY_FOCUS = 'scratch-gui/lesson-mode/CLEAR_LESSONS_LIBRA
 const SET_LIBRARY_ASSIGNMENT_ONLY = 'scratch-gui/lesson-mode/SET_LIBRARY_ASSIGNMENT_ONLY';
 const SET_ROLE = 'scratch-gui/lesson-mode/SET_ROLE';
 const SOLVE_PART_QUIZ = 'scratch-gui/lesson-mode/SOLVE_PART_QUIZ';
+const MISS_PART_QUIZ = 'scratch-gui/lesson-mode/MISS_PART_QUIZ';
+const ANSWER_READINESS = 'scratch-gui/lesson-mode/ANSWER_READINESS';
+const NEXT_READINESS = 'scratch-gui/lesson-mode/NEXT_READINESS';
+const MARK_READINESS_OFFERED = 'scratch-gui/lesson-mode/MARK_READINESS_OFFERED';
 // チュートリアルのカードを開く action（reducers/cards.js の ACTIVATE_DECK）。カードの
 // allowedBlocks / setup がレッスンのものと食い違うので、開いたらレッスンモードを抜ける
 const ACTIVATE_DECK = 'scratch-gui/cards/ACTIVATE_DECK';
@@ -79,6 +91,10 @@ const closedState = {
     // 課題の ID は持たない。lib/lessons/lesson-analytics.js）
     pendingFromAssignment: false,
     fromAssignment: false,
+    // 開こうとしている・開いているチャレンジを、課題の「おさらい（課題の外）」として開いたか（#2300）。課題の数には
+    // 入れない。課題バーに「おさらい中」と「課題にもどる」を出し、クラスへは current に `review: true` を付けて送る
+    pendingFromReview: false,
+    fromReview: false,
     ...hintClosedState,
     // はじめて開いたチャレンジか（spotlight のヒントで周りを暗くする。開いたときに決める）
     hintSpotlight: false,
@@ -103,6 +119,14 @@ const closedState = {
     // 画面の部分をクリックして答えるクイズ（チャレンジの `partQuiz`・#2134）で、正しく答えた問いの数。
     // いまの問いは、この数の番め（0 から）。チャレンジを開くたびに 0 にもどす
     partQuizSolved: 0,
+    // そのクイズで 1 回でもまちがえたか。1 回もまちがえずに全部答えたら、「できた！」で次のレッスンへ進むことも
+    // えらべる（lesson-progress.js の lessonSkipOffer）。チャレンジを開くたびに false にもどす
+    partQuizMissed: false,
+    // じゅんびチェック（チャレンジの `readinessCheck`・#2299）で、答えて「次へ」まで進んだ問いの数。いまの問いは、この数の
+    // 番め（0 から）。goal の `readinessCheck` が見る。チャレンジを開くたびに 0 にもどす
+    readinessAnswered: 0,
+    // いまの問いで選んだ選択肢（`{index, choice}`）。1 回めに選んだものだけを数えるので、選んだら変えない。無ければ null
+    readinessChoice: null,
 };
 
 const initialState = {
@@ -112,6 +136,8 @@ const initialState = {
     // 自動で開くので、前のチャレンジから開いたままのときは unmount されないため
     hintSession: 0,
     progress: loadProgress(),
+    // じゅんびチェックの記録（lib/lessons/readiness.js）。正は localStorage で、ここはその写し
+    readiness: loadReadiness(),
     // レッスン表を開くときに見せるチャレンジ（「次のチャレンジ」で開いたとき・#1520）。
     // レッスン表は、これが入っているレッスンへスクロールし、次のまだできていないチャレンジを
     // 目立たせる（lessonsLibraryFocus）。レッスンを閉じても消さない（レッスン表が閉じるときに消す）
@@ -122,6 +148,8 @@ const initialState = {
     // レッスン表を、クラスの課題のチャレンジだけで開くか（「はじめる」「レッスンを続ける」・#1599）。
     // メニューの「レッスン」から開くときは false（コース全体＋課題の帯）。レッスン表が閉じるときに消す
     libraryAssignmentOnly: false,
+    // 最後に課題から開いた課題のチャレンジ id（#2300）。「おさらい」の「課題にもどる」の行き先。レッスンを閉じても消さない
+    lastAssignmentChallengeId: null,
     // クラスの課題へ進み具合を送ってほしい回数（クラスの画面を開いたとき・#1600）。
     // containers/lesson-progress-sync.jsx が、増えたら送る（取りこぼしの追いつき）
     progressSendRequest: 0,
@@ -172,6 +200,7 @@ const reducer = function (state, action) {
                 ...state,
                 pendingChallengeId: action.challengeId,
                 pendingFromAssignment: Boolean(action.fromAssignment),
+                pendingFromReview: Boolean(action.fromReview) && !action.fromAssignment,
                 pendingRole: isRole(action.role) ? action.role : null,
                 pendingRoleSource: isRole(action.role) ? action.roleSource || ROLE_SOURCES.CHOSEN : null,
             };
@@ -183,6 +212,7 @@ const reducer = function (state, action) {
                       ...state,
                       pendingChallengeId: null,
                       pendingFromAssignment: false,
+                      pendingFromReview: false,
                       pendingRole: null,
                       pendingRoleSource: null,
                   };
@@ -190,12 +220,16 @@ const reducer = function (state, action) {
             const found = findChallenge(action.challengeId);
             if (!found) return state;
             // はじめて開いたチャレンジだけスポットライトを出す。開いた時点で「見た」と記録し、
-            // このチャレンジを開いているあいだは state の値で照らし続ける
-            const hintSpotlight = !isSpotlightSeen(found.challenge.id);
-            if (hintSpotlight) markSpotlightSeen(found.challenge.id);
+            // このチャレンジを開いているあいだは state の値で照らし続ける。レッスン 0（warmup）は
+            // 画面を知らない子のためのもので、やり直す子ほど迷っているので、開くたびに照らす
+            const firstOpen = !isSpotlightSeen(found.challenge.id);
+            if (firstOpen) markSpotlightSeen(found.challenge.id);
+            const hintSpotlight = firstOpen || found.lesson.warmup;
             const roleState = openedRoleState(found.challenge, action, state);
             // 役を選びなおして同じチャレンジを始めなおしたときは、ヒントのページをそのままにする（「メッシュにつなごう」の
             // ページで役を変えても 1 ページ目にもどらない）
+            const fromStart = state.pendingChallengeId === found.challenge.id;
+            const fromAssignment = fromStart && Boolean(state.pendingFromAssignment);
             const restartedInRole =
                 state.challengeId === found.challenge.id &&
                 state.pendingChallengeId === found.challenge.id &&
@@ -211,12 +245,16 @@ const reducer = function (state, action) {
                 challengeId: found.challenge.id,
                 pendingChallengeId: null,
                 pendingFromAssignment: false,
+                pendingFromReview: false,
                 pendingRole: null,
                 pendingRoleSource: null,
                 ...roleState,
-                // startChallenge から来たときだけ、そのときの「課題からか」を引き継ぐ
-                fromAssignment:
-                    state.pendingChallengeId === found.challenge.id ? Boolean(state.pendingFromAssignment) : false,
+                // startChallenge から来たときだけ、そのときの「課題からか」「おさらいか」を引き継ぐ
+                fromAssignment,
+                fromReview: fromStart && Boolean(state.pendingFromReview),
+                lastAssignmentChallengeId: fromAssignment
+                    ? found.challenge.id
+                    : state.lastAssignmentChallengeId || null,
                 ...hintState,
                 hintSession: (state.hintSession || 0) + 1,
                 hintSpotlight,
@@ -224,7 +262,41 @@ const reducer = function (state, action) {
                 justCompletedNew: false,
                 completedHidden: false,
                 partQuizSolved: 0,
+                partQuizMissed: false,
+                readinessAnswered: 0,
+                readinessChoice: null,
             };
+        }
+        case ANSWER_READINESS: {
+            // いまの問いに 1 回めに選んだものだけを記録する（ちがうチャレンジ・前の問い・選びなおしは数えない）
+            const found = state.challengeId === action.challengeId ? findChallenge(state.challengeId) : null;
+            const check = found ? found.challenge.readinessCheck : null;
+            const index = state.readinessAnswered || 0;
+            if (!check || action.index !== index || index >= check.questions.length || state.readinessChoice) {
+                return state;
+            }
+            const question = check.questions[index];
+            const correct = action.choice === question.answer;
+            const readiness = recordReadinessAnswer(
+                state.readiness || emptyReadiness(),
+                found.course.id,
+                question.baseChallengeId,
+                correct,
+                action.answeredAt,
+            );
+            saveReadiness(readiness);
+            return { ...state, readiness, readinessChoice: { index, choice: action.choice } };
+        }
+        case NEXT_READINESS: {
+            if (state.challengeId !== action.challengeId || !state.readinessChoice) return state;
+            if (state.readinessChoice.index !== (state.readinessAnswered || 0)) return state;
+            return { ...state, readinessAnswered: (state.readinessAnswered || 0) + 1, readinessChoice: null };
+        }
+        case MARK_READINESS_OFFERED: {
+            const readiness = markReadinessOffered(state.readiness || emptyReadiness(), action.courseId, action.at);
+            if (readiness === state.readiness) return state;
+            saveReadiness(readiness);
+            return { ...state, readiness };
         }
         case SOLVE_PART_QUIZ: {
             // ちがうチャレンジ（開きなおした後に届いたもの）の答えは数えない
@@ -233,6 +305,13 @@ const reducer = function (state, action) {
             const solved = state.partQuizSolved || 0;
             if (solved >= questions || action.index !== solved) return state;
             return { ...state, partQuizSolved: solved + 1 };
+        }
+        case MISS_PART_QUIZ: {
+            // ちがうチャレンジ・クイズの無いチャレンジ・答えおわったクイズのまちがいは覚えない
+            const found = state.challengeId === action.challengeId ? findChallenge(state.challengeId) : null;
+            const questions = found && found.challenge.partQuiz ? found.challenge.partQuiz.questions.length : 0;
+            if (state.partQuizMissed || (state.partQuizSolved || 0) >= questions) return state;
+            return { ...state, partQuizMissed: true };
         }
         case CLOSE_LESSON:
         case ACTIVATE_DECK:
@@ -264,6 +343,13 @@ const reducer = function (state, action) {
             const latest = mergeProgress(state.progress, loadProgress());
             const progress = markProgress(latest, action.challengeId, action.completedAt);
             if (progress !== state.progress) saveProgress(progress);
+            // じゅんびチェックで「おすすめ」にしたチャレンジができたら、「おすすめ」を消す（#2299）
+            const readiness = markReadinessChallengeCleared(
+                state.readiness || emptyReadiness(),
+                action.challengeId,
+                action.completedAt,
+            );
+            if (readiness !== state.readiness) saveReadiness(readiness);
             // もう一度できたときも「できた！」は出す（記録は最初の日時のまま）
             const justCompletedId = findChallenge(action.challengeId) ? action.challengeId : state.justCompletedId;
             // いま開いているチャレンジができたら、ヒントの吹き出しを閉じる（#1528）。できたあとは
@@ -278,6 +364,7 @@ const reducer = function (state, action) {
             const completedHidden = justCompletedId === action.challengeId ? false : state.completedHidden;
             if (
                 progress === state.progress &&
+                readiness === state.readiness &&
                 justCompletedId === state.justCompletedId &&
                 hintVisible === state.hintVisible &&
                 hintMinimized === state.hintMinimized &&
@@ -289,6 +376,7 @@ const reducer = function (state, action) {
             return {
                 ...state,
                 progress,
+                readiness,
                 justCompletedId,
                 hintVisible,
                 hintMinimized,
@@ -333,10 +421,20 @@ const reducer = function (state, action) {
                 ? state
                 : { ...state, libraryAssignmentOnly: Boolean(action.assignmentOnly) };
         case CLEAR_PROGRESS: {
-            // 本人の確認で「ちがう」→「消す」（#1600）。端末のレッスンの記録だけを空にする
+            // 本人の確認で「ちがう」→「消す」（#1600）。端末のレッスンの記録だけを空にする。じゅんびチェックの記録も
+            // 同じ人のものなので消す（ほかの人の「おすすめ」を残さない）
             const progress = emptyProgress();
             saveProgress(progress);
-            return { ...state, progress, justCompletedId: null, justCompletedNew: false, completedHidden: false };
+            const readiness = emptyReadiness();
+            saveReadiness(readiness);
+            return {
+                ...state,
+                progress,
+                readiness,
+                justCompletedId: null,
+                justCompletedNew: false,
+                completedHidden: false,
+            };
         }
         case REQUEST_PROGRESS_SEND:
             return { ...state, progressSendRequest: (state.progressSendRequest || 0) + 1 };
@@ -356,14 +454,19 @@ const reducer = function (state, action) {
  * @param {string} challengeId - チャレンジ id（知らない id は無視）。
  * @param {object} [options] - オプション。
  * @param {boolean} [options.fromAssignment] - クラスの課題から開いたか（GA の計測で送る）。
+ * @param {boolean} [options.fromReview] - 課題の「おさらい（課題の外）」として開いたか（#2300）。
  * @param {?string} [options.role] - この役で始める（役を選びなおして始めなおすとき・#2061）。
  * @param {?string} [options.roleSource] - その役をどう決めたか（無ければ生徒が選んだ）。
  * @returns {object} action。
  */
-const startChallenge = (challengeId, { fromAssignment = false, role = null, roleSource = null } = {}) => ({
+const startChallenge = (
+    challengeId,
+    { fromAssignment = false, fromReview = false, role = null, roleSource = null } = {},
+) => ({
     type: START_CHALLENGE,
     challengeId,
     fromAssignment: Boolean(fromAssignment),
+    fromReview: Boolean(fromReview),
     role,
     roleSource,
 });
@@ -414,6 +517,49 @@ const closeLesson = () => ({ type: CLOSE_LESSON });
  * @returns {object} action。
  */
 const solvePartQuiz = (challengeId, index) => ({ type: SOLVE_PART_QUIZ, challengeId, index });
+
+/**
+ * 画面の部分をクリックして答えるクイズで、まちがえた（ちがう場所をクリックした）。1 回もまちがえずに全部答えたかを
+ * 見るために覚える（lesson-progress.js の lessonSkipOffer）。
+ * @param {string} challengeId - クイズのあるチャレンジ id。
+ * @returns {object} action。
+ */
+const missPartQuiz = (challengeId) => ({ type: MISS_PART_QUIZ, challengeId });
+
+/**
+ * じゅんびチェックのいまの問いで選んだ（#2299）。1 回めに選んだものだけを記録に入れる（正しいかは reducer が決める）。
+ * @param {string} challengeId - じゅんびチェックのチャレンジ id。
+ * @param {number} index - 問いの番号（0 から）。
+ * @param {number} choice - 選んだ選択肢の番号（0 から）。
+ * @param {string} [answeredAt] - 答えた日時（ISO 文字列）。
+ * @returns {object} action。
+ */
+const answerReadiness = (challengeId, index, choice, answeredAt = new Date().toISOString()) => ({
+    type: ANSWER_READINESS,
+    challengeId,
+    index,
+    choice,
+    answeredAt,
+});
+
+/**
+ * じゅんびチェックの次の問いへ進む（いまの問いに答えたあとだけ）。最後の問いで進むと、goal の `readinessCheck` を満たす。
+ * @param {string} challengeId - じゅんびチェックのチャレンジ id。
+ * @returns {object} action。
+ */
+const nextReadiness = (challengeId) => ({ type: NEXT_READINESS, challengeId });
+
+/**
+ * 「先にじゅんびチェックをする？」を聞いたことを覚える（1 回だけ聞く）。
+ * @param {string} courseId - コース id。
+ * @param {string} [at] - 聞いた日時（ISO 文字列）。
+ * @returns {object} action。
+ */
+const markReadinessOfferedAction = (courseId, at = new Date().toISOString()) => ({
+    type: MARK_READINESS_OFFERED,
+    courseId,
+    at,
+});
 
 const showHint = () => ({ type: SHOW_HINT });
 
@@ -575,6 +721,10 @@ export {
     openChallenge,
     closeLesson,
     solvePartQuiz,
+    missPartQuiz,
+    answerReadiness,
+    nextReadiness,
+    markReadinessOfferedAction as markReadinessOffered,
     showHint,
     hideHint,
     finishHint,

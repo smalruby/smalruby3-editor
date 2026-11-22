@@ -72,7 +72,6 @@ assignments/
 
 - ビルドで `assignments/` をそのまま `build/assignments/`（本番は `dist/assignments/`）へコピーする
   （`packages/scratch-gui/webpack.config.js` の CopyWebpackPlugin。マーカー `standard assignments`）。`README.md` はコピーしない。
-- PWA の precache には入れない（PDF は授業で印刷するもので、エディタを使うのに要らないため）。
 - ブランチのプレビュー（`preview.smalruby.app/<slug>/assignments/`）でも見られる。
 
 ## 課題を足す・直す
@@ -87,5 +86,5 @@ assignments/
 | ファイル | 役割 |
 |---|---|
 | `assignments/` | 標準課題の成果物 |
-| `packages/scratch-gui/webpack.config.js` | `assignments/` のコピーと precache からの除外 |
+| `packages/scratch-gui/webpack.config.js` | `assignments/` のコピー |
 | `packages/scratch-gui/test/unit/standard-assignments.test.js` | 決まりごとのテスト |

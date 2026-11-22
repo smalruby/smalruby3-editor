@@ -63,6 +63,9 @@ const initGoogleSignIn = (buttonContainer, onCredential) =>
             }
             google.accounts.id.initialize({
                 client_id: ADMIN_GOOGLE_CLIENT_ID,
+                // FedCM button mode: a press on the button always opens the
+                // sign-in, even while Chrome is holding back FedCM prompts.
+                use_fedcm_for_button: true,
                 callback: response => onCredential(response.credential)
             });
             google.accounts.id.renderButton(buttonContainer, {theme: 'outline', size: 'large'});

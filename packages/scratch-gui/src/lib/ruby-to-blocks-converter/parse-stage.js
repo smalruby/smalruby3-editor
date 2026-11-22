@@ -1,4 +1,5 @@
 // === Smalruby: This file is Smalruby-specific (the parse stage, docs/ruby-editor/converter-stages.md) ===
+import { parentIndexOf } from './node-walk';
 import { unwrapWithoutScreenRefreshDefs } from './screen-refresh-defs';
 
 /**
@@ -38,6 +39,9 @@ const ParseStage = {
         this._context.rootNode = parseResult.value; // Save root node for line mapping
         // `without_screen_refresh def foo` becomes the `def`; the `def`s are kept (issue #2114).
         this._context.warpDefNodes = unwrapWithoutScreenRefreshDefs(parseResult.value);
+        // The parent of each node, made after the tree is changed: an error and the comments go up
+        // from a node by it, not down again from the root.
+        this._context.parentOfNode = parentIndexOf(parseResult.value);
         return parseResult;
     },
 };

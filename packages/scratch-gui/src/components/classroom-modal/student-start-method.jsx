@@ -67,6 +67,12 @@ const messages = defineMessages({
         description: 'Second line of the start button when there is nothing to open',
         id: 'gui.classroom.startMethod.keepNote',
     },
+    readWait: {
+        defaultMessage: 'Read it well… {seconds}',
+        description:
+            'Start button right after joining, while it waits a few seconds so the student reads the assignment',
+        id: 'gui.classroom.startMethod.readWait',
+    },
     others: {
         defaultMessage: 'Other ways to start',
         description: 'Small link that shows the other ways to start under the main button',
@@ -133,6 +139,7 @@ const StudentStartMethod = ({
     onStartLesson,
     onTrack,
     now = activeNow,
+    waitSeconds = 0,
 }) => {
     const intl = useIntl();
     const [othersOpen, setOthersOpen] = useState(false);
@@ -173,15 +180,24 @@ const StudentStartMethod = ({
         setOthersOpen((open) => !open);
     }, []);
     const others = method.others || [];
+    // Right after joining the buttons wait a few seconds so the student reads first (the panel
+    // counts down; 0 = ready).
+    const waiting = waitSeconds > 0;
     return (
         <div className={styles.startMethod} data-main={method.main} data-testid="classroom-start-method">
             <StudentMainButton
                 dataTestId="classroom-start-main"
-                disabled={isLoading}
+                disabled={isLoading || waiting}
                 note={noteFor(intl, method.main, continueOptions)}
                 onClick={handleMain}
             >
-                {labelFor(intl, method.main, false)}
+                {waiting ? (
+                    <span data-testid="classroom-start-wait">
+                        {intl.formatMessage(messages.readWait, { seconds: waitSeconds })}
+                    </span>
+                ) : (
+                    labelFor(intl, method.main, false)
+                )}
             </StudentMainButton>
             {others.length > 0 && (
                 <div className={styles.startOthers}>
@@ -190,7 +206,7 @@ const StudentStartMethod = ({
                         aria-expanded={othersOpen}
                         className={styles.textLink}
                         data-testid="classroom-start-others-toggle"
-                        disabled={isLoading}
+                        disabled={isLoading || waiting}
                         type="button"
                         onClick={toggleOthers}
                     >
@@ -202,7 +218,7 @@ const StudentStartMethod = ({
                             {others.map((kind) => (
                                 <StudentTextLink
                                     dataTestId={`classroom-start-other-${kind}`}
-                                    disabled={isLoading}
+                                    disabled={isLoading || waiting}
                                     key={kind}
                                     // eslint-disable-next-line react/jsx-no-bind
                                     onClick={() => start(kind, 'others')}
@@ -242,6 +258,8 @@ StudentStartMethod.propTypes = {
     onTrack: PropTypes.func,
     // テスト用: タブが裏にあった時間を引いた時計
     now: PropTypes.func,
+    // 参加した直後に読むのを待つ残りの秒（0 なら押せる。パネルが数える）
+    waitSeconds: PropTypes.number,
 };
 
 export { formatSubmittedAt, messages };

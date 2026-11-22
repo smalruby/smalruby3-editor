@@ -1,5 +1,5 @@
+import { BLOCK_STORE_TABLES, BlockStore } from './block-store';
 import { Variable, LOCAL_VARIABLE_PATTERN } from './constants';
-import { ContextJournal, JOURNALED_STORES } from './context-journal';
 
 /**
  * Context and state management utilities for RubyToBlocksConverter.
@@ -17,14 +17,6 @@ const ContextUtils = {
             procedureCallBlocks: Object.create(null),
             extensionIDs: new Set(),
 
-            blocks: Object.create(null),
-            comments: Object.create(null),
-            blockTypes: Object.create(null),
-            localVariables: Object.create(null),
-            variables: Object.create(null),
-            lists: Object.create(null),
-            broadcastMsgs: Object.create(null),
-            procedures: Object.create(null),
             methodCallIndices: Object.create(null),
             // Whether a return value of a call is saved in a variable in the current statement (issue #1556)
             savedReturnValueInStatement: false,
@@ -32,7 +24,6 @@ const ContextUtils = {
             returnValueSources: Object.create(null),
             // the numbers of `@_retN` the code already uses (issue #1725), found when first needed
             returnValueTempsInSource: null,
-            literalCallIndices: Object.create(null),
             // ids of the range blocks with an end that is not a number or a value (issue #1906):
             // `rand` does not take them, and they are left as the error of a wrong instruction
             rangesWithWrongEnd: new Set(),
@@ -46,7 +37,6 @@ const ContextUtils = {
             // be placed but a value can (it is the return value); null for a script or a class.
             statementBodyKind: null,
             scopeStack: [],
-            scopeCounter: 1,
             currentScopeIndex: 1,
             currentProcedureName: null,
             nodeToBlockMap: new Map(),
@@ -54,29 +44,36 @@ const ContextUtils = {
             containerNodeRanges: [], // Store {startLine, endLine} for container nodes (block, begin, kwbegin)
             processDepth: 0,
             rootNode: null,
+            // The parent of each node of the tree (parse-stage.js, `parentIndexOf`)
+            parentOfNode: null,
             // The DefNodes of `without_screen_refresh def` (screen-refresh-defs.js)
             warpDefNodes: new Set(),
             modules: Object.create(null),
             currentModuleName: null,
             superMethodMap: Object.create(null),
             superRenameTarget: null,
-            symbols: new Set(),
             // What the analysis stage decides before converting (`analysis.js`, read-only): how
             // each variable name is used (issue #1613), where each local is used (issue #1630), how
             // many times each method is called as a value, ...
             analysis: null,
-            // The scope index of each unit of locals of the script, decided while converting (issue #1630)
-            localScopeIndexes: Object.create(null),
+            // The analyses of the modules read from other sprites (`_importModuleFromOtherSprites`),
+            // whose defs are not in the tree of this code
+            importedAnalyses: [],
+            // The scope indexes of the methods of modules read from other sprites, which are not in
+            // the analysis of this code (`_scopeIndexOfDef`)
+            importedScopeIndexes: new Map(),
             // The list blocks that read `@a` / `$a` of Ruby version 2 (issue #1622)
             listReadBlockIds: new Set(),
             // The unit of locals being converted (issue #1630)
             currentLocalUnit: 0,
         };
-        // The tables that a conversion attempt rolls back record their writes (see `_saveContext`).
-        const journal = new ContextJournal();
-        this._context.journal = journal;
-        JOURNALED_STORES.forEach((name) => {
-            this._context[name] = journal.wrap(name, this._context[name]);
+        // What the conversion writes (blocks, comments, variables, ...) is in one BlockStore, which
+        // records the writes so that a conversion attempt can be rolled back (see `_saveContext`).
+        // The conversion writes through the store and reads its tables, which the context points at.
+        const store = new BlockStore();
+        this._context.store = store;
+        BLOCK_STORE_TABLES.forEach((name) => {
+            this._context[name] = store[name];
         });
         if (this.vm && this.vm.runtime && this.vm.runtime.getTargetForStage) {
             this._loadVariables(this.vm.runtime.getTargetForStage());
@@ -113,10 +110,14 @@ const ContextUtils = {
             }
             // `fromTarget` marks what the project already has, so that a list left behind by
             // earlier code can give way to a variable of the same name (issue #1612).
-            this._context[storeName][variable.name] = Object.assign({}, variable, {
-                scope: scope,
-                fromTarget: true,
-            });
+            this._context.store.setVariable(
+                storeName,
+                variable.name,
+                Object.assign({}, variable, {
+                    scope: scope,
+                    fromTarget: true,
+                }),
+            );
         });
     },
 
@@ -127,7 +128,7 @@ const ContextUtils = {
      * @returns {{mark: object}} The point to roll back to.
      */
     _saveContext() {
-        return { mark: this._context.journal.mark() };
+        return { mark: this._context.store.mark() };
     },
 
     /**
@@ -137,7 +138,7 @@ const ContextUtils = {
      * @returns {object} The entries.
      */
     _savedStore(saved, name) {
-        return this._context.journal.storeAt(saved.mark, name);
+        return this._context.store.storeAt(saved.mark, name);
     },
 
     /**
@@ -152,7 +153,7 @@ const ContextUtils = {
             return;
         }
 
-        this._context.journal.rollback(saved.mark);
+        this._context.store.rollback(saved.mark);
 
         const exists = (blockId) => Object.prototype.hasOwnProperty.call(this._context.blocks, blockId);
         const nodeToBlockMap = this._context.nodeToBlockMap;
@@ -300,7 +301,7 @@ const ContextUtils = {
     },
 
     _setBlockType(block, type) {
-        this._context.blockTypes[block.id] = type;
+        this._context.store.setBlockType(block.id, type);
     },
 
     isValueContext() {

@@ -16,6 +16,10 @@
 //   currentCostume いまのコスチューム（背景）の番号・始めから変わったか
 //   tab       いま開いているタブ（コード・コスチューム・音）。エディタの画面の状態（snapshot.ui）
 //   partQuiz  画面の部分をクリックして答えるクイズ（「どこでしょう？」）に、決めた数だけ正しく答えた（snapshot.ui）
+//   readinessCheck じゅんびチェック（#2299）の問いに、決めた数だけ答えた（正しいかは見ない・snapshot.ui）
+//   boardCommand 拡張機能（Studuino）が基板に出した命令（LED・モーター・サーボ）。`whenSensor` で、そのときに読んで
+//             いたセンサーの値も見る（「暗いときに LED をオンにした」）。実機でも練習用の基板でも同じ記録（#2193）
+//   sensorRead  拡張機能（Studuino）がセンサーの値を読んだ（どのセンサーか・いくつだったか）
 //
 // プログラムの形は見ない（ブロックの並びや個数は条件にしない）。
 
@@ -31,7 +35,13 @@ export const CONDITION_TYPES = Object.freeze([
     'currentCostume',
     'tab',
     'partQuiz',
+    'readinessCheck',
+    'boardCommand',
+    'sensorRead',
 ]);
+
+/** `boardCommand` の `kind`（scratch-vm の scratch3_smalrubot_s1/command-log.js の記録の種類）。 */
+export const BOARD_COMMAND_KINDS = Object.freeze(['led', 'motor', 'servo', 'servoCalibration']);
 
 /** `tab` の条件のタブ（エディタのタブの並び。reducers/editor-tab.js の index と同じ順）。 */
 export const EDITOR_TABS = Object.freeze(['code', 'costumes', 'sounds']);
@@ -44,6 +54,8 @@ const MAX_RUNS = 200;
 const MAX_SAYS = 500;
 const MAX_ANSWERS = 500;
 const MAX_ARGS_SEEN = 50;
+const MAX_BOARD_COMMANDS = 1000;
+const MAX_SENSOR_READS = 1000;
 
 // メッセージを送るブロック（送り主の記録用）。メッシュの「といっしょに送る」も、引数は
 // 標準の「送る」と同じ BROADCAST_OPTION（goal-monitor でメッセージ名にする）。
@@ -120,6 +132,12 @@ export const createFacts = () => ({
     answers: [],
     // メッセージ名（大文字）→ 最後に送ったターゲット id
     lastBroadcast: {},
+    // 拡張機能（Studuino）が基板に出した命令。出した時点で最後に読んでいたセンサーの値を一緒に持つ（#2193）
+    boardCommands: [],
+    // 拡張機能（Studuino）が読んだセンサーの値
+    sensorReads: [],
+    // いまの実行（緑の旗から）で、ポートごとに最後に読んだセンサーの値（`{port: {sensor, value}}`）
+    latestSensors: {},
 });
 
 const upper = (value) => String(value).toUpperCase();
@@ -219,6 +237,45 @@ export const recordSay = (facts, say) => {
 export const recordAnswer = (facts, answer) => {
     facts.answers.push(String(answer));
     if (facts.answers.length > MAX_ANSWERS) facts.answers.shift();
+};
+
+/**
+ * 拡張機能（Studuino）の命令とセンサーの読みの記録を 1 つ受け取る（scratch-vm の `STUDUINO_COMMAND_LOG` イベント
+ * の entry）。実機（`board: 'device'`）か練習用の基板（`'practice'`）かは見ない（同じ事実で判定する・#2158 Q6）。
+ * @param {object} facts - facts。
+ * @param {object} entry - `{kind, port, value, speed?, sensor?}`。
+ */
+export const recordBoardEntry = (facts, entry) => {
+    if (!entry || typeof entry !== 'object') return;
+    if (entry.kind === 'sensorRead') {
+        const read = { port: entry.port, sensor: entry.sensor || null, value: entry.value };
+        facts.latestSensors[entry.port] = { sensor: read.sensor, value: read.value };
+        facts.sensorReads.push(read);
+        if (facts.sensorReads.length > MAX_SENSOR_READS) facts.sensorReads.shift();
+        return;
+    }
+    if (!BOARD_COMMAND_KINDS.includes(entry.kind)) return;
+    const sensors = {};
+    Object.entries(facts.latestSensors).forEach(([port, read]) => {
+        sensors[port] = { ...read };
+    });
+    facts.boardCommands.push({
+        kind: entry.kind,
+        port: entry.port,
+        value: entry.value,
+        speed: isUnset(entry.speed) ? null : entry.speed,
+        sensors,
+    });
+    if (facts.boardCommands.length > MAX_BOARD_COMMANDS) facts.boardCommands.shift();
+};
+
+/**
+ * 記録が消された（緑の旗・作品の読みこみ）。前の実行で読んだセンサーの値を、次の命令の「そのときの値」にしない。
+ * それまでの命令・読みの事実は残す（「できた」は一度でも満たせばよい）。
+ * @param {object} facts - facts。
+ */
+export const clearBoardSensors = (facts) => {
+    facts.latestSensors = {};
 };
 
 const sameKey = (fieldKey, key) => {
@@ -480,11 +537,42 @@ const evaluateCurrentCostume = (condition, snapshot) => {
     });
 };
 
+// 文字列か文字列の配列のどれかに合うか。省けば何でも合う
+const oneOf = (expected, actual) => {
+    if (isUnset(expected)) return true;
+    const list = Array.isArray(expected) ? expected : [expected];
+    return list.some((one) => String(one) === String(actual));
+};
+
+// センサーの読み 1 つ（`{port, sensor, value}`）が `{port, sensor, value}` の条件に合うか。port も sensor も
+// 書かなければ、どのセンサーでもよい（手元に無いセンサーの代わりに、ほかのセンサーで試してもよい・#2158 Q7）
+const sensorMatches = (spec, port, read) =>
+    oneOf(spec.port, port) && oneOf(spec.sensor, read.sensor) && matchValue(spec.value, read.value);
+
+const evaluateBoardCommand = (condition, facts) =>
+    ((facts && facts.boardCommands) || []).some((command) => {
+        if (!oneOf(condition.kind, command.kind)) return false;
+        if (!oneOf(condition.port, command.port)) return false;
+        if (!matchValue(condition.value, command.value)) return false;
+        if (!isUnset(condition.speed) && (command.speed === null || !matchValue(condition.speed, command.speed))) {
+            return false;
+        }
+        if (isUnset(condition.whenSensor)) return true;
+        return Object.entries(command.sensors).some(([port, read]) =>
+            sensorMatches(condition.whenSensor, port, read),
+        );
+    });
+
+const evaluateSensorRead = (condition, facts) =>
+    ((facts && facts.sensorReads) || []).some((read) => sensorMatches(condition, read.port, read));
+
 const uiOf = (snapshot) => snapshot.ui || {};
 
 const evaluateTab = (condition, snapshot) => uiOf(snapshot).activeTab === condition.tab;
 
 const evaluatePartQuiz = (condition, snapshot) => (uiOf(snapshot).partQuizSolved || 0) >= condition.count;
+
+const evaluateReadinessCheck = (condition, snapshot) => (uiOf(snapshot).readinessAnswered || 0) >= condition.count;
 
 /**
  * 条件 1 つを判定する。
@@ -517,6 +605,12 @@ export const evaluateCondition = (condition, facts, snapshot) => {
             return evaluateTab(condition, snapshot);
         case 'partQuiz':
             return evaluatePartQuiz(condition, snapshot);
+        case 'readinessCheck':
+            return evaluateReadinessCheck(condition, snapshot);
+        case 'boardCommand':
+            return evaluateBoardCommand(condition, facts);
+        case 'sensorRead':
+            return evaluateSensorRead(condition, facts);
         default:
             return false;
     }
@@ -562,6 +656,18 @@ const validateTrigger = (trigger, at) => {
     if (!isUnset(trigger.click) && !CLICK_PLACES.includes(trigger.click)) {
         errors.push(`${at}: trigger.click must be one of ${CLICK_PLACES.join(', ')}`);
     }
+    return errors;
+};
+
+const validateSensorSpec = (spec, at) => {
+    if (!spec || typeof spec !== 'object') return [`${at}: must be an object`];
+    const errors = [];
+    if (!isUnset(spec.port) && !isVariableName(spec.port))
+        errors.push(`${at}: port must be a port or an array of ports`);
+    if (!isUnset(spec.sensor) && !isVariableName(spec.sensor)) {
+        errors.push(`${at}: sensor must be a sensor name or an array of names`);
+    }
+    if (!isMatcher(spec.value)) errors.push(`${at}: value must be a matcher`);
     return errors;
 };
 
@@ -721,9 +827,28 @@ export const validateGoal = (goal) => {
                 }
                 break;
             case 'partQuiz':
+            case 'readinessCheck':
                 if (!(Number.isInteger(condition.count) && condition.count >= 1)) {
-                    errors.push(`${at}: partQuiz.count must be a positive integer`);
+                    errors.push(`${at}: ${condition.type}.count must be a positive integer`);
                 }
+                break;
+            case 'boardCommand': {
+                const kinds = Array.isArray(condition.kind) ? condition.kind : [condition.kind];
+                if (kinds.length === 0 || !kinds.every((kind) => BOARD_COMMAND_KINDS.includes(kind))) {
+                    errors.push(`${at}: boardCommand.kind must be one of ${BOARD_COMMAND_KINDS.join(', ')}`);
+                }
+                if (!isUnset(condition.port) && !isVariableName(condition.port)) {
+                    errors.push(`${at}: boardCommand.port must be a port or an array of ports`);
+                }
+                if (!isMatcher(condition.value)) errors.push(`${at}: boardCommand.value must be a matcher`);
+                if (!isMatcher(condition.speed)) errors.push(`${at}: boardCommand.speed must be a matcher`);
+                if (!isUnset(condition.whenSensor)) {
+                    errors.push(...validateSensorSpec(condition.whenSensor, `${at}.whenSensor`));
+                }
+                break;
+            }
+            case 'sensorRead':
+                errors.push(...validateSensorSpec(condition, at));
                 break;
             default:
                 break;

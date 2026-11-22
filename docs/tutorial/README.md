@@ -134,7 +134,7 @@ category は `tutorial_url`（`lib/tutorial-url-analytics.js`）。項目は `ac
 上流のチュートリアルの画像（手順の絵とサムネイル。13 言語で約 1,500 枚・約 65 MB）は、**チュートリアルを開いたときだけ**読む。
 
 - 言語ごとの手順の絵は上流のとおり `*-steps.js` の動的 import（チャンク `<言語>-steps`）で、カードを開くまで読まない。
-- webpack（`webpack.config.js` のマーカー `lazy tutorial images`）で、`src/lib/libraries/decks/` の画像を `gui.js` に埋めこまず `static/assets/decks/` にファイルで出す。PWA の precache からも外し、開いたときだけ runtime caching（`smalruby-tutorial-images`）する。
+- webpack（`webpack.config.js` のマーカー `lazy tutorial images`）で、`src/lib/libraries/decks/` の画像を `gui.js` に埋めこまず `static/assets/decks/` にファイルで出す。最初の訪問では読まず、チュートリアルを開いたときだけブラウザが読む。
 - そのため、最初にエディターを開いたときの読み込み（`gui.js` の大きさ・リクエストの数）は画像の分だけ増えることはない。
 
 ## 関連ドキュメント

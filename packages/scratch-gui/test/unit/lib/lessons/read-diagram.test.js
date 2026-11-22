@@ -107,7 +107,9 @@ describe('read-diagram (読んで作るチャレンジ)', () => {
         const challenge = defineChallenge({ id: 'test-ordinary', steps: [{ title: TASK }] });
         expect(challenge.mode).toBeNull();
         expect(challenge.explanation).toBeNull();
-        expect(challenge.steps).toEqual([{ title: TASK, target: null, blocks: null, spotlight: false }]);
+        expect(challenge.steps).toEqual([
+            { title: TASK, target: null, focus: null, blocks: null, spotlight: false, advanceOn: null },
+        ]);
     });
 
     describe('the answer page with more than one script (Q1)', () => {

@@ -25,7 +25,7 @@ Google / Microsoft アカウントでログインし、開発者 (管理者) が
    本人と開発者だけ）」「直ったら知らせるのでログインが必要」「個人情報は書かない」を案内し、
    **OK で進む**（18歳/保護者同意のチェックは無く、生徒が気軽に進められる。保護者向けの
    1 行は情報提供のみ。1 回だけ表示、`localStorage` に記録）
-3. **Google または Microsoft でログイン**
+3. **Google または Microsoft でログイン**（画面を開くと最初から Google のボタンが出る。1 回押せばログインできる。ボタンの形はクラス管理と同じ、デザインシステムの「外部アカウントでログインするボタン」）
 4. 不具合の説明 (何をした / どうなった / どうなってほしかった) を入力して送信。
    今編集している作品 (sb3)・サムネイル・ブロックのスクリーンショットが自動添付される
 5. 後日、同じアカウントでログインして **「わたしの不具合報告」** を開くと、状態
@@ -104,6 +104,7 @@ API では削除できない。
 | `src/containers/use-bug-report-submit.js` | 作品 sb3 + サムネ + スクショの presigned アップロード |
 | `src/lib/bug-report-api.js` | API クライアント |
 | `src/lib/teacher-auth.js` | Google/Microsoft ログイン (classroom と共用) |
+| `src/components/sign-in-button/sign-in-button.jsx` | Google / Microsoft のログインのボタン (classroom と共用) |
 | `src/reducers/bug-report.js` | モーダル表示状態・ビュー |
 
 ### バックエンド (`infra/smalruby-bug-report`)

@@ -1,4 +1,4 @@
-import Primitive from './primitive';
+import { menuInputArg, registerSendTable, textArg } from './send-table';
 
 const Text2Speech = 'text2speech';
 
@@ -30,71 +30,63 @@ const LanguageMenu = [
     'cy',
 ];
 
+// The language of the shadow behind a block argument: the language of the project, or English.
+const defaultLanguageOf = (converter) => {
+    const stage = converter.vm.runtime.getTargetForStage();
+    return stage && stage.textToSpeechLanguage ? stage.textToSpeechLanguage : 'en';
+};
+
+// The calls that map one to one onto a block (send-table.js). A string of a voice or a language is
+// looked up without regard to case (`"alto"` → `ALTO`, `"EN"` → `en`).
+const TEXT2SPEECH_SENDS = [
+    {
+        receiver: Text2Speech,
+        name: 'speak',
+        opcode: 'text2speech_speakAndWait',
+        changesReceiver: true,
+        args: [textArg('WORDS', 'hello')],
+    },
+    {
+        receiver: Text2Speech,
+        name: 'voice=',
+        opcode: 'text2speech_setVoice',
+        changesReceiver: true,
+        args: [
+            menuInputArg('VOICE', 'text2speech_menu_voices', 'voices', 'ALTO', {
+                choices: VoiceMenu,
+                normalize: (value) => value.toUpperCase(),
+            }),
+        ],
+    },
+    {
+        receiver: Text2Speech,
+        name: 'language=',
+        opcode: 'text2speech_setLanguage',
+        changesReceiver: true,
+        args: [
+            menuInputArg('LANGUAGE', 'text2speech_menu_languages', 'languages', defaultLanguageOf, {
+                choices: LanguageMenu,
+                normalize: (value) => value.toLowerCase(),
+            }),
+        ],
+    },
+];
+
 /**
  * Text to Speech converter
  */
 const Text2SpeechConverter = {
+    sends: TEXT2SPEECH_SENDS,
+
     register: function (converter) {
+        // `text2speech` itself is a Ruby expression that the calls of the table turn into their blocks.
         converter.registerOnSend('self', Text2Speech, 0, (params) => {
             const { node } = params;
 
             return converter.createRubyExpressionBlock(Text2Speech, node);
         });
 
-        converter.registerOnSend(Text2Speech, 'speak', 1, (params) => {
-            const { receiver, args } = params;
-
-            if (!converter.isStringOrBlock(args[0])) return null;
-
-            const block = converter.changeRubyExpressionBlock(receiver, 'text2speech_speakAndWait', 'statement');
-            converter.addTextInput(block, 'WORDS', args[0], 'hello');
-            return block;
-        });
-
-        converter.registerOnSend(Text2Speech, 'voice=', 1, (params) => {
-            const { receiver, args } = params;
-
-            if (!converter.isStringOrBlock(args[0])) return null;
-            if (converter.isString(args[0])) {
-                const index = VoiceMenu.indexOf(args[0].toString().toUpperCase());
-                if (index < 0) return null;
-
-                args[0] = new Primitive('str', VoiceMenu[index], args[0].node);
-            }
-
-            const block = converter.changeRubyExpressionBlock(receiver, 'text2speech_setVoice', 'statement');
-            converter.addFieldInput(block, 'VOICE', 'text2speech_menu_voices', 'voices', args[0], 'ALTO');
-            return block;
-        });
-
-        converter.registerOnSend(Text2Speech, 'language=', 1, (params) => {
-            const { receiver, args } = params;
-
-            if (!converter.isStringOrBlock(args[0])) return null;
-            if (converter.isString(args[0])) {
-                const index = LanguageMenu.indexOf(args[0].toString().toLowerCase());
-                if (index < 0) return null;
-
-                args[0] = new Primitive('str', LanguageMenu[index], args[0].node);
-            }
-
-            const block = converter.changeRubyExpressionBlock(receiver, 'text2speech_setLanguage', 'statement');
-
-            let defaultLanguage = 'en';
-            const stage = converter.vm.runtime.getTargetForStage();
-            if (stage && stage.textToSpeechLanguage) {
-                defaultLanguage = stage.textToSpeechLanguage;
-            }
-            converter.addFieldInput(
-                block,
-                'LANGUAGE',
-                'text2speech_menu_languages',
-                'languages',
-                args[0],
-                defaultLanguage,
-            );
-            return block;
-        });
+        registerSendTable(converter, TEXT2SPEECH_SENDS);
     },
 };
 

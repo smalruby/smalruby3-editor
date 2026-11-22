@@ -5,6 +5,7 @@ import {
     saveProgress,
 } from '../../../src/lib/lessons/lesson-progress';
 import { LESSON_ROLE_STORAGE_KEY, ROLE_SOURCES } from '../../../src/lib/lessons/lesson-role';
+import { READINESS_STORAGE_KEY, emptyReadiness, recommendedChallengeIds } from '../../../src/lib/lessons/readiness';
 import { ROLES } from '../../../src/lib/lessons/role-swap';
 import { SPOTLIGHT_SEEN_STORAGE_KEY, markSpotlightSeen } from '../../../src/lib/lessons/spotlight-seen';
 import { activateDeck } from '../../../src/reducers/cards';
@@ -38,6 +39,10 @@ import reducer, {
     getCurrentRole,
     setLessonRole,
     solvePartQuiz,
+    missPartQuiz,
+    answerReadiness,
+    nextReadiness,
+    markReadinessOffered,
 } from '../../../src/reducers/lesson-mode';
 
 const wrap = (lessonMode) => ({ scratchGui: { lessonMode } });
@@ -235,6 +240,32 @@ describe('lesson-mode reducer: starting a challenge', () => {
         expect(state.fromAssignment).toBe(false);
     });
 
+    test('fromReview is carried like fromAssignment, and the last assignment challenge is kept (#2300)', () => {
+        let state = reducer(lessonModeInitialState, startChallenge('chat-l1-sequence', { fromAssignment: true }));
+        state = reducer(state, openChallenge('chat-l1-sequence'));
+        expect(state.lastAssignmentChallengeId).toBe('chat-l1-sequence');
+        expect(state.fromReview).toBe(false);
+        state = reducer(state, startChallenge('chat-l0-readiness', { fromReview: true }));
+        expect(state.pendingFromReview).toBe(true);
+        state = reducer(state, openChallenge('chat-l0-readiness'));
+        expect(state.fromReview).toBe(true);
+        expect(state.fromAssignment).toBe(false);
+        expect(state.pendingFromReview).toBe(false);
+        // おさらいの中でも、前の課題のチャレンジを覚えたまま。閉じても消さない（「課題にもどる」の行き先）
+        expect(state.lastAssignmentChallengeId).toBe('chat-l1-sequence');
+        state = reducer(state, closeLesson());
+        expect(state.fromReview).toBe(false);
+        expect(state.lastAssignmentChallengeId).toBe('chat-l1-sequence');
+        // startChallenge を通らずに開いたときは false
+        state = reducer(state, startChallenge('chat-l0-readiness', { fromReview: true }));
+        state = reducer(state, openChallenge('blocks-l1-quiz'));
+        expect(state.fromReview).toBe(false);
+        // 取り消したら消す
+        state = reducer(state, startChallenge('chat-l0-readiness', { fromReview: true }));
+        state = reducer(state, cancelStartChallenge());
+        expect(state.pendingFromReview).toBe(false);
+    });
+
     test('closeLesson also drops a pending challenge', () => {
         let state = reducer(lessonModeInitialState, startChallenge('blocks-l1-click-say'));
         state = reducer(state, closeLesson());
@@ -397,6 +428,15 @@ describe('lesson-mode reducer: hints', () => {
         let state = reducer(lessonModeInitialState, openChallenge('blocks-l1-click-say'));
         expect(state.hintSpotlight).toBe(false);
         state = reducer(state, openChallenge('blocks-l1-quiz'));
+        expect(state.hintSpotlight).toBe(true);
+    });
+
+    test('lesson 0 (warmup) spotlights every time it is opened', () => {
+        markSpotlightSeen('blocks-l0-where', window.localStorage, '2026-01-01T00:00:00.000Z');
+        let state = reducer(lessonModeInitialState, openChallenge('blocks-l0-where'));
+        expect(state.hintSpotlight).toBe(true);
+        state = reducer(state, closeLesson());
+        state = reducer(state, openChallenge('blocks-l0-where'));
         expect(state.hintSpotlight).toBe(true);
     });
 
@@ -786,5 +826,95 @@ describe('the "where is it?" quiz of lesson 0 (#2134)', () => {
         // クイズの無いチャレンジでは数えない
         const tabs = open('blocks-l0-tabs');
         expect(reducer(tabs, solvePartQuiz('blocks-l0-tabs', 0))).toBe(tabs);
+    });
+
+    test('remembers a wrong answer until the challenge is opened again (for the lesson skip)', () => {
+        let state = open('blocks-l0-where');
+        expect(state.partQuizMissed).toBe(false);
+        state = reducer(state, solvePartQuiz('blocks-l0-where', 0));
+        state = reducer(state, missPartQuiz('blocks-l0-where'));
+        expect(state.partQuizMissed).toBe(true);
+        // 2 回目は同じ state
+        expect(reducer(state, missPartQuiz('blocks-l0-where'))).toBe(state);
+        // 正しく答えても消えない
+        state = reducer(state, solvePartQuiz('blocks-l0-where', 1));
+        expect(state.partQuizMissed).toBe(true);
+        expect(reducer(state, openChallenge('blocks-l0-where')).partQuizMissed).toBe(false);
+    });
+
+    test('ignores a wrong answer for another challenge, a challenge without the quiz or a finished quiz', () => {
+        const where = open('blocks-l0-where');
+        expect(reducer(where, missPartQuiz('blocks-l0-tabs'))).toBe(where);
+        const tabs = open('blocks-l0-tabs');
+        expect(reducer(tabs, missPartQuiz('blocks-l0-tabs'))).toBe(tabs);
+        let done = where;
+        for (let i = 0; i < 5; i++) done = reducer(done, solvePartQuiz('blocks-l0-where', i));
+        expect(reducer(done, missPartQuiz('blocks-l0-where'))).toBe(done);
+    });
+});
+
+// じゅんびチェック（#2299）
+describe('the readiness check of the chat course (#2299)', () => {
+    const CHECK = 'chat-l0-readiness';
+    const AT = '2026-11-21T10:00:00.000Z';
+    const stored = () => JSON.parse(window.localStorage.getItem(READINESS_STORAGE_KEY));
+    const open = () => reducer({ ...lessonModeInitialState, readiness: emptyReadiness() }, openChallenge(CHECK));
+
+    beforeEach(() => {
+        window.localStorage.clear();
+    });
+
+    test('records only the first choice of the current question and moves on with next', () => {
+        let state = open();
+        expect(state.readinessAnswered).toBe(0);
+        expect(state.readinessChoice).toBeNull();
+        // 次へは答えてから
+        expect(reducer(state, nextReadiness(CHECK))).toBe(state);
+        // 1 問め（どこでしょう？・正解は 0）でまちがえる
+        state = reducer(state, answerReadiness(CHECK, 0, 2, AT));
+        expect(state.readinessChoice).toEqual({ index: 0, choice: 2 });
+        expect(state.readiness.courses['chat-wo-tsukurou'].answers['blocks-l0-where']).toEqual({
+            correct: false,
+            answeredAt: AT,
+        });
+        expect(stored().courses['chat-wo-tsukurou'].answers['blocks-l0-where'].correct).toBe(false);
+        // 選びなおし・前の問い・ちがうチャレンジは数えない
+        expect(reducer(state, answerReadiness(CHECK, 0, 0, AT))).toBe(state);
+        expect(reducer(state, answerReadiness('chat-l1-sequence', 0, 0, AT))).toBe(state);
+        state = reducer(state, nextReadiness(CHECK));
+        expect(state.readinessAnswered).toBe(1);
+        expect(state.readinessChoice).toBeNull();
+        expect(reducer(state, answerReadiness(CHECK, 0, 0, AT))).toBe(state);
+        // 2 問め（聞いて答えよう・正解は 1）は正解
+        state = reducer(reducer(state, answerReadiness(CHECK, 1, 1, AT)), nextReadiness(CHECK));
+        expect(state.readiness.courses['chat-wo-tsukurou'].answers['blocks-l1-ask-answer'].correct).toBe(true);
+        expect(recommendedChallengeIds(state.readiness)).toEqual(['blocks-l0-where']);
+        // 開きなおすと 1 問めから（記録はそのまま）
+        const reopened = reducer(state, openChallenge(CHECK));
+        expect(reopened.readinessAnswered).toBe(0);
+        expect(reopened.readiness).toBe(state.readiness);
+    });
+
+    test('a challenge without the check does not record answers', () => {
+        const state = reducer(lessonModeInitialState, openChallenge('chat-l1-sequence'));
+        expect(reducer(state, answerReadiness('chat-l1-sequence', 0, 0, AT))).toBe(state);
+    });
+
+    test('clearing a recommended challenge removes the mark', () => {
+        let state = reducer(open(), answerReadiness(CHECK, 0, 2, AT));
+        state = reducer(state, markChallengeCompleted('blocks-l0-where', '2026-11-21T11:00:00.000Z'));
+        expect(recommendedChallengeIds(state.readiness)).toEqual([]);
+        expect(stored().courses['chat-wo-tsukurou'].answers['blocks-l0-where'].clearedAt).toBe(
+            '2026-11-21T11:00:00.000Z',
+        );
+    });
+
+    test('markReadinessOffered is remembered once; clearProgress also clears the check', () => {
+        let state = reducer(open(), markReadinessOffered('chat-wo-tsukurou', AT));
+        expect(state.readiness.offered).toEqual({ 'chat-wo-tsukurou': AT });
+        expect(reducer(state, markReadinessOffered('chat-wo-tsukurou', AT))).toBe(state);
+        state = reducer(state, clearProgress());
+        expect(state.readiness).toEqual(emptyReadiness());
+        expect(stored()).toEqual(emptyReadiness());
     });
 });

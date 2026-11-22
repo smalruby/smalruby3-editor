@@ -188,7 +188,7 @@ const ReturnValueTemps = {
             reporter.opcode = 'data_variable';
             reporter.fields = { VARIABLE: { ...variableField } };
             reporter.inputs = {};
-            this._context.blockTypes[reporter.id] = 'value_variable';
+            this._context.store.setBlockType(reporter.id, 'value_variable');
             delete sources[reporter.id];
         });
         return blocks;

@@ -27,6 +27,36 @@ export const ja = {
     'gui.lessons.course.chat-wo-tsukurou.name': 'チャットをつくろう',
     'gui.lessons.course.chat-wo-tsukurou.description':
         'チャットを作りながら、順次・反復・分岐とアクティビティ図、データとイベント、メッシュでの通信を学び、自分で工夫したチャットを作品にするよ。',
+    // レッスン 0 のじゅんびチェック（#2299。問いは土台のチャレンジ id ごと・courses.js の readinessQuestion）
+    'gui.lessons.lesson.chat-l0.name': '始める前に',
+    [`${C}chat-l0-readiness.name`]: 'じゅんびチェック',
+    [`${C}chat-l0-readiness.task`]:
+        'このコースで使うことを、4 問で確かめよう。ブロックの絵を見て、どう動くかを選んでね。\nまちがえたら、おすすめのチャレンジを教えるよ',
+    [`${C}chat-l0-readiness.blocks-l0-where.question`]: 'このプログラムを動かすには、画面のどこを押す？',
+    [`${C}chat-l0-readiness.blocks-l0-where.choice1`]: '緑の旗',
+    [`${C}chat-l0-readiness.blocks-l0-where.choice2`]: '停止ボタン',
+    [`${C}chat-l0-readiness.blocks-l0-where.choice3`]: 'スプライトペイン',
+    [`${C}chat-l0-readiness.blocks-l0-where.explanation`]:
+        '「緑の旗が押されたとき」のプログラムは、ステージの上の緑の旗を押すと動くよ。停止ボタンは止めるときに押すよ。',
+    [`${C}chat-l0-readiness.blocks-l1-ask-answer.question`]: 'ネコを押して「たろう」と入力したら、ネコは何と言う？',
+    [`${C}chat-l0-readiness.blocks-l1-ask-answer.choice1`]: '「こんにちは」と言う',
+    [`${C}chat-l0-readiness.blocks-l1-ask-answer.choice2`]: '「こんにちはたろう」と言う',
+    [`${C}chat-l0-readiness.blocks-l1-ask-answer.choice3`]: '「名前は？」と言う',
+    [`${C}chat-l0-readiness.blocks-l1-ask-answer.explanation`]:
+        '入力したことばは（答え）に入るよ。「こんにちは」と（答え）をつなぐので、「こんにちはたろう」と言うよ。',
+    [`${C}chat-l0-readiness.blocks-l1-count.question`]: '緑の旗を押してから、ネコを 3 回押した。ネコは何と言う？',
+    [`${C}chat-l0-readiness.blocks-l1-count.choice1`]: '1 と言う',
+    [`${C}chat-l0-readiness.blocks-l1-count.choice2`]: '0 と言う',
+    [`${C}chat-l0-readiness.blocks-l1-count.choice3`]: '3 と言う',
+    [`${C}chat-l0-readiness.blocks-l1-count.explanation`]:
+        '旗で（回数）を 0 にして、押すたびに 1 ずつふやすよ。3 回押すと 3 になり、3 と言うよ。',
+    [`${C}chat-l0-readiness.blocks-l1-broadcast.question`]:
+        '左はネコ、右はペンギンのプログラム。ネコを押すと、どうなる？',
+    [`${C}chat-l0-readiness.blocks-l1-broadcast.choice1`]: 'ペンギンが「やあ！」と言う',
+    [`${C}chat-l0-readiness.blocks-l1-broadcast.choice2`]: 'ネコが「やあ！」と言う',
+    [`${C}chat-l0-readiness.blocks-l1-broadcast.choice3`]: '何も起きない',
+    [`${C}chat-l0-readiness.blocks-l1-broadcast.explanation`]:
+        'ネコが「あいさつ」を送ると、受け取ったペンギンのプログラムが動いて「やあ！」と言うよ。',
     'gui.lessons.lesson.chat-l1.name': '手順を図にしよう',
 
     [`${C}chat-l1-sequence.name`]: '入力して表示しよう（順次処理）',
@@ -539,6 +569,38 @@ export const jaHira = {
     'gui.lessons.course.chat-wo-tsukurou.name': 'チャットをつくろう',
     'gui.lessons.course.chat-wo-tsukurou.description':
         'チャットをつくりながら、じゅんじ・はんぷく・ぶんきとアクティビティず、データとイベント、メッシュでのつうしんをまなび、じぶんでくふうしたチャットをさくひんにするよ。',
+    // レッスン 0 のじゅんびチェック（#2299。問いは土台のチャレンジ id ごと・courses.js の readinessQuestion）
+    'gui.lessons.lesson.chat-l0.name': 'はじめる まえに',
+    [`${C}chat-l0-readiness.name`]: 'じゅんびチェック',
+    [`${C}chat-l0-readiness.task`]:
+        'この コースで つかうことを、4 もんで たしかめよう。ブロックの えを みて、どう うごくかを えらんでね。\nまちがえたら、おすすめの チャレンジを おしえるよ',
+    [`${C}chat-l0-readiness.blocks-l0-where.question`]: 'この プログラムを うごかすには、がめんの どこを おす？',
+    [`${C}chat-l0-readiness.blocks-l0-where.choice1`]: 'みどりのはた',
+    [`${C}chat-l0-readiness.blocks-l0-where.choice2`]: 'ていしボタン',
+    [`${C}chat-l0-readiness.blocks-l0-where.choice3`]: 'スプライトペイン',
+    [`${C}chat-l0-readiness.blocks-l0-where.explanation`]:
+        '「みどりのはたが おされたとき」の プログラムは、ステージの うえの みどりのはたを おすと うごくよ。ていしボタンは とめるときに おすよ。',
+    [`${C}chat-l0-readiness.blocks-l1-ask-answer.question`]:
+        'ネコを おして「たろう」と にゅうりょくしたら、ネコは なんと いう？',
+    [`${C}chat-l0-readiness.blocks-l1-ask-answer.choice1`]: '「こんにちは」と いう',
+    [`${C}chat-l0-readiness.blocks-l1-ask-answer.choice2`]: '「こんにちはたろう」と いう',
+    [`${C}chat-l0-readiness.blocks-l1-ask-answer.choice3`]: '「なまえは？」と いう',
+    [`${C}chat-l0-readiness.blocks-l1-ask-answer.explanation`]:
+        'にゅうりょくした ことばは（こたえ）に はいるよ。「こんにちは」と（こたえ）を つなぐので、「こんにちはたろう」と いうよ。',
+    [`${C}chat-l0-readiness.blocks-l1-count.question`]:
+        'みどりのはたを おしてから、ネコを 3 かい おした。ネコは なんと いう？',
+    [`${C}chat-l0-readiness.blocks-l1-count.choice1`]: '1 と いう',
+    [`${C}chat-l0-readiness.blocks-l1-count.choice2`]: '0 と いう',
+    [`${C}chat-l0-readiness.blocks-l1-count.choice3`]: '3 と いう',
+    [`${C}chat-l0-readiness.blocks-l1-count.explanation`]:
+        'はたで（かいすう）を 0 にして、おすたびに 1 ずつ ふやすよ。3 かい おすと 3 に なり、3 と いうよ。',
+    [`${C}chat-l0-readiness.blocks-l1-broadcast.question`]:
+        'ひだりは ネコ、みぎは ペンギンの プログラム。ネコを おすと、どう なる？',
+    [`${C}chat-l0-readiness.blocks-l1-broadcast.choice1`]: 'ペンギンが「やあ！」と いう',
+    [`${C}chat-l0-readiness.blocks-l1-broadcast.choice2`]: 'ネコが「やあ！」と いう',
+    [`${C}chat-l0-readiness.blocks-l1-broadcast.choice3`]: 'なにも おきない',
+    [`${C}chat-l0-readiness.blocks-l1-broadcast.explanation`]:
+        'ネコが「あいさつ」を おくると、うけとった ペンギンの プログラムが うごいて「やあ！」と いうよ。',
     'gui.lessons.lesson.chat-l1.name': 'てじゅんを ずに しよう',
 
     [`${C}chat-l1-sequence.name`]: 'にゅうりょくして ひょうじしよう（じゅんじしょり）',
@@ -1061,6 +1123,38 @@ export const en = {
     'gui.lessons.course.chat-wo-tsukurou.name': "Let's Make a Chat",
     'gui.lessons.course.chat-wo-tsukurou.description':
         'Make a chat app and learn sequence, repetition, branching and activity diagrams, data and events, and talking over the mesh, then make your own chat as your work.',
+    // レッスン 0 のじゅんびチェック（#2299。問いは土台のチャレンジ id ごと・courses.js の readinessQuestion）
+    'gui.lessons.lesson.chat-l0.name': 'Before You Start',
+    [`${C}chat-l0-readiness.name`]: 'Readiness Check',
+    [`${C}chat-l0-readiness.task`]:
+        'Check what this course uses, with 4 questions. Look at the blocks and choose how they run.\nIf you miss one, you get a recommended challenge',
+    [`${C}chat-l0-readiness.blocks-l0-where.question`]: 'How do you start this program?',
+    [`${C}chat-l0-readiness.blocks-l0-where.choice1`]: 'Click the green flag',
+    [`${C}chat-l0-readiness.blocks-l0-where.choice2`]: 'Click the stop sign',
+    [`${C}chat-l0-readiness.blocks-l0-where.choice3`]: 'Click the sprite pane',
+    [`${C}chat-l0-readiness.blocks-l0-where.explanation`]:
+        'A "when green flag clicked" script runs when you click the green flag above the stage. The stop sign stops it.',
+    [`${C}chat-l0-readiness.blocks-l1-ask-answer.question`]:
+        'You click the cat and type "Taro". What does the cat say?',
+    [`${C}chat-l0-readiness.blocks-l1-ask-answer.choice1`]: 'Says "Hello"',
+    [`${C}chat-l0-readiness.blocks-l1-ask-answer.choice2`]: 'Says "Hello Taro"',
+    [`${C}chat-l0-readiness.blocks-l1-ask-answer.choice3`]: 'Says "What\'s your name?"',
+    [`${C}chat-l0-readiness.blocks-l1-ask-answer.explanation`]:
+        'What you type goes into (answer). The join puts "Hello " and (answer) together, so it says "Hello Taro".',
+    [`${C}chat-l0-readiness.blocks-l1-count.question`]:
+        'You click the green flag, then click the cat 3 times. What does it say?',
+    [`${C}chat-l0-readiness.blocks-l1-count.choice1`]: 'Says 1',
+    [`${C}chat-l0-readiness.blocks-l1-count.choice2`]: 'Says 0',
+    [`${C}chat-l0-readiness.blocks-l1-count.choice3`]: 'Says 3',
+    [`${C}chat-l0-readiness.blocks-l1-count.explanation`]:
+        'The flag sets (count) to 0, and each click adds 1. After 3 clicks it is 3, so the cat says 3.',
+    [`${C}chat-l0-readiness.blocks-l1-broadcast.question`]:
+        'The left script is the cat, the right is the penguin. What happens when you click the cat?',
+    [`${C}chat-l0-readiness.blocks-l1-broadcast.choice1`]: 'The penguin says "Hi!"',
+    [`${C}chat-l0-readiness.blocks-l1-broadcast.choice2`]: 'The cat says "Hi!"',
+    [`${C}chat-l0-readiness.blocks-l1-broadcast.choice3`]: 'Nothing happens',
+    [`${C}chat-l0-readiness.blocks-l1-broadcast.explanation`]:
+        'The cat sends "hello". The penguin receives it, so its script runs and it says "Hi!".',
     'gui.lessons.lesson.chat-l1.name': 'Draw the Steps',
 
     [`${C}chat-l1-sequence.name`]: 'Type and Show (Sequence)',

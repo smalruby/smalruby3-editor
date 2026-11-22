@@ -4,9 +4,9 @@
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { isGoogleBrowserPromptSupported } from '../../lib/teacher-auth.js';
 import ErrorDisplay from '../classroom-modal/error-display.jsx';
 import GoogleSignInSlot from '../google-sign-in-slot/google-sign-in-slot.jsx';
+import SignInButton, { SignInButtonList } from '../sign-in-button/sign-in-button.jsx';
 import carouselImage1 from './carousel-1-submit.png';
 import carouselImage2 from './carousel-2-overview.png';
 import carouselImage3 from './carousel-3-preview.png';
@@ -94,29 +94,24 @@ const LoginCarousel = () => {
 const TeacherLoginPhase = ({
     error,
     errorTitle,
-    googleFallbackReason,
+    googleButtonShown,
     googleSignInRef,
     isMicrosoftAuthAvailable,
     onGoogleLogin,
     onMicrosoftLogin,
 }) => {
-    // Browsers without a Google prompt of their own have nothing to show when
-    // our button is pressed, so ask for Google's button up front and let it be
-    // the entry point. Elsewhere our own button starts the flow (#1149).
-    // Runs once: the browser's capability does not change mid-session, and
-    // re-running would restart the login every time the handler identity moves.
-    const startedForUnsupportedRef = useRef(false);
+    // Google's own button is the entry point, so the login starts as soon as
+    // this phase is on screen: it only renders the button and waits for a
+    // press. Runs once — re-running would restart the login every time the
+    // handler identity moves.
+    const startedRef = useRef(false);
     useEffect(() => {
-        if (startedForUnsupportedRef.current || isGoogleBrowserPromptSupported()) {
+        if (startedRef.current) {
             return;
         }
-        startedForUnsupportedRef.current = true;
+        startedRef.current = true;
         onGoogleLogin();
     }, [onGoogleLogin]);
-
-    // Google's button replaces ours rather than joining it — two Google
-    // buttons side by side leave people guessing which one to press.
-    const googleButtonTookOver = googleFallbackReason !== null;
 
     return (
         <div className={styles.loginArea} data-testid="classroom-phase-teacher-login">
@@ -135,44 +130,40 @@ const TeacherLoginPhase = ({
                         id="gui.classroom.management.loginDescription"
                     />
                 </p>
-                {/* The providers sit side by side where there is room for it, and
-                stack on narrow screens. The hint spans the whole row so the
-                buttons stay on one line. */}
                 <div className={styles.providerRow}>
-                    {!googleButtonTookOver && (
-                        <button
-                            className={styles.loginButton}
-                            data-testid="classroom-google-login"
-                            onClick={onGoogleLogin}
-                        >
-                            <FormattedMessage
-                                defaultMessage="Sign in with Google"
-                                description="Google sign in button"
-                                id="gui.classroom.management.loginButton"
-                            />
-                        </button>
-                    )}
-                    {/* Google's own button lives here, inside the modal, so it
-                    cannot float over the screen or outlive the login (#1149). */}
-                    <GoogleSignInSlot
-                        active={googleButtonTookOver}
-                        className={styles.googleSignInSlot}
-                        ref={googleSignInRef}
-                        showHint={googleButtonTookOver && googleFallbackReason !== 'unsupported'}
-                    />
-                    {isMicrosoftAuthAvailable && (
-                        <button
-                            className={styles.loginButton}
-                            data-testid="classroom-microsoft-login"
-                            onClick={onMicrosoftLogin}
-                        >
-                            <FormattedMessage
-                                defaultMessage="Sign in with Microsoft"
-                                description="Microsoft sign in button"
-                                id="gui.classroom.management.microsoftLoginButton"
-                            />
-                        </button>
-                    )}
+                    <SignInButtonList>
+                        {/* Our button only stands in while Google's script loads
+                        or if it failed to load; pressing it tries again. */}
+                        {!googleButtonShown && (
+                            <SignInButton provider="google" testId="classroom-google-login" onClick={onGoogleLogin}>
+                                <FormattedMessage
+                                    defaultMessage="Sign in with Google"
+                                    description="Google sign in button"
+                                    id="gui.classroom.management.loginButton"
+                                />
+                            </SignInButton>
+                        )}
+                        {/* Google's own button lives here, inside the modal, so it
+                        cannot float over the screen or outlive the login (#1149). */}
+                        <GoogleSignInSlot
+                            active={googleButtonShown}
+                            className={styles.googleSignInSlot}
+                            ref={googleSignInRef}
+                        />
+                        {isMicrosoftAuthAvailable && (
+                            <SignInButton
+                                provider="microsoft"
+                                testId="classroom-microsoft-login"
+                                onClick={onMicrosoftLogin}
+                            >
+                                <FormattedMessage
+                                    defaultMessage="Sign in with Microsoft"
+                                    description="Microsoft sign in button"
+                                    id="gui.classroom.management.microsoftLoginButton"
+                                />
+                            </SignInButton>
+                        )}
+                    </SignInButtonList>
                 </div>
                 <ErrorDisplay error={error} errorTitle={errorTitle} />
             </div>
@@ -186,7 +177,7 @@ const TeacherLoginPhase = ({
 TeacherLoginPhase.propTypes = {
     error: PropTypes.string,
     errorTitle: PropTypes.string,
-    googleFallbackReason: PropTypes.oneOf(['dismissed', 'retry', 'unsupported']),
+    googleButtonShown: PropTypes.bool,
     googleSignInRef: PropTypes.shape({ current: PropTypes.any }),
     isMicrosoftAuthAvailable: PropTypes.bool,
     onGoogleLogin: PropTypes.func.isRequired,

@@ -12,7 +12,7 @@ import path from 'path';
 import { loadPrism } from '../../../../src/lib/prism-parser';
 import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
 import { analyze } from '../../../../src/lib/ruby-to-blocks-converter/analysis';
-import { forEachNode, nodeTypeName } from '../../../../src/lib/ruby-to-blocks-converter/node-walk';
+import { forEachNode, nodeTypeName, parentIndexOf } from '../../../../src/lib/ruby-to-blocks-converter/node-walk';
 
 let prism;
 
@@ -137,6 +137,100 @@ describe('RubyToBlocksConverter/Analysis', () => {
             const units = Object.keys(analysis.locals.groups).map(Number);
             expect(units.filter((u) => analysis.locals.groups[u] === u && u !== 0)).toHaveLength(1);
         });
+
+        // The scope indexes (the `2` of `_a_2_`), in the order in which the conversion makes them (issue #2092)
+        const scopeIndexesOf = (source) => {
+            const root = parse(source);
+            const { scopeIndexOfDef, scopeIndexOfUnit, unitOfNode, lastScopeIndex } = analyze(root, {
+                source,
+            }).locals;
+            const indexes = [];
+            forEachNode(root, {
+                enter(node, type) {
+                    if (type === 'DefNode') {
+                        indexes.push([
+                            `def ${node.name}`,
+                            scopeIndexOfDef.has(node) ? scopeIndexOfDef.get(node) : null,
+                        ]);
+                    } else if (unitOfNode.has(node)) {
+                        const unit = unitOfNode.get(node);
+                        indexes.push([`block ${unit}`, unit in scopeIndexOfUnit ? scopeIndexOfUnit[unit] : null]);
+                    }
+                },
+            });
+            return { indexes, lastScopeIndex };
+        };
+
+        test('numbers the methods and the blocks that split a local, in the order of the code', () => {
+            expect(
+                scopeIndexesOf(dedent`
+                    when_flag_clicked do
+                      a = "x"
+                    end
+                    def foo
+                      b = 1
+                    end
+                    when_clicked do
+                      move(10)
+                    end
+                    when_key_pressed("space") do
+                      a = []
+                    end
+                    def bar
+                      b = 2
+                    end
+                `),
+            ).toEqual({
+                indexes: [
+                    ['block 1', 2],
+                    ['def foo', 3],
+                    ['block 3', null],
+                    ['block 4', 4],
+                    ['def bar', 5],
+                ],
+                lastScopeIndex: 5,
+            });
+        });
+
+        test('numbers the methods of a module where a class includes it, and not def initialize', () => {
+            expect(
+                scopeIndexesOf(dedent`
+                    module Greet
+                      def hello
+                        x = 1
+                      end
+                    end
+
+                    def top
+                      y = 1
+                    end
+
+                    class Cat < ::Smalruby3::Sprite
+                      include Greet
+
+                      def initialize
+                        super
+                      end
+
+                      def walk
+                        z = 1
+                      end
+                    end
+
+                    def other.foo
+                    end
+                `),
+            ).toEqual({
+                indexes: [
+                    ['def hello', 3],
+                    ['def top', 2],
+                    ['def initialize', null],
+                    ['def walk', 4],
+                    ['def foo', null],
+                ],
+                lastScopeIndex: 4,
+            });
+        });
     });
 
     describe('procedures', () => {
@@ -181,6 +275,7 @@ describe('RubyToBlocksConverter/Analysis', () => {
                     requireds: ['a'],
                     optionals: ['b'],
                     returnsValue: true,
+                    hasReturn: true,
                     usesSuper: false,
                 },
                 {
@@ -190,8 +285,36 @@ describe('RubyToBlocksConverter/Analysis', () => {
                     requireds: [],
                     optionals: [],
                     returnsValue: false,
+                    hasReturn: false,
                     usesSuper: false,
                 },
+            ]);
+            analysis.procedures.definitions.forEach((d) => expect(analysis.procedures.ofNode.get(d.node)).toBe(d));
+        });
+
+        test('a bare `return` and a `return` in a block are returns of the method', () => {
+            const analysis = analyzeRuby(dedent`
+                def foo
+                  return
+                end
+
+                def bar(n)
+                  3.times do
+                    return n if n > 1
+                  end
+                end
+
+                def foo_bar
+                  def baz
+                    return 1
+                  end
+                end
+            `);
+            expect(analysis.procedures.definitions.map((d) => [d.name, d.hasReturn, d.returnsValue])).toEqual([
+                ['foo', true, false],
+                ['bar', true, true],
+                ['foo_bar', false, false],
+                ['baz', true, true],
             ]);
         });
     });
@@ -391,5 +514,38 @@ describe('forEachNode', () => {
         expect(nodeTypeName(calls[0])).toBe('CallNode');
         expect(nodeTypeName(calls[1])).toBe('CallNode');
         expect(nodeTypeName({})).toBeNull();
+    });
+});
+
+describe('parentIndexOf', () => {
+    test('has the parent of every node but the root, in the order of the walk', () => {
+        const root = parse(dedent`
+            case @x
+            when foo(1)
+              say(bar(2))
+            end
+        `);
+        const parents = parentIndexOf(root);
+        const walked = [];
+        forEachNode(root, {
+            enter: (node, _type, parent) => {
+                if (parent) walked.push([node, parent]);
+            },
+        });
+        expect(parents.has(root)).toBe(false);
+        expect([...parents.entries()]).toEqual(walked);
+        const bar = walked.map(([node]) => node).find((node) => node.name === 'bar');
+        const chain = [];
+        for (let node = bar; node; node = parents.get(node)) chain.push(nodeTypeName(node));
+        expect(chain).toEqual([
+            'CallNode',
+            'ArgumentsNode',
+            'CallNode',
+            'StatementsNode',
+            'WhenNode',
+            'CaseNode',
+            'StatementsNode',
+            'ProgramNode',
+        ]);
     });
 });

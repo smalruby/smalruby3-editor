@@ -116,8 +116,8 @@ ACM の DNS 検証は、公開 DNS から検証レコード（CNAME）が引け�
   ブラウザは毎回確かめ直す。`Cache-Control` を付けないとエッジは既定の 60 秒になるが、ブラウザが
   `Last-Modified` から勝手に鮮度を見積もって古い `index.html` を使い続けることがある。
   `no-cache` だけを付けるとエッジにも残らない（MinTTL が 0 のため）。
-- ファイル名にハッシュが付いたもの（`*.<hash>.js`、`static/assets/*.<hash>.*`。Workbox の
-  `dontCacheBustURLsMatching` と同じ `/\.[0-9a-f]{8,}\./`）は
+- ファイル名にハッシュが付いたもの（`*.<hash>.js`、`static/assets/*.<hash>.*`。
+  `/\.[0-9a-f]{8,}\./`）は
   `Cache-Control: public, max-age=31536000, immutable` を付ける。
 - 置き直したら `/<slug>/*` を invalidation する（すぐに反映させたいとき）。
 - gui の JS（プレビューは `gui.js`、本番は `gui.<hash>.js`）は、事前に圧縮した `.br`（brotli q11）と

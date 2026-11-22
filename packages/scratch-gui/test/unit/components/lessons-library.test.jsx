@@ -6,7 +6,7 @@ import { IntlProvider } from 'react-intl';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 import LessonsLibrary from '../../../src/components/lessons-library/lessons-library.jsx';
-import { COURSES, defineCourse, defineLesson, LANGUAGES } from '../../../src/lib/lessons/courses';
+import { COURSES, defineCourse, defineLesson, findChallenge, LANGUAGES } from '../../../src/lib/lessons/courses';
 import { emptyProgress, markChallengeCompleted } from '../../../src/lib/lessons/lesson-progress';
 import { colorModeMap } from '../../../src/lib/settings/color-mode';
 import en from '../../../src/locales/en';
@@ -420,5 +420,53 @@ describe('LessonsLibrary', () => {
         expect(isOpen(getByTestId, 'lessons-library-lesson-blocks-l3')).toBe(true);
         expect(isOpen(getByTestId, 'lessons-library-lesson-blocks-l0')).toBe(false);
         expect(getByTestId('lessons-library-challenge-blocks-l1-count')).toBeVisible();
+    });
+});
+
+// じゅんびチェックの「おすすめ」（#2299）
+describe('LessonsLibrary: recommended mark of the readiness check (#2299)', () => {
+    test('marks the cards of the recommended challenges only', () => {
+        const { getByTestId, getAllByTestId } = renderLibrary({ recommendedChallengeIds: ['blocks-l1-ask-answer'] });
+        const card = getByTestId('lessons-library-challenge-blocks-l1-ask-answer');
+        expect(card).toHaveAttribute('data-recommended', 'true');
+        expect(card.querySelector('[data-testid="lessons-library-challenge-recommended"]')).toHaveTextContent(
+            'Recommended',
+        );
+        expect(getAllByTestId('lessons-library-challenge-recommended')).toHaveLength(1);
+        expect(getByTestId('lessons-library-challenge-blocks-l1-count')).toHaveAttribute('data-recommended', 'false');
+    });
+
+    test('shows no mark without recommendations', () => {
+        const { queryByTestId } = renderLibrary();
+        expect(queryByTestId('lessons-library-challenge-recommended')).not.toBeInTheDocument();
+    });
+});
+
+// 課題だけのレッスン表の「おさらい（課題の外）」（#2300）
+describe('LessonsLibrary: the review section', () => {
+    const chat = COURSES.find((course) => course.id === 'chat-wo-tsukurou');
+    const review = ['chat-l0-readiness', 'blocks-l1-count'].map((id) => findChallenge(id));
+
+    test('comes after the assignment challenges, marks clears, and is filtered by the search', () => {
+        const { getByTestId, queryByTestId, onSelectChallenge } = renderLibrary({
+            courses: [chat],
+            assignmentChallengeIds: ['chat-l1-sequence'],
+            progress: progressWith(['blocks-l1-count']),
+            recommendedChallengeIds: [],
+            reviewChallenges: review,
+        });
+        const section = getByTestId('lessons-library-review');
+        expect(section.previousElementSibling).toBe(getByTestId('lessons-library-course-chat-wo-tsukurou'));
+        expect(getByTestId('lessons-library-challenge-blocks-l1-count')).toHaveAttribute('data-completed', 'true');
+        fireEvent.click(getByTestId('lessons-library-challenge-chat-l0-readiness'));
+        expect(onSelectChallenge).toHaveBeenCalledWith('chat-l0-readiness');
+        typeSearch(getByTestId, 'zzz-nothing');
+        expect(queryByTestId('lessons-library-review')).toBeNull();
+        expect(getByTestId('lessons-library-no-match')).toBeInTheDocument();
+    });
+
+    test('is not shown for the whole courses', () => {
+        const { queryByTestId } = renderLibrary({ reviewChallenges: review });
+        expect(queryByTestId('lessons-library-review')).toBeNull();
     });
 });

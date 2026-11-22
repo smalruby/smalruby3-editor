@@ -1,3 +1,4 @@
+import SmalrubotS1Snippets from '../../../../src/containers/ruby-tab/smalrubot-s1-snippets.json';
 import SnippetsCompleter from '../../../../src/containers/ruby-tab/snippets-completer';
 
 // Minimal mock of the monaco instance used by SnippetsCompleter
@@ -524,5 +525,28 @@ describe('SnippetsCompleter', () => {
                 expect(musicSuggestion).toBeUndefined();
             });
         });
+    });
+});
+
+describe('Studuino (Smalrubot S1) snippets (#2190)', () => {
+    const entries = Object.entries(SmalrubotS1Snippets);
+    const methods = entries.filter(([, item]) => item.type !== 'enum_member');
+
+    test('every caption and method snippet writes studuino.', () => {
+        for (const [caption] of entries) {
+            expect(caption).toMatch(/^studuino\./);
+        }
+        expect(methods.length).toBe(11);
+        for (const [, item] of methods) {
+            expect(item.snippet).toMatch(/^studuino\./);
+            expect(item.snippet).not.toContain('smalrubot_s1');
+        }
+    });
+
+    test('a method is still found by typing the older name smalrubot', () => {
+        for (const [, item] of methods) {
+            expect(item.filterText).toContain('studuino');
+            expect(item.filterText).toContain('smalrubot');
+        }
     });
 });
