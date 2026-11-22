@@ -135,7 +135,9 @@ opcode は拡張機能 `smalrubotS1` のブロック（実行時は `smalrubotS1
 | 文 | DC モーター [ポート] を [正転 / 逆転] で回す | `studuinoDcMotorDirection`（`PORT`, `DIRECTION`: `normal` / `reverse`） | DC モーター | `dc_motor_dir` |
 | 文 | DC モーター [ポート] を [ブレーキ / 惰性] で止める | `studuinoDcMotorStop`（`PORT`, `MODE`: `brake` / `coast`） | DC モーター | `dc_motor_stop` |
 | 文 | サーボモーター [ポート] を (n) 度にする | `studuinoServo`（`PORT`, `ANGLE`） | サーボモーター | `servo` |
-| 文 | サーボモーター [ポート] を (n) 度、[ポート] を (n) 度に同時に動かす | `studuinoServoPair`（`PORT1`, `ANGLE1`, `PORT2`, `ANGLE2`） | サーボモーター（2 個以上） | `servo_multi`（2 つ。同じポートなら使えないブロック） |
+| 文 | サーボモーター [ポート] を (n) 度に予約する | `studuinoServoReserve`（`PORT`, `ANGLE`） | サーボモーター | （下の「サーボモーターの予約」） |
+| 文 | 予約したサーボモーターを動かす | `studuinoServoMoveReserved`（なし） | サーボモーター | （下の「サーボモーターの予約」） |
+| 文 | (n) 秒で予約したサーボモーターを動かす | `studuinoServoMoveReservedIn`（`SECS`） | サーボモーター | （下の「サーボモーターの予約」） |
 | 文 | LED [ポート] を [オン / オフ] にする | `studuinoLed`（`PORT`, `STATE`: `on` / `off`） | LED | `led` |
 | 文 | ブザー [ポート] を (音の高さ) で鳴らす | `studuinoBuzzerOn`（`PORT`, `PITCH`。Hz） | ブザー | `buzzer_on` |
 | 文 | ブザー [ポート] を止める | `studuinoBuzzerOff`（`PORT`） | ブザー | `buzzer_off` |
@@ -146,17 +148,22 @@ opcode は拡張機能 `smalrubotS1` のブロック（実行時は `smalrubotS1
 | 真偽 | タッチセンサー [ポート] が押された | `studuinoTouchSensorPressed`（`PORT`） | タッチセンサー | `button`（`kind: touch_sensor`） |
 | 真偽 | ボタン [ポート] が押された | `studuinoButtonPressed`（`PORT`） | ボタン（基板の十字ボタン） | `button`（`kind: push_switch`） |
 
-- 「割り当てたサーボモーターをまとめて動かす」は、Scratch のブロックは引数の数を変えられないので、
-  **2 つを同時に動かすブロック**にした（3 つ以上はこのブロックを続けて置く。構文木の `servo_multi` は 8 つまで受け付ける）。
+- **サーボモーターをまとめて動かす**（S6）: Scratch のブロックは引数の数を変えられないので、角度を**予約**するブロックと、
+  予約した角度に**まとめて動かす**ブロック（すぐ / M 秒で）に分けた。
+  - 予約は積み重なり、「動かす」で予約のあるサーボを全部いっしょに動かして、予約を空にする。予約が無いときの「動かす」は
+    何もしない（M 秒のほうも待たない）。同じポートを 2 回予約したら、あとの角度になる。
+  - 「M 秒で」は、いまの角度から予約の角度へ、全部のサーボを同じ M 秒で、時間に比例してなめらかに動かす（通常モードの
+    「M 秒でアームを曲げる」と同じ動き方）。電源を入れてから一度も動かしていないサーボの「いまの角度」は 90 度。
+  - 「動かす」の 2 つは [ポート] を持たない。
 - [ポート] のドロップダウンには、**その部品を割り当てたポートだけ** を「光センサー (A6)」のように
   部品とポートが分かる形で出す（S2）。
   割り当てが無いときは、空の値の項目（部品の名前だけ）を 1 つ出す（そのブロックは構文木の生成で使えないブロックになる）。
 - タッチセンサーとボタンは**真偽のブロック**（`もし <タッチセンサー (A2) が押された> なら` と書ける）。本家は丸い値のブロック（0 / 1）。
 - **通常モードのパレットには出さない**（E5）。VM のブロックの定義は `hideFromPalette: true` で、Studuino モードのパレットが
   アーテックロボのカテゴリ（先頭の［入出力の設定］ボタンの下）に、**割り当てた部品のブロックだけ**を、その部品の最初のポートを
-  選んだ形で並べる（「2 つを同時に」はサーボモーターを 2 つ以上割り当てたとき）。
+  選んだ形で並べる（予約したサーボモーターを動かすブロックはポートを持たないので、そのまま並べる）。
 - パレットに並べるときの値: DC モーターの速さ 100（ライブラリの 0〜255）、サーボモーター 90 度、ブザー 440 Hz、
-  向き = 正転、止め方 = ブレーキ、LED = オン。
+  向き = 正転、止め方 = ブレーキ、LED = オン、秒 = 1。
 - **ブラウザでブロックを押しても何もしない**（値のブロックは 0 / 偽を返す）。Studuino モードではプログラムはブラウザで
   動かさず、緑の旗 = 書きこみ（S13）。練習用の基板で試すことは第 1 弾ではしない。
 - 加速度センサー（I2C・A4/A5）・カラーセンサー・赤外線リモコンは第 1 弾では扱わない。
@@ -375,7 +382,9 @@ end
 | `studuinoDcMotorDirection`（`DIRECTION`: `normal` / `reverse`） | `studuino.dc_motor_m1.forward` / `studuino.dc_motor_m1.backward` |
 | `studuinoDcMotorStop`（`MODE`: `brake` / `coast`） | `studuino.dc_motor_m1.brake` / `studuino.dc_motor_m1.coast` |
 | `studuinoServo`（`PORT`, `ANGLE`） | `studuino.servo_motor_d9.angle = 90` |
-| `studuinoServoPair`（`PORT1`, `ANGLE1`, `PORT2`, `ANGLE2`） | `studuino.servo_motors(d9: 90, d10: 45)`（キーはポートの小文字。ちがう 2 つ） |
+| `studuinoServoReserve`（`PORT`, `ANGLE`） | `studuino.servo_motor_d9.reserve(90)` |
+| `studuinoServoMoveReserved` | `studuino.move_reserved_servo_motors`（部品でなく `studuino.` のメソッド） |
+| `studuinoServoMoveReservedIn`（`SECS`） | `studuino.move_reserved_servo_motors(1)`（秒はうしろの数。通常モードの `studuino.bend_arm(90, 1)` と同じ） |
 | `studuinoLed`（`STATE`: `on` / `off`） | `studuino.led_a0.on` / `studuino.led_a0.off` |
 | `studuinoBuzzerOn`（`PORT`, `PITCH`） | `studuino.buzzer_a1.on(440)` |
 | `studuinoBuzzerOff`（`PORT`） | `studuino.buzzer_a1.off` |
@@ -385,7 +394,8 @@ end
 - メニューの引数（`PORT` など）は、いまはブロックのフィールドとして読み書きする（いまの拡張機能のブロックと同じ）。
   部品のブロックでメニューが影のブロックになったら、`src/lib/studuino-ruby/studuino-ruby.js` の `MENU_FORM` だけを変える。
 - ポートが空の部品のブロックは、その種類の既定のポート（ロボットカーの配線など）で書き出す（`FALLBACK_PORTS`）。
-- ふりがなは部品の名前とポート（`studuino.light_sensor_a6` の上に「光センサー(A6)」）。補完（スニペット）は第 1 弾では足さない。
+- ふりがなは部品の名前とポート（`studuino.light_sensor_a6` の上に「光センサー(A6)」）。
+  `studuino.move_reserved_servo_motors` には「予約したサーボモーターを動かす」。補完（スニペット）は第 1 弾では足さない。
 
 ### 決まりごと
 
@@ -404,8 +414,7 @@ end
   （ブロックは 1 組・M2。使えるかの印は部品のブロックの側で決める）。
 - 変換のエラー: 宣言していないポートの部品を呼んだ（`studuino.led_a1` で A1 を宣言していない）・ポートに合わない部品
   （`led :A6`・`studuino.led_a6`）・知らない部品（`lamp :A0`）・知らないポート・同じポートを 2 回宣言・部品の宣言でない行・
-  範囲の外か整数でない補正値・補正値の無い部品の `calibration:`・ステージ以外や一番外でない `class Studuino`・
-  `servo_motors` の引数がちがう 2 つのサーボモーターでない。
+  範囲の外か整数でない補正値・補正値の無い部品の `calibration:`・ステージ以外や一番外でない `class Studuino`。
 - 「旗が押されたとき」は既存の `when_flag_clicked do` のまま。2 つ以上なら警告（M4）。
 - いまの Ruby v2 には `@ruby:class:` のコメントで class の情報を持つ前例がある。Studuino の class は保存の形が
   `extensionStorage` なので、コメントには持たない（`docs/ruby-editor/bridging-patterns.md` の P21）。
@@ -519,7 +528,6 @@ Lambda の検査（`validateIr`）を必ず通る形にし、通らないもの�
 | `wrong_part` | そのポートに別の部品を割り当てている（S5） |
 | `unknown_port` | ポートの名前を知らない |
 | `unknown_value` | メニューの値を知らない（正転/逆転・ブレーキ/惰性・オン/オフ） |
-| `duplicate_port` | 「2 つを同時に動かす」のサーボが同じポート |
 | `too_large` | 上限をこえた。`detail` は `too_many_nodes` / `too_deep` / `too_many_variables` / `too_many_bytes` |
 
 決まりごと:
@@ -543,6 +551,26 @@ Lambda の検査（`validateIr`）を必ず通る形にし、通らないもの�
   **変数の数だけは、ブラウザの上限（32 個）を Lambda（64 個）より小さくしてブラウザで止める**（S1。Lambda の 64 は
   その上の守り）。33 個目の変数を使ったブロックに印を付け、書きこみのモーダルに「変数が多すぎます。Studuino で使える
   変数は 32 個までです。変数を減らしてください。」と出す（`gui.studuinoWrite.error.tooManyVariables`）。
+
+### サーボモーターの予約（#2352・S6）
+
+予約の 3 つのブロックは、構文木に新しい op を足さず、**いまの op（`set` / `if` / `repeat_until` / `timer` / `servo`）の
+組み合わせ**で書く（Lambda を変えずに済み、いまの Lambda がそのまま検査と C++ の書き出しをするため）。
+
+- 旗の下で予約するポートごとに、利用者に見えない変数を 1 つ用意する: **予約した角度**（はじめは -1 = 予約なし）。
+  「M 秒で動かす」が旗の下にあれば、ポートごとに**いまの角度**（はじめは 90）と、**はじめた時刻**・**M 秒** の変数も用意する。
+  これらの変数はポートの表の順に `v0` から付け、利用者の変数はそのあと。**利用者の変数の上限（32）には数えない**
+  （多くても 8 ポート × 2 + 2 = 18 個なので、Lambda の 64 に収まる）。
+- 予約する: `set 予約 = 角度` のあと、`if` で 0〜180 にそろえる（負の数が「予約なし」とまざらないように）。
+- 動かす: ポートごとに `if (予約 > -1) { servo ポート 予約; set 予約 = -1 }`（続けて書くので、いっしょに動きはじめる）。
+  予約するブロックが旗の下に無ければ、文を作らない。
+- M 秒で動かす: `if (どれかの予約 > -1) { M 秒と時刻を覚える; repeat_until (たった時間 ≥ M 秒) { 予約のあるポートを
+  いまの角度 + (予約 − いまの角度) × たった時間 ÷ M 秒 にする }; 予約の角度にして、いまの角度を更新し、予約を消す }`。
+  M が 0 以下なら、くり返しは 0 回ですぐに予約の角度になる。タイマーは読むだけで、利用者のタイマーはリセットしない。
+- 「M 秒で動かす」があるときは、予約するポートの「サーボモーター [ポート] を (n) 度にする」も、いまの角度の変数に入れてから
+  動かす（`set いまの角度 = n`・0〜180 にそろえる・`servo ポート いまの角度`）。
+- 構文木の `servo_multi`（`AsyncServomotors` / `SyncServomotors`）は、ポートと角度が書くときに決まっていないと使えず、
+  `SyncServomotors` は 1 度あたりの時間で決まるので「M 秒で」にならない。そのため使わない（Lambda は受け付けたまま）。
 
 ### ポートの定数の表
 

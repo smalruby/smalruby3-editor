@@ -53,8 +53,10 @@ const STUDUINO_PART_BLOCKS = [
     { opcode: 'studuinoDcMotorDirection', part: 'dc_motor', blockType: BlockType.COMMAND },
     { opcode: 'studuinoDcMotorStop', part: 'dc_motor', blockType: BlockType.COMMAND },
     { opcode: 'studuinoServo', part: 'servo_motor', blockType: BlockType.COMMAND },
-    // 2 つ以上割り当てたときだけパレットに出す（同じポートは使えないブロック）
-    { opcode: 'studuinoServoPair', part: 'servo_motor', minParts: 2, blockType: BlockType.COMMAND },
+    // 角度を予約して、予約したサーボモーターをまとめて動かす（#2352・S6）。動かす 2 つはポートを持たない
+    { opcode: 'studuinoServoReserve', part: 'servo_motor', blockType: BlockType.COMMAND },
+    { opcode: 'studuinoServoMoveReserved', part: 'servo_motor', noPort: true, blockType: BlockType.COMMAND },
+    { opcode: 'studuinoServoMoveReservedIn', part: 'servo_motor', noPort: true, blockType: BlockType.COMMAND },
     { opcode: 'studuinoLed', part: 'led', blockType: BlockType.COMMAND },
     { opcode: 'studuinoBuzzerOn', part: 'buzzer', blockType: BlockType.COMMAND },
     { opcode: 'studuinoBuzzerOff', part: 'buzzer', blockType: BlockType.COMMAND },
@@ -71,6 +73,7 @@ const DEFAULTS = {
     SPEED: 100,
     ANGLE: 90,
     PITCH: 440,
+    SECS: 1,
 };
 
 /**
@@ -99,12 +102,13 @@ const portMenuItems = (settings, part, formatMessage) => {
 /**
  * Studuino モードのパレットに出すブロックの opcode（割り当てた部品のブロックだけ・表の順）。
  * @param {object} settings - getStuduinoSettings の戻り値
- * @returns {Array<{opcode: string, part: string, ports: string[]}>} 出すブロックと、その部品のポート
+ * @returns {Array<{opcode: string, part: string, ports: string[], hasPort: boolean}>} 出すブロックと、
+ *   その部品のポート。`hasPort` は [ポート] の引数を持つか（予約したサーボを動かすブロックは持たない）
  */
 const paletteBlocks = (settings) =>
     STUDUINO_PART_BLOCKS.map((b) => ({ ...b, ports: portsForPart(settings, b.part) }))
-        .filter((b) => b.ports.length >= (b.minParts || 1))
-        .map(({ opcode, part, ports }) => ({ opcode, part, ports }));
+        .filter((b) => b.ports.length > 0)
+        .map(({ opcode, part, ports, noPort }) => ({ opcode, part, ports, hasPort: !noPort }));
 
 /**
  * getInfo の blocks に足すブロックの定義。
@@ -141,15 +145,20 @@ const blockInfos = (formatMessage) => {
             default: 'set [PORT] to [ANGLE] degrees',
             arguments: { PORT: port('servo_motor'), ANGLE: number('ANGLE') },
         },
-        studuinoServoPair: {
-            id: 'smalrubotS1.studuino.servoPair',
-            default: 'set [PORT1] to [ANGLE1] degrees and [PORT2] to [ANGLE2] degrees at the same time',
-            arguments: {
-                PORT1: port('servo_motor'),
-                ANGLE1: number('ANGLE'),
-                PORT2: port('servo_motor'),
-                ANGLE2: number('ANGLE'),
-            },
+        studuinoServoReserve: {
+            id: 'smalrubotS1.studuino.servoReserve',
+            default: 'reserve [PORT] at [ANGLE] degrees',
+            arguments: { PORT: port('servo_motor'), ANGLE: number('ANGLE') },
+        },
+        studuinoServoMoveReserved: {
+            id: 'smalrubotS1.studuino.servoMoveReserved',
+            default: 'move reserved servos',
+            arguments: {},
+        },
+        studuinoServoMoveReservedIn: {
+            id: 'smalrubotS1.studuino.servoMoveReservedIn',
+            default: 'move reserved servos in [SECS] seconds',
+            arguments: { SECS: number('SECS') },
         },
         studuinoLed: {
             id: 'smalrubotS1.studuino.led',

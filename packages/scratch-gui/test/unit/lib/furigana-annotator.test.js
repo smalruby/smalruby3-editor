@@ -1315,6 +1315,12 @@ describe('FuriganaAnnotator', () => {
         test('.light_sensor_a6 → 光センサー(A6)', () => {
             expect(labelsAt(annotate(`${receiver}.light_sensor_a6`), 1)).toContain('光センサー(A6)');
         });
+        // #2352
+        test('.move_reserved_servo_motors(1) → 予約したサーボモーターを動かす', () => {
+            expect(labelsAt(annotate(`${receiver}.move_reserved_servo_motors(1)`), 1)).toContain(
+                '予約したサーボモーターを動かす',
+            );
+        });
         test('.action("forward") → 動作する + 進める', () => {
             const labels = labelsAt(annotate(`${receiver}.action("forward")`), 1);
             expect(labels).toContain('動作する');

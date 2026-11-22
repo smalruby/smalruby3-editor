@@ -171,9 +171,10 @@ describe('studuino-mode', () => {
 describe('部品のブロック（#2216）', () => {
     const settings = (ports) => ({ mode: 'studuino', ports, calibration: { dcMotor: {}, servoMotor: {} } });
 
-    test('使えるブロックの一覧に 14 個の部品のブロックが入る', () => {
+    test('使えるブロックの一覧に 16 個の部品のブロックが入る', () => {
         const parts = STUDUINO_ALLOWED_BLOCKS.filter((op) => op.startsWith('smalrubotS1_studuino'));
-        expect(parts).toHaveLength(14);
+        expect(parts).toHaveLength(16);
+        expect(isStuduinoAllowedBlock('smalrubotS1_studuinoServoMoveReservedIn')).toBe(true);
         expect(isStuduinoAllowedBlock('smalrubotS1_studuinoLightSensor')).toBe(true);
         // 通常モードのブロックは使えない
         expect(isStuduinoAllowedBlock('smalrubotS1_setMotorSpeed')).toBe(false);
@@ -189,15 +190,21 @@ describe('部品のブロック（#2216）', () => {
         expect(xml).toContain('<block type="smalrubotS1_studuinoLightSensor"><field name="PORT">A3</field></block>');
     });
 
-    test('数の引数は math_number の影・2 つを同時はサーボが 2 つ以上のとき', () => {
+    test('数の引数は math_number の影・予約したサーボを動かすブロックはポートを持たない', () => {
         const one = makeStuduinoPartBlocksXml(settings({ M1: 'dc_motor', D9: 'servo_motor' }));
         expect(one).toContain(
             '<value name="SPEED"><shadow type="math_number"><field name="NUM">100</field></shadow></value>',
         );
-        expect(one).not.toContain('studuinoServoPair');
-        const two = makeStuduinoPartBlocksXml(settings({ D9: 'servo_motor', D12: 'servo_motor' }));
-        expect(two).toContain('<field name="PORT1">D9</field>');
-        expect(two).toContain('<field name="PORT2">D12</field>');
+        expect(one).toContain(
+            '<block type="smalrubotS1_studuinoServoReserve"><field name="PORT">D9</field>' +
+                '<value name="ANGLE"><shadow type="math_number"><field name="NUM">90</field></shadow></value></block>',
+        );
+        expect(one).toContain('<block type="smalrubotS1_studuinoServoMoveReserved"></block>');
+        expect(one).toContain(
+            '<block type="smalrubotS1_studuinoServoMoveReservedIn">' +
+                '<value name="SECS"><shadow type="math_number"><field name="NUM">1</field></shadow></value></block>',
+        );
+        expect(makeStuduinoPartBlocksXml(settings({ A0: 'led' }))).not.toContain('Reserve');
     });
 
     test('何も割り当てていなければ部品のブロックは出さない（ボタンだけのカテゴリ）', () => {

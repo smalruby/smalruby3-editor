@@ -51,7 +51,6 @@ export default {
         'このポートには、にゅうしゅつりょくのせっていでぶひんをわりあてていません。',
     'gui.studuinoWrite.notice.wrongPart':
         'このポートには、にゅうしゅつりょくのせっていでべつのぶひんをわりあてています。',
-    'gui.studuinoWrite.notice.duplicatePort': 'おなじサーボモーターを 2 かいつかっています。',
     'gui.studuinoWrite.notice.tooLarge': 'このあたりで、プログラムがおおきすぎます。',
     'gui.studuinoWrite.notice.unsupportedBlock': 'このブロックは Studuino モードではつかえません。',
     'gui.studuinoWrite.notice.label.stop': 'なおす',
@@ -1438,8 +1437,6 @@ export default {
         '{ PART } のほせいちは { MIN } から { MAX } までのせいすうにしてください。',
     'gui.smalruby3.rubyToBlocksConverter.studuinoPartNotDeclared':
         '「{ SOURCE }」: ポート { PORT } に { PART } をつないでいません。\nclass Studuino に { DECLARATION } とかくか、にゅうしゅつりょくのせっていでポートにわりあててください。',
-    'gui.smalruby3.rubyToBlocksConverter.studuinoServoMotorsArgs':
-        'servo_motors には、ちがう 2 つのサーボモーターとかくどをかきます。\nstuduino.servo_motors(d9: 90, d10: 45) のようにかいてください。',
     'gui.smalruby3.rubyToBlocksConverter.studuinoNormalModeCall':
         '「{ SOURCE }」はつないでうごかすときのブロックなので、Studuino モードではつかえません。\nclass Studuino でせんげんしたぶひんをつかってください（れい: studuino.dc_motor_m1.forward）。',
     'gui.smalruby3.prismError.expectedCloseArgs': '`)` がたりません。\n`)` をついかしてひきすうをとじてください。',
@@ -1583,7 +1580,9 @@ export default {
     'smalrubotS1.studuino.dcMotorDirection': '[PORT] を [DIRECTION] でまわす',
     'smalrubotS1.studuino.dcMotorStop': '[PORT] を [MODE] でとめる',
     'smalrubotS1.studuino.servo': '[PORT] を [ANGLE] どにする',
-    'smalrubotS1.studuino.servoPair': '[PORT1] を [ANGLE1] ど、[PORT2] を [ANGLE2] どにどうじにする',
+    'smalrubotS1.studuino.servoReserve': '[PORT] を [ANGLE] どに よやくする',
+    'smalrubotS1.studuino.servoMoveReserved': 'よやくした サーボモーターを うごかす',
+    'smalrubotS1.studuino.servoMoveReservedIn': '[SECS] びょうで よやくした サーボモーターを うごかす',
     'smalrubotS1.studuino.led': '[PORT] を [STATE] にする',
     'smalrubotS1.studuino.buzzerOn': '[PORT] を [PITCH] Hz (ヘルツ) でならす',
     'smalrubotS1.studuino.buzzerOff': '[PORT] をとめる',

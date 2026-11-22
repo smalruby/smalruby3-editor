@@ -132,29 +132,25 @@ const PART_BLOCK_ARGUMENTS = Object.freeze({
     studuinoDcMotorDirection: () => fieldXml('DIRECTION', 'normal'),
     studuinoDcMotorStop: () => fieldXml('MODE', 'brake'),
     studuinoServo: () => numberXml('ANGLE', STUDUINO_PART_DEFAULTS.ANGLE),
+    studuinoServoReserve: () => numberXml('ANGLE', STUDUINO_PART_DEFAULTS.ANGLE),
+    studuinoServoMoveReservedIn: () => numberXml('SECS', STUDUINO_PART_DEFAULTS.SECS),
     studuinoLed: () => fieldXml('STATE', 'on'),
     studuinoBuzzerOn: () => numberXml('PITCH', STUDUINO_PART_DEFAULTS.PITCH),
 });
 
 /**
  * Studuino モードのパレットに並べる部品のブロックの XML（#2216・S2）。割り当てた部品のブロックだけを、
- * その部品の最初のポートを選んだ形で並べる（「2 つを同時に」は 1 つ目と 2 つ目のポート）。
+ * その部品の最初のポートを選んだ形で並べる（予約したサーボモーターを動かすブロックはポートを持たない）。
  * @param {object} settings - getStuduinoSettings の戻り値（redux の写しでもよい）。
  * @returns {string} block の XML を並べたもの。
  */
 const makeStuduinoPartBlocksXml = (settings) =>
     studuinoPaletteBlocks(settings)
-        .map(({ opcode, ports }) => {
+        .map(({ opcode, ports, hasPort }) => {
             const type = `${STUDUINO_EXTENSION_ID}_${opcode}`;
-            if (opcode === 'studuinoServoPair') {
-                return (
-                    `<block type="${type}">${fieldXml('PORT1', ports[0])}` +
-                    `${numberXml('ANGLE1', STUDUINO_PART_DEFAULTS.ANGLE)}${fieldXml('PORT2', ports[1])}` +
-                    `${numberXml('ANGLE2', STUDUINO_PART_DEFAULTS.ANGLE)}</block>`
-                );
-            }
+            const port = hasPort ? fieldXml('PORT', ports[0]) : '';
             const rest = PART_BLOCK_ARGUMENTS[opcode] ? PART_BLOCK_ARGUMENTS[opcode]() : '';
-            return `<block type="${type}">${fieldXml('PORT', ports[0])}${rest}</block>`;
+            return `<block type="${type}">${port}${rest}</block>`;
         })
         .join('');
 
