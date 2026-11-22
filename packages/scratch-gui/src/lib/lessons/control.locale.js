@@ -11,6 +11,36 @@ export const ja = {
     'gui.lessons.course.jidou-sensor-motor.name': '自動でセンサーとモーターでうごかそう',
     'gui.lessons.course.jidou-sensor-motor.description':
         'センサーの値で LED やモーターを自動で動かす計測・制御システムを作り、自分の課題を解決するシステムを作品にするよ。',
+    // レッスン 0 のじゅんびチェック（#2359。問いは土台のチャレンジ id ごと・courses.js の readinessQuestion）
+    'gui.lessons.lesson.ctrl-l0.name': '始める前に',
+    [`${C}ctrl-l0-readiness.name`]: 'じゅんびチェック',
+    [`${C}ctrl-l0-readiness.task`]:
+        'このコースで使うことを、4 問で確かめよう。ブロックの絵を見て、どう動くかを選んでね。\nまちがえたら、おすすめのチャレンジを教えるよ',
+    [`${C}ctrl-l0-readiness.blocks-l0-where.question`]: 'このプログラムを動かすには、画面のどこを押す？',
+    [`${C}ctrl-l0-readiness.blocks-l0-where.choice1`]: '緑の旗',
+    [`${C}ctrl-l0-readiness.blocks-l0-where.choice2`]: '停止ボタン',
+    [`${C}ctrl-l0-readiness.blocks-l0-where.choice3`]: 'スプライトペイン',
+    [`${C}ctrl-l0-readiness.blocks-l0-where.explanation`]:
+        '「緑の旗が押されたとき」のプログラムは、ステージの上の緑の旗を押すと動くよ。停止ボタンは止めるときに押すよ。',
+    [`${C}ctrl-l0-readiness.blocks-l1-repeat.question`]:
+        'ステージのプログラム。1 のキーを押すと、背景は全部で何回かわる？',
+    [`${C}ctrl-l0-readiness.blocks-l1-repeat.choice1`]: '3 回',
+    [`${C}ctrl-l0-readiness.blocks-l1-repeat.choice2`]: '6 回',
+    [`${C}ctrl-l0-readiness.blocks-l1-repeat.choice3`]: '2 回',
+    [`${C}ctrl-l0-readiness.blocks-l1-repeat.explanation`]:
+        '「3 回繰り返す」の中で、背景を 2 回かえるよ。それを 3 回くり返すので、全部で 6 回かわるよ。',
+    [`${C}ctrl-l0-readiness.blocks-l1-if.question`]: '緑の旗を押して、マウスでネコにさわった。ネコは何と言う？',
+    [`${C}ctrl-l0-readiness.blocks-l1-if.choice1`]: '何も言わない',
+    [`${C}ctrl-l0-readiness.blocks-l1-if.choice2`]: '「さわってみて」と言う',
+    [`${C}ctrl-l0-readiness.blocks-l1-if.choice3`]: '「くすぐったい！」と言う',
+    [`${C}ctrl-l0-readiness.blocks-l1-if.explanation`]:
+        '「ずっと」の中で、マウスにさわっているかを調べ続けるよ。さわっているときは「もし」の中の「くすぐったい！」を言うよ。',
+    [`${C}ctrl-l0-readiness.blocks-l1-count.question`]: '緑の旗を押してから、ネコを 3 回押した。ネコは何と言う？',
+    [`${C}ctrl-l0-readiness.blocks-l1-count.choice1`]: '3 と言う',
+    [`${C}ctrl-l0-readiness.blocks-l1-count.choice2`]: '1 と言う',
+    [`${C}ctrl-l0-readiness.blocks-l1-count.choice3`]: '0 と言う',
+    [`${C}ctrl-l0-readiness.blocks-l1-count.explanation`]:
+        '旗で（回数）を 0 にして、押すたびに 1 ずつふやすよ。3 回押すと 3 になり、3 と言うよ。',
     // レッスン 1「センサーと LED をためそう」（#2170・ワークシート第 2 時）
     'gui.lessons.lesson.ctrl-l1.name': 'センサーと LED をためそう',
     [`${C}ctrl-l1-measure.name`]: '明るさをはかろう',
@@ -410,6 +440,38 @@ export const jaHira = {
     'gui.lessons.course.jidou-sensor-motor.name': 'じどうで センサーと モーターで うごかそう',
     'gui.lessons.course.jidou-sensor-motor.description':
         'センサーの あたいで LED や モーターを じどうで うごかす けいそく・せいぎょ システムを つくり、じぶんの かだいを かいけつする システムを さくひんに するよ。',
+    // レッスン 0 のじゅんびチェック（#2359。問いは土台のチャレンジ id ごと・courses.js の readinessQuestion）
+    'gui.lessons.lesson.ctrl-l0.name': 'はじめる まえに',
+    [`${C}ctrl-l0-readiness.name`]: 'じゅんびチェック',
+    [`${C}ctrl-l0-readiness.task`]:
+        'この コースで つかうことを、4 もんで たしかめよう。ブロックの えを みて、どう うごくかを えらんでね。\nまちがえたら、おすすめの チャレンジを おしえるよ',
+    [`${C}ctrl-l0-readiness.blocks-l0-where.question`]: 'この プログラムを うごかすには、がめんの どこを おす？',
+    [`${C}ctrl-l0-readiness.blocks-l0-where.choice1`]: 'みどりのはた',
+    [`${C}ctrl-l0-readiness.blocks-l0-where.choice2`]: 'ていしボタン',
+    [`${C}ctrl-l0-readiness.blocks-l0-where.choice3`]: 'スプライトペイン',
+    [`${C}ctrl-l0-readiness.blocks-l0-where.explanation`]:
+        '「みどりのはたが おされたとき」の プログラムは、ステージの うえの みどりのはたを おすと うごくよ。ていしボタンは とめるときに おすよ。',
+    [`${C}ctrl-l0-readiness.blocks-l1-repeat.question`]:
+        'ステージの プログラム。1 の キーを おすと、はいけいは ぜんぶで なんかい かわる？',
+    [`${C}ctrl-l0-readiness.blocks-l1-repeat.choice1`]: '3 かい',
+    [`${C}ctrl-l0-readiness.blocks-l1-repeat.choice2`]: '6 かい',
+    [`${C}ctrl-l0-readiness.blocks-l1-repeat.choice3`]: '2 かい',
+    [`${C}ctrl-l0-readiness.blocks-l1-repeat.explanation`]:
+        '「3 かい くりかえす」の なかで、はいけいを 2 かい かえるよ。それを 3 かい くりかえすので、ぜんぶで 6 かい かわるよ。',
+    [`${C}ctrl-l0-readiness.blocks-l1-if.question`]:
+        'みどりのはたを おして、マウスで ネコに さわった。ネコは なんと いう？',
+    [`${C}ctrl-l0-readiness.blocks-l1-if.choice1`]: 'なにも いわない',
+    [`${C}ctrl-l0-readiness.blocks-l1-if.choice2`]: '「さわってみて」と いう',
+    [`${C}ctrl-l0-readiness.blocks-l1-if.choice3`]: '「くすぐったい！」と いう',
+    [`${C}ctrl-l0-readiness.blocks-l1-if.explanation`]:
+        '「ずっと」の なかで、マウスに さわっているかを しらべつづけるよ。さわっているときは「もし」の なかの「くすぐったい！」を いうよ。',
+    [`${C}ctrl-l0-readiness.blocks-l1-count.question`]:
+        'みどりのはたを おしてから、ネコを 3 かい おした。ネコは なんと いう？',
+    [`${C}ctrl-l0-readiness.blocks-l1-count.choice1`]: '3 と いう',
+    [`${C}ctrl-l0-readiness.blocks-l1-count.choice2`]: '1 と いう',
+    [`${C}ctrl-l0-readiness.blocks-l1-count.choice3`]: '0 と いう',
+    [`${C}ctrl-l0-readiness.blocks-l1-count.explanation`]:
+        'はたで（かいすう）を 0 にして、おすたびに 1 ずつ ふやすよ。3 かい おすと 3 に なり、3 と いうよ。',
     'gui.lessons.lesson.ctrl-l1.name': 'センサーと LED を ためそう',
     [`${C}ctrl-l1-measure.name`]: 'あかるさを はかろう',
     [`${C}ctrl-l1-measure.task`]:
@@ -818,6 +880,38 @@ export const en = {
     'gui.lessons.course.jidou-sensor-motor.name': 'Move It Automatically with Sensors and Motors',
     'gui.lessons.course.jidou-sensor-motor.description':
         'Build systems that move LEDs and motors automatically by sensor values, then make a system that solves your own problem.',
+    // レッスン 0 のじゅんびチェック（#2359。問いは土台のチャレンジ id ごと・courses.js の readinessQuestion）
+    'gui.lessons.lesson.ctrl-l0.name': 'Before You Start',
+    [`${C}ctrl-l0-readiness.name`]: 'Readiness Check',
+    [`${C}ctrl-l0-readiness.task`]:
+        'Check what this course uses, with 4 questions. Look at the blocks and choose how they run.\nIf you miss one, you get a recommended challenge',
+    [`${C}ctrl-l0-readiness.blocks-l0-where.question`]: 'How do you start this program?',
+    [`${C}ctrl-l0-readiness.blocks-l0-where.choice1`]: 'Click the green flag',
+    [`${C}ctrl-l0-readiness.blocks-l0-where.choice2`]: 'Click the stop sign',
+    [`${C}ctrl-l0-readiness.blocks-l0-where.choice3`]: 'Click the sprite pane',
+    [`${C}ctrl-l0-readiness.blocks-l0-where.explanation`]:
+        'A "when green flag clicked" script runs when you click the green flag above the stage. The stop sign stops it.',
+    [`${C}ctrl-l0-readiness.blocks-l1-repeat.question`]:
+        'This is a stage script. You press the 1 key. How many times does the backdrop change?',
+    [`${C}ctrl-l0-readiness.blocks-l1-repeat.choice1`]: '3 times',
+    [`${C}ctrl-l0-readiness.blocks-l1-repeat.choice2`]: '6 times',
+    [`${C}ctrl-l0-readiness.blocks-l1-repeat.choice3`]: '2 times',
+    [`${C}ctrl-l0-readiness.blocks-l1-repeat.explanation`]:
+        'Inside "repeat 3", the backdrop changes 2 times. That repeats 3 times, so it changes 6 times in all.',
+    [`${C}ctrl-l0-readiness.blocks-l1-if.question`]:
+        'You click the green flag and touch the cat with the mouse. What does the cat say?',
+    [`${C}ctrl-l0-readiness.blocks-l1-if.choice1`]: 'Says nothing',
+    [`${C}ctrl-l0-readiness.blocks-l1-if.choice2`]: 'Says "Touch me"',
+    [`${C}ctrl-l0-readiness.blocks-l1-if.choice3`]: 'Says "That tickles!"',
+    [`${C}ctrl-l0-readiness.blocks-l1-if.explanation`]:
+        'Inside "forever", it keeps checking if the mouse touches the cat. When it does, the cat says "That tickles!" inside the "if".',
+    [`${C}ctrl-l0-readiness.blocks-l1-count.question`]:
+        'You click the green flag, then click the cat 3 times. What does it say?',
+    [`${C}ctrl-l0-readiness.blocks-l1-count.choice1`]: 'Says 3',
+    [`${C}ctrl-l0-readiness.blocks-l1-count.choice2`]: 'Says 1',
+    [`${C}ctrl-l0-readiness.blocks-l1-count.choice3`]: 'Says 0',
+    [`${C}ctrl-l0-readiness.blocks-l1-count.explanation`]:
+        'The flag sets (count) to 0, and each click adds 1. After 3 clicks it is 3, so the cat says 3.',
     'gui.lessons.lesson.ctrl-l1.name': 'Try the Sensors and LEDs',
     [`${C}ctrl-l1-measure.name`]: 'Measure the Brightness',
     [`${C}ctrl-l1-measure.task`]:

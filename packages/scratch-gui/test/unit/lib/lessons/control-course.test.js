@@ -7,12 +7,15 @@ import { allowedBlockOpcode } from '../../../../src/lib/lessons/block-defaults';
 import {
     COURSES,
     LANGUAGES,
+    courseLessons,
+    courseReadinessCheck,
     courseSize,
     findChallenge,
     findCourse,
     findLesson,
     localizeCode,
     validateQuiz,
+    validateReadinessCheck,
 } from '../../../../src/lib/lessons/courses';
 import {
     createFacts,
@@ -23,9 +26,11 @@ import {
     startRun,
     validateGoal,
 } from '../../../../src/lib/lessons/goal';
+import { rubyToBlocksXml } from '../../../../src/lib/lessons/hint-blocks';
 import { HINT_TARGETS } from '../../../../src/lib/lessons/hint-targets';
 import { normalizePartner } from '../../../../src/lib/lessons/practice-partner';
 import { isReadDiagram } from '../../../../src/lib/lessons/read-diagram';
+import { emptyReadiness, readinessOffer } from '../../../../src/lib/lessons/readiness';
 import en from '../../../../src/locales/en';
 import ja from '../../../../src/locales/ja';
 import jaHira from '../../../../src/locales/ja-Hira';
@@ -95,6 +100,70 @@ describe('control course "自動でセンサーとモーターでうごかそう
                     text: expect.not.stringMatching(/(黄色|オレンジ|水色|紫|ピンク|青い|緑色)/),
                 }),
             );
+    });
+});
+
+// じゅんびチェック（#2359・決定ページ C6）: 計測と制御だけをやる学校もあるので、チャットのコースと同じ作りで付ける
+describe('control course readiness check (#2359)', () => {
+    const course = () => findCourse(COURSE_ID);
+    const check = () => courseReadinessCheck(course());
+    // 文言の長さの目安（ふりかえりのクイズと同じ・docs/lessons/README.md）: 問い 50 字・選択肢 20 字・解説 75 字
+    const LIMITS = { question: 50, choice: 20, explanation: 75 };
+
+    test('is lesson 0 (warmup, not counted) and the 19 challenges stay as they are', () => {
+        expect(course().warmupLessons.map((l) => l.id)).toEqual(['ctrl-l0']);
+        expect(courseLessons(course())[0].id).toBe('ctrl-l0');
+        expect(ja[course().warmupLessons[0].name.id]).toBe('始める前に');
+        expect(check().id).toBe('ctrl-l0-readiness');
+        expect(ja[check().name.id]).toBe('じゅんびチェック');
+        expect(check().goal).toEqual([{ type: 'readinessCheck', count: 4 }]);
+        expect(validateGoal(check().goal)).toEqual([]);
+        expect(courseSize(course())).toEqual({ lessonCount: 5, challengeCount: 19 });
+    });
+
+    test('asks one question per base challenge (flag, repeat, if, variable), in the order of baseChallenges', () => {
+        expect(course().baseChallenges).toEqual([
+            'blocks-l0-where',
+            'blocks-l1-repeat',
+            'blocks-l1-if',
+            'blocks-l1-count',
+        ]);
+        course().baseChallenges.forEach((id) => expect(findChallenge(id).course.id).toBe('kyou-kara-programmer'));
+        expect(check().readinessCheck.questions.map((q) => q.baseChallengeId)).toEqual(course().baseChallenges);
+        expect(validateReadinessCheck(check().readinessCheck)).toEqual([]);
+        expect(check().readinessCheck.questions.map((q) => ja[q.choices[q.answer].id])).toEqual([
+            '緑の旗',
+            '6 回',
+            '「くすぐったい！」と言う',
+            '3 と言う',
+        ]);
+    });
+
+    test.each(['ja', 'ja-Hira', 'en'])('the question blocks (%s) convert to blocks', async (locale) => {
+        for (const q of check().readinessCheck.questions) {
+            const { xml, errors } = await rubyToBlocksXml(null, null, localizeCode(q.blocks, locale), null);
+            expect({ id: q.baseChallengeId, errors }).toEqual({ id: q.baseChallengeId, errors: [] });
+            expect(xml).toMatch(/<xml/);
+        }
+    });
+
+    test('the words keep the length guide and ja-Hira has no kanji', () => {
+        check().readinessCheck.questions.forEach((q) => {
+            const fits = (m, limit) =>
+                expect({ id: m.id, fits: ja[m.id].length <= limit }).toEqual({ id: m.id, fits: true });
+            fits(q.question, LIMITS.question);
+            q.choices.forEach((m) => fits(m, LIMITS.choice));
+            fits(q.explanation, LIMITS.explanation);
+            expect(localizeCode(q.blocks, 'ja-Hira')).not.toMatch(/\p{Script=Han}/u);
+        });
+    });
+
+    test('opening 1-1 for the first time asks to take the check first', () => {
+        expect(readinessOffer({ challengeId: 'ctrl-l1-measure', readiness: emptyReadiness() })).toEqual({
+            courseId: COURSE_ID,
+            checkChallengeId: 'ctrl-l0-readiness',
+        });
+        expect(readinessOffer({ challengeId: 'ctrl-l1-blink', readiness: emptyReadiness() })).toBeNull();
     });
 });
 
