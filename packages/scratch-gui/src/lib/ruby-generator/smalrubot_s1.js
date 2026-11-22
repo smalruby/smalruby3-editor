@@ -2,6 +2,7 @@ import { getStuduinoSettings } from '@smalruby/scratch-vm/src/extensions/scratch
 import {
     FALLBACK_PORTS,
     MENU_FORM,
+    MOVE_RESERVED_SERVO_MOTORS_METHOD,
     PART_CALLS,
     STUDUINO_OPCODES,
     STUDUINO_RECEIVER,
@@ -140,13 +141,13 @@ export default function (Generator) {
         };
     });
 
-    Generator[STUDUINO_OPCODES.servoPair] = function (block) {
-        const port1 = portOf(block, 'servo_motor', 'PORT1');
-        const port2 = portOf(block, 'servo_motor', 'PORT2');
-        const angle1 = Generator.valueToCode(block, 'ANGLE1', Generator.ORDER_NONE) || 90;
-        const angle2 = Generator.valueToCode(block, 'ANGLE2', Generator.ORDER_NONE) || 90;
-        const key = (port) => String(port).toLowerCase();
-        return `${STUDUINO_RECEIVER}.servo_motors(${key(port1)}: ${angle1}, ${key(port2)}: ${angle2})\n`;
+    Generator[STUDUINO_OPCODES.servoMoveReserved] = function () {
+        return `${STUDUINO_RECEIVER}.${MOVE_RESERVED_SERVO_MOTORS_METHOD}\n`;
+    };
+
+    Generator[STUDUINO_OPCODES.servoMoveReservedIn] = function (block) {
+        const secs = Generator.valueToCode(block, 'SECS', Generator.ORDER_NONE) || 1;
+        return `${STUDUINO_RECEIVER}.${MOVE_RESERVED_SERVO_MOTORS_METHOD}(${secs})\n`;
     };
 
     /**

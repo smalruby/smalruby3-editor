@@ -359,6 +359,8 @@ const extensionHandlers = {
             get_motor_speed: 'モーター速度',
             dc_motor: 'DCモーターを動かす',
             'arm_calibration=': 'アーム調整',
+            // Studuino mode (#2352)
+            move_reserved_servo_motors: '予約したサーボモーターを動かす',
         };
         // Studuino mode (#2218): `studuino.light_sensor_a6` → 光センサー(A6)
         const part = parsePartMethodName(name);

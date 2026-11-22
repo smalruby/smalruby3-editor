@@ -112,11 +112,6 @@ const noticeMessages = defineMessages({
         description: 'Notice in the Studuino write modal: another part is assigned to the port',
         id: 'gui.studuinoWrite.notice.wrongPart',
     },
-    duplicate_port: {
-        defaultMessage: 'The same servo motor is used twice.',
-        description: 'Notice in the Studuino write modal: the same servo port is used twice',
-        id: 'gui.studuinoWrite.notice.duplicatePort',
-    },
     too_large: {
         defaultMessage: 'The program is too large around here.',
         description: 'Notice in the Studuino write modal: the program is too large',

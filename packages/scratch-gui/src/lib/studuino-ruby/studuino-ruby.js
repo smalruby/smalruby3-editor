@@ -59,7 +59,9 @@ const STUDUINO_OPCODES = Object.freeze({
     dcMotorDirection: `${EXT}studuinoDcMotorDirection`,
     dcMotorStop: `${EXT}studuinoDcMotorStop`,
     servo: `${EXT}studuinoServo`,
-    servoPair: `${EXT}studuinoServoPair`,
+    servoReserve: `${EXT}studuinoServoReserve`,
+    servoMoveReserved: `${EXT}studuinoServoMoveReserved`,
+    servoMoveReservedIn: `${EXT}studuinoServoMoveReservedIn`,
     led: `${EXT}studuinoLed`,
     buzzerOn: `${EXT}studuinoBuzzerOn`,
     buzzerOff: `${EXT}studuinoBuzzerOff`,
@@ -74,7 +76,7 @@ const STUDUINO_OPCODES = Object.freeze({
 const O = STUDUINO_OPCODES;
 
 /**
- * 部品の呼び出しの表（`servo_motors` 以外）。1 行が `studuino.<部品>[.<method>]` の 1 つの形。
+ * 部品の呼び出しの表（予約したサーボモーターを動かす呼び出し以外）。1 行が `studuino.<部品>[.<method>]` の 1 つの形。
  * - `method`: 部品に続けて呼ぶメソッド（null なら部品そのものが値）。`=` で終わるものは代入
  *   （`studuino.dc_motor_m1.speed = 200`）
  * - `arg`: 数の引数（`{name, default}`）
@@ -89,6 +91,7 @@ const PART_CALLS = Object.freeze([
     { opcode: O.dcMotorStop, kind: 'dc_motor', method: 'brake', fields: { MODE: 'brake' } },
     { opcode: O.dcMotorStop, kind: 'dc_motor', method: 'coast', fields: { MODE: 'coast' } },
     { opcode: O.servo, kind: 'servo_motor', method: 'angle=', arg: { name: 'ANGLE', default: 90 } },
+    { opcode: O.servoReserve, kind: 'servo_motor', method: 'reserve', arg: { name: 'ANGLE', default: 90 } },
     { opcode: O.led, kind: 'led', method: 'on', fields: { STATE: 'on' } },
     { opcode: O.led, kind: 'led', method: 'off', fields: { STATE: 'off' } },
     { opcode: O.buzzerOn, kind: 'buzzer', method: 'on', arg: { name: 'PITCH', default: 440 } },
@@ -101,8 +104,12 @@ const PART_CALLS = Object.freeze([
     { opcode: O.buttonPressed, kind: 'push_switch', method: 'pressed?', type: 'value_boolean' },
 ]);
 
-/** 2 つのサーボモーターを同時に動かす呼び出し（`studuino.servo_motors(d9: 90, d10: 45)`）。 */
-const SERVO_MOTORS_METHOD = 'servo_motors';
+/**
+ * 予約したサーボモーターをまとめて動かす呼び出し（#2352）。部品ではなく `studuino.` のメソッド:
+ * `studuino.move_reserved_servo_motors`（すぐ）/ `studuino.move_reserved_servo_motors(1)`（1 秒で）。
+ * 秒の書き方は通常モードの `studuino.bend_arm(90, 1)` と同じく、うしろの数。
+ */
+const MOVE_RESERVED_SERVO_MOTORS_METHOD = 'move_reserved_servo_motors';
 
 /** ポートが空のブロックを書き出すときのポート（教科書のロボットカーの配線。ほかはその種類の最初のポート）。 */
 const FALLBACK_PORTS = Object.freeze({
@@ -188,7 +195,7 @@ export {
     MENU_FORM,
     STUDUINO_OPCODES,
     PART_CALLS,
-    SERVO_MOTORS_METHOD,
+    MOVE_RESERVED_SERVO_MOTORS_METHOD,
     FALLBACK_PORTS,
     partMethodName,
     parsePartMethodName,

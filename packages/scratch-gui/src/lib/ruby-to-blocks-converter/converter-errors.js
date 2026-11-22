@@ -265,13 +265,6 @@ const messages = defineMessages({
         description: 'Error message of Studuino mode in Ruby (#2218)',
         id: 'gui.smalruby3.rubyToBlocksConverter.studuinoPartNotDeclared',
     },
-    studuinoServoMotorsArgs: {
-        defaultMessage:
-            'servo_motors takes two different servo motors and their angles.\n' +
-            'Write it like studuino.servo_motors(d9: 90, d10: 45).',
-        description: 'Error message of Studuino mode in Ruby (#2218)',
-        id: 'gui.smalruby3.rubyToBlocksConverter.studuinoServoMotorsArgs',
-    },
     studuinoNormalModeCall: {
         defaultMessage:
             '"{ SOURCE }" is a block for running while connected, so it cannot be used in Studuino mode.\n' +

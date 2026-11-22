@@ -17,7 +17,7 @@ import {
     PART_CALIBRATIONS,
     PART_CALLS,
     PART_KINDS,
-    SERVO_MOTORS_METHOD,
+    MOVE_RESERVED_SERVO_MOTORS_METHOD,
     STUDUINO_CLASS_NAME,
     STUDUINO_OPCODES,
     STUDUINO_RECEIVER,
@@ -315,28 +315,20 @@ const registerStuduinoParts = (converter) => {
         });
     });
 
-    // `studuino.servo_motors(d9: 90, d10: 45)`: two servo motors at the same time
-    converter.registerOnSend(STUDUINO_RECEIVER, SERVO_MOTORS_METHOD, 1, (params) => {
-        const { receiver, args, node } = params;
-        const hash = args[0];
-        const entries = converter._isHash(hash) ? [...hash.value.entries()] : [];
-        const items = entries.map(([key, value]) => {
-            const port = converter._isSymbol(key) ? String(key.value).toUpperCase() : null;
-            return { port, value };
-        });
-        const valid =
-            items.length === 2 &&
-            items.every((item) => item.port && converter.isNumberOrBlock(item.value)) &&
-            items[0].port !== items[1].port;
-        if (!valid) {
-            throw converter._studuinoError(node, 'studuinoServoMotorsArgs');
-        }
-        items.forEach((item) => checkDeclared(converter, node, 'servo_motor', item.port));
-        const block = converter.changeRubyExpressionBlock(receiver, STUDUINO_OPCODES.servoPair, 'statement');
-        putMenu(converter, block, 'PORT1', items[0].port);
-        converter.addNumberInput(block, 'ANGLE1', 'math_number', items[0].value, 90);
-        putMenu(converter, block, 'PORT2', items[1].port);
-        converter.addNumberInput(block, 'ANGLE2', 'math_number', items[1].value, 90);
+    // `studuino.move_reserved_servo_motors` / `studuino.move_reserved_servo_motors(1)`: move the
+    // reserved servo motors together, at once or in some seconds (#2352). No port, so nothing to declare
+    converter.registerOnSend(STUDUINO_RECEIVER, MOVE_RESERVED_SERVO_MOTORS_METHOD, 0, (params) =>
+        converter.changeRubyExpressionBlock(params.receiver, STUDUINO_OPCODES.servoMoveReserved, 'statement'),
+    );
+    converter.registerOnSend(STUDUINO_RECEIVER, MOVE_RESERVED_SERVO_MOTORS_METHOD, 1, (params) => {
+        const { receiver, args } = params;
+        if (!converter.isNumberOrBlock(args[0])) return null;
+        const block = converter.changeRubyExpressionBlock(
+            receiver,
+            STUDUINO_OPCODES.servoMoveReservedIn,
+            'statement',
+        );
+        converter.addNumberInput(block, 'SECS', 'math_number', args[0], 1);
         return block;
     });
 };

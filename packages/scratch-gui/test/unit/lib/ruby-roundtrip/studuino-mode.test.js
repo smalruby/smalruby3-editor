@@ -136,7 +136,10 @@ describe('Ruby Roundtrip: Studuino mode (stage)', () => {
             when_flag_clicked do
               studuino.dc_motor_m1.speed = 200
               studuino.dc_motor_m1.forward
-              studuino.servo_motors(d9: 90, d10: 45)
+              studuino.servo_motor_d9.reserve(90)
+              studuino.servo_motor_d10.reserve(45)
+              studuino.move_reserved_servo_motors
+              studuino.move_reserved_servo_motors(2)
             end
             `,
         );
@@ -147,11 +150,23 @@ describe('Ruby Roundtrip: Studuino mode (stage)', () => {
         expect(speed.inputs.SPEED.fields).toEqual({ NUM: '200' });
         expect(speed.next.opcode).toBe('smalrubotS1_studuinoDcMotorDirection');
         expect(speed.next.fields).toEqual({ PORT: 'M1', DIRECTION: 'normal' });
-        const pair = speed.next.next;
-        expect(pair.opcode).toBe('smalrubotS1_studuinoServoPair');
-        expect(pair.fields).toEqual({ PORT1: 'D9', PORT2: 'D10' });
-        expect(RubyGenerator.targetToCode(target, { version: '2' })).toContain(
-            'studuino.servo_motors(d9: 90, d10: 45)',
+        const reserve = speed.next.next;
+        expect(reserve.opcode).toBe('smalrubotS1_studuinoServoReserve');
+        expect(reserve.fields).toEqual({ PORT: 'D9' });
+        expect(reserve.inputs.ANGLE.fields).toEqual({ NUM: '90' });
+        expect(reserve.next.fields).toEqual({ PORT: 'D10' });
+        const move = reserve.next.next;
+        expect(move.opcode).toBe('smalrubotS1_studuinoServoMoveReserved');
+        expect(move.next.opcode).toBe('smalrubotS1_studuinoServoMoveReservedIn');
+        expect(move.next.inputs.SECS.fields).toEqual({ NUM: '2' });
+        const code = RubyGenerator.targetToCode(target, { version: '2' });
+        expect(code).toContain(
+            dedent`
+              studuino.servo_motor_d9.reserve(90)
+              studuino.servo_motor_d10.reserve(45)
+              studuino.move_reserved_servo_motors
+              studuino.move_reserved_servo_motors(2)
+            `.replace(/^/gm, '  '),
         );
     });
 
@@ -223,8 +238,7 @@ describe('Ruby Roundtrip: Studuino mode (stage)', () => {
             [`${head}studuino.buzzer_a0.on(440)`, 'buzzer is not connected to port A0'],
             [`${head}studuino.led_a6.on`, 'cannot be connected to port A6'],
             [`${head}studuino.action("forward")`, 'cannot be used in Studuino mode'],
-            [`${head}studuino.servo_motors(d9: 90)`, 'two different servo motors'],
-            [`${head}studuino.servo_motors(d9: 90, d10: 45)`, 'servo_motor is not connected to port D10'],
+            [`${head}studuino.servo_motor_d10.reserve(45)`, 'servo_motor is not connected to port D10'],
         ];
         for (const [code, message] of cases) {
             const errors = await convertErrors(converter, target, code);

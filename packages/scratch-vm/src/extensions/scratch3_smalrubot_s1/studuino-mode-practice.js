@@ -300,11 +300,6 @@ const PRACTICE_HANDLERS = {
     studuinoDcMotorDirection: (ext, args) => ext.studuinoPractice.dcMotorDirection(args.PORT, args.DIRECTION),
     studuinoDcMotorStop: (ext, args) => ext.studuinoPractice.dcMotorStop(args.PORT, args.MODE),
     studuinoServo: (ext, args) => ext.studuinoPractice.servo(args.PORT, Cast.toNumber(args.ANGLE)),
-    // 2 つを同時に動かす（同じポートは書きこみでは使えないブロック。試すときは順に動かす）
-    studuinoServoPair: (ext, args) => {
-        ext.studuinoPractice.servo(args.PORT1, Cast.toNumber(args.ANGLE1));
-        ext.studuinoPractice.servo(args.PORT2, Cast.toNumber(args.ANGLE2));
-    },
     // 角度を予約する・予約したサーボモーターをまとめて動かす（#2352）
     studuinoServoReserve: (ext, args) => ext.studuinoPractice.reserveServo(args.PORT, Cast.toNumber(args.ANGLE)),
     studuinoServoMoveReserved: (ext) => {
@@ -314,7 +309,8 @@ const PRACTICE_HANDLERS = {
     // M 秒で動かす: いまの角度から予約の角度へ、たった時間の割合で近づける（Studuino IR と同じ直線）
     studuinoServoMoveReservedIn: (ext, args, util) => {
         const board = ext.studuinoPractice;
-        const frame = util.stackFrame;
+        // util が無い呼び方（テストなど）では待たずに動かす
+        const frame = util ? util.stackFrame : {};
         if (!frame.studuinoMove) {
             const targets = board.takeReservations();
             const ports = Object.keys(targets);
@@ -324,7 +320,7 @@ const PRACTICE_HANDLERS = {
             ports.forEach((port) => {
                 starts[port] = board.servoDegree(port);
             });
-            if (duration <= 0) {
+            if (duration <= 0 || !util) {
                 ports.forEach((port) => board.servo(port, targets[port]));
                 return;
             }
