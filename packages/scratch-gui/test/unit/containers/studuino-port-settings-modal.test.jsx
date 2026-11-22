@@ -47,6 +47,14 @@ describe('StuduinoPortSettingsModal', () => {
         expect(screen.queryByTestId('studuino-port-settings-calibration-d2')).toBeNull();
     });
 
+    test('shows the picture of the board (S15)', () => {
+        renderModal(makeVm());
+        const board = screen.getByTestId('studuino-port-settings-board');
+        expect(board.tagName).toBe('IMG');
+        expect(board).toHaveAttribute('src');
+        expect(screen.queryByText('Studuino', { selector: 'div' })).toBeNull();
+    });
+
     test('assigns the chosen parts to the VM settings', () => {
         const vm = makeVm({ version: 1, mode: 'studuino', ports: { A6: 'light_sensor' } });
         const changed = jest.fn();

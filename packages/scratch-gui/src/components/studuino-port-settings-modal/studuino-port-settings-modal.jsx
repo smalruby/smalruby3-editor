@@ -1,7 +1,9 @@
 // 入出力の設定のモーダル（#2215・S2・S14）。ポートは基板で決まっているので、ポートごとにつなぐ部品を
 // ドロップダウンから選ぶ。左に出力（D2〜D12 = サーボモーター・M1/M2 = DC モーター）、まん中に基板の絵、
 // 右に入力・出力（A0〜A7）。補正値（サーボの角度のずれ・DC モーターの速さの割合）は、その部品を選んだ
-// ポートの行に出す。絵と画面は独自に描く（本家の画面・写真は写さない）。
+// ポートの行に出す。画面は独自に描く（本家の画面・写真は写さない）。基板の絵（studuino-board.png）は
+// 生成 AI で描いた絵から、背景の飾りと会社のロゴに見える形を消して基板だけにしたもの（S15。アーテック社の
+// 絵や写真は使わない）。
 import PropTypes from 'prop-types';
 import React, { useCallback } from 'react';
 import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
@@ -14,6 +16,7 @@ import {
     partsForPort,
 } from '../../lib/studuino-port-settings';
 import Box from '../box/box.jsx';
+import boardImage from './studuino-board.png';
 import styles from './studuino-port-settings-modal.css';
 
 const messages = defineMessages({
@@ -182,8 +185,13 @@ const StuduinoPortSettingsModal = ({
                         ))}
                     </div>
                     <div aria-hidden="true" className={styles.board}>
-                        <div className={styles.boardChip} />
-                        <div className={styles.boardName}>Studuino</div>
+                        <img
+                            alt=""
+                            className={styles.boardImage}
+                            data-testid="studuino-port-settings-board"
+                            draggable={false}
+                            src={boardImage}
+                        />
                     </div>
                     <div className={styles.column}>
                         {INPUT_PORTS.map((port) => (
