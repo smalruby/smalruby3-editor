@@ -18,7 +18,8 @@ const STEP = Object.freeze({
 /**
  * 検査（構文木の生成）の結果から、次の段階を決める。
  * @param {object} result - buildStuduinoIr の結果
- * @returns {{step: string, ir?: object, blocks?: Array<object>, noFlag?: boolean, tooLarge?: boolean}} 次の段階
+ * @returns {{step: string, ir?: object, blocks?: Array<object>, noFlag?: boolean, tooLarge?: boolean,
+ *   tooManyVariables?: boolean}} 次の段階
  */
 const stepAfterCheck = (result) => {
     if (result.ok) return { step: STEP.COMPILING, ir: result.ir };
@@ -28,6 +29,10 @@ const stepAfterCheck = (result) => {
         blocks: errors.filter((e) => e.blockId),
         noFlag: errors.some((e) => e.reason === STUDUINO_IR_ERRORS.NO_FLAG),
         tooLarge: errors.some((e) => e.reason === STUDUINO_IR_ERRORS.TOO_LARGE),
+        // 変数の数の上限（S1）。ほかの「大きすぎる」と分けて、変数を減らすように知らせる
+        tooManyVariables: errors.some(
+            (e) => e.reason === STUDUINO_IR_ERRORS.TOO_LARGE && e.detail === 'too_many_variables',
+        ),
     };
 };
 

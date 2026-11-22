@@ -18,7 +18,16 @@ describe('stepAfterCheck', () => {
             blocks: [{ blockId: 'b1', targetId: 't', reason: 'unsupported_block' }],
             noFlag: true,
             tooLarge: false,
+            tooManyVariables: false,
         });
+    });
+
+    test('変数が多すぎることを分ける（S1）', () => {
+        const r = stepAfterCheck({
+            ok: false,
+            errors: [{ blockId: 'b9', targetId: 't', reason: 'too_large', detail: 'too_many_variables', limit: 32 }],
+        });
+        expect(r).toMatchObject({ step: STEP.CHECK_FAILED, tooLarge: true, tooManyVariables: true });
     });
 });
 

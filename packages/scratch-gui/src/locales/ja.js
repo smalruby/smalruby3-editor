@@ -60,6 +60,8 @@ export default {
     'gui.studuinoWrite.error.invalidIr': '書きこめないものがプログラムに入っています。',
     'gui.studuinoWrite.error.forbidden': 'このページからは Studuino に書きこめません。',
     'gui.studuinoWrite.error.tooLarge': 'プログラムが大きすぎます。小さくしてください。',
+    'gui.studuinoWrite.error.tooManyVariables':
+        '変数が多すぎます。Studuino で使える変数は {limit} 個までです。変数を減らしてください。',
     'gui.studuinoWrite.error.compileFailed': 'Studuino 用のプログラムを作れませんでした。',
     'gui.studuinoWrite.error.flashOverflow': 'Studuino に入りきらない大きさです。プログラムを小さくしてください。',
     'gui.studuinoWrite.error.rateLimited':
