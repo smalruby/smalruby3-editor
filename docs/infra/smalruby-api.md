@@ -22,6 +22,8 @@
 | stg | `stg.api.smalruby.app` (CDK が ACM + Route53 も管理) |
 | prod | `api.smalruby.app` (**既存ドメインを import**、ACM/Route53 は別管理) |
 
+このドメインの空のパス（ルート）は smalruby-api の API につながっている。`/studuino` だけは別のスタック（smalruby-studuino-hex）が API mapping で使う（[`smalruby-studuino-hex.md`](smalruby-studuino-hex.md)）。HTTP API はいちばん長く一致するパスへ振り分けるので、smalruby-api に `/studuino` で始まるルートを足しても届かない。
+
 prod は旧 SAM スタック `smalruby-infra-prod` から既存ドメイン (`api.smalruby.app`) を引き継ぐ形で **2026-04-29 にカットオーバー** 完了済み。詳細は [カットオーバーの記録](#カットオーバー履歴-2026-04-29) を参照。
 
 ## Lambda エンドポイントの詳細

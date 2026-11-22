@@ -78,6 +78,9 @@ const bundleHandler = (stage: string): void => {
   });
 };
 
+/** 既存のカスタムドメインの下で使うパス（https://api.smalruby.app/studuino/compile）。 */
+const API_MAPPING_KEY = 'studuino';
+
 export class StuduinoHexStack extends cdk.Stack {
   public readonly api: apigatewayv2.HttpApi;
 
@@ -166,6 +169,29 @@ export class StuduinoHexStack extends cdk.Stack {
         throttlingRateLimit: stage === 'prod' ? 10 : 5,
         throttlingBurstLimit: stage === 'prod' ? 20 : 10,
       };
+    }
+
+    // smalruby-api が持つカスタムドメイン（prod は api.smalruby.app、ほかは <stage>.api.smalruby.app）の
+    // /studuino につなぐ（#2347）。ドメインの証明書と DNS は smalruby-api のもので、ここでは mapping だけ
+    // 足す。HTTP API はいちばん長く一致するパスへ振り分け、ほかは空のパスの smalruby-api が受ける。
+    // stg が stg. で始まるのでプレビューの判定に合い、学校のフィルタで許可するドメインも増えない。
+    const parentZoneName = env.ROUTE53_PARENT_ZONE_NAME || 'api.smalruby.app';
+    const customDomain =
+      env.STUDUINO_API_CUSTOM_DOMAIN === 'false'
+        ? undefined
+        : env.STUDUINO_API_CUSTOM_DOMAIN || (stage === 'prod' ? parentZoneName : `${stage}.${parentZoneName}`);
+    if (customDomain && this.api.defaultStage) {
+      const mapping = new apigatewayv2.CfnApiMapping(this, 'ApiMapping', {
+        apiId: this.api.apiId,
+        domainName: customDomain,
+        stage: this.api.defaultStage.stageName,
+        apiMappingKey: API_MAPPING_KEY,
+      });
+      mapping.node.addDependency(this.api.defaultStage);
+      new cdk.CfnOutput(this, 'CustomDomainEndpoint', {
+        value: `https://${customDomain}/${API_MAPPING_KEY}`,
+        description: 'STUDUINO_COMPILE_ENDPOINT に入れる値（POST /compile をこの下に足す）',
+      });
     }
 
     new cdk.CfnOutput(this, 'HttpApiEndpoint', {
