@@ -179,22 +179,6 @@ $language-band-height: 1.75rem;
     pointer-events: none;
 }
 
-/* 「できた」: shows the problem form while writing in the Japanese mode */
-.problemFormDoneButton {
-    position: absolute;
-    top: 0.5rem;
-    right: 1.5rem;
-    z-index: $z-index-add-button;
-    padding: 0.25rem 1rem;
-    border: none;
-    border-radius: 0.5rem;
-    background-color: $motion-primary;
-    color: $ui-white;
-    font-size: 0.875rem;
-    font-weight: bold;
-    cursor: pointer;
-}
-
 /* Value report bubble */
 .valueReportBubble {
     position: fixed;

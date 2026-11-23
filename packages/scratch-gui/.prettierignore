@@ -634,6 +634,7 @@ test/unit/components/*
 !test/unit/components/ruby-toolbar-keyboard.test.jsx
 !test/unit/components/ruby-toolbar-japanese-tab.test.jsx
 !test/unit/components/ruby-toolbar-settings-pattern.test.jsx
+!test/unit/components/ruby-toolbar-read-mode.test.jsx
 !test/unit/components/scanning-step-name-search.test.js
 !test/unit/components/student-join-form.test.js
 !test/unit/components/student-previous-comment.test.jsx

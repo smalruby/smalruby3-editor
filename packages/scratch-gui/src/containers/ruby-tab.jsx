@@ -111,14 +111,6 @@ import QuickFixProvider from './ruby-tab/quick-fix-provider';
 import styles from './ruby-tab/ruby-tab.css';
 import { showBubble, dismissBubble, removeBubble } from './ruby-tab/visual-report-bubble';
 
-const problemFormMessages = defineMessages({
-    done: {
-        id: 'gui.rubyTab.problemFormDone',
-        defaultMessage: 'Done',
-        description: 'Button that shows the Japanese mode program in the form of the test questions',
-    },
-});
-
 const languageBandMessages = defineMessages({
     japanese: {
         id: 'gui.rubyTab.japaneseLanguageBand',
@@ -236,13 +228,12 @@ const RubyTab = (props) => {
             alive = false;
         };
     }, []);
-    // Whether the editor shows the problem form (line rules) of the Japanese
-    // mode: when it has no focus (Issue #1755).
+    // Whether the editor shows the read mode (line numbers and rules as in the
+    // questions) of the Japanese mode (Issue #1755, #2380).
     const [problemFormShown, setProblemFormShown] = useState(false);
     const problemFormViewRef = useRef(null);
     // Room in the line number column for the labels `(01)` / `(100)` / `(1000)`.
     const [lineNumbersMinChars, setLineNumbersMinChars] = useState(5);
-    const focusListenersRef = useRef([]);
     const dnclSourceMapRef = useRef(null);
     const dnclModeRef = useRef(dnclMode);
     dnclModeRef.current = dnclMode;
@@ -594,21 +585,19 @@ const RubyTab = (props) => {
             resizeObserverRef.current.observe(containerRef.current);
         }
 
+        // The view switches between the read mode and the write mode with the
+        // focus, the input and the paste itself (Issue #2380).
         problemFormViewRef.current = createProblemFormView(
             editor,
             monaco,
             () => dnclModeRef.current,
             setProblemFormShown,
         );
-        focusListenersRef.current = [
-            editor.onDidFocusEditorText(() => problemFormViewRef.current.sync()),
-            editor.onDidBlurEditorText(() => problemFormViewRef.current.sync()),
-        ];
         setLineNumbersMinChars(problemFormLineNumbersMinChars(editor.getValue()));
 
         contentChangeListenerRef.current = editor.onDidChangeModelContent(() => {
             updateUndoRedoState();
-            problemFormViewRef.current.sync();
+            problemFormViewRef.current.textChanged();
             setLineNumbersMinChars(problemFormLineNumbersMinChars(editor.getValue()));
             if (furiganaEnabledRef.current) {
                 scheduleFuriganaUpdate();
@@ -698,21 +687,10 @@ const RubyTab = (props) => {
         }
     }, [getSaveToComputerHandler]);
 
-    // 「できた」: leave the text for the problem form (Issue #1755). Blurring the
-    // editor also closes the software keyboard of a tablet. A mouse press is
-    // handled on mousedown without moving the focus to the button, so the
-    // text does not turn into the problem form under the pointer before the
-    // press ends; the click handler serves the keyboard (Enter / Space).
-    const leaveTextForProblemForm = () => {
-        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-    };
-    const handleProblemFormDoneMouseDown = useCallback((event) => {
-        event.preventDefault();
-        leaveTextForProblemForm();
-    }, []);
-    const handleProblemFormDoneClick = useCallback(() => {
-        leaveTextForProblemForm();
-        if (problemFormViewRef.current) problemFormViewRef.current.sync();
+    // The toggle of the toolbar: the read mode, or back to the write mode
+    // (Issue #2380).
+    const handleToggleReadMode = useCallback(() => {
+        if (problemFormViewRef.current) problemFormViewRef.current.toggle();
     }, []);
 
     const problemFormLineNumberLabels = useCallback(
@@ -1139,6 +1117,8 @@ const RubyTab = (props) => {
             // In DNCL mode, execute all top-level scripts from top to bottom
             // instead of just the cursor line.
             const isDncl = dnclModeRef.current;
+            // Running shows the read mode, to follow the program by the line numbers (Issue #2380).
+            if (isDncl && problemFormViewRef.current) problemFormViewRef.current.showReadMode();
             const targetLine = isDncl ? 1 : findExecutableLine(code, lineNumber);
 
             if (!targetLine) {
@@ -1299,8 +1279,6 @@ const RubyTab = (props) => {
                 contentChangeListenerRef.current.dispose();
                 contentChangeListenerRef.current = null;
             }
-            focusListenersRef.current.forEach((listener) => listener.dispose());
-            focusListenersRef.current = [];
             if (problemFormViewRef.current) {
                 problemFormViewRef.current.dispose();
                 problemFormViewRef.current = null;
@@ -1412,10 +1390,19 @@ const RubyTab = (props) => {
         }
     }, [rubyCodeStr, dnclMode, prismReady]);
 
-    // The problem form is drawn only in the Japanese mode.
+    // The read mode is drawn only in the Japanese mode.
     useEffect(() => {
         if (problemFormViewRef.current) problemFormViewRef.current.sync();
     }, [dnclMode]);
+
+    // The green flag shows the read mode too, as the run button of the toolbar does (Issue #2380).
+    useEffect(() => {
+        const handleProjectStart = () => {
+            if (dnclModeRef.current && problemFormViewRef.current) problemFormViewRef.current.showReadMode();
+        };
+        vm.addListener('PROJECT_START', handleProjectStart);
+        return () => vm.removeListener('PROJECT_START', handleProjectStart);
+    }, [vm]);
 
     // Smalruby DNCL arrays start at index 0. A program written with 1-based
     // indices reads past the end of an array, where the VM silently returns
@@ -1822,6 +1809,8 @@ const RubyTab = (props) => {
                     dnclMode={dnclMode}
                     dnclValidating={dnclValidating}
                     onCopyProblemForm={handleCopyProblemForm}
+                    readMode={problemFormShown}
+                    onToggleReadMode={handleToggleReadMode}
                     onSelectSettingsPattern={handleSelectSettingsPattern}
                     locale={locale}
                 />
@@ -1872,17 +1861,6 @@ const RubyTab = (props) => {
                         value={dnclMode ? dnclDisplayCode : code}
                         width="100%"
                     />
-                    {dnclMode && !problemFormShown && (
-                        <button
-                            className={styles.problemFormDoneButton}
-                            data-testid="ruby-tab-problem-form-done"
-                            type="button"
-                            onClick={handleProblemFormDoneClick}
-                            onMouseDown={handleProblemFormDoneMouseDown}
-                        >
-                            {intl.formatMessage(problemFormMessages.done)}
-                        </button>
-                    )}
                     {/* Switching to or from DNCL starts the consultation again: the question, the
                         answer and the two versions are in the language of the mode (#1402). */}
                     <GenaiConcierge

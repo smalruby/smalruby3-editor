@@ -1948,8 +1948,10 @@ export default {
         '文字列と - * / を使うと、左から順に計算されます。"a" + x - 1 は、文字列 "a" + x から 1 を引きます。数の計算は "a" + (x - 1) のようにかっこで囲んでください。',
     'gui.rubyTab.dnclArrayIndexHint':
         '{access} は配列の範囲外になります。スモウルビーの日本語では、配列の添字は 0 から始まります（最初の要素は {array}[0]、最後の要素は {array}[{last}]）。問題文で添字が 1 から始まるときは、{fixed} のように添字を 1 ずらして書くか、プログラムの冒頭に「すべての配列の添字は 1 から始まる。」と書いてください（メニューの「設定: 添字が 1 から始まる問題」で書けます）。',
-    'gui.rubyTab.problemFormDone': 'できた',
-    'gui.rubyToolbar.copyProblemForm': '問題の形でコピー',
+    'gui.rubyToolbar.copyProblemForm': '行番号と罫線つきでコピー',
+    'gui.rubyToolbar.readMode': '読む',
+    'gui.rubyToolbar.readModeOn': '読むモード（行番号と罫線で、問題と同じ形に見せる）',
+    'gui.rubyToolbar.readModeOff': '書くモードにもどす',
     'gui.rubyTab.dnclIndexSettingConfirm':
         '貼り付けたプログラムには、配列の添字は 1 から始まると書いてあります。プログラムの冒頭に「すべての配列の添字は 1 から始まる。」と書いて、添字が 1 から始まる設定にしますか？',
     'gui.rubyToolbar.settingsPatternExample': '設定: 例示の形（添字は 0 から）',

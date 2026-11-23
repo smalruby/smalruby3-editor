@@ -83,23 +83,46 @@ const problemFormLineNumbers = (editor) => (lineNumber) => {
 const problemFormLineNumbersMinChars = (code) => Math.max(2, String(numberedLineCount(code)).length) + 3;
 
 /**
- * The problem form of the Japanese mode in the editor (Issue #1755): while
- * the editor has the focus it shows the text as typed; otherwise it shows
- * the rules. `sync` picks one from the mode and the focus, so it is called
- * whenever one of them or the text changes. The options that go with the
- * problem form (no dots for the spaces, no indent guides) are left to the
- * caller through `onChange`, as the React wrapper of Monaco sets the options
- * again on every render.
+ * How long the editor waits without input before it shows the read mode
+ * (Issue #2380). Long enough not to come in while a learner stops to think
+ * in the middle of a line, short enough to show the rules soon after the
+ * hands leave the keys.
+ */
+const READ_MODE_IDLE_MS = 5000;
+
+/**
+ * The two ways the Japanese mode shows the program in the editor
+ * (Issue #1755, #2380): the read mode draws the line numbers and the rules
+ * as in the questions, the write mode shows the text as typed with the dots
+ * of the spaces and the indent guides. The text and its columns are the same
+ * in both; the rules are decorations over the indent.
+ *
+ * The read mode comes on when the editor loses the focus, after
+ * `READ_MODE_IDLE_MS` without input, right after a paste, and when it is
+ * asked for (`showReadMode`: the run button, the toggle of the toolbar). The
+ * write mode comes back when the editor gets the focus, a press of the mouse
+ * in it, or an edit while it has the focus. Which mode is shown is kept
+ * here, not taken from the focus, so the read mode can be shown while the
+ * cursor stays in the editor.
+ *
+ * The options that go with the read mode (no dots for the spaces, no indent
+ * guides) are left to the caller through `onChange`, as the React wrapper of
+ * Monaco sets the options again on every render.
  * @param {object} editor - The Monaco editor.
  * @param {object} monaco - The Monaco namespace (for `Range`).
  * @param {function(): boolean} isDnclMode - Whether the Japanese mode is on.
- * @param {function(boolean): void} onChange - Called when the problem form
- *   is shown or hidden.
- * @returns {{sync: Function, isShown: function(): boolean, dispose: Function}} The view.
+ * @param {function(boolean): void} onChange - Called when the read mode is
+ *   shown or hidden.
+ * @returns {{sync: Function, textChanged: Function, showReadMode: Function, showWriteMode: Function,
+ *   toggle: Function, isShown: function(): boolean, dispose: Function}} The view.
  */
 const createProblemFormView = (editor, monaco, isDnclMode, onChange) => {
     const collection = editor.createDecorationsCollection([]);
     let shown = false;
+    // The mode asked for; it is shown only in the Japanese mode.
+    let readMode = !editor.hasTextFocus();
+    let wasDnclMode = false;
+    let idleTimer = null;
 
     const setShown = (value) => {
         if (shown === value) return;
@@ -107,8 +130,18 @@ const createProblemFormView = (editor, monaco, isDnclMode, onChange) => {
         onChange(value);
     };
 
+    const stopIdleTimer = () => {
+        if (idleTimer === null) return;
+        clearTimeout(idleTimer);
+        idleTimer = null;
+    };
+
     const sync = () => {
-        if (isDnclMode() && !editor.hasTextFocus()) {
+        const dncl = isDnclMode();
+        // Coming into the Japanese mode the mode follows the focus.
+        if (dncl && !wasDnclMode) readMode = !editor.hasTextFocus();
+        wasDnclMode = dncl;
+        if (dncl && readMode) {
             collection.set(problemFormDecorations(editor.getValue(), monaco.Range));
             setShown(true);
         } else {
@@ -117,10 +150,70 @@ const createProblemFormView = (editor, monaco, isDnclMode, onChange) => {
         }
     };
 
+    const setReadMode = (value) => {
+        readMode = value;
+        sync();
+    };
+
+    const showReadMode = () => {
+        stopIdleTimer();
+        setReadMode(true);
+    };
+
+    // The write mode waits for the next pause of the input.
+    const waitForIdle = () => {
+        stopIdleTimer();
+        if (!isDnclMode() || !editor.hasTextFocus()) return;
+        idleTimer = setTimeout(() => {
+            idleTimer = null;
+            if (isDnclMode() && editor.hasTextFocus()) setReadMode(true);
+        }, READ_MODE_IDLE_MS);
+    };
+
+    const showWriteMode = () => {
+        setReadMode(false);
+        waitForIdle();
+    };
+
+    // Typing goes on in the write mode; a change from outside (another
+    // sprite, the blocks) keeps the mode and draws the rules for the new text.
+    const textChanged = () => {
+        if (editor.hasTextFocus()) showWriteMode();
+        else sync();
+    };
+
+    const toggle = () => {
+        if (shown) {
+            showWriteMode();
+            if (editor.focus) editor.focus();
+        } else {
+            showReadMode();
+        }
+    };
+
+    const listeners = [
+        editor.onDidFocusEditorText(showWriteMode),
+        editor.onDidBlurEditorText(showReadMode),
+        editor.onMouseDown(showWriteMode),
+        editor.onKeyDown(() => {
+            if (!shown) waitForIdle();
+        }),
+        // After Monaco has finished handling the paste (its edit comes first).
+        editor.onDidPaste(() => setTimeout(() => isDnclMode() && editor.hasTextFocus() && showReadMode(), 0)),
+    ];
+
     return {
         sync,
+        textChanged,
+        showReadMode,
+        showWriteMode,
+        toggle,
         isShown: () => shown,
-        dispose: () => collection.clear(),
+        dispose: () => {
+            stopIdleTimer();
+            listeners.forEach((listener) => listener.dispose());
+            collection.clear();
+        },
     };
 };
 
@@ -128,6 +221,7 @@ export {
     BAR_CLASS,
     BAR_GAP_CLASS,
     END_CLASS,
+    READ_MODE_IDLE_MS,
     createProblemFormView,
     problemFormDecorations,
     problemFormLineNumbers,

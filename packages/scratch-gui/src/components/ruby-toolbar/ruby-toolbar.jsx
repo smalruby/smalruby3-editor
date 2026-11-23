@@ -225,6 +225,18 @@ const RubyToolbar = (props) => {
         if (props.onExecuteLine) props.onExecuteLine(position.lineNumber);
     }, [props]);
 
+    const handleToggleReadMode = useCallback(() => {
+        if (props.onToggleReadMode) props.onToggleReadMode();
+    }, [props]);
+
+    // Keep the focus where it is: a press that blurred the editor would show
+    // the read mode before the click toggles it away again.
+    const handleReadModeMouseDown = useCallback((e) => {
+        e.preventDefault();
+    }, []);
+
+    const readModeTitle = props.readMode ? messages.readModeOff : messages.readModeOn;
+
     // === Smalruby: Start of DNCL execute button label ===
     const executeMessage = props.isRunning
         ? messages.stopExecution
@@ -368,6 +380,24 @@ const RubyToolbar = (props) => {
                     </div>
                 </div>
             )}
+            {/* The read mode / the write mode of the Japanese tab (Issue #2380) */}
+            {props.dnclMode && (
+                <div className={`${styles.toolbarPart} ${styles.modDashedBorder}`}>
+                    <div className={styles.modeToggleGroup}>
+                        <button
+                            className={`${styles.modeToggleItem} ${props.readMode ? styles.modeToggleItemActive : ''}`}
+                            data-testid="ruby-toolbar-read-mode"
+                            type="button"
+                            aria-pressed={!!props.readMode}
+                            onClick={handleToggleReadMode}
+                            onMouseDown={handleReadModeMouseDown}
+                            title={intl.formatMessage(readModeTitle)}
+                        >
+                            {intl.formatMessage(messages.readMode)}
+                        </button>
+                    </div>
+                </div>
+            )}
             {/* === Smalruby: End of mode toggle group === */}
 
             {/* More Menu Part */}
@@ -483,6 +513,8 @@ RubyToolbar.propTypes = {
     onOpenAutoCorrectSettings: PropTypes.func,
     onPreviewRubyScript: PropTypes.func,
     onCopyProblemForm: PropTypes.func,
+    readMode: PropTypes.bool,
+    onToggleReadMode: PropTypes.func,
     onSelectSettingsPattern: PropTypes.func,
     locale: PropTypes.string,
 };
