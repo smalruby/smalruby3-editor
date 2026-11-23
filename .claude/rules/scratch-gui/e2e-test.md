@@ -56,6 +56,7 @@ expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-furigana')).toBe(true);
 | `ruby-toolbar-auto-correct` | button | 自動置換トグル |
 | `ruby-toolbar-mode-furigana` | button | ふりがなモード |
 | `ruby-toolbar-mode-ruby` | button | Rubyモード |
+| `ruby-toolbar-read-mode` | button | 日本語タブの読むモード／書くモードの切りかえ（日本語タブのみ。`aria-pressed`） |
 | `ruby-toolbar-more-menu` | button | その他メニュー |
 | `ruby-toolbar-menu-download` | div | Rubyスクリプト保存 |
 | `ruby-toolbar-menu-insert-class` | div | クラス挿入 |
@@ -84,8 +85,7 @@ expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-furigana')).toBe(true);
 | `smalruby-console-lines` / `smalruby-console-line` | div | 行の一覧 / 1 行 |
 | `smalruby-console-input` | input | 答えの入力（`入力する` の待ちのあいだだけ） |
 | `smalruby-console-clear` / `smalruby-console-close` | button | 行を消す / ステージに戻す |
-| `ruby-toolbar-menu-copy-problem-form` | div | 問題の形でコピー（日本語モードのみ） |
-| `ruby-tab-problem-form-done` | button | 「できた」（日本語モードで、問題の形に切りかえる） |
+| `ruby-toolbar-menu-copy-problem-form` | div | 行番号と罫線つきでコピー（日本語モードのみ） |
 
 ### Target Selector (`target-selector.jsx`)
 

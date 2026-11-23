@@ -1992,8 +1992,10 @@ export default {
         'もじれつと - * / をつかうと、ひだりからじゅんにけいさんされます。"a" + x - 1 は、もじれつ "a" + x から 1 をひきます。かずのけいさんは "a" + (x - 1) のようにかっこでかこんでください。',
     'gui.rubyTab.dnclArrayIndexHint':
         '{access} ははいれつのはんいがいになります。スモウルビーのにほんごでは、はいれつのそえじは 0 からはじまります（さいしょのようそは {array}[0]、さいごのようそは {array}[{last}]）。もんだいぶんでそえじが 1 からはじまるときは、{fixed} のようにそえじを 1 ずらしてかくか、プログラムのはじめに「すべての配列の添字は 1 から始まる。」とかいてください（メニューの「せってい: そえじが 1 からはじまるもんだい」でかけます）。',
-    'gui.rubyTab.problemFormDone': 'できた',
-    'gui.rubyToolbar.copyProblemForm': 'もんだいのかたちでコピー',
+    'gui.rubyToolbar.copyProblemForm': 'ぎょうばんごうとけいせんつきでコピー',
+    'gui.rubyToolbar.readMode': 'よむ',
+    'gui.rubyToolbar.readModeOn': 'よむモード（ぎょうばんごうとけいせんで、もんだいとおなじかたちにみせる）',
+    'gui.rubyToolbar.readModeOff': 'かくモードにもどす',
     'gui.rubyTab.dnclIndexSettingConfirm':
         'はりつけたプログラムには、はいれつのそえじは 1 からはじまるとかいてあります。プログラムのはじめに「すべての配列の添字は 1 から始まる。」とかいて、そえじが 1 からはじまるせっていにしますか？',
     'gui.rubyToolbar.settingsPatternExample': 'せってい: れいじのかたち（そえじは 0 から）',

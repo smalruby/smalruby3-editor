@@ -124,8 +124,23 @@ const messages = defineMessages({
     },
     copyProblemForm: {
         id: 'gui.rubyToolbar.copyProblemForm',
-        defaultMessage: 'Copy in the form of the test questions',
+        defaultMessage: 'Copy with line numbers and rules',
         description: 'More menu item of the Japanese mode: copy the program with line numbers and rules',
+    },
+    readMode: {
+        id: 'gui.rubyToolbar.readMode',
+        defaultMessage: 'Read',
+        description: 'Label of the toggle of the Japanese mode that shows the program in the read mode',
+    },
+    readModeOn: {
+        id: 'gui.rubyToolbar.readModeOn',
+        defaultMessage: 'Read mode (line numbers and rules, in the form of the test questions)',
+        description: 'Tooltip of the read mode toggle while the program is shown in the write mode',
+    },
+    readModeOff: {
+        id: 'gui.rubyToolbar.readModeOff',
+        defaultMessage: 'Back to the write mode',
+        description: 'Tooltip of the read mode toggle while the program is shown in the read mode',
     },
     settingsPatternExample: {
         id: 'gui.rubyToolbar.settingsPatternExample',

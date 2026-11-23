@@ -1614,8 +1614,10 @@ export default {
         'With a string, - * / are worked out from the left, so "a" + x - 1 subtracts from the string "a" + x. Put the number part in parentheses, like "a" + (x - 1).',
     'gui.rubyTab.dnclArrayIndexHint':
         '{access} reads past the end of the array. In Smalruby Japanese mode, array indices start at 0 (the first element is {array}[0] and the last is {array}[{last}]). If the problem counts from 1, shift the index by 1, like {fixed}, or write "すべての配列の添字は 1 から始まる。" at the top of the program (the menu "Settings: a problem whose indices start at 1" writes it).',
-    'gui.rubyTab.problemFormDone': 'Done',
-    'gui.rubyToolbar.copyProblemForm': 'Copy in the form of the test questions',
+    'gui.rubyToolbar.copyProblemForm': 'Copy with line numbers and rules',
+    'gui.rubyToolbar.readMode': 'Read',
+    'gui.rubyToolbar.readModeOn': 'Read mode (line numbers and rules, in the form of the test questions)',
+    'gui.rubyToolbar.readModeOff': 'Back to the write mode',
     'gui.rubyTab.dnclIndexSettingConfirm':
         'The pasted program says that its array indices start at 1. Write "すべての配列の添字は 1 から始まる。" at the top of the program, so that the indices start at 1?',
     'gui.rubyToolbar.settingsPatternExample': 'Settings: the form of the examples (indices from 0)',

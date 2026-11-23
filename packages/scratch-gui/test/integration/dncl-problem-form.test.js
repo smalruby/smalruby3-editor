@@ -1,9 +1,12 @@
 import path from 'path';
+import { By } from 'selenium-webdriver';
 import SeleniumHelper from '../helpers/selenium-helper';
 
-// The problem form of the Japanese mode (Issue #1755): line numbers `(01)`
-// and the rules of the blocks, drawn while the editor has no focus. The
-// program is written for this test; no question of the test is used.
+// The read mode of the Japanese mode (Issue #1755, #2380): line numbers
+// `(01)` and the rules of the blocks. It comes on without input, by the
+// toggle of the toolbar, after a paste, by the run button and on blur; the
+// focus, a click and typing bring the write mode back. The program is
+// written for this test; no question of the test is used.
 const seleniumHelper = new SeleniumHelper();
 const { getDriver, getLogs, loadUri } = seleniumHelper;
 
@@ -36,6 +39,13 @@ const firstLineNumber = (d) =>
 
 const waitFor = (d, check, message) => d.wait(check, 10000, message);
 
+const readModePressed = (d) =>
+    d.executeScript(
+        `return document.querySelector('[data-testid="ruby-toolbar-read-mode"]').getAttribute('aria-pressed')`,
+    );
+
+const waitForRules = (d, count, message) => waitFor(d, async () => (await ruleCount(d)) === count, message);
+
 let driver;
 
 describe('Japanese mode: the problem form', () => {
@@ -47,7 +57,7 @@ describe('Japanese mode: the problem form', () => {
         await driver.quit();
     });
 
-    test('switches with the focus, by 「できた」, and is undone in Ruby', async () => {
+    test('switches between the read mode and the write mode, and is undone in Ruby', async () => {
         await loadUri(`${uri}?rubyMode=dncl&locale=ja&tab=ruby`);
         await waitFor(
             driver,
@@ -58,31 +68,56 @@ describe('Japanese mode: the problem form', () => {
             'The Japanese mode did not start',
         );
 
-        // While the editor has the focus: the text, and the 「できた」 button.
+        // While the editor has the focus: the write mode.
         await driver.executeScript(
             `window.monacoEditor.focus(); window.monacoEditor.setValue(${JSON.stringify(CODE)});`,
         );
-        await waitFor(
-            driver,
-            () => existsByTestId(driver, 'ruby-tab-problem-form-done'),
-            '「できた」 did not appear',
-        );
+        await waitFor(driver, async () => (await readModePressed(driver)) === 'false', 'Not in the write mode');
+        expect(await existsByTestId(driver, 'ruby-tab-problem-form-done')).toBe(false);
         expect(await ruleCount(driver)).toBe(0);
         expect(await rawOption(driver, 'renderWhitespace')).toBe('all');
         expect(await rawOption(driver, 'lineNumbers')).toBe('function');
         expect(await firstLineNumber(driver)).toBe('(01)');
 
-        // 「できた」 shows the problem form.
-        await clickByTestId(driver, 'ruby-tab-problem-form-done');
-        await waitFor(driver, async () => (await ruleCount(driver)) === 6, 'The rules were not drawn');
-        expect(await existsByTestId(driver, 'ruby-tab-problem-form-done')).toBe(false);
+        // The toggle of the toolbar shows the read mode; the text stays.
+        await clickByTestId(driver, 'ruby-toolbar-read-mode');
+        await waitForRules(driver, 6, 'The rules were not drawn by the toggle');
+        expect(await readModePressed(driver)).toBe('true');
         expect(await rawOption(driver, 'renderWhitespace')).toBe('none');
         expect(await driver.executeScript('return window.monacoEditor.getValue()')).toBe(CODE);
 
-        // The focus brings the text back.
-        await driver.executeScript('window.monacoEditor.focus()');
-        await waitFor(driver, async () => (await ruleCount(driver)) === 0, 'The rules stayed with the focus');
+        // Typing brings the write mode back.
+        await driver.executeScript(
+            "window.monacoEditor.focus(); window.monacoEditor.trigger('keyboard', 'type', { text: 'x' });",
+        );
+        await waitForRules(driver, 0, 'Typing did not bring the write mode back');
         expect(await rawOption(driver, 'renderWhitespace')).toBe('all');
+        await driver.executeScript("window.monacoEditor.trigger('keyboard', 'undo', null);");
+
+        // A while without input shows the read mode.
+        await waitForRules(driver, 6, 'The read mode did not come without input');
+
+        // A click in the editor brings the write mode back.
+        await driver.findElement(By.css('.monaco-editor .view-line')).click();
+        await waitForRules(driver, 0, 'A click did not bring the write mode back');
+
+        // A paste shows the read mode.
+        await driver.executeScript(
+            "window.monacoEditor.trigger('keyboard', 'paste', { text: 'y', pasteOnNewLine: false });",
+        );
+        await waitForRules(driver, 6, 'The read mode did not come after a paste');
+
+        // The toggle brings the write mode back, with the focus in the editor.
+        await clickByTestId(driver, 'ruby-toolbar-read-mode');
+        await waitForRules(driver, 0, 'The toggle did not bring the write mode back');
+        expect(await driver.executeScript('return window.monacoEditor.hasTextFocus()')).toBe(true);
+        await driver.executeScript("window.monacoEditor.trigger('keyboard', 'undo', null);");
+        expect(await driver.executeScript('return window.monacoEditor.getValue()')).toBe(CODE);
+        await waitForRules(driver, 0, 'Undo did not keep the write mode');
+
+        // The green flag shows the read mode.
+        await driver.executeScript('window.smalruby.vm.greenFlag()');
+        await waitForRules(driver, 6, 'The read mode did not come by the green flag');
 
         // Ruby has its own line numbers and the dots of the spaces.
         await driver.executeScript('window.monacoEditor.getContainerDomNode().ownerDocument.activeElement.blur()');
