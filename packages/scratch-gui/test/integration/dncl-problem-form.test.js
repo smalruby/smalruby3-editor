@@ -98,7 +98,7 @@ describe('Japanese mode: the problem form', () => {
         await waitForRules(driver, 6, 'The read mode did not come without input');
 
         // A click in the editor brings the write mode back.
-        await driver.findElement(By.css('.monaco-editor .view-lines')).click();
+        await driver.findElement(By.css('.monaco-editor .view-line')).click();
         await waitForRules(driver, 0, 'A click did not bring the write mode back');
 
         // A paste shows the read mode.
