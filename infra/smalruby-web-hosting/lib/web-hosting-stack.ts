@@ -18,6 +18,9 @@ import {
     SITE_GITHUB_PAGES_CHALLENGE_NAME,
     SITE_GITHUB_PAGES_CHALLENGE_TTL_SECONDS,
     SITE_GITHUB_PAGES_CHALLENGE_VALUES,
+    SITE_N_BATO_A_TTL_SECONDS,
+    SITE_N_BATO_A_VALUES,
+    SITE_N_BATO_NAME,
     SITE_ZONE_NAME,
 } from './site-zone-records';
 
@@ -299,6 +302,13 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
                 value,
             })),
             ttl: cdk.Duration.seconds(SITE_CAA_TTL_SECONDS),
+        });
+        // n-bato（Lightsail）。お名前.com には無い、Route 53 に移ってから足したレコード。
+        new route53.ARecord(this, 'SiteNBatoA', {
+            zone,
+            recordName: SITE_N_BATO_NAME,
+            target: route53.RecordTarget.fromIpAddresses(...SITE_N_BATO_A_VALUES),
+            ttl: cdk.Duration.seconds(SITE_N_BATO_A_TTL_SECONDS),
         });
         // api. と preview. はそれぞれ別のゾーンへの委任を、いまの NS のまま写す。
         for (const { name, id, nameServers } of SITE_DELEGATIONS) {
