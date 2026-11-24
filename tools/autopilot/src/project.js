@@ -667,6 +667,41 @@ async function applyIntents(ctx, itemId, intents, token) {
     return applied;
 }
 
+/**
+ * 学びの PR（EPIC #2384 の R1）をマージしてよいか決めるための情報を REST で取る（読み取り）。
+ * 判断は learnings.js の `canMergeLearningsPr`（純粋関数）。
+ * @returns {Promise<{state: string, merged: boolean, draft: boolean, base: string, head: string,
+ *   files: string[], checkRuns: object[]}>}
+ */
+async function getPrMergeStatus(repo, prNumber, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    const pr = JSON.parse(await ghFn(['api', `repos/${repo}/pulls/${prNumber}`], { token }));
+    const files = JSON.parse(await ghFn(['api', `repos/${repo}/pulls/${prNumber}/files?per_page=100`], { token }));
+    const runs = JSON.parse(await ghFn(['api', `repos/${repo}/commits/${pr.head.sha}/check-runs?per_page=100`], { token }));
+    return {
+        state: pr.state,
+        merged: Boolean(pr.merged),
+        draft: Boolean(pr.draft),
+        base: pr.base && pr.base.ref,
+        head: pr.head && pr.head.ref,
+        files: (files || []).map((f) => f.filename),
+        checkRuns: (runs.check_runs || []).map((r) => ({ name: r.name, status: r.status, conclusion: r.conclusion })),
+    };
+}
+
+/**
+ * PR をマージする（merge commit。squash は使えない repo）。マージしたらヘッドブランチを消す。
+ * 書き込みなので Bot トークンで呼ぶ。
+ */
+async function mergePr(repo, prNumber, head, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    await ghFn(['api', '--method', 'PUT', `repos/${repo}/pulls/${prNumber}/merge`, '-f', 'merge_method=merge'], { token });
+    if (head) {
+        try { await ghFn(['api', '--method', 'DELETE', `repos/${repo}/git/refs/heads/${head}`], { token }); }
+        catch { /* 自動削除の設定で先に消えていることがある */ }
+    }
+}
+
 module.exports = {
     botToken, readToken, boardToken, gh, getProject, getFields, listItems, normalizeProjectItem, findItemId, addIssue, setField, applyIntents,
     botLogin, findPrForIssue, selectClosingPr, selectHeadPr, hasMergedHeadPr,
@@ -675,4 +710,5 @@ module.exports = {
     listIssueComments,
     postIssueComment, listClosedIssueNumbers, getIssueStates, getIssueMeta, closeIssue,
     getBoardEnrichment, listHeadPrs, getRateLimit,
+    getPrMergeStatus, mergePr,
 };

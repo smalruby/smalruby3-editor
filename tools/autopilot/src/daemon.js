@@ -111,6 +111,8 @@ const {
 const { readClaudeUsage } = require('./usage');
 const { readVersion, checkAutopilotUpdate } = require('./version');
 const project = require('./project');
+// 学び（M6/R1）とタスク（E1）の I/O。daemon からは tick と HTTP の 2 か所でつなぐだけ（EPIC #2384）
+const learnTasks = require('./learn-tasks');
 
 const execFileP = promisify(execFile);
 
@@ -2196,6 +2198,9 @@ async function tick(cfg, state, log) {
         // fire-and-forget（running で重複防止）
         dispatch(item, cfg, state, log);
     }
+    // 時刻が来たタスク（1 回・定期）を worker で実行する（Issue の worker とは別枠・fire-and-forget）
+    learnTasks.applyDueTasks(cfg, state, log, { workerCommand })
+        .catch((e) => log(`task error: ${e.message}`));
     // 人間が手動 merge した leaf を Close へ前進（自動 merge はしない）+ GitHub issue も close（#843 Fix A）
     await applyMergeProgression(items, cfg, state, log);
     // GitHub で closed な issue（EPIC・人手 close 含む）の Project Status を Close へ整合（#843 Fix B）
@@ -2634,6 +2639,8 @@ function startHttp(cfg, state, log) {
             res.writeHead(code, { 'content-type': 'application/json' });
             res.end(JSON.stringify(obj));
         };
+        // 学び・タスクの口（/learnings*・/tasks*）は learn-tasks.js が受ける
+        if (learnTasks.handleLearnTasksHttp(req, res, url, { cfg, state, log, send, capture, deps: { workerCommand } })) return;
         if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/index.html')) {
             res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
             return res.end(MONITOR_HTML);

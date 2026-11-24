@@ -206,6 +206,16 @@ merge 検知）は**一切変わらない**。label healing は外さない・�
 
 ---
 
+## 学びとタスク
+
+- **学び**: 決定ページで人間の答えが AI のおすすめと違ったときの意図と、人間との確認で分かったレビューの観点を
+  `tmp/autopilot-learnings/` にためる。たまったらモニターの操作で `docs/autopilot/learned/<area>.md` にまとめる
+  PR を作り、CI が通ったらモニターの操作でマージする。worker は触る分野のものだけ読む。
+- **タスク**: Issue に結びつかない仕事（1 回・決めた時刻・定期）を `tools/autopilot/tasks.json` と
+  `tmp/autopilot-tasks.local.json` に定義し、daemon が時刻に worker で実行する。モニターから作る・いま実行できる。
+
+詳しくは [`learnings-and-tasks.md`](learnings-and-tasks.md)。
+
 ## 実装前ディスカッション（discuss フェーズ）
 
 triage が「実装方針の合意が必要」（Size=large・設計分岐・要件曖昧）と判断した leaf は、
