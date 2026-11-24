@@ -12,6 +12,40 @@
 分ける（#921。#893 で失われた「敵対的レビューの深さの可視性」の回復が目的）。指摘は
 **1 回のレビューにつき 1 コメント**にまとめ、`M1` / `Q1` / `FYI1` の連番で人間が返信しやすくする（#1248）。
 
+
+## EPIC の流れ（`AUTOPILOT_EPIC_FLOW=1` のとき）
+
+PR の base が `topic/...`（Issue 本文の `autopilot-base:`）のとき、daemon は `AUTOPILOT_EPIC_FLOW=1` を渡す。
+この Issue は EPIC の sub-issue で、**人間は EPIC の設計を承認済み**。確認は EPIC ごとにまとめて行うので、
+途中で `🙋 HITL` を出してよいのは次の 3 つだけ（結果ファイルの `hitlKind` に書く）:
+
+| `hitlKind` | いつ |
+|---|---|
+| `diverge` | **3 案以上**に分かれる判断（実装が発散する）。その sub-issue だけ止まる |
+| `must-exhausted` | 直しを 3 回しても Must が残る（daemon が自分で判定する。worker は使わない） |
+| `environment` | エラーで続けられない（認証・使用量・壊れた環境） |
+
+それ以外の判断（仕様の小さな選択・命名・見送り）は **AI のおすすめで決めて進め**、結果ファイルの
+`decisions` に書く。daemon が EPIC の Issue の「決定待ち」まとめコメント
+（`<!-- autopilot-epic-decisions count=N -->`）に書き足す（**worker はそのコメントを書かない**）:
+
+```json
+"decisions":[{"kind":"ai-decision","ref":null,"title":"<何を決めたか>","recommendation":"<AI の案（採ったもの）>",
+  "alternatives":["<ほかの案>"],"adopted":"<入れたもの>"}]
+```
+
+`kind` は `question`（仕様の選択が要る）/ `not-adopted`（採用しなかった指摘）/ `ai-decision`（AI が決めた）/
+`two-way`（2 案。下記）/ `diverge`（3 案以上）。スキーマは `docs/autopilot/autonomous-contract.md` §2.6。
+
+このフェーズでは（手順 7 も参照）:
+
+- 結果ファイルに **`mustCount`（このレビューで直しきれず残った Must の数）** と **`round`（手順 6 の round）** を必ず書く。
+  daemon はこれで次を決める: Must 0 → topic へ自動マージ（CI 通過・コンフリクト無し）/ Must あり → address-review が
+  直してもう一度 review / 3 回直しても残る → その sub-issue だけ止める（daemon が決定待ちに載せる）。
+- `hitl` は `false`。Question の「人間の判断に委ねる」もの、見送った Question / FYI は 🙋 にせず `decisions` に
+  書く（`question` / `not-adopted`。`ref` に `Q1` などの ID）。直したものは載せない。
+- Must 級の設計判断が 3 案以上に割れるときだけ `signal:"hitl"` + `"hitlKind":"diverge"`。
+
 ## 手順
 
 ### 1. 対象 PR を特定
@@ -43,6 +77,18 @@ done
 `env-file.md` / `supply-chain-security.md` / `github-app-bot.md` 等。`CLAUDE.md` にも要約あり）は
 touch した領域に関わらず**常に**前提として踏まえる。触った領域が `$AREAS` に無い場合（root 直下の
 スクリプトのみの変更等）はルート規約だけで十分。
+
+**人間から学んだこと**（`docs/autopilot/learned/<area>.md`。EPIC の確認で人間の答えが AI のおすすめと違ったときの
+意図と、人間との確認で分かったレビューの観点）も、触った分野のものだけ読み、観点に加える
+（`learnedRuleFilesFor`・純粋関数・`tools/autopilot/src/learnings.js`。`general.md` はいつも入る）:
+
+```bash
+node -e '
+const { learnedRuleFilesFor } = require("./tools/autopilot/src/learnings.js");
+const files = require("fs").readFileSync(0, "utf8").split("\n").filter(Boolean);
+console.log(learnedRuleFilesFor(files).join("\n"));
+' <<< "$FILES" | while read -r f; do [ -f "$f" ] && cat "$f"; done
+```
 
 ### 3. 敵対的レビューを実行（インライン・軽量）
 
@@ -183,6 +229,19 @@ echo AUTOPILOT_DONE
 ```
 
 判断に迷う重大指摘（Must 級の設計判断）で人間の意見が要る場合は、コメント + `AUTOPILOT_HITL` で確認する。
+
+**EPIC の流れ（`AUTOPILOT_EPIC_FLOW=1`）**では、人間レビューへ渡さない。`mustCount` / `round` / `decisions` を書き、
+`hitl:false` で返す（Status は daemon が `mustCount` から決めるので `nextStatus` は `Review` のままでよい）:
+
+```bash
+cat > "$AUTOPILOT_RESULT_FILE" <<EOF
+{"issue":$AUTOPILOT_ISSUE,"phase":"review","signal":"done","summary":"敵対的レビュー完了(Must <a>件修正・残り <m>件/Question <b>件/FYI <c>件)。",
+"nextStatus":"Review","nextAiStatus":null,"hitl":false,"size":null,"kind":null,"createdSubIssues":[],"prUrl":"<PR URL>",
+"mustCount":<m>,"round":<N>,
+"decisions":[{"kind":"question","ref":"Q1","title":"<何を>","recommendation":"<AI の案>","alternatives":["<ほかの案>"],"adopted":"<入れたもの>"}]}
+EOF
+echo AUTOPILOT_DONE
+```
 
 ## 注意
 

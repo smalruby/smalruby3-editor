@@ -239,3 +239,12 @@ test('monitor: 止まっている worker の欄を埋め込み、script が構�
     assert.doesNotThrow(() => new Function(m[1]));
     assert.ok(m[1].includes('/blocked/answer'));
 });
+
+test('hub: Issue に結びつかない worker（issue=0）は worker の名前で分けて答えられる', () => {
+    const hub = createBlockedHub();
+    hub.channel(0, 'task', 'autopilot-task-a').open({ reason: 'NG', screen: 'x', options: [] });
+    hub.channel(0, 'current-status', 'autopilot-current-status-8787').open({ reason: 'NG', screen: 'y', options: [] });
+    assert.deepStrictEqual(hub.list().map((w) => w.key).sort(), ['autopilot-current-status-8787', 'autopilot-task-a']);
+    assert.strictEqual(hub.answer('autopilot-task-a', { keys: ['1'] }).ok, true);
+    assert.strictEqual(hub.answer(0, { keys: ['1'] }).ok, false);
+});

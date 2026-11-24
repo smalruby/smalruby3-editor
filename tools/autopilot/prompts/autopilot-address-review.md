@@ -19,6 +19,43 @@ Request changes 対応モードでは、人間のコメント・approve・Commen
 指摘のうち言及の無いものには**対応しない**（人間が気軽にコメントできるように、対応してほしいことは
 Request changes にまとめてもらう運用）。
 
+
+## EPIC の流れ（`AUTOPILOT_EPIC_FLOW=1` のとき）
+
+PR の base が `topic/...`（Issue 本文の `autopilot-base:`）のとき、daemon は `AUTOPILOT_EPIC_FLOW=1` を渡す。
+この Issue は EPIC の sub-issue で、**人間は EPIC の設計を承認済み**。確認は EPIC ごとにまとめて行うので、
+途中で `🙋 HITL` を出してよいのは次の 3 つだけ（結果ファイルの `hitlKind` に書く）:
+
+| `hitlKind` | いつ |
+|---|---|
+| `diverge` | **3 案以上**に分かれる判断（実装が発散する）。その sub-issue だけ止まる |
+| `must-exhausted` | 直しを 3 回しても Must が残る（daemon が自分で判定する。worker は使わない） |
+| `environment` | エラーで続けられない（認証・使用量・壊れた環境） |
+
+それ以外の判断（仕様の小さな選択・命名・見送り）は **AI のおすすめで決めて進め**、結果ファイルの
+`decisions` に書く。daemon が EPIC の Issue の「決定待ち」まとめコメント
+（`<!-- autopilot-epic-decisions count=N -->`）に書き足す（**worker はそのコメントを書かない**）:
+
+```json
+"decisions":[{"kind":"ai-decision","ref":null,"title":"<何を決めたか>","recommendation":"<AI の案（採ったもの）>",
+  "alternatives":["<ほかの案>"],"adopted":"<入れたもの>"}]
+```
+
+`kind` は `question`（仕様の選択が要る）/ `not-adopted`（採用しなかった指摘）/ `ai-decision`（AI が決めた）/
+`two-way`（2 案。下記）/ `diverge`（3 案以上）。スキーマは `docs/autopilot/autonomous-contract.md` §2.6。
+
+このフェーズでは、`AUTOPILOT_STATUS=In Progress` かつ `AUTOPILOT_AI_STATUS=Addressing Comments` なら
+**Must の自動の直し**（review が Must を残した・CI が落ちた・まだ対応していない Request changes がある）:
+
+1. 最新の review のまとめコメントで、`handling` が `修正済み` でない Must をすべて直す。
+   CI が落ちていればその原因も直す（ログが取れないときは `.claude/rules/ci-failure-logs.md`。直せなければ
+   `signal:"hitl"` + `"hitlKind":"environment"`）。まだ対応していない Request changes があれば手順 2 と同じく対応する。
+2. まとめコメントを 1 件残す（手順 3 と同じ形）。
+3. `{"signal":"done","nextStatus":"In Progress","nextAiStatus":"Self-Reviewing","hitl":false}` で返す
+   （daemon がもう一度 review を起動する。直した回数は review の round で数える）。
+
+人間ゲート（Review / DoD / Blocked）から来たときは従来どおり。どちらでも、見送ったものは 🙋 にせず `decisions` に書く。
+
 ## 前提: 既存 PR ブランチで作業する
 
 新規ブランチではなく **既存 PR のブランチ**で作業する（daemon が `--pr` で worktree を用意する）:

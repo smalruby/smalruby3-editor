@@ -25,10 +25,10 @@ const BLOCKED_PANEL_HTML = `
   const el = document.getElementById('blockedpanel');
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   let last = '';
-  async function answer(issue, body) {
+  async function answer(key, body) {
     try {
       const r = await fetch('/blocked/answer', { method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(Object.assign({ issue }, body)) });
+        body: JSON.stringify(Object.assign({ key: String(key) }, body)) });
       if (!r.ok) alert('送れませんでした: ' + ((await r.json()).error || r.status));
     } catch (e) { alert('送れませんでした: ' + e.message); }
     load();
@@ -38,18 +38,21 @@ const BLOCKED_PANEL_HTML = `
     const w = d.waiting || [];
     if (!w.length) { el.innerHTML = ''; return; }
     el.innerHTML = '<b>⏸ 止まっている worker（' + w.length + '）</b>' + w.map((x) => {
+      const k = JSON.stringify(String(x.key)).replace(/"/g, '&quot;'); // onclick 属性の中の文字列
+      const id = String(x.key).replace(/[^a-zA-Z0-9_-]/g, '_');
+      const title = x.issue ? '#' + x.issue : esc(x.session);
       const opts = (x.options || []).map((o) => {
-        return o.number != null ? '<button data-testid="blocked-option" onclick="__blockedAnswer(' + x.issue + ', {keys: [' + Number(o.number) + ']})">'
+        return o.number != null ? '<button data-testid="blocked-option" onclick="__blockedAnswer(' + k + ', {keys: [' + Number(o.number) + ']})">'
           + esc(o.number + '. ' + o.label) + '</button>' : '';
       }).join('');
-      return '<div class="bw" data-issue="' + x.issue + '"><h3>#' + x.issue + ' ' + esc(x.phase) + ' — ' + esc(x.reason) + '</h3>'
+      return '<div class="bw" data-key="' + esc(x.key) + '"><h3>' + title + ' ' + esc(x.phase) + ' — ' + esc(x.reason) + '</h3>'
         + '<div class="bh">' + esc(x.since) + ' から待っています（60 分の上限は止めています）' + (x.answerPending ? ' · 答えを送っています…' : '') + '</div>'
         + '<pre>' + esc(x.screen) + '</pre>'
         + '<div class="opts">' + opts
-        + ' キー: <input type="text" data-testid="blocked-keys" placeholder="例: down enter" id="bk' + x.issue + '">'
-        + '<button data-testid="blocked-send-keys" onclick="__blockedAnswer(' + x.issue + ', {keys: document.getElementById(\\'bk' + x.issue + '\\').value.trim().split(/\\\\s+/)})">キーを送る</button>'
-        + ' 文: <input type="text" data-testid="blocked-text" id="bt' + x.issue + '">'
-        + '<button data-testid="blocked-send-text" onclick="__blockedAnswer(' + x.issue + ', {text: document.getElementById(\\'bt' + x.issue + '\\').value})">文を送る</button>'
+        + ' キー: <input type="text" data-testid="blocked-keys" placeholder="例: down enter" id="bk' + id + '">'
+        + '<button data-testid="blocked-send-keys" onclick="__blockedAnswer(' + k + ', {keys: document.getElementById(\\'bk' + id + '\\').value.trim().split(/\\\\s+/)})">キーを送る</button>'
+        + ' 文: <input type="text" data-testid="blocked-text" id="bt' + id + '">'
+        + '<button data-testid="blocked-send-text" onclick="__blockedAnswer(' + k + ', {text: document.getElementById(\\'bt' + id + '\\').value})">文を送る</button>'
         + '</div></div>';
     }).join('');
     el.querySelectorAll('pre').forEach((p) => { p.scrollTop = p.scrollHeight; }); // プロンプトは画面の下にある

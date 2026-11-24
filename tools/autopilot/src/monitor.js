@@ -30,11 +30,16 @@ const {
     canResolveConflict,
     HUMAN_WAIT_REASONS, humanWaitGroups, renderHumanWaitsHtml, renderHumanWaitCell,
 } = require('./phases');
+// 学び・タスクの欄（EPIC #2384）。部品は monitor-learn-tasks.js にまとめ、ここは埋め込むだけ
+const { LEARN_TASKS_CSS, LEARN_TASKS_HTML, LEARN_TASKS_SCRIPT } = require('./monitor-learn-tasks');
+// EPIC ごとの欄と「現在地を作る」（#2388）。描画は epic-summary.js の純粋関数を埋め込んで共有する
+const { renderEpicGroupsHtml } = require('./epic-summary');
 
 // ブラウザへ埋め込むクライアント共有の純粋関数（自己完結。later.test.js / spike.test.js で単独評価を担保）
 const SHARED_CLIENT_FNS = [
     canToggleLater, effectiveLater, splitLaterBoard, laterPendingReducer, splitPrsForTitle, issueCopyText,
     humanWaitGroups, renderHumanWaitsHtml, renderHumanWaitCell, canResolveConflict,
+    renderEpicGroupsHtml,
 ]
     .map(String).join('\n');
 
@@ -235,6 +240,14 @@ const MONITOR_HTML = `<!doctype html>
                     font-size: .72rem; font-weight: 600; }
   td button.later-btn { white-space: nowrap; }
   td button.later-btn[disabled] { cursor: progress; opacity: .6; }
+  /* ---- 優先度と並列の計画（EPIC #2384） ---- */
+  .prio { display: inline-flex; align-items: center; gap: .1rem; margin-right: .3rem; white-space: nowrap; }
+  .prio b { font-size: .72rem; padding: 0 .3rem; border-radius: .3rem; background: #e2e8f0; color: #334155; }
+  .prio b.p0 { background: #fee2e2; color: #991b1b; } .prio b.p1 { background: #ffedd5; color: #9a3412; }
+  .prio b.inh { font-weight: 400; font-style: italic; }
+  .prio button { font-size: .6rem; padding: 0 .2rem; line-height: 1.1; }
+  #schedule { font-size: .75rem; color: var(--muted); margin: .2rem 1rem; }
+  #schedule button { font-size: .7rem; padding: 0 .3rem; }
   h2 { font-size: .85rem; color: var(--muted); margin: 1.2rem 0 .4rem; }
   /* ---- log モーダル ---- */
   #modal { position: fixed; inset: 0; background: rgba(15,23,42,.55); display: none; align-items: center; justify-content: center; z-index: 50; }
@@ -243,7 +256,18 @@ const MONITOR_HTML = `<!doctype html>
                 display: flex; flex-direction: column; }
   #modal .box header { position: static; border-radius: .5rem .5rem 0 0; }
   #modal pre { margin: 0; padding: .8rem; overflow: auto; white-space: pre-wrap; font-size: .78rem; flex: 1; }
-</style></head><body>
+  /* EPIC ごと（#2388） */
+  #epicgroups { margin: 8px 0 14px; }
+  .epic-head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .epic-head h2 { margin: 0; }
+  .epic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; margin-top: 6px; }
+  .epic-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 10px; font-size: 13px; }
+  .epic-card ul { margin: 4px 0 0; padding-left: 1.2em; }
+  .epic-prog .bar i { display: block; height: 100%; background: #22c55e; }
+  .chip { font-size: 11px; padding: 0 6px; border: 1px solid #cbd5e1; border-radius: 99px; margin-left: 2px; }
+  .chip.run { color: #15803d; border-color: #15803d; } .chip.wait { color: #b91c1c; border-color: #b91c1c; }
+  .cs-err { color: #b45309; }
+${LEARN_TASKS_CSS}</style></head><body>
 <header>
   <div class="hgroup hleft">
     <h1><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120' width='22' height='22' style='vertical-align:-4px;margin-right:.15rem'>
@@ -265,15 +289,18 @@ const MONITOR_HTML = `<!doctype html>
   <span class="meta" id="meta"></span>
 </header>
 <div id="alerts"></div>
+<div id="schedule" data-testid="schedule-plan"></div>
 <main>
   ${BLOCKED_PANEL_HTML}
   <div id="humanwaits"></div>
+  <div id="epicgroups" data-testid="epic-groups"></div>
   <div id="tabs" class="tabs" role="tablist"></div>
   <div class="board-wrap">
   <table id="board"><thead><tr>
     <th>Issue</th><th>Status</th><th>Size</th><th>AI</th><th>担当</th><th>Sub-issues</th><th>Now</th>
   </tr></thead><tbody id="rows"><tr><td colspan="7" class="muted">読み込み中…</td></tr></tbody></table>
   </div>
+  ${LEARN_TASKS_HTML}
   <h2>実行履歴（最新 100 件・ログ用途のみ）</h2>
   <table id="histt"><thead><tr>
     <th>時刻</th><th>Issue</th><th>Phase</th><th>結果</th><th>メモ</th>
@@ -811,6 +838,57 @@ async function toggleLater(issue, later) {
   rerender();
 }
 
+// ---- 優先度の ▲▼ と並列の計画の 1 行（EPIC #2384） ----
+// 自分の Priority が無い行は親（EPIC）から継いだ値を斜体で出す。EPIC の行で動かすと継いでいる sub-issue にも効く。
+function prioCtl(it) {
+  const e = it.effectivePriority || { priority: it.priority || 'P2', source: it.priority ? 'own' : 'default' };
+  const p = e.priority || 'P2';
+  const tip = e.source === 'own' ? '優先度 ' + p : (e.source === 'inherited' ? '#' + e.from + ' から継いだ優先度 ' + p : '優先度は未設定（既定 ' + p + '）');
+  const epic = (it.tracker || it.kind === 'EPIC') ? '（EPIC: 継いでいる sub-issue にも効く）' : '';
+  return '<span class="prio" data-testid="board-priority" data-issue="' + it.issue + '">'
+    + '<b class="' + p.toLowerCase() + (e.source === 'own' ? '' : ' inh') + '" title="' + esc(tip + epic) + '">' + p + '</b>'
+    + '<button data-testid="board-priority-up" title="優先度を上げる' + epic + '" onclick="movePriority(' + it.issue + ', -1)">▲</button>'
+    + '<button data-testid="board-priority-down" title="優先度を下げる' + epic + '" onclick="movePriority(' + it.issue + ', 1)">▼</button></span>';
+}
+// step: -1 = 上げる / 1 = 下げる（onclick に文字列を書かない: このスクリプトは template literal の中）
+async function movePriority(issue, step) {
+  const direction = step < 0 ? 'up' : 'down';
+  try {
+    const r = await fetch('/priority', { method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ issue, direction }) });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || r.status);
+    const it = lastBoard && (lastBoard.items || []).find((x) => x.issue === issue);
+    if (it) { it.priority = j.priority; it.effectivePriority = { priority: j.priority, source: 'own', from: null }; }
+    rerender();
+  } catch (e) { alert('#' + issue + ' の優先度を変えられませんでした: ' + e.message); }
+}
+function renderSchedule(d) {
+  const el = document.getElementById('schedule');
+  if (!el) return;
+  const L = d.schedulerLimits || {};
+  const ov = d.schedulerOverrides || {};
+  const step = (k, delta) => '<button data-testid="schedule-' + k + '-' + (delta > 0 ? 'up' : 'down') + '" onclick="changeLimit(' + LIMIT_KEYS.indexOf(k) + ', ' + delta + ')">' + (delta > 0 ? '+' : '−') + '</button>';
+  const reason = d.schedule ? esc(d.schedule.reason) : '（まだ計画していません）';
+  el.innerHTML = '🧮 ' + reason + ' · 上限 全体 ' + step('maxTotal', -1) + ' <b>' + (L.maxTotal ?? '?') + '</b> ' + step('maxTotal', 1)
+    + ' 重い ' + step('maxHeavy', -1) + ' <b>' + (L.maxHeavy ?? '?') + '</b> ' + step('maxHeavy', 1)
+    + (Object.keys(ov).length ? ' <span title="モニターで変えた値（再起動で消える）">（一時変更中 <button onclick="resetLimits()">戻す</button>）</span>' : '');
+}
+async function postScheduler(body) {
+  try {
+    const r = await fetch('/scheduler', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    const j = await r.json();
+    if (lastBoard) { lastBoard.schedulerLimits = j.limits; lastBoard.schedulerOverrides = j.overrides; renderSchedule(lastBoard); }
+  } catch (e) { alert('上限を変えられませんでした: ' + e.message); }
+}
+const LIMIT_KEYS = ['maxTotal', 'maxHeavy'];
+function changeLimit(idx, delta) {
+  const k = LIMIT_KEYS[idx];
+  const cur = (lastBoard && lastBoard.schedulerLimits && lastBoard.schedulerLimits[k]) || 0;
+  postScheduler({ [k]: Math.max(0, cur + delta) });
+}
+function resetLimits() { postScheduler({ maxTotal: null, maxHeavy: null }); }
+
 function renderBoard(d) {
   const runningBy = {};
   for (const r of d.running || []) runningBy[r.issue] = r;
@@ -819,6 +897,7 @@ function renderBoard(d) {
   const split = splitLaterBoard(d.items, laterPending, (d.running || []).map((r) => r.issue));
   // 人間待ちのまとめはタブに関係なく全 item から作る（あとでやる 内の人間待ちも見落とさない）
   document.getElementById('humanwaits').innerHTML = renderHumanWaitsHtml(d.items, HUMAN_WAIT_REASONS);
+  document.getElementById('epicgroups').innerHTML = renderEpicGroupsHtml(d.epicGroups || [], d.currentStatus, Date.now());
   renderTabs(split);
   const shown = boardTab === 'later' ? split.later : split.normal;
   prMenuItems = {};
@@ -855,6 +934,7 @@ function renderBoard(d) {
     return '<tr class="' + cls + copyFlashAttrs(it) + '" data-issue="' + it.issue + '">'
       + '<td class="title-cell"><span class="title-line">' + copyBtn(it) + '<a target="_blank" rel="noopener" href="' + esc(it.url) + '">#' + it.issue + '</a>'
       + prInline + prMenu
+      + prioCtl(it)
       + '<span class="t" title="' + esc(it.title) + '">' + esc(it.title) + '</span>' + kindMark + waitMark + '</span></td>'
       + '<td>' + statusPill(it.status) + '</td>'
       + '<td>' + sizeBadge(it.size) + '</td>'
@@ -895,7 +975,7 @@ async function refresh() {
     else if (d.paused) { st.className = 'pill paused'; st.textContent = 'PAUSED'; }
     else { st.className = 'pill ok'; st.textContent = 'RUNNING'; }
     document.getElementById('meta').textContent =
-      (d.assignee ? '👤 ' + d.assignee + ' · ' : '') + '並行 ' + d.concurrency
+      (d.assignee ? '👤 ' + d.assignee + ' · ' : '') + '並行 ' + (d.schedulerLimits ? d.schedulerLimits.maxTotal + '（重い ' + d.schedulerLimits.maxHeavy + '）' : d.concurrency)
       + ' · 実行中 ' + (d.running || []).length
       + (d.rate && d.rate.minRemaining != null ? ' · API残 ' + d.rate.minRemaining + (d.rate.warn ? '⚠' : '') : '')
       + (d.updatedAt ? ' · 更新 ' + Math.round((Date.now() - d.updatedAt) / 1000) + 's前' : '');
@@ -910,6 +990,7 @@ async function refresh() {
     renderUsage(d);
     renderVersion(d);
     renderAlerts(d);
+    renderSchedule(d);
     renderBoard(d);
     renderHistory(d);
   } catch (e) {
@@ -1022,7 +1103,15 @@ document.getElementById('refreshboard').onclick = async () => {
   btn.disabled = false; btn.textContent = '🔄 更新';
   refresh();
 };
+// 「現在地を作る」（#2388）。worker を 1 つ起動するだけで、できたらリンクと最終更新が /board に出る
+document.getElementById('epicgroups').addEventListener('click', async (ev) => {
+  const btn = ev.target.closest('[data-testid="current-status-make"]');
+  if (!btn || btn.disabled) return;
+  btn.disabled = true; btn.textContent = '⏳ 現在地を作っています…';
+  try { await fetch('/current-status', { method: 'POST' }); } catch (e) { /* refresh 側で表示 */ }
+  refresh();
+});
 refresh(); setInterval(refresh, 5000);
-</script></body></html>`;
+${LEARN_TASKS_SCRIPT}</script></body></html>`;
 
 module.exports = { MONITOR_HTML };

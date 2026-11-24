@@ -20,7 +20,9 @@ const HISTORY_LIMIT = 100;
 function createBlockedHub(opts = {}) {
     const now = opts.now || (() => Date.now());
     const log = opts.log || (() => {});
-    const waiting = new Map(); // issue → { issue, phase, session, since, reason, screen, options, answer }
+    // key は Issue 番号。Issue に結びつかない worker（現在地・タスク・学びの PR。issue=0）は worker の名前
+    const waiting = new Map(); // key → { key, issue, phase, session, since, reason, screen, options, answer }
+    const keyOf = (issue, session) => (issue ? String(issue) : String(session || ''));
     const history = [];
 
     function record(evt) {
@@ -34,54 +36,55 @@ function createBlockedHub(opts = {}) {
 
     /**
      * runner に渡す 1 worker 分の口。
-     * @param {number} issue
+     * @param {number} issue Issue 番号（Issue に結びつかない worker は 0）
      * @param {string} phase
      * @param {string} session
      * @returns {{open:function, close:function, take:function, record:function}}
      */
     function channel(issue, phase, session) {
+        const key = keyOf(issue, session);
         return {
             open(info) {
-                waiting.set(issue, { issue, phase, session, since: now(), answer: null, ...info });
-                record({ type: 'paused', issue, phase, source: info.source || null, reason: info.reason });
+                waiting.set(key, { key, issue, phase, session, since: now(), answer: null, ...info });
+                record({ type: 'paused', issue: issue || session, phase, source: info.source || null, reason: info.reason });
             },
             update(info) {
-                const w = waiting.get(issue);
+                const w = waiting.get(key);
                 if (w) Object.assign(w, info);
             },
             take() {
-                const w = waiting.get(issue);
+                const w = waiting.get(key);
                 if (!w || !w.answer) return null;
                 const a = w.answer;
                 w.answer = null;
                 return a;
             },
             close(reason) {
-                if (waiting.delete(issue)) record({ type: 'resumed', issue, phase, reason });
+                if (waiting.delete(key)) record({ type: 'resumed', issue: issue || session, phase, reason });
             },
-            record: (evt) => record({ issue, phase, ...evt }),
+            record: (evt) => record({ issue: issue || session, phase, ...evt }),
         };
     }
 
     /**
      * 人間の答えを置く（runner が次の見回りで受け取って送る）。
-     * @param {number} issue
+     * @param {number|string} key Issue 番号か、Issue に結びつかない worker の名前（一覧の `key`）
      * @param {object} body { keys } | { text }
      * @returns {{ok:boolean, error?:string, status:number}}
      */
-    function answer(issue, body) {
-        const w = waiting.get(issue);
+    function answer(key, body) {
+        const w = waiting.get(String(key));
         if (!w) return { ok: false, status: 404, error: 'not waiting' };
         const n = normalizeHumanAnswer(body);
         if (!n.ok) return { ok: false, status: 400, error: n.error };
         w.answer = n.answer;
-        record({ type: 'answered', issue, phase: w.phase, source: 'human', ...n.answer, reason: 'モニターから' });
+        record({ type: 'answered', issue: w.issue || w.session, phase: w.phase, source: 'human', ...n.answer, reason: 'モニターから' });
         return { ok: true, status: 200 };
     }
 
     function list() {
         return [...waiting.values()].map((w) => ({
-            issue: w.issue, phase: w.phase, session: w.session, since: new Date(w.since).toISOString(),
+            key: w.key, issue: w.issue, phase: w.phase, session: w.session, since: new Date(w.since).toISOString(),
             reason: w.reason, screen: w.screen, options: w.options || [], answerPending: !!w.answer,
         }));
     }
@@ -113,10 +116,11 @@ function handleBlockedHttp(req, res, url, hub) {
         req.on('end', () => {
             let body;
             try { body = JSON.parse(raw || '{}'); } catch { return send(400, { error: 'invalid json' }); }
-            const issue = Number(body.issue);
-            if (!Number.isInteger(issue) || issue <= 0) return send(400, { error: 'issue (number) required' });
-            const r = hub.answer(issue, body);
-            return send(r.status, r.ok ? { answered: issue } : { error: r.error });
+            // Issue の worker は issue、Issue に結びつかない worker は key（一覧の key = worker の名前）
+            const key = body.key != null ? String(body.key) : String(Number(body.issue));
+            if (!key || key === 'NaN' || key === '0') return send(400, { error: 'issue (number) or key required' });
+            const r = hub.answer(key, body);
+            return send(r.status, r.ok ? { answered: key } : { error: r.error });
         });
         return true;
     }

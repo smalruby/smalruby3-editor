@@ -9,6 +9,35 @@
 ゴール: **EPIC を leaf sub-issue に分解し、各 leaf に size(small/middle/large) を付ける。** 分解は
 人間の承認ゲート（HITL）を挟むため **2 フェーズ**で動く。フェーズは「自分の分解案コメントが既にあるか」で判定する（冪等）。
 
+
+## EPIC の流れ（`AUTOPILOT_EPIC_FLOW=1` のとき）
+
+PR の base が `topic/...`（Issue 本文の `autopilot-base:`）のとき、daemon は `AUTOPILOT_EPIC_FLOW=1` を渡す。
+この Issue は EPIC の sub-issue で、**人間は EPIC の設計を承認済み**。確認は EPIC ごとにまとめて行うので、
+途中で `🙋 HITL` を出してよいのは次の 3 つだけ（結果ファイルの `hitlKind` に書く）:
+
+| `hitlKind` | いつ |
+|---|---|
+| `diverge` | **3 案以上**に分かれる判断（実装が発散する）。その sub-issue だけ止まる |
+| `must-exhausted` | 直しを 3 回しても Must が残る（daemon が自分で判定する。worker は使わない） |
+| `environment` | エラーで続けられない（認証・使用量・壊れた環境） |
+
+それ以外の判断（仕様の小さな選択・命名・見送り）は **AI のおすすめで決めて進め**、結果ファイルの
+`decisions` に書く。daemon が EPIC の Issue の「決定待ち」まとめコメント
+（`<!-- autopilot-epic-decisions count=N -->`）に書き足す（**worker はそのコメントを書かない**）:
+
+```json
+"decisions":[{"kind":"ai-decision","ref":null,"title":"<何を決めたか>","recommendation":"<AI の案（採ったもの）>",
+  "alternatives":["<ほかの案>"],"adopted":"<入れたもの>"}]
+```
+
+`kind` は `question`（仕様の選択が要る）/ `not-adopted`（採用しなかった指摘）/ `ai-decision`（AI が決めた）/
+`two-way`（2 案。下記）/ `diverge`（3 案以上）。スキーマは `docs/autopilot/autonomous-contract.md` §2.6。
+
+このフェーズでは: EPIC の設計の承認（分解案の 🙋）は**最初の 1 回だけ**で、`hitlKind:"design"` を付ける。
+EPIC の子をさらに分解するとき（`AUTOPILOT_EPIC_FLOW=1`）は分解案の承認を待たず、そのまま sub-issue を作る
+（フェーズ A と B を 1 回で行う）。作る sub-issue の本文には親と同じ `autopilot-base:` を書く。
+
 ## 手順
 
 ### 0. 既存状態を確認（propose / create の判定）
