@@ -49,6 +49,13 @@ review / verify などのプロンプトから **`/code-review` / `/security-rev
 する（FYI でも「直して」なら直す）。旧形式（1 コメント 1 マーカーの `**[Must]**` 等）も
 `countReviewFindings` が合算する（後方互換）。
 
+## EPIC の流れでは 🙋 を 3 つに限る
+
+`AUTOPILOT_EPIC_FLOW=1`（PR の base が `topic/...`）のとき、プロンプトは 🙋（`signal:"hitl"`）を
+`hitlKind` の `diverge` / `environment` に限り、ほかの判断は AI のおすすめで決めて結果の `decisions` に書く
+（`autonomous-contract.md` §2.6）。review は `mustCount` と `round` を必ず書く。EPIC の「決定待ち」まとめコメントを
+プロンプトが直接書くのは逸脱（daemon だけが書く）。
+
 ## コミット・push の規約
 
 - コミット = `bin/bot-git commit`（Bot 名義の `-c` 注入。共有 `.git/config` は不変）。

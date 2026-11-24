@@ -320,6 +320,8 @@ async function getGateContext(repo, issueNumber, token) {
             prLabel: (pr.labels || []).includes(HITL_LABEL),
         },
         pr: pr.number,
+        // EPIC の流れ（topic 宛ての PR は daemon が自動マージ・#2385）の判定に使う
+        prBase: pr.base || null,
     };
 }
 
@@ -657,6 +659,54 @@ async function getRateLimit(token, deps = {}) {
     return { core: pick(r.core), graphql: pick(r.graphql) };
 }
 
+/**
+ * sub-issue の親 Issue の番号を返す（REST `issues/<n>/parent`）。親が無ければ null（404）。
+ * EPIC の「決定待ち」まとめコメントを書く先を見つけるのに使う（#2385）。
+ * @returns {Promise<number|null>}
+ */
+async function getParentIssueNumber(repo, issueNumber, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    try {
+        const out = await ghFn(['api', `repos/${repo}/issues/${issueNumber}/parent`, '--jq', '.number'], { token });
+        const n = Number(String(out).trim());
+        return Number.isInteger(n) && n > 0 ? n : null;
+    } catch (e) {
+        if (/404|Not Found/i.test(String(e && (e.stderr || e.message)))) return null;
+        throw e;
+    }
+}
+
+/**
+ * 自動マージの判断に要る PR の事実（1 回の `gh pr view`）。epic-flow.js の autoMergePlan に渡す。
+ * @returns {Promise<object>}
+ */
+async function getPrMergeFacts(repo, prNumber, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    const out = await ghFn(['pr', 'view', String(prNumber), '--repo', repo, '--json',
+        'number,state,isDraft,baseRefName,mergeable,reviewDecision,statusCheckRollup,updatedAt'], { token });
+    return JSON.parse(out);
+}
+
+/**
+ * PR をマージする（merge commit。squash は使えないリポジトリ）。head ブランチはリポジトリの
+ * 設定で自動で消えるので `--delete-branch` は付けない（daemon の cwd でブランチを触らない）。
+ */
+async function mergePr(repo, prNumber, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    await ghFn(['pr', 'merge', String(prNumber), '--repo', repo, '--merge'], { token });
+}
+
+/**
+ * PR のレビュー一覧（REST `pulls/<n>/reviews`）。自動マージの前に、まだ対応していない
+ * Request changes があるかを数えるのに使う（phases.js の selectRequestedReviews）。
+ * @returns {Promise<object[]>}
+ */
+async function listPrReviews(repo, prNumber, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    const out = await ghFn(['api', '--paginate', `repos/${repo}/pulls/${prNumber}/reviews`, '--jq', '.[] | @json'], { token });
+    return String(out).split('\n').filter(Boolean).map((line) => JSON.parse(line));
+}
+
 /** applyResult が返す意図配列を Project に反映する */
 async function applyIntents(ctx, itemId, intents, token) {
     const applied = [];
@@ -675,4 +725,5 @@ module.exports = {
     listIssueComments,
     postIssueComment, listClosedIssueNumbers, getIssueStates, getIssueMeta, closeIssue,
     getBoardEnrichment, listHeadPrs, getRateLimit,
+    getParentIssueNumber, getPrMergeFacts, mergePr, listPrReviews,
 };

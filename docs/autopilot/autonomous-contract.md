@@ -178,6 +178,37 @@ worker（対話 Claude）の**実行上限は既定で約 60 分**（runner の 
 前回 +1 にする。連続 checkpoint が既定 3 回を超えると daemon が Blocked へエスカレーションする
 （`checkpointIterationDecision`。#912）。
 
+### 2.6 EPIC の流れの任意フィールド（topic 宛ての PR）
+
+PR の base が `topic/...` の Issue（EPIC の sub-issue）では、daemon が `AUTOPILOT_EPIC_FLOW=1` を渡す。
+人間は EPIC の設計を承認済みなので、途中で 🙋 を出すのは **3 案以上の分岐・3 回直しても残る Must・
+続けられないエラー**の 3 つだけにし、それ以外は AI のおすすめで決めて `decisions` に書く。どの signal でも
+次の任意フィールドを書ける（`contract.js` の `validateResult` が検証する）:
+
+| key | 型 | 説明 |
+|---|---|---|
+| `mustCount` | number（0 以上の整数） | **review**: このレビューで直しきれず残った Must の数。daemon が次を決める（0 → topic へ自動マージ待ち / あり → address-review が直す / 3 回直しても残る → その sub-issue だけ Blocked + 🙋） |
+| `round` | number（1 以上の整数） | **review**: まとめコメントの round。直した回数 = round − 1 |
+| `hitlKind` | `"diverge"`\|`"must-exhausted"`\|`"environment"`\|`"design"` | `signal=hitl` の理由。EPIC の子の triage / discuss / decompose / review で、これが `diverge` / `environment` 以外の 🙋 は daemon が「想定外の確認」として決定待ちに載せる（🙋 は残す）。`design` は EPIC そのものの設計の承認 |
+| `decisions` | object[] | EPIC の「決定待ち」に載せるもの。daemon が EPIC の Issue のまとめコメント（`<!-- autopilot-epic-decisions -->`・1 つ）に書き足す。**worker はそのコメントを書かない** |
+
+`decisions[]` の 1 件:
+
+| key | 型 | 説明 |
+|---|---|---|
+| `kind` | `"question"`\|`"not-adopted"`\|`"ai-decision"`\|`"two-way"`\|`"diverge"` | 仕様の選択が要る / 採用しなかった指摘 / AI が決めた / 2 案（別ブランチあり）/ 3 案以上（止める）。daemon 自身は `must-exhausted` / `unexpected-hitl` も書く |
+| `title` | string（必須） | 何を |
+| `ref` | string \| null | review の指摘 ID（`Q1` など） |
+| `recommendation` | string \| null | AI の案 |
+| `alternatives` | string[] | ほかの案 |
+| `adopted` | string \| null | 入れたのはどちらか |
+| `pr` / `altPr` | number \| null | PR（省略時は daemon が補う）/ 別案の draft PR |
+| `preview` / `altPreview` | string \| null | プレビューの URL |
+
+2 案に分かれたときは、おすすめを Issue のブランチ（topic 宛ての PR）に、もう 1 案を
+`topic/<epic のブランチ>-alt-<番号>`（`epic-flow.js` の `altBranchName`）の draft PR にする。
+3 案以上のときは実装せず `signal=hitl` + `hitlKind:"diverge"` + `decisions:[{kind:"diverge"}]` で終える。
+
 ---
 
 ## 3. 状態の書き込み責務（単一ライター原則）
@@ -230,6 +261,8 @@ worker（対話 Claude）の**実行上限は既定で約 60 分**（runner の 
 | `AUTOPILOT_REPO` | `smalruby/smalruby3-editor` |
 | `AUTOPILOT_BASE_BRANCH` | PR 先・worktree 分岐元のベースブランチ（既定 `develop`）。Issue 本文の `autopilot-base:` ディレクティブや「ベースブランチ」宣言があれば daemon が渡す（EPIC サブ Issue を親 epic ブランチに積む用）。implement は `gh pr create --base` にこれを使う |
 | `AUTOPILOT_STATUS` | dispatch 時点の Project Status（例 `Review` / `DoD` / `Blocked`）。address-review が「Request changes 対応」か「Blocked からの再開」かを分けるのに使う |
+| `AUTOPILOT_AI_STATUS` | dispatch 時点の AI Status。address-review は `In Progress` + `Addressing Comments` のとき「Must の自動の直し」（EPIC の流れ） |
+| `AUTOPILOT_EPIC_FLOW` | base が `topic/...` のとき `1`（それ以外は空）。§2.6 の EPIC の流れ |
 
 ---
 
@@ -303,6 +336,7 @@ DoD の最終確認のうち **音/autoplay など実 Chrome が必須のケー�
 - [ ] 冒頭で本コントラクトに従うと宣言している
 - [ ] `AskUserQuestion` を一切使っていない
 - [ ] 判断が要るときは bot コメント + `AUTOPILOT_HITL` で終了している
+- [ ] EPIC の流れ（`AUTOPILOT_EPIC_FLOW=1`）では 🙋 を §2.6 の 3 つに限り、ほかは `decisions` に書いている
 - [ ] 終了直前に `AUTOPILOT_RESULT_FILE` へ JSON を書き、pane に signal トークンを出している
 - [ ] Project フィールドを直接書き換えていない（意図は結果ファイルで伝える）
 - [ ] 冪等（再実行で重複副作用を出さない）

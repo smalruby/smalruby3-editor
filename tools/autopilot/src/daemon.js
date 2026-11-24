@@ -111,6 +111,9 @@ const {
 const { readClaudeUsage } = require('./usage');
 const { readVersion, checkAutopilotUpdate } = require('./version');
 const project = require('./project');
+// EPIC 単位の確認（#2385）: 判断は epic-flow.js、実行のつなぎは epic-merge.js
+const { resolveRunOutcome, isEpicFlowBase, markAutoMergeContexts } = require('./epic-flow');
+const { applyEpicRunSideEffects, applyEpicAutoMerge } = require('./epic-merge');
 
 const execFileP = promisify(execFile);
 
@@ -1289,6 +1292,9 @@ async function dispatch(item, cfg, state, log) {
             AUTOPILOT_BASE_BRANCH: baseBranch,
             // address-review はゲート（Review / DoD か Blocked か）で扱う範囲が違う
             AUTOPILOT_STATUS: item.status || '',
+            // EPIC の流れ（#2385）: address-review は In Progress + Addressing Comments なら Must の自動の直し
+            AUTOPILOT_AI_STATUS: item.aiStatus || '',
+            AUTOPILOT_EPIC_FLOW: isEpicFlowBase(baseBranch, DEFAULT_BASE_BRANCH) ? '1' : '',
         };
         const { command, promptDir } = workerCommand(cfg, phase, cwd);
         log(`#${item.issue}: run ${phase} (${meta.skill})`);
@@ -1320,7 +1326,11 @@ async function dispatch(item, cfg, state, log) {
             await blockToHuman(`run は終了しましたが結果ファイルが不正でした: ${parsed.errors.join('; ')}`);
             return;
         }
-        const intents = applyResult(parsed.result);
+        // EPIC の流れ（#2385）では review の Must の数などで反映を上書きする（それ以外は applyResult のまま）
+        const outcome = resolveRunOutcome(parsed.result, {
+            epicFlow: isEpicFlowBase(baseBranch, DEFAULT_BASE_BRANCH), priorStatus: item.status, priorAiStatus: item.aiStatus,
+        });
+        const intents = outcome.intents;
         const applied = await project.applyIntents(ctx, itemId, intents, await project.botToken());
         // ローカルで把握した状態変化を board キャッシュにも反映（#888）。GraphQL は増やさない。
         // implement 完了→ AI Status=Self-Reviewing 等が refreshBoard を待たず monitor に live 反映される。
@@ -1340,8 +1350,9 @@ async function dispatch(item, cfg, state, log) {
         }
         // 権威的な面同期（contract §7）: 🙋/🤖 ラベル・Draft・sticky を Project 状態 + HITL 希望へ合わせる。
         // HITL は Project フィールドではなくラベルなので、結果から導いた希望を hitlLabel として渡す（#813）。
-        const wantHitl = hitlDesireFromResult(parsed.result);
+        const wantHitl = outcome.hitl;
         await syncFacesAfterIntents({ ...item, hitlLabel: wantHitl }, intents, cfg, log);
+        await applyEpicRunSideEffects(item, parsed.result, outcome, { pr }, cfg, log);
         // 協調的チェックポイント（EPIC #906）: 保険commit・continuation コメント・反復上限
         // エスカレーションは上の汎用処理（AI Status=Awaiting Continuation + HITL）の**後**に行う。
         // escalate 時の markBlocked（Status=Blocked への上書き）が確実に最後の書き込みになる。
@@ -2115,7 +2126,7 @@ async function tick(cfg, state, log) {
     await recoverStalledInFlightWorkers(items, cfg, state, log)
         .catch((e) => log(`stalled recovery error: ${e.message}`));
     const running = new Set(state.running.keys());
-    const contexts = await collectGateContexts(cfg, items, running, state, log);
+    const contexts = markAutoMergeContexts(await collectGateContexts(cfg, items, running, state, log), DEFAULT_BASE_BRANCH);
     // 協調的チェックポイント（EPIC #906・#912）: Awaiting Continuation の item は continuation
     // ファイル（worktree 内）から元フェーズ・反復回数を読み、phaseForItem が implement 固定
     // フォールバックに頼らず正しいフェーズ（例 address-review）へ再開できるようにする。
@@ -2196,7 +2207,15 @@ async function tick(cfg, state, log) {
         // fire-and-forget（running で重複防止）
         dispatch(item, cfg, state, log);
     }
-    // 人間が手動 merge した leaf を Close へ前進（自動 merge はしない）+ GitHub issue も close（#843 Fix A）
+    // topic 宛ての PR（Review + 🙋 なし）を CI 通過・コンフリクト無しで自動マージ（#2385）。
+    // マージした PR は直後の merge-progression が Close + GitHub の Issue を閉じる。
+    await applyEpicAutoMerge(items, contexts, cfg, state, log, {
+        resolveConflict: (it) => dispatchResolveConflict(it, cfg, state, log),
+        hasCapacity: () => state.running.size < cfg.concurrency,
+        patchBoard: (issue, intents) => patchBoardCache(state, issue, intents),
+        syncFaces: (it, intents) => syncFacesAfterIntents(it, intents, cfg, log),
+    }).catch((e) => log(`epic auto-merge error: ${e.message}`));
+    // 人間が手動 merge した leaf（と上の自動マージ）を Close へ前進 + GitHub issue も close（#843 Fix A）
     await applyMergeProgression(items, cfg, state, log);
     // GitHub で closed な issue（EPIC・人手 close 含む）の Project Status を Close へ整合（#843 Fix B）
     await applyClosedReconcile(items, cfg, state, log, { closedSet });

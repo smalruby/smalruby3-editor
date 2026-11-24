@@ -21,6 +21,50 @@ const VALID_SIZES = ['small', 'middle', 'large'];
 const VALID_KINDS = ['EPIC', 'Issue'];
 
 /**
+ * EPIC の流れ（#2385）の任意項目の値。epic-flow.js の HITL_KINDS / DECISION_KINDS と同じ
+ * （contract.js は判断ロジックを持たないので、ここでは検証のために値の一覧だけを持つ）。
+ */
+const VALID_HITL_KINDS = ['diverge', 'must-exhausted', 'environment', 'design'];
+const VALID_DECISION_KINDS = ['question', 'not-adopted', 'ai-decision', 'two-way', 'diverge', 'must-exhausted', 'unexpected-hitl'];
+
+/**
+ * EPIC の流れの任意項目（どの signal でも書ける）を検証する。
+ * - `mustCount`: review が直せずに残した Must の数（0 以上の整数）
+ * - `round`: review のまとめコメントの round（1 以上の整数）
+ * - `hitlKind`: 🙋 の理由（signal=hitl のとき）
+ * - `decisions`: EPIC の「決定待ち」に載せるもの（daemon が EPIC の Issue に書く）
+ * @param {object} obj
+ * @param {string[]} errors
+ */
+function validateEpicFields(obj, errors) {
+    if (obj.mustCount != null && !(Number.isInteger(obj.mustCount) && obj.mustCount >= 0)) {
+        errors.push('mustCount must be a non-negative integer');
+    }
+    if (obj.round != null && !(Number.isInteger(obj.round) && obj.round >= 1)) {
+        errors.push('round must be a positive integer');
+    }
+    if (obj.hitlKind != null && !VALID_HITL_KINDS.includes(obj.hitlKind)) {
+        errors.push(`hitlKind must be one of ${VALID_HITL_KINDS.join('|')}`);
+    }
+    if (obj.decisions == null) return;
+    if (!Array.isArray(obj.decisions)) {
+        errors.push('decisions must be an array');
+        return;
+    }
+    obj.decisions.forEach((d, i) => {
+        if (typeof d !== 'object' || d === null) { errors.push(`decisions[${i}] must be an object`); return; }
+        if (!VALID_DECISION_KINDS.includes(d.kind)) errors.push(`decisions[${i}].kind must be one of ${VALID_DECISION_KINDS.join('|')}`);
+        if (typeof d.title !== 'string' || !d.title.trim()) errors.push(`decisions[${i}].title must be a non-empty string`);
+        if (d.alternatives != null && !(Array.isArray(d.alternatives) && d.alternatives.every((a) => typeof a === 'string'))) {
+            errors.push(`decisions[${i}].alternatives must be an array of strings`);
+        }
+        for (const k of ['issue', 'pr', 'altPr']) {
+            if (d[k] != null && !(Number.isInteger(d[k]) && d[k] > 0)) errors.push(`decisions[${i}].${k} must be a positive integer`);
+        }
+    });
+}
+
+/**
  * 結果ペイロード（AUTOPILOT_RESULT_FILE の中身）を検証する。
  * @param {object} obj パース済み JSON
  * @returns {{ok: boolean, errors: string[]}}
@@ -64,6 +108,7 @@ function validateResult(obj) {
     if (obj.signal === 'error') {
         if (typeof obj.error !== 'string' || !obj.error) errors.push('error: error must be a non-empty string');
     }
+    validateEpicFields(obj, errors);
     return { ok: errors.length === 0, errors };
 }
 
@@ -109,4 +154,6 @@ function detectToken(paneText) {
     return found;
 }
 
-module.exports = { TOKENS, SIGNALS, VALID_SIZES, VALID_KINDS, validateResult, readResultFile, detectToken };
+module.exports = {
+    TOKENS, SIGNALS, VALID_SIZES, VALID_KINDS, VALID_HITL_KINDS, VALID_DECISION_KINDS, validateResult, readResultFile, detectToken,
+};

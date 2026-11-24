@@ -479,6 +479,31 @@ EPIC は「作業項目」ではなく「**トラッカー**」。
    sub-issue 進捗は俯瞰ボードの enrichment（`refreshBoard` が既に取得済みの board キャッシュ）を
    再利用するため追加の GraphQL は発生しない。書き込みは本文が変わった tick だけ（冪等 upsert）。
 
+### 人間の確認は EPIC ごとにまとめる（topic への自動マージ・決定待ち）
+
+人間が決めるのは**最初の EPIC の設計**（triage / discuss の方針と decompose の分解案）だけ。そのあと
+sub-issue（本文に `autopilot-base: topic/...`）は、topic へのマージまで AI のおすすめで進める。
+develop へのマージ（EPIC の draft PR）はこれまでどおり人間。判断は `src/epic-flow.js`（純粋関数）、
+daemon 側の実行は `src/epic-merge.js`。
+
+- **途中の 🙋 は 3 つだけ**: ① 3 案以上に分かれる判断 ② 直しを 3 回しても Must が残る ③ エラーで続けられない
+  （認証・使用量・壊れた環境）。それ以外は worker が結果ファイルの `decisions` に書いて先へ進む
+  （契約は `autonomous-contract.md` §2.6）。checkpoint も 🙋 を付けずに続きを再開する。
+- **Must の直し**: review が残った Must の数（`mustCount`）を返す。0 なら Review + 🙋 なし（自動マージ待ち）、
+  あれば In Progress + Addressing Comments にして address-review が直し、もう一度 review。直した回数は
+  review のまとめコメントの round で数え、3 回直しても残ったらその sub-issue だけ Blocked + 🙋 にする。
+- **topic への自動マージ**（tick ステップ `applyEpicAutoMerge`）: Review + 🙋 なしで PR の base が `topic/...` のものを、
+  CI が通った（チェックが無い PR は push から 10 分待つ）・コンフリクトが無い・まだ対応していない Request changes が
+  無いときにマージする（merge commit）。直後の merge-progression が Project を Close にし、GitHub の Issue を閉じる。
+  コンフリクトは resolve-conflict、CI の失敗と Request changes は Must の直しと同じ流れに回す。
+- **決定待ち**: `decisions`（review の Question・採用しなかった指摘・AI が決めたこと・2 案・3 案以上）と、daemon が
+  止めた理由（Must が残った・想定外の 🙋）を、daemon が EPIC の Issue の「決定待ち」まとめコメント
+  （`<!-- autopilot-epic-decisions -->`・1 つ。中に機械用の JSON を base64 で埋める）に書き足す。**書くのは daemon だけ**。
+  親の EPIC は REST の `issues/<n>/parent` で引く。指揮役は EPIC を develop へ出す前に、これを決定ページにまとめて確認する。
+- **2 案**: おすすめを Issue のブランチで topic へ、もう 1 案を `topic/<epic のブランチ>-alt-<番号>` の draft PR にする
+  （`Closes` を書かないので daemon はマージしない）。決定待ちに両方の PR とプレビューを書く。
+- **3 案以上**: その sub-issue だけ止め（`hitlKind:"diverge"`）、決定待ちに足す。`autopilot-after` で待つものも止まる。
+
 ---
 
 ## PR 側の状態可視化（Issue のみ Project 管理 + PR は投影）
@@ -1104,6 +1129,8 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 | `bin/autopilot-push` | push 経路の自動判定（Bot / 個人トークン。権限外パス対応） |
 | `tools/autopilot/src/contract.js` | 番兵/結果ファイルの検証（純粋） |
 | `tools/autopilot/src/phases.js` | フェーズ↔プロンプト、結果→フィールド意図、watchdog 判断、ゲート解除、merge-progression、PR 投影、enroll/並び順、ディレクティブ、サニタイズ（純粋） |
+| `tools/autopilot/src/epic-flow.js` | EPIC の流れの判断（review の Must の数→次の状態、自動マージの計画、決定待ちのまとめコメント）（純粋） |
+| `tools/autopilot/src/epic-merge.js` | EPIC の流れの daemon 側の実行（topic への自動マージ・決定待ちの書き込み） |
 | `tools/autopilot/src/settings.js` | worker 設定（フェーズ別 model/effort・addDirs）+ スナップショット |
 | `tools/autopilot/src/project.js` | GitHub Projects v2 + Issue/PR ラベル・Draft・sticky への gh ラッパ（非同期） |
 | `tools/autopilot/src/runner.js` | tmux runner + watchdog |
