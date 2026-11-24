@@ -58,7 +58,7 @@ AskUserQuestion で**不足しているものだけ**聞く（既定値を推奨
 | 項目 | 既定 | 補足 |
 |---|---|---|
 | assignee（GitHub login） | `git config user.name` や gh から推定して提案 | enroll モデル。「全件処理（未指定）」も選択肢に |
-| concurrency | 2 | 同時に走る worker 数 |
+| 並列数 | 付けない（daemon が空きメモリと CPU から決める。全体 6・重い 2） | モニタの ＋/− で上げ下げできる。`--concurrency` を付けると固定される |
 | port | 8787 | Web モニタのポート |
 | interval | 300 秒 | ポーリング間隔 |
 | worker への追加許可ディレクトリ | なし | 例 `~/ghq`。指定があれば settings.json に反映 |
@@ -72,28 +72,37 @@ AskUserQuestion で**不足しているものだけ**聞く（既定値を推奨
 
 ```bash
 #!/usr/bin/env bash
-# autopilot daemon 起動スクリプト（autopilot スキルが生成。人間が実行する）
+# autopilot daemon 起動スクリプト（autopilot スキルが生成。人間 or Claude が実行）
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 SESSION=autopilot-daemon
-if tmux has-session -t "$SESSION" 2>/dev/null; then
-    echo "既に起動しています: tmux attach -t $SESSION / http://localhost:<PORT>/"
+# daemon も worker と同じ herdr で動かす（tmux は使わない・#2387）。worker は herdr の
+# session `autopilot` に入り、daemon が止まるときにその session を止めるので、daemon 自身は
+# 別の session（autopilot-daemon）に置く。
+if herdr session list 2>/dev/null | awk -v s="$SESSION" '$1==s && $2=="running"{f=1} END{exit !f}'; then
+    echo "既に起動しています: herdr session attach $SESSION / http://localhost:<PORT>/"
     exit 0
 fi
 mkdir -p tmp
+nohup herdr --session "$SESSION" server >tmp/herdr-autopilot-daemon-server.log 2>&1 &
+for _ in $(seq 1 20); do herdr --session "$SESSION" workspace list >/dev/null 2>&1 && break; sleep 0.5; done
+PANE=$(herdr --session "$SESSION" workspace create --cwd "$PWD" --label daemon --no-focus \
+  | node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(0)).result.root_pane.pane_id)')
 # daemon は未知エラーで Node 準拠に exit する（#953）。外部 supervisor（autopilot-supervise）が
 # 非ゼロ終了のみ再起動し、exit 0（意図的停止）では再起動しない。60 秒 5 回でクラッシュループと
 # 見なして諦める。node を直接叩かず必ず supervisor 経由で起動する。ログは supervisor が
-# tmp/autopilot-daemon.log に追記する。
-tmux new-session -d -s "$SESSION" \
-  "tools/autopilot/bin/autopilot-supervise --assignee <LOGIN> --concurrency <N> --interval <SEC> --port <PORT>"
+# tmp/autopilot-daemon.log に追記する。並列数は daemon が空きメモリと CPU から決めるので
+# --concurrency は付けない（付けると上限がその数に固定される）。
+herdr --session "$SESSION" pane run "$PANE" \
+  "tools/autopilot/bin/autopilot-supervise --assignee <LOGIN> --interval <SEC> --port <PORT>"
 echo "started (supervised)."
 echo "  monitor: http://localhost:<PORT>/"
-echo "  log:     tail -f tmp/autopilot-daemon.log  (or tmux attach -t $SESSION)"
+echo "  log:     tail -f tmp/autopilot-daemon.log  (or herdr session attach $SESSION)"
+echo "  workers: herdr session attach autopilot"
 echo "  stop:    curl -X POST localhost:<PORT>/shutdown  (supervisor も停止する)"
 ```
 
-`<LOGIN>`（未指定なら `--assignee` ごと省略）/`<N>`/`<SEC>`/`<PORT>` はインタビュー結果で埋める。
+`<LOGIN>`（未指定なら `--assignee` ごと省略）/`<SEC>`/`<PORT>` はインタビュー結果で埋める。
 
 ### A-4. 起動（Claude が実行してよい）
 
