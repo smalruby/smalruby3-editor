@@ -112,6 +112,9 @@ const { readClaudeUsage } = require('./usage');
 const scheduler = require('./scheduler');
 const { readVersion, checkAutopilotUpdate } = require('./version');
 const project = require('./project');
+// EPIC ごとの進み具合と現在地（#2388）。判断は epic-summary.js / current-status.js、I/O は current-status-job.js
+const { buildStatusMaterial, groupItemsByEpic } = require('./epic-summary');
+const currentStatusJob = require('./current-status-job');
 
 const execFileP = promisify(execFile);
 
@@ -2615,6 +2618,8 @@ async function refreshBoard(cfg, state, log, deps = {}) {
                 owner: itemOwner(it),
                 subIssues: extra.subIssues,
                 prs: extra.prs,
+                // EPIC ごとにまとめる材料（#2388）。priority は #2386 が Project の Priority を載せる
+                parent: extra.parent || null,
             });
         }
         state.board = { updatedAt: cfg.now(), items: enriched };
@@ -2764,7 +2769,40 @@ function boardResponse(cfg, state) {
         autopilotUpdate: state.autopilotUpdate || null,
         items: state.board ? state.board.items : [],
         history: state.history || [],
+        // EPIC ごとのまとめと現在地（#2388）
+        epicGroups: groupItemsByEpic(state.board ? state.board.items : [], statusMaterialCtx(cfg, state)),
+        currentStatus: state.currentStatus || null,
     };
+}
+
+/** EPIC のまとめに渡す live の値（#2388）。決定待ち・止まった worker・dispatch の順は他の担当が state に載せる。 */
+function statusMaterialCtx(cfg, state) {
+    return {
+        running: [...(state.running || new Map()).entries()].map(([issue, v]) => ({ issue, phase: v.phase, since: v.since })),
+        history: state.history || [],
+        concurrency: cfg.concurrency,
+        now: typeof cfg.now === 'function' ? cfg.now() : 0,
+        decisionsByEpic: state.epicDecisions || {},
+    };
+}
+
+/**
+ * `GET /status.json`（現在地の材料・#2388）。現在地を作る worker とモニタが読む。
+ * @param {object} cfg
+ * @param {object} state
+ * @returns {object}
+ */
+function statusMaterialResponse(cfg, state) {
+    const ctx = statusMaterialCtx(cfg, state);
+    return buildStatusMaterial({
+        ...ctx,
+        items: state.board ? state.board.items : [],
+        boardUpdatedAt: state.board ? state.board.updatedAt : null,
+        blocked: state.blockedWorkers || [],
+        order: state.priorityOrder || null,
+        repo: cfg.repo,
+        currentStatus: state.currentStatus || null,
+    });
 }
 
 /**
@@ -2824,6 +2862,16 @@ function startHttp(cfg, state, log) {
         }
         if (req.method === 'GET' && url.pathname === '/status') {
             return send(200, statusResponse(cfg, state));
+        }
+        if (req.method === 'GET' && url.pathname === '/status.json') {
+            return send(200, statusMaterialResponse(cfg, state));
+        }
+        if (req.method === 'POST' && url.pathname === '/current-status') {
+            // 「現在地を作る」（#2388）。人間が押したときだけ worker を 1 つ起動する（並行上限の外・Status は動かさない）
+            if (state.currentStatusJob) return send(409, { error: 'already running', currentStatus: state.currentStatus });
+            currentStatusJob.runCurrentStatusJob(cfg, state, log, { material: () => statusMaterialResponse(cfg, state) })
+                .catch((e) => log(`current-status error: ${e.message}`));
+            return send(202, { started: true, currentStatus: state.currentStatus });
         }
         if (req.method === 'POST' && state.booting && BOOT_BLOCKED_PATHS.has(url.pathname)) {
             // 起動待ち（#1510）: Project 情報がまだ無いので、SSO ログインを先に済ませてもらう。
@@ -3054,6 +3102,9 @@ async function main(opts = {}) {
         usagePause: null, usageOverrides: {},
         version: null, autopilotUpdate: null,
     };
+    // 現在地の artifact の URL・最終更新（#2388）は再起動をまたいで残す
+    state.currentStatusState = currentStatusJob.loadCurrentStatusState(cfg);
+    currentStatusJob.refreshCurrentStatusView(state);
     // プロセスレベルの安全網（#949/#953）: fire-and-forget な非同期経路のエラーを捕捉し、
     // 認証系は auto-pause で耐え、未知の非認証エラーは Node 準拠で exit（supervisor が再起動）。
     installProcessSafetyNet(state, log);
@@ -3120,6 +3171,7 @@ module.exports = {
     refreshBoard, recordHistory, refreshRateLimits, patchBoardCache, patchLaterCache, setLaterLabel,
     applyTrackerStickies, refreshBoardAndProjectTrackers, maybeRefreshBoardPeriodic,
     updateClaudeUsage, applyUsagePause, forceResumeUsage, boardResponse, statusResponse, startHttp,
+    statusMaterialResponse,
     checkForUpdate, startUpdateChecks,
     ensureCheckpointCommit, readContinuationFromWorktree, applyCheckpointHandling,
     collectContinuationContexts, checkpointEscalationBody,

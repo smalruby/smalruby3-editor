@@ -792,6 +792,37 @@ GitHub Projects で行い、モニタは俯瞰・log 閲覧・pause/resume/即�
   でオンデマンド取得する（見たいときだけ消費）。ブラウザ側は 5 秒ごとに `/board`（キャッシュ）を
   ポーリングして描画するだけなので GraphQL は消費しない
 
+### EPIC ごとの進み具合と「現在地」
+
+一覧の上に **EPIC ごと**の欄がある（`data-testid="epic-groups"`）。ボードの item を親の EPIC で束ね、
+EPIC の無い Issue は「単独の Issue」に 1 つにまとめる（`src/epic-summary.js` の `groupItemsByEpic`）。
+
+| 出すもの | 決め方 |
+|---|---|
+| 段 | `design`（sub-issue がまだ無い）→ `implement`（済みが全部に届かない）→ `topic-review`（全部済んだ。人間が topic をまとめて確かめる番）→ `develop`（EPIC が終端か、EPIC の PR が merge 済み） |
+| 済み / 全部 | EPIC の `subIssuesSummary`（終端の sub-issue はボードに出ないので GitHub の数を正とする）。親がボードに無いときは見えている子の数 |
+| 動いている worker | EPIC と子のうち実行中のもの |
+| 決定待ち | `state.epicDecisions[<EPIC>]`（数・`{count}`・`{items}`）。EPIC の決定待ちのまとめコメント（`<!-- autopilot-epic-decisions -->`）を書く daemon が載せる。コメントの本文から数えるときは `countEpicDecisions` |
+| 次の確認の見込み | `implement` のとき「残りの sub-issue × これまでの 1 件の時間 ÷ 並列の数」（並列は残りを超えない。1 件の時間は実行履歴を Issue ごとに足した平均。測れないときは 60 分）。`topic-review` は「いま確認できます」 |
+| 優先度 | Project の `Priority`（P0〜P3）。EPIC に無ければ子の中でいちばん高いもの |
+
+並びは 優先度 → 段 → 番号、単独は最後。親の EPIC は enrichment の GraphQL に `parent{number title}` を足して取る
+（追加の問い合わせは無い）。
+
+**現在地**は Claude に作らせる artifact（claude.ai のページ）で、モニタにはリンクと最終更新の時刻だけを出す。
+トークンを使うので、**人間が「🧭 現在地を作る」を押したときだけ**作り直す（`POST /current-status`）。
+
+1. daemon が材料（`GET /status.json` と同じ JSON）をファイルに書き、`autopilot-current-status` の worker を 1 つ起動する
+   （Issue に属さない job。Status / AI Status は動かさず、並行上限の外。走っている間は 409）。
+2. worker はテンプレート（`tools/autopilot/templates/current-status/template.html`）の下書きを
+   `bin/current-status-render.js --material … --draft …` で作り、ことば（冒頭の説明・人間にしてほしいこと・EPIC の一言・入れたもの）を
+   足して HTML にし、Artifact ツールで publish する。**2 回目からは同じ URL を更新する**。
+3. 結果ファイルの `artifactUrl` を daemon が `~/.config/autopilot/current-status.json`（`AUTOPILOT_STATE_DIR` で場所を変えられる）に
+   残し、次回の `AUTOPILOT_ARTIFACT_URL` にする。最初の URL を決めておきたいときは settings の `currentStatus.artifactUrl`。
+4. worker がテンプレートの改善の案を `templateNotes` に書くと、daemon が `current-status-notes.jsonl` にためる（モニタに数が出る）。
+   採り方は `tools/autopilot/templates/current-status/IMPROVEMENTS.md`。形が決まったら、下書き（`draftDataFromMaterial`）だけで
+   Claude なしに作れるようにする。
+
 ### 稼働バージョン表示と更新検知（#885）
 
 daemon はモジュールを**起動時にロード**するので「動いているコード = 起動時のコミット」。
@@ -1070,7 +1101,8 @@ HTTP API（curl からも操作可能）:
 | メソッド・パス | 用途 |
 |---|---|
 | `GET /` | Web モニタ（俯瞰ボード HTML） |
-| `GET /board` | 俯瞰ボードデータ（items + running + history + auth 状態 + `claudeUsage` + `usagePause` / `usageOverrides` + `version` + `autopilotUpdate` + 並列の計画 `schedule` / `schedulerLimits` / `schedulerOverrides`）を JSON で返す。items は `priority`（自分の値）と `effectivePriority`（`{priority, source: own\|inherited\|default, from}`）を持つ |
+| `GET /board` | 俯瞰ボードデータ（items + running + history + auth 状態 + `claudeUsage` + `usagePause` / `usageOverrides` + `version` + `autopilotUpdate` + `epicGroups` + `currentStatus` + 並列の計画 `schedule` / `schedulerLimits` / `schedulerOverrides`）を JSON で返す。items は `priority`（自分の値）と `effectivePriority`（`{priority, source: own\|inherited\|default, from}`）を持つ |
+| `GET /status.json` | 現在地の材料（`buildStatusMaterial`）: `groups`（EPIC ごと）・`priorities`（優先している順）・`running`・`waitingHuman`・`nextInterview`・`pendingDecisionsTotal`・`blocked`・`recentHistory`・`currentStatus` |
 | `GET /status` | `{paused, pausedBy, authError, reauthHint, reauth, booting, assignee, concurrency, claudeUsage, usagePause, usageOverrides, version, autopilotUpdate, running:[{issue,phase}]}`。`pausedBy` は `human` / `auth` / `usage`。`usagePause` は判定結果（`pause, window, percent, threshold, resetsAt, thresholds, forced[]`） |
 | `GET /log?issue=<n>` | 実行中 item の tmux pane キャプチャ（人間観測用） |
 | `POST /tick` | interval を待たず 1 サイクル即実行。`{ran, paused, picked:[...], running:[...]}` を返す。実行中は `409 {busy:true}`、pause 中は `{ran:true, paused:true, picked:[]}` の no-op |
@@ -1085,6 +1117,7 @@ HTTP API（curl からも操作可能）:
 | `POST /stop?issue=<n>` | その item の tmux セッションを kill して force-stop |
 | `POST /inject?issue=<n>&phase=<p>` | 並行上限を超えて 1 フェーズを割り込み投入 |
 | `POST /resolve-conflict?issue=<n>` | PR の base とのコンフリクトを AI に解消させる（モニタの 🔀 解消）。Status と 🙋 は変えない。並行上限の外。実行中なら 409、OPEN の PR が無ければ 409 |
+| `POST /current-status` | 「🧭 現在地を作る」。現在地の artifact を作り直す worker を 1 つ起動する（202）。走っている間は 409 |
 | `POST /shutdown` | daemon プロセスを安全停止 |
 
 ```bash
@@ -1152,6 +1185,12 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 | `tools/autopilot/src/runner.js` | tmux runner + watchdog |
 | `tools/autopilot/src/daemon.js` | 常駐 daemon（ポーリング・ディスパッチ・HTTP 制御・認証ヘルスチェック・俯瞰ボード） |
 | `tools/autopilot/src/monitor.js` | Web モニタ（俯瞰ボード・自己完結 HTML） |
+| `tools/autopilot/src/epic-summary.js` | EPIC ごとのまとめ・次の確認の見込み・現在地の材料・モニタの EPIC 欄の HTML（純粋） |
+| `tools/autopilot/src/current-status.js` | 現在地の job の結果の解釈・テンプレートの下書きと描画（純粋） |
+| `tools/autopilot/src/current-status-job.js` | 現在地の job の起動と状態ファイル（URL・最終更新・改善メモ） |
+| `tools/autopilot/templates/current-status/` | 現在地のテンプレート（`template.html`）と改善メモの置き場（`IMPROVEMENTS.md`） |
+| `tools/autopilot/bin/current-status-render.js` | 材料 → 下書き、下書き → HTML |
+| `tools/autopilot/prompts/autopilot-current-status.md` | 現在地を作る worker のプロンプト |
 | `tools/autopilot/src/usage.js` | usage ファイルから Claude 使用率（session/weekly）を読む純粋関数 |
 | `tools/autopilot/bin/usage-statusline.sh` | worker の status line。stdin JSON の `rate_limits` を usage ファイルへ書き出す |
 | `tools/autopilot/src/cli.js`, `bin/autopilot` | CLI（単発フェーズ + `daemon` サブコマンド） |

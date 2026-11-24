@@ -621,7 +621,7 @@ async function getBoardEnrichment(repo, issueNumbers, token, deps = {}) {
         const chunk = nums.slice(i, i + 50);
         const fields = chunk.map((n) =>
             `i${n}: issue(number:${n}){ number state ` +
-            'subIssuesSummary{ total completed percentCompleted } ' +
+            'subIssuesSummary{ total completed percentCompleted } parent{ number title } ' +
             'closedByPullRequestsReferences(first:10,includeClosedPrs:true){nodes{number state isDraft mergeable}} }',
         ).join(' ');
         const query = `query{repository(owner:"${owner}",name:"${name}"){ ${fields} }}`;

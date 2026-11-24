@@ -23,6 +23,8 @@
 | `src/runner.js` | tmux での worker（子 claude）起動・send-keys・watchdog ループ | 判断は `phases.js` の `evaluate` / `shouldResend` / `shouldSignalCheckpoint`（純粋）に委ねる |
 | `src/settings.js` | worker 起動設定のロード・マージ・コマンド組み立て・run 資産スナップショット | — |
 | `src/monitor.js` | Web モニタ（**自己完結 HTML**。外部 CDN / 外部リソース参照は devpod の egress allowlist で死ぬので不可） | — |
+| `src/epic-summary.js` / `src/current-status.js` | EPIC ごとのまとめ・見込み・現在地の材料とテンプレートの描画の**純粋関数**。`renderEpicGroupsHtml` はモニタへ `fn.toString()` で埋め込むので**モジュールの外を参照しない** | I/O・`Date.now()` を持ち込まない（`now` を引数で受ける） |
+| `src/current-status-job.js` | 現在地の job の I/O（worker の起動・状態ファイル・改善メモ）。daemon から呼ぶ割り込み型の job | 判断を書かない（`planCurrentStatusOutcome` を呼ぶ） |
 | `src/usage.js` / `src/version.js` / `src/pw-check.js` | usage ファイル読取 / 稼働バージョン・更新検知 / headless UI 確認ヘルパー | — |
 
 **新しい判断ロジックを追加する手順**: ① phases.js に純粋関数として書く → ② `test/` に

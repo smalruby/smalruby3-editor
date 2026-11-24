@@ -64,6 +64,8 @@ const DEFAULT_SETTINGS = {
         'address-review': { model: 'opus' },
         verify: { model: 'sonnet' },
         'resolve-conflict': { model: 'opus' },
+        // 現在地の artifact を作る job（#2388。Issue に属さない・モニタのボタンからだけ起動）
+        'current-status': { model: 'opus' },
     },
     /**
      * 1 回の run の時間（分）。`maxMinutes` を超えると runner が worker を止め、`softMinutes` で
@@ -246,6 +248,9 @@ function snapshotRunAssets(opts = {}) {
     if (opts.settings) {
         fs.writeFileSync(path.join(dir, 'settings.resolved.json'), JSON.stringify(opts.settings, null, 2));
     }
+    // 現在地などのテンプレート（#2388）もプロンプトと同じくブランチ切り替えから隔離する
+    const templates = path.join(repoRoot, 'tools', 'autopilot', 'templates');
+    if (fs.existsSync(templates)) fs.cpSync(templates, path.join(dir, 'templates'), { recursive: true });
     return { dir, promptDir };
 }
 
