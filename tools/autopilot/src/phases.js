@@ -1786,6 +1786,9 @@ function normalizeBoardEnrichment(node) {
     const nodes = (node && node.closedByPullRequestsReferences && node.closedByPullRequestsReferences.nodes) || [];
     return {
         issueState: (node && node.state) || null,
+        // 親の EPIC（#2388。EPIC ごとにまとめるため。無ければ null）
+        parent: node && node.parent && Number.isInteger(node.parent.number)
+            ? { number: node.parent.number, title: node.parent.title || '' } : null,
         subIssues: {
             total: summary.total || 0,
             completed: summary.completed || 0,

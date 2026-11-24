@@ -121,7 +121,7 @@ daemon / プロンプトが GitHub に置く「機械が識別するコメント
 | `<!-- autopilot-pr-link -->` | 非デフォルト base 宛て PR の Issue 側リンク | **base 非デフォルト時のみ**投稿（`needsPrLinkSticky`） |
 | `<!-- autopilot-continuation ... -->` | checkpoint の残タスク | ファイル + コメント。iteration で世代管理 |
 | `<!-- autopilot-tracker-status -->`（`TRACKER_STICKY_MARKER`） | 分解済み EPIC（トラッカー）Issue 本体の sub-issue 進捗 + Close 指示（#934） | `upsertMarkedComment` → 内部で `stickyUpsertPlan` を再利用（本文同一なら PATCH スキップ）。対象選別は `needsTrackerSticky`（トラッカー && 非終端 && sub-issue total>0） |
-| `<!-- autopilot-epic-decisions -->`（`EPIC_DECISIONS_MARKER`・`epic-flow.js`） | EPIC の Issue の「決定待ち」まとめコメント（1 つ）。**書くのは daemon だけ**（worker は結果の `decisions` で渡す） | `nextEpicDecisionsBody` — 埋めた JSON と合わせて同じものは置きかえ、変わらなければ書かない（`upsertMarkedComment`） |
+| `<!-- autopilot-epic-decisions count=N -->`（`EPIC_DECISIONS_MARKER`・`epic-flow.js`） | EPIC の Issue の「決定待ち」まとめコメント（1 つ）。**書くのは daemon だけ**（worker は結果の `decisions` で渡す） | `nextEpicDecisionsBody` — 埋めた JSON と合わせて同じものは置きかえ、変わらなければ書かない（`upsertMarkedComment`） |
 | `<!-- autopilot-review-findings round=N -->`（`reviewFindingsMarker`） | review フェーズの全指摘のまとめコメント（`M1` / `Q1` / `FYI1` 連番・#1248） | `findReviewFindingsComment` — 同じ round が既にあれば **PATCH**（二重投稿しない）。新 round は `nextReviewFindingsRound`、連番の継続は `nextReviewFindingNumbers` |
 
 新種のマーカー付きコメントを追加するときも同じ形（マーカー定数 + 判定純粋関数 +

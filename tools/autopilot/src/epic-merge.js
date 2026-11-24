@@ -19,6 +19,7 @@ const {
     nextEpicDecisionsBody, mustExhaustedBody, autoMergePlan, selectAutoMergeCandidates, mustFixPlan,
 } = require('./epic-flow');
 const { nextReviewFindingsRound, sanitizeForSurface, selectRequestedReviews } = require('./phases');
+const { countEpicDecisions } = require('./epic-summary');
 
 /**
  * EPIC の「決定待ち」まとめコメントに決定待ちを書き足す（書くのは daemon だけ）。
@@ -40,10 +41,14 @@ async function appendEpicDecisions(issue, entries, cfg, log, deps = {}) {
         return null;
     }
     const comments = await listComments(cfg.repo, epic, readTok);
-    const body = nextEpicDecisionsBody(findEpicDecisionsComment(comments), entries);
+    const existing = findEpicDecisionsComment(comments);
+    const body = nextEpicDecisionsBody(existing, entries);
+    // EPIC の欄（epic-summary.js）の「決定待ち」の数へつなぐ。変わらなくても数は知らせる
+    const count = countEpicDecisions(body || (existing && existing.body) || '');
+    if (deps.onDecisions) deps.onDecisions(epic, count);
     if (!body) return epic;
     await upsert(cfg.repo, epic, [EPIC_DECISIONS_MARKER], body, botTok, { readToken: readTok });
-    log(`#${issue}: EPIC #${epic} の決定待ちに ${entries.length} 件を書きました`);
+    log(`#${issue}: EPIC #${epic} の決定待ちに ${entries.length} 件を書きました（全部で ${count} 件）`);
     return epic;
 }
 

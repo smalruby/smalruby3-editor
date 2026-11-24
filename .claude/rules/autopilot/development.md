@@ -16,12 +16,15 @@
 | モジュール | 責務 | 禁止事項 |
 |---|---|---|
 | `src/phases.js` | 判断ロジックの**純粋関数のみ**（フェーズ選択・ゲート解除・watchdog 判断・ラベル差分・sticky 計画・ディレクティブ解析・サニタイズ） | I/O・時計（`Date.now()`）・乱数を持ち込まない。時刻は ms epoch / ISO 文字列を**引数で受け** `toMs` で正規化する |
+| `src/scheduler.js` | 並列の計画（重さの推定・上限と空きメモリ・CPU）と優先度の並べ替えの**純粋関数のみ** | /proc・`os.loadavg`・GitHub を読まない（daemon が読んで値を渡す）。時計を持ち込まない |
 | `src/contract.js` | 結果ペイロード（`AUTOPILOT_RESULT_FILE`）の検証。`TOKENS` / `SIGNALS` / `validateResult` | スキーマを変えるときは `docs/autopilot/autonomous-contract.md` §2 と**対で更新** |
 | `src/project.js` | GitHub（Projects v2 / Issue / PR / ラベル / sticky）への **gh CLI ラッパ**。GitHub I/O はここに集約 | 判断ロジックを書かない（純粋な選別・整形は phases.js へ） |
 | `src/daemon.js` | 常駐 tick のオーケストレーション（poll → dispatch → `apply*` ステップ群 → face sync）と HTTP 制御 | 判定は phases.js の純粋関数を呼ぶ。直接 GitHub を叩かず project.js を使う |
 | `src/runner.js` | tmux での worker（子 claude）起動・send-keys・watchdog ループ | 判断は `phases.js` の `evaluate` / `shouldResend` / `shouldSignalCheckpoint`（純粋）に委ねる |
 | `src/settings.js` | worker 起動設定のロード・マージ・コマンド組み立て・run 資産スナップショット | — |
 | `src/monitor.js` | Web モニタ（**自己完結 HTML**。外部 CDN / 外部リソース参照は devpod の egress allowlist で死ぬので不可） | — |
+| `src/epic-summary.js` / `src/current-status.js` | EPIC ごとのまとめ・見込み・現在地の材料とテンプレートの描画の**純粋関数**。`renderEpicGroupsHtml` はモニタへ `fn.toString()` で埋め込むので**モジュールの外を参照しない** | I/O・`Date.now()` を持ち込まない（`now` を引数で受ける） |
+| `src/current-status-job.js` | 現在地の job の I/O（worker の起動・状態ファイル・改善メモ）。daemon から呼ぶ割り込み型の job | 判断を書かない（`planCurrentStatusOutcome` を呼ぶ） |
 | `src/usage.js` / `src/version.js` / `src/pw-check.js` | usage ファイル読取 / 稼働バージョン・更新検知 / headless UI 確認ヘルパー | — |
 
 **新しい判断ロジックを追加する手順**: ① phases.js に純粋関数として書く → ② `test/` に

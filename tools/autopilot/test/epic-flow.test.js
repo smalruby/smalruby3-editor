@@ -100,7 +100,11 @@ test('決定待ち: 正規化・重複の置きかえ・まとめコメントの
     assert.equal(ef.normalizeDecision({ kind: 'question', title: ' ' }), null);
     const d2 = ef.normalizeDecision({ kind: 'two-way', title: '並べ方', recommendation: '縦', alternatives: ['横'], adopted: '縦', altPr: 21, preview: 'https://p/a/', altPreview: 'https://p/b/' }, { issue: 11, pr: 22 });
     const body = ef.nextEpicDecisionsBody(null, [d1, d2]);
-    assert.ok(body.startsWith(ef.EPIC_DECISIONS_MARKER));
+    assert.ok(body.startsWith(`${ef.EPIC_DECISIONS_MARKER} count=2 -->`));
+    // EPIC の欄の「決定待ち」の数（epic-summary.js）が読める
+    assert.equal(require('../src/epic-summary').countEpicDecisions(body), 2);
+    assert.equal(ef.findEpicDecisionsComment([{ id: 1, body: 'x' }, { id: 2, body }]).id, 2);
+    assert.equal(ef.findEpicDecisionsComment([{ id: 3, body: '<!-- autopilot-epic-decisions -->' }]).id, 3);
     assert.match(body, /### #10 \/ PR #20/);
     assert.match(body, /別案 #21（draft）/);
     assert.match(body, /プレビュー https:\/\/p\/a\//);
@@ -196,8 +200,9 @@ const quiet = () => {};
 
 test('applyEpicRunSideEffects: decisions と escalation を EPIC のまとめコメントに書く', async () => {
     const calls = [];
+    const counts = {};
     const deps = {
-        token: 'b', readToken: 'r',
+        token: 'b', readToken: 'r', onDecisions: (epic, n) => { counts[epic] = n; },
         getParentIssueNumber: async () => 100,
         listIssueComments: async () => [],
         upsertMarkedComment: async (repo, n, markers, body) => calls.push({ kind: 'upsert', n, body }),
@@ -211,6 +216,7 @@ test('applyEpicRunSideEffects: decisions と escalation を EPIC のまとめコ
     assert.equal(up.n, 100);
     const data = ef.parseEpicDecisionsData(up.body);
     assert.deepEqual(data.map((d) => d.kind), ['not-adopted', 'must-exhausted']);
+    assert.deepEqual(counts, { 100: 2 });
     const post = calls.find((c) => c.kind === 'post');
     assert.equal(post.n, 7);
     assert.match(post.body, /EPIC #100/);

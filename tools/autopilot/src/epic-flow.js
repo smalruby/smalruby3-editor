@@ -65,8 +65,12 @@ const DECISION_KIND_LABELS = {
 /** 止めている（人間の答えが要る）種類 */
 const BLOCKING_DECISION_KINDS = new Set(['diverge', 'must-exhausted', 'unexpected-hitl']);
 
-/** EPIC の「決定待ち」まとめコメントのマーカー（1 つだけ。書くのは daemon だけ） */
-const EPIC_DECISIONS_MARKER = '<!-- autopilot-epic-decisions -->';
+/**
+ * EPIC の「決定待ち」まとめコメントのマーカー（1 つだけ。書くのは daemon だけ）。探すときはこの接頭辞で
+ * 見つける。書くときは `<!-- autopilot-epic-decisions count=N -->` にして、件数を
+ * epic-summary.js の countEpicDecisions（EPIC の欄の「決定待ち」の数）が読めるようにする。
+ */
+const EPIC_DECISIONS_MARKER = '<!-- autopilot-epic-decisions';
 
 /** まとめコメントに埋める機械用データ（base64 の JSON。`-->` を含まないように） */
 const EPIC_DECISIONS_DATA_RE = /<!--\s*autopilot-epic-decisions-data:([A-Za-z0-9+/=]*)\s*-->/;
@@ -269,7 +273,7 @@ function parseEpicDecisionsData(body) {
  * @returns {object|null}
  */
 function findEpicDecisionsComment(comments) {
-    return (comments || []).find((c) => c && String(c.body || '').includes(EPIC_DECISIONS_MARKER)) || null;
+    return (comments || []).find((c) => c && /<!--\s*autopilot-epic-decisions(\s[^>]*)?-->/.test(String(c.body || ''))) || null;
 }
 
 /** 1 行に収める（改行を空白に） */
@@ -286,7 +290,7 @@ function renderEpicDecisionsComment(entries) {
     const list = entries || [];
     const blocking = list.filter((d) => BLOCKING_DECISION_KINDS.has(d.kind)).length;
     const lines = [
-        EPIC_DECISIONS_MARKER,
+        `${EPIC_DECISIONS_MARKER} count=${list.length} -->`,
         '## 決定待ち（autopilot がまとめています）',
         '',
         list.length

@@ -80,6 +80,16 @@ review / verify などのプロンプトから **`/code-review` / `/security-rev
 - daemon は worker の申告を信じきらず、merge の完了・base の取り込み・PR ブランチへの push を git で
   確かめる（`runConflictResolver`）。確かめられなければ merge を中断して人間へ渡す。
 
+## 現在地を作る job（current-status）
+
+- `autopilot-current-status` は **Issue に属さない割り込み型の job**（`AUTOPILOT_ISSUE=0`）。`PHASE_BY_COMMAND` に
+  入れず、`phaseForItem` にも足さない（Status / AI Status を持たない）。起動はモニタのボタン（`POST /current-status`）だけ。
+- artifact は**同じ URL を更新する**。URL は daemon が状態ファイルに持ち、`AUTOPILOT_ARTIFACT_URL` で渡す。プロンプトに
+  新しい artifact を作らせる分岐は「URL が空のとき」だけにする。
+- ページの形はテンプレート（`tools/autopilot/templates/current-status/`）が正。worker はデータ（ことば）だけを足し、形の
+  改善は `templateNotes` に出す（テンプレートを直すのは人間か指揮役の PR）。データの形を変えたら
+  `TEMPLATE_DATA_SCHEMA`・`draftDataFromMaterial`・`template.html` を対で直す。
+
 ## 本文ディレクティブの記法（行頭マーカー）
 
 Issue 本文のディレクティブは **行頭のみ**で発火する（`phases.js` の `parseBaseBranch` /
@@ -95,6 +105,8 @@ Issue 本文のディレクティブは **行頭のみ**で発火する（`phase
   探索する（コメント・PR は見ない）。指定 login が Assignees に含まれていなければ無視して
   従来どおり辞書順先頭（`resolveOwner`）。0/1 人の Issue はディレクティブが無意味なので
   本文 fetch 自体を行わない（`populateAssigneeDirectives`・API 予算規約）。
+- `autopilot-weight: heavy|light` — 作業の重さの明示（並列の計画・`scheduler.js` の
+  `parseWeightDirective`）。中身からの推測とフェーズの既定より優先する。
 - **誤マッチ回避**: 本文や docs でディレクティブを**説明**するときは行頭に置かない
   （箇条書き `- \`autopilot-after: ...\`` やインラインコードにする）。行頭に生で書くと
   実際に発火する。

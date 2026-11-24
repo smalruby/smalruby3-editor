@@ -281,8 +281,30 @@ test('getIssueMeta: REST 1 回で body/labels/state を返す', async () => {
         return JSON.stringify({ body: 'b', labels: [{ name: '🤖 autopilot' }], state: 'open' });
     };
     const meta = await getIssueMeta('o/r', 5, 't', { gh: fakeGh });
-    assert.deepEqual(meta, { body: 'b', labels: ['🤖 autopilot'], state: 'OPEN' });
+    assert.deepEqual(meta, { body: 'b', labels: ['🤖 autopilot'], state: 'OPEN', parent: null });
     assert.deepEqual(captured, ['api', 'repos/o/r/issues/5']);
+});
+
+test('getIssueMeta: parent_issue_url から親の番号を取る（EPIC #2384）', async () => {
+    const { getIssueMeta, parentIssueNumber } = require('../src/project');
+    const fakeGh = () => JSON.stringify({ body: '', labels: [], state: 'open',
+        parent_issue_url: 'https://api.github.com/repos/o/r/issues/2384' });
+    assert.equal((await getIssueMeta('o/r', 5, 't', { gh: fakeGh })).parent, 2384);
+    assert.equal(parentIssueNumber(null), null);
+});
+
+test('normalizeProjectItem: Priority を読む（EPIC #2384）', () => {
+    const { normalizeProjectItem } = require('../src/project');
+    const it = normalizeProjectItem({ id: 'x', content: { number: 1, title: 't' }, priority: 'P1' });
+    assert.equal(it.priority, 'P1');
+    assert.equal(normalizeProjectItem({ id: 'x', content: { number: 1 } }).priority, null);
+});
+
+test('setPriority: getFields に無ければ予備の field id で設定する', async () => {
+    const { setPriority, PRIORITY_FIELD_FALLBACK } = require('../src/project');
+    // gh の I/O を注入できないので、未知の option で失敗する経路だけ確かめる
+    await assert.rejects(setPriority({ projectId: 'p', fields: {} }, 'i', 'P9', 'tok'), /no option "P9"/);
+    assert.equal(PRIORITY_FIELD_FALLBACK.options.P0, '8f8a727e');
 });
 
 test('closeIssue: runs `gh issue close` for the given issue (#843)', async () => {

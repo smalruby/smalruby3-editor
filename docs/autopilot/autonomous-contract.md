@@ -103,6 +103,14 @@ Runner はこの短語を pane で検出してから `AUTOPILOT_RESULT_FILE` を
 | `error` | string | エラーメッセージ |
 | `recoverable` | boolean | 再試行で回復しうるか |
 
+現在地を作る job（`phase=current-status`・`issue=0`）は `signal=done` で追加に次を書く（`validateResult` は知らない
+キーを通すので、daemon の `planCurrentStatusOutcome` が読む）:
+
+| key | 型 | 説明 |
+|---|---|---|
+| `artifactUrl` | string | publish した artifact の URL（`https://claude.ai/artifact/…`）。更新でも書く |
+| `templateNotes` | string[] | テンプレートの改善の案（無ければ空） |
+
 ### 2.4 例
 
 ```json
@@ -190,7 +198,7 @@ PR の base が `topic/...` の Issue（EPIC の sub-issue）では、daemon が
 | `mustCount` | number（0 以上の整数） | **review**: このレビューで直しきれず残った Must の数。daemon が次を決める（0 → topic へ自動マージ待ち / あり → address-review が直す / 3 回直しても残る → その sub-issue だけ Blocked + 🙋） |
 | `round` | number（1 以上の整数） | **review**: まとめコメントの round。直した回数 = round − 1 |
 | `hitlKind` | `"diverge"`\|`"must-exhausted"`\|`"environment"`\|`"design"` | `signal=hitl` の理由。EPIC の子の triage / discuss / decompose / review で、これが `diverge` / `environment` 以外の 🙋 は daemon が「想定外の確認」として決定待ちに載せる（🙋 は残す）。`design` は EPIC そのものの設計の承認 |
-| `decisions` | object[] | EPIC の「決定待ち」に載せるもの。daemon が EPIC の Issue のまとめコメント（`<!-- autopilot-epic-decisions -->`・1 つ）に書き足す。**worker はそのコメントを書かない** |
+| `decisions` | object[] | EPIC の「決定待ち」に載せるもの。daemon が EPIC の Issue のまとめコメント（`<!-- autopilot-epic-decisions count=N -->`・1 つ）に書き足す。**worker はそのコメントを書かない** |
 
 `decisions[]` の 1 件:
 

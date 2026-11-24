@@ -134,6 +134,8 @@ function normalizeProjectItem(i) {
         hitlLabel: labels.includes(HITL_LABEL),
         kind: i.kind,
         size: i.size,
+        // Project の Priority（P0〜P3・EPIC #2384）。gh の item-list はフィールド名を小文字始まりで返す
+        priority: i.priority ?? i.Priority ?? null,
         assignees: Array.isArray(i.assignees) ? i.assignees : [],
     };
 }
@@ -349,7 +351,19 @@ async function getIssueMeta(repo, issueNumber, token, deps = {}) {
         body: j.body || '',
         labels: (j.labels || []).map((l) => (typeof l === 'string' ? l : l.name)),
         state: (j.state || '').toUpperCase(),
+        // 親 Issue（sub-issue の親 EPIC）。REST の parent_issue_url から番号だけ取る（追加の API なし）
+        parent: parentIssueNumber(j.parent_issue_url),
     };
+}
+
+/**
+ * REST の `parent_issue_url`（…/issues/<N>）から親 Issue の番号を取り出す（純粋）。
+ * @param {string|null|undefined} url
+ * @returns {number|null}
+ */
+function parentIssueNumber(url) {
+    const m = /\/issues\/(\d+)$/.exec(url || '');
+    return m ? Number(m[1]) : null;
 }
 
 /**
@@ -609,7 +623,7 @@ async function getBoardEnrichment(repo, issueNumbers, token, deps = {}) {
         const chunk = nums.slice(i, i + 50);
         const fields = chunk.map((n) =>
             `i${n}: issue(number:${n}){ number state ` +
-            'subIssuesSummary{ total completed percentCompleted } ' +
+            'subIssuesSummary{ total completed percentCompleted } parent{ number title } ' +
             'closedByPullRequestsReferences(first:10,includeClosedPrs:true){nodes{number state isDraft mergeable}} }',
         ).join(' ');
         const query = `query{repository(owner:"${owner}",name:"${name}"){ ${fields} }}`;
@@ -660,20 +674,13 @@ async function getRateLimit(token, deps = {}) {
 }
 
 /**
- * sub-issue の親 Issue の番号を返す（REST `issues/<n>/parent`）。親が無ければ null（404）。
+ * sub-issue の親 Issue の番号を返す。親が無ければ null。
  * EPIC の「決定待ち」まとめコメントを書く先を見つけるのに使う（#2385）。
  * @returns {Promise<number|null>}
  */
 async function getParentIssueNumber(repo, issueNumber, token, deps = {}) {
-    const ghFn = deps.gh || gh;
-    try {
-        const out = await ghFn(['api', `repos/${repo}/issues/${issueNumber}/parent`, '--jq', '.number'], { token });
-        const n = Number(String(out).trim());
-        return Number.isInteger(n) && n > 0 ? n : null;
-    } catch (e) {
-        if (/404|Not Found/i.test(String(e && (e.stderr || e.message)))) return null;
-        throw e;
-    }
+    // getIssueMeta が REST の parent_issue_url から取る parent を使う（#2388 と同じ 1 回の REST）
+    return (await getIssueMeta(repo, issueNumber, token, deps)).parent || null;
 }
 
 /**
@@ -707,6 +714,29 @@ async function listPrReviews(repo, prNumber, token, deps = {}) {
     return String(out).split('\n').filter(Boolean).map((line) => JSON.parse(line));
 }
 
+/**
+ * Project の Priority フィールド（EPIC #2384）。`getFields` の結果に無いとき（古い起動時の
+ * キャッシュなど）のための予備の id。Bot で作成済み（2026-11-25）。
+ */
+const PRIORITY_FIELD_FALLBACK = {
+    id: 'PVTSSF_lADOAE31pc4Bb4n_zhrOPEg',
+    type: 'ProjectV2SingleSelectField',
+    options: { P0: '8f8a727e', P1: '746cb320', P2: '52b4d141', P3: '44b155b6' },
+};
+
+/**
+ * item の Priority を設定する（null でクリア）。書き込みなので Bot トークン。
+ * @param {{projectId:string, fields:object}} ctx
+ * @param {string} itemId
+ * @param {string|null} priority 'P0'〜'P3'
+ * @param {string} [token]
+ */
+async function setPriority(ctx, itemId, priority, token) {
+    const fields = { ...(ctx.fields || {}) };
+    if (!fields.Priority) fields.Priority = PRIORITY_FIELD_FALLBACK;
+    await setField({ ...ctx, fields }, itemId, 'Priority', priority, token || await botToken());
+}
+
 /** applyResult が返す意図配列を Project に反映する */
 async function applyIntents(ctx, itemId, intents, token) {
     const applied = [];
@@ -719,6 +749,7 @@ async function applyIntents(ctx, itemId, intents, token) {
 
 module.exports = {
     botToken, readToken, boardToken, gh, getProject, getFields, listItems, normalizeProjectItem, findItemId, addIssue, setField, applyIntents,
+    setPriority, PRIORITY_FIELD_FALLBACK, parentIssueNumber,
     botLogin, findPrForIssue, selectClosingPr, selectHeadPr, hasMergedHeadPr,
     getGateContext, hasMergedPullRequest, REPO_ROOT,
     getPrInfo, getIssueLabels, getIssueBody, editLabels, setPrDraft, upsertStickyComment, upsertMarkedComment,

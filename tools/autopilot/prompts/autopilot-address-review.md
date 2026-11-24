@@ -34,7 +34,7 @@ PR の base が `topic/...`（Issue 本文の `autopilot-base:`）のとき、da
 
 それ以外の判断（仕様の小さな選択・命名・見送り）は **AI のおすすめで決めて進め**、結果ファイルの
 `decisions` に書く。daemon が EPIC の Issue の「決定待ち」まとめコメント
-（`<!-- autopilot-epic-decisions -->`）に書き足す（**worker はそのコメントを書かない**）:
+（`<!-- autopilot-epic-decisions count=N -->`）に書き足す（**worker はそのコメントを書かない**）:
 
 ```json
 "decisions":[{"kind":"ai-decision","ref":null,"title":"<何を決めたか>","recommendation":"<AI の案（採ったもの）>",
