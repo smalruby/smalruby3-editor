@@ -237,6 +237,14 @@ const MONITOR_HTML = `<!doctype html>
                     font-size: .72rem; font-weight: 600; }
   td button.later-btn { white-space: nowrap; }
   td button.later-btn[disabled] { cursor: progress; opacity: .6; }
+  /* ---- 優先度と並列の計画（EPIC #2384） ---- */
+  .prio { display: inline-flex; align-items: center; gap: .1rem; margin-right: .3rem; white-space: nowrap; }
+  .prio b { font-size: .72rem; padding: 0 .3rem; border-radius: .3rem; background: #e2e8f0; color: #334155; }
+  .prio b.p0 { background: #fee2e2; color: #991b1b; } .prio b.p1 { background: #ffedd5; color: #9a3412; }
+  .prio b.inh { font-weight: 400; font-style: italic; }
+  .prio button { font-size: .6rem; padding: 0 .2rem; line-height: 1.1; }
+  #schedule { font-size: .75rem; color: var(--muted); margin: .2rem 1rem; }
+  #schedule button { font-size: .7rem; padding: 0 .3rem; }
   h2 { font-size: .85rem; color: var(--muted); margin: 1.2rem 0 .4rem; }
   /* ---- log モーダル ---- */
   #modal { position: fixed; inset: 0; background: rgba(15,23,42,.55); display: none; align-items: center; justify-content: center; z-index: 50; }
@@ -278,6 +286,7 @@ const MONITOR_HTML = `<!doctype html>
   <span class="meta" id="meta"></span>
 </header>
 <div id="alerts"></div>
+<div id="schedule" data-testid="schedule-plan"></div>
 <main>
   <div id="humanwaits"></div>
   <div id="epicgroups" data-testid="epic-groups"></div>
@@ -824,6 +833,57 @@ async function toggleLater(issue, later) {
   rerender();
 }
 
+// ---- 優先度の ▲▼ と並列の計画の 1 行（EPIC #2384） ----
+// 自分の Priority が無い行は親（EPIC）から継いだ値を斜体で出す。EPIC の行で動かすと継いでいる sub-issue にも効く。
+function prioCtl(it) {
+  const e = it.effectivePriority || { priority: it.priority || 'P2', source: it.priority ? 'own' : 'default' };
+  const p = e.priority || 'P2';
+  const tip = e.source === 'own' ? '優先度 ' + p : (e.source === 'inherited' ? '#' + e.from + ' から継いだ優先度 ' + p : '優先度は未設定（既定 ' + p + '）');
+  const epic = (it.tracker || it.kind === 'EPIC') ? '（EPIC: 継いでいる sub-issue にも効く）' : '';
+  return '<span class="prio" data-testid="board-priority" data-issue="' + it.issue + '">'
+    + '<b class="' + p.toLowerCase() + (e.source === 'own' ? '' : ' inh') + '" title="' + esc(tip + epic) + '">' + p + '</b>'
+    + '<button data-testid="board-priority-up" title="優先度を上げる' + epic + '" onclick="movePriority(' + it.issue + ', -1)">▲</button>'
+    + '<button data-testid="board-priority-down" title="優先度を下げる' + epic + '" onclick="movePriority(' + it.issue + ', 1)">▼</button></span>';
+}
+// step: -1 = 上げる / 1 = 下げる（onclick に文字列を書かない: このスクリプトは template literal の中）
+async function movePriority(issue, step) {
+  const direction = step < 0 ? 'up' : 'down';
+  try {
+    const r = await fetch('/priority', { method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ issue, direction }) });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || r.status);
+    const it = lastBoard && (lastBoard.items || []).find((x) => x.issue === issue);
+    if (it) { it.priority = j.priority; it.effectivePriority = { priority: j.priority, source: 'own', from: null }; }
+    rerender();
+  } catch (e) { alert('#' + issue + ' の優先度を変えられませんでした: ' + e.message); }
+}
+function renderSchedule(d) {
+  const el = document.getElementById('schedule');
+  if (!el) return;
+  const L = d.schedulerLimits || {};
+  const ov = d.schedulerOverrides || {};
+  const step = (k, delta) => '<button data-testid="schedule-' + k + '-' + (delta > 0 ? 'up' : 'down') + '" onclick="changeLimit(' + LIMIT_KEYS.indexOf(k) + ', ' + delta + ')">' + (delta > 0 ? '+' : '−') + '</button>';
+  const reason = d.schedule ? esc(d.schedule.reason) : '（まだ計画していません）';
+  el.innerHTML = '🧮 ' + reason + ' · 上限 全体 ' + step('maxTotal', -1) + ' <b>' + (L.maxTotal ?? '?') + '</b> ' + step('maxTotal', 1)
+    + ' 重い ' + step('maxHeavy', -1) + ' <b>' + (L.maxHeavy ?? '?') + '</b> ' + step('maxHeavy', 1)
+    + (Object.keys(ov).length ? ' <span title="モニターで変えた値（再起動で消える）">（一時変更中 <button onclick="resetLimits()">戻す</button>）</span>' : '');
+}
+async function postScheduler(body) {
+  try {
+    const r = await fetch('/scheduler', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    const j = await r.json();
+    if (lastBoard) { lastBoard.schedulerLimits = j.limits; lastBoard.schedulerOverrides = j.overrides; renderSchedule(lastBoard); }
+  } catch (e) { alert('上限を変えられませんでした: ' + e.message); }
+}
+const LIMIT_KEYS = ['maxTotal', 'maxHeavy'];
+function changeLimit(idx, delta) {
+  const k = LIMIT_KEYS[idx];
+  const cur = (lastBoard && lastBoard.schedulerLimits && lastBoard.schedulerLimits[k]) || 0;
+  postScheduler({ [k]: Math.max(0, cur + delta) });
+}
+function resetLimits() { postScheduler({ maxTotal: null, maxHeavy: null }); }
+
 function renderBoard(d) {
   const runningBy = {};
   for (const r of d.running || []) runningBy[r.issue] = r;
@@ -869,6 +929,7 @@ function renderBoard(d) {
     return '<tr class="' + cls + copyFlashAttrs(it) + '" data-issue="' + it.issue + '">'
       + '<td class="title-cell"><span class="title-line">' + copyBtn(it) + '<a target="_blank" rel="noopener" href="' + esc(it.url) + '">#' + it.issue + '</a>'
       + prInline + prMenu
+      + prioCtl(it)
       + '<span class="t" title="' + esc(it.title) + '">' + esc(it.title) + '</span>' + kindMark + waitMark + '</span></td>'
       + '<td>' + statusPill(it.status) + '</td>'
       + '<td>' + sizeBadge(it.size) + '</td>'
@@ -909,7 +970,7 @@ async function refresh() {
     else if (d.paused) { st.className = 'pill paused'; st.textContent = 'PAUSED'; }
     else { st.className = 'pill ok'; st.textContent = 'RUNNING'; }
     document.getElementById('meta').textContent =
-      (d.assignee ? '👤 ' + d.assignee + ' · ' : '') + '並行 ' + d.concurrency
+      (d.assignee ? '👤 ' + d.assignee + ' · ' : '') + '並行 ' + (d.schedulerLimits ? d.schedulerLimits.maxTotal + '（重い ' + d.schedulerLimits.maxHeavy + '）' : d.concurrency)
       + ' · 実行中 ' + (d.running || []).length
       + (d.rate && d.rate.minRemaining != null ? ' · API残 ' + d.rate.minRemaining + (d.rate.warn ? '⚠' : '') : '')
       + (d.updatedAt ? ' · 更新 ' + Math.round((Date.now() - d.updatedAt) / 1000) + 's前' : '');
@@ -924,6 +985,7 @@ async function refresh() {
     renderUsage(d);
     renderVersion(d);
     renderAlerts(d);
+    renderSchedule(d);
     renderBoard(d);
     renderHistory(d);
   } catch (e) {

@@ -134,6 +134,8 @@ function normalizeProjectItem(i) {
         hitlLabel: labels.includes(HITL_LABEL),
         kind: i.kind,
         size: i.size,
+        // Project の Priority（P0〜P3・EPIC #2384）。gh の item-list はフィールド名を小文字始まりで返す
+        priority: i.priority ?? i.Priority ?? null,
         assignees: Array.isArray(i.assignees) ? i.assignees : [],
     };
 }
@@ -347,7 +349,19 @@ async function getIssueMeta(repo, issueNumber, token, deps = {}) {
         body: j.body || '',
         labels: (j.labels || []).map((l) => (typeof l === 'string' ? l : l.name)),
         state: (j.state || '').toUpperCase(),
+        // 親 Issue（sub-issue の親 EPIC）。REST の parent_issue_url から番号だけ取る（追加の API なし）
+        parent: parentIssueNumber(j.parent_issue_url),
     };
+}
+
+/**
+ * REST の `parent_issue_url`（…/issues/<N>）から親 Issue の番号を取り出す（純粋）。
+ * @param {string|null|undefined} url
+ * @returns {number|null}
+ */
+function parentIssueNumber(url) {
+    const m = /\/issues\/(\d+)$/.exec(url || '');
+    return m ? Number(m[1]) : null;
 }
 
 /**
@@ -657,6 +671,29 @@ async function getRateLimit(token, deps = {}) {
     return { core: pick(r.core), graphql: pick(r.graphql) };
 }
 
+/**
+ * Project の Priority フィールド（EPIC #2384）。`getFields` の結果に無いとき（古い起動時の
+ * キャッシュなど）のための予備の id。Bot で作成済み（2026-11-25）。
+ */
+const PRIORITY_FIELD_FALLBACK = {
+    id: 'PVTSSF_lADOAE31pc4Bb4n_zhrOPEg',
+    type: 'ProjectV2SingleSelectField',
+    options: { P0: '8f8a727e', P1: '746cb320', P2: '52b4d141', P3: '44b155b6' },
+};
+
+/**
+ * item の Priority を設定する（null でクリア）。書き込みなので Bot トークン。
+ * @param {{projectId:string, fields:object}} ctx
+ * @param {string} itemId
+ * @param {string|null} priority 'P0'〜'P3'
+ * @param {string} [token]
+ */
+async function setPriority(ctx, itemId, priority, token) {
+    const fields = { ...(ctx.fields || {}) };
+    if (!fields.Priority) fields.Priority = PRIORITY_FIELD_FALLBACK;
+    await setField({ ...ctx, fields }, itemId, 'Priority', priority, token || await botToken());
+}
+
 /** applyResult が返す意図配列を Project に反映する */
 async function applyIntents(ctx, itemId, intents, token) {
     const applied = [];
@@ -669,6 +706,7 @@ async function applyIntents(ctx, itemId, intents, token) {
 
 module.exports = {
     botToken, readToken, boardToken, gh, getProject, getFields, listItems, normalizeProjectItem, findItemId, addIssue, setField, applyIntents,
+    setPriority, PRIORITY_FIELD_FALLBACK, parentIssueNumber,
     botLogin, findPrForIssue, selectClosingPr, selectHeadPr, hasMergedHeadPr,
     getGateContext, hasMergedPullRequest, REPO_ROOT,
     getPrInfo, getIssueLabels, getIssueBody, editLabels, setPrDraft, upsertStickyComment, upsertMarkedComment,

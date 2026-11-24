@@ -121,10 +121,48 @@ daemon に `--assignee <GitHub login>`（または env `AUTOPILOT_ASSIGNEE`）�
   item を表示する（下記「俯瞰ボード」参照）。ある機能に詳しくない担当が別の担当に駆動を
   引き継ぎつつ、進捗だけ自分の monitor で見続けたいケースを想定する。
 
-### 投入順は Project Board view の見た目
+### 投入順は 優先度 → after が解けたもの → Project Board view の見た目
 
-着手候補は **Board view の見た目**（Status 列順 = Status フィールドの option 定義順、
-列内は Project の手動並び順）で評価する。Project 上で上に置いた item から処理される。
+着手候補は、まず **Project の `Priority`**（P0〜P3。P0 が最優先）の順に並べる。sub-issue は自分に
+`Priority` が無ければ**親の EPIC の値を継ぐ**（親の親まで遡る。どこにも無ければ P2 とみなす）。
+`autopilot-after` が解けていないものは除き、同じ優先度の中は **Board view の見た目**（Status 列順 =
+Status フィールドの option 定義順、列内は Project の手動並び順）の順。Project 上で上に置いた item から
+処理される。優先度はモニターの ▲▼ でも変えられる（下記「並列の計画と優先度」）。
+
+### 並列の計画と優先度
+
+同時に動かす worker の数は固定ではなく、**dispatch のたびに作業の重さと空きメモリ・CPU から決める**
+（判断は `tools/autopilot/src/scheduler.js` の純粋関数。daemon は `/proc/meminfo` と `os.loadavg()` を読んで渡すだけ）。
+
+- **重さ**（heavy / light）。重さの原因は CPU とメモリ。決め方の順番:
+  1. Issue 本文の `autopilot-weight: heavy|light`（行頭のみ・下のディレクティブ表）
+  2. 中身で重さが変わるフェーズ（implement・verify・address-review・resolve-conflict）は、タイトルと本文の
+     言葉から推測する。表（`LOAD_PATTERNS`）: jest・integration・ブラウザ（playwright / selenium / e2e /
+     スクリーンショット）・webpack / build / dev server・`packages/scratch-gui` は重い（2 点）、lint・テスト・
+     scratch-vm（tap）は 1 点。docs だけ・`tools/autopilot` は軽い。重い点が 2 以上で重い、軽い点の方が
+     大きければ軽い。「テスト」だけでは重くしない（ほとんどの Issue に出るため）
+  3. フェーズの既定: implement・verify は重い。triage・understand・decompose・discuss・review・
+     address-review・resolve-conflict は軽い
+- **計画**（既定。`settings.json` の `scheduler` で変えられる）:
+
+  | 設定 | 既定 | 意味 |
+  |---|---|---|
+  | `maxTotal` | 6 | 同時に動かす worker の上限（CLI の `--concurrency` を付けたときはその値） |
+  | `maxHeavy` | 2 | 同時に動かす重い worker の上限 |
+  | `heavyMinMemMb` | 2560 | 空きメモリがこれ未満なら重いものを始めない |
+  | `anyMinMemMb` | 1024 | 空きメモリがこれ未満なら新しい作業を始めない |
+  | `heavyMemMb` / `lightMemMb` | 1500 / 300 | 同じ tick で始めた分として空きから引く見込み（始めてすぐにはメモリが減らないため） |
+  | `heavyMaxLoadPerCpu` / `maxLoadPerCpu` | 1.0 / 2.0 | 1 CPU あたりの loadavg（1 分）がこれ以上なら重いもの / 新しい作業を始めない |
+
+  優先度の順に見て、重いものが上限やメモリ・CPU で始められないときも、後ろの軽いものは始める
+  （軽い仕事で空きを埋める）。決めた理由（例「空き 4.5GB・負荷 0.32/CPU・実行中 1（重い 1）→ 2 件開始
+  （重い 1・軽い 1）。待ち 重いものの上限 2 で 1 件」）を daemon のログとモニターの 🧮 の行に出す。
+- **モニターでの操作**: 🧮 の行の −/+ で全体・重いの上限を一時的に変えられる（`POST /scheduler`。
+  再起動で消える。ずっと変えるなら `settings.json`）。各行の ▲▼ で `Priority` を 1 段上げ下げする
+  （`POST /priority`。自分に値が無ければ継いだ値・既定から動かす）。**EPIC の行で動かすと、自分の値を
+  持たない sub-issue にも効く**。継いだ値は斜体で出る。
+- 親（EPIC）の番号は本文と同じ REST 1 回（`parent_issue_url`）で取り、本文と同じ TTL でキャッシュする
+  （追加の API なし）。空きがある tick は、優先度の継承と重さの推定のために全候補の本文を読む。
 
 ### 本文ディレクティブ（行頭のみ反応）
 
@@ -135,6 +173,7 @@ Issue 本文の**行頭**に書くディレクティブで挙動を制御でき�
 |---|---|
 | `autopilot-base: <branch>` | PR 先・worktree 分岐元のベースブランチ（EPIC サブ Issue を親 epic ブランチに積む等） |
 | `autopilot-after: #N [#M ...]` | 依存宣言。N（と M …）が完了（GitHub closed / Project Close・Done。**N が `🧱 infra` なら GitHub closed のみ**＝prod デプロイ後）するまで着手しない。ブロック中は次点候補が繰り上がる。**待ち Issue は Sprint Backlog に置く**（Backlog はそもそも着手候補にならないので先行 Close で自動着手しない）。ゲート中は daemon が `⏳ waiting` ラベルを付け、先行 Close で自動除去 → 次 tick で着手 |
+| `autopilot-weight: heavy\|light` | 作業の重さを明示する（上の「並列の計画と優先度」）。中身からの推測より優先する |
 | `autopilot-assignee: <login>`（`@login` も可） | 複数 assignee の Issue でオーナー（駆動する担当）を明示指定する（#938）。指定 login が Assignees に含まれていなければ無視して従来どおり辞書順先頭。指定した担当の daemon（`--assignee <login>`）だけが駆動し、他の担当の daemon は駆動しない。共同担当（非オーナー）は自分の monitor で Issue を観察できる（下記「俯瞰ボード」参照） |
 
 本文は 10 分の TTL でキャッシュする。ネット断などで本文を取得できなかったときは
@@ -974,7 +1013,8 @@ Web モニタは daemon が立てる HTTP サーバ（既定 `:8787`）で操作
 #### 起動
 
 ```bash
-# 既定: owner=smalruby / project=4 / repo=smalruby/smalruby3-editor / concurrency=2 / interval=300s / port=8787
+# 既定: owner=smalruby / project=4 / repo=smalruby/smalruby3-editor / interval=300s / port=8787
+# 並列の数は settings.json の scheduler で動的に決める（--concurrency は全体の上限を固定したいときだけ）
 node tools/autopilot/bin/autopilot daemon
 
 # オプション指定の例（並行 3・60 秒ポーリング・ポート 9000）
@@ -1061,7 +1101,7 @@ HTTP API（curl からも操作可能）:
 | メソッド・パス | 用途 |
 |---|---|
 | `GET /` | Web モニタ（俯瞰ボード HTML） |
-| `GET /board` | 俯瞰ボードデータ（items + running + history + auth 状態 + `claudeUsage` + `usagePause` / `usageOverrides` + `version` + `autopilotUpdate` + `epicGroups` + `currentStatus`）を JSON で返す |
+| `GET /board` | 俯瞰ボードデータ（items + running + history + auth 状態 + `claudeUsage` + `usagePause` / `usageOverrides` + `version` + `autopilotUpdate` + `epicGroups` + `currentStatus` + 並列の計画 `schedule` / `schedulerLimits` / `schedulerOverrides`）を JSON で返す。items は `priority`（自分の値）と `effectivePriority`（`{priority, source: own\|inherited\|default, from}`）を持つ |
 | `GET /status.json` | 現在地の材料（`buildStatusMaterial`）: `groups`（EPIC ごと）・`priorities`（優先している順）・`running`・`waitingHuman`・`nextInterview`・`pendingDecisionsTotal`・`blocked`・`recentHistory`・`currentStatus` |
 | `GET /status` | `{paused, pausedBy, authError, reauthHint, reauth, booting, assignee, concurrency, claudeUsage, usagePause, usageOverrides, version, autopilotUpdate, running:[{issue,phase}]}`。`pausedBy` は `human` / `auth` / `usage`。`usagePause` は判定結果（`pause, window, percent, threshold, resetsAt, thresholds, forced[]`） |
 | `GET /log?issue=<n>` | 実行中 item の tmux pane キャプチャ（人間観測用） |
@@ -1072,6 +1112,8 @@ HTTP API（curl からも操作可能）:
 | `POST /reauth` | SSO 再認証（device code）を daemon 側で起動し、認証 URL と user code を抽出して返す（`{status, url, code, completeUrl}`）。成功で auto-resume（起動待ちなら稼働を始める） |
 | `POST /refresh` | 俯瞰ボードを即時再取得（`listItems`）。モニタの「🔄 更新」ボタン。レート僅少時は `{refreshed:false, skipped:'rate-limited'}` で no-op |
 | `POST /later` | body `{issue, later: boolean}`。`💤 later` を付与 / 除去する（モニタの「💤 あとで」/「↩ 今やる」）。Issue 単位で直列化し連続リクエストは最後の目標へ畳み込む。既に目的の状態なら書き込まない。`{issue, later, changed}` を返す |
+| `POST /priority` | body `{issue, direction: 'up'\|'down'}` か `{issue, priority: 'P0'..'P3'}`。Project の `Priority` を書く（モニタの ▲▼）。`{issue, priority, from}` を返す |
+| `POST /scheduler` | body `{maxTotal, maxHeavy, ...}`（`null` で上書きを外す）。並列の上限を一時的に変える（再起動で消える）。`{overrides, limits}` を返す |
 | `POST /stop?issue=<n>` | その item の tmux セッションを kill して force-stop |
 | `POST /inject?issue=<n>&phase=<p>` | 並行上限を超えて 1 フェーズを割り込み投入 |
 | `POST /resolve-conflict?issue=<n>` | PR の base とのコンフリクトを AI に解消させる（モニタの 🔀 解消）。Status と 🙋 は変えない。並行上限の外。実行中なら 409、OPEN の PR が無ければ 409 |
@@ -1137,6 +1179,7 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 | `bin/autopilot-push` | push 経路の自動判定（Bot / 個人トークン。権限外パス対応） |
 | `tools/autopilot/src/contract.js` | 番兵/結果ファイルの検証（純粋） |
 | `tools/autopilot/src/phases.js` | フェーズ↔プロンプト、結果→フィールド意図、watchdog 判断、ゲート解除、merge-progression、PR 投影、enroll/並び順、ディレクティブ、サニタイズ（純粋） |
+| `tools/autopilot/src/scheduler.js` | 並列の計画（重さの推定・上限と空きメモリ・CPU）と優先度（Priority・EPIC からの継承・並べ替え）（純粋） |
 | `tools/autopilot/src/settings.js` | worker 設定（フェーズ別 model/effort・addDirs）+ スナップショット |
 | `tools/autopilot/src/project.js` | GitHub Projects v2 + Issue/PR ラベル・Draft・sticky への gh ラッパ（非同期） |
 | `tools/autopilot/src/runner.js` | tmux runner + watchdog |
