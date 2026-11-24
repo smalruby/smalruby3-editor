@@ -322,6 +322,8 @@ async function getGateContext(repo, issueNumber, token) {
             prLabel: (pr.labels || []).includes(HITL_LABEL),
         },
         pr: pr.number,
+        // EPIC の流れ（topic 宛ての PR は daemon が自動マージ・#2385）の判定に使う
+        prBase: pr.base || null,
     };
 }
 
@@ -672,6 +674,47 @@ async function getRateLimit(token, deps = {}) {
 }
 
 /**
+ * sub-issue の親 Issue の番号を返す。親が無ければ null。
+ * EPIC の「決定待ち」まとめコメントを書く先を見つけるのに使う（#2385）。
+ * @returns {Promise<number|null>}
+ */
+async function getParentIssueNumber(repo, issueNumber, token, deps = {}) {
+    // getIssueMeta が REST の parent_issue_url から取る parent を使う（#2388 と同じ 1 回の REST）
+    return (await getIssueMeta(repo, issueNumber, token, deps)).parent || null;
+}
+
+/**
+ * 自動マージの判断に要る PR の事実（1 回の `gh pr view`）。epic-flow.js の autoMergePlan に渡す。
+ * @returns {Promise<object>}
+ */
+async function getPrMergeFacts(repo, prNumber, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    const out = await ghFn(['pr', 'view', String(prNumber), '--repo', repo, '--json',
+        'number,state,isDraft,baseRefName,mergeable,reviewDecision,statusCheckRollup,updatedAt'], { token });
+    return JSON.parse(out);
+}
+
+/**
+ * PR をマージする（merge commit。squash は使えないリポジトリ）。head ブランチはリポジトリの
+ * 設定で自動で消えるので `--delete-branch` は付けない（daemon の cwd でブランチを触らない）。
+ */
+async function mergePr(repo, prNumber, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    await ghFn(['pr', 'merge', String(prNumber), '--repo', repo, '--merge'], { token });
+}
+
+/**
+ * PR のレビュー一覧（REST `pulls/<n>/reviews`）。自動マージの前に、まだ対応していない
+ * Request changes があるかを数えるのに使う（phases.js の selectRequestedReviews）。
+ * @returns {Promise<object[]>}
+ */
+async function listPrReviews(repo, prNumber, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    const out = await ghFn(['api', '--paginate', `repos/${repo}/pulls/${prNumber}/reviews`, '--jq', '.[] | @json'], { token });
+    return String(out).split('\n').filter(Boolean).map((line) => JSON.parse(line));
+}
+
+/**
  * Project の Priority フィールド（EPIC #2384）。`getFields` の結果に無いとき（古い起動時の
  * キャッシュなど）のための予備の id。Bot で作成済み（2026-11-25）。
  */
@@ -713,4 +756,5 @@ module.exports = {
     listIssueComments,
     postIssueComment, listClosedIssueNumbers, getIssueStates, getIssueMeta, closeIssue,
     getBoardEnrichment, listHeadPrs, getRateLimit,
+    getParentIssueNumber, getPrMergeFacts, mergePr, listPrReviews,
 };

@@ -362,3 +362,22 @@ test('#1315: 🙋 の非終端 item は必ず「何待ちか」の理由を 1 �
         }
     }
 });
+
+// EPIC の流れ（#2385）: topic 宛ての PR の状態にも出口がある
+test('#23/#24: EPIC の流れの自動マージ待ちと Must の直しに出口がある', () => {
+    const { selectAutoMergeCandidates, markAutoMergeContexts } = require('../src/epic-flow');
+    // #23: Review + 🙋 なし + PR の base が topic → フェーズは動かず、D: 自動マージが出口
+    const waiting = { issue: 1, status: 'Review', aiStatus: null, hitlLabel: false, kind: 'Issue', labels: [] };
+    const contexts = markAutoMergeContexts({ 1: { pr: 9, prBase: 'topic/epic-1' } });
+    assert.equal(phaseForItem(waiting, contexts[1]), null);
+    assert.equal(selectAutoMergeCandidates([waiting], new Set(), contexts).length, 1);
+    // 🙋 を付けると従来の人間ゲート（外すと address-review だが autoMerge なのでマージ待ちに戻る）
+    assert.equal(phaseForItem({ ...waiting, hitlLabel: true }, contexts[1]), null);
+    // #24: In Progress + Addressing Comments + 🙋 なし → A: address-review
+    for (const hitl of [false, true]) {
+        const fixing = { issue: 2, status: 'In Progress', aiStatus: 'Addressing Comments', hitlLabel: hitl, kind: 'Issue', labels: [] };
+        if (!hitl) assert.equal(phaseForItem(fixing, {}), 'address-review');
+        // worker 不在なら stalled 復帰も同じフェーズへ
+        assert.equal(selectStalledInFlightItems([fixing], new Set()).length, 1);
+    }
+});

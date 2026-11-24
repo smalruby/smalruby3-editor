@@ -68,6 +68,19 @@ item の状態は次の 4 要素で決まる（Project が単一の真実）:
 > 並行上限を跨がない。人間の判断待ち HITL（Triaging / Decomposing / Discussing / Awaiting
 > Continuation / EPIC Decomposed）は実作業系 AI Status 集合に入らないため誤って再開されない。
 
+### EPIC の流れ（PR の base が `topic/...`）
+
+EPIC の sub-issue（`autopilot-base: topic/...`）では、人間は EPIC の設計を承認済みなので、途中の 🙋 は
+**3 案以上の分岐・3 回直しても残る Must・続けられないエラー**の 3 つだけにする（判断は `src/epic-flow.js`、
+実行は `src/epic-merge.js`）:
+
+- review が `mustCount` を返す。0 → Review + 🙋 なし（#23。`phaseForItem` は gate ctx の `autoMerge` で
+  address-review を起動しない）/ あり → In Progress + Addressing Comments + 🙋 なし（#24）/
+  直しが 3 回（round 4 以降）でも残る → Blocked + 🙋（#14）。
+- 自動の直しの address-review が done → In Progress + Self-Reviewing（#9）でもう一度 review。
+- checkpoint（#22）は 🙋 を付けずに続きを再開する（反復上限の Blocked は従来どおり）。
+- 結果の `decisions` と、daemon が止めた理由は、EPIC の Issue の「決定待ち」まとめコメントに daemon が書く。
+
 ### 人間ゲートの解除は 🙋 ラベルだけ
 
 Review / DoD / Blocked / Discussing などの「人間の番」は、**Issue / PR いずれかの `🙋 HITL` ラベルを
@@ -118,6 +131,8 @@ Review / DoD / Blocked / Discussing などの「人間の番」は、**Issue / P
 | 20 | Icebox / Close / Done | 終端・保留 | H: Status 移動（再開は人間のみ） | — |
 | 21 | 🧭 tracking ラベル付き（全状態） | トラッカー | #16〜#18 のみ（フェーズ対象外） | — |
 | 22 | In Progress / **Awaiting Continuation** / **あり** | 協調的チェックポイント（EPIC #906）: soft-limit で worker が安全に中断し継続待ち | H: 解除 → **A: 元フェーズへ再 dispatch**（continuation ファイルの marker から復元。不明なら implement） | #10 の元フェーズへ戻る（実行中の run の扱いは #10 と同じ） |
+| 23 | Review / — / なし（PR の base が `topic/...`・EPIC の流れ） | review の Must が 0。topic への自動マージ待ち | **D: 自動マージ**（`applyEpicAutoMerge`。CI 通過・コンフリクト無し・まだ対応していない Request changes 無しでマージ → #17 で Close + Issue を閉じる）。コンフリクトは resolve-conflict、CI 失敗・Request changes は #24 へ | Close / #24 |
+| 24 | In Progress / **Addressing Comments** / なし | EPIC の流れの Must の直し（review が Must を残した・CI 失敗） | **A: address-review**（自動の直し）。worker 不在なら #11 の stalled 復帰も同じ | In Progress + Self-Reviewing（#9 → review）/ 3 回直しても Must が残れば Blocked + 🙋（#14・EPIC の決定待ちに載る） |
 
 ## 不変条件（テストで担保）
 
