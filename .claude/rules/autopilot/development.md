@@ -19,7 +19,10 @@
 | `src/contract.js` | 結果ペイロード（`AUTOPILOT_RESULT_FILE`）の検証。`TOKENS` / `SIGNALS` / `validateResult` | スキーマを変えるときは `docs/autopilot/autonomous-contract.md` §2 と**対で更新** |
 | `src/project.js` | GitHub（Projects v2 / Issue / PR / ラベル / sticky）への **gh CLI ラッパ**。GitHub I/O はここに集約 | 判断ロジックを書かない（純粋な選別・整形は phases.js へ） |
 | `src/daemon.js` | 常駐 tick のオーケストレーション（poll → dispatch → `apply*` ステップ群 → face sync）と HTTP 制御 | 判定は phases.js の純粋関数を呼ぶ。直接 GitHub を叩かず project.js を使う |
-| `src/runner.js` | tmux での worker（子 claude）起動・send-keys・watchdog ループ | 判断は `phases.js` の `evaluate` / `shouldResend` / `shouldSignalCheckpoint`（純粋）に委ねる |
+| `src/runner.js` | worker（子 claude）の起動・キー送信・watchdog ループ。blocked は `blocked-handler.js` に任せる | 判断は `phases.js` の `evaluate` / `shouldResend` / `shouldSignalCheckpoint`（純粋）と `blocked.js` に委ねる。tmux / herdr のコマンドを直接書かない |
+| `src/terminal.js` | 端末の backend（herdr / tmux）。`launch` / `snapshot` / `sendLine` / `sendKeys` / `killSession` / `listSessions` / `shutdown` を同じ形で持つ | 判断を書かない。新しい端末操作は両方の backend に足す |
+| `src/blocked.js` | blocked の画面の判定・AI 判定の読み取り・人間の答えの確認・端末設定の解釈（**純粋関数**） | I/O・時計を持ち込まない |
+| `src/blocked-handler.js` / `src/blocked-hub.js` / `src/blocked-panel.js` | 1 worker の blocked の扱い（答える・一時停止・待った時間）/ 止まっている worker の置き場と `/blocked` の HTTP / モニターの欄 | daemon・monitor への差分は呼び出しだけにする |
 | `src/settings.js` | worker 起動設定のロード・マージ・コマンド組み立て・run 資産スナップショット | — |
 | `src/monitor.js` | Web モニタ（**自己完結 HTML**。外部 CDN / 外部リソース参照は devpod の egress allowlist で死ぬので不可） | — |
 | `src/usage.js` / `src/version.js` / `src/pw-check.js` | usage ファイル読取 / 稼働バージョン・更新検知 / headless UI 確認ヘルパー | — |
@@ -29,6 +32,15 @@ unit テストを付ける → ③ daemon/runner から呼ぶ。逆順（daemon 
 逸脱。既存の `apply*` ステップ（`applyMergeProgression` / `applyClosedReconcile` /
 `applyDodHandoffs` / `applyLabelHealing` / `applyAfterWaitLabels` / `applyPrProjection`）は
 すべて「選別・計画 = phases.js 純粋関数、実行 = daemon + project.js」の形になっている。
+
+## worker の端末と blocked の不変条件
+
+- **autopilot が止まるときは worker を全部一緒に止める**（daemon の `exit` で `shutdownTerminal`。herdr は
+  session ごと、tmux はその daemon が起こした worker だけ）。worker を daemon の外に残す実装にしない。
+- **人間を待っているあいだは watchdog の時計（`tMax`・checkpoint）を進めない**（`activeElapsedMs`）。
+- blocked に**自動で答えるのは「今回だけ」の選択肢**。「always allow」「switch to auto mode」を選ぶ規則・判定にしない。
+  NG の規則（`NG_RULES`）は広めに取り、迷ったら人間を待つ側に倒す。
+- 人間の答えとして送れるキーは `ALLOWED_KEYS` だけ（任意のキー列・制御文字を送らせない）。
 
 ## 依存規約
 

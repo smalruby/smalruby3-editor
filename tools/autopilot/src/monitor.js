@@ -24,6 +24,7 @@
  *   （#1213。文字列は phases.js の `issueCopyText`）
  */
 
+const { BLOCKED_PANEL_HTML } = require('./blocked-panel');
 const {
     canToggleLater, effectiveLater, splitLaterBoard, laterPendingReducer, splitPrsForTitle, issueCopyText,
     canResolveConflict,
@@ -265,6 +266,7 @@ const MONITOR_HTML = `<!doctype html>
 </header>
 <div id="alerts"></div>
 <main>
+  ${BLOCKED_PANEL_HTML}
   <div id="humanwaits"></div>
   <div id="tabs" class="tabs" role="tablist"></div>
   <div class="board-wrap">

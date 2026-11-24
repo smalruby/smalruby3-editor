@@ -40,7 +40,7 @@ autopilot は、複数の GitHub Issue を Claude が**並行**して
 |---|---|---|
 | **状態モデル** | フェーズの単一の真実 | GitHub Projects v2「Autopilot」 |
 | **daemon** | Project をポーリングし着手可能 item を処理。並行制御・pause/resume/force-stop・HTTP 割り込み | `tools/autopilot/src/daemon.js` |
-| **Claude runner** | 対話 Claude Code を tmux で起動し send-keys で駆動、watchdog で監視 | `tools/autopilot/src/runner.js` |
+| **Claude runner** | 対話 Claude Code を端末（既定 herdr・tmux に切りかえ可）で起動して駆動、watchdog で監視。プロンプトで止まったら読んで答える | `tools/autopilot/src/runner.js` / `terminal.js` / `blocked*.js` |
 | **Web モニタ** | item 一覧・状態・ログ閲覧・手動操作（daemon が `GET /` で配信） | `tools/autopilot/src/monitor.js` |
 | **CLI** | 単一フェーズを単一 Issue で実行（動作確認・ドライラン） | `tools/autopilot/bin/autopilot` |
 | **フェーズ・プロンプト** | 各フェーズの「頭脳」。非対話で1フェーズを遂行 | `tools/autopilot/prompts/autopilot-*` |
@@ -536,7 +536,7 @@ daemon は**起動時にプロンプト一式 + 解決済み settings を tmpdir
 run 中に checkout のブランチが切り替わってもプロンプト/設定が変わらない（worker は
 スナップショットの絶対パスを Read する。`--add-dir` は daemon が自動で付与）。
 
-### 許可プロンプトで停止しない — `auto` モード + プロンプト検知→即 HITL
+### 許可プロンプトで停止しない — `auto` モード + プロンプトを読んで答える
 
 worker は**非対話**で動くので、許可プロンプトで止まると運用が止まる。worker は
 **コンテナ内 root** で動くため、`bypassPermissions`（= `--dangerously-skip-permissions`）は
@@ -549,10 +549,10 @@ worker は**非対話**で動くので、許可プロンプトで止まると運
 - **`auto` モードでは allowlist（`--allowedTools` / `permissions.allow`）は機能しない**（classifier が
   判定を握る）。そのため `buildClaudeCommand` は `auto` のときこれらを**出力しない**
   （`acceptEdits` 等にフォールバックしたときの保険として定義だけ残す）。
-- **それでも判断を要して稀に対話プロンプトが出た場合は、待たせず即 HITL に落とす**:
-  `runner.js` の `PROMPT_RE`（`❯ 1.` 選択肢 / `Esc to cancel` フッター等）で人間入力待ちを検知し、
-  watchdog `tPromptMs`（既定 6 秒）超で `evaluate` が `hitl` を返す → daemon が Blocked/🙋 にして
-  人間へ渡す（restart しない＝同じプロンプトの再発を避ける）。プロンプトは**出したまま待たせない**。
+- **それでも対話プロンプトが出た場合は、止めずに画面を読んで答える**（既定。下の
+  「worker の端末（herdr / tmux）と、止まった worker の扱い」）。AI が NG と判定したものだけ一時停止して、
+  モニターから人間が答える。settings の `blocked.mode: "hitl"` にすると従来どおり、`tPromptMs`（既定 6 秒）
+  で打ち切って Blocked/🙋 にする。
 - review/verify フェーズは、トークンを大量消費する `/code-review` などの **動的 Workflow を起動しない**
   （プロンプト内で軽量なインライン敵対的レビューを行う。`autopilot-review.md`）。
 - セキュリティ上の位置づけ: `auto` は「全許可(bypass)」ではなく **classifier による限定自動許可**。
@@ -644,6 +644,9 @@ GitHub Projects で行い、モニタは俯瞰・log 閲覧・pause/resume/即�
   `API残`/`実行中` の増減で内容幅が変わってもヘッダーのどの要素も水平位置が動かない。中央 usage も
   内部の可変要素を `min-width` で予約して幅を一定に保つ。狭い幅（≤ 960px）では中央 usage を隠して
   右メタと重ならないようにする
+- **⏸ 止まっている worker**: blocked で AI が NG と判定し、人間の答えを待っている worker があるときだけ、
+  ボードの上に画面・理由・選択肢を出す。選択肢のボタン・キー・文で答える（`GET /blocked` を 5 秒ごとに読む。
+  詳しくは「worker の端末（herdr / tmux）と、止まった worker の扱い」）
 - **[通常] / [💤 あとでやる] タブ**（#1190）: ボード上部のタブで `💤 later` 付き Issue を
   通常一覧から分離する。タブには件数バッジ、あとでやる タブには **⚠ 実行中 N・人間の番 M**
   バッジが付き、通常タブを見ていても あとでやる 側の動きに気付ける。選択タブは localStorage
@@ -800,7 +803,7 @@ Bot 単独・GraphQL 偏重だとレート制限に当たる（実測: Bot の G
 
 ## Claude runner の堅牢性
 
-対話 Claude Code を tmux で起動し send-keys で駆動する。完了検出の権威は
+対話 Claude Code を端末（herdr / tmux）で起動し、キーを送って駆動する。完了検出の権威は
 **「結果ファイル（`AUTOPILOT_RESULT_FILE`）の出現」**（pane トークンは人間観測用の補助）。
 watchdog が次を処理する:
 
@@ -808,7 +811,7 @@ watchdog が次を処理する:
 |---|---|---|
 | 起動しない | pane が準備完了するまでポーリング（ブラインド sleep しない） | `T_ready` 超で kill→再起動 |
 | インタビューで停止 | pane 無変化が継続 | `T_idle` 超で再起動（no-interview 指示を強めて再投入） |
-| 原因不明の長時間稼働 | 絶対上限 `T_max` / 手動 force-stop | tmux 窓 kill |
+| 原因不明の長時間稼働 | 絶対上限 `T_max` / 手動 force-stop（人間を待つあいだは数えない） | worker の端末を止める |
 | 終了したのに状態不変 | サブプロセス実体をポーリング（`pane_dead` 等） | 最終結果を反映 |
 
 再起動回数を数え、上限超で `Blocked` + HITL に escalate。判断ロジックは
@@ -825,6 +828,92 @@ checkpoint を繰り返して上限（3 回）に近づくなら、ここを延�
 - `softMinutes` を省くと `maxMinutes` − 8 分。不正な値（0 以下・`softMinutes` ≥ `maxMinutes`）は既定に戻る。
 - run が無いまま作業中の表示が残った item を Blocked にする猶予（stuck 検知）は `maxMinutes` + 5 分。
 - 解釈は `phases.js` の `watchdogFromSettings`。変えたら daemon の再起動で反映される。
+
+---
+
+## worker の端末（herdr / tmux）と、止まった worker の扱い
+
+worker は既定で [herdr](https://github.com/herdrdev/herdr) の上で動かす（tmux に切りかえられる）。herdr は
+pane の中の Claude Code の状態（`idle` / `working` / `blocked` / `done`）を判定するので、許可や確認の
+プロンプトで止まった worker にすぐ気づける。
+
+### しくみ
+
+- **1 worker = herdr の workspace 1 つ**（label = `autopilot-<phase>-<issue>`。tmux の session 名と同じ）。
+  autopilot 専用の herdr の session（既定 `autopilot`）を使い、server は daemon が
+  `herdr --session autopilot server` で画面なしに起こす（tmux は使わない）。
+- 起こし方: `workspace create --cwd <worktree> --label <name> --env K=V ...` → `pane run <pane> "exec claude ..."`。
+  `exec` なので claude が終わると pane と workspace も閉じる（tmux の session が消えるのと同じに扱える）。
+- 指示は `pane send-text` → `pane send-keys Enter` で送る（`agent prompt` は Enter が効かないことがある）。
+  届いたかどうかは従来の再送の仕組み（`shouldResend`）が見る。
+- **autopilot が止まるときは全部一緒に止める**: daemon の `exit` で `herdr session stop autopilot`
+  （中の worker ごと止まる・ゾンビを残さない）。tmux のときは、その daemon が起こした worker だけを止める。
+- 端末の I/O は `terminal.js` にまとめ、runner と daemon は tmux / herdr のコマンドを直接書かない。
+
+### blocked のとき（止めずに続ける）
+
+devpod の中で動くので、基本は続けてよい。見回り（3 秒）で 2 回続けて blocked に見えたら:
+
+1. **画面を読む**（herdr の `pane read --source visible`。最後の実線 `───` より下だけを見る）。
+2. **決まった形をルールで判定**（`blocked.js` の `classifyBlockedScreen`・純粋関数）:
+   - NG（force push・`cdk deploy`・AWS への書き込み・`.env` や鍵・`gh pr merge`・広い `rm -rf` など）→ 一時停止
+   - フォルダの信頼の確認 → 「Yes, I trust this folder」を選ぶ
+   - 「Do you want to proceed?」型 → **`1. Yes`（今回だけ）**。「always allow」「switch to auto mode」は選ばない
+3. **決まった形でなければ AI が判定**: `claude -p --model haiku` に画面を渡し、`{"verdict":"ok"|"ng","keys":[...]}`
+   を返させる（tmpdir で動かし CLAUDE.md は読ませない。数秒・数円）。ok なら答え、NG・読めない返事なら一時停止。
+4. **同じ画面に 3 回答えても進まない**ときも一時停止する（答えのループを防ぐ）。
+
+**一時停止したら**、モニターの上に「⏸ 止まっている worker」が出る（画面・理由・選択肢）。人間は
+選択肢のボタン・キー（`down enter` など）・文で答える（`POST /blocked/answer`）。herdr に attach して直接
+答えてもよい（画面が進めば待つのをやめる）。**待っているあいだは 60 分の上限（`tMax`）と checkpoint の時計を
+止め、いつまでも待つ**。止まっている worker はモニターだけに出す（現在地には出さない）。
+
+どれに何と答えたか（ルール・AI・人間）は、daemon のログ・`GET /blocked` の履歴・
+`$TMPDIR/autopilot-blocked-log.jsonl` に残る。
+
+### 設定（settings.json）
+
+```json
+{
+  "terminal": { "backend": "herdr", "herdrSession": "autopilot", "herdrBin": "herdr" },
+  "blocked": { "mode": "handle", "judge": true, "judgeModel": "haiku", "judgeTimeoutMs": 90000 }
+}
+```
+
+- `terminal.backend`: `herdr`（既定）/ `tmux`。env `AUTOPILOT_TERMINAL` が最優先。herdr が入っていなければ
+  ログを出して tmux で動く。別の daemon を試すときは env `AUTOPILOT_HERDR_SESSION` で session を分ける。
+- `blocked.mode`: `handle`（既定。読んで答える・人間を待つ）/ `hitl`（従来どおり打ち切って HITL）。
+- `blocked.judge: false` にすると、決まった形でないものはすべて人間を待つ。
+- 解釈は `blocked.js` の `resolveTerminalSettings`。daemon の再起動で反映される。
+
+### herdr の入れ方（devcontainer）
+
+いまは手で入れる（あとで Dockerfile に入れるときはこの版と sha256 を使う）。herdr.dev は firewall で
+届かないので、GitHub の releases から取る:
+
+| 版 | ファイル | sha256 |
+|---|---|---|
+| 0.9.5 | `herdr-linux-aarch64` | `17d7536f2da50859523680ef279dffcac8e4a235f4e46fe8da6c2ec44141897c` |
+
+```bash
+curl -fsSL -o /usr/local/bin/herdr \
+  https://github.com/herdrdev/herdr/releases/download/v0.9.5/herdr-linux-aarch64
+echo "17d7536f2da50859523680ef279dffcac8e4a235f4e46fe8da6c2ec44141897c  /usr/local/bin/herdr" | sha256sum -c -
+chmod +x /usr/local/bin/herdr
+mkdir -p ~/.config/herdr && printf '[update]\nmanifest_check = false\n' > ~/.config/herdr/config.toml
+```
+
+x86_64 の devcontainer では `herdr-linux-x86_64` を使い、release の digest で sha256 を確かめる。
+`manifest_check = false` は、firewall の外にある判定ルールの更新を取りに行かないため（同梱のルールで動く）。
+
+### 調べたこと（herdr 0.9.5）
+
+- **イベントの購読**: socket API（`<session>/herdr.sock`、1 行 1 JSON）の `events.subscribe` で
+  `pane.agent_status_changed`（pane ごとに `pane_id` が要る）・`pane.exited`・`workspace.closed` などを
+  受け取れる。見回り（3 秒の polling）の代わりにできるが、いまは polling のまま（3 秒で十分・
+  再接続の扱いが要らない）。速くしたくなったら、runner の待ちをこのイベントで起こす形にする。
+- **`agent explain <pane>`** で blocked と判定した規則と根拠が見られる（調べるとき用）。
+- herdr の `agent start --kind claude` を使わなくても、pane で claude を起こせば herdr が見つけて判定する。
 
 ---
 
@@ -1032,7 +1121,9 @@ HTTP API（curl からも操作可能）:
 | `GET /` | Web モニタ（俯瞰ボード HTML） |
 | `GET /board` | 俯瞰ボードデータ（items + running + history + auth 状態 + `claudeUsage` + `usagePause` / `usageOverrides` + `version` + `autopilotUpdate`）を JSON で返す |
 | `GET /status` | `{paused, pausedBy, authError, reauthHint, reauth, booting, assignee, concurrency, claudeUsage, usagePause, usageOverrides, version, autopilotUpdate, running:[{issue,phase}]}`。`pausedBy` は `human` / `auth` / `usage`。`usagePause` は判定結果（`pause, window, percent, threshold, resetsAt, thresholds, forced[]`） |
-| `GET /log?issue=<n>` | 実行中 item の tmux pane キャプチャ（人間観測用） |
+| `GET /log?issue=<n>` | 実行中 item の画面（herdr / tmux の pane。人間観測用） |
+| `GET /blocked` | 止まっている（人間の答えを待つ）worker の一覧（画面・理由・選択肢）と、答えの履歴 |
+| `POST /blocked/answer` | body `{issue, keys:["1"]}` か `{issue, text:"..."}`。止まっている worker に人間の答えを送る（キーは `1`〜`9` / `enter` / `esc` / `up` / `down` など決まったものだけ） |
 | `POST /tick` | interval を待たず 1 サイクル即実行。`{ran, paused, picked:[...], running:[...]}` を返す。実行中は `409 {busy:true}`、pause 中は `{ran:true, paused:true, picked:[]}` の no-op |
 | `POST /pause` | 新規ディスパッチを止める（実行中はそのまま） |
 | `POST /resume` | ポーリング再開（usage の auto-pause 中は `409 {forceResumeRequired:true}`） |
@@ -1040,7 +1131,7 @@ HTTP API（curl からも操作可能）:
 | `POST /reauth` | SSO 再認証（device code）を daemon 側で起動し、認証 URL と user code を抽出して返す（`{status, url, code, completeUrl}`）。成功で auto-resume（起動待ちなら稼働を始める） |
 | `POST /refresh` | 俯瞰ボードを即時再取得（`listItems`）。モニタの「🔄 更新」ボタン。レート僅少時は `{refreshed:false, skipped:'rate-limited'}` で no-op |
 | `POST /later` | body `{issue, later: boolean}`。`💤 later` を付与 / 除去する（モニタの「💤 あとで」/「↩ 今やる」）。Issue 単位で直列化し連続リクエストは最後の目標へ畳み込む。既に目的の状態なら書き込まない。`{issue, later, changed}` を返す |
-| `POST /stop?issue=<n>` | その item の tmux セッションを kill して force-stop |
+| `POST /stop?issue=<n>` | その item の worker（herdr の workspace / tmux の session）を止めて force-stop |
 | `POST /inject?issue=<n>&phase=<p>` | 並行上限を超えて 1 フェーズを割り込み投入 |
 | `POST /resolve-conflict?issue=<n>` | PR の base とのコンフリクトを AI に解消させる（モニタの 🔀 解消）。Status と 🙋 は変えない。並行上限の外。実行中なら 409、OPEN の PR が無ければ 409 |
 | `POST /shutdown` | daemon プロセスを安全停止 |
@@ -1106,7 +1197,12 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 | `tools/autopilot/src/phases.js` | フェーズ↔プロンプト、結果→フィールド意図、watchdog 判断、ゲート解除、merge-progression、PR 投影、enroll/並び順、ディレクティブ、サニタイズ（純粋） |
 | `tools/autopilot/src/settings.js` | worker 設定（フェーズ別 model/effort・addDirs）+ スナップショット |
 | `tools/autopilot/src/project.js` | GitHub Projects v2 + Issue/PR ラベル・Draft・sticky への gh ラッパ（非同期） |
-| `tools/autopilot/src/runner.js` | tmux runner + watchdog |
+| `tools/autopilot/src/runner.js` | runner + watchdog（端末は terminal.js） |
+| `tools/autopilot/src/terminal.js` | worker の端末（herdr / tmux）の backend |
+| `tools/autopilot/src/blocked.js` | blocked の画面の判定・AI の判定の読み取り・人間の答えの確認（純粋） |
+| `tools/autopilot/src/blocked-handler.js` | 1 worker の blocked の扱い（答える・一時停止・待った時間） |
+| `tools/autopilot/src/blocked-hub.js` | 止まっている worker の置き場と `/blocked` の HTTP |
+| `tools/autopilot/src/blocked-panel.js` | モニターの「止まっている worker」の欄 |
 | `tools/autopilot/src/daemon.js` | 常駐 daemon（ポーリング・ディスパッチ・HTTP 制御・認証ヘルスチェック・俯瞰ボード） |
 | `tools/autopilot/src/monitor.js` | Web モニタ（俯瞰ボード・自己完結 HTML） |
 | `tools/autopilot/src/usage.js` | usage ファイルから Claude 使用率（session/weekly）を読む純粋関数 |
