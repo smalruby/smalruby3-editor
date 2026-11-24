@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT (see tools/autopilot/LICENSE)
 # bot-git — run git AS the GitHub App bot (smalruby3-editor-bot[bot]) for a SINGLE
 # invocation, WITHOUT mutating shared repo config. Plain `git` stays human-owned.
 #

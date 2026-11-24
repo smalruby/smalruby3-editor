@@ -90,7 +90,9 @@ tmpdir へスナップショット**する（`snapshotRunAssets`）。つまり 
 
 ## ライセンス
 
-`tools/autopilot/**` と `tools/autopilot/prompts/**` は、リポジトリ全体の AGPL-3.0 ではなく
-**MIT ライセンス**（`tools/autopilot/LICENSE`）。この配下に新規ファイルを追加するときは
+`tools/autopilot/**` と `tools/autopilot/prompts/**`、autopilot が使う Smalruby 独自のコマンド
+（`bin/autopilot-worktree` / `bin/autopilot-push` / `bin/bot-token` / `bin/bot-git`）は、
+リポジトリ全体の AGPL-3.0 ではなく **MIT ライセンス**（`tools/autopilot/LICENSE`。コマンドの先頭にも
+`SPDX-License-Identifier: MIT` を書く）。これらに新規ファイル・コードを追加するときは
 MIT のまま置けるか確認する（AGPL なコードのコピー持ち込み不可）。プロンプト /
 `docs/autopilot/*.md` の末尾には License セクション（MIT 宣言）を踏襲する。

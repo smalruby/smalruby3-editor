@@ -1136,5 +1136,6 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 
 ## ライセンス
 
-autopilot のツール群（`tools/autopilot/**`）と autopilot プロンプト（`tools/autopilot/prompts/autopilot-*/**`）は、
+autopilot のツール群（`tools/autopilot/**`）と autopilot プロンプト（`tools/autopilot/prompts/autopilot-*/**`）、
+autopilot が使うコマンド（`bin/autopilot-worktree` / `bin/autopilot-push` / `bin/bot-token` / `bin/bot-git`）は、
 リポジトリ全体の AGPL-3.0 ではなく **MIT ライセンス**とする。詳細は `tools/autopilot/LICENSE` を参照。

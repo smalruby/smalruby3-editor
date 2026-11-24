@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT (see tools/autopilot/LICENSE)
 # bin/autopilot-worktree — しゅっと作れる軽量 worktree（autopilot 用）。
 #
 # autopilot は Issue ごとに git worktree を切って隔離作業する。毎回
