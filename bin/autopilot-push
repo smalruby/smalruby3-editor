@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT (see tools/autopilot/LICENSE)
 # bin/autopilot-push — 変更内容に応じて push 経路（Bot / 個人）を自動で選ぶ。
 #
 # GitHub App bot (`smalruby3-editor-bot`) には workflows 権限が無く、
