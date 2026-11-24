@@ -226,7 +226,8 @@ async function mergeLearningsPr(cfg, state, log, deps = {}) {
         }
         const verdict = L.canMergeLearningsPr({ ...info, checks: L.summarizeChecks(info.checkRuns) });
         if (!verdict.ok) return { merged: false, reason: verdict.reason };
-        await p.mergePr(cfg.repo, rec.number, info.head, await p.botToken());
+        // head ブランチはリポジトリの設定で自動で消える（#2385 の mergePr と同じ前提）
+        await p.mergePr(cfg.repo, rec.number, await p.botToken());
         removeLearnings(root, rec.ids);
         fs.rmSync(prRecordPath(root), { force: true });
         log(`learnings: PR #${rec.number} を develop にマージしました`);
@@ -296,12 +297,21 @@ async function applyDueTasks(cfg, state, log, deps = {}) {
         nowMs: cfg.now(), running: [...s.taskRuns.keys()], forced: s.forced,
         limit: cfg.taskConcurrency || DEFAULT_TASK_CONCURRENCY,
     });
+    // 並列の計画（scheduler.js）: Issue の worker と同じ上限（全体・重い・空きメモリ）に数える。
+    // 枠が無ければ始めない（「いま実行」は forced に残り、次の tick で試す）
+    let allowed = picks;
+    if (deps.planSlots && picks.length) {
+        const ok = new Set(deps.planSlots(picks.map((pk) => ({
+            issue: `task:${pk.id}`, weight: T.taskWeight(tasks.find((t) => t.id === pk.id)),
+        }))));
+        allowed = picks.filter((pk) => ok.has(`task:${pk.id}`));
+    }
     const started = [];
-    for (const pick of picks) {
+    for (const pick of allowed) {
         const def = tasks.find((t) => t.id === pick.id);
         s.forced = s.forced.filter((id) => id !== pick.id);
         const p = runTask(def, pick.reason, cfg, state, log, deps);
-        s.taskRuns.set(def.id, { since: cfg.now(), reason: pick.reason, session: `autopilot-task-${def.id}`, promise: p });
+        s.taskRuns.set(def.id, { since: cfg.now(), reason: pick.reason, session: `autopilot-task-${def.id}`, weight: T.taskWeight(def), promise: p });
         started.push(pick.id);
         if (deps.await) await p;
     }
@@ -349,6 +359,17 @@ async function runTask(def, reason, cfg, state, log, deps = {}) {
         s.taskRuns.delete(def.id);
         log(`task ${def.id}: ${outcome}${summary ? ` — ${summary}` : ''}`);
     }
+}
+
+/**
+ * 並列の計画に数える、Issue に結びつかない実行中の worker（タスクと学びの PR）。
+ * @returns {{issue: string, weight: string}[]}
+ */
+function runningWorkers(state) {
+    const s = lt(state);
+    const out = [...s.taskRuns.entries()].map(([id, r]) => ({ issue: `task:${id}`, weight: r.weight || 'light' }));
+    if (s.learningsBusy === 'create') out.push({ issue: 'learnings', weight: 'light' });
+    return out;
 }
 
 // ---------------------------------------------------------------- HTTP
@@ -444,5 +465,6 @@ module.exports = {
     applyDueTasks,
     runTask,
     runDetachedWorker,
+    runningWorkers,
     handleLearnTasksHttp,
 };

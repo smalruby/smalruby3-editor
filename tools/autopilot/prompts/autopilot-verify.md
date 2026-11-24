@@ -12,6 +12,36 @@
 > bundled chromium を headless で起動して自分で UI 確認まで完結できる（Issue #891 で実証済み）。
 > **Playwright MCP は使わない**（host Chrome 依存でコンテナ内では `Chromium distribution 'chrome' is not found` で失敗する）。
 
+
+## EPIC の流れ（`AUTOPILOT_EPIC_FLOW=1` のとき）
+
+PR の base が `topic/...`（Issue 本文の `autopilot-base:`）のとき、daemon は `AUTOPILOT_EPIC_FLOW=1` を渡す。
+この Issue は EPIC の sub-issue で、**人間は EPIC の設計を承認済み**。確認は EPIC ごとにまとめて行うので、
+途中で `🙋 HITL` を出してよいのは次の 3 つだけ（結果ファイルの `hitlKind` に書く）:
+
+| `hitlKind` | いつ |
+|---|---|
+| `diverge` | **3 案以上**に分かれる判断（実装が発散する）。その sub-issue だけ止まる |
+| `must-exhausted` | 直しを 3 回しても Must が残る（daemon が自分で判定する。worker は使わない） |
+| `environment` | エラーで続けられない（認証・使用量・壊れた環境） |
+
+それ以外の判断（仕様の小さな選択・命名・見送り）は **AI のおすすめで決めて進め**、結果ファイルの
+`decisions` に書く。daemon が EPIC の Issue の「決定待ち」まとめコメント
+（`<!-- autopilot-epic-decisions count=N -->`）に書き足す（**worker はそのコメントを書かない**）:
+
+```json
+"decisions":[{"kind":"ai-decision","ref":null,"title":"<何を決めたか>","recommendation":"<AI の案（採ったもの）>",
+  "alternatives":["<ほかの案>"],"adopted":"<入れたもの>"}]
+```
+
+`kind` は `question`（仕様の選択が要る）/ `not-adopted`（採用しなかった指摘）/ `ai-decision`（AI が決めた）/
+`two-way`（2 案。下記）/ `diverge`（3 案以上）。スキーマは `docs/autopilot/autonomous-contract.md` §2.6。
+
+このフェーズでは: DoD を満たしたら `nextStatus:"Review"`・`hitl:false` で返す（daemon が CI とコンフリクトを
+見て topic へ自動マージする）。headful でしか確かめられないもの（音など）は 🙋 にせず、`decisions` に
+`{"kind":"ai-decision","title":"headful の確認が要る: <何を>","recommendation":"EPIC の確認でまとめて見る"}` を書く。
+DoD を満たせないときは `nextStatus:"In Progress"`・`nextAiStatus:"Addressing Comments"`・`hitl:false` で直しに回す。
+
 ## 手順
 
 ### 1. 対象 PR と DoD を特定

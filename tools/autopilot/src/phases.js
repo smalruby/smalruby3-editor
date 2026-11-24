@@ -834,7 +834,12 @@ function phaseForItem(item, ctx = {}) {
         // 開いたら必ず address-review へ渡す（#815/#821）。address-review は、まだ対応していない
         // Request changes のレビュー（selectRequestedReviews）で指定されたことだけに対応する。
         // 無ければ何もせず人間の merge を待つ。指定の意図の解釈はスキル側に置く（daemon は dispatch のみ）。
-        return isGateReleased(item, ctx) ? 'address-review' : null;
+        if (!isGateReleased(item, ctx)) return null;
+        // EPIC の流れ（PR の base が topic・#2385）: Review + 🙋 なしは「Must 0 で自動マージ待ち」。
+        // 出口は daemon の自動マージ（epic-merge.js の applyEpicAutoMerge）。ctx.autoMerge は
+        // epic-flow.js の markAutoMergeContexts が gate ctx の prBase から立てる。
+        if (status === 'Review' && ctx.autoMerge) return null;
+        return 'address-review';
     }
     // Blocked も人間ゲート: run 失敗・stall 時に autopilot が入れる状態で、Blocked コメントは
     // 「🙋 を外すと再開」と案内する。解除されたら PR があれば address-review（スレッドを読んで
@@ -883,6 +888,9 @@ function phaseForItem(item, ctx = {}) {
     // daemon が autopilot-review（敵対的レビュー）を自動ディスパッチして人間レビュー待ちまで進める。
     // それ以外の In Progress は実行中の run が所有する。DoD/Close 等は人間駆動。
     if (status === 'In Progress' && item.aiStatus === 'Self-Reviewing') return 'review';
+    // EPIC の流れの Must の直し（#2385）: review が Must を残したとき daemon は
+    // In Progress + Addressing Comments（🙋 なし）にする。address-review が直して review へ戻す。
+    if (status === 'In Progress' && item.aiStatus === 'Addressing Comments') return 'address-review';
     return null;
 }
 
@@ -1778,6 +1786,9 @@ function normalizeBoardEnrichment(node) {
     const nodes = (node && node.closedByPullRequestsReferences && node.closedByPullRequestsReferences.nodes) || [];
     return {
         issueState: (node && node.state) || null,
+        // 親の EPIC（#2388。EPIC ごとにまとめるため。無ければ null）
+        parent: node && node.parent && Number.isInteger(node.parent.number)
+            ? { number: node.parent.number, title: node.parent.title || '' } : null,
         subIssues: {
             total: summary.total || 0,
             completed: summary.completed || 0,

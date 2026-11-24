@@ -183,8 +183,17 @@ GUI をプレビューで確認できない:
 EPIC は topic をマージする直前まで AI のおすすめで進み、人間の確認は EPIC ごとに 1 回にまとめる。
 人間が「EPIC #N を確認したい」「決定ページを作って」と言ったら、このセッション（指揮役）が次を行う。
 
-1. **集める**: EPIC の Issue の「決定待ち」まとめコメント（マーカー `<!-- autopilot-epic-decisions -->`・
-   daemon だけが書く）を読む。各行は PR・何を・AI の案・ほかの案・入れたのはどちらか。3 案以上で止まった
+1. **集める**: EPIC の Issue の「決定待ち」まとめコメント（マーカー `<!-- autopilot-epic-decisions count=N -->`・
+   daemon だけが書く）を読む。表は人間向けで、機械用の配列は同じコメントの
+   `<!-- autopilot-epic-decisions-data:<base64> -->` にある（`epic-flow.js` の `parseEpicDecisionsData` で読む）:
+
+   ```bash
+   GH_TOKEN="$(bin/bot-token)" gh api "repos/smalruby/smalruby3-editor/issues/<EPIC>/comments" --paginate \
+     --jq '.[] | select(.body | test("autopilot-epic-decisions")) | .body' | node -e '
+   const { parseEpicDecisionsData } = require("./tools/autopilot/src/epic-flow.js");
+   console.log(JSON.stringify(parseEpicDecisionsData(require("fs").readFileSync(0, "utf8")), null, 2));'
+   ```
+各行は PR・何を・AI の案・ほかの案・入れたのはどちらか。3 案以上で止まった
    sub-issue と、2 案の別ブランチの draft PR（`topic/<epic>-alt-<番号>`）も拾う。
 2. **決定ページを作る**: artifact（`Artifact` の quickstart → artifact-design / artifact-capabilities を読む）。
    問いごとに id（`Q1`, `Q2` …）を振り、**選択肢・AI のおすすめ（理由つき）・コメント欄**を付ける。答えは
@@ -197,7 +206,8 @@ EPIC は topic をマージする直前まで AI のおすすめで進み、人�
    何をしたかを EPIC の Issue にコメントし、決定ページの該当の問いに「反映済み」を書く。
 5. **理由を聞く**: 答えが AI のおすすめと違った問いは、まだ理由が書かれていなければ人間に聞く
    （このセッションは対話してよい。まとめて 1 回で聞く）。理由から「次からはこうする」決まりを 1〜2 行に
-   まとめ、分野（`.claude/rules/<area>/` と同じ名前。無ければ `general`）を付けて学びにためる:
+   まとめ、分野（`.claude/rules/<area>/` と同じ名前。無ければ `general`）を付けて学びにためる
+   （決定待ちの 1 件から入力を作る純粋関数は `learnings.js` の `learningInputFromDecision`）:
 
    ```bash
    tools/autopilot/bin/autopilot-learn --root /app --kind intent --areas scratch-gui \

@@ -92,3 +92,10 @@ test('taskFromInput / taskRows', () => {
     assert.equal(rows[0].running, true);
     assert.match(rows[0].schedule, /^定期/);
 });
+
+test('taskWeight: 指定が先、無ければ中身、手がかりが無ければ軽い', () => {
+    const t = { id: 'a', title: 'a', prompt: 'p', schedule: { type: 'once' } };
+    assert.equal(T.taskWeight(t), 'light');
+    assert.equal(T.taskWeight({ ...t, prompt: 'jest と webpack のビルドを流す' }), 'heavy');
+    assert.equal(T.taskWeight({ ...t, prompt: 'jest', weight: 'light' }), 'light');
+});

@@ -88,3 +88,12 @@ test('learnedRuleFilesFor: general と触った分野だけ', () => {
     assert.deepEqual(L.learnedRuleFilesFor(['packages/scratch-gui/src/a.js', 'README.md']),
         ['docs/autopilot/learned/general.md', 'docs/autopilot/learned/scratch-gui.md']);
 });
+
+test('learningInputFromDecision: 決定待ちの 1 件と答えから学びの入力を作る', () => {
+    const input = L.learningInputFromDecision(
+        { issue: 5, ref: 'Q1', title: 'どちらの形', recommendation: 'A 案', alternatives: ['B 案'] },
+        { epic: 9, answer: 'B 案', reason: '軽いから', text: '軽いほうを選ぶ', areas: ['autopilot'] });
+    const e = L.newLearningEntry(input, { nowMs: NOW, suffix: 'x' });
+    assert.ok(L.validateLearning(e).ok);
+    assert.deepEqual(e.source, { epic: 9, issue: 5, question: 'Q1 どちらの形', recommendation: 'A 案', answer: 'B 案' });
+});

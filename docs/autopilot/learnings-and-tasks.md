@@ -65,8 +65,17 @@ Issue に結びつかない仕事（例: 毎朝の不具合報告の確認）を
 
 ### 実行のしかた
 
-- daemon の tick（pause 中は走らない）で、時刻が来たものを選ぶ（`dueTasks`）。同時に走らせるのは 1 つ
-  （`cfg.taskConcurrency`）。Issue の worker の並列とは別に数える。
+- daemon の tick（pause 中は走らない）で、時刻が来たものを選ぶ（`dueTasks`）。タスクどうしは同時に 1 つまで
+  （`cfg.taskConcurrency`）。
+- **並列の計画（`scheduler.js`）に数える**: Issue の worker を先に計画し、そのあと残りの枠（全体の上限・重いものの
+  上限・空きメモリ・CPU）でタスクを始める（daemon の `planExtraSlots`）。枠が無ければ始めず、「いま実行」は次の tick に残る。
+  逆に、実行中のタスク・学びの PR の worker・現在地の job も Issue の計画の「実行中」に数える（`runningWorkersForPlan`）。
+  同じ claude を動かすので、メモリの見込みを分けると上限が守れないため。
+- タスクの重さは `taskWeight`: 定義の `"weight": "heavy" | "light"` が先、無ければプロンプトを Issue と同じ重さの表
+  （`LOAD_PATTERNS`）で見て、手がかりが無ければ軽い。学びの PR の worker は軽い。
+- 現在地の job（`current-status-job.js`）とは起動のしかたを共通にしていない。現在地は git を使わない一時ディレクトリで、
+  テンプレートと材料の JSON を渡すだけなのに対し、タスクと学びの PR はコミット・PR を作るので git の worktree が要るため。
+  共通なのは `runPhase` を呼ぶところだけ。
 - worktree は `bin/autopilot-worktree create task-<id>`（`.autopilot-worktrees/issue-task-<id>`）。毎回、変更が
   残っていなければ `origin/develop` にそろえてから始める。tmux のセッションは `autopilot-task-<id>`。
 - 実行の記録（前回の時刻・結果・要約）は `tmp/autopilot-tasks-state.json`。

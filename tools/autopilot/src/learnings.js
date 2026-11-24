@@ -270,7 +270,32 @@ function learnedRuleFilesFor(files) {
     return [GENERAL_AREA, ...touchedRuleAreas(files)].map(learnedRuleFile);
 }
 
+/**
+ * EPIC の決定待ち（`epic-flow.js` の `parseEpicDecisionsData` で読んだ 1 件）と人間の答えから、
+ * 学び 1 件の入力を作る（純粋関数）。指揮役が、答えが AI のおすすめと違ったときに使う。
+ * @param {object} d 決定待ち { issue, pr, ref, title, recommendation, alternatives, adopted }
+ * @param {{epic?: number, answer: string, reason?: string, text: string, areas?: string[], kind?: string}} a
+ * @returns {object} {@link newLearningEntry} の input
+ */
+function learningInputFromDecision(d, a) {
+    const dd = d || {};
+    return {
+        kind: a.kind === 'review' ? 'review' : 'intent',
+        areas: a.areas || [],
+        text: a.text,
+        reason: a.reason || null,
+        source: {
+            epic: a.epic,
+            issue: dd.issue,
+            question: [dd.ref, dd.title].filter(Boolean).join(' '),
+            recommendation: dd.recommendation || dd.adopted || null,
+            answer: a.answer,
+        },
+    };
+}
+
 module.exports = {
+    learningInputFromDecision,
     LEARNINGS_DIR,
     LEARNINGS_PR_FILE,
     LEARNED_RULES_DIR,

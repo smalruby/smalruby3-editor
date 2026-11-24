@@ -101,3 +101,21 @@ test('学び: worker が PR 番号を返さなければ記録しない', async (
     assert.equal(LT.readPrRecord(root), null);
     assert.match(LT.learningsResponse(cfg, state).error, /PR number/);
 });
+
+test('タスク: 並列の計画で枠が無ければ始めず、いま実行は次に残す', async () => {
+    const { root, cfg, deps, calls } = setup();
+    LT.addLocalTask(root, { id: 'a', title: 'a', prompt: 'p', schedule: { type: 'cron', cron: '0 9 * * *' } });
+    const state = {};
+    let asked = null;
+    deps.planSlots = (cands) => { asked = cands; return []; };
+    state.learnTasks = undefined;
+    await LT.applyDueTasks(cfg, state, log, deps); // 種を足すだけ
+    state.learnTasks.forced.push('a');
+    assert.deepEqual(await LT.applyDueTasks(cfg, state, log, deps), []);
+    assert.deepEqual(asked, [{ issue: 'task:a', weight: 'light' }]);
+    assert.deepEqual(state.learnTasks.forced, ['a']);
+    assert.ok(!calls.some((c) => c[0] === 'runPhase'));
+    deps.planSlots = (cands) => cands.map((c) => c.issue);
+    assert.deepEqual(await LT.applyDueTasks(cfg, state, log, deps), ['a']);
+    assert.deepEqual(LT.runningWorkers(state), []);
+});

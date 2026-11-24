@@ -15,6 +15,8 @@
  * I/O・時計・乱数は持ち込まない（時刻は ms epoch を引数で受ける）。
  */
 
+const { analyzeContent, estimateWeight } = require('./scheduler');
+
 const TASK_ID_RE = /^[a-z0-9][a-z0-9-]{0,40}$/;
 
 /** cron のタイムゾーンの既定（JST） */
@@ -344,7 +346,20 @@ function taskFromInput(input, nowMs) {
     return v.ok ? { ok: true, task, errors: [] } : { ok: false, errors: v.errors };
 }
 
+/**
+ * タスクの重さ（純粋関数・並列の計画 scheduler.js に渡す）。定義の `weight`（heavy|light）が最優先、
+ * 無ければプロンプトの中身を Issue の本文と同じ表（`LOAD_PATTERNS`）で見る。手がかりが無ければ軽い。
+ * @param {object} def
+ * @returns {'heavy'|'light'}
+ */
+function taskWeight(def) {
+    if (def && (def.weight === 'heavy' || def.weight === 'light')) return def.weight;
+    const est = estimateWeight({ phase: 'verify', content: analyzeContent(def && def.title, (def && (def.prompt || def.promptFile)) || '') });
+    return est.source === 'phase' ? 'light' : est.weight;
+}
+
 module.exports = {
+    taskWeight,
     DEFAULT_TASK_TZ,
     TASK_ID_RE,
     parseTzOffset,
