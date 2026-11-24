@@ -88,6 +88,8 @@ Issue 本文のディレクティブは **行頭のみ**で発火する（`phase
   探索する（コメント・PR は見ない）。指定 login が Assignees に含まれていなければ無視して
   従来どおり辞書順先頭（`resolveOwner`）。0/1 人の Issue はディレクティブが無意味なので
   本文 fetch 自体を行わない（`populateAssigneeDirectives`・API 予算規約）。
+- `autopilot-weight: heavy|light` — 作業の重さの明示（並列の計画・`scheduler.js` の
+  `parseWeightDirective`）。中身からの推測とフェーズの既定より優先する。
 - **誤マッチ回避**: 本文や docs でディレクティブを**説明**するときは行頭に置かない
   （箇条書き `- \`autopilot-after: ...\`` やインラインコードにする）。行頭に生で書くと
   実際に発火する。

@@ -135,7 +135,7 @@ async function runTriageLike(command, opts) {
 }
 
 function parseDaemonArgs(argv) {
-    const o = { owner: 'smalruby', project: 4, repo: 'smalruby/smalruby3-editor', concurrency: 2, intervalMs: 15000, port: 8787, once: false, assignee: null };
+    const o = { owner: 'smalruby', project: 4, repo: 'smalruby/smalruby3-editor', concurrency: null, intervalMs: 15000, port: 8787, once: false, assignee: null };
     for (let i = 0; i < argv.length; i++) {
         const a = argv[i];
         if (a === '--owner') o.owner = argv[++i];
