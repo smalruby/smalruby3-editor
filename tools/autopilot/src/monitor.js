@@ -29,11 +29,14 @@ const {
     canResolveConflict,
     HUMAN_WAIT_REASONS, humanWaitGroups, renderHumanWaitsHtml, renderHumanWaitCell,
 } = require('./phases');
+// EPIC ごとの欄と「現在地を作る」（#2388）。描画は epic-summary.js の純粋関数を埋め込んで共有する
+const { renderEpicGroupsHtml } = require('./epic-summary');
 
 // ブラウザへ埋め込むクライアント共有の純粋関数（自己完結。later.test.js / spike.test.js で単独評価を担保）
 const SHARED_CLIENT_FNS = [
     canToggleLater, effectiveLater, splitLaterBoard, laterPendingReducer, splitPrsForTitle, issueCopyText,
     humanWaitGroups, renderHumanWaitsHtml, renderHumanWaitCell, canResolveConflict,
+    renderEpicGroupsHtml,
 ]
     .map(String).join('\n');
 
@@ -242,6 +245,17 @@ const MONITOR_HTML = `<!doctype html>
                 display: flex; flex-direction: column; }
   #modal .box header { position: static; border-radius: .5rem .5rem 0 0; }
   #modal pre { margin: 0; padding: .8rem; overflow: auto; white-space: pre-wrap; font-size: .78rem; flex: 1; }
+  /* EPIC ごと（#2388） */
+  #epicgroups { margin: 8px 0 14px; }
+  .epic-head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .epic-head h2 { margin: 0; }
+  .epic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; margin-top: 6px; }
+  .epic-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 10px; font-size: 13px; }
+  .epic-card ul { margin: 4px 0 0; padding-left: 1.2em; }
+  .epic-prog .bar i { display: block; height: 100%; background: #22c55e; }
+  .chip { font-size: 11px; padding: 0 6px; border: 1px solid #cbd5e1; border-radius: 99px; margin-left: 2px; }
+  .chip.run { color: #15803d; border-color: #15803d; } .chip.wait { color: #b91c1c; border-color: #b91c1c; }
+  .cs-err { color: #b45309; }
 </style></head><body>
 <header>
   <div class="hgroup hleft">
@@ -266,6 +280,7 @@ const MONITOR_HTML = `<!doctype html>
 <div id="alerts"></div>
 <main>
   <div id="humanwaits"></div>
+  <div id="epicgroups" data-testid="epic-groups"></div>
   <div id="tabs" class="tabs" role="tablist"></div>
   <div class="board-wrap">
   <table id="board"><thead><tr>
@@ -817,6 +832,7 @@ function renderBoard(d) {
   const split = splitLaterBoard(d.items, laterPending, (d.running || []).map((r) => r.issue));
   // 人間待ちのまとめはタブに関係なく全 item から作る（あとでやる 内の人間待ちも見落とさない）
   document.getElementById('humanwaits').innerHTML = renderHumanWaitsHtml(d.items, HUMAN_WAIT_REASONS);
+  document.getElementById('epicgroups').innerHTML = renderEpicGroupsHtml(d.epicGroups || [], d.currentStatus, Date.now());
   renderTabs(split);
   const shown = boardTab === 'later' ? split.later : split.normal;
   prMenuItems = {};
@@ -1020,6 +1036,14 @@ document.getElementById('refreshboard').onclick = async () => {
   btn.disabled = false; btn.textContent = '🔄 更新';
   refresh();
 };
+// 「現在地を作る」（#2388）。worker を 1 つ起動するだけで、できたらリンクと最終更新が /board に出る
+document.getElementById('epicgroups').addEventListener('click', async (ev) => {
+  const btn = ev.target.closest('[data-testid="current-status-make"]');
+  if (!btn || btn.disabled) return;
+  btn.disabled = true; btn.textContent = '⏳ 現在地を作っています…';
+  try { await fetch('/current-status', { method: 'POST' }); } catch (e) { /* refresh 側で表示 */ }
+  refresh();
+});
 refresh(); setInterval(refresh, 5000);
 </script></body></html>`;
 

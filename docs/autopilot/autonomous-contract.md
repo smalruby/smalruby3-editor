@@ -103,6 +103,14 @@ Runner はこの短語を pane で検出してから `AUTOPILOT_RESULT_FILE` を
 | `error` | string | エラーメッセージ |
 | `recoverable` | boolean | 再試行で回復しうるか |
 
+現在地を作る job（`phase=current-status`・`issue=0`）は `signal=done` で追加に次を書く（`validateResult` は知らない
+キーを通すので、daemon の `planCurrentStatusOutcome` が読む）:
+
+| key | 型 | 説明 |
+|---|---|---|
+| `artifactUrl` | string | publish した artifact の URL（`https://claude.ai/artifact/…`）。更新でも書く |
+| `templateNotes` | string[] | テンプレートの改善の案（無ければ空） |
+
 ### 2.4 例
 
 ```json
