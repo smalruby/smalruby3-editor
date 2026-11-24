@@ -994,18 +994,27 @@ export default {
     'gui.classroom.assignmentEditor.errorLessonNoChallenges': 'レッスンのチャレンジを 1 ついじょうえらんでください。',
     'gui.classroom.assignmentEditor.advancedSummary': 'たしゃさんしょう: {peerView}・メッシュ: {mesh}',
     'gui.classroom.teacherCreate.assignmentNameHint': 'にんずうとかだいめいはいつでもへんこうできます。',
-    'gui.classroom.carousel.submitTitle': 'せいとがかだいをていしゅつできる',
-    'gui.classroom.carousel.submitDesc':
-        'さんかコードでクラスにさんかして、ワンクリックでさくひんをていしゅつできます。',
-    'gui.classroom.carousel.overviewTitle': 'ていしゅつじょうきょうがひとめでわかる',
-    'gui.classroom.carousel.overviewDesc':
-        'ざせきグリッドで、ていしゅつずみ・へんきゃくずみ・さぎょうちゅうがすぐにわかります。',
-    'gui.classroom.carousel.screenshotTitle': 'ひらかなくてもプレビューできる',
-    'gui.classroom.carousel.screenshotDesc':
-        'サムネイルとブロックのスクリーンショットで、さくひんをすばやくかくにんできます。',
-    'gui.classroom.carousel.gcTitle': 'Google Classroom とれんけい',
-    'gui.classroom.carousel.gcDesc':
-        'Google Classroom からクラスじょうほうをインポートし、かだいリンクをはいしんできます。',
+    'gui.classroom.carousel.label': 'クラスかんりでできること',
+    'gui.classroom.carousel.sameAsGcTitle': 'Google Classroom とおなじつかいかた',
+    'gui.classroom.carousel.sameAsGcDesc':
+        'ストリーム・じゅぎょう・さいてんのタブと［＋ さくせい］。Google Classroom をつかえているなら、あたらしくおぼえることはほとんどありません。',
+    'gui.classroom.carousel.joinCodeTitle': 'さんかコードをうつすだけではじまる',
+    'gui.classroom.carousel.joinCodeDesc':
+        'せいとはメニューの「クラス」にコードをいれて、じぶんのせきをえらぶだけ。せいとのアカウントはいりません。',
+    'gui.classroom.carousel.statusPanelTitle': 'エディタをひらいたまま、ていしゅつがわかる',
+    'gui.classroom.carousel.statusPanelDesc':
+        '「いまのかだいのじょうきょう」をだしておけば、じぶんのがめんでじゅぎょうをしながら、だれがていしゅつしたかをせきのいろでみられます。',
+    'gui.classroom.carousel.lessonProgressTitle': 'つまずいているこがすぐわかる',
+    'gui.classroom.carousel.lessonProgressDesc':
+        'レッスンのすすみぐあいをいちらんで。10 ぷんいじょうとまっているこにはしるしがつくので、こえをかけにいけます。',
+    'gui.classroom.carousel.gradingTitle': 'さいてんは AI がしたがき、きめるのはせんせい',
+    'gui.classroom.carousel.gradingDesc':
+        'ていしゅつをよみこみ、AI がてんとコメントをしたがきします。せんせいがなおして、そのまませいとへへんきゃくできます。',
+    'gui.carousel.prev': 'まえへ',
+    'gui.carousel.next': 'つぎへ',
+    'gui.carousel.pause': 'いちじていし',
+    'gui.carousel.play': 'さいせい',
+    'gui.carousel.slide': '{total} まいちゅう {current} まいめ',
     'gui.classroom.loading': 'よみこみちゅう...',
     'gui.sharedMessages.backdrop': 'はいけい{index}',
     'gui.sharedMessages.costume': 'コスチューム{index}',

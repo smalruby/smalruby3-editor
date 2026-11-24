@@ -304,72 +304,15 @@
 }
 
 .login-bottom {
-    flex: 1;
+    /* Wider than the sign-in side, so the carousel images can be shown large (#2364). */
+    flex: 1.35;
+    min-width: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     border-left: 1px solid #e0e0e0;
     background: #f8f9fa;
-    padding: 1.5rem;
-}
-
-.carousel {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.6rem;
-    width: 100%;
-    max-width: 100%;
-    padding: 0;
-}
-
-.carousel-slide {
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 0.3rem;
-}
-
-.carousel-title {
-    font-size: 1rem;
-    font-weight: bold;
-    color: #575e75;
-}
-
-.carousel-desc {
-    font-size: 0.8rem;
-    color: #888;
-    line-height: 1.3;
-}
-
-.carousel-image {
-    max-width: 100%;
-    max-height: 280px;
-    width: auto;
-    height: auto;
-    margin-top: 0.5rem;
-    border-radius: 6px;
-    object-fit: contain;
-}
-
-.carousel-dots {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.carousel-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    border: none;
-    background: #ddd;
-    cursor: pointer;
-    padding: 0;
-}
-
-.carousel-dot-active {
-    background: #4c97ff;
+    padding: 1rem 1.25rem;
 }
 
 .main-relative {
@@ -900,4 +843,23 @@
 .logout-confirm-message {
     margin: 0 0 0.5rem;
     font-size: $font-size-medium;
+}
+
+/* Narrow screens: the sign-in on top, the carousel under it (#2364). */
+@media (max-width: 47.9375rem) {
+    .login-area {
+        flex-direction: column;
+        height: auto;
+        min-height: 100%;
+    }
+
+    .login-top {
+        flex: none;
+    }
+
+    .login-bottom {
+        flex: none;
+        border-left: none;
+        border-top: 1px solid #e0e0e0;
+    }
 }

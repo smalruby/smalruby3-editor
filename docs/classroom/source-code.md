@@ -54,12 +54,13 @@ smalruby3-editor/
 │   │   │   ├── classroom-teacher-kick-toast/ ← 先生向けの退室依頼トースト / 一覧 (表示) #1200
 │   │   │   ├── classroom-teacher-panel/ ← 先生の「いまの課題の状況」フローティングパネル (表示) #1203
 │   │   │   ├── classroom-peer-panel/ ← 生徒の「みんなの作品」パネル + 画像ビューアのウィンドウ (表示・枠は teacher-panel の CSS を共用) #1210
+│   │   │   ├── carousel/              ← カルーセル（ログイン画面の紹介。デザインシステムの carousel.md）
 │   │   │   ├── classroom-teacher-modal/ ← 先生用フルスクリーンモーダル
 │   │   │   │   ├── classroom-teacher-modal.jsx ← メイン（ダッシュボード/詳細/作成等）
 │   │   │   │   ├── classroom-teacher-modal.css
 │   │   │   │   ├── teacher-login-phase.jsx ← ログイン画面（カルーセル付き）
 │   │   │   │   ├── teacher-google-courses-phase.jsx ← GC コースインポート
-│   │   │   │   └── carousel-*.png     ← カルーセル画像
+│   │   │   │   └── carousel-*.png     ← カルーセル画像（capture-classroom-login-carousel.mjs が作る）
 │   │   │   ├── classroom-tutorial/    ← チュートリアルオーバーレイ
 │   │   │   └── alerts/alert.jsx       ← セッション切れ Alert（showRejoin 対応）
 │   │   ├── containers/
@@ -276,7 +277,7 @@ GOOGLE_ID_TOKEN=eyJ... docker compose run --rm -w /app/infra/smalruby-classroom 
 | ファイル | 責務 |
 |---------|------|
 | `classroom-teacher-modal.jsx` | 先生モーダル本体（ダッシュボード、課題詳細、作成、課題配信） |
-| `teacher-login-phase.jsx` | ログイン画面（Google / Microsoft ボタン + カルーセル） |
+| `teacher-login-phase.jsx` | ログイン画面（Google / Microsoft ボタン + カルーセル。カルーセルの部品は `src/components/carousel/carousel.jsx`、画像 `carousel-*.png` は `tools/playwright-verify/capture-classroom-login-carousel.mjs` が作る） |
 | `teacher-google-courses-phase.jsx` | Google Classroom コースインポート画面 |
 | `teacher-notifications.jsx` | お知らせセンター（🔔 + 未読バッジ + 一覧パネル、EPIC #1111） |
 

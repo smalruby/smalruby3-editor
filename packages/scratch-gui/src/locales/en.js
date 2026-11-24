@@ -886,14 +886,27 @@ export default {
     'gui.classroom.assignmentEditor.errorLessonNoChallenges': 'Choose at least one challenge for the lesson.',
     'gui.classroom.assignmentEditor.advancedSummary': 'Peer view: {peerView} · Mesh: {mesh}',
     'gui.classroom.teacherCreate.assignmentNameHint': 'You can change the student count and assignment name anytime.',
-    'gui.classroom.carousel.submitTitle': 'Students can submit assignments',
-    'gui.classroom.carousel.submitDesc': 'Students join with a code and submit their work with one click.',
-    'gui.classroom.carousel.overviewTitle': 'See submission status at a glance',
-    'gui.classroom.carousel.overviewDesc': 'The seat grid shows who has submitted, returned, or is still working.',
-    'gui.classroom.carousel.screenshotTitle': 'Preview without opening',
-    'gui.classroom.carousel.screenshotDesc': 'Thumbnails and block screenshots let you review work quickly.',
-    'gui.classroom.carousel.gcTitle': 'Google Classroom integration',
-    'gui.classroom.carousel.gcDesc': 'Import class rosters from Google Classroom and post assignment links.',
+    'gui.classroom.carousel.label': 'What Class management can do',
+    'gui.classroom.carousel.sameAsGcTitle': 'Works just like Google Classroom',
+    'gui.classroom.carousel.sameAsGcDesc':
+        'Stream, Classwork and Grades tabs, and [+ Create]. If you can use Google Classroom, there is little new to learn.',
+    'gui.classroom.carousel.joinCodeTitle': 'Just show the class code to start',
+    'gui.classroom.carousel.joinCodeDesc':
+        'Students only type the code into "Class" in the menu and choose their seat. Students need no accounts.',
+    'gui.classroom.carousel.statusPanelTitle': 'See who has submitted with the editor open',
+    'gui.classroom.carousel.statusPanelDesc':
+        'Keep "Current assignment status" open to teach on your own screen and see who has submitted by the seat colors.',
+    'gui.classroom.carousel.lessonProgressTitle': 'Spot the students who are stuck',
+    'gui.classroom.carousel.lessonProgressDesc':
+        'See the lesson progress in one table. Students stopped for 10 minutes or more get a mark, so you can go and help.',
+    'gui.classroom.carousel.gradingTitle': 'AI drafts the grades, you decide',
+    'gui.classroom.carousel.gradingDesc':
+        'Load the submissions and AI drafts the points and comments. Fix them and return them to the students as they are.',
+    'gui.carousel.prev': 'Previous',
+    'gui.carousel.next': 'Next',
+    'gui.carousel.pause': 'Pause',
+    'gui.carousel.play': 'Play',
+    'gui.carousel.slide': '{current} of {total}',
     'gui.classroom.loading': 'Loading...',
     'gui.smalruby3.menuBar.generateRubyFromCode': 'Generate Ruby from Code',
     'gui.smalruby3.unsupportedBrowser.notRecommended':
