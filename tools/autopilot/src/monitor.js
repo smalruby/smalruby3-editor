@@ -24,6 +24,7 @@
  *   （#1213。文字列は phases.js の `issueCopyText`）
  */
 
+const { BLOCKED_PANEL_HTML } = require('./blocked-panel');
 const {
     canToggleLater, effectiveLater, splitLaterBoard, laterPendingReducer, splitPrsForTitle, issueCopyText,
     canResolveConflict,
@@ -290,6 +291,7 @@ ${LEARN_TASKS_CSS}</style></head><body>
 <div id="alerts"></div>
 <div id="schedule" data-testid="schedule-plan"></div>
 <main>
+  ${BLOCKED_PANEL_HTML}
   <div id="humanwaits"></div>
   <div id="epicgroups" data-testid="epic-groups"></div>
   <div id="tabs" class="tabs" role="tablist"></div>

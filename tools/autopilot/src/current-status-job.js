@@ -124,6 +124,9 @@ async function runCurrentStatusJob(cfg, state, log, deps = {}) {
             session: `autopilot-${CURRENT_STATUS_PHASE}-${cfg.port || 0}`, cwd: work, env, command,
             promptDir: process.env.AUTOPILOT_CLAUDE_CMD ? undefined : cfg.promptDir,
             skill: CURRENT_STATUS_SKILL, issue: 0, resultFile, log, watchdog: cfg.watchdog,
+            // blocked で人間を待つ口（#2387）
+            blocked: state.blockedHub
+                ? state.blockedHub.channel(0, CURRENT_STATUS_PHASE, `autopilot-${CURRENT_STATUS_PHASE}-${cfg.port || 0}`) : undefined,
         });
         const parsed = res && res.ok ? (deps.readResultFile || readResultFile)(resultFile) : null;
         const plan = planCurrentStatusOutcome({ prev, run: res, parsed, now: now() });

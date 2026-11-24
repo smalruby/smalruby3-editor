@@ -127,6 +127,7 @@ function learningsResponse(cfg, state) {
 /**
  * Issue に結びつかない worker（タスク・学びの PR）を 1 回走らせる。
  * worktree は `bin/autopilot-worktree create <key>` で作る（Issue と同じ軽い作り方）。
+ * `p.state` があれば、blocked で人間を待つときモニターに出す（`state.blockedHub`・#2387）。
  * @returns {Promise<{ok: boolean, result?: object, reason?: string, cwd?: string}>}
  */
 async function runDetachedWorker(p, deps) {
@@ -150,6 +151,8 @@ async function runDetachedWorker(p, deps) {
         env: { AUTOPILOT_ISSUE: '0', AUTOPILOT_PHASE: phase, AUTOPILOT_RESULT_FILE: resultFile,
             AUTOPILOT_REPO: cfg.repo, ...env },
         log: (m) => log(`${key}: ${m}`), watchdog: cfg.watchdog,
+        // blocked で人間を待つ口（モニターの「止まっている worker」・#2387）
+        blocked: p.state && p.state.blockedHub ? p.state.blockedHub.channel(0, phase, `autopilot-${key}`) : undefined,
     });
     if (!res.ok) return { ok: false, reason: res.reason, cwd };
     const parsed = (deps.readResultFile || readResultFile)(resultFile);
@@ -180,7 +183,7 @@ async function startLearningsPr(cfg, state, log, deps = {}) {
     const run = (async () => {
         try {
             const r = await runDetachedWorker({
-                key, phase: 'learnings', skill: 'autopilot-learnings', cfg, log,
+                key, phase: 'learnings', skill: 'autopilot-learnings', cfg, log, state,
                 env: { AUTOPILOT_LEARNINGS_WORK_FILE: `tmp/autopilot-learnings-work.md` },
                 prepare: async (cwd) => {
                     fs.mkdirSync(path.join(cwd, 'tmp'), { recursive: true });
@@ -328,7 +331,7 @@ async function runTask(def, reason, cfg, state, log, deps = {}) {
     try {
         const promptRel = `tmp/autopilot-task-${def.id}.md`;
         const r = await runDetachedWorker({
-            key: `task-${def.id}`, phase: 'task', skill: 'autopilot-task', cfg, log,
+            key: `task-${def.id}`, phase: 'task', skill: 'autopilot-task', cfg, log, state,
             env: { AUTOPILOT_TASK_ID: def.id, AUTOPILOT_TASK_PROMPT_FILE: promptRel },
             prepare: async (cwd) => {
                 // 何度も走る定期タスクは、変更が残っていなければ最新の develop にそろえて始める

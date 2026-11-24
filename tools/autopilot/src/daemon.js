@@ -103,7 +103,8 @@ const {
     watchdogFromSettings,
 } = require('./phases');
 const { readResultFile } = require('./contract');
-const { runPhase, killSession, capture, listSessions } = require('./runner');
+const { runPhase, killSession, capture, listSessions, configureRunner, shutdownTerminal } = require('./runner');
+const { createBlockedHub, handleBlockedHttp } = require('./blocked-hub');
 const { MONITOR_HTML } = require('./monitor');
 const {
     loadSettings, buildClaudeCommand, snapshotRunAssets, resolveUsagePauseThresholds,
@@ -1432,6 +1433,8 @@ async function dispatch(item, cfg, state, log) {
         const res = await runPhase({
             session, cwd, env, command, promptDir, skill: meta.skill, issue: item.issue, resultFile, log,
             watchdog: cfg.watchdog,
+            // blocked で人間を待つときの口（モニターの「止まっている worker」・#2387）
+            blocked: state.blockedHub ? state.blockedHub.channel(item.issue, phase, session) : undefined,
         });
         // worker のセッションが終わったこのタイミングで Claude 使用率を更新する（#879）。
         updateClaudeUsage(state, cfg, log);
@@ -2905,6 +2908,8 @@ function startHttp(cfg, state, log) {
             res.writeHead(code, { 'content-type': 'application/json' });
             res.end(JSON.stringify(obj));
         };
+        // 止まっている worker の一覧と、人間の答え（#2387。blocked-hub.js）
+        if (handleBlockedHttp(req, res, url, state.blockedHub)) return;
         // 学び・タスクの口（/learnings*・/tasks*）は learn-tasks.js が受ける
         if (learnTasks.handleLearnTasksHttp(req, res, url, { cfg, state, log, send, capture, deps: { workerCommand } })) return;
         if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/index.html')) {
@@ -3168,6 +3173,11 @@ async function main(opts = {}) {
         usagePause: null, usageOverrides: {},
         version: null, autopilotUpdate: null,
     };
+    // worker の端末（herdr | tmux）と、blocked で人間を待つ置き場（#2387）。
+    // autopilot が止まるときは worker を全部一緒に止める（herdr は session ごと。ゾンビを残さない）。
+    configureRunner(cfg.settings, log);
+    state.blockedHub = createBlockedHub({ now: cfg.now, log, file: path.join(os.tmpdir(), 'autopilot-blocked-log.jsonl') });
+    process.on('exit', () => { try { shutdownTerminal(); } catch { /* noop */ } });
     // 現在地の artifact の URL・最終更新（#2388）は再起動をまたいで残す
     state.currentStatusState = currentStatusJob.loadCurrentStatusState(cfg);
     currentStatusJob.refreshCurrentStatusView(state);
