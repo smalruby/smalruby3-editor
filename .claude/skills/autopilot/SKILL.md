@@ -37,7 +37,7 @@ description: autopilot の総合サポート。初期設定（必要情報のイ
 ### A-1. 前提チェック（揃っているものはスキップ）
 
 ```bash
-command -v tmux && command -v gh && command -v claude && node --version   # 実行環境
+command -v herdr && command -v gh && command -v claude && node --version   # 実行環境
 bin/bot-token --whoami                                                    # bot 認証（最重要）
 GH_TOKEN="$(bin/bot-token)" gh project view 4 --owner smalruby --format json | head -c 200  # Project アクセス
 ls ~/.config/autopilot/settings.json 2>/dev/null                          # worker settings（任意）
