@@ -112,6 +112,8 @@ const { readClaudeUsage } = require('./usage');
 const scheduler = require('./scheduler');
 const { readVersion, checkAutopilotUpdate } = require('./version');
 const project = require('./project');
+// 学び（M6/R1）とタスク（E1）の I/O。daemon からは tick と HTTP の 2 か所でつなぐだけ（EPIC #2384）
+const learnTasks = require('./learn-tasks');
 // EPIC 単位の確認（#2385）: 判断は epic-flow.js、実行のつなぎは epic-merge.js
 const { resolveRunOutcome, isEpicFlowBase, markAutoMergeContexts } = require('./epic-flow');
 const { applyEpicRunSideEffects, applyEpicAutoMerge } = require('./epic-merge');
@@ -412,6 +414,34 @@ function readResources(deps = {}) {
 }
 
 /**
+ * 並列の計画に数える「実行中の worker」。Issue の worker に、Issue に結びつかない worker
+ * （タスク・学びの PR・現在地の job）を足す。どれも同じ claude を動かすので全体の上限に数える。
+ * @returns {{issue: (number|string), weight: string}[]}
+ */
+function runningWorkersForPlan(state) {
+    if (!state.weights) state.weights = new Map();
+    const issues = [...state.running.entries()].map(([issue, r]) => ({
+        issue,
+        weight: state.weights.get(issue)
+            || scheduler.estimateWeight({ phase: r && r.phase }).weight,
+    }));
+    const extra = learnTasks.runningWorkers(state);
+    if (state.currentStatusJob) extra.push({ issue: 'current-status', weight: 'light' });
+    return [...issues, ...extra];
+}
+
+/**
+ * Issue に結びつかない worker（タスク）を、Issue の worker の計画のあとの残りの枠で始めてよいか決める。
+ * @param {{issue: string, weight: string}[]} cands
+ * @returns {string[]} 始めてよい cands の issue
+ */
+function planExtraSlots(cands, cfg, state, deps = {}) {
+    const limits = currentSchedulerLimits(cfg, state);
+    const resources = (deps.readResources || readResources)();
+    return scheduler.planSlots({ candidates: cands, running: runningWorkersForPlan(state), limits, resources }).picked;
+}
+
+/**
  * after が解けた候補から、この tick で始めるものを決める（EPIC #2384）。
  * 優先度（自分 → 親 EPIC → 既定 P2）→ Project の並びで並べ、重さを推定し、上限と空きメモリ・CPU で
  * 計画する（判断は scheduler.js の純粋関数）。計画と理由は `state.schedulePlan` に置き、モニターと
@@ -440,11 +470,7 @@ function planDispatch(eligible, directivesByIssue, items, limits, cfg, state, lo
         });
         return { ...item, weight: est.weight, weightSource: est.source, weightReasons: est.reasons };
     });
-    const running = [...state.running.entries()].map(([issue, r]) => ({
-        issue,
-        weight: state.weights.get(issue)
-            || scheduler.estimateWeight({ phase: r && r.phase }).weight,
-    }));
+    const running = runningWorkersForPlan(state);
     const resources = (deps.readResources || readResources)();
     const plan = scheduler.planSlots({ candidates: withWeight, running, limits, resources });
     const pickedSet = new Set(plan.picked);
@@ -2271,7 +2297,8 @@ async function tick(cfg, state, log) {
     // recoverStalledInFlightWorkers・モニター表示が使う cfg.concurrency も全体の上限にそろえる。
     const limits = currentSchedulerLimits(cfg, state);
     cfg.concurrency = limits.maxTotal;
-    const capacity = Math.max(0, limits.maxTotal - state.running.size);
+    // タスクなど Issue に結びつかない worker も全体の上限に数える（runningWorkersForPlan）
+    const capacity = Math.max(0, limits.maxTotal - runningWorkersForPlan(state).length);
     // autopilot-after ゲートで待たされている candidate を記録し、後で ⏳ waiting ラベルを
     // 依存状態へ合わせる（true=依存未完了で待ち / false=解決済み）。examined な candidate のみ。
     const waitingByIssue = new Map();
@@ -2327,6 +2354,10 @@ async function tick(cfg, state, log) {
         syncFaces: (it, intents) => syncFacesAfterIntents(it, intents, cfg, log),
         onDecisions: (epic, count) => recordEpicDecisionCount(state, epic, count),
     }).catch((e) => log(`epic auto-merge error: ${e.message}`));
+    // 時刻が来たタスク（1 回・定期）を worker で実行する（fire-and-forget）。Issue の worker を先に計画し、
+    // 残りの枠（全体・重い・空きメモリ）でタスクを始める（planExtraSlots）
+    learnTasks.applyDueTasks(cfg, state, log, { workerCommand, planSlots: (cands) => planExtraSlots(cands, cfg, state) })
+        .catch((e) => log(`task error: ${e.message}`));
     // 人間が手動 merge した leaf（と上の自動マージ）を Close へ前進 + GitHub issue も close（#843 Fix A）
     await applyMergeProgression(items, cfg, state, log);
     // GitHub で closed な issue（EPIC・人手 close 含む）の Project Status を Close へ整合（#843 Fix B）
@@ -2874,6 +2905,8 @@ function startHttp(cfg, state, log) {
             res.writeHead(code, { 'content-type': 'application/json' });
             res.end(JSON.stringify(obj));
         };
+        // 学び・タスクの口（/learnings*・/tasks*）は learn-tasks.js が受ける
+        if (learnTasks.handleLearnTasksHttp(req, res, url, { cfg, state, log, send, capture, deps: { workerCommand } })) return;
         if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/index.html')) {
             res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
             return res.end(MONITOR_HTML);

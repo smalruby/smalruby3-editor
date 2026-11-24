@@ -78,6 +78,18 @@ done
 touch した領域に関わらず**常に**前提として踏まえる。触った領域が `$AREAS` に無い場合（root 直下の
 スクリプトのみの変更等）はルート規約だけで十分。
 
+**人間から学んだこと**（`docs/autopilot/learned/<area>.md`。EPIC の確認で人間の答えが AI のおすすめと違ったときの
+意図と、人間との確認で分かったレビューの観点）も、触った分野のものだけ読み、観点に加える
+（`learnedRuleFilesFor`・純粋関数・`tools/autopilot/src/learnings.js`。`general.md` はいつも入る）:
+
+```bash
+node -e '
+const { learnedRuleFilesFor } = require("./tools/autopilot/src/learnings.js");
+const files = require("fs").readFileSync(0, "utf8").split("\n").filter(Boolean);
+console.log(learnedRuleFilesFor(files).join("\n"));
+' <<< "$FILES" | while read -r f; do [ -f "$f" ] && cat "$f"; done
+```
+
 ### 3. 敵対的レビューを実行（インライン・軽量）
 
 差分に対し、**自分で（インラインで）批判的にレビューする**。

@@ -26,6 +26,8 @@
 | `src/epic-summary.js` / `src/current-status.js` | EPIC ごとのまとめ・見込み・現在地の材料とテンプレートの描画の**純粋関数**。`renderEpicGroupsHtml` はモニタへ `fn.toString()` で埋め込むので**モジュールの外を参照しない** | I/O・`Date.now()` を持ち込まない（`now` を引数で受ける） |
 | `src/current-status-job.js` | 現在地の job の I/O（worker の起動・状態ファイル・改善メモ）。daemon から呼ぶ割り込み型の job | 判断を書かない（`planCurrentStatusOutcome` を呼ぶ） |
 | `src/usage.js` / `src/version.js` / `src/pw-check.js` | usage ファイル読取 / 稼働バージョン・更新検知 / headless UI 確認ヘルパー | — |
+| `src/learnings.js` / `src/tasks.js` | 学び（M6/R1）・タスク（E1）の判断の**純粋関数** | phases.js と同じ（I/O・時計・乱数なし） |
+| `src/learn-tasks.js` | 学び・タスクの I/O（`tmp/` の置き場・Issue に結びつかない worker・`/learnings*` `/tasks*`）。daemon からは tick と startHttp の 2 か所でだけ呼ぶ | 判断を書かない（learnings.js / tasks.js へ）。GitHub は project.js 経由 |
 
 **新しい判断ロジックを追加する手順**: ① phases.js に純粋関数として書く → ② `test/` に
 unit テストを付ける → ③ daemon/runner から呼ぶ。逆順（daemon に inline で判定を書く）は

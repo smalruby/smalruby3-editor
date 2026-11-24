@@ -29,6 +29,8 @@ const {
     canResolveConflict,
     HUMAN_WAIT_REASONS, humanWaitGroups, renderHumanWaitsHtml, renderHumanWaitCell,
 } = require('./phases');
+// 学び・タスクの欄（EPIC #2384）。部品は monitor-learn-tasks.js にまとめ、ここは埋め込むだけ
+const { LEARN_TASKS_CSS, LEARN_TASKS_HTML, LEARN_TASKS_SCRIPT } = require('./monitor-learn-tasks');
 // EPIC ごとの欄と「現在地を作る」（#2388）。描画は epic-summary.js の純粋関数を埋め込んで共有する
 const { renderEpicGroupsHtml } = require('./epic-summary');
 
@@ -264,7 +266,7 @@ const MONITOR_HTML = `<!doctype html>
   .chip { font-size: 11px; padding: 0 6px; border: 1px solid #cbd5e1; border-radius: 99px; margin-left: 2px; }
   .chip.run { color: #15803d; border-color: #15803d; } .chip.wait { color: #b91c1c; border-color: #b91c1c; }
   .cs-err { color: #b45309; }
-</style></head><body>
+${LEARN_TASKS_CSS}</style></head><body>
 <header>
   <div class="hgroup hleft">
     <h1><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120' width='22' height='22' style='vertical-align:-4px;margin-right:.15rem'>
@@ -296,6 +298,7 @@ const MONITOR_HTML = `<!doctype html>
     <th>Issue</th><th>Status</th><th>Size</th><th>AI</th><th>担当</th><th>Sub-issues</th><th>Now</th>
   </tr></thead><tbody id="rows"><tr><td colspan="7" class="muted">読み込み中…</td></tr></tbody></table>
   </div>
+  ${LEARN_TASKS_HTML}
   <h2>実行履歴（最新 100 件・ログ用途のみ）</h2>
   <table id="histt"><thead><tr>
     <th>時刻</th><th>Issue</th><th>Phase</th><th>結果</th><th>メモ</th>
@@ -1107,6 +1110,6 @@ document.getElementById('epicgroups').addEventListener('click', async (ev) => {
   refresh();
 });
 refresh(); setInterval(refresh, 5000);
-</script></body></html>`;
+${LEARN_TASKS_SCRIPT}</script></body></html>`;
 
 module.exports = { MONITOR_HTML };
