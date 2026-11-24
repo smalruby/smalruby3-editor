@@ -1153,16 +1153,18 @@ node tools/autopilot/bin/autopilot daemon --once
 daemon オプション: `--owner` / `--project` / `--repo` / `--concurrency` / `--interval`（秒）/
 `--port` / `--once` / **`--assignee <login>`**（enroll モデル: 自分がオーナーの item だけ処理。
 env `AUTOPILOT_ASSIGNEE` でも可）。起動すると PID ファイル（`$TMPDIR/autopilot-daemon.pid`、通常
-`/tmp/autopilot-daemon.pid`）を書き、ログを stderr に出す。バックグラウンド常駐は tmux か
-`nohup ... &` で。
+`/tmp/autopilot-daemon.pid`）を書き、ログを stderr に出す。バックグラウンド常駐は herdr の session（`autopilot-daemon`。worker の `autopilot` とは分ける）で。
 
 ```bash
-# tmux で常駐させる例（クラッシュ耐性を持たせるため supervisor 経由で起動する・#953）
-tmux new -d -s autopilot 'tools/autopilot/bin/autopilot-supervise --port 8787'
+# herdr で常駐させる例（クラッシュ耐性を持たせるため supervisor 経由で起動する・#953）
+nohup herdr --session autopilot-daemon server >/dev/null 2>&1 &
+PANE=$(herdr --session autopilot-daemon workspace create --cwd "$PWD" --label daemon --no-focus \
+  | node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(0)).result.root_pane.pane_id)')
+herdr --session autopilot-daemon pane run "$PANE" 'tools/autopilot/bin/autopilot-supervise --port 8787'
 ```
 
 > **起動 / 再起動 / 更新反映（update autopilot）は Claude（autopilot スキル）が実行してよい。**
-> autopilot スキルが生成する tmux 起動ラッパ `tmp/autopilot_up.sh` があれば、Claude が
+> autopilot スキルが生成する起動ラッパ（herdr） `tmp/autopilot_up.sh` があれば、Claude が
 > `bash tmp/autopilot_up.sh` で起動・再起動できる（従来「人間のみ」だったが解禁）。
 > **SSO が切れていても起動してよい** — daemon はモニタを立てて起動待ちになり、人間がモニタの
 > 「🔐 再接続（SSO ログイン）」でコードを承認すると稼働を始める（上の「認証の無人運用」）。
