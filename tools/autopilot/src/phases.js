@@ -2887,17 +2887,18 @@ function authRecoveryPatch(state) {
 /**
  * モニタ・/status に出す認証まわりの案内の種類を決める（純粋関数・#1510）。
  * - `starting`: 起動中で Project 情報を取っている（認証エラーは無い）
+ * - `boot-rate-limit`: 起動待ちで、GitHub のレート制限が戻るのを待っている（#2384）
  * - `boot-sso`: 起動待ちで SSO ログインが要る
  * - `boot-not-sso`: 起動待ちで、SSO ログインは通ったのに bot トークンが取れない（鍵・App の設定など）
  * - `auth`: 稼働中の認証失効（従来の auto-pause）
  * - null: 案内なし
  * @param {{booting?: boolean, authError?: (string|null), bootSsoDone?: boolean}} state
- * @returns {('starting'|'boot-sso'|'boot-not-sso'|'auth'|null)}
+ * @returns {('starting'|'boot-rate-limit'|'boot-sso'|'boot-not-sso'|'auth'|null)}
  */
 function authNoticeKind(state) {
     const s = state || {};
     if (s.booting) {
-        if (!s.authError) return 'starting';
+        if (!s.authError) return s.bootWait && s.bootWait.reason === 'rate-limit' ? 'boot-rate-limit' : 'starting';
         return s.bootSsoDone ? 'boot-not-sso' : 'boot-sso';
     }
     return s.authError ? 'auth' : null;
@@ -2953,6 +2954,75 @@ function rateLimitPlan(limitsByToken, thresholds = {}) {
         warn: minRemaining < t.warn,
         skipLowPriority: minRemaining < t.skip,
     };
+}
+
+/**
+ * GitHub のレート制限（一次・二次）で失敗したかを判定する純粋関数（#2384）。
+ * 起動時の `gh project field-list` が `GraphQL: API rate limit exceeded for installation ID ...`
+ * で落ちると、以前は daemon が exit 1 → supervisor が再起動 → また落ちる、を繰り返していた。
+ * この判定で拾ったものは exit せず、HTTP を立てたまま起動を待つ（{@link bootRateLimitWait}）。
+ * @param {Error|string|null|undefined} err
+ * @returns {boolean}
+ */
+function isRateLimitError(err) {
+    if (!err) return false;
+    const text = typeof err === 'string' ? err : `${err.message || ''}\n${err.stderr || ''}`;
+    return /rate limit exceeded|secondary rate limit|API rate limit/i.test(text);
+}
+
+/** 起動時のレート制限待ち: 1 回に待つ最短・最長（ms）。最長を過ぎたら残量を見直す */
+const BOOT_RATE_LIMIT_MIN_WAIT_MS = 30_000;
+const BOOT_RATE_LIMIT_MAX_WAIT_MS = 10 * 60_000;
+/** リセット時刻ちょうどではなく少し後に取り直す（時計のずれ） */
+const BOOT_RATE_LIMIT_RESET_SLACK_MS = 10_000;
+
+/**
+ * 起動時にレート制限で失敗したとき、次に取り直すまで待つ時間を決める（純粋関数・#2384）。
+ * `gh api rate_limit` の結果（残量 0 の資源の `reset`・epoch 秒）が分かればリセットの少し後まで待つ。
+ * 分からない（二次レート制限・rate_limit の取得失敗）ときは 30 秒から倍々で待つ。
+ * どちらも 1 回は最長 10 分で区切り、その時点で残量を見直す。
+ * @param {object|null} limits project.getRateLimit の結果 { core:{remaining,reset}, graphql:{...} }
+ * @param {number} nowMs いまの時刻（ms epoch）
+ * @param {number} attempt これまでに待った回数（0 始まり）
+ * @returns {{waitMs:number, resetAt:(number|null)}} resetAt はリセット時刻（ms epoch・分からなければ null）
+ */
+function bootRateLimitWait(limits, nowMs, attempt = 0) {
+    let resetAt = null;
+    for (const r of Object.values(limits || {})) {
+        if (!r || typeof r.remaining !== 'number' || r.remaining > 0) continue;
+        if (typeof r.reset !== 'number' || !Number.isFinite(r.reset)) continue;
+        const ms = r.reset < 1e12 ? r.reset * 1000 : r.reset;
+        if (resetAt === null || ms > resetAt) resetAt = ms;
+    }
+    const clamp = (ms) => Math.min(BOOT_RATE_LIMIT_MAX_WAIT_MS, Math.max(BOOT_RATE_LIMIT_MIN_WAIT_MS, ms));
+    if (resetAt !== null && resetAt > nowMs) {
+        return { waitMs: clamp(resetAt - nowMs + BOOT_RATE_LIMIT_RESET_SLACK_MS), resetAt };
+    }
+    const n = Math.max(0, Math.min(20, Math.floor(attempt) || 0));
+    return { waitMs: clamp(BOOT_RATE_LIMIT_MIN_WAIT_MS * 2 ** n), resetAt: null };
+}
+
+/**
+ * 人間の pause を残すファイルの中身から、起動時に当てる state の差分を作る（純粋関数・#2384）。
+ * 人間が止めた daemon が crash → supervisor の再起動で止まっていない状態から始まり、
+ * 人間の知らないうちに tick を回したため、人間の pause だけはファイルに残して起動時に戻す。
+ * auth / usage の auto-pause は残さない（起動時に改めて判定するので、残すと解けなくなる）。
+ * @param {object|null} saved ファイルの JSON（無い・壊れていれば null）
+ * @returns {{paused:true, pausedBy:'human', pausedAt:(string|null)}|null}
+ */
+function restoredHumanPause(saved) {
+    if (!saved || typeof saved !== 'object' || saved.pausedBy !== 'human') return null;
+    return { paused: true, pausedBy: 'human', pausedAt: typeof saved.pausedAt === 'string' ? saved.pausedAt : null };
+}
+
+/**
+ * いまの state で人間の pause のファイルをどうするか（純粋関数・#2384）。
+ * 人間の pause 中なら残す、それ以外（再開・auth / usage の pause）なら消す。
+ * @param {{paused?:boolean, pausedBy?:(string|null)}} state
+ * @returns {'write'|'remove'}
+ */
+function humanPauseFileAction(state) {
+    return state && state.paused && state.pausedBy === 'human' ? 'write' : 'remove';
 }
 
 /**
@@ -3892,6 +3962,7 @@ module.exports = {
     selectMarkedComments,
     stickyUpsertPlan,
     rateLimitPlan,
+    isRateLimitError, bootRateLimitWait, restoredHumanPause, humanPauseFileAction,
     DEFAULT_USAGE_PAUSE_THRESHOLDS,
     USAGE_WINDOW_FALLBACK_MS,
     usageResetMs,

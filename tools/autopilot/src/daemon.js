@@ -58,6 +58,10 @@ const {
     BOARD_UPKEEP_MS,
     selectClosedCheckIssues,
     rateLimitPlan,
+    isRateLimitError,
+    bootRateLimitWait,
+    restoredHumanPause,
+    humanPauseFileAction,
     PR_SYNC_STATUSES,
     WAITING_LABEL,
     hasLaterLabel,
@@ -790,6 +794,64 @@ function sleepUntilWoken(state, ms) {
 }
 
 /**
+ * 人間の pause を残すファイル（#2384）。monitor-answers.json と同じ置き場（`AUTOPILOT_STATE_DIR`、
+ * 既定 `~/.config/autopilot/`）。ポートごとに分け、同じ人の別の daemon の pause を巻き込まない。
+ * @param {object} cfg port を見る
+ * @returns {string}
+ */
+function humanPauseFilePath(cfg) {
+    const port = (cfg && cfg.port) || 8787;
+    return path.join(currentStatusJob.stateDir(), `human-pause-${port}.json`);
+}
+
+/**
+ * 人間の pause をファイルに書く・消す（{@link humanPauseFileAction} が決める）。
+ * 失敗しても daemon は止めない（ログに残すだけ）。
+ * @param {object} cfg
+ * @param {object} state
+ * @param {Function} log
+ * @param {object} [deps] テスト用 { file, fs, now }
+ */
+function persistHumanPause(cfg, state, log, deps = {}) {
+    const file = deps.file || humanPauseFilePath(cfg);
+    const fsx = deps.fs || fs;
+    try {
+        if (humanPauseFileAction(state) === 'write') {
+            fsx.mkdirSync(path.dirname(file), { recursive: true });
+            const pausedAt = state.pausedAt || new Date((deps.now || Date.now)()).toISOString();
+            state.pausedAt = pausedAt;
+            fsx.writeFileSync(file, `${JSON.stringify({ pausedBy: 'human', pausedAt })}\n`);
+        } else {
+            state.pausedAt = null;
+            fsx.rmSync(file, { force: true });
+        }
+    } catch (e) { log(`human pause file warn: ${e.message}`); }
+}
+
+/**
+ * 起動時、人間の pause のファイルがあれば pause したまま始める（最初の tick より前に呼ぶ・#2384）。
+ * @param {object} cfg
+ * @param {object} state
+ * @param {Function} log
+ * @param {object} [deps] テスト用 { file, fs }
+ * @returns {boolean} pause を戻したら true
+ */
+function restoreHumanPause(cfg, state, log, deps = {}) {
+    const file = deps.file || humanPauseFilePath(cfg);
+    const fsx = deps.fs || fs;
+    let saved = null;
+    try {
+        if (!fsx.existsSync(file)) return false;
+        saved = JSON.parse(fsx.readFileSync(file, 'utf8'));
+    } catch (e) { log(`human pause file warn: ${e.message}`); }
+    const patch = restoredHumanPause(saved);
+    if (!patch) return false;
+    Object.assign(state, patch);
+    log(`paused (人間の一時停止を引き継いだ${patch.pausedAt ? `: ${patch.pausedAt}` : ''}) — 再開は POST /resume`);
+    return true;
+}
+
+/**
  * 起動時に Project 情報を取り、cfg に入れる（#1510）。
  *
  * devpod の再起動直後は SSO が切れていて bot トークンが取れない。以前はここで落ちて
@@ -812,16 +874,39 @@ async function bootProjectInfo(cfg, state, log, deps = {}) {
     const resolve = deps.resolveProjectInfo || resolveProjectInfo;
     const wait = deps.sleep || ((ms) => sleepUntilWoken(state, ms));
     const retryMs = deps.retryMs || BOOT_AUTH_RETRY_MS;
+    const now = deps.now || (() => Date.now());
+    const readLimits = deps.getRateLimit || (async () => project.getRateLimit(await project.botToken()));
     state.booting = true;
+    let rateAttempt = 0;
     for (;;) {
         let info;
         try {
             info = await resolve(cfg);
         } catch (e) {
+            // レート制限（#2384）: exit すると supervisor が再起動してまた落ちるだけなので、
+            // HTTP を立てたまま残量が戻るのを待つ。rate_limit の問い合わせはレートを消費しない。
+            if (isRateLimitError(e) && !deps.once) {
+                let limits = null;
+                try { limits = await readLimits(); } catch (le) { log(`boot: rate_limit を取れない: ${le.message}`); }
+                const { waitMs, resetAt } = bootRateLimitWait(limits, now(), rateAttempt);
+                rateAttempt += 1;
+                state.bootWait = {
+                    reason: 'rate-limit',
+                    message: sanitizeForSurface(e.message || String(e), 300),
+                    resetAt: resetAt ? new Date(resetAt).toISOString() : null,
+                    retryAt: new Date(now() + waitMs).toISOString(),
+                };
+                log(`boot: GitHub のレート制限で起動できない — ${Math.round(waitMs / 1000)} 秒後に取り直す` +
+                    (resetAt ? `（リセット ${state.bootWait.resetAt}）` : ''));
+                await wait(waitMs);
+                continue;
+            }
             if (!isAuthError(e) || deps.once) {
                 state.booting = false;
+                state.bootWait = null;
                 throw e;
             }
+            state.bootWait = null;
             if (!state.authError) log('boot: bot トークンが取れないため、モニタで SSO ログインを待つ');
             recordAuthFailure(state, e, log);
             await wait(retryMs);
@@ -832,7 +917,9 @@ async function bootProjectInfo(cfg, state, log, deps = {}) {
         // 投入順を Board view の見た目に揃えるための Status 列順（= option 定義順）
         cfg.statusOrder = Object.keys((info.fields.Status && info.fields.Status.options) || {});
         if (state.authError) log('boot: 認証が回復した — 稼働を始める');
+        if (state.bootWait) log('boot: レート制限が戻った — 稼働を始める');
         Object.assign(state, authRecoveryPatch(state));
+        state.bootWait = null;
         state.booting = false;
         state.bootSsoDone = false;
         state.bootWakePending = false;
@@ -2830,6 +2917,8 @@ function boardResponse(cfg, state) {
         reauthHint: reauthHintFor(state),
         reauth: state.reauth || null,
         booting: !!state.booting,
+        bootWait: state.bootWait || null,
+        pausedAt: state.pausedAt || null,
         notice: authNoticeKind(state),
         assignee: cfg.assignee,
         concurrency: cfg.concurrency,
@@ -2916,6 +3005,8 @@ function statusResponse(cfg, state) {
         reauthHint: reauthHintFor(state),
         reauth: state.reauth || null,
         booting: !!state.booting,
+        bootWait: state.bootWait || null,
+        pausedAt: state.pausedAt || null,
         notice: authNoticeKind(state),
         assignee: cfg.assignee,
         concurrency: cfg.concurrency,
@@ -3029,7 +3120,9 @@ function startHttp(cfg, state, log) {
                 .catch((e) => log(`current-status error: ${e.message}`));
             return send(202, { started: true, currentStatus: state.currentStatus });
         }
-        if (req.method === 'POST' && state.booting && BOOT_BLOCKED_PATHS.has(url.pathname)) {
+        // 起動待ちでも、人間の pause を外す /resume だけは通す（引き継いだ pause を外せるように・#2384）
+        if (req.method === 'POST' && state.booting && BOOT_BLOCKED_PATHS.has(url.pathname)
+            && !(url.pathname === '/resume' && state.pausedBy === 'human')) {
             // 起動待ち（#1510）: Project 情報がまだ無いので、SSO ログインを先に済ませてもらう。
             return send(503, {
                 booting: true,
@@ -3050,6 +3143,7 @@ function startHttp(cfg, state, log) {
         }
         if (req.method === 'POST' && url.pathname === '/pause') {
             state.paused = true; state.pausedBy = 'human'; log('paused');
+            persistHumanPause(cfg, state, log); // 再起動をまたいで残す（#2384）
             return send(200, { paused: true, pausedBy: 'human' });
         }
         if (req.method === 'POST' && url.pathname === '/resume') {
@@ -3060,6 +3154,7 @@ function startHttp(cfg, state, log) {
                     error: 'usage auto-pause: use POST /force-resume' });
             }
             state.paused = false; state.pausedBy = null; state.authError = null; log('resumed');
+            persistHumanPause(cfg, state, log);
             return send(200, { paused: false });
         }
         if (req.method === 'POST' && url.pathname === '/force-resume') {
@@ -3289,7 +3384,7 @@ async function main(opts = {}) {
     }
     const state = {
         // booting は最初の Project 情報の取得が終わるまで true（その間の /tick 等を断る・#1510）
-        paused: false, pausedBy: null, authError: null, reauth: null, booting: true,
+        paused: false, pausedBy: null, pausedAt: null, authError: null, reauth: null, booting: true, bootWait: null,
         running: new Map(), ticking: false, claudeUsage: null,
         usagePause: null, usageOverrides: {},
         version: null, autopilotUpdate: null,
@@ -3337,6 +3432,8 @@ async function main(opts = {}) {
         process.on('exit', () => { try { fs.rmSync(tokenFile, { force: true }); } catch { /* noop */ } });
         log(`http token file: ${tokenFile}`);
     } catch (e) { log(`http token file warn: ${e.message}`); }
+    // 人間の一時停止を引き継ぐ（crash → supervisor の再起動で解けないように・#2384）。最初の tick より前。
+    restoreHumanPause(cfg, state, log);
     startHttp(cfg, state, log);
     // SSO が切れていれば、ここでモニタからの SSO ログイン（または定期の再試行）を待つ（#1510）
     await bootProjectInfo(cfg, state, log, { once: !!opts.once });
@@ -3377,7 +3474,7 @@ module.exports = {
     applyLabelHealing, applyAfterWaitLabels,
     applyDecomposeSubIssueSetup,
     isGateItem, collectGateContexts, checkAuthHealth, REAUTH_HINT, BOOT_REAUTH_HINT, BOOT_NOT_SSO_HINT,
-    bootProjectInfo, wakeBoot,
+    bootProjectInfo, wakeBoot, humanPauseFilePath, persistHumanPause, restoreHumanPause,
     recordAuthFailure, handleProcessError, installProcessSafetyNet,
     parseSsoDeviceOutput, startReauth,
     refreshBoard, recordHistory, refreshRateLimits, patchBoardCache, patchLaterCache, setLaterLabel,
