@@ -44,12 +44,9 @@ import styles from './classroom-modal.css';
 import LessonScoringField from './lesson-scoring-field.jsx';
 import { breadcrumbMessages } from './teacher-breadcrumbs.jsx';
 import TeacherEvaluationDetail, { detailMessages } from './teacher-evaluation-detail.jsx';
-import TeacherGradebook, {
-    GradebookSwitch,
-    TeacherOverallPlaceholder,
-    gradebookMessages,
-} from './teacher-gradebook.jsx';
+import TeacherGradebook, { GradebookSwitch, gradebookMessages } from './teacher-gradebook.jsx';
 import TeacherGradingRubric, { TeacherGradingGroupPrompt } from './teacher-grading-rubric.jsx';
+import TeacherOverallGrade from './teacher-overall-grade.jsx';
 import { TeacherScreen } from './teacher-view-layout.jsx';
 
 const evalMessages = defineMessages({
@@ -1138,7 +1135,12 @@ const TeacherEvaluation = ({
                 </div>
                 {status}
                 {view === 'overall' ? (
-                    <TeacherOverallPlaceholder />
+                    <TeacherOverallGrade
+                        gradings={gradings}
+                        group={evalGroup}
+                        lessons={evalLessons}
+                        onOpenAssignment={onOpenAssignment || runAction}
+                    />
                 ) : (
                     <TeacherGradebook
                         gradings={gradings}
