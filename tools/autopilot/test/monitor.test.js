@@ -442,6 +442,24 @@ test('MONITOR_HTML: あなた宛ての操作 — AI に任せる（/delegate）�
     assert.match(MONITOR_HTML, /@media \(prefers-reduced-motion: reduce\) \{ \.go, \.pulse \{ animation: none; \} \}/);
 });
 
+test('MONITOR_HTML: 「AI に直してもらう」は指摘とコメント欄を開き、指示と一緒に /delegate へ送る（#2415）', () => {
+    // 差し戻しの行は data-act="fix"（すぐ 🙋 を外さない）
+    assert.match(MONITOR_HTML, /'data-act="' \+ \(w\.fix \? 'fix' : 'delegate'\)/);
+    // 押したときだけ指摘を取ってくる・markdown は自前の整形（外部ライブラリなし）
+    assert.match(MONITOR_HTML, /fetch\('\/delegate\/findings\?issue=' \+ issue\)/);
+    assert.match(MONITOR_HTML, /function renderMiniMarkdown\(src\)/);
+    assert.match(MONITOR_HTML, /postJson\('\/delegate', \{ issue, instruction: text \}\)/);
+    for (const id of ['fix-modal', 'fix-findings', 'fix-note', 'fix-send', 'fix-cancel']) {
+        assert.ok(MONITOR_HTML.includes(`data-testid="${id}"`), id);
+    }
+    // 空のままは送れない（最初は disabled・入力のたびに見直す）
+    assert.match(MONITOR_HTML, /data-testid="fix-send" disabled>/);
+    assert.match(MONITOR_HTML, /\.disabled = !document\.getElementById\('fixnote'\)\.value\.trim\(\)/);
+    // <script> の中に HTML のコメントの始まりを生で書かない
+    const script = MONITOR_HTML.slice(MONITOR_HTML.indexOf('<script>'));
+    assert.ok(!script.includes('<!--'));
+});
+
 test('MONITOR_HTML: 「あなた宛て」の開け閉め — 印のボタン・細い帯・[ キー・localStorage（#2404）', () => {
     // 見出しの切りかえと、閉じたときの帯。どちらも aria-controls で本文を指す
     assert.match(MONITOR_HTML, /id="inboxtoggle" aria-expanded="true" aria-controls="inbox-body"/);

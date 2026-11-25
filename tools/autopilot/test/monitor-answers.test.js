@@ -325,3 +325,177 @@ test('humanWaitRows / planDelegate: read board-shaped items (hitl instead of hit
     assert.equal(planDelegate(boardItem).nextPhase, 'implement');
     assert.equal(planDelegate({ ...boardItem, hitl: false }).code, 'not-human-wait');
 });
+
+// ---- 「AI に直してもらう」で指摘を見せて指示を受ける（#2415）
+const {
+    MONITOR_INSTRUCTION_MARKER, isMonitorInstructionComment, monitorInstructionText, renderMonitorInstructionComment,
+    selectMonitorInstructions, normalizeDelegateInstruction, planMonitorInstructionPost, openPrNumber, reviewFindingsView,
+    addressReviewMarker, handledReviewIds, handledInstructionIds, renderReviewFindingsComment,
+} = require('../src/phases');
+const { findingsOnce, handleDelegateHttp } = require('../src/monitor-answers');
+
+const BOT = { login: 'smalruby3-editor-bot[bot]', type: 'Bot' };
+const HUMAN = { login: 'takaokouji', type: 'User' };
+const instr = (id, text, over = {}) => ({ id, body: renderMonitorInstructionComment({ text, login: 'takaokouji' }), user: BOT, ...over });
+
+test('renderMonitorInstructionComment: marker, who, text; monitorInstructionText reverses it', () => {
+    const body = renderMonitorInstructionComment({ text: '  FYI1 と FYI3 は直して。\nFYI2 はそのままで  ', login: '@takaokouji' });
+    assert.ok(body.startsWith(MONITOR_INSTRUCTION_MARKER));
+    assert.match(body, /モニターから `@takaokouji` の指示/);
+    assert.equal(monitorInstructionText(body), 'FYI1 と FYI3 は直して。\nFYI2 はそのままで');
+    assert.match(renderMonitorInstructionComment({ text: 'x' }), /モニターから 人間 の指示/);
+    assert.equal(monitorInstructionText('no marker'), '');
+});
+
+test('isMonitorInstructionComment: only marked comments by the Bot (user-less comments go by the marker)', () => {
+    assert.equal(isMonitorInstructionComment(instr(1, 'a')), true);
+    assert.equal(isMonitorInstructionComment(instr(1, 'a', { user: HUMAN })), false); // 人間が目印を写しても指示にしない
+    assert.equal(isMonitorInstructionComment({ id: 1, body: renderMonitorInstructionComment({ text: 'a' }) }), true);
+    assert.equal(isMonitorInstructionComment({ id: 2, body: 'FYI1 を直して', user: HUMAN }), false);
+    assert.equal(isMonitorInstructionComment(null), false);
+});
+
+test('addressReviewMarker: handled-instructions round-trips and keeps the old form', () => {
+    assert.equal(addressReviewMarker([12]), '<!-- autopilot-address-review handled-reviews=12 -->');
+    const m = addressReviewMarker([12], [300, '301', 300, 0]);
+    assert.equal(m, '<!-- autopilot-address-review handled-reviews=12 handled-instructions=300,301 -->');
+    const comments = [{ body: `${m}\n対応` }, { body: addressReviewMarker([], [302]) }];
+    assert.deepEqual([...handledReviewIds(comments)], [12]);
+    assert.deepEqual([...handledInstructionIds(comments)], [300, 301, 302]);
+    assert.deepEqual([...handledInstructionIds([{ body: addressReviewMarker([5]) }])], []);
+    // 以前の正規表現が受けていた、ID の一覧の空白・`-->` の前の空白なしも受ける
+    const spaced = [
+        { body: '<!-- autopilot-address-review handled-reviews=1, 2 -->' },
+        { body: '<!-- autopilot-address-review handled-reviews=3-->' },
+        { body: '<!-- autopilot-address-review handled-reviews=4 handled-instructions=7, 8 -->' },
+    ];
+    assert.deepEqual([...handledReviewIds(spaced)], [1, 2, 3, 4]);
+    assert.deepEqual([...handledInstructionIds(spaced)], [7, 8]);
+});
+
+test('selectMonitorInstructions: unhandled marked comments only, oldest first', () => {
+    const comments = [
+        instr(11, 'second', { created_at: '2026-11-25T02:00:00Z' }),
+        instr(10, 'first', { created_at: '2026-11-25T01:00:00Z' }),
+        { id: 12, body: 'ふつうのコメント', user: HUMAN },
+        instr(13, 'done'),
+        { id: 14, body: addressReviewMarker([], [13]), user: BOT },
+    ];
+    assert.deepEqual(selectMonitorInstructions(comments).map((c) => c.id), [10, 11]);
+    comments.push({ id: 15, body: addressReviewMarker([], [10, 11]), user: BOT });
+    assert.deepEqual(selectMonitorInstructions(comments), []);
+});
+
+test('normalizeDelegateInstruction / planMonitorInstructionPost', () => {
+    assert.deepEqual(normalizeDelegateInstruction({ issue: 1 }), { ok: true, instruction: null });
+    assert.equal(normalizeDelegateInstruction({ instruction: '   \n ' }).ok, false);
+    assert.equal(normalizeDelegateInstruction({ instruction: 3 }).ok, false);
+    assert.equal(normalizeDelegateInstruction({ instruction: 'x'.repeat(4001) }).ok, false);
+    assert.deepEqual(normalizeDelegateInstruction({ instruction: ' a\r\nb ' }), { ok: true, instruction: 'a\nb' });
+    assert.deepEqual(planMonitorInstructionPost([instr(5, 'a')], 'a'), { action: 'skip', existingId: 5 });
+    assert.deepEqual(planMonitorInstructionPost([instr(5, 'a'), { body: addressReviewMarker([], [5]) }], 'a'), { action: 'post' });
+    assert.deepEqual(planMonitorInstructionPost([], 'a'), { action: 'post' });
+});
+
+test('openPrNumber / reviewFindingsView: latest round with its own counts', () => {
+    assert.equal(openPrNumber([{ number: 1, state: 'MERGED' }, { number: 2, state: 'OPEN' }]), 2);
+    assert.equal(openPrNumber([{ number: 1, state: 'CLOSED' }]), null);
+    const r1 = renderReviewFindingsComment({ round: 1, findings: [{ category: 'Must', text: 'a' }] });
+    const r2 = renderReviewFindingsComment({ round: 2, findings: [{ category: 'FYI', text: 'b' }, { category: 'FYI', text: 'c' }], start: { M: 2 } });
+    const v = reviewFindingsView([{ id: 1, body: r1 }, { id: 2, body: r2 }, instr(3, 'FYI1 を直して')]);
+    assert.equal(v.findings.round, 2);
+    assert.equal(v.findings.id, 2);
+    assert.deepEqual(v.findings.counts, { Must: 0, Question: 0, FYI: 2 });
+    assert.deepEqual(v.pendingInstructions, ['FYI1 を直して']);
+    assert.deepEqual(reviewFindingsView([]), { findings: null, pendingInstructions: [] });
+});
+
+const reviewItem = (over = {}) => wait({ status: 'Review', prs: [{ number: 90, state: 'OPEN', isDraft: false }], ...over });
+const fixIo = (calls, over = {}) => ({
+    ...delegateIo(calls, over),
+    listIssueComments: async (repo, n, tok) => { calls.push(['list', n, tok]); return over.comments || []; },
+    postIssueComment: async (repo, n, body, tok) => {
+        if (over.failPost) throw new Error('post failed ghp_abcdefghijklmnopqrstuvwxyz0123');
+        calls.push(['post', n, body, tok]);
+    },
+});
+
+test('delegateOnce with instruction: posts a marked Bot comment on the PR, then releases 🙋', async () => {
+    const calls = [];
+    const state = { running: new Map(), board: { items: [reviewItem()] } };
+    const ctx = { cfg: { repo: 'o/r', assignee: 'takaokouji' }, state, log: () => {}, now: () => 5 };
+    const r = await delegateOnce(ctx, { issue: 9, instruction: ' FYI1 は直して ' }, fixIo(calls));
+    assert.equal(r.status, 200);
+    assert.deepEqual(r.body.instruction, { pr: 90, action: 'post' });
+    assert.equal(r.body.nextPhase, 'address-review');
+    assert.deepEqual(calls.map((c) => c[0]), ['list', 'post', 'labels', 'labels']);
+    assert.equal(calls[0][2], 'read');
+    assert.equal(calls[1][3], 'bot');
+    assert.equal(monitorInstructionText(calls[1][2]), 'FYI1 は直して');
+    assert.match(calls[1][2], /takaokouji/);
+});
+
+test('delegateOnce with instruction: no duplicate post, rejects empty, non-review, no PR; post failure keeps 🙋', async () => {
+    const ctx = (state) => ({ cfg: { repo: 'o/r' }, state, log: () => {}, now: () => 1 });
+    const fresh = (over) => ({ running: new Map(), board: { items: [reviewItem(over)] } });
+    // 押し直し: 同じ指示がまだ対応されずに残っていれば書かない
+    const calls = [];
+    const r = await delegateOnce(ctx(fresh()), { issue: 9, instruction: 'a' }, fixIo(calls, { comments: [instr(70, 'a')] }));
+    assert.deepEqual(r.body.instruction, { pr: 90, action: 'skip' });
+    assert.ok(!calls.some((c) => c[0] === 'post'));
+    // 空は送れない
+    assert.equal((await delegateOnce(ctx(fresh()), { issue: 9, instruction: '  ' }, fixIo([]))).status, 400);
+    // address-review にならない段では指示を受けない
+    const sb = { running: new Map(), board: { items: [wait()] } };
+    assert.equal((await delegateOnce(ctx(sb), { issue: 9, instruction: 'a' }, fixIo([]))).body.code, 'no-instruction-phase');
+    // PR が無い
+    const noPr = fresh({ prs: [] });
+    assert.equal((await delegateOnce(ctx(noPr), { issue: 9, instruction: 'a' }, fixIo([], { pr: null }))).body.code, 'no-pr');
+    // 書けなかったら 🙋 は外さない・秘密は出さない
+    const st = fresh();
+    const f = await delegateOnce(ctx(st), { issue: 9, instruction: 'a' }, fixIo([], { failPost: true }));
+    assert.equal(f.status, 502);
+    assert.ok(!f.body.error.includes('ghp_abcdefghijklmnopqrstuvwxyz0123'));
+    assert.equal(st.board.items[0].hitlLabel, true);
+    assert.equal(st.monitorReleases, undefined);
+});
+
+test('findingsOnce: reads PR comments once (read token) and returns the latest findings', async () => {
+    const calls = [];
+    const body = renderReviewFindingsComment({ round: 1, findings: [{ category: 'Must', text: 'x' }] });
+    const state = { board: { items: [reviewItem()] } };
+    const r = await findingsOnce({ cfg: { repo: 'o/r' }, state }, '9', fixIo(calls, { comments: [{ id: 4, body }] }));
+    assert.equal(r.status, 200);
+    assert.equal(r.body.pr, 90);
+    assert.equal(r.body.findings.round, 1);
+    assert.deepEqual(calls, [['list', 90, 'read']]);
+    // board に PR が無ければ GitHub に聞く。PR が無ければ findings なし
+    const st2 = { board: { items: [reviewItem({ prs: [] })] } };
+    const r2 = await findingsOnce({ cfg: { repo: 'o/r' }, state: st2 }, 9, fixIo([], { pr: null }));
+    assert.deepEqual(r2.body, { issue: 9, pr: null, findings: null, pendingInstructions: [] });
+    assert.equal((await findingsOnce({ cfg: {}, state }, 'x', fixIo([]))).status, 400);
+    assert.equal((await findingsOnce({ cfg: {}, state }, 99, fixIo([]))).status, 404);
+});
+
+test('handleDelegateHttp: GET /delegate/findings only; other paths are not handled', async () => {
+    const state = { board: { items: [reviewItem()] } };
+    const ctx = { cfg: { repo: 'o/r' }, state, deps: fixIo([], { comments: [] }) };
+    const res = () => {
+        const r = { code: null, body: null };
+        r.done = new Promise((resolve) => {
+            r.writeHead = (c) => { r.code = c; };
+            r.end = (b) => { r.body = JSON.parse(b); resolve(); };
+        });
+        return r;
+    };
+    const r1 = res();
+    assert.equal(handleDelegateHttp({ method: 'GET' }, r1, new URL('http://x/delegate/findings?issue=9'), ctx), true);
+    await r1.done;
+    assert.equal(r1.code, 200);
+    assert.equal(r1.body.pr, 90);
+    const r2 = res();
+    assert.equal(handleDelegateHttp({ method: 'POST' }, r2, new URL('http://x/delegate/findings?issue=9'), ctx), true);
+    await r2.done;
+    assert.equal(r2.code, 405);
+    assert.equal(handleDelegateHttp({ method: 'GET' }, res(), new URL('http://x/board'), ctx), false);
+});

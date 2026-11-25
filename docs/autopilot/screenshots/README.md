@@ -11,4 +11,5 @@ autopilot モニタ（`tools/autopilot/src/monitor.js` の Web UI）の動作イ
 | `monitor-d-wide-light.png` / `monitor-d-wide-dark.png` | 並べ方 D「あなた宛て＋表」（1440×900）。左に答えが要る質問・学び・人間待ち、右に EPIC ごとの状況板（#2404） |
 | `monitor-board-solo-priority.png` | 状況板の並び。EPIC に属さない Issue は優先度ごとのまとまりにし、同じ優先度の EPIC の下に置く（P1 の EPIC → P2 の EPIC → EPIC に属さない · P2 → P3 の EPIC → EPIC に属さない · P3）（#2411） |
 | `monitor-d-phone.png` | 幅 400px のとき。欄をタブに切りかえる（#2404） |
+| `monitor-fix-instruction-light.png` / `monitor-fix-instruction-dark.png` | 「AI に直してもらう」のダイアログ。PR のいちばん新しい round の bot の指摘を整形して見せ、下のコメント欄に直してほしいことを書いて送る（空では送れない）（#2415） |
 | `monitor-heading-icon.png` | 上の行の見出しのアイコン（虹色の ∞ + A・ダーク・3 倍に拡大）（#2413） |

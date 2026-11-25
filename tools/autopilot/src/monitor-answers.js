@@ -19,7 +19,8 @@ const path = require('path');
 const {
     normalizeMonitorAnswerBody, planMonitorAnswer, monitorQuestionsView, planMonitorQuestionsComment,
     planMonitorAnswerComments, renderMonitorAnswersForPrompt, sanitizeForSurface, HITL_LABEL,
-    normalizeDelegateBody, planDelegate,
+    normalizeDelegateBody, planDelegate, normalizeDelegateInstruction, planMonitorInstructionPost,
+    renderMonitorInstructionComment, openPrNumber, reviewFindingsView,
 } = require('./phases');
 
 /** 既定の GitHub の I/O（テストは deps で差し替える。実 GitHub に触るテストを書かない） */
@@ -31,6 +32,7 @@ function defaultIo() {
         botToken: project.botToken, readToken: project.readToken,
         applyCommentPlans: project.applyCommentPlans, getIssueLabels: project.getIssueLabels,
         findPrForIssue: project.findPrForIssue, editLabels: project.editLabels, applyIntents: project.applyIntents,
+        listIssueComments: project.listIssueComments, postIssueComment: project.postIssueComment,
     };
 }
 
@@ -274,17 +276,39 @@ function boardItem(state, issue) {
 }
 
 /**
+ * 指摘と指示を扱う PR の番号（#2415）。board の item の PR を先に見て、無ければ GitHub に聞く。
+ * @param {object|null} item board item
+ * @param {number} issue
+ * @param {object} cfg
+ * @param {object} io
+ * @returns {Promise<number|null>}
+ */
+async function prNumberFor(item, issue, cfg, io) {
+    const fromBoard = openPrNumber(item && item.prs);
+    if (fromBoard) return fromBoard;
+    const pr = await io.findPrForIssue(cfg.repo, issue, await io.readToken());
+    return pr ? pr.number : null;
+}
+
+/**
  * 「AI に任せる」を 1 回受ける（HTTP を外したところ。テストはここを呼ぶ・#2404）。
  * 判断は phases.js の {@link planDelegate}。答えの置き場と同じ inFlight で、同じ Issue に重ねて走らせない。
+ *
+ * body に `instruction`（モニターで書いた直してほしいこと・#2415）があれば、🙋 を外す前に、目印付きの
+ * コメントとして Bot で PR に残す（address-review が `selectMonitorInstructions` で読む）。先に書くので、
+ * 🙋 を外すのに失敗しても押し直せば続きから進む（同じ文はもう一度書かない・{@link planMonitorInstructionPost}）。
  * @param {object} ctx { cfg, state, log, now, afterRelease() }
- * @param {object} body `{issue}`
+ * @param {object} body `{issue, instruction?}`
  * @param {object} [deps] I/O の差し替え
  * @returns {Promise<{status:number, body:object}>}
  */
 async function delegateOnce(ctx, body, deps = {}) {
     const n = normalizeDelegateBody(body);
     if (!n.ok) return { status: 400, body: { error: n.error } };
-    const { state, log } = ctx;
+    const ins = normalizeDelegateInstruction(body);
+    if (!ins.ok) return { status: 400, body: { error: ins.error, code: 'bad-instruction', issue: n.issue } };
+    const { state, log, cfg } = ctx;
+    const io = { ...defaultIo(), ...deps };
     const item = boardItem(state, n.issue);
     const q = state.answerStore ? state.answerStore.get(n.issue) : null;
     const plan = planDelegate(item, {
@@ -293,24 +317,73 @@ async function delegateOnce(ctx, body, deps = {}) {
         pr: Boolean(item && item.prs && item.prs.length),
     });
     if (!plan.ok) return { status: plan.status, body: { error: plan.error, code: plan.code, issue: n.issue } };
+    if (ins.instruction && plan.nextPhase !== 'address-review') {
+        return { status: 409, body: { error: 'instructions are only for address-review', code: 'no-instruction-phase', issue: n.issue } };
+    }
     if (inFlight.has(n.issue)) return { status: 409, body: { error: 'already proceeding', code: 'in-flight', issue: n.issue } };
     inFlight.add(n.issue);
     try {
+        let instruction = null;
+        if (ins.instruction) {
+            try {
+                const pr = await prNumberFor(item, n.issue, cfg, io);
+                if (!pr) return { status: 409, body: { error: 'no open PR', code: 'no-pr', issue: n.issue } };
+                const comments = await io.listIssueComments(cfg.repo, pr, await io.readToken());
+                const post = planMonitorInstructionPost(comments, ins.instruction);
+                if (post.action === 'post') {
+                    const text = renderMonitorInstructionComment({ text: ins.instruction, login: cfg.assignee || null });
+                    await io.postIssueComment(cfg.repo, pr, text, await io.botToken());
+                }
+                instruction = { pr, action: post.action };
+            } catch (e) {
+                const error = sanitizeForSurface(e.message);
+                log(`#${n.issue}: delegate instruction failed: ${error}`);
+                return { status: 502, body: { error, issue: n.issue } };
+            }
+        }
         const r = await releaseHumanGate(n.issue, ctx, deps, { intents: plan.intents, itemId: item.itemId });
         if (!r.ok) {
             log(`#${n.issue}: delegate failed: ${r.error}`);
             return { status: 502, body: { error: r.error, issue: n.issue } };
         }
-        log(`#${n.issue}: delegated to AI (${plan.action} -> ${plan.nextPhase}) -> 🙋 released`);
+        const how = instruction ? ` with instruction on PR #${instruction.pr} (${instruction.action})` : '';
+        log(`#${n.issue}: delegated to AI (${plan.action} -> ${plan.nextPhase})${how} -> 🙋 released`);
         if (ctx.afterRelease) ctx.afterRelease(n.issue);
-        return { status: 200, body: { ok: true, issue: n.issue, action: plan.action, nextPhase: plan.nextPhase } };
+        const out = { ok: true, issue: n.issue, action: plan.action, nextPhase: plan.nextPhase };
+        if (instruction) out.instruction = instruction;
+        return { status: 200, body: out };
     } finally {
         inFlight.delete(n.issue);
     }
 }
 
 /**
- * daemon の HTTP に `POST /delegate` を足す。扱ったら true を返す。
+ * 「AI に直してもらう」を押したときに見せる bot の指摘を取ってくる（#2415）。押したときだけ呼ぶ
+ * （REST の `issues/<pr>/comments` を 1 回。定期では取らない・`.claude/rules/autopilot/github-api.md`）。
+ * @param {object} ctx { cfg, state }
+ * @param {number|string} issueRaw
+ * @param {object} [deps] I/O の差し替え
+ * @returns {Promise<{status:number, body:object}>}
+ */
+async function findingsOnce(ctx, issueRaw, deps = {}) {
+    const n = normalizeDelegateBody({ issue: issueRaw });
+    if (!n.ok) return { status: 400, body: { error: n.error } };
+    const { cfg, state } = ctx;
+    const io = { ...defaultIo(), ...deps };
+    const item = boardItem(state, n.issue);
+    if (!item) return { status: 404, body: { error: 'not a board item', code: 'unknown-item', issue: n.issue } };
+    try {
+        const pr = await prNumberFor(item, n.issue, cfg, io);
+        if (!pr) return { status: 200, body: { issue: n.issue, pr: null, findings: null, pendingInstructions: [] } };
+        const view = reviewFindingsView(await io.listIssueComments(cfg.repo, pr, await io.readToken()));
+        return { status: 200, body: { issue: n.issue, pr, ...view } };
+    } catch (e) {
+        return { status: 502, body: { error: sanitizeForSurface(e.message), issue: n.issue } };
+    }
+}
+
+/**
+ * daemon の HTTP に `POST /delegate`（と `GET /delegate/findings?issue=N`・#2415）を足す。扱ったら true を返す。
  * @param {object} req
  * @param {object} res
  * @param {URL} url
@@ -318,8 +391,19 @@ async function delegateOnce(ctx, body, deps = {}) {
  * @returns {boolean}
  */
 function handleDelegateHttp(req, res, url, ctx) {
-    if (!ctx || url.pathname !== '/delegate') return false;
-    return readJsonPost(req, res, (body) => delegateOnce(ctx, body));
+    if (!ctx) return false;
+    if (url.pathname === '/delegate/findings') {
+        const send = (code, obj) => {
+            res.writeHead(code, { 'content-type': 'application/json' });
+            res.end(JSON.stringify(obj));
+        };
+        if (req.method !== 'GET') { send(405, { error: 'method not allowed' }); return true; }
+        findingsOnce(ctx, url.searchParams.get('issue'), ctx.deps).then((r) => send(r.status, r.body))
+            .catch((e) => send(500, { error: String(e && e.message || e) }));
+        return true;
+    }
+    if (url.pathname !== '/delegate') return false;
+    return readJsonPost(req, res, (body) => delegateOnce(ctx, body, ctx.deps));
 }
 
 /**
@@ -345,5 +429,5 @@ function deliverMonitorAnswers(issue, cwd, state, deps = {}) {
 }
 
 module.exports = {
-    releaseHumanGate, delegateOnce, handleDelegateHttp,
+    releaseHumanGate, delegateOnce, findingsOnce, handleDelegateHttp,
     recordHitlQuestions, proceedMonitorAnswer, deliverMonitorAnswers, createAnswerStore, handleAnswerHttp, answerOnce, MAX_BODY_BYTES };

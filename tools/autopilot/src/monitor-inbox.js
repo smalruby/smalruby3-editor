@@ -121,7 +121,8 @@ function inboxModel(board, learnings) {
                 // 自分が EPIC なら、行ではなく自分のまとまりの見出しに畳む（inboxGroups）
                 isEpic: it.kind === 'EPIC' || Boolean(it.tracker) || tag.tag === 'topic' || tag.tag === 'watch',
                 priority: prio(it), tag,
-                goLabel, delegateError: dg && !dg.ok ? dg.error || dg.code || null : null,
+                // 差し戻し（address-review）は、押すと指摘とコメント欄を開く（#2415）
+                goLabel, fix: Boolean(dg && dg.ok && dg.nextPhase === 'address-review'), delegateError: dg && !dg.ok ? dg.error || dg.code || null : null,
             };
         });
     const learn = [];
@@ -340,14 +341,80 @@ function shortTitle(t) {
     return String(t || '').replace(/^(EPIC:\s*|epic\([^)]*\):\s*|feat\([^)]*\):\s*)/i, '');
 }
 
+/**
+ * bot の指摘のまとめコメントなど、GitHub の markdown を軽く整形して HTML にする（#2415）。外部の
+ * ライブラリは読まない（モニターは自己完結）。見出し・箇条書き（番号つきも）・引用・コードの囲み・
+ * 太字・インラインのコード・リンク（http / https だけ）を扱い、ほかは文字のまま出す。
+ * **先に本文をすべてエスケープしてから**印を付けるので、本文の HTML はそのまま文字で出る（XSS を起こさない）。
+ * HTML のコメント（`<!-- autopilot-... -->` の目印）は見せない。
+ * @param {string} src markdown
+ * @returns {string} HTML
+ */
+function renderMiniMarkdown(src) {
+    const esc = (x) => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    const inline = (raw) => {
+        const codes = [];
+        let h = esc(raw).replace(/`([^`]+)`/g, (m, c) => { codes.push('<code>' + c + '</code>'); return '\u0000' + (codes.length - 1) + '\u0000'; });
+        h = h.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+            (m, t, u) => '<a href="' + u + '" target="_blank" rel="noopener noreferrer">' + t + '</a>');
+        h = h.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+        return h.replace(/\u0000(\d+)\u0000/g, (m, i) => codes[Number(i)]);
+    };
+    // HTML のコメントを消す。始まりを [!] と書くのは、そのまま書くと <script> の中で HTML の解釈が変わるため
+    const lines = String(src || '').replace(/\r\n?/g, '\n').replace(/<[!]--[\s\S]*?-->/g, '').split('\n');
+    const out = [];
+    let para = [];
+    let list = null; // { tag, items }
+    let quote = [];
+    const flushPara = () => { if (para.length) out.push('<p>' + para.map(inline).join('<br>') + '</p>'); para = []; };
+    const flushList = () => {
+        if (list) out.push('<' + list.tag + '>' + list.items.map((x) => '<li>' + inline(x) + '</li>').join('') + '</' + list.tag + '>');
+        list = null;
+    };
+    const flushQuote = () => { if (quote.length) out.push('<blockquote>' + quote.map(inline).join('<br>') + '</blockquote>'); quote = []; };
+    const flushAll = () => { flushPara(); flushList(); flushQuote(); };
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (/^\s*```/.test(line)) {
+            flushAll();
+            const code = [];
+            for (i += 1; i < lines.length && !/^\s*```/.test(lines[i]); i++) code.push(lines[i]);
+            out.push('<pre><code>' + esc(code.join('\n')) + '</code></pre>');
+            continue;
+        }
+        const hm = line.match(/^\s*(#{1,6})\s+(.*)$/);
+        if (hm) { flushAll(); const lv = Math.min(6, hm[1].length + 3); out.push('<h' + lv + '>' + inline(hm[2]) + '</h' + lv + '>'); continue; }
+        const um = line.match(/^\s*[-*+]\s+(.*)$/);
+        const om = um ? null : line.match(/^\s*\d+[.)]\s+(.*)$/);
+        if (um || om) {
+            const tag = um ? 'ul' : 'ol';
+            flushPara(); flushQuote();
+            if (list && list.tag !== tag) flushList();
+            if (!list) list = { tag, items: [] };
+            list.items.push((um || om)[1]);
+            continue;
+        }
+        const qm = line.match(/^\s*>\s?(.*)$/);
+        if (qm) { flushPara(); flushList(); quote.push(qm[1]); continue; }
+        if (!line.trim()) { flushAll(); continue; }
+        // 箇条書きの続きの行（字下げ）は直前の項目につなげる
+        if (list && /^\s+\S/.test(line)) { list.items[list.items.length - 1] += ' ' + line.trim(); continue; }
+        flushList(); flushQuote();
+        para.push(line);
+    }
+    flushAll();
+    return out.join('');
+}
+
 /** ブラウザへ埋め込む関数（順序は問わない。どれも自己完結） */
 const INBOX_CLIENT_FNS = [
     itemSem, epicSem, inboxModel, inboxGroups, isInboxToggleKey, boardRows, recommendedAnswers, chosenAnswers, digitTarget,
-    agoLabel, shortTitle,
+    agoLabel, shortTitle, renderMiniMarkdown,
 ];
 
 module.exports = {
     itemSem, epicSem, inboxModel, inboxGroups, isInboxToggleKey, boardRows, recommendedAnswers, chosenAnswers, digitTarget,
-    agoLabel, shortTitle,
+    agoLabel, shortTitle, renderMiniMarkdown,
     INBOX_CLIENT_FNS,
 };
