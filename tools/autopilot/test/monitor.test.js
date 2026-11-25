@@ -453,6 +453,8 @@ test('MONITOR_HTML: 「確認の結果を書く」は観点ごとに OK / NG を
     // プレビューのリンクと観点の本文はエスケープ・自前の整形を通す
     assert.match(MONITOR_HTML, /href="' \+ esc\(w\.previewUrl\)/);
     assert.match(MONITOR_HTML, /renderMiniMarkdown\(p\.body\)/);
+    // テンプレート文字列の中なので、観点の番号の正規表現は \\d を二重にしないと /^Rd+$/ になり OK / NG が効かない
+    assert.ok(MONITOR_HTML.includes('if (!/^R\\d+$/.test(String(id))) return;'));
 });
 
 test('MONITOR_HTML: 「AI に直してもらう」は指摘とコメント欄を開き、指示と一緒に /delegate へ送る（#2415）', () => {

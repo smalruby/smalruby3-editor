@@ -1638,7 +1638,7 @@ async function openRelease(issue) {
   updateRelSend();
 }
 function setRelVerdict(id, v) {
-  if (!/^R\d+$/.test(String(id))) return;
+  if (!/^R\\d+$/.test(String(id))) return;
   relVerdicts[id] = v === 'ng' ? 'ng' : 'ok';
   document.querySelectorAll('#relpoints [data-act="rel-v"][data-id="' + id + '"]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === relVerdicts[id])));
   updateRelSend();
