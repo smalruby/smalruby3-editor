@@ -10,6 +10,7 @@
  */
 
 const http = require('http');
+const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -105,7 +106,8 @@ const {
 const { readResultFile } = require('./contract');
 const { runPhase, killSession, capture, listSessions, configureRunner, shutdownTerminal } = require('./runner');
 const { createBlockedHub, handleBlockedHttp } = require('./blocked-hub');
-const { MONITOR_HTML } = require('./monitor');
+const { monitorHtmlWithToken } = require('./monitor');
+const { checkHttpRequest, parseAllowedHosts } = require('./http-guard');
 const {
     loadSettings, buildClaudeCommand, snapshotRunAssets, resolveUsagePauseThresholds,
 } = require('./settings');
@@ -2944,12 +2946,26 @@ function answerHttpContext(cfg, state, log) {
 
 /** HTTP 制御サーバ（pause/resume/stop/inject/status） */
 function startHttp(cfg, state, log) {
+    // 書き込みの守り（EPIC #2384 U3）: 合言葉が無い cfg（テスト・別の起動経路）でもここで作り、
+    // 守りを外した状態では決して待たない。
+    if (!cfg.httpToken) cfg.httpToken = newHttpToken();
+    const monitorHtml = monitorHtmlWithToken(cfg.httpToken);
     const server = http.createServer((req, res) => {
         const url = new URL(req.url, 'http://localhost');
         const send = (code, obj) => {
             res.writeHead(code, { 'content-type': 'application/json' });
             res.end(JSON.stringify(obj));
         };
+        // ルーティングの手前の 1 か所で守る。あとから足される POST（ほかのモジュールの口も）に自動でかかる。
+        // ポートは実際に待っているもの（cfg.port=0 のテストでも合う）。合言葉はログに出さない。
+        const guard = checkHttpRequest({
+            method: req.method, headers: req.headers, port: server.address().port,
+            token: cfg.httpToken, allowedHosts: cfg.httpAllowedHosts || [],
+        });
+        if (!guard.ok) {
+            log(`http rejected (${guard.reason}): ${req.method} ${url.pathname}`);
+            return send(guard.status, { error: `forbidden: ${guard.reason}` });
+        }
         // 止まっている worker の一覧と、人間の答え（#2387。blocked-hub.js）
         if (handleBlockedHttp(req, res, url, state.blockedHub)) return;
         // モニターで質問に答える（POST /answer）。書き込みの受け口はここ 1 か所
@@ -2957,8 +2973,9 @@ function startHttp(cfg, state, log) {
         // 学び・タスクの口（/learnings*・/tasks*）は learn-tasks.js が受ける
         if (learnTasks.handleLearnTasksHttp(req, res, url, { cfg, state, log, send, capture, deps: { workerCommand } })) return;
         if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/index.html')) {
-            res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-            return res.end(MONITOR_HTML);
+            // 合言葉入りの HTML なのでキャッシュさせない
+            res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'referrer-policy': 'no-referrer' });
+            return res.end(monitorHtml);
         }
         if (req.method === 'GET' && url.pathname === '/log') {
             const issue = Number(url.searchParams.get('issue'));
@@ -3146,8 +3163,44 @@ function startHttp(cfg, state, log) {
         }
         send(404, { error: 'not found' });
     });
-    server.listen(cfg.port, () => log(`control server on :${cfg.port}`));
+    // コンテナの 127.0.0.1 だけで待つ（devpod のポート転送はコンテナ内の localhost へつなぐ）。
+    // 必要なら cfg.httpHost（env AUTOPILOT_HTTP_HOST）で変える。
+    const host = cfg.httpHost || DEFAULT_HTTP_HOST;
+    server.listen(cfg.port, host, () => log(`control server on ${host}:${server.address().port}`));
     return server;
+}
+
+/** 既定の待ち受けアドレス（EPIC #2384 U3） */
+const DEFAULT_HTTP_HOST = '127.0.0.1';
+
+/**
+ * 起動ごとの合言葉（32 バイトの乱数を 16 進で）。
+ * @returns {string} 64 文字の 16 進
+ */
+function newHttpToken() {
+    return crypto.randomBytes(32).toString('hex');
+}
+
+/**
+ * 合言葉のファイルのパス。CLI（curl）がここから読んで `X-Autopilot-Token` に付ける。
+ * ポートごとに分けて、同じコンテナで別のポートの daemon を起こしても混ざらないようにする。
+ * @param {number} port daemon のポート
+ * @param {string} [dir] 置き場（既定は os.tmpdir()。PID ファイルと同じ）
+ * @returns {string} 絶対パス
+ */
+function httpTokenFilePath(port, dir = os.tmpdir()) {
+    return path.join(dir, `autopilot-http-token-${port}`);
+}
+
+/**
+ * 合言葉を 0600 で書く。前の起動のファイルが残っていても、権限を 0600 に直してから上書きする。
+ * @param {string} file 書き先
+ * @param {string} token 合言葉
+ */
+function writeHttpTokenFile(file, token) {
+    if (fs.existsSync(file)) fs.chmodSync(file, 0o600);
+    fs.writeFileSync(file, `${token}\n`, { mode: 0o600 });
+    fs.chmodSync(file, 0o600);
 }
 
 /** PID ファイルのパス（停止スクリプトが参照） */
@@ -3250,6 +3303,16 @@ async function main(opts = {}) {
         process.on('SIGTERM', () => process.exit(EXIT_OK));
         process.on('SIGINT', () => process.exit(EXIT_OK));
     } catch (e) { log(`pid file warn: ${e.message}`); }
+    // 書き込みの守り（EPIC #2384 U3）: 合言葉を作って 0600 のファイルに置く（CLI 用）。中身はログに出さない。
+    cfg.httpHost = opts.httpHost || process.env.AUTOPILOT_HTTP_HOST || DEFAULT_HTTP_HOST;
+    cfg.httpAllowedHosts = parseAllowedHosts(process.env.AUTOPILOT_HTTP_ALLOWED_HOSTS);
+    cfg.httpToken = newHttpToken();
+    const tokenFile = httpTokenFilePath(cfg.port);
+    try {
+        writeHttpTokenFile(tokenFile, cfg.httpToken);
+        process.on('exit', () => { try { fs.rmSync(tokenFile, { force: true }); } catch { /* noop */ } });
+        log(`http token file: ${tokenFile}`);
+    } catch (e) { log(`http token file warn: ${e.message}`); }
     startHttp(cfg, state, log);
     // SSO が切れていれば、ここでモニタからの SSO ログイン（または定期の再試行）を待つ（#1510）
     await bootProjectInfo(cfg, state, log, { once: !!opts.once });
@@ -3296,6 +3359,7 @@ module.exports = {
     refreshBoard, recordHistory, refreshRateLimits, patchBoardCache, patchLaterCache, setLaterLabel,
     applyTrackerStickies, refreshBoardAndProjectTrackers, maybeRefreshBoardPeriodic,
     updateClaudeUsage, applyUsagePause, forceResumeUsage, boardResponse, statusResponse, startHttp,
+    httpTokenFilePath, writeHttpTokenFile,
     statusMaterialResponse,
     checkForUpdate, startUpdateChecks,
     ensureCheckpointCommit, readContinuationFromWorktree, applyCheckpointHandling,

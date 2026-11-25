@@ -113,9 +113,13 @@ test('MONITOR_HTML: ボードに Size（S/M/L・色付き）列を表示（#884�
         assert.ok(MONITOR_HTML.includes(cls), `should include ${cls}`);
     }
     // S=緑系 / M=琥珀系 / L=赤系の配色
-    assert.match(MONITOR_HTML, /\.size-s \{[^}]*#dcfce7/);
-    assert.match(MONITOR_HTML, /\.size-m \{[^}]*#fef3c7/);
-    assert.match(MONITOR_HTML, /\.size-l \{[^}]*#fee2e2/);
+    // （色は :root の --ap-* トークンで持つ・EPIC #2384）
+    assert.match(MONITOR_HTML, /\.size-s \{[^}]*var\(--ap-size-s-wash\)/);
+    assert.match(MONITOR_HTML, /\.size-m \{[^}]*var\(--ap-size-m-wash\)/);
+    assert.match(MONITOR_HTML, /\.size-l \{[^}]*var\(--ap-size-l-wash\)/);
+    assert.match(MONITOR_HTML, /--ap-size-s-wash:#dcfce7;/);
+    assert.match(MONITOR_HTML, /--ap-size-m-wash:#fef3c7;/);
+    assert.match(MONITOR_HTML, /--ap-size-l-wash:#fee2e2;/);
     // renderBoard が sizeBadge を呼ぶ
     assert.match(MONITOR_HTML, /sizeBadge\(it\.size\)/);
     // size 未設定は「—」（muted）で崩れない
@@ -129,7 +133,8 @@ test('MONITOR_HTML: Awaiting Continuation は専用バッジ + 残タスク数�
     // 専用の描画ヘルパーと CSS バッジクラスがある
     assert.match(MONITOR_HTML, /const aiStatusCell = /);
     assert.ok(MONITOR_HTML.includes('ai-continuation-badge'), 'should include ai-continuation-badge class');
-    assert.match(MONITOR_HTML, /\.ai-continuation-badge \{[^}]*background:\s*#ede9fe/);
+    assert.match(MONITOR_HTML, /\.ai-continuation-badge \{[^}]*background:\s*var\(--ap-human-wash\)/);
+    assert.match(MONITOR_HTML, /--ap-human-wash:#ede9fe;/);
     // renderBoard の AI 列が aiStatusCell を呼ぶ（他 AI Status はプレーンテキストのまま）
     assert.match(MONITOR_HTML, /aiStatusCell\(it\)/);
     // continuation ファイルの残タスク数（continuationRemaining）を subtext で出す
@@ -416,3 +421,33 @@ test('MONITOR_HTML: 起動待ちは「SSO ログインが必要」と出し、�
     // 起動待ちの間は daemon が断る操作のボタンを止める
     assert.match(MONITOR_HTML, /b\.disabled = !!d\.booting/);
 });
+
+test('monitorHtmlWithToken: 合言葉を meta に埋め、書き込みの fetch にヘッダを付ける（EPIC #2384 U3）', () => {
+    const { monitorHtmlWithToken } = require('../src/monitor');
+    // 素の HTML の meta は空（合言葉はリポジトリに持たない）
+    assert.match(MONITOR_HTML, /<meta name="autopilot-token" content="">/);
+    const html = monitorHtmlWithToken('f'.repeat(64));
+    assert.ok(html.includes(`<meta name="autopilot-token" content="${'f'.repeat(64)}">`));
+    assert.ok(!html.includes('<meta name="autopilot-token" content="">'));
+    // fetch の包みは script の先頭（どの fetch の呼び出しよりも前）に置く
+    const script = html.slice(html.indexOf('<script>'));
+    assert.ok(script.indexOf('X-Autopilot-Token') >= 0);
+    assert.ok(script.indexOf('X-Autopilot-Token') < script.indexOf("fetch('/"));
+    // 合言葉に HTML を壊す文字は通さない
+    assert.throws(() => monitorHtmlWithToken('"><script>'), /token/);
+});
+
+test('MONITOR_HTML: 色は :root の --ap-* トークンで持ち、CSS に 16 進の直書きを残さない（EPIC #2384）', () => {
+    const style = MONITOR_HTML.match(/<style>([\s\S]*?)<\/style>/)[1];
+    const root = style.match(/:root \{[\s\S]*?\}/)[0];
+    const defined = new Set([...root.matchAll(/(--ap-[a-z0-9-]+):/g)].map((m) => m[1]));
+    // 使っているトークンはすべて :root で定義されている
+    for (const [, name] of MONITOR_HTML.matchAll(/var\((--ap-[a-z0-9-]+)\)/g)) {
+        assert.ok(defined.has(name), `${name} should be defined in :root`);
+    }
+    // :root とコメントを除いた monitor.js 自身の CSS に色の直書きが無い（埋め込みの別ファイルの CSS は対象外）
+    const { LEARN_TASKS_CSS } = require('../src/monitor-learn-tasks');
+    const ownCss = style.replace(LEARN_TASKS_CSS, '').replace(root, '').replace(/\/\*[\s\S]*?\*\//g, '');
+    assert.doesNotMatch(ownCss, /#[0-9a-fA-F]{3,6}\b|rgba?\(/);
+});
+

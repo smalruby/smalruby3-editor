@@ -24,6 +24,7 @@
 | `src/terminal.js` | 端末の backend（herdr / tmux）。`launch` / `snapshot` / `sendLine` / `sendKeys` / `killSession` / `listSessions` / `shutdown` を同じ形で持つ | 判断を書かない。新しい端末操作は両方の backend に足す |
 | `src/blocked.js` | blocked の画面の判定・AI 判定の読み取り・人間の答えの確認・端末設定の解釈（**純粋関数**） | I/O・時計を持ち込まない |
 | `src/blocked-handler.js` / `src/blocked-hub.js` / `src/blocked-panel.js` | 1 worker の blocked の扱い（答える・一時停止・待った時間）/ 止まっている worker の置き場と `/blocked` の HTTP / モニターの欄 | daemon・monitor への差分は呼び出しだけにする |
+| `src/http-guard.js` | HTTP の受け付けの守り（Host / Origin の許可・合言葉の照合）の**純粋関数** | 合言葉の生成・ファイル書き出しを持ち込まない（daemon が行う）。守りは startHttp のルーティングの手前の 1 か所だけで呼ぶ |
 | `src/settings.js` | worker 起動設定のロード・マージ・コマンド組み立て・run 資産スナップショット | — |
 | `src/monitor.js` | Web モニタ（**自己完結 HTML**。外部 CDN / 外部リソース参照は devpod の egress allowlist で死ぬので不可） | — |
 | `src/epic-summary.js` / `src/current-status.js` | EPIC ごとのまとめ・見込み・現在地の材料とテンプレートの描画の**純粋関数**。`renderEpicGroupsHtml` はモニタへ `fn.toString()` で埋め込むので**モジュールの外を参照しない** | I/O・`Date.now()` を持ち込まない（`now` を引数で受ける） |
