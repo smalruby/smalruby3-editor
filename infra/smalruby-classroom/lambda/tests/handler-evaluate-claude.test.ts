@@ -54,6 +54,20 @@ describe('callClaudeForEvaluation', () => {
     expect(new Headers(sent?.headers).get('anthropic-beta') ?? '').not.toContain('prompt-caching');
   });
 
+  test('テキストが先頭のブロックでなくても読む（#2422）', async () => {
+    const client = clientWith(async () => json(200, {
+      id: 'msg_2', type: 'message', role: 'assistant', model: 'claude-test', stop_reason: 'end_turn',
+      content: [
+        { type: 'thinking', thinking: '考えています', signature: 'sig' },
+        { type: 'text', text: '{"results":' },
+        { type: 'text', text: '[]}' },
+      ],
+      usage: { input_tokens: 1, output_tokens: 2 },
+    }));
+    const result = await callClaudeForEvaluation('S', 'U', client);
+    expect(result.ok && result.text).toBe('{"results":[]}');
+  });
+
   test.each([529, 500, 400])('Claude の %i は 502 AI_API_ERROR', async status => {
     const client = clientWith(async () => json(status, { type: 'error', error: { type: 'x', message: 'x' } }));
     expect(await callClaudeForEvaluation('S', 'U', client)).toEqual({

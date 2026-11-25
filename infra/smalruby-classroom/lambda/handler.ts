@@ -5636,8 +5636,11 @@ export async function callClaudeForEvaluation(
       system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
       messages: [{ role: 'user', content: user }],
     });
-    const first = message.content[0];
-    const text = first && first.type === 'text' ? first.text : '';
+    // Read every text block: a model may put another block (e.g. thinking)
+    // first, and then content[0] holds no text (seen with Sonnet, #2422).
+    const text = (message.content || [])
+      .map(block => (block.type === 'text' ? block.text : ''))
+      .join('');
     return { ok: true, text, usage: message.usage || {} };
   } catch (err) {
     console.error('Anthropic API error:', describeAnthropicError(err));
