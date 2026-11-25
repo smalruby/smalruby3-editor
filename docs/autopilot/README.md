@@ -703,8 +703,29 @@ worker は**非対話**で動くので、許可プロンプトで止まると運
   起動でも、最初に Project 情報を取り終えるまでの数秒は `booting: true`（`notice: "starting"`・
   ピル **`起動中`**）。SSO ログインが通ったのに bot トークンが取れないとき（秘密鍵・App の設定など
   SSO 以外の原因）は、案内を「bot トークンが取れません」に切り替える（`notice: "boot-not-sso"`）。
-  認証以外の起動エラー（GitHub に届かない等）は従来どおり exit して supervisor に任せる。
+  **GitHub API のレート制限**（`API rate limit exceeded` / secondary rate limit）で起動できないときも
+  exit しない（exit すると supervisor の再起動でまた落ちるだけなので）。モニタを立てたまま
+  **起動待ち**（`booting: true` + `bootWait: {reason:"rate-limit", message, resetAt, retryAt}`・
+  `notice: "boot-rate-limit"`・ピル **`API 待ち`**）にし、`gh api rate_limit`（レート消費なし）で残量 0 の
+  資源のリセット時刻を見て、その少し後に取り直す。リセットが分からないときは 30 秒から倍々で待つ
+  （1 回は最長 10 分。過ぎたら残量を見直す）。レート制限では auth の pause にしない。
+  認証・レート制限以外の起動エラー（GitHub に届かない等）は従来どおり exit して supervisor に任せる。
   `--once` は待たずに終了する。
+
+## 人間の一時停止は再起動をまたいで残る
+
+人間が止めた（`POST /pause`・モニタの「一時停止」、`pausedBy: "human"`）ことは
+**`~/.config/autopilot/human-pause-<port>.json`**（`AUTOPILOT_STATE_DIR` で置き場を変えられる。
+`monitor-answers.json` と同じ置き場）に残す。daemon は起動時、HTTP を立てる前・最初の tick より前に
+このファイルを読み、あれば **pause したまま**始める（`/status` の `pausedAt` に止めた時刻）。
+crash → `autopilot-supervise` の再起動で、人間の知らないうちに tick が回るのを防ぐため。
+
+- ファイルを消すのは人間の再開（`POST /resume`・モニタの「再開」）だけ。起動待ちの間も、人間の pause の
+  `/resume` だけは通す（ほかの pause の `/resume` は従来どおり `503 {booting:true}`）。
+- auth / usage の auto-pause はファイルに残さない（起動時に改めて判定する）。auto-resume は人間の pause を
+  外さない（`authRecoveryPatch` / `usagePauseAction` は `pausedBy` が `auth` / `usage` のときだけ外す）。
+- 判断は `phases.js` の `restoredHumanPause` / `humanPauseFileAction`、読み書きは daemon の
+  `restoreHumanPause` / `persistHumanPause`。
 
 ---
 
@@ -761,7 +782,7 @@ daemon の `GET /`（既定 `http://localhost:8787/`）は、人間と同意し�
 | 場所 | 出すもの・操作 |
 |---|---|
 | 上の 1 行 | 動いている / 一時停止中（AUTH ⚠・USAGE ⏸・起動中・SSO 待ちも）・worker の数（実行中 / 上限・重いもの）・**Claude** の使用量（セッション / 週間の細い棒）・**GitHub API** の残り・更新からの経過・件数バッジ「実行履歴 N」「タスク N」（押すと右から開く）・一時停止 / 再開・**⋯**（更新 `POST /refresh`・tick `POST /tick`・現在地を作る `POST /current-status` と現在地を開く） |
-| アラートの帯 | 認証（再接続・device code）・Claude 使用量の自動 pause（2 段階の強制再開）・強制実行中・API レートの僅少・起動中。地は塗らず文字と細い線だけ |
+| アラートの帯 | 認証（再接続・device code）・Claude 使用量の自動 pause（2 段階の強制再開）・強制実行中・API レートの僅少・起動中・レート制限の起動待ち。地は塗らず文字と細い線だけ |
 | 左「あなた宛て」 | **答えが要る**（worker の質問・選択肢・AI の推奨・メモ）→ **止まっている worker**（`blocked-panel.js`）→ **学び・確かめてほしい**（`/learnings` の action が PR を作る / マージする のとき）→ **人間待ち**（`GET /board` の `humanWait`。親の EPIC ごとのまとまり。下の「人間待ちの札とまとまり」） |
 | 右「状況板」 | GitHub Projects の表の形。1 行 = 1 EPIC（EPIC に属さない Issue は 1 つのまとまり）。`▶` で sub-issue の行を開く。絞り込みの文字とチップ（すべて / 人間の番 / AI が作業中 / 止まった / 💤 あとで）。上に並列の計画の 1 行 |
 | 右から開く欄 | 実行履歴（最新 100 件）、学び・タスク（`monitor-learn-tasks.js`。学びの PR・タスクの作成といま実行） |
@@ -1255,15 +1276,15 @@ HTTP API（curl からも操作可能。POST は上の合言葉のヘッダを�
 | `GET /` | Web モニタ（俯瞰ボード HTML） |
 | `GET /board` | 俯瞰ボードデータ（items + running + history + auth 状態 + `claudeUsage` + `usagePause` / `usageOverrides` + `version` + `autopilotUpdate` + `epicGroups` + `currentStatus` + `monitorQuestions`（モニターで答える質問）+ `humanWait`（🙋 の付いた人間待ちと「AI に任せる」が押せるか `[{issue, title, status, aiStatus, kind, delegate:{ok, action?, nextPhase?, code?, error?}}]`）+ 並列の計画 `schedule` / `schedulerLimits` / `schedulerOverrides`）を JSON で返す。items は `priority`（自分の値）と `effectivePriority`（`{priority, source: own\|inherited\|default, from}`）を持つ |
 | `GET /status.json` | 現在地の材料（`buildStatusMaterial`）: `groups`（EPIC ごと）・`priorities`（優先している順）・`running`・`waitingHuman`・`nextInterview`・`pendingDecisionsTotal`・`blocked`・`recentHistory`・`currentStatus` |
-| `GET /status` | `{paused, pausedBy, authError, reauthHint, reauth, booting, assignee, concurrency, claudeUsage, usagePause, usageOverrides, version, autopilotUpdate, running:[{issue,phase}], monitorQuestions}`。`pausedBy` は `human` / `auth` / `usage`。`usagePause` は判定結果（`pause, window, percent, threshold, resetsAt, thresholds, forced[]`） |
+| `GET /status` | `{paused, pausedBy, pausedAt, authError, reauthHint, reauth, booting, bootWait, notice, assignee, concurrency, claudeUsage, usagePause, usageOverrides, version, autopilotUpdate, running:[{issue,phase}], monitorQuestions}`。`pausedBy` は `human` / `auth` / `usage`。`usagePause` は判定結果（`pause, window, percent, threshold, resetsAt, thresholds, forced[]`） |
 | `GET /log?issue=<n>` | 実行中 item の画面（herdr / tmux の pane。人間観測用） |
 | `GET /blocked` | 止まっている（人間の答えを待つ）worker の一覧（画面・理由・選択肢）と、答えの履歴 |
 | `POST /blocked/answer` | body `{issue, keys:["1"]}` か `{issue, text:"..."}`。止まっている worker に人間の答えを送る（キーは `1`〜`9` / `enter` / `esc` / `up` / `down` など決まったものだけ） |
 | `POST /answer` | body `{issue, answers:[{q, key, note?}], proceed: boolean}`。モニターで質問に答える（「モニターで答える」の節）。`proceed:false` はメモだけ保存（daemon のローカル）、`proceed:true` は答えを Issue に記録して 🙋 を外す（全部の質問に答えが要る。足りなければ 400、worker が実行中なら 409） |
 | `POST /delegate` | body `{issue}`。モニターの「AI に任せる」（「モニターの『AI に任せる』」の節）。🙋 を外して（まだ分解していない EPIC は Sprint Backlog へ動かしてから）autopilot に渡し、pause 中でなければ 1 tick 回す。`{ok:true, issue, action:'release'\|'decompose', nextPhase}`。入力が違うと 400、Project に無いと 404、🙋 が無い・worker が実行中・答え待ちの質問がある・トラッカー・人間がする作業などは 409 `{error, code, issue}`、GitHub に書けないと 502 |
 | `POST /tick` | interval を待たず 1 サイクル即実行。`{ran, paused, picked:[...], running:[...]}` を返す。実行中は `409 {busy:true}`、pause 中は `{ran:true, paused:true, picked:[]}` の no-op |
-| `POST /pause` | 新規ディスパッチを止める（実行中はそのまま） |
-| `POST /resume` | ポーリング再開（usage の auto-pause 中は `409 {forceResumeRequired:true}`） |
+| `POST /pause` | 新規ディスパッチを止める（実行中はそのまま）。再起動をまたいで残す（`~/.config/autopilot/human-pause-<port>.json`） |
+| `POST /resume` | ポーリング再開（usage の auto-pause 中は `409 {forceResumeRequired:true}`）。人間の pause のファイルを消す |
 | `POST /force-resume` | Claude 使用量の auto-pause を強制再開。超過中の枠はその枠の次のリセットまで auto-pause しない。`{paused, pausedBy, overrides}` |
 | `POST /reauth` | SSO 再認証（device code）を daemon 側で起動し、認証 URL と user code を抽出して返す（`{status, url, code, completeUrl}`）。成功で auto-resume（起動待ちなら稼働を始める） |
 | `POST /refresh` | 俯瞰ボードを即時再取得（`listItems`）。モニタの上の行の ⋯ の「更新」。レート僅少時は `{refreshed:false, skipped:'rate-limited'}` で no-op |

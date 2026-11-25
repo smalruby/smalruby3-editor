@@ -990,6 +990,14 @@ function renderAlerts(d) {
     // 起動中（#1510）: 認証は通っていて Project の情報を取っている。数秒で稼働に変わる
     parts.push('<div class="alert auth-a">⏳ <b>起動中…</b> <span>Project の情報を取っています。</span></div>');
   }
+  if (d.notice === 'boot-rate-limit') {
+    // 起動待ち（#2384）: GitHub API のレート制限。exit せず、残量が戻るのを待って自動で起動する
+    const W = d.bootWait || {};
+    parts.push('<div class="alert auth-a" data-testid="boot-rate-limit-alert">⏳ <b>GitHub API のレート制限で起動待ち</b> <span>'
+      + (W.resetAt ? 'リセット ' + esc(new Date(W.resetAt).toLocaleTimeString()) + ' ごろ・' : '')
+      + (W.retryAt ? '次の取り直し ' + esc(new Date(W.retryAt).toLocaleTimeString()) : '')
+      + '。戻ると自動で起動します。</span><details><summary>詳細</summary>' + esc(W.message || '') + '</details></div>');
+  }
   if (d.authError) {
     const R = d.reauth;
     let ra = '';
@@ -1027,7 +1035,7 @@ function renderAlerts(d) {
 function renderStatus(d) {
   const st = document.getElementById('state');
   let sem = 'ai', text = '動いている', note = '', ring = false;
-  if (d.booting) { sem = 'notice'; text = d.authError ? 'SSO 待ち' : '起動中'; ring = true; }
+  if (d.booting) { sem = 'notice'; text = d.authError ? 'SSO 待ち' : (d.notice === 'boot-rate-limit' ? 'API 待ち' : '起動中'); ring = true; }
   else if (d.authError) { sem = 'notice'; text = 'AUTH ⚠ 認証エラー'; ring = true; }
   else if (d.paused && d.pausedBy === 'usage') { sem = 'notice'; text = 'USAGE ⏸ 使用量で一時停止中'; ring = true; }
   else if (d.paused) { sem = 'idle'; text = '一時停止中'; note = d.pausedBy === 'human' ? '人間が止めました' : ''; ring = true; }

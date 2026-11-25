@@ -1,6 +1,9 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert');
+// POST /pause が人間の pause をファイルに残す（#2384）。開発者の ~/.config/autopilot を汚さないよう、
+// このテストの置き場は使い捨ての tmpdir にする。
+process.env.AUTOPILOT_STATE_DIR = require('fs').mkdtempSync(require('path').join(require('os').tmpdir(), 'ap-daemon-test-'));
 const {
     applyMergeProgression, applyClosedReconcile, applyPrProjection, applyDodHandoffs, runTickOnce,
     detectStuck, recoverOrphanedWorkers, recoverStalledInFlightWorkers, markBlocked, getDirectives, populateAssigneeDirectives,
@@ -2805,5 +2808,141 @@ test('startHttp POST /delegate: 入力と対象を確かめて 4xx を返し、G
             [[7, true, 'release'], [8, false, 'human-work']]);
     } finally {
         await new Promise((r) => server.close(r));
+    }
+});
+
+// === 人間の pause の引き継ぎと、起動時のレート制限待ち（#2384） ===
+
+const RATE_LIMITED = 'GraphQL: API rate limit exceeded for installation ID 12345';
+
+test('bootProjectInfo: レート制限では exit せず、リセットまで待って取り直す（#2384）', async () => {
+    const { bootProjectInfo } = require('../src/daemon');
+    const cfg = { owner: 'o', project: 4 };
+    const state = { paused: false, pausedBy: null, authError: null, booting: false, running: new Map() };
+    const now = 1_000_000_000_000;
+    let calls = 0;
+    const waits = [];
+    await bootProjectInfo(cfg, state, () => {}, {
+        now: () => now,
+        getRateLimit: async () => ({ graphql: { remaining: 0, reset: (now + 60_000) / 1000 } }),
+        resolveProjectInfo: async () => {
+            calls += 1;
+            if (calls < 3) throw new Error(RATE_LIMITED);
+            return { projectId: 'P', fields: {} };
+        },
+        sleep: async (ms) => { waits.push({ ms, booting: state.booting, reason: state.bootWait && state.bootWait.reason }); },
+    });
+    assert.equal(calls, 3);
+    assert.deepStrictEqual(waits, [
+        { ms: 70_000, booting: true, reason: 'rate-limit' },
+        { ms: 70_000, booting: true, reason: 'rate-limit' },
+    ]);
+    assert.equal(cfg.projectId, 'P');
+    assert.equal(state.booting, false);
+    assert.equal(state.bootWait, null);
+    // レート制限は auth の pause にしない
+    assert.equal(state.paused, false);
+});
+
+test('bootProjectInfo: rate_limit が取れなくても倍々で待ち、once なら throw する', async () => {
+    const { bootProjectInfo } = require('../src/daemon');
+    const state = { paused: false, pausedBy: null, authError: null, booting: false, running: new Map() };
+    let calls = 0;
+    const waits = [];
+    await bootProjectInfo({ owner: 'o', project: 4 }, state, () => {}, {
+        now: () => 0,
+        getRateLimit: async () => { throw new Error('rate_limit failed'); },
+        resolveProjectInfo: async () => { calls += 1; if (calls < 3) throw new Error(RATE_LIMITED); return { projectId: 'P', fields: {} }; },
+        sleep: async (ms) => { waits.push(ms); },
+    });
+    assert.deepStrictEqual(waits, [30_000, 60_000]);
+    await assert.rejects(
+        bootProjectInfo({ owner: 'o', project: 4 }, { running: new Map() }, () => {}, {
+            once: true, resolveProjectInfo: async () => { throw new Error(RATE_LIMITED); },
+        }),
+        /rate limit/,
+    );
+});
+
+test('bootProjectInfo: 引き継いだ人間の pause はレート制限・認証の待ちのあとも残る', async () => {
+    const { bootProjectInfo } = require('../src/daemon');
+    const state = { paused: true, pausedBy: 'human', authError: null, booting: false, running: new Map() };
+    let calls = 0;
+    await bootProjectInfo({ owner: 'o', project: 4 }, state, () => {}, {
+        now: () => 0,
+        getRateLimit: async () => null,
+        resolveProjectInfo: async () => {
+            calls += 1;
+            if (calls === 1) throw new Error(RATE_LIMITED);
+            if (calls === 2) throw new Error(SSO_EXPIRED);
+            return { projectId: 'P', fields: {} };
+        },
+        sleep: async () => {},
+    });
+    assert.equal(state.paused, true);
+    assert.equal(state.pausedBy, 'human');
+});
+
+test('persistHumanPause / restoreHumanPause: 人間の pause をファイルに残し、再起動で pause のまま始める（#2384）', () => {
+    const fs = require('fs');
+    const os = require('os');
+    const path = require('path');
+    const { persistHumanPause, restoreHumanPause } = require('../src/daemon');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ap-pause-'));
+    const file = path.join(dir, 'sub', 'human-pause-8787.json');
+    const log = () => {};
+    const s1 = { paused: true, pausedBy: 'human' };
+    persistHumanPause({}, s1, log, { file, now: () => Date.parse('2026-11-25T01:02:03Z') });
+    assert.deepStrictEqual(JSON.parse(fs.readFileSync(file, 'utf8')), { pausedBy: 'human', pausedAt: '2026-11-25T01:02:03.000Z' });
+    // 再起動した daemon
+    const s2 = { paused: false, pausedBy: null };
+    assert.equal(restoreHumanPause({}, s2, log, { file }), true);
+    assert.equal(s2.paused, true);
+    assert.equal(s2.pausedBy, 'human');
+    assert.equal(s2.pausedAt, '2026-11-25T01:02:03.000Z');
+    // auth の auto-pause・再開ではファイルを消す
+    persistHumanPause({}, { paused: true, pausedBy: 'auth' }, log, { file });
+    assert.equal(fs.existsSync(file), false);
+    const s3 = { paused: false, pausedBy: null };
+    assert.equal(restoreHumanPause({}, s3, log, { file }), false);
+    assert.equal(s3.paused, false);
+    // 壊れたファイルは無視して止まっていない状態で始める
+    fs.writeFileSync(file, '{oops');
+    assert.equal(restoreHumanPause({}, s3, log, { file }), false);
+    fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('humanPauseFilePath: AUTOPILOT_STATE_DIR の下にポートごとに置く', () => {
+    const { humanPauseFilePath } = require('../src/daemon');
+    const prev = process.env.AUTOPILOT_STATE_DIR;
+    process.env.AUTOPILOT_STATE_DIR = '/x/state';
+    try {
+        assert.equal(humanPauseFilePath({ port: 9999 }), '/x/state/human-pause-9999.json');
+    } finally {
+        if (prev === undefined) delete process.env.AUTOPILOT_STATE_DIR; else process.env.AUTOPILOT_STATE_DIR = prev;
+    }
+});
+
+test('startHttp: /pause は人間の pause をファイルに残し、/resume で消す。起動待ちでも人間の pause は外せる（#2384）', async () => {
+    const fs = require('fs');
+    const { humanPauseFilePath } = require('../src/daemon');
+    const cfg = { ...makeCfg(), port: 0, assignee: null, concurrency: 1 };
+    const state = { paused: false, pausedBy: null, running: new Map(), board: null, booting: true };
+    const file = humanPauseFilePath(cfg);
+    fs.rmSync(file, { force: true });
+    const { server, port } = await startTestHttp(cfg, state);
+    const post = (p) => httpRaw(port, 'POST', p, { 'x-autopilot-token': TEST_HTTP_TOKEN });
+    try {
+        assert.strictEqual((await post('/pause')).status, 200);
+        assert.strictEqual(JSON.parse(fs.readFileSync(file, 'utf8')).pausedBy, 'human');
+        assert.strictEqual((await post('/resume')).status, 200);
+        assert.strictEqual(state.paused, false);
+        assert.strictEqual(fs.existsSync(file), false);
+        // 人間の pause でなければ、起動待ちの /resume は従来どおり断る
+        state.paused = true; state.pausedBy = 'auth';
+        assert.strictEqual((await post('/resume')).status, 503);
+    } finally {
+        await new Promise((r) => server.close(r));
+        fs.rmSync(file, { force: true });
     }
 });
