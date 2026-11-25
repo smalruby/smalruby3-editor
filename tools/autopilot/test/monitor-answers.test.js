@@ -363,6 +363,14 @@ test('addressReviewMarker: handled-instructions round-trips and keeps the old fo
     assert.deepEqual([...handledReviewIds(comments)], [12]);
     assert.deepEqual([...handledInstructionIds(comments)], [300, 301, 302]);
     assert.deepEqual([...handledInstructionIds([{ body: addressReviewMarker([5]) }])], []);
+    // 以前の正規表現が受けていた、ID の一覧の空白・`-->` の前の空白なしも受ける
+    const spaced = [
+        { body: '<!-- autopilot-address-review handled-reviews=1, 2 -->' },
+        { body: '<!-- autopilot-address-review handled-reviews=3-->' },
+        { body: '<!-- autopilot-address-review handled-reviews=4 handled-instructions=7, 8 -->' },
+    ];
+    assert.deepEqual([...handledReviewIds(spaced)], [1, 2, 3, 4]);
+    assert.deepEqual([...handledInstructionIds(spaced)], [7, 8]);
 });
 
 test('selectMonitorInstructions: unhandled marked comments only, oldest first', () => {

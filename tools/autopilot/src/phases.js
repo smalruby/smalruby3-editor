@@ -613,8 +613,9 @@ function toMs(t) {
  * いないか」を address-review 自身が判定する。時刻の watermark ではなくレビュー ID を残す
  * ので、daemon の再起動やコメントの前後関係に左右されず、同じレビューに二重対応しない。
  */
+// ID の一覧の空白は以前の形でも受けていたので、いまも受ける（`1, 2` と書かれたマーカーを無視しない）
 const ADDRESS_REVIEW_MARKER_RE =
-    /<!--\s*autopilot-address-review\s+handled-reviews=([\d,]*)(?:\s+handled-instructions=([\d,]*))?\s*-->/g;
+    /<!--\s*autopilot-address-review\s+handled-reviews=([\d,\s]*?)(?:\s*handled-instructions=([\d,\s]*?))?\s*-->/g;
 
 /** ID の配列を「正の整数・重複なし」にそろえる（内部用） */
 function uniquePositiveIds(ids) {
