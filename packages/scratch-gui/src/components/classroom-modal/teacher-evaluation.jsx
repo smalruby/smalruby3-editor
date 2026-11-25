@@ -22,6 +22,11 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FormattedMessage, defineMessages, useIntl } from 'react-intl';
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
 import {
+    describeEvalResult,
+    describeEvalRunning,
+    runningStepOf,
+} from '../../lib/classroom-evaluation/eval-status.js';
+import {
     combineOverall,
     currentLessonOnlyStep,
     evaluationColumns,
@@ -31,6 +36,7 @@ import {
 } from '../../lib/classroom-evaluation/evaluation-utils.js';
 import { buildLessonPayload, lessonDraftFromSaved } from '../../lib/classroom-lesson-settings.js';
 import { findCourse } from '../../lib/lessons/courses.js';
+import Spinner from '../spinner/spinner.jsx';
 import ClassroomButton from './classroom-button.jsx';
 import styles from './classroom-modal.css';
 import LessonScoringField from './lesson-scoring-field.jsx';
@@ -225,8 +231,11 @@ export const currentEvalStep = ({ loaded, hasGrades, hasComments }) => {
 };
 
 /* One numbered step of the footer flow. */
-const StepButton = ({ children, current, dataTestId, disabled, number, onClick }) => (
+/* While its step runs, the button shows a spinner and short words (#2419). The step name stays
+   laid under them (hidden), so the button keeps its width and the step row does not jump. */
+const StepButton = ({ children, current, dataTestId, disabled, number, running = null, onClick }) => (
     <ClassroomButton
+        ariaBusy={running ? true : null}
         ariaCurrent={current ? 'step' : null}
         dataTestId={dataTestId}
         disabled={disabled}
@@ -234,7 +243,19 @@ const StepButton = ({ children, current, dataTestId, disabled, number, onClick }
         onClick={onClick}
     >
         <span className={styles.evalStepNumber}>{number}</span>
-        {children}
+        {running ? (
+            <span className={styles.evalStepLabel}>
+                <span aria-hidden="true" className={styles.evalStepLabelHidden}>
+                    {children}
+                </span>
+                <span className={styles.evalStepRunning} data-testid={`${dataTestId}-running`}>
+                    <Spinner small className={styles.evalSpinner} level="info-blue" />
+                    {running}
+                </span>
+            </span>
+        ) : (
+            children
+        )}
     </ClassroomButton>
 );
 
@@ -244,7 +265,60 @@ StepButton.propTypes = {
     dataTestId: PropTypes.string.isRequired,
     disabled: PropTypes.bool,
     number: PropTypes.number.isRequired,
+    /** The short words while this step runs (null = not running). */
+    running: PropTypes.node,
     onClick: PropTypes.func.isRequired,
+};
+
+/* What is being done now (spinner, words and a thin bar when the count is known), or the
+   short result once it ends (#2419). `role="status"` reads it out. */
+const EvalStatus = ({ evalProgress, evalResult, openingWork, savingName }) => {
+    const intl = useIntl();
+    const running = describeEvalRunning({ progress: evalProgress, openingWork, savingName });
+    if (running) {
+        const percent = running.ratio === null ? null : Math.round(running.ratio * 100);
+        return (
+            <div aria-busy="true" className={styles.evalProgress} data-testid="classroom-eval-progress" role="status">
+                <div className={styles.evalProgressLine}>
+                    <Spinner small className={styles.evalSpinner} level="info-blue" />
+                    <span data-testid="classroom-eval-progress-text">
+                        {intl.formatMessage(running.message, running.values)}
+                    </span>
+                </div>
+                {percent !== null && (
+                    <div
+                        aria-hidden="true"
+                        className={styles.evalProgressBar}
+                        data-percent={percent}
+                        data-testid="classroom-eval-progress-bar"
+                    >
+                        <div className={styles.evalProgressBarValue} style={{ width: `${percent}%` }} />
+                    </div>
+                )}
+            </div>
+        );
+    }
+    const result = describeEvalResult(evalResult);
+    if (!result) return null;
+    return (
+        <div
+            className={classNames(styles.evalProgress, styles.evalResult, {
+                [styles.evalResultFailed]: result.failed,
+            })}
+            data-failed={result.failed}
+            data-testid="classroom-eval-result"
+            role="status"
+        >
+            {intl.formatMessage(result.message, result.values)}
+        </div>
+    );
+};
+
+EvalStatus.propTypes = {
+    evalProgress: PropTypes.object,
+    evalResult: PropTypes.object,
+    openingWork: PropTypes.bool,
+    savingName: PropTypes.string,
 };
 
 /* 「書き出し ▾」: the two CSV exports. Opens upward (it lives in the footer). */
@@ -503,6 +577,7 @@ const TeacherEvaluation = ({
     evalGroup,
     evalLessons,
     evalProgress,
+    evalResult = null,
     getCell,
     lessonScores = EMPTY_LESSON_SCORES,
     rubricAxes,
@@ -538,6 +613,10 @@ const TeacherEvaluation = ({
 }) => {
     const intl = useIntl();
     const busy = !!evalProgress;
+    const runningStep = runningStepOf(evalProgress);
+    const runningLabel = (stepName) =>
+        runningStep && runningStep.step === stepName ? intl.formatMessage(runningStep.label) : null;
+    const savingLesson = scoringSavingId ? evalLessons.find((l) => l.classroomId === scoringSavingId) : null;
     const selectedLessons = evalLessons.filter((l) => selectedLessonIds.includes(l.classroomId));
     const loaded = seats.length > 0;
     // 作品の点とレッスンの点は別の列（#1603・作品の列のすぐ横に「レッスン」）。
@@ -725,6 +804,7 @@ const TeacherEvaluation = ({
                     <StepButton
                         current={lessonStep === 'load'}
                         dataTestId="classroom-eval-load"
+                        running={runningLabel('load')}
                         disabled={busy || selectedLessons.length === 0}
                         number={1}
                         onClick={handleLoad}
@@ -773,6 +853,7 @@ const TeacherEvaluation = ({
                     <StepButton
                         current={step === 'load'}
                         dataTestId="classroom-eval-load"
+                        running={runningLabel('load')}
                         disabled={busy || selectedLessons.length === 0}
                         number={1}
                         onClick={handleLoad}
@@ -789,6 +870,7 @@ const TeacherEvaluation = ({
                     <StepButton
                         current={step === 'grade'}
                         dataTestId="classroom-eval-run-grade"
+                        running={runningLabel('grade')}
                         disabled={busy || !loaded}
                         number={2}
                         onClick={handleRunGrade}
@@ -805,6 +887,7 @@ const TeacherEvaluation = ({
                     <StepButton
                         current={step === 'comment'}
                         dataTestId="classroom-eval-run-comment"
+                        running={runningLabel('comment')}
                         disabled={busy || !loaded}
                         number={3}
                         onClick={handleRunComment}
@@ -821,6 +904,7 @@ const TeacherEvaluation = ({
                     <StepButton
                         current={step === 'return'}
                         dataTestId="classroom-eval-return-comments"
+                        running={runningLabel('return')}
                         disabled={busy || !loaded}
                         number={4}
                         onClick={onReturnComments}
@@ -1068,12 +1152,13 @@ const TeacherEvaluation = ({
                 </div>
             )}
 
-            {/* Progress */}
-            {evalProgress && (
-                <div className={styles.evalProgress} data-testid="classroom-eval-progress">
-                    {`${evalProgress.label} … (${evalProgress.done}/${evalProgress.total})`}
-                </div>
-            )}
+            {/* What is running now, or the short result (#2419) */}
+            <EvalStatus
+                evalProgress={evalProgress}
+                evalResult={evalResult}
+                openingWork={openingWork}
+                savingName={savingLesson ? savingLesson.assignmentName : null}
+            />
 
             {/* 採点簿（#1962）: 左に点だけの表、右に選んだ席の根拠・コメント。表は枠の中だけで
                 縦にも横にもスクロールし、ページと下の手順の行は 1300px に収める（#1945）。 */}
@@ -1224,6 +1309,8 @@ TeacherEvaluation.propTypes = {
     evalGroup: PropTypes.object,
     evalLessons: PropTypes.arrayOf(PropTypes.object).isRequired,
     evalProgress: PropTypes.object,
+    /** The short result of the last step (#2419). */
+    evalResult: PropTypes.object,
     getCell: PropTypes.func.isRequired,
     /** A leave waiting for the teacher's answer (#1923 C4): {kind: 'back'|'leave'|'reload'}. */
     leaveRequest: PropTypes.shape({

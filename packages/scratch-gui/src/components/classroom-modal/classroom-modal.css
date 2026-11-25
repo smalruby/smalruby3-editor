@@ -3292,6 +3292,83 @@ $seat-tile-min: 36px;
     margin-bottom: 0.75rem;
 }
 
+/* What is running now (#2419): a spinner before the words, and a thin bar when the count is known. */
+.eval-progress-line {
+    display: flex;
+    align-items: center;
+    gap: $space-small;
+}
+
+.eval-progress-bar {
+    height: 0.25rem;
+    margin-top: 0.35rem;
+    border-radius: 0.125rem;
+    background-color: #b5cff5;
+    overflow: hidden;
+}
+
+.eval-progress-bar-value {
+    height: 100%;
+    background-color: $color-action;
+    transition: width 0.3s ease-out;
+}
+
+/* The short result once a step ends: quiet when it went well, red only when it failed (R4). */
+.eval-result {
+    background-color: $color-surface;
+    border-color: $color-border;
+    color: $color-text;
+}
+
+.eval-result-failed {
+    background-color: #fdecea;
+    border-color: #f44336;
+    color: #5d1a1a;
+}
+
+/* The spinner of the grading screen: a little larger than `small` so it is seen on the grey of a
+   busy button, and kept from shrinking. */
+.eval-spinner,
+.eval-spinner::before,
+.eval-spinner::after {
+    width: 0.625rem;
+    height: 0.625rem;
+}
+
+.eval-spinner {
+    flex-shrink: 0;
+}
+
+/* A running button cannot be pressed, but it says what is going on, so its words stay in the
+   action color instead of the pale grey of other disabled buttons (#2419). */
+.primary-button[aria-busy='true']:disabled,
+.secondary-button[aria-busy='true']:disabled {
+    color: $color-action;
+    cursor: progress;
+}
+
+/* A running step button: the step name stays (hidden) under the running words, so the
+   button keeps its width (#2419). */
+.eval-step-label {
+    position: relative;
+    display: inline-block;
+}
+
+.eval-step-label-hidden {
+    visibility: hidden;
+}
+
+/* Laid over the hidden name, so even words a little longer than the name do not widen the button. */
+.eval-step-running {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: $space-small;
+    white-space: nowrap;
+}
+
 .eval-matrix-wrapper {
     flex: 1 1 auto;
     min-height: 0;

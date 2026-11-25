@@ -151,6 +151,107 @@ describe('TeacherEvaluation steps (V1)', () => {
         for (const id of STEP_IDS) expect(getByTestId(id)).toBeDisabled();
     });
 
+    // #2419: the pressed step shows a spinner until it ends, and the message says what runs.
+    test('the running step button shows a spinner and short words', () => {
+        const { getByTestId, queryByTestId } = renderEvaluation({
+            seats: [1],
+            getCell: () => ({ submitted: true, grade: null }),
+            evalProgress: { kind: 'grade', assignmentName: '迷路', from: 11, to: 20, total: 28 },
+        });
+        const button = getByTestId('classroom-eval-run-grade');
+        expect(button).toHaveAttribute('aria-busy', 'true');
+        expect(getByTestId('classroom-eval-run-grade-running')).toHaveTextContent('Grading');
+        expect(queryByTestId('classroom-eval-load-running')).toBeNull();
+        expect(getByTestId('classroom-eval-load')).not.toHaveAttribute('aria-busy');
+        const status = getByTestId('classroom-eval-progress');
+        expect(status).toHaveAttribute('role', 'status');
+        expect(status).toHaveAttribute('aria-busy', 'true');
+        expect(getByTestId('classroom-eval-progress-text').textContent).toBe(
+            'The AI is grading 迷路 (seats 11–20 of 28)',
+        );
+        expect(getByTestId('classroom-eval-progress-bar')).toHaveAttribute('data-percent', '36');
+    });
+
+    test('loading before the list is read has no bar', () => {
+        const { getByTestId, queryByTestId } = renderEvaluation({
+            evalProgress: { kind: 'load', assignmentName: '迷路', done: 0, total: null },
+        });
+        expect(getByTestId('classroom-eval-load-running')).toHaveTextContent('Loading');
+        expect(getByTestId('classroom-eval-progress-text').textContent).toBe('Loading the submissions of 迷路');
+        expect(queryByTestId('classroom-eval-progress-bar')).toBeNull();
+    });
+
+    test('the result is shown once the step ends; a failure is marked', () => {
+        const { getByTestId, queryByTestId, rerender } = renderEvaluation({
+            evalResult: { kind: 'load', count: 28, lessons: 1 },
+        });
+        expect(queryByTestId('classroom-eval-progress')).toBeNull();
+        expect(getByTestId('classroom-eval-result').textContent).toBe('Loaded 28 submissions.');
+        expect(getByTestId('classroom-eval-result')).toHaveAttribute('data-failed', 'false');
+        rerender(
+            <IntlProvider locale="en">
+                <TeacherEvaluation
+                    comments={{}}
+                    evalLessons={LESSONS}
+                    evalResult={{ kind: 'return', failed: true, done: 5, total: 28 }}
+                    getCell={() => null}
+                    rubricAxes={[]}
+                    seats={[]}
+                    selectedLessonIds={['c1']}
+                    strictness="standard"
+                    onBack={jest.fn()}
+                    onChangeRubricAxis={jest.fn()}
+                    onExportAuditCsv={jest.fn()}
+                    onExportEvaluationCsv={jest.fn()}
+                    onLoadSubmissions={jest.fn()}
+                    onReturnComments={jest.fn()}
+                    onRunAi={jest.fn()}
+                    onSetCellGrade={jest.fn()}
+                    onSetCellReason={jest.fn()}
+                    onSetComment={jest.fn()}
+                    onSetStrictness={jest.fn()}
+                    onToggleLesson={jest.fn()}
+                />
+            </IntlProvider>,
+        );
+        expect(getByTestId('classroom-eval-result')).toHaveAttribute('data-failed', 'true');
+        expect(getByTestId('classroom-eval-result').textContent).toBe(
+            'Returning the comments stopped on the way (5 of 28 returned).',
+        );
+    });
+
+    test('opening a work and saving the lesson points use the same message', () => {
+        const { getByTestId, rerender } = renderEvaluation({ openingWork: true });
+        expect(getByTestId('classroom-eval-progress-text').textContent).toBe('Opening the work');
+        rerender(
+            <IntlProvider locale="en">
+                <TeacherEvaluation
+                    comments={{}}
+                    evalLessons={LESSONS}
+                    getCell={() => null}
+                    rubricAxes={[]}
+                    scoringSavingId="c1"
+                    seats={[]}
+                    selectedLessonIds={['c1']}
+                    strictness="standard"
+                    onBack={jest.fn()}
+                    onChangeRubricAxis={jest.fn()}
+                    onExportAuditCsv={jest.fn()}
+                    onExportEvaluationCsv={jest.fn()}
+                    onLoadSubmissions={jest.fn()}
+                    onReturnComments={jest.fn()}
+                    onRunAi={jest.fn()}
+                    onSetCellGrade={jest.fn()}
+                    onSetCellReason={jest.fn()}
+                    onSetComment={jest.fn()}
+                    onSetStrictness={jest.fn()}
+                    onToggleLesson={jest.fn()}
+                />
+            </IntlProvider>,
+        );
+        expect(getByTestId('classroom-eval-progress-text').textContent).toBe('Saving the lesson points of 迷路');
+    });
+
     test('step buttons call their handlers', () => {
         const { getByTestId, handlers } = renderEvaluation({
             seats: [1],
