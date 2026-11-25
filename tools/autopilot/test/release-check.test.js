@@ -16,7 +16,9 @@ const tracker = (over = {}) => ({
 
 test('releaseCheckReady: 子が全部済んだ 🧭 トラッカーだけ入る', () => {
     assert.equal(rc.releaseCheckReady(tracker(), []), true);
-    assert.equal(rc.releaseCheckReady(tracker({ hitl: true }), []), false, '人間が持っている間は動かさない');
+    // 分解済みの EPIC は 🙋 を付けたままにする決まり（human-wait.md）。🙋 ありで入ると人間の番（#16c）になる
+    assert.equal(rc.releaseCheckReady(tracker({ hitl: true }), []), true, '🙋 ありの EPIC も入る');
+    assert.equal(rc.releaseCheckReady(tracker({ hitlLabel: true }), []), true);
     assert.equal(rc.releaseCheckReady(tracker({ aiStatus: RELEASE_CHECK_AI_STATUS }), []), false, 'もう入っている');
     assert.equal(rc.releaseCheckReady(tracker({ labels: [] }), []), false, '未分解の EPIC');
     assert.equal(rc.releaseCheckReady(tracker({ subIssues: { total: 0, completed: 0 } }), []), false);

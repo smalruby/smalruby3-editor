@@ -2061,7 +2061,8 @@ function renderTrackerSticky(item) {
     if (allDone) {
         lines.push(
             `✅ **全 sub-issue が完了しました（${completed}/${total}）** — **リリース確認に進みます**`,
-            'autopilot がプレビューで確かめる観点をこの Issue にまとめます（#2430）。確かめて OK なら、'
+            'autopilot がプレビューで確かめる観点をこの Issue にまとめます（#2430。🙋 が付いているときは、モニターの'
+                + '「確認の結果を書く」から AI に頼んでください）。確かめて OK なら、'
                 + 'topic → develop の PR をマージして**この EPIC を Close してください**'
                 + '（closed-reconcile が Project を Close に整合します）。autopilot は develop へマージせず、EPIC も自動 Close しません。',
         );

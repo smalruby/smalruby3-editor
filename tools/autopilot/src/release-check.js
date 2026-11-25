@@ -82,19 +82,23 @@ function isAfterReleaseItem(item) {
 
 /**
  * トラッカーがリリース確認に入れるか（純粋関数）。
- * - 🧭 tracking・In Progress・AI Status=EPIC Decomposed・🙋 なし（人間が持っている間は動かさない）
+ * - 🧭 tracking・In Progress・AI Status=EPIC Decomposed（🙋 の有無は問わない）
  * - sub-issue が 1 件以上あり、済んだ数 + 開いている 🚀 after-release の数が全体に届く
+ *
+ * 🙋 を見ないのは、分解済みの EPIC は「子が全部済んだら人間が閉じる」番として 🙋 を付けたままにする
+ * 決まりだから（`.claude/rules/human-wait.md`）。🙋 ありで入ると、そのまま人間の番（state-machine #16c）になり、
+ * モニターの「確認の結果を書く」から AI に観点をまとめてもらう（🙋 を外す）。AI Status を変えるだけで
+ * worker は起動しないので、人間が持っている 🙋 を勝手に外すことにはならない（I2〜I3）。
  *
  * 🚀 after-release の数はボードの item（親がこのトラッカーのもの）から数える。ボードに載らない子
  * （担当がほかの人）は数えられないので、そのときは入らない（早すぎるリリース確認より安全側）。
- * @param {object} tracker board item { issue, labels, status, aiStatus, hitl|hitlLabel, subIssues:{total, completed} }
+ * @param {object} tracker board item { issue, labels, status, aiStatus, subIssues:{total, completed} }
  * @param {object[]} boardItems 同じボードの item（parent: {number}）
  * @returns {boolean}
  */
 function releaseCheckReady(tracker, boardItems) {
     if (!tracker || !Array.isArray(tracker.labels) || !tracker.labels.includes(TRACKING_LABEL)) return false;
     if (tracker.status !== 'In Progress' || tracker.aiStatus !== 'EPIC Decomposed') return false;
-    if (tracker.hitlLabel !== undefined ? tracker.hitlLabel : tracker.hitl) return false;
     const { total = 0, completed = 0 } = tracker.subIssues || {};
     if (!(total > 0)) return false;
     if (completed >= total) return true;

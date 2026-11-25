@@ -1620,7 +1620,12 @@ async function openRelease(issue) {
     const j = await r.json().catch(() => ({}));
     if (relIssue !== issue) return;
     if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
-    if (!j.check) { box.innerHTML = '<div class="muted">まだ観点のコメントがありません。</div>'; return; }
+    // 🙋 を付けたままの EPIC（human-wait.md）は、観点をまとめる前に人間の番になる。ここから AI に頼めるようにする
+    if (!j.check) {
+      box.innerHTML = '<div class="muted">まだ観点のコメントがありません。</div>'
+        + '<div class="acts"><button type="button" class="go" data-act="rel-collect" data-issue="' + issue + '" data-testid="release-collect">AI に観点をまとめてもらう</button></div>';
+      return;
+    }
     relRound = j.check.round;
     const link = j.check.previewUrl ? ' · <a href="' + esc(j.check.previewUrl) + '" target="_blank" rel="noopener noreferrer">プレビューを開く ↗</a>' : '';
     const cl = j.check.id ? ' · <a href="' + esc(repoUrl + '/issues/' + issue + '#issuecomment-' + j.check.id) + '" target="_blank" rel="noopener">Issue で見る</a>' : '';
@@ -1644,7 +1649,8 @@ function setRelVerdict(id, v) {
   updateRelSend();
 }
 function updateRelSend() {
-  const any = Object.keys(relVerdicts).length > 0 || document.getElementById('relnote').value.trim();
+  const notes = Array.from(document.querySelectorAll('#relpoints [data-rel-note]')).some((t) => t.value.trim());
+  const any = Object.keys(relVerdicts).length > 0 || document.getElementById('relnote').value.trim() || notes;
   document.getElementById('relsend').disabled = !(relRound && any);
 }
 function closeRelease() { document.getElementById('relmodal').classList.remove('open'); relIssue = null; }
@@ -1655,10 +1661,17 @@ async function sendRelease() {
     const t = document.querySelector('#relpoints [data-rel-note="' + id + '"]');
     return { id, verdict: relVerdicts[id], note: t ? t.value : '' };
   });
+  // OK / NG を選ばずにメモだけ書いた観点は、捨てずに全体のコメントへ入れる
+  const loose = [];
+  document.querySelectorAll('#relpoints [data-rel-note]').forEach((t) => {
+    const id = t.getAttribute('data-rel-note');
+    if (!relVerdicts[id] && t.value.trim()) loose.push(id + ': ' + t.value.trim());
+  });
+  const comment = [document.getElementById('relnote').value.trim()].concat(loose).filter(Boolean).join('\\n');
   const btn = document.getElementById('relsend');
   btn.disabled = true;
   try {
-    const j = await postJson('/release-check/review', { issue, round: relRound, results, comment: document.getElementById('relnote').value });
+    const j = await postJson('/release-check/review', { issue, round: relRound, results, comment });
     closeRelease();
     toast('#' + issue + ' の確認の結果を送りました（NG ' + (j.ng || 0) + ' 件）');
   } catch (e) {
@@ -1867,6 +1880,7 @@ document.getElementById('relclose').onclick = closeRelease;
 document.getElementById('relcancel').onclick = closeRelease;
 document.getElementById('relsend').onclick = sendRelease;
 document.getElementById('relnote').addEventListener('input', updateRelSend);
+document.getElementById('relpoints').addEventListener('input', updateRelSend);
 document.getElementById('relmodal').addEventListener('click', (e) => { if (e.target.id === 'relmodal') closeRelease(); });
 document.getElementById('fixcancel').onclick = closeFix;
 document.getElementById('fixsend').onclick = sendFix;
@@ -1944,6 +1958,7 @@ document.addEventListener('click', (ev) => {
   if (act === 'delegate') { delegateIssue(issue, t); return; }
   if (act === 'fix') { openFix(issue); return; }
   if (act === 'release') { openRelease(issue); return; }
+  if (act === 'rel-collect') { closeRelease(); delegateIssue(issue, t); return; }
   if (act === 'rel-v') { setRelVerdict(t.dataset.id, t.dataset.v); return; }
   if (act === 'q-open') { openQuestion = issue; lastQuestionsHtml = ''; rerender(); return; }
   if (act === 'pick') {

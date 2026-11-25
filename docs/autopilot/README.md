@@ -378,10 +378,10 @@ EPIC は topic ブランチに sub-issue の PR を集め、最後に人間が�
 （`.claude/rules/topic-branches.md`）。この最後の確認を autopilot が手伝う。判断は `src/release-check.js`（純粋関数）、
 daemon とのつなぎ・HTTP は `src/release-check-http.js`、段のプロンプトは `prompts/autopilot-release-check.md`。
 
-1. **入る**: 🧭 トラッカー（In Progress / EPIC Decomposed・🙋 なし）で、sub-issue が全部済んだか、残りが
+1. **入る**: 🧭 トラッカー（In Progress / EPIC Decomposed）で、sub-issue が全部済んだか、残りが
    **`🚀 after-release`** ラベルの付いたもの（リリース後の作業）だけになったら、daemon がボードを更新したあと
    AI Status を **Release Check** にする（`releaseCheckReady` / `selectReleaseCheckEntries`。ボードの値だけで決め、
-   追加の read はしない。担当がほかの人でボードに載らない子があるときは入らない）。
+   追加の read はしない。担当がほかの人でボードに載らない子があるときは入らない）。🙋 の有無は問わない。分解済みの EPIC は決まりどおり 🙋 を付けたままのことが多く（`.claude/rules/human-wait.md`）、そのときは入った時点で人間の番になる。「確認の結果を書く」のダイアログの **「AI に観点をまとめてもらう」** で 🙋 を外すと 2. に進む。
 2. **観点をまとめる**: release-check フェーズが topic → develop の PR とプレビューの URL を探し、EPIC の本文・
    決めたこと・sub-issue の DoD・見送った指摘・関係する docs の方針から、番号付きの確認の観点（`### R1. <題>` …
    「どこを開いて何をすると、どうなれば OK か」）を、トラッカーに目印付きのコメント

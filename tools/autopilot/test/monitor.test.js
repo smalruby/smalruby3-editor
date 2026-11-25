@@ -455,6 +455,12 @@ test('MONITOR_HTML: 「確認の結果を書く」は観点ごとに OK / NG を
     assert.match(MONITOR_HTML, /renderMiniMarkdown\(p\.body\)/);
     // テンプレート文字列の中なので、観点の番号の正規表現は \\d を二重にしないと /^Rd+$/ になり OK / NG が効かない
     assert.ok(MONITOR_HTML.includes('if (!/^R\\d+$/.test(String(id))) return;'));
+    // 🙋 ありで入った EPIC（観点のコメントがまだ無い）は、ここから AI に観点をまとめてもらう（/delegate で 🙋 を外す）
+    assert.ok(MONITOR_HTML.includes('data-testid="release-collect"'));
+    assert.match(MONITOR_HTML, /act === 'rel-collect'\) \{ closeRelease\(\); delegateIssue\(issue, t\)/);
+    // OK / NG を選ばずにメモだけ書いた観点は、全体のコメントに入れて送る（捨てない）
+    assert.match(MONITOR_HTML, /postJson\('\/release-check\/review', \{ issue, round: relRound, results, comment \}\)/);
+    assert.ok(MONITOR_HTML.includes("const comment = [document.getElementById('relnote').value.trim()].concat(loose).filter(Boolean).join('\\n');"));
 });
 
 test('MONITOR_HTML: 「AI に直してもらう」は指摘とコメント欄を開き、指示と一緒に /delegate へ送る（#2415）', () => {
