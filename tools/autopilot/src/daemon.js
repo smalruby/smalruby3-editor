@@ -2839,10 +2839,15 @@ async function applyTrackerStickies(boardItems, cfg, log, deps = {}) {
  * deps は injection 可能（テスト用。refreshBoard と applyTrackerStickies 両方に渡る）。
  */
 async function refreshBoardAndProjectTrackers(cfg, state, log, deps = {}) {
+    const boardBefore = state.board;
     await refreshBoard(cfg, state, log, deps);
     if (state.ratePlan && state.ratePlan.skipLowPriority) return;
     await applyTrackerStickies(state.board ? state.board.items : [], cfg, log, deps);
-    // 子が全部済んだトラッカーをリリース確認に入れる（#2430）。ボードの値だけで決める（追加の read なし）
+    // 子が全部済んだトラッカーをリリース確認に入れる（#2430）。ボードの値だけで決める（追加の read なし）。
+    // いま取り直したボードのときだけ見る。refreshBoard が別の再取得の最中で戻ったときの古いボードは、
+    // dispatch の意図（NG から子を作って EPIC Decomposed に戻した）だけが当たり、子の数が古いままなので、
+    // 作った子が済む前に次の round へ入ってしまう
+    if (!state.board || state.board === boardBefore) return;
     const entered = await releaseCheckHttp.applyReleaseCheckEntries(
         state.board ? state.board.items : [], cfg, state, log, { patchBoardCache, ...(deps.releaseCheck || {}) },
     );

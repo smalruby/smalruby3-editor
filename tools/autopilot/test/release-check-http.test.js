@@ -4,7 +4,7 @@
  */
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { applyReleaseCheckEntries, releaseCheckViewOnce, releaseReviewOnce } = require('../src/release-check-http');
+const { applyReleaseCheckEntries, releaseCheckViewOnce, releaseReviewOnce, rememberPreview } = require('../src/release-check-http');
 const { refreshBoardAndProjectTrackers } = require('../src/daemon');
 const rc = require('../src/release-check');
 const { TRACKING_LABEL } = require('../src/phases');
@@ -57,6 +57,34 @@ test('refreshBoardAndProjectTrackers: ボードの再取得のあとにリリー
     });
     assert.deepEqual(written, [['PVTI_10', [{ field: 'AI Status', value: 'Release Check' }]]]);
     assert.equal(state.board.items[0].aiStatus, 'Release Check');
+});
+
+test('refreshBoardAndProjectTrackers: ボードを取り直せなかった（別の再取得の最中）ときは、古いボードで入れない', async () => {
+    // NG から子を作って EPIC Decomposed に戻した直後の board キャッシュ: 子の数は古い（全部済んだ）まま
+    const stale = { issue: 10, itemId: 'PVTI_10', status: 'In Progress', aiStatus: 'EPIC Decomposed', kind: 'EPIC',
+        labels: [TRACKING_LABEL], subIssues: { total: 2, completed: 2, percent: 100 } };
+    const state = { running: new Map(), boardRefreshing: true, board: { updatedAt: 1, items: [stale] } };
+    const written = [];
+    await refreshBoardAndProjectTrackers({ ...cfg, owner: 'o', project: 4, now: () => 0, statusOrder: [] }, state, () => {}, {
+        token: 't',
+        noTickAfterEntry: true,
+        listItems: () => { throw new Error('should not be called'); },
+        upsertMarkedComment: () => {},
+        releaseCheck: { botToken: async () => 't', applyIntents: async (ctx, itemId, intents) => written.push([itemId, intents]) },
+    });
+    assert.deepEqual(written, []);
+    assert.equal(state.board.items[0].aiStatus, 'EPIC Decomposed');
+});
+
+test('rememberPreview: http(s) の URL だけを覚える（javascript: などをリンクにしない）', () => {
+    const state = { board: { items: [trackerItem()] } };
+    rememberPreview(state, 10, 'javascript:alert(1)');
+    rememberPreview(state, 10, 'https://x/" onclick="a');
+    rememberPreview(state, 10, null);
+    assert.equal(state.releasePreviews, undefined);
+    assert.equal(state.board.items[0].previewUrl, undefined);
+    rememberPreview(state, 10, 'https://preview.smalruby.app/topic-x/');
+    assert.equal(state.board.items[0].previewUrl, 'https://preview.smalruby.app/topic-x/');
 });
 
 test('releaseCheckViewOnce: 観点とプレビューを返し、プレビューを board の行に載せる', async () => {

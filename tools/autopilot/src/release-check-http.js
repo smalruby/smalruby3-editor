@@ -63,9 +63,12 @@ function boardItem(state, issue) {
     return state.board && Array.isArray(state.board.items) ? state.board.items.find((x) => x && x.issue === issue) || null : null;
 }
 
-/** プレビューの URL を覚え、board のキャッシュにも載せる（モニターの行のリンク） */
+/**
+ * プレビューの URL を覚え、board のキャッシュにも載せる（モニターの行のリンク）。
+ * 値は worker の結果から来るので、`javascript:` などをリンクにしないよう http(s) だけを受ける。
+ */
 function rememberPreview(state, issue, url) {
-    if (!url) return;
+    if (typeof url !== 'string' || !/^https?:\/\/[^\s"'<>]+$/i.test(url)) return;
     if (!state.releasePreviews) state.releasePreviews = {};
     state.releasePreviews[issue] = url;
     const it = boardItem(state, issue);
