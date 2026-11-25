@@ -393,3 +393,17 @@ test('renderMiniMarkdown: is self-contained (embedded with toString)', () => {
     assert.strictEqual(fn('**a**'), '<p><strong>a</strong></p>');
     assert.ok(!renderMiniMarkdown.toString().includes('<!--'));
 });
+
+test('inboxModel: Release Check のトラッカーは「リリース確認」の札で「確認の結果を書く」を出す（#2430）', () => {
+    const board = {
+        items: [{ issue: 10, title: 'EPIC', kind: 'EPIC', tracker: true, status: 'In Progress', aiStatus: 'Release Check', hitl: true,
+            subIssues: { total: 2, completed: 2 }, previewUrl: 'https://preview.smalruby.app/topic-x/' }],
+        humanWait: [{ issue: 10, delegate: { ok: true, action: 'release', nextPhase: 'release-check' } }],
+    };
+    const w = inboxModel(board, null).waits[0];
+    assert.equal(w.tag.tag, 'release');
+    assert.equal(w.goLabel, '確認の結果を書く');
+    assert.equal(w.release, true);
+    assert.equal(w.fix, false);
+    assert.equal(w.previewUrl, 'https://preview.smalruby.app/topic-x/');
+});

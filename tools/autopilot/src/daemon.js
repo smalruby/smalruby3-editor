@@ -1569,7 +1569,8 @@ async function dispatch(item, cfg, state, log) {
         log(`#${item.issue}: ${parsed.result.signal} — applied: ${applied.join(', ')}`);
         record(parsed.result.signal, parsed.result.summary);
         // decompose 完了で作成された sub-issue に Status/Kind/Size を補完（単一ライター・#914）。
-        if (phase === 'decompose' && parsed.result.signal === 'done') {
+        // release-check（#2430）が NG から作った sub-issue も同じく補完する
+        if ((phase === 'decompose' || phase === 'release-check') && parsed.result.signal === 'done') {
             await applyDecomposeSubIssueSetup(parsed.result, cfg, log);
         }
         // リリース確認（#2430）のプレビューの URL をモニターの行に出す

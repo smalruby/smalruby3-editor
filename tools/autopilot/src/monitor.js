@@ -510,6 +510,29 @@ ${TOKEN_META_EMPTY}
   #fixmodal textarea { width: 100%; min-height: 96px; border: 1px solid var(--ap-line); border-radius: var(--ap-radius-md); background: var(--ap-surface);
                        color: var(--ap-ink); padding: 8px 10px; font: inherit; font-size: var(--ap-font-md); resize: vertical; box-sizing: border-box; }
   #fixmodal .acts { justify-content: flex-end; }
+  /* ---- 「確認の結果を書く」: リリース確認の観点ごとに OK / NG（#2430）。#fixmodal と同じ部品 ---- */
+  #relmodal { position: fixed; inset: 0; background: var(--ap-overlay); display: none; align-items: center; justify-content: center; z-index: 55; }
+  #relmodal.open { display: flex; }
+  #relmodal .mbox { width: min(92vw, 46rem); }
+  #relmodal .body { padding: 12px 14px; overflow: auto; display: flex; flex-direction: column; gap: 10px; font-size: var(--ap-font-sm); line-height: 1.55; }
+  #relmodal .fx-sum { color: var(--ap-muted); }
+  #relmodal .fx-sum a { color: var(--ap-link); }
+  #relmodal .rpt { border: 1px solid var(--ap-line-soft); border-radius: var(--ap-radius-md); padding: 6px 12px; display: flex; flex-direction: column; gap: 6px; }
+  #relmodal .rpt-h { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  #relmodal .rpt-h b { flex: 1 1 12rem; }
+  #relmodal .md { color: var(--ap-muted); }
+  #relmodal .md p, #relmodal .md ul, #relmodal .md ol { margin: .2rem 0; }
+  #relmodal .md ul, #relmodal .md ol { padding-left: 1.3rem; }
+  #relmodal .md code { background: var(--ap-code-bg); padding: 0 .3rem; border-radius: .2rem; }
+  #relmodal .md a { color: var(--ap-link); }
+  #relmodal .vd { display: inline-flex; gap: 4px; }
+  #relmodal .vd button[aria-pressed="true"].ok { background: var(--ap-primary); color: var(--ap-on-solid); border-color: var(--ap-primary-line); }
+  #relmodal .vd button[aria-pressed="true"].ng { background: var(--ap-stop); color: var(--ap-on-solid); border-color: var(--ap-stop); }
+  #relmodal label { font-weight: 600; }
+  #relmodal textarea { width: 100%; min-height: 48px; border: 1px solid var(--ap-line); border-radius: var(--ap-radius-md); background: var(--ap-surface);
+                       color: var(--ap-ink); padding: 6px 10px; font: inherit; font-size: var(--ap-font-md); resize: vertical; box-sizing: border-box; }
+  #relmodal #relnote { min-height: 80px; }
+  #relmodal .acts { justify-content: flex-end; }
 ${LEARN_TASKS_CSS}</style></head><body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
   <linearGradient id="goGrad" x1="0" y1="0" x2="1" y2="1">
@@ -610,6 +633,17 @@ ${LEARN_TASKS_CSS}</style></head><body>
     <div class="small muted">PR にコメントとして残し、🙋 を外して AI に渡します。</div>
     <div class="acts"><button type="button" class="ibtn" id="fixcancel" data-testid="fix-cancel">やめる</button>
       <button type="button" class="go" id="fixsend" data-testid="fix-send" disabled>送って AI に直してもらう</button></div>
+  </div>
+</div></div>
+<div id="relmodal" data-testid="release-modal"><div class="mbox" role="dialog" aria-modal="true" aria-labelledby="reltitle">
+  <div class="mbox-h"><h3 id="reltitle">確認の結果を書く</h3><button type="button" class="ibtn" id="relclose">✕ 閉じる</button></div>
+  <div class="body">
+    <div id="relpoints" data-testid="release-points"></div>
+    <label for="relnote">全体のコメント</label>
+    <textarea id="relnote" data-testid="release-note" placeholder="観点に入らない気づき（直してほしいことは sub-issue になります）"></textarea>
+    <div class="small muted">EPIC の Issue に結果をコメントとして残し、🙋 を外して AI に渡します。NG ごとに sub-issue を作ります。</div>
+    <div class="acts"><button type="button" class="ibtn" id="relcancel" data-testid="release-cancel">やめる</button>
+      <button type="button" class="go" id="relsend" data-testid="release-send" disabled>送る</button></div>
   </div>
 </div></div>
 <div id="modal"><div class="mbox">
@@ -1224,7 +1258,9 @@ function renderInbox(d) {
   const tagPill = (w) => '<span class="kind c-' + w.tag.key + '" data-testid="inbox-tag" data-tag="' + w.tag.tag + '">' + esc(w.tag.label) + '</span>';
   const why = (w) => (w.delegateError ? ' title="AI に任せられない理由: ' + esc(w.delegateError) + '"' : '');
   // Review / DoD（差し戻し）は、すぐ 🙋 を外さず指摘とコメント欄を開く（#2415）
-  const goOf = (w) => (w.goLabel ? goBtn(w.goLabel, 'data-act="' + (w.fix ? 'fix' : 'delegate') + '" data-issue="' + w.issue + '" data-testid="inbox-delegate"') : '');
+  // リリース確認（#2430）は観点と OK / NG のダイアログを開く。プレビューのリンクも並べる
+  const goOf = (w) => (w.previewUrl ? '<a class="ibtn" href="' + esc(w.previewUrl) + '" target="_blank" rel="noopener noreferrer" data-testid="inbox-preview">プレビュー ↗</a>' : '')
+    + (w.goLabel ? goBtn(w.goLabel, 'data-act="' + (w.release ? 'release' : w.fix ? 'fix' : 'delegate') + '" data-issue="' + w.issue + '" data-testid="inbox-delegate"') : '');
   document.getElementById('inbox-wait').innerHTML = m.waits.length
     ? '<div class="feed-h">人間待ち · ' + m.waits.length + '</div>' + groups.map((g) => {
       const h = g.header;
@@ -1567,6 +1603,70 @@ async function sendFix() {
   }
   refresh();
 }
+// 「確認の結果を書く」（リリース確認・#2430）: 押したときだけ観点を取ってきて、観点ごとに OK / NG を選んで送る
+let relIssue = null;
+let relRound = null;
+let relVerdicts = {};
+async function openRelease(issue) {
+  relIssue = issue; relRound = null; relVerdicts = {};
+  const box = document.getElementById('relpoints');
+  document.getElementById('reltitle').textContent = '確認の結果を書く #' + issue;
+  document.getElementById('relnote').value = '';
+  box.innerHTML = '<div class="muted">観点を読み込み中…</div>';
+  updateRelSend();
+  document.getElementById('relmodal').classList.add('open');
+  try {
+    const r = await fetch('/release-check?issue=' + issue);
+    const j = await r.json().catch(() => ({}));
+    if (relIssue !== issue) return;
+    if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+    if (!j.check) { box.innerHTML = '<div class="muted">まだ観点のコメントがありません。</div>'; return; }
+    relRound = j.check.round;
+    const link = j.check.previewUrl ? ' · <a href="' + esc(j.check.previewUrl) + '" target="_blank" rel="noopener noreferrer">プレビューを開く ↗</a>' : '';
+    const cl = j.check.id ? ' · <a href="' + esc(repoUrl + '/issues/' + issue + '#issuecomment-' + j.check.id) + '" target="_blank" rel="noopener">Issue で見る</a>' : '';
+    box.innerHTML = '<div class="fx-sum">round ' + j.check.round + ' · 観点 ' + j.check.points.length + ' 件' + link + cl
+      + (j.reviewed ? ' · <b>この round の結果は送ってあります</b>' : '') + '</div>'
+      + j.check.points.map((p) => '<div class="rpt" data-testid="release-point" data-id="' + esc(p.id) + '">'
+        + '<div class="rpt-h"><b>' + esc(p.id) + '. ' + esc(p.title) + '</b><span class="vd">'
+        + '<button type="button" class="ibtn ok" data-act="rel-v" data-id="' + esc(p.id) + '" data-v="ok" aria-pressed="false">OK</button>'
+        + '<button type="button" class="ibtn ng" data-act="rel-v" data-id="' + esc(p.id) + '" data-v="ng" aria-pressed="false">NG</button></span></div>'
+        + '<div class="md">' + renderMiniMarkdown(p.body) + '</div>'
+        + '<textarea data-rel-note="' + esc(p.id) + '" aria-label="' + esc(p.id) + ' のコメント" placeholder="コメント（任意）"></textarea></div>').join('');
+  } catch (e) {
+    if (relIssue === issue) box.innerHTML = '<div class="muted">観点を読み込めませんでした: ' + esc(e.message) + '</div>';
+  }
+  updateRelSend();
+}
+function setRelVerdict(id, v) {
+  if (!/^R\d+$/.test(String(id))) return;
+  relVerdicts[id] = v === 'ng' ? 'ng' : 'ok';
+  document.querySelectorAll('#relpoints [data-act="rel-v"][data-id="' + id + '"]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === relVerdicts[id])));
+  updateRelSend();
+}
+function updateRelSend() {
+  const any = Object.keys(relVerdicts).length > 0 || document.getElementById('relnote').value.trim();
+  document.getElementById('relsend').disabled = !(relRound && any);
+}
+function closeRelease() { document.getElementById('relmodal').classList.remove('open'); relIssue = null; }
+async function sendRelease() {
+  const issue = relIssue;
+  if (issue == null || !relRound) return;
+  const results = Object.keys(relVerdicts).map((id) => {
+    const t = document.querySelector('#relpoints [data-rel-note="' + id + '"]');
+    return { id, verdict: relVerdicts[id], note: t ? t.value : '' };
+  });
+  const btn = document.getElementById('relsend');
+  btn.disabled = true;
+  try {
+    const j = await postJson('/release-check/review', { issue, round: relRound, results, comment: document.getElementById('relnote').value });
+    closeRelease();
+    toast('#' + issue + ' の確認の結果を送りました（NG ' + (j.ng || 0) + ' 件）');
+  } catch (e) {
+    toast('#' + issue + ' の結果を送れませんでした: ' + e.message, true);
+    updateRelSend();
+  }
+  refresh();
+}
 // 質問に答える（POST /answer）。proceed=false は「メモだけ保存」（GitHub に書かない・🙋 も外さない）
 async function sendAnswer(issue, answers, proceed, btn) {
   if (btn) btn.disabled = true;
@@ -1763,6 +1863,11 @@ function closeModal() {
 // ---- イベント ----
 document.getElementById('mclose').onclick = closeModal;
 document.getElementById('fixclose').onclick = closeFix;
+document.getElementById('relclose').onclick = closeRelease;
+document.getElementById('relcancel').onclick = closeRelease;
+document.getElementById('relsend').onclick = sendRelease;
+document.getElementById('relnote').addEventListener('input', updateRelSend);
+document.getElementById('relmodal').addEventListener('click', (e) => { if (e.target.id === 'relmodal') closeRelease(); });
 document.getElementById('fixcancel').onclick = closeFix;
 document.getElementById('fixsend').onclick = sendFix;
 document.getElementById('fixnote').addEventListener('input', updateFixSend);
@@ -1838,6 +1943,8 @@ document.addEventListener('click', (ev) => {
   if (act === 'exp') { const k = t.dataset.key; if (openGroups.has(k)) openGroups.delete(k); else openGroups.add(k); rerender(); return; }
   if (act === 'delegate') { delegateIssue(issue, t); return; }
   if (act === 'fix') { openFix(issue); return; }
+  if (act === 'release') { openRelease(issue); return; }
+  if (act === 'rel-v') { setRelVerdict(t.dataset.id, t.dataset.v); return; }
   if (act === 'q-open') { openQuestion = issue; lastQuestionsHtml = ''; rerender(); return; }
   if (act === 'pick') {
     const picks = qPick[issue] || (qPick[issue] = {});
@@ -1864,7 +1971,7 @@ document.addEventListener('input', (ev) => {
 document.getElementById('q').addEventListener('input', () => { if (lastBoard) renderBoard(lastBoard); });
 // 数字キー 1〜4: 欄へ移る（入力欄の中・⌘/Ctrl/Alt との組み合わせでは効かない）
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') { titleTipEvent({ type: 'escape' }); closeFix(); closeModal(); closeUpdateModal(); closeUsagePop(); closePrMenu(); closeMenus(); closeDrawer(); return; }
+  if (e.key === 'Escape') { titleTipEvent({ type: 'escape' }); closeFix(); closeRelease(); closeModal(); closeUpdateModal(); closeUsagePop(); closePrMenu(); closeMenus(); closeDrawer(); return; }
   const tag = (e.target.tagName || '').toLowerCase();
   const inInput = tag === 'input' || tag === 'textarea' || tag === 'select' || Boolean(e.target.isContentEditable);
   const target = digitTarget({ code: e.code, metaKey: e.metaKey, ctrlKey: e.ctrlKey, altKey: e.altKey, inInput });

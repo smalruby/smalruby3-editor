@@ -442,9 +442,22 @@ test('MONITOR_HTML: あなた宛ての操作 — AI に任せる（/delegate）�
     assert.match(MONITOR_HTML, /@media \(prefers-reduced-motion: reduce\) \{ \.go, \.pulse \{ animation: none; \} \}/);
 });
 
+test('MONITOR_HTML: 「確認の結果を書く」は観点ごとに OK / NG を選び /release-check/review へ送る（#2430）', () => {
+    assert.match(MONITOR_HTML, /w\.release \? 'release'/);
+    assert.match(MONITOR_HTML, /fetch\('\/release-check\?issue=' \+ issue\)/);
+    assert.match(MONITOR_HTML, /postJson\('\/release-check\/review', \{ issue, round: relRound, results/);
+    for (const id of ['release-modal', 'release-points', 'release-note', 'release-send', 'release-cancel', 'inbox-preview']) {
+        assert.ok(MONITOR_HTML.includes(`data-testid="${id}"`), id);
+    }
+    assert.match(MONITOR_HTML, /data-testid="release-send" disabled>/);
+    // プレビューのリンクと観点の本文はエスケープ・自前の整形を通す
+    assert.match(MONITOR_HTML, /href="' \+ esc\(w\.previewUrl\)/);
+    assert.match(MONITOR_HTML, /renderMiniMarkdown\(p\.body\)/);
+});
+
 test('MONITOR_HTML: 「AI に直してもらう」は指摘とコメント欄を開き、指示と一緒に /delegate へ送る（#2415）', () => {
     // 差し戻しの行は data-act="fix"（すぐ 🙋 を外さない）
-    assert.match(MONITOR_HTML, /'data-act="' \+ \(w\.fix \? 'fix' : 'delegate'\)/);
+    assert.match(MONITOR_HTML, /w\.fix \? 'fix' : 'delegate'/);
     // 押したときだけ指摘を取ってくる・markdown は自前の整形（外部ライブラリなし）
     assert.match(MONITOR_HTML, /fetch\('\/delegate\/findings\?issue=' \+ issue\)/);
     assert.match(MONITOR_HTML, /function renderMiniMarkdown\(src\)/);

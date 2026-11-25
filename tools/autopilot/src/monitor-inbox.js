@@ -93,6 +93,8 @@ function inboxModel(board, learnings) {
         // 🧭 tracker は未分解の EPIC にも付いていることがあるので、それだけでは分解済みと見ない
         const decomposed = (dg && dg.code === 'tracker') || ai === 'EPIC Decomposed' || sub.total > 0;
         if (s === 'Blocked') return { key: 'stop', tag: 'blocked', label: '止まった' };
+        // リリース確認（#2430）: 🙋 ありは人間がプレビューで確かめる番
+        if (ai === 'Release Check' && it.hitl) return { key: 'human', tag: 'release', label: 'リリース確認' };
         if (ai === 'Awaiting Continuation') return { key: 'human', tag: 'continue', label: '続きの確認' };
         if (ai === 'Discussing' || it.waitReason === 'spike') return { key: 'human', tag: 'discuss', label: '相談中' };
         if (s === 'Review') return { key: 'human', tag: 'review', label: 'レビュー' };
@@ -112,7 +114,10 @@ function inboxModel(board, learnings) {
         .map((it) => {
             const dg = it.delegate || null;
             // Review / DoD で任せると差し戻し（address-review）になる。「OK」と取りちがえないよう文言を変える
-            const goLabel = dg && dg.ok ? (dg.nextPhase === 'address-review' ? 'AI に直してもらう' : 'AI に任せる') : null;
+            // リリース確認（#2430）は、押すと観点と OK / NG を選ぶダイアログを開く
+            const release = Boolean(dg && dg.ok && dg.nextPhase === 'release-check');
+            const goLabel = dg && dg.ok
+                ? (release ? '確認の結果を書く' : dg.nextPhase === 'address-review' ? 'AI に直してもらう' : 'AI に任せる') : null;
             const tag = tagOf(it, dg);
             return {
                 issue: it.issue, title: it.title || '', url: it.waitUrl || it.url || null,
@@ -124,6 +129,7 @@ function inboxModel(board, learnings) {
                 priority: prio(it), tag,
                 // 差し戻し（address-review）は、押すと指摘とコメント欄を開く（#2415）
                 goLabel, fix: Boolean(dg && dg.ok && dg.nextPhase === 'address-review'), delegateError: dg && !dg.ok ? dg.error || dg.code || null : null,
+                release, previewUrl: it.previewUrl || null,
             };
         });
     const learn = [];
