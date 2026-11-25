@@ -64,6 +64,8 @@ const EVAL_CHUNK_SIZE = 10;
 // default (PRESIGNED_URL_DOWNLOAD_EXPIRY). Grading often takes longer, so an old
 // link is fetched again before opening (#1980). A little under the hour.
 const WORK_URL_FRESH_MS = 50 * 60 * 1000;
+// How long a result that went well stays on the grading screen (#2419).
+const EVAL_RESULT_SHOWN_MS = 6000;
 const cellKey = (seatNumber, classroomId) => `${seatNumber}:${classroomId}`;
 const seatFromMemberId = (memberId) => {
     const match = /^seat-(\d+)$/.exec(memberId || '');
@@ -116,8 +118,11 @@ const useTeacherEvaluation = ({
     const [seats, setSeats] = useState([]);
     const [rubricAxes, setRubricAxes] = useState(DEFAULT_RUBRIC_AXES);
     const [strictness, setStrictness] = useState('standard');
-    // {label, done, total} while loading submissions / calling the AI
+    // The running step while loading submissions / calling the AI / returning:
+    // {kind, assignmentName, done, total, from, to} (lib/classroom-evaluation/eval-status.js, #2419)
     const [evalProgress, setEvalProgress] = useState(null);
+    // The short result of the last step: {kind, count, lessons, failed, done, total} (#2419)
+    const [evalResult, setEvalResult] = useState(null);
     const [comments, setComments] = useState({});
     // classroomId → lessonScoresBySeat (null = cannot be scored) for lesson assignments (#1603)
     const [lessonScores, setLessonScores] = useState({});
@@ -146,6 +151,7 @@ const useTeacherEvaluation = ({
         // The stopped run no longer clears it, so a leave to anywhere (notifications,
         // an assignment, the class list, logout) does not leave the screen busy.
         setEvalProgress(null);
+        setEvalResult(null);
     }, []);
     /**
      * Start a run in the current generation.
@@ -155,10 +161,18 @@ const useTeacherEvaluation = ({
     const startRun = useCallback((replace) => {
         if (replace) runRef.current++;
         const run = runRef.current;
+        setEvalResult(null);
         return () => runRef.current === run;
     }, []);
     // Logging out on purpose unmounts this (ClassroomTeacherModalHost, #1990).
     useEffect(() => stopRuns, [stopRuns]);
+    // A result that went well is short news: it goes away by itself so the table keeps its
+    // height (1300×600). A failure stays until the next step (#2419).
+    useEffect(() => {
+        if (!evalResult || evalResult.failed) return;
+        const timer = setTimeout(() => setEvalResult(null), EVAL_RESULT_SHOWN_MS);
+        return () => clearTimeout(timer);
+    }, [evalResult]);
     // classroomId → when its submissions (and their links) were read (#1980)
     const urlsReadAtRef = useRef({});
     // A work is being opened: [Open the work] waits, so it is not pressed twice (#1980).
@@ -244,11 +258,16 @@ const useTeacherEvaluation = ({
         const nextLessonProgress = {};
         const nextUrlsReadAt = {};
         const seatSet = new Set();
-        let done = 0;
         try {
             for (const lesson of targets) {
                 if (!current()) return;
-                setEvalProgress({ label: lesson.assignmentName, done, total: targets.length });
+                const assignmentName = lesson.assignmentName;
+                setEvalProgress({
+                    kind: lesson.hasLesson ? 'loadProgress' : 'load',
+                    assignmentName,
+                    done: 0,
+                    total: null,
+                });
                 if (lesson.hasLesson) {
                     // The lesson score comes from the progress, not the work (#1603).
                     // A failed fetch leaves the scores empty (「—」) but still reads the
@@ -275,16 +294,17 @@ const useTeacherEvaluation = ({
                     nextLessonProgress[lesson.classroomId] = progressData;
                     if (scored) Object.keys(scored.scores).forEach((seat) => seatSet.add(Number(seat)));
                     // No work is submitted: nothing to download or grade (#1778).
-                    if (isLessonOnlyAssignment(lesson, nextLessonScores)) {
-                        done++;
-                        continue;
-                    }
+                    if (isLessonOnlyAssignment(lesson, nextLessonScores)) continue;
                 }
                 if (!current()) return;
+                setEvalProgress({ kind: 'load', assignmentName, done: 0, total: null });
                 const data = await classroomAPI.listSubmissions(idTokenRef.current, lesson.classroomId);
                 nextUrlsReadAt[lesson.classroomId] = Date.now();
-                for (const submission of data.submissions || []) {
+                const submissions = data.submissions || [];
+                for (let i = 0; i < submissions.length; i++) {
+                    const submission = submissions[i];
                     if (!current()) return;
+                    setEvalProgress({ kind: 'load', assignmentName, done: i, total: submissions.length });
                     const seatNumber = seatFromMemberId(submission.memberId);
                     if (seatNumber === null) continue;
                     seatSet.add(seatNumber);
@@ -322,7 +342,6 @@ const useTeacherEvaluation = ({
                     }
                     nextMatrix[cellKey(seatNumber, lesson.classroomId)] = cell;
                 }
-                done++;
             }
             if (!current()) return;
             setMatrix(nextMatrix);
@@ -332,6 +351,13 @@ const useTeacherEvaluation = ({
             setLessonProgress(nextLessonProgress);
             setScoringChecked(false);
             setSeats([...seatSet].sort((a, b) => a - b));
+            // `lessons` counts only the assignments whose lesson progress was read: an ordinary
+            // assignment with no submission yet is「0 件の提出」, not「進み具合を読み込みました」.
+            setEvalResult({
+                kind: 'load',
+                count: Object.keys(nextMatrix).length,
+                lessons: targets.filter((l) => l.hasLesson).length,
+            });
         } catch (err) {
             if (!current()) return;
             if (err.status === 401) {
@@ -339,6 +365,7 @@ const useTeacherEvaluation = ({
                 return;
             }
             showError(translateError(intl, err));
+            setEvalResult({ kind: 'load', failed: true });
         } finally {
             if (current()) setEvalProgress(null);
         }
@@ -350,16 +377,13 @@ const useTeacherEvaluation = ({
             const current = startRun(true);
             clearError();
             const targets = evalLessons.filter((l) => selectedLessonIds.includes(l.classroomId));
-            let done = 0;
+            let sent = 0;
             try {
                 for (const lesson of targets) {
                     const cells = seats
                         .map((seatNumber) => ({ seatNumber, cell: matrix[cellKey(seatNumber, lesson.classroomId)] }))
                         .filter((entry) => entry.cell && entry.cell.submitted);
-                    if (cells.length === 0) {
-                        done++;
-                        continue;
-                    }
+                    if (cells.length === 0) continue;
                     // Calibration: hand-graded cells of this lesson (up to 5)
                     const samples = cells
                         .filter((entry) => entry.cell.grade && entry.cell.manual)
@@ -373,10 +397,14 @@ const useTeacherEvaluation = ({
                     const chunks = chunk(pending, EVAL_CHUNK_SIZE);
                     for (let i = 0; i < chunks.length; i++) {
                         if (!current()) return;
+                        // Seats from..to of this assignment's seats sent to the AI.
+                        const from = i * EVAL_CHUNK_SIZE + 1;
                         setEvalProgress({
-                            label: `${lesson.assignmentName} (${i + 1}/${chunks.length})`,
-                            done,
-                            total: targets.length,
+                            kind: mode === 'grade' ? 'grade' : 'comment',
+                            assignmentName: lesson.assignmentName,
+                            from,
+                            to: from + chunks[i].length - 1,
+                            total: pending.length,
                         });
                         const payload = {
                             mode,
@@ -425,9 +453,10 @@ const useTeacherEvaluation = ({
                                 return next;
                             });
                         }
+                        sent += chunks[i].length;
                     }
-                    done++;
                 }
+                if (current()) setEvalResult({ kind: mode === 'grade' ? 'grade' : 'comment', count: sent });
             } catch (err) {
                 if (!current()) return;
                 if (err.status === 401) {
@@ -435,6 +464,7 @@ const useTeacherEvaluation = ({
                     return;
                 }
                 showError(translateError(intl, err));
+                setEvalResult({ kind: mode === 'grade' ? 'grade' : 'comment', failed: true });
             } finally {
                 if (current()) setEvalProgress(null);
             }
@@ -663,7 +693,7 @@ const useTeacherEvaluation = ({
         try {
             for (const target of targets) {
                 if (!current()) return;
-                setEvalProgress({ label: `返却 ${done + 1}/${targets.length}`, done, total: targets.length });
+                setEvalProgress({ kind: 'return', done, total: targets.length });
                 await classroomAPI.updateSubmission(
                     idTokenRef.current,
                     target.lesson.classroomId,
@@ -680,6 +710,7 @@ const useTeacherEvaluation = ({
                 }));
                 done++;
             }
+            if (current()) setEvalResult({ kind: 'return', count: done });
         } catch (err) {
             if (!current()) return;
             if (err.status === 401) {
@@ -687,6 +718,7 @@ const useTeacherEvaluation = ({
                 return;
             }
             showError(translateError(intl, err));
+            setEvalResult({ kind: 'return', failed: true, done, total: targets.length });
         } finally {
             if (current()) setEvalProgress(null);
         }
@@ -751,6 +783,7 @@ const useTeacherEvaluation = ({
         rubricAxes,
         strictness,
         evalProgress,
+        evalResult,
         getCell,
         handleSetStrictness: setStrictness,
         handleShowEvaluation,

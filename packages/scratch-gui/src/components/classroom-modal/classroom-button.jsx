@@ -27,6 +27,7 @@ export const BUTTON_VARIANT_STYLE_KEYS = {
 };
 
 const ClassroomButton = ({
+    ariaBusy,
     ariaCurrent,
     ariaExpanded,
     ariaHasPopup,
@@ -42,6 +43,7 @@ const ClassroomButton = ({
     onClick,
 }) => (
     <button
+        aria-busy={ariaBusy}
         aria-current={ariaCurrent}
         aria-expanded={ariaExpanded}
         aria-haspopup={ariaHasPopup}
@@ -59,6 +61,8 @@ const ClassroomButton = ({
 );
 
 ClassroomButton.propTypes = {
+    /** 押したあと、応答を待っている (採点の手順のボタン #2419)。 */
+    ariaBusy: PropTypes.bool,
     /** 手順のうち、いまの手順 (`"step"`) を示す (採点の画面 #1304)。 */
     ariaCurrent: PropTypes.string,
     /** メニューを開くボタンの開閉状態。 */
