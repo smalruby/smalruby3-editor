@@ -883,3 +883,27 @@ describe('採点簿 (#2424)', () => {
         expect(getByTestId('classroom-eval-unconfirmed')).toBeInTheDocument();
     });
 });
+
+describe('［生徒］のスターターから足した台本 (#2424)', () => {
+    test('足した台本とまとまりを出し、何も足していなければそう書く', () => {
+        const cells = {
+            '1:c1': {
+                submitted: true,
+                grade: 'A',
+                added: ['緑の旗が押されたとき\nLED を点ける'],
+                groupName: 'LED だけ',
+            },
+            '2:c1': { submitted: true, grade: 'C', added: [], groupName: 'スターターのまま' },
+        };
+        const { getByTestId } = renderEvaluation({
+            seats: [1, 2],
+            getCell: (seat, id) => cells[`${seat}:${id}`] || null,
+            innerTab: 'student',
+            onSetInnerTab: jest.fn(),
+        });
+        expect(getByTestId('classroom-eval-added')).toHaveTextContent('LED を点ける');
+        expect(getByTestId('classroom-eval-group')).toHaveTextContent('Group: LED だけ');
+        fireEvent.click(getByTestId('classroom-eval-cell-button-2-c1'));
+        expect(getByTestId('classroom-eval-added')).toHaveTextContent('Nothing that runs was added');
+    });
+});

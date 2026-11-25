@@ -136,7 +136,11 @@ const useGradingRubric = ({
     );
 
     const loaded = !!id && seats.some((seat) => matrix[cellKey(seat, id)]);
-    const starterPseudocode = (state.starter && state.starter.pseudocode) || '';
+    // Loading the submissions (useTeacherEvaluation) reads the starter too; this hook
+    // reads it itself only when that did not happen.
+    const lessonStarter = lesson && typeof lesson.starterPseudocode === 'string' ? lesson.starterPseudocode : null;
+    const starterPseudocode =
+        lessonStarter === null ? (state.starter && state.starter.pseudocode) || '' : lessonStarter;
     const works = useMemo(
         () =>
             id && loaded
@@ -145,7 +149,17 @@ const useGradingRubric = ({
         [id, loaded, seats, matrix, starterPseudocode],
     );
     const { groups, representatives } = useMemo(() => representativesOf(works), [works]);
-    const extras = useMemo(() => fullGradeExtras({ starterPseudocode, groups }), [starterPseudocode, groups]);
+    const extras = useMemo(() => {
+        const computed = fullGradeExtras({ starterPseudocode, groups });
+        // The group the table saves with each grade (cell.groupName) wins, so the question
+        // after a change names the same group as the table.
+        const groupBySeat = { ...computed.groupBySeat };
+        for (const seat of seats) {
+            const cell = id ? matrix[cellKey(seat, id)] : null;
+            if (cell && cell.groupName) groupBySeat[String(seat)] = cell.groupName;
+        }
+        return { payload: computed.payload, groupBySeat };
+    }, [starterPseudocode, groups, seats, matrix, id]);
 
     /** Read the starter (and the pages, to save a description later). Once per assignment. */
     const loadStarter = useCallback(async () => {
@@ -153,6 +167,12 @@ const useGradingRubric = ({
         const classroomId = lesson.classroomId;
         const current = byIdRef.current[classroomId];
         if (current && current.starter && current.starter.status !== 'failed') return;
+        if (typeof lesson.starterPseudocode === 'string') {
+            update(classroomId, {
+                starter: { status: lesson.starterPseudocode ? 'ready' : 'none', pseudocode: '', assignment: null },
+            });
+            return;
+        }
         update(classroomId, { starter: { status: 'loading', pseudocode: '', assignment: null }, running: 'starter' });
         try {
             const data = await classroomAPI.getAssignment(idTokenRef.current, classroomId);

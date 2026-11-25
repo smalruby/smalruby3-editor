@@ -961,6 +961,9 @@ export default {
     'gui.classroom.evaluation.confirmedBadge': '確定',
     'gui.classroom.evaluation.unconfirmedNote':
         '評価を変えたので、確定を取り消しました。もう一度［確定］を押してください。',
+    'gui.classroom.evaluation.addedScripts': 'スターターから足した台本',
+    'gui.classroom.evaluation.noAddedScripts': 'スターターに、動く台本は足していません。',
+    'gui.classroom.evaluation.groupOf': 'まとまり: {name}',
     'gui.classroom.evaluation.stepRubric': '基準をつくる',
     'gui.classroom.evaluation.stepGrade': '全員を採点',
     'gui.classroom.evaluation.stepConfirm': '確定',

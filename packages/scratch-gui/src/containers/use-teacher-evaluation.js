@@ -53,7 +53,10 @@ import {
     sameGrades,
     withSavedGrade,
 } from '../lib/classroom-evaluation/gradebook.js';
+import { assignmentCsvRows, gradingCsvText } from '../lib/classroom-evaluation/grading-csv.js';
+import { groupSubmissions } from '../lib/classroom-evaluation/grouping.js';
 import { analyzeProject } from '../lib/classroom-evaluation/sb3-analyzer.js';
+import { diffFromStarter } from '../lib/classroom-evaluation/starter-diff.js';
 import { isSameLessonScoring } from '../lib/classroom-lesson-settings.js';
 import { lessonScoresBySeat } from '../lib/classroom-lesson-summary.js';
 import { findCourse } from '../lib/lessons/courses.js';
@@ -103,6 +106,20 @@ const savedSeats = (grading) =>
         .filter((n) => Number.isFinite(n));
 
 /**
+ * Download an sb3 and analyze its project (signals + pseudocode).
+ * @param {string} url - the sb3's URL
+ * @returns {Promise<?{signals: object, pseudocode: string}>} null when it has no project.json
+ */
+const analyzeSb3 = async (url) => {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`download ${response.status}`);
+    const zip = await JSZip.loadAsync(await response.arrayBuffer());
+    const projectFile = zip.file('project.json');
+    if (!projectFile) return null;
+    return analyzeProject(JSON.parse(await projectFile.async('string')));
+};
+
+/**
  * Trigger a client-side download of a text file.
  * @param {string} filename - Suggested filename
  * @param {string} text - File contents
@@ -135,7 +152,7 @@ const downloadText = (filename, text) => {
 const useTeacherEvaluation = ({
     idToken,
     classrooms,
-    groups,
+    groups: classGroups,
     handleTeacher401,
     clearError,
     showError,
@@ -485,6 +502,7 @@ const useTeacherEvaluation = ({
         let nextLessonProgress;
         let urlsReadAt = null;
         let grading = gradingsRef.current[id] || null;
+        let starterPseudocode = '';
         try {
             const assignmentName = lesson.assignmentName;
             const notAuthorized = (err) => {
@@ -538,6 +556,14 @@ const useTeacherEvaluation = ({
             if (!lessonOnly) {
                 if (!current()) return;
                 setEvalProgress({ kind: 'load', assignmentName, done: 0, total: null });
+                // The starter, to tell what each student added (a failed read compares with nothing).
+                const detail = await Promise.resolve()
+                    .then(() => classroomAPI.getAssignment(idTokenRef.current, id))
+                    .catch(notAuthorized);
+                const starterUrl = detail && detail.assignment && detail.assignment.starterUrl;
+                const starterAnalysis = starterUrl ? await analyzeSb3(starterUrl).catch(() => null) : null;
+                starterPseudocode = (starterAnalysis && starterAnalysis.pseudocode) || '';
+                if (!current()) return;
                 const data = await classroomAPI.listSubmissions(idTokenRef.current, id);
                 urlsReadAt = Date.now();
                 const submissions = data.submissions || [];
@@ -565,16 +591,13 @@ const useTeacherEvaluation = ({
                         needsReview: false,
                     };
                     try {
-                        const response = await fetch(submission.projectUrl);
-                        if (!response.ok) throw new Error(`download ${response.status}`);
-                        const zip = await JSZip.loadAsync(await response.arrayBuffer());
-                        const projectFile = zip.file('project.json');
-                        if (projectFile) {
-                            const projectJson = JSON.parse(await projectFile.async('string'));
-                            const { signals, pseudocode } = analyzeProject(projectJson);
-                            cell.signals = signals;
-                            cell.pseudocode = pseudocode;
+                        const analysis = await analyzeSb3(submission.projectUrl);
+                        if (analysis) {
+                            cell.signals = analysis.signals;
+                            cell.pseudocode = analysis.pseudocode;
                         }
+                        // What the student added to the starter: the main thing to grade (EPIC #2421).
+                        cell.added = diffFromStarter(cell.pseudocode, starterPseudocode).added;
                     } catch (err) {
                         // Analysis failure is per-cell: keep the submission
                         // visible and let the AI/teacher treat it as unknown.
@@ -586,6 +609,22 @@ const useTeacherEvaluation = ({
                 }
             }
             if (!current()) return;
+            // The まとまり (works that added the same operations, EPIC #2421): saved with each grade.
+            const groups = groupSubmissions(
+                Object.entries(nextMatrix).map(([key, cell]) => ({
+                    seatNumber: parseInt(key, 10),
+                    added: cell.added || [],
+                })),
+            );
+            for (const group of groups) {
+                for (const seat of group.seatNumbers) {
+                    const key = cellKey(seat, id);
+                    if (nextMatrix[key]) nextMatrix[key] = { ...nextMatrix[key], groupName: group.name };
+                }
+            }
+            setEvalLessons((prev) =>
+                prev.map((x) => (x.classroomId === id ? { ...x, starterPseudocode, groups } : x)),
+            );
             const suffix = `:${id}`;
             setMatrix((prev) => {
                 const next = {};
@@ -642,7 +681,7 @@ const useTeacherEvaluation = ({
         rubricAxes,
         strictness,
         classrooms,
-        groups,
+        groups: classGroups,
         handleTeacher401,
         showError,
         intl,
@@ -689,13 +728,13 @@ const useTeacherEvaluation = ({
                         assignmentName: lesson.assignmentName,
                         // The description the teacher wrote: without it the AI guessed the task (#2424).
                         assignmentText: lesson.assignmentText || '',
+                        // The AI looks at what was added to the starter (EPIC #2421).
+                        ...(lesson.starterPseudocode ? { starterPseudocode: lesson.starterPseudocode } : {}),
                         rubricAxes,
                         strictness,
                         samples,
                         ...(rubric && (rubric.levels || []).length > 0 ? { rubricLevels: rubric.levels } : {}),
                         ...(rubric && (rubric.examples || []).length > 0 ? { examples: rubric.examples } : {}),
-                        // The starter: the AI looks at what was added (#2425).
-                        ...(mode === 'grade' ? rubricTools.gradeExtras : {}),
                         submissions: chunks[i].map((entry) => ({
                             seatNumber: entry.seatNumber,
                             signals: entry.cell.signals || {},
@@ -722,8 +761,6 @@ const useTeacherEvaluation = ({
                                     needsReview: result.needsReview === true,
                                     manual: false,
                                     gradeEdited: false,
-                                    // The group of the work, so one change can ask about the rest (#2425).
-                                    group: rubricTools.groupBySeat[String(result.seatNumber)] || null,
                                 };
                             }
                             return next;
@@ -767,8 +804,6 @@ const useTeacherEvaluation = ({
             handleTeacher401,
             startRun,
             gradesChanged,
-            rubricTools.gradeExtras,
-            rubricTools.groupBySeat,
         ],
     );
 
@@ -996,8 +1031,31 @@ const useTeacherEvaluation = ({
     /** The CSV of the open assignment (#2424: one assignment per file). */
     const handleExportEvaluationCsv = useCallback(() => {
         if (!currentLesson) return;
-        downloadText(`${fileBase}_採点結果.csv`, buildEvaluationCsv([currentLesson], seats, getCell, lessonScores));
-    }, [currentLesson, fileBase, seats, getCell, lessonScores]);
+        // A lesson assignment keeps the CSV with the lesson points (#1603 / #1778).
+        if (currentLesson.hasLesson) {
+            downloadText(
+                `${fileBase}_採点結果.csv`,
+                buildEvaluationCsv([currentLesson], seats, getCell, lessonScores),
+            );
+            return;
+        }
+        // One CSV per assignment (EPIC #2421): 出席番号・評価・根拠・まとまり・確定.
+        const grading = gradings[currentLesson.classroomId] || null;
+        const confirmed = !!(grading && grading.confirmedAt);
+        const rows = seats.map((seat) => {
+            const cell = getCell(seat, currentLesson.classroomId);
+            const saved = grading && grading.grades ? grading.grades[String(seat)] : null;
+            const grade = cell ? cell.grade : saved && saved.grade;
+            return {
+                seatNumber: seat,
+                grade: grade || '',
+                reason: cell ? cell.reason : (saved && saved.reason) || '',
+                groupName: (cell && cell.groupName) || (saved && saved.group) || '',
+                confirmed: confirmed && !!grade,
+            };
+        });
+        downloadText(`${fileBase}_採点結果.csv`, gradingCsvText(assignmentCsvRows(rows)));
+    }, [currentLesson, fileBase, seats, getCell, lessonScores, gradings]);
 
     const handleExportAuditCsv = useCallback(() => {
         if (!currentLesson) return;

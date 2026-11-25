@@ -114,11 +114,19 @@ describe('gradesFromMatrix / withSavedGrade: 保存と読み戻し', () => {
         });
     });
 
-    test('評価が同じなら、保存してあったまとまり（group）を残す', () => {
-        const saved = { 1: { grade: 'A', group: 3 }, 2: { grade: 'A', group: 1 } };
-        const grades = gradesFromMatrix(matrix, 'c1', saved);
-        expect(grades[1].group).toBe(3);
-        expect(grades[2].group).toBeUndefined();
+    test('まとまりはセルのまとまり、無ければ保存してあったもの', () => {
+        const saved = { 1: { grade: 'A', group: 'LED だけ' }, 2: { grade: 'A', group: 'モーター' } };
+        const withGroup = { ...matrix, '2:c1': { ...matrix['2:c1'], groupName: 'モーターとサーボ' } };
+        const grades = gradesFromMatrix(withGroup, 'c1', saved);
+        expect(grades[1].group).toBe('LED だけ');
+        expect(grades[2].group).toBe('モーターとサーボ');
+    });
+
+    test('根拠は 300 字、まとまりは 80 字まで（サーバーの上限）', () => {
+        const long = { '1:c': { submitted: true, grade: 'A', reason: 'あ'.repeat(400), groupName: 'い'.repeat(100) } };
+        const grades = gradesFromMatrix(long, 'c');
+        expect(grades[1].reason).toHaveLength(300);
+        expect(grades[1].group).toHaveLength(80);
     });
 
     test('読み込んだセルに保存した評価を戻す（先生の評価は先生のまま）', () => {
