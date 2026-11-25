@@ -10,11 +10,11 @@
 
 const LEARN_TASKS_CSS = `
   #learntasks { margin: 1rem 0; display: grid; gap: .6rem; grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr)); }
-  #learntasks details { border: 1px solid #cbd5e1; border-radius: .4rem; padding: .4rem .6rem; background: #f8fafc; }
+  #learntasks details { border: 1px solid var(--ap-line); border-radius: .4rem; padding: .4rem .6rem; background: var(--ap-surface); }
   #learntasks summary { cursor: pointer; font-weight: 600; }
   #learntasks table { width: 100%; border-collapse: collapse; font-size: .8rem; margin-top: .3rem; }
-  #learntasks td, #learntasks th { border-bottom: 1px solid #e2e8f0; padding: .2rem .3rem; text-align: left; vertical-align: top; }
-  #learntasks .lt-err { color: #b91c1c; font-size: .8rem; }
+  #learntasks td, #learntasks th { border-bottom: 1px solid var(--ap-line-soft); padding: .2rem .3rem; text-align: left; vertical-align: top; }
+  #learntasks .lt-err { color: var(--ap-stop); font-size: .8rem; }
   #learntasks form { display: grid; gap: .3rem; margin-top: .4rem; font-size: .8rem; }
   #learntasks textarea { min-height: 4rem; }
 `;

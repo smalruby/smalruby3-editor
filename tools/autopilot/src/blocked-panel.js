@@ -11,13 +11,13 @@
 const BLOCKED_PANEL_HTML = `
 <style>
 #blockedpanel { margin: 8px 0; }
-#blockedpanel .bw { border: 2px solid #d9822b; border-radius: 6px; padding: 8px; margin: 6px 0; background: #fff8ef; }
+#blockedpanel .bw { border: 1px solid var(--ap-line); border-left: 3px solid var(--ap-stop); border-radius: 6px; padding: 8px; margin: 6px 0;
+  background: var(--ap-surface); }
 #blockedpanel .bw h3 { margin: 0 0 4px; font-size: 14px; }
-#blockedpanel pre { max-height: 260px; overflow: auto; background: #1e1e1e; color: #ddd; padding: 6px; font-size: 11px; white-space: pre-wrap; }
+#blockedpanel pre { max-height: 260px; overflow: auto; background: var(--ap-term-bg); color: var(--ap-term-ink); padding: 6px; font-size: 11px; white-space: pre-wrap; }
 #blockedpanel .opts button { margin: 2px 4px 2px 0; }
 #blockedpanel input[type=text] { width: 40%; }
-#blockedpanel .bh { font-size: 11px; color: #666; }
-@media (prefers-color-scheme: dark) { #blockedpanel .bw { background: #2a2116; } }
+#blockedpanel .bh { font-size: 11px; color: var(--ap-muted); }
 </style>
 <div id="blockedpanel" data-testid="blocked-panel"></div>
 <script data-panel="blocked">
