@@ -549,6 +549,21 @@ const assignmentMessages = defineMessages({
             'Assignment grading: a grade was changed after confirming; the confirmation was taken back (#2424)',
         id: 'gui.classroom.evaluation.unconfirmedNote',
     },
+    addedScripts: {
+        defaultMessage: 'Scripts added to the starter',
+        description: 'Assignment grading: label of the scripts the student added to the starter (#2424)',
+        id: 'gui.classroom.evaluation.addedScripts',
+    },
+    noAddedScripts: {
+        defaultMessage: 'Nothing that runs was added to the starter.',
+        description: 'Assignment grading: the student added no running script to the starter (#2424)',
+        id: 'gui.classroom.evaluation.noAddedScripts',
+    },
+    groupOf: {
+        defaultMessage: 'Group: {name}',
+        description: 'Assignment grading: the group of works this seat is in (same added operations, #2424)',
+        id: 'gui.classroom.evaluation.groupOf',
+    },
     stepRubric: {
         defaultMessage: 'Make Rubric',
         description: 'Step 2 of grading an assignment: look at / make the rubric (#2424)',
@@ -1281,22 +1296,44 @@ const TeacherEvaluation = ({
                 )}
             </div>
         );
+        const added = detailInfo && detailInfo.submitted ? detailInfo.added : null;
         const studentPane = loaded ? (
-            <TeacherEvaluationDetail
-                cell={detailInfo && detailInfo.submitted ? detailInfo : null}
-                classroomId={detailCell ? detailCell.classroomId : null}
-                comment={detailCell ? comments[`${detailCell.seat}:${detailCell.classroomId}`] : null}
-                lessonName={lesson.assignmentName}
-                nextSeat={detailNeighbours.next}
-                openingWork={openingWork}
-                prevSeat={detailNeighbours.prev}
-                seatNumber={detailCell ? detailCell.seat : null}
-                onOpenWork={onOpenWork}
-                onSelectSeat={handleSelectSeat}
-                onSetCellGrade={onSetCellGrade}
-                onSetCellReason={onSetCellReason}
-                onSetComment={onSetComment}
-            />
+            <>
+                <TeacherEvaluationDetail
+                    cell={detailInfo && detailInfo.submitted ? detailInfo : null}
+                    classroomId={detailCell ? detailCell.classroomId : null}
+                    comment={detailCell ? comments[`${detailCell.seat}:${detailCell.classroomId}`] : null}
+                    lessonName={lesson.assignmentName}
+                    nextSeat={detailNeighbours.next}
+                    openingWork={openingWork}
+                    prevSeat={detailNeighbours.prev}
+                    seatNumber={detailCell ? detailCell.seat : null}
+                    onOpenWork={onOpenWork}
+                    onSelectSeat={handleSelectSeat}
+                    onSetCellGrade={onSetCellGrade}
+                    onSetCellReason={onSetCellReason}
+                    onSetComment={onSetComment}
+                />
+                {added && (
+                    <div className={styles.evalPaneBody} data-testid="classroom-eval-added">
+                        <div className={styles.evalPaneLabel}>
+                            {intl.formatMessage(assignmentMessages.addedScripts)}
+                            {detailInfo.groupName && (
+                                <span className={styles.evalGroupName} data-testid="classroom-eval-group">
+                                    {intl.formatMessage(assignmentMessages.groupOf, { name: detailInfo.groupName })}
+                                </span>
+                            )}
+                        </div>
+                        {added.length > 0 ? (
+                            <pre className={styles.evalAddedCode}>{added.join('\n\n')}</pre>
+                        ) : (
+                            <p className={styles.evalSettingsNote}>
+                                {intl.formatMessage(assignmentMessages.noAddedScripts)}
+                            </p>
+                        )}
+                    </div>
+                )}
+            </>
         ) : (
             <p className={styles.evalSettingsNote} data-testid="classroom-eval-not-loaded">
                 {intl.formatMessage(assignmentMessages.notLoaded)}

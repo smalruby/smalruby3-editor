@@ -984,6 +984,9 @@ export default {
     'gui.classroom.evaluation.confirmedBadge': 'かくてい',
     'gui.classroom.evaluation.unconfirmedNote':
         'ひょうかをかえたので、かくていをとりけしました。もういちど［かくてい］をおしてください。',
+    'gui.classroom.evaluation.addedScripts': 'スターターからたしただいほん',
+    'gui.classroom.evaluation.noAddedScripts': 'スターターに、うごくだいほんはたしていません。',
+    'gui.classroom.evaluation.groupOf': 'まとまり: {name}',
     'gui.classroom.evaluation.stepRubric': 'きじゅんをつくる',
     'gui.classroom.evaluation.stepGrade': 'ぜんいんをさいてん',
     'gui.classroom.evaluation.stepConfirm': 'かくてい',

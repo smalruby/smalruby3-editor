@@ -188,8 +188,9 @@ describe('useTeacherEvaluation — 課題の採点の保存 (#2424)', () => {
         expect(mockPutGrading.mock.calls[0][1]).toBe('new');
         expect(mockPutGrading.mock.calls[0][2]).toEqual({
             grades: {
-                1: { grade: 'B', reason: 'ok', source: 'ai' },
-                2: { grade: 'B', reason: 'ok', source: 'ai' },
+                // 作品を読めない（offline）ので、どちらもスターターのまま
+                1: { grade: 'B', reason: 'ok', source: 'ai', group: 'スターターのまま' },
+                2: { grade: 'B', reason: 'ok', source: 'ai', group: 'スターターのまま' },
             },
         });
         expect(hook.result.current.gradeSaveState).toBeNull();
@@ -205,8 +206,8 @@ describe('useTeacherEvaluation — 課題の採点の保存 (#2424)', () => {
         });
         expect(mockPutGrading).toHaveBeenCalledTimes(2);
         expect(mockPutGrading.mock.calls[1][2].grades).toEqual({
-            1: { grade: 'A', reason: 'ok', source: 'teacher' },
-            2: { grade: 'S', reason: 'ok', source: 'teacher' },
+            1: { grade: 'A', reason: 'ok', source: 'teacher', group: 'スターターのまま' },
+            2: { grade: 'S', reason: 'ok', source: 'teacher', group: 'スターターのまま' },
         });
     });
 
@@ -278,5 +279,84 @@ describe('useTeacherEvaluation — 課題の採点の保存 (#2424)', () => {
         expect(name).toBe('技術_02_LED_採点結果.csv');
         spy.mockRestore();
         click.mockRestore();
+    });
+});
+
+describe('useTeacherEvaluation — スターターから足した台本とまとまり (#2424)', () => {
+    const JSZip = jest.requireActual('jszip');
+    const block = (opcode, next, parent, extra = {}) => ({
+        opcode,
+        next,
+        parent,
+        inputs: {},
+        fields: {},
+        topLevel: parent === null,
+        ...extra,
+    });
+    // 緑の旗 → 10 歩動かす（スターター）。席 1 は「言う」も足し、席 2 はそのまま。
+    const project = (withSay) => ({
+        targets: [
+            { isStage: true, name: 'Stage', blocks: {}, variables: {}, lists: {}, costumes: [], sounds: [] },
+            {
+                isStage: false,
+                name: 'ねこ',
+                variables: {},
+                lists: {},
+                costumes: [],
+                sounds: [],
+                blocks: {
+                    a: block('event_whenflagclicked', 'b', null),
+                    b: block('motion_movesteps', null, 'a', { inputs: { STEPS: [1, [4, '10']] } }),
+                    ...(withSay
+                        ? {
+                              c: block('event_whenkeypressed', 'd', null, { fields: { KEY_OPTION: ['space', null] } }),
+                              d: block('looks_say', null, 'c', { inputs: { MESSAGE: [1, [10, 'こんにちは']] } }),
+                          }
+                        : {}),
+                },
+            },
+        ],
+        meta: { semver: '3.0.0' },
+    });
+    const sb3 = async (json) => {
+        const zip = new JSZip();
+        zip.file('project.json', JSON.stringify(json));
+        return zip.generateAsync({ type: 'arraybuffer' });
+    };
+
+    test('読み込むとスターターとの違いとまとまりを出し、AI にスターターを渡し、まとまりを保存する', async () => {
+        const files = {
+            'https://example.invalid/starter.sb3': await sb3(project(false)),
+            'https://example.invalid/1.sb3': await sb3(project(true)),
+            'https://example.invalid/2.sb3': await sb3(project(false)),
+        };
+        global.fetch = jest.fn((url) =>
+            Promise.resolve({ ok: true, arrayBuffer: () => Promise.resolve(files[url]) }),
+        );
+        mockGetAssignment.mockResolvedValue({
+            assignment: { pages: [{ text: '言わせる' }], starterUrl: 'https://example.invalid/starter.sb3' },
+            lesson: null,
+        });
+        const { hook } = await setup();
+        await open(hook, 'new');
+        await load(hook);
+        const one = hook.result.current.getCell(1, 'new');
+        const two = hook.result.current.getCell(2, 'new');
+        expect(one.added).toHaveLength(1);
+        expect(one.added[0]).toMatch(/こんにちは/);
+        expect(two.added).toEqual([]);
+        expect(two.groupName).toBe('スターターのまま');
+        expect(one.groupName).not.toBe(two.groupName);
+
+        await act(async () => {
+            await hook.result.current.handleRunAi('grade');
+        });
+        expect(mockEvaluateSubmissions.mock.calls[0][2].starterPseudocode).toMatch(/10/);
+        await act(async () => {
+            await hook.result.current.handleConfirmGrades();
+        });
+        const saved = mockPutGrading.mock.calls[mockPutGrading.mock.calls.length - 1][2].grades;
+        expect(saved['2'].group).toBe('スターターのまま');
+        expect(saved['1'].group).toBe(one.groupName);
     });
 });

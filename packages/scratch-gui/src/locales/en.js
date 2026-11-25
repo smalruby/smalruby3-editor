@@ -875,6 +875,9 @@ export default {
     'gui.classroom.evaluation.confirmedBadge': 'Confirmed',
     'gui.classroom.evaluation.unconfirmedNote':
         'A grade changed, so the grades are no longer confirmed. Press [Confirm] again.',
+    'gui.classroom.evaluation.addedScripts': 'Scripts added to the starter',
+    'gui.classroom.evaluation.noAddedScripts': 'Nothing that runs was added to the starter.',
+    'gui.classroom.evaluation.groupOf': 'Group: {name}',
     'gui.classroom.evaluation.stepRubric': 'Make Rubric',
     'gui.classroom.evaluation.stepGrade': 'Grade Everyone',
     'gui.classroom.evaluation.stepConfirm': 'Confirm',
