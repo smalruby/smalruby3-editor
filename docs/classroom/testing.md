@@ -628,6 +628,16 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-eval-cell-{seat}-{classroomId}` | td | セル（未提出は ×、要確認はオレンジ） |
 | `classroom-eval-cell-button-{seat}-{classroomId}` | button | 提出したセルの点のボタン（まだ無いときは —・押すと右の列に出す・選んだセルは `aria-pressed="true"`）。要確認は「!」、返却済みは「↩」、コメントがあれば「💬」。`aria-label` は「出席番号 N・{課題名}: {点}」で、点が無いときは「未採点」、印があれば「（要確認・返却済み・コメントあり）」を足す |
 | `classroom-eval-detail` | aside | 右の列（選んだ席の点・根拠・コメント） |
+| `classroom-gradebook-overall` | div | 総合評価の画面（採点簿の上の［総合評価］） |
+| `classroom-overall-export` | button | ［総合評価の CSV を書き出す］（確定していない課題が入っていると disabled） |
+| `classroom-overall-settings` | div | 左の設定（入れる課題と重み・点・区切り） |
+| `classroom-overall-include-{classroomId}` / `classroom-overall-weight-{classroomId}` | input | 課題を入れるチェック / 重み |
+| `classroom-overall-point-{S\|A\|B\|C\|none}` / `classroom-overall-cut-{S\|A\|B}` | input | 評価の点（none = 未提出）/ 総合の区切り |
+| `classroom-overall-reset` | button | 設定を既定に戻す |
+| `classroom-overall-unconfirmed` | p | 確定していない課題の注意（`role="status"`） |
+| `classroom-overall-open-{classroomId}` | button | 確定していない課題へのリンク（その課題の採点を開く） |
+| `classroom-overall-loading` / `classroom-overall-no-columns` / `classroom-overall-no-seats` | p | 読み込み中 / 課題が入っていない / 採点した席が無い |
+| `classroom-overall-table` | table | 結果の表（`classroom-overall-row-{seat}`・`classroom-overall-average-{seat}`・`classroom-overall-grade-{seat}`） |
 | `classroom-eval-detail-title` | h3 | 右の列の見出し「出席番号 NN」 |
 | `classroom-eval-detail-lesson` | span | 右の列の課題名 |
 | `classroom-eval-detail-open-work` | button | 右の列の課題名の右の［作品を開く］。選んだ席の作品をエディタで開き、クラス管理を閉じる（課題の詳細の［スモウルビーで開く］と同じ処理）。採点の下書きについては確かめずに開く（採点の画面は隠して残る・下の戻る帯）。エディタに保存していない変更があれば `classroom-teacher-open-work-confirm-box` を先に出す。開いている間は押せず「開いています…」と出す |

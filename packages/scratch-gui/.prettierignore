@@ -230,6 +230,7 @@ src/containers/*
 !src/containers/use-teacher-classrooms.js
 !src/containers/use-shared-assignments.js
 !src/containers/use-teacher-evaluation.js
+!src/containers/use-overall-grade-settings.js
 !src/containers/use-teacher-groups.js
 !src/containers/use-teacher-notifications.js
 !src/containers/use-teacher-submissions.js
@@ -595,6 +596,7 @@ test/unit/components/*
 !test/unit/components/classroom-tab.test.jsx
 !test/unit/components/classroom-teacher-view-layout.test.jsx
 !test/unit/components/classroom-teacher-evaluation.test.jsx
+!test/unit/components/classroom-teacher-overall-grade.test.jsx
 !test/unit/components/classroom-teacher-menu.test.jsx
 !test/unit/components/menu-bar-classroom.test.jsx
 !test/unit/components/menu-bar-help-menu.test.jsx

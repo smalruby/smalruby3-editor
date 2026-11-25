@@ -48,6 +48,7 @@ smalruby3-editor/
 │   │   │   │   ├── mesh-group-limit-field.jsx ← 「メッシュのグループの人数」の選択（作成画面と課題エディタで共用・#1257）
 │   │   │   │   ├── teacher-group-manage.jsx ← 組（グループ）管理
 │   │   │   │   ├── teacher-evaluation.jsx ← 採点（点だけの採点簿の表・手順 1〜4・書き出しメニュー）
+│   │   │   │   ├── teacher-overall-grade.jsx ← 総合評価（入れる課題と重み・点・区切り・結果の表・CSV）
 │   │   │   │   ├── teacher-evaluation-detail.jsx ← 採点の右の列（選んだ席の点・根拠・コメント・‹ ›・［作品を開く］）
 │   │   │   │   └── teacher-post-assignment.jsx ← 課題配信
 │   │   │   ├── classroom-teacher-menu/ ← メニューバーの先生メニュー「クラス管理」(表示) #1199
@@ -74,6 +75,7 @@ smalruby3-editor/
 │   │   │   ├── use-teacher-assignment.js ← 課題コンテンツ編集フロー
 │   │   │   ├── use-teacher-groups.js ← 組（グループ）管理・複製フロー
 │   │   │   ├── use-teacher-evaluation.js ← 採点のフロー（読み込み/AIで採点/CSV/返却）
+│   │   │   ├── use-overall-grade-settings.js ← 総合評価の設定（クラスごとに localStorage）
 │   │   │   ├── use-student-submit.js  ← 生徒提出フロー
 │   │   │   ├── use-student-assignment.js ← 課題パネル・スターター・続きに使える提出物の読み込み (#1201)
 │   │   │   ├── use-kick-request-polling.js ← 退室依頼の承認待ちポーリング（依頼中・タブ表示中・未参加のみ）
@@ -106,7 +108,7 @@ smalruby3-editor/
 │   │   │   ├── classroom-stream.js ← クラスの［ストリーム］の行（作成・アーカイブ・残り 7 日以内の自動削除の予定）と保存期限のカード `retentionSummary` を組み立てる（純粋）
 │   │   │   ├── classroom-genai-settings.js ← クラスの生成AI・ルビティー設定の下書き・検証・PATCH 差分（純粋）#1277
 │   │   │   ├── classroom-google-share.js ← GC 共有の既定ブロック判定 + 解除導線の文言（純粋）#1184
-│   │   │   ├── classroom-evaluation/ ← sb3-analyzer（静的解析）+ evaluation-utils（総合評価/CSV）+ robot-humanize（ロボットのブロックを日本語に）+ starter-diff（スターターに足したスクリプト）+ grouping（まとまり分け・代表・少ないブロック）+ overall-grade（重み付きの総合評価）+ grading-csv（採点の CSV の行）
+│   │   │   ├── classroom-evaluation/ ← sb3-analyzer（静的解析）+ evaluation-utils（総合評価/CSV）+ robot-humanize（ロボットのブロックを日本語に）+ starter-diff（スターターに足したスクリプト）+ grouping（まとまり分け・代表・少ないブロック）+ overall-grade（重み付きの総合評価）+ overall-view（総合評価の画面の表と書き出しの可否）+ grading-csv（採点の CSV の行）
 │   │   │   ├── classroom-kick-request-storage.js ← 退室依頼の localStorage 永続化 (#692)
 │   │   │   ├── classroom-seat-selection.js ← 席選択の純粋ロジック（番号入力の検証・ポーリング判定・定数）
 │   │   │   ├── classroom-continue-options.js ← 続きに使える提出物の正規化・参加したあとの始め方を 1 つに決める decideStartMethod（純粋）#1201 #1202 #1793
