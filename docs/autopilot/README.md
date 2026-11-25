@@ -322,6 +322,26 @@ worker が人間に選んでほしいことがあるとき、`signal=hitl` の�
 `renderMonitorAnswersForPrompt` ほか）、置き場と受け口と GitHub のつなぎは `monitor-answers.js`、書き込みは `project.js`
 （`applyCommentPlans`）。モニターの画面はまだ無い（受け口だけ）。
 
+### モニターの「AI に任せる」（人間待ちを autopilot に渡す）
+
+モニターの「あなた宛て」には、🙋 HITL の付いた Issue（人間待ち）が並ぶ（`GET /board` の `humanWait`）。
+各行の「AI に任せる」（`POST /delegate` body `{issue}`）は、人間が GitHub で 🙋 を外す・Status を動かすのと
+同じ意味の操作をする（`.claude/rules/human-wait.md` の表）。押せるかどうかは `humanWait[].delegate` に出る。
+
+| item | 「AI に任せる」ですること | 次の段 |
+|---|---|---|
+| Sprint Backlog（Kind=Issue） | 🙋 を外す | implement |
+| まだ分解していない EPIC（Backlog・Kind=EPIC） | Status を Sprint Backlog にしてから 🙋 を外す | decompose |
+| 人間ゲート（Review / DoD / Blocked / Discussing / Awaiting Continuation / Decomposing / Triaging）・New Item | 🙋 を外す | 🙋 を外したときと同じ（address-review・triage・discuss など） |
+| 分解済みの EPIC（🧭・In Progress / EPIC Decomposed） | 受けない（409 `tracker`）。子が全部済んだら人間が閉じる | — |
+| 人間がする作業（Backlog・Kind=Issue） | 受けない（409 `human-work`）。AI に渡すなら人間が Sprint Backlog へ動かす | — |
+| 答え待ちの質問がある Issue | 受けない（409 `open-questions`）。「AI の推奨で進める」は `POST /answer` で推奨の選択肢を送る | — |
+| 外しても進める段が無い（例: セッションの作業の In Progress・AI Status 空）・Icebox / Close / Done | 受けない（409 `no-ai-phase` / `resting`） | — |
+
+🙋 を外す流れ（Project のフィールド → Issue / PR の 🙋 → `state.monitorReleases`）は「答えて先へ進める」と同じ
+（`monitor-answers.js` の `releaseHumanGate`）。通ったら pause 中でなければすぐ 1 tick 回す（pause 中は外して覚えるだけ）。
+判断は `phases.js` の `planDelegate` / `humanWaitRows`。
+
 ---
 
 ## merge は独立した「前進シグナル」
@@ -1291,13 +1311,14 @@ HTTP API（curl からも操作可能。POST は上の合言葉のヘッダを�
 | メソッド・パス | 用途 |
 |---|---|
 | `GET /` | Web モニタ（俯瞰ボード HTML） |
-| `GET /board` | 俯瞰ボードデータ（items + running + history + auth 状態 + `claudeUsage` + `usagePause` / `usageOverrides` + `version` + `autopilotUpdate` + `epicGroups` + `currentStatus` + `monitorQuestions`（モニターで答える質問）+ 並列の計画 `schedule` / `schedulerLimits` / `schedulerOverrides`）を JSON で返す。items は `priority`（自分の値）と `effectivePriority`（`{priority, source: own\|inherited\|default, from}`）を持つ |
+| `GET /board` | 俯瞰ボードデータ（items + running + history + auth 状態 + `claudeUsage` + `usagePause` / `usageOverrides` + `version` + `autopilotUpdate` + `epicGroups` + `currentStatus` + `monitorQuestions`（モニターで答える質問）+ `humanWait`（🙋 の付いた人間待ちと「AI に任せる」が押せるか `[{issue, title, status, aiStatus, kind, delegate:{ok, action?, nextPhase?, code?, error?}}]`）+ 並列の計画 `schedule` / `schedulerLimits` / `schedulerOverrides`）を JSON で返す。items は `priority`（自分の値）と `effectivePriority`（`{priority, source: own\|inherited\|default, from}`）を持つ |
 | `GET /status.json` | 現在地の材料（`buildStatusMaterial`）: `groups`（EPIC ごと）・`priorities`（優先している順）・`running`・`waitingHuman`・`nextInterview`・`pendingDecisionsTotal`・`blocked`・`recentHistory`・`currentStatus` |
 | `GET /status` | `{paused, pausedBy, authError, reauthHint, reauth, booting, assignee, concurrency, claudeUsage, usagePause, usageOverrides, version, autopilotUpdate, running:[{issue,phase}], monitorQuestions}`。`pausedBy` は `human` / `auth` / `usage`。`usagePause` は判定結果（`pause, window, percent, threshold, resetsAt, thresholds, forced[]`） |
 | `GET /log?issue=<n>` | 実行中 item の画面（herdr / tmux の pane。人間観測用） |
 | `GET /blocked` | 止まっている（人間の答えを待つ）worker の一覧（画面・理由・選択肢）と、答えの履歴 |
 | `POST /blocked/answer` | body `{issue, keys:["1"]}` か `{issue, text:"..."}`。止まっている worker に人間の答えを送る（キーは `1`〜`9` / `enter` / `esc` / `up` / `down` など決まったものだけ） |
 | `POST /answer` | body `{issue, answers:[{q, key, note?}], proceed: boolean}`。モニターで質問に答える（「モニターで答える」の節）。`proceed:false` はメモだけ保存（daemon のローカル）、`proceed:true` は答えを Issue に記録して 🙋 を外す（全部の質問に答えが要る。足りなければ 400、worker が実行中なら 409） |
+| `POST /delegate` | body `{issue}`。モニターの「AI に任せる」（「モニターの『AI に任せる』」の節）。🙋 を外して（まだ分解していない EPIC は Sprint Backlog へ動かしてから）autopilot に渡し、pause 中でなければ 1 tick 回す。`{ok:true, issue, action:'release'\|'decompose', nextPhase}`。入力が違うと 400、Project に無いと 404、🙋 が無い・worker が実行中・答え待ちの質問がある・トラッカー・人間がする作業などは 409 `{error, code, issue}`、GitHub に書けないと 502 |
 | `POST /tick` | interval を待たず 1 サイクル即実行。`{ran, paused, picked:[...], running:[...]}` を返す。実行中は `409 {busy:true}`、pause 中は `{ran:true, paused:true, picked:[]}` の no-op |
 | `POST /pause` | 新規ディスパッチを止める（実行中はそのまま） |
 | `POST /resume` | ポーリング再開（usage の auto-pause 中は `409 {forceResumeRequired:true}`） |
@@ -1385,7 +1406,7 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 | `tools/autopilot/src/blocked-hub.js` | 止まっている worker の置き場と `/blocked` の HTTP |
 | `tools/autopilot/src/http-guard.js` | HTTP の受け付けの守りの判断（Host / Origin の許可・合言葉の時間一定の照合。純粋関数） |
 | `tools/autopilot/src/blocked-panel.js` | モニターの「止まっている worker」の欄 |
-| `tools/autopilot/src/monitor-answers.js` | モニターで答える質問の置き場・`POST /answer` の受け口・Issue への記録と 🙋 の解除・worker への受け渡し |
+| `tools/autopilot/src/monitor-answers.js` | モニターで答える質問の置き場・`POST /answer`・`POST /delegate`（AI に任せる）の受け口・Issue への記録と 🙋 の解除・worker への受け渡し |
 | `tools/autopilot/src/daemon.js` | 常駐 daemon（ポーリング・ディスパッチ・HTTP 制御・認証ヘルスチェック・俯瞰ボード） |
 | `tools/autopilot/src/monitor.js` | Web モニタ（俯瞰ボード・自己完結 HTML） |
 | `tools/autopilot/src/epic-summary.js` | EPIC ごとのまとめ・次の確認の見込み・現在地の材料・モニタの EPIC 欄の HTML（純粋） |

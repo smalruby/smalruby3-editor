@@ -3683,6 +3683,81 @@ function withMonitorReleases(contexts, releases) {
     return out;
 }
 
+/**
+ * `POST /delegate`（モニターの「AI に任せる」・#2404）の body を検証する（純粋関数）。body: `{issue}`。
+ * @param {object} body
+ * @returns {{ok:boolean, error?:string, issue?:number}}
+ */
+function normalizeDelegateBody(body) {
+    if (!body || typeof body !== 'object') return { ok: false, error: 'body must be an object' };
+    const issue = typeof body.issue === 'string' && /^\d+$/.test(body.issue) ? Number(body.issue) : body.issue;
+    if (!Number.isInteger(issue) || issue <= 0) return { ok: false, error: 'issue (positive integer) required' };
+    return { ok: true, issue };
+}
+
+/**
+ * 「AI に任せる」で何をするかを決める（純粋関数・#2404）。人間が押すので、人間が GitHub で 🙋 を外す /
+ * Status を動かすのと同じ意味の操作だけを選ぶ（`.claude/rules/human-wait.md` の表）。
+ *
+ * - 🙋 が無い・Project に無い・worker が実行中・答え待ちの質問がある → 受けない（4xx）
+ * - 分解済みの EPIC（🧭 tracking・In Progress / EPIC Decomposed）→ 受けない。出口は「子が全部済んだら人間が閉じる」
+ * - まだ分解していない EPIC（Backlog・Kind=EPIC）→ Status を Sprint Backlog にして 🙋 を外す（decompose へ）
+ * - 人間がする作業（Backlog・Kind=Issue。Discussing でない）→ 受けない（AI がしてよいかは人間が決める）
+ * - それ以外 → 🙋 を外すだけ。ただし外しても autopilot が進める段が無い（`phaseForItem` が null）なら受けない
+ *   （例: セッションの作業の In Progress・AI Status 空）。外したのに何も起きない、を作らない（I3 と同じ考え）
+ *
+ * @param {object|null} item Project の item { issue, status, aiStatus, kind, hitlLabel, labels }
+ * @param {object} [opts] { running:boolean, openQuestions:boolean, pr:boolean }
+ * @returns {{ok:boolean, status:number, code?:string, error?:string, action?:'release'|'decompose',
+ *   intents?:Array<{field:string, value:(string|null)}>, nextPhase?:string}}
+ */
+function planDelegate(item, opts = {}) {
+    const no = (status, code, error) => ({ ok: false, status, code, error });
+    if (!item) return no(404, 'unknown-item', 'not a board item');
+    if (!item.hitlLabel) return no(409, 'not-human-wait', 'no 🙋 HITL label');
+    if (opts.running) return no(409, 'running', 'worker is running');
+    if (opts.openQuestions) return no(409, 'open-questions', 'has questions to answer: use POST /answer');
+    const status = item.status || 'New Item';
+    if (TERMINAL_STATUSES.has(status) || status === 'Icebox') return no(409, 'resting', `status is ${status}`);
+    if (hasTrackingLabel(item) || (status === 'In Progress' && item.aiStatus === 'EPIC Decomposed')) {
+        return no(409, 'tracker', 'decomposed EPIC: close it when all sub-issues are done');
+    }
+    let action = 'release';
+    let intents = [];
+    if (status === 'Backlog' && item.aiStatus !== 'Discussing') {
+        if (item.kind !== 'EPIC') return no(409, 'human-work', 'Backlog Issue is human work: move it to Sprint Backlog to hand it over');
+        action = 'decompose';
+        intents = [{ field: 'Status', value: 'Sprint Backlog' }];
+    }
+    const projected = {
+        ...item, status: action === 'decompose' ? 'Sprint Backlog' : status, hitlLabel: false,
+    };
+    const nextPhase = phaseForItem(projected, { monitorReleased: true, pr: Boolean(opts.pr) });
+    if (!nextPhase) return no(409, 'no-ai-phase', 'autopilot has nothing to do after releasing 🙋');
+    return { ok: true, status: 200, action, intents, nextPhase };
+}
+
+/**
+ * モニターの「あなた宛て」の人間待ち（🙋 HITL）の行（純粋関数・#2404）。各行に「AI に任せる」が押せるか
+ * （{@link planDelegate}）を付ける。終端の item は出さない。Board 順のまま。
+ * @param {object[]} items board の items
+ * @param {object} [opts] { running:Iterable<number>, questionIssues:Iterable<number> }
+ * @returns {Array<{issue:number, title:(string|null), status:string, aiStatus:(string|null), kind:(string|null),
+ *   delegate:{ok:boolean, action?:string, nextPhase?:string, code?:string, error?:string}}>}
+ */
+function humanWaitRows(items, opts = {}) {
+    const running = new Set(opts.running || []);
+    const questions = new Set(opts.questionIssues || []);
+    return (items || []).filter((it) => it && it.hitlLabel && !TERMINAL_STATUSES.has(it.status)).map((it) => {
+        const p = planDelegate(it, { running: running.has(it.issue), openQuestions: questions.has(it.issue), pr: Boolean(it.prs && it.prs.length) });
+        const delegate = p.ok ? { ok: true, action: p.action, nextPhase: p.nextPhase } : { ok: false, code: p.code, error: p.error };
+        return {
+            issue: it.issue, title: it.title || null, status: it.status || 'New Item', aiStatus: it.aiStatus || null,
+            kind: it.kind || null, delegate,
+        };
+    });
+}
+
 module.exports = {
     MAX_MONITOR_NOTE,
     monitorQuestionsMarker,
@@ -3698,6 +3773,9 @@ module.exports = {
     monitorQuestionsView,
     pruneMonitorReleases,
     withMonitorReleases,
+    normalizeDelegateBody,
+    planDelegate,
+    humanWaitRows,
     PHASE_BY_COMMAND,
     PHASE_BY_AI_STATUS,
     IN_FLIGHT_WORK_PHASE_BY_AI_STATUS,

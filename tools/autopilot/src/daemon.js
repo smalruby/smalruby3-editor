@@ -125,7 +125,7 @@ const { buildStatusMaterial, groupItemsByEpic } = require('./epic-summary');
 const currentStatusJob = require('./current-status-job');
 // モニターで答える（ui-policy §8 の U1・U2）。判断は phases.js、置き場・HTTP・GitHub のつなぎは monitor-answers.js
 const monitorAnswers = require('./monitor-answers');
-const { pruneMonitorReleases, withMonitorReleases } = require('./phases');
+const { pruneMonitorReleases, withMonitorReleases, humanWaitRows } = require('./phases');
 
 const execFileP = promisify(execFile);
 
@@ -2851,6 +2851,11 @@ function boardResponse(cfg, state) {
         currentStatus: state.currentStatus || null,
         // モニターで答える質問（答え待ちと、答えて worker を待っているもの）
         monitorQuestions: state.answerStore ? state.answerStore.list() : [],
+        // 「あなた宛て」の人間待ち（🙋）と「AI に任せる」が押せるか（#2404）
+        humanWait: humanWaitRows(state.board ? state.board.items : [], {
+            running: state.running.keys(),
+            questionIssues: (state.answerStore ? state.answerStore.list() : []).filter((q) => q.status === 'open').map((q) => q.issue),
+        }),
     };
 }
 
@@ -2944,6 +2949,21 @@ function answerHttpContext(cfg, state, log) {
     };
 }
 
+/**
+ * `POST /delegate` に渡す ctx（monitor-answers.js の handleDelegateHttp・#2404）。/answer と同じく、通ったら
+ * pause 中でなければすぐ 1 tick 回す（pause 中は 🙋 を外して覚えるだけ。再開後の tick で進む）。
+ * @returns {object}
+ */
+function delegateHttpContext(cfg, state, log) {
+    return {
+        cfg, state, log, now: cfg.now,
+        afterRelease: () => {
+            if (state.paused) return;
+            runTickOnce(cfg, state, log).catch((e) => log(`tick after delegate error: ${e.message}`));
+        },
+    };
+}
+
 /** HTTP 制御サーバ（pause/resume/stop/inject/status） */
 function startHttp(cfg, state, log) {
     // 書き込みの守り（EPIC #2384 U3）: 合言葉が無い cfg（テスト・別の起動経路）でもここで作り、
@@ -2970,6 +2990,8 @@ function startHttp(cfg, state, log) {
         if (handleBlockedHttp(req, res, url, state.blockedHub)) return;
         // モニターで質問に答える（POST /answer）。書き込みの受け口はここ 1 か所
         if (monitorAnswers.handleAnswerHttp(req, res, url, answerHttpContext(cfg, state, log))) return;
+        // モニターの「AI に任せる」（POST /delegate・#2404）。🙋 を外す流れは /answer と同じ（releaseHumanGate）
+        if (monitorAnswers.handleDelegateHttp(req, res, url, delegateHttpContext(cfg, state, log))) return;
         // 学び・タスクの口（/learnings*・/tasks*）は learn-tasks.js が受ける
         if (learnTasks.handleLearnTasksHttp(req, res, url, { cfg, state, log, send, capture, deps: { workerCommand } })) return;
         if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/index.html')) {
