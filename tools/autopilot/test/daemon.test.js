@@ -2781,3 +2781,29 @@ test('startHttp POST /answer: メモだけ保存はローカルに置くだけ�
         await new Promise((r) => server.close(r));
     }
 });
+
+test('startHttp POST /delegate: 入力と対象を確かめて 4xx を返し、GET /board の humanWait に押せるかが出る（#2404）', async () => {
+    const cfg = { ...makeCfg(), port: 0, assignee: null, concurrency: 1, now: () => 5 };
+    const items = [
+        { issue: 7, itemId: 'I7', status: 'Sprint Backlog', kind: 'Issue', hitlLabel: true, labels: ['🙋 HITL'], title: 'a' },
+        { issue: 8, itemId: 'I8', status: 'Backlog', kind: 'Issue', hitlLabel: true, labels: ['🙋 HITL'], title: 'b' },
+        { issue: 9, itemId: 'I9', status: 'Sprint Backlog', kind: 'Issue', hitlLabel: false, labels: [], title: 'c' },
+    ];
+    const state = { paused: true, running: new Map(), board: { items, updatedAt: null }, monitorReleases: {} };
+    const { server, port } = await startTestHttp(cfg, state);
+    try {
+        const post = (body) => httpRequestJson(port, 'POST', '/delegate', JSON.stringify(body));
+        assert.strictEqual((await post({ issue: 'x' })).status, 400);
+        assert.strictEqual((await post({ issue: 99 })).status, 404);
+        const notWait = await post({ issue: 9 });
+        assert.deepStrictEqual([notWait.status, notWait.body.code], [409, 'not-human-wait']);
+        const human = await post({ issue: 8 });
+        assert.deepStrictEqual([human.status, human.body.code], [409, 'human-work']);
+        assert.deepStrictEqual(state.monitorReleases, {});
+        const b = await httpRequestJson(port, 'GET', '/board');
+        assert.deepStrictEqual(b.body.humanWait.map((r) => [r.issue, r.delegate.ok, r.delegate.action || r.delegate.code]),
+            [[7, true, 'release'], [8, false, 'human-work']]);
+    } finally {
+        await new Promise((r) => server.close(r));
+    }
+});

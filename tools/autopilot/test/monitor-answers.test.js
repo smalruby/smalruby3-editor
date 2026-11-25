@@ -204,3 +204,113 @@ test('deliverMonitorAnswers: writes the answers file once and clears the release
     assert.deepEqual(state.monitorReleases, {});
     assert.equal(deliverMonitorAnswers(7, cwd, state), null);
 });
+
+// ---- 「AI に任せる」（POST /delegate・#2404）
+const { normalizeDelegateBody, planDelegate, humanWaitRows } = require('../src/phases');
+const { delegateOnce } = require('../src/monitor-answers');
+
+const wait = (over = {}) => ({ issue: 9, itemId: 'PVTI_9', status: 'Sprint Backlog', aiStatus: null, kind: 'Issue', hitlLabel: true, labels: [HITL_LABEL], ...over });
+
+test('normalizeDelegateBody: positive integer issue only', () => {
+    assert.equal(normalizeDelegateBody(null).ok, false);
+    assert.equal(normalizeDelegateBody({ issue: 0 }).ok, false);
+    assert.equal(normalizeDelegateBody({ issue: 1.5 }).ok, false);
+    assert.equal(normalizeDelegateBody({ issue: 'abc' }).ok, false);
+    assert.deepEqual(normalizeDelegateBody({ issue: '12' }), { ok: true, issue: 12 });
+});
+
+test('planDelegate: per item kind', () => {
+    // Sprint Backlog の leaf は 🙋 を外すだけ
+    assert.deepEqual(planDelegate(wait()), { ok: true, status: 200, action: 'release', intents: [], nextPhase: 'implement' });
+    // まだ分解していない EPIC は Sprint Backlog へ（decompose）
+    const epic = planDelegate(wait({ status: 'Backlog', kind: 'EPIC' }));
+    assert.deepEqual([epic.action, epic.intents, epic.nextPhase], ['decompose', [{ field: 'Status', value: 'Sprint Backlog' }], 'decompose']);
+    // 人間ゲートは 🙋 を外すと開く
+    assert.equal(planDelegate(wait({ status: 'Review' })).nextPhase, 'address-review');
+    assert.equal(planDelegate(wait({ status: 'Blocked' })).nextPhase, 'triage');
+    assert.equal(planDelegate(wait({ status: 'Blocked' }), { pr: true }).nextPhase, 'address-review');
+    assert.equal(planDelegate(wait({ status: 'Backlog', aiStatus: 'Discussing' })).nextPhase, 'discuss');
+    assert.equal(planDelegate(wait({ status: 'In Progress', aiStatus: 'Decomposing', kind: 'EPIC' })).nextPhase, 'decompose');
+    assert.equal(planDelegate(wait({ status: 'New Item' })).nextPhase, 'triage');
+    // 受けないもの
+    const code = (it, o) => planDelegate(it, o).code;
+    assert.equal(planDelegate(null).status, 404);
+    assert.equal(code(wait({ hitlLabel: false })), 'not-human-wait');
+    assert.equal(code(wait(), { running: true }), 'running');
+    assert.equal(code(wait(), { openQuestions: true }), 'open-questions');
+    assert.equal(code(wait({ status: 'Backlog' })), 'human-work');
+    assert.equal(code(wait({ status: 'In Progress', aiStatus: 'EPIC Decomposed', kind: 'EPIC' })), 'tracker');
+    assert.equal(code(wait({ status: 'Sprint Backlog', kind: 'EPIC', labels: [HITL_LABEL, '🧭 tracking'] })), 'tracker');
+    assert.equal(code(wait({ status: 'Icebox' })), 'resting');
+    assert.equal(code(wait({ status: 'Close' })), 'resting');
+    assert.equal(code(wait({ status: 'In Progress', aiStatus: null })), 'no-ai-phase'); // セッションの作業
+    assert.ok(planDelegate(wait({ status: 'Backlog' })).status >= 400);
+});
+
+test('humanWaitRows: only 🙋 non-terminal items, with delegate availability', () => {
+    const rows = humanWaitRows([
+        wait({ issue: 1, title: 't1' }),
+        wait({ issue: 2, status: 'Backlog' }),
+        wait({ issue: 3, hitlLabel: false }),
+        wait({ issue: 4, status: 'Close' }),
+        wait({ issue: 5 }),
+    ], { running: [5], questionIssues: [] });
+    assert.deepEqual(rows.map((r) => r.issue), [1, 2, 5]);
+    assert.deepEqual(rows[0], { issue: 1, title: 't1', status: 'Sprint Backlog', aiStatus: null, kind: 'Issue', delegate: { ok: true, action: 'release', nextPhase: 'implement' } });
+    assert.equal(rows[1].delegate.code, 'human-work');
+    assert.equal(rows[2].delegate.code, 'running');
+});
+
+const delegateIo = (calls, over = {}) => ({
+    botToken: async () => 'bot', readToken: async () => 'read',
+    getIssueLabels: async () => [HITL_LABEL],
+    findPrForIssue: async () => over.pr === undefined ? { number: 90, labels: [HITL_LABEL] } : over.pr,
+    editLabels: async (repo, n, type, diff) => { calls.push(['labels', n, type, diff.remove]); },
+    applyIntents: async (ctx, itemId, intents) => {
+        if (over.failIntents) throw new Error('boom ghp_abcdefghijklmnopqrstuvwxyz0123');
+        calls.push(['intents', itemId, intents]);
+    },
+});
+
+test('delegateOnce: releases 🙋 (Issue and PR), remembers it, then asks for a tick', async () => {
+    const calls = [];
+    const ticks = [];
+    const state = { running: new Map(), board: { items: [wait()] } };
+    const ctx = { cfg: { repo: 'o/r' }, state, log: () => {}, now: () => 5, afterRelease: (n) => ticks.push(n) };
+    const r = await delegateOnce(ctx, { issue: 9 }, delegateIo(calls));
+    assert.deepEqual(r, { status: 200, body: { ok: true, issue: 9, action: 'release', nextPhase: 'implement' } });
+    assert.deepEqual(calls, [['labels', 9, 'issue', [HITL_LABEL]], ['labels', 90, 'pr', [HITL_LABEL]]]);
+    assert.deepEqual(state.monitorReleases, { 9: 5 });
+    assert.equal(state.board.items[0].hitlLabel, false);
+    assert.deepEqual(state.board.items[0].labels, []);
+    assert.deepEqual(ticks, [9]);
+    // もう 🙋 が無いので二度目は受けない
+    assert.equal((await delegateOnce(ctx, { issue: 9 }, delegateIo([]))).status, 409);
+});
+
+test('delegateOnce: Backlog EPIC moves to Sprint Backlog before releasing 🙋', async () => {
+    const calls = [];
+    const state = { running: new Map(), board: { items: [wait({ status: 'Backlog', kind: 'EPIC' })] } };
+    const r = await delegateOnce({ cfg: { repo: 'o/r', projectId: 'P', fields: {} }, state, log: () => {}, now: () => 1 },
+        { issue: 9 }, delegateIo(calls, { pr: null }));
+    assert.equal(r.body.action, 'decompose');
+    assert.deepEqual(calls, [['intents', 'PVTI_9', [{ field: 'Status', value: 'Sprint Backlog' }]], ['labels', 9, 'issue', [HITL_LABEL]]]);
+    assert.equal(state.board.items[0].status, 'Sprint Backlog');
+});
+
+test('delegateOnce: rejects bad input, unknown items, open questions; failures keep 🙋 and are sanitized', async () => {
+    const base = () => ({ running: new Map(), board: { items: [wait()] } });
+    const ctx = (state) => ({ cfg: { repo: 'o/r' }, state, log: () => {}, now: () => 1 });
+    assert.equal((await delegateOnce(ctx(base()), { issue: -1 }, delegateIo([]))).status, 400);
+    assert.equal((await delegateOnce(ctx(base()), { issue: 99 }, delegateIo([]))).status, 404);
+    const withQ = base();
+    withQ.answerStore = createAnswerStore();
+    withQ.answerStore.setQuestions(9, { phase: 'triage', round: 1, questions: QUESTIONS });
+    assert.equal((await delegateOnce(ctx(withQ), { issue: 9 }, delegateIo([]))).body.code, 'open-questions');
+    const epic = { running: new Map(), board: { items: [wait({ status: 'Backlog', kind: 'EPIC' })] } };
+    const r = await delegateOnce(ctx(epic), { issue: 9 }, delegateIo([], { failIntents: true }));
+    assert.equal(r.status, 502);
+    assert.ok(!r.body.error.includes('ghp_abcdefghijklmnopqrstuvwxyz0123'));
+    assert.equal(epic.monitorReleases, undefined);
+    assert.equal(epic.board.items[0].hitlLabel, true);
+});

@@ -19,6 +19,7 @@ const path = require('path');
 const {
     normalizeMonitorAnswerBody, planMonitorAnswer, monitorQuestionsView, planMonitorQuestionsComment,
     planMonitorAnswerComments, renderMonitorAnswersForPrompt, sanitizeForSurface, HITL_LABEL,
+    normalizeDelegateBody, planDelegate,
 } = require('./phases');
 
 /** 既定の GitHub の I/O（テストは deps で差し替える。実 GitHub に触るテストを書かない） */
@@ -29,7 +30,7 @@ function defaultIo() {
     return {
         botToken: project.botToken, readToken: project.readToken,
         applyCommentPlans: project.applyCommentPlans, getIssueLabels: project.getIssueLabels,
-        findPrForIssue: project.findPrForIssue, editLabels: project.editLabels,
+        findPrForIssue: project.findPrForIssue, editLabels: project.editLabels, applyIntents: project.applyIntents,
     };
 }
 
@@ -105,6 +106,11 @@ function createAnswerStore(opts = {}) {
  */
 function handleAnswerHttp(req, res, url, ctx) {
     if (!ctx || !ctx.store || url.pathname !== '/answer') return false;
+    return readJsonPost(req, res, (body) => answerOnce(ctx, body));
+}
+
+/** POST の JSON を読んで run(body) → {status, body} を返す（/answer と /delegate の共通の受け口）。true を返す */
+function readJsonPost(req, res, run) {
     const send = (code, obj) => {
         res.writeHead(code, { 'content-type': 'application/json' });
         res.end(JSON.stringify(obj));
@@ -115,7 +121,7 @@ function handleAnswerHttp(req, res, url, ctx) {
     req.on('end', () => {
         let body;
         try { body = JSON.parse(raw || '{}'); } catch { return send(400, { error: 'invalid json' }); }
-        answerOnce(ctx, body).then((r) => send(r.status, r.body))
+        run(body).then((r) => send(r.status, r.body))
             .catch((e) => send(500, { error: String(e && e.message || e) }));
     });
     return true;
@@ -206,23 +212,113 @@ async function proceedMonitorAnswer(issue, entry, plan, ctx, deps = {}) {
         const done = await io.applyCommentPlans(cfg.repo, issue,
             (comments) => planMonitorAnswerComments(comments, issue, entry, plan.records), token, { readToken });
         written = done.filter((p) => p.action !== 'skip').length;
+    } catch (e) {
+        const msg = sanitizeForSurface(e.message);
+        log(`#${issue}: monitor answer failed: ${msg}`);
+        return { status: 502, body: { error: msg } };
+    }
+    const rel = await releaseHumanGate(issue, ctx, { ...io, botToken: async () => token, readToken: async () => readToken });
+    if (!rel.ok) {
+        log(`#${issue}: monitor answer failed: ${rel.error}`);
+        return { status: 502, body: { error: rel.error } };
+    }
+    log(`#${issue}: monitor answer recorded (${plan.records.length} answers, ${written} comments) -> 🙋 released`);
+    return { status: 200, body: { released: true, comments: written } };
+}
+
+/**
+ * 人間の明示操作（モニターの「答えて先へ進める」「AI に任せる」）を受けて、daemon が人間ゲートを開く:
+ * `intents`（Project のフィールド。例: Status=Sprint Backlog）を書き、Issue と PR の 🙋 を外し、
+ * 「モニターで外した」を覚える（{@link import('./phases').withMonitorReleases}・`hitlLabelAction` の
+ * monitorReleased）。フィールドを先に書くので、途中で失敗しても押し直せば続きから進む（🙋 が残る）。
+ * @param {number} issue
+ * @param {object} ctx { cfg, state, now }
+ * @param {object} [deps] I/O の差し替え（botToken / readToken / getIssueLabels / editLabels / findPrForIssue / applyIntents）
+ * @param {object} [opts] { intents, itemId }
+ * @returns {Promise<{ok:boolean, error?:string}>}
+ */
+async function releaseHumanGate(issue, ctx, deps = {}, opts = {}) {
+    const { cfg, state } = ctx;
+    const io = { ...defaultIo(), ...deps };
+    const intents = opts.intents || [];
+    try {
+        const token = await io.botToken();
+        const readToken = await io.readToken();
+        if (intents.length) {
+            if (!opts.itemId) throw new Error('no project item id');
+            await io.applyIntents({ projectId: cfg.projectId, fields: cfg.fields }, opts.itemId, intents, token);
+        }
         // 🙋 を外す（daemon が人間の明示操作を受けて外す・単一ライター）。外れていれば触らない
         const issueLabels = await io.getIssueLabels(cfg.repo, issue, readToken);
         if (issueLabels.includes(HITL_LABEL)) await io.editLabels(cfg.repo, issue, 'issue', { remove: [HITL_LABEL] }, token);
         const pr = await io.findPrForIssue(cfg.repo, issue, readToken);
         if (pr && (pr.labels || []).includes(HITL_LABEL)) await io.editLabels(cfg.repo, pr.number, 'pr', { remove: [HITL_LABEL] }, token);
     } catch (e) {
-        const msg = sanitizeForSurface(e.message);
-        log(`#${issue}: monitor answer failed: ${msg}`);
-        return { status: 502, body: { error: msg } };
+        return { ok: false, error: sanitizeForSurface(e.message) };
     }
     if (!state.monitorReleases) state.monitorReleases = {};
     state.monitorReleases[issue] = (ctx.now || Date.now)();
     // モニターの表示もすぐ追従させる（GraphQL は増やさない）
-    const it = state.board && Array.isArray(state.board.items) ? state.board.items.find((x) => x && x.issue === issue) : null;
-    if (it) it.hitlLabel = false;
-    log(`#${issue}: monitor answer recorded (${plan.records.length} answers, ${written} comments) -> 🙋 released`);
-    return { status: 200, body: { released: true, comments: written } };
+    const it = boardItem(state, issue);
+    if (it) {
+        it.hitlLabel = false;
+        if (Array.isArray(it.labels)) it.labels = it.labels.filter((l) => l !== HITL_LABEL);
+        for (const { field, value } of intents) if (field === 'Status') it.status = value;
+    }
+    return { ok: true };
+}
+
+function boardItem(state, issue) {
+    return state.board && Array.isArray(state.board.items) ? state.board.items.find((x) => x && x.issue === issue) || null : null;
+}
+
+/**
+ * 「AI に任せる」を 1 回受ける（HTTP を外したところ。テストはここを呼ぶ・#2404）。
+ * 判断は phases.js の {@link planDelegate}。答えの置き場と同じ inFlight で、同じ Issue に重ねて走らせない。
+ * @param {object} ctx { cfg, state, log, now, afterRelease() }
+ * @param {object} body `{issue}`
+ * @param {object} [deps] I/O の差し替え
+ * @returns {Promise<{status:number, body:object}>}
+ */
+async function delegateOnce(ctx, body, deps = {}) {
+    const n = normalizeDelegateBody(body);
+    if (!n.ok) return { status: 400, body: { error: n.error } };
+    const { state, log } = ctx;
+    const item = boardItem(state, n.issue);
+    const q = state.answerStore ? state.answerStore.get(n.issue) : null;
+    const plan = planDelegate(item, {
+        running: Boolean(state.running && state.running.has(n.issue)),
+        openQuestions: Boolean(q && q.status === 'open'),
+        pr: Boolean(item && item.prs && item.prs.length),
+    });
+    if (!plan.ok) return { status: plan.status, body: { error: plan.error, code: plan.code, issue: n.issue } };
+    if (inFlight.has(n.issue)) return { status: 409, body: { error: 'already proceeding', code: 'in-flight', issue: n.issue } };
+    inFlight.add(n.issue);
+    try {
+        const r = await releaseHumanGate(n.issue, ctx, deps, { intents: plan.intents, itemId: item.itemId });
+        if (!r.ok) {
+            log(`#${n.issue}: delegate failed: ${r.error}`);
+            return { status: 502, body: { error: r.error, issue: n.issue } };
+        }
+        log(`#${n.issue}: delegated to AI (${plan.action} -> ${plan.nextPhase}) -> 🙋 released`);
+        if (ctx.afterRelease) ctx.afterRelease(n.issue);
+        return { status: 200, body: { ok: true, issue: n.issue, action: plan.action, nextPhase: plan.nextPhase } };
+    } finally {
+        inFlight.delete(n.issue);
+    }
+}
+
+/**
+ * daemon の HTTP に `POST /delegate` を足す。扱ったら true を返す。
+ * @param {object} req
+ * @param {object} res
+ * @param {URL} url
+ * @param {object} ctx {@link delegateOnce} の ctx
+ * @returns {boolean}
+ */
+function handleDelegateHttp(req, res, url, ctx) {
+    if (!ctx || url.pathname !== '/delegate') return false;
+    return readJsonPost(req, res, (body) => delegateOnce(ctx, body));
 }
 
 /**
@@ -248,4 +344,5 @@ function deliverMonitorAnswers(issue, cwd, state, deps = {}) {
 }
 
 module.exports = {
+    releaseHumanGate, delegateOnce, handleDelegateHttp,
     recordHitlQuestions, proceedMonitorAnswer, deliverMonitorAnswers, createAnswerStore, handleAnswerHttp, answerOnce, MAX_BODY_BYTES };

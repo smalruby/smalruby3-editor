@@ -37,7 +37,7 @@ item の状態は次の 4 要素で決まる（Project が単一の真実）:
 |---|---|
 | **A: autopilot フェーズ** | daemon が `phaseForItem` で決めて worker を dispatch（triage / discuss / decompose / implement / review / address-review） |
 | **D: daemon tick ステップ** | merge-progression / closed-reconcile / **stalled 復帰（worker 不在の in-flight 再開・#995）** / stuck 検知 / DoD 引き継ぎ / EPIC tracking / PR 投影 |
-| **H: 人間の操作** | Status 移動 / `🙋 HITL` ラベル解除 / **モニターの「答えて先へ進める」**（daemon が答えを記録して 🙋 を外す） / **コメント・レビュー送信** / PR merge / Issue close |
+| **H: 人間の操作** | Status 移動 / `🙋 HITL` ラベル解除 / **モニターの「答えて先へ進める」**（daemon が答えを記録して 🙋 を外す） / **モニターの「AI に任せる」**（daemon が 🙋 を外す。まだ分解していない EPIC は Sprint Backlog へ動かしてから） / **コメント・レビュー送信** / PR merge / Issue close |
 
 > **merge-progression は PR 後の非終端 leaf を見る**（`MERGE_CHECK_STATUSES` = In Progress / Blocked /
 > Review / DoD・`selectMergeCandidates`）。merge は HITL と独立した前進シグナルなので、🙋 付きの
@@ -117,6 +117,10 @@ Issue / PR の 🙋 を外す。人間が 🙋 を外したのと同じ意味な
   worker の結果を受けた同期（force）は、これまでどおり付ける。
 - 覚えは、その Issue の worker を起こすとき（答えを渡すとき）と、一覧で 🙋 が外れて見えたときに消す
   （`pruneMonitorReleases`）。daemon を起動し直すと消えるが、そのときは一覧の 🙋 が外れているので同じ。
+
+モニターの「**AI に任せる**」（`POST /delegate`）も同じ流れで 🙋 を外す（覚え方も同じ）。新しい状態や遷移は無く、
+人間の H の操作（🙋 を外す。まだ分解していない EPIC は Backlog → Sprint Backlog）を daemon が代わりに行うだけ。
+外しても `phaseForItem` が null になる item（トラッカー・人間がする作業など）は受けない（`planDelegate`）。
 
 ## 状態遷移表
 
