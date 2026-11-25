@@ -3696,6 +3696,17 @@ function normalizeDelegateBody(body) {
 }
 
 /**
+ * item に 🙋 が付いているか。listItems の item は `hitlLabel`、俯瞰ボード（`GET /board`）の item は `hitl` で持つので、
+ * どちらの形でも読めるようにする（#2404）。
+ * @param {object|null} item
+ * @returns {boolean}
+ */
+function itemHasHitl(item) {
+    if (!item) return false;
+    return Boolean(item.hitlLabel !== undefined ? item.hitlLabel : item.hitl);
+}
+
+/**
  * 「AI に任せる」で何をするかを決める（純粋関数・#2404）。人間が押すので、人間が GitHub で 🙋 を外す /
  * Status を動かすのと同じ意味の操作だけを選ぶ（`.claude/rules/human-wait.md` の表）。
  *
@@ -3714,7 +3725,7 @@ function normalizeDelegateBody(body) {
 function planDelegate(item, opts = {}) {
     const no = (status, code, error) => ({ ok: false, status, code, error });
     if (!item) return no(404, 'unknown-item', 'not a board item');
-    if (!item.hitlLabel) return no(409, 'not-human-wait', 'no 🙋 HITL label');
+    if (!itemHasHitl(item)) return no(409, 'not-human-wait', 'no 🙋 HITL label');
     if (opts.running) return no(409, 'running', 'worker is running');
     if (opts.openQuestions) return no(409, 'open-questions', 'has questions to answer: use POST /answer');
     const status = item.status || 'New Item';
@@ -3730,7 +3741,7 @@ function planDelegate(item, opts = {}) {
         intents = [{ field: 'Status', value: 'Sprint Backlog' }];
     }
     const projected = {
-        ...item, status: action === 'decompose' ? 'Sprint Backlog' : status, hitlLabel: false,
+        ...item, status: action === 'decompose' ? 'Sprint Backlog' : status, hitlLabel: false, hitl: false,
     };
     const nextPhase = phaseForItem(projected, { monitorReleased: true, pr: Boolean(opts.pr) });
     if (!nextPhase) return no(409, 'no-ai-phase', 'autopilot has nothing to do after releasing 🙋');
@@ -3748,7 +3759,7 @@ function planDelegate(item, opts = {}) {
 function humanWaitRows(items, opts = {}) {
     const running = new Set(opts.running || []);
     const questions = new Set(opts.questionIssues || []);
-    return (items || []).filter((it) => it && it.hitlLabel && !TERMINAL_STATUSES.has(it.status)).map((it) => {
+    return (items || []).filter((it) => itemHasHitl(it) && !TERMINAL_STATUSES.has(it.status)).map((it) => {
         const p = planDelegate(it, { running: running.has(it.issue), openQuestions: questions.has(it.issue), pr: Boolean(it.prs && it.prs.length) });
         const delegate = p.ok ? { ok: true, action: p.action, nextPhase: p.nextPhase } : { ok: false, code: p.code, error: p.error };
         return {
@@ -3774,6 +3785,7 @@ module.exports = {
     pruneMonitorReleases,
     withMonitorReleases,
     normalizeDelegateBody,
+    itemHasHitl,
     planDelegate,
     humanWaitRows,
     PHASE_BY_COMMAND,

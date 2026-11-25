@@ -262,6 +262,7 @@ async function releaseHumanGate(issue, ctx, deps = {}, opts = {}) {
     const it = boardItem(state, issue);
     if (it) {
         it.hitlLabel = false;
+        it.hitl = false;
         if (Array.isArray(it.labels)) it.labels = it.labels.filter((l) => l !== HITL_LABEL);
         for (const { field, value } of intents) if (field === 'Status') it.status = value;
     }
