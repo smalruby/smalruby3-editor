@@ -41,7 +41,7 @@ const STATUSES = [
 const AI_STATUSES = [
     null, 'Triaging', 'Discussing', 'Understanding', 'Decomposing', 'EPIC Decomposed',
     'Implementing', 'Creating PR', 'Self-Reviewing', 'Addressing Comments', 'Resolving Conflicts', 'Running DoD',
-    'Awaiting Continuation',
+    'Awaiting Continuation', 'Release Check',
 ];
 
 const KINDS = ['Issue', 'EPIC'];
@@ -113,6 +113,19 @@ test('I1: 全状態に出口がある（固着状態が存在しない）', () =
         }
     }
     assert.deepEqual(stuck, [], `出口の無い状態（固着）が見つかった:\n  ${stuck.join('\n  ')}`);
+});
+
+test('I1(release-check): 🧭 トラッカーの Release Check は 🙋 を外すと release-check へ進む（#2430）', () => {
+    for (const kind of KINDS) {
+        const item = { issue: 1, status: 'In Progress', aiStatus: 'Release Check', kind, hitlLabel: true, labels: [TRACKING_LABEL] };
+        assert.equal(phaseForItem(item, {}), null, '🙋 の間は人間の番');
+        assert.equal(phaseForItem({ ...item, hitlLabel: false }, {}), 'release-check');
+        assert.equal(isStuckCandidate({ ...item, hitlLabel: false }), false);
+        // トラッカーでない item に Release Check が残ったら、stuck 検知（→ Blocked）が出口になる
+        assert.equal(isStuckCandidate({ ...item, hitlLabel: false, labels: [] }), true);
+        // ほかの Status の Release Check は従来どおり（トラッカーは closed-reconcile が出口）
+        assert.equal(phaseForItem({ ...item, status: 'Review', hitlLabel: false }, {}), null);
+    }
 });
 
 test('I1(tracker): 🧭 tracking 付きも merge/close 整合という出口を持つ', () => {

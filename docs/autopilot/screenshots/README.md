@@ -12,4 +12,6 @@ autopilot モニタ（`tools/autopilot/src/monitor.js` の Web UI）の動作イ
 | `monitor-board-solo-priority.png` | 状況板の並び。EPIC に属さない Issue は優先度ごとのまとまりにし、同じ優先度の EPIC の下に置く（P1 の EPIC → P2 の EPIC → EPIC に属さない · P2 → P3 の EPIC → EPIC に属さない · P3）（#2411） |
 | `monitor-d-phone.png` | 幅 400px のとき。欄をタブに切りかえる（#2404） |
 | `monitor-fix-instruction-light.png` / `monitor-fix-instruction-dark.png` | 「AI に直してもらう」のダイアログ。PR のいちばん新しい round の bot の指摘を整形して見せ、下のコメント欄に直してほしいことを書いて送る（空では送れない）（#2415） |
+| `monitor-release-check-row-light.png` / `monitor-release-check-row-dark.png` | 「あなた宛て」のリリース確認の行。札「リリース確認」、プレビューへのリンク、「確認の結果を書く」ボタン（#2430） |
+| `monitor-release-check-dialog-light.png` / `monitor-release-check-dialog-dark.png` | 「確認の結果を書く」のダイアログ。観点（R1, R2, …）ごとに OK / NG とメモ、全体のコメントを書いて送る（#2430） |
 | `monitor-heading-icon.png` | 上の行の見出しのアイコン（虹色の ∞ + A・ダーク・3 倍に拡大）（#2413） |

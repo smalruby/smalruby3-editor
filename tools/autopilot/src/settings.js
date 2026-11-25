@@ -64,6 +64,7 @@ const DEFAULT_SETTINGS = {
         'address-review': { model: 'opus' },
         verify: { model: 'sonnet' },
         'resolve-conflict': { model: 'opus' },
+        'release-check': { model: 'opus' },
         // 現在地の artifact を作る job（#2388。Issue に属さない・モニタのボタンからだけ起動）
         'current-status': { model: 'opus' },
     },

@@ -41,6 +41,8 @@ test('isSpikeItem: triage / discuss の run 失敗（Blocked + AI Status 据え�
     assert.ok(!isSpikeItem({ status: 'Blocked', aiStatus: 'Discussing', hitlLabel: true }));
     assert.strictEqual(humanWaitReason({ status: 'Blocked', aiStatus: 'Triaging', hitlLabel: true }), 'blocked');
     assert.strictEqual(humanWaitReason({ status: 'Blocked', aiStatus: 'Discussing', hitlLabel: true }), 'blocked');
+    assert.strictEqual(humanWaitReason({ status: 'In Progress', aiStatus: 'Release Check', hitlLabel: true }), 'release');
+    assert.strictEqual(humanWaitReason({ status: 'In Progress', aiStatus: 'Release Check', hitlLabel: false }), null);
     assert.strictEqual(spikeLabelAction({ status: 'Blocked', aiStatus: 'Triaging', hitlLabel: true }, true), 'remove');
 });
 
@@ -115,7 +117,7 @@ test('humanWaitReason: 🙋 が無ければ依存待ちだけを返し、ほか�
 });
 
 test('HUMAN_WAIT_REASONS: humanWaitReason の全理由を表示順で持つ', () => {
-    assert.deepStrictEqual(HUMAN_WAIT_REASONS.map((r) => r.key), ['spike', 'review', 'dod', 'blocked', 'waiting', 'other']);
+    assert.deepStrictEqual(HUMAN_WAIT_REASONS.map((r) => r.key), ['spike', 'review', 'dod', 'release', 'blocked', 'waiting', 'other']);
     for (const r of HUMAN_WAIT_REASONS) assert.ok(r.icon && r.label && r.detail, r.key);
 });
 
