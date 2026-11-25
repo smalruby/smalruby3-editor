@@ -13,7 +13,10 @@
  *   - {kind: 'loadProgress', assignmentName}: the progress of a lesson assignment
  *   - {kind: 'grade'|'comment', assignmentName, from, to, total}: the AI on seats from..to of total
  *   - {kind: 'return', done, total}: comments returned so far
- * A result (`evalResult`) is {kind: 'load'|'grade'|'comment'|'return', count, lessons, failed, done, total}.
+ *   - {kind: 'gradebook', done, total}: the saved gradings of the class's assignments (#2424)
+ *   - {kind: 'confirm', assignmentName}: the grades of an assignment are being confirmed (#2424)
+ * A result (`evalResult`) is {kind: 'load'|'grade'|'comment'|'return'|'confirm', count, lessons, failed, done,
+ * total}.
  */
 import { defineMessages } from 'react-intl';
 
@@ -48,6 +51,26 @@ const evalStatusMessages = defineMessages({
         defaultMessage: 'Returning the comments ({done}/{total})',
         description: 'Grading screen: running message while returning comments to the students (#2419)',
         id: 'gui.classroom.evaluation.status.return',
+    },
+    gradebook: {
+        defaultMessage: 'Loading the gradebook ({done}/{total})',
+        description: 'Grading screen: running message while reading the saved grades of each assignment (#2424)',
+        id: 'gui.classroom.evaluation.status.gradebook',
+    },
+    confirm: {
+        defaultMessage: 'Confirming the grades of {name}',
+        description: 'Grading screen: running message while the grades of an assignment are confirmed (#2424)',
+        id: 'gui.classroom.evaluation.status.confirm',
+    },
+    confirmDone: {
+        defaultMessage: 'Confirmed {count} grades.',
+        description: 'Grading screen: result after confirming the grades of an assignment (#2424)',
+        id: 'gui.classroom.evaluation.status.confirmDone',
+    },
+    confirmFailed: {
+        defaultMessage: 'Could not confirm the grades.',
+        description: 'Grading screen: result when confirming the grades failed (#2424)',
+        id: 'gui.classroom.evaluation.status.confirmFailed',
     },
     openWork: {
         defaultMessage: 'Opening the work',
@@ -132,6 +155,11 @@ const evalRunningLabelMessages = defineMessages({
         description: 'Grading screen: step button label while returning the comments (#2419)',
         id: 'gui.classroom.evaluation.running.return',
     },
+    confirm: {
+        defaultMessage: 'Confirming',
+        description: 'Grading screen: step button label while the grades are confirmed (#2424)',
+        id: 'gui.classroom.evaluation.running.confirm',
+    },
 });
 
 /** Which step button runs for each kind (`loadProgress` is the same button 1). */
@@ -141,6 +169,7 @@ const RUNNING_STEP_OF_KIND = {
     grade: 'grade',
     comment: 'comment',
     return: 'return',
+    confirm: 'confirm',
 };
 
 const ratioOf = (done, total) => (total > 0 ? Math.min(1, Math.max(0, done / total)) : null);
@@ -177,6 +206,14 @@ const describeEvalRunning = ({ progress, openingWork = false, savingName = null 
                     // The seats before this call are done.
                     ratio: ratioOf(progress.from - 1, progress.total),
                 };
+            case 'gradebook':
+                return {
+                    message: evalStatusMessages.gradebook,
+                    values: { done: progress.done, total: progress.total },
+                    ratio: ratioOf(progress.done, progress.total),
+                };
+            case 'confirm':
+                return { message: evalStatusMessages.confirm, values: { name }, ratio: null };
             case 'return':
                 return {
                     message: evalStatusMessages.return,

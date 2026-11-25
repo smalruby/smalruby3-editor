@@ -171,12 +171,13 @@ describe('screens built on the shared layout (#1125)', () => {
         const { getByTestId } = wrap(
             <TeacherEvaluation
                 comments={{}}
-                evalLessons={[]}
+                currentId="c1"
+                evalLessons={[{ classroomId: 'c1', assignmentName: '迷路' }]}
                 getCell={() => null}
                 rubricAxes={[]}
                 seats={[]}
-                selectedLessonIds={[]}
                 strictness="standard"
+                view="assignment"
                 onBack={jest.fn()}
                 onChangeRubricAxis={jest.fn()}
                 onExportAuditCsv={jest.fn()}
@@ -188,11 +189,10 @@ describe('screens built on the shared layout (#1125)', () => {
                 onSetCellReason={jest.fn()}
                 onSetComment={jest.fn()}
                 onSetStrictness={jest.fn()}
-                onToggleLesson={jest.fn()}
             />,
         );
         expect(getByTestId('classroom-phase-teacher-evaluation')).toBeInTheDocument();
-        expect(getByTestId('classroom-evaluation-cancel')).toBeInTheDocument();
+        expect(getByTestId('classroom-eval-steps')).toBeInTheDocument();
         expect(getByTestId('classroom-eval-run-grade')).toBeInTheDocument();
     });
 });

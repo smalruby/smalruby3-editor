@@ -18,6 +18,10 @@ const mockUpdateSubmission = jest.fn();
 jest.mock('../../../src/lib/classroom-api.js', () => ({
     __esModule: true,
     default: {
+        // 採点の保存（#2424）: 保存は無い・保存したものをそのまま返す・メンバーは提出の席だけ
+        getGrading: jest.fn(() => Promise.resolve({ grading: null })),
+        putGrading: jest.fn((token, id, updates) => Promise.resolve({ grading: updates })),
+        listMembers: jest.fn(() => Promise.resolve({ members: [] })),
         getAssignment: jest.fn(() => Promise.resolve({})),
         listSubmissions: (...args) => mockListSubmissions(...args),
         evaluateSubmissions: (...args) => mockEvaluateSubmissions(...args),
@@ -66,6 +70,9 @@ const setup = async () => {
     const hook = renderHook((props) => useTeacherEvaluation({ ...deps, ...props }), { initialProps: {} });
     await act(async () => {
         hook.result.current.handleShowEvaluation(group);
+    });
+    await act(async () => {
+        hook.result.current.handleOpenAssignment(hook.result.current.evalLessons[0].classroomId);
     });
     await act(async () => {
         await hook.result.current.handleLoadSubmissions();
@@ -227,6 +234,9 @@ describe('useTeacherEvaluation — 離れたら途中の処理を止める (#195
             hook.result.current.handleShowEvaluation(group);
         });
         await act(async () => {
+            hook.result.current.handleOpenAssignment(hook.result.current.evalLessons[0].classroomId);
+        });
+        await act(async () => {
             await hook.result.current.handleLoadSubmissions();
         });
         // 前の実行の答えが、入り直したあとに届く
@@ -254,6 +264,9 @@ describe('useTeacherEvaluation — 離れたら途中の処理を止める (#195
 
         await act(async () => {
             hook.result.current.handleShowEvaluation(group);
+        });
+        await act(async () => {
+            hook.result.current.handleOpenAssignment(hook.result.current.evalLessons[0].classroomId);
         });
         await act(async () => {
             await hook.result.current.handleLoadSubmissions();
@@ -296,6 +309,9 @@ describe('useTeacherEvaluation — 離れたら途中の処理を止める (#195
             hook.result.current.handleShowEvaluation(group);
         });
         await act(async () => {
+            hook.result.current.handleOpenAssignment(hook.result.current.evalLessons[0].classroomId);
+        });
+        await act(async () => {
             slow.resolve({ submissions: submissionsOf(3) });
             await loading;
         });
@@ -320,6 +336,9 @@ describe('useTeacherEvaluation — 離れたら途中の処理を止める (#195
         await leave(hook);
         await act(async () => {
             hook.result.current.handleShowEvaluation(group);
+        });
+        await act(async () => {
+            hook.result.current.handleOpenAssignment(hook.result.current.evalLessons[0].classroomId);
         });
         await act(async () => {
             second.resolve({});
