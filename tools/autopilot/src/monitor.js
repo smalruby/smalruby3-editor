@@ -243,6 +243,15 @@ ${TOKEN_META_EMPTY}
               background: var(--ap-surface); color: var(--ap-ink); border: 1px solid var(--ap-line); border-radius: var(--ap-radius-md);
               padding: .6rem .75rem; font-size: var(--ap-font-xs); line-height: 1.5; box-shadow: 0 6px 24px var(--ap-shadow-menu); }
   .usagepop.open { display: block; }
+  /* あなた宛てのタイトルの全文（#2416）。ブラウザの title は使わない（スマホで出ず、出るまで遅い） */
+  [data-tip] { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  [data-tip]:focus-visible { outline: 2px solid var(--ap-focus); outline-offset: 2px; border-radius: var(--ap-radius-sm); }
+  .titletip { position: fixed; z-index: 45; max-width: min(28rem, calc(100vw - 16px)); cursor: pointer;
+              background: var(--ap-surface); color: var(--ap-ink); border: 1px solid var(--ap-line-strong); border-radius: var(--ap-radius-md);
+              padding: var(--ap-space-3) var(--ap-space-4); font-size: var(--ap-font-sm); line-height: 1.5; font-weight: 400;
+              white-space: normal; overflow-wrap: anywhere; box-shadow: 0 6px 24px var(--ap-shadow-menu); }
+  .titletip[hidden] { display: none; }
+  .titletip .tip-meta { display: block; margin-top: var(--ap-space-2); font-size: var(--ap-font-xs); color: var(--ap-muted); }
   .usagepop .upop-row { margin-bottom: .5rem; }
   .usagepop .upop-row:last-child { margin-bottom: 0; }
   .usagepop .upop-label { font-weight: 600; }
@@ -571,6 +580,7 @@ ${LEARN_TASKS_CSS}</style></head><body>
   <div class="body" id="updbody"></div>
 </div></div>
 <div id="usagepop" role="dialog" aria-label="Claude 使用量の詳細" class="usagepop"><div id="usagepopbody"></div></div>
+<div id="titletip" role="tooltip" class="titletip" hidden data-testid="title-tip"></div>
 <div id="prmenu" role="menu"></div>
 <div id="modal"><div class="mbox">
   <div class="mbox-h"><h3 id="mtitle">log</h3><button type="button" class="ibtn" id="mreload">↻ 更新</button><button type="button" class="ibtn" id="mclose">✕ 閉じる</button></div>
@@ -1085,6 +1095,39 @@ function seedAnswers(entry) {
     if (a.note) qNote[entry.issue][a.q] = a.note;
   }
 }
+// ---- あなた宛てのタイトルのツールチップ（#2416）。開け閉めの判定は titleTipNext（monitor-inbox.js） ----
+let tipState = { open: null, via: null };
+let tipInfos = {};   // 直近の描画での key → titleTipInfo(...)。行は 5 秒ごとに作り直すので key で引き直す
+function tipTitle(tag, key, w, text) {
+  tipInfos[key] = titleTipInfo(w);
+  const on = tipState.open === key;
+  return '<' + tag + ' class="tt" tabindex="0" data-tip="' + esc(key) + '"' + (on ? ' aria-describedby="titletip"' : '') + '>'
+    + esc(text) + '</' + tag + '>';
+}
+const tipAnchor = (key) => (key ? document.querySelector('[data-tip="' + CSS.escape(key) + '"]') : null);
+function titleTipEvent(ev) {
+  const disabled = wideLayout() && !inboxOpen;
+  const before = tipState.open;
+  tipState = titleTipNext(tipState, Object.assign({ disabled }, ev));
+  if (tipState.open !== before) { const a = tipAnchor(before); if (a) a.removeAttribute('aria-describedby'); }
+  showTitleTip();
+}
+function showTitleTip() {
+  const tip = document.getElementById('titletip');
+  const a = tipAnchor(tipState.open);
+  const info = tipState.open ? tipInfos[tipState.open] : null;
+  // 描き直しでタイトルが消えた・見えない（畳まれた欄・ほかのタブ）ときは閉じる
+  if (tipState.open && (!a || !info || !a.getClientRects().length)) tipState = titleTipNext(tipState, { type: 'gone' });
+  if (!tipState.open) { tip.hidden = true; return; }
+  a.setAttribute('aria-describedby', 'titletip');
+  const html = esc(info.title) + '<span class="tip-meta">' + esc(['#' + info.issue, info.state].filter(Boolean).join(' · ')) + '</span>';
+  if (tip.innerHTML !== html) tip.innerHTML = html;
+  tip.hidden = false;
+  const p = titleTipPlace(a.getBoundingClientRect(), { width: tip.offsetWidth, height: tip.offsetHeight },
+    { width: window.innerWidth, height: window.innerHeight });
+  tip.style.left = p.left + 'px';
+  tip.style.top = p.top + 'px';
+}
 function questionCard(entry, open) {
   seedAnswers(entry);
   const issue = entry.issue;
@@ -1094,7 +1137,8 @@ function questionCard(entry, open) {
   const chosen = chosenAnswers(entry, picks, notes, true);
   const title = it ? shortTitle(it.title) : '#' + issue;
   const recKeys = (entry.questions || []).map((q) => q.recommended).filter(Boolean).join('・');
-  const head = '<div><b>' + esc(title) + '</b> ' + ilink(issue, it && it.url)
+  const head = '<div>' + tipTitle('b', 'q:' + issue, { issue, title: it ? it.title : title, status: it && it.status, tag: { label: '答えが要る' } }, title)
+    + ' ' + ilink(issue, it && it.url)
     + ' <span class="small">' + esc([entry.phase, entry.reason].filter(Boolean).join(' · ')) + '</span></div>';
   if (!open) {
     return '<div class="q" data-testid="inbox-question" data-issue="' + issue + '"><div class="acts">' + head + '<span class="sp"></span>'
@@ -1120,6 +1164,7 @@ let openQuestion = null;   // いま開いている質問の Issue（null なら
 let lastQuestionsHtml = '';
 let lastInbox = { questions: [], answered: [], learn: [], waits: [] };
 function renderInbox(d) {
+  tipInfos = {};
   const items = (d.items || []).map((it) => Object.assign({}, it, { later: effectiveLater(it, laterPending) }));
   const m = inboxModel(Object.assign({}, d, { items }), lastLearn);
   lastInbox = m;
@@ -1152,13 +1197,14 @@ function renderInbox(d) {
       const p = g.priority ? '<span class="gprio ' + g.priority.toLowerCase() + '">' + esc(g.priority) + '</span>' : '';
       const head = '<div class="ig-h" data-testid="inbox-group-head"' + (h ? ' data-issue="' + h.issue + '"' + why(h) : '') + '>'
         + (h ? tagPill(h) : '')
-        + '<span class="t1"><b class="tt" title="' + esc(g.title) + '">' + esc(g.epic == null ? g.title : shortTitle(g.title)) + '</b>'
+        + '<span class="t1">' + (g.epic == null ? '<b class="tt">' + esc(g.title) + '</b>'
+          : tipTitle('b', 'i:' + g.epic, h ? Object.assign({}, h, { title: g.title }) : { issue: g.epic, title: g.title }, shortTitle(g.title)))
         + (g.epic != null ? ilink(g.epic, g.url) : '') + '</span>'
         + p + (g.count ? '<span class="small">' + g.count + ' 件</span>' : '')
         + (h ? '<span class="acts-r">' + goOf(h) + moreBtn(h.issue) + '</span>' : '') + '</div>';
       const rows = g.rows.map((w) => '<div class="fi" data-testid="inbox-wait" data-issue="' + w.issue + '"' + why(w) + '>'
         + tagPill(w)
-        + '<span class="t1"><span class="tt" title="' + esc(w.title) + '">' + esc(shortTitle(w.title)) + '</span>' + ilink(w.issue, w.url)
+        + '<span class="t1">' + tipTitle('span', 'i:' + w.issue, w, shortTitle(w.title)) + ilink(w.issue, w.url)
         // 札で分かる状態は繰り返さない。札が「人間の番」（理由が分からない）ときだけ Status を添える
         + (w.tag.tag === 'other' && w.status ? '<span class="small">' + esc(w.status) + '</span>' : '')
         + (w.later ? '<span class="small">💤 あとで</span>' : '') + '</span>'
@@ -1173,6 +1219,7 @@ function renderInbox(d) {
   const total = m.questions.length + m.learn.length + m.waits.length;
   document.getElementById('inboxcount').textContent = total + ' 件';
   document.getElementById('inbox-empty').hidden = total > 0 || m.answered.length > 0;
+  showTitleTip();
 }
 
 // ---- 状況板 ----
@@ -1307,6 +1354,7 @@ function setInboxOpen(open) {
   inboxOpen = Boolean(open);
   try { localStorage.setItem(INBOX_OPEN_KEY, String(inboxOpen)); } catch (e) { /* storage 不可でも動く */ }
   applyInboxOpen();
+  if (!inboxOpen) titleTipEvent({ type: 'gone' });
 }
 function applyInboxOpen() {
   document.getElementById('stage').classList.toggle('inbox-closed', !inboxOpen);
@@ -1648,8 +1696,26 @@ document.addEventListener('click', (e) => {
   closeUsagePop();
 });
 window.addEventListener('resize', () => { if (usagePopOpen) positionUsagePop(); });
+// タイトルのホバー（マウスだけ。タッチのホバーはクリックで扱う）とフォーカス
+document.addEventListener('pointerover', (e) => {
+  const t = e.pointerType === 'mouse' && e.target.closest('[data-tip]');
+  if (t) titleTipEvent({ type: 'enter', key: t.dataset.tip });
+});
+document.addEventListener('pointerout', (e) => {
+  const t = e.pointerType === 'mouse' && e.target.closest('[data-tip]');
+  if (t && !t.contains(e.relatedTarget)) titleTipEvent({ type: 'leave', key: t.dataset.tip });
+});
+document.addEventListener('focusin', (e) => { const t = e.target.closest && e.target.closest('[data-tip]'); if (t) titleTipEvent({ type: 'focus', key: t.dataset.tip }); });
+document.addEventListener('focusout', (e) => { const t = e.target.closest && e.target.closest('[data-tip]'); if (t) titleTipEvent({ type: 'blur', key: t.dataset.tip }); });
+window.addEventListener('resize', () => { if (tipState.open) showTitleTip(); });
+document.addEventListener('scroll', () => { if (tipState.open) showTitleTip(); }, true);
 // まとめてクリックを受ける（行は 5 秒ごとに作り直すので、要素ごとに付けない）
 document.addEventListener('click', (ev) => {
+  // タイトルのツールチップの切り替えは、タイトルの文字の部分だけ（ほかの部分の動作は変えない）
+  const tipT = ev.target.closest('[data-tip]');
+  if (tipT) { titleTipEvent({ type: 'click-title', key: tipT.dataset.tip }); return; }
+  if (ev.target.closest('#titletip')) { titleTipEvent({ type: 'click-tip' }); return; }
+  if (tipState.open) titleTipEvent({ type: 'click-outside' });
   const t = ev.target.closest('button, a, [data-act]');
   const inMenu = ev.target.closest('#rowmenu, #globalmenu');
   if (!t) { if (!inMenu) closeMenus(); return; }
@@ -1703,7 +1769,7 @@ document.addEventListener('input', (ev) => {
 document.getElementById('q').addEventListener('input', () => { if (lastBoard) renderBoard(lastBoard); });
 // 数字キー 1〜4: 欄へ移る（入力欄の中・⌘/Ctrl/Alt との組み合わせでは効かない）
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') { closeModal(); closeUpdateModal(); closeUsagePop(); closePrMenu(); closeMenus(); closeDrawer(); return; }
+  if (e.key === 'Escape') { titleTipEvent({ type: 'escape' }); closeModal(); closeUpdateModal(); closeUsagePop(); closePrMenu(); closeMenus(); closeDrawer(); return; }
   const tag = (e.target.tagName || '').toLowerCase();
   const inInput = tag === 'input' || tag === 'textarea' || tag === 'select' || Boolean(e.target.isContentEditable);
   const target = digitTarget({ code: e.code, metaKey: e.metaKey, ctrlKey: e.ctrlKey, altKey: e.altKey, inInput });

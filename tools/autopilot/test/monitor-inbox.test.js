@@ -6,7 +6,7 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const {
     itemSem, epicSem, inboxModel, inboxGroups, isInboxToggleKey, boardRows, recommendedAnswers, chosenAnswers, digitTarget,
-    agoLabel, shortTitle,
+    agoLabel, shortTitle, titleTipNext, titleTipPlace, titleTipInfo,
     INBOX_CLIENT_FNS,
 } = require('../src/monitor-inbox');
 
@@ -253,9 +253,96 @@ test('agoLabel / shortTitle', () => {
 test('INBOX_CLIENT_FNS: どれも自己完結（モジュールの外を参照せずにブラウザで動く）', () => {
     const src = INBOX_CLIENT_FNS.map(String).join('\n');
     // eslint-disable-next-line no-new-func
-    const fns = new Function(`${src}; return { boardRows, inboxModel, inboxGroups, digitTarget };`)();
+    const fns = new Function(`${src}; return { boardRows, inboxModel, inboxGroups, digitTarget, titleTipNext, titleTipPlace, titleTipInfo };`)();
+    assert.strictEqual(fns.titleTipNext(null, { type: 'click-title', key: 'i:1' }).open, 'i:1');
+    assert.strictEqual(fns.titleTipPlace({ top: 10, bottom: 30, left: 0, right: 50 }, { width: 100, height: 40 }, { width: 400, height: 800 }).side, 'below');
+    assert.strictEqual(fns.titleTipInfo({ issue: 3, title: 't' }).issue, 3);
     assert.deepStrictEqual(fns.boardRows(GROUPS, ITEMS, { open: ['10'], later: [15] }).length, 4);
     assert.deepStrictEqual(fns.inboxModel({ items: ITEMS }, null).waits.map((w) => w.issue), [11, 12, 13]);
     assert.strictEqual(fns.digitTarget({ code: 'Digit2' }), 'board');
     assert.strictEqual(fns.inboxGroups(fns.inboxModel({ items: ITEMS }, null).waits, { items: ITEMS })[0].key, '10');
+});
+
+// ---- タイトルのツールチップ（#2416） ----
+const CLOSED = { open: null, via: null };
+
+test('titleTipNext: タイトルを押すと開き、もう一度押すと閉じる', () => {
+    const a = titleTipNext(CLOSED, { type: 'click-title', key: 'i:1' });
+    assert.deepStrictEqual(a, { open: 'i:1', via: 'click' });
+    assert.deepStrictEqual(titleTipNext(a, { type: 'click-title', key: 'i:1' }), CLOSED);
+});
+
+test('titleTipNext: ツールチップ自体・外を押す、Esc で閉じる', () => {
+    const a = { open: 'i:1', via: 'click' };
+    assert.deepStrictEqual(titleTipNext(a, { type: 'click-tip' }), CLOSED);
+    assert.deepStrictEqual(titleTipNext(a, { type: 'click-outside' }), CLOSED);
+    assert.deepStrictEqual(titleTipNext(a, { type: 'escape' }), CLOSED);
+    assert.deepStrictEqual(titleTipNext({ open: 'i:1', via: 'hover' }, { type: 'escape' }), CLOSED);
+});
+
+test('titleTipNext: 開いているのは 1 つだけ（別のタイトルを押すと移る）', () => {
+    const a = titleTipNext({ open: 'i:1', via: 'click' }, { type: 'click-title', key: 'i:2' });
+    assert.deepStrictEqual(a, { open: 'i:2', via: 'click' });
+    assert.deepStrictEqual(titleTipNext({ open: 'i:1', via: 'hover' }, { type: 'enter', key: 'i:2' }), { open: 'i:2', via: 'hover' });
+});
+
+test('titleTipNext: ホバーで出て、外れたら消える。押して開いたものはホバーで動かさない', () => {
+    const h = titleTipNext(CLOSED, { type: 'enter', key: 'i:1' });
+    assert.deepStrictEqual(h, { open: 'i:1', via: 'hover' });
+    assert.deepStrictEqual(titleTipNext(h, { type: 'leave', key: 'i:1' }), CLOSED);
+    const c = { open: 'i:1', via: 'click' };
+    assert.deepStrictEqual(titleTipNext(c, { type: 'leave', key: 'i:1' }), c);
+    assert.deepStrictEqual(titleTipNext(c, { type: 'enter', key: 'i:2' }), c);
+    // 別のタイトルから外れても、いま開いているものは消さない
+    assert.deepStrictEqual(titleTipNext(h, { type: 'leave', key: 'i:9' }), h);
+});
+
+test('titleTipNext: タップ（ホバーの直後のクリック）で開いたままにし、2 回目のタップで消える', () => {
+    const h = titleTipNext(CLOSED, { type: 'enter', key: 'i:1' });
+    const c = titleTipNext(h, { type: 'click-title', key: 'i:1' });
+    assert.deepStrictEqual(c, { open: 'i:1', via: 'click' });
+    assert.deepStrictEqual(titleTipNext(c, { type: 'click-title', key: 'i:1' }), CLOSED);
+});
+
+test('titleTipNext: フォーカスで出て、外れたら消える', () => {
+    const f = titleTipNext(CLOSED, { type: 'focus', key: 'i:1' });
+    assert.deepStrictEqual(f, { open: 'i:1', via: 'focus' });
+    assert.deepStrictEqual(titleTipNext(f, { type: 'blur', key: 'i:1' }), CLOSED);
+    // フォーカスの直後のクリック（マウスで押した）は開いたまま、押して開いた扱いにする
+    assert.deepStrictEqual(titleTipNext(f, { type: 'click-title', key: 'i:1' }), { open: 'i:1', via: 'click' });
+    // 押して開いたものは、フォーカスが外れても消さない（外のクリックで消える）
+    assert.deepStrictEqual(titleTipNext({ open: 'i:1', via: 'click' }, { type: 'blur', key: 'i:1' }), { open: 'i:1', via: 'click' });
+});
+
+test('titleTipNext: 左の欄が畳まれているとき（disabled）は出さず、開いていたものも消す', () => {
+    assert.deepStrictEqual(titleTipNext(CLOSED, { type: 'click-title', key: 'i:1', disabled: true }), CLOSED);
+    assert.deepStrictEqual(titleTipNext({ open: 'i:1', via: 'hover' }, { type: 'enter', key: 'i:1', disabled: true }), CLOSED);
+    assert.deepStrictEqual(titleTipNext({ open: 'i:1', via: 'click' }, { type: 'gone' }), CLOSED);
+    assert.deepStrictEqual(titleTipNext(null, { type: 'nope' }), CLOSED);
+});
+
+test('titleTipPlace: 下に入ればタイトルの下、入らなければ上。画面の端からはみ出さない', () => {
+    const view = { width: 390, height: 600 };
+    const tip = { width: 200, height: 60 };
+    const below = titleTipPlace({ top: 100, bottom: 120, left: 40, right: 140 }, tip, view);
+    assert.deepStrictEqual(below, { left: 40, top: 126, side: 'below' });
+    const above = titleTipPlace({ top: 560, bottom: 580, left: 40, right: 140 }, tip, view);
+    assert.deepStrictEqual(above, { left: 40, top: 494, side: 'above' });
+    // 右の端: 8px の余白を残して左へ寄せる
+    assert.strictEqual(titleTipPlace({ top: 100, bottom: 120, left: 300, right: 380 }, tip, view).left, 182);
+    // 左の端
+    assert.strictEqual(titleTipPlace({ top: 100, bottom: 120, left: -20, right: 40 }, tip, view).left, 8);
+    // 上にも下にも入らないときは、上の端に寄せる
+    assert.strictEqual(titleTipPlace({ top: 20, bottom: 40, left: 0, right: 10 }, { width: 100, height: 590 }, view).top, 8);
+});
+
+test('titleTipInfo: 全文・番号・今の状態（Status · 札）', () => {
+    assert.deepStrictEqual(
+        titleTipInfo({ issue: 5, title: 'feat(autopilot): show full titles', status: 'Review', tag: { label: '人間の番' } }),
+        { title: 'feat(autopilot): show full titles', issue: 5, state: 'Review · 人間の番' });
+    assert.deepStrictEqual(titleTipInfo({ issue: 6, title: 'x', tag: { label: 'レビュー' } }), { title: 'x', issue: 6, state: 'レビュー' });
+    assert.deepStrictEqual(titleTipInfo({ issue: 7, title: 'y' }), { title: 'y', issue: 7, state: null });
+    // 同じ言葉は 2 回書かない
+    assert.strictEqual(titleTipInfo({ issue: 8, title: 'z', status: 'Blocked', tag: { label: 'Blocked' } }).state, 'Blocked');
+    assert.deepStrictEqual(titleTipInfo(null), { title: '', issue: null, state: null });
 });
