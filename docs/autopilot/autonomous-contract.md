@@ -86,6 +86,7 @@ Runner はこの短語を pane で検出してから `AUTOPILOT_RESULT_FILE` を
 | `createdSubIssues` | number[] | decompose で作成した sub-issue 番号 |
 | `subIssueSizes` | object \| null | decompose で作成した leaf ごとの size（`{"<issue番号>":"small"\|"middle"\|"large"}`）。daemon が `createdSubIssues` と合わせて各 sub-issue の Status=`Sprint Backlog`/Kind=`Issue`/Size を設定する（#914） |
 | `prUrl` | string \| null | implement で作成/更新した PR |
+| `previewUrl` | string \| null | 任意。release-check が見つけた topic → develop の PR のプレビューの URL。daemon が覚えてモニターの「あなた宛て」の行に出す（#2430） |
 
 `signal=hitl` のとき追加で:
 

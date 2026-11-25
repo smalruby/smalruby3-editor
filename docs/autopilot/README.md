@@ -90,6 +90,7 @@ Issue を状態の正とすることで daemon が落ちても現在地が分か
 | Understanding | autopilot-understand | No Status / Backlog（EPIC） |
 | Decomposing | autopilot-decompose | Backlog（EPIC→sub-issue） |
 | EPIC Decomposed | —（親トラッカー化） | In Progress（EPIC） |
+| Release Check | autopilot-release-check（分解済み EPIC のリリース確認。子が全部済むと daemon がこの値にする。🙋 なしで観点をまとめる / 人間の確認の結果を受けて NG ごとに sub-issue を作る） | In Progress（🧭 EPIC） |
 | Implementing / Creating PR | autopilot-implement | In Progress |
 | Self-Reviewing | autopilot-review | In Progress |
 | Addressing Comments | autopilot-address-review | Review / DoD（NG 差し戻し） |
@@ -335,6 +336,7 @@ worker が人間に選んでほしいことがあるとき、`signal=hitl` の�
 | まだ分解していない EPIC（Backlog・Kind=EPIC） | Status を Sprint Backlog にしてから 🙋 を外す | decompose |
 | 人間ゲート（Review / DoD / Blocked / Discussing / Awaiting Continuation / Decomposing / Triaging）・New Item | 🙋 を外す | 🙋 を外したときと同じ（address-review・triage・discuss など） |
 | 分解済みの EPIC（🧭・In Progress / EPIC Decomposed） | 受けない（409 `tracker`）。子が全部済んだら人間が閉じる | — |
+| リリース確認の EPIC（🧭・In Progress / Release Check） | 🙋 を外す（ボタンは「確認の結果を書く」。下の節） | release-check |
 | 人間がする作業（Backlog・Kind=Issue） | 受けない（409 `human-work`）。AI に渡すなら人間が Sprint Backlog へ動かす | — |
 | 答え待ちの質問がある Issue | 受けない（409 `open-questions`）。「AI の推奨で進める」は `POST /answer` で推奨の選択肢を送る | — |
 | 外しても進める段が無い（例: セッションの作業の In Progress・AI Status 空）・Icebox / Close / Done | 受けない（409 `no-ai-phase` / `resting`） | — |
@@ -369,6 +371,40 @@ worker が人間に選んでほしいことがあるとき、`signal=hitl` の�
 `selectMonitorInstructions` / `reviewFindingsView`。
 
 ![「AI に直してもらう」のダイアログ](screenshots/monitor-fix-instruction-light.png)
+
+### リリース確認（分解済み EPIC の最後の確認）
+
+EPIC は topic ブランチに sub-issue の PR を集め、最後に人間がプレビューで確かめて develop へ出す
+（`.claude/rules/topic-branches.md`）。この最後の確認を autopilot が手伝う。判断は `src/release-check.js`（純粋関数）、
+daemon とのつなぎ・HTTP は `src/release-check-http.js`、段のプロンプトは `prompts/autopilot-release-check.md`。
+
+1. **入る**: 🧭 トラッカー（In Progress / EPIC Decomposed・🙋 なし）で、sub-issue が全部済んだか、残りが
+   **`🚀 after-release`** ラベルの付いたもの（リリース後の作業）だけになったら、daemon がボードを更新したあと
+   AI Status を **Release Check** にする（`releaseCheckReady` / `selectReleaseCheckEntries`。ボードの値だけで決め、
+   追加の read はしない。担当がほかの人でボードに載らない子があるときは入らない）。
+2. **観点をまとめる**: release-check フェーズが topic → develop の PR とプレビューの URL を探し、EPIC の本文・
+   決めたこと・sub-issue の DoD・見送った指摘・関係する docs の方針から、番号付きの確認の観点（`### R1. <題>` …
+   「どこを開いて何をすると、どうなれば OK か」）を、トラッカーに目印付きのコメント
+   `<!-- autopilot-release-check round=N -->` で書く（同じ round があれば PATCH）。終わったら 🙋 で人間に渡す。
+3. **人間が確かめる**: モニターの「あなた宛て」の行（札「🚀 リリース確認」）に、プレビューへのリンクと
+   **「確認の結果を書く」** ボタンが出る。ダイアログは観点のコメントを整形して見せ、観点ごとに **OK / NG** と
+   メモ、全体のコメントを書ける（`GET /release-check?issue=N` で押したときだけトラッカーのコメントを 1 回読む）。
+   「送る」で `POST /release-check/review`。daemon は結果を `<!-- autopilot-release-review round=N -->` のコメントとして
+   Bot で書いてから 🙋 を外す（同じ round の結果は二重に書かない・`planReleaseReviewPost`）。
+4. **結果を受ける**: release-check が結果を読み、NG とコメントの指摘ごとに EPIC の sub-issue を作る（本文の行頭に
+   `autopilot-base: <topic ブランチ>`、目印 `<!-- autopilot-release-ng epic=E round=N point=R1 -->` で二重に作らない・
+   `planReleaseResult`）。daemon が sub-issue を Sprint Backlog / Kind=Issue にし、トラッカーは EPIC Decomposed に戻る。
+   作った子が全部済むと、1. から次の round になる。全部 OK なら topic → develop の PR の本文を更新して 🙋 で人間に返す。
+   受けたことは `<!-- autopilot-release-result round=N -->` で残す。
+5. **develop へのマージは人間**。autopilot はマージせず、EPIC も閉じない。マージして EPIC を閉じると closed-reconcile が
+   Project を Close にそろえる。
+
+どちらの段（まとめる / 受ける）かは、トラッカーの目印付きコメントだけで決める（`releaseCheckMode`）。
+プレビューの URL は段の結果（`previewUrl`）か、ダイアログを開いたときに覚えたものだけを行に出す（定期では取らない）。
+
+![「あなた宛て」のリリース確認の行](screenshots/monitor-release-check-row-light.png)
+
+![「確認の結果を書く」のダイアログ](screenshots/monitor-release-check-dialog-light.png)
 
 ---
 
@@ -1325,6 +1361,8 @@ HTTP API（curl からも操作可能。POST は上の合言葉のヘッダを�
 | `POST /answer` | body `{issue, answers:[{q, key, note?}], proceed: boolean}`。モニターで質問に答える（「モニターで答える」の節）。`proceed:false` はメモだけ保存（daemon のローカル）、`proceed:true` は答えを Issue に記録して 🙋 を外す（全部の質問に答えが要る。足りなければ 400、worker が実行中なら 409） |
 | `GET /delegate/findings` | `?issue=N`。「AI に直してもらう」のダイアログで見せる、PR のいちばん新しい round の bot の指摘（`{issue, pr, findings:{round, id, body, counts}\|null, pendingInstructions:[]}`）。押したときだけ REST を 1 回。Project に無いと 404 |
 | `POST /delegate` | body `{issue, instruction?}`。`instruction` があれば、目印付きのコメントとして Bot で PR に残してから 🙋 を外す（address-review の段だけ。空は 400・ほかの段は 409 `no-instruction-phase`・PR が無いと 409 `no-pr`）。モニターの「AI に任せる」（「モニターの『AI に任せる』」の節）。🙋 を外して（まだ分解していない EPIC は Sprint Backlog へ動かしてから）autopilot に渡し、pause 中でなければ 1 tick 回す。`{ok:true, issue, action:'release'\|'decompose', nextPhase}`。入力が違うと 400、Project に無いと 404、🙋 が無い・worker が実行中・答え待ちの質問がある・トラッカー・人間がする作業などは 409 `{error, code, issue}`、GitHub に書けないと 502 |
+| `GET /release-check` | `?issue=N`。「確認の結果を書く」のダイアログで見せる、トラッカーのいちばん新しい round の観点（`{issue, check:{round, id, body, points:[{id,title,body}], previewUrl}\|null, reviewed}`）。押したときだけ REST を 1 回。Project に無いと 404 |
+| `POST /release-check/review` | body `{issue, round, results:[{id:"R1", verdict:"ok"\|"ng", note?}], comment?}`。結果を目印付きのコメントとして Bot でトラッカーに書いてから 🙋 を外す（リリース確認の節）。Release Check の 🙋 待ちでないと 409 `not-release-check`、round が最新の観点と違うと 409 `stale-round`、入力が違うと 400 |
 | `POST /tick` | interval を待たず 1 サイクル即実行。`{ran, paused, picked:[...], running:[...]}` を返す。実行中は `409 {busy:true}`、pause 中は `{ran:true, paused:true, picked:[]}` の no-op |
 | `POST /pause` | 新規ディスパッチを止める（実行中はそのまま）。再起動をまたいで残す（`~/.config/autopilot/human-pause-<port>.json`） |
 | `POST /resume` | ポーリング再開（usage の auto-pause 中は `409 {forceResumeRequired:true}`）。人間の pause のファイルを消す |
@@ -1413,6 +1451,8 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 | `tools/autopilot/src/http-guard.js` | HTTP の受け付けの守りの判断（Host / Origin の許可・合言葉の時間一定の照合。純粋関数） |
 | `tools/autopilot/src/blocked-panel.js` | モニターの「止まっている worker」の欄 |
 | `tools/autopilot/src/monitor-answers.js` | モニターで答える質問の置き場・`POST /answer`・`POST /delegate`（AI に任せる・指示つき）と `GET /delegate/findings` の受け口・Issue への記録と 🙋 の解除・worker への受け渡し |
+| `tools/autopilot/src/release-check.js` | リリース確認の判断（入る条件・目印・どちらの段か・観点の解析・結果のコメント・sub-issue の計画。純粋） |
+| `tools/autopilot/src/release-check-http.js` | リリース確認の daemon 側（入る意図の適用・`GET /release-check`・`POST /release-check/review`・プレビューの URL を覚える） |
 | `tools/autopilot/src/daemon.js` | 常駐 daemon（ポーリング・ディスパッチ・HTTP 制御・認証ヘルスチェック・俯瞰ボード） |
 | `tools/autopilot/src/monitor.js` | Web モニタ（あなた宛て＋表・自己完結 HTML） |
 | `tools/autopilot/src/icon-data.js` | モニターのアイコン（favicon・見出し）の data URI。`tools/autopilot/assets/make-icon.py` が作る |

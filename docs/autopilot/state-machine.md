@@ -153,12 +153,14 @@ Issue / PR の 🙋 を外す。人間が 🙋 を外したのと同じ意味な
 | 13 | Review・DoD / 任意 / なし(解除済み) | 差し戻し済み | **A: address-review** | 未対応の Request changes で指定された分に対応後 Review + HITL（#12）/ 未対応の Request changes が無ければ何もせず #12 |
 | 14 | Blocked / 任意 / **あり** | run 失敗・stall・実作業系フェーズの判断待ち（hitl）の人間対処待ち | H: 解除 → **A: address-review（PR あり）/ triage（PR なし）** / H: Status 移動 / H: merge → **D: merge-progression**（#17） | 再開・再ルート / Close |
 | 15 | Blocked / 任意 / なし | ラベルだけ外された Blocked | **A: address-review / triage**（#14 と同じ） | 再開・再ルート |
-| 16 | In Progress / EPIC Decomposed / —（トラッカー） | 子の実装を追跡 | H: 子完了後に close（統合 PR の `Closes #epic` 等）→ **D: closed-reconcile** / H: Done へ移動（HITL 運用） | Close / Done |
+| 16 | In Progress / EPIC Decomposed / —（トラッカー） | 子の実装を追跡 | **D: リリース確認に入れる**（子が全部済んだ、または残りが `🚀 after-release` だけ・🙋 なし。`releaseCheckReady` → AI Status=Release Check）→ #16b / H: 子完了後に close（統合 PR の `Closes #epic` 等）→ **D: closed-reconcile** / H: Done へ移動（HITL 運用） | #16b / Close / Done |
+| 16b | In Progress / **Release Check** / なし（🧭 トラッカー） | リリース確認の段（#2430） | **A: release-check**（観点をまとめるか結果を受けるかは、トラッカーの目印付きコメントから決める・`releaseCheckMode`） | 観点をまとめた → #16c / 全部 OK → #16c（develop へのマージは人間）/ NG から sub-issue を作った → In Progress + EPIC Decomposed（#16。作った子が全部済むと次の round の #16b） |
+| 16c | In Progress / **Release Check** / **あり**（🧭 トラッカー） | 人間がプレビューで確かめる | H: 🙋 を外す（モニターの「確認の結果を書く」は結果のコメントを書いてから外す）→ **A: release-check** / H: topic → develop の PR をマージして close → **D: closed-reconcile** | #16b / Close |
 | 17 | PR 後の非終端（leaf・Status が In Progress / Blocked / Review / DoD）/ 任意 / 任意 | — | H: PR merge → **D: merge-progression**（🙋 の有無を問わない。🙋 は face sync が両面から外す） | Close（GitHub issue も close。**`🧱 infra` の Issue は閉じない**: prod デプロイ成功で `Deploy Infra` workflow が閉じる・`shouldCloseIssueOnMerge`） |
 | 18 | 任意の非終端 | — | H: Issue close → **D: closed-reconcile** | Close |
 | 19 | In Progress / —（AI Status 空） / 任意 | 人間が手動で置いた作業中 | H: Status 移動（autopilot は所有しない） | 人間の決定 |
 | 20 | Icebox / Close / Done | 終端・保留 | H: Status 移動（再開は人間のみ） | — |
-| 21 | 🧭 tracking ラベル付き（全状態） | トラッカー | #16〜#18 のみ（フェーズ対象外） | — |
+| 21 | 🧭 tracking ラベル付き（全状態） | トラッカー | #16〜#18 のみ（フェーズは #16b の release-check だけ） | — |
 | 22 | In Progress / **Awaiting Continuation** / **あり** | 協調的チェックポイント（EPIC #906）: soft-limit で worker が安全に中断し継続待ち | H: 解除 → **A: 元フェーズへ再 dispatch**（continuation ファイルの marker から復元。不明なら implement） | #10 の元フェーズへ戻る（実行中の run の扱いは #10 と同じ） |
 | 23 | Review / — / なし（PR の base が `topic/...`・EPIC の流れ） | review の Must が 0。topic への自動マージ待ち | **D: 自動マージ**（`applyEpicAutoMerge`。CI 通過・コンフリクト無し・まだ対応していない Request changes 無しでマージ → #17 で Close + Issue を閉じる）。コンフリクトは resolve-conflict、CI 失敗・Request changes は #24 へ | Close / #24 |
 | 24 | In Progress / **Addressing Comments** / なし | EPIC の流れの Must の直し（review が Must を残した・CI 失敗） | **A: address-review**（自動の直し）。worker 不在なら #11 の stalled 復帰も同じ | In Progress + Self-Reviewing（#9 → review）/ 3 回直しても Must が残れば Blocked + 🙋（#14・EPIC の決定待ちに載る） |
@@ -179,6 +181,10 @@ Issue / PR の 🙋 を外す。人間が 🙋 を外したのと同じ意味な
 - **I4（提案で退避系へ動かさない）**: hitl 提案（signal=hitl）で Status を Icebox / Close へ
   動かさない（プロンプト規約）。提案段階で退避系へ動かすと、人間がラベルだけ外したときに
   出口の無い状態に落ちるため。Icebox への遷移は人間の確定操作のみ。
+- **Release Check の出口**: 🧭 トラッカーの Release Check は、🙋 なしなら必ず release-check に進み、🙋 ありは人間の番。
+  トラッカーでない item に Release Check が付いたときは出口が無いので、stuck 検知（`isStuckCandidate`）で Blocked へ回す。
+  リリース確認の観点・結果・結果を受けたことは、トラッカーの目印付きコメント（`autopilot-release-check` / `autopilot-release-review` /
+  `autopilot-release-result` の `round=N`）だけで管理し、NG から作る sub-issue は本文の目印（`autopilot-release-ng`）で二重に作らない（I5 と同じ考え）。
 - **I5（二重対応の防止）**: address-review は、まとめコメントのマーカー（`addressReviewMarker`）に
   残したレビュー ID と指示コメントの ID を対応済みとみなし、同じ Request changes・同じモニターの指示に
   二重に対応しない（`selectRequestedReviews` / `selectMonitorInstructions`）。daemon の再起動に左右されない（状態ファイルを持たない）。
