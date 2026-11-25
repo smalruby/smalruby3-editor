@@ -455,8 +455,9 @@ await page.click('[data-testid="classroom-gradebook-switch-book"]');
 await page.click('[data-testid="classroom-gradebook-open-c2"]');
 await page.waitForSelector('[data-testid="classroom-eval-steps"]');
 await page.waitForTimeout(500);
+// The ［基準］ tab of #2425 shows the description in grading-rubric-description.
 const desc = await page.textContent(
-    '[data-testid="classroom-eval-description"]',
+    '[data-testid="classroom-eval-description"], [data-testid="grading-rubric-description"]',
 );
 record({
     name: "assignment: the description is shown",
