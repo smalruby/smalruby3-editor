@@ -64,6 +64,54 @@ function validateEpicFields(obj, errors) {
     });
 }
 
+/** 質問・選択肢の ID に使える文字（Issue のコメントのマーカーに入るので、`-->` などを入れさせない） */
+const QUESTION_ID_RE = /^[A-Za-z0-9_-]{1,32}$/;
+const OPTION_KEY_RE = /^[A-Za-z0-9_-]{1,16}$/;
+/** 1 回の hitl で出せる質問の数・1 問の選択肢の数の上限（モニターの 1 画面に収まる量） */
+const MAX_QUESTIONS = 10;
+const MAX_OPTIONS = 10;
+
+/**
+ * `signal=hitl` の任意項目 `questions`（モニターで人間が選んで答える質問）を検証する。
+ * 形: `[{id, text, options: [{key, label, desc?}], recommended?}]`。新しい signal は作らない
+ * （hitl の結果に足すだけ）。`recommended` は options の key のどれか。
+ * @param {object} obj
+ * @param {string[]} errors
+ */
+function validateQuestions(obj, errors) {
+    if (obj.questions == null) return;
+    if (obj.signal !== 'hitl') { errors.push('questions is allowed only when signal=hitl'); return; }
+    const qs = obj.questions;
+    if (!Array.isArray(qs) || qs.length === 0 || qs.length > MAX_QUESTIONS) {
+        errors.push(`questions must be an array of 1..${MAX_QUESTIONS} items`);
+        return;
+    }
+    const ids = new Set();
+    qs.forEach((q, i) => {
+        const at = `questions[${i}]`;
+        if (typeof q !== 'object' || q === null) { errors.push(`${at} must be an object`); return; }
+        if (typeof q.id !== 'string' || !QUESTION_ID_RE.test(q.id)) errors.push(`${at}.id must match ${QUESTION_ID_RE}`);
+        else if (ids.has(q.id)) errors.push(`${at}.id is duplicated`);
+        else ids.add(q.id);
+        if (typeof q.text !== 'string' || !q.text.trim()) errors.push(`${at}.text must be a non-empty string`);
+        if (!Array.isArray(q.options) || q.options.length === 0 || q.options.length > MAX_OPTIONS) {
+            errors.push(`${at}.options must be an array of 1..${MAX_OPTIONS} items`);
+            return;
+        }
+        const keys = new Set();
+        q.options.forEach((o, j) => {
+            const oat = `${at}.options[${j}]`;
+            if (typeof o !== 'object' || o === null) { errors.push(`${oat} must be an object`); return; }
+            if (typeof o.key !== 'string' || !OPTION_KEY_RE.test(o.key)) errors.push(`${oat}.key must match ${OPTION_KEY_RE}`);
+            else if (keys.has(o.key)) errors.push(`${oat}.key is duplicated`);
+            else keys.add(o.key);
+            if (typeof o.label !== 'string' || !o.label.trim()) errors.push(`${oat}.label must be a non-empty string`);
+            if (o.desc != null && typeof o.desc !== 'string') errors.push(`${oat}.desc must be a string`);
+        });
+        if (q.recommended != null && !keys.has(q.recommended)) errors.push(`${at}.recommended must be one of the option keys`);
+    });
+}
+
 /**
  * 結果ペイロード（AUTOPILOT_RESULT_FILE の中身）を検証する。
  * @param {object} obj パース済み JSON
@@ -109,6 +157,7 @@ function validateResult(obj) {
         if (typeof obj.error !== 'string' || !obj.error) errors.push('error: error must be a non-empty string');
     }
     validateEpicFields(obj, errors);
+    validateQuestions(obj, errors);
     return { ok: errors.length === 0, errors };
 }
 
@@ -155,5 +204,5 @@ function detectToken(paneText) {
 }
 
 module.exports = {
-    TOKENS, SIGNALS, VALID_SIZES, VALID_KINDS, VALID_HITL_KINDS, VALID_DECISION_KINDS, validateResult, readResultFile, detectToken,
+    TOKENS, SIGNALS, QUESTION_ID_RE, OPTION_KEY_RE, MAX_QUESTIONS, MAX_OPTIONS, VALID_SIZES, VALID_KINDS, VALID_HITL_KINDS, VALID_DECISION_KINDS, validateResult, readResultFile, detectToken,
 };

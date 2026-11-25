@@ -217,6 +217,28 @@ test('isGateReleased: Issue / PR の 🙋 ラベルのどちらかを外した�
     assert.equal(isGateReleased(item, { humanSpokeLast: true, unhandledChangesRequested: true }), false);
 });
 
+// U1: モニターの「答えて先へ進める」（人間の明示操作）を受けて daemon が 🙋 を外したら、ラベルの
+// 読み直しが遅れていても（hitlLabel=true のまま）ゲートは開く。「メモだけ保存」は合図を立てない。
+test('I2/I3(U1): モニターの「答えて先へ進める」で daemon が 🙋 を外すと、どのゲートも解除される', () => {
+    for (const g of GATES) {
+        const ctx = { ...(g.ctx || {}), hitlSignals: { issueLabel: true, prLabel: true } };
+        assert.equal(phaseForItem(g.item, ctx), null, `${g.name}: 合図なしでは動かない`);
+        assert.equal(phaseForItem(g.item, { ...ctx, monitorReleased: true }), g.expect, `${g.name}: 答えて先へ進めると ${g.expect}`);
+    }
+    // 提案系の HITL（Status を動かさず待つ）と、一時停止の Sprint Backlog + 🙋 も同じ
+    const more = [
+        [{ status: 'In Progress', aiStatus: 'Triaging', hitlLabel: true, kind: 'Issue' }, 'triage'],
+        [{ status: 'In Progress', aiStatus: 'Decomposing', hitlLabel: true, kind: 'EPIC' }, 'decompose'],
+        [{ status: 'Sprint Backlog', hitlLabel: true, kind: 'Issue' }, 'implement'],
+    ];
+    for (const [item, expect] of more) {
+        assert.equal(phaseForItem({ issue: 1, labels: [], ...item }, {}), null);
+        assert.equal(phaseForItem({ issue: 1, labels: [], ...item }, { monitorReleased: true }), expect);
+    }
+    assert.equal(isGateReleased({ hitlLabel: true }, { monitorReleased: true }), true);
+    assert.equal(isGateReleased({ hitlLabel: true }, { monitorReleased: false }), false);
+});
+
 test('I4: hitl 提案は Status を Icebox/Close へ動かさない（プロンプト規約の静的検査）', () => {
     // プロンプト本文に「nextStatus":"Icebox"」「nextStatus":"Close"」の hitl 例が無いこと。
     // （Icebox への遷移は人間の確定操作のみ。提案段階で動かすと出口の無い状態に固着する）

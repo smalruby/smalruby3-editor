@@ -123,6 +123,9 @@ const { applyEpicRunSideEffects, applyEpicAutoMerge } = require('./epic-merge');
 // EPIC ごとの進み具合と現在地（#2388）。判断は epic-summary.js / current-status.js、I/O は current-status-job.js
 const { buildStatusMaterial, groupItemsByEpic } = require('./epic-summary');
 const currentStatusJob = require('./current-status-job');
+// モニターで答える（ui-policy §8 の U1・U2）。判断は phases.js、置き場・HTTP・GitHub のつなぎは monitor-answers.js
+const monitorAnswers = require('./monitor-answers');
+const { pruneMonitorReleases, withMonitorReleases } = require('./phases');
 
 const execFileP = promisify(execFile);
 
@@ -1430,10 +1433,14 @@ async function dispatch(item, cfg, state, log) {
             AUTOPILOT_AI_STATUS: item.aiStatus || '',
             AUTOPILOT_EPIC_FLOW: isEpicFlowBase(baseBranch, DEFAULT_BASE_BRANCH) ? '1' : '',
         };
+        // モニターで人間が答えた質問があれば、答えのファイルを置いてプロンプトで読ませる（U2）
+        const answersFile = monitorAnswers.deliverMonitorAnswers(item.issue, cwd, state);
+        env.AUTOPILOT_ANSWERS_FILE = answersFile || '';
+        if (answersFile) log(`#${item.issue}: monitor answers -> ${answersFile}`);
         const { command, promptDir } = workerCommand(cfg, phase, cwd);
         log(`#${item.issue}: run ${phase} (${meta.skill})`);
         const res = await runPhase({
-            session, cwd, env, command, promptDir, skill: meta.skill, issue: item.issue, resultFile, log,
+            session, cwd, env, command, promptDir, skill: meta.skill, issue: item.issue, resultFile, log, answersFile,
             watchdog: cfg.watchdog,
             // blocked で人間を待つときの口（モニターの「止まっている worker」・#2387）
             blocked: state.blockedHub ? state.blockedHub.channel(item.issue, phase, session) : undefined,
@@ -1488,6 +1495,11 @@ async function dispatch(item, cfg, state, log) {
         // HITL は Project フィールドではなくラベルなので、結果から導いた希望を hitlLabel として渡す（#813）。
         const wantHitl = outcome.hitl;
         await syncFacesAfterIntents({ ...item, hitlLabel: wantHitl }, intents, cfg, log);
+        // hitl の質問（questions）をモニターに出し、Issue にもマーカー付きで書く（U2）
+        if (state.answerStore) {
+            await monitorAnswers.recordHitlQuestions(item.issue, parsed.result, { cfg, store: state.answerStore, log })
+                .catch((e) => log(`#${item.issue}: monitor questions failed: ${e.message}`));
+        }
         await applyEpicRunSideEffects(item, parsed.result, outcome, { pr }, cfg, log, {
             onDecisions: (epic, count) => recordEpicDecisionCount(state, epic, count),
         });
@@ -2210,7 +2222,9 @@ async function applyPrProjection(items, cfg, state, log, deps = {}) {
     for (const item of selectPrSyncCandidates(items)) {
         if (state.running.has(item.issue)) continue; // live phase が所有中は触らない
         try {
-            await syncFacesForItem(item, io, cfg, log, opts);
+            // モニターで外した 🙋 を、古い item から付け直さない（hitlLabelAction の monitorReleased）
+            const monitorReleased = Boolean(state.monitorReleases && state.monitorReleases[item.issue]);
+            await syncFacesForItem(item, io, cfg, log, { ...opts, monitorReleased });
         } catch (e) {
             log(`#${item.issue}: pr projection failed: ${e.message}`);
         }
@@ -2264,7 +2278,12 @@ async function tick(cfg, state, log) {
     await recoverStalledInFlightWorkers(items, cfg, state, log)
         .catch((e) => log(`stalled recovery error: ${e.message}`));
     const running = new Set(state.running.keys());
-    const contexts = markAutoMergeContexts(await collectGateContexts(cfg, items, running, state, log), DEFAULT_BASE_BRANCH);
+    // モニターの「答えて先へ進める」で daemon が外した 🙋 は、一覧の読み直しが遅れても外れた扱いにする（U1）
+    state.monitorReleases = pruneMonitorReleases(state.monitorReleases, items);
+    const contexts = withMonitorReleases(
+        markAutoMergeContexts(await collectGateContexts(cfg, items, running, state, log), DEFAULT_BASE_BRANCH),
+        state.monitorReleases,
+    );
     // 協調的チェックポイント（EPIC #906・#912）: Awaiting Continuation の item は continuation
     // ファイル（worktree 内）から元フェーズ・反復回数を読み、phaseForItem が implement 固定
     // フォールバックに頼らず正しいフェーズ（例 address-review）へ再開できるようにする。
@@ -2830,6 +2849,8 @@ function boardResponse(cfg, state) {
         // EPIC ごとのまとめと現在地（#2388）
         epicGroups: groupItemsByEpic(state.board ? state.board.items : [], statusMaterialCtx(cfg, state)),
         currentStatus: state.currentStatus || null,
+        // モニターで答える質問（答え待ちと、答えて worker を待っているもの）
+        monitorQuestions: state.answerStore ? state.answerStore.list() : [],
     };
 }
 
@@ -2899,6 +2920,27 @@ function statusResponse(cfg, state) {
         version: state.version || null,
         autopilotUpdate: state.autopilotUpdate || null,
         running: [...state.running.entries()].map(([issue, v]) => ({ issue, phase: v.phase })),
+        monitorQuestions: state.answerStore ? state.answerStore.list() : [],
+    };
+}
+
+/**
+ * `POST /answer` に渡す ctx（monitor-answers.js の handleAnswerHttp）。「答えて先へ進める」が通ったら
+ * すぐ 1 tick 回して worker を起こす（interval を待たせない。再入は runTickOnce が防ぐ）。
+ * @returns {object|null}
+ */
+function answerHttpContext(cfg, state, log) {
+    if (!state.answerStore) return null;
+    return {
+        store: state.answerStore,
+        now: cfg.now,
+        onProceed: async (issue, entry, plan) => {
+            const r = await monitorAnswers.proceedMonitorAnswer(issue, entry, plan, { cfg, state, log, now: cfg.now });
+            if (r.status === 200 && !state.paused) {
+                runTickOnce(cfg, state, log).catch((e) => log(`tick after answer error: ${e.message}`));
+            }
+            return r;
+        },
     };
 }
 
@@ -2926,6 +2968,8 @@ function startHttp(cfg, state, log) {
         }
         // 止まっている worker の一覧と、人間の答え（#2387。blocked-hub.js）
         if (handleBlockedHttp(req, res, url, state.blockedHub)) return;
+        // モニターで質問に答える（POST /answer）。書き込みの受け口はここ 1 か所
+        if (monitorAnswers.handleAnswerHttp(req, res, url, answerHttpContext(cfg, state, log))) return;
         // 学び・タスクの口（/learnings*・/tasks*）は learn-tasks.js が受ける
         if (learnTasks.handleLearnTasksHttp(req, res, url, { cfg, state, log, send, capture, deps: { workerCommand } })) return;
         if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/index.html')) {
@@ -3229,6 +3273,11 @@ async function main(opts = {}) {
     // worker の端末（herdr | tmux）と、blocked で人間を待つ置き場（#2387）。
     // autopilot が止まるときは worker を全部一緒に止める（herdr は session ごと。ゾンビを残さない）。
     configureRunner(cfg.settings, log);
+    // モニターで答える質問の置き場（再起動をまたいで残す）と、モニターで外した 🙋 の覚え（メモリだけ）
+    state.answerStore = monitorAnswers.createAnswerStore({
+        file: path.join(currentStatusJob.stateDir(), 'monitor-answers.json'), now: cfg.now, log,
+    });
+    state.monitorReleases = {};
     state.blockedHub = createBlockedHub({ now: cfg.now, log, file: path.join(os.tmpdir(), 'autopilot-blocked-log.jsonl') });
     process.on('exit', () => { try { shutdownTerminal(); } catch { /* noop */ } });
     // 現在地の artifact の URL・最終更新（#2388）は再起動をまたいで残す

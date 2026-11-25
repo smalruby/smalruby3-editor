@@ -95,6 +95,20 @@ Runner はこの短語を pane で検出してから `AUTOPILOT_RESULT_FILE` を
 | `commentUrl` | string | 投稿したコメントの URL |
 | `nextStatus` | string \| null | 提案する Status（任意。**Icebox / Close / Done は提案しない** — 提案段階で退避系へ動かすと出口の無い状態に固着する。`state-machine.md` 不変条件 I4）。実作業系フェーズ（implement / understand / review / address-review / verify）が `nextStatus` / `nextAiStatus` とも無しで終えたときは、daemon が **Blocked** にする（In Progress のままだと stalled 復帰が人間の返事を待たず起動し直すため・#1310）。それ以外のフェーズは Status を変えない |
 | `nextAiStatus` | string \| null | 提案する AI Status（任意。例: 実装前ディスカッションの `Discussing`） |
+| `questions` | object[] \| 省略 | 人間に選んでほしいこと（任意・`signal=hitl` のときだけ書ける）。daemon がモニターに出し、Issue にもマーカー付きで書く。下の表 |
+
+`questions[]` の 1 件（`contract.js` の `validateQuestions` が検証する。1 回に 10 問・1 問に 10 択まで）:
+
+| key | 型 | 説明 |
+|---|---|---|
+| `id` | string（英数字・`_`・`-`、32 字まで） | 質問 ID（例 `q1`）。同じ結果の中で重ならない |
+| `text` | string（必須） | 何を選んでほしいか |
+| `options` | object[]（1 件以上） | 選択肢 `{key, label, desc?}`。`key` は英数字・`_`・`-`（16 字まで）、`label` は短い名前、`desc` は一行の説明 |
+| `recommended` | string \| 省略 | AI の推奨（`options` の `key` のどれか） |
+
+人間がモニターの「答えて先へ進める」で答えると、daemon が答えを Issue に書き、🙋 を外し、次に worker を起こすとき
+答えのファイル（`AUTOPILOT_ANSWERS_FILE`・§6）を渡す。起動の指示にもそのパスが入る。worker はそれを最初に読み、
+同じことを質問し直さない。「メモだけ保存」では何も起きない（daemon のローカルに置くだけ）。
 
 `signal=error` のとき追加で:
 
@@ -271,6 +285,7 @@ PR の base が `topic/...` の Issue（EPIC の sub-issue）では、daemon が
 | `AUTOPILOT_STATUS` | dispatch 時点の Project Status（例 `Review` / `DoD` / `Blocked`）。address-review が「Request changes 対応」か「Blocked からの再開」かを分けるのに使う |
 | `AUTOPILOT_AI_STATUS` | dispatch 時点の AI Status。address-review は `In Progress` + `Addressing Comments` のとき「Must の自動の直し」（EPIC の流れ） |
 | `AUTOPILOT_EPIC_FLOW` | base が `topic/...` のとき `1`（それ以外は空）。§2.6 の EPIC の流れ |
+| `AUTOPILOT_ANSWERS_FILE` | モニターで人間が答えた答えのファイル（worktree の `tmp/autopilot-answers-<issue>.md`。無ければ空）。§2.3 の `questions` の答え（質問 ID・選んだ選択肢・メモ） |
 
 ---
 
