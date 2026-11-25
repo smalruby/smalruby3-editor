@@ -907,8 +907,8 @@ daemon はモジュールを**起動時にロード**するので「動いてい
   ダークの 2 つの塊（OS に従う形・`data-theme="dark"` で固定する形）の CSS 変数（`--ap-` で始まる）で持ち、
   各ルールは `var(--ap-...)` で参照する。**トークンの一覧は monitor.js が正**（ここには書き写さない）。
   新しい色を足すときも、直書きせずトークンを足す。モニターに差しこむ部品（学び・タスク、止まっている worker）も同じ。
-- 自己完結ページのため外部の CSS は読まない。ロゴの SVG（favicon・見出し・Claude の印）の色は
-  絵として直書きのまま。
+- 自己完結ページのため外部の CSS は読まない。favicon と見出しのアイコン（虹色の ∞ + A）は PNG の data URI で埋め、
+  Claude の印の SVG の色は絵として直書きのまま。アイコンの決まりと作り直し方は [`design-system.md`](design-system.md) の「ロゴ」。
 
 ---
 
@@ -1376,6 +1376,8 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 | `tools/autopilot/src/monitor-answers.js` | モニターで答える質問の置き場・`POST /answer`・`POST /delegate`（AI に任せる）の受け口・Issue への記録と 🙋 の解除・worker への受け渡し |
 | `tools/autopilot/src/daemon.js` | 常駐 daemon（ポーリング・ディスパッチ・HTTP 制御・認証ヘルスチェック・俯瞰ボード） |
 | `tools/autopilot/src/monitor.js` | Web モニタ（あなた宛て＋表・自己完結 HTML） |
+| `tools/autopilot/src/icon-data.js` | モニターのアイコン（favicon・見出し）の data URI。`tools/autopilot/assets/make-icon.py` が作る |
+| `tools/autopilot/assets/` | アイコンの元（`autopilot-icon-512.png`）と作り方（`make-icon.py`） |
 | `tools/autopilot/src/monitor-inbox.js` | モニターの判断の純粋関数（意味の色・あなた宛て・人間待ちの札とまとまり・状況板の行・答えの組み立て・数字キー）。ページへ `fn.toString()` で埋め込む |
 | `tools/autopilot/src/epic-summary.js` | EPIC ごとのまとめ・次の確認の見込み・現在地の材料・モニタの EPIC 欄の HTML（純粋） |
 | `tools/autopilot/src/current-status.js` | 現在地の job の結果の解釈・テンプレートの下書きと描画（純粋） |

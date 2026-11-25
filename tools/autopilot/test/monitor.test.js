@@ -2,21 +2,27 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 const { MONITOR_HTML } = require('../src/monitor');
+const { ICON_FAVICON_64, ICON_HEADING_40 } = require('../src/icon-data');
 
 test('MONITOR_HTML is a self-contained html document', () => {
     assert.match(MONITOR_HTML, /^<!doctype html>/i);
     assert.match(MONITOR_HTML, /<title>autopilot monitor<\/title>/);
     // 外部リソースを読み込まない（自己完結）。data URI は自己完結なので許可する
-    // （favicon をインライン SVG data URI で埋め込むため）。
+    // （favicon とアイコンを PNG の data URI で埋め込むため）。
     assert.doesNotMatch(MONITOR_HTML, /<script[^>]+src=/);
     assert.doesNotMatch(MONITOR_HTML, /<link[^>]+href=["'](?!data:)/);
 });
 
-test('MONITOR_HTML: ブランディング（favicon / インライン SVG アイコン）#904・上の行は表と同じ地（#2404）', () => {
-    // (a) インライン SVG data URI の favicon（外部リクエスト禁止＝自己完結を維持）
-    assert.match(MONITOR_HTML, /<link\s+rel="icon"\s+href="data:image\/svg\+xml,/);
-    // (b) <h1> にインライン SVG アイコン（🤖 絵文字を置き換え）
-    assert.match(MONITOR_HTML, /<h1>\s*<svg[\s\S]*?<\/svg>\s*autopilot<\/h1>/);
+test('MONITOR_HTML: ブランディング（虹色の ∞ + A のアイコン #2413）・上の行は表と同じ地（#2404）', () => {
+    // (a) favicon は PNG の data URI（外部リクエスト禁止＝自己完結を維持）。64px の版を使う
+    assert.match(ICON_FAVICON_64, /^data:image\/png;base64,[A-Za-z0-9+/=]+$/);
+    assert.ok(MONITOR_HTML.includes(`<link rel="icon" type="image/png" href="${ICON_FAVICON_64}">`));
+    // (b) <h1> のアイコンは、20px 表示の 2 倍に縮めた 40px の版（小さく出しても ∞ と A がつぶれない）
+    assert.match(ICON_HEADING_40, /^data:image\/png;base64,[A-Za-z0-9+/=]+$/);
+    assert.ok(MONITOR_HTML.includes(
+        `<h1><img class="logo" src="${ICON_HEADING_40}" width="20" height="20" alt="">autopilot</h1>`));
+    // 旧アイコン（赤い丸に水色のひし形）は残さない
+    assert.doesNotMatch(MONITOR_HTML, /%237a1620|#7a1620/);
     assert.doesNotMatch(MONITOR_HTML, /<h1>🤖 autopilot<\/h1>/);
     // (c) 上の行は暗い帯（グラデーション）にせず、表と同じ地の panel にする（design-system.md §3）
     assert.match(MONITOR_HTML, /<header class="panel topline"/);
@@ -183,7 +189,8 @@ test('MONITOR_HTML: 上の行に Claude の使用量（名前・アイコン・�
     // Claude アイコンはインライン SVG（外部リソース禁止・ロゴではない）
     assert.match(MONITOR_HTML, /USAGE_ICON\s*=\s*'<svg/);
     assert.match(MONITOR_HTML, /aria-label="Claude"/);
-    assert.doesNotMatch(MONITOR_HTML, /<img[^>]+src=/);
+    // 外部の画像を読まない（見出しのアイコンは data URI の PNG なので許す・#2413）
+    assert.doesNotMatch(MONITOR_HTML, /<img[^>]+src=["'](?!data:)/);
     assert.match(MONITOR_HTML, /function usageBar/);
     assert.match(MONITOR_HTML, /function renderUsage/);
     assert.match(MONITOR_HTML, /d\.claudeUsage/);
