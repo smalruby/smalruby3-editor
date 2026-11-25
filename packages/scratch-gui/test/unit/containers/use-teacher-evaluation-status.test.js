@@ -15,6 +15,10 @@ const mockUpdateSubmission = jest.fn();
 jest.mock('../../../src/lib/classroom-api.js', () => ({
     __esModule: true,
     default: {
+        // 採点の保存（#2424）: 保存は無い・保存したものをそのまま返す・メンバーは提出の席だけ
+        getGrading: jest.fn(() => Promise.resolve({ grading: null })),
+        putGrading: jest.fn((token, id, updates) => Promise.resolve({ grading: updates })),
+        listMembers: jest.fn(() => Promise.resolve({ members: [] })),
         getAssignment: jest.fn(() => Promise.resolve({})),
         listSubmissions: (...args) => mockListSubmissions(...args),
         evaluateSubmissions: (...args) => mockEvaluateSubmissions(...args),
@@ -47,6 +51,9 @@ const setup = async () => {
     const hook = renderHook((props) => useTeacherEvaluation({ ...deps, ...props }), { initialProps: {} });
     await act(async () => {
         hook.result.current.handleShowEvaluation(group);
+    });
+    await act(async () => {
+        hook.result.current.handleOpenAssignment(hook.result.current.evalLessons[0].classroomId);
     });
     return { hook, deps };
 };

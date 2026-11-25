@@ -1,18 +1,28 @@
 /**
- * Term-end evaluation hook (teacher side).
+ * Grading hook (teacher side, 「採点」).
  *
- * Flow: pick a group → select its lessons → load submissions (download each
- * sb3, unzip, static-analyze) → optionally grade a few cells by hand
- * (calibration samples) → run the AI for grade proposals → review/fix →
- * export CSVs and/or generate positive comment drafts → return comments.
+ * The grading tab is a gradebook (EPIC #2421 / #2424): a column per assignment of the
+ * class, a row per seat. Opening it reads the saved grading of every assignment
+ * (`GET /classrooms/{id}/grading`). An assignment is graded on its own screen
+ * (`view: 'assignment'`): load its submissions (download each sb3, unzip,
+ * static-analyze) → look at the rubric → let the AI grade everyone → fix and
+ * confirm → draft comments → return them.
  *
- * The matrix is a plain object keyed by `${seatNumber}:${classroomId}`.
- * Each cell: {submissionId, submitted, signals, pseudocode, grade, reason,
- * needsReview, comment, returned, returnedComment}.
+ * Grades are saved on the server (`PUT /classrooms/{id}/grading`, only `grades` /
+ * `confirmedAt`): the AI's results right after each call, the teacher's edits a
+ * moment after the last key (GRADE_SAVE_DELAY_MS). So a grading closed half way
+ * comes back as it was. Confirming sets `confirmedAt`; changing a grade after that
+ * takes the confirmation back (the teacher confirms again), so the gradebook never
+ * shows changed grades as confirmed.
  *
- * Grades live only here and in the exported 「採点結果」 CSV (returning sends
- * only the comment), so leaving with grades not exported or comments not
- * returned asks first (#1923 C4: `hasUnsavedWork` / `requestLeave`).
+ * The matrix is a plain object keyed by `${seatNumber}:${classroomId}`. Each cell:
+ * {submissionId, submitted, signals, pseudocode, grade, reason, needsReview,
+ * returned, returnedComment}. It keeps every assignment opened so far, so going
+ * back to the gradebook and opening another assignment loses nothing.
+ *
+ * Comment drafts live only here until they are returned, so leaving with comments
+ * not returned (or a grade that could not be saved) asks first (#1923 C4:
+ * `hasUnsavedWork` / `requestLeave`).
  *
  * Leaving stops what is running (#1950): every run (load, AI, return) carries
  * the generation it started in. The generation moves on when the teacher
@@ -32,11 +42,21 @@ import {
     buildAuditCsv,
     buildEvaluationCsv,
     chunk,
-    evaluationSnapshot,
-    unsavedEvaluation,
     isLessonOnlyAssignment,
 } from '../lib/classroom-evaluation/evaluation-utils.js';
+import {
+    assignmentTextOf,
+    columnStatus,
+    gradebookColumns,
+    gradesFromMatrix,
+    hasUnreturnedComments,
+    sameGrades,
+    withSavedGrade,
+} from '../lib/classroom-evaluation/gradebook.js';
+import { assignmentCsvRows, gradingCsvText } from '../lib/classroom-evaluation/grading-csv.js';
+import { groupSubmissions } from '../lib/classroom-evaluation/grouping.js';
 import { analyzeProject } from '../lib/classroom-evaluation/sb3-analyzer.js';
+import { diffFromStarter } from '../lib/classroom-evaluation/starter-diff.js';
 import { isSameLessonScoring } from '../lib/classroom-lesson-settings.js';
 import { lessonScoresBySeat } from '../lib/classroom-lesson-summary.js';
 import { findCourse } from '../lib/lessons/courses.js';
@@ -51,11 +71,16 @@ const evaluationMessages = defineMessages({
     openWorkFailed: {
         defaultMessage:
             'The work could not be opened. Wait a moment and press [Open the work] again. If it still fails, ' +
-            'load the submissions again (grades not exported will be lost).',
+            'load the submissions again.',
         description:
             'Grading screen: [Open the work] could not get the link to the work (a network error, or it was ' +
-            'taken back). Trying again first keeps the grades; loading again drops grades not exported (#1980)',
+            'taken back). Trying again first; loading again also works since the grades are saved (#1980, #2424)',
         id: 'gui.classroom.evaluation.openWorkFailed',
+    },
+    saveFailed: {
+        defaultMessage: 'The grades could not be saved. They are saved again when you change a grade.',
+        description: 'Grading screen: saving the grades of an assignment failed; the next change tries again (#2424)',
+        id: 'gui.classroom.evaluation.saveFailed',
     },
 });
 
@@ -66,10 +91,31 @@ const EVAL_CHUNK_SIZE = 10;
 const WORK_URL_FRESH_MS = 50 * 60 * 1000;
 // How long a result that went well stays on the grading screen (#2419).
 const EVAL_RESULT_SHOWN_MS = 6000;
+// Grades are saved this long after the last change (a teacher fixing grades one
+// after another sends one save, #2424).
+const GRADE_SAVE_DELAY_MS = 800;
 const cellKey = (seatNumber, classroomId) => `${seatNumber}:${classroomId}`;
 const seatFromMemberId = (memberId) => {
     const match = /^seat-(\d+)$/.exec(memberId || '');
     return match ? parseInt(match[1], 10) : null;
+};
+const savedSeats = (grading) =>
+    Object.keys((grading && grading.grades) || {})
+        .map((seat) => parseInt(seat, 10))
+        .filter((n) => Number.isFinite(n));
+
+/**
+ * Download an sb3 and analyze its project (signals + pseudocode).
+ * @param {string} url - the sb3's URL
+ * @returns {Promise<?{signals: object, pseudocode: string}>} null when it has no project.json
+ */
+const analyzeSb3 = async (url) => {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`download ${response.status}`);
+    const zip = await JSZip.loadAsync(await response.arrayBuffer());
+    const projectFile = zip.file('project.json');
+    if (!projectFile) return null;
+    return analyzeProject(JSON.parse(await projectFile.async('string')));
 };
 
 /**
@@ -112,10 +158,17 @@ const useTeacherEvaluation = ({
     openSubmission,
 }) => {
     const [evalGroup, setEvalGroup] = useState(null);
+    // Every assignment of the class, the newest first (the gradebook's columns).
     const [evalLessons, setEvalLessons] = useState([]);
-    const [selectedLessonIds, setSelectedLessonIds] = useState([]);
+    // 'book' (the gradebook) | 'assignment' (one assignment's grading) | 'overall' (#2426)
+    const [view, setView] = useState('book');
+    // The assignment open in view 'assignment'.
+    const [currentId, setCurrentId] = useState(null);
+    // classroomId → saved grading (null = nothing saved or could not be read)
+    const [gradings, setGradings] = useState({});
+    // classroomId → seats of the loaded assignment (members, submissions, lesson records)
+    const [seatsById, setSeatsById] = useState({});
     const [matrix, setMatrix] = useState({});
-    const [seats, setSeats] = useState([]);
     const [rubricAxes, setRubricAxes] = useState(DEFAULT_RUBRIC_AXES);
     const [strictness, setStrictness] = useState('standard');
     // The running step while loading submissions / calling the AI / returning:
@@ -132,8 +185,14 @@ const useTeacherEvaluation = ({
     const [scoringChecked, setScoringChecked] = useState(false);
     // classroomId whose lesson points are being saved
     const [scoringSavingId, setScoringSavingId] = useState(null);
-    // evaluationSnapshot of the matrix at the last 「採点結果」 export (#1923 C4)
-    const [exported, setExported] = useState({});
+    // classroomIds whose rubric step the teacher has looked at (the step can be skipped)
+    const [rubricVisited, setRubricVisited] = useState({});
+    // classroomId → 'pending' | 'failed' while its grades are not saved yet
+    const [saveStates, setSaveStates] = useState({});
+    // classroomIds whose confirmation was taken back by a change (a note says so)
+    const [unconfirmed, setUnconfirmed] = useState({});
+    // The tab of the right column of the assignment's grading: 'rubric' | 'student'
+    const [innerTab, setInnerTab] = useState('rubric');
     // A leave waiting for the teacher's answer: {kind: 'back'|'leave'|'reload', action} (#1923 C4)
     const [leaveRequest, setLeaveRequest] = useState(null);
     // Settings fetched for a group that is no longer shown are dropped.
@@ -143,6 +202,15 @@ const useTeacherEvaluation = ({
     // with the new token, not the one the run started with.
     const idTokenRef = useRef(idToken);
     idTokenRef.current = idToken;
+    // The latest state for the delayed saves (they run after the render that changed it).
+    const matrixRef = useRef(matrix);
+    matrixRef.current = matrix;
+    const gradingsRef = useRef(gradings);
+    gradingsRef.current = gradings;
+    // classroomId → timer of the delayed save
+    const saveTimersRef = useRef({});
+    // classroomIds whose next save also takes the confirmation back
+    const unconfirmRef = useRef({});
     // Generation of the runs (load / AI / return): a run that is no longer
     // current stops and writes nothing (#1950).
     const runRef = useRef(0);
@@ -164,8 +232,6 @@ const useTeacherEvaluation = ({
         setEvalResult(null);
         return () => runRef.current === run;
     }, []);
-    // Logging out on purpose unmounts this (ClassroomTeacherModalHost, #1990).
-    useEffect(() => stopRuns, [stopRuns]);
     // A result that went well is short news: it goes away by itself so the table keeps its
     // height (1300×600). A failure stays until the next step (#2419).
     useEffect(() => {
@@ -186,121 +252,319 @@ const useTeacherEvaluation = ({
         setOpeningWork(value);
     }, []);
 
+    /**
+     * Save the grades of an assignment now, from the latest table. Nothing is sent
+     * when they are the same as saved (and the confirmation is not taken back).
+     * @param {string} classroomId - the assignment
+     * @param {object} [extra] - more keys to save with the grades ({confirmedAt})
+     * @returns {Promise<boolean>} true when saved (or nothing to save)
+     */
+    const flushSave = useCallback(
+        async (classroomId, extra = null) => {
+            clearTimeout(saveTimersRef.current[classroomId]);
+            delete saveTimersRef.current[classroomId];
+            const saved = gradingsRef.current[classroomId] || null;
+            const grades = gradesFromMatrix(matrixRef.current, classroomId, saved && saved.grades);
+            const updates = { grades, ...(extra || {}) };
+            const unconfirm = !!unconfirmRef.current[classroomId];
+            if (unconfirm && !(extra && 'confirmedAt' in extra)) updates.confirmedAt = null;
+            if (!extra && !unconfirm && sameGrades(grades, saved && saved.grades)) {
+                setSaveStates((prev) => {
+                    if (!prev[classroomId]) return prev;
+                    const next = { ...prev };
+                    delete next[classroomId];
+                    return next;
+                });
+                return true;
+            }
+            try {
+                const data = await classroomAPI.putGrading(idTokenRef.current, classroomId, updates);
+                delete unconfirmRef.current[classroomId];
+                setGradings((prev) => ({
+                    ...prev,
+                    [classroomId]: (data && data.grading) || { ...(prev[classroomId] || {}), ...updates },
+                }));
+                setSaveStates((prev) => {
+                    if (!prev[classroomId] && !saveTimersRef.current[classroomId]) return prev;
+                    const next = { ...prev };
+                    // A change made while this save was on its way saves again by itself.
+                    if (!saveTimersRef.current[classroomId]) delete next[classroomId];
+                    return next;
+                });
+                return true;
+            } catch (err) {
+                if (err.status === 401) handleTeacher401();
+                else showError(intl.formatMessage(evaluationMessages.saveFailed));
+                setSaveStates((prev) => ({ ...prev, [classroomId]: 'failed' }));
+                return false;
+            }
+        },
+        [handleTeacher401, showError, intl],
+    );
+    const flushSaveRef = useRef(flushSave);
+    flushSaveRef.current = flushSave;
+    /**
+     * Save the grades of an assignment a moment after the last change.
+     * @param {string} classroomId - the assignment
+     */
+    const scheduleSave = useCallback((classroomId) => {
+        clearTimeout(saveTimersRef.current[classroomId]);
+        setSaveStates((prev) => (prev[classroomId] === 'pending' ? prev : { ...prev, [classroomId]: 'pending' }));
+        saveTimersRef.current[classroomId] = setTimeout(() => {
+            delete saveTimersRef.current[classroomId];
+            flushSaveRef.current(classroomId);
+        }, GRADE_SAVE_DELAY_MS);
+    }, []);
+    /** Send every waiting save now (before leaving, so nothing waits on a timer). */
+    const flushAllSaves = useCallback(() => {
+        for (const classroomId of Object.keys(saveTimersRef.current)) flushSaveRef.current(classroomId);
+    }, []);
+    /**
+     * A grade of the assignment changed: save it, and take the confirmation back
+     * when it was confirmed (the teacher confirms again).
+     * @param {string} classroomId - the assignment
+     */
+    const gradesChanged = useCallback(
+        (classroomId) => {
+            const saved = gradingsRef.current[classroomId];
+            if (saved && saved.confirmedAt) {
+                unconfirmRef.current[classroomId] = true;
+                setGradings((prev) => ({ ...prev, [classroomId]: { ...prev[classroomId], confirmedAt: null } }));
+                setUnconfirmed((prev) => ({ ...prev, [classroomId]: true }));
+            }
+            scheduleSave(classroomId);
+        },
+        [scheduleSave],
+    );
+    // Logging out on purpose unmounts this (ClassroomTeacherModalHost, #1990): stop the
+    // runs, and send the grades still waiting for their delayed save.
+    useEffect(
+        () => () => {
+            stopRuns();
+            flushAllSaves();
+        },
+        [stopRuns, flushAllSaves],
+    );
+
     const handleShowEvaluation = useCallback(
         (group) => {
             clearError();
-            const lessons = (classrooms || [])
-                .filter((c) => c.groupId === group.groupId)
-                .map((c) => ({
-                    classroomId: c.classroomId,
-                    assignmentName: c.assignmentName || '',
-                    hasLesson: !!c.hasLesson,
-                }));
+            const lessons = gradebookColumns(
+                (classrooms || [])
+                    .filter((c) => c.groupId === group.groupId)
+                    .map((c) => ({
+                        classroomId: c.classroomId,
+                        assignmentName: c.assignmentName || '',
+                        hasLesson: !!c.hasLesson,
+                        sortDate: c.sortDate || null,
+                        createdAt: c.createdAt || null,
+                    })),
+            );
+            flushAllSaves();
             shownGroupRef.current = group.groupId;
             stopRuns();
             setEvalGroup(group);
             setEvalLessons(lessons);
-            setSelectedLessonIds(lessons.map((l) => l.classroomId));
+            setView('book');
+            setCurrentId(null);
+            setGradings({});
+            setSeatsById({});
             setMatrix({});
-            setSeats([]);
             setComments({});
             setLessonScores({});
             setLessonProgress({});
             setScoringChecked(false);
             setScoringSavingId(null);
+            setRubricVisited({});
+            setSaveStates({});
+            setUnconfirmed({});
+            unconfirmRef.current = {};
+            setInnerTab('rubric');
             setEvalProgress(null);
-            setExported({});
             setLeaveRequest(null);
             setChosenCell(null);
             setPhase('teacher-evaluation');
-            // The lesson settings decide the flow (lesson-only assignments are not
-            // graded by the AI) and feed the lesson points field (#1778). A failed
-            // read leaves the assignment in the usual flow.
-            lessons
-                .filter((l) => l.hasLesson)
-                .forEach((l) => {
-                    classroomAPI
-                        .getAssignment(idTokenRef.current, l.classroomId)
-                        .then((data) => {
-                            if (shownGroupRef.current !== group.groupId) return;
-                            const lessonSetting = (data && data.lesson) || null;
-                            setEvalLessons((prev) =>
-                                prev.map((x) => (x.classroomId === l.classroomId ? { ...x, lessonSetting } : x)),
-                            );
-                        })
-                        .catch(() => {});
-                });
+            // The gradebook: the saved grading of every assignment. One that cannot be
+            // read shows no grades (it is read again when the assignment is loaded).
+            const current = startRun(true);
+            if (lessons.length === 0) return;
+            let done = 0;
+            setEvalProgress({ kind: 'gradebook', done, total: lessons.length });
+            let unauthorized = false;
+            Promise.all(
+                lessons.map((l) =>
+                    Promise.resolve()
+                        .then(() => classroomAPI.getGrading(idTokenRef.current, l.classroomId))
+                        .then(
+                            (data) => (data && data.grading) || null,
+                            (err) => {
+                                if (err && err.status === 401) unauthorized = true;
+                                return null;
+                            },
+                        )
+                        .then((grading) => {
+                            if (!current()) return;
+                            done++;
+                            setGradings((prev) => ({ ...prev, [l.classroomId]: grading }));
+                            setEvalProgress({ kind: 'gradebook', done, total: lessons.length });
+                        }),
+                ),
+            ).then(() => {
+                if (!current()) return;
+                setEvalProgress(null);
+                if (unauthorized) handleTeacher401();
+            });
         },
-        [classrooms, clearError, setPhase, stopRuns],
+        [classrooms, clearError, setPhase, stopRuns, startRun, flushAllSaves, handleTeacher401],
     );
 
     const handleBackFromEvaluation = useCallback(() => {
+        flushAllSaves();
         stopRuns();
         clearError();
         setLeaveRequest(null);
         setEvalProgress(null);
         setPhase('teacher-class-list');
-    }, [clearError, setPhase, stopRuns]);
+    }, [clearError, setPhase, stopRuns, flushAllSaves]);
 
-    const handleToggleLesson = useCallback((classroomId) => {
-        setSelectedLessonIds((prev) =>
-            prev.includes(classroomId) ? prev.filter((id) => id !== classroomId) : [...prev, classroomId],
-        );
-    }, []);
+    /**
+     * Open the grading of one assignment (a column name, or a cell of the gradebook
+     * with its seat). Its description (given to the AI) and lesson setting are read.
+     * @param {string} classroomId - the assignment
+     * @param {?number} [seat] - the seat pressed in the gradebook (shown in［生徒］)
+     */
+    const handleOpenAssignment = useCallback(
+        (classroomId, seat = null) => {
+            const lesson = evalLessons.find((l) => l.classroomId === classroomId);
+            if (!lesson) return;
+            clearError();
+            setEvalResult(null);
+            if (classroomId !== currentId) setScoringChecked(false);
+            setCurrentId(classroomId);
+            setView('assignment');
+            if (typeof seat === 'number') {
+                setChosenCell({ seat, classroomId });
+                setInnerTab('student');
+            } else {
+                setInnerTab('rubric');
+            }
+            if (lesson.detailRead) return;
+            const groupId = shownGroupRef.current;
+            Promise.resolve()
+                .then(() => classroomAPI.getAssignment(idTokenRef.current, classroomId))
+                .then((data) => {
+                    if (shownGroupRef.current !== groupId) return;
+                    setEvalLessons((prev) =>
+                        prev.map((x) =>
+                            x.classroomId === classroomId
+                                ? {
+                                      ...x,
+                                      detailRead: true,
+                                      assignmentText: assignmentTextOf(data),
+                                      lessonSetting: (data && data.lesson) || null,
+                                  }
+                                : x,
+                        ),
+                    );
+                })
+                .catch(() => {});
+        },
+        [evalLessons, currentId, clearError],
+    );
 
-    /** Load submissions of the selected lessons and static-analyze each sb3. */
+    /** Back to the gradebook (nothing is lost: the assignment's state stays). */
+    const handleShowGradebook = useCallback(() => {
+        flushAllSaves();
+        setView('book');
+    }, [flushAllSaves]);
+    /** The overall grade (#2426 builds it; a placeholder for now). */
+    const handleShowOverall = useCallback(() => {
+        flushAllSaves();
+        setView('overall');
+    }, [flushAllSaves]);
+
+    const currentLesson = evalLessons.find((l) => l.classroomId === currentId) || null;
+    const selectedLessonIds = useMemo(() => (currentId ? [currentId] : []), [currentId]);
+
+    /** Load the submissions of the open assignment and static-analyze each sb3. */
     const handleLoadSubmissions = useCallback(async () => {
         const current = startRun(true);
         clearError();
-        const targets = evalLessons.filter((l) => selectedLessonIds.includes(l.classroomId));
+        const lesson = evalLessons.find((l) => l.classroomId === currentId);
+        if (!lesson) return;
+        const id = lesson.classroomId;
         const nextMatrix = {};
-        const nextLessonScores = {};
-        const nextLessonProgress = {};
-        const nextUrlsReadAt = {};
         const seatSet = new Set();
+        let nextLessonScore;
+        let nextLessonProgress;
+        let urlsReadAt = null;
+        let grading = gradingsRef.current[id] || null;
+        let starterPseudocode = '';
         try {
-            for (const lesson of targets) {
-                if (!current()) return;
-                const assignmentName = lesson.assignmentName;
-                setEvalProgress({
-                    kind: lesson.hasLesson ? 'loadProgress' : 'load',
-                    assignmentName,
-                    done: 0,
-                    total: null,
-                });
-                if (lesson.hasLesson) {
-                    // The lesson score comes from the progress, not the work (#1603).
-                    // A failed fetch leaves the scores empty (「—」) but still reads the
-                    // setting, so an assignment without work keeps showing no work column.
-                    const notAuthorized = (err) => {
-                        if (err.status === 401) throw err;
-                        return null;
-                    };
-                    let progressData = await classroomAPI
-                        .getLessonProgress(idTokenRef.current, lesson.classroomId)
-                        .catch(notAuthorized);
-                    if (!progressData) {
-                        const assignment = await classroomAPI
-                            .getAssignment(idTokenRef.current, lesson.classroomId)
-                            .catch(notAuthorized);
-                        progressData =
-                            assignment && assignment.lesson ? { lesson: assignment.lesson, progress: [] } : null;
-                    }
-                    const saved = progressData && progressData.lesson;
-                    const scored = saved
-                        ? lessonScoresBySeat(progressData, findCourse(saved.courseId), Date.now())
-                        : null;
-                    nextLessonScores[lesson.classroomId] = scored;
-                    nextLessonProgress[lesson.classroomId] = progressData;
-                    if (scored) Object.keys(scored.scores).forEach((seat) => seatSet.add(Number(seat)));
-                    // No work is submitted: nothing to download or grade (#1778).
-                    if (isLessonOnlyAssignment(lesson, nextLessonScores)) continue;
+            const assignmentName = lesson.assignmentName;
+            const notAuthorized = (err) => {
+                if (err.status === 401) throw err;
+                return null;
+            };
+            setEvalProgress({
+                kind: lesson.hasLesson ? 'loadProgress' : 'load',
+                assignmentName,
+                done: 0,
+                total: null,
+            });
+            // The saved grades (fresh: a co-teacher may have graded since) and the members
+            // (a member who did not submit is 「未提出」).
+            const [gradingData, membersData] = await Promise.all([
+                Promise.resolve()
+                    .then(() => classroomAPI.getGrading(idTokenRef.current, id))
+                    .catch(notAuthorized),
+                Promise.resolve()
+                    .then(() => classroomAPI.listMembers(idTokenRef.current, id))
+                    .catch(notAuthorized),
+            ]);
+            if (!current()) return;
+            if (gradingData) grading = gradingData.grading || null;
+            for (const member of (membersData && membersData.members) || []) {
+                const seat = seatFromMemberId(member.memberId);
+                if (seat !== null) seatSet.add(seat);
+            }
+            savedSeats(grading).forEach((seat) => seatSet.add(seat));
+            let lessonOnly = false;
+            if (lesson.hasLesson) {
+                // The lesson score comes from the progress, not the work (#1603).
+                // A failed fetch leaves the scores empty (「—」) but still reads the
+                // setting, so an assignment without work keeps showing no work column.
+                let progressData = await classroomAPI.getLessonProgress(idTokenRef.current, id).catch(notAuthorized);
+                if (!progressData) {
+                    const assignment = await classroomAPI.getAssignment(idTokenRef.current, id).catch(notAuthorized);
+                    progressData =
+                        assignment && assignment.lesson ? { lesson: assignment.lesson, progress: [] } : null;
                 }
+                const saved = progressData && progressData.lesson;
+                const scored = saved
+                    ? lessonScoresBySeat(progressData, findCourse(saved.courseId), Date.now())
+                    : null;
+                nextLessonScore = scored;
+                nextLessonProgress = progressData;
+                if (scored) Object.keys(scored.scores).forEach((seat) => seatSet.add(Number(seat)));
+                // No work is submitted: nothing to download or grade (#1778).
+                lessonOnly = isLessonOnlyAssignment(lesson, { [id]: scored });
+            }
+            if (!lessonOnly) {
                 if (!current()) return;
                 setEvalProgress({ kind: 'load', assignmentName, done: 0, total: null });
-                const data = await classroomAPI.listSubmissions(idTokenRef.current, lesson.classroomId);
-                nextUrlsReadAt[lesson.classroomId] = Date.now();
+                // The starter, to tell what each student added (a failed read compares with nothing).
+                const detail = await Promise.resolve()
+                    .then(() => classroomAPI.getAssignment(idTokenRef.current, id))
+                    .catch(notAuthorized);
+                const starterUrl = detail && detail.assignment && detail.assignment.starterUrl;
+                const starterAnalysis = starterUrl ? await analyzeSb3(starterUrl).catch(() => null) : null;
+                starterPseudocode = (starterAnalysis && starterAnalysis.pseudocode) || '';
+                if (!current()) return;
+                const data = await classroomAPI.listSubmissions(idTokenRef.current, id);
+                urlsReadAt = Date.now();
                 const submissions = data.submissions || [];
+                const savedGrades = (grading && grading.grades) || {};
                 for (let i = 0; i < submissions.length; i++) {
                     const submission = submissions[i];
                     if (!current()) return;
@@ -324,39 +588,60 @@ const useTeacherEvaluation = ({
                         needsReview: false,
                     };
                     try {
-                        const response = await fetch(submission.projectUrl);
-                        if (!response.ok) throw new Error(`download ${response.status}`);
-                        const zip = await JSZip.loadAsync(await response.arrayBuffer());
-                        const projectFile = zip.file('project.json');
-                        if (projectFile) {
-                            const projectJson = JSON.parse(await projectFile.async('string'));
-                            const { signals, pseudocode } = analyzeProject(projectJson);
-                            cell.signals = signals;
-                            cell.pseudocode = pseudocode;
+                        const analysis = await analyzeSb3(submission.projectUrl);
+                        if (analysis) {
+                            cell.signals = analysis.signals;
+                            cell.pseudocode = analysis.pseudocode;
                         }
+                        // What the student added to the starter: the main thing to grade (EPIC #2421).
+                        cell.added = diffFromStarter(cell.pseudocode, starterPseudocode).added;
                     } catch (err) {
                         // Analysis failure is per-cell: keep the submission
                         // visible and let the AI/teacher treat it as unknown.
                         cell.pseudocode = `(解析失敗: ${err.message})`;
                         cell.needsReview = true;
                     }
-                    nextMatrix[cellKey(seatNumber, lesson.classroomId)] = cell;
+                    // A grade saved before comes back as it was (#2424).
+                    nextMatrix[cellKey(seatNumber, id)] = withSavedGrade(cell, savedGrades[String(seatNumber)]);
                 }
             }
             if (!current()) return;
-            setMatrix(nextMatrix);
-            urlsReadAtRef.current = nextUrlsReadAt;
-            setExported({});
-            setLessonScores(nextLessonScores);
-            setLessonProgress(nextLessonProgress);
+            // The まとまり (works that added the same operations, EPIC #2421): saved with each grade.
+            const groups = groupSubmissions(
+                Object.entries(nextMatrix).map(([key, cell]) => ({
+                    seatNumber: parseInt(key, 10),
+                    added: cell.added || [],
+                })),
+            );
+            for (const group of groups) {
+                for (const seat of group.seatNumbers) {
+                    const key = cellKey(seat, id);
+                    if (nextMatrix[key]) nextMatrix[key] = { ...nextMatrix[key], groupName: group.name };
+                }
+            }
+            setEvalLessons((prev) =>
+                prev.map((x) => (x.classroomId === id ? { ...x, starterPseudocode, groups } : x)),
+            );
+            const suffix = `:${id}`;
+            setMatrix((prev) => {
+                const next = {};
+                for (const [key, cell] of Object.entries(prev)) if (!key.endsWith(suffix)) next[key] = cell;
+                return { ...next, ...nextMatrix };
+            });
+            setGradings((prev) => ({ ...prev, [id]: grading }));
+            if (urlsReadAt) urlsReadAtRef.current = { ...urlsReadAtRef.current, [id]: urlsReadAt };
+            if (lesson.hasLesson) {
+                setLessonScores((prev) => ({ ...prev, [id]: nextLessonScore }));
+                setLessonProgress((prev) => ({ ...prev, [id]: nextLessonProgress }));
+            }
             setScoringChecked(false);
-            setSeats([...seatSet].sort((a, b) => a - b));
+            setSeatsById((prev) => ({ ...prev, [id]: [...seatSet].sort((a, b) => a - b) }));
             // `lessons` counts only the assignments whose lesson progress was read: an ordinary
             // assignment with no submission yet is「0 件の提出」, not「進み具合を読み込みました」.
             setEvalResult({
                 kind: 'load',
                 count: Object.keys(nextMatrix).length,
-                lessons: targets.filter((l) => l.hasLesson).length,
+                lessons: lesson.hasLesson ? 1 : 0,
             });
         } catch (err) {
             if (!current()) return;
@@ -369,92 +654,104 @@ const useTeacherEvaluation = ({
         } finally {
             if (current()) setEvalProgress(null);
         }
-    }, [evalLessons, selectedLessonIds, clearError, showError, intl, handleTeacher401, startRun]);
+    }, [evalLessons, currentId, clearError, showError, intl, handleTeacher401, startRun]);
 
-    /** Run the AI per lesson (grade proposals or comment drafts). */
+    const seats = useMemo(() => {
+        if (!currentId) return [];
+        if (seatsById[currentId]) return seatsById[currentId];
+        return savedSeats(gradings[currentId]).sort((a, b) => a - b);
+    }, [currentId, seatsById, gradings]);
+    const loaded = !!(currentId && seatsById[currentId]);
+
+    /** Run the AI on the open assignment (grade proposals or comment drafts). */
     const handleRunAi = useCallback(
         async (mode) => {
             const current = startRun(true);
             clearError();
-            const targets = evalLessons.filter((l) => selectedLessonIds.includes(l.classroomId));
+            const lesson = evalLessons.find((l) => l.classroomId === currentId);
+            if (!lesson) return;
             let sent = 0;
             try {
-                for (const lesson of targets) {
-                    const cells = seats
-                        .map((seatNumber) => ({ seatNumber, cell: matrix[cellKey(seatNumber, lesson.classroomId)] }))
-                        .filter((entry) => entry.cell && entry.cell.submitted);
-                    if (cells.length === 0) continue;
-                    // Calibration: hand-graded cells of this lesson (up to 5)
-                    const samples = cells
-                        .filter((entry) => entry.cell.grade && entry.cell.manual)
-                        .slice(0, 5)
-                        .map((entry) => ({
+                const cells = seats
+                    .map((seatNumber) => ({ seatNumber, cell: matrix[cellKey(seatNumber, lesson.classroomId)] }))
+                    .filter((entry) => entry.cell && entry.cell.submitted);
+                // Calibration: hand-graded cells of this assignment (up to 5)
+                const samples = cells
+                    .filter((entry) => entry.cell.grade && entry.cell.manual)
+                    .slice(0, 5)
+                    .map((entry) => ({
+                        seatNumber: entry.seatNumber,
+                        grade: entry.cell.grade,
+                        ...(entry.cell.reason ? { reason: entry.cell.reason } : {}),
+                    }));
+                const rubric = gradingsRef.current[lesson.classroomId]?.rubric || null;
+                const pending = mode === 'grade' ? cells.filter((entry) => !entry.cell.manual) : cells;
+                const chunks = chunk(pending, EVAL_CHUNK_SIZE);
+                for (let i = 0; i < chunks.length; i++) {
+                    if (!current()) return;
+                    // Seats from..to of this assignment's seats sent to the AI.
+                    const from = i * EVAL_CHUNK_SIZE + 1;
+                    setEvalProgress({
+                        kind: mode === 'grade' ? 'grade' : 'comment',
+                        assignmentName: lesson.assignmentName,
+                        from,
+                        to: from + chunks[i].length - 1,
+                        total: pending.length,
+                    });
+                    const payload = {
+                        mode,
+                        assignmentName: lesson.assignmentName,
+                        // The description the teacher wrote: without it the AI guessed the task (#2424).
+                        assignmentText: lesson.assignmentText || '',
+                        // The AI looks at what was added to the starter (EPIC #2421).
+                        ...(lesson.starterPseudocode ? { starterPseudocode: lesson.starterPseudocode } : {}),
+                        rubricAxes,
+                        strictness,
+                        samples,
+                        ...(rubric && (rubric.levels || []).length > 0 ? { rubricLevels: rubric.levels } : {}),
+                        ...(rubric && (rubric.examples || []).length > 0 ? { examples: rubric.examples } : {}),
+                        submissions: chunks[i].map((entry) => ({
                             seatNumber: entry.seatNumber,
-                            grade: entry.cell.grade,
-                            ...(entry.cell.reason ? { reason: entry.cell.reason } : {}),
-                        }));
-                    const pending = mode === 'grade' ? cells.filter((entry) => !entry.cell.manual) : cells;
-                    const chunks = chunk(pending, EVAL_CHUNK_SIZE);
-                    for (let i = 0; i < chunks.length; i++) {
-                        if (!current()) return;
-                        // Seats from..to of this assignment's seats sent to the AI.
-                        const from = i * EVAL_CHUNK_SIZE + 1;
-                        setEvalProgress({
-                            kind: mode === 'grade' ? 'grade' : 'comment',
-                            assignmentName: lesson.assignmentName,
-                            from,
-                            to: from + chunks[i].length - 1,
-                            total: pending.length,
+                            signals: entry.cell.signals || {},
+                            pseudocode: entry.cell.pseudocode || '',
+                        })),
+                    };
+                    const data = await classroomAPI.evaluateSubmissions(
+                        idTokenRef.current,
+                        lesson.classroomId,
+                        payload,
+                    );
+                    // Left (or started again) while the AI was answering: drop the result.
+                    if (!current()) return;
+                    if (mode === 'grade') {
+                        setMatrix((prev) => {
+                            const next = { ...prev };
+                            for (const result of data.results || []) {
+                                const key = cellKey(result.seatNumber, lesson.classroomId);
+                                if (!next[key]) continue;
+                                next[key] = {
+                                    ...next[key],
+                                    grade: result.grade,
+                                    reason: result.reason || '',
+                                    needsReview: result.needsReview === true,
+                                    manual: false,
+                                    gradeEdited: false,
+                                };
+                            }
+                            return next;
                         });
-                        const payload = {
-                            mode,
-                            assignmentName: lesson.assignmentName,
-                            assignmentText: '',
-                            rubricAxes,
-                            strictness,
-                            samples,
-                            submissions: chunks[i].map((entry) => ({
-                                seatNumber: entry.seatNumber,
-                                signals: entry.cell.signals || {},
-                                pseudocode: entry.cell.pseudocode || '',
-                            })),
-                        };
-                        const data = await classroomAPI.evaluateSubmissions(
-                            idTokenRef.current,
-                            lesson.classroomId,
-                            payload,
-                        );
-                        // Left (or started again) while the AI was answering: drop the result.
-                        if (!current()) return;
-                        if (mode === 'grade') {
-                            setMatrix((prev) => {
-                                const next = { ...prev };
-                                for (const result of data.results || []) {
-                                    const key = cellKey(result.seatNumber, lesson.classroomId);
-                                    if (!next[key]) continue;
-                                    next[key] = {
-                                        ...next[key],
-                                        grade: result.grade,
-                                        reason: result.reason || '',
-                                        needsReview: result.needsReview === true,
-                                        manual: false,
-                                        gradeEdited: false,
-                                    };
-                                }
-                                return next;
-                            });
-                        } else {
-                            setComments((prev) => {
-                                const next = { ...prev };
-                                for (const result of data.results || []) {
-                                    if (!result.comment) continue;
-                                    next[cellKey(result.seatNumber, lesson.classroomId)] = result.comment;
-                                }
-                                return next;
-                            });
-                        }
-                        sent += chunks[i].length;
+                        gradesChanged(lesson.classroomId);
+                    } else {
+                        setComments((prev) => {
+                            const next = { ...prev };
+                            for (const result of data.results || []) {
+                                if (!result.comment) continue;
+                                next[cellKey(result.seatNumber, lesson.classroomId)] = result.comment;
+                            }
+                            return next;
+                        });
                     }
+                    sent += chunks[i].length;
                 }
                 if (current()) setEvalResult({ kind: mode === 'grade' ? 'grade' : 'comment', count: sent });
             } catch (err) {
@@ -471,7 +768,7 @@ const useTeacherEvaluation = ({
         },
         [
             evalLessons,
-            selectedLessonIds,
+            currentId,
             seats,
             matrix,
             rubricAxes,
@@ -481,17 +778,51 @@ const useTeacherEvaluation = ({
             intl,
             handleTeacher401,
             startRun,
+            gradesChanged,
         ],
     );
 
     const handleCheckScoring = useCallback(() => setScoringChecked(true), []);
+
+    /** The teacher looked at the rubric step (step 2): the flow moves on to grading. */
+    const handleVisitRubric = useCallback(() => {
+        if (!currentId) return;
+        setRubricVisited((prev) => ({ ...prev, [currentId]: true }));
+        setInnerTab('rubric');
+    }, [currentId]);
+
+    /** Confirm the grades of the open assignment (step 4): they count as decided. */
+    const handleConfirmGrades = useCallback(async () => {
+        const lesson = evalLessons.find((l) => l.classroomId === currentId);
+        if (!lesson) return;
+        // Confirming does not replace the table, so it does not stop the others.
+        const current = startRun(false);
+        clearError();
+        setEvalProgress({ kind: 'confirm', assignmentName: lesson.assignmentName });
+        const confirmedAt = new Date().toISOString();
+        const ok = await flushSave(lesson.classroomId, { confirmedAt });
+        if (!current()) return;
+        setEvalProgress(null);
+        if (ok) {
+            setUnconfirmed((prev) => {
+                if (!prev[lesson.classroomId]) return prev;
+                const next = { ...prev };
+                delete next[lesson.classroomId];
+                return next;
+            });
+            const count = Object.keys(gradesFromMatrix(matrixRef.current, lesson.classroomId)).length;
+            setEvalResult({ kind: 'confirm', count });
+        } else {
+            setEvalResult({ kind: 'confirm', failed: true });
+        }
+    }, [evalLessons, currentId, startRun, clearError, flushSave]);
 
     /**
      * Open the work of a cell in the editor (#1980), the same way as
      * 「スモウルビーで開く」 of the assignment's members. The modal closes but this
      * hook stays mounted (#1990), so nothing is lost and it does not ask. A link read more than
      * WORK_URL_FRESH_MS ago is read again (it may have ended), without loading
-     * the table again (that would drop grades not exported).
+     * the table again.
      * @param {number} seatNumber - seat of the cell
      * @param {string} classroomId - assignment of the cell
      */
@@ -616,29 +947,44 @@ const useTeacherEvaluation = ({
     );
 
     /**
-     * Teacher edits a cell — marks it manual so it feeds calibration (and the AI
-     * does not grade it again). `gradeEdited` is only for the screen: the grade is
-     * no longer the AI's draft (#1962). Editing only the reason keeps the AI's grade,
-     * so it stays a draft. Kept in the browser only; nothing is sent to the API.
+     * Teacher edits a cell's grade — it becomes the teacher's (`source: 'teacher'`):
+     * it feeds calibration and the AI does not grade it again. It is saved a moment later.
      */
-    const handleSetCellGrade = useCallback((seatNumber, classroomId, grade) => {
-        setMatrix((prev) => {
+    const handleSetCellGrade = useCallback(
+        (seatNumber, classroomId, grade) => {
             const key = cellKey(seatNumber, classroomId);
-            if (!prev[key]) return prev;
-            return {
-                ...prev,
-                [key]: { ...prev[key], grade: grade || null, needsReview: false, manual: true, gradeEdited: true },
-            };
-        });
-    }, []);
+            if (!matrixRef.current[key]) return;
+            setMatrix((prev) => {
+                if (!prev[key]) return prev;
+                return {
+                    ...prev,
+                    [key]: {
+                        ...prev[key],
+                        grade: grade || null,
+                        needsReview: false,
+                        manual: true,
+                        gradeEdited: true,
+                    },
+                };
+            });
+            gradesChanged(classroomId);
+        },
+        [gradesChanged],
+    );
 
-    const handleSetCellReason = useCallback((seatNumber, classroomId, reason) => {
-        setMatrix((prev) => {
+    /** Editing only the reason keeps the AI's grade (it stays a draft); it is saved too. */
+    const handleSetCellReason = useCallback(
+        (seatNumber, classroomId, reason) => {
             const key = cellKey(seatNumber, classroomId);
-            if (!prev[key]) return prev;
-            return { ...prev, [key]: { ...prev[key], reason, manual: true } };
-        });
-    }, []);
+            if (!matrixRef.current[key]) return;
+            setMatrix((prev) => {
+                if (!prev[key]) return prev;
+                return { ...prev, [key]: { ...prev[key], reason, manual: true } };
+            });
+            gradesChanged(classroomId);
+        },
+        [gradesChanged],
+    );
 
     const handleSetComment = useCallback((seatNumber, classroomId, comment) => {
         setComments((prev) => ({ ...prev, [cellKey(seatNumber, classroomId)]: comment }));
@@ -653,39 +999,60 @@ const useTeacherEvaluation = ({
         [matrix],
     );
 
-    const selectedLessons = evalLessons.filter((l) => selectedLessonIds.includes(l.classroomId));
-
+    const fileBase = `${evalGroup?.name || 'class'}_${currentLesson ? currentLesson.assignmentName : ''}`;
+    /** The CSV of the open assignment (#2424: one assignment per file). */
     const handleExportEvaluationCsv = useCallback(() => {
-        // The CSV is the only place the grades are kept (#1923 C4): remember
-        // what it has (the selected assignments only, like the CSV).
-        const ids = new Set(selectedLessons.map((lesson) => lesson.classroomId));
-        const inCsv = Object.fromEntries(
-            Object.entries(matrix).filter(([key]) => ids.has(key.slice(key.indexOf(':') + 1))),
-        );
-        setExported((prev) => ({ ...prev, ...evaluationSnapshot(inCsv) }));
-        downloadText(
-            `${evalGroup?.name || 'class'}_採点結果.csv`,
-            buildEvaluationCsv(selectedLessons, seats, getCell, lessonScores),
-        );
-    }, [evalGroup, matrix, selectedLessons, seats, getCell, lessonScores]);
+        if (!currentLesson) return;
+        // A lesson assignment keeps the CSV with the lesson points (#1603 / #1778).
+        if (currentLesson.hasLesson) {
+            downloadText(
+                `${fileBase}_採点結果.csv`,
+                buildEvaluationCsv([currentLesson], seats, getCell, lessonScores),
+            );
+            return;
+        }
+        // One CSV per assignment (EPIC #2421): 出席番号・評価・根拠・まとまり・確定.
+        const grading = gradings[currentLesson.classroomId] || null;
+        const confirmed = !!(grading && grading.confirmedAt);
+        const rows = seats.map((seat) => {
+            const cell = getCell(seat, currentLesson.classroomId);
+            const saved = grading && grading.grades ? grading.grades[String(seat)] : null;
+            const grade = cell ? cell.grade : saved && saved.grade;
+            return {
+                seatNumber: seat,
+                grade: grade || '',
+                reason: cell ? cell.reason : (saved && saved.reason) || '',
+                groupName: (cell && cell.groupName) || (saved && saved.group) || '',
+                confirmed: confirmed && !!grade,
+            };
+        });
+        downloadText(`${fileBase}_採点結果.csv`, gradingCsvText(assignmentCsvRows(rows)));
+    }, [currentLesson, fileBase, seats, getCell, lessonScores, gradings]);
 
     const handleExportAuditCsv = useCallback(() => {
-        downloadText(`${evalGroup?.name || 'class'}_検証用.csv`, buildAuditCsv(selectedLessons, seats, getCell));
-    }, [evalGroup, selectedLessons, seats, getCell]);
+        if (!currentLesson) return;
+        downloadText(`${fileBase}_検証用.csv`, buildAuditCsv([currentLesson], seats, getCell));
+    }, [currentLesson, fileBase, seats, getCell]);
 
-    /** Return every non-empty comment draft to its student. */
+    /** Return every non-empty comment draft of the open assignment to its student. */
     const handleReturnComments = useCallback(async () => {
         // Returning does not replace the table, so it does not stop the others.
         const current = startRun(false);
         clearError();
         const targets = [];
-        for (const lesson of selectedLessons) {
+        if (currentLesson) {
             for (const seatNumber of seats) {
-                const key = cellKey(seatNumber, lesson.classroomId);
+                const key = cellKey(seatNumber, currentLesson.classroomId);
                 const comment = (comments[key] || '').trim();
                 const cell = matrix[key];
                 if (comment && cell?.submissionId) {
-                    targets.push({ lesson, seatNumber, key, comment, submissionId: cell.submissionId });
+                    targets.push({
+                        lesson: currentLesson,
+                        seatNumber,
+                        key,
+                        comment,
+                        submissionId: cell.submissionId,
+                    });
                 }
             }
         }
@@ -722,19 +1089,27 @@ const useTeacherEvaluation = ({
         } finally {
             if (current()) setEvalProgress(null);
         }
-    }, [selectedLessons, seats, comments, matrix, clearError, showError, intl, handleTeacher401, startRun]);
+    }, [currentLesson, seats, comments, matrix, clearError, showError, intl, handleTeacher401, startRun]);
 
-    const unsaved = useMemo(() => unsavedEvaluation({ matrix, comments, exported }), [matrix, comments, exported]);
+    // What leaving would lose: comment drafts not returned, and grades whose save failed
+    // (grades waiting for their delayed save are sent before leaving).
+    const unsaved = useMemo(
+        () => ({
+            grades: Object.values(saveStates).includes('failed'),
+            comments: hasUnreturnedComments(matrix, comments),
+        }),
+        [saveStates, matrix, comments],
+    );
     const hasUnsavedWork = unsaved.grades || unsaved.comments;
     const busy = !!evalProgress;
-    // Loading again on confirm uses the selection at that time (#1923 FYI1).
+    // Loading again on confirm uses the assignment open at that time (#1923 FYI1).
     const loadRef = useRef(handleLoadSubmissions);
     loadRef.current = handleLoadSubmissions;
 
     /**
      * Leave the grading screen, or re-load the table, only after asking when
-     * work would be lost (#1923 C4): grades not exported, comments not
-     * returned, or the AI still running. Every way out goes through here
+     * work would be lost (#1923 C4): comments not returned, grades that could not
+     * be saved, or the AI still running. Every way out goes through here
      * (cancel, breadcrumb, the modal's close, notifications, logout, the
      * menu bar and the kick toast's links, load). What is lost is shown from
      * `unsavedWork` as it is when drawn, not as it was when asked.
@@ -743,7 +1118,8 @@ const useTeacherEvaluation = ({
      */
     const requestLeave = useCallback(
         (action, kind = 'back') => {
-            // Loading again keeps the comment drafts: only the grades are lost.
+            flushAllSaves();
+            // Loading again keeps the comment drafts: only the grades not saved are lost.
             const lost = kind === 'reload' ? unsaved.grades : hasUnsavedWork;
             const waitsForAi = busy && kind !== 'reload';
             if (lost || waitsForAi) {
@@ -754,7 +1130,7 @@ const useTeacherEvaluation = ({
             if (kind !== 'reload') stopRuns();
             action();
         },
-        [unsaved.grades, hasUnsavedWork, busy, stopRuns],
+        [unsaved.grades, hasUnsavedWork, busy, stopRuns, flushAllSaves],
     );
     const confirmLeave = useCallback(() => {
         const request = leaveRequest;
@@ -770,9 +1146,22 @@ const useTeacherEvaluation = ({
     }, [leaveRequest, stopRuns]);
     const cancelLeave = useCallback(() => setLeaveRequest(null), []);
 
+    const currentGrading = currentId ? gradings[currentId] || null : null;
+    const rubricDone = !!(currentId && (rubricVisited[currentId] || columnStatus(currentGrading).hasRubric));
+
     return {
         evalGroup,
         evalLessons,
+        view,
+        currentId,
+        currentLesson,
+        currentGrading,
+        gradings,
+        loaded,
+        rubricDone,
+        gradeSaveState: currentId ? saveStates[currentId] || null : null,
+        unconfirmedByEdit: !!(currentId && unconfirmed[currentId]),
+        innerTab,
         selectedLessonIds,
         seats,
         matrix,
@@ -788,9 +1177,14 @@ const useTeacherEvaluation = ({
         handleSetStrictness: setStrictness,
         handleShowEvaluation,
         handleBackFromEvaluation,
-        handleToggleLesson,
+        handleOpenAssignment,
+        handleShowGradebook,
+        handleShowOverall,
+        handleSetInnerTab: setInnerTab,
         handleLoadSubmissions,
         handleRunAi,
+        handleVisitRubric,
+        handleConfirmGrades,
         handleSetCellGrade,
         handleSetCellReason,
         handleSetComment,
