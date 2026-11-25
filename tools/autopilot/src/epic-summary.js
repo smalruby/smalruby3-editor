@@ -8,6 +8,9 @@
  * 同じ JSON を読む。I/O・時計（Date.now()）は持ち込まない（時刻は引数 `now` で受ける）。
  */
 
+// まとまりの優先度は、作業を始める順番（scheduler.orderByPriority）と同じ決め方にする（#2411）
+const { DEFAULT_PRIORITY, normalizePriority } = require('./scheduler');
+
 /** EPIC の段（左から順に進む）。単独の Issue のまとまりは段を持たない（null）。 */
 const EPIC_STAGES = ['design', 'implement', 'topic-review', 'develop'];
 
@@ -18,9 +21,6 @@ const EPIC_STAGE_LABELS = {
     'topic-review': 'topic の確認',
     develop: 'develop',
 };
-
-// 単独の Issue の優先度は、作業を始める順番（scheduler.orderByPriority）と同じ決め方にする（#2411）
-const { DEFAULT_PRIORITY, normalizePriority } = require('./scheduler');
 
 /** EPIC の無い Issue のまとまりのキーの頭。実際のキーは優先度ごとに `solo-P2` のようになる（#2411）。 */
 const SOLO_GROUP_KEY = 'solo';
@@ -260,8 +260,11 @@ function groupItemsByEpic(items, ctx = {}) {
                 })),
         });
     }
-    // 同じ優先度では EPIC を上に置く（EPIC は段の順に並べていて、そこへ単独を割り込ませない）
-    return out.sort((a, b) => priorityRank(a.priority) - priorityRank(b.priority)
+    // 並べ替えの優先度は作業を始める順番と同じく、無ければ既定の P2 とみなす（Priority の無い EPIC の子は
+    // P2 で着手されるので、単独の P3 より下に出さない）。同じ優先度では EPIC を上に置く
+    // （EPIC は段の順に並べていて、そこへ単独を割り込ませない）
+    const rank = (g) => priorityRank(normalizePriority(g.priority) || DEFAULT_PRIORITY);
+    return out.sort((a, b) => rank(a) - rank(b)
             || (a.solo === b.solo ? 0 : a.solo ? 1 : -1)
             || EPIC_STAGES.indexOf(a.stage) - EPIC_STAGES.indexOf(b.stage)
             || Number(a.epic) - Number(b.epic));

@@ -79,8 +79,9 @@ test('groupItemsByEpic: EPIC ごと・ボードに無い親・単独のまとま
         running: [{ issue: 11, phase: 'implement', since: 5 }], concurrency: 2, now: 0,
         history: [{ issue: 1, startedAt: 0, endedAt: H }], decisionsByEpic: { 10: { count: 2 } },
     });
-    // 単独 #30 は Priority 無し → 既定の P2。Priority の無い EPIC #40 より上
-    assert.deepEqual(groups.map((g) => g.key), ['99', '10', 'solo-P2', '40']);
+    // 単独 #30 は Priority 無し → 既定の P2。Priority の無い EPIC #40 も P2 とみなし、同じ優先度なので EPIC が上
+    assert.deepEqual(groups.map((g) => g.key), ['99', '10', '40', 'solo-P2']);
+    assert.equal(groups.find((g) => g.key === '40').priority, null);
     const a = groups.find((g) => g.key === '10');
     assert.equal(a.stage, 'implement');
     assert.equal(a.done, 1);
@@ -124,6 +125,16 @@ test('groupItemsByEpic: EPIC に属さない Issue は実際に効く優先度�
     assert.equal(groups.find((g) => g.key === 'solo-P0').priority, 'P0');
     assert.ok(!groups.some((g) => g.key === 'solo-P1'));
     assert.equal(soloGroupKey('P3'), 'solo-P3');
+});
+
+test('groupItemsByEpic: Priority の無い EPIC は既定の P2 の位置（単独の P3 より上）', () => {
+    const items = [
+        { issue: 4, title: 'EPIC 無し', kind: 'EPIC', status: 'In Progress', subIssues: { total: 1, completed: 0 } },
+        { issue: 5, title: 'EPIC P1 高', kind: 'EPIC', status: 'In Progress', priority: 'P1 高', subIssues: { total: 1, completed: 0 } },
+        { issue: 60, title: 's P3', status: 'Ready', priority: 'P3' },
+        { issue: 61, title: 's P2', status: 'Ready', priority: 'P2' },
+    ];
+    assert.deepEqual(groupItemsByEpic(items).map((g) => g.key), ['5', '4', 'solo-P2', 'solo-P3']);
 });
 
 test('priorityList: 優先度 → 指定の並び → 番号。EPIC・終端・あとで は除く', () => {
