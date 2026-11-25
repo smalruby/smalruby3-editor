@@ -435,6 +435,26 @@ test('MONITOR_HTML: あなた宛ての操作 — AI に任せる（/delegate）�
     assert.match(MONITOR_HTML, /@media \(prefers-reduced-motion: reduce\) \{ \.go, \.pulse \{ animation: none; \} \}/);
 });
 
+test('MONITOR_HTML: 「あなた宛て」の開け閉め — 印のボタン・細い帯・[ キー・localStorage（#2404）', () => {
+    // 見出しの切りかえと、閉じたときの帯。どちらも aria-controls で本文を指す
+    assert.match(MONITOR_HTML, /id="inboxtoggle" aria-expanded="true" aria-controls="inbox-body"/);
+    assert.match(MONITOR_HTML, /id="inbox-rail" aria-expanded="false" aria-controls="inbox-body"/);
+    assert.ok(MONITOR_HTML.includes('title="あなた宛てを閉じる ([)"'));
+    // 閉じると帯の幅にし、本文を隠す（幅の広い画面だけ）。900px 未満では切りかえを出さない
+    assert.match(MONITOR_HTML, /\.stage\.inbox-closed \{ grid-template-columns: var\(--ap-rail-w\) minmax\(0, 1fr\); \}/);
+    assert.match(MONITOR_HTML, /\.paneltoggle \{ display: none;/);
+    assert.match(MONITOR_HTML, /@media \(prefers-reduced-motion: reduce\) \{ \.stage \{ transition: none; \} \}/);
+    // [ は monitor-inbox.js の isInboxToggleKey で決める。状態は localStorage（try/catch）に覚える
+    assert.match(MONITOR_HTML, /function isInboxToggleKey\(ev\)/);
+    assert.match(MONITOR_HTML, /isInboxToggleKey\(\{ key: e\.key, metaKey: e\.metaKey, ctrlKey: e\.ctrlKey, altKey: e\.altKey, inInput \}\)/);
+    assert.match(MONITOR_HTML, /try \{ localStorage\.setItem\(INBOX_OPEN_KEY, String\(inboxOpen\)\); \} catch/);
+    // 数字キー 1 は閉じていれば開く
+    assert.match(MONITOR_HTML, /if \(target === 'inbox' && !inboxOpen && wideLayout\(\)\) setInboxOpen\(true\);/);
+    // 人間待ちは EPIC ごとのまとまり（inboxGroups）。「EPIC に属さない」を行ごとに書かない
+    assert.match(MONITOR_HTML, /inboxGroups\(m\.waits, \{ epicGroups: d\.epicGroups, items, open: Array\.from\(openInboxGroups\) \}\)/);
+    assert.ok(!MONITOR_HTML.includes("w.from || 'EPIC に属さない'"));
+});
+
 test('MONITOR_HTML: monitor-inbox.js の純粋関数を verbatim で埋め込む（二重定義しない）', () => {
     const inbox = require('../src/monitor-inbox');
     for (const fn of inbox.INBOX_CLIENT_FNS) {

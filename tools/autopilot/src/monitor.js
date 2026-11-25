@@ -43,6 +43,9 @@ const TOKEN_META_EMPTY = '<meta name="autopilot-token" content="">';
 const ICON_SPARK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="url(#goGrad)" d="M12 1.5c.5 4.9 2.6 8 7.6 9.2.5.1.5.8 0 .9-5 1.2-7.1 4.3-7.6 9.2-.1.6-.9.6-1 0-.5-4.9-2.6-8-7.6-9.2-.5-.1-.5-.8 0-.9 5-1.2 7.1-4.3 7.6-9.2.1-.6.9-.6 1 0Z"/>'
     + '<path fill="url(#goGrad)" d="M19.5 1.8c.2 1.6.9 2.4 2.4 2.7.2 0 .2.3 0 .3-1.5.3-2.2 1.1-2.4 2.7 0 .2-.3.2-.3 0-.2-1.6-.9-2.4-2.4-2.7-.2 0-.2-.3 0-.3 1.5-.3 2.2-1.1 2.4-2.7 0-.2.3-.2.3 0Z"/></svg>';
 /** ⋯（ほかの操作） */
+// 「あなた宛て」の開け閉め: 左に列のある四角（サイドバーの切りかえの形として広く見かける形）
+const ICON_SIDEBAR = '<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.4">'
+    + '<rect x="1.7" y="2.7" width="12.6" height="10.6" rx="2"/><path d="M6 2.9v10.2"/></g></svg>';
 const ICON_MORE = '<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><g fill="currentColor"><circle cx="3" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="13" cy="8" r="1.5"/></g></svg>';
 /** GitHub API の印（git の枝分かれの形。ロゴではない） */
 const ICON_GITHUB = '<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="4.5" cy="3.5" r="1.8"/><circle cx="4.5" cy="12.5" r="1.8"/><circle cx="11.5" cy="5.5" r="1.8"/><path d="M4.5 5.3v5.4M11.5 7.3c0 2.6-2.4 3-5.4 3.8"/></g></svg>';
@@ -128,7 +131,8 @@ ${TOKEN_META_EMPTY}
     --ap-row-dense:30px; --ap-row-comfy:40px; --ap-human-font:15px; --ap-human-gap:16px;
     --ap-space-1:2px; --ap-space-2:4px; --ap-space-3:8px; --ap-space-4:12px; --ap-space-5:16px; --ap-space-6:24px;
     --ap-radius-sm:4px; --ap-radius-md:6px; --ap-radius-pill:999px; --ap-dot:8px;
-    --ap-motion-pulse:2s; --ap-motion-go:5s;
+    --ap-motion-pulse:2s; --ap-motion-go:5s; --ap-motion-pane:150ms;
+    --ap-rail-w:44px;
     --ap-font-ui:-apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Segoe UI", Meiryo, sans-serif;
     --ap-font-mono:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
@@ -391,6 +395,44 @@ ${TOKEN_META_EMPTY}
     .topline .sep { display: none; }
     .keyhint { display: none; }
   }
+  /* ---- 人間待ちのまとまり（親の EPIC ごと） ---- */
+  .ig { border-bottom: 1px solid var(--ap-line); }
+  .ig-h { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; padding: 8px 16px 6px; font-size: var(--ap-font-md);
+          border-bottom: 1px solid var(--ap-line-soft); }
+  .ig-h .tt { font-weight: 600; }
+  /* 1 行に収める: 題名だけを … で切り、#番号は残す */
+  .t1 { flex: 1 1 0; min-width: 0; display: flex; align-items: baseline; gap: 6px; }
+  .t1 .tt { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .t1 .ilink, .t1 .small { flex: none; white-space: nowrap; }
+  .ig .fi { flex-wrap: nowrap; padding-left: 28px; min-height: 0; padding-top: 6px; padding-bottom: 6px; }
+  .ig-h, .ig .fi { flex-wrap: nowrap; }
+  .ig .acts-r .go { padding-top: 1px; padding-bottom: 1px; }
+  .ig .kind { min-width: 5.2em; text-align: center; }
+  .ig .ig-more { min-height: 0; padding-top: 4px; padding-bottom: 6px; font-size: var(--ap-font-sm); }
+  .gprio { font-size: var(--ap-font-xs); font-weight: 600; color: var(--ap-faint); }
+  .gprio.p0, .gprio.p1 { color: var(--ap-ink); }
+  /* ---- 「あなた宛て」の開け閉め（幅の広い画面だけ） ---- */
+  .paneltoggle { display: none; padding: 2px 5px; margin-left: -4px; color: var(--ap-muted); }
+  .paneltoggle svg.i { width: 16px; height: 16px; }
+  .rail { display: none; }
+  @media (min-width: 900px) {
+    .stage { transition: grid-template-columns var(--ap-motion-pane) ease; }
+    .paneltoggle { display: inline-flex; }
+    .stage.inbox-closed { grid-template-columns: var(--ap-rail-w) minmax(0, 1fr); }
+    .stage.inbox-closed #inbox-body { display: none; }
+    .stage.inbox-closed #sec-inbox { overflow: hidden; }
+    .stage.inbox-closed .rail { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; height: 100%;
+             padding: 9px 0; border: 0; border-radius: var(--ap-radius-md); background: transparent; color: var(--ap-muted); }
+    .rail:hover { background: var(--ap-surface-2); }
+    .rail > svg.i { width: 16px; height: 16px; }
+    .rail #railbadges { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .rb { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 28px; padding: 4px 2px; border-radius: var(--ap-radius-md);
+          background: var(--w); color: var(--c); font-weight: 600; }
+    .rb b { font-size: var(--ap-font-sm); }
+    .rb span { font-size: 11px; writing-mode: vertical-rl; letter-spacing: .05em; }
+    .rb.zero { background: transparent; color: var(--ap-faint); font-weight: 400; }
+  }
+  @media (prefers-reduced-motion: reduce) { .stage { transition: none; } }
   /* ---- 横から開く欄・メニュー・お知らせ ---- */
   .scrim { position: fixed; inset: 0; z-index: 29; background: var(--ap-overlay); }
   .drawer { position: fixed; z-index: 30; top: 0; right: 0; bottom: 0; width: min(560px, 100%); background: var(--ap-surface);
@@ -484,12 +526,18 @@ ${LEARN_TASKS_CSS}</style></head><body>
 <nav id="viewtabs" class="tabs" role="tablist" aria-label="表示する欄"></nav>
 <div class="stage" id="stage">
   <section class="panel human on" id="sec-inbox" data-sec="inbox" tabindex="-1" data-testid="inbox">
-    <div class="panel-h"><h2>あなた宛て</h2><span class="small" id="inboxcount"></span><span class="sp"></span><kbd>1</kbd></div>
+    <button type="button" class="rail" id="inbox-rail" aria-expanded="false" aria-controls="inbox-body" title="あなた宛てを開く ([)"
+            aria-label="あなた宛てを開く" data-testid="inbox-rail">${ICON_SIDEBAR}<span id="railbadges"></span></button>
+    <div id="inbox-body">
+    <div class="panel-h"><button type="button" class="ibtn icon paneltoggle" id="inboxtoggle" aria-expanded="true" aria-controls="inbox-body"
+            title="あなた宛てを閉じる ([)" aria-label="あなた宛てを閉じる" data-testid="inbox-toggle">${ICON_SIDEBAR}</button>
+      <h2>あなた宛て</h2><span class="small" id="inboxcount"></span><span class="sp"></span><kbd>1</kbd></div>
     <div id="inbox-q" data-testid="inbox-questions"></div>
     ${BLOCKED_PANEL_HTML}
     <div id="inbox-learn" data-testid="inbox-learnings"></div>
     <div id="inbox-wait" data-testid="inbox-waits"></div>
     <div id="inbox-empty" class="empty" hidden>いま、あなた宛てのものはありません。</div>
+    </div>
   </section>
   <section class="panel" id="sec-board" data-sec="board" tabindex="-1" data-testid="board-panel">
     <div class="panel-h"><h2>状況板</h2><span class="small" id="boardcount"></span><span class="sp"></span><kbd>2</kbd></div>
@@ -715,7 +763,7 @@ let boardFilter = 'all';
 try { const f = localStorage.getItem(BOARD_FILTER_KEY); if (f) boardFilter = f; } catch (e) { /* storage 不可でも動く */ }
 const openGroups = new Set(['solo']);   // 状況板で開いているまとまり（key）
 let view = 'inbox';                     // 900px 未満のタブ
-let showAllWaits = false;
+const openInboxGroups = new Set();  // 「ほか N 件」を開いた人間待ちのまとまり（key）
 const qPick = {};                       // 質問の答え: issue → { 質問 id → key }
 const qNote = {};                       // 質問のメモ: issue → { 質問 id → 文 }
 const findItem = (issue) => ((lastBoard && lastBoard.items) || []).find((x) => x.issue === issue) || null;
@@ -1089,22 +1137,35 @@ function renderInbox(d) {
       + '<span class="acts-r"><button type="button" class="ibtn" data-act="learn-act"' + (l.disabled ? ' disabled' : '') + '>' + esc(l.label) + '</button>'
       + '<button type="button" class="ibtn" data-drawer="tasks">中身を見る</button></span></div>').join('')
     : '';
-  // 人間待ち
-  const limit = showAllWaits ? 9999 : 12;
-  const reasonOf = (k) => HUMAN_WAIT_REASONS.find((r) => r.key === k) || HUMAN_WAIT_REASONS[HUMAN_WAIT_REASONS.length - 1];
+  // 人間待ち: 親の EPIC ごとのまとまり。EPIC 自身の行は見出しに畳む（inboxGroups）
+  const groups = inboxGroups(m.waits, { epicGroups: d.epicGroups, items, open: Array.from(openInboxGroups) });
+  const tagPill = (w) => '<span class="kind c-' + w.tag.key + '" data-testid="inbox-tag" data-tag="' + w.tag.tag + '">' + esc(w.tag.label) + '</span>';
+  const why = (w) => (w.delegateError ? ' title="AI に任せられない理由: ' + esc(w.delegateError) + '"' : '');
+  const goOf = (w) => (w.goLabel ? goBtn(w.goLabel, 'data-act="delegate" data-issue="' + w.issue + '" data-testid="inbox-delegate"') : '');
   document.getElementById('inbox-wait').innerHTML = m.waits.length
-    ? '<div class="feed-h">人間待ち · ' + m.waits.length + '</div>' + m.waits.slice(0, limit).map((w) => {
-      const r = reasonOf(w.reason);
-      const from = [w.from || 'EPIC に属さない', w.status, w.later ? '💤 あとで' : ''].filter(Boolean).join(' · ');
-      const go = w.goLabel ? goBtn(w.goLabel, 'data-act="delegate" data-issue="' + w.issue + '" data-testid="inbox-delegate"') : '';
-      return '<div class="fi" data-testid="inbox-wait" data-issue="' + w.issue + '"' + (w.delegateError ? ' title="AI に任せられない理由: ' + esc(w.delegateError) + '"' : '') + '>'
-        + '<span class="kind c-human" title="' + esc(r.detail) + '">' + esc(r.icon + ' ' + r.label) + '</span>'
-        + '<span class="t">' + esc(shortTitle(w.title)) + ' ' + ilink(w.issue, w.url) + '<span class="from">' + esc(from) + '</span></span>'
-        + '<span class="acts-r">' + go + moreBtn(w.issue) + '</span></div>';
+    ? '<div class="feed-h">人間待ち · ' + m.waits.length + '</div>' + groups.map((g) => {
+      const h = g.header;
+      const p = g.priority ? '<span class="gprio ' + g.priority.toLowerCase() + '">' + esc(g.priority) + '</span>' : '';
+      const head = '<div class="ig-h" data-testid="inbox-group-head"' + (h ? ' data-issue="' + h.issue + '"' + why(h) : '') + '>'
+        + (h ? tagPill(h) : '')
+        + '<span class="t1"><b class="tt" title="' + esc(g.title) + '">' + esc(g.epic == null ? g.title : shortTitle(g.title)) + '</b>'
+        + (g.epic != null ? ilink(g.epic, g.url) : '') + '</span>'
+        + p + (g.count ? '<span class="small">' + g.count + ' 件</span>' : '')
+        + (h ? '<span class="acts-r">' + goOf(h) + moreBtn(h.issue) + '</span>' : '') + '</div>';
+      const rows = g.rows.map((w) => '<div class="fi" data-testid="inbox-wait" data-issue="' + w.issue + '"' + why(w) + '>'
+        + tagPill(w)
+        + '<span class="t1"><span class="tt" title="' + esc(w.title) + '">' + esc(shortTitle(w.title)) + '</span>' + ilink(w.issue, w.url)
+        // 札で分かる状態は繰り返さない。札が「人間の番」（理由が分からない）ときだけ Status を添える
+        + (w.tag.tag === 'other' && w.status ? '<span class="small">' + esc(w.status) + '</span>' : '')
+        + (w.later ? '<span class="small">💤 あとで</span>' : '') + '</span>'
+        + '<span class="acts-r">' + goOf(w) + moreBtn(w.issue) + '</span></div>').join('');
+      const more = g.hidden || (openInboxGroups.has(g.key) && g.count > 4)
+        ? '<div class="fi ig-more"><button type="button" class="more" data-act="group-more" data-key="' + esc(g.key) + '">'
+          + (g.hidden ? 'ほか ' + g.hidden + ' 件' : 'たたむ') + '</button></div>' : '';
+      return '<div class="ig" data-testid="inbox-group" data-key="' + esc(g.key) + '">' + head + rows + more + '</div>';
     }).join('')
-      + (m.waits.length > 12 ? '<div class="fi"><button type="button" class="more" data-act="waits-more">'
-        + (showAllWaits ? 'たたむ' : 'ほか ' + (m.waits.length - 12) + ' 件') + '</button></div>' : '')
     : '';
+  renderRail(m);
   const total = m.questions.length + m.learn.length + m.waits.length;
   document.getElementById('inboxcount').textContent = total + ' 件';
   document.getElementById('inbox-empty').hidden = total > 0 || m.answered.length > 0;
@@ -1233,6 +1294,28 @@ function renderHistory(d) {
     || '<tr><td colspan="5" class="muted">（まだ実行履歴はありません）</td></tr>';
 }
 
+// ---- 「あなた宛て」の開け閉め（幅の広い画面だけ。閉じても細い帯に件数を残す） ----
+const INBOX_OPEN_KEY = 'autopilot:inboxOpen';
+let inboxOpen = true;
+try { inboxOpen = localStorage.getItem(INBOX_OPEN_KEY) !== 'false'; } catch (e) { /* storage 不可でも開いたまま動く */ }
+function setInboxOpen(open) {
+  inboxOpen = Boolean(open);
+  try { localStorage.setItem(INBOX_OPEN_KEY, String(inboxOpen)); } catch (e) { /* storage 不可でも動く */ }
+  applyInboxOpen();
+}
+function applyInboxOpen() {
+  document.getElementById('stage').classList.toggle('inbox-closed', !inboxOpen);
+  document.getElementById('inboxtoggle').setAttribute('aria-expanded', String(inboxOpen));
+  document.getElementById('inbox-rail').setAttribute('aria-expanded', String(inboxOpen));
+}
+// 閉じた帯の件数（答え・学び・人間待ち）。0 件も薄く出して「無い」ことが分かるようにする
+function renderRail(m) {
+  const b = (cls, n, label, tip) => '<span class="rb ' + cls + (n ? '' : ' zero') + '" title="' + esc(tip + ' ' + n + ' 件') + '"><b>' + n + '</b><span>' + label + '</span></span>';
+  document.getElementById('railbadges').innerHTML = b('c-human', m.questions.length, '答え', '答えが要る')
+    + b('c-notice', m.learn.length, '学び', '確かめてほしい学び') + b('c-idle', m.waits.length, '人間待ち', '人間待ち');
+}
+const wideLayout = () => window.matchMedia('(min-width: 900px)').matches;
+
 // ---- 900px 未満のタブ ----
 function renderTabs() {
   const d = lastBoard || {};
@@ -1252,6 +1335,7 @@ function renderTabs() {
 // 欄へ移る（数字キー・タブ）。実行履歴と学び・タスクは横の欄を開く
 function goTo(target) {
   if (target === 'hist' || target === 'tasks') { openDrawer(target); return; }
+  if (target === 'inbox' && !inboxOpen && wideLayout()) setInboxOpen(true);
   view = target;
   renderTabs();
   const el = document.getElementById(target === 'inbox' ? 'sec-inbox' : 'sec-board');
@@ -1573,6 +1657,8 @@ document.addEventListener('click', (ev) => {
     return;
   }
   if (!inMenu) closeMenus();
+  if (t.id === 'inboxtoggle') { setInboxOpen(false); document.getElementById('inbox-rail').focus(); return; }
+  if (t.id === 'inbox-rail') { setInboxOpen(true); document.getElementById('inboxtoggle').focus(); return; }
   if (t.dataset.drawer) { openDrawer(t.dataset.drawer); return; }
   if (t.dataset.tab) { goTo(t.dataset.tab); return; }
   if (t.dataset.f) {
@@ -1596,7 +1682,11 @@ document.addEventListener('click', (ev) => {
   }
   if (act === 'ans-rec' || act === 'ans-go' || act === 'ans-save') { answerAction(act, issue, t); return; }
   if (act === 'learn-act') { const b = document.getElementById('lt-learn-btn'); if (b && !b.disabled) b.click(); setTimeout(refresh, 800); return; }
-  if (act === 'waits-more') { showAllWaits = !showAllWaits; rerender(); }
+  if (act === 'group-more') {
+    const k = t.dataset.key;
+    if (openInboxGroups.has(k)) openInboxGroups.delete(k); else openInboxGroups.add(k);
+    rerender();
+  }
 });
 document.addEventListener('input', (ev) => {
   const t = ev.target;
@@ -1612,7 +1702,11 @@ document.addEventListener('keydown', (e) => {
   const tag = (e.target.tagName || '').toLowerCase();
   const inInput = tag === 'input' || tag === 'textarea' || tag === 'select' || Boolean(e.target.isContentEditable);
   const target = digitTarget({ code: e.code, metaKey: e.metaKey, ctrlKey: e.ctrlKey, altKey: e.altKey, inInput });
-  if (target) { e.preventDefault(); goTo(target); }
+  if (target) { e.preventDefault(); goTo(target); return; }
+  if (wideLayout() && isInboxToggleKey({ key: e.key, metaKey: e.metaKey, ctrlKey: e.ctrlKey, altKey: e.altKey, inInput })) {
+    e.preventDefault();
+    setInboxOpen(!inboxOpen);
+  }
 });
 document.getElementById('pause').onclick = () => fetch('/pause', { method: 'POST' }).then(refresh);
 // usage の auto-pause 中は /resume が 409 を返す → アラート帯の強制再開（確認段）を開く（#1193）
@@ -1638,6 +1732,7 @@ document.getElementById('csmake').onclick = async () => {
   try { await fetch('/current-status', { method: 'POST' }); toast('現在地を作り始めました'); } catch (e) { toast('現在地を作れませんでした: ' + e.message, true); }
   refresh();
 };
+applyInboxOpen();
 refresh(); setInterval(refresh, 5000);
 ${LEARN_TASKS_SCRIPT}</script></body></html>`;
 
