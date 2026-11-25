@@ -1,0 +1,215 @@
+/* ［基準］のタブ（課題の採点・#2425）。色はデザインシステムのトークン（docs/design-system/tokens.md）。 */
+@import '../../css/smalruby-tokens.css';
+
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding-bottom: $space-small;
+    border-bottom: 1px solid $color-border;
+    margin-bottom: $space-small;
+}
+
+.text {
+    margin: 0;
+    color: $color-text;
+    font-size: $font-size-medium;
+    white-space: pre-wrap;
+}
+
+.note {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin: 0;
+    color: $color-text-muted;
+    font-size: $font-size-small;
+}
+
+.done {
+    margin: 0;
+    color: $color-success;
+    font-size: $font-size-small;
+}
+
+.warn {
+    margin: 0;
+    color: $color-warning;
+    font-size: $font-size-small;
+}
+
+.ai {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: $space-small;
+    border-radius: $radius-small;
+    background-color: $color-info-background;
+}
+
+.buttons {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.textarea,
+.input {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 0.3rem 0.4rem;
+    border: 1px solid $color-border;
+    border-radius: $radius-small;
+    background-color: $color-surface;
+    color: $color-text;
+    font: inherit;
+    font-size: $font-size-medium;
+}
+
+.reps,
+.checks {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.rep {
+    border: 1px solid $color-border;
+    border-radius: $radius-small;
+    margin-bottom: 0.25rem;
+    background-color: $color-surface;
+}
+
+.rep-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.3rem 0.5rem;
+    border: none;
+    background: none;
+    color: $color-text;
+    font: inherit;
+    font-size: $font-size-medium;
+    text-align: left;
+    cursor: pointer;
+}
+
+.rep-name {
+    flex: 1;
+    min-width: 0;
+    font-weight: $font-weight-bold;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rep-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 0 0.5rem 0.5rem;
+}
+
+.meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: $color-text-muted;
+    font-size: $font-size-small;
+    white-space: nowrap;
+}
+
+.differs {
+    padding: 0 0.3rem;
+    border-radius: $radius-small;
+    background-color: $color-warning-background;
+    color: $color-warning;
+    font-size: $font-size-xsmall;
+}
+
+.code {
+    max-height: 10rem;
+    overflow: auto;
+    margin: 0;
+    padding: 0.3rem 0.4rem;
+    border-radius: $radius-small;
+    background-color: $color-background;
+    color: $color-text;
+    font-size: $font-size-small;
+    white-space: pre-wrap;
+}
+
+.grade-button,
+.option-button {
+    min-width: 2rem;
+    padding: 0.2rem 0.6rem;
+    border: 1px solid $color-border;
+    border-radius: $radius-round;
+    background-color: $color-surface;
+    color: $color-text;
+    font: inherit;
+    font-size: $font-size-medium;
+    cursor: pointer;
+}
+
+.grade-button-on,
+.option-button-on {
+    border-color: $color-action;
+    background-color: $color-action;
+    color: white;
+}
+
+.check {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 0.3rem 0;
+    border-bottom: 1px dashed $color-border;
+}
+
+.compare {
+    display: flex;
+    gap: 0.4rem;
+    overflow-x: auto;
+}
+
+.compare-item {
+    flex: 1 0 12rem;
+    min-width: 0;
+}
+
+.level-cell {
+    width: 100%;
+}
+
+.dialog {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-top: $space-small;
+    padding: $space-small;
+    border: 1px solid $color-border;
+    border-radius: $radius-medium;
+    background-color: $color-surface;
+}
+
+.prompt {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: $space-small;
+    padding: $space-small;
+    border-radius: $radius-small;
+    background-color: $color-info-background;
+    color: $color-text;
+    font-size: $font-size-medium;
+}
+
+.root {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}

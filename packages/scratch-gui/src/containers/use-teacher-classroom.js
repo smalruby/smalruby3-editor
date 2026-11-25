@@ -158,6 +158,7 @@ const useTeacherClassroom = ({
         intl,
         setPhase,
         openSubmission: submissions.handleOpenSubmission,
+        groups: groups.groups,
     });
 
     const shared = useSharedAssignments({

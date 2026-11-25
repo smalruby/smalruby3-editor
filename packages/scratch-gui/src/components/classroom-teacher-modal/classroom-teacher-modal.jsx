@@ -386,6 +386,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         openingWork={evaluation.openingWork}
                         rubricAxes={evaluation.rubricAxes}
                         rubricDone={evaluation.rubricDone}
+                        rubricTools={evaluation.rubricTools}
                         scoringChecked={evaluation.scoringChecked}
                         scoringSavingId={evaluation.scoringSavingId}
                         seats={evaluation.seats}
