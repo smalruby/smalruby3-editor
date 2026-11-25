@@ -58,6 +58,7 @@ import { isSameLessonScoring } from '../lib/classroom-lesson-settings.js';
 import { lessonScoresBySeat } from '../lib/classroom-lesson-summary.js';
 import { findCourse } from '../lib/lessons/courses.js';
 import translateError from './classroom-error-utils.js';
+import useGradingRubric from './use-grading-rubric.js';
 
 const evaluationMessages = defineMessages({
     lessonRemoved: {
@@ -128,11 +129,13 @@ const downloadText = (filename, text) => {
  * @param {Function} [params.openSubmission] - opens a work in the editor and closes
  *   the modal (`handleOpenSubmission` of use-teacher-submissions, the same as
  *   「スモウルビーで開く」 of the assignment's members). This screen's state stays (#1990).
+ * @param {Array<object>} [params.groups] - the teacher's classes (labels when copying a rubric, #2425)
  * @returns {object} evaluation state and handlers
  */
 const useTeacherEvaluation = ({
     idToken,
     classrooms,
+    groups,
     handleTeacher401,
     clearError,
     showError,
@@ -624,6 +627,28 @@ const useTeacherEvaluation = ({
     }, [currentId, seatsById, gradings]);
     const loaded = !!(currentId && seatsById[currentId]);
 
+    // The［基準］tab (#2425): starter, groups, representatives and the rubric.
+    const rubricTools = useGradingRubric({
+        idTokenRef,
+        lesson: currentLesson,
+        seats,
+        matrix,
+        matrixRef,
+        gradings,
+        setGradings,
+        setMatrix,
+        setEvalLessons,
+        gradesChanged,
+        rubricAxes,
+        strictness,
+        classrooms,
+        groups,
+        handleTeacher401,
+        showError,
+        intl,
+    });
+    const { noteGradeChange } = rubricTools;
+
     /** Run the AI on the open assignment (grade proposals or comment drafts). */
     const handleRunAi = useCallback(
         async (mode) => {
@@ -669,6 +694,8 @@ const useTeacherEvaluation = ({
                         samples,
                         ...(rubric && (rubric.levels || []).length > 0 ? { rubricLevels: rubric.levels } : {}),
                         ...(rubric && (rubric.examples || []).length > 0 ? { examples: rubric.examples } : {}),
+                        // The starter: the AI looks at what was added (#2425).
+                        ...(mode === 'grade' ? rubricTools.gradeExtras : {}),
                         submissions: chunks[i].map((entry) => ({
                             seatNumber: entry.seatNumber,
                             signals: entry.cell.signals || {},
@@ -695,6 +722,8 @@ const useTeacherEvaluation = ({
                                     needsReview: result.needsReview === true,
                                     manual: false,
                                     gradeEdited: false,
+                                    // The group of the work, so one change can ask about the rest (#2425).
+                                    group: rubricTools.groupBySeat[String(result.seatNumber)] || null,
                                 };
                             }
                             return next;
@@ -738,6 +767,8 @@ const useTeacherEvaluation = ({
             handleTeacher401,
             startRun,
             gradesChanged,
+            rubricTools.gradeExtras,
+            rubricTools.groupBySeat,
         ],
     );
 
@@ -913,6 +944,7 @@ const useTeacherEvaluation = ({
         (seatNumber, classroomId, grade) => {
             const key = cellKey(seatNumber, classroomId);
             if (!matrixRef.current[key]) return;
+            const before = matrixRef.current[key].grade || null;
             setMatrix((prev) => {
                 if (!prev[key]) return prev;
                 return {
@@ -927,8 +959,10 @@ const useTeacherEvaluation = ({
                 };
             });
             gradesChanged(classroomId);
+            // Ask whether to change the rest of the same group too (#2425).
+            noteGradeChange(seatNumber, classroomId, before, grade || null);
         },
-        [gradesChanged],
+        [gradesChanged, noteGradeChange],
     );
 
     /** Editing only the reason keeps the AI's grade (it stays a draft); it is saved too. */
@@ -1086,6 +1120,7 @@ const useTeacherEvaluation = ({
     const rubricDone = !!(currentId && (rubricVisited[currentId] || columnStatus(currentGrading).hasRubric));
 
     return {
+        rubricTools,
         evalGroup,
         evalLessons,
         view,

@@ -121,7 +121,9 @@ const gradesFromMatrix = (matrix, classroomId, saved = null) => {
         };
         if (cell.needsReview) entry.needsReview = true;
         const before = saved ? saved[seat] : null;
-        if (before && 'group' in before && before.grade === cell.grade) entry.group = before.group;
+        // The group set when everyone was graded (#2425); else the saved one while the grade is the same.
+        if (cell.group) entry.group = cell.group;
+        else if (before && 'group' in before && before.grade === cell.grade) entry.group = before.group;
         grades[seat] = entry;
     }
     return grades;
@@ -145,6 +147,7 @@ const withSavedGrade = (cell, saved) => {
         needsReview: saved.needsReview === true,
         manual: teacher,
         gradeEdited: teacher,
+        ...(saved.group ? { group: saved.group } : {}),
     };
 };
 
