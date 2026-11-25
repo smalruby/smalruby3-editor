@@ -211,9 +211,11 @@ One Tap に頼ると 1 回目のクリックが何も起こさない。Google �
 | `PATCH` | `/classroom-groups/{groupId}` | クラスのリネーム・年度変更・人数・GC 紐づけ・共同管理者・アーカイブ/復帰・生成AI / ルビティーの設定（`genai` / `rubytee`。送った項目だけ保存済みの値に重ねる部分更新。条件を満たさない値は 400） |
 | `POST` | `/classroom-groups/migrate` | v1→v2 冪等 bulk migration（未所属課題のクラス自動作成・割当 + フィールド引き上げ） |
 | `PATCH` | `/classroom-groups/{groupId}/topics` | トピックの add / remove / rename（rename・remove は課題へ一括追従） |
-| `POST` | `/classrooms/{id}/duplicate` | 課題（1 授業）の複製。課題コンテンツの S3 オブジェクトもコピー。`groupId` / `className` / `assignmentName` を上書き可。メンバー・提出は複製しない。`meshGroupLimit` は元の保存値をそのまま写し（未設定なら未設定のまま）、レスポンスにも含む |
+| `POST` | `/classrooms/{id}/duplicate` | 課題（1 授業）の複製。課題コンテンツの S3 オブジェクトもコピー。`groupId` / `className` / `assignmentName` を上書き可。メンバー・提出は複製しない。課題の採点は基準（`rubric`）だけをコピーする（`grades` と `confirmedAt` はコピーしない）。`meshGroupLimit` は元の保存値をそのまま写し（未設定なら未設定のまま）、レスポンスにも含む |
 | `GET` | `/classrooms/{id}/lesson-progress` | レッスンの進み具合（EPIC #1592）。`{lesson, progress: [{memberId, seatNumber, challenges, current, readiness, updatedAt}]}` を席番号順に返す（`lesson` は課題の設定・無ければ `null`。TTL 切れの行と、いま別の生徒が座っている席の前の人の行は除く）。**`challenges` には今の `lesson.challengeIds` に無い ID も含まれる**（サーバーは課題の設定を変える前の記録も残す）ので、できた数・完了の条件・得点は `lesson.challengeIds` で絞って数えること。`current.review: true`（おさらい）と `readiness`（じゅんびチェックの結果・無ければ `null`）は表示のためのもので、できた数・完了の条件・得点には使わない。形は下記「ClassroomLessonProgress テーブル」 |
-| `POST` | `/classrooms/{id}/evaluate` | AI 評価支援。静的解析結果（シグナル + 擬似コード）を Anthropic API にリレーし、`mode: grade` は S/A/B/C 案 + 根拠 + needsReview、`mode: comment` は生徒向けポジティブコメント下書きを返す。1リクエスト最大10提出（API GW の30秒制限対策、クライアントがチャンク分割）。先生ごとにレート制限（既定 60回/時） |
+| `POST` | `/classrooms/{id}/evaluate` | AI 評価支援。静的解析結果（シグナル + 擬似コード）を Anthropic API にリレーする。`mode` は `grade`（S/A/B/C 案 + 根拠 + needsReview）/ `comment`（生徒向けポジティブコメント下書き）/ `describe`（課題の説明の案）/ `rubric`（S/A/B/C の基準の文）/ `fairness`（評価がずれていそうなところの質問）。入出力は下記「AI 評価支援（evaluate）」。1リクエスト最大10提出（API GW の30秒制限対策、クライアントがチャンク分割）。先生ごとにレート制限（既定 60回/時）と日次上限（全モードをまとめて数える） |
+| `GET` | `/classrooms/{id}/grading` | 課題の採点（下記「課題の採点（grading）」）。`{grading}`、無ければ `{grading: null}`。認可は `PUT /assignment` と同じ（所有者か共同管理者・ほかは 401）。アーカイブ済みの課題も読める（無い課題は 404） |
+| `PUT` | `/classrooms/{id}/grading` | 課題の採点の保存。本文の `rubric` / `grades` / `confirmedAt` のうち**送ったキーだけ**を置きかえる（どれも無い本文は 400）。レスポンスは `{grading}`（保存後）。認可は `PUT /assignment` と同じ。active な課題だけ（ほかは 404） |
 | `GET` | `/notifications` | お知らせ一覧（EPIC #1111）。自分宛て（teacherSub）の直近 50 件 + `unreadCount` を返す。書き込みは admin スタックのみ（単一ライター） |
 | `POST` | `/notifications/mark-read` | お知らせ既読化。`{notificationIds?}` — 省略時は一覧窓（直近 50 件）の未読を全既読化（パネルを開いたらバッジが消える UX） |
 
@@ -641,10 +643,41 @@ erDiagram
 先生の評価作業を支援する。**AI は判定者ではなく提案者**: 全結果に機械シグナルを引用した根拠と needsReview フラグが付き、先生が UI で確認・修正・承認してはじめて記録される。
 
 - 入力: 課題名/課題文 + 評価軸（1〜6、grade モードのみ必須）+ 厳しさ（lenient/standard/strict）+ 較正サンプル（先生が採点した実例、最大5件）+ 提出（席番号・シグナル・擬似コード最大4000字）
-- モデル: `CLAUDE_MODEL`（既定 claude-haiku-4-5）。システムプロンプトに prompt caching（ephemeral）を適用し、同一課題のチャンク分割呼び出しでキャッシュを共有
+- 入力（`grade` の追加分・どれも任意で、無ければいままでどおり）: `starterPseudocode`（スターターの擬似コード・4000字で切る）、`rubricLevels`（`[{grade, text}]`・最大4・text 500字。送ると評価軸 `rubricAxes` は省略できる）、`examples`（先生が評価した正解の例 `[{seatNumber, grade, reason, group, code}]`・最大20・reason 300字・group 80字・code 4000字で切る）。スターターがあるときは「足した・変えたところを見る」、新しい入力があるときは「同じ形の作品は同じ評価」をプロンプトで指示する
+- モード別の入力と応答:
+
+  | mode | 必須の入力 | 任意の入力 | 応答 |
+  |---|---|---|---|
+  | `grade` | `submissions`（1〜10）、`rubricAxes`（1〜6。`rubricLevels` があれば 0〜6） | `assignmentName` / `assignmentText` / `strictness` / `samples` / `starterPseudocode` / `rubricLevels` / `examples` | `{mode, results: [{seatNumber, grade, reason, needsReview}]}` |
+  | `comment` | `submissions`（1〜10） | `assignmentName` / `assignmentText` / `starterPseudocode` | `{mode, results: [{seatNumber, comment}]}` |
+  | `describe` | `submissions`（1〜10。いくつかの作品） | `starterPseudocode` / `assignmentName` / `assignmentText` | `{mode, description}`（1000字まで） |
+  | `rubric` | `examples`（1〜20・理由つき） | `assignmentName` / `assignmentText` / `starterPseudocode` / `rubricLevels`（いまの基準） | `{mode, levels: [{grade, text}]}`（S→C の順。AI が書かなかった評価は入らない） |
+  | `fairness` | `examples`（1〜20）、`groups`（1〜20 個の `{name, seatNumbers, submissions}`。`seatNumbers` は 200 まで、`submissions` は全体で 20 まで） | `assignmentName` / `assignmentText` / `starterPseudocode` / `rubricLevels` | `{mode, checks: [{question, options, seatNumbers}]}`（最大10。`seatNumbers` は送った例・まとまりに出てくる席だけ。選択肢が 2 つ未満の質問は落とす） |
+
+- 応答はモードごとの JSON スキーマ（`evaluationOutputSchema`）を structured outputs（`output_config.format`）で指定して受け取り、さらにサーバーで各項目を検査する。テキストはすべての text ブロックをつなげて読む（モデルが thinking ブロックを先に返すことがあるため）。応答が読めないときは 502 `AI_RESPONSE_INVALID`。入力の検査は回数を数える前に行う（不正な本文で 1 日の回数を減らさない）
+- モデル: `CLAUDE_MODEL`（既定 `claude-sonnet-5-5`。Haiku では同じ形の作品に違う評価が付いたため）。システムプロンプトに prompt caching（ephemeral）を適用し、同一課題のチャンク分割呼び出しでキャッシュを共有（スターター・基準・正解の例はシステムプロンプトに入れる）
 - Claude は Anthropic の TypeScript SDK（`@anthropic-ai/sdk`）で呼ぶ。`ANTHROPIC_FEDERATION_RULE_ID` / `ANTHROPIC_ORGANIZATION_ID` / `ANTHROPIC_SERVICE_ACCOUNT_ID`（+ 任意の `ANTHROPIC_WORKSPACE_ID`）がそろえば Workload Identity Federation（Lambda の実行ロールの JWT を AWS STS `GetWebIdentityToken` で取り、短期トークンに交換）で呼ぶ。静的な API キーの経路は無い。値がそろわないステージではエンドポイントは 503（機能無効）。設定は `docs/infra/claude-api-wif.md`
 - 1 回の呼び出しは 25 秒で打ち切り（API Gateway の 30 秒の上限より前）・再送しない。タイムアウトは 504 `AI_TIMEOUT`、Claude のエラーと WIF の交換の失敗は 502 `AI_API_ERROR`
 - CloudWatch に `classroom_evaluate` イベント（トークン数・キャッシュヒット）を構造化ログ出力
+
+### 課題の採点（grading）
+
+課題ごとの採点（基準・各席の評価・確定）。採点の画面が読み書きする。
+
+```
+grading = {
+  rubric: { levels: [{grade: "S"|"A"|"B"|"C", text}], examples: [{seatNumber, grade, reason, group, code}], updatedAt } | null,
+  grades: { "<席番号>": { grade: "S"|"A"|"B"|"C", reason, source: "ai"|"teacher", group?, needsReview? } },
+  confirmedAt: string | null,
+  updatedAt
+}
+```
+
+- 大きさ: `grades` は 200 席まで（キーは席番号の数字）、`reason` 300字、`levels` は 4 つまで（評価の重複なし）・`text` 500字、`examples` 20 件・`code` 4000字・`group` 80字（`grades` の `group` も 80字）。超えると 400（切り詰めない）。さらに全体を JSON にして 350KB を超えると 400（上の上限をすべて日本語で埋めると DynamoDB の 1 項目 400KB を超えるため）
+- `rubric.updatedAt` は `rubric` を保存したときにサーバーが付ける（送った値は使わない）。`updatedAt` はどの保存でも進む
+- **置き場所**: `Classrooms` テーブルの予約キー `grading#<classroomId>` の項目（`eval-quota#` と同じ形）。課題の項目の属性にしないのは、`Classrooms` の GSI がすべて ALL 射影で、課題一覧の Query のたびに採点まで読むことになり、課題の項目の 400KB をページ・レッスンの設定と分け合うことにもなるため。この項目は `teacherSub` / `joinCode` / `groupId` を持たないので GSI には載らない。`ttl` は保存のたびに課題の `ttl` を写す（課題と一緒に消える）
+- 保存は送ったキーだけを `SET` する（別の画面が別のキーを保存しても上書きし合わない）
+- 削除スナップショット: TTL で消えると `ddb-archive/classrooms/grading#<classroomId>.json` に退避される。`bin/restore-classroom` は課題だけを戻すので、採点を戻すときはこのファイルを手で入れる
 
 ### 課題コンテンツ（assignment）
 
@@ -696,6 +729,7 @@ smalruby-classroom-submissions-{stage}/
   - `ddb-archive/groups/{groupId}.json`
   - `ddb-archive/lesson-progress/{classroomId}/{memberId}.json`
   - `eval-quota#` プレフィックスのカウンタ行と、Memberships の `kicked#` 区画（kick marker）はスキップ
+  - 課題の採点（`grading#<classroomId>`）は `ddb-archive/classrooms/grading#<classroomId>.json` に退避される
 - イベントソースは REMOVE のみのフィルタ + `bisectBatchOnError` + 有限リトライ（不正レコード 1 件で shard が詰まらない設計。S3 書き込み失敗のみ throw して再試行）
 - S3 lifecycle は `ARCHIVE_RETENTION_DAYS`（既定 365 日、`CLASSROOM_TTL_DAYS` 以上必須 — スタックがガード）
 - 復元手順は `docs/classroom/operations.md`（運用者向け）
