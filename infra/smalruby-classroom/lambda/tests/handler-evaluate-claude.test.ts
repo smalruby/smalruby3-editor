@@ -1,5 +1,5 @@
 // AI 評価の Claude 呼び出し（SDK 経由・#1437）: 応答・usage・エラーコードの対応付け。
-import { callClaudeForEvaluation } from '../handler';
+import { callClaudeForEvaluation, evaluationOutputSchema } from '../handler';
 import { createAnthropicClient } from '../anthropic-client';
 
 const json = (status: number, body: unknown) =>
@@ -53,6 +53,36 @@ describe('callClaudeForEvaluation', () => {
     // WIF では SDK が oauth の beta を付ける。prompt caching の beta は付けない
     expect(new Headers(sent?.headers).get('anthropic-beta') ?? '').not.toContain('prompt-caching');
   });
+
+  test('スキーマを渡すと structured outputs で送る（#2422）', async () => {
+    let sent: RequestInit | undefined;
+    const client = clientWith(async init => {
+      sent = init;
+      return json(200, {
+        id: 'msg_3', type: 'message', role: 'assistant', model: 'claude-test', stop_reason: 'end_turn',
+        content: [{ type: 'text', text: '{"description":"x"}' }], usage: {},
+      });
+    });
+    await callClaudeForEvaluation('S', 'U', client, evaluationOutputSchema('describe'));
+    expect(JSON.parse(String(sent?.body)).output_config).toEqual({
+      format: { type: 'json_schema', schema: evaluationOutputSchema('describe') },
+    });
+  });
+
+  test.each(['grade', 'comment', 'describe', 'rubric', 'fairness'] as const)(
+    '%s のスキーマはすべての object が additionalProperties:false で全項目必須', mode => {
+      const walk = (node: any): void => {
+        if (!node || typeof node !== 'object') return;
+        if (node.type === 'object') {
+          expect(node.additionalProperties).toBe(false);
+          expect([...node.required].sort()).toEqual(Object.keys(node.properties).sort());
+          Object.values(node.properties).forEach(walk);
+        }
+        if (node.type === 'array') walk(node.items);
+      };
+      walk(evaluationOutputSchema(mode));
+    },
+  );
 
   test('テキストが先頭のブロックでなくても読む（#2422）', async () => {
     const client = clientWith(async () => json(200, {

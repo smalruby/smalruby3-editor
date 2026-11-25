@@ -654,7 +654,7 @@ erDiagram
   | `rubric` | `examples`（1〜20・理由つき） | `assignmentName` / `assignmentText` / `starterPseudocode` / `rubricLevels`（いまの基準） | `{mode, levels: [{grade, text}]}`（S→C の順。AI が書かなかった評価は入らない） |
   | `fairness` | `examples`（1〜20）、`groups`（1〜20 個の `{name, seatNumbers, submissions}`。`seatNumbers` は 200 まで、`submissions` は全体で 20 まで） | `assignmentName` / `assignmentText` / `starterPseudocode` / `rubricLevels` | `{mode, checks: [{question, options, seatNumbers}]}`（最大10。`seatNumbers` は送った例・まとまりに出てくる席だけ。選択肢が 2 つ未満の質問は落とす） |
 
-- 応答が読めないときは 502 `AI_RESPONSE_INVALID`。入力の検査は回数を数える前に行う（不正な本文で 1 日の回数を減らさない）
+- 応答はモードごとの JSON スキーマ（`evaluationOutputSchema`）を structured outputs（`output_config.format`）で指定して受け取り、さらにサーバーで各項目を検査する。テキストはすべての text ブロックをつなげて読む（モデルが thinking ブロックを先に返すことがあるため）。応答が読めないときは 502 `AI_RESPONSE_INVALID`。入力の検査は回数を数える前に行う（不正な本文で 1 日の回数を減らさない）
 - モデル: `CLAUDE_MODEL`（既定 `claude-sonnet-5-5`。Haiku では同じ形の作品に違う評価が付いたため）。システムプロンプトに prompt caching（ephemeral）を適用し、同一課題のチャンク分割呼び出しでキャッシュを共有（スターター・基準・正解の例はシステムプロンプトに入れる）
 - Claude は Anthropic の TypeScript SDK（`@anthropic-ai/sdk`）で呼ぶ。`ANTHROPIC_FEDERATION_RULE_ID` / `ANTHROPIC_ORGANIZATION_ID` / `ANTHROPIC_SERVICE_ACCOUNT_ID`（+ 任意の `ANTHROPIC_WORKSPACE_ID`）がそろえば Workload Identity Federation（Lambda の実行ロールの JWT を AWS STS `GetWebIdentityToken` で取り、短期トークンに交換）で呼ぶ。静的な API キーの経路は無い。値がそろわないステージではエンドポイントは 503（機能無効）。設定は `docs/infra/claude-api-wif.md`
 - 1 回の呼び出しは 25 秒で打ち切り（API Gateway の 30 秒の上限より前）・再送しない。タイムアウトは 504 `AI_TIMEOUT`、Claude のエラーと WIF の交換の失敗は 502 `AI_API_ERROR`

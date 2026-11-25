@@ -5617,6 +5617,40 @@ function checkEvalRateLimit(teacherSub: string): void {
   }
 }
 
+const evalObject = (properties: Record<string, unknown>) => ({
+  type: 'object',
+  properties,
+  required: Object.keys(properties),
+  additionalProperties: false,
+});
+const evalList = (items: Record<string, unknown>) => ({ type: 'array', items });
+const evalGradeEnum = { type: 'string', enum: EVAL_GRADES };
+
+/**
+ * JSON schema of the model's reply for each mode, sent as structured outputs
+ * (`output_config.format`) so the reply is always valid JSON of this shape
+ * (#2422: Sonnet once wrote `"…。","}` and the reply could not be parsed).
+ * The parsers still check every field. Pure — exported for unit tests.
+ */
+export function evaluationOutputSchema(mode: EvalMode): Record<string, unknown> {
+  switch (mode) {
+  case 'grade':
+    return evalObject({ results: evalList(evalObject({
+      seatNumber: { type: 'integer' }, grade: evalGradeEnum, reason: { type: 'string' }, needsReview: { type: 'boolean' },
+    })) });
+  case 'comment':
+    return evalObject({ results: evalList(evalObject({ seatNumber: { type: 'integer' }, comment: { type: 'string' } })) });
+  case 'describe':
+    return evalObject({ description: { type: 'string' } });
+  case 'rubric':
+    return evalObject({ levels: evalList(evalObject({ grade: evalGradeEnum, text: { type: 'string' } })) });
+  case 'fairness':
+    return evalObject({ checks: evalList(evalObject({
+      question: { type: 'string' }, options: evalList({ type: 'string' }), seatNumbers: evalList({ type: 'integer' }),
+    })) });
+  }
+}
+
 type EvaluationClaudeResult =
   | { ok: true; text: string; usage: Partial<Anthropic.Usage> }
   | { ok: false; statusCode: number; error: string };
@@ -5627,7 +5661,7 @@ type EvaluationClaudeResult =
  * AI_TIMEOUT). Exported for unit tests (the client is injectable).
  */
 export async function callClaudeForEvaluation(
-  system: string, user: string, client: Anthropic,
+  system: string, user: string, client: Anthropic, outputSchema?: Record<string, unknown>,
 ): Promise<EvaluationClaudeResult> {
   try {
     const message = await client.messages.create({
@@ -5635,6 +5669,7 @@ export async function callClaudeForEvaluation(
       max_tokens: 4096,
       system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
       messages: [{ role: 'user', content: user }],
+      ...(outputSchema ? { output_config: { format: { type: 'json_schema' as const, schema: outputSchema } } } : {}),
     });
     // Read every text block: a model may put another block (e.g. thinking)
     // first, and then content[0] holds no text (seen with Sonnet, #2422).
@@ -5673,7 +5708,7 @@ async function handleEvaluateSubmissions(
 
   const { system, user } = buildEvaluationPrompt(request);
 
-  const claude = await callClaudeForEvaluation(system, user, anthropicClient);
+  const claude = await callClaudeForEvaluation(system, user, anthropicClient, evaluationOutputSchema(request.mode));
   if (!claude.ok) {
     return { statusCode: claude.statusCode, body: JSON.stringify({ error: claude.error }) };
   }
