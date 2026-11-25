@@ -13,6 +13,7 @@ autopilot は、複数の GitHub Issue を Claude が**並行**して
 プロンプト/Runner が従う詳細な契約は [`autonomous-contract.md`](./autonomous-contract.md)、
 **状態遷移とそのトリガーの正準表**は [`state-machine.md`](./state-machine.md) を参照
 （全状態の「出口」= 固着が無いことは `tools/autopilot/test/state-machine.test.js` が機械的に担保する）。
+モニターの見た目の決まり（デザインシステム）は [`design-system.md`](./design-system.md)。
 
 ---
 
@@ -933,13 +934,12 @@ daemon はモジュールを**起動時にロード**するので「動いてい
 
 ### 色のトークン（`--ap-*`）
 
-- モニターの色は、`tools/autopilot/src/monitor.js` の `<style>` の先頭にある `:root` の CSS 変数
-  （`--ap-` で始まる）で持ち、各ルールは `var(--ap-...)` で参照する。**トークンの一覧は monitor.js の
-  `:root` が正**（ここには書き写さない）。新しい色を足すときも、直書きせずトークンを足す。
-- 名前は意味に寄せる: 地・文字・罫線（`bg` / `surface` / `ink` / `muted` / `line`）、状態の色
-  （`ai` / `human` / `done` / `idle` / `stop` / `notice` と、その地の `-wash`）、暗い帯の
-  `chrome-*` など。同じ値でも意味の違う使い方は別のトークンにする。
-- いまの値は作り直し前の色のまま。意味の色の値と UI の方針は EPIC #2384 で決める。
+- 見た目の決まり（型・密度・意味の色・「AI に任せる」・並べ方・ライトとダーク）は
+  [`design-system.md`](design-system.md) が正。画面を変えるときはそれに合わせる。
+- モニターの色は、`tools/autopilot/src/monitor.js` の `<style>` の先頭にある `:root`（ライト）と、
+  ダークの 2 つの塊（OS に従う形・`data-theme="dark"` で固定する形）の CSS 変数（`--ap-` で始まる）で持ち、
+  各ルールは `var(--ap-...)` で参照する。**トークンの一覧は monitor.js が正**（ここには書き写さない）。
+  新しい色を足すときも、直書きせずトークンを足す。モニターに差しこむ部品（学び・タスク、止まっている worker）も同じ。
 - 自己完結ページのため外部の CSS は読まない。ロゴの SVG（favicon・見出し・Claude の印）の色は
   絵として直書きのまま。
 

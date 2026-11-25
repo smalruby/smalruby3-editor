@@ -108,18 +108,18 @@ test('MONITOR_HTML: ボードに Size（S/M/L・色付き）列を表示（#884�
     assert.match(MONITOR_HTML, /small:\s*\['S'/);
     assert.match(MONITOR_HTML, /middle:\s*\['M'/);
     assert.match(MONITOR_HTML, /large:\s*\['L'/);
-    // 色分けクラス（S=緑 / M=黄 / L=赤）が CSS に定義される
+    // Size のクラスが CSS に定義される
     for (const cls of ['size-badge', 'size-s', 'size-m', 'size-l']) {
         assert.ok(MONITOR_HTML.includes(cls), `should include ${cls}`);
     }
-    // S=緑系 / M=琥珀系 / L=赤系の配色
-    // （色は :root の --ap-* トークンで持つ・EPIC #2384）
+    // Size は状態ではないので意味の色を使わず、灰色の濃さだけで分ける
+    // （色は :root の --ap-* トークンで持つ・docs/autopilot/design-system.md）
     assert.match(MONITOR_HTML, /\.size-s \{[^}]*var\(--ap-size-s-wash\)/);
     assert.match(MONITOR_HTML, /\.size-m \{[^}]*var\(--ap-size-m-wash\)/);
     assert.match(MONITOR_HTML, /\.size-l \{[^}]*var\(--ap-size-l-wash\)/);
-    assert.match(MONITOR_HTML, /--ap-size-s-wash:#dcfce7;/);
-    assert.match(MONITOR_HTML, /--ap-size-m-wash:#fef3c7;/);
-    assert.match(MONITOR_HTML, /--ap-size-l-wash:#fee2e2;/);
+    assert.match(MONITOR_HTML, /--ap-size-s-wash:var\(--ap-surface-2\);/);
+    assert.match(MONITOR_HTML, /--ap-size-m-wash:var\(--ap-idle-wash\);/);
+    assert.match(MONITOR_HTML, /--ap-size-l-wash:var\(--ap-line\);/);
     // renderBoard が sizeBadge を呼ぶ
     assert.match(MONITOR_HTML, /sizeBadge\(it\.size\)/);
     // size 未設定は「—」（muted）で崩れない
@@ -134,7 +134,7 @@ test('MONITOR_HTML: Awaiting Continuation は専用バッジ + 残タスク数�
     assert.match(MONITOR_HTML, /const aiStatusCell = /);
     assert.ok(MONITOR_HTML.includes('ai-continuation-badge'), 'should include ai-continuation-badge class');
     assert.match(MONITOR_HTML, /\.ai-continuation-badge \{[^}]*background:\s*var\(--ap-human-wash\)/);
-    assert.match(MONITOR_HTML, /--ap-human-wash:#ede9fe;/);
+    assert.match(MONITOR_HTML, /--ap-human-wash:#ebe7fa;/);
     // renderBoard の AI 列が aiStatusCell を呼ぶ（他 AI Status はプレーンテキストのまま）
     assert.match(MONITOR_HTML, /aiStatusCell\(it\)/);
     // continuation ファイルの残タスク数（continuationRemaining）を subtext で出す
@@ -439,15 +439,26 @@ test('monitorHtmlWithToken: 合言葉を meta に埋め、書き込みの fetch 
 
 test('MONITOR_HTML: 色は :root の --ap-* トークンで持ち、CSS に 16 進の直書きを残さない（EPIC #2384）', () => {
     const style = MONITOR_HTML.match(/<style>([\s\S]*?)<\/style>/)[1];
-    const root = style.match(/:root \{[\s\S]*?\}/)[0];
+    const root = style.match(/:root \{[\s\S]*?\n {2}\}/)[0];
     const defined = new Set([...root.matchAll(/(--ap-[a-z0-9-]+):/g)].map((m) => m[1]));
     // 使っているトークンはすべて :root で定義されている
     for (const [, name] of MONITOR_HTML.matchAll(/var\((--ap-[a-z0-9-]+)\)/g)) {
         assert.ok(defined.has(name), `${name} should be defined in :root`);
     }
-    // :root とコメントを除いた monitor.js 自身の CSS に色の直書きが無い（埋め込みの別ファイルの CSS は対象外）
-    const { LEARN_TASKS_CSS } = require('../src/monitor-learn-tasks');
-    const ownCss = style.replace(LEARN_TASKS_CSS, '').replace(root, '').replace(/\/\*[\s\S]*?\*\//g, '');
+    // ダークは OS に従う形と手で固定する形の 2 つ。どちらも :root にある名前だけを差しかえる
+    const darkOs = style.match(/@media \(prefers-color-scheme: dark\) \{ :root:not\(\[data-theme="light"\]\) \{[\s\S]*?\} \}/)[0];
+    const darkFixed = style.match(/:root\[data-theme="dark"\] \{[\s\S]*?\n {2}\}/)[0];
+    for (const block of [darkOs, darkFixed]) {
+        for (const [, name] of block.matchAll(/(--ap-[a-z0-9-]+):/g)) {
+            assert.ok(defined.has(name), `${name} in the dark block should also be in :root`);
+        }
+    }
+    // トークンの塊とコメントを除いた CSS に色の直書きが無い（学び・タスクの欄も含む）
+    const ownCss = style.replace(root, '').replace(darkOs, '').replace(darkFixed, '').replace(/\/\*[\s\S]*?\*\//g, '');
     assert.doesNotMatch(ownCss, /#[0-9a-fA-F]{3,6}\b|rgba?\(/);
+    // 止まっている worker の欄も色はトークンで持つ
+    const { BLOCKED_PANEL_HTML } = require('../src/blocked-panel');
+    const blockedCss = BLOCKED_PANEL_HTML.match(/<style>([\s\S]*?)<\/style>/)[1];
+    assert.doesNotMatch(blockedCss, /#[0-9a-fA-F]{3,6}\b|rgba?\(/);
 });
 

@@ -53,55 +53,113 @@ ${TOKEN_META_EMPTY}
 <title>autopilot monitor</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='47' fill='%237a1620' stroke='%23b3202f' stroke-width='5'/><path d='M50 27 L69 47 L50 73 L31 47 Z' fill='%23eaf7ff'/><path d='M31 47 L50 27 L50 50 Z' fill='%23bfeaff'/><path d='M69 47 L50 27 L50 50 Z' fill='%238fd8ff'/></svg>">
 <style>
-  /* ---- 色のトークン（EPIC #2384 の UI 方針の「意味の色」） ----
-     いまは置きかえ前の色の値をそのまま持つ（見た目は変えない）。値を新しい意味の色へ
-     変えるのは別の PR。名前は意味（ai / human / done / idle / stop / notice）に寄せ、
-     同じ値でも意味の違う使い方は別のトークンにしてある。 */
+  /* ---- トークン（docs/autopilot/design-system.md が正。値は同意したモックアップの D から） ----
+     色の意味は 6 つだけ（ai / human / done / idle / stop / notice）。細かい名前のトークンは
+     どれかの意味の色の別名にしてある（同じ意味なら同じ色。新しい色の値を足さない）。
+     ライトが既定。ダークは OS に従い、data-theme="light" / "dark" で手で固定もできる。 */
   :root {
-    /* 地・文字・罫線 */
-    --ap-bg:#f8fafc; --ap-surface:#fff; --ap-surface-2:#f1f5f9; --ap-code-bg:#f1f5f9;
-    --ap-ink:#1e293b; --ap-ink-2:#334155; --ap-ink-soft:#475569; --ap-muted:#64748b;
-    --ap-line:#e2e8f0; --ap-line-strong:#cbd5e1; --ap-track:#e2e8f0;
-    --ap-link:#2563eb; --ap-primary:#2563eb; --ap-primary-line:#1d4ed8; --ap-on-solid:#fff;
-    --ap-selected:#1e293b; --ap-focus:#93c5fd; --ap-flash:#fde68a; --ap-progress:#22c55e;
-    --ap-tint-1:rgba(0,0,0,.04); --ap-tint-2:rgba(0,0,0,.07); --ap-count-wash:rgba(100,116,139,.18);
-    --ap-overlay:rgba(15,23,42,.55); --ap-shadow-menu:rgba(15,23,42,.18); --ap-shadow-pop:rgba(0,0,0,.4);
-    --ap-term-bg:#0f172a; --ap-term-ink:#e2e8f0;
-    /* ヘッダー・フッター（暗い帯） */
-    --ap-chrome-1:#141428; --ap-chrome-2:#3a0f1e; --ap-chrome-3:#5c1220;
-    --ap-chrome-surface:#0f172a; --ap-chrome-line:#334155; --ap-chrome-track:#334155;
-    --ap-chrome-btn:#1e293b; --ap-chrome-btn-hover:#334155; --ap-chrome-code-bg:rgba(255,255,255,.06);
-    --ap-chrome-ink:#e2e8f0; --ap-chrome-ink-2:#cbd5e1; --ap-chrome-dim:#94a3b8; --ap-chrome-muted:#64748b;
-    --ap-chrome-notice:#eab308;
-    --ap-usage-ok:#22c55e; --ap-usage-warn:#ef4444; --ap-usage-warn-ink:#fca5a5;
-    --ap-update:#b45309; --ap-update-line:#d97706; --ap-update-hover:#d97706;
-    /* AI が動いている */
-    --ap-ai:#92400e; --ap-ai-wash:#fef3c7; --ap-ai-row:#fffbeb;
-    --ap-ai-phase:#713f12; --ap-ai-phase-wash:#fde68a; --ap-ai-chip:#15803d;
-    --ap-ai-state:#14532d; --ap-ai-state-wash:#bbf7d0;
-    /* 人間の番 */
-    --ap-human:#5b21b6; --ap-human-wash:#ede9fe; --ap-human-dod:#9d174d; --ap-human-dod-wash:#fce7f3;
-    --ap-human-chip:#b91c1c;
-    /* 終わった（PR の ready / merged） */
-    --ap-done:#14532d; --ap-done-wash:#dcfce7; --ap-done-line:#86efac;
-    --ap-merged:#6b21a8; --ap-merged-wash:#f3e8ff; --ap-merged-line:#d8b4fe;
-    --ap-closed:#7f1d1d; --ap-closed-wash:#fee2e2;
+    color-scheme: light;
+    /* 意味の色（本体。ダークでは下で値を差しかえる） */
+    --ap-bg:#f4f6f7; --ap-surface:#ffffff; --ap-surface-2:#f9fafb; --ap-code-bg:#eef1f3;
+    --ap-ink:#17202a; --ap-ink-2:#2b3640; --ap-ink-soft:#3f4b56; --ap-muted:#5a6672; --ap-faint:#8a949e;
+    --ap-line:#d9dfe4; --ap-line-soft:#e9edf0; --ap-line-strong:#c3ccd3;
+    --ap-ai:#0e6e7c; --ap-ai-wash:#dcf0f2;
+    --ap-human:#5a44b4; --ap-human-wash:#ebe7fa;
+    --ap-done:#2e7553; --ap-done-wash:#e0f0e7;
+    --ap-idle:#6b7785; --ap-idle-wash:#eceff2;
+    --ap-stop:#8a3b5c; --ap-stop-wash:#f4e4ea;
+    --ap-notice:#7c6514; --ap-notice-wash:#f4eed9;
+    /* 「AI に任せる」の虹色の輪（このボタンだけに使う） */
+    --ap-go-1:#7b6cf0; --ap-go-2:#3fa9e6; --ap-go-3:#3cc59a; --ap-go-4:#e9b93c; --ap-go-5:#ee7f8c; --ap-go-6:#b77ad9;
+    --ap-go-wash:#f4f1ff;
+    /* 地の上に載る文字・影・半透明 */
+    --ap-on-solid:#ffffff;
+    --ap-tint-1:rgba(23,32,42,.04); --ap-tint-2:rgba(23,32,42,.07); --ap-count-wash:rgba(90,102,114,.16);
+    --ap-overlay:rgba(15,20,24,.55); --ap-shadow-menu:rgba(20,30,40,.14); --ap-shadow-pop:rgba(15,20,24,.35);
+    --ap-term-bg:#0f1418; --ap-term-ink:#e3e8ec;
+
+    /* ---- 別名（意味の色へ寄せる） ---- */
+    --ap-link:var(--ap-ink-soft); --ap-primary:var(--ap-human); --ap-primary-line:var(--ap-human);
+    --ap-selected:var(--ap-ink); --ap-focus:var(--ap-ai); --ap-flash:var(--ap-ai-wash);
+    --ap-progress:var(--ap-done); --ap-track:var(--ap-line-soft);
+    /* 上の帯（状態の 1 行）: 暗い帯をやめ、表と同じ地にする */
+    --ap-chrome-1:var(--ap-surface); --ap-chrome-2:var(--ap-surface); --ap-chrome-3:var(--ap-surface);
+    --ap-chrome-surface:var(--ap-surface); --ap-chrome-line:var(--ap-line); --ap-chrome-track:var(--ap-line);
+    --ap-chrome-btn:var(--ap-surface); --ap-chrome-btn-hover:var(--ap-surface-2); --ap-chrome-code-bg:var(--ap-code-bg);
+    --ap-chrome-ink:var(--ap-ink); --ap-chrome-ink-2:var(--ap-ink-2); --ap-chrome-dim:var(--ap-muted);
+    --ap-chrome-muted:var(--ap-faint); --ap-chrome-notice:var(--ap-notice);
+    /* 使用量の計り: ふだんは灰色、少なくなったら注意の色（文字と細い棒だけ） */
+    --ap-usage-ok:var(--ap-muted); --ap-usage-warn:var(--ap-notice); --ap-usage-warn-ink:var(--ap-notice);
+    --ap-usage-ink:var(--ap-notice); --ap-usage-wash:var(--ap-notice-wash);
+    --ap-usage-state:var(--ap-notice); --ap-usage-state-wash:var(--ap-notice-wash);
+    /* 更新の知らせ: 押すのは人間なので人間の色（オレンジの面はやめる） */
+    --ap-update:var(--ap-human); --ap-update-line:var(--ap-human);
+    --ap-update-hover:color-mix(in oklab, var(--ap-human) 85%, var(--ap-ink));
+    /* AI が動いている（行の地には塗らない） */
+    --ap-ai-row:var(--ap-surface); --ap-ai-phase:var(--ap-ai); --ap-ai-phase-wash:var(--ap-ai-wash);
+    --ap-ai-chip:var(--ap-ai); --ap-ai-state:var(--ap-ai); --ap-ai-state-wash:var(--ap-ai-wash);
+    /* 人間の番（Review・DoD・人間待ちは同じ色） */
+    --ap-human-dod:var(--ap-human); --ap-human-dod-wash:var(--ap-human-wash); --ap-human-chip:var(--ap-human);
+    /* 終わった（PR の ready / merged）。閉じた PR は止まったではなく待っている側の灰色 */
+    --ap-done-line:color-mix(in oklab, var(--ap-done) 40%, var(--ap-surface));
+    --ap-merged:var(--ap-done); --ap-merged-wash:var(--ap-done-wash); --ap-merged-line:var(--ap-done-line);
+    --ap-closed:var(--ap-idle); --ap-closed-wash:var(--ap-idle-wash);
     /* 待っている（New Item / Backlog / Sprint Backlog・draft の PR） */
-    --ap-idle:#475569; --ap-idle-wash:#f1f5f9; --ap-idle-line:#cbd5e1;
-    --ap-idle-backlog:#334155; --ap-idle-backlog-wash:#e2e8f0;
-    --ap-idle-sprint:#1e40af; --ap-idle-sprint-wash:#dbeafe;
-    /* 止まった（Blocked・一時停止・コンフリクト） */
-    --ap-stop:#7f1d1d; --ap-stop-wash:#fee2e2; --ap-stop-wash-2:#fecaca; --ap-stop-row:#fef2f2;
-    --ap-conflict:#b91c1c; --ap-conflict-strong:#dc2626; --ap-conflict-line:#fca5a5; --ap-conflict-wash:#fef2f2;
-    /* 注意（認証・使用量・あとでやるの警告） */
-    --ap-notice:#713f12; --ap-notice-wash:#fef9c3; --ap-notice-state-wash:#fde047;
-    --ap-notice-tab:#92400e; --ap-notice-tab-wash:#fef3c7; --ap-notice-err:#b45309;
-    --ap-usage-ink:#7c2d12; --ap-usage-wash:#ffedd5; --ap-usage-state:#431407; --ap-usage-state-wash:#fb923c;
-    /* Size・優先度 */
-    --ap-size-s:#14532d; --ap-size-s-wash:#dcfce7; --ap-size-m:#92400e; --ap-size-m-wash:#fef3c7;
-    --ap-size-l:#7f1d1d; --ap-size-l-wash:#fee2e2;
-    --ap-prio:#334155; --ap-prio-wash:#e2e8f0; --ap-prio0:#991b1b; --ap-prio0-wash:#fee2e2;
-    --ap-prio1:#9a3412; --ap-prio1-wash:#ffedd5;
+    --ap-idle-line:var(--ap-line-strong);
+    --ap-idle-backlog:var(--ap-idle); --ap-idle-backlog-wash:var(--ap-idle-wash);
+    --ap-idle-sprint:var(--ap-idle); --ap-idle-sprint-wash:var(--ap-idle-wash);
+    /* 止まった（Blocked・一時停止・コンフリクト）。小さな札と文字・細い線だけ。行の地には塗らない */
+    --ap-stop-wash-2:var(--ap-stop-wash); --ap-stop-row:var(--ap-surface);
+    --ap-conflict:var(--ap-stop); --ap-conflict-strong:var(--ap-stop);
+    --ap-conflict-line:color-mix(in oklab, var(--ap-stop) 45%, var(--ap-surface)); --ap-conflict-wash:var(--ap-stop-wash);
+    /* 注意（認証・使用量・あとでやるの警告）。失敗の文字は止まったの色 */
+    --ap-notice-state-wash:var(--ap-notice-wash); --ap-notice-tab:var(--ap-notice); --ap-notice-tab-wash:var(--ap-notice-wash);
+    --ap-notice-err:var(--ap-stop);
+    /* Size・優先度は状態ではないので意味の色を使わない（灰色の濃さと文字の濃さだけ） */
+    --ap-size-s:var(--ap-ink-2); --ap-size-s-wash:var(--ap-surface-2);
+    --ap-size-m:var(--ap-ink-2); --ap-size-m-wash:var(--ap-idle-wash);
+    --ap-size-l:var(--ap-ink-2); --ap-size-l-wash:var(--ap-line);
+    --ap-prio:var(--ap-muted); --ap-prio-wash:transparent;
+    --ap-prio0:var(--ap-ink); --ap-prio0-wash:transparent; --ap-prio1:var(--ap-ink); --ap-prio1-wash:transparent;
+
+    /* ---- 大きさ・間隔・角・動き ---- */
+    --ap-font-xs:12px; --ap-font-sm:13px; --ap-font-md:14px; --ap-font-lg:16px; --ap-font-xl:20px;
+    --ap-row-dense:30px; --ap-row-comfy:40px; --ap-human-font:15px; --ap-human-gap:16px;
+    --ap-space-1:2px; --ap-space-2:4px; --ap-space-3:8px; --ap-space-4:12px; --ap-space-5:16px; --ap-space-6:24px;
+    --ap-radius-sm:4px; --ap-radius-md:6px; --ap-radius-pill:999px; --ap-dot:8px;
+    --ap-motion-pulse:2s; --ap-motion-go:5s;
+    --ap-font-ui:-apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Segoe UI", Meiryo, sans-serif;
+    --ap-font-mono:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --ap-bg:#0f1418; --ap-surface:#161d23; --ap-surface-2:#1b232a; --ap-code-bg:#1f2830;
+    --ap-ink:#e3e8ec; --ap-ink-2:#cfd6dc; --ap-ink-soft:#b6c0c8; --ap-muted:#9aa6b1; --ap-faint:#6f7b86;
+    --ap-line:#2a353e; --ap-line-soft:#212a32; --ap-line-strong:#36434d;
+    --ap-ai:#5cc3cf; --ap-ai-wash:#163238; --ap-human:#b3a0f2; --ap-human-wash:#2a2543;
+    --ap-done:#7cc79e; --ap-done-wash:#173025; --ap-idle:#9aa6b1; --ap-idle-wash:#222b33;
+    --ap-stop:#e39ab6; --ap-stop-wash:#3a2230; --ap-notice:#d9bf6a; --ap-notice-wash:#332c17;
+    --ap-go-1:#a79cff; --ap-go-2:#6cc6f5; --ap-go-3:#62dcb3; --ap-go-4:#f1cd66; --ap-go-5:#f59aa5; --ap-go-6:#cf9ce9;
+    --ap-go-wash:#231f3a;
+    --ap-on-solid:#15121f;
+    --ap-tint-1:rgba(255,255,255,.04); --ap-tint-2:rgba(255,255,255,.08); --ap-count-wash:rgba(154,166,177,.2);
+    --ap-overlay:rgba(0,0,0,.6); --ap-shadow-menu:rgba(0,0,0,.45); --ap-shadow-pop:rgba(0,0,0,.55);
+    --ap-term-bg:#0b0f12; --ap-term-ink:#e3e8ec;
+  } }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --ap-bg:#0f1418; --ap-surface:#161d23; --ap-surface-2:#1b232a; --ap-code-bg:#1f2830;
+    --ap-ink:#e3e8ec; --ap-ink-2:#cfd6dc; --ap-ink-soft:#b6c0c8; --ap-muted:#9aa6b1; --ap-faint:#6f7b86;
+    --ap-line:#2a353e; --ap-line-soft:#212a32; --ap-line-strong:#36434d;
+    --ap-ai:#5cc3cf; --ap-ai-wash:#163238; --ap-human:#b3a0f2; --ap-human-wash:#2a2543;
+    --ap-done:#7cc79e; --ap-done-wash:#173025; --ap-idle:#9aa6b1; --ap-idle-wash:#222b33;
+    --ap-stop:#e39ab6; --ap-stop-wash:#3a2230; --ap-notice:#d9bf6a; --ap-notice-wash:#332c17;
+    --ap-go-1:#a79cff; --ap-go-2:#6cc6f5; --ap-go-3:#62dcb3; --ap-go-4:#f1cd66; --ap-go-5:#f59aa5; --ap-go-6:#cf9ce9;
+    --ap-go-wash:#231f3a;
+    --ap-on-solid:#15121f;
+    --ap-tint-1:rgba(255,255,255,.04); --ap-tint-2:rgba(255,255,255,.08); --ap-count-wash:rgba(154,166,177,.2);
+    --ap-overlay:rgba(0,0,0,.6); --ap-shadow-menu:rgba(0,0,0,.45); --ap-shadow-pop:rgba(0,0,0,.55);
+    --ap-term-bg:#0b0f12; --ap-term-ink:#e3e8ec;
   }
   * { box-sizing: border-box; }
   body { font-family: system-ui, sans-serif; margin: 0; color: var(--ap-ink); background:var(--ap-bg); }
