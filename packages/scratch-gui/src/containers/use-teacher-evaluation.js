@@ -351,7 +351,13 @@ const useTeacherEvaluation = ({
             setLessonProgress(nextLessonProgress);
             setScoringChecked(false);
             setSeats([...seatSet].sort((a, b) => a - b));
-            setEvalResult({ kind: 'load', count: Object.keys(nextMatrix).length, lessons: targets.length });
+            // `lessons` counts only the assignments whose lesson progress was read: an ordinary
+            // assignment with no submission yet is「0 件の提出」, not「進み具合を読み込みました」.
+            setEvalResult({
+                kind: 'load',
+                count: Object.keys(nextMatrix).length,
+                lessons: targets.filter((l) => l.hasLesson).length,
+            });
         } catch (err) {
             if (!current()) return;
             if (err.status === 401) {

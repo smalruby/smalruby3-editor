@@ -103,7 +103,14 @@ describe('useTeacherEvaluation — 処理中の表示と結果 (#2419)', () => {
             await running;
         });
         expect(hook.result.current.evalProgress).toBeNull();
-        expect(hook.result.current.evalResult).toEqual({ kind: 'load', count: 12, lessons: 1 });
+        expect(hook.result.current.evalResult).toEqual({ kind: 'load', count: 12, lessons: 0 });
+    });
+
+    test('提出がまだ無いふつうの課題は「0 件の提出」で、進み具合を読んだことにしない', async () => {
+        const { hook } = await setup();
+        mockListSubmissions.mockResolvedValueOnce({ submissions: [] });
+        await load(hook);
+        expect(hook.result.current.evalResult).toEqual({ kind: 'load', count: 0, lessons: 0 });
     });
 
     test('AI は送っている席の範囲が入り、終わったら採点した件数が出る', async () => {

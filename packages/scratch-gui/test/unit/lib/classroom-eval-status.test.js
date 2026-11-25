@@ -86,6 +86,10 @@ describe('describeEvalResult', () => {
         expect(toJa(describeEvalResult({ kind: 'load', count: 28, lessons: 1 }))).toBe('28 件の提出を読み込みました');
     });
 
+    test('no submission yet and no lesson: 0 submissions', () => {
+        expect(toJa(describeEvalResult({ kind: 'load', count: 0, lessons: 0 }))).toBe('0 件の提出を読み込みました');
+    });
+
     test('loaded only lesson progress', () => {
         expect(toJa(describeEvalResult({ kind: 'load', count: 0, lessons: 2 }))).toBe(
             '2 件の課題の進み具合を読み込みました',
