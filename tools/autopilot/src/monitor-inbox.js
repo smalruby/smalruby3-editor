@@ -9,6 +9,7 @@
  * - 状況板の行（EPIC と sub-issue）の絞り込みと並び
  * - 質問の答え（AI の推奨 / 選んだ答え）の組み立て
  * - 数字キー 1〜4 の行き先
+ * - あなた宛てのタイトルのツールチップ（開く・閉じるの判定、置き場所、中身）
  */
 
 /**
@@ -342,6 +343,71 @@ function shortTitle(t) {
 }
 
 /**
+ * タイトルのツールチップの開け閉め（#2416）。開いているのは常に 1 つだけ。
+ * `via` は開いたきっかけ（hover / focus / click）。押して開いたもの（click）は、ホバーやフォーカスが
+ * 外れても消さない（スマホのタップは「ホバー → クリック」と来るので、押した側を勝たせる）。
+ * 押して開いたものは、同じタイトルをもう一度押す・ツールチップを押す・外を押す・Esc で消える。
+ * @param {{open:string|null, via:string|null}|null} state いまの状態
+ * @param {{type:string, key?:string, disabled?:boolean}} ev
+ *   type: enter / leave（マウスのホバー）・focus / blur・click-title / click-tip / click-outside・escape・gone（タイトルが消えた）。
+ *   disabled: 左の欄が畳まれている（細い帯）ときは true。出さず、開いていたものも消す
+ * @returns {{open:string|null, via:string|null}}
+ */
+function titleTipNext(state, ev) {
+    const closed = { open: null, via: null };
+    const cur = state && state.open ? { open: state.open, via: state.via || null } : closed;
+    const e = ev || {};
+    if (e.disabled) return closed;
+    const pinned = cur.open && cur.via === 'click';
+    switch (e.type) {
+        case 'click-title':
+            if (cur.open === e.key && pinned) return closed;
+            return { open: e.key, via: 'click' };
+        case 'enter':
+            return pinned ? cur : { open: e.key, via: 'hover' };
+        case 'focus':
+            return pinned ? cur : { open: e.key, via: 'focus' };
+        case 'leave':
+            return cur.open === e.key && cur.via === 'hover' ? closed : cur;
+        case 'blur':
+            return cur.open === e.key && cur.via === 'focus' ? closed : cur;
+        case 'click-tip': case 'click-outside': case 'escape': case 'gone':
+            return closed;
+        default:
+            return cur;
+    }
+}
+
+/**
+ * ツールチップの置き場所。タイトルの下に入ればその下、入らなければ上。左右と上下は
+ * 画面の端から 8px 内に収める。
+ * @param {{top:number, bottom:number, left:number}} anchor タイトルの矩形（getBoundingClientRect）
+ * @param {{width:number, height:number}} tip ツールチップの大きさ
+ * @param {{width:number, height:number}} view 画面の大きさ
+ * @returns {{left:number, top:number, side:string}} side は 'below' / 'above'
+ */
+function titleTipPlace(anchor, tip, view) {
+    const m = 8;
+    const gap = 6;
+    const left = Math.max(m, Math.min(anchor.left, view.width - tip.width - m));
+    const below = anchor.bottom + gap;
+    if (below + tip.height <= view.height - m) return { left, top: below, side: 'below' };
+    return { left, top: Math.max(m, anchor.top - gap - tip.height), side: 'above' };
+}
+
+/**
+ * ツールチップの中身: タイトルの全文・Issue 番号・今の状態（Status と札。例「Review · 人間の番」）。
+ * @param {{issue?:number, title?:string, status?:string, tag?:{label:string}}|null} w 人間待ちの行など
+ * @returns {{title:string, issue:number|null, state:string|null}}
+ */
+function titleTipInfo(w) {
+    const x = w || {};
+    const parts = [];
+    for (const p of [x.status, x.tag && x.tag.label]) if (p && parts.indexOf(p) < 0) parts.push(p);
+    return { title: String(x.title || ''), issue: x.issue == null ? null : x.issue, state: parts.length ? parts.join(' · ') : null };
+}
+
+/**
  * bot の指摘のまとめコメントなど、GitHub の markdown を軽く整形して HTML にする（#2415）。外部の
  * ライブラリは読まない（モニターは自己完結）。見出し・箇条書き（番号つきも）・引用・コードの囲み・
  * 太字・インラインのコード・リンク（http / https だけ）を扱い、ほかは文字のまま出す。
@@ -410,11 +476,11 @@ function renderMiniMarkdown(src) {
 /** ブラウザへ埋め込む関数（順序は問わない。どれも自己完結） */
 const INBOX_CLIENT_FNS = [
     itemSem, epicSem, inboxModel, inboxGroups, isInboxToggleKey, boardRows, recommendedAnswers, chosenAnswers, digitTarget,
-    agoLabel, shortTitle, renderMiniMarkdown,
+    agoLabel, shortTitle, titleTipNext, titleTipPlace, titleTipInfo, renderMiniMarkdown,
 ];
 
 module.exports = {
     itemSem, epicSem, inboxModel, inboxGroups, isInboxToggleKey, boardRows, recommendedAnswers, chosenAnswers, digitTarget,
-    agoLabel, shortTitle, renderMiniMarkdown,
+    agoLabel, shortTitle, titleTipNext, titleTipPlace, titleTipInfo, renderMiniMarkdown,
     INBOX_CLIENT_FNS,
 };
