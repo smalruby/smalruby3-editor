@@ -53,39 +53,88 @@ ${TOKEN_META_EMPTY}
 <title>autopilot monitor</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='47' fill='%237a1620' stroke='%23b3202f' stroke-width='5'/><path d='M50 27 L69 47 L50 73 L31 47 Z' fill='%23eaf7ff'/><path d='M31 47 L50 27 L50 50 Z' fill='%23bfeaff'/><path d='M69 47 L50 27 L50 50 Z' fill='%238fd8ff'/></svg>">
 <style>
-  :root { --border:#e2e8f0; --muted:#64748b; }
+  /* ---- 色のトークン（EPIC #2384 の UI 方針の「意味の色」） ----
+     いまは置きかえ前の色の値をそのまま持つ（見た目は変えない）。値を新しい意味の色へ
+     変えるのは別の PR。名前は意味（ai / human / done / idle / stop / notice）に寄せ、
+     同じ値でも意味の違う使い方は別のトークンにしてある。 */
+  :root {
+    /* 地・文字・罫線 */
+    --ap-bg:#f8fafc; --ap-surface:#fff; --ap-surface-2:#f1f5f9; --ap-code-bg:#f1f5f9;
+    --ap-ink:#1e293b; --ap-ink-2:#334155; --ap-ink-soft:#475569; --ap-muted:#64748b;
+    --ap-line:#e2e8f0; --ap-line-strong:#cbd5e1; --ap-track:#e2e8f0;
+    --ap-link:#2563eb; --ap-primary:#2563eb; --ap-primary-line:#1d4ed8; --ap-on-solid:#fff;
+    --ap-selected:#1e293b; --ap-focus:#93c5fd; --ap-flash:#fde68a; --ap-progress:#22c55e;
+    --ap-tint-1:rgba(0,0,0,.04); --ap-tint-2:rgba(0,0,0,.07); --ap-count-wash:rgba(100,116,139,.18);
+    --ap-overlay:rgba(15,23,42,.55); --ap-shadow-menu:rgba(15,23,42,.18); --ap-shadow-pop:rgba(0,0,0,.4);
+    --ap-term-bg:#0f172a; --ap-term-ink:#e2e8f0;
+    /* ヘッダー・フッター（暗い帯） */
+    --ap-chrome-1:#141428; --ap-chrome-2:#3a0f1e; --ap-chrome-3:#5c1220;
+    --ap-chrome-surface:#0f172a; --ap-chrome-line:#334155; --ap-chrome-track:#334155;
+    --ap-chrome-btn:#1e293b; --ap-chrome-btn-hover:#334155; --ap-chrome-code-bg:rgba(255,255,255,.06);
+    --ap-chrome-ink:#e2e8f0; --ap-chrome-ink-2:#cbd5e1; --ap-chrome-dim:#94a3b8; --ap-chrome-muted:#64748b;
+    --ap-chrome-notice:#eab308;
+    --ap-usage-ok:#22c55e; --ap-usage-warn:#ef4444; --ap-usage-warn-ink:#fca5a5;
+    --ap-update:#b45309; --ap-update-line:#d97706; --ap-update-hover:#d97706;
+    /* AI が動いている */
+    --ap-ai:#92400e; --ap-ai-wash:#fef3c7; --ap-ai-row:#fffbeb;
+    --ap-ai-phase:#713f12; --ap-ai-phase-wash:#fde68a; --ap-ai-chip:#15803d;
+    --ap-ai-state:#14532d; --ap-ai-state-wash:#bbf7d0;
+    /* 人間の番 */
+    --ap-human:#5b21b6; --ap-human-wash:#ede9fe; --ap-human-dod:#9d174d; --ap-human-dod-wash:#fce7f3;
+    --ap-human-chip:#b91c1c;
+    /* 終わった（PR の ready / merged） */
+    --ap-done:#14532d; --ap-done-wash:#dcfce7; --ap-done-line:#86efac;
+    --ap-merged:#6b21a8; --ap-merged-wash:#f3e8ff; --ap-merged-line:#d8b4fe;
+    --ap-closed:#7f1d1d; --ap-closed-wash:#fee2e2;
+    /* 待っている（New Item / Backlog / Sprint Backlog・draft の PR） */
+    --ap-idle:#475569; --ap-idle-wash:#f1f5f9; --ap-idle-line:#cbd5e1;
+    --ap-idle-backlog:#334155; --ap-idle-backlog-wash:#e2e8f0;
+    --ap-idle-sprint:#1e40af; --ap-idle-sprint-wash:#dbeafe;
+    /* 止まった（Blocked・一時停止・コンフリクト） */
+    --ap-stop:#7f1d1d; --ap-stop-wash:#fee2e2; --ap-stop-wash-2:#fecaca; --ap-stop-row:#fef2f2;
+    --ap-conflict:#b91c1c; --ap-conflict-strong:#dc2626; --ap-conflict-line:#fca5a5; --ap-conflict-wash:#fef2f2;
+    /* 注意（認証・使用量・あとでやるの警告） */
+    --ap-notice:#713f12; --ap-notice-wash:#fef9c3; --ap-notice-state-wash:#fde047;
+    --ap-notice-tab:#92400e; --ap-notice-tab-wash:#fef3c7; --ap-notice-err:#b45309;
+    --ap-usage-ink:#7c2d12; --ap-usage-wash:#ffedd5; --ap-usage-state:#431407; --ap-usage-state-wash:#fb923c;
+    /* Size・優先度 */
+    --ap-size-s:#14532d; --ap-size-s-wash:#dcfce7; --ap-size-m:#92400e; --ap-size-m-wash:#fef3c7;
+    --ap-size-l:#7f1d1d; --ap-size-l-wash:#fee2e2;
+    --ap-prio:#334155; --ap-prio-wash:#e2e8f0; --ap-prio0:#991b1b; --ap-prio0-wash:#fee2e2;
+    --ap-prio1:#9a3412; --ap-prio1-wash:#ffedd5;
+  }
   * { box-sizing: border-box; }
-  body { font-family: system-ui, sans-serif; margin: 0; color: #1e293b; background:#f8fafc; }
-  a { color: #2563eb; text-decoration: none; } a:hover { text-decoration: underline; }
+  body { font-family: system-ui, sans-serif; margin: 0; color: var(--ap-ink); background:var(--ap-bg); }
+  a { color: var(--ap-link); text-decoration: none; } a:hover { text-decoration: underline; }
   /* ---- コンパクトヘッダー（3 分割・1 行固定）#883 ----
      左: 状態 + 操作群（🔄 更新 含む） / 中央: usage（absolute 中央）/ 右: meta（固定幅）。
      3 セクションは互いを押さない。meta は固定幅で右寄せするので、内容幅が変わっても
      左端（x）が動かない（更新 Xs前 の桁変化・API残/実行中 の増減で揺れない）。 */
   header { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: .5rem;
-           padding: .4rem .8rem; background: linear-gradient(100deg, #141428 0%, #3a0f1e 55%, #5c1220 100%);
-           color: #e2e8f0; white-space: nowrap; overflow: hidden; }
+           padding: .4rem .8rem; background: linear-gradient(100deg, var(--ap-chrome-1) 0%, var(--ap-chrome-2) 55%, var(--ap-chrome-3) 100%);
+           color: var(--ap-chrome-ink); white-space: nowrap; overflow: hidden; }
   .hgroup { display: flex; align-items: center; gap: .5rem; }
   .hleft { flex: 0 0 auto; }
   /* ---- Claude 使用量（ヘッダー中央）#879 ----
      内部の可変要素（%・age）は min-width で予約し、usage 全体の幅を一定に保つ。
      幅が一定なら translateX(-50%) の中央位置（x）も動かない。 */
   .usage { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center;
-           gap: .3rem; font-size: .75rem; color: #cbd5e1; font-variant-numeric: tabular-nums;
+           gap: .3rem; font-size: .75rem; color: var(--ap-chrome-ink-2); font-variant-numeric: tabular-nums;
            pointer-events: none; }
   /* .usage 全体は pointer-events:none（バー幅・中央位置に影響させない）だが、
      アイコンだけはクリック/フォーカス可能にして使用量詳細ポップオーバーを開く（#996）。 */
   .usage .uicon { flex: none; display: block; pointer-events: auto; cursor: pointer; }
-  .usage .uicon:focus-visible { outline: 2px solid #93c5fd; outline-offset: 2px; border-radius: 2px; }
-  .usage .ubar { width: 40px; height: 8px; background: #334155; border-radius: 4px; overflow: hidden;
+  .usage .uicon:focus-visible { outline: 2px solid var(--ap-focus); outline-offset: 2px; border-radius: 2px; }
+  .usage .ubar { width: 40px; height: 8px; background: var(--ap-chrome-track); border-radius: 4px; overflow: hidden;
                  display: inline-block; vertical-align: middle; }
-  .usage .ubar > span { display: block; height: 100%; background: #22c55e; }
-  .usage .ubar > span.warn { background: #ef4444; }
+  .usage .ubar > span { display: block; height: 100%; background: var(--ap-usage-ok); }
+  .usage .ubar > span.warn { background: var(--ap-usage-warn); }
   .usage .upct { min-width: 2.8em; text-align: right; }
-  .usage .upct.warn { color: #fca5a5; }
-  .usage .usep { color: #64748b; margin: 0 .05rem; }
-  .usage .umuted { color: #64748b; min-width: 2.8em; text-align: center; }
-  .usage .uage { color: #64748b; margin-left: .1rem; }
-  .usage .uage.stale { color: #eab308; }
+  .usage .upct.warn { color: var(--ap-usage-warn-ink); }
+  .usage .usep { color: var(--ap-chrome-muted); margin: 0 .05rem; }
+  .usage .umuted { color: var(--ap-chrome-muted); min-width: 2.8em; text-align: center; }
+  .usage .uage { color: var(--ap-chrome-muted); margin-left: .1rem; }
+  .usage .uage.stale { color: var(--ap-chrome-notice); }
   .usage .uageval { display: inline-block; min-width: 2.4em; text-align: right; }
   /* ---- Claude 使用量の詳細ポップオーバー（#996） ----
      header は overflow:hidden なので、ヘッダー内に置くと下方向へ出るポップオーバーが
@@ -93,85 +142,85 @@ ${TOKEN_META_EMPTY}
      配置する（usage フローの外なのでバー幅・中央位置に一切影響しない）。z-index は
      header(10)/footer(20) より上・log モーダル(50) より下に置く。 */
   .usagepop { position: fixed; display: none; z-index: 40; min-width: 15rem; max-width: 22rem;
-              background: #0f172a; color: #e2e8f0; border: 1px solid #334155; border-radius: .4rem;
+              background: var(--ap-chrome-surface); color: var(--ap-chrome-ink); border: 1px solid var(--ap-chrome-line); border-radius: .4rem;
               padding: .6rem .75rem; font-size: .78rem; line-height: 1.5;
-              box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+              box-shadow: 0 8px 24px var(--ap-shadow-pop); }
   .usagepop.open { display: block; }
   .usagepop .upop-row { margin-bottom: .5rem; }
   .usagepop .upop-row:last-child { margin-bottom: 0; }
-  .usagepop .upop-label { font-weight: 600; color: #cbd5e1; margin-bottom: .1rem; }
-  .usagepop .upop-detail { color: #94a3b8; font-variant-numeric: tabular-nums; }
+  .usagepop .upop-label { font-weight: 600; color: var(--ap-chrome-ink-2); margin-bottom: .1rem; }
+  .usagepop .upop-detail { color: var(--ap-chrome-dim); font-variant-numeric: tabular-nums; }
   header h1 { font-size: .95rem; margin: 0; font-weight: 600; }
   header .pill { flex: none; }
-  header button { padding: .15rem .55rem; font-size: .8rem; cursor: pointer; border: 1px solid #334155;
-                  background: #1e293b; color: #e2e8f0; border-radius: .3rem; }
-  header button:hover { background: #334155; }
+  header button { padding: .15rem .55rem; font-size: .8rem; cursor: pointer; border: 1px solid var(--ap-chrome-line);
+                  background: var(--ap-chrome-btn); color: var(--ap-chrome-ink); border-radius: .3rem; }
+  header button:hover { background: var(--ap-chrome-btn-hover); }
   header .meta { margin-left: auto; flex: 0 0 auto; width: 24rem; max-width: 40vw; text-align: right;
-                 color: #94a3b8; font-size: .75rem; overflow: hidden; text-overflow: ellipsis;
+                 color: var(--ap-chrome-dim); font-size: .75rem; overflow: hidden; text-overflow: ellipsis;
                  font-variant-numeric: tabular-nums; }
   /* ---- 稼働バージョン + 更新バッジ（#885・スティッキーフッター） ---- */
   /* ヘッダーは Claude 使用量バーが中央を占めて余白が無いので、稼働バージョンと更新バッジは
      常時見えるスティッキーフッターに置く（issue はヘッダー or フッターを許容）。 */
   footer { position: sticky; bottom: 0; z-index: 20; display: flex; align-items: center; gap: .6rem;
-           padding: .3rem .8rem; background: linear-gradient(100deg, #141428 0%, #3a0f1e 55%, #5c1220 100%);
-           color: #94a3b8; font-size: .75rem;
-           border-top: 1px solid #334155; font-variant-numeric: tabular-nums; }
-  footer .ver code { color: #cbd5e1; background: rgba(255,255,255,.06); padding: 0 .3rem; border-radius: .2rem; }
-  footer .upd-badge { padding: .1rem .55rem; font-size: .78rem; cursor: pointer; border: 1px solid #d97706;
-                      background: #b45309; color: #fff; font-weight: 600; border-radius: .3rem; }
-  footer .upd-badge:hover { background: #d97706; }
+           padding: .3rem .8rem; background: linear-gradient(100deg, var(--ap-chrome-1) 0%, var(--ap-chrome-2) 55%, var(--ap-chrome-3) 100%);
+           color: var(--ap-chrome-dim); font-size: .75rem;
+           border-top: 1px solid var(--ap-chrome-line); font-variant-numeric: tabular-nums; }
+  footer .ver code { color: var(--ap-chrome-ink-2); background: var(--ap-chrome-code-bg); padding: 0 .3rem; border-radius: .2rem; }
+  footer .upd-badge { padding: .1rem .55rem; font-size: .78rem; cursor: pointer; border: 1px solid var(--ap-update-line);
+                      background: var(--ap-update); color: var(--ap-on-solid); font-weight: 600; border-radius: .3rem; }
+  footer .upd-badge:hover { background: var(--ap-update-hover); }
   /* ---- 更新手順モーダル ---- */
-  #updmodal { position: fixed; inset: 0; background: rgba(15,23,42,.55); display: none; align-items: center;
+  #updmodal { position: fixed; inset: 0; background: var(--ap-overlay); display: none; align-items: center;
               justify-content: center; z-index: 60; }
   #updmodal.open { display: flex; }
-  #updmodal .box { background: #fff; color: #1e293b; width: min(92vw, 44rem); max-height: 85vh; border-radius: .5rem;
+  #updmodal .box { background: var(--ap-surface); color: var(--ap-ink); width: min(92vw, 44rem); max-height: 85vh; border-radius: .5rem;
                    display: flex; flex-direction: column; overflow: hidden; }
   #updmodal .box header { position: static; border-radius: .5rem .5rem 0 0; }
   #updmodal .body { padding: .9rem 1rem; overflow: auto; font-size: .85rem; line-height: 1.55; }
   #updmodal h3 { font-size: .9rem; margin: .2rem 0 .5rem; }
   #updmodal ol { margin: .3rem 0 .8rem; padding-left: 1.3rem; }
-  #updmodal code { background: #f1f5f9; padding: 0 .3rem; border-radius: .2rem; font-size: .82rem; }
-  #updmodal .cmd { display: block; background: #0f172a; color: #e2e8f0; padding: .4rem .6rem; border-radius: .3rem;
+  #updmodal code { background: var(--ap-code-bg); padding: 0 .3rem; border-radius: .2rem; font-size: .82rem; }
+  #updmodal .cmd { display: block; background: var(--ap-term-bg); color: var(--ap-term-ink); padding: .4rem .6rem; border-radius: .3rem;
                    margin: .3rem 0; white-space: pre-wrap; word-break: break-all; }
-  #updmodal .commits { margin: .4rem 0 0; border-top: 1px solid var(--border); padding-top: .5rem; }
-  #updmodal .commits li { font-size: .8rem; color: #334155; margin-bottom: .15rem; }
+  #updmodal .commits { margin: .4rem 0 0; border-top: 1px solid var(--ap-line); padding-top: .5rem; }
+  #updmodal .commits li { font-size: .8rem; color: var(--ap-ink-2); margin-bottom: .15rem; }
   #updmodal .commits code { font-size: .76rem; }
-  #updmodal .primary { background: #2563eb; color: #fff; border: 1px solid #1d4ed8; padding: .1rem .5rem;
+  #updmodal .primary { background: var(--ap-primary); color: var(--ap-on-solid); border: 1px solid var(--ap-primary-line); padding: .1rem .5rem;
                        border-radius: .3rem; cursor: pointer; font-size: .78rem; }
   /* 狭い幅では中央 usage を隠して右 meta と重ならないようにする（usage は補助情報） */
   @media (max-width: 960px) { .usage { display: none; } }
   .pill { display: inline-block; padding: .05rem .5rem; border-radius: 1rem; font-size: .75rem; font-weight: 600; }
-  .ok { background: #bbf7d0; color: #14532d; } .paused { background: #fecaca; color: #7f1d1d; }
-  .auth { background: #fde047; color: #713f12; }
-  .usagep { background: #fb923c; color: #431407; }
+  .ok { background: var(--ap-ai-state-wash); color: var(--ap-ai-state); } .paused { background: var(--ap-stop-wash-2); color: var(--ap-stop); }
+  .auth { background: var(--ap-notice-state-wash); color: var(--ap-notice); }
+  .usagep { background: var(--ap-usage-state-wash); color: var(--ap-usage-state); }
   /* ---- アラート帯 ---- */
   .alert { display: flex; align-items: baseline; gap: .6rem; padding: .45rem .8rem; font-size: .85rem;
-           border-bottom: 1px solid var(--border); flex-wrap: wrap; }
-  .alert.auth-a { background: #fef9c3; color: #713f12; }
-  .alert.block-a { background: #fee2e2; color: #7f1d1d; }
-  .alert.usage-a { background: #ffedd5; color: #7c2d12; }
+           border-bottom: 1px solid var(--ap-line); flex-wrap: wrap; }
+  .alert.auth-a { background: var(--ap-notice-wash); color: var(--ap-notice); }
+  .alert.block-a { background: var(--ap-stop-wash); color: var(--ap-stop); }
+  .alert.usage-a { background: var(--ap-usage-wash); color: var(--ap-usage-ink); }
   /* ---- 人間待ちのまとめ（#1315） ---- */
   .human-waits { display: flex; flex-wrap: wrap; gap: .3rem 1rem; align-items: baseline; padding: .4rem .6rem;
-                 margin-bottom: .5rem; background: #fff; border: 1px solid var(--border); border-radius: .35rem;
+                 margin-bottom: .5rem; background: var(--ap-surface); border: 1px solid var(--ap-line); border-radius: .35rem;
                  font-size: .82rem; }
-  .human-waits .hw-title { font-weight: 700; color: #475569; }
-  .human-waits .hw-count { color: var(--muted); font-size: .75rem; }
+  .human-waits .hw-title { font-weight: 700; color: var(--ap-ink-soft); }
+  .human-waits .hw-count { color: var(--ap-muted); font-size: .75rem; }
   .human-waits a { margin-left: .15rem; }
   .alert.usage-a .uforce { margin-left: auto; display: inline-flex; gap: .4rem; align-items: baseline; }
-  .alert code { background: rgba(0,0,0,.07); padding: 0 .3rem; border-radius: .2rem; }
+  .alert code { background: var(--ap-tint-2); padding: 0 .3rem; border-radius: .2rem; }
   .alert button { font-size: .72rem; padding: .05rem .4rem; cursor: pointer; }
   .reauth-info { flex-basis: 100%; margin-top: .35rem; display: flex; gap: .5rem; align-items: center; flex-wrap: wrap;
-                 padding: .35rem .5rem; background: rgba(0,0,0,.04); border-radius: .3rem; }
+                 padding: .35rem .5rem; background: var(--ap-tint-1); border-radius: .3rem; }
   .reauth-info code { font-size: 1rem; font-weight: 700; letter-spacing: .06em; }
   /* ---- 俯瞰ボード ---- */
   main { padding: .6rem .8rem 2rem; }
   /* #board のはみ出しはページ全体を崩さずスクロールで逃がす保険（列間引きと併用）#936 */
   .board-wrap { overflow-x: auto; }
-  table { border-collapse: collapse; width: 100%; background: #fff; font-size: .84rem; }
-  th, td { border: 1px solid var(--border); padding: .3rem .5rem; text-align: left; vertical-align: middle; }
-  th { background: #f1f5f9; font-size: .75rem; color: #475569; }
-  tr.blocked-row td { background: #fef2f2; }
-  tr.running-row td { background: #fffbeb; }
+  table { border-collapse: collapse; width: 100%; background: var(--ap-surface); font-size: .84rem; }
+  th, td { border: 1px solid var(--ap-line); padding: .3rem .5rem; text-align: left; vertical-align: middle; }
+  th { background: var(--ap-surface-2); font-size: .75rem; color: var(--ap-ink-soft); }
+  tr.blocked-row td { background: var(--ap-stop-row); }
+  tr.running-row td { background: var(--ap-ai-row); }
   td.title-cell { max-width: 34rem; }
   /* #Issue → PR チップ → ▼ → タイトル を 1 行に並べる。チップ/▼ は縮めず、タイトルだけ省略表示（#1212） */
   .title-line { display: flex; align-items: center; gap: .25rem; white-space: nowrap; min-width: 0; }
@@ -179,23 +228,23 @@ ${TOKEN_META_EMPTY}
   /* 📋（Issue と PR をコピー）#1213。行の先頭に置くのでどの行でも同じ位置に出る */
   td button.copy-btn { font-size: .72rem; padding: 0 .2rem; line-height: 1.3; border: 1px solid transparent;
                        background: transparent; border-radius: .3rem; }
-  td button.copy-btn:hover { border-color: #cbd5e1; background: #fff; }
+  td button.copy-btn:hover { border-color: var(--ap-line-strong); background: var(--ap-surface); }
   /* コピーできた行を一瞬光らせる。再描画で作り直されても animation-delay で経過分から続ける。
      to を書かないので、blocked-row / running-row の行は元の背景色へ戻る（透明を経由しない） */
-  @keyframes copied-flash { from { background-color: #fde68a; } }
+  @keyframes copied-flash { from { background-color: var(--ap-flash); } }
   #board tr.copied-row > td { animation: copied-flash 1.2s ease-out; animation-delay: var(--flash-delay, 0ms); }
   .title-line .prchip { margin: 0; }
   .title-line .t { flex: 0 1 auto; min-width: 0; }
-  td button.prmenu-btn { font-size: .62rem; padding: 0 .3rem; line-height: 1.3; border: 1px solid #cbd5e1;
-                         background: #fff; color: #475569; border-radius: .3rem; }
-  td button.prmenu-btn[aria-expanded="true"] { background: #1e293b; color: #fff; border-color: #1e293b; }
+  td button.prmenu-btn { font-size: .62rem; padding: 0 .3rem; line-height: 1.3; border: 1px solid var(--ap-line-strong);
+                         background: var(--ap-surface); color: var(--ap-ink-soft); border-radius: .3rem; }
+  td button.prmenu-btn[aria-expanded="true"] { background: var(--ap-selected); color: var(--ap-on-solid); border-color: var(--ap-selected); }
   /* ▼ のメニュー。.board-wrap の overflow で切れないよう fixed でボタン直下に出す（1 つだけ） */
-  #prmenu { position: fixed; z-index: 40; display: none; min-width: 11rem; background: #fff; border: 1px solid #cbd5e1;
-            border-radius: .35rem; box-shadow: 0 6px 18px rgba(15,23,42,.18); padding: .25rem 0; font-size: .8rem; }
+  #prmenu { position: fixed; z-index: 40; display: none; min-width: 11rem; background: var(--ap-surface); border: 1px solid var(--ap-line-strong);
+            border-radius: .35rem; box-shadow: 0 6px 18px var(--ap-shadow-menu); padding: .25rem 0; font-size: .8rem; }
   #prmenu.open { display: block; }
-  #prmenu a { display: flex; gap: .4rem; align-items: baseline; padding: .25rem .7rem; color: #1e293b; white-space: nowrap; }
-  #prmenu a:hover { background: #f1f5f9; text-decoration: none; }
-  #prmenu .pm-state { margin-left: auto; font-size: .72rem; color: var(--muted); }
+  #prmenu a { display: flex; gap: .4rem; align-items: baseline; padding: .25rem .7rem; color: var(--ap-ink); white-space: nowrap; }
+  #prmenu a:hover { background: var(--ap-surface-2); text-decoration: none; }
+  #prmenu .pm-state { margin-left: auto; font-size: .72rem; color: var(--ap-muted); }
   .t { display: inline-block; max-width: 30rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
   /* ---- 狭幅（〜820px 目安）で情報量を落として崩れを防ぐ #936 ----
      モバイル対応は不要（横 640px 程度が最小想定）。nth-child は表示/非表示で
@@ -212,51 +261,51 @@ ${TOKEN_META_EMPTY}
   .status-pill { display: inline-block; padding: .05rem .45rem; border-radius: .3rem; font-size: .75rem; font-weight: 600; white-space: nowrap; }
   /* ---- Size バッジ（S=緑 / M=琥珀 / L=赤）#884 ---- */
   .size-badge { display: inline-block; min-width: 1.1rem; padding: .05rem .4rem; border-radius: .3rem; font-size: .75rem; font-weight: 700; text-align: center; }
-  .size-s { background: #dcfce7; color: #14532d; }
-  .size-m { background: #fef3c7; color: #92400e; }
-  .size-l { background: #fee2e2; color: #7f1d1d; }
+  .size-s { background: var(--ap-size-s-wash); color: var(--ap-size-s); }
+  .size-m { background: var(--ap-size-m-wash); color: var(--ap-size-m); }
+  .size-l { background: var(--ap-size-l-wash); color: var(--ap-size-l); }
   /* ---- Awaiting Continuation バッジ（協調的チェックポイント・EPIC #906）#913 ---- */
   .ai-continuation-badge { display: inline-block; padding: .05rem .45rem; border-radius: .3rem; font-size: .75rem;
-                            font-weight: 600; white-space: nowrap; background: #ede9fe; color: #5b21b6; }
-  .muted { color: var(--muted); }
+                            font-weight: 600; white-space: nowrap; background: var(--ap-human-wash); color: var(--ap-human); }
+  .muted { color: var(--ap-muted); }
   .prchip { display: inline-block; margin: 0 .15rem .1rem 0; padding: 0 .35rem; border-radius: .3rem;
             font-size: .75rem; white-space: nowrap; border: 1px solid transparent; }
-  .pr-conflict { outline: 2px solid #dc2626; outline-offset: -1px; }
-  td button.resolve-btn { white-space: nowrap; color: #b91c1c; border: 1px solid #fca5a5; background: #fef2f2; }
+  .pr-conflict { outline: 2px solid var(--ap-conflict-strong); outline-offset: -1px; }
+  td button.resolve-btn { white-space: nowrap; color: var(--ap-conflict); border: 1px solid var(--ap-conflict-line); background: var(--ap-conflict-wash); }
   td button.resolve-btn[disabled] { cursor: progress; opacity: .6; }
-  .pr-draft { background: #f1f5f9; color: #475569; border-color: #cbd5e1; }
-  .pr-ready { background: #dcfce7; color: #14532d; border-color: #86efac; }
-  .pr-merged { background: #f3e8ff; color: #6b21a8; border-color: #d8b4fe; }
-  .pr-closed { background: #fee2e2; color: #7f1d1d; text-decoration: line-through; }
-  .bar { width: 90px; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; display: inline-block; vertical-align: middle; }
-  .bar > div { height: 100%; background: #22c55e; }
-  .subtext { font-size: .72rem; color: var(--muted); margin-left: .3rem; white-space: nowrap; }
-  .phase-pill { background: #fde68a; color: #713f12; padding: .05rem .45rem; border-radius: .3rem; font-size: .75rem; font-weight: 600; white-space: nowrap; }
+  .pr-draft { background: var(--ap-idle-wash); color: var(--ap-idle); border-color: var(--ap-idle-line); }
+  .pr-ready { background: var(--ap-done-wash); color: var(--ap-done); border-color: var(--ap-done-line); }
+  .pr-merged { background: var(--ap-merged-wash); color: var(--ap-merged); border-color: var(--ap-merged-line); }
+  .pr-closed { background: var(--ap-closed-wash); color: var(--ap-closed); text-decoration: line-through; }
+  .bar { width: 90px; height: 8px; background: var(--ap-track); border-radius: 4px; overflow: hidden; display: inline-block; vertical-align: middle; }
+  .bar > div { height: 100%; background: var(--ap-progress); }
+  .subtext { font-size: .72rem; color: var(--ap-muted); margin-left: .3rem; white-space: nowrap; }
+  .phase-pill { background: var(--ap-ai-phase-wash); color: var(--ap-ai-phase); padding: .05rem .45rem; border-radius: .3rem; font-size: .75rem; font-weight: 600; white-space: nowrap; }
   td button { font-size: .72rem; padding: .05rem .45rem; cursor: pointer; }
   /* ---- [通常] / [あとでやる] タブ（#1190） ---- */
   .tabs { display: flex; gap: .3rem; margin: 0 0 .4rem; }
-  .tabs button { font-size: .8rem; padding: .2rem .7rem; cursor: pointer; border: 1px solid var(--border);
-                 background: #fff; color: #475569; border-radius: .3rem .3rem 0 0; }
-  .tabs button.active { background: #1e293b; color: #fff; border-color: #1e293b; font-weight: 600; }
+  .tabs button { font-size: .8rem; padding: .2rem .7rem; cursor: pointer; border: 1px solid var(--ap-line);
+                 background: var(--ap-surface); color: var(--ap-ink-soft); border-radius: .3rem .3rem 0 0; }
+  .tabs button.active { background: var(--ap-selected); color: var(--ap-on-solid); border-color: var(--ap-selected); font-weight: 600; }
   .tabs .tab-count { display: inline-block; min-width: 1.2rem; margin-left: .25rem; padding: 0 .3rem; border-radius: .6rem;
-                     background: rgba(100,116,139,.18); font-size: .72rem; text-align: center; }
-  .tabs .tab-warn { margin-left: .3rem; padding: 0 .35rem; border-radius: .3rem; background: #fef3c7; color: #92400e;
+                     background: var(--ap-count-wash); font-size: .72rem; text-align: center; }
+  .tabs .tab-warn { margin-left: .3rem; padding: 0 .35rem; border-radius: .3rem; background: var(--ap-notice-tab-wash); color: var(--ap-notice-tab);
                     font-size: .72rem; font-weight: 600; }
   td button.later-btn { white-space: nowrap; }
   td button.later-btn[disabled] { cursor: progress; opacity: .6; }
   /* ---- 優先度と並列の計画（EPIC #2384） ---- */
   .prio { display: inline-flex; align-items: center; gap: .1rem; margin-right: .3rem; white-space: nowrap; }
-  .prio b { font-size: .72rem; padding: 0 .3rem; border-radius: .3rem; background: #e2e8f0; color: #334155; }
-  .prio b.p0 { background: #fee2e2; color: #991b1b; } .prio b.p1 { background: #ffedd5; color: #9a3412; }
+  .prio b { font-size: .72rem; padding: 0 .3rem; border-radius: .3rem; background: var(--ap-prio-wash); color: var(--ap-prio); }
+  .prio b.p0 { background: var(--ap-prio0-wash); color: var(--ap-prio0); } .prio b.p1 { background: var(--ap-prio1-wash); color: var(--ap-prio1); }
   .prio b.inh { font-weight: 400; font-style: italic; }
   .prio button { font-size: .6rem; padding: 0 .2rem; line-height: 1.1; }
-  #schedule { font-size: .75rem; color: var(--muted); margin: .2rem 1rem; }
+  #schedule { font-size: .75rem; color: var(--ap-muted); margin: .2rem 1rem; }
   #schedule button { font-size: .7rem; padding: 0 .3rem; }
-  h2 { font-size: .85rem; color: var(--muted); margin: 1.2rem 0 .4rem; }
+  h2 { font-size: .85rem; color: var(--ap-muted); margin: 1.2rem 0 .4rem; }
   /* ---- log モーダル ---- */
-  #modal { position: fixed; inset: 0; background: rgba(15,23,42,.55); display: none; align-items: center; justify-content: center; z-index: 50; }
+  #modal { position: fixed; inset: 0; background: var(--ap-overlay); display: none; align-items: center; justify-content: center; z-index: 50; }
   #modal.open { display: flex; }
-  #modal .box { background: #0f172a; color: #e2e8f0; width: min(90vw, 70rem); max-height: 85vh; border-radius: .5rem;
+  #modal .box { background: var(--ap-term-bg); color: var(--ap-term-ink); width: min(90vw, 70rem); max-height: 85vh; border-radius: .5rem;
                 display: flex; flex-direction: column; }
   #modal .box header { position: static; border-radius: .5rem .5rem 0 0; }
   #modal pre { margin: 0; padding: .8rem; overflow: auto; white-space: pre-wrap; font-size: .78rem; flex: 1; }
@@ -265,12 +314,12 @@ ${TOKEN_META_EMPTY}
   .epic-head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
   .epic-head h2 { margin: 0; }
   .epic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; margin-top: 6px; }
-  .epic-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 10px; font-size: 13px; }
+  .epic-card { border: 1px solid var(--ap-line); border-radius: 8px; padding: 6px 10px; font-size: 13px; }
   .epic-card ul { margin: 4px 0 0; padding-left: 1.2em; }
-  .epic-prog .bar i { display: block; height: 100%; background: #22c55e; }
-  .chip { font-size: 11px; padding: 0 6px; border: 1px solid #cbd5e1; border-radius: 99px; margin-left: 2px; }
-  .chip.run { color: #15803d; border-color: #15803d; } .chip.wait { color: #b91c1c; border-color: #b91c1c; }
-  .cs-err { color: #b45309; }
+  .epic-prog .bar i { display: block; height: 100%; background: var(--ap-progress); }
+  .chip { font-size: 11px; padding: 0 6px; border: 1px solid var(--ap-line-strong); border-radius: 99px; margin-left: 2px; }
+  .chip.run { color: var(--ap-ai-chip); border-color: var(--ap-ai-chip); } .chip.wait { color: var(--ap-human-chip); border-color: var(--ap-human-chip); }
+  .cs-err { color: var(--ap-notice-err); }
 ${LEARN_TASKS_CSS}</style></head><body>
 <header>
   <div class="hgroup hleft">
@@ -351,12 +400,12 @@ ${LEARN_TASKS_CSS}</style></head><body>
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const repoUrl = 'https://github.com/smalruby/smalruby3-editor';
 const STATUS_COLORS = {
-  'New Item': ['#f1f5f9', '#475569'], 'Backlog': ['#e2e8f0', '#334155'],
-  'Sprint Backlog': ['#dbeafe', '#1e40af'], 'In Progress': ['#fef3c7', '#92400e'],
-  'Blocked': ['#fecaca', '#7f1d1d'], 'Review': ['#ede9fe', '#5b21b6'], 'DoD': ['#fce7f3', '#9d174d'],
+  'New Item': ['var(--ap-idle-wash)', 'var(--ap-idle)'], 'Backlog': ['var(--ap-idle-backlog-wash)', 'var(--ap-idle-backlog)'],
+  'Sprint Backlog': ['var(--ap-idle-sprint-wash)', 'var(--ap-idle-sprint)'], 'In Progress': ['var(--ap-ai-wash)', 'var(--ap-ai)'],
+  'Blocked': ['var(--ap-stop-wash-2)', 'var(--ap-stop)'], 'Review': ['var(--ap-human-wash)', 'var(--ap-human)'], 'DoD': ['var(--ap-human-dod-wash)', 'var(--ap-human-dod)'],
 };
 const statusPill = (s) => {
-  const [bg, fg] = STATUS_COLORS[s] || ['#f1f5f9', '#475569'];
+  const [bg, fg] = STATUS_COLORS[s] || ['var(--ap-idle-wash)', 'var(--ap-idle)'];
   return '<span class="status-pill" style="background:' + bg + ';color:' + fg + '">' + esc(s) + '</span>';
 };
 // Size（triage で決まる small/middle/large）を S/M/L の色付きバッジに短縮する（#884）。
