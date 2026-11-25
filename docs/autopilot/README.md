@@ -157,9 +157,9 @@ Status フィールドの option 定義順、列内は Project の手動並び�
 
   優先度の順に見て、重いものが上限やメモリ・CPU で始められないときも、後ろの軽いものは始める
   （軽い仕事で空きを埋める）。決めた理由（例「空き 4.5GB・負荷 0.32/CPU・実行中 1（重い 1）→ 2 件開始
-  （重い 1・軽い 1）。待ち 重いものの上限 2 で 1 件」）を daemon のログとモニターの 🧮 の行に出す。
-- **モニターでの操作**: 🧮 の行の −/+ で全体・重いの上限を一時的に変えられる（`POST /scheduler`。
-  再起動で消える。ずっと変えるなら `settings.json`）。各行の ▲▼ で `Priority` を 1 段上げ下げする
+  （重い 1・軽い 1）。待ち 重いものの上限 2 で 1 件」）を daemon のログとモニターの状況板の上の「並列:」の行に出す。
+- **モニターでの操作**: 「並列:」の行の −/+ で全体・重いの上限を一時的に変えられる（`POST /scheduler`。
+  再起動で消える。ずっと変えるなら `settings.json`）。各行の ▲▼（行に乗せると出る）か行の ⋯ で `Priority` を 1 段上げ下げする
   （`POST /priority`。自分に値が無ければ継いだ値・既定から動かす）。**EPIC の行で動かすと、自分の値を
   持たない sub-issue にも効く**。継いだ値は斜体で出る。
 - 親（EPIC）の番号は本文と同じ REST 1 回（`parent_issue_url`）で取り、本文と同じ TTL でキャッシュする
@@ -321,7 +321,7 @@ worker が人間に選んでほしいことがあるとき、`signal=hitl` の�
 
 判断と本文の組み立ては `phases.js`（`planMonitorQuestionsComment` / `planMonitorAnswer` / `planMonitorAnswerComments` /
 `renderMonitorAnswersForPrompt` ほか）、置き場と受け口と GitHub のつなぎは `monitor-answers.js`、書き込みは `project.js`
-（`applyCommentPlans`）。モニターの画面はまだ無い（受け口だけ）。
+（`applyCommentPlans`）。モニターでは「あなた宛て」の「答えが要る」に出る（下の「Web モニタ」）。
 
 ### モニターの「AI に任せる」（人間待ちを autopilot に渡す）
 
@@ -749,134 +749,64 @@ GitHub App bot は `workflows` 権限を持たないため、`.github/workflows/
 
 ---
 
-## Web モニタ（俯瞰ボード）
+## Web モニタ（あなた宛て＋表）
 
-daemon の `GET /`（既定 `http://localhost:8787/`）は **enroll 済み Issue の俯瞰ボード**
-（読み取り専用・縦並び）を first view に表示する。操作（Status 変更・並び替え）は
-GitHub Projects で行い、モニタは俯瞰・log 閲覧・pause/resume/即時 tick に徹する。
+daemon の `GET /`（既定 `http://localhost:8787/`）は、人間と同意した並べ方 **D「あなた宛て＋表」** の画面を出す。
+見た目の決まりは [`design-system.md`](./design-system.md)。左に**人間がすること**（あなた宛て）、右に
+**全体の状況**（状況板）を並べ、幅の広い画面では**ページ自体はスクロールせず、各列の中だけが動く**。
+幅 900px 未満では「人間の番 / 状況板 / 実行履歴 / 学び・タスク」のタブ（件数つき）に切りかわる。
 
-- **1 行のコンパクトヘッダー（3 セクション）**: **左**にタイトル + 状態 pill（RUNNING/PAUSED/AUTH ⚠）
-  + 操作群（⏸/▶/⚡tick/**🔄 更新**）、**中央**に Claude 使用量、**右**にメタ情報（assignee・並行数・
-  実行中・API 残・更新時刻）。右メタは固定幅 + 右寄せ + `tabular-nums` にして、`更新 Xs前` の桁変化や
-  `API残`/`実行中` の増減で内容幅が変わってもヘッダーのどの要素も水平位置が動かない。中央 usage も
-  内部の可変要素を `min-width` で予約して幅を一定に保つ。狭い幅（≤ 960px）では中央 usage を隠して
-  右メタと重ならないようにする
-- **⏸ 止まっている worker**: blocked で AI が NG と判定し、人間の答えを待っている worker があるときだけ、
-  ボードの上に画面・理由・選択肢を出す。選択肢のボタン・キー・文で答える（`GET /blocked` を 5 秒ごとに読む。
-  詳しくは「worker の端末（herdr / tmux）と、止まった worker の扱い」）
-- **[通常] / [💤 あとでやる] タブ**（#1190）: ボード上部のタブで `💤 later` 付き Issue を
-  通常一覧から分離する。タブには件数バッジ、あとでやる タブには **⚠ 実行中 N・人間の番 M**
-  バッジが付き、通常タブを見ていても あとでやる 側の動きに気付ける。選択タブは localStorage
-  （`autopilot:boardTab`）に記憶する。Now 列の末尾（log の隣）に **「💤 あとで」/「↩ 今やる」**
-  ボタンがあり（Close / Done の行には出さない）、押すと**楽観的更新**で即座に行が移動し、裏で
-  `POST /later` がラベルを付け替える。ボード再取得（GraphQL）は撃たず daemon がキャッシュ上の
-  labels を書き換える。失敗したら最後に確定した状態へ戻してアラート帯にエラーを出す。
-  連打対策: 送信中の Issue はボタンを disabled（⏳ 処理中）にし、daemon 側も Issue 単位で直列化して
-  連続リクエストを**最後の目標状態へ畳み込む**（差分時のみ書き込み）。保留中の Issue はボードの定期
-  更新・🔄 更新で古い labels が返っても pending の状態を優先表示する。Blocked・認証アラートは
-  あとでやる 内の Issue でも上部に通常どおり出し、あとでやる 内の人間の番もアラート帯に出す
-- **コンフリクトの表示と解消**（#1348）: PR チップは GitHub が判定した `mergeable` を見て、
-  base とコンフリクトしている OPEN の PR に赤枠と ⚠️ を付ける。値は俯瞰ボードの PR 取得
-  （`getBoardEnrichment`）に 1 項目足しただけなので、追加の API 呼び出しは無い。GitHub は非同期に
-  判定するので、初回は未確定（印なし）のことがあり、次の 🔄 更新で確定する。コンフリクトしている行の
-  Now 列に **🔀 解消** ボタンが出て、押すと `POST /resolve-conflict` で AI が解消する（後述「base 追従」）。
-  実行中は phase 表示に変わり、終わるとボードのキャッシュ上の印が消える
-- **スティッキーフッター**: **稼働バージョン（`branch @ shortCommit`）** + **⬆️ 更新ありバッジ**。
-  常時見えるフッターに置き、押すと更新手順モーダルを表示する（#885）
-- **Claude 使用量（ヘッダー中央）**: Claude アイコン + **セッション使用率**（rolling 5 時間制限）と
-  **週間使用率**（全モデルの 7 日制限）を、それぞれ短いバー + `NN%` で表示する。使用量が上限に
-  達すると autopilot だけでなく人間の開発も止まるため、早めに気づけるよう常時可視化する。
-  **Claude アイコンをクリック**（またはキーボードで Enter/Space）すると、セッション / 週間それぞれの
-  **使用率とリセット日時（JST）**を明示したポップオーバーを表示する（もう一度クリック / 外側クリック /
-  Esc で閉じる）。ヘッダーは `overflow:hidden` なのでポップオーバーは `position:fixed` でアイコン直下に
-  出し、使用量バーの中央位置を揺らさない（#996）。使用率が未取得のウィンドウは「—（未取得）」と表示する。
-  usage ファイルはローカルの小さな JSON（API 予算を消費しない）なので、daemon は **毎 tick・
-  `GET /board`・`POST /refresh`（🔄 更新ボタン）で高頻度に読み直す**（#1027）。これにより
-  worker 稼働中でも完了を待たず、モニタの 5 秒 poll でほぼライブ追従する。最終更新からの経過
-  （age）を薄字で併記し、**90 秒以上更新が無ければ黄色（stale）表示**にして worker 非稼働中の
-  据え置きが分かるようにする。age の基準 `updatedAt` は **usage ファイルの mtime**（＝ worker が
-  最後に statusline を書いた時刻）で、読取時刻ではない（#1027）。高頻度に読み直しても、古い
-  ファイルなら age が正しく増え（stale を隠さない）、逆に読み直しで age が誤って 0 にならない。
-  値の取得: `rate_limits`（`five_hour` / `seven_day` の `used_percentage`）は **Claude Code の
-  status line の stdin JSON にのみ**含まれる（transcript JSONL・CLI・キャッシュには出力されない）。
-  worker は対話 TUI（tmux）で動くので status line が描画される点を利用し、worker 起動時に
-  `--settings` で **`tools/autopilot/bin/usage-statusline.sh`** を status line に仕込み、
-  `rate_limits` を usage ファイル（`os.tmpdir()/autopilot-claude-usage.json`）へ書き出させる。
-  daemon はそのファイルを読み（`tools/autopilot/src/usage.js`）`state.claudeUsage` に反映し、
-  `GET /board`・`GET /status` にも `claudeUsage` として載る。
-  **used ≥ 80% は警告色**。Pro/Max サブスク以外や初回 API 応答前は `rate_limits` が無いため
-  **「—」表示**にしてレイアウトを崩さない。
-- **アラート帯**: 認証失効（auto-pause 中、または起動待ちの「SSO ログインが必要です」・再認証手順つき + **「🔐 再接続（SSO ログイン）」
-  ボタン**で device code の URL 自動オープン & コードのコピー）/ Blocked 一覧 /
-  **Claude 使用量の auto-pause**（理由・使用率・閾値・リセット時刻 + `⚡ 強制再開…` → その場で
-  「本当に再開？ [再開する] [やめる]」に置き換わる 2 段階。ブラウザの confirm は使わない）/
-  **強制実行中**（「⚡ 強制実行中（セッション 92% · 〜19:40 まで）」）。状態ピルは
-  usage pause 中 **`USAGE ⏸`**（橙）。詳細は「Claude 使用量の auto-pause と強制再開」。
-  各アラートに **`check autopilot (#N)` のコピー用ショートカット**があり、Claude に
-  貼ると `.claude/skills/check-autopilot` スキルが診断・復旧支援する
-- **人間待ちのまとめ**（#1315）: 一覧の上に、人間が何待ちで止まっているかを理由ごとに件数と
-  item でまとめる。理由は `phases.js` の純粋関数 `humanWaitReason` が 1 つに決める
-  （🙋 の item は 🔬 Spike・回答待ち → 👀 レビュー待ち（Review）→ ✅ DoD の確認待ち →
-  🧱 Blocked（障害）→ ⏳ 依存待ち（`autopilot-after` の未完了）→ 🙋 そのほか の順。🙋 が無い item は
-  ⏳ 依存待ちだけを出す）。🔬 Spike の条件は「🔬 spike ラベル」と同じ。daemon が `refreshBoard` で
-  `waitReason` と、人間に開いてほしいページの `waitUrl`（レビュー / DoD は open な PR、それ以外は
-  Issue）を board item に載せる。どちらも取得済みの Project 状態・ラベル・PR から作るので、
-  **新しい読み取りは増えない**（コメント単位のリンクは取得済みデータに無いので出さない）。
-  HTML は `renderHumanWaitsHtml` / `renderHumanWaitCell` をモニタに埋め込んで共有する。
-  Now 欄の 🙋 も理由つき（例: `🔬 Spike・回答待ち`）で出し、押すと `waitUrl` を開く。
-  あとでやる タブの item もまとめに含める
-- **ボード行**: Issue（**📋** + リンク + **PR チップ** + **▼** + タイトル）/ Status pill / Size / AI Status（live）/
-  担当 / **sub-issue 進捗**（N/M・%・バー）/ Now（実行中フェーズ + 経過分 + **log ボタン → モーダル**）
-  - **PR は専用列ではなく Issue 番号のすぐ右**に置く（#1212）。レビュー待ちで見たいのは PR なので、
-    Issue を経由せず 1 クリックで開けるようにする。インラインに並べるのは **open の PR だけ**
-    （📝 draft / ✅ ready。`PR#N` 表記で Issue 番号と区別）。並びは `#Issue` → PR チップ → ▼ →
-    タイトル → 🧭 / ⏳。
-  - **merged / closed（未 merge）の PR が 1 つでもあれば ▼** を出す。押すとその Issue の
-    **全 PR**（open 含む・`✅ PR#N open` / `📝 draft` / `🟣 merged` / `❌ closed`）のメニューを開き、
-    項目は別タブで PR を開く。外側クリック・Esc・項目の選択で閉じ、同時に開くのは 1 つだけ。
-    5 秒ごとの一覧の再描画をまたいでも開いたまま保つ（開いている Issue 番号を覚えて描画のたびに
-    復元する）。open / それ以外の振り分けは `phases.js` の純粋関数 `splitPrsForTitle` を
-    モニタに埋め込んで共有する
-  - 狭い幅でも PR チップと ▼ は折り返さず、タイトルだけを省略表示にする
-  - **Issue 列の左端の 📋**（#1213）で、Issue を人に共有したり Claude に引き継いだりするための
-    文字列をコピーする。押したときだけコピーし（行のクリックではコピーしない）、PR チップの数や
-    タイトルの長さに関係なくどの行でも同じ位置に出る。コピーする文字列は 1 行目
-    `#1199 PR#1220 タイトル全文` と、Issue・PR の URL を 1 行ずつ。PR は画面にインラインで並ぶ
-    **open の PR だけ**（merged / closed は含めない。無ければ `#1199 タイトル` と Issue の URL だけ）。
-    組み立ては `phases.js` の純粋関数 `issueCopyText` をモニタに埋め込んで共有する。
-    コピーできたことは**行を一瞬光らせる**だけで伝える（5 秒ごとの再描画をまたいでも経過分から
-    続ける）。`localhost` 以外（IP 直打ち等）で開いて `navigator.clipboard` が使えないときは
-    `prompt` で文字列を表示し、その場合は光らせない
-  - **担当列はオーナー（駆動者）を太字で明示**する（`autopilot-assignee:` ディレクティブが
-    あれば反映）。**自分がオーナーでない**共同担当の行には **👁 + オーナー login** の
-    「観察中」マーカーを付ける（#938）。観察対象（他人が駆動する item）はこの daemon の
-    dispatch では更新されないため、live 反映（`patchBoardCache`）は効かず、
-    **`refreshBoard` の周期実行（既定 5 分）または「🔄 更新」ボタン（`POST /refresh`）**
-    でのみ最新化される点に注意（観察＝状態閲覧なので許容範囲）
-  - **Awaiting Continuation（協調的チェックポイント・EPIC #906）は専用バッジ**（`⏸️ Awaiting
-    Continuation`・紫系配色）で表示し、他の AI Status（Implementing 等）と一目で区別できる（#913）。
-    バッジの右に continuation ファイル（`tmp/autopilot-continuation-<issue>.md`）の
-    **残タスク数**（`## 残タスク` の箇条書き件数）を「残 N」で併記する。件数は `refreshBoard` が
-    worktree からローカルファイルとして読む（GraphQL は消費しない）。worktree/ファイルが無い・
-    解析できない場合は件数を省略する（バッジ自体は表示する）
-- **除外**: Close / Done / Icebox はボードに出さない（溜まると重くなるため）。さらに
-  `--assignee` 起動時は **自分が Assignees のいずれかである item に限定**する
-  （`isAssignee`。未指定は全件）。dispatch 対象（`ownsItem` = 単一オーナーのみ）より
-  **広い**集合になる点に注意 — 共同担当（非オーナー）も観察のため表示される（#938。
-  上記「担当列」参照）
-- **稼働バージョン + 更新検知**（#885）: 下の「稼働バージョン表示と更新検知」を参照
-- **実行履歴**は最下部（最新 100 件・ログ用途のみ）
-- データは `GET /board`（**poll/tick 後に再構築されるキャッシュ** + live running）。
-  board の再取得（`listItems`）は 1 回 ~100 GraphQL ポイントと重いため、**専用の短周期
-  タイマーは持たない**（旧: 60 秒ごと → read トークンの GraphQL 予算 5000/h を単独超過し
-  枯渇していた）。すぐ最新化したいときはヘッダーの **「🔄 更新」ボタン（`POST /refresh`）**
-  でオンデマンド取得する（見たいときだけ消費）。ブラウザ側は 5 秒ごとに `/board`（キャッシュ）を
-  ポーリングして描画するだけなので GraphQL は消費しない
+![モニター D（ライト）](./screenshots/monitor-d-wide-light.png)
+
+| 場所 | 出すもの・操作 |
+|---|---|
+| 上の 1 行 | 動いている / 一時停止中（AUTH ⚠・USAGE ⏸・起動中・SSO 待ちも）・worker の数（実行中 / 上限・重いもの）・**Claude** の使用量（セッション / 週間の細い棒）・**GitHub API** の残り・更新からの経過・件数バッジ「実行履歴 N」「タスク N」（押すと右から開く）・一時停止 / 再開・**⋯**（更新 `POST /refresh`・tick `POST /tick`・現在地を作る `POST /current-status` と現在地を開く） |
+| アラートの帯 | 認証（再接続・device code）・Claude 使用量の自動 pause（2 段階の強制再開）・強制実行中・API レートの僅少・起動中。地は塗らず文字と細い線だけ |
+| 左「あなた宛て」 | **答えが要る**（worker の質問・選択肢・AI の推奨・メモ）→ **止まっている worker**（`blocked-panel.js`）→ **学び・確かめてほしい**（`/learnings` の action が PR を作る / マージする のとき）→ **人間待ち**（`GET /board` の `humanWait`） |
+| 右「状況板」 | GitHub Projects の表の形。1 行 = 1 EPIC（EPIC に属さない Issue は 1 つのまとまり）。`▶` で sub-issue の行を開く。絞り込みの文字とチップ（すべて / 人間の番 / AI が作業中 / 止まった / 💤 あとで）。上に並列の計画の 1 行 |
+| 右から開く欄 | 実行履歴（最新 100 件）、学び・タスク（`monitor-learn-tasks.js`。学びの PR・タスクの作成といま実行） |
+| 下の帯 | 稼働バージョン（`branch @ shortCommit`）と ⬆️ 更新ありバッジ（更新手順のモーダル） |
+
+- **数字キー** `1` あなた宛て・`2` 状況板・`3` 実行履歴・`4` 学び・タスク。入力欄の中と ⌘ / Ctrl / Alt との
+  組み合わせでは効かない（ブラウザのタブの切りかえと重なるため）。`Esc` でメニュー・欄・モーダルを閉じる。
+- **「AI に任せる」**（虹色の輪のボタン）: 人間待ちの行では `POST /delegate`（下の「モニターの『AI に任せる』」）。
+  Review / DoD で押すと差し戻し（address-review）に進むので、そのときの文言は **「AI に直してもらう」**。
+  `humanWait[].delegate.ok=false` の行にはボタンを出さない（理由は行の title）。失敗はトーストに出す。
+  質問では **「AI に任せる（推奨 X で進める）」** で、全部の問いに AI の推奨があるときだけ出し、推奨の選択肢を
+  `POST /answer`（`proceed:true`）で送る。ほかに「選んだ答えで進める」「メモだけ保存」（`proceed:false`）。
+  メモを書いている途中は 5 秒ごとの描き直しを止める。
+- **行の ⋯**: GitHub で開く・📋 Issue と PR をコピー（`issueCopyText`。コピーした行は一瞬光る）・PR の一覧・
+  worker の log・🔀 コンフリクトを解消（`POST /resolve-conflict`）・💤 あとで / ↩ 今やる（`POST /later`）・
+  優先度を上げる / 下げる（`POST /priority`）・`check autopilot #N` のコピー。一時停止・やめる は今後の操作（押せない）。
+- **「開く」ボタンは置かない**。`#番号` が GitHub へのリンク。
+- **状況板の列**: 題名・優先（行に乗せると ▲▼）・状態の札（AI が作業中 / 人間の番 / 止まった / 終わった /
+  待っている・依存待ち）・次の動き（実行中のフェーズと log、AI Status、Awaiting Continuation は専用バッジと残タスク数）・
+  時刻（実行の経過、EPIC は次の確認の見込み）・進み（sub-issue の棒）・人間待ち（EPIC は数、sub-issue は理由の印）・
+  PR（open だけ並べ、merged / closed があれば ▼ で全部）。sub-issue の行には Size（S/M/L）・🧭・⏳・💤 と、
+  自分がオーナーでない共同担当の行に 👁 + オーナー（担当は題名の title）。
+- **💤 あとでやる**（#1190）: 状況板はふだん `💤 later` の Issue を隠し、チップ「💤 あとで N」で見る。
+  切りかえは行の ⋯ で、**楽観的更新**（先に画面で動かし、失敗したら元に戻してトースト）。daemon も Issue ごとに
+  直列化して最後の目標に畳み込む。あとでやる の中の人間待ちも「あなた宛て」に出る（💤 の印つき）。
+- **コンフリクト**（#1348）: GitHub が判定した `mergeable` で、コンフリクトしている OPEN の PR のチップに枠と ⚠️。
+- **除外**: Close / Done / Icebox はボードに出さない。`--assignee` 起動時は自分が Assignees のいずれかの item に限る
+  （共同担当も観察のため出る。観察中の item は `refreshBoard` の周期か「更新」でだけ最新になる）。
+- **判断の置き場**: 意味の色・あなた宛ての組み立て・状況板の行の絞り込み・答えの組み立て・数字キーは
+  `src/monitor-inbox.js` の純粋関数（`itemSem` / `epicSem` / `inboxModel` / `boardRows` / `recommendedAnswers` /
+  `chosenAnswers` / `digitTarget`）で、`phases.js` の `splitLaterBoard` などと同じく `fn.toString()` でページに埋め込む
+  （二重定義しない）。
+- **Claude 使用量**: 値は worker の status line が書く usage ファイル（`tools/autopilot/bin/usage-statusline.sh` →
+  `os.tmpdir()/autopilot-claude-usage.json`。`rate_limits` は status line の stdin にしか無い）を daemon が毎 tick・
+  `GET /board`・`POST /refresh` で読み直したもの（API 予算を使わない）。80% 以上で注意の色。最終更新からの経過を
+  併記し、90 秒以上更新が無ければ据え置き（stale）の色にする（基準は usage ファイルの mtime）。Claude の印を押す
+  （Enter / Space）と、セッション / 週間の使用率とリセット日時（JST）のポップオーバー。未取得は「—」。
+- **データ**: ブラウザは 5 秒ごとに `GET /board`（daemon のキャッシュ）と `GET /learnings`・`GET /tasks`
+  （手元のファイル）を読むだけで、GitHub には触らない。board の再取得（`listItems` ≈ 100 GraphQL ポイント）は
+  専用のタイマーを持たず、すぐ最新にしたいときは ⋯ の「更新」（`POST /refresh`）。
 
 ### EPIC ごとの進み具合と「現在地」
 
-一覧の上に **EPIC ごと**の欄がある（`data-testid="epic-groups"`）。ボードの item を親の EPIC で束ね、
-EPIC の無い Issue は「単独の Issue」に 1 つにまとめる（`src/epic-summary.js` の `groupItemsByEpic`）。
+状況板の行は **EPIC ごと**（`GET /board` の `epicGroups`）。ボードの item を親の EPIC で束ね、
+EPIC の無い Issue は「EPIC に属さない Issue」に 1 つにまとめる（`src/epic-summary.js` の `groupItemsByEpic`）。
 
 | 出すもの | 決め方 |
 |---|---|
@@ -891,7 +821,7 @@ EPIC の無い Issue は「単独の Issue」に 1 つにまとめる（`src/epi
 （追加の問い合わせは無い）。
 
 **現在地**は Claude に作らせる artifact（claude.ai のページ）で、モニタにはリンクと最終更新の時刻だけを出す。
-トークンを使うので、**人間が「🧭 現在地を作る」を押したときだけ**作り直す（`POST /current-status`）。
+トークンを使うので、**人間が上の行の ⋯ の「現在地を作る」を押したときだけ**作り直す（`POST /current-status`）。
 
 1. daemon が材料（`GET /status.json` と同じ JSON）をファイルに書き、`autopilot-current-status` の worker を 1 つ起動する
    （Issue に属さない job。Status / AI Status は動かさず、並行上限の外。走っている間は 409）。
@@ -1271,10 +1201,10 @@ Addressing Comments / Running DoD）なのに worker が生存していない it
 
 #### 監視（Web モニタ）
 
-ブラウザで **`http://localhost:8787/`** を開くと**俯瞰ボード**が表示される
-（5 秒ごとに `/board` をポーリング。詳細は上の「Web モニタ（俯瞰ボード）」）。
+ブラウザで **`http://localhost:8787/`** を開くと**モニター**が表示される
+（5 秒ごとに `/board` をポーリング。詳細は上の「Web モニタ（あなた宛て＋表）」）。
 
-「⚡ tick」ボタンは interval（既定 5 分）を待たず `POST /tick` を叩いて 1 サイクルだけ
+上の行の ⋯ の「tick を 1 回走らせる」は interval（既定 5 分）を待たず `POST /tick` を叩いて 1 サイクルだけ
 即実行する（レビュー直後など「今すぐ次を処理させたい」とき用）。実行中は再入防止で `409 busy`、
 pause 中は no-op（`paused:true` で返る）。
 
@@ -1324,7 +1254,7 @@ HTTP API（curl からも操作可能。POST は上の合言葉のヘッダを�
 | `POST /resume` | ポーリング再開（usage の auto-pause 中は `409 {forceResumeRequired:true}`） |
 | `POST /force-resume` | Claude 使用量の auto-pause を強制再開。超過中の枠はその枠の次のリセットまで auto-pause しない。`{paused, pausedBy, overrides}` |
 | `POST /reauth` | SSO 再認証（device code）を daemon 側で起動し、認証 URL と user code を抽出して返す（`{status, url, code, completeUrl}`）。成功で auto-resume（起動待ちなら稼働を始める） |
-| `POST /refresh` | 俯瞰ボードを即時再取得（`listItems`）。モニタの「🔄 更新」ボタン。レート僅少時は `{refreshed:false, skipped:'rate-limited'}` で no-op |
+| `POST /refresh` | 俯瞰ボードを即時再取得（`listItems`）。モニタの上の行の ⋯ の「更新」。レート僅少時は `{refreshed:false, skipped:'rate-limited'}` で no-op |
 | `POST /later` | body `{issue, later: boolean}`。`💤 later` を付与 / 除去する（モニタの「💤 あとで」/「↩ 今やる」）。Issue 単位で直列化し連続リクエストは最後の目標へ畳み込む。既に目的の状態なら書き込まない。`{issue, later, changed}` を返す |
 | `POST /priority` | body `{issue, direction: 'up'\|'down'}` か `{issue, priority: 'P0'..'P3'}`。Project の `Priority` を書く（モニタの ▲▼）。`{issue, priority, from}` を返す |
 | `POST /scheduler` | body `{maxTotal, maxHeavy, ...}`（`null` で上書きを外す）。並列の上限を一時的に変える（再起動で消える）。`{overrides, limits}` を返す |
@@ -1408,7 +1338,8 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 | `tools/autopilot/src/blocked-panel.js` | モニターの「止まっている worker」の欄 |
 | `tools/autopilot/src/monitor-answers.js` | モニターで答える質問の置き場・`POST /answer`・`POST /delegate`（AI に任せる）の受け口・Issue への記録と 🙋 の解除・worker への受け渡し |
 | `tools/autopilot/src/daemon.js` | 常駐 daemon（ポーリング・ディスパッチ・HTTP 制御・認証ヘルスチェック・俯瞰ボード） |
-| `tools/autopilot/src/monitor.js` | Web モニタ（俯瞰ボード・自己完結 HTML） |
+| `tools/autopilot/src/monitor.js` | Web モニタ（あなた宛て＋表・自己完結 HTML） |
+| `tools/autopilot/src/monitor-inbox.js` | モニターの判断の純粋関数（意味の色・あなた宛て・状況板の行・答えの組み立て・数字キー）。ページへ `fn.toString()` で埋め込む |
 | `tools/autopilot/src/epic-summary.js` | EPIC ごとのまとめ・次の確認の見込み・現在地の材料・モニタの EPIC 欄の HTML（純粋） |
 | `tools/autopilot/src/current-status.js` | 現在地の job の結果の解釈・テンプレートの下書きと描画（純粋） |
 | `tools/autopilot/src/current-status-job.js` | 現在地の job の起動と状態ファイル（URL・最終更新・改善メモ） |
