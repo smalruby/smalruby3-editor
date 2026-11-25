@@ -143,3 +143,32 @@ describe('locales', () => {
         }
     });
 });
+
+describe('採点簿の読み込みと確定 (#2424)', () => {
+    test('採点簿は件数とバー、確定は課題の名前', () => {
+        expect(describeEvalRunning({ progress: { kind: 'gradebook', done: 1, total: 4 } })).toEqual({
+            message: evalStatusMessages.gradebook,
+            values: { done: 1, total: 4 },
+            ratio: 0.25,
+        });
+        expect(describeEvalRunning({ progress: { kind: 'confirm', assignmentName: '迷路' } })).toEqual({
+            message: evalStatusMessages.confirm,
+            values: { name: '迷路' },
+            ratio: null,
+        });
+    });
+
+    test('確定はボタンにスピナー、採点簿の読み込みはどのボタンでもない', () => {
+        expect(runningStepOf({ kind: 'confirm' }).step).toBe('confirm');
+        expect(runningStepOf({ kind: 'gradebook', done: 0, total: 1 })).toBeNull();
+    });
+
+    test('確定の結果', () => {
+        expect(describeEvalResult({ kind: 'confirm', count: 3 })).toEqual({
+            message: evalStatusMessages.confirmDone,
+            values: { count: 3 },
+            failed: false,
+        });
+        expect(describeEvalResult({ kind: 'confirm', failed: true }).message).toBe(evalStatusMessages.confirmFailed);
+    });
+});
