@@ -85,6 +85,7 @@ const sendLine = (session, text) => getTerminal().sendLine(session, text);
  * @param {object} [opts.terminalSettings] resolveTerminalSettings の結果（既定 configureRunner の値）
  * @param {function} [opts.judge] blocked の AI 判定（テスト用。既定 `claude -p`）
  * @param {function} [opts.now] 時計（テスト用）
+ * @param {string} [opts.answersFile] モニターで人間が答えた答えのファイル（あれば起動の指示で先に読ませる）
  * @returns {Promise<{ok:boolean, action:string, reason:string}>}
  */
 async function runPhase(opts) {
@@ -123,7 +124,7 @@ async function runPhase(opts) {
             ? createBlockedHandler({ term, session: opts.session, settings: tset, channel: opts.blocked, judge: opts.judge, log })
             : null;
         // Skill のスラッシュコマンドではなく、プロンプトファイルを読ませる指示を送る（#プロンプト移設）
-        const slash = phasePromptCommand(opts.skill, opts.issue, opts.promptDir);
+        const slash = phasePromptCommand(opts.skill, opts.issue, opts.promptDir, { answersFile: opts.answersFile });
 
         let outcome = null;
         while (!outcome) {

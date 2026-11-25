@@ -488,9 +488,13 @@ const PROMPT_DIR = 'tools/autopilot/prompts';
  *   絶対パスを渡す（checkout のブランチ切り替えに非依存）。省略時は worktree 内の相対パス。
  * @returns {string} 送信メッセージ
  */
-function phasePromptCommand(skill, issue, promptDir = PROMPT_DIR) {
-    return `${promptDir}/${skill}.md を Read して、その手順に厳密に従ってください。` +
+function phasePromptCommand(skill, issue, promptDir = PROMPT_DIR, opts = {}) {
+    const base = `${promptDir}/${skill}.md を Read して、その手順に厳密に従ってください。` +
         `対象 Issue は AUTOPILOT_ISSUE=${issue} です。`;
+    // モニターで人間が答えた質問があれば、その答えのファイル（AUTOPILOT_ANSWERS_FILE）を先に読ませる。
+    // 1 行で送る（send-keys で改行すると途中で送信されるため、答えの本文はファイルに置く）。
+    if (!opts.answersFile) return base;
+    return `${base}人間がモニターで質問に答えています。先に ${opts.answersFile} を Read し、その答えに従ってください。`;
 }
 
 /**
@@ -702,11 +706,16 @@ function extractCommentRefs(text) {
  * コメントで worker が動き出すと、人間が気軽にコメントできないため。対応してほしいことは
  * Request changes にまとめ、🙋 を外して渡す（address-review が対応するのはその Request changes
  * だけ・{@link selectRequestedReviews}）。
+ * もう 1 つの合図は、モニターの「答えて先へ進める」（人間の明示操作）を受けて daemon が 🙋 を外したこと
+ * （`ctx.monitorReleased`・{@link withMonitorReleases}）。daemon はラベルを外してから立てるので
+ * 「🙋 を外したら開く」と同じ意味で、ラベルの読み直しが遅れても開くようにするためのもの。
+ * 「メモだけ保存」やコメントでは立たない。
  * @param {object} item { hitlLabel }
- * @param {object} ctx { hitlSignals }
+ * @param {object} ctx { hitlSignals, monitorReleased }
  * @returns {boolean}
  */
 function isGateReleased(item, ctx = {}) {
+    if (ctx.monitorReleased) return true;
     return ctx.hitlSignals ? isHitlReleased(ctx.hitlSignals) : !(item && item.hitlLabel);
 }
 
@@ -879,7 +888,8 @@ function phaseForItem(item, ctx = {}) {
     if (status === 'In Progress' && item.aiStatus === 'Triaging') {
         return isGateReleased(item, ctx) ? 'triage' : null;
     }
-    if (item.hitlLabel) return null; // 人間の番（🙋 ラベルあり）
+    // 人間の番（🙋 ラベルあり）。モニターの「答えて先へ進める」で daemon が外したものは外れた扱い
+    if (item.hitlLabel && !ctx.monitorReleased) return null;
     if (status === 'New Item') return 'triage';
     if (status === 'Sprint Backlog') {
         return item.kind === 'EPIC' ? 'decompose' : 'implement';
@@ -1582,13 +1592,17 @@ function isSteadyStateHitlGate(item) {
  * （force でない per-tick 同期）では人間が外したラベルを**再付与しない**（= 解除シグナルを潰さ
  * ない・#821 で DoD も対象）。Review/DoD/Awaiting Continuation へ渡す権威的な遷移・merge 後の
  * 解除は force=true で明示する。
+ *
+ * monitorReleased=true（モニターの「答えて先へ進める」で daemon が 🙋 を外した・まだ worker を
+ * 起こしていない）の steady-state 同期は、古い item（hitlLabel=true のまま）から付け直さない。
+ * force の権威的な遷移（worker の結果を受けた同期）はこれまでどおり付ける。
  * @param {object} item { status, aiStatus, hitlLabel }
  * @param {boolean} present 現在その面にラベルが付いているか
- * @param {object} [opts] { force }
+ * @param {object} [opts] { force, monitorReleased }
  * @returns {'add'|'remove'|null}
  */
 function hitlLabelAction(item, present, opts = {}) {
-    const want = Boolean(item && item.hitlLabel);
+    const want = Boolean(item && item.hitlLabel) && !(opts.monitorReleased && !opts.force);
     if (isSteadyStateHitlGate(item) && !opts.force) {
         // steady-state: No への正規化（除去）だけ許可。Yes の再付与はしない。
         return !want && present ? 'remove' : null;
@@ -3392,7 +3406,298 @@ function laterPendingReducer(pending, action) {
     return cur;
 }
 
+// ---- モニターで答える（ui-policy §8 の U1・U2）----
+//
+// worker は signal=hitl の結果に `questions` を書ける（contract.js の validateQuestions）。daemon は
+// 質問を Issue にマーカー付きで書き、モニターに出す。人間がモニターで「答えて先へ進める」を押すと、
+// daemon が答えを Issue にマーカー付きで書き、🙋 を外し、次に worker を起こすときに答えを渡す。
+// 「メモだけ保存」は daemon のローカルに置くだけ（GitHub に書かない・🙋 も外さない）。
+// ここは判定と本文の組み立てだけ（I/O は project.js と monitor-answers.js）。
+
+/** 人間がモニターで書くメモの上限（GitHub に書くときもこの長さまで） */
+const MAX_MONITOR_NOTE = 2000;
+
+/**
+ * 質問のまとめコメントのマーカー。round は同じ Issue で何回目の質問か（1 から）。
+ * @param {number} issue
+ * @param {number} round
+ * @returns {string}
+ */
+function monitorQuestionsMarker(issue, round) {
+    return `<!-- autopilot-monitor-questions issue=${issue} round=${round} -->`;
+}
+
+/**
+ * 答えのコメントのマーカー（質問 1 つに 1 コメント）。round を入れるのは、次の回の質問が同じ ID
+ * （q1 など）を使っても前の答えのコメントを上書きしないため。
+ * @param {number} issue
+ * @param {number} round
+ * @param {string} q 質問 ID
+ * @returns {string}
+ */
+function monitorAnswerMarker(issue, round, q) {
+    return `<!-- autopilot-monitor-answer issue=${issue} round=${round} q=${q} -->`;
+}
+
+/**
+ * コメント一覧から、その Issue の質問のまとめコメントを round の昇順で返す（純粋関数）。
+ * @param {Array<{id:*, body:string}>} comments
+ * @param {number} issue
+ * @returns {Array<{id:*, body:string, round:number}>}
+ */
+function findMonitorQuestionsComments(comments, issue) {
+    const re = new RegExp(`<!-- autopilot-monitor-questions issue=${Number(issue)} round=(\\d+) -->`);
+    const out = [];
+    for (const c of comments || []) {
+        const m = c && typeof c.body === 'string' && c.body.match(re);
+        if (m) out.push({ ...c, round: Number(m[1]) });
+    }
+    return out.sort((a, b) => a.round - b.round);
+}
+
+/**
+ * 質問のまとめコメントの本文（純粋関数）。worker が書いた文字列は GitHub に出す前に
+ * {@link sanitizeForSurface} を通す。
+ * @param {number} issue
+ * @param {number} round
+ * @param {object[]} questions 検証済みの questions
+ * @param {object} [opts] { phase, reason }
+ * @returns {string}
+ */
+function renderMonitorQuestionsComment(issue, round, questions, opts = {}) {
+    const qs = questions || [];
+    const lines = [
+        monitorQuestionsMarker(issue, round),
+        `**🙋 autopilot からの質問**（${sanitizeForSurface(opts.phase || '', 40) || '-'}・${qs.length} 問）`,
+        '',
+        'モニターの「答える」で選んで答えられます。GitHub で答えるときは、コメントを書いてから 🙋 を外してください。',
+    ];
+    if (opts.reason) lines.push('', `理由: ${sanitizeForSurface(opts.reason)}`);
+    for (const q of qs) {
+        lines.push('', `### ${q.id}. ${sanitizeForSurface(q.text)}`);
+        for (const o of q.options || []) {
+            const desc = o.desc ? ` — ${sanitizeForSurface(o.desc, 300)}` : '';
+            const rec = q.recommended === o.key ? ' **（おすすめ）**' : '';
+            lines.push(`- \`${o.key}\` ${sanitizeForSurface(o.label, 200)}${desc}${rec}`);
+        }
+    }
+    return lines.join('\n');
+}
+
+/**
+ * 質問を Issue に書く計画（純粋関数・冪等）。いちばん新しい質問のコメントと同じ内容なら書かない
+ * （同じ結果を 2 回処理しても重複しない）。違えば round を 1 つ進めて新しく書く。
+ * @param {Array<{id:*, body:string}>} comments その Issue のコメント一覧
+ * @param {number} issue
+ * @param {object[]} questions
+ * @param {object} [opts] { phase, reason }
+ * @returns {{action:'post'|'skip', round:number, body:string}}
+ */
+function planMonitorQuestionsComment(comments, issue, questions, opts = {}) {
+    const found = findMonitorQuestionsComments(comments, issue);
+    const last = found.length ? found[found.length - 1] : null;
+    if (last) {
+        const same = renderMonitorQuestionsComment(issue, last.round, questions, opts);
+        if (last.body === same) return { action: 'skip', round: last.round, body: same };
+    }
+    const round = last ? last.round + 1 : 1;
+    return { action: 'post', round, body: renderMonitorQuestionsComment(issue, round, questions, opts) };
+}
+
+/**
+ * `POST /answer` の body を検証して形をそろえる（純粋関数）。
+ * body: `{issue, answers:[{q, key, note?}], proceed}`。key は選択肢の key。選択肢で答えず
+ * メモだけで答えるときは key を省いて note を書く。
+ * @param {object} body
+ * @returns {{ok:boolean, error?:string, issue?:number, answers?:object[], proceed?:boolean}}
+ */
+function normalizeMonitorAnswerBody(body) {
+    if (!body || typeof body !== 'object') return { ok: false, error: 'body must be an object' };
+    const issue = Number(body.issue);
+    if (!Number.isInteger(issue) || issue <= 0) return { ok: false, error: 'issue (positive integer) required' };
+    if (typeof body.proceed !== 'boolean') return { ok: false, error: 'proceed (boolean) required' };
+    const raw = body.answers == null ? [] : body.answers;
+    if (!Array.isArray(raw)) return { ok: false, error: 'answers must be an array' };
+    const answers = [];
+    for (const [i, a] of raw.entries()) {
+        if (!a || typeof a !== 'object' || typeof a.q !== 'string' || !a.q) {
+            return { ok: false, error: `answers[${i}].q (string) required` };
+        }
+        const key = a.key == null || a.key === '' ? null : a.key;
+        if (key !== null && typeof key !== 'string') return { ok: false, error: `answers[${i}].key must be a string` };
+        if (a.note != null && typeof a.note !== 'string') return { ok: false, error: `answers[${i}].note must be a string` };
+        const note = a.note ? a.note.trim() : '';
+        if (note.length > MAX_MONITOR_NOTE) return { ok: false, error: `answers[${i}].note is too long (max ${MAX_MONITOR_NOTE})` };
+        if (key === null && !note) return { ok: false, error: `answers[${i}]: key or note required` };
+        answers.push({ q: a.q, key, note: note || null });
+    }
+    return { ok: true, issue, answers, proceed: body.proceed };
+}
+
+/**
+ * 人間の答えを、いま出ている質問に当てる（純粋関数）。前に「メモだけ保存」した答え（drafts）に
+ * 今回の答えを重ねる。proceed=true は全部の質問に答えがあるときだけ通す（「答えて先へ進める」で
+ * 答えの抜けた質問を残さない）。
+ * @param {object|null} entry 質問の置き場の 1 件 { questions, drafts, status }
+ * @param {{answers:object[], proceed:boolean}} input {@link normalizeMonitorAnswerBody} の結果
+ * @param {number} nowMs 答えた時刻
+ * @returns {{ok:boolean, status:number, error?:string, drafts?:object, records?:object[]}}
+ */
+function planMonitorAnswer(entry, input, nowMs) {
+    if (!entry || !Array.isArray(entry.questions)) return { ok: false, status: 404, error: 'no questions for this issue' };
+    if (entry.status === 'answered') return { ok: false, status: 409, error: 'already answered' };
+    const byId = new Map(entry.questions.map((q) => [q.id, q]));
+    const drafts = { ...(entry.drafts || {}) };
+    for (const a of input.answers || []) {
+        const q = byId.get(a.q);
+        if (!q) return { ok: false, status: 400, error: `unknown question: ${a.q}` };
+        if (a.key !== null && !(q.options || []).some((o) => o.key === a.key)) {
+            return { ok: false, status: 400, error: `unknown option for ${a.q}: ${a.key}` };
+        }
+        drafts[a.q] = { key: a.key, note: a.note || null, at: nowMs };
+    }
+    const records = entry.questions.filter((q) => drafts[q.id]).map((q) => {
+        const d = drafts[q.id];
+        const opt = d.key === null ? null : (q.options || []).find((o) => o.key === d.key);
+        return { q: q.id, key: d.key, label: opt ? opt.label : null, note: d.note || null, at: d.at };
+    });
+    if (input.proceed) {
+        const missing = entry.questions.filter((q) => !drafts[q.id]).map((q) => q.id);
+        if (missing.length) return { ok: false, status: 400, error: `unanswered: ${missing.join(', ')}` };
+    }
+    return { ok: true, status: 200, drafts, records };
+}
+
+/**
+ * 答えのコメントの本文（純粋関数）。人間のメモも GitHub に出すので {@link sanitizeForSurface} を通す。
+ * 時刻は入れない（同じ答えなら同じ本文 = 書き直さない。時刻はコメント自体に残る）。
+ * @param {number} issue
+ * @param {number} round
+ * @param {object} question { id, text }
+ * @param {object} record { key, label, note }
+ * @returns {string}
+ */
+function renderMonitorAnswerComment(issue, round, question, record) {
+    const chosen = record.key === null
+        ? '（選択肢からは選ばず、メモで答えた）'
+        : `\`${record.key}\` ${sanitizeForSurface(record.label || '', 200)}`;
+    const lines = [
+        monitorAnswerMarker(issue, round, question.id),
+        `**🙋 モニターでの答え**（質問 \`${question.id}\`）`,
+        '',
+        `> ${sanitizeForSurface(question.text).replace(/\n/g, '\n> ')}`,
+        '',
+        `- 選んだもの: ${chosen}`,
+    ];
+    if (record.note) lines.push(`- メモ: ${sanitizeForSurface(record.note, MAX_MONITOR_NOTE).replace(/\n/g, '\n  ')}`);
+    return lines.join('\n');
+}
+
+/**
+ * 答えのコメントを書く計画（純粋関数・冪等）。質問ごとに、同じマーカーのコメントがあって同じ本文なら
+ * 書かない（skip）、違えば書き直す（patch）、無ければ書く（post）。同じ答えを二重に書かない。
+ * @param {Array<{id:*, body:string}>} comments その Issue のコメント一覧
+ * @param {number} issue
+ * @param {object} entry { round, questions }
+ * @param {object[]} records {@link planMonitorAnswer} の records
+ * @returns {Array<{q:string, body:string, action:'post'|'patch'|'skip', keepId:*, deleteIds:Array<*>}>}
+ */
+function planMonitorAnswerComments(comments, issue, entry, records) {
+    const byId = new Map((entry.questions || []).map((q) => [q.id, q]));
+    return (records || []).filter((r) => byId.has(r.q)).map((r) => {
+        const body = renderMonitorAnswerComment(issue, entry.round, byId.get(r.q), r);
+        const plan = stickyUpsertPlan(selectMarkedComments(comments, [monitorAnswerMarker(issue, entry.round, r.q)]), body);
+        return { q: r.q, body, ...plan };
+    });
+}
+
+/**
+ * 次に worker を起こすときに渡す答え（AUTOPILOT_ANSWERS_FILE の中身・純粋関数）。
+ * 質問 ID・選んだ選択肢・メモを書く。worker が読む前提のローカルのファイルなので、メモは切り詰めない。
+ * @param {number} issue
+ * @param {object} entry { round, phase, questions, records }
+ * @returns {string}
+ */
+function renderMonitorAnswersForPrompt(issue, entry) {
+    const byId = new Map((entry.questions || []).map((q) => [q.id, q]));
+    const lines = [
+        `<!-- autopilot-monitor-answers issue=${issue} round=${entry.round} -->`,
+        `# 人間の答え（#${issue}・${entry.phase || '-'} の質問・round ${entry.round}）`,
+        '',
+        '人間がモニターの「答えて先へ進める」で答えました（Issue にも同じ答えのコメントがあります）。',
+        'この答えに従って続けてください。もう一度同じことを質問しないでください。',
+    ];
+    for (const r of entry.records || []) {
+        const q = byId.get(r.q) || { text: '' };
+        lines.push('', `## ${r.q}. ${q.text}`);
+        lines.push(r.key === null ? '- 選んだもの: （選択肢からは選ばず、メモで答えた）' : `- 選んだもの: \`${r.key}\` ${r.label || ''}`);
+        if (r.note) lines.push(`- メモ: ${r.note.replace(/\n/g, '\n  ')}`);
+    }
+    return `${lines.join('\n')}\n`;
+}
+
+/**
+ * モニター（GET /board・/status）に出す「各 Issue の質問」（純粋関数）。答え待ち（open）と、
+ * 答えたがまだ worker を起こしていないもの（answered）を出す。古い順。
+ * @param {object} entries issue 番号 → 質問の置き場の 1 件
+ * @returns {object[]}
+ */
+function monitorQuestionsView(entries) {
+    return Object.values(entries || {}).filter((e) => e && Array.isArray(e.questions)).map((e) => {
+        const answers = e.status === 'answered' ? (e.records || []) : Object.entries(e.drafts || {}).map(([q, d]) => ({ q, ...d }));
+        return {
+            issue: e.issue, phase: e.phase || null, round: e.round, reason: e.reason || null,
+            askedAt: e.askedAt || null, status: e.status || 'open', answeredAt: e.answeredAt || null,
+            questions: e.questions, answers,
+            answered: answers.length, total: e.questions.length,
+        };
+    }).sort((a, b) => toMs(a.askedAt) - toMs(b.askedAt));
+}
+
+/**
+ * モニターで外した 🙋 の覚え（issue 番号 → 外した時刻）を、新しい Project の一覧に合わせて減らす
+ * （純粋関数）。一覧で 🙋 が外れて見えている・一覧に無いものは、もう覚えておかなくてよい。
+ * @param {object} releases issue 番号 → ms
+ * @param {object[]} items listItems の結果
+ * @returns {object}
+ */
+function pruneMonitorReleases(releases, items) {
+    const byIssue = new Map((items || []).map((it) => [it.issue, it]));
+    const out = {};
+    for (const [k, at] of Object.entries(releases || {})) {
+        const it = byIssue.get(Number(k));
+        if (it && it.hitlLabel) out[k] = at;
+    }
+    return out;
+}
+
+/**
+ * phaseForItem に渡す ctx に「モニターで 🙋 を外した」を足す（純粋関数・{@link isGateReleased}）。
+ * @param {object} contexts issue 番号 → ctx
+ * @param {object} releases issue 番号 → ms
+ * @returns {object} 新しい contexts
+ */
+function withMonitorReleases(contexts, releases) {
+    const out = { ...(contexts || {}) };
+    for (const k of Object.keys(releases || {})) out[k] = { ...(out[k] || {}), monitorReleased: true };
+    return out;
+}
+
 module.exports = {
+    MAX_MONITOR_NOTE,
+    monitorQuestionsMarker,
+    monitorAnswerMarker,
+    findMonitorQuestionsComments,
+    renderMonitorQuestionsComment,
+    planMonitorQuestionsComment,
+    normalizeMonitorAnswerBody,
+    planMonitorAnswer,
+    renderMonitorAnswerComment,
+    planMonitorAnswerComments,
+    renderMonitorAnswersForPrompt,
+    monitorQuestionsView,
+    pruneMonitorReleases,
+    withMonitorReleases,
     PHASE_BY_COMMAND,
     PHASE_BY_AI_STATUS,
     IN_FLIGHT_WORK_PHASE_BY_AI_STATUS,

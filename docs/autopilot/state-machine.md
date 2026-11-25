@@ -37,7 +37,7 @@ item の状態は次の 4 要素で決まる（Project が単一の真実）:
 |---|---|
 | **A: autopilot フェーズ** | daemon が `phaseForItem` で決めて worker を dispatch（triage / discuss / decompose / implement / review / address-review） |
 | **D: daemon tick ステップ** | merge-progression / closed-reconcile / **stalled 復帰（worker 不在の in-flight 再開・#995）** / stuck 検知 / DoD 引き継ぎ / EPIC tracking / PR 投影 |
-| **H: 人間の操作** | Status 移動 / `🙋 HITL` ラベル解除 / **コメント・レビュー送信** / PR merge / Issue close |
+| **H: 人間の操作** | Status 移動 / `🙋 HITL` ラベル解除 / **モニターの「答えて先へ進める」**（daemon が答えを記録して 🙋 を外す） / **コメント・レビュー送信** / PR merge / Issue close |
 
 > **merge-progression は PR 後の非終端 leaf を見る**（`MERGE_CHECK_STATUSES` = In Progress / Blocked /
 > Review / DoD・`selectMergeCandidates`）。merge は HITL と独立した前進シグナルなので、🙋 付きの
@@ -102,6 +102,22 @@ Review / DoD / Blocked / Discussing などの「人間の番」は、**Issue / P
 ラベルで開くので、同じ解除で何度も dispatch されることも無い（worker が終わると daemon が 🙋 を
 付け直す）。発言や処理済みレビューの時刻を覚えておく watermark は要らない。
 
+### モニターの「答えて先へ進める」も 🙋 を外す合図
+
+worker が `signal=hitl` の結果に `questions`（選択肢と推奨）を書くと、モニターで選んで答えられる。
+**「答えて先へ進める」**（人間の明示操作）を押したときだけ、daemon が答えを Issue にマーカー付きで書き、
+Issue / PR の 🙋 を外す。人間が 🙋 を外したのと同じ意味なので、上の「ラベルだけ」の考えは変わらない。
+**「メモだけ保存」やコメントでは開かない。**
+
+- daemon は外した Issue を覚え（`state.monitorReleases`）、`phaseForItem` に `ctx.monitorReleased` を渡す
+  （`withMonitorReleases`）。`isGateReleased` はこれでも開く。Project の一覧の読み直しが遅れて
+  `hitlLabel` が残って見えても、すぐ先へ進めるため。
+- steady-state の面の同期（PR 投影）は、覚えている Issue の 🙋 を古い item から付け直さない
+  （`hitlLabelAction` の `monitorReleased`。人間が外した 🙋 を付け直さない force 分岐と同じ考え）。
+  worker の結果を受けた同期（force）は、これまでどおり付ける。
+- 覚えは、その Issue の worker を起こすとき（答えを渡すとき）と、一覧で 🙋 が外れて見えたときに消す
+  （`pruneMonitorReleases`）。daemon を起動し直すと消えるが、そのときは一覧の 🙋 が外れているので同じ。
+
 ## 状態遷移表
 
 「出口」列が空の状態は存在してはならない（テストが担保）。
@@ -143,7 +159,8 @@ Review / DoD / Blocked / Discussing などの「人間の番」は、**Issue / P
   「どのトリガーでも遷移できない状態」はテスト失敗になる。
 - **I2（ラベルでだけ開く）**: autopilot が item を置く人間ゲート（Review / DoD / Blocked / Discussing など）は、
   Issue / PR いずれかの 🙋 を外すと**必ず解除**され、🙋 が残っている間は人間のコメントや
-  Request changes では**解除されない**（人間が気軽にコメントできるように）。
+  Request changes では**解除されない**（人間が気軽にコメントできるように）。モニターの
+  「答えて先へ進める」（daemon が 🙋 を外す・`ctx.monitorReleased`）でも必ず解除される。
 - **I3（解除後の遷移先保証）**: ゲート解除後の `phaseForItem` は必ず非 null（解除したのに何も
   起きない、を許さない）。Blocked も PR の有無に応じて address-review / triage に必ず落ちる。
 - **I4（提案で退避系へ動かさない）**: hitl 提案（signal=hitl）で Status を Icebox / Close へ

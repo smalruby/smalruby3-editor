@@ -472,6 +472,27 @@ async function applyUpsertPlan(repo, number, plan, body, token) {
 }
 
 /**
+ * 1 つの Issue のコメントを 1 回だけ読み、渡された計画関数の結果（{body, action, keepId, deleteIds} の
+ * 配列）を書く。モニターで答えたときの質問ごとの答えのコメントのように、同じ Issue に複数の
+ * マーカー付きコメントを書くとき、質問の数だけコメント一覧を読み直さないため。
+ * 計画（何を書く・書かない）は呼ぶ側が phases.js の純粋関数で作る（ここは書くだけ）。
+ * @param {string} repo `owner/name`
+ * @param {number} number Issue 番号
+ * @param {function} planFn (comments) => Array<{body, action, keepId, deleteIds}>
+ * @param {string} token 書き込み（Bot）
+ * @param {object} [deps] { readToken, listIssueComments, applyUpsertPlan }（テスト用）
+ * @returns {Promise<Array<{action:string}>>} 実行した計画
+ */
+async function applyCommentPlans(repo, number, planFn, token, deps = {}) {
+    const list = deps.listIssueComments || listIssueComments;
+    const apply = deps.applyUpsertPlan || applyUpsertPlan;
+    const comments = await list(repo, number, deps.readToken || token);
+    const plans = planFn(comments) || [];
+    for (const p of plans) await apply(repo, number, p, p.body, token);
+    return plans;
+}
+
+/**
  * Issue にプレーンなコメントを投稿する（bot 名義）。
  * daemon が run 失敗で Blocked にするとき「何が起きたか・人間は何をすべきか」を残すのに使う
  * （#816。コメント無しで 🙋 だけ付くと人間が状況を把握できない）。
@@ -776,6 +797,7 @@ module.exports = {
     botLogin, findPrForIssue, selectClosingPr, selectHeadPr, hasMergedHeadPr,
     getGateContext, hasMergedPullRequest, REPO_ROOT,
     getPrInfo, getIssueLabels, getIssueBody, editLabels, setPrDraft, upsertStickyComment, upsertMarkedComment,
+    applyUpsertPlan, applyCommentPlans,
     listIssueComments,
     postIssueComment, listClosedIssueNumbers, getIssueStates, getIssueMeta, closeIssue,
     getBoardEnrichment, listHeadPrs, getRateLimit,

@@ -300,6 +300,28 @@ HITL は「人間の番」を表す。状態は **`🙋 HITL` ラベル**が唯�
 > merge + daemon 再起動して初めてラベル主体に切り替わる。既存の HITL フィールド値が残っていても
 > daemon はラベルだけを見るので実害はない（Project の HITL 単一選択フィールドは将来削除可）。
 
+### モニターで答える（質問・選択肢・推奨）
+
+worker が人間に選んでほしいことがあるとき、`signal=hitl` の結果に `questions`（選択肢・一行の説明・AI の推奨）を書く
+（形は `autonomous-contract.md` §2.3）。daemon は:
+
+1. 質問を Issue にマーカー付きで書く（`<!-- autopilot-monitor-questions issue=N round=R -->`。同じ質問なら書き直さない。
+   新しい質問なら round を 1 つ進める）。worker の文字列は `sanitizeForSurface` を通す。
+2. 質問をローカルの置き場（`~/.config/autopilot/monitor-answers.json`。`AUTOPILOT_STATE_DIR` で変更可）に置き、
+   `GET /board`・`GET /status` の `monitorQuestions` に載せる（`answered / total` と、答えた内容・時刻）。
+3. 人間がモニターで答える（`POST /answer`）:
+   - **メモだけ保存**（`proceed:false`）: 置き場に置くだけ。GitHub に書かない・🙋 も外さない。
+   - **答えて先へ進める**（`proceed:true`）: 質問ごとに答えを Issue に書き（`<!-- autopilot-monitor-answer issue=N round=R q=<id> -->`。
+     同じ答えは書き直さない）、Issue / PR の 🙋 を外し、すぐ 1 tick 回す。ゲートは `state-machine.md` の
+     「モニターの『答えて先へ進める』も 🙋 を外す合図」のとおり開く。
+4. 次にその Issue の worker を起こすとき、答え（質問 ID・選んだ選択肢・メモ）を worktree の
+   `tmp/autopilot-answers-<issue>.md` に書き、`AUTOPILOT_ANSWERS_FILE` と起動の指示で渡す。worker を起こすと
+   置き場からは消える（答えていない質問も、worker を起こし直した時点で古くなるので消す）。
+
+判断と本文の組み立ては `phases.js`（`planMonitorQuestionsComment` / `planMonitorAnswer` / `planMonitorAnswerComments` /
+`renderMonitorAnswersForPrompt` ほか）、置き場と受け口と GitHub のつなぎは `monitor-answers.js`、書き込みは `project.js`
+（`applyCommentPlans`）。モニターの画面はまだ無い（受け口だけ）。
+
 ---
 
 ## merge は独立した「前進シグナル」
@@ -1229,12 +1251,13 @@ HTTP API（curl からも操作可能）:
 | メソッド・パス | 用途 |
 |---|---|
 | `GET /` | Web モニタ（俯瞰ボード HTML） |
-| `GET /board` | 俯瞰ボードデータ（items + running + history + auth 状態 + `claudeUsage` + `usagePause` / `usageOverrides` + `version` + `autopilotUpdate` + `epicGroups` + `currentStatus` + 並列の計画 `schedule` / `schedulerLimits` / `schedulerOverrides`）を JSON で返す。items は `priority`（自分の値）と `effectivePriority`（`{priority, source: own\|inherited\|default, from}`）を持つ |
+| `GET /board` | 俯瞰ボードデータ（items + running + history + auth 状態 + `claudeUsage` + `usagePause` / `usageOverrides` + `version` + `autopilotUpdate` + `epicGroups` + `currentStatus` + `monitorQuestions`（モニターで答える質問）+ 並列の計画 `schedule` / `schedulerLimits` / `schedulerOverrides`）を JSON で返す。items は `priority`（自分の値）と `effectivePriority`（`{priority, source: own\|inherited\|default, from}`）を持つ |
 | `GET /status.json` | 現在地の材料（`buildStatusMaterial`）: `groups`（EPIC ごと）・`priorities`（優先している順）・`running`・`waitingHuman`・`nextInterview`・`pendingDecisionsTotal`・`blocked`・`recentHistory`・`currentStatus` |
-| `GET /status` | `{paused, pausedBy, authError, reauthHint, reauth, booting, assignee, concurrency, claudeUsage, usagePause, usageOverrides, version, autopilotUpdate, running:[{issue,phase}]}`。`pausedBy` は `human` / `auth` / `usage`。`usagePause` は判定結果（`pause, window, percent, threshold, resetsAt, thresholds, forced[]`） |
+| `GET /status` | `{paused, pausedBy, authError, reauthHint, reauth, booting, assignee, concurrency, claudeUsage, usagePause, usageOverrides, version, autopilotUpdate, running:[{issue,phase}], monitorQuestions}`。`pausedBy` は `human` / `auth` / `usage`。`usagePause` は判定結果（`pause, window, percent, threshold, resetsAt, thresholds, forced[]`） |
 | `GET /log?issue=<n>` | 実行中 item の画面（herdr / tmux の pane。人間観測用） |
 | `GET /blocked` | 止まっている（人間の答えを待つ）worker の一覧（画面・理由・選択肢）と、答えの履歴 |
 | `POST /blocked/answer` | body `{issue, keys:["1"]}` か `{issue, text:"..."}`。止まっている worker に人間の答えを送る（キーは `1`〜`9` / `enter` / `esc` / `up` / `down` など決まったものだけ） |
+| `POST /answer` | body `{issue, answers:[{q, key, note?}], proceed: boolean}`。モニターで質問に答える（「モニターで答える」の節）。`proceed:false` はメモだけ保存（daemon のローカル）、`proceed:true` は答えを Issue に記録して 🙋 を外す（全部の質問に答えが要る。足りなければ 400、worker が実行中なら 409） |
 | `POST /tick` | interval を待たず 1 サイクル即実行。`{ran, paused, picked:[...], running:[...]}` を返す。実行中は `409 {busy:true}`、pause 中は `{ran:true, paused:true, picked:[]}` の no-op |
 | `POST /pause` | 新規ディスパッチを止める（実行中はそのまま） |
 | `POST /resume` | ポーリング再開（usage の auto-pause 中は `409 {forceResumeRequired:true}`） |
@@ -1320,6 +1343,7 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 | `tools/autopilot/src/blocked-handler.js` | 1 worker の blocked の扱い（答える・一時停止・待った時間） |
 | `tools/autopilot/src/blocked-hub.js` | 止まっている worker の置き場と `/blocked` の HTTP |
 | `tools/autopilot/src/blocked-panel.js` | モニターの「止まっている worker」の欄 |
+| `tools/autopilot/src/monitor-answers.js` | モニターで答える質問の置き場・`POST /answer` の受け口・Issue への記録と 🙋 の解除・worker への受け渡し |
 | `tools/autopilot/src/daemon.js` | 常駐 daemon（ポーリング・ディスパッチ・HTTP 制御・認証ヘルスチェック・俯瞰ボード） |
 | `tools/autopilot/src/monitor.js` | Web モニタ（俯瞰ボード・自己完結 HTML） |
 | `tools/autopilot/src/epic-summary.js` | EPIC ごとのまとめ・次の確認の見込み・現在地の材料・モニタの EPIC 欄の HTML（純粋） |
