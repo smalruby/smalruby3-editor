@@ -695,6 +695,8 @@ test/unit/containers/*
 # Level 3: test/unit/lib/*
 test/unit/lib/*
 # Smalruby-only directories
+!test/unit/lib/classroom-evaluation/
+!test/unit/lib/classroom-evaluation/**
 !test/unit/lib/dncl/
 !test/unit/lib/lessons/
 !test/unit/lib/lessons/**
