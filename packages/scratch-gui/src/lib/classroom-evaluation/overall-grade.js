@@ -10,8 +10,8 @@
  * Pure module: no I/O.
  */
 
-const DEFAULT_POINTS = { S: 3, A: 2, B: 1, C: 0, none: 0 };
-const DEFAULT_CUTS = { S: 2.5, A: 1.5, B: 0.5 };
+const DEFAULT_POINTS = { S: 4, A: 3, B: 2, C: 1, none: 0 };
+const DEFAULT_CUTS = { S: 3.5, A: 2.5, B: 1.5 };
 
 // Compare averages a little loosely: 2.4999999 from float sums is 2.5.
 const EPSILON = 1e-9;
