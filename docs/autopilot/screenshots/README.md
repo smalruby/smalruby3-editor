@@ -10,3 +10,4 @@ autopilot モニタ（`tools/autopilot/src/monitor.js` の Web UI）の動作イ
 | `monitor-update-modal.png` | 更新バッジ押下で開く更新手順モーダル。`update autopilot` 指示のコピー、手動更新手順、`tools/autopilot` の差分コミット一覧（#885） |
 | `monitor-d-wide-light.png` / `monitor-d-wide-dark.png` | 並べ方 D「あなた宛て＋表」（1440×900）。左に答えが要る質問・学び・人間待ち、右に EPIC ごとの状況板（#2404） |
 | `monitor-d-phone.png` | 幅 400px のとき。欄をタブに切りかえる（#2404） |
+| `monitor-heading-icon.png` | 上の行の見出しのアイコン（虹色の ∞ + A・ダーク・3 倍に拡大）（#2413） |

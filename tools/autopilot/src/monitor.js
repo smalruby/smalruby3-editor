@@ -27,6 +27,8 @@ const {
 const { LEARN_TASKS_CSS, LEARN_TASKS_HTML, LEARN_TASKS_SCRIPT } = require('./monitor-learn-tasks');
 // D「あなた宛て＋表」の判断（#2404）
 const { INBOX_CLIENT_FNS } = require('./monitor-inbox');
+// 虹色の ∞ + A のアイコン（#2413）。assets/make-icon.py が作る PNG の data URI（自己完結のまま埋める）
+const { ICON_FAVICON_64, ICON_HEADING_40 } = require('./icon-data');
 
 // ブラウザへ埋め込むクライアント共有の純粋関数（自己完結。later.test.js / spike.test.js / monitor-inbox.test.js で単独評価を担保）
 const SHARED_CLIENT_FNS = [
@@ -55,7 +57,7 @@ const MONITOR_HTML = `<!doctype html>
 ${TOKEN_META_EMPTY}
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>autopilot monitor</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='47' fill='%237a1620' stroke='%23b3202f' stroke-width='5'/><path d='M50 27 L69 47 L50 73 L31 47 Z' fill='%23eaf7ff'/><path d='M31 47 L50 27 L50 50 Z' fill='%23bfeaff'/><path d='M69 47 L50 27 L50 50 Z' fill='%238fd8ff'/></svg>">
+<link rel="icon" type="image/png" href="${ICON_FAVICON_64}">
 <style>
   /* ---- トークン（docs/autopilot/design-system.md が正。値は同意したモックアップの D から） ----
      色の意味は 6 つだけ（ai / human / done / idle / stop / notice）。細かい名前のトークンは
@@ -208,6 +210,7 @@ ${TOKEN_META_EMPTY}
   /* ---- 上の 1 行 ---- */
   .topline { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 6px 12px; }
   .topline h1 { margin: 0; font-size: var(--ap-font-md); font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
+  .topline h1 .logo { display: block; flex: none; }
   .topline .k { color: var(--ap-muted); }
   .topline .sep { color: var(--ap-line); }
   .tl-right { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-left: auto; }
@@ -488,15 +491,7 @@ ${LEARN_TASKS_CSS}</style></head><body>
 </defs></svg>
 <div class="app">
 <header class="panel topline" id="topline">
-  <h1><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120' width='20' height='20'>
-      <circle cx='60' cy='60' r='55' fill='#7a1620' stroke='#b3202f' stroke-width='5'/>
-      <g fill='none' stroke='#8fd8ff' stroke-width='4.5' stroke-linecap='round'>
-        <path d='M58 58 C74 38 86 34 98 34'/><path d='M60 60 H98'/><path d='M58 62 C74 82 86 86 98 86'/>
-      </g>
-      <path d='M38 60 L54 44 L70 60 L54 76 Z' fill='#eaf7ff'/>
-      <path d='M38 60 L54 44 L54 60 Z' fill='#bfeaff'/>
-      <path d='M70 60 L54 44 L54 60 Z' fill='#8fd8ff'/>
-    </svg>autopilot</h1>
+  <h1><img class="logo" src="${ICON_HEADING_40}" width="20" height="20" alt="">autopilot</h1>
   <span id="state" class="st c-idle" data-testid="monitor-state"><span class="dot ring"></span><b>…</b></span><span id="statenote" class="k"></span>
   <span class="sep">·</span>
   <span class="svc" title="同時に動く worker の数（重い作業は別枠）" data-testid="monitor-workers"><svg class="i" viewBox="0 0 16 16" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1.5"/><path d="M5 14h6M8 11v3"/></g></svg><span class="svcname">worker</span><span id="workers">—</span></span>

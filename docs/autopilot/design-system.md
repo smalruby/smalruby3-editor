@@ -134,9 +134,21 @@
 - 人間の色の地に乗る文字（`--ap-on-solid`）は、ライトで白、ダークで濃い色（`#15121f`）にする。
 - `color-scheme` もライト / ダークに合わせる（フォームの部品とスクロールバーが地に合う）。
 
-## 10. ロゴ
+## 10. ロゴ（アイコン）
 
-- favicon・見出しのロゴの SVG は絵なので、色を直書きのままにしてよい（トークンにしない）。
+![見出しのアイコン（ダーク）](./screenshots/monitor-heading-icon.png)
+
+- **表すもの**: 深い紺の角丸の四角に、虹色の ∞ と「A」ときらめき。虹色は AI（「AI に任せる」と同じ虹）、
+  ∞ の右側の回る矢印は、autopilot が Issue を自動で回し続けるループを表す。「A」は autopilot の頭文字。
+- **使うところ**: モニターの favicon（64px）と、上の行の見出し `autopilot` の前（20px で表示。2 倍の 40px の画像）。
+  ほかの画面に見出しを足すときも同じアイコンを使う。
+- **規則**: 小さく出すときは、ブラウザに縮めさせず、表示する大きさの 2 倍に縮めた画像を使う（∞ と A がつぶれないように）。
+  モニターは自己完結の HTML なので、PNG を data URI で埋める（外部のファイルを参照しない）。
+  HTML が重くならないよう、埋めるのは favicon と見出しの 2 つだけ（apple-touch-icon の 180px は 70KB を超えるので入れない）。
+- **置き場所と作り方**: 元の大きさ（512px・角の外は透明）は `tools/autopilot/assets/autopilot-icon-512.png`。
+  data URI は `python3 tools/autopilot/assets/make-icon.py datauri` で `tools/autopilot/src/icon-data.js` に作る（手で直さない）。
+  512px の画像は、人間が Gemini で作った案の画像から `make-icon.py crop <元の画像>` で切り出した（元の画像は repo に入れない）。
+- アイコンは絵なので、色をトークンにしない（ライト・ダークで同じ画像）。
 
 ---
 
