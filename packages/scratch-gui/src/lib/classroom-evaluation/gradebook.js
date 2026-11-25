@@ -17,6 +17,9 @@
 const GRADES = ['S', 'A', 'B', 'C'];
 
 const isGrade = (value) => GRADES.includes(value);
+// The longest reason / group name the server saves (PUT /grading, #2422).
+const MAX_REASON = 300;
+const MAX_GROUP = 80;
 
 const sortKeyOf = (assignment) => String((assignment && (assignment.sortDate || assignment.createdAt)) || '');
 
@@ -101,8 +104,8 @@ const columnStatus = (grading) => {
 /**
  * The `grades` to save from the grading table of one assignment. A cell the
  * teacher changed the grade of is the teacher's (`source: 'teacher'`); the others
- * are the AI's. What the screen does not know (`group`, set when the rubric was
- * made) is kept from the saved entry when the grade is the same.
+ * are the AI's. The まとまり (`group`) is the cell's group of works (`groupName`, from
+ * what was added to the starter); without one, the saved group is kept.
  * @param {object} matrix - `${seat}:${classroomId}` → cell
  * @param {string} classroomId - the assignment
  * @param {?object} [saved] - the saved `grading.grades`, to keep `group`
@@ -116,12 +119,14 @@ const gradesFromMatrix = (matrix, classroomId, saved = null) => {
         const seat = key.slice(0, key.length - suffix.length);
         const entry = {
             grade: cell.grade,
-            reason: cell.reason || '',
+            // The server takes up to 300 characters of reason and 80 of group (#2422).
+            reason: (cell.reason || '').slice(0, MAX_REASON),
             source: cell.gradeEdited ? 'teacher' : 'ai',
         };
         if (cell.needsReview) entry.needsReview = true;
         const before = saved ? saved[seat] : null;
-        if (before && 'group' in before && before.grade === cell.grade) entry.group = before.group;
+        if (cell.groupName) entry.group = cell.groupName.slice(0, MAX_GROUP);
+        else if (before && 'group' in before) entry.group = before.group;
         grades[seat] = entry;
     }
     return grades;

@@ -6769,3 +6769,22 @@ $seat-tile-min: 36px;
     text-align: left;
     vertical-align: top;
 }
+
+/* ［生徒］: スターターから足した台本と、まとまり。 */
+.eval-added-code {
+    margin: 0;
+    max-height: 9rem;
+    overflow: auto;
+    padding: 0.4rem 0.6rem;
+    border-radius: $radius-small;
+    background-color: $color-background;
+    color: $color-text;
+    font-size: $font-size-small;
+    line-height: 1.45;
+    white-space: pre;
+}
+
+.eval-group-name {
+    margin-left: 0.75rem;
+    font-weight: normal;
+}
