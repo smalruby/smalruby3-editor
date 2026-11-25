@@ -44,12 +44,10 @@ import styles from './classroom-modal.css';
 import LessonScoringField from './lesson-scoring-field.jsx';
 import { breadcrumbMessages } from './teacher-breadcrumbs.jsx';
 import TeacherEvaluationDetail, { detailMessages } from './teacher-evaluation-detail.jsx';
-import TeacherGradebook, {
-    GradebookSwitch,
-    TeacherOverallPlaceholder,
-    gradebookMessages,
-} from './teacher-gradebook.jsx';
+import TeacherGradebook, { GradebookSwitch, gradebookMessages } from './teacher-gradebook.jsx';
+import TeacherGradingRubric, { TeacherGradingGroupPrompt } from './teacher-grading-rubric.jsx';
 import TeacherLegacyImport from './teacher-legacy-import.jsx';
+import TeacherOverallGrade from './teacher-overall-grade.jsx';
 import { TeacherScreen } from './teacher-view-layout.jsx';
 
 const evalMessages = defineMessages({
@@ -732,6 +730,7 @@ const TeacherEvaluation = ({
     loaded: loadedProp = null,
     rubricAxes,
     rubricDone = false,
+    rubricTools = null,
     scoringChecked = false,
     scoringSavingId = null,
     seats,
@@ -1138,7 +1137,12 @@ const TeacherEvaluation = ({
                 </div>
                 {status}
                 {view === 'overall' ? (
-                    <TeacherOverallPlaceholder />
+                    <TeacherOverallGrade
+                        gradings={gradings}
+                        group={evalGroup}
+                        lessons={evalLessons}
+                        onOpenAssignment={onOpenAssignment || runAction}
+                    />
                 ) : (
                     <>
                         <TeacherGradebook
@@ -1168,28 +1172,39 @@ const TeacherEvaluation = ({
         const detailInfo = detailCell ? getCell(detailCell.seat, detailCell.classroomId) : null;
         const rubricPane = (
             <div className={styles.evalPaneBody} data-testid="classroom-eval-rubric-pane">
-                <div className={styles.evalPaneLabel}>{intl.formatMessage(assignmentMessages.description)}</div>
-                <p className={styles.evalDescription} data-testid="classroom-eval-description">
-                    {lesson.assignmentText || intl.formatMessage(assignmentMessages.noDescription)}
-                </p>
-                <div className={styles.evalPaneLabel}>{intl.formatMessage(assignmentMessages.rubricTitle)}</div>
-                {rubricLevels.length > 0 ? (
-                    <table className={styles.evalRubricTable} data-testid="classroom-eval-rubric-levels">
-                        <tbody>
-                            {rubricLevels.map((level) => (
-                                <tr key={level.grade}>
-                                    <th scope="row">
-                                        <span className={styles.evalGradePill}>{level.grade}</span>
-                                    </th>
-                                    <td>{level.text}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                {rubricTools ? (
+                    // The［基準］tab of #2425: description, representatives, fairness, rubric.
+                    <TeacherGradingRubric busy={busy} lesson={lesson} tools={rubricTools} onOpenWork={onOpenWork} />
                 ) : (
-                    <p className={styles.evalSettingsNote} data-testid="classroom-eval-no-rubric">
-                        {intl.formatMessage(assignmentMessages.noRubric)}
-                    </p>
+                    <>
+                        <div className={styles.evalPaneLabel}>
+                            {intl.formatMessage(assignmentMessages.description)}
+                        </div>
+                        <p className={styles.evalDescription} data-testid="classroom-eval-description">
+                            {lesson.assignmentText || intl.formatMessage(assignmentMessages.noDescription)}
+                        </p>
+                        <div className={styles.evalPaneLabel}>
+                            {intl.formatMessage(assignmentMessages.rubricTitle)}
+                        </div>
+                        {rubricLevels.length > 0 ? (
+                            <table className={styles.evalRubricTable} data-testid="classroom-eval-rubric-levels">
+                                <tbody>
+                                    {rubricLevels.map((level) => (
+                                        <tr key={level.grade}>
+                                            <th scope="row">
+                                                <span className={styles.evalGradePill}>{level.grade}</span>
+                                            </th>
+                                            <td>{level.text}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        ) : (
+                            <p className={styles.evalSettingsNote} data-testid="classroom-eval-no-rubric">
+                                {intl.formatMessage(assignmentMessages.noRubric)}
+                            </p>
+                        )}
+                    </>
                 )}
                 {/* 採点の観点・厳しさ（基準が無いときに AI が使う）。あまり変えないので 1 行に畳む（R3）。 */}
                 <div className={styles.evalSection} data-testid="classroom-eval-settings-summary">
@@ -1310,6 +1325,13 @@ const TeacherEvaluation = ({
         const added = detailInfo && detailInfo.submitted ? detailInfo.added : null;
         const studentPane = loaded ? (
             <>
+                {rubricTools && (
+                    <TeacherGradingGroupPrompt
+                        prompt={rubricTools.groupPrompt}
+                        onApply={rubricTools.handleApplyGroupChange}
+                        onDismiss={rubricTools.handleDismissGroupChange}
+                    />
+                )}
                 <TeacherEvaluationDetail
                     cell={detailInfo && detailInfo.submitted ? detailInfo : null}
                     classroomId={detailCell ? detailCell.classroomId : null}
@@ -1561,6 +1583,8 @@ TeacherEvaluation.propTypes = {
     rubricAxes: PropTypes.arrayOf(PropTypes.object).isRequired,
     /** The rubric step is done (there is a rubric, or the teacher looked at it). */
     rubricDone: PropTypes.bool,
+    /** The［基準］tab's state and handlers (useGradingRubric, #2425). */
+    rubricTools: PropTypes.object,
     scoringChecked: PropTypes.bool,
     scoringSavingId: PropTypes.string,
     /** The seats of the open assignment. */
