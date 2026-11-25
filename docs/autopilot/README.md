@@ -882,7 +882,7 @@ daemon はモジュールを**起動時にロード**するので「動いてい
 - **更新ありの表示 + 更新手順**: 更新ありのときフッターに **`⬆️ 更新あり（N 件）`** バッジを表示。
   押すと**更新手順モーダル**（テキスト表示のみ・実行はしない）を出す:
   - 主導線: Claude の autopilot セッションで **`update autopilot`** と指示（コピー用ボタンつき）
-  - 手動手順: `curl -X POST localhost:8787/shutdown` → `/app` で `git pull` →
+  - 手動手順: `curl -X POST -H "X-Autopilot-Token: $(cat /tmp/autopilot-http-token-8787)" localhost:8787/shutdown` → `/app` で `git pull` →
     `bash tmp/autopilot_up.sh` で再起動
   - `tools/autopilot` の差分コミット一覧（短 SHA + 件名）も表示
 - 実装: 判定は `tools/autopilot/src/version.js`（`readVersion` / `checkAutopilotUpdate` —
@@ -1224,7 +1224,35 @@ Addressing Comments / Running DoD）なのに worker が生存していない it
 即実行する（レビュー直後など「今すぐ次を処理させたい」とき用）。実行中は再入防止で `409 busy`、
 pause 中は no-op（`paused:true` で返る）。
 
-HTTP API（curl からも操作可能）:
+#### 書き込みの守り（127.0.0.1・合言葉・Origin / Host）
+
+daemon の HTTP は、ほかのサイトや別のマシンから状態を変えられないように、次の 3 つで守る
+（判断は `tools/autopilot/src/http-guard.js` の純粋関数。ルーティングの手前の 1 か所でかけるので、
+あとから足す POST にも自動でかかる）。
+
+- **127.0.0.1 だけで待つ**。devpod のポート転送（`forwardPorts`）はコンテナの中の localhost へつなぐので、
+  ホストのブラウザからは今までどおり `http://localhost:8787/` で開ける。待ち受けのアドレスは env
+  `AUTOPILOT_HTTP_HOST` で変えられる（例: `0.0.0.0`。変えるときは守りの残り 2 つが効いていることを確かめる）。
+- **合言葉（トークン）**: daemon は起動ごとに 32 バイトの乱数の合言葉を作り、モニターの HTML
+  （`GET /`）に埋めて配る（`cache-control: no-store`）。状態を変える要求（**GET / HEAD 以外の全部**）は
+  ヘッダ `X-Autopilot-Token` の値を時間一定の比較（`crypto.timingSafeEqual`）で確かめ、無い・違うと `403`。
+  モニターの JS は `fetch` を 1 か所で包んで自動で付ける。合言葉はログ・GitHub には出さない。
+- **Origin / Host**: `Host` が `localhost` / `127.0.0.1` / `[::1]` と待っているポートでなければ、GET も含めて
+  `403`（DNS rebinding 対策）。`Origin` が付いていれば同じく自分自身（`http://`）だけを許す（CSRF 対策）。
+  `Origin` の無い要求（curl など）は合言葉で守る。ポート転送が別のポート（例: 8788）に振られて開けないときは、
+  env `AUTOPILOT_HTTP_ALLOWED_HOSTS=localhost:8788`（カンマ区切り）で足す。
+
+**CLI（curl）からの書き込み**: 合言葉は daemon が `<os.tmpdir()>/autopilot-http-token-<port>`
+（コンテナでは `/tmp/autopilot-http-token-8787`）に **0600** で書き、止まるときに消す。curl はここから読んで付ける:
+
+```bash
+TOKEN_HEADER="X-Autopilot-Token: $(cat /tmp/autopilot-http-token-8787)"
+curl -X POST -H "$TOKEN_HEADER" localhost:8787/tick | jq
+```
+
+読み取り（`GET /status` / `/board` / `/log` など）には合言葉は要らない。
+
+HTTP API（curl からも操作可能。POST は上の合言葉のヘッダを付ける）:
 
 | メソッド・パス | 用途 |
 |---|---|
@@ -1251,18 +1279,19 @@ HTTP API（curl からも操作可能）:
 | `POST /shutdown` | daemon プロセスを安全停止 |
 
 ```bash
-curl -s localhost:8787/status | jq          # 状態確認
-curl -X POST localhost:8787/tick | jq        # 今すぐ 1 tick 実行
-curl -X POST localhost:8787/pause            # 一時停止
-curl -X POST localhost:8787/resume           # 再開
-curl -X POST 'localhost:8787/stop?issue=123' # #123 を force-stop
+TOKEN_HEADER="X-Autopilot-Token: $(cat /tmp/autopilot-http-token-8787)"
+curl -s localhost:8787/status | jq                            # 状態確認（合言葉は要らない）
+curl -X POST -H "$TOKEN_HEADER" localhost:8787/tick | jq        # 今すぐ 1 tick 実行
+curl -X POST -H "$TOKEN_HEADER" localhost:8787/pause            # 一時停止
+curl -X POST -H "$TOKEN_HEADER" localhost:8787/resume           # 再開
+curl -X POST -H "$TOKEN_HEADER" 'localhost:8787/stop?issue=123' # #123 を force-stop
 ```
 
 #### 停止
 
 ```bash
-# 安全停止（推奨）: HTTP で止める
-curl -X POST localhost:8787/shutdown
+# 安全停止（推奨）: HTTP で止める（合言葉のヘッダが要る）
+curl -X POST -H "X-Autopilot-Token: $(cat /tmp/autopilot-http-token-8787)" localhost:8787/shutdown
 
 # または PID ファイル経由（pkill -f は daemon 自身を巻き込むため使わない）
 kill "$(cat /tmp/autopilot-daemon.pid)"
@@ -1319,6 +1348,7 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 | `tools/autopilot/src/blocked.js` | blocked の画面の判定・AI の判定の読み取り・人間の答えの確認（純粋） |
 | `tools/autopilot/src/blocked-handler.js` | 1 worker の blocked の扱い（答える・一時停止・待った時間） |
 | `tools/autopilot/src/blocked-hub.js` | 止まっている worker の置き場と `/blocked` の HTTP |
+| `tools/autopilot/src/http-guard.js` | HTTP の受け付けの守りの判断（Host / Origin の許可・合言葉の時間一定の照合。純粋関数） |
 | `tools/autopilot/src/blocked-panel.js` | モニターの「止まっている worker」の欄 |
 | `tools/autopilot/src/daemon.js` | 常駐 daemon（ポーリング・ディスパッチ・HTTP 制御・認証ヘルスチェック・俯瞰ボード） |
 | `tools/autopilot/src/monitor.js` | Web モニタ（俯瞰ボード・自己完結 HTML） |

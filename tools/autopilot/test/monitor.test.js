@@ -416,3 +416,18 @@ test('MONITOR_HTML: 起動待ちは「SSO ログインが必要」と出し、�
     // 起動待ちの間は daemon が断る操作のボタンを止める
     assert.match(MONITOR_HTML, /b\.disabled = !!d\.booting/);
 });
+
+test('monitorHtmlWithToken: 合言葉を meta に埋め、書き込みの fetch にヘッダを付ける（EPIC #2384 U3）', () => {
+    const { monitorHtmlWithToken } = require('../src/monitor');
+    // 素の HTML の meta は空（合言葉はリポジトリに持たない）
+    assert.match(MONITOR_HTML, /<meta name="autopilot-token" content="">/);
+    const html = monitorHtmlWithToken('f'.repeat(64));
+    assert.ok(html.includes(`<meta name="autopilot-token" content="${'f'.repeat(64)}">`));
+    assert.ok(!html.includes('<meta name="autopilot-token" content="">'));
+    // fetch の包みは script の先頭（どの fetch の呼び出しよりも前）に置く
+    const script = html.slice(html.indexOf('<script>'));
+    assert.ok(script.indexOf('X-Autopilot-Token') >= 0);
+    assert.ok(script.indexOf('X-Autopilot-Token') < script.indexOf("fetch('/"));
+    // 合言葉に HTML を壊す文字は通さない
+    assert.throws(() => monitorHtmlWithToken('"><script>'), /token/);
+});

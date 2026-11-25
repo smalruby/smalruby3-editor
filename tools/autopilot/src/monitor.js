@@ -43,8 +43,12 @@ const SHARED_CLIENT_FNS = [
 ]
     .map(String).join('\n');
 
+/** 合言葉の入れ物（素の HTML は空。daemon が配信するときに monitorHtmlWithToken で埋める） */
+const TOKEN_META_EMPTY = '<meta name="autopilot-token" content="">';
+
 const MONITOR_HTML = `<!doctype html>
 <html lang="ja"><head><meta charset="utf-8">
+${TOKEN_META_EMPTY}
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>autopilot monitor</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='47' fill='%237a1620' stroke='%23b3202f' stroke-width='5'/><path d='M50 27 L69 47 L50 73 L31 47 Z' fill='%23eaf7ff'/><path d='M31 47 L50 27 L50 50 Z' fill='%23bfeaff'/><path d='M69 47 L50 27 L50 50 Z' fill='%238fd8ff'/></svg>">
@@ -328,6 +332,22 @@ ${LEARN_TASKS_CSS}</style></head><body>
   <pre id="mlog"></pre>
 </div></div>
 <script>
+// 書き込み（GET / HEAD 以外）の fetch に合言葉のヘッダを付ける（EPIC #2384 U3）。
+// どの欄の fetch も通るように、ほかのスクリプトより先に window.fetch を 1 か所で包む。
+(() => {
+  const meta = document.querySelector('meta[name="autopilot-token"]');
+  const token = meta ? meta.content : '';
+  const origFetch = window.fetch.bind(window);
+  window.fetch = (input, init) => {
+    const opts = init || {};
+    const method = String(opts.method || (input && input.method) || 'GET').toUpperCase();
+    const url = new URL(typeof input === 'string' ? input : (input && input.url) || '', location.href);
+    if (method === 'GET' || method === 'HEAD' || url.origin !== location.origin) return origFetch(input, init);
+    const headers = new Headers(opts.headers || {});
+    headers.set('X-Autopilot-Token', token);
+    return origFetch(input, { ...opts, headers });
+  };
+})();
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const repoUrl = 'https://github.com/smalruby/smalruby3-editor';
 const STATUS_COLORS = {
@@ -1114,4 +1134,15 @@ document.getElementById('epicgroups').addEventListener('click', async (ev) => {
 refresh(); setInterval(refresh, 5000);
 ${LEARN_TASKS_SCRIPT}</script></body></html>`;
 
-module.exports = { MONITOR_HTML };
+/**
+ * 合言葉を埋めたモニターの HTML（EPIC #2384 U3）。合言葉は daemon が起動ごとに作る 16 進の文字列で、
+ * HTML を壊す文字が来たら埋めずに例外にする（属性の外へ抜けさせない）。
+ * @param {string} token daemon の合言葉
+ * @returns {string} 配信する HTML
+ */
+function monitorHtmlWithToken(token) {
+    if (typeof token !== 'string' || !/^[A-Za-z0-9_-]+$/.test(token)) throw new Error('invalid monitor token');
+    return MONITOR_HTML.replace(TOKEN_META_EMPTY, `<meta name="autopilot-token" content="${token}">`);
+}
+
+module.exports = { MONITOR_HTML, monitorHtmlWithToken };

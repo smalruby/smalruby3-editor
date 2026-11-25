@@ -2019,10 +2019,11 @@ test('tick: 毎 tick で Claude 使用量を読み直す（pause 中でも・#10
 // ---- HTTP: usage をライブ読取（GET /board・POST /refresh・#1027） ----------
 
 /** テスト用: 起動済み server に対して method/path でリクエストし JSON を返す小ヘルパー */
-function httpRequestJson(port, method, pathname, payload) {
+const TEST_HTTP_TOKEN = 't'.repeat(64);
+function httpRequestJson(port, method, pathname, payload, headers = { 'x-autopilot-token': TEST_HTTP_TOKEN }) {
     const http = require('node:http');
     return new Promise((resolve, reject) => {
-        const req = http.request({ host: '127.0.0.1', port, method, path: pathname }, (res) => {
+        const req = http.request({ host: '127.0.0.1', port, method, path: pathname, headers }, (res) => {
             let data = '';
             res.on('data', (c) => { data += c; });
             res.on('end', () => {
@@ -2037,6 +2038,8 @@ function httpRequestJson(port, method, pathname, payload) {
 /** startHttp を port 0 で起動し listening を待つ */
 async function startTestHttp(cfg, state) {
     const { startHttp } = require('../src/daemon');
+    // 書き込みの守り（EPIC #2384 U3）: テストの要求は httpRequestJson が合言葉を付ける
+    if (cfg.httpToken === undefined) cfg.httpToken = TEST_HTTP_TOKEN;
     const server = startHttp(cfg, state, () => {});
     if (!server.listening) await new Promise((r) => server.once('listening', r));
     return { server, port: server.address().port };
@@ -2657,4 +2660,104 @@ test('bootProjectInfo: usage で pause していたら、回復しても usage �
     });
     assert.equal(state.paused, true);
     assert.equal(state.pausedBy, 'usage');
+});
+
+// ---- HTTP: 書き込みの受け付けの守り（127.0.0.1・合言葉・Origin / Host・EPIC #2384 U3） ----
+
+/** 生の HTTP 要求（ヘッダを自由に付ける）。本文はテキストで返す */
+function httpRaw(port, method, pathname, headers = {}) {
+    const http = require('node:http');
+    return new Promise((resolve, reject) => {
+        const req = http.request({ host: '127.0.0.1', port, method, path: pathname, headers }, (res) => {
+            let data = '';
+            res.on('data', (c) => { data += c; });
+            res.on('end', () => resolve({ status: res.statusCode, text: data, headers: res.headers }));
+        });
+        req.on('error', reject);
+        req.end();
+    });
+}
+
+test('startHttp: 合言葉の無い・違う POST は 403、合っていれば通る。別の Origin / Host は 403', async () => {
+    const cfg = { ...makeCfg(), port: 0, assignee: null, concurrency: 1 };
+    const state = { paused: false, pausedBy: null, running: new Map(), board: null };
+    const { server, port } = await startTestHttp(cfg, state);
+    try {
+        const none = await httpRaw(port, 'POST', '/pause');
+        assert.strictEqual(none.status, 403);
+        assert.strictEqual(state.paused, false);
+        const wrong = await httpRaw(port, 'POST', '/pause', { 'x-autopilot-token': 'x'.repeat(64) });
+        assert.strictEqual(wrong.status, 403);
+        // 合言葉はレスポンスに出さない
+        assert.ok(!wrong.text.includes(TEST_HTTP_TOKEN));
+        const cross = await httpRaw(port, 'POST', '/pause', {
+            'x-autopilot-token': TEST_HTTP_TOKEN, origin: 'http://evil.example',
+        });
+        assert.strictEqual(cross.status, 403);
+        const rebind = await httpRaw(port, 'GET', '/status', { host: `evil.example:${port}` });
+        assert.strictEqual(rebind.status, 403);
+        // ルーティングの手前で守るので、ほかのモジュールが受ける POST（/blocked/answer・/tasks）にもかかる
+        assert.strictEqual((await httpRaw(port, 'POST', '/blocked/answer')).status, 403);
+        assert.strictEqual((await httpRaw(port, 'POST', '/tasks')).status, 403);
+        const ok = await httpRaw(port, 'POST', '/pause', {
+            'x-autopilot-token': TEST_HTTP_TOKEN, origin: `http://localhost:${port}`,
+        });
+        assert.strictEqual(ok.status, 200);
+        assert.strictEqual(state.paused, true);
+        // GET は合言葉なしで読める
+        assert.strictEqual((await httpRaw(port, 'GET', '/status')).status, 200);
+    } finally {
+        await new Promise((r) => server.close(r));
+    }
+});
+
+test('startHttp GET /: モニターの HTML に合言葉を埋め、キャッシュさせない', async () => {
+    const cfg = { ...makeCfg(), port: 0, assignee: null, concurrency: 1 };
+    const state = { paused: false, running: new Map(), board: null };
+    const { server, port } = await startTestHttp(cfg, state);
+    try {
+        const r = await httpRaw(port, 'GET', '/');
+        assert.strictEqual(r.status, 200);
+        assert.ok(r.text.includes(`<meta name="autopilot-token" content="${TEST_HTTP_TOKEN}">`));
+        assert.strictEqual(r.headers['cache-control'], 'no-store');
+    } finally {
+        await new Promise((r) => server.close(r));
+    }
+});
+
+test('startHttp: 既定では 127.0.0.1 だけで待つ（cfg.httpHost で変えられる）', async () => {
+    const cfg = { ...makeCfg(), port: 0, assignee: null, concurrency: 1 };
+    const state = { paused: false, running: new Map(), board: null };
+    const { server } = await startTestHttp(cfg, state);
+    try {
+        assert.strictEqual(server.address().address, '127.0.0.1');
+    } finally {
+        await new Promise((r) => server.close(r));
+    }
+});
+
+test('startHttp: 合言葉が無い cfg でも起動時に作り、守りを外さない', async () => {
+    const cfg = { ...makeCfg(), port: 0, assignee: null, concurrency: 1, httpToken: null };
+    const state = { paused: false, running: new Map(), board: null };
+    const { server, port } = await startTestHttp(cfg, state);
+    try {
+        assert.match(cfg.httpToken, /^[0-9a-f]{64}$/);
+        assert.strictEqual((await httpRaw(port, 'POST', '/pause')).status, 403);
+    } finally {
+        await new Promise((r) => server.close(r));
+    }
+});
+
+test('writeHttpTokenFile: 0600 で書き、既にあっても 0600 に直す', () => {
+    const fs = require('node:fs');
+    const os = require('node:os');
+    const path = require('node:path');
+    const { writeHttpTokenFile, httpTokenFilePath } = require('../src/daemon');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daemon-http-token-'));
+    const file = httpTokenFilePath(18787, dir);
+    assert.strictEqual(file, path.join(dir, 'autopilot-http-token-18787'));
+    fs.writeFileSync(file, 'old', { mode: 0o644 });
+    writeHttpTokenFile(file, 'abc');
+    assert.strictEqual(fs.readFileSync(file, 'utf8'), 'abc\n');
+    assert.strictEqual(fs.statSync(file).mode & 0o777, 0o600);
 });
