@@ -379,6 +379,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         getCell={evaluation.getCell}
                         gradeSaveState={evaluation.gradeSaveState}
                         gradings={evaluation.gradings}
+                        onImportGrading={evaluation.handleImportGrading}
                         innerTab={evaluation.innerTab}
                         leaveRequest={evaluation.leaveRequest}
                         lessonScores={evaluation.lessonScores}

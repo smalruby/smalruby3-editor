@@ -46,6 +46,7 @@ import { breadcrumbMessages } from './teacher-breadcrumbs.jsx';
 import TeacherEvaluationDetail, { detailMessages } from './teacher-evaluation-detail.jsx';
 import TeacherGradebook, { GradebookSwitch, gradebookMessages } from './teacher-gradebook.jsx';
 import TeacherGradingRubric, { TeacherGradingGroupPrompt } from './teacher-grading-rubric.jsx';
+import TeacherLegacyImport from './teacher-legacy-import.jsx';
 import TeacherOverallGrade from './teacher-overall-grade.jsx';
 import { TeacherScreen } from './teacher-view-layout.jsx';
 
@@ -723,6 +724,7 @@ const TeacherEvaluation = ({
     getCell,
     gradeSaveState = null,
     gradings = EMPTY_GRADINGS,
+    onImportGrading,
     innerTab: innerTabProp = null,
     lessonScores = EMPTY_LESSON_SCORES,
     loaded: loadedProp = null,
@@ -1142,11 +1144,20 @@ const TeacherEvaluation = ({
                         onOpenAssignment={onOpenAssignment || runAction}
                     />
                 ) : (
-                    <TeacherGradebook
-                        gradings={gradings}
-                        lessons={evalLessons}
-                        onOpenAssignment={onOpenAssignment || runAction}
-                    />
+                    <>
+                        <TeacherGradebook
+                            gradings={gradings}
+                            lessons={evalLessons}
+                            onOpenAssignment={onOpenAssignment || runAction}
+                        />
+                        {onImportGrading && (
+                            <TeacherLegacyImport
+                                gradings={gradings}
+                                lessons={evalLessons}
+                                onImportGrading={onImportGrading}
+                            />
+                        )}
+                    </>
                 )}
             </>
         );
@@ -1556,6 +1567,8 @@ TeacherEvaluation.propTypes = {
     gradeSaveState: PropTypes.oneOf(['pending', 'failed']),
     /** classroomId → saved grading (null = none, undefined = still reading). */
     gradings: PropTypes.object,
+    /** (classroomId, body) → Promise: save grades imported from an old CSV (#2431) */
+    onImportGrading: PropTypes.func,
     /** The tab of the right column, when the container keeps it: 'rubric' | 'student'. */
     innerTab: PropTypes.oneOf(['rubric', 'student']),
     /** A leave waiting for the teacher's answer (#1923 C4): {kind: 'back'|'leave'|'reload'}. */

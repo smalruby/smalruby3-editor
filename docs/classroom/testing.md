@@ -613,6 +613,12 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-gradebook-cell-{seat}-{classroomId}` | td | セル（中のボタンを押すと、その席を選んで課題の採点を開く。確定していない AI の案はボタンが `data-draft="true"` で点線・薄く。`aria-label` は「出席番号 N・{課題名}: {点}」・AI の案は「（AI の案）」を足す） |
 | `classroom-gradebook-empty` | p | まだ採点した課題が無いときの案内 |
 | `classroom-gradebook-no-assignments` | p | クラスに課題が無いとき |
+| `classroom-legacy-import-open` | button | 採点簿の「以前の採点結果 CSV を読み込む」 |
+| `classroom-legacy-import-file` | input[type=file] | 取り込む CSV を選ぶ（隠し） |
+| `classroom-legacy-import-preview` | div | 取り込みのプレビュー |
+| `classroom-legacy-import-run` | button | ［取り込む］ |
+| `classroom-legacy-import-cancel` | button | ［やめる］ |
+| `classroom-legacy-import-result` | p | 取り込みの結果 |
 | `classroom-gradebook-overall` | p | 総合評価（準備中の置き場） |
 | `classroom-evaluation-cancel` | button | 採点簿のキャンセル（クラス一覧へ戻る。返却していないコメント・保存できなかった採点があるとき・処理の途中は先に確認を出す） |
 | `classroom-eval-back-to-book` | button | 課題の採点の［‹ 採点簿］（何も消えないので確かめない） |
