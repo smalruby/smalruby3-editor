@@ -179,16 +179,15 @@ test('renderHumanWaitCell: 🙋 の欄を理由つきで出す', () => {
     assert.ok(!xss.includes('<b>x</b>') && !xss.includes('"><x'));
 });
 
-test('MONITOR_HTML: 人間待ちのまとめと理由つきの 🙋 欄を描画する（埋め込み関数が自己完結）', () => {
-    assert.match(MONITOR_HTML, /id="humanwaits"/);
-    assert.match(MONITOR_HTML, /function renderHumanWaitsHtml\(items, reasons\)/);
-    assert.match(MONITOR_HTML, /renderHumanWaitsHtml\(d\.items, HUMAN_WAIT_REASONS\)/);
+test('MONITOR_HTML: 状況板の人間待ちの欄は理由つきの印（埋め込み関数が自己完結）', () => {
+    // 人間待ちのまとめは「あなた宛て」の行（monitor-inbox.js の inboxModel）に移した（#2404）
     assert.match(MONITOR_HTML, /renderHumanWaitCell\(it, HUMAN_WAIT_REASONS\)/);
+    assert.match(MONITOR_HTML, /function inboxModel\(board, learnings\)/);
     // 埋め込んだ関数だけでブラウザ側と同じ HTML が作れる（外部の定数に依存しない）
     const script = MONITOR_HTML.slice(MONITOR_HTML.indexOf('<script>') + 8, MONITOR_HTML.lastIndexOf('</script>'));
     const m = script.match(/const HUMAN_WAIT_REASONS = (.*);/);
     assert.ok(m, 'HUMAN_WAIT_REASONS が埋め込まれている');
     const ctx = vm.createContext({});
-    vm.runInContext(`${String(humanWaitGroups)}\n${String(renderHumanWaitsHtml)}\nvar out = renderHumanWaitsHtml(${JSON.stringify(BOARD_ITEMS)}, ${m[1]});`, ctx);
-    assert.strictEqual(ctx.out, renderHumanWaitsHtml(BOARD_ITEMS, HUMAN_WAIT_REASONS));
+    vm.runInContext(`${String(renderHumanWaitCell)}\nvar out = renderHumanWaitCell(${JSON.stringify(BOARD_ITEMS[0])}, ${m[1]});`, ctx);
+    assert.strictEqual(ctx.out, renderHumanWaitCell(BOARD_ITEMS[0], HUMAN_WAIT_REASONS));
 });

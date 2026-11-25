@@ -35,9 +35,10 @@ test('GET /board に EPIC のまとめと現在地が載る（モニタ用）', 
     assert.equal(b.currentStatus.updatedAt, 9);
 });
 
-test('モニタ: EPIC ごとの欄と「現在地を作る」ボタンが POST /current-status につながる', () => {
-    assert.match(MONITOR_HTML, /id="epicgroups"/);
-    assert.match(MONITOR_HTML, /function renderEpicGroupsHtml/);
+test('モニタ: EPIC ごとの行は状況板（epicGroups）、「現在地を作る」は上の ⋯ から POST /current-status', () => {
+    assert.match(MONITOR_HTML, /boardRows\(d\.epicGroups \|\| \[\]/);
+    assert.match(MONITOR_HTML, /id="csmake" data-testid="current-status-make"/);
+    assert.match(MONITOR_HTML, /id="cslink" data-testid="current-status-link"/);
     assert.match(MONITOR_HTML, /fetch\('\/current-status', \{ method: 'POST' \}\)/);
-    assert.ok(MONITOR_HTML.indexOf('id="epicgroups"') < MONITOR_HTML.indexOf('id="board"'));
+    assert.ok(MONITOR_HTML.indexOf('id="globalmenu"') < MONITOR_HTML.indexOf('id="csmake"'));
 });
