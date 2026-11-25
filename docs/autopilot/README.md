@@ -784,7 +784,7 @@ daemon の `GET /`（既定 `http://localhost:8787/`）は、人間と同意し�
 | 上の 1 行 | 動いている / 一時停止中（AUTH ⚠・USAGE ⏸・起動中・SSO 待ちも）・worker の数（実行中 / 上限・重いもの）・**Claude** の使用量（セッション / 週間の細い棒）・**GitHub API** の残り・更新からの経過・件数バッジ「実行履歴 N」「タスク N」（押すと右から開く）・一時停止 / 再開・**⋯**（更新 `POST /refresh`・tick `POST /tick`・現在地を作る `POST /current-status` と現在地を開く） |
 | アラートの帯 | 認証（再接続・device code）・Claude 使用量の自動 pause（2 段階の強制再開）・強制実行中・API レートの僅少・起動中・レート制限の起動待ち。地は塗らず文字と細い線だけ |
 | 左「あなた宛て」 | **答えが要る**（worker の質問・選択肢・AI の推奨・メモ）→ **止まっている worker**（`blocked-panel.js`）→ **学び・確かめてほしい**（`/learnings` の action が PR を作る / マージする のとき）→ **人間待ち**（`GET /board` の `humanWait`。親の EPIC ごとのまとまり。下の「人間待ちの札とまとまり」） |
-| 右「状況板」 | GitHub Projects の表の形。1 行 = 1 EPIC（EPIC に属さない Issue は 1 つのまとまり）。`▶` で sub-issue の行を開く。絞り込みの文字とチップ（すべて / 人間の番 / AI が作業中 / 止まった / 💤 あとで）。上に並列の計画の 1 行 |
+| 右「状況板」 | GitHub Projects の表の形。1 行 = 1 EPIC（EPIC に属さない Issue は優先度ごとのまとまり「EPIC に属さない · P0」〜「· P3」）。`▶` で sub-issue の行を開く。絞り込みの文字とチップ（すべて / 人間の番 / AI が作業中 / 止まった / 💤 あとで）。上に並列の計画の 1 行 |
 | 右から開く欄 | 実行履歴（最新 100 件）、学び・タスク（`monitor-learn-tasks.js`。学びの PR・タスクの作成といま実行） |
 | 下の帯 | 稼働バージョン（`branch @ shortCommit`）と ⬆️ 更新ありバッジ（更新手順のモーダル） |
 
@@ -839,7 +839,9 @@ daemon の `GET /`（既定 `http://localhost:8787/`）は、人間と同意し�
 ### EPIC ごとの進み具合と「現在地」
 
 状況板の行は **EPIC ごと**（`GET /board` の `epicGroups`）。ボードの item を親の EPIC で束ね、
-EPIC の無い Issue は「EPIC に属さない Issue」に 1 つにまとめる（`src/epic-summary.js` の `groupItemsByEpic`）。
+EPIC の無い Issue は、実際に効く優先度ごとに「EPIC に属さない · P0」〜「EPIC に属さない · P3」のまとまりにする
+（`src/epic-summary.js` の `groupItemsByEpic`。key は `solo-P0`〜`solo-P3`）。優先度の決め方は作業を始める順番
+（`scheduler.effectivePriority`）と同じで、Priority の無い Issue は既定の P2 に入る。中身が 0 件の優先度のまとまりは作らない。
 
 | 出すもの | 決め方 |
 |---|---|
@@ -850,7 +852,9 @@ EPIC の無い Issue は「EPIC に属さない Issue」に 1 つにまとめる
 | 次の確認の見込み | `implement` のとき「残りの sub-issue × これまでの 1 件の時間 ÷ 並列の数」（並列は残りを超えない。1 件の時間は実行履歴を Issue ごとに足した平均。測れないときは 60 分）。`topic-review` は「いま確認できます」 |
 | 優先度 | Project の `Priority`（P0〜P3）。EPIC に無ければ子の中でいちばん高いもの |
 
-並びは 優先度 → 段 → 番号、単独は最後。親の EPIC は enrichment の GraphQL に `parent{number title}` を足して取る
+並びは 優先度 → 段 → 番号。同じ優先度では EPIC のまとまりが上、「EPIC に属さない · Pn」がその下
+（例: P1 の EPIC → P2 の EPIC → EPIC に属さない · P2 → P3 の EPIC）。状況板の並びが AI の作業の順番とずれないようにするため。
+▲▼ で優先度を変えた Issue は、次の再描画でその優先度のまとまりへ移る。親の EPIC は enrichment の GraphQL に `parent{number title}` を足して取る
 （追加の問い合わせは無い）。
 
 **現在地**は Claude に作らせる artifact（claude.ai のページ）で、モニタにはリンクと最終更新の時刻だけを出す。

@@ -4,7 +4,7 @@ const assert = require('node:assert');
 const {
     priorityRank, decisionCount, countEpicDecisions, averageIssueDurationMs, epicStage,
     estimateNextInterview, groupItemsByEpic, priorityList, buildStatusMaterial, renderEpicGroupsHtml,
-    DEFAULT_ISSUE_DURATION_MS,
+    DEFAULT_ISSUE_DURATION_MS, soloGroupKey,
 } = require('../src/epic-summary');
 
 const H = 60 * 60 * 1000;
@@ -74,12 +74,13 @@ const ITEMS = [
     { issue: 40, title: 'EPIC C 未分解', kind: 'EPIC', status: 'In Progress', subIssues: { total: 0, completed: 0 } },
 ];
 
-test('groupItemsByEpic: EPIC ごと・ボードに無い親・単独のまとまり（単独は最後）', () => {
+test('groupItemsByEpic: EPIC ごと・ボードに無い親・単独のまとまり（単独は優先度の位置）', () => {
     const groups = groupItemsByEpic(ITEMS, {
         running: [{ issue: 11, phase: 'implement', since: 5 }], concurrency: 2, now: 0,
         history: [{ issue: 1, startedAt: 0, endedAt: H }], decisionsByEpic: { 10: { count: 2 } },
     });
-    assert.deepEqual(groups.map((g) => g.key), ['99', '10', '40', 'solo']);
+    // 単独 #30 は Priority 無し → 既定の P2。Priority の無い EPIC #40 より上
+    assert.deepEqual(groups.map((g) => g.key), ['99', '10', 'solo-P2', '40']);
     const a = groups.find((g) => g.key === '10');
     assert.equal(a.stage, 'implement');
     assert.equal(a.done, 1);
@@ -97,6 +98,32 @@ test('groupItemsByEpic: EPIC ごと・ボードに無い親・単独のまとま
     assert.equal(solo.stage, null);
     assert.equal(solo.eta, null);
     assert.deepEqual(solo.items.map((i) => i.issue), [30]);
+    assert.equal(solo.priority, 'P2');
+    assert.equal(solo.title, 'EPIC に属さない · P2');
+});
+
+test('groupItemsByEpic: EPIC に属さない Issue は実際に効く優先度ごとのまとまりにする（#2411）', () => {
+    const items = [
+        { issue: 1, title: 'EPIC P1', kind: 'EPIC', status: 'In Progress', priority: 'P1', subIssues: { total: 1, completed: 0 } },
+        { issue: 2, title: 'EPIC P2', kind: 'EPIC', status: 'In Progress', priority: 'P2', subIssues: { total: 1, completed: 0 } },
+        { issue: 3, title: 'EPIC P3', kind: 'EPIC', status: 'In Progress', priority: 'P3', subIssues: { total: 1, completed: 0 } },
+        { issue: 50, title: 's P2', status: 'Ready', priority: 'P2' },
+        { issue: 51, title: 's 無し', status: 'Ready' },
+        { issue: 52, title: 's P3', status: 'Ready', priority: 'P3' },
+        { issue: 53, title: 's P0 高', status: 'Ready', priority: 'P0 高' },
+    ];
+    const groups = groupItemsByEpic(items);
+    // EPIC に属さない P2 は EPIC の P3 より上・同じ優先度では EPIC が上・0 件の P1 のまとまりは出ない
+    assert.deepEqual(groups.map((g) => g.key), ['solo-P0', '1', '2', 'solo-P2', '3', 'solo-P3']);
+    const p2 = groups.find((g) => g.key === 'solo-P2');
+    assert.equal(p2.solo, true);
+    assert.equal(p2.epic, null);
+    assert.equal(p2.priority, 'P2');
+    // Priority 無しは既定の P2 に入る
+    assert.deepEqual(p2.items.map((i) => i.issue), [50, 51]);
+    assert.equal(groups.find((g) => g.key === 'solo-P0').priority, 'P0');
+    assert.ok(!groups.some((g) => g.key === 'solo-P1'));
+    assert.equal(soloGroupKey('P3'), 'solo-P3');
 });
 
 test('priorityList: 優先度 → 指定の並び → 番号。EPIC・終端・あとで は除く', () => {

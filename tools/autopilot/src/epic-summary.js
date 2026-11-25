@@ -19,8 +19,20 @@ const EPIC_STAGE_LABELS = {
     develop: 'develop',
 };
 
-/** EPIC の無い Issue のまとまりのキー。 */
+// 単独の Issue の優先度は、作業を始める順番（scheduler.orderByPriority）と同じ決め方にする（#2411）
+const { DEFAULT_PRIORITY, normalizePriority } = require('./scheduler');
+
+/** EPIC の無い Issue のまとまりのキーの頭。実際のキーは優先度ごとに `solo-P2` のようになる（#2411）。 */
 const SOLO_GROUP_KEY = 'solo';
+
+/**
+ * EPIC の無い Issue の、優先度ごとのまとまりのキー。
+ * @param {string} priority P0〜P3
+ * @returns {string}
+ */
+function soloGroupKey(priority) {
+    return `${SOLO_GROUP_KEY}-${priority}`;
+}
 
 /** 1 件あたりの時間がまだ測れないときの既定（60 分）。 */
 const DEFAULT_ISSUE_DURATION_MS = 60 * 60 * 1000;
@@ -154,12 +166,13 @@ function isEpicItem(it) {
 }
 
 /**
- * board item を EPIC ごとにまとめる。EPIC の無い単独の Issue は 1 つの「単独」のまとまりにする。
+ * board item を EPIC ごとにまとめる。EPIC の無い単独の Issue は、実際に効く優先度
+ * （自分の Priority、無ければ既定の P2。scheduler.effectivePriority と同じ）ごとのまとまりにする（#2411）。
  * 親の EPIC がボードに無い（担当ではない・終端）ときも、enrichment の parent からまとまりを作る。
  * @param {object[]} items board item（refreshBoard の形。parent / priority があれば使う）
  * @param {object} [ctx] { running: [{issue, phase, since}], history, concurrency, now,
  *   decisionsByEpic: {[epic]: number|{count}|{items}} }
- * @returns {object[]} まとまり（優先度 → 段 → 番号の順。単独は最後）
+ * @returns {object[]} まとまり（優先度 → 段 → 番号の順。同じ優先度では EPIC が上、単独はその下）
  */
 function groupItemsByEpic(items, ctx = {}) {
     const list = (items || []).filter(Boolean);
@@ -187,12 +200,16 @@ function groupItemsByEpic(items, ctx = {}) {
         } else if (isEpicItem(it)) {
             ensure(it.issue, it);
         } else {
-            ensure(SOLO_GROUP_KEY, null, '単独').children.push(it);
+            // 単独は親が無いので、実際に効く優先度は自分の Priority か既定（作業を始める順番と同じ）
+            const p = normalizePriority(it.priority) || DEFAULT_PRIORITY;
+            const g = ensure(soloGroupKey(p), null, `EPIC に属さない · ${p}`);
+            g.soloPriority = p;
+            g.children.push(it);
         }
     }
     const out = [];
     for (const g of groups.values()) {
-        const solo = g.key === SOLO_GROUP_KEY;
+        const solo = Boolean(g.soloPriority);
         const epicNumber = solo ? null : g.key;
         const childDone = g.children.filter((c) => DONE_STATUSES.has(c.status)).length;
         // EPIC の sub-issue の数は GitHub の subIssuesSummary を正とする（終端の sub-issue はボードに出ないため）
@@ -206,14 +223,14 @@ function groupItemsByEpic(items, ctx = {}) {
         const stage = solo ? null : epicStage(g.epic, { done, total });
         const pendingDecisions = solo ? 0 : decisionCount(decisions[epicNumber]);
         const remaining = Math.max(0, total - done);
-        const priority = (g.epic && g.epic.priority)
+        const priority = solo ? g.soloPriority : (g.epic && g.epic.priority)
             || g.children.map((c) => c.priority).filter(Boolean).sort((a, b) => priorityRank(a) - priorityRank(b))[0]
             || null;
         out.push({
             key: String(g.key),
             solo,
             epic: epicNumber,
-            title: solo ? '単独' : (g.title || `#${epicNumber}`),
+            title: solo ? g.title : (g.title || `#${epicNumber}`),
             url: g.epic ? g.epic.url || null : null,
             priority,
             stage,
@@ -243,12 +260,11 @@ function groupItemsByEpic(items, ctx = {}) {
                 })),
         });
     }
-    return out.sort((a, b) => {
-        if (a.solo !== b.solo) return a.solo ? 1 : -1;
-        return priorityRank(a.priority) - priorityRank(b.priority)
+    // 同じ優先度では EPIC を上に置く（EPIC は段の順に並べていて、そこへ単独を割り込ませない）
+    return out.sort((a, b) => priorityRank(a.priority) - priorityRank(b.priority)
+            || (a.solo === b.solo ? 0 : a.solo ? 1 : -1)
             || EPIC_STAGES.indexOf(a.stage) - EPIC_STAGES.indexOf(b.stage)
-            || Number(a.epic) - Number(b.epic);
-    });
+            || Number(a.epic) - Number(b.epic));
 }
 
 /**
@@ -376,6 +392,7 @@ module.exports = {
     EPIC_STAGES,
     EPIC_STAGE_LABELS,
     SOLO_GROUP_KEY,
+    soloGroupKey,
     DEFAULT_ISSUE_DURATION_MS,
     priorityRank,
     decisionCount,
