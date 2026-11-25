@@ -15,6 +15,10 @@ const mockListSubmissions = jest.fn();
 jest.mock('../../../src/lib/classroom-api.js', () => ({
     __esModule: true,
     default: {
+        // 採点の保存（#2424）: 保存は無い・保存したものをそのまま返す・メンバーは提出の席だけ
+        getGrading: jest.fn(() => Promise.resolve({ grading: null })),
+        putGrading: jest.fn((token, id, updates) => Promise.resolve({ grading: updates })),
+        listMembers: jest.fn(() => Promise.resolve({ members: [] })),
         getAssignment: jest.fn(() => Promise.resolve({})),
         listSubmissions: (...args) => mockListSubmissions(...args),
     },
@@ -42,6 +46,9 @@ const setup = async (openSubmission = jest.fn(() => Promise.resolve())) => {
     const hook = renderHook(() => useTeacherEvaluation(deps));
     await act(async () => {
         hook.result.current.handleShowEvaluation({ groupId: 'g1', name: '技術' });
+    });
+    await act(async () => {
+        hook.result.current.handleOpenAssignment(hook.result.current.evalLessons[0].classroomId);
     });
     await act(async () => {
         await hook.result.current.handleLoadSubmissions();
@@ -216,6 +223,9 @@ describe('useTeacherEvaluation — 作品を開いて戻ったとき (#1990)', (
         act(() => hook.result.current.handleChooseCell({ seat: 2, classroomId: 'c1' }));
         await act(async () => {
             hook.result.current.handleShowEvaluation({ groupId: 'g1', name: '技術' });
+        });
+        await act(async () => {
+            hook.result.current.handleOpenAssignment(hook.result.current.evalLessons[0].classroomId);
         });
         expect(hook.result.current.chosenCell).toBeNull();
     });

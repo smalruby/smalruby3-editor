@@ -601,19 +601,61 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-ungrouped-open-{classroomId}` | button | 未所属課題をひらく |
 | `classroom-phase-teacher-group-manage` | div | 組管理フェーズのルート |
 
-### 採点（学期末・AI 採点支援）
+### 採点（採点簿・課題ごとの採点・AI 採点支援）
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
+| `classroom-gradebook-switch-book` / `classroom-gradebook-switch-overall` | button | 採点簿の上の［採点簿］［総合評価］（`aria-pressed`） |
+| `classroom-gradebook` | table | 採点簿（列 = 課題・新しい課題が左、行 = 出席番号。表の枠の中だけ縦にも横にもスクロール） |
+| `classroom-gradebook-col-{classroomId}` | th | 列の見出し（状態「未採点」「AI の案 N 件・未確定」「確定 N 件」、基準があれば「基準あり・」が前に付く） |
+| `classroom-gradebook-open-{classroomId}` | button | 列の見出しの課題名。押すとその課題の採点を開く |
+| `classroom-gradebook-counts-{classroomId}` | td | いちばん上の行の S/A/B/C の人数（「S3 A28 B5 C0」。評価が無ければ「—」） |
+| `classroom-gradebook-cell-{seat}-{classroomId}` | td | セル（中のボタンを押すと、その席を選んで課題の採点を開く。確定していない AI の案はボタンが `data-draft="true"` で点線・薄く。`aria-label` は「出席番号 N・{課題名}: {点}」・AI の案は「（AI の案）」を足す） |
+| `classroom-gradebook-empty` | p | まだ採点した課題が無いときの案内 |
+| `classroom-gradebook-no-assignments` | p | クラスに課題が無いとき |
+| `classroom-legacy-import-open` | button | 採点簿の「以前の採点結果 CSV を読み込む」 |
+| `classroom-legacy-import-file` | input[type=file] | 取り込む CSV を選ぶ（隠し） |
+| `classroom-legacy-import-preview` | div | 取り込みのプレビュー |
+| `classroom-legacy-import-run` | button | ［取り込む］ |
+| `classroom-legacy-import-cancel` | button | ［やめる］ |
+| `classroom-legacy-import-result` | p | 取り込みの結果 |
+| `classroom-gradebook-overall` | p | 総合評価（準備中の置き場） |
+| `classroom-evaluation-cancel` | button | 採点簿のキャンセル（クラス一覧へ戻る。返却していないコメント・保存できなかった採点があるとき・処理の途中は先に確認を出す） |
+| `classroom-eval-back-to-book` | button | 課題の採点の［‹ 採点簿］（何も消えないので確かめない） |
+| `classroom-breadcrumb-gradebook` | button | 課題の採点のヘッダーのクラス名（採点簿へ戻る） |
+| `classroom-eval-assignment-title` | h3 | 課題の採点の課題名 |
+| `classroom-eval-confirmed` | span | 「確定」（確定した課題） |
+| `classroom-eval-save-state` | span | 採点の保存の状態（`data-state` は `pending`「保存しています…」/ `failed`「保存できていません」） |
+| `classroom-eval-unconfirmed` | span | 確定のあとに評価を変えたので確定を取り消したことの知らせ |
+| `classroom-eval-seat-list` | ul | 左の席の一覧（メンバー全員。枠の中だけスクロール） |
+| `classroom-eval-cell-button-{seat}-{classroomId}` | button | 席の一覧の 1 行（出席番号と評価。未提出は「未提出」、評価が無ければ —、確定していない AI の案は `data-draft="true"` で点線。要確認は「!」、返却済みは「↩」、コメントがあれば「💬」。レッスンの課題はレッスンの点も出す。押すと［生徒］に出す・`aria-pressed`）。`aria-label` は「出席番号 N・{課題名}: {点}」で、点が無いときは「未採点」、未提出は「未提出」、印があれば「（要確認・返却済み・コメントあり・AI の下書き）」を足す |
+| `classroom-eval-counts` | div | 右の上の人数 |
+| `classroom-eval-count-notSubmitted` / `-drafts` / `-confirmed` / `-returned` | div | 未提出・AI の案・確定・返却済みの数（読み込む前の未提出は「—」） |
+| `classroom-eval-tab-rubric` / `classroom-eval-tab-student` | button (tab) | 右の［基準］［生徒］（`aria-selected`。作品を出さないレッスンの課題では出さない） |
+| `classroom-eval-rubric-pane` | div | ［基準］の中身（課題の説明・基準・採点の観点と厳しさ） |
+| `classroom-eval-description` | p | 課題の説明（AI に渡す。無ければその旨） |
+| `classroom-eval-rubric-levels` | table | 課題の基準（S/A/B/C の文） |
+| `classroom-eval-no-rubric` | p | 基準がまだ無いときの文 |
+| `classroom-eval-not-loaded` | p | 読み込む前の［生徒］の案内 |
+| `classroom-eval-detail` | aside | ［生徒］の中の選んだ席の点・根拠・コメント |
+| `classroom-eval-added` | div | ［生徒］のスターターから足した台本（無ければ「動く台本は足していません」） |
+| `classroom-eval-group` | span | その席のまとまり（「まとまり: LED だけ」） |
+| `classroom-eval-steps` | div | フッターの手順（1〜6 のボタンと矢印。作品を出さないレッスンの課題のときは 1〜3） |
+| `classroom-eval-rubric` | button | 手順 2「基準をつくる」（いまは［基準］のタブを開くだけ。押すと手順 3 へ進む） |
+| `classroom-eval-run-grade` | button | 手順 3「全員を採点」（AI） |
+| `classroom-eval-confirm` | button | 手順 4「確定」（評価が 1 つも無いときは押せない） |
+| `classroom-eval-run-comment` | button | 手順 5「コメントを下書き」 |
+| `classroom-eval-return-comments` | button | 手順 6「返却」 |
+| `classroom-eval-load-running` / `classroom-eval-run-grade-running` / `classroom-eval-confirm-running` / `classroom-eval-run-comment-running` / `classroom-eval-return-comments-running` | span | 処理中の手順のボタンの中のスピナーと短い言葉（ボタンは `aria-busy="true"`） |
+| `classroom-eval-leave-confirm-message` | p | 離れる確認の文。消えるもの（「保存できなかった採点は消えます。」／「返却していないコメントは消えます。」／両方）と入口の問い（「戻りますか？」／「この画面を離れますか？」／「読み込み直しますか？」）。読み込み・AI・返却の途中なら先頭に「処理の途中です。離れると、そこで止まります。」。`data-kind` は `back` / `leave` / `reload`、`data-lost` は消えるもの（`grades` / `comments` を空白区切り）。出ている間は手順のボタンと書き出しメニューを隠す |
+| `classroom-eval-leave-export` | button | 離れる確認の［採点結果を書き出す］（課題の採点のときだけ。その課題の CSV） |
 | `classroom-phase-teacher-evaluation` | div | 採点フェーズのルート |
 | `classroom-eval-hint-text` | span | 説明の 1 行（タブの行の右。長いときは「…」・全文は `title`） |
 | `classroom-eval-hint-toggle` | button | 説明の「詳しく / 閉じる」（`aria-expanded`） |
 | `classroom-eval-hint-detail` | span | 「詳しく」で開く説明の残り |
 | `classroom-eval-lesson-only-hint` | span | 作品を出さないレッスンの課題だけのときの説明（タブの行の右・「…自動で採点します。AI の採点は使いません」） |
-| `classroom-eval-mixed-note` | span | 混ぜて選んだとき、レッスンだけの課題には AI を使わないことの注意（採点の設定の行の右） |
 | `classroom-eval-lesson-scoring` | div | 採点の画面の「レッスンの点」の欄のまとまり（設定を読めたレッスンの課題だけ） |
 | `classroom-eval-lesson-scoring-{classroomId}` | div | 課題ごとのレッスンの点の欄（課題名 + `classroom-lesson-scoring`。変えるとすぐ保存） |
-| `classroom-eval-lesson-{classroomId}` | input | 課題の選択チェックボックス |
 | `classroom-eval-settings-summary` | div | 採点の設定の 1 行（観点の名前・採点の厳しさ・［変える］） |
 | `classroom-eval-settings-toggle` | button | 採点の設定の「変える / 閉じる」（`aria-expanded`） |
 | `classroom-eval-settings` | div | 開いた採点の設定（観点の欄・厳しさ） |
@@ -628,6 +670,16 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-eval-cell-{seat}-{classroomId}` | td | セル（未提出は ×、要確認はオレンジ） |
 | `classroom-eval-cell-button-{seat}-{classroomId}` | button | 提出したセルの点のボタン（まだ無いときは —・押すと右の列に出す・選んだセルは `aria-pressed="true"`）。要確認は「!」、返却済みは「↩」、コメントがあれば「💬」。`aria-label` は「出席番号 N・{課題名}: {点}」で、点が無いときは「未採点」、印があれば「（要確認・返却済み・コメントあり）」を足す |
 | `classroom-eval-detail` | aside | 右の列（選んだ席の点・根拠・コメント） |
+| `classroom-gradebook-overall` | div | 総合評価の画面（採点簿の上の［総合評価］） |
+| `classroom-overall-export` | button | ［総合評価の CSV を書き出す］（確定していない課題が入っていると disabled） |
+| `classroom-overall-settings` | div | 左の設定（入れる課題と重み・点・区切り） |
+| `classroom-overall-include-{classroomId}` / `classroom-overall-weight-{classroomId}` | input | 課題を入れるチェック / 重み |
+| `classroom-overall-point-{S\|A\|B\|C\|none}` / `classroom-overall-cut-{S\|A\|B}` | input | 評価の点（none = 未提出）/ 総合の区切り |
+| `classroom-overall-reset` | button | 設定を既定に戻す |
+| `classroom-overall-unconfirmed` | p | 確定していない課題の注意（`role="status"`） |
+| `classroom-overall-open-{classroomId}` | button | 確定していない課題へのリンク（その課題の採点を開く） |
+| `classroom-overall-loading` / `classroom-overall-no-columns` / `classroom-overall-no-seats` | p | 読み込み中 / 課題が入っていない / 採点した席が無い |
+| `classroom-overall-table` | table | 結果の表（`classroom-overall-row-{seat}`・`classroom-overall-average-{seat}`・`classroom-overall-grade-{seat}`） |
 | `classroom-eval-detail-title` | h3 | 右の列の見出し「出席番号 NN」 |
 | `classroom-eval-detail-lesson` | span | 右の列の課題名 |
 | `classroom-eval-detail-open-work` | button | 右の列の課題名の右の［作品を開く］。選んだ席の作品をエディタで開き、クラス管理を閉じる（課題の詳細の［スモウルビーで開く］と同じ処理）。採点の下書きについては確かめずに開く（採点の画面は隠して残る・下の戻る帯）。エディタに保存していない変更があれば `classroom-teacher-open-work-confirm-box` を先に出す。開いている間は押せず「開いています…」と出す |
@@ -641,27 +693,35 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-eval-grade-{seat}-{classroomId}` | select | 右の列の点（S/A/B/C。手動変更は較正サンプルになる）。見えるラベル「点」。選んだ席の分だけ出る |
 | `classroom-eval-reason-{seat}-{classroomId}` | textarea | 右の列の根拠。見えるラベル「根拠（先生だけ）」 |
 | `classroom-eval-comment-{seat}-{classroomId}` | textarea | 右の列の生徒へのコメント。見えるラベル「生徒へのコメント」 |
-| `classroom-eval-overall-{seat}` | td | 総合 |
-| `classroom-eval-lesson-head-{classroomId}` | th | 「レッスン」の列の見出し（レッスンの課題だけ・作品の列の右・#1603） |
-| `classroom-eval-lesson-score-{seat}-{classroomId}` | td | 席のレッスンの点（記録が無ければ「—」） |
-| `classroom-eval-steps` | div | フッターの手順（1〜4 のボタンと矢印。レッスンだけの課題のときは 1〜3） |
 | `classroom-eval-load` | button | 手順 1「提出を読み込む」（sb3 をブラウザ内で静的解析）。レッスンだけの課題のときは「進み具合を読み込む」 |
 | `classroom-eval-check-points` | button | レッスンだけの課題の手順 2「点を確かめる」（レッスンの点の欄へ） |
 | `classroom-eval-export-lesson` | button | レッスンだけの課題の手順 3「書き出す」（採点結果（CSV）） |
-| `classroom-eval-run-grade` | button | 手順 2「AIで採点」 |
-| `classroom-eval-run-comment` | button | 手順 3「コメントを下書き」 |
-| `classroom-eval-return-comments` | button | 手順 4「コメントを返却」 |
 | `classroom-eval-export-menu` | button | 「書き出し ▾」（`aria-expanded`。読み込む前は押せない） |
 | `classroom-eval-export` / `classroom-eval-export-audit` | button | 書き出しメニューの「採点結果（CSV）」/「検証用データ（CSV）」 |
-| `classroom-evaluation-cancel` | button | キャンセル（クラス一覧へ戻る。消える採点・コメントがあるとき・AI の途中は先に確認を出す） |
-| `classroom-eval-leave-confirm-message` | p | 離れる確認の文。消えるもの（「書き出していない採点は消えます。」／「返却していないコメントは消えます。」／両方）と入口の問い（「戻りますか？」／「この画面を離れますか？」／「読み込み直しますか？」）。読み込み・AI・返却の途中なら先頭に「処理の途中です。離れると、そこで止まります。」。`data-kind` は `back` / `leave` / `reload`、`data-lost` は消えるもの（`grades` / `comments` を空白区切り）。出ている間は手順のボタンと書き出しメニューを隠す |
 | `classroom-eval-leave-cancel` | button | 離れる確認の［採点を続ける］ |
-| `classroom-eval-leave-export` | button | 離れる確認の［採点結果を書き出す］（採点結果の CSV） |
 | `classroom-eval-leave-confirm` | button | 離れる確認の確定（［戻る］／［離れる］／［読み込み直す］・赤） |
+| `grading-rubric` | div | ［基準］のタブの中身（#2425） |
+| `grading-rubric-description` / `grading-rubric-description-text` | div / p | 課題の説明 |
+| `grading-rubric-describe` | button | ［AI に説明の案を出してもらう］ |
+| `grading-rubric-describe-proposal` / `grading-rubric-describe-text` | div / textarea | AI の説明の案（直せる） |
+| `grading-rubric-describe-ok` / `-fix` / `-only-here` | button | ［合っている（課題に保存）］／［直して保存］／［保存せず、この採点だけで使う］ |
+| `grading-rubric-running` | p | AI が動いている間の表示 |
+| `grading-rubric-saved` / `grading-rubric-edit` | div / button | 保存した基準／［基準をつくり直す］ |
+| `grading-rubric-reps` / `grading-rubric-propose` | div / button | 代表の作品の一覧／［AI の案を出す］ |
+| `grading-rubric-rep-<席>` / `grading-rubric-rep-body-<席>` | button / div | 代表の行（押すと開く）／開いた中身 |
+| `grading-rubric-rep-grade-<席>-<S\|A\|B\|C>` / `grading-rubric-rep-reason-<席>` / `grading-rubric-rep-open-<席>` | button / input / button | 正解・理由・［作品を開く］ |
+| `grading-rubric-fairness` / `grading-rubric-fairness-run` | div / button | フェアの確認／［フェアか確かめる］ |
+| `grading-rubric-check-<i>` / `-option-<j>` / `-compare` | li / button / button | 質問・選択肢・［作品を並べて見る］ |
+| `grading-rubric-sentences` / `grading-rubric-draft` / `grading-rubric-level-<S\|A\|B\|C>` / `grading-rubric-save` | div / button / input / button | 基準の文・［AI に基準の文を書いてもらう］・文の欄・［基準を保存］ |
+| `grading-rubric-copy` / `grading-rubric-copy-dialog` | button / div | ［ほかの課題から基準をコピー…］／コピーの小さな画面 |
+| `grading-rubric-copy-class` / `grading-rubric-copy-assignment` | select | コピー元のクラス・課題 |
+| `grading-rubric-copy-preview` / `grading-rubric-copy-levels` / `grading-rubric-copy-none` | div / table / p | コピー元の基準の中身／基準が無い |
+| `grading-rubric-copy-do` / `grading-rubric-copy-cancel` | button | ［コピーする］／［やめる］ |
+| `grading-group-prompt` / `-yes` / `-no` | div / button / button | 1 件を直したあとの「同じまとまりも変えますか？」と［{n} 件も変える］［この 1 件だけ］（［生徒］のタブ） |
 
-手順のボタンのうち、いまの手順だけが `aria-current="step"`（主ボタン）。読み込む前 → 1、読み込んだら → 2、
-採点が 1 つでも入ったら → 3、コメントの下書きが 1 つでもあれば → 4（`currentEvalStep`）。
-1300×600 の収まりと手順の移り方は `tools/playwright-verify/verify-classroom-grading.mjs` が測る（離れる確認の［戻る］が見えることも測る）。タブを切りかえてもタブの行が上下に動かないこと・タブの下の高さ・成績表で見える席の行の数は `tools/playwright-verify/verify-classroom-tab-offsets.mjs` が測る。
+課題の採点の手順のボタンのうち、いまの手順だけが `aria-current="step"`（主ボタン）。読み込む前 → 1、読み込んだら → 2、
+基準がある・基準を見たら → 3、評価が 1 つでも入ったら → 4、確定したら → 5、コメントの下書きが 1 つでもあれば → 6（`currentGradingStep`）。
+採点簿 → 課題の採点 → 確定 → 採点簿の流れと 1300×600 の収まりは `tools/playwright-verify/verify-classroom-gradebook.mjs` が測る。タブを切りかえてもタブの行が上下に動かないことは `tools/playwright-verify/verify-classroom-tab-offsets.mjs` が測る。
 
 ### メニューバー
 

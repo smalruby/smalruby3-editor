@@ -237,7 +237,12 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
     const evalGroup = evaluation ? evaluation.evalGroup : null;
     const handleEvaluationTab = useCallback(
         (tab) => {
-            if (!evaluation || !evalGroup || tab === 'grading') return;
+            if (!evaluation || !evalGroup) return;
+            // ［採点］ again from an assignment's grading: back to the gradebook (#2424).
+            if (tab === 'grading') {
+                if (evaluation.handleShowGradebook) evaluation.handleShowGradebook();
+                return;
+            }
             evaluation.handleRequestLeave(() => {
                 evaluation.handleBackFromEvaluation();
                 setBoardTab({ groupId: evalGroup.groupId, tab, openId: null });
@@ -364,6 +369,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                     <TeacherEvaluation
                         chosenCell={evaluation.chosenCell}
                         comments={evaluation.comments}
+                        currentId={evaluation.currentId}
                         error={error}
                         errorTitle={errorTitle}
                         evalGroup={evaluation.evalGroup}
@@ -371,24 +377,33 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         evalProgress={evaluation.evalProgress}
                         evalResult={evaluation.evalResult}
                         getCell={evaluation.getCell}
+                        gradeSaveState={evaluation.gradeSaveState}
+                        gradings={evaluation.gradings}
+                        onImportGrading={evaluation.handleImportGrading}
+                        innerTab={evaluation.innerTab}
                         leaveRequest={evaluation.leaveRequest}
                         lessonScores={evaluation.lessonScores}
+                        loaded={evaluation.loaded}
                         openingWork={evaluation.openingWork}
                         rubricAxes={evaluation.rubricAxes}
+                        rubricDone={evaluation.rubricDone}
+                        rubricTools={evaluation.rubricTools}
                         scoringChecked={evaluation.scoringChecked}
                         scoringSavingId={evaluation.scoringSavingId}
                         seats={evaluation.seats}
-                        selectedLessonIds={evaluation.selectedLessonIds}
                         strictness={evaluation.strictness}
                         tabs={
                             evaluation.evalGroup ? (
                                 <TeacherClassTabs selected="grading" onSelect={handleEvaluationTab} />
                             ) : null
                         }
+                        unconfirmedByEdit={evaluation.unconfirmedByEdit}
                         unsavedWork={evaluation.unsavedWork}
+                        view={evaluation.view}
                         onBack={handleBackFromEvaluation}
                         onShowClassList={handleShowClassListFromEvaluation}
                         onCancelLeave={evaluation.handleCancelLeave}
+                        onConfirmGrades={evaluation.handleConfirmGrades}
                         onConfirmLeave={evaluation.handleConfirmLeave}
                         onRequestLeave={evaluation.handleRequestLeave}
                         onChangeLessonScoring={evaluation.handleChangeLessonScoring}
@@ -398,14 +413,18 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         onExportAuditCsv={evaluation.handleExportAuditCsv}
                         onExportEvaluationCsv={evaluation.handleExportEvaluationCsv}
                         onLoadSubmissions={evaluation.handleLoadSubmissions}
+                        onOpenAssignment={evaluation.handleOpenAssignment}
                         onOpenWork={evaluation.handleOpenWork}
                         onReturnComments={evaluation.handleReturnComments}
                         onRunAi={evaluation.handleRunAi}
                         onSetCellGrade={evaluation.handleSetCellGrade}
                         onSetCellReason={evaluation.handleSetCellReason}
                         onSetComment={evaluation.handleSetComment}
+                        onSetInnerTab={evaluation.handleSetInnerTab}
                         onSetStrictness={evaluation.handleSetStrictness}
-                        onToggleLesson={evaluation.handleToggleLesson}
+                        onShowGradebook={evaluation.handleShowGradebook}
+                        onShowOverall={evaluation.handleShowOverall}
+                        onVisitRubric={evaluation.handleVisitRubric}
                     />
                 </div>
             );

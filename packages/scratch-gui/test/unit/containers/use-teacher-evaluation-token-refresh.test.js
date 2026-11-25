@@ -14,6 +14,10 @@ const mockUpdateSubmission = jest.fn();
 jest.mock('../../../src/lib/classroom-api.js', () => ({
     __esModule: true,
     default: {
+        // 採点の保存（#2424）: 保存は無い・保存したものをそのまま返す・メンバーは提出の席だけ
+        getGrading: jest.fn(() => Promise.resolve({ grading: null })),
+        putGrading: jest.fn((token, id, updates) => Promise.resolve({ grading: updates })),
+        listMembers: jest.fn(() => Promise.resolve({ members: [] })),
         getAssignment: jest.fn(() => Promise.resolve({})),
         listSubmissions: (...args) => mockListSubmissions(...args),
         evaluateSubmissions: (...args) => mockEvaluateSubmissions(...args),
@@ -47,10 +51,7 @@ const answer = (payload) => ({
 });
 
 const group = { groupId: 'g1', name: '技術' };
-const classrooms = [
-    { classroomId: 'c1', groupId: 'g1', assignmentName: '迷路' },
-    { classroomId: 'c2', groupId: 'g1', assignmentName: '迷路 2' },
-];
+const classrooms = [{ classroomId: 'c1', groupId: 'g1', assignmentName: '迷路' }];
 
 const setup = async () => {
     const deps = {
@@ -65,6 +66,9 @@ const setup = async () => {
     const hook = renderHook((props) => useTeacherEvaluation({ ...deps, ...props }), { initialProps: {} });
     await act(async () => {
         hook.result.current.handleShowEvaluation(group);
+    });
+    await act(async () => {
+        hook.result.current.handleOpenAssignment(hook.result.current.evalLessons[0].classroomId);
     });
     await act(async () => {
         await hook.result.current.handleLoadSubmissions();
@@ -99,8 +103,8 @@ describe('useTeacherEvaluation — 途中でトークンが新しくなったら
             await running;
         });
 
-        // 2 課題 × 2 回（10 人 + 2 人）
-        expect(tokensOf(mockEvaluateSubmissions)).toEqual(['old-token', 'new-token', 'new-token', 'new-token']);
+        // 2 回（10 人 + 2 人）
+        expect(tokensOf(mockEvaluateSubmissions)).toEqual(['old-token', 'new-token']);
         expect(deps.handleTeacher401).not.toHaveBeenCalled();
     });
 
@@ -123,29 +127,23 @@ describe('useTeacherEvaluation — 途中でトークンが新しくなったら
         });
 
         const tokens = tokensOf(mockUpdateSubmission);
-        expect(tokens).toHaveLength(24);
+        expect(tokens).toHaveLength(12);
         expect(tokens[0]).toBe('old-token');
         expect(tokens.slice(1).every((t) => t === 'new-token')).toBe(true);
         expect(deps.handleTeacher401).not.toHaveBeenCalled();
     });
 
-    test('読み込みの続き（次の課題）は新しいトークンで読む', async () => {
+    test('採点の保存は、その時点のトークンで送る (#2424)', async () => {
         const { hook } = await setup();
-        mockListSubmissions.mockClear();
-        const first = deferred();
-        mockListSubmissions.mockImplementationOnce(() => first.promise);
-        let loading;
-        await act(async () => {
-            loading = hook.result.current.handleLoadSubmissions();
-        });
-
+        const classroomAPI = jest.requireMock('../../../src/lib/classroom-api.js').default;
         hook.rerender({ idToken: 'new-token' });
         await act(async () => {
-            first.resolve({ submissions: submissionsOf(2) });
-            await loading;
+            hook.result.current.handleSetCellGrade(1, 'c1', 'B');
         });
-
-        expect(tokensOf(mockListSubmissions)).toEqual(['old-token', 'new-token']);
+        await act(async () => {
+            await hook.result.current.handleConfirmGrades();
+        });
+        expect(tokensOf(classroomAPI.putGrading)).toEqual(['new-token']);
     });
 
     test('古いトークンで 401 になったときは、これまでどおりログインし直しに進む', async () => {
