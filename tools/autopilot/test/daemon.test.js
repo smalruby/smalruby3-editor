@@ -2761,3 +2761,23 @@ test('writeHttpTokenFile: 0600 で書き、既にあっても 0600 に直す', (
     assert.strictEqual(fs.readFileSync(file, 'utf8'), 'abc\n');
     assert.strictEqual(fs.statSync(file).mode & 0o777, 0o600);
 });
+
+test('startHttp POST /answer: メモだけ保存はローカルに置くだけ、GET /board の monitorQuestions に出る（U1・U2）', async () => {
+    const { createAnswerStore } = require('../src/monitor-answers');
+    const store = createAnswerStore({ now: () => 0 });
+    store.setQuestions(7, { phase: 'triage', round: 1, questions: [{ id: 'q1', text: 't', options: [{ key: 'a', label: 'A' }] }] });
+    const cfg = { ...makeCfg(), port: 0, assignee: null, concurrency: 1, now: () => 5 };
+    const state = { paused: false, running: new Map(), board: null, answerStore: store, monitorReleases: {} };
+    const { server, port } = await startTestHttp(cfg, state);
+    try {
+        const r = await httpRequestJson(port, 'POST', '/answer', JSON.stringify({ issue: 7, answers: [{ q: 'q1', key: 'a', note: 'メモ' }], proceed: false }));
+        assert.strictEqual(r.status, 200);
+        assert.deepStrictEqual(state.monitorReleases, {}); // 🙋 は外さない
+        const b = await httpRequestJson(port, 'GET', '/board');
+        assert.deepStrictEqual(b.body.monitorQuestions.map((q) => [q.issue, q.status, q.answered, q.total]), [[7, 'open', 1, 1]]);
+        assert.strictEqual((await httpRequestJson(port, 'POST', '/answer', JSON.stringify({ issue: 7, answers: [{ q: 'zz', key: 'a' }], proceed: false }))).status, 400);
+        assert.strictEqual((await httpRequestJson(port, 'POST', '/answer', JSON.stringify({ issue: 9, answers: [], proceed: false }))).status, 404);
+    } finally {
+        await new Promise((r) => server.close(r));
+    }
+});
