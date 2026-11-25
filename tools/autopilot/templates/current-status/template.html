@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>開発の現在地</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Noto+Sans+JP:wght@400;700&display=swap">
+<style>
+/* SPDX-License-Identifier: MIT — autopilot の現在地テンプレート（tools/autopilot/templates/current-status）。
+   並び: 人間を待っているもの → 次に聞く見込み → 優先している順 → AI が進めている作業 → EPIC の状況 → 止まっている worker → 入れたもの。 */
+:root {
+  --bg: #f4f5f8; --surface: #ffffff; --fg: #20232c; --muted: #5b6070; --line: #d9dce4;
+  --accent: #2d5fa8; --accent-soft: #e5edf9; --ok: #1f7a4f; --warn: #9a5b00; --hi: #b4232c; --bar: #2d5fa8; --track: #e3e6ee;
+  --font-ui: "BIZ UDPGothic", "Hiragino Sans", sans-serif;
+  --font-body: "Noto Sans JP", "Hiragino Sans", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #14161d; --surface: #1e212b; --fg: #e9ebf2; --muted: #a7acbd; --line: #353a49;
+  --accent: #8fb3ef; --accent-soft: #23304a; --ok: #6fd3a2; --warn: #f0b45a; --hi: #ff8a8f; --bar: #8fb3ef; --track: #2c3140; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #14161d; --surface: #1e212b; --fg: #e9ebf2; --muted: #a7acbd; --line: #353a49;
+  --accent: #8fb3ef; --accent-soft: #23304a; --ok: #6fd3a2; --warn: #f0b45a; --hi: #ff8a8f; --bar: #8fb3ef; --track: #2c3140; color-scheme: dark }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.75; }
+.wrap { max-width: 960px; margin: 0 auto; padding: 28px 16px 80px; display: grid; gap: 30px; }
+h1 { font-family: var(--font-ui); font-size: 26px; margin: 0; line-height: 1.4; }
+h2 { font-family: var(--font-ui); font-size: 20px; margin: 0; }
+p { margin: 0; max-width: 74ch; }
+a { color: var(--accent); overflow-wrap: anywhere; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.box { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 8px; min-width: 0; }
+.section { display: grid; gap: 12px; }
+.wait { display: grid; grid-template-columns: 2.2em 1fr; gap: 10px; align-items: start; }
+.wait .n { font-family: var(--font-ui); font-weight: 700; color: var(--hi); font-size: 18px; text-align: center; }
+.wait .what { font-weight: 700; }
+.epics { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.prog { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.prog .t { flex: 1; height: 6px; background: var(--track); border-radius: 99px; overflow: hidden; }
+.prog .t i { display: block; height: 100%; background: var(--bar); }
+.chip { font-size: 11.5px; font-weight: 700; padding: 1px 8px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); }
+.chip.hi { color: var(--hi); border-color: var(--hi); }
+.chip.ok { color: var(--ok); border-color: var(--ok); }
+.row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.eta { font-size: 17px; font-weight: 700; font-family: var(--font-ui); }
+ul { margin: 0; padding-left: 1.2em; }
+footer { font-size: 12px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><p class="muted">読み込み中…</p></div>
+<script>
+const DATA = /*__CURRENT_STATUS_DATA__*/null;
+const STAGE_CHIP = { design: '', implement: 'ok', 'topic-review': 'hi', develop: 'ok' };
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+function link(href, text) { if (!href) return el('span', null, text); const a = el('a', null, text); a.href = href; a.target = '_blank'; a.rel = 'noopener'; return a; }
+function when(iso) {
+  if (!iso) return '';
+  const d = new Date(iso); if (isNaN(d)) return iso;
+  const p = (n) => String(n).padStart(2, '0');
+  return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+function section(title, body) { const s = el('section', 'section'); s.append(el('h2', null, title), body); return s; }
+function list(items, render, empty) {
+  const box = el('div', 'box small');
+  if (!items || !items.length) { box.append(el('p', 'muted', empty)); return box; }
+  const ul = el('ul'); items.forEach((it) => { const li = el('li'); render(li, it); ul.append(li); }); box.append(ul); return box;
+}
+function render(d) {
+  const app = document.getElementById('app'); app.textContent = '';
+  if (!d) { app.append(el('p', 'muted', 'データがありません。')); return; }
+  document.title = d.title || '開発の現在地';
+  const head = el('header', 'section'); head.append(el('h1', null, d.title || '開発の現在地'));
+  head.append(el('p', 'muted small', (d.asOf ? when(d.asOf) + ' の時点。' : '') + (d.lead || '')));
+  app.append(head);
+
+  const waits = el('div', 'box');
+  if (!d.waits || !d.waits.length) waits.append(el('p', 'muted', 'いま人間を待っているものはありません。'));
+  (d.waits || []).forEach((w, i) => {
+    const row = el('div', 'wait'); row.append(el('div', 'n', String(i + 1)));
+    const body = el('div'); body.append(el('div', 'what', w.what || ''));
+    if (w.why) body.append(el('p', 'small', w.why));
+    if (w.link) { const p = el('p', 'small'); p.append(link(w.link, w.label || w.link)); body.append(p); }
+    row.append(body); waits.append(row);
+  });
+  app.append(section('人間を待っているもの', waits));
+
+  const ni = el('div', 'box');
+  if (d.nextInterview && d.nextInterview.at) {
+    ni.append(el('div', 'eta', when(d.nextInterview.at) + ' ごろ' + (d.nextInterview.questions ? '・' + d.nextInterview.questions + ' 問' : '')));
+    ni.append(el('p', 'small', (d.nextInterview.epic ? '#' + d.nextInterview.epic + ' ' : '') + (d.nextInterview.title || '') + (d.nextInterview.text ? ' — ' + d.nextInterview.text : '')));
+  } else ni.append(el('p', 'muted', '見込みはまだ出せません（設計待ち・または進めている EPIC がありません）。'));
+  app.append(section('次に人間に聞く見込み', ni));
+
+  app.append(section('いま優先しているもの', list(d.priorities, (li, p) => {
+    li.append(el('b', null, (p.priority || '—') + ' '), link(p.link, '#' + p.issue), document.createTextNode(' ' + (p.title || '') + (p.epic ? '（EPIC #' + p.epic + '）' : '')));
+  }, '優先度の付いた作業はありません。')));
+
+  app.append(section('AI が進めている作業', list(d.running, (li, r) => {
+    li.append(el('b', null, '#' + r.issue + ' ' + (r.title || '')), document.createTextNode('（' + r.phase + (r.since ? '・' + when(r.since) + ' から' : '') + '）' + (r.note ? ' ' + r.note : '')));
+  }, 'いま AI が動かしている作業はありません。')));
+
+  const epics = el('div', 'epics');
+  (d.epics || []).forEach((e) => {
+    const c = el('div', 'box'); const t = el('div', 'row');
+    t.append(e.solo ? el('b', null, '単独の Issue') : link(e.link, '#' + e.n), el('b', null, e.solo ? '' : (e.t || '')));
+    if (e.priority) t.append(el('span', 'chip', e.priority));
+    if (e.stageLabel) t.append(el('span', 'chip ' + (STAGE_CHIP[e.stage] || ''), e.stageLabel));
+    if (e.running) t.append(el('span', 'chip ok', '▶ ' + e.running));
+    if (e.pendingDecisions) t.append(el('span', 'chip hi', '決定待ち ' + e.pendingDecisions));
+    c.append(t);
+    if (!e.solo) {
+      const pr = el('div', 'prog'); const tr = el('span', 't'); const bar = el('i');
+      bar.style.width = (e.total ? Math.round(e.done / e.total * 100) : 0) + '%'; tr.append(bar);
+      pr.append(tr, el('span', null, e.done + ' / ' + e.total + (e.eta ? ' · 次の確認 ' + when(e.eta) : ''))); c.append(pr);
+    }
+    if (e.note) c.append(el('p', 'small', e.note));
+    epics.append(c);
+  });
+  if (!(d.epics || []).length) epics.append(el('p', 'muted', 'EPIC はありません。'));
+  app.append(section('EPIC の状況', epics));
+
+  if (d.blocked && d.blocked.length) {
+    app.append(section('止まっている worker', list(d.blocked, (li, b) => {
+      li.append(el('b', null, (b.issue ? '#' + b.issue + ' ' : '') + (b.title || '')), document.createTextNode(b.reason ? ' — ' + b.reason : ''));
+    }, '')));
+  }
+  if (d.added && d.added.length) {
+    app.append(section('入れたもの', list(d.added, (li, a) => {
+      li.append(el('b', null, a.what || ''), document.createTextNode((a.when || a.where ? '（' + [a.when, a.where].filter(Boolean).join('・') + '）' : '') + (a.note ? ': ' + a.note : '')));
+    }, '')));
+  }
+  if (d.footer) app.append(el('footer', null, d.footer));
+}
+render(DATA);
+</script>
+</body>
+</html>

@@ -217,6 +217,28 @@ test('isGateReleased: Issue / PR の 🙋 ラベルのどちらかを外した�
     assert.equal(isGateReleased(item, { humanSpokeLast: true, unhandledChangesRequested: true }), false);
 });
 
+// U1: モニターの「答えて先へ進める」（人間の明示操作）を受けて daemon が 🙋 を外したら、ラベルの
+// 読み直しが遅れていても（hitlLabel=true のまま）ゲートは開く。「メモだけ保存」は合図を立てない。
+test('I2/I3(U1): モニターの「答えて先へ進める」で daemon が 🙋 を外すと、どのゲートも解除される', () => {
+    for (const g of GATES) {
+        const ctx = { ...(g.ctx || {}), hitlSignals: { issueLabel: true, prLabel: true } };
+        assert.equal(phaseForItem(g.item, ctx), null, `${g.name}: 合図なしでは動かない`);
+        assert.equal(phaseForItem(g.item, { ...ctx, monitorReleased: true }), g.expect, `${g.name}: 答えて先へ進めると ${g.expect}`);
+    }
+    // 提案系の HITL（Status を動かさず待つ）と、一時停止の Sprint Backlog + 🙋 も同じ
+    const more = [
+        [{ status: 'In Progress', aiStatus: 'Triaging', hitlLabel: true, kind: 'Issue' }, 'triage'],
+        [{ status: 'In Progress', aiStatus: 'Decomposing', hitlLabel: true, kind: 'EPIC' }, 'decompose'],
+        [{ status: 'Sprint Backlog', hitlLabel: true, kind: 'Issue' }, 'implement'],
+    ];
+    for (const [item, expect] of more) {
+        assert.equal(phaseForItem({ issue: 1, labels: [], ...item }, {}), null);
+        assert.equal(phaseForItem({ issue: 1, labels: [], ...item }, { monitorReleased: true }), expect);
+    }
+    assert.equal(isGateReleased({ hitlLabel: true }, { monitorReleased: true }), true);
+    assert.equal(isGateReleased({ hitlLabel: true }, { monitorReleased: false }), false);
+});
+
 test('I4: hitl 提案は Status を Icebox/Close へ動かさない（プロンプト規約の静的検査）', () => {
     // プロンプト本文に「nextStatus":"Icebox"」「nextStatus":"Close"」の hitl 例が無いこと。
     // （Icebox への遷移は人間の確定操作のみ。提案段階で動かすと出口の無い状態に固着する）
@@ -360,5 +382,24 @@ test('#1315: 🙋 の非終端 item は必ず「何待ちか」の理由を 1 �
             const reason = humanWaitReason({ status, aiStatus, hitlLabel: true });
             assert.ok(keys.has(reason), `${status}/${aiStatus}: ${reason}`);
         }
+    }
+});
+
+// EPIC の流れ（#2385）: topic 宛ての PR の状態にも出口がある
+test('#23/#24: EPIC の流れの自動マージ待ちと Must の直しに出口がある', () => {
+    const { selectAutoMergeCandidates, markAutoMergeContexts } = require('../src/epic-flow');
+    // #23: Review + 🙋 なし + PR の base が topic → フェーズは動かず、D: 自動マージが出口
+    const waiting = { issue: 1, status: 'Review', aiStatus: null, hitlLabel: false, kind: 'Issue', labels: [] };
+    const contexts = markAutoMergeContexts({ 1: { pr: 9, prBase: 'topic/epic-1' } });
+    assert.equal(phaseForItem(waiting, contexts[1]), null);
+    assert.equal(selectAutoMergeCandidates([waiting], new Set(), contexts).length, 1);
+    // 🙋 を付けると従来の人間ゲート（外すと address-review だが autoMerge なのでマージ待ちに戻る）
+    assert.equal(phaseForItem({ ...waiting, hitlLabel: true }, contexts[1]), null);
+    // #24: In Progress + Addressing Comments + 🙋 なし → A: address-review
+    for (const hitl of [false, true]) {
+        const fixing = { issue: 2, status: 'In Progress', aiStatus: 'Addressing Comments', hitlLabel: hitl, kind: 'Issue', labels: [] };
+        if (!hitl) assert.equal(phaseForItem(fixing, {}), 'address-review');
+        // worker 不在なら stalled 復帰も同じフェーズへ
+        assert.equal(selectStalledInFlightItems([fixing], new Set()).length, 1);
     }
 });

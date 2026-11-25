@@ -1,6 +1,9 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert');
+// POST /pause が人間の pause をファイルに残す（#2384）。開発者の ~/.config/autopilot を汚さないよう、
+// このテストの置き場は使い捨ての tmpdir にする。
+process.env.AUTOPILOT_STATE_DIR = require('fs').mkdtempSync(require('path').join(require('os').tmpdir(), 'ap-daemon-test-'));
 const {
     applyMergeProgression, applyClosedReconcile, applyPrProjection, applyDodHandoffs, runTickOnce,
     detectStuck, recoverOrphanedWorkers, recoverStalledInFlightWorkers, markBlocked, getDirectives, populateAssigneeDirectives,
@@ -2019,10 +2022,11 @@ test('tick: 毎 tick で Claude 使用量を読み直す（pause 中でも・#10
 // ---- HTTP: usage をライブ読取（GET /board・POST /refresh・#1027） ----------
 
 /** テスト用: 起動済み server に対して method/path でリクエストし JSON を返す小ヘルパー */
-function httpRequestJson(port, method, pathname, payload) {
+const TEST_HTTP_TOKEN = 't'.repeat(64);
+function httpRequestJson(port, method, pathname, payload, headers = { 'x-autopilot-token': TEST_HTTP_TOKEN }) {
     const http = require('node:http');
     return new Promise((resolve, reject) => {
-        const req = http.request({ host: '127.0.0.1', port, method, path: pathname }, (res) => {
+        const req = http.request({ host: '127.0.0.1', port, method, path: pathname, headers }, (res) => {
             let data = '';
             res.on('data', (c) => { data += c; });
             res.on('end', () => {
@@ -2037,6 +2041,8 @@ function httpRequestJson(port, method, pathname, payload) {
 /** startHttp を port 0 で起動し listening を待つ */
 async function startTestHttp(cfg, state) {
     const { startHttp } = require('../src/daemon');
+    // 書き込みの守り（EPIC #2384 U3）: テストの要求は httpRequestJson が合言葉を付ける
+    if (cfg.httpToken === undefined) cfg.httpToken = TEST_HTTP_TOKEN;
     const server = startHttp(cfg, state, () => {});
     if (!server.listening) await new Promise((r) => server.once('listening', r));
     return { server, port: server.address().port };
@@ -2657,4 +2663,286 @@ test('bootProjectInfo: usage で pause していたら、回復しても usage �
     });
     assert.equal(state.paused, true);
     assert.equal(state.pausedBy, 'usage');
+});
+
+// ---- HTTP: 書き込みの受け付けの守り（127.0.0.1・合言葉・Origin / Host・EPIC #2384 U3） ----
+
+/** 生の HTTP 要求（ヘッダを自由に付ける）。本文はテキストで返す */
+function httpRaw(port, method, pathname, headers = {}) {
+    const http = require('node:http');
+    return new Promise((resolve, reject) => {
+        const req = http.request({ host: '127.0.0.1', port, method, path: pathname, headers }, (res) => {
+            let data = '';
+            res.on('data', (c) => { data += c; });
+            res.on('end', () => resolve({ status: res.statusCode, text: data, headers: res.headers }));
+        });
+        req.on('error', reject);
+        req.end();
+    });
+}
+
+test('startHttp: 合言葉の無い・違う POST は 403、合っていれば通る。別の Origin / Host は 403', async () => {
+    const cfg = { ...makeCfg(), port: 0, assignee: null, concurrency: 1 };
+    const state = { paused: false, pausedBy: null, running: new Map(), board: null };
+    const { server, port } = await startTestHttp(cfg, state);
+    try {
+        const none = await httpRaw(port, 'POST', '/pause');
+        assert.strictEqual(none.status, 403);
+        assert.strictEqual(state.paused, false);
+        const wrong = await httpRaw(port, 'POST', '/pause', { 'x-autopilot-token': 'x'.repeat(64) });
+        assert.strictEqual(wrong.status, 403);
+        // 合言葉はレスポンスに出さない
+        assert.ok(!wrong.text.includes(TEST_HTTP_TOKEN));
+        const cross = await httpRaw(port, 'POST', '/pause', {
+            'x-autopilot-token': TEST_HTTP_TOKEN, origin: 'http://evil.example',
+        });
+        assert.strictEqual(cross.status, 403);
+        const rebind = await httpRaw(port, 'GET', '/status', { host: `evil.example:${port}` });
+        assert.strictEqual(rebind.status, 403);
+        // ルーティングの手前で守るので、ほかのモジュールが受ける POST（/blocked/answer・/tasks）にもかかる
+        assert.strictEqual((await httpRaw(port, 'POST', '/blocked/answer')).status, 403);
+        assert.strictEqual((await httpRaw(port, 'POST', '/tasks')).status, 403);
+        const ok = await httpRaw(port, 'POST', '/pause', {
+            'x-autopilot-token': TEST_HTTP_TOKEN, origin: `http://localhost:${port}`,
+        });
+        assert.strictEqual(ok.status, 200);
+        assert.strictEqual(state.paused, true);
+        // GET は合言葉なしで読める
+        assert.strictEqual((await httpRaw(port, 'GET', '/status')).status, 200);
+    } finally {
+        await new Promise((r) => server.close(r));
+    }
+});
+
+test('startHttp GET /: モニターの HTML に合言葉を埋め、キャッシュさせない', async () => {
+    const cfg = { ...makeCfg(), port: 0, assignee: null, concurrency: 1 };
+    const state = { paused: false, running: new Map(), board: null };
+    const { server, port } = await startTestHttp(cfg, state);
+    try {
+        const r = await httpRaw(port, 'GET', '/');
+        assert.strictEqual(r.status, 200);
+        assert.ok(r.text.includes(`<meta name="autopilot-token" content="${TEST_HTTP_TOKEN}">`));
+        assert.strictEqual(r.headers['cache-control'], 'no-store');
+    } finally {
+        await new Promise((r) => server.close(r));
+    }
+});
+
+test('startHttp: 既定では 127.0.0.1 だけで待つ（cfg.httpHost で変えられる）', async () => {
+    const cfg = { ...makeCfg(), port: 0, assignee: null, concurrency: 1 };
+    const state = { paused: false, running: new Map(), board: null };
+    const { server } = await startTestHttp(cfg, state);
+    try {
+        assert.strictEqual(server.address().address, '127.0.0.1');
+    } finally {
+        await new Promise((r) => server.close(r));
+    }
+});
+
+test('startHttp: 合言葉が無い cfg でも起動時に作り、守りを外さない', async () => {
+    const cfg = { ...makeCfg(), port: 0, assignee: null, concurrency: 1, httpToken: null };
+    const state = { paused: false, running: new Map(), board: null };
+    const { server, port } = await startTestHttp(cfg, state);
+    try {
+        assert.match(cfg.httpToken, /^[0-9a-f]{64}$/);
+        assert.strictEqual((await httpRaw(port, 'POST', '/pause')).status, 403);
+    } finally {
+        await new Promise((r) => server.close(r));
+    }
+});
+
+test('writeHttpTokenFile: 0600 で書き、既にあっても 0600 に直す', () => {
+    const fs = require('node:fs');
+    const os = require('node:os');
+    const path = require('node:path');
+    const { writeHttpTokenFile, httpTokenFilePath } = require('../src/daemon');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daemon-http-token-'));
+    const file = httpTokenFilePath(18787, dir);
+    assert.strictEqual(file, path.join(dir, 'autopilot-http-token-18787'));
+    fs.writeFileSync(file, 'old', { mode: 0o644 });
+    writeHttpTokenFile(file, 'abc');
+    assert.strictEqual(fs.readFileSync(file, 'utf8'), 'abc\n');
+    assert.strictEqual(fs.statSync(file).mode & 0o777, 0o600);
+});
+
+test('startHttp POST /answer: メモだけ保存はローカルに置くだけ、GET /board の monitorQuestions に出る（U1・U2）', async () => {
+    const { createAnswerStore } = require('../src/monitor-answers');
+    const store = createAnswerStore({ now: () => 0 });
+    store.setQuestions(7, { phase: 'triage', round: 1, questions: [{ id: 'q1', text: 't', options: [{ key: 'a', label: 'A' }] }] });
+    const cfg = { ...makeCfg(), port: 0, assignee: null, concurrency: 1, now: () => 5 };
+    const state = { paused: false, running: new Map(), board: null, answerStore: store, monitorReleases: {} };
+    const { server, port } = await startTestHttp(cfg, state);
+    try {
+        const r = await httpRequestJson(port, 'POST', '/answer', JSON.stringify({ issue: 7, answers: [{ q: 'q1', key: 'a', note: 'メモ' }], proceed: false }));
+        assert.strictEqual(r.status, 200);
+        assert.deepStrictEqual(state.monitorReleases, {}); // 🙋 は外さない
+        const b = await httpRequestJson(port, 'GET', '/board');
+        assert.deepStrictEqual(b.body.monitorQuestions.map((q) => [q.issue, q.status, q.answered, q.total]), [[7, 'open', 1, 1]]);
+        assert.strictEqual((await httpRequestJson(port, 'POST', '/answer', JSON.stringify({ issue: 7, answers: [{ q: 'zz', key: 'a' }], proceed: false }))).status, 400);
+        assert.strictEqual((await httpRequestJson(port, 'POST', '/answer', JSON.stringify({ issue: 9, answers: [], proceed: false }))).status, 404);
+    } finally {
+        await new Promise((r) => server.close(r));
+    }
+});
+
+test('startHttp POST /delegate: 入力と対象を確かめて 4xx を返し、GET /board の humanWait に押せるかが出る（#2404）', async () => {
+    const cfg = { ...makeCfg(), port: 0, assignee: null, concurrency: 1, now: () => 5 };
+    const items = [
+        { issue: 7, itemId: 'I7', status: 'Sprint Backlog', kind: 'Issue', hitlLabel: true, labels: ['🙋 HITL'], title: 'a' },
+        { issue: 8, itemId: 'I8', status: 'Backlog', kind: 'Issue', hitlLabel: true, labels: ['🙋 HITL'], title: 'b' },
+        { issue: 9, itemId: 'I9', status: 'Sprint Backlog', kind: 'Issue', hitlLabel: false, labels: [], title: 'c' },
+    ];
+    const state = { paused: true, running: new Map(), board: { items, updatedAt: null }, monitorReleases: {} };
+    const { server, port } = await startTestHttp(cfg, state);
+    try {
+        const post = (body) => httpRequestJson(port, 'POST', '/delegate', JSON.stringify(body));
+        assert.strictEqual((await post({ issue: 'x' })).status, 400);
+        assert.strictEqual((await post({ issue: 99 })).status, 404);
+        const notWait = await post({ issue: 9 });
+        assert.deepStrictEqual([notWait.status, notWait.body.code], [409, 'not-human-wait']);
+        const human = await post({ issue: 8 });
+        assert.deepStrictEqual([human.status, human.body.code], [409, 'human-work']);
+        assert.deepStrictEqual(state.monitorReleases, {});
+        const b = await httpRequestJson(port, 'GET', '/board');
+        assert.deepStrictEqual(b.body.humanWait.map((r) => [r.issue, r.delegate.ok, r.delegate.action || r.delegate.code]),
+            [[7, true, 'release'], [8, false, 'human-work']]);
+    } finally {
+        await new Promise((r) => server.close(r));
+    }
+});
+
+// === 人間の pause の引き継ぎと、起動時のレート制限待ち（#2384） ===
+
+const RATE_LIMITED = 'GraphQL: API rate limit exceeded for installation ID 12345';
+
+test('bootProjectInfo: レート制限では exit せず、リセットまで待って取り直す（#2384）', async () => {
+    const { bootProjectInfo } = require('../src/daemon');
+    const cfg = { owner: 'o', project: 4 };
+    const state = { paused: false, pausedBy: null, authError: null, booting: false, running: new Map() };
+    const now = 1_000_000_000_000;
+    let calls = 0;
+    const waits = [];
+    await bootProjectInfo(cfg, state, () => {}, {
+        now: () => now,
+        getRateLimit: async () => ({ graphql: { remaining: 0, reset: (now + 60_000) / 1000 } }),
+        resolveProjectInfo: async () => {
+            calls += 1;
+            if (calls < 3) throw new Error(RATE_LIMITED);
+            return { projectId: 'P', fields: {} };
+        },
+        sleep: async (ms) => { waits.push({ ms, booting: state.booting, reason: state.bootWait && state.bootWait.reason }); },
+    });
+    assert.equal(calls, 3);
+    assert.deepStrictEqual(waits, [
+        { ms: 70_000, booting: true, reason: 'rate-limit' },
+        { ms: 70_000, booting: true, reason: 'rate-limit' },
+    ]);
+    assert.equal(cfg.projectId, 'P');
+    assert.equal(state.booting, false);
+    assert.equal(state.bootWait, null);
+    // レート制限は auth の pause にしない
+    assert.equal(state.paused, false);
+});
+
+test('bootProjectInfo: rate_limit が取れなくても倍々で待ち、once なら throw する', async () => {
+    const { bootProjectInfo } = require('../src/daemon');
+    const state = { paused: false, pausedBy: null, authError: null, booting: false, running: new Map() };
+    let calls = 0;
+    const waits = [];
+    await bootProjectInfo({ owner: 'o', project: 4 }, state, () => {}, {
+        now: () => 0,
+        getRateLimit: async () => { throw new Error('rate_limit failed'); },
+        resolveProjectInfo: async () => { calls += 1; if (calls < 3) throw new Error(RATE_LIMITED); return { projectId: 'P', fields: {} }; },
+        sleep: async (ms) => { waits.push(ms); },
+    });
+    assert.deepStrictEqual(waits, [30_000, 60_000]);
+    await assert.rejects(
+        bootProjectInfo({ owner: 'o', project: 4 }, { running: new Map() }, () => {}, {
+            once: true, resolveProjectInfo: async () => { throw new Error(RATE_LIMITED); },
+        }),
+        /rate limit/,
+    );
+});
+
+test('bootProjectInfo: 引き継いだ人間の pause はレート制限・認証の待ちのあとも残る', async () => {
+    const { bootProjectInfo } = require('../src/daemon');
+    const state = { paused: true, pausedBy: 'human', authError: null, booting: false, running: new Map() };
+    let calls = 0;
+    await bootProjectInfo({ owner: 'o', project: 4 }, state, () => {}, {
+        now: () => 0,
+        getRateLimit: async () => null,
+        resolveProjectInfo: async () => {
+            calls += 1;
+            if (calls === 1) throw new Error(RATE_LIMITED);
+            if (calls === 2) throw new Error(SSO_EXPIRED);
+            return { projectId: 'P', fields: {} };
+        },
+        sleep: async () => {},
+    });
+    assert.equal(state.paused, true);
+    assert.equal(state.pausedBy, 'human');
+});
+
+test('persistHumanPause / restoreHumanPause: 人間の pause をファイルに残し、再起動で pause のまま始める（#2384）', () => {
+    const fs = require('fs');
+    const os = require('os');
+    const path = require('path');
+    const { persistHumanPause, restoreHumanPause } = require('../src/daemon');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ap-pause-'));
+    const file = path.join(dir, 'sub', 'human-pause-8787.json');
+    const log = () => {};
+    const s1 = { paused: true, pausedBy: 'human' };
+    persistHumanPause({}, s1, log, { file, now: () => Date.parse('2026-11-25T01:02:03Z') });
+    assert.deepStrictEqual(JSON.parse(fs.readFileSync(file, 'utf8')), { pausedBy: 'human', pausedAt: '2026-11-25T01:02:03.000Z' });
+    // 再起動した daemon
+    const s2 = { paused: false, pausedBy: null };
+    assert.equal(restoreHumanPause({}, s2, log, { file }), true);
+    assert.equal(s2.paused, true);
+    assert.equal(s2.pausedBy, 'human');
+    assert.equal(s2.pausedAt, '2026-11-25T01:02:03.000Z');
+    // auth の auto-pause・再開ではファイルを消す
+    persistHumanPause({}, { paused: true, pausedBy: 'auth' }, log, { file });
+    assert.equal(fs.existsSync(file), false);
+    const s3 = { paused: false, pausedBy: null };
+    assert.equal(restoreHumanPause({}, s3, log, { file }), false);
+    assert.equal(s3.paused, false);
+    // 壊れたファイルは無視して止まっていない状態で始める
+    fs.writeFileSync(file, '{oops');
+    assert.equal(restoreHumanPause({}, s3, log, { file }), false);
+    fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('humanPauseFilePath: AUTOPILOT_STATE_DIR の下にポートごとに置く', () => {
+    const { humanPauseFilePath } = require('../src/daemon');
+    const prev = process.env.AUTOPILOT_STATE_DIR;
+    process.env.AUTOPILOT_STATE_DIR = '/x/state';
+    try {
+        assert.equal(humanPauseFilePath({ port: 9999 }), '/x/state/human-pause-9999.json');
+    } finally {
+        if (prev === undefined) delete process.env.AUTOPILOT_STATE_DIR; else process.env.AUTOPILOT_STATE_DIR = prev;
+    }
+});
+
+test('startHttp: /pause は人間の pause をファイルに残し、/resume で消す。起動待ちでも人間の pause は外せる（#2384）', async () => {
+    const fs = require('fs');
+    const { humanPauseFilePath } = require('../src/daemon');
+    const cfg = { ...makeCfg(), port: 0, assignee: null, concurrency: 1 };
+    const state = { paused: false, pausedBy: null, running: new Map(), board: null, booting: true };
+    const file = humanPauseFilePath(cfg);
+    fs.rmSync(file, { force: true });
+    const { server, port } = await startTestHttp(cfg, state);
+    const post = (p) => httpRaw(port, 'POST', p, { 'x-autopilot-token': TEST_HTTP_TOKEN });
+    try {
+        assert.strictEqual((await post('/pause')).status, 200);
+        assert.strictEqual(JSON.parse(fs.readFileSync(file, 'utf8')).pausedBy, 'human');
+        assert.strictEqual((await post('/resume')).status, 200);
+        assert.strictEqual(state.paused, false);
+        assert.strictEqual(fs.existsSync(file), false);
+        // 人間の pause でなければ、起動待ちの /resume は従来どおり断る
+        state.paused = true; state.pausedBy = 'auth';
+        assert.strictEqual((await post('/resume')).status, 503);
+    } finally {
+        await new Promise((r) => server.close(r));
+        fs.rmSync(file, { force: true });
+    }
 });

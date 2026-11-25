@@ -10,6 +10,7 @@
  */
 
 const http = require('http');
+const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -57,6 +58,10 @@ const {
     BOARD_UPKEEP_MS,
     selectClosedCheckIssues,
     rateLimitPlan,
+    isRateLimitError,
+    bootRateLimitWait,
+    restoredHumanPause,
+    humanPauseFileAction,
     PR_SYNC_STATUSES,
     WAITING_LABEL,
     hasLaterLabel,
@@ -103,14 +108,28 @@ const {
     watchdogFromSettings,
 } = require('./phases');
 const { readResultFile } = require('./contract');
-const { runPhase, killSession, capture, listSessions } = require('./runner');
-const { MONITOR_HTML } = require('./monitor');
+const { runPhase, killSession, capture, listSessions, configureRunner, shutdownTerminal } = require('./runner');
+const { createBlockedHub, handleBlockedHttp } = require('./blocked-hub');
+const { monitorHtmlWithToken } = require('./monitor');
+const { checkHttpRequest, parseAllowedHosts } = require('./http-guard');
 const {
     loadSettings, buildClaudeCommand, snapshotRunAssets, resolveUsagePauseThresholds,
 } = require('./settings');
 const { readClaudeUsage } = require('./usage');
+const scheduler = require('./scheduler');
 const { readVersion, checkAutopilotUpdate } = require('./version');
 const project = require('./project');
+// 学び（M6/R1）とタスク（E1）の I/O。daemon からは tick と HTTP の 2 か所でつなぐだけ（EPIC #2384）
+const learnTasks = require('./learn-tasks');
+// EPIC 単位の確認（#2385）: 判断は epic-flow.js、実行のつなぎは epic-merge.js
+const { resolveRunOutcome, isEpicFlowBase, markAutoMergeContexts } = require('./epic-flow');
+const { applyEpicRunSideEffects, applyEpicAutoMerge } = require('./epic-merge');
+// EPIC ごとの進み具合と現在地（#2388）。判断は epic-summary.js / current-status.js、I/O は current-status-job.js
+const { buildStatusMaterial, groupItemsByEpic } = require('./epic-summary');
+const currentStatusJob = require('./current-status-job');
+// モニターで答える（ui-policy §8 の U1・U2）。判断は phases.js、置き場・HTTP・GitHub のつなぎは monitor-answers.js
+const monitorAnswers = require('./monitor-answers');
+const { pruneMonitorReleases, withMonitorReleases, humanWaitRows } = require('./phases');
 
 const execFileP = promisify(execFile);
 
@@ -338,24 +357,149 @@ const UPDATE_CHECK_INTERVAL_MS = 15 * 60 * 1000;
  * @returns {{base: string|null, after: number[], assignee: string|null, unavailable?: boolean}}
  */
 async function getDirectives(cfg, state, issue, log, deps = {}) {
-    const getIssueBody = deps.getIssueBody || project.getIssueBody;
+    // 本文と親（parent_issue_url）を REST 1 回で取る（EPIC #2384: 重さの推定と優先度の継承に使う）。
+    // テストが getIssueBody だけを注入するときは親なしで動く。
+    const getMeta = deps.getIssueMeta
+        || (deps.getIssueBody
+            ? async (r, n, t) => ({ body: await deps.getIssueBody(r, n, t), parent: null })
+            : project.getIssueMeta);
     if (!state.directives) state.directives = new Map();
     const cached = state.directives.get(issue);
     const now = cfg.now();
     if (cached && now - cached.at < (cfg.directiveTtlMs || DIRECTIVE_TTL_MS)) return cached;
     let entry;
     try {
-        const body = await getIssueBody(cfg.repo, issue, deps.token || await project.readToken());
+        const meta = await getMeta(cfg.repo, issue, deps.token || await project.readToken());
+        const body = (meta && meta.body) || '';
         entry = {
             base: parseBaseBranch(body), after: parseAfterIssues(body),
             assignee: parseAssigneeDirective(body), at: now,
+            parent: (meta && meta.parent) || null,
+            // 重さの推定（scheduler.analyzeContent）に使う。タイトルは tick で item から足す
+            body,
         };
+        if (entry.parent) {
+            if (!state.parents) state.parents = new Map();
+            state.parents.set(issue, entry.parent);
+        }
     } catch (e) {
         entry = directivesOnFetchFailure(cached, now, cfg.directiveTtlMs || DIRECTIVE_TTL_MS);
         log(`#${issue}: directive fetch failed (${entry.unavailable ? 'dispatch を見送り' : '前回の値を使用'}): ${e.message}`);
     }
     state.directives.set(issue, entry);
     return entry;
+}
+
+/**
+ * いまの並列の上限（EPIC #2384）。settings.scheduler ← CLI の --concurrency（全体の上限）←
+ * モニターからの一時的な上書き（`state.schedulerOverrides`・再起動で消える）の順に後勝ち。
+ * @returns {object} scheduler.resolveSchedulerLimits の結果
+ */
+function currentSchedulerLimits(cfg, state) {
+    const cli = cfg.cliConcurrency ? { maxTotal: cfg.cliConcurrency } : {};
+    return scheduler.resolveSchedulerLimits(
+        { ...((cfg.settings && cfg.settings.scheduler) || {}), ...cli },
+        (state && state.schedulerOverrides) || {},
+    );
+}
+
+/**
+ * 空きメモリ（/proc/meminfo の MemAvailable）と CPU（loadavg の 1 分値・CPU 数）を読む。
+ * /proc が無い環境（macOS）ではメモリを null にし、計画はメモリを見ずに上限だけで決める。
+ * @param {object} [deps] { readFile, loadavg, cpus }（テスト用）
+ * @returns {{memAvailableMb:(number|null), load1:(number|null), cpus:(number|null)}}
+ */
+function readResources(deps = {}) {
+    let memAvailableMb = null;
+    try {
+        memAvailableMb = scheduler.parseMemAvailableMb((deps.readFile || fs.readFileSync)('/proc/meminfo', 'utf8'));
+    } catch (e) { /* /proc が無い */ }
+    let load1 = null;
+    let cpus = null;
+    try {
+        load1 = (deps.loadavg || os.loadavg)()[0];
+        cpus = (deps.cpus || os.cpus)().length || null;
+    } catch (e) { /* 取れなくても動く */ }
+    return { memAvailableMb, load1, cpus };
+}
+
+/**
+ * 並列の計画に数える「実行中の worker」。Issue の worker に、Issue に結びつかない worker
+ * （タスク・学びの PR・現在地の job）を足す。どれも同じ claude を動かすので全体の上限に数える。
+ * @returns {{issue: (number|string), weight: string}[]}
+ */
+function runningWorkersForPlan(state) {
+    if (!state.weights) state.weights = new Map();
+    const issues = [...state.running.entries()].map(([issue, r]) => ({
+        issue,
+        weight: state.weights.get(issue)
+            || scheduler.estimateWeight({ phase: r && r.phase }).weight,
+    }));
+    const extra = learnTasks.runningWorkers(state);
+    if (state.currentStatusJob) extra.push({ issue: 'current-status', weight: 'light' });
+    return [...issues, ...extra];
+}
+
+/**
+ * Issue に結びつかない worker（タスク）を、Issue の worker の計画のあとの残りの枠で始めてよいか決める。
+ * @param {{issue: string, weight: string}[]} cands
+ * @returns {string[]} 始めてよい cands の issue
+ */
+function planExtraSlots(cands, cfg, state, deps = {}) {
+    const limits = currentSchedulerLimits(cfg, state);
+    const resources = (deps.readResources || readResources)();
+    return scheduler.planSlots({ candidates: cands, running: runningWorkersForPlan(state), limits, resources }).picked;
+}
+
+/**
+ * after が解けた候補から、この tick で始めるものを決める（EPIC #2384）。
+ * 優先度（自分 → 親 EPIC → 既定 P2）→ Project の並びで並べ、重さを推定し、上限と空きメモリ・CPU で
+ * 計画する（判断は scheduler.js の純粋関数）。計画と理由は `state.schedulePlan` に置き、モニターと
+ * ログに出す。始めるものの重さは `state.weights` に覚え、次の tick の「実行中の重いもの」に数える。
+ * @param {object[]} eligible Project の並びの候補（phase 付き）
+ * @param {Map<number, object>} directivesByIssue getDirectives の結果
+ * @param {object[]} items この tick の Project item（Priority と親の Priority を引く）
+ * @param {object} limits currentSchedulerLimits の結果
+ * @param {object} cfg
+ * @param {object} state
+ * @param {Function} log
+ * @param {object} [deps] { readResources }（テスト用）
+ * @returns {object[]} 始める item（優先度の順）
+ */
+function planDispatch(eligible, directivesByIssue, items, limits, cfg, state, log, deps = {}) {
+    const priorityByIssue = new Map((items || []).map((it) => [it.issue, it.priority || null]));
+    const parentByIssue = state.parents || new Map();
+    const ordered = scheduler.orderByPriority(eligible, { priorityByIssue, parentByIssue });
+    if (!state.weights) state.weights = new Map();
+    for (const k of [...state.weights.keys()]) if (!state.running.has(k)) state.weights.delete(k);
+    const withWeight = ordered.map((item) => {
+        const d = directivesByIssue.get(item.issue) || {};
+        const est = scheduler.estimateWeight({
+            phase: item.phase,
+            content: scheduler.analyzeContent(item.title, d.body || ''),
+        });
+        return { ...item, weight: est.weight, weightSource: est.source, weightReasons: est.reasons };
+    });
+    const running = runningWorkersForPlan(state);
+    const resources = (deps.readResources || readResources)();
+    const plan = scheduler.planSlots({ candidates: withWeight, running, limits, resources });
+    const pickedSet = new Set(plan.picked);
+    const picked = withWeight.filter((c) => pickedSet.has(c.issue));
+    for (const c of picked) state.weights.set(c.issue, c.weight);
+    const prev = state.schedulePlan && state.schedulePlan.reason;
+    state.schedulePlan = {
+        at: cfg.now(),
+        reason: plan.reason,
+        summary: plan.summary,
+        started: picked.map((c) => ({ issue: c.issue, phase: c.phase, weight: c.weight, priority: c.priority })),
+        waiting: plan.waiting.slice(0, 20),
+        order: withWeight.slice(0, 20).map((c) => ({
+            issue: c.issue, priority: c.priority, prioritySource: c.prioritySource, weight: c.weight,
+        })),
+    };
+    // 同じ理由を毎 tick 出し続けない（変わったとき・始めたときだけ）
+    if (picked.length || plan.reason !== prev) log(`schedule: ${plan.reason}`);
+    return picked;
 }
 
 /**
@@ -418,7 +562,7 @@ const BOOT_AUTH_RETRY_MS = 30_000;
  * 起動待ち（state.booting）の間に受け付けない操作。どれも Project の ID・フィールドが要る。
  * /resume は auth の pause を外しても稼働できないので、理由を返して断る。
  */
-const BOOT_BLOCKED_PATHS = new Set(['/tick', '/refresh', '/later', '/inject', '/resolve-conflict', '/resume']);
+const BOOT_BLOCKED_PATHS = new Set(['/tick', '/refresh', '/later', '/inject', '/resolve-conflict', '/resume', '/priority']);
 
 /**
  * `aws sso login --use-device-code` の出力から認証 URL と user code を抽出する（純粋関数）。
@@ -650,6 +794,64 @@ function sleepUntilWoken(state, ms) {
 }
 
 /**
+ * 人間の pause を残すファイル（#2384）。monitor-answers.json と同じ置き場（`AUTOPILOT_STATE_DIR`、
+ * 既定 `~/.config/autopilot/`）。ポートごとに分け、同じ人の別の daemon の pause を巻き込まない。
+ * @param {object} cfg port を見る
+ * @returns {string}
+ */
+function humanPauseFilePath(cfg) {
+    const port = (cfg && cfg.port) || 8787;
+    return path.join(currentStatusJob.stateDir(), `human-pause-${port}.json`);
+}
+
+/**
+ * 人間の pause をファイルに書く・消す（{@link humanPauseFileAction} が決める）。
+ * 失敗しても daemon は止めない（ログに残すだけ）。
+ * @param {object} cfg
+ * @param {object} state
+ * @param {Function} log
+ * @param {object} [deps] テスト用 { file, fs, now }
+ */
+function persistHumanPause(cfg, state, log, deps = {}) {
+    const file = deps.file || humanPauseFilePath(cfg);
+    const fsx = deps.fs || fs;
+    try {
+        if (humanPauseFileAction(state) === 'write') {
+            fsx.mkdirSync(path.dirname(file), { recursive: true });
+            const pausedAt = state.pausedAt || new Date((deps.now || Date.now)()).toISOString();
+            state.pausedAt = pausedAt;
+            fsx.writeFileSync(file, `${JSON.stringify({ pausedBy: 'human', pausedAt })}\n`);
+        } else {
+            state.pausedAt = null;
+            fsx.rmSync(file, { force: true });
+        }
+    } catch (e) { log(`human pause file warn: ${e.message}`); }
+}
+
+/**
+ * 起動時、人間の pause のファイルがあれば pause したまま始める（最初の tick より前に呼ぶ・#2384）。
+ * @param {object} cfg
+ * @param {object} state
+ * @param {Function} log
+ * @param {object} [deps] テスト用 { file, fs }
+ * @returns {boolean} pause を戻したら true
+ */
+function restoreHumanPause(cfg, state, log, deps = {}) {
+    const file = deps.file || humanPauseFilePath(cfg);
+    const fsx = deps.fs || fs;
+    let saved = null;
+    try {
+        if (!fsx.existsSync(file)) return false;
+        saved = JSON.parse(fsx.readFileSync(file, 'utf8'));
+    } catch (e) { log(`human pause file warn: ${e.message}`); }
+    const patch = restoredHumanPause(saved);
+    if (!patch) return false;
+    Object.assign(state, patch);
+    log(`paused (人間の一時停止を引き継いだ${patch.pausedAt ? `: ${patch.pausedAt}` : ''}) — 再開は POST /resume`);
+    return true;
+}
+
+/**
  * 起動時に Project 情報を取り、cfg に入れる（#1510）。
  *
  * devpod の再起動直後は SSO が切れていて bot トークンが取れない。以前はここで落ちて
@@ -672,16 +874,39 @@ async function bootProjectInfo(cfg, state, log, deps = {}) {
     const resolve = deps.resolveProjectInfo || resolveProjectInfo;
     const wait = deps.sleep || ((ms) => sleepUntilWoken(state, ms));
     const retryMs = deps.retryMs || BOOT_AUTH_RETRY_MS;
+    const now = deps.now || (() => Date.now());
+    const readLimits = deps.getRateLimit || (async () => project.getRateLimit(await project.botToken()));
     state.booting = true;
+    let rateAttempt = 0;
     for (;;) {
         let info;
         try {
             info = await resolve(cfg);
         } catch (e) {
+            // レート制限（#2384）: exit すると supervisor が再起動してまた落ちるだけなので、
+            // HTTP を立てたまま残量が戻るのを待つ。rate_limit の問い合わせはレートを消費しない。
+            if (isRateLimitError(e) && !deps.once) {
+                let limits = null;
+                try { limits = await readLimits(); } catch (le) { log(`boot: rate_limit を取れない: ${le.message}`); }
+                const { waitMs, resetAt } = bootRateLimitWait(limits, now(), rateAttempt);
+                rateAttempt += 1;
+                state.bootWait = {
+                    reason: 'rate-limit',
+                    message: sanitizeForSurface(e.message || String(e), 300),
+                    resetAt: resetAt ? new Date(resetAt).toISOString() : null,
+                    retryAt: new Date(now() + waitMs).toISOString(),
+                };
+                log(`boot: GitHub のレート制限で起動できない — ${Math.round(waitMs / 1000)} 秒後に取り直す` +
+                    (resetAt ? `（リセット ${state.bootWait.resetAt}）` : ''));
+                await wait(waitMs);
+                continue;
+            }
             if (!isAuthError(e) || deps.once) {
                 state.booting = false;
+                state.bootWait = null;
                 throw e;
             }
+            state.bootWait = null;
             if (!state.authError) log('boot: bot トークンが取れないため、モニタで SSO ログインを待つ');
             recordAuthFailure(state, e, log);
             await wait(retryMs);
@@ -692,7 +917,9 @@ async function bootProjectInfo(cfg, state, log, deps = {}) {
         // 投入順を Board view の見た目に揃えるための Status 列順（= option 定義順）
         cfg.statusOrder = Object.keys((info.fields.Status && info.fields.Status.options) || {});
         if (state.authError) log('boot: 認証が回復した — 稼働を始める');
+        if (state.bootWait) log('boot: レート制限が戻った — 稼働を始める');
         Object.assign(state, authRecoveryPatch(state));
+        state.bootWait = null;
         state.booting = false;
         state.bootSsoDone = false;
         state.bootWakePending = false;
@@ -1289,12 +1516,21 @@ async function dispatch(item, cfg, state, log) {
             AUTOPILOT_BASE_BRANCH: baseBranch,
             // address-review はゲート（Review / DoD か Blocked か）で扱う範囲が違う
             AUTOPILOT_STATUS: item.status || '',
+            // EPIC の流れ（#2385）: address-review は In Progress + Addressing Comments なら Must の自動の直し
+            AUTOPILOT_AI_STATUS: item.aiStatus || '',
+            AUTOPILOT_EPIC_FLOW: isEpicFlowBase(baseBranch, DEFAULT_BASE_BRANCH) ? '1' : '',
         };
+        // モニターで人間が答えた質問があれば、答えのファイルを置いてプロンプトで読ませる（U2）
+        const answersFile = monitorAnswers.deliverMonitorAnswers(item.issue, cwd, state);
+        env.AUTOPILOT_ANSWERS_FILE = answersFile || '';
+        if (answersFile) log(`#${item.issue}: monitor answers -> ${answersFile}`);
         const { command, promptDir } = workerCommand(cfg, phase, cwd);
         log(`#${item.issue}: run ${phase} (${meta.skill})`);
         const res = await runPhase({
-            session, cwd, env, command, promptDir, skill: meta.skill, issue: item.issue, resultFile, log,
+            session, cwd, env, command, promptDir, skill: meta.skill, issue: item.issue, resultFile, log, answersFile,
             watchdog: cfg.watchdog,
+            // blocked で人間を待つときの口（モニターの「止まっている worker」・#2387）
+            blocked: state.blockedHub ? state.blockedHub.channel(item.issue, phase, session) : undefined,
         });
         // worker のセッションが終わったこのタイミングで Claude 使用率を更新する（#879）。
         updateClaudeUsage(state, cfg, log);
@@ -1320,7 +1556,11 @@ async function dispatch(item, cfg, state, log) {
             await blockToHuman(`run は終了しましたが結果ファイルが不正でした: ${parsed.errors.join('; ')}`);
             return;
         }
-        const intents = applyResult(parsed.result);
+        // EPIC の流れ（#2385）では review の Must の数などで反映を上書きする（それ以外は applyResult のまま）
+        const outcome = resolveRunOutcome(parsed.result, {
+            epicFlow: isEpicFlowBase(baseBranch, DEFAULT_BASE_BRANCH), priorStatus: item.status, priorAiStatus: item.aiStatus,
+        });
+        const intents = outcome.intents;
         const applied = await project.applyIntents(ctx, itemId, intents, await project.botToken());
         // ローカルで把握した状態変化を board キャッシュにも反映（#888）。GraphQL は増やさない。
         // implement 完了→ AI Status=Self-Reviewing 等が refreshBoard を待たず monitor に live 反映される。
@@ -1340,8 +1580,16 @@ async function dispatch(item, cfg, state, log) {
         }
         // 権威的な面同期（contract §7）: 🙋/🤖 ラベル・Draft・sticky を Project 状態 + HITL 希望へ合わせる。
         // HITL は Project フィールドではなくラベルなので、結果から導いた希望を hitlLabel として渡す（#813）。
-        const wantHitl = hitlDesireFromResult(parsed.result);
+        const wantHitl = outcome.hitl;
         await syncFacesAfterIntents({ ...item, hitlLabel: wantHitl }, intents, cfg, log);
+        // hitl の質問（questions）をモニターに出し、Issue にもマーカー付きで書く（U2）
+        if (state.answerStore) {
+            await monitorAnswers.recordHitlQuestions(item.issue, parsed.result, { cfg, store: state.answerStore, log })
+                .catch((e) => log(`#${item.issue}: monitor questions failed: ${e.message}`));
+        }
+        await applyEpicRunSideEffects(item, parsed.result, outcome, { pr }, cfg, log, {
+            onDecisions: (epic, count) => recordEpicDecisionCount(state, epic, count),
+        });
         // 協調的チェックポイント（EPIC #906）: 保険commit・continuation コメント・反復上限
         // エスカレーションは上の汎用処理（AI Status=Awaiting Continuation + HITL）の**後**に行う。
         // escalate 時の markBlocked（Status=Blocked への上書き）が確実に最後の書き込みになる。
@@ -2061,7 +2309,9 @@ async function applyPrProjection(items, cfg, state, log, deps = {}) {
     for (const item of selectPrSyncCandidates(items)) {
         if (state.running.has(item.issue)) continue; // live phase が所有中は触らない
         try {
-            await syncFacesForItem(item, io, cfg, log, opts);
+            // モニターで外した 🙋 を、古い item から付け直さない（hitlLabelAction の monitorReleased）
+            const monitorReleased = Boolean(state.monitorReleases && state.monitorReleases[item.issue]);
+            await syncFacesForItem(item, io, cfg, log, { ...opts, monitorReleased });
         } catch (e) {
             log(`#${item.issue}: pr projection failed: ${e.message}`);
         }
@@ -2115,7 +2365,12 @@ async function tick(cfg, state, log) {
     await recoverStalledInFlightWorkers(items, cfg, state, log)
         .catch((e) => log(`stalled recovery error: ${e.message}`));
     const running = new Set(state.running.keys());
-    const contexts = await collectGateContexts(cfg, items, running, state, log);
+    // モニターの「答えて先へ進める」で daemon が外した 🙋 は、一覧の読み直しが遅れても外れた扱いにする（U1）
+    state.monitorReleases = pruneMonitorReleases(state.monitorReleases, items);
+    const contexts = withMonitorReleases(
+        markAutoMergeContexts(await collectGateContexts(cfg, items, running, state, log), DEFAULT_BASE_BRANCH),
+        state.monitorReleases,
+    );
     // 協調的チェックポイント（EPIC #906・#912）: Awaiting Continuation の item は continuation
     // ファイル（worktree 内）から元フェーズ・反復回数を読み、phaseForItem が implement 固定
     // フォールバックに頼らず正しいフェーズ（例 address-review）へ再開できるようにする。
@@ -2149,19 +2404,23 @@ async function tick(cfg, state, log) {
     // merge で Project は Close（終端）になるので selectClosedCheckIssues の定常確認からは外れる →
     // 下の on-demand 確認に含める。
     const closedOnly = infraIssueSet(items);
-    const capacity = Math.max(0, cfg.concurrency - state.running.size);
-    const picked = [];
+    // 並列の計画（EPIC #2384）: 上限は settings.scheduler ← CLI --concurrency ← モニターの一時上書き。
+    // recoverStalledInFlightWorkers・モニター表示が使う cfg.concurrency も全体の上限にそろえる。
+    const limits = currentSchedulerLimits(cfg, state);
+    cfg.concurrency = limits.maxTotal;
+    // タスクなど Issue に結びつかない worker も全体の上限に数える（runningWorkersForPlan）
+    const capacity = Math.max(0, limits.maxTotal - runningWorkersForPlan(state).length);
     // autopilot-after ゲートで待たされている candidate を記録し、後で ⏳ waiting ラベルを
     // 依存状態へ合わせる（true=依存未完了で待ち / false=解決済み）。examined な candidate のみ。
     const waitingByIssue = new Map();
+    // after が解けた候補（Project の並び）。優先度で並べ替えてから計画に渡す。
+    const eligible = [];
+    const directivesByIssue = new Map();
     for (const item of candidates) {
         const hasWaitLabel = (item.labels || []).includes(WAITING_LABEL);
-        const capacityLeft = picked.length < capacity;
-        // ディレクティブ取得（本文 fetch）は API を食うので、**capacity 内の候補**か、
-        // **既に ⏳ が付いた候補（解決したら外すため再評価が要る）**だけに絞る。capacity が
-        // 埋まった後の未ラベル候補は従来どおり読まない（API 削減の趣旨を維持）。
-        // TTL キャッシュがあるので 2 tick 目以降はさらに安い。
-        if (!capacityLeft && !hasWaitLabel) continue;
+        // 空きが無い tick は、⏳ を外すための再評価が要る候補だけ本文を読む（API 削減の趣旨を維持）。
+        // 空きがあるときは優先度の継承（親）と重さの推定のために全候補を読む（TTL キャッシュつき）。
+        if (capacity === 0 && !hasWaitLabel) continue;
         const directives = await getDirectives(cfg, state, item.issue, log);
         // 本文を一度も取れていない item は after を判定できない → この tick は候補から外す（#1309）。
         // ⏳ waiting ラベルの付け外しも判定できないので触らない（waitingByIssue に入れない）。
@@ -2186,8 +2445,9 @@ async function tick(cfg, state, log) {
             log(`#${item.issue}: autopilot-after 待ち (未完了: ${unresolved.map((n) => `#${n}`).join(', ')})`);
             continue;
         }
-        if (capacityLeft) picked.push(item);
+        if (capacity > 0) { eligible.push(item); directivesByIssue.set(item.issue, directives); }
     }
+    const picked = planDispatch(eligible, directivesByIssue, items, limits, cfg, state, log);
     // ⏳ waiting ラベルを依存状態へ合わせる（待ち=付与 / 解決=除去）。picked を dispatch する
     // **前**に実行するので、これから着手する item からは ⏳ が外れる（実行中は candidate に
     // 含まれないので二重には触らない）。
@@ -2196,7 +2456,20 @@ async function tick(cfg, state, log) {
         // fire-and-forget（running で重複防止）
         dispatch(item, cfg, state, log);
     }
-    // 人間が手動 merge した leaf を Close へ前進（自動 merge はしない）+ GitHub issue も close（#843 Fix A）
+    // topic 宛ての PR（Review + 🙋 なし）を CI 通過・コンフリクト無しで自動マージ（#2385）。
+    // マージした PR は直後の merge-progression が Close + GitHub の Issue を閉じる。
+    await applyEpicAutoMerge(items, contexts, cfg, state, log, {
+        resolveConflict: (it) => dispatchResolveConflict(it, cfg, state, log),
+        hasCapacity: () => state.running.size < cfg.concurrency,
+        patchBoard: (issue, intents) => patchBoardCache(state, issue, intents),
+        syncFaces: (it, intents) => syncFacesAfterIntents(it, intents, cfg, log),
+        onDecisions: (epic, count) => recordEpicDecisionCount(state, epic, count),
+    }).catch((e) => log(`epic auto-merge error: ${e.message}`));
+    // 時刻が来たタスク（1 回・定期）を worker で実行する（fire-and-forget）。Issue の worker を先に計画し、
+    // 残りの枠（全体・重い・空きメモリ）でタスクを始める（planExtraSlots）
+    learnTasks.applyDueTasks(cfg, state, log, { workerCommand, planSlots: (cands) => planExtraSlots(cands, cfg, state) })
+        .catch((e) => log(`task error: ${e.message}`));
+    // 人間が手動 merge した leaf（と上の自動マージ）を Close へ前進 + GitHub issue も close（#843 Fix A）
     await applyMergeProgression(items, cfg, state, log);
     // GitHub で closed な issue（EPIC・人手 close 含む）の Project Status を Close へ整合（#843 Fix B）
     await applyClosedReconcile(items, cfg, state, log, { closedSet });
@@ -2287,6 +2560,56 @@ function patchLaterCache(state, issue, later) {
     };
     if (state.board) patch(state.board.items, true);
     if (state.itemsCache) patch(state.itemsCache.items, false);
+}
+
+/**
+ * モニターの ▲ / ▼（EPIC #2384）で item の Priority を 1 段動かす（または `priority` を直接設定する）。
+ * 今の値は、自分に付いていなければ親（EPIC）から継いだ値・既定（P2）から動かす。EPIC を動かせば、
+ * 自分の Priority を持たない sub-issue は継承で一緒に動く。書いたら tick / board のキャッシュにも
+ * 反映し、refreshBoard を待たずにモニターへ出す。
+ * @param {object} cfg
+ * @param {object} state
+ * @param {Function} log
+ * @param {{issue:number, direction?:('up'|'down'), priority?:string}} req
+ * @param {object} [deps] { setPriority }（テスト用）
+ * @returns {Promise<{issue:number, priority:string, from:string}>}
+ */
+async function setItemPriority(cfg, state, log, req, deps = {}) {
+    const setPriorityFn = deps.setPriority || project.setPriority;
+    const issue = Number(req.issue);
+    const pools = [
+        (state.itemsCache && state.itemsCache.items) || [],
+        (state.board && state.board.items) || [],
+    ];
+    const found = pools.map((arr) => arr.find((x) => x && x.issue === issue)).find(Boolean);
+    if (!found || !found.itemId) throw new Error(`#${issue} は Project のキャッシュにありません（🔄 更新してから）`);
+    const priorityByIssue = new Map();
+    for (const arr of pools) for (const x of arr) if (x && x.priority) priorityByIssue.set(x.issue, x.priority);
+    const cur = scheduler.effectivePriority(issue, { priorityByIssue, parentByIssue: state.parents || new Map() });
+    const next = req.priority ? scheduler.normalizePriority(req.priority) : scheduler.shiftPriority(cur.priority, req.direction);
+    if (!next) throw new Error(`priority が不正です: ${req.priority}`);
+    await setPriorityFn({ projectId: cfg.projectId, fields: cfg.fields }, found.itemId, next);
+    for (const arr of pools) for (const x of arr) if (x && x.issue === issue) x.priority = next;
+    log(`#${issue}: Priority ${cur.priority}${cur.source === 'own' ? '' : `（${cur.source}）`} → ${next}`);
+    return { issue, priority: next, from: cur.priority };
+}
+
+/**
+ * モニターから並列の上限を一時的に変える（EPIC #2384）。再起動で消える（ずっと変えるなら settings.json）。
+ * 数でない値は無視し、null を渡したキーは上書きを外す。
+ * @param {object} state
+ * @param {object} body 例 { maxTotal: 4, maxHeavy: 1 }
+ * @returns {object} いまの上書き
+ */
+function setSchedulerOverrides(state, body) {
+    const next = { ...(state.schedulerOverrides || {}) };
+    for (const [k, v] of Object.entries(body || {})) {
+        if (!(k in scheduler.DEFAULT_SCHEDULER_LIMITS)) continue;
+        if (v === null) delete next[k];
+        else if (typeof v === 'number' && Number.isFinite(v) && v >= 0) next[k] = v;
+    }
+    state.schedulerOverrides = next;
+    return next;
 }
 
 /**
@@ -2415,6 +2738,7 @@ async function refreshBoard(cfg, state, log, deps = {}) {
             log(`board enrichment failed: ${e.message}`);
         }
         const enriched = [];
+        const boardPriorityByIssue = new Map(items.map((x) => [x.issue, x.priority || null]));
         for (const it of boardItems) {
             const extra = enrichment[it.issue] || { subIssues: { total: 0, completed: 0, percent: 0 }, prs: [] };
             // close リンクに PR が出ない（非デフォルト base 宛て等）item は head ブランチで補完
@@ -2431,6 +2755,8 @@ async function refreshBoard(cfg, state, log, deps = {}) {
             const waitReason = humanWaitReason(it);
             enriched.push({
                 issue: it.issue,
+                // Project の item id（モニターの「AI に任せる」が Status を書くときに使う・#2404）
+                itemId: it.itemId || null,
                 title: it.title,
                 url,
                 waitReason,
@@ -2441,6 +2767,12 @@ async function refreshBoard(cfg, state, log, deps = {}) {
                 hitl: Boolean(it.hitlLabel),
                 kind: it.kind || null,
                 size: it.size || null,
+                // 優先度（EPIC #2384）: 自分の値と、親 EPIC から継いだ実際に効く値（モニターの ▲▼ 用）
+                priority: it.priority || null,
+                effectivePriority: scheduler.effectivePriority(it.issue, {
+                    priorityByIssue: boardPriorityByIssue,
+                    parentByIssue: state.parents || new Map(),
+                }),
                 assignees: it.assignees || [],
                 tracker: isTrackerItem(it),
                 // autopilot-after ゲート待ち（daemon が毎 tick 維持する ⏳ ラベルをそのまま反映）。
@@ -2452,6 +2784,8 @@ async function refreshBoard(cfg, state, log, deps = {}) {
                 owner: itemOwner(it),
                 subIssues: extra.subIssues,
                 prs: extra.prs,
+                // EPIC ごとにまとめる材料（#2388）。priority は #2386 が Project の Priority を載せる
+                parent: extra.parent || null,
             });
         }
         state.board = { updatedAt: cfg.now(), items: enriched };
@@ -2583,10 +2917,18 @@ function boardResponse(cfg, state) {
         reauthHint: reauthHintFor(state),
         reauth: state.reauth || null,
         booting: !!state.booting,
+        bootWait: state.bootWait || null,
+        pausedAt: state.pausedAt || null,
         notice: authNoticeKind(state),
         assignee: cfg.assignee,
         concurrency: cfg.concurrency,
-        running: [...state.running.entries()].map(([issue, v]) => ({ issue, phase: v.phase, since: v.since })),
+        running: [...state.running.entries()].map(([issue, v]) => ({
+            issue, phase: v.phase, since: v.since, weight: (state.weights && state.weights.get(issue)) || null,
+        })),
+        // 並列の計画と理由・いまの上限（EPIC #2384）
+        schedule: state.schedulePlan || null,
+        schedulerLimits: currentSchedulerLimits(cfg, state),
+        schedulerOverrides: state.schedulerOverrides || {},
         rate: state.ratePlan || null,
         claudeUsage: state.claudeUsage || null,
         usagePause: state.usagePause || null,
@@ -2595,7 +2937,58 @@ function boardResponse(cfg, state) {
         autopilotUpdate: state.autopilotUpdate || null,
         items: state.board ? state.board.items : [],
         history: state.history || [],
+        // EPIC ごとのまとめと現在地（#2388）
+        epicGroups: groupItemsByEpic(state.board ? state.board.items : [], statusMaterialCtx(cfg, state)),
+        currentStatus: state.currentStatus || null,
+        // モニターで答える質問（答え待ちと、答えて worker を待っているもの）
+        monitorQuestions: state.answerStore ? state.answerStore.list() : [],
+        // 「あなた宛て」の人間待ち（🙋）と「AI に任せる」が押せるか（#2404）
+        humanWait: humanWaitRows(state.board ? state.board.items : [], {
+            running: state.running.keys(),
+            questionIssues: (state.answerStore ? state.answerStore.list() : []).filter((q) => q.status === 'open').map((q) => q.issue),
+        }),
     };
+}
+
+/**
+ * EPIC の「決定待ち」まとめコメントの件数を state に置く（#2385）。statusMaterialCtx の
+ * decisionsByEpic（モニターの EPIC の欄・/status.json）が読む。daemon を起動し直すと消え、
+ * 次に決定待ちを書いたときに戻る。
+ */
+function recordEpicDecisionCount(state, epic, count) {
+    if (!state || !epic) return;
+    if (!state.epicDecisions) state.epicDecisions = {};
+    state.epicDecisions[epic] = count;
+}
+
+/** EPIC のまとめに渡す live の値（#2388）。決定待ち・止まった worker・dispatch の順は他の担当が state に載せる。 */
+function statusMaterialCtx(cfg, state) {
+    return {
+        running: [...(state.running || new Map()).entries()].map(([issue, v]) => ({ issue, phase: v.phase, since: v.since })),
+        history: state.history || [],
+        concurrency: cfg.concurrency,
+        now: typeof cfg.now === 'function' ? cfg.now() : 0,
+        decisionsByEpic: state.epicDecisions || {},
+    };
+}
+
+/**
+ * `GET /status.json`（現在地の材料・#2388）。現在地を作る worker とモニタが読む。
+ * @param {object} cfg
+ * @param {object} state
+ * @returns {object}
+ */
+function statusMaterialResponse(cfg, state) {
+    const ctx = statusMaterialCtx(cfg, state);
+    return buildStatusMaterial({
+        ...ctx,
+        items: state.board ? state.board.items : [],
+        boardUpdatedAt: state.board ? state.board.updatedAt : null,
+        blocked: state.blockedWorkers || [],
+        order: state.priorityOrder || null,
+        repo: cfg.repo,
+        currentStatus: state.currentStatus || null,
+    });
 }
 
 /**
@@ -2612,6 +3005,8 @@ function statusResponse(cfg, state) {
         reauthHint: reauthHintFor(state),
         reauth: state.reauth || null,
         booting: !!state.booting,
+        bootWait: state.bootWait || null,
+        pausedAt: state.pausedAt || null,
         notice: authNoticeKind(state),
         assignee: cfg.assignee,
         concurrency: cfg.concurrency,
@@ -2623,20 +3018,79 @@ function statusResponse(cfg, state) {
         version: state.version || null,
         autopilotUpdate: state.autopilotUpdate || null,
         running: [...state.running.entries()].map(([issue, v]) => ({ issue, phase: v.phase })),
+        monitorQuestions: state.answerStore ? state.answerStore.list() : [],
+    };
+}
+
+/**
+ * `POST /answer` に渡す ctx（monitor-answers.js の handleAnswerHttp）。「答えて先へ進める」が通ったら
+ * すぐ 1 tick 回して worker を起こす（interval を待たせない。再入は runTickOnce が防ぐ）。
+ * @returns {object|null}
+ */
+function answerHttpContext(cfg, state, log) {
+    if (!state.answerStore) return null;
+    return {
+        store: state.answerStore,
+        now: cfg.now,
+        onProceed: async (issue, entry, plan) => {
+            const r = await monitorAnswers.proceedMonitorAnswer(issue, entry, plan, { cfg, state, log, now: cfg.now });
+            if (r.status === 200 && !state.paused) {
+                runTickOnce(cfg, state, log).catch((e) => log(`tick after answer error: ${e.message}`));
+            }
+            return r;
+        },
+    };
+}
+
+/**
+ * `POST /delegate` に渡す ctx（monitor-answers.js の handleDelegateHttp・#2404）。/answer と同じく、通ったら
+ * pause 中でなければすぐ 1 tick 回す（pause 中は 🙋 を外して覚えるだけ。再開後の tick で進む）。
+ * @returns {object}
+ */
+function delegateHttpContext(cfg, state, log) {
+    return {
+        cfg, state, log, now: cfg.now,
+        afterRelease: () => {
+            if (state.paused) return;
+            runTickOnce(cfg, state, log).catch((e) => log(`tick after delegate error: ${e.message}`));
+        },
     };
 }
 
 /** HTTP 制御サーバ（pause/resume/stop/inject/status） */
 function startHttp(cfg, state, log) {
+    // 書き込みの守り（EPIC #2384 U3）: 合言葉が無い cfg（テスト・別の起動経路）でもここで作り、
+    // 守りを外した状態では決して待たない。
+    if (!cfg.httpToken) cfg.httpToken = newHttpToken();
+    const monitorHtml = monitorHtmlWithToken(cfg.httpToken);
     const server = http.createServer((req, res) => {
         const url = new URL(req.url, 'http://localhost');
         const send = (code, obj) => {
             res.writeHead(code, { 'content-type': 'application/json' });
             res.end(JSON.stringify(obj));
         };
+        // ルーティングの手前の 1 か所で守る。あとから足される POST（ほかのモジュールの口も）に自動でかかる。
+        // ポートは実際に待っているもの（cfg.port=0 のテストでも合う）。合言葉はログに出さない。
+        const guard = checkHttpRequest({
+            method: req.method, headers: req.headers, port: server.address().port,
+            token: cfg.httpToken, allowedHosts: cfg.httpAllowedHosts || [],
+        });
+        if (!guard.ok) {
+            log(`http rejected (${guard.reason}): ${req.method} ${url.pathname}`);
+            return send(guard.status, { error: `forbidden: ${guard.reason}` });
+        }
+        // 止まっている worker の一覧と、人間の答え（#2387。blocked-hub.js）
+        if (handleBlockedHttp(req, res, url, state.blockedHub)) return;
+        // モニターで質問に答える（POST /answer）。書き込みの受け口はここ 1 か所
+        if (monitorAnswers.handleAnswerHttp(req, res, url, answerHttpContext(cfg, state, log))) return;
+        // モニターの「AI に任せる」（POST /delegate・#2404）。🙋 を外す流れは /answer と同じ（releaseHumanGate）
+        if (monitorAnswers.handleDelegateHttp(req, res, url, delegateHttpContext(cfg, state, log))) return;
+        // 学び・タスクの口（/learnings*・/tasks*）は learn-tasks.js が受ける
+        if (learnTasks.handleLearnTasksHttp(req, res, url, { cfg, state, log, send, capture, deps: { workerCommand } })) return;
         if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/index.html')) {
-            res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-            return res.end(MONITOR_HTML);
+            // 合言葉入りの HTML なのでキャッシュさせない
+            res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'referrer-policy': 'no-referrer' });
+            return res.end(monitorHtml);
         }
         if (req.method === 'GET' && url.pathname === '/log') {
             const issue = Number(url.searchParams.get('issue'));
@@ -2656,7 +3110,19 @@ function startHttp(cfg, state, log) {
         if (req.method === 'GET' && url.pathname === '/status') {
             return send(200, statusResponse(cfg, state));
         }
-        if (req.method === 'POST' && state.booting && BOOT_BLOCKED_PATHS.has(url.pathname)) {
+        if (req.method === 'GET' && url.pathname === '/status.json') {
+            return send(200, statusMaterialResponse(cfg, state));
+        }
+        if (req.method === 'POST' && url.pathname === '/current-status') {
+            // 「現在地を作る」（#2388）。人間が押したときだけ worker を 1 つ起動する（並行上限の外・Status は動かさない）
+            if (state.currentStatusJob) return send(409, { error: 'already running', currentStatus: state.currentStatus });
+            currentStatusJob.runCurrentStatusJob(cfg, state, log, { material: () => statusMaterialResponse(cfg, state) })
+                .catch((e) => log(`current-status error: ${e.message}`));
+            return send(202, { started: true, currentStatus: state.currentStatus });
+        }
+        // 起動待ちでも、人間の pause を外す /resume だけは通す（引き継いだ pause を外せるように・#2384）
+        if (req.method === 'POST' && state.booting && BOOT_BLOCKED_PATHS.has(url.pathname)
+            && !(url.pathname === '/resume' && state.pausedBy === 'human')) {
             // 起動待ち（#1510）: Project 情報がまだ無いので、SSO ログインを先に済ませてもらう。
             return send(503, {
                 booting: true,
@@ -2677,6 +3143,7 @@ function startHttp(cfg, state, log) {
         }
         if (req.method === 'POST' && url.pathname === '/pause') {
             state.paused = true; state.pausedBy = 'human'; log('paused');
+            persistHumanPause(cfg, state, log); // 再起動をまたいで残す（#2384）
             return send(200, { paused: true, pausedBy: 'human' });
         }
         if (req.method === 'POST' && url.pathname === '/resume') {
@@ -2687,6 +3154,7 @@ function startHttp(cfg, state, log) {
                     error: 'usage auto-pause: use POST /force-resume' });
             }
             state.paused = false; state.pausedBy = null; state.authError = null; log('resumed');
+            persistHumanPause(cfg, state, log);
             return send(200, { paused: false });
         }
         if (req.method === 'POST' && url.pathname === '/force-resume') {
@@ -2750,6 +3218,33 @@ function startHttp(cfg, state, log) {
             });
             return;
         }
+        if (req.method === 'POST' && (url.pathname === '/priority' || url.pathname === '/scheduler')) {
+            // 優先度の ▲▼（body: { issue, direction: 'up'|'down' } か { issue, priority: 'P1' }）と、
+            // 並列の上限の一時変更（body: { maxTotal, maxHeavy, ... }）（EPIC #2384）
+            let raw = '';
+            req.on('data', (c) => { raw += c; if (raw.length > 10_000) req.destroy(); });
+            req.on('end', () => {
+                let body;
+                try { body = JSON.parse(raw || '{}'); } catch (e) { return send(400, { error: 'invalid json' }); }
+                if (url.pathname === '/scheduler') {
+                    const overrides = setSchedulerOverrides(state, body);
+                    log(`scheduler overrides: ${JSON.stringify(overrides)}`);
+                    return send(200, { overrides, limits: currentSchedulerLimits(cfg, state) });
+                }
+                const issue = Number(body.issue);
+                if (!Number.isInteger(issue) || issue <= 0 || !(body.priority || ['up', 'down'].includes(body.direction))) {
+                    return send(400, { error: 'issue and direction (up|down) or priority required' });
+                }
+                setItemPriority(cfg, state, log, body)
+                    .then((r) => send(200, r))
+                    .catch((e) => {
+                        const msg = sanitizeForSurface(e.message);
+                        log(`#${issue}: priority error: ${msg}`);
+                        send(500, { error: msg });
+                    });
+            });
+            return;
+        }
         if (req.method === 'POST' && url.pathname === '/stop') {
             const issue = Number(url.searchParams.get('issue'));
             const r = state.running.get(issue);
@@ -2787,8 +3282,44 @@ function startHttp(cfg, state, log) {
         }
         send(404, { error: 'not found' });
     });
-    server.listen(cfg.port, () => log(`control server on :${cfg.port}`));
+    // コンテナの 127.0.0.1 だけで待つ（devpod のポート転送はコンテナ内の localhost へつなぐ）。
+    // 必要なら cfg.httpHost（env AUTOPILOT_HTTP_HOST）で変える。
+    const host = cfg.httpHost || DEFAULT_HTTP_HOST;
+    server.listen(cfg.port, host, () => log(`control server on ${host}:${server.address().port}`));
     return server;
+}
+
+/** 既定の待ち受けアドレス（EPIC #2384 U3） */
+const DEFAULT_HTTP_HOST = '127.0.0.1';
+
+/**
+ * 起動ごとの合言葉（32 バイトの乱数を 16 進で）。
+ * @returns {string} 64 文字の 16 進
+ */
+function newHttpToken() {
+    return crypto.randomBytes(32).toString('hex');
+}
+
+/**
+ * 合言葉のファイルのパス。CLI（curl）がここから読んで `X-Autopilot-Token` に付ける。
+ * ポートごとに分けて、同じコンテナで別のポートの daemon を起こしても混ざらないようにする。
+ * @param {number} port daemon のポート
+ * @param {string} [dir] 置き場（既定は os.tmpdir()。PID ファイルと同じ）
+ * @returns {string} 絶対パス
+ */
+function httpTokenFilePath(port, dir = os.tmpdir()) {
+    return path.join(dir, `autopilot-http-token-${port}`);
+}
+
+/**
+ * 合言葉を 0600 で書く。前の起動のファイルが残っていても、権限を 0600 に直してから上書きする。
+ * @param {string} file 書き先
+ * @param {string} token 合言葉
+ */
+function writeHttpTokenFile(file, token) {
+    if (fs.existsSync(file)) fs.chmodSync(file, 0o600);
+    fs.writeFileSync(file, `${token}\n`, { mode: 0o600 });
+    fs.chmodSync(file, 0o600);
 }
 
 /** PID ファイルのパス（停止スクリプトが参照） */
@@ -2815,7 +3346,10 @@ async function main(opts = {}) {
         owner: opts.owner || 'smalruby',
         project: opts.project || 4,
         repo: opts.repo || 'smalruby/smalruby3-editor',
-        concurrency: opts.concurrency || 2,
+        // 全体の上限は settings.scheduler.maxTotal（既定 6）。--concurrency を明示したときだけそれで上書きする
+        // （EPIC #2384）。tick ごとに currentSchedulerLimits で決め直す。
+        cliConcurrency: opts.concurrency || null,
+        concurrency: opts.concurrency || null,
         // 既定 5 分（単位は秒で CLI 指定 → ms）。実運用で 20 秒等の高頻度ポーリングは API を無駄に叩く。
         intervalMs: opts.intervalMs || 300_000,
         port: opts.port || 8787,
@@ -2832,6 +3366,7 @@ async function main(opts = {}) {
     // worker 設定（フェーズ別 model/effort・追加許可ディレクトリ）を読み込み、
     // プロンプト一式 + 解決済み設定を tmpdir へスナップショット（ブランチ切り替え非依存・C13）
     cfg.settings = loadSettings({ log });
+    cfg.concurrency = currentSchedulerLimits(cfg, null).maxTotal;
     // 1 回の run の上限と checkpoint 信号の時刻（settings.json の watchdog・分単位）
     const runLimits = watchdogFromSettings(cfg.settings.watchdog);
     cfg.watchdog = { tMaxMs: runLimits.tMaxMs, tSoftMs: runLimits.tSoftMs };
@@ -2849,11 +3384,24 @@ async function main(opts = {}) {
     }
     const state = {
         // booting は最初の Project 情報の取得が終わるまで true（その間の /tick 等を断る・#1510）
-        paused: false, pausedBy: null, authError: null, reauth: null, booting: true,
+        paused: false, pausedBy: null, pausedAt: null, authError: null, reauth: null, booting: true, bootWait: null,
         running: new Map(), ticking: false, claudeUsage: null,
         usagePause: null, usageOverrides: {},
         version: null, autopilotUpdate: null,
     };
+    // worker の端末（herdr | tmux）と、blocked で人間を待つ置き場（#2387）。
+    // autopilot が止まるときは worker を全部一緒に止める（herdr は session ごと。ゾンビを残さない）。
+    configureRunner(cfg.settings, log);
+    // モニターで答える質問の置き場（再起動をまたいで残す）と、モニターで外した 🙋 の覚え（メモリだけ）
+    state.answerStore = monitorAnswers.createAnswerStore({
+        file: path.join(currentStatusJob.stateDir(), 'monitor-answers.json'), now: cfg.now, log,
+    });
+    state.monitorReleases = {};
+    state.blockedHub = createBlockedHub({ now: cfg.now, log, file: path.join(os.tmpdir(), 'autopilot-blocked-log.jsonl') });
+    process.on('exit', () => { try { shutdownTerminal(); } catch { /* noop */ } });
+    // 現在地の artifact の URL・最終更新（#2388）は再起動をまたいで残す
+    state.currentStatusState = currentStatusJob.loadCurrentStatusState(cfg);
+    currentStatusJob.refreshCurrentStatusView(state);
     // プロセスレベルの安全網（#949/#953）: fire-and-forget な非同期経路のエラーを捕捉し、
     // 認証系は auto-pause で耐え、未知の非認証エラーは Node 準拠で exit（supervisor が再起動）。
     installProcessSafetyNet(state, log);
@@ -2874,6 +3422,18 @@ async function main(opts = {}) {
         process.on('SIGTERM', () => process.exit(EXIT_OK));
         process.on('SIGINT', () => process.exit(EXIT_OK));
     } catch (e) { log(`pid file warn: ${e.message}`); }
+    // 書き込みの守り（EPIC #2384 U3）: 合言葉を作って 0600 のファイルに置く（CLI 用）。中身はログに出さない。
+    cfg.httpHost = opts.httpHost || process.env.AUTOPILOT_HTTP_HOST || DEFAULT_HTTP_HOST;
+    cfg.httpAllowedHosts = parseAllowedHosts(process.env.AUTOPILOT_HTTP_ALLOWED_HOSTS);
+    cfg.httpToken = newHttpToken();
+    const tokenFile = httpTokenFilePath(cfg.port);
+    try {
+        writeHttpTokenFile(tokenFile, cfg.httpToken);
+        process.on('exit', () => { try { fs.rmSync(tokenFile, { force: true }); } catch { /* noop */ } });
+        log(`http token file: ${tokenFile}`);
+    } catch (e) { log(`http token file warn: ${e.message}`); }
+    // 人間の一時停止を引き継ぐ（crash → supervisor の再起動で解けないように・#2384）。最初の tick より前。
+    restoreHumanPause(cfg, state, log);
     startHttp(cfg, state, log);
     // SSO が切れていれば、ここでモニタからの SSO ログイン（または定期の再試行）を待つ（#1510）
     await bootProjectInfo(cfg, state, log, { once: !!opts.once });
@@ -2905,6 +3465,7 @@ async function main(opts = {}) {
 }
 
 module.exports = {
+    currentSchedulerLimits, readResources, planDispatch, setItemPriority, setSchedulerOverrides,
     main, tick, runTickOnce, dispatch, applyMergeProgression, applyClosedReconcile, applyPrProjection,
     cleanupIssueWorktree,
     listProcesses, stopWorktreeDevServers, applyDevServerSweep,
@@ -2913,12 +3474,14 @@ module.exports = {
     applyLabelHealing, applyAfterWaitLabels,
     applyDecomposeSubIssueSetup,
     isGateItem, collectGateContexts, checkAuthHealth, REAUTH_HINT, BOOT_REAUTH_HINT, BOOT_NOT_SSO_HINT,
-    bootProjectInfo, wakeBoot,
+    bootProjectInfo, wakeBoot, humanPauseFilePath, persistHumanPause, restoreHumanPause,
     recordAuthFailure, handleProcessError, installProcessSafetyNet,
     parseSsoDeviceOutput, startReauth,
     refreshBoard, recordHistory, refreshRateLimits, patchBoardCache, patchLaterCache, setLaterLabel,
     applyTrackerStickies, refreshBoardAndProjectTrackers, maybeRefreshBoardPeriodic,
     updateClaudeUsage, applyUsagePause, forceResumeUsage, boardResponse, statusResponse, startHttp,
+    httpTokenFilePath, writeHttpTokenFile,
+    statusMaterialResponse,
     checkForUpdate, startUpdateChecks,
     ensureCheckpointCommit, readContinuationFromWorktree, applyCheckpointHandling,
     collectContinuationContexts, checkpointEscalationBody,

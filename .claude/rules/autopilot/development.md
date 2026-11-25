@@ -16,19 +16,37 @@
 | モジュール | 責務 | 禁止事項 |
 |---|---|---|
 | `src/phases.js` | 判断ロジックの**純粋関数のみ**（フェーズ選択・ゲート解除・watchdog 判断・ラベル差分・sticky 計画・ディレクティブ解析・サニタイズ） | I/O・時計（`Date.now()`）・乱数を持ち込まない。時刻は ms epoch / ISO 文字列を**引数で受け** `toMs` で正規化する |
+| `src/scheduler.js` | 並列の計画（重さの推定・上限と空きメモリ・CPU）と優先度の並べ替えの**純粋関数のみ** | /proc・`os.loadavg`・GitHub を読まない（daemon が読んで値を渡す）。時計を持ち込まない |
 | `src/contract.js` | 結果ペイロード（`AUTOPILOT_RESULT_FILE`）の検証。`TOKENS` / `SIGNALS` / `validateResult` | スキーマを変えるときは `docs/autopilot/autonomous-contract.md` §2 と**対で更新** |
 | `src/project.js` | GitHub（Projects v2 / Issue / PR / ラベル / sticky）への **gh CLI ラッパ**。GitHub I/O はここに集約 | 判断ロジックを書かない（純粋な選別・整形は phases.js へ） |
 | `src/daemon.js` | 常駐 tick のオーケストレーション（poll → dispatch → `apply*` ステップ群 → face sync）と HTTP 制御 | 判定は phases.js の純粋関数を呼ぶ。直接 GitHub を叩かず project.js を使う |
-| `src/runner.js` | tmux での worker（子 claude）起動・send-keys・watchdog ループ | 判断は `phases.js` の `evaluate` / `shouldResend` / `shouldSignalCheckpoint`（純粋）に委ねる |
+| `src/runner.js` | worker（子 claude）の起動・キー送信・watchdog ループ。blocked は `blocked-handler.js` に任せる | 判断は `phases.js` の `evaluate` / `shouldResend` / `shouldSignalCheckpoint`（純粋）と `blocked.js` に委ねる。tmux / herdr のコマンドを直接書かない |
+| `src/terminal.js` | 端末の backend（herdr / tmux）。`launch` / `snapshot` / `sendLine` / `sendKeys` / `killSession` / `listSessions` / `shutdown` を同じ形で持つ | 判断を書かない。新しい端末操作は両方の backend に足す |
+| `src/blocked.js` | blocked の画面の判定・AI 判定の読み取り・人間の答えの確認・端末設定の解釈（**純粋関数**） | I/O・時計を持ち込まない |
+| `src/blocked-handler.js` / `src/blocked-hub.js` / `src/blocked-panel.js` | 1 worker の blocked の扱い（答える・一時停止・待った時間）/ 止まっている worker の置き場と `/blocked` の HTTP / モニターの欄 | daemon・monitor への差分は呼び出しだけにする |
+| `src/http-guard.js` | HTTP の受け付けの守り（Host / Origin の許可・合言葉の照合）の**純粋関数** | 合言葉の生成・ファイル書き出しを持ち込まない（daemon が行う）。守りは startHttp のルーティングの手前の 1 か所だけで呼ぶ |
 | `src/settings.js` | worker 起動設定のロード・マージ・コマンド組み立て・run 資産スナップショット | — |
 | `src/monitor.js` | Web モニタ（**自己完結 HTML**。外部 CDN / 外部リソース参照は devpod の egress allowlist で死ぬので不可） | — |
+| `src/epic-summary.js` / `src/current-status.js` | EPIC ごとのまとめ・見込み・現在地の材料とテンプレートの描画の**純粋関数**。`renderEpicGroupsHtml` はモニタへ `fn.toString()` で埋め込むので**モジュールの外を参照しない** | I/O・`Date.now()` を持ち込まない（`now` を引数で受ける） |
+| `src/current-status-job.js` | 現在地の job の I/O（worker の起動・状態ファイル・改善メモ）。daemon から呼ぶ割り込み型の job | 判断を書かない（`planCurrentStatusOutcome` を呼ぶ） |
 | `src/usage.js` / `src/version.js` / `src/pw-check.js` | usage ファイル読取 / 稼働バージョン・更新検知 / headless UI 確認ヘルパー | — |
+| `src/learnings.js` / `src/tasks.js` | 学び（M6/R1）・タスク（E1）の判断の**純粋関数** | phases.js と同じ（I/O・時計・乱数なし） |
+| `src/learn-tasks.js` | 学び・タスクの I/O（`tmp/` の置き場・Issue に結びつかない worker・`/learnings*` `/tasks*`）。daemon からは tick と startHttp の 2 か所でだけ呼ぶ | 判断を書かない（learnings.js / tasks.js へ）。GitHub は project.js 経由 |
 
 **新しい判断ロジックを追加する手順**: ① phases.js に純粋関数として書く → ② `test/` に
 unit テストを付ける → ③ daemon/runner から呼ぶ。逆順（daemon に inline で判定を書く）は
 逸脱。既存の `apply*` ステップ（`applyMergeProgression` / `applyClosedReconcile` /
 `applyDodHandoffs` / `applyLabelHealing` / `applyAfterWaitLabels` / `applyPrProjection`）は
 すべて「選別・計画 = phases.js 純粋関数、実行 = daemon + project.js」の形になっている。
+
+## worker の端末と blocked の不変条件
+
+- **autopilot が止まるときは worker を全部一緒に止める**（daemon の `exit` で `shutdownTerminal`。herdr は
+  session ごと、tmux はその daemon が起こした worker だけ）。worker を daemon の外に残す実装にしない。
+- **人間を待っているあいだは watchdog の時計（`tMax`・checkpoint）を進めない**（`activeElapsedMs`）。
+- blocked に**自動で答えるのは「今回だけ」の選択肢**。「always allow」「switch to auto mode」を選ぶ規則・判定にしない。
+  NG の規則（`NG_RULES`）は広めに取り、迷ったら人間を待つ側に倒す。
+- 人間の答えとして送れるキーは `ALLOWED_KEYS` だけ（任意のキー列・制御文字を送らせない）。
 
 ## 依存規約
 

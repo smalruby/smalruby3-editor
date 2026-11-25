@@ -134,6 +134,8 @@ function normalizeProjectItem(i) {
         hitlLabel: labels.includes(HITL_LABEL),
         kind: i.kind,
         size: i.size,
+        // Project の Priority（P0〜P3・EPIC #2384）。gh の item-list はフィールド名を小文字始まりで返す
+        priority: i.priority ?? i.Priority ?? null,
         assignees: Array.isArray(i.assignees) ? i.assignees : [],
     };
 }
@@ -320,6 +322,8 @@ async function getGateContext(repo, issueNumber, token) {
             prLabel: (pr.labels || []).includes(HITL_LABEL),
         },
         pr: pr.number,
+        // EPIC の流れ（topic 宛ての PR は daemon が自動マージ・#2385）の判定に使う
+        prBase: pr.base || null,
     };
 }
 
@@ -347,7 +351,19 @@ async function getIssueMeta(repo, issueNumber, token, deps = {}) {
         body: j.body || '',
         labels: (j.labels || []).map((l) => (typeof l === 'string' ? l : l.name)),
         state: (j.state || '').toUpperCase(),
+        // 親 Issue（sub-issue の親 EPIC）。REST の parent_issue_url から番号だけ取る（追加の API なし）
+        parent: parentIssueNumber(j.parent_issue_url),
     };
+}
+
+/**
+ * REST の `parent_issue_url`（…/issues/<N>）から親 Issue の番号を取り出す（純粋）。
+ * @param {string|null|undefined} url
+ * @returns {number|null}
+ */
+function parentIssueNumber(url) {
+    const m = /\/issues\/(\d+)$/.exec(url || '');
+    return m ? Number(m[1]) : null;
 }
 
 /**
@@ -453,6 +469,27 @@ async function applyUpsertPlan(repo, number, plan, body, token) {
     for (const dup of plan.deleteIds) {
         await gh(['api', '--method', 'DELETE', `repos/${repo}/issues/comments/${dup}`], { token });
     }
+}
+
+/**
+ * 1 つの Issue のコメントを 1 回だけ読み、渡された計画関数の結果（{body, action, keepId, deleteIds} の
+ * 配列）を書く。モニターで答えたときの質問ごとの答えのコメントのように、同じ Issue に複数の
+ * マーカー付きコメントを書くとき、質問の数だけコメント一覧を読み直さないため。
+ * 計画（何を書く・書かない）は呼ぶ側が phases.js の純粋関数で作る（ここは書くだけ）。
+ * @param {string} repo `owner/name`
+ * @param {number} number Issue 番号
+ * @param {function} planFn (comments) => Array<{body, action, keepId, deleteIds}>
+ * @param {string} token 書き込み（Bot）
+ * @param {object} [deps] { readToken, listIssueComments, applyUpsertPlan }（テスト用）
+ * @returns {Promise<Array<{action:string}>>} 実行した計画
+ */
+async function applyCommentPlans(repo, number, planFn, token, deps = {}) {
+    const list = deps.listIssueComments || listIssueComments;
+    const apply = deps.applyUpsertPlan || applyUpsertPlan;
+    const comments = await list(repo, number, deps.readToken || token);
+    const plans = planFn(comments) || [];
+    for (const p of plans) await apply(repo, number, p, p.body, token);
+    return plans;
 }
 
 /**
@@ -607,7 +644,7 @@ async function getBoardEnrichment(repo, issueNumbers, token, deps = {}) {
         const chunk = nums.slice(i, i + 50);
         const fields = chunk.map((n) =>
             `i${n}: issue(number:${n}){ number state ` +
-            'subIssuesSummary{ total completed percentCompleted } ' +
+            'subIssuesSummary{ total completed percentCompleted } parent{ number title } ' +
             'closedByPullRequestsReferences(first:10,includeClosedPrs:true){nodes{number state isDraft mergeable}} }',
         ).join(' ');
         const query = `query{repository(owner:"${owner}",name:"${name}"){ ${fields} }}`;
@@ -657,6 +694,70 @@ async function getRateLimit(token, deps = {}) {
     return { core: pick(r.core), graphql: pick(r.graphql) };
 }
 
+/**
+ * sub-issue の親 Issue の番号を返す。親が無ければ null。
+ * EPIC の「決定待ち」まとめコメントを書く先を見つけるのに使う（#2385）。
+ * @returns {Promise<number|null>}
+ */
+async function getParentIssueNumber(repo, issueNumber, token, deps = {}) {
+    // getIssueMeta が REST の parent_issue_url から取る parent を使う（#2388 と同じ 1 回の REST）
+    return (await getIssueMeta(repo, issueNumber, token, deps)).parent || null;
+}
+
+/**
+ * 自動マージの判断に要る PR の事実（1 回の `gh pr view`）。epic-flow.js の autoMergePlan に渡す。
+ * @returns {Promise<object>}
+ */
+async function getPrMergeFacts(repo, prNumber, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    const out = await ghFn(['pr', 'view', String(prNumber), '--repo', repo, '--json',
+        'number,state,isDraft,baseRefName,mergeable,reviewDecision,statusCheckRollup,updatedAt'], { token });
+    return JSON.parse(out);
+}
+
+/**
+ * PR をマージする（merge commit。squash は使えないリポジトリ）。head ブランチはリポジトリの
+ * 設定で自動で消えるので `--delete-branch` は付けない（daemon の cwd でブランチを触らない）。
+ */
+async function mergePr(repo, prNumber, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    await ghFn(['pr', 'merge', String(prNumber), '--repo', repo, '--merge'], { token });
+}
+
+/**
+ * PR のレビュー一覧（REST `pulls/<n>/reviews`）。自動マージの前に、まだ対応していない
+ * Request changes があるかを数えるのに使う（phases.js の selectRequestedReviews）。
+ * @returns {Promise<object[]>}
+ */
+async function listPrReviews(repo, prNumber, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    const out = await ghFn(['api', '--paginate', `repos/${repo}/pulls/${prNumber}/reviews`, '--jq', '.[] | @json'], { token });
+    return String(out).split('\n').filter(Boolean).map((line) => JSON.parse(line));
+}
+
+/**
+ * Project の Priority フィールド（EPIC #2384）。`getFields` の結果に無いとき（古い起動時の
+ * キャッシュなど）のための予備の id。Bot で作成済み（2026-11-25）。
+ */
+const PRIORITY_FIELD_FALLBACK = {
+    id: 'PVTSSF_lADOAE31pc4Bb4n_zhrOPEg',
+    type: 'ProjectV2SingleSelectField',
+    options: { P0: '8f8a727e', P1: '746cb320', P2: '52b4d141', P3: '44b155b6' },
+};
+
+/**
+ * item の Priority を設定する（null でクリア）。書き込みなので Bot トークン。
+ * @param {{projectId:string, fields:object}} ctx
+ * @param {string} itemId
+ * @param {string|null} priority 'P0'〜'P3'
+ * @param {string} [token]
+ */
+async function setPriority(ctx, itemId, priority, token) {
+    const fields = { ...(ctx.fields || {}) };
+    if (!fields.Priority) fields.Priority = PRIORITY_FIELD_FALLBACK;
+    await setField({ ...ctx, fields }, itemId, 'Priority', priority, token || await botToken());
+}
+
 /** applyResult が返す意図配列を Project に反映する */
 async function applyIntents(ctx, itemId, intents, token) {
     const applied = [];
@@ -667,12 +768,39 @@ async function applyIntents(ctx, itemId, intents, token) {
     return applied;
 }
 
+/**
+ * 学びの PR（EPIC #2384 の R1）をマージしてよいか決めるための情報を REST で取る（読み取り）。
+ * 判断は learnings.js の `canMergeLearningsPr`（純粋関数）。
+ * @returns {Promise<{state: string, merged: boolean, draft: boolean, base: string, head: string,
+ *   files: string[], checkRuns: object[]}>}
+ */
+async function getPrMergeStatus(repo, prNumber, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    const pr = JSON.parse(await ghFn(['api', `repos/${repo}/pulls/${prNumber}`], { token }));
+    const files = JSON.parse(await ghFn(['api', `repos/${repo}/pulls/${prNumber}/files?per_page=100`], { token }));
+    const runs = JSON.parse(await ghFn(['api', `repos/${repo}/commits/${pr.head.sha}/check-runs?per_page=100`], { token }));
+    return {
+        state: pr.state,
+        merged: Boolean(pr.merged),
+        draft: Boolean(pr.draft),
+        base: pr.base && pr.base.ref,
+        head: pr.head && pr.head.ref,
+        files: (files || []).map((f) => f.filename),
+        checkRuns: (runs.check_runs || []).map((r) => ({ name: r.name, status: r.status, conclusion: r.conclusion })),
+    };
+}
+
+
 module.exports = {
     botToken, readToken, boardToken, gh, getProject, getFields, listItems, normalizeProjectItem, findItemId, addIssue, setField, applyIntents,
+    setPriority, PRIORITY_FIELD_FALLBACK, parentIssueNumber,
     botLogin, findPrForIssue, selectClosingPr, selectHeadPr, hasMergedHeadPr,
     getGateContext, hasMergedPullRequest, REPO_ROOT,
     getPrInfo, getIssueLabels, getIssueBody, editLabels, setPrDraft, upsertStickyComment, upsertMarkedComment,
+    applyUpsertPlan, applyCommentPlans,
     listIssueComments,
     postIssueComment, listClosedIssueNumbers, getIssueStates, getIssueMeta, closeIssue,
     getBoardEnrichment, listHeadPrs, getRateLimit,
+    getParentIssueNumber, getPrMergeFacts, mergePr, listPrReviews,
+    getPrMergeStatus,
 };
