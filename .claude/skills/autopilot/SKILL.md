@@ -99,7 +99,7 @@ echo "started (supervised)."
 echo "  monitor: http://localhost:<PORT>/"
 echo "  log:     tail -f tmp/autopilot-daemon.log  (or herdr session attach $SESSION)"
 echo "  workers: herdr session attach autopilot"
-echo "  stop:    curl -X POST localhost:<PORT>/shutdown  (supervisor も停止する)"
+echo "  stop:    curl -X POST -H \"X-Autopilot-Token: \$(cat /tmp/autopilot-http-token-<PORT>)\" localhost:<PORT>/shutdown  (supervisor も停止する)"
 ```
 
 `<LOGIN>`（未指定なら `--assignee` ごと省略）/`<SEC>`/`<PORT>` はインタビュー結果で埋める。
@@ -247,9 +247,12 @@ EPIC は topic をマージする直前まで AI のおすすめで進み、人�
 - **AWS SSO 再認証は人間のみ**: device code + ブラウザ承認は Claude が代行できない。起動待ちなら
   モニタの「🔐 再接続（SSO ログイン）」での承認を人間に頼む。
 - **起動**: `bash tmp/autopilot_up.sh`（tmux 未起動なら新規起動・既起動なら no-op）。
-- **再起動 / 更新反映（update autopilot）**: `curl -X POST localhost:<PORT>/shutdown` →
+- **再起動 / 更新反映（update autopilot）**: `curl -X POST -H "X-Autopilot-Token: $(cat /tmp/autopilot-http-token-<PORT>)" localhost:<PORT>/shutdown` →
   必要なら `/app` で `git pull origin develop` → `bash tmp/autopilot_up.sh`。走行中 worker が
   あれば中断されるので、**完了を待つか中断可否を人間に確認**する。
+- **POST には合言葉が要る**: daemon は 127.0.0.1 だけで待ち、POST はヘッダ `X-Autopilot-Token` が無いと 403。
+  合言葉は `/tmp/autopilot-http-token-<PORT>`（0600）にある。中身を出力・コミットしない（`$(cat ...)` で渡す）。
+  GET（`/status` / `/board` / `/log`）は合言葉なしで読める。
 - **起動後は必ず疎通確認**: `curl -s localhost:<PORT>/status` で paused / authError / booting / boot commit を確認して報告する。
 - スクリプトが無い場合は Mode A の手順で `tmp/autopilot_up.sh` を生成してから起動する。
 
