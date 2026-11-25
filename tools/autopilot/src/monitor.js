@@ -1165,6 +1165,9 @@ let lastQuestionsHtml = '';
 let lastInbox = { questions: [], answered: [], learn: [], waits: [] };
 function renderInbox(d) {
   tipInfos = {};
+  // 描き直すとフォーカスしていたタイトルが消えるので、同じ key のタイトルへ戻す（キーボードで読んでいる途中に外れない）
+  const ae = document.activeElement;
+  const focusTip = ae && ae.dataset ? ae.dataset.tip : null;
   const items = (d.items || []).map((it) => Object.assign({}, it, { later: effectiveLater(it, laterPending) }));
   const m = inboxModel(Object.assign({}, d, { items }), lastLearn);
   lastInbox = m;
@@ -1219,6 +1222,7 @@ function renderInbox(d) {
   const total = m.questions.length + m.learn.length + m.waits.length;
   document.getElementById('inboxcount').textContent = total + ' 件';
   document.getElementById('inbox-empty').hidden = total > 0 || m.answered.length > 0;
+  if (focusTip) { const a = tipAnchor(focusTip); if (a && a !== document.activeElement) a.focus({ preventScroll: true }); }
   showTitleTip();
 }
 
@@ -1713,8 +1717,8 @@ document.addEventListener('scroll', () => { if (tipState.open) showTitleTip(); }
 document.addEventListener('click', (ev) => {
   // タイトルのツールチップの切り替えは、タイトルの文字の部分だけ（ほかの部分の動作は変えない）
   const tipT = ev.target.closest('[data-tip]');
-  if (tipT) { titleTipEvent({ type: 'click-title', key: tipT.dataset.tip }); return; }
-  if (ev.target.closest('#titletip')) { titleTipEvent({ type: 'click-tip' }); return; }
+  if (tipT) { closeMenus(); titleTipEvent({ type: 'click-title', key: tipT.dataset.tip }); return; }
+  if (ev.target.closest('#titletip')) { closeMenus(); titleTipEvent({ type: 'click-tip' }); return; }
   if (tipState.open) titleTipEvent({ type: 'click-outside' });
   const t = ev.target.closest('button, a, [data-act]');
   const inMenu = ev.target.closest('#rowmenu, #globalmenu');
