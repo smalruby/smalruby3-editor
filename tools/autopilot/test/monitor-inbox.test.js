@@ -5,7 +5,8 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 const {
-    itemSem, epicSem, inboxModel, boardRows, recommendedAnswers, chosenAnswers, digitTarget, agoLabel, shortTitle,
+    itemSem, epicSem, inboxModel, inboxGroups, isInboxToggleKey, boardRows, recommendedAnswers, chosenAnswers, digitTarget,
+    agoLabel, shortTitle,
     INBOX_CLIENT_FNS,
 } = require('../src/monitor-inbox');
 
@@ -72,6 +73,103 @@ test('inboxModel: 学びは PR を作る / マージする ときだけ「確か
     assert.strictEqual(inboxModel({}, Object.assign({}, base, { action: { action: 'merge', label: 'マージ' } })).learn[0].label, 'マージ');
     assert.strictEqual(inboxModel({}, Object.assign({}, base, { action: { action: 'creating' } })).learn.length, 0);
     assert.strictEqual(inboxModel({}, Object.assign({}, base, { action: { action: 'none' } })).learn.length, 0);
+});
+
+// 実データ（Projects #4・2026-11-25）の形を縮めたもの
+const ok = (nextPhase) => ({ ok: true, action: 'release', nextPhase });
+const TAG_ITEMS = [
+    { issue: 1, title: 'EPIC: 分解済み', kind: 'EPIC', tracker: true, status: 'In Progress', aiStatus: 'EPIC Decomposed', subIssues: { total: 4, completed: 2 },
+        effectivePriority: { priority: 'P2' } },
+    { issue: 2, title: 'EPIC: 済んだ', kind: 'EPIC', tracker: true, status: 'In Progress', aiStatus: 'EPIC Decomposed', subIssues: { total: 3, completed: 3 },
+        effectivePriority: { priority: 'P1' } },
+    { issue: 3, title: 'EPIC: 未分解', kind: 'EPIC', tracker: true, status: 'Backlog', subIssues: { total: 0, completed: 0 }, effectivePriority: { priority: 'P3' } },
+    { issue: 4, title: '着手', status: 'Sprint Backlog', parent: { number: 1, title: 'EPIC: 分解済み' } },
+    { issue: 5, title: '人間の作業', status: 'Backlog', parent: { number: 2, title: 'EPIC: 済んだ' } },
+    { issue: 6, title: 'レビュー', status: 'Review' },
+    { issue: 7, title: 'DoD', status: 'DoD' },
+    { issue: 8, title: '止まった', status: 'Blocked' },
+    { issue: 9, title: '相談', status: 'In Progress', aiStatus: 'Discussing' },
+    { issue: 10, title: '続き', status: 'In Progress', aiStatus: 'Awaiting Continuation' },
+    { issue: 11, title: 'ほか', status: 'Sprint Backlog' },
+];
+const TAG_WAIT = [
+    { issue: 1, delegate: { ok: false, code: 'tracker' } },
+    { issue: 2, delegate: { ok: false, code: 'tracker' } },
+    { issue: 3, delegate: ok('decompose') },
+    { issue: 4, delegate: ok('implement') },
+    { issue: 5, delegate: { ok: false, code: 'human-work' } },
+    { issue: 6, delegate: ok('address-review') },
+    { issue: 7, delegate: { ok: false, code: 'human-work' } },
+    { issue: 8, delegate: ok('implement') },
+    { issue: 9, delegate: { ok: false, code: 'open-questions' } },
+    { issue: 10, delegate: ok('implement') },
+    { issue: 11, delegate: { ok: false, code: 'no-ai-phase' } },
+];
+
+test('inboxModel: 人間待ちの札は「何を待たれているか」（そのほか一色にしない）', () => {
+    const m = inboxModel({ items: TAG_ITEMS, humanWait: TAG_WAIT, epicGroups: [] }, null);
+    const tag = {};
+    for (const w of m.waits) tag[w.issue] = w.tag.label + '/' + w.tag.key;
+    assert.deepStrictEqual(tag, {
+        1: '見守り/idle', 2: 'topic の確認/human', 3: '分解待ち/idle', 4: '着手待ち/idle', 5: '人間の作業/human',
+        6: 'レビュー/human', 7: 'DoD の確認/human', 8: '止まった/stop', 9: '相談中/human', 10: '続きの確認/human', 11: '人間の番/human',
+    });
+    // 未分解でも 🧭 tracker が付いていることがある。分解待ちを見守りにしない
+    assert.strictEqual(m.waits.find((w) => w.issue === 3).goLabel, 'AI に任せる');
+    // EPIC の段が topic-review なら、子の数が取れなくても topic の確認
+    const st = inboxModel({ items: [{ issue: 1, kind: 'EPIC', status: 'In Progress', aiStatus: 'EPIC Decomposed' }],
+        humanWait: [{ issue: 1, delegate: { ok: false, code: 'tracker' } }], epicGroups: [{ epic: 1, stage: 'topic-review' }] }, null);
+    assert.strictEqual(st.waits[0].tag.label, 'topic の確認');
+});
+
+test('inboxGroups: 親の EPIC ごとにまとめ、EPIC 自身は見出しに畳む。押せるまとまりが先', () => {
+    const items = TAG_ITEMS.concat([
+        { issue: 20, title: 'P0 の子', status: 'Sprint Backlog', parent: { number: 30, title: 'EPIC: 表に無い親' } },
+    ]);
+    const hw = TAG_WAIT.concat([{ issue: 20, delegate: ok('implement') }]);
+    const epicGroups = [{ epic: 30, title: 'EPIC: 表に無い親', priority: 'P0' }];
+    const m = inboxModel({ items, humanWait: hw, epicGroups }, null);
+    const gs = inboxGroups(m.waits, { items, epicGroups });
+    assert.deepStrictEqual(gs.map((g) => g.key + ':' + g.tier), ['30:0', '1:0', '3:0', 'none:0', '2:1']);
+    const e1 = gs.find((g) => g.key === '1');
+    assert.strictEqual(e1.header.issue, 1);
+    assert.strictEqual(e1.header.tag.label, '見守り');
+    assert.deepStrictEqual(e1.rows.map((r) => r.issue), [4]);
+    assert.strictEqual(e1.priority, 'P2');
+    // 親が人間待ちに無くても、epicGroups から題名・優先度を引く
+    assert.strictEqual(gs[0].title, 'EPIC: 表に無い親');
+    assert.strictEqual(gs[0].priority, 'P0');
+    assert.strictEqual(gs[0].header, null);
+    // 分解待ちの EPIC は見出しだけ（行は 0）
+    assert.strictEqual(gs.find((g) => g.key === '3').count, 0);
+    // EPIC に属さない: 押せる行が先
+    const none = gs.find((g) => g.key === 'none');
+    assert.strictEqual(none.title, 'EPIC に属さない');
+    assert.deepStrictEqual(none.rows.map((r) => r.issue), [6, 8, 10, 7]);
+    assert.strictEqual(none.hidden, 2);
+    const opened = inboxGroups(m.waits, { items, epicGroups, open: ['none'] }).find((g) => g.key === 'none');
+    assert.deepStrictEqual(opened.rows.map((r) => r.issue), [6, 8, 10, 7, 9, 11]);
+});
+
+test('inboxGroups: 1 まとまり 4 行まで。開いたまとまりは全部', () => {
+    const waits = [1, 2, 3, 4, 5, 6].map((n) => ({ issue: n, parent: null, tag: { key: 'idle' }, goLabel: 'AI に任せる' }));
+    const [g] = inboxGroups(waits, {});
+    assert.strictEqual(g.rows.length, 4);
+    assert.strictEqual(g.hidden, 2);
+    assert.strictEqual(g.count, 6);
+    const [all] = inboxGroups(waits, { open: ['none'] });
+    assert.strictEqual(all.rows.length, 6);
+    assert.strictEqual(all.hidden, 0);
+});
+
+test('isInboxToggleKey: 入力欄の外の [ だけ（⌘ / Ctrl / Alt と一緒なら効かない）', () => {
+    assert.strictEqual(isInboxToggleKey({ key: '[' }), true);
+    assert.strictEqual(isInboxToggleKey({ key: '[', inInput: true }), false);
+    assert.strictEqual(isInboxToggleKey({ key: '[', metaKey: true }), false);
+    assert.strictEqual(isInboxToggleKey({ key: '[', ctrlKey: true }), false);
+    assert.strictEqual(isInboxToggleKey({ key: '[', altKey: true }), false);
+    assert.strictEqual(isInboxToggleKey({ key: ']' }), false);
+    assert.strictEqual(isInboxToggleKey(null), false);
 });
 
 const GROUPS = [
@@ -155,8 +253,9 @@ test('agoLabel / shortTitle', () => {
 test('INBOX_CLIENT_FNS: どれも自己完結（モジュールの外を参照せずにブラウザで動く）', () => {
     const src = INBOX_CLIENT_FNS.map(String).join('\n');
     // eslint-disable-next-line no-new-func
-    const fns = new Function(`${src}; return { boardRows, inboxModel, digitTarget };`)();
+    const fns = new Function(`${src}; return { boardRows, inboxModel, inboxGroups, digitTarget };`)();
     assert.deepStrictEqual(fns.boardRows(GROUPS, ITEMS, { open: ['10'], later: [15] }).length, 4);
     assert.deepStrictEqual(fns.inboxModel({ items: ITEMS }, null).waits.map((w) => w.issue), [11, 12, 13]);
     assert.strictEqual(fns.digitTarget({ code: 'Digit2' }), 'board');
+    assert.strictEqual(fns.inboxGroups(fns.inboxModel({ items: ITEMS }, null).waits, { items: ITEMS })[0].key, '10');
 });

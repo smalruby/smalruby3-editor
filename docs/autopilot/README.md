@@ -762,13 +762,25 @@ daemon の `GET /`（既定 `http://localhost:8787/`）は、人間と同意し�
 |---|---|
 | 上の 1 行 | 動いている / 一時停止中（AUTH ⚠・USAGE ⏸・起動中・SSO 待ちも）・worker の数（実行中 / 上限・重いもの）・**Claude** の使用量（セッション / 週間の細い棒）・**GitHub API** の残り・更新からの経過・件数バッジ「実行履歴 N」「タスク N」（押すと右から開く）・一時停止 / 再開・**⋯**（更新 `POST /refresh`・tick `POST /tick`・現在地を作る `POST /current-status` と現在地を開く） |
 | アラートの帯 | 認証（再接続・device code）・Claude 使用量の自動 pause（2 段階の強制再開）・強制実行中・API レートの僅少・起動中。地は塗らず文字と細い線だけ |
-| 左「あなた宛て」 | **答えが要る**（worker の質問・選択肢・AI の推奨・メモ）→ **止まっている worker**（`blocked-panel.js`）→ **学び・確かめてほしい**（`/learnings` の action が PR を作る / マージする のとき）→ **人間待ち**（`GET /board` の `humanWait`） |
+| 左「あなた宛て」 | **答えが要る**（worker の質問・選択肢・AI の推奨・メモ）→ **止まっている worker**（`blocked-panel.js`）→ **学び・確かめてほしい**（`/learnings` の action が PR を作る / マージする のとき）→ **人間待ち**（`GET /board` の `humanWait`。親の EPIC ごとのまとまり。下の「人間待ちの札とまとまり」） |
 | 右「状況板」 | GitHub Projects の表の形。1 行 = 1 EPIC（EPIC に属さない Issue は 1 つのまとまり）。`▶` で sub-issue の行を開く。絞り込みの文字とチップ（すべて / 人間の番 / AI が作業中 / 止まった / 💤 あとで）。上に並列の計画の 1 行 |
 | 右から開く欄 | 実行履歴（最新 100 件）、学び・タスク（`monitor-learn-tasks.js`。学びの PR・タスクの作成といま実行） |
 | 下の帯 | 稼働バージョン（`branch @ shortCommit`）と ⬆️ 更新ありバッジ（更新手順のモーダル） |
 
+- **人間待ちの札とまとまり**: 各行の札は「人間が何を待たれているか」（`inboxModel` の `tag`）。
+  止まった・続きの確認（Awaiting Continuation）・相談中（Discussing / Spike）・レビュー・DoD の確認・
+  分解待ち（未分解の EPIC → decompose）・topic の確認（分解済みの EPIC で子が全部済んだ / 段が topic-review）・
+  見守り（分解済みの EPIC で子がまだ残る）・人間の作業（`delegate.code=human-work`）・着手待ち（任せると implement などへ進む）・
+  人間の番（どれにも当たらないとき）。行は親の EPIC ごとのまとまりにし（`inboxGroups`）、EPIC 自身の行は
+  まとまりの見出しに畳む（札と「AI に任せる」も見出しに出す）。見出しは EPIC の題名・`#番号`・優先度・件数。
+  並びは「AI に任せられる行があるまとまり」→「人間の作業だけのまとまり」→「見守りだけのまとまり」、同じ段は
+  優先度（P0→P3）→ EPIC の番号の大きい順で、「EPIC に属さない」は同じ段の最後。1 まとまり 4 行まで見せて「ほか N 件」。
+- **「あなた宛て」の開け閉め**（幅 900px 以上）: 見出しの左のサイドバーの印か `[` キーで閉じると、細い帯（44px）に
+  なり、答え・学び・人間待ちの件数を縦に残す（帯のどこを押しても開く）。数字キー `1` でも開く。開け閉めは
+  `localStorage` の `autopilot:inboxOpen` に覚える。900px 未満（タブ）では出さない。
 - **数字キー** `1` あなた宛て・`2` 状況板・`3` 実行履歴・`4` 学び・タスク。入力欄の中と ⌘ / Ctrl / Alt との
-  組み合わせでは効かない（ブラウザのタブの切りかえと重なるため）。`Esc` でメニュー・欄・モーダルを閉じる。
+  組み合わせでは効かない（ブラウザのタブの切りかえと重なるため）。`[` は「あなた宛て」の開け閉め（同じ条件）。
+  `Esc` でメニュー・欄・モーダルを閉じる。
 - **「AI に任せる」**（虹色の輪のボタン）: 人間待ちの行では `POST /delegate`（下の「モニターの『AI に任せる』」）。
   Review / DoD で押すと差し戻し（address-review）に進むので、そのときの文言は **「AI に直してもらう」**。
   `humanWait[].delegate.ok=false` の行にはボタンを出さない（理由は行の title）。失敗はトーストに出す。
@@ -791,8 +803,8 @@ daemon の `GET /`（既定 `http://localhost:8787/`）は、人間と同意し�
 - **除外**: Close / Done / Icebox はボードに出さない。`--assignee` 起動時は自分が Assignees のいずれかの item に限る
   （共同担当も観察のため出る。観察中の item は `refreshBoard` の周期か「更新」でだけ最新になる）。
 - **判断の置き場**: 意味の色・あなた宛ての組み立て・状況板の行の絞り込み・答えの組み立て・数字キーは
-  `src/monitor-inbox.js` の純粋関数（`itemSem` / `epicSem` / `inboxModel` / `boardRows` / `recommendedAnswers` /
-  `chosenAnswers` / `digitTarget`）で、`phases.js` の `splitLaterBoard` などと同じく `fn.toString()` でページに埋め込む
+  `src/monitor-inbox.js` の純粋関数（`itemSem` / `epicSem` / `inboxModel` / `inboxGroups` / `boardRows` / `recommendedAnswers` /
+  `chosenAnswers` / `digitTarget` / `isInboxToggleKey`）で、`phases.js` の `splitLaterBoard` などと同じく `fn.toString()` でページに埋め込む
   （二重定義しない）。
 - **Claude 使用量**: 値は worker の status line が書く usage ファイル（`tools/autopilot/bin/usage-statusline.sh` →
   `os.tmpdir()/autopilot-claude-usage.json`。`rate_limits` は status line の stdin にしか無い）を daemon が毎 tick・
@@ -1339,7 +1351,7 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 | `tools/autopilot/src/monitor-answers.js` | モニターで答える質問の置き場・`POST /answer`・`POST /delegate`（AI に任せる）の受け口・Issue への記録と 🙋 の解除・worker への受け渡し |
 | `tools/autopilot/src/daemon.js` | 常駐 daemon（ポーリング・ディスパッチ・HTTP 制御・認証ヘルスチェック・俯瞰ボード） |
 | `tools/autopilot/src/monitor.js` | Web モニタ（あなた宛て＋表・自己完結 HTML） |
-| `tools/autopilot/src/monitor-inbox.js` | モニターの判断の純粋関数（意味の色・あなた宛て・状況板の行・答えの組み立て・数字キー）。ページへ `fn.toString()` で埋め込む |
+| `tools/autopilot/src/monitor-inbox.js` | モニターの判断の純粋関数（意味の色・あなた宛て・人間待ちの札とまとまり・状況板の行・答えの組み立て・数字キー）。ページへ `fn.toString()` で埋め込む |
 | `tools/autopilot/src/epic-summary.js` | EPIC ごとのまとめ・次の確認の見込み・現在地の材料・モニタの EPIC 欄の HTML（純粋） |
 | `tools/autopilot/src/current-status.js` | 現在地の job の結果の解釈・テンプレートの下書きと描画（純粋） |
 | `tools/autopilot/src/current-status-job.js` | 現在地の job の起動と状態ファイル（URL・最終更新・改善メモ） |
