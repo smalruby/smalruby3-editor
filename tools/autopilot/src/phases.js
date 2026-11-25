@@ -1442,7 +1442,7 @@ const HUMAN_WAIT_REASONS = [
 
 /**
  * 人間が「何待ちで止まっているか」を 1 つに決める（純粋関数・#1315）。
- * 🙋 の item は Spike → Review → DoD → Blocked → 依存待ち → そのほか の順で最初に当たる理由。
+ * 🙋 の item は Spike → Review → DoD → リリース確認 → Blocked → 依存待ち → そのほか の順で最初に当たる理由。
  * 🙋 が無い item は依存待ち（⏳ waiting）だけを返し、ほかは null（人間待ちではない）。
  * @param {object} item { status, aiStatus, hitlLabel, labels }
  * @returns {string|null} {@link HUMAN_WAIT_REASONS} の key または null
