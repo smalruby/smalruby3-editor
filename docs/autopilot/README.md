@@ -889,6 +889,18 @@ daemon はモジュールを**起動時にロード**するので「動いてい
   git は `execFile` で実行し `deps.execFileP` で差し替え可能）、daemon 連携は
   `checkForUpdate` / `startUpdateChecks`（`tools/autopilot/src/daemon.js`）。
 
+### 色のトークン（`--ap-*`）
+
+- モニターの色は、`tools/autopilot/src/monitor.js` の `<style>` の先頭にある `:root` の CSS 変数
+  （`--ap-` で始まる）で持ち、各ルールは `var(--ap-...)` で参照する。**トークンの一覧は monitor.js の
+  `:root` が正**（ここには書き写さない）。新しい色を足すときも、直書きせずトークンを足す。
+- 名前は意味に寄せる: 地・文字・罫線（`bg` / `surface` / `ink` / `muted` / `line`）、状態の色
+  （`ai` / `human` / `done` / `idle` / `stop` / `notice` と、その地の `-wash`）、暗い帯の
+  `chrome-*` など。同じ値でも意味の違う使い方は別のトークンにする。
+- いまの値は作り直し前の色のまま。意味の色の値と UI の方針は EPIC #2384 で決める。
+- 自己完結ページのため外部の CSS は読まない。ロゴの SVG（favicon・見出し・Claude の印）の色は
+  絵として直書きのまま。
+
 ---
 
 ## GitHub API レート制限対策
