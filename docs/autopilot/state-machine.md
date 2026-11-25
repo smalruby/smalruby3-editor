@@ -88,16 +88,25 @@ Review / DoD / Blocked / Discussing などの「人間の番」は、**Issue / P
 
 人間のコメントや Request changes だけでは解除しない。以前は「人間が最後に発言した」ことや
 「新しい Request changes がある」ことでも解除していたが、コメントするたびに worker が動き出すと
-人間が気軽にコメントできない。対応してほしいことは Request changes にまとめ、🙋 を外して渡す:
+人間が気軽にコメントできない。対応してほしいことは Request changes にまとめるか、モニターの
+「AI に直してもらう」に書いて、🙋 を外して渡す:
 
 1. PR が出て、autopilot が review フェーズで指摘をまとめる（`[M1]` / `[Q1]` / `[FYI1]` …）。
 2. 人間は自由にコメントする（ここでは何も動かない）。
 3. 直してほしいことを **Request changes** で出す。本文に「FYI1 を直して」のように ID を書くか、
    対象のコメントの URL を貼る。
-4. PR（か Issue）の 🙋 を外す → address-review が、**まだ対応していない Request changes で
-   指定されたことだけ**に対応する（`selectRequestedReviews`）。対応したレビューの ID は
-   まとめコメントのマーカー（`addressReviewMarker`）に残るので、同じレビューに二重に対応しない。
-   未対応の Request changes が無ければ何もしない。
+   - または、モニターの **「AI に直してもらう」** を押し、出てくる bot の指摘を見ながら直してほしいことを
+     書いて送る。daemon が目印付きのコメント（`<!-- autopilot-monitor-instruction -->`・Bot 名義・本文に誰の
+     指示か）を PR に残してから 🙋 を外す（4 と同じ）。Bot は自分の PR に Request changes を出せないので
+     コメントにしている。
+4. PR（か Issue）の 🙋 を外す → address-review が、**まだ対応していない Request changes と、まだ対応していない
+   モニターの指示コメントで指定されたことだけ**に対応する（`selectRequestedReviews` / `selectMonitorInstructions`）。
+   対応したレビューと指示コメントの ID はまとめコメントのマーカー（`addressReviewMarker` の `handled-reviews` /
+   `handled-instructions`）に残るので、二重に対応しない。どちらも無ければ何もしない。
+   目印の無いふつうのコメントは指示として扱わない。
+
+ゲートの解除そのもの（🙋 を外したときだけ）は変わらない。モニターの指示は「指示の入口」が増えただけで、
+状態・遷移は増えていない。
 
 ラベルで開くので、同じ解除で何度も dispatch されることも無い（worker が終わると daemon が 🙋 を
 付け直す）。発言や処理済みレビューの時刻を覚えておく watermark は要らない。
@@ -171,8 +180,8 @@ Issue / PR の 🙋 を外す。人間が 🙋 を外したのと同じ意味な
   動かさない（プロンプト規約）。提案段階で退避系へ動かすと、人間がラベルだけ外したときに
   出口の無い状態に落ちるため。Icebox への遷移は人間の確定操作のみ。
 - **I5（二重対応の防止）**: address-review は、まとめコメントのマーカー（`addressReviewMarker`）に
-  残したレビュー ID を対応済みとみなし、同じ Request changes に二重に対応しない
-  （`selectRequestedReviews`）。daemon の再起動に左右されない（状態ファイルを持たない）。
+  残したレビュー ID と指示コメントの ID を対応済みとみなし、同じ Request changes・同じモニターの指示に
+  二重に対応しない（`selectRequestedReviews` / `selectMonitorInstructions`）。daemon の再起動に左右されない（状態ファイルを持たない）。
 
 ## 状態・トリガーを変更するときのチェックリスト
 

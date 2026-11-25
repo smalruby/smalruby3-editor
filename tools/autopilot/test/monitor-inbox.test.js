@@ -6,7 +6,7 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const {
     itemSem, epicSem, inboxModel, inboxGroups, isInboxToggleKey, boardRows, recommendedAnswers, chosenAnswers, digitTarget,
-    agoLabel, shortTitle,
+    agoLabel, shortTitle, renderMiniMarkdown,
     INBOX_CLIENT_FNS,
 } = require('../src/monitor-inbox');
 
@@ -63,7 +63,9 @@ test('inboxModel（humanWait あり）: daemon の delegate で「AI に任せ�
     }, null);
     assert.deepStrictEqual(m.waits.map((w) => w.issue), [11, 14]);
     assert.strictEqual(m.waits[0].goLabel, 'AI に直してもらう');
+    assert.strictEqual(m.waits[0].fix, true); // 押すと指摘とコメント欄を開く（#2415）
     assert.strictEqual(m.waits[1].goLabel, null);
+    assert.strictEqual(m.waits[1].fix, false);
     assert.strictEqual(m.waits[1].delegateError, 'DoD は人間の作業です');
 });
 
@@ -258,4 +260,49 @@ test('INBOX_CLIENT_FNS: どれも自己完結（モジュールの外を参照�
     assert.deepStrictEqual(fns.inboxModel({ items: ITEMS }, null).waits.map((w) => w.issue), [11, 12, 13]);
     assert.strictEqual(fns.digitTarget({ code: 'Digit2' }), 'board');
     assert.strictEqual(fns.inboxGroups(fns.inboxModel({ items: ITEMS }, null).waits, { items: ITEMS })[0].key, '10');
+});
+
+// ---- 指摘のまとめコメントの整形（#2415）
+test('renderMiniMarkdown: headings, lists, bold, code, links; hides the marker comment', () => {
+    const md = [
+        '<!-- autopilot-review-findings round=1 -->',
+        '🤖 敵対的レビュー（round 1）: 指摘 2 件',
+        '',
+        '### Must',
+        '- **[M1]** `src/a.js:3` 直す — 修正済み',
+        '',
+        '1. 一つ目',
+        '2. [PR](https://github.com/o/r/pull/1)',
+        '> 引用',
+        '```',
+        'const x = 1 < 2;',
+        '```',
+    ].join('\n');
+    const h = renderMiniMarkdown(md);
+    assert.ok(!h.includes('autopilot-review-findings'));
+    assert.match(h, /<h6>Must<\/h6>/);
+    assert.match(h, /<ul><li><strong>\[M1\]<\/strong> <code>src\/a\.js:3<\/code> 直す — 修正済み<\/li><\/ul>/);
+    assert.match(h, /<ol><li>一つ目<\/li><li><a href="https:\/\/github\.com\/o\/r\/pull\/1" target="_blank" rel="noopener noreferrer">PR<\/a><\/li><\/ol>/);
+    assert.match(h, /<blockquote>引用<\/blockquote>/);
+    assert.match(h, /<pre><code>const x = 1 &lt; 2;<\/code><\/pre>/);
+    assert.match(h, /<p>🤖 敵対的レビュー/);
+    assert.strictEqual(renderMiniMarkdown(''), '');
+});
+
+test('renderMiniMarkdown: escapes HTML before formatting (no XSS)', () => {
+    const h = renderMiniMarkdown('<script>alert(1)</script> **<img src=x onerror=alert(1)>**\n'
+        + '[x](javascript:alert(1)) [y](https://e.com/"onmouseover="a) `<b>`');
+    assert.ok(!/<script|<img|<b>/.test(h));
+    assert.match(h, /&lt;script&gt;/);
+    assert.match(h, /<strong>&lt;img src=x onerror=alert\(1\)&gt;<\/strong>/);
+    assert.ok(!h.includes('href="javascript'));
+    assert.ok(!/href="[^"]*"onmouseover/.test(h));
+    assert.match(h, /<code>&lt;b&gt;<\/code>/);
+});
+
+test('renderMiniMarkdown: is self-contained (embedded with toString)', () => {
+    // eslint-disable-next-line no-new-func
+    const fn = new Function('return (' + renderMiniMarkdown.toString() + ')')();
+    assert.strictEqual(fn('**a**'), '<p><strong>a</strong></p>');
+    assert.ok(!renderMiniMarkdown.toString().includes('<!--'));
 });

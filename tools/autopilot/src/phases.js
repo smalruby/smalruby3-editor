@@ -613,16 +613,41 @@ function toMs(t) {
  * いないか」を address-review 自身が判定する。時刻の watermark ではなくレビュー ID を残す
  * ので、daemon の再起動やコメントの前後関係に左右されず、同じレビューに二重対応しない。
  */
-const ADDRESS_REVIEW_MARKER_RE = /<!--\s*autopilot-address-review\s+handled-reviews=([\d,\s]*)-->/g;
+const ADDRESS_REVIEW_MARKER_RE =
+    /<!--\s*autopilot-address-review\s+handled-reviews=([\d,]*)(?:\s+handled-instructions=([\d,]*))?\s*-->/g;
+
+/** ID の配列を「正の整数・重複なし」にそろえる（内部用） */
+function uniquePositiveIds(ids) {
+    return [...new Set((ids || []).map(Number).filter((n) => Number.isInteger(n) && n > 0))];
+}
 
 /**
- * 対応した Request changes レビューの ID からマーカーを作る（純粋関数）。
+ * 対応した Request changes レビューの ID（と、対応したモニターの指示コメントの ID・#2415）から
+ * マーカーを作る（純粋関数）。指示コメントが無ければ従来の形のまま（後方互換）。
  * @param {Array<number|string>} reviewIds
+ * @param {Array<number|string>} [instructionIds] {@link selectMonitorInstructions} で選んだコメントの ID
  * @returns {string}
  */
-function addressReviewMarker(reviewIds) {
-    const ids = [...new Set((reviewIds || []).map(Number).filter((n) => Number.isInteger(n) && n > 0))];
-    return `<!-- autopilot-address-review handled-reviews=${ids.join(',')} -->`;
+function addressReviewMarker(reviewIds, instructionIds) {
+    const ids = uniquePositiveIds(reviewIds);
+    const ins = uniquePositiveIds(instructionIds);
+    const tail = ins.length ? ` handled-instructions=${ins.join(',')}` : '';
+    return `<!-- autopilot-address-review handled-reviews=${ids.join(',')}${tail} -->`;
+}
+
+/** マーカーの n 番目の捕捉（1 = レビュー、2 = 指示コメント）の ID を集める（内部用） */
+function collectHandledIds(comments, group) {
+    const out = new Set();
+    for (const c of comments || []) {
+        const body = (c && c.body) || '';
+        for (const m of body.matchAll(ADDRESS_REVIEW_MARKER_RE)) {
+            for (const id of String(m[group] || '').split(',')) {
+                const n = Number(id.trim());
+                if (Number.isInteger(n) && n > 0) out.add(n);
+            }
+        }
+    }
+    return out;
 }
 
 /**
@@ -631,17 +656,121 @@ function addressReviewMarker(reviewIds) {
  * @returns {Set<number>}
  */
 function handledReviewIds(comments) {
-    const out = new Set();
-    for (const c of comments || []) {
-        const body = (c && c.body) || '';
-        for (const m of body.matchAll(ADDRESS_REVIEW_MARKER_RE)) {
-            for (const id of m[1].split(',')) {
-                const n = Number(id.trim());
-                if (Number.isInteger(n) && n > 0) out.add(n);
-            }
-        }
-    }
-    return out;
+    return collectHandledIds(comments, 1);
+}
+
+/**
+ * PR のコメント群から、対応済みのモニターの指示コメントの ID を集める（純粋関数・#2415）。
+ * @param {Array<{body?: string}>} comments
+ * @returns {Set<number>}
+ */
+function handledInstructionIds(comments) {
+    return collectHandledIds(comments, 2);
+}
+
+/**
+ * モニターの「AI に直してもらう」で人間が書いた指示を、daemon が Bot で PR に残すコメントの目印（#2415）。
+ * Bot は自分の PR に Request changes を出せないので、レビューではなく目印付きのコメントにする。
+ * 人間がふつうに書いたコメントは指示として扱わない（目印付き・Bot 名義だけ）。
+ */
+const MONITOR_INSTRUCTION_MARKER = '<!-- autopilot-monitor-instruction -->';
+
+/** 指示の文の上限（GitHub のコメントの上限よりずっと小さく。長い指示は Request changes で） */
+const MAX_MONITOR_INSTRUCTION = 4000;
+
+/**
+ * コメントがモニターの指示コメントか（純粋関数・#2415）。目印があり、書いたのが Bot であること
+ * （user が無い形 = daemon の listIssueComments のときは目印だけで見る）。
+ * @param {{body?:string, user?:object}} comment
+ * @returns {boolean}
+ */
+function isMonitorInstructionComment(comment) {
+    if (!comment || !String(comment.body || '').includes(MONITOR_INSTRUCTION_MARKER)) return false;
+    return comment.user === undefined || isBotUser(comment.user);
+}
+
+/**
+ * 指示コメントの本文から、人間が書いた指示の文だけを取り出す（純粋関数・#2415）。
+ * {@link renderMonitorInstructionComment} の逆。
+ * @param {string} body
+ * @returns {string}
+ */
+function monitorInstructionText(body) {
+    const s = String(body || '');
+    const i = s.indexOf(MONITOR_INSTRUCTION_MARKER);
+    if (i < 0) return '';
+    const rest = s.slice(i + MONITOR_INSTRUCTION_MARKER.length).replace(/^\s*\n/, '');
+    // 2 行目は「モニターから <login> の指示」の見出し、その下の空行のあとが本文
+    return rest.replace(/^[^\n]*\n\n?/, '').trim();
+}
+
+/**
+ * モニターの指示コメントの本文（純粋関数・#2415）。Bot 名義なので、誰の指示かを本文に書く。
+ * @param {{text:string, login?:(string|null)}} p
+ * @returns {string}
+ */
+function renderMonitorInstructionComment({ text, login }) {
+    const who = login ? `@${String(login).replace(/^@/, '')}` : '人間';
+    return [
+        MONITOR_INSTRUCTION_MARKER,
+        // `@` は通知が飛ぶのでコードにする
+        `🖥️ モニターから ${login ? '`' + who + '`' : who} の指示（autopilot が代わりに投稿しています）`,
+        '',
+        String(text || '').trim(),
+    ].join('\n');
+}
+
+/**
+ * address-review が対応するモニターの指示コメントを選ぶ（純粋関数・#2415）。
+ * {@link selectRequestedReviews} と同じく、対応済みかはまとめコメントのマーカー
+ * （{@link addressReviewMarker} の handled-instructions）で見る（時刻や daemon の状態ファイルは使わない・I5）。
+ * @param {Array<{id:(number|string), body?:string, user?:object, created_at?:string}>} comments PR の会話コメント
+ * @returns {Array<object>} created_at の古い順（無ければ渡された順）
+ */
+function selectMonitorInstructions(comments) {
+    const handled = handledInstructionIds(comments);
+    return (comments || [])
+        .map((c, i) => ({ c, i }))
+        .filter(({ c }) => isMonitorInstructionComment(c) && !handled.has(Number(c.id)))
+        .sort((a, b) => (toMs(a.c.created_at) - toMs(b.c.created_at)) || (a.i - b.i))
+        .map(({ c }) => c);
+}
+
+/**
+ * `POST /delegate` の指示つきの body を検証する（純粋関数・#2415）。`instruction` が無ければ従来の
+ * 「AI に任せる」（null）。あれば空白だけ・長すぎるものを断る。
+ * @param {object} body
+ * @returns {{ok:boolean, error?:string, instruction?:(string|null)}}
+ */
+function normalizeDelegateInstruction(body) {
+    if (!body || body.instruction === undefined || body.instruction === null) return { ok: true, instruction: null };
+    if (typeof body.instruction !== 'string') return { ok: false, error: 'instruction must be a string' };
+    const text = body.instruction.replace(/\r\n?/g, '\n').trim();
+    if (!text) return { ok: false, error: 'instruction is empty' };
+    if (text.length > MAX_MONITOR_INSTRUCTION) return { ok: false, error: `instruction is too long (max ${MAX_MONITOR_INSTRUCTION})` };
+    return { ok: true, instruction: text };
+}
+
+/**
+ * 指示コメントを投稿するか（純粋関数・#2415）。押し直し（🙋 を外すのに失敗したなど）で同じ指示を
+ * 二重に書かないよう、まだ対応していない指示コメントに同じ文があれば書かない。
+ * @param {Array<object>} comments PR の会話コメント
+ * @param {string} text 指示の文（{@link normalizeDelegateInstruction} 済み）
+ * @returns {{action:'post'|'skip', existingId?:(number|string)}}
+ */
+function planMonitorInstructionPost(comments, text) {
+    const same = selectMonitorInstructions(comments).find((c) => monitorInstructionText(c.body) === String(text || '').trim());
+    return same ? { action: 'skip', existingId: same.id } : { action: 'post' };
+}
+
+/**
+ * board item の PR から、指摘と指示を扱う PR（開いているもの）を選ぶ（純粋関数・#2415）。
+ * @param {Array<{number:number, state?:string}>} prs
+ * @returns {number|null}
+ */
+function openPrNumber(prs) {
+    const p = (prs || []).find((x) => x && x.state !== 'MERGED' && x.state !== 'CLOSED');
+    return p ? p.number : null;
 }
 
 /** REST のユーザーが bot か（GitHub App / `[bot]` 接尾辞） */
@@ -2540,6 +2669,23 @@ function findReviewFindingsComment(comments, round) {
 }
 
 /**
+ * モニターの「AI に直してもらう」で見せる bot の指摘（純粋関数・#2415）。いちばん新しい round の
+ * まとめコメントの本文と件数。件数は全 round を合わせたもの（{@link countReviewFindings}）ではなく、
+ * 見せる round のものにする（見ている本文と数がずれないように）。まとめコメントが無ければ null。
+ * まだ対応していないモニターの指示（{@link selectMonitorInstructions}）も添える（送ったのに
+ * address-review がまだ走っていない、を見て分かるように）。
+ * @param {Array<{id:(number|string), body?:string}>} comments PR の会話コメント
+ * @returns {{findings:({round:number, id:(number|string|null), body:string,
+ *   counts:{Must:number, Question:number, FYI:number}}|null), pendingInstructions:string[]}}
+ */
+function reviewFindingsView(comments) {
+    const round = nextReviewFindingsRound(comments) - 1;
+    const c = round > 0 ? findReviewFindingsComment(comments, round) : null;
+    const findings = c ? { round, id: c.id == null ? null : c.id, body: String(c.body || ''), counts: countReviewFindings([c]) } : null;
+    return { findings, pendingInstructions: selectMonitorInstructions(comments).map((x) => monitorInstructionText(x.body)) };
+}
+
+/**
  * ID 文字列（`Q1` / `q1` / `Question1` / `Must2` / `F3` / 全角数字）を正規化する（純粋関数）。
  * @param {string} token
  * @returns {{id: string, category: string, number: number}|null}
@@ -2676,8 +2822,8 @@ function renderReviewFindingsComment({ round, findings, start }) {
     if (assigned.length > 0) {
         lines.push(
             '',
-            '直してほしい指摘は **Request changes** で ID を指定してから `🙋 HITL` を外してください'
-                + '（例: `Q1はOK, FYI1は修正して`）。コメントだけでは autopilot は動きません。',
+            '直してほしい指摘は、モニターの「AI に直してもらう」で指示を書くか、**Request changes** で ID を指定してから'
+                + ' `🙋 HITL` を外してください（例: `Q1はOK, FYI1は修正して`）。ふつうのコメントだけでは autopilot は動きません。',
         );
     }
     return lines.join('\n');
@@ -3895,6 +4041,17 @@ module.exports = {
     isHitlReleased,
     isGateReleased,
     addressReviewMarker,
+    handledInstructionIds,
+    MONITOR_INSTRUCTION_MARKER,
+    MAX_MONITOR_INSTRUCTION,
+    isMonitorInstructionComment,
+    monitorInstructionText,
+    renderMonitorInstructionComment,
+    selectMonitorInstructions,
+    normalizeDelegateInstruction,
+    planMonitorInstructionPost,
+    openPrNumber,
+    reviewFindingsView,
     handledReviewIds,
     selectRequestedReviews,
     extractCommentRefs,

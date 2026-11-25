@@ -12,12 +12,17 @@
 
 | `AUTOPILOT_STATUS` | モード | 対応する範囲 |
 |---|---|---|
-| `Review` / `DoD`（`In Progress` など中断からの再開も） | **Request changes 対応** | **まだ対応していない Request changes のレビューで指定されたことだけ**（手順 2） |
+| `Review` / `DoD`（`In Progress` など中断からの再開も） | **Request changes 対応** | **まだ対応していない Request changes のレビューと、まだ対応していないモニターの指示コメントで指定されたことだけ**（手順 2） |
 | `Blocked` | **再開** | Blocked の理由と PR のスレッドを読み、止まった作業を続ける（手順 2B） |
 
 Request changes 対応モードでは、人間のコメント・approve・Comment だけのレビュー・bot の
 指摘のうち言及の無いものには**対応しない**（人間が気軽にコメントできるように、対応してほしいことは
-Request changes にまとめてもらう運用）。
+Request changes か、モニターの「AI に直してもらう」に書いてもらう運用）。
+
+**モニターの指示コメント**: モニターの「AI に直してもらう」で人間が書いた指示は、daemon が Bot で PR に
+目印付きのコメントとして残す（先頭が `<!-- autopilot-monitor-instruction -->`・本文に「モニターから <login> の指示」）。
+Bot は自分の PR に Request changes を出せないので、レビューではなくコメントになっている。これは
+**人間の Request changes と同じ「指示」**として扱う。目印の無いふつうのコメントは、これまでどおり指示ではない。
 
 
 ## EPIC の流れ（`AUTOPILOT_EPIC_FLOW=1` のとき）
@@ -95,11 +100,17 @@ console.log(touchedRuleAreas(files).join("\n"));
 done
 ```
 
-### 2. 対応する Request changes を決める（`AUTOPILOT_STATUS` が Blocked 以外）
+### 2. 対応する指示を決める（`AUTOPILOT_STATUS` が Blocked 以外）
 
-まだ対応していない Request changes のレビューを `selectRequestedReviews`（純粋関数・テスト済み）で選ぶ。
+指示は 2 つの入口から来る。どちらも**まだ対応していないものだけ**を選ぶ:
+
+- まだ対応していない Request changes のレビュー: `selectRequestedReviews`（純粋関数・テスト済み）
+- まだ対応していないモニターの指示コメント: `selectMonitorInstructions`（純粋関数・テスト済み）。
+  指示の文は `monitorInstructionText(body)` で取り出す。
+
 対応済みかどうかは、以前の address-review がまとめコメントの先頭に残したマーカー
-`<!-- autopilot-address-review handled-reviews=<id,id> -->` で判定する（`addressReviewMarker`）:
+`<!-- autopilot-address-review handled-reviews=<id,id> handled-instructions=<id,id> -->` で判定する
+（`addressReviewMarker(reviewIds, instructionIds)`。時刻や daemon の状態では判定しない）:
 
 ```bash
 GH_TOKEN="$(bin/bot-token)" gh api "repos/$AUTOPILOT_REPO/pulls/$PR/reviews" --paginate \
@@ -108,21 +119,25 @@ GH_TOKEN="$(bin/bot-token)" gh api "repos/$AUTOPILOT_REPO/issues/$PR/comments" -
   | jq -s 'add' > tmp/pr-comments-$AUTOPILOT_ISSUE.json
 node -e '
 const fs = require("fs");
-const { selectRequestedReviews } = require("./tools/autopilot/src/phases.js");
+const { selectRequestedReviews, selectMonitorInstructions, monitorInstructionText } = require("./tools/autopilot/src/phases.js");
 const reviews = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
 const comments = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
-console.log(JSON.stringify(selectRequestedReviews(reviews, comments).map((r) => ({ id: r.id, body: r.body })), null, 2));
+console.log(JSON.stringify({
+  reviews: selectRequestedReviews(reviews, comments).map((r) => ({ id: r.id, body: r.body })),
+  instructions: selectMonitorInstructions(comments).map((c) => ({ id: c.id, text: monitorInstructionText(c.body) })),
+}, null, 2));
 ' tmp/pr-reviews-$AUTOPILOT_ISSUE.json tmp/pr-comments-$AUTOPILOT_ISSUE.json
 ```
 
-**1 件も無ければ何もしない**: 「🙋 が外れましたが、まだ対応していない Request changes が無いので何もしていません。
-直してほしいことは Request changes で指定してから 🙋 を外してください」と PR に 1 行コメントして、
-出口 (b) で終える（マーカーは付けない・コードに触らない）。
+**どちらも 1 件も無ければ何もしない**: 「🙋 が外れましたが、まだ対応していない Request changes もモニターの指示も
+無いので何もしていません。直してほしいことはモニターの「AI に直してもらう」に書くか、Request changes で指定してから
+🙋 を外してください」と PR に 1 行コメントして、出口 (b) で終える（マーカーは付けない・コードに触らない）。
 
-選んだレビューごとに、**指示**と**指示の対象**を集める:
+選んだレビューと指示コメントごとに、**指示**と**指示の対象**を集める:
 
 - **指示** = レビュー本文 + そのレビューの行コメント
   （`gh api repos/$AUTOPILOT_REPO/pulls/$PR/reviews/<id>/comments`）。
+  モニターの指示コメントは `monitorInstructionText` で取り出した文（行コメントは無い）。
 - **指示の対象** = 指示の中に貼られたコメント URL。`extractCommentRefs` で拾い、それぞれ取得する:
   `issue-comment` → `repos/$AUTOPILOT_REPO/issues/comments/<id>`、
   `review-comment` → `repos/$AUTOPILOT_REPO/pulls/comments/<id>`、
@@ -189,9 +204,9 @@ Issue と PR の Blocked コメント（理由）と、その後の人間のコ�
   「follow-up の sub-issue の作り方」）で follow-up の sub-issue を作り、まとめコメントにその番号を書く。
   人間の指示に反するので、出口は (c)（人間に確認）にする。
 - 対応の有無が辿れるよう、**まとめコメントを 1 件**残す（「指摘 N 件: 対応 a 件 / 返信 b 件 / 対応不要 c 件」）。
-  **先頭に、手順 2 で選んだレビューの ID を `addressReviewMarker` で埋める**
-  （例 `<!-- autopilot-address-review handled-reviews=3409123456 -->`）。次に 🙋 が外れたとき、
-  このレビューには二重に対応しない。出口 (a)(c) のどちらでも付ける（checkpoint で中断したときは付けない —
+  **先頭に、手順 2 で選んだレビューの ID と指示コメントの ID を `addressReviewMarker(reviewIds, instructionIds)` で埋める**
+  （例 `<!-- autopilot-address-review handled-reviews=3409123456 handled-instructions=3612345678 -->`）。
+  次に 🙋 が外れたとき、このレビューと指示には二重に対応しない。出口 (a)(c) のどちらでも付ける（checkpoint で中断したときは付けない —
   再開時にもう一度同じレビューを選ぶため）。ID 付き指摘は **ID で 1 行ずつ**書く
   （例: `Q1: 変更なし（人間 OK） / FYI1: 修正済み（<sha>） / M2: 修正済み（<sha>）`）。
 - 指定がすべて「そのままで」など、コードに触る必要が無ければコミットしない（冪等・無駄 push をしない）。
@@ -226,7 +241,7 @@ EOF
 echo AUTOPILOT_DONE
 ```
 
-**(b) 対応することが無い → 人間のマージ待ち**（未対応の Request changes が無い・指定がすべて「そのままで」など。
+**(b) 対応することが無い → 人間のマージ待ち**（未対応の Request changes もモニターの指示も無い・指定がすべて「そのままで」など。
 こちらからは何もしない。Review のまま人間に戻す）:
 
 ```bash
@@ -250,7 +265,8 @@ echo AUTOPILOT_HITL
 ```
 
 > (a)(b) はどちらも `hitl:true` で人間の番に戻す。違いは「コードを変えたか」だけ。
-> 人間は新しい Request changes を出して再び 🙋 を外せば、また本スキルが起動してその分に対応する。
+> 人間は新しい Request changes を出して再び 🙋 を外すか、モニターの「AI に直してもらう」に書いて送れば、
+> また本スキルが起動してその分に対応する。
 
 ## 人間に選んでほしいことがあるとき（モニターで答える質問）
 
