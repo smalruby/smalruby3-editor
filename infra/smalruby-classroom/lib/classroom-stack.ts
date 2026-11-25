@@ -557,7 +557,7 @@ export class ClassroomStack extends cdk.Stack {
         ANTHROPIC_ORGANIZATION_ID: process.env.ANTHROPIC_ORGANIZATION_ID || '',
         ANTHROPIC_SERVICE_ACCOUNT_ID: process.env.ANTHROPIC_SERVICE_ACCOUNT_ID || '',
         ANTHROPIC_WORKSPACE_ID: process.env.ANTHROPIC_WORKSPACE_ID || '',
-        CLAUDE_MODEL: process.env.CLAUDE_MODEL || 'claude-haiku-4-5-20251001',
+        CLAUDE_MODEL: process.env.CLAUDE_MODEL || 'claude-sonnet-5-5',
         EVAL_MAX_SUBMISSIONS: process.env.EVAL_MAX_SUBMISSIONS || '10',
         EVAL_RATE_LIMIT_WINDOW_SECONDS: process.env.EVAL_RATE_LIMIT_WINDOW_SECONDS || '3600',
         EVAL_RATE_LIMIT_MAX_REQUESTS: process.env.EVAL_RATE_LIMIT_MAX_REQUESTS || '60',
@@ -846,6 +846,15 @@ export class ClassroomStack extends cdk.Stack {
     this.api.addRoutes({
       path: '/classrooms/{classroomId}/assignment/lesson-scoring',
       methods: [apigatewayv2.HttpMethod.PATCH],
+      integration,
+    });
+
+    // Per-assignment grading (#2422): teacher reads (GET) and saves parts of
+    // the rubric / grades / confirmation (PUT). Stored as a sibling item of
+    // the assignment in the Classrooms table, so no new table.
+    this.api.addRoutes({
+      path: '/classrooms/{classroomId}/grading',
+      methods: [apigatewayv2.HttpMethod.GET, apigatewayv2.HttpMethod.PUT],
       integration,
     });
 

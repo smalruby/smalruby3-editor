@@ -182,7 +182,10 @@ CDK スタック定義。以下のリソースを作成:
 | `handleListNotifications()` | お知らせ一覧 + 未読数 (EPIC #1111) |
 | `handleMarkNotificationsRead()` | お知らせ既読化 (ids 省略で全既読) |
 | `handleCreateGroup()` / `handleListGroups()` / `handleUpdateGroup()` | 組（グループ）の作成・一覧・更新/アーカイブ |
-| `handleDuplicateClassroom()` | 課題の複製（課題コンテンツの S3 オブジェクトコピー含む） |
+| `handleDuplicateClassroom()` | 課題の複製（課題コンテンツの S3 オブジェクトコピー含む。採点は `gradingForDuplicate()` で基準だけをコピー） |
+| `handleGetGrading()` / `handleSetGrading()` | 課題の採点の読み書き（予約キー `grading#<classroomId>` の項目。PUT は送ったキーだけを SET）#2422 |
+| `validateGradingUpdate()` / `mergeGrading()` / `gradingOf()` / `gradingByteSize()` / `gradingForDuplicate()` | 採点の検証（大きさの上限）・送ったキーの重ね合わせ・読み出し・全体の大きさ・再利用でコピーする部分 #2422 |
+| `validateEvaluateRequest()` / `buildEvaluationPrompt()` / `evaluationResponseBody()` | AI 評価支援（`grade` / `comment` / `describe` / `rubric` / `fairness`）の入力検証・プロンプト・モード別の応答（`parseEvaluationResponse` / `parseDescribeResponse` / `parseRubricResponse` / `parseFairnessResponse`）#2422 |
 | `handleListGoogleCourses()` | Google Classroom コース一覧 |
 | `handleGetGoogleCourseAccess()` | 押した先生が紐付け先コースの GC 教師か・連携者本人か（`linkedByMe`）の判定 |
 | `handleImportGoogleClassroom()` | Google Classroom コースインポート |
