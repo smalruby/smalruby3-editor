@@ -432,6 +432,9 @@ const PHASE_BY_COMMAND = {
     // モニタのボタン（POST /resolve-conflict）か、着手時の base 追従のコンフリクトから起動する。
     // AI Status は実行中だけこの値にし、終わったら元に戻す（daemon の dispatchResolveConflict）。
     'resolve-conflict': { skill: 'autopilot-resolve-conflict', aiStatus: 'Resolving Conflicts' },
+    // 分解済み EPIC（🧭 トラッカー）のリリース確認（#2430）。子が全部済んだら daemon が AI Status を
+    // Release Check にし、このフェーズが確認の観点をまとめる / 人間の確認の結果を受ける（release-check.js）。
+    'release-check': { skill: 'autopilot-release-check', aiStatus: 'Release Check' },
 };
 
 /**
@@ -950,6 +953,14 @@ const HUMAN_GATE_STATUSES = new Set(['Review', 'DoD']);
 const AWAITING_CONTINUATION_STATUS = 'Awaiting Continuation';
 
 /**
+ * 分解済み EPIC（🧭 トラッカー）のリリース確認の AI Status（#2430）。Status は In Progress のまま。
+ * 子が全部済んだ（または残りが 🚀 after-release だけ）とき daemon が EPIC Decomposed からこの値にする
+ * （release-check.js の `releaseCheckEntryIntents`）。🙋 なしなら release-check フェーズが走り、
+ * 🙋 ありは人間の番（プレビューで確かめ、モニターの「確認の結果を書く」で結果を送ると 🙋 が外れる）。
+ */
+const RELEASE_CHECK_AI_STATUS = 'Release Check';
+
+/**
  * Project item から「次に autopilot が自律実行すべきフェーズ」を決める（純粋関数）。
  * 人間駆動の状態（Close/Backlog/Icebox/Paused）や 🙋 ラベルあり（人間の番）では null（何もしない）。
  *
@@ -963,6 +974,12 @@ const AWAITING_CONTINUATION_STATUS = 'Awaiting Continuation';
  */
 function phaseForItem(item, ctx = {}) {
     if (!item) return null;
+    // リリース確認（#2430）: 分解済み EPIC で唯一の AI の段。🙋 を外したときだけ進む（I2〜I3）。
+    // 観点をまとめるか、結果を受けるかは、プロンプトがトラッカーの目印付きコメントから決める
+    // （release-check.js の releaseCheckMode）。
+    if (hasTrackingLabel(item) && item.status === 'In Progress' && item.aiStatus === RELEASE_CHECK_AI_STATUS) {
+        return isGateReleased(item, ctx) ? 'release-check' : null;
+    }
     // 🧭 tracking ラベル付き = 分解済みの親トラッカー。作業 item ではないので何もしない
     // （完了は closed-reconcile が拾う）。Kind=EPIC でも未分解なら decompose 対象なので
     // ここではラベルだけを見る。
@@ -1068,6 +1085,9 @@ const STUCK_EXEMPT_AI_STATUSES = new Set(['Self-Reviewing', 'EPIC Decomposed', A
 function isStuckCandidate(item) {
     if (!item || item.status !== 'In Progress') return false;
     if (!item.aiStatus || STUCK_EXEMPT_AI_STATUSES.has(item.aiStatus)) return false;
+    // Release Check（#2430）の 🧭 トラッカーは、🙋 なしなら次の tick で release-check を出すので対象外。
+    // トラッカーでない item の Release Check は出口が無いので stuck として Blocked へ回す
+    if (item.aiStatus === RELEASE_CHECK_AI_STATUS && hasTrackingLabel(item)) return false;
     if (item.hitlLabel) return false;
     return true;
 }
@@ -1414,6 +1434,7 @@ const HUMAN_WAIT_REASONS = [
     { key: 'spike', icon: '🔬', label: 'Spike・回答待ち', detail: '要件の相談中。あなたの回答を待っています' },
     { key: 'review', icon: '👀', label: 'レビュー待ち', detail: 'あなたのレビューを待っています' },
     { key: 'dod', icon: '✅', label: 'DoD の確認待ち', detail: '動作確認（DoD）を待っています' },
+    { key: 'release', icon: '🚀', label: 'リリース確認待ち', detail: 'EPIC のプレビューでの確認を待っています' },
     { key: 'blocked', icon: '🧱', label: 'Blocked（障害）', detail: '障害の対処を待っています' },
     { key: 'waiting', icon: '⏳', label: '依存待ち', detail: '先行 Issue（autopilot-after）の完了を待っています' },
     { key: 'other', icon: '🙋', label: 'そのほか', detail: 'あなたの対応を待っています' },
@@ -1435,6 +1456,7 @@ function humanWaitReason(item) {
     if (isSpikeItem(item)) return 'spike';
     if (status === 'Review') return 'review';
     if (status === 'DoD') return 'dod';
+    if (status === 'In Progress' && item.aiStatus === RELEASE_CHECK_AI_STATUS) return 'release';
     if (status === 'Blocked') return 'blocked';
     if (waiting) return 'waiting';
     return 'other';
@@ -2038,9 +2060,10 @@ function renderTrackerSticky(item) {
     const lines = [TRACKER_STICKY_MARKER, ''];
     if (allDone) {
         lines.push(
-            `✅ **全 sub-issue が完了しました（${completed}/${total}）** — **この EPIC を Close してください**`,
-            '（または Project の Status を Close/Done に変更）。Close すると closed-reconcile が'
-                + ' Project を Close に整合します。autopilot は EPIC を自動 Close しません。',
+            `✅ **全 sub-issue が完了しました（${completed}/${total}）** — **リリース確認に進みます**`,
+            'autopilot がプレビューで確かめる観点をこの Issue にまとめます（#2430）。確かめて OK なら、'
+                + 'topic → develop の PR をマージして**この EPIC を Close してください**'
+                + '（closed-reconcile が Project を Close に整合します）。autopilot は develop へマージせず、EPIC も自動 Close しません。',
         );
     } else {
         lines.push(
@@ -3947,6 +3970,10 @@ function planDelegate(item, opts = {}) {
     if (opts.openQuestions) return no(409, 'open-questions', 'has questions to answer: use POST /answer');
     const status = item.status || 'New Item';
     if (TERMINAL_STATUSES.has(status) || status === 'Icebox') return no(409, 'resting', `status is ${status}`);
+    // リリース確認（#2430）の 🙋 を外すと、release-check が結果を受ける（結果が無ければ観点をまとめ直す）
+    if (hasTrackingLabel(item) && status === 'In Progress' && item.aiStatus === RELEASE_CHECK_AI_STATUS) {
+        return { ok: true, status: 200, action: 'release', intents: [], nextPhase: 'release-check' };
+    }
     if (hasTrackingLabel(item) || (status === 'In Progress' && item.aiStatus === 'EPIC Decomposed')) {
         return no(409, 'tracker', 'decomposed EPIC: close it when all sub-issues are done');
     }
@@ -4132,6 +4159,7 @@ module.exports = {
     needsPrLinkSticky,
     renderPrLinkSticky,
     HUMAN_GATE_STATUSES,
+    RELEASE_CHECK_AI_STATUS,
     isGateItem,
     dodHandoffMarker,
     isDodHandoffComment,

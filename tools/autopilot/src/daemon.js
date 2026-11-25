@@ -129,6 +129,7 @@ const { buildStatusMaterial, groupItemsByEpic } = require('./epic-summary');
 const currentStatusJob = require('./current-status-job');
 // モニターで答える（ui-policy §8 の U1・U2）。判断は phases.js、置き場・HTTP・GitHub のつなぎは monitor-answers.js
 const monitorAnswers = require('./monitor-answers');
+const releaseCheckHttp = require('./release-check-http');
 const { pruneMonitorReleases, withMonitorReleases, humanWaitRows } = require('./phases');
 
 const execFileP = promisify(execFile);
@@ -1571,6 +1572,8 @@ async function dispatch(item, cfg, state, log) {
         if (phase === 'decompose' && parsed.result.signal === 'done') {
             await applyDecomposeSubIssueSetup(parsed.result, cfg, log);
         }
+        // リリース確認（#2430）のプレビューの URL をモニターの行に出す
+        if (phase === 'release-check') releaseCheckHttp.rememberPreview(state, item.issue, parsed.result.previewUrl);
         // signal=error は Blocked で surface する（churn を止める）。理由はサニタイズ済みの
         // 要約だけを GitHub に出し、生ログ（機密を含みうる）はローカル参照に誘導する。
         if (parsed.result.signal === 'error') {
@@ -2786,6 +2789,8 @@ async function refreshBoard(cfg, state, log, deps = {}) {
                 prs: extra.prs,
                 // EPIC ごとにまとめる材料（#2388）。priority は #2386 が Project の Priority を載せる
                 parent: extra.parent || null,
+                // リリース確認（#2430）のプレビュー。段の結果か「確認の結果を書く」で知ったものだけ（定期では取らない）
+                previewUrl: (state.releasePreviews && state.releasePreviews[it.issue]) || null,
             });
         }
         state.board = { updatedAt: cfg.now(), items: enriched };
@@ -2836,6 +2841,13 @@ async function refreshBoardAndProjectTrackers(cfg, state, log, deps = {}) {
     await refreshBoard(cfg, state, log, deps);
     if (state.ratePlan && state.ratePlan.skipLowPriority) return;
     await applyTrackerStickies(state.board ? state.board.items : [], cfg, log, deps);
+    // 子が全部済んだトラッカーをリリース確認に入れる（#2430）。ボードの値だけで決める（追加の read なし）
+    const entered = await releaseCheckHttp.applyReleaseCheckEntries(
+        state.board ? state.board.items : [], cfg, state, log, { patchBoardCache, ...(deps.releaseCheck || {}) },
+    );
+    if (entered.length && !state.paused && !deps.noTickAfterEntry) {
+        runTickOnce(cfg, state, log).catch((e) => log(`tick after release check entry error: ${e.message}`));
+    }
 }
 
 /**
@@ -3085,6 +3097,8 @@ function startHttp(cfg, state, log) {
         if (monitorAnswers.handleAnswerHttp(req, res, url, answerHttpContext(cfg, state, log))) return;
         // モニターの「AI に任せる」（POST /delegate・#2404）。🙋 を外す流れは /answer と同じ（releaseHumanGate）
         if (monitorAnswers.handleDelegateHttp(req, res, url, delegateHttpContext(cfg, state, log))) return;
+        // リリース確認の観点を見せる・結果を受ける（GET /release-check・POST /release-check/review・#2430）
+        if (releaseCheckHttp.handleReleaseCheckHttp(req, res, url, delegateHttpContext(cfg, state, log))) return;
         // 学び・タスクの口（/learnings*・/tasks*）は learn-tasks.js が受ける
         if (learnTasks.handleLearnTasksHttp(req, res, url, { cfg, state, log, send, capture, deps: { workerCommand } })) return;
         if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/index.html')) {
