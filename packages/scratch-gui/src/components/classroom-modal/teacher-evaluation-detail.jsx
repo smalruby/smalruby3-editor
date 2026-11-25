@@ -11,6 +11,7 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useId } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
 import { GRADE_ORDER } from '../../lib/classroom-evaluation/evaluation-utils.js';
+import Spinner from '../spinner/spinner.jsx';
 import ClassroomButton from './classroom-button.jsx';
 import styles from './classroom-modal.css';
 
@@ -177,11 +178,13 @@ const TeacherEvaluationDetail = ({
                 </span>
                 {onOpenWork && (
                     <ClassroomButton
+                        ariaBusy={openingWork || null}
                         className={styles.evalDetailOpenWork}
                         dataTestId="classroom-eval-detail-open-work"
                         disabled={!cell.submissionId || openingWork}
                         onClick={handleOpenWork}
                     >
+                        {openingWork && <Spinner small className={styles.evalSpinner} level="info-blue" />}
                         {intl.formatMessage(openingWork ? detailMessages.openingWork : detailMessages.openWork)}
                     </ClassroomButton>
                 )}

@@ -343,6 +343,33 @@ worker が人間に選んでほしいことがあるとき、`signal=hitl` の�
 （`monitor-answers.js` の `releaseHumanGate`）。通ったら pause 中でなければすぐ 1 tick 回す（pause 中は外して覚えるだけ）。
 判断は `phases.js` の `planDelegate` / `humanWaitRows`。
 
+#### 「AI に直してもらう」で指摘を見て指示を書く（Review / DoD）
+
+次の段が address-review になる行（Review / DoD など）のボタンは **「AI に直してもらう」** で、押してもすぐには
+🙋 を外さない。ダイアログを開いて、その PR の bot の指摘を見せ、直してほしいことを書いてもらう
+（GitHub で Request changes を書く手間をなくすため）。
+
+1. ダイアログを開くと `GET /delegate/findings?issue=N` で、PR の会話コメントを 1 回だけ読む（REST の
+   `issues/<pr>/comments`。押したときだけで、定期では取らない）。いちばん新しい round の指摘のまとめコメント
+   （`<!-- autopilot-review-findings round=N -->`）を、markdown を軽く整形して見せる（`monitor-inbox.js` の
+   `renderMiniMarkdown`。本文を先にエスケープする・外部のライブラリは読まない）。M1 / FYI1 を個別に選ぶ
+   ボタンは作らない。まだ対応されていない前の指示があれば、その件数も出す。
+2. 下のコメント欄に、GitHub にコメントを書くように指示を書く（例: 「FYI1 と FYI3 は直して。FYI2 はそのままで」）。
+   空のままでは送れない。
+3. 「送って AI に直してもらう」で `POST /delegate` body `{issue, instruction}`。daemon は、指示を目印付きの
+   コメント（先頭 `<!-- autopilot-monitor-instruction -->`、本文に「モニターから <login> の指示」）として Bot で
+   PR に残してから、ふつうの「AI に任せる」と同じく 🙋 を外す。押し直しで同じ指示を二重に書かない
+   （まだ対応していない指示に同じ文があれば書かない・`planMonitorInstructionPost`）。
+4. address-review は、まだ対応していない Request changes に加えて、まだ対応していない指示コメント
+   （`selectMonitorInstructions`）も指示として扱う。指示の中の ID は `planAddressReview` で読む。
+   対応した指示コメントの ID は、まとめコメントのマーカーの `handled-instructions=` に残す。
+
+指示を受けるのは次の段が address-review の行だけ（ほかは 409 `no-instruction-phase`）。開いている PR が
+無ければ 409 `no-pr`。判断は `phases.js` の `normalizeDelegateInstruction` / `renderMonitorInstructionComment` /
+`selectMonitorInstructions` / `reviewFindingsView`。
+
+![「AI に直してもらう」のダイアログ](screenshots/monitor-fix-instruction-light.png)
+
 ---
 
 ## merge は独立した「前進シグナル」
@@ -813,6 +840,8 @@ daemon の `GET /`（既定 `http://localhost:8787/`）は、人間と同意し�
   `Esc` でメニュー・欄・モーダルを閉じる。
 - **「AI に任せる」**（虹色の輪のボタン）: 人間待ちの行では `POST /delegate`（下の「モニターの『AI に任せる』」）。
   Review / DoD で押すと差し戻し（address-review）に進むので、そのときの文言は **「AI に直してもらう」**。
+  こちらは押すとダイアログを開き、bot の指摘を見ながら直してほしいことを書いて送る（「『AI に直してもらう』で
+  指摘を見て指示を書く」の節）。
   `humanWait[].delegate.ok=false` の行にはボタンを出さない（理由は行の title）。失敗はトーストに出す。
   質問では **「AI に任せる（推奨 X で進める）」** で、全部の問いに AI の推奨があるときだけ出し、推奨の選択肢を
   `POST /answer`（`proceed:true`）で送る。ほかに「選んだ答えで進める」「メモだけ保存」（`proceed:false`）。
@@ -1294,7 +1323,8 @@ HTTP API（curl からも操作可能。POST は上の合言葉のヘッダを�
 | `GET /blocked` | 止まっている（人間の答えを待つ）worker の一覧（画面・理由・選択肢）と、答えの履歴 |
 | `POST /blocked/answer` | body `{issue, keys:["1"]}` か `{issue, text:"..."}`。止まっている worker に人間の答えを送る（キーは `1`〜`9` / `enter` / `esc` / `up` / `down` など決まったものだけ） |
 | `POST /answer` | body `{issue, answers:[{q, key, note?}], proceed: boolean}`。モニターで質問に答える（「モニターで答える」の節）。`proceed:false` はメモだけ保存（daemon のローカル）、`proceed:true` は答えを Issue に記録して 🙋 を外す（全部の質問に答えが要る。足りなければ 400、worker が実行中なら 409） |
-| `POST /delegate` | body `{issue}`。モニターの「AI に任せる」（「モニターの『AI に任せる』」の節）。🙋 を外して（まだ分解していない EPIC は Sprint Backlog へ動かしてから）autopilot に渡し、pause 中でなければ 1 tick 回す。`{ok:true, issue, action:'release'\|'decompose', nextPhase}`。入力が違うと 400、Project に無いと 404、🙋 が無い・worker が実行中・答え待ちの質問がある・トラッカー・人間がする作業などは 409 `{error, code, issue}`、GitHub に書けないと 502 |
+| `GET /delegate/findings` | `?issue=N`。「AI に直してもらう」のダイアログで見せる、PR のいちばん新しい round の bot の指摘（`{issue, pr, findings:{round, id, body, counts}\|null, pendingInstructions:[]}`）。押したときだけ REST を 1 回。Project に無いと 404 |
+| `POST /delegate` | body `{issue, instruction?}`。`instruction` があれば、目印付きのコメントとして Bot で PR に残してから 🙋 を外す（address-review の段だけ。空は 400・ほかの段は 409 `no-instruction-phase`・PR が無いと 409 `no-pr`）。モニターの「AI に任せる」（「モニターの『AI に任せる』」の節）。🙋 を外して（まだ分解していない EPIC は Sprint Backlog へ動かしてから）autopilot に渡し、pause 中でなければ 1 tick 回す。`{ok:true, issue, action:'release'\|'decompose', nextPhase}`。入力が違うと 400、Project に無いと 404、🙋 が無い・worker が実行中・答え待ちの質問がある・トラッカー・人間がする作業などは 409 `{error, code, issue}`、GitHub に書けないと 502 |
 | `POST /tick` | interval を待たず 1 サイクル即実行。`{ran, paused, picked:[...], running:[...]}` を返す。実行中は `409 {busy:true}`、pause 中は `{ran:true, paused:true, picked:[]}` の no-op |
 | `POST /pause` | 新規ディスパッチを止める（実行中はそのまま）。再起動をまたいで残す（`~/.config/autopilot/human-pause-<port>.json`） |
 | `POST /resume` | ポーリング再開（usage の auto-pause 中は `409 {forceResumeRequired:true}`）。人間の pause のファイルを消す |
@@ -1382,7 +1412,7 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 | `tools/autopilot/src/blocked-hub.js` | 止まっている worker の置き場と `/blocked` の HTTP |
 | `tools/autopilot/src/http-guard.js` | HTTP の受け付けの守りの判断（Host / Origin の許可・合言葉の時間一定の照合。純粋関数） |
 | `tools/autopilot/src/blocked-panel.js` | モニターの「止まっている worker」の欄 |
-| `tools/autopilot/src/monitor-answers.js` | モニターで答える質問の置き場・`POST /answer`・`POST /delegate`（AI に任せる）の受け口・Issue への記録と 🙋 の解除・worker への受け渡し |
+| `tools/autopilot/src/monitor-answers.js` | モニターで答える質問の置き場・`POST /answer`・`POST /delegate`（AI に任せる・指示つき）と `GET /delegate/findings` の受け口・Issue への記録と 🙋 の解除・worker への受け渡し |
 | `tools/autopilot/src/daemon.js` | 常駐 daemon（ポーリング・ディスパッチ・HTTP 制御・認証ヘルスチェック・俯瞰ボード） |
 | `tools/autopilot/src/monitor.js` | Web モニタ（あなた宛て＋表・自己完結 HTML） |
 | `tools/autopilot/src/icon-data.js` | モニターのアイコン（favicon・見出し）の data URI。`tools/autopilot/assets/make-icon.py` が作る |

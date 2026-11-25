@@ -491,6 +491,25 @@ ${TOKEN_META_EMPTY}
                    margin: .3rem 0; white-space: pre-wrap; word-break: break-all; }
   #updmodal .commits { margin: .4rem 0 0; border-top: 1px solid var(--ap-line); padding-top: .5rem; }
   #updmodal .primary { background: var(--ap-primary); color: var(--ap-on-solid); border: 1px solid var(--ap-primary-line); padding: .1rem .5rem; border-radius: .3rem; }
+  /* ---- 「AI に直してもらう」: 指摘を見て直してほしいことを書く（#2415） ---- */
+  #fixmodal { position: fixed; inset: 0; background: var(--ap-overlay); display: none; align-items: center; justify-content: center; z-index: 55; }
+  #fixmodal.open { display: flex; }
+  #fixmodal .mbox { width: min(92vw, 46rem); }
+  #fixmodal .body { padding: 12px 14px; overflow: auto; display: flex; flex-direction: column; gap: 10px; font-size: var(--ap-font-sm); line-height: 1.55; }
+  #fixmodal .fx-sum { color: var(--ap-muted); }
+  #fixmodal .md { border: 1px solid var(--ap-line-soft); border-radius: var(--ap-radius-md); padding: 4px 12px; max-height: 40vh; overflow: auto; }
+  #fixmodal .md h4, #fixmodal .md h5, #fixmodal .md h6 { margin: .7rem 0 .2rem; font-size: var(--ap-font-sm); }
+  #fixmodal .md p, #fixmodal .md ul, #fixmodal .md ol, #fixmodal .md blockquote, #fixmodal .md pre { margin: .35rem 0; }
+  #fixmodal .md ul, #fixmodal .md ol { padding-left: 1.3rem; }
+  #fixmodal .md blockquote { border-left: 3px solid var(--ap-line); padding-left: .6rem; color: var(--ap-muted); }
+  #fixmodal .md code { background: var(--ap-code-bg); padding: 0 .3rem; border-radius: .2rem; }
+  #fixmodal .md pre { background: var(--ap-code-bg); padding: .4rem .6rem; border-radius: .3rem; overflow: auto; }
+  #fixmodal .md pre code { padding: 0; }
+  #fixmodal .md a { color: var(--ap-link); }
+  #fixmodal label { font-weight: 600; }
+  #fixmodal textarea { width: 100%; min-height: 96px; border: 1px solid var(--ap-line); border-radius: var(--ap-radius-md); background: var(--ap-surface);
+                       color: var(--ap-ink); padding: 8px 10px; font: inherit; font-size: var(--ap-font-md); resize: vertical; box-sizing: border-box; }
+  #fixmodal .acts { justify-content: flex-end; }
 ${LEARN_TASKS_CSS}</style></head><body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
   <linearGradient id="goGrad" x1="0" y1="0" x2="1" y2="1">
@@ -582,6 +601,17 @@ ${LEARN_TASKS_CSS}</style></head><body>
 <div id="usagepop" role="dialog" aria-label="Claude 使用量の詳細" class="usagepop"><div id="usagepopbody"></div></div>
 <div id="titletip" role="tooltip" class="titletip" hidden data-testid="title-tip"></div>
 <div id="prmenu" role="menu"></div>
+<div id="fixmodal" data-testid="fix-modal"><div class="mbox" role="dialog" aria-modal="true" aria-labelledby="fixtitle">
+  <div class="mbox-h"><h3 id="fixtitle">AI に直してもらう</h3><button type="button" class="ibtn" id="fixclose">✕ 閉じる</button></div>
+  <div class="body">
+    <div id="fixfindings" data-testid="fix-findings"></div>
+    <label for="fixnote">直してほしいこと</label>
+    <textarea id="fixnote" data-testid="fix-note" placeholder="GitHub にコメントを書くように（例: FYI1 と FYI3 は直して。FYI2 はそのままで）"></textarea>
+    <div class="small muted">PR にコメントとして残し、🙋 を外して AI に渡します。</div>
+    <div class="acts"><button type="button" class="ibtn" id="fixcancel" data-testid="fix-cancel">やめる</button>
+      <button type="button" class="go" id="fixsend" data-testid="fix-send" disabled>送って AI に直してもらう</button></div>
+  </div>
+</div></div>
 <div id="modal"><div class="mbox">
   <div class="mbox-h"><h3 id="mtitle">log</h3><button type="button" class="ibtn" id="mreload">↻ 更新</button><button type="button" class="ibtn" id="mclose">✕ 閉じる</button></div>
   <pre id="mlog"></pre>
@@ -1193,7 +1223,8 @@ function renderInbox(d) {
   const groups = inboxGroups(m.waits, { epicGroups: d.epicGroups, items, open: Array.from(openInboxGroups) });
   const tagPill = (w) => '<span class="kind c-' + w.tag.key + '" data-testid="inbox-tag" data-tag="' + w.tag.tag + '">' + esc(w.tag.label) + '</span>';
   const why = (w) => (w.delegateError ? ' title="AI に任せられない理由: ' + esc(w.delegateError) + '"' : '');
-  const goOf = (w) => (w.goLabel ? goBtn(w.goLabel, 'data-act="delegate" data-issue="' + w.issue + '" data-testid="inbox-delegate"') : '');
+  // Review / DoD（差し戻し）は、すぐ 🙋 を外さず指摘とコメント欄を開く（#2415）
+  const goOf = (w) => (w.goLabel ? goBtn(w.goLabel, 'data-act="' + (w.fix ? 'fix' : 'delegate') + '" data-issue="' + w.issue + '" data-testid="inbox-delegate"') : '');
   document.getElementById('inbox-wait').innerHTML = m.waits.length
     ? '<div class="feed-h">人間待ち · ' + m.waits.length + '</div>' + groups.map((g) => {
       const h = g.header;
@@ -1482,6 +1513,60 @@ async function delegateIssue(issue, btn) {
   }
   refresh();
 }
+// 「AI に直してもらう」（Review / DoD・#2415）: 押したときだけ bot の指摘を取ってきて見せ、書いた指示と一緒に渡す
+let fixIssue = null;
+async function openFix(issue) {
+  fixIssue = issue;
+  const box = document.getElementById('fixfindings');
+  const note = document.getElementById('fixnote');
+  document.getElementById('fixtitle').textContent = 'AI に直してもらう #' + issue;
+  box.innerHTML = '<div class="muted">指摘を読み込み中…</div>';
+  note.value = '';
+  updateFixSend();
+  document.getElementById('fixmodal').classList.add('open');
+  note.focus();
+  try {
+    const r = await fetch('/delegate/findings?issue=' + issue);
+    const j = await r.json().catch(() => ({}));
+    if (fixIssue !== issue) return;
+    if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+    let h = '';
+    if (j.findings) {
+      const c = j.findings.counts || {};
+      const prLink = j.pr ? ' <a href="' + esc(repoUrl + '/pull/' + j.pr + (j.findings.id ? '#issuecomment-' + j.findings.id : '')) + '" target="_blank" rel="noopener">PR#' + j.pr + ' で見る</a>' : '';
+      h += '<div class="fx-sum">bot の指摘（round ' + j.findings.round + '）: Must ' + (c.Must || 0) + ' / Question ' + (c.Question || 0) + ' / FYI ' + (c.FYI || 0) + prLink + '</div>'
+        + '<div class="md" data-testid="fix-findings-body">' + renderMiniMarkdown(j.findings.body) + '</div>';
+    } else {
+      h += '<div class="muted">' + (j.pr ? 'PR#' + j.pr + ' に bot の指摘はまだありません。' : 'この Issue には開いている PR がありません。') + '</div>';
+    }
+    if ((j.pendingInstructions || []).length) {
+      h += '<div class="fx-sum">まだ AI が対応していない指示があります（' + j.pendingInstructions.length + ' 件）。今回の指示と一緒に対応します。</div>';
+    }
+    box.innerHTML = h;
+  } catch (e) {
+    if (fixIssue === issue) box.innerHTML = '<div class="muted">指摘を読み込めませんでした: ' + esc(e.message) + '</div>';
+  }
+}
+function updateFixSend() {
+  document.getElementById('fixsend').disabled = !document.getElementById('fixnote').value.trim();
+}
+function closeFix() { document.getElementById('fixmodal').classList.remove('open'); fixIssue = null; }
+async function sendFix() {
+  const issue = fixIssue;
+  const text = document.getElementById('fixnote').value.trim();
+  if (issue == null || !text) return;
+  const btn = document.getElementById('fixsend');
+  btn.disabled = true;
+  try {
+    const j = await postJson('/delegate', { issue, instruction: text });
+    closeFix();
+    toast('#' + issue + ' の指示を PR に残して AI に渡しました' + (j.nextPhase ? '（次は ' + j.nextPhase + '）' : ''));
+  } catch (e) {
+    toast('#' + issue + ' を渡せませんでした: ' + e.message, true);
+    updateFixSend();
+  }
+  refresh();
+}
 // 質問に答える（POST /answer）。proceed=false は「メモだけ保存」（GitHub に書かない・🙋 も外さない）
 async function sendAnswer(issue, answers, proceed, btn) {
   if (btn) btn.disabled = true;
@@ -1677,6 +1762,11 @@ function closeModal() {
 
 // ---- イベント ----
 document.getElementById('mclose').onclick = closeModal;
+document.getElementById('fixclose').onclick = closeFix;
+document.getElementById('fixcancel').onclick = closeFix;
+document.getElementById('fixsend').onclick = sendFix;
+document.getElementById('fixnote').addEventListener('input', updateFixSend);
+document.getElementById('fixmodal').addEventListener('click', (e) => { if (e.target.id === 'fixmodal') closeFix(); });
 document.getElementById('mreload').onclick = loadLog;
 document.getElementById('modal').addEventListener('click', (e) => { if (e.target.id === 'modal') closeModal(); });
 document.getElementById('updbadge').onclick = openUpdateModal;
@@ -1747,6 +1837,7 @@ document.addEventListener('click', (ev) => {
   if (act === 'rowmenu') { ev.stopPropagation(); openRowMenu(t, issue); return; }
   if (act === 'exp') { const k = t.dataset.key; if (openGroups.has(k)) openGroups.delete(k); else openGroups.add(k); rerender(); return; }
   if (act === 'delegate') { delegateIssue(issue, t); return; }
+  if (act === 'fix') { openFix(issue); return; }
   if (act === 'q-open') { openQuestion = issue; lastQuestionsHtml = ''; rerender(); return; }
   if (act === 'pick') {
     const picks = qPick[issue] || (qPick[issue] = {});
@@ -1773,7 +1864,7 @@ document.addEventListener('input', (ev) => {
 document.getElementById('q').addEventListener('input', () => { if (lastBoard) renderBoard(lastBoard); });
 // 数字キー 1〜4: 欄へ移る（入力欄の中・⌘/Ctrl/Alt との組み合わせでは効かない）
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') { titleTipEvent({ type: 'escape' }); closeModal(); closeUpdateModal(); closeUsagePop(); closePrMenu(); closeMenus(); closeDrawer(); return; }
+  if (e.key === 'Escape') { titleTipEvent({ type: 'escape' }); closeFix(); closeModal(); closeUpdateModal(); closeUsagePop(); closePrMenu(); closeMenus(); closeDrawer(); return; }
   const tag = (e.target.tagName || '').toLowerCase();
   const inInput = tag === 'input' || tag === 'textarea' || tag === 'select' || Boolean(e.target.isContentEditable);
   const target = digitTarget({ code: e.code, metaKey: e.metaKey, ctrlKey: e.ctrlKey, altKey: e.altKey, inInput });

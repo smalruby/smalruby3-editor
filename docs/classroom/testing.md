@@ -619,7 +619,11 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-eval-settings` | div | 開いた採点の設定（観点の欄・厳しさ） |
 | `classroom-eval-axis-name-{i}` / `classroom-eval-axis-desc-{i}` | input | 観点の名前 / どこを見るか（設定を開いたときだけ） |
 | `classroom-eval-strictness` | select | 採点の厳しさ（やや甘め/標準/やや厳しめ・設定を開いたときだけ） |
-| `classroom-eval-progress` | div | 進捗表示 |
+| `classroom-eval-progress` | div | 処理中の表示（スピナー + 何をしているかの文・`role="status"`・`aria-busy`） |
+| `classroom-eval-progress-text` | span | 処理中の文（「02_LED の提出を読み込んでいます（3/28）」など） |
+| `classroom-eval-progress-bar` | div | 件数が分かるときの細い進み具合のバー（`data-percent`） |
+| `classroom-eval-result` | div | 手順が終わったあとの短い結果（`data-failed="true"` は失敗。赤い地） |
+| `classroom-eval-load-running` / `classroom-eval-run-grade-running` / `classroom-eval-run-comment-running` / `classroom-eval-return-comments-running` | span | 処理中の手順のボタンの中のスピナーと短い言葉（ボタンは `aria-busy="true"`） |
 | `classroom-eval-matrix` | table | 採点簿の表（点だけ。表の枠の中だけ縦にも横にもスクロール・出席番号の列は左に留まる） |
 | `classroom-eval-cell-{seat}-{classroomId}` | td | セル（未提出は ×、要確認はオレンジ） |
 | `classroom-eval-cell-button-{seat}-{classroomId}` | button | 提出したセルの点のボタン（まだ無いときは —・押すと右の列に出す・選んだセルは `aria-pressed="true"`）。要確認は「!」、返却済みは「↩」、コメントがあれば「💬」。`aria-label` は「出席番号 N・{課題名}: {点}」で、点が無いときは「未採点」、印があれば「（要確認・返却済み・コメントあり）」を足す |
