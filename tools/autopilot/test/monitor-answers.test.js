@@ -314,3 +314,14 @@ test('delegateOnce: rejects bad input, unknown items, open questions; failures k
     assert.equal(epic.monitorReleases, undefined);
     assert.equal(epic.board.items[0].hitlLabel, true);
 });
+
+// 俯瞰ボード（GET /board）の item は 🙋 を `hitl` で持つ（listItems の `hitlLabel` ではない）。どちらでも読む（#2404）
+test('humanWaitRows / planDelegate: read board-shaped items (hitl instead of hitlLabel)', () => {
+    const boardItem = { issue: 2374, itemId: 'PVTI_x', status: 'Sprint Backlog', kind: 'Issue', hitl: true, labels: ['🙋 HITL'] };
+    const rows = humanWaitRows([boardItem, { issue: 1, status: 'Sprint Backlog', kind: 'Issue', hitl: false }]);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].issue, 2374);
+    assert.equal(rows[0].delegate.ok, true);
+    assert.equal(planDelegate(boardItem).nextPhase, 'implement');
+    assert.equal(planDelegate({ ...boardItem, hitl: false }).code, 'not-human-wait');
+});

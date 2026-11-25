@@ -2668,6 +2668,8 @@ async function refreshBoard(cfg, state, log, deps = {}) {
             const waitReason = humanWaitReason(it);
             enriched.push({
                 issue: it.issue,
+                // Project の item id（モニターの「AI に任せる」が Status を書くときに使う・#2404）
+                itemId: it.itemId || null,
                 title: it.title,
                 url,
                 waitReason,
