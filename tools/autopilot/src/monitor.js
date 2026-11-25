@@ -761,7 +761,8 @@ let usageForceConfirm = false; // 強制再開の 2 段階目（確認）を表�
 const BOARD_FILTER_KEY = 'autopilot:boardFilter';
 let boardFilter = 'all';
 try { const f = localStorage.getItem(BOARD_FILTER_KEY); if (f) boardFilter = f; } catch (e) { /* storage 不可でも動く */ }
-const openGroups = new Set(['solo']);   // 状況板で開いているまとまり（key）
+// 状況板で開いているまとまり（key）。EPIC に属さない Issue は優先度ごとのまとまり（solo-P0〜P3・#2411）で、最初から開く
+const openGroups = new Set(['solo-P0', 'solo-P1', 'solo-P2', 'solo-P3']);
 let view = 'inbox';                     // 900px 未満のタブ
 const openInboxGroups = new Set();  // 「ほか N 件」を開いた人間待ちのまとまり（key）
 const qPick = {};                       // 質問の答え: issue → { 質問 id → key }
@@ -1212,7 +1213,7 @@ function epicRow(r, now) {
   const since = run.length ? Math.min.apply(null, run.map((x) => x.since)) : null;
   const hm = (ms) => new Date(ms).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
   const time = since ? mins(now - since) + ' 分' : (g.eta ? (g.eta.at <= now ? 'いま確認できます' : hm(g.eta.at) + ' ごろ') : '');
-  const title = g.solo ? 'EPIC に属さない Issue' : esc(shortTitle(g.title)) + ' ' + ilink(g.epic, g.url);
+  const title = g.solo ? 'EPIC に属さない' + (g.priority ? ' · ' + esc(g.priority) : '') : esc(shortTitle(g.title)) + ' ' + ilink(g.epic, g.url);
   return '<tr class="epic"' + (e ? ' data-issue="' + e.issue + '"' : '') + ' data-testid="board-epic" data-key="' + esc(g.key) + '">'
     + '<td><button type="button" class="exp" data-act="exp" data-key="' + esc(g.key) + '" aria-expanded="' + r.open + '" aria-label="sub-issue を開く">▶</button></td>'
     + '<td class="n">' + r.index + '</td>'
@@ -1283,9 +1284,10 @@ function renderBoard(d) {
       ? '（あとでやる の Issue はありません。行の ⋯ の「💤 あとで」で移せます）'
       : '（表示する Issue はありません）') + '</td></tr>';
   const groups = d.epicGroups || [];
-  const solo = groups.find((g) => g.solo);
+  const solos = groups.filter((g) => g.solo);
+  const soloN = solos.reduce((n, g) => n + (g.items || []).length, 0);
   document.getElementById('boardcount').textContent = 'EPIC ' + groups.filter((g) => !g.solo).length + ' 件'
-    + (solo ? ' · EPIC に属さない ' + (solo.items || []).length + ' 件' : '');
+    + (solos.length ? ' · EPIC に属さない ' + soloN + ' 件' : '');
   restorePrMenu();
 }
 

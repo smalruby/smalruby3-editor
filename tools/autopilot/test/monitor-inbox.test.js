@@ -175,14 +175,14 @@ test('isInboxToggleKey: 入力欄の外の [ だけ（⌘ / Ctrl / Alt と一緒
 const GROUPS = [
     { key: '10', epic: 10, title: 'EPIC: E', running: [], waitingHuman: [{ waitReason: 'review' }], pendingDecisions: 0, total: 4, done: 1,
         items: [{ issue: 11 }, { issue: 12 }, { issue: 15 }] },
-    { key: 'solo', solo: true, epic: null, title: '単独', running: [], waitingHuman: [], pendingDecisions: 0, total: 1, done: 0,
+    { key: 'solo-P2', solo: true, epic: null, title: 'EPIC に属さない · P2', priority: 'P2', running: [], waitingHuman: [], pendingDecisions: 0, total: 1, done: 0,
         items: [{ issue: 14 }] },
 ];
 
 test('boardRows: 開いたまとまりだけ子の行を出し、💤 later の子は「あとで」以外で隠す', () => {
     const rows = boardRows(GROUPS, ITEMS, { filter: 'all', open: ['10'], running: [], later: [15] });
     assert.deepStrictEqual(rows.map((r) => r.type + ':' + (r.item ? r.item.issue : r.group ? r.group.key : r.key)),
-        ['epic:10', 'kid:11', 'kid:12', 'epic:solo']);
+        ['epic:10', 'kid:11', 'kid:12', 'epic:solo-P2']);
     assert.strictEqual(rows[0].epicItem.issue, 10);
     assert.strictEqual(rows[0].sem.key, 'human');
     assert.strictEqual(rows[0].humanN, 2);
@@ -194,7 +194,7 @@ test('boardRows: 開いたまとまりだけ子の行を出し、💤 later の�
 
 test('boardRows: チップ（人間の番 / AI / 止まった）と文字の絞り込み', () => {
     assert.deepStrictEqual(boardRows(GROUPS, ITEMS, { filter: 'human' }).map((r) => r.group.key), ['10']);
-    assert.deepStrictEqual(boardRows(GROUPS, ITEMS, { filter: 'ai', running: [14] }).map((r) => r.group.key), ['solo']);
+    assert.deepStrictEqual(boardRows(GROUPS, ITEMS, { filter: 'ai', running: [14] }).map((r) => r.group.key), ['solo-P2']);
     assert.deepStrictEqual(boardRows(GROUPS, ITEMS, { filter: 'stop' }), []);
     // 子に当たったまとまりは、当たった子だけを開いて見せる
     const q = boardRows(GROUPS, ITEMS, { query: 'review' });
