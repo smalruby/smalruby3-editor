@@ -1928,4 +1928,19 @@ export default {
     'gui.menuBar.meshV2Status': 'Show status and history',
     'gui.connection.meshV2.openStatus': 'Status and history',
     'gui.mobile.drawer.meshStatus': 'Mesh status and history',
+    'gui.classroom.legacyImport.open': 'Import an earlier grading CSV',
+    'gui.classroom.legacyImport.heading': 'Import grades from an earlier CSV',
+    'gui.classroom.legacyImport.lead':
+        'Grades and reasons are saved as your grades and confirmed. Assignments are matched by name.',
+    'gui.classroom.legacyImport.row': '{name}: {count} grades',
+    'gui.classroom.legacyImport.overwrite':
+        'This assignment already has grades. They are replaced for the seats in the file.',
+    'gui.classroom.legacyImport.unmatched': 'Not found in this class (not imported): {names}',
+    'gui.classroom.legacyImport.nothing': 'No grades in the file match an assignment of this class.',
+    'gui.classroom.legacyImport.badFile': 'This file is not a grading-result CSV.',
+    'gui.classroom.legacyImport.run': 'Import',
+    'gui.classroom.legacyImport.cancel': 'Cancel',
+    'gui.classroom.legacyImport.running': 'Importing…',
+    'gui.classroom.legacyImport.done': 'Imported {count} assignments.',
+    'gui.classroom.legacyImport.failed': 'Could not import: {names}',
 };

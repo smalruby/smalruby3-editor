@@ -1146,6 +1146,18 @@ const useTeacherEvaluation = ({
     }, [leaveRequest, stopRuns]);
     const cancelLeave = useCallback(() => setLeaveRequest(null), []);
 
+    /**
+     * Save one assignment's grades read from the old grading-result CSV (#2431) and
+     * show them in the gradebook. The caller builds the body (teacher grades, confirmed).
+     */
+    const handleImportGrading = useCallback(async (classroomId, body) => {
+        const data = await classroomAPI.putGrading(idTokenRef.current, classroomId, body);
+        setGradings((prev) => ({
+            ...prev,
+            [classroomId]: (data && data.grading) || { ...(prev[classroomId] || {}), ...body },
+        }));
+    }, []);
+
     const currentGrading = currentId ? gradings[currentId] || null : null;
     const rubricDone = !!(currentId && (rubricVisited[currentId] || columnStatus(currentGrading).hasRubric));
 
@@ -1157,6 +1169,7 @@ const useTeacherEvaluation = ({
         currentLesson,
         currentGrading,
         gradings,
+        handleImportGrading,
         loaded,
         rubricDone,
         gradeSaveState: currentId ? saveStates[currentId] || null : null,

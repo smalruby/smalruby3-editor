@@ -2304,4 +2304,18 @@ export default {
     'gui.menuBar.meshV2Status': '状態と履歴を見る',
     'gui.connection.meshV2.openStatus': '状態と履歴',
     'gui.mobile.drawer.meshStatus': 'メッシュの状態と履歴',
+    'gui.classroom.legacyImport.open': '以前の採点結果 CSV を読み込む',
+    'gui.classroom.legacyImport.heading': '以前の CSV から採点を取り込む',
+    'gui.classroom.legacyImport.lead':
+        '評価と根拠を、先生の採点として確定で保存します。課題は名前で照らし合わせます。',
+    'gui.classroom.legacyImport.row': '{name}: {count} 件',
+    'gui.classroom.legacyImport.overwrite': 'この課題にはもう採点があります。ファイルにある席は置きかわります。',
+    'gui.classroom.legacyImport.unmatched': 'このクラスに見つからない課題（取り込みません）: {names}',
+    'gui.classroom.legacyImport.nothing': 'ファイルの中に、このクラスの課題に合う評価がありません。',
+    'gui.classroom.legacyImport.badFile': 'このファイルは採点結果の CSV ではありません。',
+    'gui.classroom.legacyImport.run': '取り込む',
+    'gui.classroom.legacyImport.cancel': 'やめる',
+    'gui.classroom.legacyImport.running': '取り込んでいます…',
+    'gui.classroom.legacyImport.done': '{count} 件の課題を取り込みました。',
+    'gui.classroom.legacyImport.failed': '取り込めませんでした: {names}',
 };
