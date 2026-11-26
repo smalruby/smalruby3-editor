@@ -123,7 +123,7 @@ const project = require('./project');
 const learnTasks = require('./learn-tasks');
 // EPIC 単位の確認（#2385）: 判断は epic-flow.js、実行のつなぎは epic-merge.js
 const { resolveRunOutcome, isEpicFlowBase, markAutoMergeContexts } = require('./epic-flow');
-const { applyEpicRunSideEffects, applyEpicAutoMerge } = require('./epic-merge');
+const { applyEpicRunSideEffects, applyEpicAutoMerge, applyEpicTopicPrs, bootEpicTopicPrs } = require('./epic-merge');
 // EPIC ごとの進み具合と現在地（#2388）。判断は epic-summary.js / current-status.js、I/O は current-status-job.js
 const { buildStatusMaterial, groupItemsByEpic } = require('./epic-summary');
 const currentStatusJob = require('./current-status-job');
@@ -2469,13 +2469,18 @@ async function tick(cfg, state, log) {
     }
     // topic 宛ての PR（Review + 🙋 なし）を CI 通過・コンフリクト無しで自動マージ（#2385）。
     // マージした PR は直後の merge-progression が Close + GitHub の Issue を閉じる。
-    await applyEpicAutoMerge(items, contexts, cfg, state, log, {
+    const autoMerged = await applyEpicAutoMerge(items, contexts, cfg, state, log, {
         resolveConflict: (it) => dispatchResolveConflict(it, cfg, state, log),
         hasCapacity: () => state.running.size < cfg.concurrency,
         patchBoard: (issue, intents) => patchBoardCache(state, issue, intents),
         syncFaces: (it, intents) => syncFacesAfterIntents(it, intents, cfg, log),
         onDecisions: (epic, count) => recordEpicDecisionCount(state, epic, count),
-    }).catch((e) => log(`epic auto-merge error: ${e.message}`));
+    }).catch((e) => { log(`epic auto-merge error: ${e.message}`); return []; });
+    // 子を topic に入れたら、topic → develop の draft PR を作る・本文を直す（#2473）
+    await applyEpicTopicPrs((autoMerged || []).filter((d) => d.action === 'merge'), cfg, log, {
+        defaultBase: DEFAULT_BASE_BRANCH,
+        statuses: Object.fromEntries(items.map((it) => [it.issue, it.status])),
+    }).catch((e) => log(`epic topic PR error: ${e.message}`));
     // 時刻が来たタスク（1 回・定期）を worker で実行する（fire-and-forget）。Issue の worker を先に計画し、
     // 残りの枠（全体・重い・空きメモリ）でタスクを始める（planExtraSlots）
     learnTasks.applyDueTasks(cfg, state, log, { workerCommand, planSlots: (cands) => planExtraSlots(cands, cfg, state) })
@@ -3472,6 +3477,12 @@ async function main(opts = {}) {
     // 起動時の孤児 worker 自動復帰（#953）: crash → supervisor 再起動で in-memory running を
     // 失っても、in-flight のまま worker 不在の item を検出して対応フェーズへ再ディスパッチする。
     await recoverOrphanedWorkers(cfg, state, log).catch((e) => log(`orphan recovery error: ${e.message}`));
+    // 既に子が topic に入っている EPIC の topic → develop の PR をそろえる（#2473・起動時に 1 回・fire-and-forget）。
+    // 人間の一時停止中は GitHub に書かない（次の topic へのマージか、再開後の起動でそろう）
+    if (!state.paused) {
+        bootEpicTopicPrs(cfg, log, { defaultBase: DEFAULT_BASE_BRANCH })
+            .catch((e) => log(`epic topic PR (boot) error: ${e.message}`));
+    }
     /* eslint-disable no-constant-condition */
     while (!opts.once) {
         // 認証ヘルスチェック（失効 → auto-pause / 回復 → auto-resume）を tick の前に行う。

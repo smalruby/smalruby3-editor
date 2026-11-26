@@ -134,6 +134,8 @@ console.log(JSON.stringify({ ...rc.releaseCheckMode(comments, { pendingPrFeedbac
    - **NG・PR のレビューから sub-issue を作った** → 子を待つ（済んだら daemon が次の round のリリース確認に入れる）:
      `{"signal":"done","hitl":false,"nextAiStatus":"EPIC Decomposed","createdSubIssues":[<番号>...], ...}`
    - **全部 OK**（作るものが無い）→ topic → develop の PR の本文を更新する（入っている sub-issue・確認の結果・プレビュー）。
+     ただし本文の 1 行目が `<!-- autopilot-epic-pr ` で始まる PR（daemon が作った PR）の本文は daemon だけが書くので、
+     本文は変えず、確認の結果を PR のコメントに書く。
      draft は外さない・マージしない。トラッカーに「develop へのマージと EPIC の Close は人間」と書いて人間に返す:
      `{"signal":"done","hitl":true,"nextAiStatus":"Release Check", ...}`
    - **`prOnly` で作るものが無かった**ときは「全部 OK」にしない（人間はまだその round の観点を確かめていない）。
