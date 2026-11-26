@@ -93,8 +93,9 @@ function humanAction(it, ctx) {
             return phase('final-check', r('check', 'プレビューで確かめる', pr + ' とプレビューを開く。結果は PR のレビューで返す',
                 '子は ' + done + ' 済み。topic のプレビューで成果物を確かめる番', 'open', it.previewUrl || prUrl || issueUrl));
         }
-        // 途中の相談: 子のうち、人間が答える・確かめるもの（方針が分かれた・止まった など）。先頭の 1 件を EPIC の行で示す
-        const consult = kids.filter((k) => k.kind !== 'EPIC')
+        // 途中の相談: 子のうち、人間が答える・確かめるもの（方針が分かれた・止まった など）。先頭の 1 件を EPIC の行で示す。
+        // 🙋 の無い子（topic への自動マージを待つ Review など）は AI の番なので相談にしない
+        const consult = kids.filter((k) => k.kind !== 'EPIC' && (k.hitl || k.hitlLabel || questions.indexOf(k.issue) >= 0))
             .map((k) => ({ k, a: humanAction(k, { running, questions, repoUrl: repo }) }))
             .filter((x) => x.a && (x.a.kind === 'answer' || x.a.kind === 'check'))
             .sort((a, b) => a.k.issue - b.k.issue);

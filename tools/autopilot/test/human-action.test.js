@@ -250,3 +250,15 @@ test('EPIC: 🧭 が付いていても Backlog で子 0 件なら分解。残り
     assert.match(r.state, /残りは人間の作業 #2211 だけ/);
     assert.doesNotMatch(r.state, /AI が進めています/);
 });
+
+test('EPIC: 🙋 の無い子（topic への自動マージ待ちの Review など）は途中の相談にせず、自律で進行中のまま', () => {
+    const r = humanAction(EPIC_ITEMS[0], {
+        kids: [
+            { issue: 2439, status: 'Review', aiStatus: null, prs: [{ number: 2600, state: 'OPEN' }], parent: { number: 2438 } },
+            { issue: 2440, status: 'DoD', parent: { number: 2438 } },
+        ],
+        repoUrl: REPO,
+    });
+    assert.strictEqual(r.epicPhase, 'autonomous');
+    assert.strictEqual(r.kind, 'idle');
+});
