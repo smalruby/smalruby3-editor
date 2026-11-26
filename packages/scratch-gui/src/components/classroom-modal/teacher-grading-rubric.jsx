@@ -18,7 +18,7 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useState } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
 import { GRADES } from '../../lib/classroom-evaluation/gradebook.js';
-import { hasRubricLevels } from '../../lib/classroom-evaluation/grading-ai.js';
+import { gradesWithoutExamples, hasRubricLevels } from '../../lib/classroom-evaluation/grading-ai.js';
 import Spinner from '../spinner/spinner.jsx';
 import ClassroomButton from './classroom-button.jsx';
 import modalStyles from './classroom-modal.css';
@@ -264,6 +264,19 @@ const messages = defineMessages({
         defaultMessage: 'Only This One',
         description: 'Student tab: change only this work (#2425)',
         id: 'gui.classroom.gradingRubric.groupNo',
+    },
+    noExample: {
+        defaultMessage: 'No example (the AI’s guess)',
+        description:
+            'Rubric tab: next to a grade of the rubric that no example (right grade) has; the AI guessed its sentence',
+        id: 'gui.classroom.gradingRubric.noExample',
+    },
+    noSExample: {
+        defaultMessage:
+            'There is no example of S, so the line between S and A moves. If another class has the same ' +
+            'assignment, grade the class that has S works first to make the rubric, then copy it here.',
+        description: 'Rubric tab: warning when the rubric (saved, to copy, or being built) has no example graded S',
+        id: 'gui.classroom.gradingRubric.noSExample',
     },
     working: {
         defaultMessage: 'The AI is working…',
@@ -525,25 +538,61 @@ FairnessCheck.propTypes = {
     onAnswer: PropTypes.func.isRequired,
 };
 
-const LevelsTable = ({ dataTestId = 'classroom-eval-rubric-levels', levels }) => (
-    <table className={modalStyles.evalRubricTable} data-testid={dataTestId}>
-        <tbody>
-            {levels.map((level) => (
-                <tr key={level.grade}>
-                    <th scope="row">
-                        <Pill grade={level.grade} />
-                    </th>
-                    <td>{level.text}</td>
-                </tr>
-            ))}
-        </tbody>
-    </table>
-);
+/* 基準の文の表。正解の例が無い段には「正解の例が無い（AI の推測）」を添える。 */
+const LevelsTable = ({ dataTestId = 'classroom-eval-rubric-levels', examples = null, levels }) => {
+    const intl = useIntl();
+    const missing = examples ? gradesWithoutExamples(examples) : [];
+    return (
+        <table className={modalStyles.evalRubricTable} data-testid={dataTestId}>
+            <tbody>
+                {levels.map((level) => (
+                    <tr key={level.grade}>
+                        <th scope="row">
+                            <Pill grade={level.grade} />
+                        </th>
+                        <td>
+                            {level.text}
+                            {missing.includes(level.grade) && (
+                                <>
+                                    {' '}
+                                    <span
+                                        className={styles.noExample}
+                                        data-testid={`${dataTestId}-no-example-${level.grade}`}
+                                    >
+                                        {intl.formatMessage(messages.noExample)}
+                                    </span>
+                                </>
+                            )}
+                        </td>
+                    </tr>
+                ))}
+            </tbody>
+        </table>
+    );
+};
 
 LevelsTable.propTypes = {
     dataTestId: PropTypes.string,
+    /** The examples of the rubric: the grades none has are marked (null = do not mark). */
+    examples: PropTypes.arrayOf(PropTypes.object),
     levels: PropTypes.arrayOf(PropTypes.object).isRequired,
 };
+
+/* S の正解の例が無いときの注意（S と A の線がぶれる）。 */
+const NoSExampleWarning = ({ dataTestId }) => {
+    const intl = useIntl();
+    return (
+        <p className={styles.warn} data-testid={dataTestId} role="note">
+            {intl.formatMessage(messages.noSExample)}
+        </p>
+    );
+};
+
+NoSExampleWarning.propTypes = {
+    dataTestId: PropTypes.string.isRequired,
+};
+
+const lacksS = (examples) => gradesWithoutExamples(examples).includes('S');
 
 /* ほかの課題から基準をコピー（クラスと課題を選び、中身を見てからコピー）。 */
 const CopyDialog = ({ busy, classes, onClose, onCopy, onRead }) => {
@@ -622,7 +671,12 @@ const CopyDialog = ({ busy, classes, onClose, onCopy, onRead }) => {
             )}
             {rubric && (
                 <div className={styles.ai} data-testid="grading-rubric-copy-preview">
-                    <LevelsTable dataTestId="grading-rubric-copy-levels" levels={rubric.levels || []} />
+                    {lacksS(rubric.examples) && <NoSExampleWarning dataTestId="grading-rubric-copy-no-s-example" />}
+                    <LevelsTable
+                        dataTestId="grading-rubric-copy-levels"
+                        examples={rubric.examples || []}
+                        levels={rubric.levels || []}
+                    />
                     <p className={styles.note}>
                         {intl.formatMessage(messages.copyExamples, { count: (rubric.examples || []).length })}
                     </p>
@@ -730,7 +784,8 @@ const TeacherGradingRubric = ({ busy: parentBusy = false, lesson, tools, onOpenW
             {hasRubric && !building && (
                 <div className={styles.section} data-testid="grading-rubric-saved">
                     <div className={modalStyles.evalPaneLabel}>{intl.formatMessage(messages.sentences)}</div>
-                    <LevelsTable levels={savedRubric.levels} />
+                    {lacksS(savedRubric.examples) && <NoSExampleWarning dataTestId="grading-rubric-no-s-example" />}
+                    <LevelsTable examples={savedRubric.examples || []} levels={savedRubric.levels} />
                     <p className={styles.done}>
                         {savedAt ? intl.formatMessage(messages.saved) : intl.formatMessage(messages.hasRubric)}
                     </p>
@@ -821,6 +876,9 @@ const TeacherGradingRubric = ({ busy: parentBusy = false, lesson, tools, onOpenW
                     )}
                     <div className={styles.section} data-testid="grading-rubric-sentences">
                         <div className={modalStyles.evalPaneLabel}>{intl.formatMessage(messages.sentences)}</div>
+                        {examples.length > 0 && lacksS(examples) && (
+                            <NoSExampleWarning dataTestId="grading-rubric-draft-no-s-example" />
+                        )}
                         <div className={styles.buttons}>
                             <ClassroomButton
                                 dataTestId="grading-rubric-draft"

@@ -924,6 +924,8 @@ export default {
     'gui.classroom.evaluation.status.loadDone': '{count} 件の提出を読み込みました',
     'gui.classroom.evaluation.status.loadProgressDone': '{lessons} 件の課題の進み具合を読み込みました',
     'gui.classroom.evaluation.status.gradeDone': 'AI が {count} 件を採点しました',
+    'gui.classroom.evaluation.status.gradeDoneInconsistent':
+        'AI が {count} 件を採点しました。同じ形なのに評価が違う作品が {inconsistent} 件あります（要確認）',
     'gui.classroom.evaluation.status.commentDone': 'AI が {count} 件のコメントを下書きしました',
     'gui.classroom.evaluation.status.returnDone': '{count} 件のコメントを返却しました',
     'gui.classroom.evaluation.status.loadFailed': '提出を読み込めませんでした',
@@ -2375,6 +2377,10 @@ export default {
     'gui.classroom.gradingRubric.groupYes': '{count} 件も変える',
     'gui.classroom.gradingRubric.hasRubric': 'この課題には基準があります。このまま全員を採点できます。',
     'gui.classroom.gradingRubric.noWorks': '提出された作品がありません。',
+    'gui.classroom.gradingRubric.noSExample':
+        'S の正解の例がありません。このままでは S と A の基準がぶれます。別のクラスに同じ課題があれば、' +
+        'S の作品があるクラスを先に採点して基準をつくり、それをコピーしてください。',
+    'gui.classroom.gradingRubric.noExample': '正解の例が無い（AI の推測）',
     'gui.classroom.gradingRubric.notLoaded': '提出を読み込む（手順 1）と、代表の作品が出ます。',
     'gui.classroom.gradingRubric.openWork': '作品を開く',
     'gui.classroom.gradingRubric.propose': 'AI の案を出す',

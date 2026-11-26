@@ -428,6 +428,18 @@ const groupChangePlan = ({ seat, from, to, groupBySeat, seats, gradeOf }) => {
  */
 const hasRubricLevels = (rubric) => !!(rubric && (rubric.levels || []).length > 0);
 
+/**
+ * The grades no example has. The AI writes the sentence of such a grade by
+ * guessing, and without an S example the line between S and A moves from one
+ * call to the next, so the［基準］tab says so.
+ * @param {Array<{grade: string}>} examples - the examples of a rubric (or the teacher's answers)
+ * @returns {string[]} grades (in S, A, B, C order) without an example
+ */
+const gradesWithoutExamples = (examples) => {
+    const have = new Set((examples || []).map((e) => e && e.grade));
+    return GRADES.filter((grade) => !have.has(grade));
+};
+
 export {
     LIMITS,
     UNCHANGED_CODE,
@@ -443,6 +455,7 @@ export {
     gradeOfOption,
     groupChangePlan,
     groupNameBySeat,
+    gradesWithoutExamples,
     hasRubricLevels,
     normalizeLevels,
     representativesOf,

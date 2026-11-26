@@ -44,6 +44,7 @@ import {
     chunk,
     isLessonOnlyAssignment,
 } from '../lib/classroom-evaluation/evaluation-utils.js';
+import { carryOverExamples, seatsToReview } from '../lib/classroom-evaluation/grade-consistency.js';
 import {
     assignmentTextOf,
     columnStatus,
@@ -238,7 +239,8 @@ const useTeacherEvaluation = ({
     // A result that went well is short news: it goes away by itself so the table keeps its
     // height (1300×600). A failure stays until the next step (#2419).
     useEffect(() => {
-        if (!evalResult || evalResult.failed) return;
+        // 「同じ形なのに評価が違う」 asks the teacher to look: it stays like a failure does.
+        if (!evalResult || evalResult.failed || evalResult.inconsistent > 0) return;
         const timer = setTimeout(() => setEvalResult(null), EVAL_RESULT_SHOWN_MS);
         return () => clearTimeout(timer);
     }, [evalResult]);
@@ -712,6 +714,11 @@ const useTeacherEvaluation = ({
                 const rubric = gradingsRef.current[lesson.classroomId]?.rubric || null;
                 const pending = mode === 'grade' ? cells.filter((entry) => !entry.cell.manual) : cells;
                 const chunks = chunk(pending, EVAL_CHUNK_SIZE);
+                // Each chunk is a call of its own, so the same kind of work could get B in one
+                // chunk and S in the next. The examples grow by one work per new shape of each
+                // chunk (after the teacher's), and the grades of this run are checked at the end.
+                let examples = (rubric && rubric.examples) || [];
+                const graded = {};
                 for (let i = 0; i < chunks.length; i++) {
                     if (!current()) return;
                     // Seats from..to of this assignment's seats sent to the AI.
@@ -734,7 +741,7 @@ const useTeacherEvaluation = ({
                         strictness,
                         samples,
                         ...(rubric && (rubric.levels || []).length > 0 ? { rubricLevels: rubric.levels } : {}),
-                        ...(rubric && (rubric.examples || []).length > 0 ? { examples: rubric.examples } : {}),
+                        ...(examples.length > 0 ? { examples } : {}),
                         submissions: chunks[i].map((entry) => ({
                             seatNumber: entry.seatNumber,
                             signals: entry.cell.signals || {},
@@ -766,6 +773,18 @@ const useTeacherEvaluation = ({
                             return next;
                         });
                         gradesChanged(lesson.classroomId);
+                        for (const result of data.results || []) graded[String(result.seatNumber)] = result;
+                        examples = carryOverExamples({
+                            examples,
+                            results: data.results || [],
+                            works: chunks[i].map((entry) => ({
+                                seatNumber: entry.seatNumber,
+                                added: entry.cell.added || [],
+                            })),
+                            groupBySeat: Object.fromEntries(
+                                chunks[i].map((entry) => [String(entry.seatNumber), entry.cell.groupName || '']),
+                            ),
+                        });
                     } else {
                         setComments((prev) => {
                             const next = { ...prev };
@@ -778,7 +797,42 @@ const useTeacherEvaluation = ({
                     }
                     sent += chunks[i].length;
                 }
-                if (current()) setEvalResult({ kind: mode === 'grade' ? 'grade' : 'comment', count: sent });
+                if (!current()) return;
+                // The last check: works of the same shape with different grades are marked
+                // 「要確認」. The grades are not changed. A work that could not be analyzed
+                // (no `added`) is already 「要確認」 and has no shape.
+                const review =
+                    mode === 'grade'
+                        ? seatsToReview(
+                              cells
+                                  .filter((entry) => Array.isArray(entry.cell.added))
+                                  .map((entry) => {
+                                      const result = graded[String(entry.seatNumber)];
+                                      return {
+                                          seatNumber: entry.seatNumber,
+                                          added: entry.cell.added,
+                                          grade: result ? result.grade : entry.cell.grade,
+                                          manual: !result && !!entry.cell.manual,
+                                      };
+                                  }),
+                          )
+                        : [];
+                if (review.length > 0) {
+                    setMatrix((prev) => {
+                        const next = { ...prev };
+                        for (const seat of review) {
+                            const key = cellKey(seat, lesson.classroomId);
+                            if (next[key]) next[key] = { ...next[key], needsReview: true };
+                        }
+                        return next;
+                    });
+                    gradesChanged(lesson.classroomId);
+                }
+                setEvalResult({
+                    kind: mode === 'grade' ? 'grade' : 'comment',
+                    count: sent,
+                    ...(review.length > 0 ? { inconsistent: review.length } : {}),
+                });
             } catch (err) {
                 if (!current()) return;
                 if (err.status === 401) {

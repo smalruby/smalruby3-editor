@@ -532,6 +532,17 @@ record({
         ),
     detail: `assignmentText=${JSON.stringify(NEW.lastEvaluate?.assignmentText)} puts=${puts.length}`,
 });
+// AI のスタブは同じ形の作品に違う評価を返す: 照合で要確認になり、結果がそれを知らせて残る
+const gradedResult = await page.evaluate(
+    () =>
+        document.querySelector('[data-testid="classroom-eval-result"]')
+            ?.textContent ?? "",
+);
+record({
+    name: "grade: works of the same shape with different grades are told (要確認) and the message stays",
+    ok: /要確認|ようかくにん/.test(gradedResult),
+    detail: gradedResult,
+});
 await judge(page, {
     name: "3 graded",
     expected: "classroom-eval-confirm",
