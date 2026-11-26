@@ -16,6 +16,7 @@ import React, { useCallback, useRef } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
 import { GRADE_TARGETS } from '../../lib/classroom-evaluation/grade-distribution.js';
 import {
+    axisTicks,
     chartDomain,
     clampCut,
     cutFromFraction,
@@ -120,41 +121,37 @@ StackedBand.propTypes = {
 /* 区切りの線 1 本: ドラッグか矢印のキーで動かす。 */
 const CutLine = ({ cuts, domain, grade, trackRef, onSetCut }) => {
     const intl = useIntl();
-    const dragging = useRef(false);
+    // While dragging: where the pointer and the line were when pressed. The line moves by
+    // how far the pointer moved, so pressing a little beside the line does not move the cut.
+    const drag = useRef(null);
     const value = cuts[grade];
     const moveTo = useCallback(
         (clientX) => {
             const track = trackRef.current;
-            if (!track) return;
+            if (!track || !drag.current) return;
             const rect = track.getBoundingClientRect();
             if (!rect.width) return;
-            const wanted = cutFromFraction((clientX - rect.left) / rect.width, domain);
-            const next = clampCut(grade, wanted, cuts, domain);
+            const fraction = drag.current.fraction + (clientX - drag.current.clientX) / rect.width;
+            const next = clampCut(grade, cutFromFraction(fraction, domain), cuts, domain);
             if (next !== value) onSetCut(grade, next);
         },
         [trackRef, domain, grade, cuts, value, onSetCut],
     );
-    const handlePointerDown = useCallback((e) => {
-        dragging.current = true;
-        if (e.currentTarget.setPointerCapture && typeof e.pointerId === 'number') {
-            e.currentTarget.setPointerCapture(e.pointerId);
-        }
-        e.preventDefault();
+    const handlePointerDown = useCallback(
+        (e) => {
+            drag.current = { clientX: e.clientX, fraction: toFraction(value, domain) };
+            if (e.currentTarget.setPointerCapture && typeof e.pointerId === 'number') {
+                e.currentTarget.setPointerCapture(e.pointerId);
+            }
+            e.preventDefault();
+        },
+        [value, domain],
+    );
+    const handlePointerMove = useCallback((e) => moveTo(e.clientX), [moveTo]);
+    // The last move already set the cut; a cancelled pointer (its position may be 0) only stops.
+    const handlePointerEnd = useCallback(() => {
+        drag.current = null;
     }, []);
-    const handlePointerMove = useCallback(
-        (e) => {
-            if (dragging.current) moveTo(e.clientX);
-        },
-        [moveTo],
-    );
-    const handlePointerUp = useCallback(
-        (e) => {
-            if (!dragging.current) return;
-            dragging.current = false;
-            moveTo(e.clientX);
-        },
-        [moveTo],
-    );
     const handleKeyDown = useCallback(
         (e) => {
             const steps = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 }[e.key];
@@ -177,10 +174,10 @@ const CutLine = ({ cuts, domain, grade, trackRef, onSetCut }) => {
             style={{ left: `${toFraction(value, domain) * 100}%` }}
             tabIndex={0}
             onKeyDown={handleKeyDown}
-            onPointerCancel={handlePointerUp}
+            onPointerCancel={handlePointerEnd}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
+            onPointerUp={handlePointerEnd}
         >
             <span className={classNames(styles.cutLabel, CUT_LABEL_CLASS[grade])}>{`${grade} ≥ ${value}`}</span>
         </div>
@@ -216,8 +213,7 @@ const TeacherOverallChart = ({ baselineRows, cuts, points, rows, onSetCut }) => 
     // Each stacked dot is lifted by 1 row (0.45rem), or closer when there are many in one place.
     const lift = maxLevel + 1 > DOT_ROWS ? (0.45 * DOT_ROWS) / (maxLevel + 1) : 0.45;
     const { sab } = distribution;
-    const ticks = [];
-    for (let t = Math.ceil(domain.min); t <= Math.floor(domain.max); t++) ticks.push(t);
+    const ticks = axisTicks(domain);
 
     return (
         <div className={styles.chart} data-testid="classroom-overall-chart">

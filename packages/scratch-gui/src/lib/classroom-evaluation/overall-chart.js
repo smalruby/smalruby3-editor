@@ -58,6 +58,22 @@ const chartDomain = (points) => {
     return max > min ? { min, max } : { min, max: min + 1 };
 };
 
+/** At most about this many numbers under the axis (points of 0..100 would overlap). */
+const MAX_TICKS = 10;
+
+/**
+ * The numbers under the axis: every whole number, or every 2, 5, 10… when the points
+ * are large, so that they do not overlap.
+ * @param {{min: number, max: number}} domain - the axis
+ * @returns {Array<number>} the ticks, from the left
+ */
+const axisTicks = ({ min, max }) => {
+    const step = Math.max(1, Math.ceil((max - min) / MAX_TICKS));
+    const ticks = [];
+    for (let t = Math.ceil(min / step) * step; t <= max; t += step) ticks.push(t);
+    return ticks;
+};
+
 /**
  * Where a value is on the axis (0 = left end, 1 = right end).
  * @param {number} value - an average or a cut
@@ -124,6 +140,7 @@ const dotLayout = (rows, domain) => {
 
 export {
     CUT_STEP,
+    axisTicks,
     chartDomain,
     clampCut,
     cutFromFraction,

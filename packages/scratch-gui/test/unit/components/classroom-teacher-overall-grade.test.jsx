@@ -113,6 +113,24 @@ describe('TeacherOverallGrade', () => {
             expect(getByTestId('classroom-overall-cut-B')).toHaveValue(2.5);
         });
 
+        test('the line moves by how far the pointer moved; a cancelled pointer only stops', () => {
+            const { getByTestId } = renderOverall();
+            const track = getByTestId('classroom-overall-chart-dots');
+            track.getBoundingClientRect = () => ({ left: 0, width: 400, top: 0, height: 80, right: 400, bottom: 80 });
+            const line = getByTestId('classroom-overall-chart-cut-B');
+            // Pressed 6px beside the line (at 150) and released: the cut stays.
+            fireEvent.pointerDown(line, { clientX: 156 });
+            fireEvent.pointerUp(line, { clientX: 156 });
+            expect(getByTestId('classroom-overall-cut-B')).toHaveValue(1.5);
+            // Moved by 40px (0.4) from there, then cancelled at 0: the cut stays at 1.9.
+            fireEvent.pointerDown(line, { clientX: 156 });
+            fireEvent.pointerMove(line, { clientX: 196 });
+            fireEvent.pointerCancel(line, { clientX: 0 });
+            expect(getByTestId('classroom-overall-cut-B')).toHaveValue(1.9);
+            fireEvent.pointerMove(line, { clientX: 0 });
+            expect(getByTestId('classroom-overall-cut-B')).toHaveValue(1.9);
+        });
+
         test('a moved pointer without pressing does not move the line', () => {
             const { getByTestId } = renderOverall();
             const track = getByTestId('classroom-overall-chart-dots');

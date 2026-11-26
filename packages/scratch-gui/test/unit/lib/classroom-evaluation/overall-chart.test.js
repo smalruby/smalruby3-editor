@@ -4,6 +4,7 @@
  */
 import {
     CUT_STEP,
+    axisTicks,
     chartDomain,
     clampCut,
     cutFromFraction,
@@ -58,6 +59,13 @@ describe('chartDomain / toFraction: 横の軸', () => {
 
     test('幅が 0 のときは 1 を足す', () => {
         expect(chartDomain({ S: 2, A: 2, B: 2, C: 2, none: 2 })).toEqual({ min: 2, max: 3 });
+    });
+
+    test('目盛りは整数。点が大きいときは重ならないよう 10 個くらいに間引く', () => {
+        expect(axisTicks({ min: 0, max: 4 })).toEqual([0, 1, 2, 3, 4]);
+        expect(axisTicks({ min: 0.5, max: 3.5 })).toEqual([1, 2, 3]);
+        expect(axisTicks({ min: 0, max: 100 })).toEqual([0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]);
+        expect(axisTicks({ min: 5, max: 37 })).toEqual([8, 12, 16, 20, 24, 28, 32, 36]);
     });
 
     test('位置は 0〜1 に収める', () => {
