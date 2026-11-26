@@ -57,8 +57,8 @@ test('MONITOR_HTML: 並べ方 D — 左に「あなた宛て」、右に状況�
     assert.match(MONITOR_HTML, /@media \(min-width: 900px\) \{[\s\S]*?body \{ height: 100vh; overflow: hidden; \}/);
     assert.match(MONITOR_HTML, /\.stage > section \{ overflow: auto; min-height: 0; \}/);
     assert.match(MONITOR_HTML, /@media \(max-width: 899px\) \{[\s\S]*?\.tabs \{ display: flex;/);
-    // PR chips（draft/ready/merged/closed の色分け）と sub-issue の棒
-    for (const cls of ['pr-draft', 'pr-ready', 'pr-merged', 'pr-closed', 'class="bar"']) {
+    // PR のコンフリクトの印と sub-issue の棒
+    for (const cls of ['pr-conflict', 'class="bar"']) {
         assert.ok(MONITOR_HTML.includes(cls), `should include ${cls}`);
     }
 });
@@ -127,9 +127,9 @@ test('MONITOR_HTML: 状況板の行に Size（S/M/L）を出す（#884）', () =
     assert.match(MONITOR_HTML, /\.size-s \{[^}]*var\(--ap-size-s-wash\)/);
     assert.match(MONITOR_HTML, /\.size-l \{[^}]*var\(--ap-size-l-wash\)/);
     assert.match(MONITOR_HTML, /sizeBadge\(it\.size\)/);
-    // 状況板の列（題名・優先・状態・次の動き・時刻・進み・人間待ち・PR）と空の行の colspan
-    assert.match(MONITOR_HTML, /<th><\/th><th>#<\/th><th>題名<\/th><th>優先<\/th><th>状態<\/th><th>次の動き<\/th><th>時刻<\/th><th>進み<\/th><th>人間待ち<\/th><th>PR<\/th><th><\/th>/);
-    assert.match(MONITOR_HTML, /colspan="11"/);
+    // 状況板の列（Issue · PR・題名・優先・状態・次の動き・時刻・進み・人間待ち）と空の行の colspan（#2471）
+    assert.match(MONITOR_HTML, /<th><\/th><th>Issue · PR<\/th><th>題名<\/th><th>優先<\/th><th>状態<\/th><th>次の動き<\/th><th>時刻<\/th><th>進み<\/th><th>人間待ち<\/th><th><\/th>/);
+    assert.match(MONITOR_HTML, /colspan="10"/);
 });
 
 test('MONITOR_HTML: Awaiting Continuation は専用バッジ + 残タスク数を表示（#913）', () => {
@@ -208,8 +208,8 @@ test('MONITOR_HTML: 上の行に Claude の使用量（名前・アイコン・�
 test('MONITOR_HTML: 状況板の表は列の中で横にスクロールし、ページを横にはみ出さない（#936 / #2404）', () => {
     assert.match(MONITOR_HTML, /\.tbl-wrap \{ overflow-x: auto; \}/);
     assert.match(MONITOR_HTML, /#board \{ border-collapse: collapse; width: 100%; min-width: \d+px;/);
-    // ▲▼ は行に乗せたときだけ（幅を取らない）
-    assert.match(MONITOR_HTML, /#board tr:hover \.prio button \{ display: inline-block; \}/);
+    // ▲▼ は行に乗せたときだけ見せる（場所は取っておき、列を動かさない・#2471）
+    assert.match(MONITOR_HTML, /#board tr:hover \.prio button, #board tr:focus-within \.prio button \{ visibility: visible; \}/);
 });
 
 test('MONITOR_HTML: Sub-issues セルは件数 (.sub-count) と %（.sub-pct）を別 span に分割する（#936）', () => {
