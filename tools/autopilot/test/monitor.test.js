@@ -57,8 +57,8 @@ test('MONITOR_HTML: 並べ方 D — 左に「あなた宛て」、右に状況�
     assert.match(MONITOR_HTML, /@media \(min-width: 900px\) \{[\s\S]*?body \{ height: 100vh; overflow: hidden; \}/);
     assert.match(MONITOR_HTML, /\.stage > section \{ overflow: auto; min-height: 0; \}/);
     assert.match(MONITOR_HTML, /@media \(max-width: 899px\) \{[\s\S]*?\.tabs \{ display: flex;/);
-    // PR chips（draft/ready/merged/closed の色分け）と sub-issue の棒
-    for (const cls of ['pr-draft', 'pr-ready', 'pr-merged', 'pr-closed', 'class="bar"']) {
+    // PR のコンフリクトの印と sub-issue の棒
+    for (const cls of ['pr-conflict', 'class="bar"']) {
         assert.ok(MONITOR_HTML.includes(cls), `should include ${cls}`);
     }
 });
@@ -127,9 +127,9 @@ test('MONITOR_HTML: 状況板の行に Size（S/M/L）を出す（#884）', () =
     assert.match(MONITOR_HTML, /\.size-s \{[^}]*var\(--ap-size-s-wash\)/);
     assert.match(MONITOR_HTML, /\.size-l \{[^}]*var\(--ap-size-l-wash\)/);
     assert.match(MONITOR_HTML, /sizeBadge\(it\.size\)/);
-    // 状況板の列（題名・優先・状態・次の動き・時刻・進み・人間待ち・PR）と空の行の colspan
-    assert.match(MONITOR_HTML, /<th><\/th><th>#<\/th><th>題名<\/th><th>優先<\/th><th>状態<\/th><th>次の動き<\/th><th>時刻<\/th><th>進み<\/th><th>人間待ち<\/th><th>PR<\/th><th><\/th>/);
-    assert.match(MONITOR_HTML, /colspan="11"/);
+    // 状況板の列（Issue · PR・題名・優先・状態・次の動き・時刻・進み・人間待ち）と空の行の colspan（#2471）
+    assert.match(MONITOR_HTML, /<th><\/th><th>Issue · PR<\/th><th>題名<\/th><th>優先<\/th><th>状態<\/th><th>次の動き<\/th><th>時刻<\/th><th>進み<\/th><th>人間待ち<\/th><th><\/th>/);
+    assert.match(MONITOR_HTML, /colspan="10"/);
 });
 
 test('MONITOR_HTML: Awaiting Continuation は専用バッジ + 残タスク数を表示（#913）', () => {
@@ -208,8 +208,8 @@ test('MONITOR_HTML: 上の行に Claude の使用量（名前・アイコン・�
 test('MONITOR_HTML: 状況板の表は列の中で横にスクロールし、ページを横にはみ出さない（#936 / #2404）', () => {
     assert.match(MONITOR_HTML, /\.tbl-wrap \{ overflow-x: auto; \}/);
     assert.match(MONITOR_HTML, /#board \{ border-collapse: collapse; width: 100%; min-width: \d+px;/);
-    // ▲▼ は行に乗せたときだけ（幅を取らない）
-    assert.match(MONITOR_HTML, /#board tr:hover \.prio button \{ display: inline-block; \}/);
+    // ▲▼ は行に乗せたときだけ見せる（場所は取っておき、列を動かさない・#2471）
+    assert.match(MONITOR_HTML, /#board tr:hover \.prio button, #board tr:focus-within \.prio button \{ visibility: visible; \}/);
 });
 
 test('MONITOR_HTML: Sub-issues セルは件数 (.sub-count) と %（.sub-pct）を別 span に分割する（#936）', () => {
@@ -400,6 +400,46 @@ test('monitorHtmlWithToken: 合言葉を meta に埋め、書き込みの fetch 
     assert.throws(() => monitorHtmlWithToken('"><script>'), /token/);
 });
 
+test('monitor の fetch の包み: 合言葉が古い 403 なら、ページから読み直して 1 回だけやり直す（daemon の再起動をまたいだページ）', async () => {
+    const { monitorHtmlWithToken } = require('../src/monitor');
+    const html = monitorHtmlWithToken('a'.repeat(64));
+    const start = html.indexOf('(() => {\n  const meta = document.querySelector');
+    const wrapper = html.slice(start, html.indexOf('})();', start) + 5);
+    const fresh = 'b'.repeat(64);
+    const sent = [];
+    const metaEl = { content: 'a'.repeat(64) };
+    const reply = (status, body) => ({
+        status, ok: status < 400,
+        clone() { return this; },
+        json: async () => body,
+        text: async () => body,
+    });
+    const origFetch = async (input, opts = {}) => {
+        if (input === '/') return reply(200, `<meta name="autopilot-token" content="${fresh}">`);
+        const tok = opts.headers.get('X-Autopilot-Token');
+        sent.push(tok);
+        return tok === fresh ? reply(200, { ok: true }) : reply(403, { error: 'forbidden: token' });
+    };
+    const win = { fetch: origFetch };
+    const doc = {
+        querySelector: () => metaEl,
+        createElement: () => ({ remove() {} }),
+        getElementById: () => ({ appendChild() {} }),
+        body: { appendChild() {} },
+    };
+    // eslint-disable-next-line no-new-func
+    new Function('window', 'document', 'location', 'Headers', 'URL', 'setTimeout', wrapper)(
+        win, doc, { href: 'http://localhost:8787/', origin: 'http://localhost:8787' }, Headers, URL, () => {},
+    );
+    const res = await win.fetch('/delegate?issue=1', { method: 'POST' });
+    assert.equal(res.status, 200);
+    assert.deepEqual(sent, ['a'.repeat(64), fresh]);
+    assert.equal(metaEl.content, fresh);
+    // 2 回目からは新しい合言葉をそのまま使う（読み直さない）
+    await win.fetch('/pause', { method: 'POST' });
+    assert.deepEqual(sent.slice(2), [fresh]);
+});
+
 test('MONITOR_HTML: 色は :root の --ap-* トークンで持ち、CSS に 16 進の直書きを残さない（EPIC #2384）', () => {
     const style = MONITOR_HTML.match(/<style>([\s\S]*?)<\/style>/)[1];
     const root = style.match(/:root \{[\s\S]*?\n {2}\}/)[0];
@@ -431,7 +471,7 @@ test('MONITOR_HTML: あなた宛ての操作 — AI に任せる（/delegate）�
     assert.match(MONITOR_HTML, /を任せられませんでした: ' \+ e\.message, true/);
     // 質問: 推奨で進める / 選んだ答えで進める / メモだけ保存 は POST /answer
     assert.match(MONITOR_HTML, /postJson\('\/answer', \{ issue, answers, proceed \}\)/);
-    for (const id of ['inbox-answer-recommended', 'inbox-answer-chosen', 'inbox-answer-save', 'inbox-delegate']) {
+    for (const id of ['inbox-answer-recommended', 'inbox-answer-chosen', 'inbox-answer-save', 'inbox-action']) {
         assert.ok(MONITOR_HTML.includes(`data-testid="${id}"`), id);
     }
     // 数字キーは monitor-inbox.js の digitTarget で決める（入力欄の中では効かない）
@@ -443,15 +483,16 @@ test('MONITOR_HTML: あなた宛ての操作 — AI に任せる（/delegate）�
 });
 
 test('MONITOR_HTML: 「確認の結果を書く」は観点ごとに OK / NG を選び /release-check/review へ送る（#2430）', () => {
-    assert.match(MONITOR_HTML, /w\.release \? 'release'/);
+    // 「確認の結果を書く」は ⋯ のメニューと、動詞のボタン（act=release）から開く（#2466）
+    assert.match(MONITOR_HTML, /wait\.release \? openRelease\(issue\)/);
+    assert.match(MONITOR_HTML, /else if \(w\.act === 'release'\) \{ if \(w\.url\) window\.open\(w\.url, '_blank', 'noopener'\); openRelease\(issue\); \}/);
     assert.match(MONITOR_HTML, /fetch\('\/release-check\?issue=' \+ issue\)/);
     assert.match(MONITOR_HTML, /postJson\('\/release-check\/review', \{ issue, round: relRound, results/);
-    for (const id of ['release-modal', 'release-points', 'release-note', 'release-send', 'release-cancel', 'inbox-preview']) {
+    for (const id of ['release-modal', 'release-points', 'release-note', 'release-send', 'release-cancel']) {
         assert.ok(MONITOR_HTML.includes(`data-testid="${id}"`), id);
     }
     assert.match(MONITOR_HTML, /data-testid="release-send" disabled>/);
-    // プレビューのリンクと観点の本文はエスケープ・自前の整形を通す
-    assert.match(MONITOR_HTML, /href="' \+ esc\(w\.previewUrl\)/);
+    // 観点の本文は自前の整形を通す
     assert.match(MONITOR_HTML, /renderMiniMarkdown\(p\.body\)/);
     // テンプレート文字列の中なので、観点の番号の正規表現は \\d を二重にしないと /^Rd+$/ になり OK / NG が効かない
     assert.ok(MONITOR_HTML.includes('if (!/^R\\d+$/.test(String(id))) return;'));
@@ -465,7 +506,7 @@ test('MONITOR_HTML: 「確認の結果を書く」は観点ごとに OK / NG を
 
 test('MONITOR_HTML: 「AI に直してもらう」は指摘とコメント欄を開き、指示と一緒に /delegate へ送る（#2415）', () => {
     // 差し戻しの行は data-act="fix"（すぐ 🙋 を外さない）
-    assert.match(MONITOR_HTML, /w\.fix \? 'fix' : 'delegate'/);
+    assert.match(MONITOR_HTML, /wait\.fix \? openFix\(issue\)/);
     // 押したときだけ指摘を取ってくる・markdown は自前の整形（外部ライブラリなし）
     assert.match(MONITOR_HTML, /fetch\('\/delegate\/findings\?issue=' \+ issue\)/);
     assert.match(MONITOR_HTML, /function renderMiniMarkdown\(src\)/);
@@ -496,9 +537,25 @@ test('MONITOR_HTML: 「あなた宛て」の開け閉め — 印のボタン・�
     assert.match(MONITOR_HTML, /try \{ localStorage\.setItem\(INBOX_OPEN_KEY, String\(inboxOpen\)\); \} catch/);
     // 数字キー 1 は閉じていれば開く
     assert.match(MONITOR_HTML, /if \(target === 'inbox' && !inboxOpen && wideLayout\(\)\) setInboxOpen\(true\);/);
-    // 人間待ちは EPIC ごとのまとまり（inboxGroups）。「EPIC に属さない」を行ごとに書かない
-    assert.match(MONITOR_HTML, /inboxGroups\(m\.waits, \{ epicGroups: d\.epicGroups, items, open: Array\.from\(openInboxGroups\) \}\)/);
+    // 人間待ちは することごとの欄（forYouModel・#2466）。「EPIC に属さない」を行ごとに書かない
+    assert.match(MONITOR_HTML, /forYouModel\(Object\.assign\(\{\}, d, \{ items \}\), \{ repoUrl \}\)/);
     assert.ok(!MONITOR_HTML.includes("w.from || 'EPIC に属さない'"));
+});
+
+test('MONITOR_HTML: あなた宛ては動詞のボタン → 行の中の確かめ → 行う（#2466）', () => {
+    // ボタンを押すと行の中で「これを行います」と確かめ、「行う」で初めて doForYou が動く
+    assert.match(MONITOR_HTML, /data-act="fy-ask"/);
+    assert.ok(MONITOR_HTML.includes("'<div class=\"fy-confirm\" role=\"status\" data-testid=\"inbox-confirm\"><span>これを行います: '"));
+    assert.match(MONITOR_HTML, /if \(act === 'fy-do'\) \{ doForYou\(issue, t\); return; \}/);
+    // EPIC にまとめたゴーサインは、子ごとに既存の POST /delegate
+    assert.match(MONITOR_HTML, /for \(const n of w\.targets\) await delegateIssue\(n, btn\)/);
+    // 「押すと」はいつも出し、状態の一文と「押すと」の #N は別タブのリンクにする
+    assert.ok(MONITOR_HTML.includes("'<div class=\"fy-happens\"><b>押すと:</b> ' + lr(w.happens)"));
+    assert.ok(MONITOR_HTML.includes("'<div class=\"fy-state\">' + ep + lr(w.state)"));
+    // 人間の番ではないものは最後にたたむ
+    assert.ok(MONITOR_HTML.includes('data-testid="inbox-idle"'));
+    const ha = require('../src/human-action');
+    for (const fn of ha.HUMAN_ACTION_CLIENT_FNS) assert.ok(MONITOR_HTML.includes(String(fn)), fn.name);
 });
 
 test('MONITOR_HTML: monitor-inbox.js の純粋関数を verbatim で埋め込む（二重定義しない）', () => {

@@ -196,6 +196,7 @@
 | `$size-button-height` / `$size-button-height-small` | `2.25rem`（36px）/ `1.875rem`（30px） | クラス管理のボタンの高さ（`min-height`）。小さいほうはカードの下の文字のボタンなど |
 | `$size-tab-indicator` | `3px` | クラス管理の選ばれたタブの下の線 |
 | `$size-stepper-marker` / `$size-stepper-line` | `1.625rem`（26px）/ `2px` | 縦のステッパーの番号の丸の大きさと、枠・丸の輪・縦の線の太さ |
+| `$size-tab-min-width` | `5rem`（80px） | クラス管理のタブの最小の幅。「形」のような短いラベルのタブも押しやすい幅にそろえる |
 | `$font-size-xsmall` | `0.625rem` | 入力欄のラベル・バッジ |
 | `$font-size-small` | `$menu-bar-standard-font-size` | メニューバー・タブ |
 | `$font-size-dialog` | `0.85rem` | ダイアログの本文・ボタン |

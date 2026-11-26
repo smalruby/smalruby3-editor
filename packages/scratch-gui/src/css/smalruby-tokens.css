@@ -145,6 +145,8 @@ $size-tab-indicator: 3px;
 /* 縦のステッパーの番号の丸の大きさ 26px と、外の枠・丸をつなぐ縦の線の太さ 2px（#2454） */
 $size-stepper-marker: 1.625rem;
 $size-stepper-line: 2px;
+/* タブの最小の幅 80px（クラス管理のタブ。「形」のような 1 文字のタブも押しやすい幅にそろえる） */
+$size-tab-min-width: 5rem;
 
 /* ---- 文字 ---- */
 

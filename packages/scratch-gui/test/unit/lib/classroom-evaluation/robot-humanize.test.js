@@ -51,6 +51,17 @@ describe('humanizePseudocode', () => {
     });
 });
 
+describe('humanizePseudocode inside a sentence', () => {
+    test('keeps the words after a robot reporter', () => {
+        expect(humanizePseudocode('    変数 明るさ を [smalrubotS1_getSensorValue] POSITION=left にする')).toBe(
+            '    変数 明るさ を 左のセンサーの値 にする',
+        );
+        expect(humanizePseudocode('もし ([smalrubotS1_getSensorValue] POSITION=right > 50) なら')).toBe(
+            'もし (右のセンサーの値 > 50) なら',
+        );
+    });
+});
+
 describe('robotOperationsOf', () => {
     test('names the operation without numbers or sides', () => {
         expect(robotOperationsOf('サーボを 30 度に曲げる（2 秒）')).toEqual([

@@ -145,3 +145,18 @@ test('releaseReviewOnce: Release Check の 🙋 待ちでない・round が古�
     assert.equal(posted.length, 0);
     assert.equal(released.length, 0);
 });
+
+test('applyReleaseCheckEntries: 親を autopilot-after で待つ子は、本文のキャッシュでリリース後の作業とみなす（#2459）', async () => {
+    const t = trackerItem({ issue: 10, itemId: 'A', aiStatus: 'EPIC Decomposed', hitl: true, subIssues: { total: 2, completed: 1 } });
+    const child = { issue: 11, parent: { number: 10 }, status: 'Sprint Backlog', labels: [] };
+    const state = { directives: new Map([[11, { after: [10], at: 0 }]]) };
+    const written = [];
+    const done = await applyReleaseCheckEntries([t, child], cfg, state, () => {}, {
+        botToken: async () => 't',
+        applyIntents: async (ctx, itemId, intents) => { written.push([itemId, intents]); },
+    });
+    assert.deepEqual(done, [10]);
+    assert.deepEqual(await applyReleaseCheckEntries([{ ...t, aiStatus: 'EPIC Decomposed' }, child], cfg, {}, () => {}, {
+        botToken: async () => { throw new Error('should not be called'); },
+    }), [], 'キャッシュが無ければ入らない');
+});

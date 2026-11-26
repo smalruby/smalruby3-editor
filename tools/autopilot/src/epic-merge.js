@@ -11,15 +11,18 @@
  *   EPIC の「決定待ち」まとめコメントと sub-issue のコメントに書く
  * - {@link applyEpicAutoMerge}: topic 宛ての PR（Review + 🙋 なし）を、CI 通過・コンフリクト無しで
  *   マージする（Close と Issue を閉じるのは同じ tick の merge-progression）
+ * - {@link applyEpicTopicPrs}: 子を topic にマージしたあと、topic → develop の draft PR を作る・本文を直す
+ *   （人間が作った PR なら進み具合のコメントを書く・#2473）。起動時は {@link bootEpicTopicPrs}
  */
 
 const project = require('./project');
 const {
     EPIC_DECISIONS_MARKER, decisionsFromResult, daemonDecision, findEpicDecisionsComment,
-    nextEpicDecisionsBody, mustExhaustedBody, autoMergePlan, selectAutoMergeCandidates, mustFixPlan,
+    nextEpicDecisionsBody, mustExhaustedBody, autoMergePlan, selectAutoMergeCandidates, mustFixPlan, isEpicFlowBase,
 } = require('./epic-flow');
 const { nextReviewFindingsRound, sanitizeForSurface, selectRequestedReviews } = require('./phases');
 const { countEpicDecisions } = require('./epic-summary');
+const { EPIC_PR_STATUS_MARKER, epicPrPlan, topicMergeTargets } = require('./epic-pr');
 
 /**
  * EPIC の「決定待ち」まとめコメントに決定待ちを書き足す（書くのは daemon だけ）。
@@ -122,7 +125,7 @@ async function applyEpicAutoMerge(items, contexts, cfg, state, log, deps = {}) {
             if (plan.action === 'merge') {
                 await merge(cfg.repo, pr, botTok);
                 log(`#${item.issue}: PR #${pr} を topic へ自動マージ（${plan.reason}）`);
-                done.push({ issue: item.issue, action: 'merge' });
+                done.push({ issue: item.issue, action: 'merge', base: contexts[item.issue].prBase || null });
             } else if (plan.action === 'conflict') {
                 if (deps.resolveConflict && (!deps.hasCapacity || deps.hasCapacity())) {
                     log(`#${item.issue}: PR #${pr} がコンフリクト → resolve-conflict`);
@@ -155,4 +158,67 @@ async function applyEpicAutoMerge(items, contexts, cfg, state, log, deps = {}) {
     return done;
 }
 
-module.exports = { appendEpicDecisions, applyEpicRunSideEffects, applyEpicAutoMerge };
+/**
+ * 子を topic にマージしたあと、topic → develop の draft PR を作る・本文を直す（#2473）。
+ * 判断は epic-pr.js の epicPrPlan。EPIC ごとに 1 回だけ見る。失敗はログだけ（tick を止めない）。
+ * @param {Array<{issue:number, base:string}>} targets topic にマージした子と、その topic
+ * @param {object} deps { defaultBase, statuses（issue → Project の Status）, getParentIssueNumber, getEpicPrFacts,
+ *   createDraftPr, updatePrBody, upsertMarkedComment, token, readToken }
+ * @returns {Promise<Array<{epic:number, action:string, pr:(number|null)}>>}
+ */
+async function applyEpicTopicPrs(targets, cfg, log, deps = {}) {
+    const list = (targets || []).filter((t) => t && t.issue && t.base);
+    if (!list.length) return [];
+    const base = deps.defaultBase || 'develop';
+    const readTok = deps.readToken || await project.readToken();
+    const getParent = deps.getParentIssueNumber || project.getParentIssueNumber;
+    const getFacts = deps.getEpicPrFacts || project.getEpicPrFacts;
+    const create = deps.createDraftPr || project.createDraftPr;
+    const update = deps.updatePrBody || project.updatePrBody;
+    const upsert = deps.upsertMarkedComment || project.upsertMarkedComment;
+    const seen = new Set();
+    const done = [];
+    for (const t of list) {
+        try {
+            const epic = await getParent(cfg.repo, t.issue, readTok);
+            if (!epic || seen.has(epic)) continue;
+            seen.add(epic);
+            const plan = epicPrPlan(await getFacts(cfg.repo, epic, t.base, base, readTok), { base, statuses: deps.statuses });
+            if (plan.action === 'skip') {
+                done.push({ epic, action: 'skip', pr: plan.pr || null });
+                continue;
+            }
+            const botTok = deps.token || await project.botToken();
+            let pr = plan.pr || null;
+            if (plan.action === 'create') {
+                pr = await create(cfg.repo, { head: t.base, base, title: plan.title, body: plan.body }, botTok);
+                log(`EPIC #${epic}: ${t.base} → ${base} の draft PR #${pr} を作りました`);
+            } else if (plan.action === 'update') {
+                await update(cfg.repo, pr, plan.body, botTok);
+                log(`EPIC #${epic}: PR #${pr} の本文を直しました（${plan.reason}）`);
+            } else if (plan.action === 'comment') {
+                await upsert(cfg.repo, pr, [EPIC_PR_STATUS_MARKER], plan.body, botTok, { readToken: readTok });
+                log(`EPIC #${epic}: 人間の PR #${pr} に進み具合のコメントを書きました`);
+            }
+            done.push({ epic, action: plan.action, pr });
+        } catch (e) {
+            log(`#${t.issue}: topic → ${base} の PR の更新に失敗: ${sanitizeForSurface(e.message || '')}`);
+        }
+    }
+    return done;
+}
+
+/**
+ * 起動時に 1 回だけ: 最近マージされた PR から、子が topic に入っている EPIC を見つけ、topic → develop の PR を
+ * そろえる（daemon を入れる前に子が topic に入った EPIC のため・#2473）。
+ * @param {object} deps applyEpicTopicPrs の deps + { listRecentMergedPrs }
+ */
+async function bootEpicTopicPrs(cfg, log, deps = {}) {
+    const base = deps.defaultBase || 'develop';
+    const readTok = deps.readToken || await project.readToken();
+    const listMerged = deps.listRecentMergedPrs || project.listRecentMergedPrs;
+    const targets = topicMergeTargets(await listMerged(cfg.repo, readTok), (b) => isEpicFlowBase(b, base));
+    return applyEpicTopicPrs(targets, cfg, log, { ...deps, readToken: readTok });
+}
+
+module.exports = { appendEpicDecisions, applyEpicRunSideEffects, applyEpicAutoMerge, applyEpicTopicPrs, bootEpicTopicPrs };

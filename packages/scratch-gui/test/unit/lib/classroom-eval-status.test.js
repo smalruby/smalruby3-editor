@@ -96,6 +96,17 @@ describe('describeEvalResult', () => {
         );
     });
 
+    test('works of the same shape got different grades: ask to check them', () => {
+        const described = describeEvalResult({ kind: 'grade', count: 35, inconsistent: 7 });
+        expect(described.failed).toBe(false);
+        expect(toJa(described)).toBe(
+            'AI が 35 件を採点しました。同じ形なのに評価が違う作品が 7 件あります（要確認）',
+        );
+        expect(toJa(describeEvalResult({ kind: 'grade', count: 35, inconsistent: 0 }))).toBe(
+            'AI が 35 件を採点しました',
+        );
+    });
+
     test('the AI and the return', () => {
         expect(toJa(describeEvalResult({ kind: 'grade', count: 28 }))).toBe('AI が 28 件を採点しました');
         expect(toJa(describeEvalResult({ kind: 'comment', count: 27 }))).toBe(

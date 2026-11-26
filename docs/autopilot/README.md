@@ -47,6 +47,7 @@ autopilot は、複数の GitHub Issue を Claude が**並行**して
 | **フェーズ・プロンプト** | 各フェーズの「頭脳」。非対話で1フェーズを遂行 | `tools/autopilot/prompts/autopilot-*` |
 | **worktree** | Issue ごとの隔離作業場（軽量・即作成） | `bin/autopilot-worktree` |
 | **UI 確認ヘルパー** | worker が headless bundled chromium で UI を確認（スクショ `tmp/`・Playwright MCP は使わない・#891） | `tools/autopilot/bin/pw-check` |
+| **後片付け** | worker が終わる前に、自分の worktree に残した dev server・ブラウザを止める（#2463） | `tools/autopilot/bin/cleanup-leftovers` |
 
 > daemon は常駐の単独プロセスとして起動する。並行数は設定可能（既定 2、必要に応じて増やす）。
 
@@ -123,13 +124,24 @@ daemon に `--assignee <GitHub login>`（または env `AUTOPILOT_ASSIGNEE`）�
   item を表示する（下記「俯瞰ボード」参照）。ある機能に詳しくない担当が別の担当に駆動を
   引き継ぎつつ、進捗だけ自分の monitor で見続けたいケースを想定する。
 
-### 投入順は 優先度 → after が解けたもの → Project Board view の見た目
+### 投入順は 優先度 → 続きの作業か → Project Board view の見た目
 
 着手候補は、まず **Project の `Priority`**（P0〜P3。P0 が最優先）の順に並べる。sub-issue は自分に
 `Priority` が無ければ**親の EPIC の値を継ぐ**（親の親まで遡る。どこにも無ければ P2 とみなす）。
-`autopilot-after` が解けていないものは除き、同じ優先度の中は **Board view の見た目**（Status 列順 =
-Status フィールドの option 定義順、列内は Project の手動並び順）の順。Project 上で上に置いた item から
-処理される。優先度はモニターの ▲▼ でも変えられる（下記「並列の計画と優先度」）。
+`autopilot-after` が解けていないものは除く。
+
+同じ優先度の中は、**続きの作業を新しい作業より先に**する（人間を待たせない・作りかけを減らす）:
+
+1. 人間のレビューへの直し（`address-review`。Request changes・モニターの指示）
+2. PR がある作業の続き（`review`・`verify` など、すでに PR を作ったもの）
+3. 新しく始める作業（`triage`・`implement`・`decompose` など）
+
+判定は daemon が dispatch のために持っている値（次のフェーズ・PR の有無）だけで行い、GitHub の read は
+増やさない（`scheduler.workStage`）。優先度は段より強い（P0 の新しい作業は P1 の直しより先）。
+同じ段の中は **Board view の見た目**（Status 列順 = Status フィールドの option 定義順、列内は Project の
+手動並び順）の順。Project 上で上に置いた item から処理される。同じ優先度に段の違う候補が並んだときは、
+モニターの「並列:」の行の最後に「順: 同じ P1 で、直しを先に」のように理由が出る。優先度はモニターの ▲▼ でも変えられる
+（下記「並列の計画と優先度」）。
 
 ### 並列の計画と優先度
 
@@ -372,6 +384,27 @@ worker が人間に選んでほしいことがあるとき、`signal=hitl` の�
 
 ![「AI に直してもらう」のダイアログ](screenshots/monitor-fix-instruction-light.png)
 
+### topic → develop の draft PR（daemon が作る）
+
+EPIC の子の PR は topic ブランチ宛てで、daemon が CI 通過後に topic へ自動でマージする（`src/epic-merge.js`）。
+子を topic にマージしたあと、daemon は **topic → develop の open な PR が無ければ draft で作る**（Bot 名義）。
+判断は `src/epic-pr.js`（純粋関数 `epicPrPlan`）、GitHub の読み書きは `project.js`（`getEpicPrFacts` は GraphQL 1 回）。
+
+- 題は `epic: <EPIC の題>`（EPIC の題が `EPIC:` / `epic(scope):` で始まるときは重ねない）。本文の 1 行目は目印 `<!-- autopilot-epic-pr epic=N -->`。
+  **本文は daemon だけが書く**（単一ライター。手で直しても次の更新で上書きされる）。
+- 本文: EPIC への `Refs #N`（topic → develop のマージで EPIC を閉じるかは人間が決めるので `Closes` にしない）、
+  プレビューの URL（`scripts/preview-slug.mjs` と同じ規則の slug。`previewSlug` は同じ値になることをテストで確かめる）、
+  sub-issue の一覧と状態（✅ topic に入った / 🚧 作業中 / ⏳ 待ち / ⛔ 閉じた）とそれぞれの PR、
+  「develop へのマージは人間がリリース確認のあとで行う」の一文。
+- 子を topic にマージするたびに本文を作り直し、**変わったときだけ** PATCH する。
+- **人間が作った topic → develop の PR**（目印なし）があれば新しく作らず、本文も書きかえない。代わりに
+  目印 `<!-- autopilot-epic-pr-status epic=N -->` のコメント 1 つで進み具合を出す（`upsertMarkedComment`）。
+- 子がまだ topic に入っていない・EPIC が閉じている・topic ブランチが無いときは何もしない。
+- **起動時に 1 回**（人間の一時停止中は行わない）、最近マージされた PR 100 件から topic 宛ての子を見つけ、
+  既に子が topic に入っている EPIC の PR もそろえる（`bootEpicTopicPrs`）。人間が手で topic にマージしたときは、
+  次の自動マージか daemon の起動でそろう。
+- daemon は develop へのマージをしない（下のリリース確認の 5.）。
+
 ### リリース確認（分解済み EPIC の最後の確認）
 
 EPIC は topic ブランチに sub-issue の PR を集め、最後に人間がプレビューで確かめて develop へ出す
@@ -379,9 +412,12 @@ EPIC は topic ブランチに sub-issue の PR を集め、最後に人間が�
 daemon とのつなぎ・HTTP は `src/release-check-http.js`、段のプロンプトは `prompts/autopilot-release-check.md`。
 
 1. **入る**: 🧭 トラッカー（In Progress / EPIC Decomposed）で、sub-issue が全部済んだか、残りが
-   **`🚀 after-release`** ラベルの付いたもの（リリース後の作業）だけになったら、daemon がボードを更新したあと
-   AI Status を **Release Check** にする（`releaseCheckReady` / `selectReleaseCheckEntries`。ボードの値だけで決め、
-   追加の read はしない。担当がほかの人でボードに載らない子があるときは入らない）。🙋 の有無は問わない。分解済みの EPIC は決まりどおり 🙋 を付けたままのことが多く（`.claude/rules/human-wait.md`）、そのときは入った時点で人間の番になる。「確認の結果を書く」のダイアログの **「AI に観点をまとめてもらう」** で 🙋 を外すと 2. に進む。
+   リリース後の作業だけになったら、daemon がボードを更新したあと
+   AI Status を **Release Check** にする（`releaseCheckReady` / `selectReleaseCheckEntries`。ボードの値と、dispatch の計画で
+   既に読んだ本文のキャッシュだけで決め、追加の read はしない。担当がほかの人でボードに載らない子があるときは入らない）。
+   リリース後の作業とみなすのは、**`🚀 after-release`** ラベルの付いた子と、自分の親 EPIC を `autopilot-after:` で
+   待っている子（本文のキャッシュがあるときだけ）。decompose は「develop に出してからする作業」の sub-issue に
+   `🚀 after-release` を付ける（`prompts/autopilot-decompose.md`）。🙋 の有無は問わない。分解済みの EPIC は決まりどおり 🙋 を付けたままのことが多く（`.claude/rules/human-wait.md`）、そのときは入った時点で人間の番になる。「確認の結果を書く」のダイアログの **「AI に観点をまとめてもらう」** で 🙋 を外すと 2. に進む。
 2. **観点をまとめる**: release-check フェーズが topic → develop の PR とプレビューの URL を探し、EPIC の本文・
    決めたこと・sub-issue の DoD・見送った指摘・関係する docs の方針から、番号付きの確認の観点（`### R1. <題>` …
    「どこを開いて何をすると、どうなれば OK か」）を、トラッカーに目印付きのコメント
@@ -396,10 +432,22 @@ daemon とのつなぎ・HTTP は `src/release-check-http.js`、段のプロン�
    `planReleaseResult`）。daemon が sub-issue を Sprint Backlog / Kind=Issue にし、トラッカーは EPIC Decomposed に戻る。
    作った子が全部済むと、1. から次の round になる。全部 OK なら topic → develop の PR の本文を更新して 🙋 で人間に返す。
    受けたことは `<!-- autopilot-release-result round=N -->` で残す。
+   **topic → develop の PR に人間が直接書いたレビュー・コメント**（Request changes・レビューの本文・行コメント・
+   PR のコメント。Bot のものは読まない）も、この段で結果として受ける（`selectPrFeedback`）。直してほしいことごとに
+   EPIC の sub-issue を作り（本文に目印 `<!-- autopilot-release-pr epic=E ref=review-<id> -->`。行コメントは
+   `review-comment-<id>`、PR のコメントは `comment-<id>`）、直すことが無かったものは結果のコメントに
+   `<!-- autopilot-release-pr-seen refs=... -->` で残す。どちらも次から読まない（`handledPrFeedbackRefs`。時刻や
+   状態ファイルでは管理しない）。段に入る合図は今と同じ**トラッカーの 🙋 を外したときだけ**（PR に書いただけでは
+   動き出さない）。PR の 🙋 は合図にしない（topic → develop の PR は autopilot の head ブランチではないので、daemon は
+   🙋 を投影しない）。子が残っているあいだに書いたレビューは、そのときは動かず、リリース確認に入ってから
+   未対応のものとして受ける。モニターのまだ受けていない結果が無いとき（PR のレビューだけを受けるとき）は
+   `autopilot-release-result` の目印を書かず（あとで書かれたモニターの結果を取りこぼさないため）、作るものが無ければ
+   続けて観点をまとめる。
 5. **develop へのマージは人間**。autopilot はマージせず、EPIC も閉じない。マージして EPIC を閉じると closed-reconcile が
    Project を Close にそろえる。
 
-どちらの段（まとめる / 受ける）かは、トラッカーの目印付きコメントだけで決める（`releaseCheckMode`）。
+どちらの段（まとめる / 受ける）かは、トラッカーの目印付きコメントと、PR のまだ受けていないレビュー・コメントの数だけで
+決める（`releaseCheckMode`）。
 プレビューの URL は段の結果（`previewUrl`）か、ダイアログを開いたときに覚えたものだけを行に出す（定期では取らない）。
 
 ![「あなた宛て」のリリース確認の行](screenshots/monitor-release-check-row-light.png)
@@ -833,6 +881,36 @@ GitHub App bot は `workflows` 権限を持たないため、`.github/workflows/
 
 ---
 
+## 手元の lint は変えたファイルだけ（`bin/lint-changed`）
+
+ルートの `npm run lint` は、秘密の検査・hosting のスクリプトのテスト・scratch-vm と scratch-gui の
+**全ファイル**の eslint と prettier を流すので重い。worker が流すとコンテナがもたつくので、
+implement・review・address-review・resolve-conflict のプロンプトは **`bin/lint-changed`** を使う
+（全体は CI が流す。重い処理の一覧は `.claude/rules/parallel-work.md`）。
+
+- **検査するファイル**: base（既定は `origin/$AUTOPILOT_BASE_BRANCH`、無ければ `origin/develop`。
+  `--base <ref>` で変えられる）との merge-base からの差分（消したファイルは除く）+
+  まだコミットしていない変更 + 新しいファイル。
+- **パッケージごと**（`packages/<name>/`・`infra/<name>/`・`tools/autopilot/`）に、そのディレクトリで:
+  - eslint: `npx eslint [--max-warnings N] --no-warn-ignored <files>`（`.js` `.jsx` `.mjs` `.cjs` `.ts` `.tsx`。
+    `eslint.config.*` の無いパッケージは飛ばす）。`--max-warnings` は `package.json` の `lint` の eslint に合わせる
+    （scratch-gui は 0、警告を許している upstream の scratch-vm・scratch-render などは付けない）。`lint` に eslint が
+    無い Smalruby のパッケージ（admin など）は 0
+  - prettier: `npx prettier --check --ignore-unknown --no-error-on-unmatched-pattern <files>`
+    （`package.json` の `lint` に prettier があるパッケージだけ。`.prettierignore` のホワイトリストで外れるものは
+    prettier が自分で飛ばす）
+  - `format-message lint`: `lint` に含まれるパッケージ（scratch-vm）で、`lint` の glob に合うファイルを変えたときだけ、
+    `lint` と同じ引数でそのファイルにかける。npm の scripts は globstar の無い sh で動くので、`src/**/*.js` は
+    `src/<dir>/<file>.js` にだけ合う（全体の lint もそれより深いファイルを見ない。深いファイルにかけると古いパーサーが
+    `?.` や `import()` で落ち、CI は通るのに手元だけ落ちる）
+- **リポジトリ root**: `npm run lint:secrets` はいつも、`npm run test:hosting-scripts` は
+  `scripts/hosting/`・`scripts/precompress-assets*` を変えたときだけ。
+- 変えたファイルが無ければ何もせず 0。どれかが失敗したら 1 で終わり、失敗したパッケージとコマンドを出す。
+- `--dry-run` で流すコマンドだけを出す。
+- 判断（振り分け・コマンドの組み立て）は `tools/autopilot/src/lint-changed.js` の純粋関数。
+
+---
+
 ## Web モニタ（あなた宛て＋表）
 
 daemon の `GET /`（既定 `http://localhost:8787/`）は、人間と同意した並べ方 **D「あなた宛て＋表」** の画面を出す。
@@ -846,19 +924,37 @@ daemon の `GET /`（既定 `http://localhost:8787/`）は、人間と同意し�
 |---|---|
 | 上の 1 行 | 動いている / 一時停止中（AUTH ⚠・USAGE ⏸・起動中・SSO 待ちも）・worker の数（実行中 / 上限・重いもの）・**Claude** の使用量（セッション / 週間の細い棒）・**GitHub API** の残り・更新からの経過・件数バッジ「実行履歴 N」「タスク N」（押すと右から開く）・一時停止 / 再開・**⋯**（更新 `POST /refresh`・tick `POST /tick`・現在地を作る `POST /current-status` と現在地を開く） |
 | アラートの帯 | 認証（再接続・device code）・Claude 使用量の自動 pause（2 段階の強制再開）・強制実行中・API レートの僅少・起動中・レート制限の起動待ち。地は塗らず文字と細い線だけ |
-| 左「あなた宛て」 | **答えが要る**（worker の質問・選択肢・AI の推奨・メモ）→ **止まっている worker**（`blocked-panel.js`）→ **学び・確かめてほしい**（`/learnings` の action が PR を作る / マージする のとき）→ **人間待ち**（`GET /board` の `humanWait`。親の EPIC ごとのまとまり。下の「人間待ちの札とまとまり」） |
+| 左「あなた宛て」 | **答えが要る**（worker の質問・選択肢・AI の推奨・メモ）→ **止まっている worker**（`blocked-panel.js`）→ **学び・確かめてほしい**（`/learnings` の action が PR を作る / マージする のとき）→ **人間待ち**（`GET /board` の `humanWait`。人間がすることごとの欄。下の「することごとの欄」） |
 | 右「状況板」 | GitHub Projects の表の形。1 行 = 1 EPIC（EPIC に属さない Issue は優先度ごとのまとまり「EPIC に属さない · P0」〜「· P3」）。`▶` で sub-issue の行を開く。絞り込みの文字とチップ（すべて / 人間の番 / AI が作業中 / 止まった / 💤 あとで）。上に並列の計画の 1 行 |
 | 右から開く欄 | 実行履歴（最新 100 件）、学び・タスク（`monitor-learn-tasks.js`。学びの PR・タスクの作成といま実行） |
 | 下の帯 | 稼働バージョン（`branch @ shortCommit`）と ⬆️ 更新ありバッジ（更新手順のモーダル） |
 
-- **人間待ちの札とまとまり**: 各行の札は「人間が何を待たれているか」（`inboxModel` の `tag`）。
-  止まった・続きの確認（Awaiting Continuation）・相談中（Discussing / Spike）・レビュー・DoD の確認・
-  分解待ち（未分解の EPIC → decompose）・topic の確認（分解済みの EPIC で子が全部済んだ / 段が topic-review）・
-  見守り（分解済みの EPIC で子がまだ残る）・人間の作業（`delegate.code=human-work`）・着手待ち（任せると implement などへ進む）・
-  人間の番（どれにも当たらないとき）。行は親の EPIC ごとのまとまりにし（`inboxGroups`）、EPIC 自身の行は
-  まとまりの見出しに畳む（札と「AI に任せる」も見出しに出す）。見出しは EPIC の題名・`#番号`・優先度・件数。
-  並びは「AI に任せられる行があるまとまり」→「人間の作業だけのまとまり」→「見守りだけのまとまり」、同じ段は
-  優先度（P0→P3）→ EPIC の番号の大きい順で、「EPIC に属さない」は同じ段の最後。1 まとまり 4 行まで見せて「ほか N 件」。
+- **することごとの欄**（`human-action.js` の `forYouModel` / `humanAction`）: 人間待ちを、人間がすることで分ける。
+  順は 確かめる → 答える → ゴーサインを出す → 分解を始めるか決める → 人間の作業、欄の中は優先度（P0→P3）→ 番号順。
+  見出しは「することがある · N」と内訳。人間の番ではないもの（🚀 after-release・⏳ 待ち・AI が作業中・子を進めている EPIC）は
+  数えず、最後に「人間の番ではない」としてたたむ。決まりの理由は [`design-system.md`](./design-system.md) の
+  「『あなた宛て』は人間がすることで分ける」。
+
+  | 状態 | すること | ボタン | 押すと |
+  |---|---|---|---|
+  | 🧭 EPIC で子が全部済んだ・Release Check | 確かめる | プレビューで確かめる | プレビュー / topic → develop の PR を開く（Release Check は「確認の結果を書く」のダイアログも開く） |
+  | Review / DoD（PR あり） | 確かめる | PR を見る | PR を開く。OK なら 🙋 を外すと AI が先へ進む |
+  | Blocked | 確かめる | Issue を見る | Issue を開く |
+  | モニターの質問・相談中（Discussing / 🔬 spike） | 答える | 答える | 質問の欄を開く / Issue を開く |
+  | Sprint Backlog + 🙋（Issue） | ゴーサイン | 実装を始めてもらう | 🙋 を外す（`POST /delegate`）。AI が実装して PR を作る |
+  | 🧭 EPIC で、子に Sprint Backlog + 🙋 がある | ゴーサイン（EPIC にまとめる） | N 件の実装を始めてもらう | 子 N 件の 🙋 を外す（子ごとに `POST /delegate`）。子の行は重ねない |
+  | Awaiting Continuation | ゴーサイン | 続きを始めてもらう | 🙋 を外す |
+  | Backlog + 🙋（EPIC・未分解） | 分解を始めるか決める | 分解を始めてもらう | Sprint Backlog へ動かす（`POST /delegate`） |
+  | Backlog + 🙋（Issue） | 人間の作業 | Issue を開く | Issue を開く（閉じない）。済んだら GitHub で閉じる |
+
+  行は 優先度・題・`#番号`・状態の一文（EPIC の子には札「EPIC #N」）・「押すと: …」・動詞のボタン・「⋯」。
+  ボタンを押すと行の中で「これを行います: …」と確かめ、「行う」で初めて行う。前の「AI に任せる」「AI に直してもらう」
+  「確認の結果を書く」は「⋯」のメニューに残す。一文・「押すと」の `#N` は別タブで開くリンク。
+  `GET /board` の `waitReason`（`humanWaitReason`）も同じ分け方（`continue` / `epic` / `go` / `decompose` / `hand`）にそろえた。
+
+  ![あなた宛て（ライト・確かめの表示）](./screenshots/monitor-for-you-light.png)
+  ![あなた宛て（ダーク）](./screenshots/monitor-for-you-dark.png)
+  ![あなた宛て（スマホの幅）](./screenshots/monitor-for-you-phone.png)
 - **「あなた宛て」の開け閉め**（幅 900px 以上）: 見出しの左のサイドバーの印か `[` キーで閉じると、細い帯（44px）に
   なり、答え・学び・人間待ちの件数を縦に残す（帯のどこを押しても開く）。数字キー `1` でも開く。開け閉めは
   `localStorage` の `autopilot:inboxOpen` に覚える。900px 未満（タブ）では出さない。
@@ -874,7 +970,7 @@ daemon の `GET /`（既定 `http://localhost:8787/`）は、人間と同意し�
 - **数字キー** `1` あなた宛て・`2` 状況板・`3` 実行履歴・`4` 学び・タスク。入力欄の中と ⌘ / Ctrl / Alt との
   組み合わせでは効かない（ブラウザのタブの切りかえと重なるため）。`[` は「あなた宛て」の開け閉め（同じ条件）。
   `Esc` でメニュー・欄・モーダルを閉じる。
-- **「AI に任せる」**（虹色の輪のボタン）: 人間待ちの行では `POST /delegate`（下の「モニターの『AI に任せる』」）。
+- **「AI に任せる」**（虹色の輪のボタン）: 人間待ちの行では「⋯」のメニューから `POST /delegate`（下の「モニターの『AI に任せる』」）。
   Review / DoD で押すと差し戻し（address-review）に進むので、そのときの文言は **「AI に直してもらう」**。
   こちらは押すとダイアログを開き、bot の指摘を見ながら直してほしいことを書いて送る（「『AI に直してもらう』で
   指摘を見て指示を書く」の節）。
@@ -886,19 +982,21 @@ daemon の `GET /`（既定 `http://localhost:8787/`）は、人間と同意し�
   worker の log・🔀 コンフリクトを解消（`POST /resolve-conflict`）・💤 あとで / ↩ 今やる（`POST /later`）・
   優先度を上げる / 下げる（`POST /priority`）・`check autopilot #N` のコピー。一時停止・やめる は今後の操作（押せない）。
 - **「開く」ボタンは置かない**。`#番号` が GitHub へのリンク。
-- **状況板の列**: 題名・優先（行に乗せると ▲▼）・状態の札（AI が作業中 / 人間の番 / 止まった / 終わった /
+- **状況板の列**: 左端に **Issue · PR**（「Issue」「PR」の短いリンクと外部リンクのアイコン。別のタブで GitHub を開き、
+  `#番号` はマウスを乗せると出る。PR は open だけ並べ、merged / closed があれば ▼ で全部。番号の無い
+  「EPIC に属さない」の行は空）・題名・優先（行に乗せるかフォーカスすると ▲▼。場所は取ってあるので列は動かない）・状態の札（AI が作業中 / 人間の番 / 止まった / 終わった /
   待っている・依存待ち）・次の動き（実行中のフェーズと log、AI Status、Awaiting Continuation は専用バッジと残タスク数）・
-  時刻（実行の経過、EPIC は次の確認の見込み）・進み（sub-issue の棒）・人間待ち（EPIC は数、sub-issue は理由の印）・
-  PR（open だけ並べ、merged / closed があれば ▼ で全部）。sub-issue の行には Size（S/M/L）・🧭・⏳・💤 と、
+  時刻（実行の経過、EPIC は次の確認の見込み）・進み（sub-issue の棒）・人間待ち（EPIC は数、sub-issue は理由の印）。
+  次の動きの `#番号` も別のタブで開くリンク。sub-issue の行には Size（S/M/L）・🧭・⏳・💤 と、
   自分がオーナーでない共同担当の行に 👁 + オーナー（担当は題名の title）。
 - **💤 あとでやる**（#1190）: 状況板はふだん `💤 later` の Issue を隠し、チップ「💤 あとで N」で見る。
   切りかえは行の ⋯ で、**楽観的更新**（先に画面で動かし、失敗したら元に戻してトースト）。daemon も Issue ごとに
   直列化して最後の目標に畳み込む。あとでやる の中の人間待ちも「あなた宛て」に出る（💤 の印つき）。
-- **コンフリクト**（#1348）: GitHub が判定した `mergeable` で、コンフリクトしている OPEN の PR のチップに枠と ⚠️。
+- **コンフリクト**（#1348）: GitHub が判定した `mergeable` で、コンフリクトしている OPEN の PR の「PR」のリンクに枠（title に理由）。
 - **除外**: Close / Done / Icebox はボードに出さない。`--assignee` 起動時は自分が Assignees のいずれかの item に限る
   （共同担当も観察のため出る。観察中の item は `refreshBoard` の周期か「更新」でだけ最新になる）。
 - **判断の置き場**: 意味の色・あなた宛ての組み立て・状況板の行の絞り込み・答えの組み立て・数字キーは
-  `src/monitor-inbox.js` の純粋関数（`itemSem` / `epicSem` / `inboxModel` / `inboxGroups` / `boardRows` / `recommendedAnswers` /
+  `src/monitor-inbox.js` の純粋関数（`itemSem` / `epicSem` / `inboxModel` / `boardRows` / `recommendedAnswers` /
   `chosenAnswers` / `digitTarget` / `isInboxToggleKey`）で、`phases.js` の `splitLaterBoard` などと同じく `fn.toString()` でページに埋め込む
   （二重定義しない）。
 - **Claude 使用量**: 値は worker の status line が書く usage ファイル（`tools/autopilot/bin/usage-statusline.sh` →
@@ -1187,21 +1285,32 @@ daemon ログに理由を残す（残った worktree は `bin/autopilot-worktree
 判定は `phases.js` の `shouldCleanupWorktree`（純粋関数）、git の実行は daemon の `cleanupIssueWorktree`。
 片付けに失敗しても Close への前進は止めない。
 
-**dev server の後片付け（#1381）**: worker が UI 確認で起動した dev server（`webpack serve` / `npm start`）は、
-worker の tmux を閉じても残り、8601 をふさいだり、別の worktree の古いコードを返したりする。verify の
-プロンプトは起動前に 8601 の持ち主（cwd）を確かめ、結果ファイルを書く前に自分で止める。それに加えて
-daemon が次のときに止める（SIGTERM・止めた PID と理由を daemon ログに残す）:
+**dev server・ブラウザの後片付け（#1381・#2463）**: worker が UI 確認で起動した dev server（`webpack serve` /
+`npm start`）は、worker の tmux を閉じても残り、8601 をふさいだり、別の worktree の古いコードを返したり、
+親を失って大きくなり続けたりする。integration テストや pw-check を途中で止めたときのブラウザ
+（chromedriver・chromium・headless_shell）も、作業場が消えたあとまで残る。
 
-- **run が終わったとき**: その Issue の worktree を cwd に持つ dev server
+- **worker**: implement・verify・review・address-review・resolve-conflict のプロンプトの「終わる前の後片付け」で、
+  dev server は `setsid -f` で起動して PGID を記録しプロセスグループごと止め、結果ファイルを書く前に
+  **`tools/autopilot/bin/cleanup-leftovers`**（`--dry-run` で一覧だけ）を流す。自分の worktree を cwd に持つ
+  dev server・ブラウザだけを止める。
+- **webpack のコマンド行**: webpack-cli は `process.title = "webpack"` で `/proc/<pid>/cmdline` を `webpack` だけに
+  書き換える。`webpack serve` だけを探すと npm と sh だけが止まり、webpack そのものが親を失って残るので、
+  引数の無い `webpack` も dev server として扱う。
+
+それに加えて daemon が次のときに止める（SIGTERM・種類と PID と理由を daemon ログに残す）:
+
+- **run が終わったとき**: その Issue の worktree を cwd に持つ dev server・ブラウザ
 - **worktree を片付けるとき**（上の自動の片付け）: `git worktree remove` の前に、その worktree のもの
 - **毎 tick の掃除**: cwd の worktree が削除済みのもの（`/proc/<pid>/cwd` が `(deleted)`）と、
   Status が終端（Close / Done）の Issue の worktree のもの
 
 止めるのは **autopilot の worktree（`.autopilot-worktrees/issue-<N>`）を cwd に持つプロセスだけ**。
-main checkout（`/app`）や人間・ほかのセッションが立てた dev server、worker が実行中の Issue のものは止めない。
+main checkout（`/app`）や人間・ほかのセッションが立てた dev server・ブラウザ、worker が実行中の Issue のものは止めない。
+ブラウザは実行ファイルの名前（先頭の語）だけで見る（引数にブラウザの名前が出るだけの jest や `pgrep` は含めない）。
 `pkill -f` のような広い一致は使わず、`/proc` を読んで PID と cwd で特定する（`/proc` が無い環境では何もしない）。
-判定は `phases.js` の `selectDevServersToStop`（純粋関数）、プロセスの列挙と停止は daemon の
-`listProcesses` / `stopWorktreeDevServers`。
+判定は `phases.js` の `selectLeftoversToStop`（純粋関数）、プロセスの列挙と停止は daemon の
+`listProcesses` / `stopWorktreeLeftovers`。
 
 **base 追従（stale 起点の衝突防止・#950/#953）**: 新ブランチ作業フェーズ（implement 等）**と**
 PR ブランチ作業フェーズ（review / address-review）の**両方**で、着手時に daemon が作業ブランチを
@@ -1332,6 +1441,8 @@ daemon の HTTP は、ほかのサイトや別のマシンから状態を変え�
   （`GET /`）に埋めて配る（`cache-control: no-store`）。状態を変える要求（**GET / HEAD 以外の全部**）は
   ヘッダ `X-Autopilot-Token` の値を時間一定の比較（`crypto.timingSafeEqual`）で確かめ、無い・違うと `403`。
   モニターの JS は `fetch` を 1 か所で包んで自動で付ける。合言葉はログ・GitHub には出さない。
+  開いたままのモニターが daemon の再起動をまたぐと合言葉が古くなるので、包みは `403`（`forbidden: token`）を受けたら
+  同じオリジンの `GET /` から新しい合言葉を読み直して 1 回だけやり直す（それでも通らなければ「ページを読み直してください」）。
 - **Origin / Host**: `Host` が `localhost` / `127.0.0.1` / `[::1]` と待っているポートでなければ、GET も含めて
   `403`（DNS rebinding 対策）。`Origin` が付いていれば同じく自分自身（`http://`）だけを許す（CSRF 対策）。
   `Origin` の無い要求（curl など）は合言葉で守る。ポート転送が別のポート（例: 8788）に振られて開けないときは、
@@ -1436,11 +1547,12 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 | `tools/autopilot/prompts/autopilot-*/` | 各フェーズのプロンプト |
 | `bin/autopilot-worktree` | 軽量 worktree スクリプト |
 | `bin/autopilot-push` | push 経路の自動判定（Bot / 個人トークン。権限外パス対応） |
+| `bin/lint-changed`, `tools/autopilot/src/lint-changed.js` | 変えたファイルだけの lint（全体は CI） |
 | `tools/autopilot/src/contract.js` | 番兵/結果ファイルの検証（純粋） |
 | `tools/autopilot/src/phases.js` | フェーズ↔プロンプト、結果→フィールド意図、watchdog 判断、ゲート解除、merge-progression、PR 投影、enroll/並び順、ディレクティブ、サニタイズ（純粋） |
 | `tools/autopilot/src/epic-flow.js` | EPIC の流れの判断（review の Must の数→次の状態、自動マージの計画、決定待ちのまとめコメント）（純粋） |
 | `tools/autopilot/src/epic-merge.js` | EPIC の流れの daemon 側の実行（topic への自動マージ・決定待ちの書き込み） |
-| `tools/autopilot/src/scheduler.js` | 並列の計画（重さの推定・上限と空きメモリ・CPU）と優先度（Priority・EPIC からの継承・並べ替え）（純粋） |
+| `tools/autopilot/src/scheduler.js` | 並列の計画（重さの推定・上限と空きメモリ・CPU）と優先度（Priority・EPIC からの継承・続きの作業か・並べ替え）（純粋） |
 | `tools/autopilot/src/settings.js` | worker 設定（フェーズ別 model/effort・addDirs）+ スナップショット |
 | `tools/autopilot/src/project.js` | GitHub Projects v2 + Issue/PR ラベル・Draft・sticky への gh ラッパ（非同期） |
 | `tools/autopilot/src/runner.js` | runner + watchdog（端末は terminal.js） |
@@ -1457,6 +1569,7 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 | `tools/autopilot/src/monitor.js` | Web モニタ（あなた宛て＋表・自己完結 HTML） |
 | `tools/autopilot/src/icon-data.js` | モニターのアイコン（favicon・見出し）の data URI。`tools/autopilot/assets/make-icon.py` が作る |
 | `tools/autopilot/assets/` | アイコンの元（`autopilot-icon-512.png`）と作り方（`make-icon.py`） |
+| `tools/autopilot/src/human-action.js` | 「あなた宛て」で人間がすること（確かめる / 答える / ゴーサイン / 分解 / 人間の作業 / 人間の番ではない）と、動詞のボタン・「押すと」・状態の一文、`#N` のリンク（純粋）。ページへ `fn.toString()` で埋め込む |
 | `tools/autopilot/src/monitor-inbox.js` | モニターの判断の純粋関数（意味の色・あなた宛て・人間待ちの札とまとまり・状況板の行・答えの組み立て・数字キー）。ページへ `fn.toString()` で埋め込む |
 | `tools/autopilot/src/epic-summary.js` | EPIC ごとのまとめ・次の確認の見込み・現在地の材料・モニタの EPIC 欄の HTML（純粋） |
 | `tools/autopilot/src/current-status.js` | 現在地の job の結果の解釈・テンプレートの下書きと描画（純粋） |
@@ -1466,6 +1579,7 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 | `tools/autopilot/prompts/autopilot-current-status.md` | 現在地を作る worker のプロンプト |
 | `tools/autopilot/src/usage.js` | usage ファイルから Claude 使用率（session/weekly）を読む純粋関数 |
 | `tools/autopilot/bin/usage-statusline.sh` | worker の status line。stdin JSON の `rate_limits` を usage ファイルへ書き出す |
+| `tools/autopilot/bin/cleanup-leftovers` | worker が終わる前に、自分の worktree に残した dev server・ブラウザを止める（判定は `phases.js` の `selectLeftoversToStop`） |
 | `tools/autopilot/src/cli.js`, `bin/autopilot` | CLI（単発フェーズ + `daemon` サブコマンド） |
 | `tools/autopilot/test/` | unit テスト（状態遷移網羅 `state-machine.test.js` を含む） |
 | `.claude/skills/autopilot/` | 総合サポートスキル（初期化インタビュー→`tmp/autopilot_up.sh` 生成・enroll ショートカット・運用支援。`init autopilot` / `autopilot開始` / `go autopilot` 等で起動） |

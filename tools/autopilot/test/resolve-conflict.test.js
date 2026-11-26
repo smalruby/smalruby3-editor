@@ -191,7 +191,7 @@ function dispatchFixture({ follow, resolver } = {}) {
         postIssueComment: async (repo, issue, body) => comments.push(body),
         syncFaces: async (it) => faces.push(it),
         execFileP: async () => ({ stdout: '' }),
-        stopDevServers: (opts) => { stops.push(opts.issues); return []; },
+        stopLeftovers: (opts) => { stops.push(opts.issues); return []; },
     };
     return { state, cfg, deps, writes, comments, faces, stops };
 }

@@ -17,6 +17,7 @@
 import { DEFAULT_RUBRIC_AXES } from './evaluation-utils.js';
 import { GRADES } from './gradebook.js';
 import { groupSubmissions, pickRepresentatives } from './grouping.js';
+import { TAG, groupByShape } from './shape-tags.js';
 import { diffFromStarter } from './starter-diff.js';
 
 /** Sizes the server accepts (`PUT /grading` refuses more with 400, it does not cut). */
@@ -46,7 +47,8 @@ const isGrade = (value) => GRADES.includes(value);
  * @param {Array<number>} args.seats - the seats of the assignment
  * @param {Function} args.getCell - (seat) → loaded cell or null
  * @param {string} [args.starterPseudocode] - the starter's pseudocode ('' = none)
- * @returns {Array<{seatNumber: number, added: string[], code: string, pseudocode: string, signals: object}>} works
+ * @returns {Array<{seatNumber: number, added: string[], code: string, pseudocode: string, signals: object,
+ *   shape: ?{tags: string[], key: string}}>} works
  */
 const worksOf = ({ seats, getCell, starterPseudocode = '' }) => {
     const works = [];
@@ -62,27 +64,10 @@ const worksOf = ({ seats, getCell, starterPseudocode = '' }) => {
             code: added.length > 0 ? added.join('\n\n') : UNCHANGED_CODE,
             pseudocode,
             signals: cell.signals || {},
+            shape: cell.shape && typeof cell.shape.key === 'string' ? cell.shape : null,
         });
     }
     return works;
-};
-
-/**
- * The groups of the works and their representatives (one per group, at most 8).
- * @param {Array<object>} works - worksOf result
- * @param {{max: number}} [options] - at most `max` representatives
- * @returns {{groups: Array<object>, representatives: Array<object>}} groups (groupSubmissions) and
- *   representatives ({key, name, seatNumber, size, code, work})
- */
-const representativesOf = (works, { max = LIMITS.representatives } = {}) => {
-    const groups = groupSubmissions(works);
-    const bySeat = new Map((works || []).map((w) => [w.seatNumber, w]));
-    const representatives = pickRepresentatives(groups, { max }).map((pick) => ({
-        ...pick,
-        code: (bySeat.get(pick.seatNumber) || {}).code || '',
-        work: bySeat.get(pick.seatNumber) || null,
-    }));
-    return { groups, representatives };
 };
 
 /**
@@ -96,6 +81,50 @@ const groupNameBySeat = (groups) => {
         for (const seat of g.seatNumbers || []) map[String(seat)] = cut(g.name, LIMITS.group);
     }
     return map;
+};
+
+/**
+ * The works grouped by their shape tags (shape-tags.js), in the form of
+ * groupSubmissions, or null when a work has no shape (then the groups of
+ * operations are used). The name is the tags joined (「明るさで LED を切りかえ / モーター」);
+ * the works left as the starter get the key '' so they are picked last.
+ * @param {Array<object>} works - worksOf result
+ * @returns {?Array<{key: string, name: string, seatNumbers: number[]}>} the groups, or null
+ */
+const shapeGroupsOf = (works) => {
+    const list = works || [];
+    if (list.length === 0 || !list.every((w) => w.shape && typeof w.shape.key === 'string')) return null;
+    return groupByShape(list.map((w) => ({ seatNumber: w.seatNumber, tags: w.shape.tags, key: w.shape.key }))).map(
+        (g) => ({
+            key: g.key === TAG.unchanged ? '' : `shape:${g.key}`,
+            name: g.tags.join(' / '),
+            seatNumbers: g.seatNumbers,
+        }),
+    );
+};
+
+/**
+ * The groups of the works and their representatives (one per group, at most 8).
+ * The representatives are one per shape (the tags the teacher sees on the［形］tab)
+ * when every work has its shape, else one per group of operations. `groups` stays
+ * the groups of operations: it is the まとまり saved with each grade (`group`).
+ * @param {Array<object>} works - worksOf result
+ * @param {{max: number}} [options] - at most `max` representatives
+ * @returns {{groups: Array<object>, representatives: Array<object>}} groups (groupSubmissions) and
+ *   representatives ({key, name, seatNumber, size, code, work, group}); `name` is shown,
+ *   `group` is the seat's group of operations (the `group` of its example)
+ */
+const representativesOf = (works, { max = LIMITS.representatives } = {}) => {
+    const groups = groupSubmissions(works);
+    const bySeat = new Map((works || []).map((w) => [w.seatNumber, w]));
+    const groupBySeat = groupNameBySeat(groups);
+    const representatives = pickRepresentatives(shapeGroupsOf(works) || groups, { max }).map((pick) => ({
+        ...pick,
+        code: (bySeat.get(pick.seatNumber) || {}).code || '',
+        work: bySeat.get(pick.seatNumber) || null,
+        group: groupBySeat[String(pick.seatNumber)] || pick.name,
+    }));
+    return { groups, representatives };
 };
 
 const submissionOf = (work) => ({
@@ -179,7 +208,8 @@ const examplesFromAnswers = (representatives, answers) =>
                 seatNumber: rep.seatNumber,
                 grade: answer.grade,
                 reason: cut(answer.reason, LIMITS.reason),
-                group: cut(rep.name, LIMITS.group),
+                // The group of operations, as the grades save it (the shape is only shown).
+                group: cut(rep.group || rep.name, LIMITS.group),
                 code: cut(rep.code, LIMITS.code),
             };
         })
@@ -482,6 +512,18 @@ const rubricStepStates = ({ hasDescription, descriptionDraft = false, repsTotal,
     return states;
 };
 
+/**
+ * The grades no example has. The AI writes the sentence of such a grade by
+ * guessing, and without an S example the line between S and A moves from one
+ * call to the next, so the［基準］tab says so.
+ * @param {Array<{grade: string}>} examples - the examples of a rubric (or the teacher's answers)
+ * @returns {string[]} grades (in S, A, B, C order) without an example
+ */
+const gradesWithoutExamples = (examples) => {
+    const have = new Set((examples || []).map((e) => e && e.grade));
+    return GRADES.filter((grade) => !have.has(grade));
+};
+
 export {
     LIMITS,
     UNCHANGED_CODE,
@@ -499,6 +541,7 @@ export {
     gradingCriteriaFor,
     groupChangePlan,
     groupNameBySeat,
+    gradesWithoutExamples,
     hasRubricLevels,
     normalizeLevels,
     representativesOf,

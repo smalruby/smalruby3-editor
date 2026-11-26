@@ -139,3 +139,60 @@ test('orderByPriority: 優先度 → 渡された順（安定）', () => {
     assert.deepEqual(out.map((c) => c.issue), [30, 21, 10, 20, 40]);
     assert.equal(out[1].prioritySource, 'inherited');
 });
+
+test('workStage: 直し → PR の続き → 新しく始める', () => {
+    assert.equal(s.workStage({ phase: 'address-review' }), 'fix');
+    assert.equal(s.workStage({ phase: 'review' }), 'pr');
+    assert.equal(s.workStage({ phase: 'verify' }), 'pr');
+    assert.equal(s.workStage({ phase: 'implement', pr: 12 }), 'pr');
+    assert.equal(s.workStage({ phase: 'implement' }), 'new');
+    assert.equal(s.workStage({ phase: 'triage' }), 'new');
+    assert.equal(s.workStage({}), 'new');
+});
+
+test('orderByPriority: 同じ P1 なら address-review を implement より先に（2026-11-26 の #2466 / #2471）', () => {
+    const ctx = { priorityByIssue: { 2471: 'P1', 2466: 'P1' } };
+    const out = s.orderByPriority([
+        { issue: 2471, phase: 'implement' },
+        { issue: 2466, phase: 'address-review', pr: 2468 },
+    ], ctx);
+    assert.deepEqual(out.map((c) => c.issue), [2466, 2471]);
+    assert.equal(out[0].stage, 'fix');
+    assert.equal(out[1].stage, 'new');
+});
+
+test('orderByPriority: 優先度が最優先（P0 の implement は P1 の address-review より先）', () => {
+    const ctx = { priorityByIssue: { 1: 'P0', 2: 'P1', 3: 'P1', 4: 'P1' } };
+    const out = s.orderByPriority([
+        { issue: 4, phase: 'triage' },
+        { issue: 3, phase: 'verify' },
+        { issue: 2, phase: 'address-review' },
+        { issue: 1, phase: 'implement' },
+    ], ctx);
+    assert.deepEqual(out.map((c) => c.issue), [1, 2, 3, 4]);
+});
+
+test('orderByPriority: 同じ優先度・同じ段は渡された順のまま', () => {
+    const out = s.orderByPriority([
+        { issue: 5, phase: 'implement' },
+        { issue: 6, phase: 'review' },
+        { issue: 7, phase: 'triage' },
+        { issue: 8, phase: 'verify' },
+    ], {});
+    assert.deepEqual(out.map((c) => c.issue), [6, 8, 5, 7]);
+});
+
+test('describeOrder: 同じ優先度で段が分かれたときだけ理由を出す', () => {
+    const ordered = s.orderByPriority([
+        { issue: 2471, phase: 'implement' },
+        { issue: 2466, phase: 'address-review' },
+        { issue: 9, phase: 'implement' },
+    ], { priorityByIssue: { 2471: 'P1', 2466: 'P1', 9: 'P2' } });
+    assert.equal(s.describeOrder(ordered), '同じ P1 で、直しを先に');
+    const three = s.orderByPriority([
+        { issue: 1, phase: 'implement' }, { issue: 2, phase: 'review' }, { issue: 3, phase: 'address-review' },
+    ], {});
+    assert.equal(s.describeOrder(three), '同じ P2 で、直し → PR の続きを先に');
+    assert.equal(s.describeOrder(s.orderByPriority([{ issue: 1, phase: 'implement' }], {})), '');
+    assert.equal(s.describeOrder([]), '');
+});

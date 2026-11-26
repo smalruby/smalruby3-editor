@@ -11,6 +11,7 @@
  * - ほかの課題から説明と基準をコピー: クラスと課題を選び、中身を見てからコピーする。説明は 2-1 の下書き（#2456）。
  * - 説明があっても、AI に作り直してもらえる（一度だけ・#2456）。
  * - 1 件を直したあとの「同じまとまりも直すか」の問い。
+ * - 正解の例が無い段には「正解の例が無い（AI の推測）」、S の例が無ければ注意の文。
  */
 import '@testing-library/jest-dom';
 import { act, fireEvent, render, screen } from '@testing-library/react';
@@ -95,6 +96,26 @@ describe('TeacherGradingRubric (#2425)', () => {
         expect(screen.getByTestId('grading-rubric-rep-body-4')).toBeInTheDocument();
         fireEvent.click(screen.getByTestId('grading-rubric-rep-grade-4-B'));
         expect(tools.handleSetAnswer).toHaveBeenCalledWith(4, { grade: 'B' });
+    });
+
+    test('選んだ答えは aria-pressed でも分かる（代表の正解・フェアの確認）', () => {
+        const tools = makeTools({
+            answers: { 4: { grade: 'B', reason: '' } },
+            fairness: {
+                checks: [{ question: '2 番は B ですか？', options: ['B のまま', 'A にする'], seatNumbers: [2] }],
+                answers: { 0: 'A にする' },
+            },
+        });
+        renderTab(tools);
+        fireEvent.click(screen.getByTestId('grading-rubric-rep-4'));
+        expect(screen.getByTestId('grading-rubric-rep-grade-4-B')).toHaveAttribute('aria-pressed', 'true');
+        for (const g of ['S', 'A', 'C']) {
+            expect(screen.getByTestId(`grading-rubric-rep-grade-4-${g}`)).toHaveAttribute('aria-pressed', 'false');
+        }
+        expect(screen.getByTestId('grading-rubric-check-0-option-0')).toHaveAttribute('aria-pressed', 'false');
+        expect(screen.getByTestId('grading-rubric-check-0-option-1')).toHaveAttribute('aria-pressed', 'true');
+        fireEvent.click(screen.getByTestId('grading-rubric-check-0-option-0'));
+        expect(tools.handleAnswerFairness).toHaveBeenCalledWith(0, 'B のまま');
     });
 
     test('基準がある課題は基準を見せ、つくり直しは選んだときだけ', () => {
@@ -266,6 +287,53 @@ describe('TeacherGradingRubric の縦のステッパーと「AI に相談」(#24
         renderTab(makeTools({ proposals: {}, running: 'propose' }), described);
         expect(screen.getByTestId('grading-rubric-propose-ai-button')).toHaveAttribute('aria-busy', 'true');
         expect(screen.queryByTestId('grading-rubric-running')).toBeNull();
+    });
+});
+
+describe('TeacherGradingRubric: S の正解の例が無いときの注意', () => {
+    test('保存された基準: 例の無い段に印、S の例が無ければ注意', () => {
+        const levels = ['S', 'A', 'B', 'C'].map((grade) => ({ grade, text: `${grade} の文` }));
+        const examples = [
+            { seatNumber: 1, grade: 'B' },
+            { seatNumber: 2, grade: 'C' },
+        ];
+        renderTab(makeTools({ savedRubric: { levels, examples } }));
+        expect(screen.getByTestId('grading-rubric-no-s-example')).toBeInTheDocument();
+        expect(screen.getByTestId('classroom-eval-rubric-levels-no-example-S')).toBeInTheDocument();
+        expect(screen.getByTestId('classroom-eval-rubric-levels-no-example-A')).toBeInTheDocument();
+        expect(screen.queryByTestId('classroom-eval-rubric-levels-no-example-B')).toBeNull();
+        expect(screen.queryByTestId('classroom-eval-rubric-levels-no-example-C')).toBeNull();
+    });
+
+    test('S の例があれば注意を出さない', () => {
+        const levels = [{ grade: 'S', text: 's' }];
+        renderTab(makeTools({ savedRubric: { levels, examples: [{ seatNumber: 1, grade: 'S' }] } }));
+        expect(screen.queryByTestId('grading-rubric-no-s-example')).toBeNull();
+        expect(screen.queryByTestId('classroom-eval-rubric-levels-no-example-S')).toBeNull();
+    });
+
+    test('コピーのダイアログ: 選んだ基準に S の例が無ければ注意', async () => {
+        const source = { levels: [{ grade: 'B', text: 'b' }], examples: [{ seatNumber: 1, grade: 'B' }] };
+        renderTab(makeTools({ handleReadCopySource: jest.fn(() => Promise.resolve(source)) }));
+        fireEvent.click(screen.getByTestId('grading-rubric-copy'));
+        fireEvent.change(screen.getByTestId('grading-rubric-copy-class'), { target: { value: 'g2' } });
+        await act(async () => {
+            fireEvent.change(screen.getByTestId('grading-rubric-copy-assignment'), { target: { value: 'b1' } });
+        });
+        expect(screen.getByTestId('grading-rubric-copy-no-s-example')).toBeInTheDocument();
+    });
+
+    test('基準づくり: 先生の正解に S が無ければ、文を書いてもらう前に注意', () => {
+        const { unmount } = renderTab(makeTools({ examples: [{ seatNumber: 1, grade: 'B' }] }));
+        expect(screen.getByTestId('grading-rubric-draft-no-s-example')).toBeInTheDocument();
+        unmount();
+        renderTab(makeTools({ examples: [{ seatNumber: 1, grade: 'S' }] }));
+        expect(screen.queryByTestId('grading-rubric-draft-no-s-example')).toBeNull();
+    });
+
+    test('基準づくり: 正解がまだ無いときは注意を出さない', () => {
+        renderTab(makeTools());
+        expect(screen.queryByTestId('grading-rubric-draft-no-s-example')).toBeNull();
     });
 });
 

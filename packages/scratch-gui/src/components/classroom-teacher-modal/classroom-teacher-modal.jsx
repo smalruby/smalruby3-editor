@@ -367,6 +367,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
             return (
                 <div className={styles.mainRelative}>
                     <TeacherEvaluation
+                        aiQuota={evaluation.aiQuota}
                         chosenCell={evaluation.chosenCell}
                         comments={evaluation.comments}
                         currentId={evaluation.currentId}
@@ -415,6 +416,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         onReturnComments={evaluation.handleReturnComments}
                         onRunAi={evaluation.handleRunAi}
                         onSetCellGrade={evaluation.handleSetCellGrade}
+                        onSetSeatsGrade={evaluation.handleSetSeatsGrade}
                         onSetCellReason={evaluation.handleSetCellReason}
                         onSetComment={evaluation.handleSetComment}
                         onSetInnerTab={evaluation.handleSetInnerTab}

@@ -194,9 +194,11 @@ const EVAL_RATE_LIMIT_MAX_REQUESTS = parseInt(process.env.EVAL_RATE_LIMIT_MAX_RE
 // Durable per-teacher daily cap on Claude API calls (adversarial review):
 // the in-memory hourly window resets on cold starts and is per-instance, so
 // a DynamoDB counter enforces the real budget. One 35-student class costs
-// ~4 chunked calls per run (grade or comment), so 50 calls/day ≈ 5 full
-// grade+comment runs. Env-configurable for tests and per-stage tuning.
-const EVAL_DAILY_LIMIT = parseInt(process.env.EVAL_DAILY_LIMIT || '50', 10);
+// ~4 chunked calls per run (grade or comment). 200 calls/day lets a teacher
+// with 4–6 classes grade, comment and build criteria with a few retries
+// (50 ran out within a day of real use, #2448). Env-configurable for tests
+// and per-stage tuning.
+const EVAL_DAILY_LIMIT = parseInt(process.env.EVAL_DAILY_LIMIT || '200', 10);
 const EVAL_GRADES = ['S', 'A', 'B', 'C'];
 
 // --- DynamoDB Client ---
@@ -5232,11 +5234,17 @@ function rubricLevelLines(levels: EvalRubricLevel[]): string[] {
     .map(level => `- ${level.grade}: ${level.text}`);
 }
 
-/** Teacher-graded examples with their reasons and works. */
+/**
+ * Teacher-graded examples with their reasons and works.
+ *
+ * Examples are numbered by their order (正解の例1, 2, …), not by seat: a
+ * rubric copied from another class carries that class's seat numbers, and
+ * the AI would otherwise cite them as if they were this class's students.
+ */
 function exampleLines(examples: EvalExample[]): string[] {
   const lines: string[] = [];
-  for (const example of examples) {
-    lines.push(`--- 正解の例 出席番号${example.seatNumber}: ${example.grade}${example.group ? `（まとまり「${example.group}」）` : ''} ---`);
+  for (const [index, example] of examples.entries()) {
+    lines.push(`--- 正解の例${index + 1}: ${example.grade}${example.group ? `（まとまり「${example.group}」）` : ''} ---`);
     lines.push(`理由: ${example.reason || '(理由なし)'}`);
     lines.push('擬似コード:');
     lines.push(example.code || '(空)');
@@ -5244,6 +5252,10 @@ function exampleLines(examples: EvalExample[]): string[] {
   }
   return lines;
 }
+
+/** How the AI may refer to the examples in its reasons and questions. */
+const EXAMPLE_REFERENCE_RULE =
+  '- reason や質問の文で正解の例に触れるときは「正解の例1」のように例の番号で呼び、出席番号では呼ばないでください（例は別のクラスの作品のことがあります）。';
 
 function submissionLines(submissions: EvalSubmission[]): string[] {
   const lines: string[] = [];
@@ -5310,6 +5322,7 @@ export function buildEvaluationPrompt(request: EvaluateRequest): { system: strin
       ...(rubricAware
         ? ['- 同じ形の作品（足した・変えたところが同じ作品）には同じ評価を付けてください。正解の例と同じ形なら、その例と同じ評価にしてください。']
         : []),
+      ...(request.examples.length > 0 ? [EXAMPLE_REFERENCE_RULE] : []),
       `- 評価の厳しさ: ${strictnessLabel}`,
       '',
     ];
@@ -5367,6 +5380,7 @@ export function buildEvaluationPrompt(request: EvaluateRequest): { system: strin
       '- 4つの評価すべての基準を書いてください。それぞれ150文字以内の日本語。',
       '- 正解の例の理由に書かれた観点を使い、例のどれもがその基準どおりの評価になるように書いてください。',
       '- 作品の形（スターターに足したこと・変えたこと）で判断できる、具体的な文にしてください。',
+      EXAMPLE_REFERENCE_RULE,
       ...starterRule,
       '',
       '出力は次の JSON のみ（説明文・コードフェンス禁止）:',
@@ -5380,7 +5394,8 @@ export function buildEvaluationPrompt(request: EvaluateRequest): { system: strin
       '原則:',
       '- 同じ形の作品は同じ評価になるべきです。正解の例どうし、または例とほかの作品の間で、評価や理由が食い違っていそうなところだけを質問にしてください。',
       '- question は先生が選ぶだけで答えられる日本語の質問（150文字以内）。options は2〜4個の短い選択肢。',
-      '- seatNumbers には、その質問に関係する作品の出席番号を入れてください。',
+      EXAMPLE_REFERENCE_RULE,
+      '- seatNumbers には、その質問に関係する提出作品（まとまりに入った作品）の出席番号を入れてください。正解の例は入れないでください。',
       `- 質問は多くても${EVAL_MAX_CHECKS}個。ずれが見つからなければ checks は空の配列にしてください。`,
       ...starterRule,
       '',
@@ -5578,21 +5593,68 @@ export function evaluationResponseBody(text: string, request: EvaluateRequest): 
 // pattern as the join limiter — best-effort per Lambda instance).
 const evalAttempts = new Map<string, { count: number; windowStart: number }>();
 
+/** Today's AI evaluation usage as shown to the teacher (#2448). */
+export interface EvalQuota {
+  used: number;
+  limit: number;
+  /** Next midnight in Japan (ISO string) — when the counter starts over. */
+  resetsAt: string;
+}
+
 /**
- * Durable daily quota: an atomic counter item per teacher per UTC day in the
- * Classrooms table (reuses the table key space with a reserved prefix; TTL
- * cleans it up after two days). Throws when the day's budget is exhausted.
+ * The daily limits count by the Japanese date and start over at 0:00 JST
+ * (docs/adr/0004-daily-limits-reset-at-jst-midnight.ja.md). Teachers use the
+ * app on weekday daytime, and some finish their preparation early in the
+ * morning (before 8:00): a reset at midnight lets them plan the next morning,
+ * while the old UTC day reset at 9:00 JST, in the middle of that work.
  */
-async function checkEvalDailyLimit(teacherSub: string): Promise<void> {
-  const day = new Date().toISOString().slice(0, 10);
+const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+/** The Japanese date (YYYY-MM-DD) of `nowMs`. Exported for unit tests. */
+export function jstDay(nowMs: number): string {
+  return new Date(nowMs + JST_OFFSET_MS).toISOString().slice(0, 10);
+}
+
+/** The next 0:00 JST after `nowMs`, as epoch ms. Exported for unit tests. */
+export function nextJstMidnight(nowMs: number): number {
+  const jst = new Date(nowMs + JST_OFFSET_MS);
+  return Date.UTC(jst.getUTCFullYear(), jst.getUTCMonth(), jst.getUTCDate() + 1) - JST_OFFSET_MS;
+}
+
+/** Counter key of the teacher's daily quota for the Japanese date of `nowMs`. */
+function evalQuotaKey(teacherSub: string, nowMs: number): string {
+  return `eval-quota#${teacherSub}#${jstDay(nowMs)}`;
+}
+
+/**
+ * Build the quota shown to the teacher from the day's counter. `used` is
+ * capped at the limit (calls refused after the limit still bump the counter).
+ * Pure — exported for unit tests.
+ */
+export function evalQuotaFromCount(count: number, limit: number, nowMs: number): EvalQuota {
+  return {
+    used: Math.min(Math.max(0, count), limit),
+    limit,
+    resetsAt: new Date(nextJstMidnight(nowMs)).toISOString(),
+  };
+}
+
+/**
+ * Durable daily quota: an atomic counter item per teacher per Japanese date in the
+ * Classrooms table (reuses the table key space with a reserved prefix; TTL
+ * cleans it up after two days). Throws when the day's budget is exhausted;
+ * otherwise returns the quota after this call.
+ */
+async function checkEvalDailyLimit(teacherSub: string): Promise<EvalQuota> {
+  const nowMs = Date.now();
   const result = await docClient.send(new UpdateCommand({
     TableName: CLASSROOMS_TABLE,
-    Key: { classroomId: `eval-quota#${teacherSub}#${day}` },
+    Key: { classroomId: evalQuotaKey(teacherSub, nowMs) },
     UpdateExpression: 'ADD #c :one SET #ttl = if_not_exists(#ttl, :ttl)',
     ExpressionAttributeNames: { '#c': 'count', '#ttl': 'ttl' },
     ExpressionAttributeValues: {
       ':one': 1,
-      ':ttl': Math.floor(Date.now() / 1000) + 2 * 24 * 60 * 60,
+      ':ttl': Math.floor(nowMs / 1000) + 2 * 24 * 60 * 60,
     },
     ReturnValues: 'UPDATED_NEW',
   }));
@@ -5602,6 +5664,26 @@ async function checkEvalDailyLimit(teacherSub: string): Promise<void> {
       `Daily AI evaluation limit reached (${EVAL_DAILY_LIMIT} calls/day). Please continue tomorrow.`,
     );
   }
+  return evalQuotaFromCount(count, EVAL_DAILY_LIMIT, nowMs);
+}
+
+/**
+ * GET /teacher/evaluation-quota — the caller's AI evaluation usage today.
+ * Read-only: never bumps the counter (#2448).
+ */
+async function handleGetEvaluationQuota(
+  identity: TeacherIdentity,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const nowMs = Date.now();
+  const result = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId: evalQuotaKey(identity.sub, nowMs) },
+  }));
+  const count = (result.Item?.count as number) || 0;
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ quota: evalQuotaFromCount(count, EVAL_DAILY_LIMIT, nowMs) }),
+  };
 }
 
 function checkEvalRateLimit(teacherSub: string): void {
@@ -5704,7 +5786,7 @@ async function handleEvaluateSubmissions(
   // Every mode (grade / comment / describe / rubric / fairness) counts
   // toward the same hourly window and daily limit (#2422).
   checkEvalRateLimit(identity.sub);
-  await checkEvalDailyLimit(identity.sub);
+  const quota = await checkEvalDailyLimit(identity.sub);
 
   const { system, user } = buildEvaluationPrompt(request);
 
@@ -5734,7 +5816,7 @@ async function handleEvaluateSubmissions(
     return { statusCode: 502, body: JSON.stringify({ error: 'AI_RESPONSE_INVALID' }) };
   }
 
-  return { statusCode: 200, body: JSON.stringify(responseBody) };
+  return { statusCode: 200, body: JSON.stringify({ ...responseBody, quota }) };
 }
 
 // --- Per-assignment grading (#2422) ---
@@ -6296,11 +6378,11 @@ async function getSharedItemByPasscode(passcode: string): Promise<Record<string,
 
 /**
  * Durable daily quota shared by the share/report endpoints (D12): an atomic
- * counter per teacher per UTC day, stored in the Classrooms table's reserved
+ * counter per teacher per Japanese date (resets at 0:00 JST, like eval-quota), stored in the Classrooms table's reserved
  * key space (same pattern as eval-quota; TTL cleans it after two days).
  */
 async function checkSharedDailyLimit(kind: string, teacherSub: string, limit: number): Promise<void> {
-  const day = new Date().toISOString().slice(0, 10);
+  const day = jstDay(Date.now());
   const result = await docClient.send(new UpdateCommand({
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId: `${kind}-quota#${teacherSub}#${day}` },
@@ -7117,6 +7199,12 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
       const token = extractBearerToken(event.headers?.authorization);
       const identity = await verifyTeacherIdToken(token);
       result = await handleListNotifications(identity);
+
+    // --- Today's AI evaluation usage (#2448). Read-only. ---
+    } else if (method === 'GET' && path === '/teacher/evaluation-quota') {
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      result = await handleGetEvaluationQuota(identity);
 
     // --- Pending kick requests across the teacher's assignments (#1200) ---
     } else if (method === 'GET' && path === '/kick-requests/pending') {

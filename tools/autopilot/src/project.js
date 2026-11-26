@@ -736,6 +736,76 @@ async function listPrReviews(repo, prNumber, token, deps = {}) {
 }
 
 /**
+ * topic → develop の PR（#2473）を決めるのに要る事実を **GraphQL 1 回**で取る。EPIC の題・状態・sub-issue、
+ * topic ブランチがまだあるか、topic 宛ての子の PR（open / merged）、topic → base の open な PR（本文つき）。
+ * 判断は epic-pr.js の epicPrPlan。
+ * @param {string} repo `owner/name`
+ * @param {number} epic
+ * @param {string} topic topic ブランチ
+ * @param {string} base 出す先（develop）
+ * @returns {Promise<object>}
+ */
+async function getEpicPrFacts(repo, epic, topic, base, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    const [owner, name] = repo.split('/');
+    const query =
+        'query($owner:String!,$name:String!,$epic:Int!,$topic:String!,$base:String!,$ref:String!){' +
+        'repository(owner:$owner,name:$name){' +
+        'issue(number:$epic){number title state subIssues(first:100){nodes{number title state}}} ' +
+        'ref(qualifiedName:$ref){name} ' +
+        'children:pullRequests(baseRefName:$topic,states:[OPEN,MERGED],first:100,' +
+        'orderBy:{field:CREATED_AT,direction:DESC}){nodes{number state headRefName}} ' +
+        'topicPrs:pullRequests(headRefName:$topic,baseRefName:$base,states:[OPEN],first:10){nodes{number body}}}}';
+    const out = await ghFn(
+        ['api', 'graphql', '-H', 'GraphQL-Features: sub_issues', '-f', `query=${query}`,
+            '-F', `owner=${owner}`, '-F', `name=${name}`, '-F', `epic=${epic}`,
+            '-f', `topic=${topic}`, '-f', `base=${base}`, '-f', `ref=refs/heads/${topic}`],
+        { token },
+    );
+    const r = (JSON.parse(out).data || {}).repository || {};
+    const nodes = (x) => (x && Array.isArray(x.nodes) ? x.nodes.filter(Boolean) : []);
+    return {
+        epic: r.issue ? { number: r.issue.number, title: r.issue.title, state: r.issue.state } : null,
+        topic,
+        branchExists: Boolean(r.ref),
+        subIssues: r.issue ? nodes(r.issue.subIssues) : [],
+        childPrs: nodes(r.children),
+        topicPrs: nodes(r.topicPrs),
+    };
+}
+
+/**
+ * draft の PR を作る（REST・Bot 名義）。
+ * @returns {Promise<number>} PR の番号
+ */
+async function createDraftPr(repo, { head, base, title, body }, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    const out = await ghFn(['api', '--method', 'POST', `repos/${repo}/pulls`,
+        '-f', `title=${title}`, '-f', `head=${head}`, '-f', `base=${base}`, '-f', `body=${body}`,
+        '-F', 'draft=true', '--jq', '.number'], { token });
+    return Number(String(out).trim());
+}
+
+/** PR の本文を書きかえる（REST・Bot 名義） */
+async function updatePrBody(repo, prNumber, body, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    await ghFn(['api', '--method', 'PATCH', `repos/${repo}/pulls/${prNumber}`, '-f', `body=${body}`], { token });
+}
+
+/**
+ * 最近マージされた PR（新しい順・既定 100 件）。daemon の起動時に、既に子が topic に入っている EPIC を
+ * 見つけるのに使う（起動時に 1 回だけ）。
+ * @returns {Promise<Array<{number:number, baseRefName:string, headRefName:string}>>}
+ */
+async function listRecentMergedPrs(repo, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    const out = await ghFn(['pr', 'list', '--repo', repo, '--state', 'merged', '--limit', String(deps.limit || 100),
+        '--json', 'number,baseRefName,headRefName'], { token });
+    const arr = JSON.parse(out);
+    return Array.isArray(arr) ? arr : [];
+}
+
+/**
  * Project の Priority フィールド（EPIC #2384）。`getFields` の結果に無いとき（古い起動時の
  * キャッシュなど）のための予備の id。Bot で作成済み（2026-11-25）。
  */
@@ -803,4 +873,5 @@ module.exports = {
     getBoardEnrichment, listHeadPrs, getRateLimit,
     getParentIssueNumber, getPrMergeFacts, mergePr, listPrReviews,
     getPrMergeStatus,
+    getEpicPrFacts, createDraftPr, updatePrBody, listRecentMergedPrs,
 };

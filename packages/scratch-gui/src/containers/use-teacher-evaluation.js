@@ -16,7 +16,8 @@
  * shows changed grades as confirmed.
  *
  * The matrix is a plain object keyed by `${seatNumber}:${classroomId}`. Each cell:
- * {submissionId, submitted, signals, pseudocode, grade, reason, needsReview,
+ * {submissionId, submitted, signals, pseudocode, grade, reason, needsReview, reviewReason
+ * (why it needs a check: 'ai' | 'shape' | 'analysis' | null),
  * returned, returnedComment}. It keeps every assignment opened so far, so going
  * back to the gradebook and opening another assignment loses nothing.
  *
@@ -38,11 +39,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { defineMessages } from 'react-intl';
 import classroomAPI from '../lib/classroom-api.js';
 import {
+    aiQuotaView,
     buildAuditCsv,
     buildEvaluationCsv,
     chunk,
     isLessonOnlyAssignment,
 } from '../lib/classroom-evaluation/evaluation-utils.js';
+import { carryOverExamples, seatsToReview } from '../lib/classroom-evaluation/grade-consistency.js';
 import {
     assignmentTextOf,
     columnStatus,
@@ -56,6 +59,7 @@ import { gradingCriteriaFor } from '../lib/classroom-evaluation/grading-ai.js';
 import { assignmentCsvRows, gradingCsvText } from '../lib/classroom-evaluation/grading-csv.js';
 import { groupSubmissions } from '../lib/classroom-evaluation/grouping.js';
 import { analyzeProject } from '../lib/classroom-evaluation/sb3-analyzer.js';
+import { shapeOf } from '../lib/classroom-evaluation/shape-tags.js';
 import { diffFromStarter } from '../lib/classroom-evaluation/starter-diff.js';
 import { isSameLessonScoring } from '../lib/classroom-lesson-settings.js';
 import { lessonScoresBySeat } from '../lib/classroom-lesson-summary.js';
@@ -196,6 +200,17 @@ const useTeacherEvaluation = ({
     const [innerTab, setInnerTab] = useState('rubric');
     // A leave waiting for the teacher's answer: {kind: 'back'|'leave'|'reload', action} (#1923 C4)
     const [leaveRequest, setLeaveRequest] = useState(null);
+    // Today's AI calls of the teacher ({used, limit, resetsAt}, #2448). null = not read
+    // (or the API is older): the screen then shows nothing.
+    const [aiQuota, setAiQuota] = useState(null);
+    /**
+     * Keep the `quota` of an answer (GET /teacher/evaluation-quota or an evaluate call).
+     * An answer without one (an older API) leaves the shown count as it is.
+     * @param {?object} quota - the answer's `quota`
+     */
+    const noteQuota = useCallback((quota) => {
+        if (aiQuotaView(quota)) setAiQuota(quota);
+    }, []);
     // Settings fetched for a group that is no longer shown are dropped.
     const shownGroupRef = useRef(null);
     // The ID token at this moment (#1993): a long run (load, AI, return) reads it
@@ -236,10 +251,27 @@ const useTeacherEvaluation = ({
     // A result that went well is short news: it goes away by itself so the table keeps its
     // height (1300×600). A failure stays until the next step (#2419).
     useEffect(() => {
-        if (!evalResult || evalResult.failed) return;
+        // 「同じ形なのに評価が違う」 asks the teacher to look: it stays like a failure does.
+        if (!evalResult || evalResult.failed || evalResult.inconsistent > 0) return;
         const timer = setTimeout(() => setEvalResult(null), EVAL_RESULT_SHOWN_MS);
         return () => clearTimeout(timer);
     }, [evalResult]);
+    // Opening an assignment's grading reads today's AI calls once. A failure (an API
+    // not deployed yet, the network) shows nothing and does not show an error.
+    useEffect(() => {
+        if (!currentId) return;
+        let alive = true;
+        // Through a promise, so even an API object without this call (a test double) fails quietly.
+        Promise.resolve()
+            .then(() => classroomAPI.getEvaluationQuota(idTokenRef.current))
+            .then((data) => {
+                if (alive) noteQuota(data && data.quota);
+            })
+            .catch(() => {});
+        return () => {
+            alive = false;
+        };
+    }, [currentId, noteQuota]);
     // classroomId → when its submissions (and their links) were read (#1980)
     const urlsReadAtRef = useRef({});
     // A work is being opened: [Open the work] waits, so it is not pressed twice (#1980).
@@ -596,11 +628,14 @@ const useTeacherEvaluation = ({
                         }
                         // What the student added to the starter: the main thing to grade (EPIC #2421).
                         cell.added = diffFromStarter(cell.pseudocode, starterPseudocode).added;
+                        // The shape tags (「明るさでサーボを切りかえ」…): grading by shape, without the AI.
+                        cell.shape = shapeOf({ pseudocode: cell.pseudocode, added: cell.added, starterPseudocode });
                     } catch (err) {
                         // Analysis failure is per-cell: keep the submission
                         // visible and let the AI/teacher treat it as unknown.
                         cell.pseudocode = `(解析失敗: ${err.message})`;
                         cell.needsReview = true;
+                        cell.reviewReason = 'analysis';
                     }
                     // A grade saved before comes back as it was (#2424).
                     nextMatrix[cellKey(seatNumber, id)] = withSavedGrade(cell, savedGrades[String(seatNumber)]);
@@ -681,6 +716,7 @@ const useTeacherEvaluation = ({
         handleTeacher401,
         showError,
         intl,
+        noteQuota,
     });
     const { noteGradeChange } = rubricTools;
 
@@ -708,6 +744,11 @@ const useTeacherEvaluation = ({
                 const rubric = gradingsRef.current[lesson.classroomId]?.rubric || null;
                 const pending = mode === 'grade' ? cells.filter((entry) => !entry.cell.manual) : cells;
                 const chunks = chunk(pending, EVAL_CHUNK_SIZE);
+                // Each chunk is a call of its own, so the same kind of work could get B in one
+                // chunk and S in the next. The examples grow by one work per new shape of each
+                // chunk (after the teacher's), and the grades of this run are checked at the end.
+                let examples = (rubric && rubric.examples) || [];
+                const graded = {};
                 for (let i = 0; i < chunks.length; i++) {
                     if (!current()) return;
                     // Seats from..to of this assignment's seats sent to the AI.
@@ -730,7 +771,7 @@ const useTeacherEvaluation = ({
                         ...gradingCriteriaFor(rubric),
                         samples,
                         ...(rubric && (rubric.levels || []).length > 0 ? { rubricLevels: rubric.levels } : {}),
-                        ...(rubric && (rubric.examples || []).length > 0 ? { examples: rubric.examples } : {}),
+                        ...(examples.length > 0 ? { examples } : {}),
                         submissions: chunks[i].map((entry) => ({
                             seatNumber: entry.seatNumber,
                             signals: entry.cell.signals || {},
@@ -742,6 +783,7 @@ const useTeacherEvaluation = ({
                         lesson.classroomId,
                         payload,
                     );
+                    noteQuota(data && data.quota);
                     // Left (or started again) while the AI was answering: drop the result.
                     if (!current()) return;
                     if (mode === 'grade') {
@@ -755,6 +797,7 @@ const useTeacherEvaluation = ({
                                     grade: result.grade,
                                     reason: result.reason || '',
                                     needsReview: result.needsReview === true,
+                                    reviewReason: result.needsReview === true ? 'ai' : null,
                                     manual: false,
                                     gradeEdited: false,
                                 };
@@ -762,6 +805,18 @@ const useTeacherEvaluation = ({
                             return next;
                         });
                         gradesChanged(lesson.classroomId);
+                        for (const result of data.results || []) graded[String(result.seatNumber)] = result;
+                        examples = carryOverExamples({
+                            examples,
+                            results: data.results || [],
+                            works: chunks[i].map((entry) => ({
+                                seatNumber: entry.seatNumber,
+                                added: entry.cell.added || [],
+                            })),
+                            groupBySeat: Object.fromEntries(
+                                chunks[i].map((entry) => [String(entry.seatNumber), entry.cell.groupName || '']),
+                            ),
+                        });
                     } else {
                         setComments((prev) => {
                             const next = { ...prev };
@@ -774,7 +829,43 @@ const useTeacherEvaluation = ({
                     }
                     sent += chunks[i].length;
                 }
-                if (current()) setEvalResult({ kind: mode === 'grade' ? 'grade' : 'comment', count: sent });
+                if (!current()) return;
+                // The last check: works of the same shape with different grades are marked
+                // 「要確認」. The grades are not changed. A work that could not be analyzed
+                // (no `added`) is already 「要確認」 and has no shape.
+                const review =
+                    mode === 'grade'
+                        ? seatsToReview(
+                              cells
+                                  .filter((entry) => Array.isArray(entry.cell.added))
+                                  .map((entry) => {
+                                      const result = graded[String(entry.seatNumber)];
+                                      return {
+                                          seatNumber: entry.seatNumber,
+                                          added: entry.cell.added,
+                                          shape: entry.cell.shape ? entry.cell.shape.key : null,
+                                          grade: result ? result.grade : entry.cell.grade,
+                                          manual: !result && !!entry.cell.manual,
+                                      };
+                                  }),
+                          )
+                        : [];
+                if (review.length > 0) {
+                    setMatrix((prev) => {
+                        const next = { ...prev };
+                        for (const seat of review) {
+                            const key = cellKey(seat, lesson.classroomId);
+                            if (next[key]) next[key] = { ...next[key], needsReview: true, reviewReason: 'shape' };
+                        }
+                        return next;
+                    });
+                    gradesChanged(lesson.classroomId);
+                }
+                setEvalResult({
+                    kind: mode === 'grade' ? 'grade' : 'comment',
+                    count: sent,
+                    ...(review.length > 0 ? { inconsistent: review.length } : {}),
+                });
             } catch (err) {
                 if (!current()) return;
                 if (err.status === 401) {
@@ -798,6 +889,7 @@ const useTeacherEvaluation = ({
             handleTeacher401,
             startRun,
             gradesChanged,
+            noteQuota,
         ],
     );
 
@@ -982,6 +1074,7 @@ const useTeacherEvaluation = ({
                         ...prev[key],
                         grade: grade || null,
                         needsReview: false,
+                        reviewReason: null,
                         manual: true,
                         gradeEdited: true,
                     },
@@ -992,6 +1085,35 @@ const useTeacherEvaluation = ({
             noteGradeChange(seatNumber, classroomId, before, grade || null);
         },
         [gradesChanged, noteGradeChange],
+    );
+
+    /**
+     * The teacher gives one grade to several works at once (a shape on the［形］tab).
+     * Each becomes the teacher's, as with handleSetCellGrade, without asking about
+     * the rest of the group: the teacher chose the works already.
+     */
+    const handleSetSeatsGrade = useCallback(
+        (seatNumbers, classroomId, grade) => {
+            if (!grade) return;
+            setMatrix((prev) => {
+                const next = { ...prev };
+                for (const seat of seatNumbers || []) {
+                    const key = cellKey(seat, classroomId);
+                    if (!next[key] || !next[key].submitted) continue;
+                    next[key] = {
+                        ...next[key],
+                        grade,
+                        needsReview: false,
+                        reviewReason: null,
+                        manual: true,
+                        gradeEdited: true,
+                    };
+                }
+                return next;
+            });
+            gradesChanged(classroomId);
+        },
+        [gradesChanged],
     );
 
     /** Editing only the reason keeps the AI's grade (it stays a draft); it is saved too. */
@@ -1181,6 +1303,7 @@ const useTeacherEvaluation = ({
 
     return {
         rubricTools,
+        aiQuota,
         evalGroup,
         evalLessons,
         view,
@@ -1215,6 +1338,7 @@ const useTeacherEvaluation = ({
         handleVisitRubric,
         handleConfirmGrades,
         handleSetCellGrade,
+        handleSetSeatsGrade,
         handleSetCellReason,
         handleSetComment,
         handleCheckScoring,

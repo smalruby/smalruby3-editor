@@ -33,7 +33,7 @@ const {
     infraIssueSet,
     shouldCloseIssueOnMerge,
     shouldCleanupWorktree,
-    selectDevServersToStop,
+    selectLeftoversToStop,
     TERMINAL_STATUSES,
     AUTOPILOT_BRANCH_PREFIX,
     parseAssigneeDirective,
@@ -123,7 +123,7 @@ const project = require('./project');
 const learnTasks = require('./learn-tasks');
 // EPIC 単位の確認（#2385）: 判断は epic-flow.js、実行のつなぎは epic-merge.js
 const { resolveRunOutcome, isEpicFlowBase, markAutoMergeContexts } = require('./epic-flow');
-const { applyEpicRunSideEffects, applyEpicAutoMerge } = require('./epic-merge');
+const { applyEpicRunSideEffects, applyEpicAutoMerge, applyEpicTopicPrs, bootEpicTopicPrs } = require('./epic-merge');
 // EPIC ごとの進み具合と現在地（#2388）。判断は epic-summary.js / current-status.js、I/O は current-status-job.js
 const { buildStatusMaterial, groupItemsByEpic } = require('./epic-summary');
 const currentStatusJob = require('./current-status-job');
@@ -454,7 +454,8 @@ function planExtraSlots(cands, cfg, state, deps = {}) {
 
 /**
  * after が解けた候補から、この tick で始めるものを決める（EPIC #2384）。
- * 優先度（自分 → 親 EPIC → 既定 P2）→ Project の並びで並べ、重さを推定し、上限と空きメモリ・CPU で
+ * 優先度（自分 → 親 EPIC → 既定 P2）→ 続きの作業か（直し → PR の続き → 新しい作業・#2472）→
+ * Project の並びで並べ、重さを推定し、上限と空きメモリ・CPU で
  * 計画する（判断は scheduler.js の純粋関数）。計画と理由は `state.schedulePlan` に置き、モニターと
  * ログに出す。始めるものの重さは `state.weights` に覚え、次の tick の「実行中の重いもの」に数える。
  * @param {object[]} eligible Project の並びの候補（phase 付き）
@@ -484,6 +485,9 @@ function planDispatch(eligible, directivesByIssue, items, limits, cfg, state, lo
     const running = runningWorkersForPlan(state);
     const resources = (deps.readResources || readResources)();
     const plan = scheduler.planSlots({ candidates: withWeight, running, limits, resources });
+    // 同じ優先度で直し・PR の続きを先にしたときは、その理由も「並列:」の行に出す（#2472）
+    const orderNote = scheduler.describeOrder(ordered);
+    if (orderNote) plan.reason += `。順: ${orderNote}`;
     const pickedSet = new Set(plan.picked);
     const picked = withWeight.filter((c) => pickedSet.has(c.issue));
     for (const c of picked) state.weights.set(c.issue, c.weight);
@@ -495,7 +499,7 @@ function planDispatch(eligible, directivesByIssue, items, limits, cfg, state, lo
         started: picked.map((c) => ({ issue: c.issue, phase: c.phase, weight: c.weight, priority: c.priority })),
         waiting: plan.waiting.slice(0, 20),
         order: withWeight.slice(0, 20).map((c) => ({
-            issue: c.issue, priority: c.priority, prioritySource: c.prioritySource, weight: c.weight,
+            issue: c.issue, priority: c.priority, prioritySource: c.prioritySource, stage: c.stage, weight: c.weight,
         })),
     };
     // 同じ理由を毎 tick 出し続けない（変わったとき・始めたときだけ）
@@ -1606,8 +1610,8 @@ async function dispatch(item, cfg, state, log) {
         await blockToHuman(`dispatch が例外で停止しました: ${e.message}`);
     } finally {
         state.running.delete(item.issue);
-        // worker が UI 確認で起動したまま残した dev server を止める（#1381）
-        stopWorktreeDevServers({ issues: [item.issue], runningIssues: [...state.running.keys()] }, log);
+        // worker が UI 確認で起動したまま残した dev server・ブラウザを止める（#1381・#2463）
+        stopWorktreeLeftovers({ issues: [item.issue], runningIssues: [...state.running.keys()] }, log);
     }
 }
 
@@ -1653,7 +1657,7 @@ async function dispatchResolveConflict(item, cfg, state, log, deps = {}) {
         findItemId: project.findItemId, findPrForIssue: project.findPrForIssue, setField: project.setField,
         postIssueComment: project.postIssueComment, ensureWorktree, followBaseBranch, runConflictResolver,
         execFileP, getDirectives, syncFaces: (it) => syncFacesAfterIntents(it, [], cfg, log),
-        stopDevServers: stopWorktreeDevServers,
+        stopLeftovers: stopWorktreeLeftovers,
         readToken: project.readToken, botToken: project.botToken, ...deps,
     };
     const ctx = { projectId: cfg.projectId, fields: cfg.fields };
@@ -1728,7 +1732,7 @@ async function dispatchResolveConflict(item, cfg, state, log, deps = {}) {
     } finally {
         if (aiChanged) await setAi(prevAi);
         state.running.delete(item.issue);
-        io.stopDevServers({ issues: [item.issue], runningIssues: [...state.running.keys()] }, log);
+        io.stopLeftovers({ issues: [item.issue], runningIssues: [...state.running.keys()] }, log);
     }
 }
 
@@ -1762,7 +1766,13 @@ async function collectGateContexts(cfg, items, running, state, log, deps = {}) {
 /** autopilot worktree の置き場所（`bin/autopilot-worktree` の WT_ROOT と同じ既定・#1381） */
 const WORKTREE_ROOT = process.env.AUTOPILOT_WORKTREE_ROOT || path.join(project.REPO_ROOT, '.autopilot-worktrees');
 
-/** dev server を止めた理由のログ文言（#1381） */
+/** worker が残したプロセスの種類のログ文言（#2463） */
+const LEFTOVER_KIND_LABELS = {
+    'dev-server': 'dev server',
+    browser: 'ブラウザ',
+};
+
+/** dev server・ブラウザを止めた理由のログ文言（#1381） */
 const DEV_SERVER_STOP_REASONS = {
     target: 'run の終了か worktree の削除',
     'cwd-deleted': 'cwd の worktree が削除済み',
@@ -1800,53 +1810,54 @@ function listProcesses(deps = {}) {
 }
 
 /**
- * autopilot の worktree に残った dev server を止める（#1381）。判定は phases.js の
- * {@link selectDevServersToStop}、ここはプロセスの列挙と SIGTERM だけ。PID と cwd で特定し、
+ * autopilot の worktree に残った dev server・ブラウザを止める（#1381・#2463）。判定は phases.js の
+ * {@link selectLeftoversToStop}、ここはプロセスの列挙と SIGTERM だけ。PID と cwd で特定し、
  * `pkill -f` のような広い一致は使わない。止めた PID と理由はログに残す。例外は投げない。
- * @param {object} opts { issues?, terminalIssues?, runningIssues? }（selectDevServersToStop と同じ）
+ * @param {object} opts { issues?, terminalIssues?, runningIssues? }（selectLeftoversToStop と同じ）
  * @param {Function} log
  * @param {object} [deps] { worktreeRoot, listProcesses, kill, selfPid }（テスト用）
  * @returns {Array<{pid: number, issue: number, cwd: string, reason: string}>} 止めたもの
  */
-function stopWorktreeDevServers(opts, log, deps = {}) {
+function stopWorktreeLeftovers(opts, log, deps = {}) {
     const list = deps.listProcesses || listProcesses;
     const kill = deps.kill || ((pid, sig) => process.kill(pid, sig));
     let targets;
     try {
-        targets = selectDevServersToStop(list(), {
+        targets = selectLeftoversToStop(list(), {
             ...opts,
             worktreeRoot: deps.worktreeRoot || WORKTREE_ROOT,
             selfPid: deps.selfPid !== undefined ? deps.selfPid : process.pid,
         });
     } catch (e) {
-        log(`dev server の確認に失敗（続行）: ${e.message}`);
+        log(`dev server・ブラウザの確認に失敗（続行）: ${e.message}`);
         return [];
     }
     const stopped = [];
     for (const t of targets) {
         const why = DEV_SERVER_STOP_REASONS[t.reason] || t.reason;
+        const what = LEFTOVER_KIND_LABELS[t.kind] || t.kind;
         try {
             kill(t.pid, 'SIGTERM');
             stopped.push(t);
-            log(`#${t.issue}: dev server を止めた（PID ${t.pid}・${why}）: ${t.cwd}`);
+            log(`#${t.issue}: worker が残した ${what} を止めた（PID ${t.pid}・${why}）: ${t.cwd}`);
         } catch (e) {
-            log(`#${t.issue}: dev server の停止に失敗（PID ${t.pid}・続行）: ${e.message}`);
+            log(`#${t.issue}: ${what} の停止に失敗（PID ${t.pid}・続行）: ${e.message}`);
         }
     }
     return stopped;
 }
 
 /**
- * tick の掃除: cwd が消えた worktree・終端 Issue の worktree に残った dev server を止める（#1381）。
+ * tick の掃除: cwd が消えた worktree・終端 Issue の worktree に残った dev server・ブラウザを止める（#1381・#2463）。
  * @param {Array} items Project の item
  * @param {object} state { running }
  * @param {Function} log
- * @param {object} [deps] stopWorktreeDevServers の deps
+ * @param {object} [deps] stopWorktreeLeftovers の deps
  */
-function applyDevServerSweep(items, state, log, deps = {}) {
+function applyLeftoverSweep(items, state, log, deps = {}) {
     const terminalIssues = (items || [])
         .filter((it) => it && TERMINAL_STATUSES.has(it.status)).map((it) => it.issue);
-    return stopWorktreeDevServers({ terminalIssues, runningIssues: [...state.running.keys()] }, log, deps);
+    return stopWorktreeLeftovers({ terminalIssues, runningIssues: [...state.running.keys()] }, log, deps);
 }
 
 /** 片付けを見送った理由のログ文言（#1362） */
@@ -1872,14 +1883,14 @@ const CLEANUP_KEEP_REASONS = {
  * @param {object} cfg
  * @param {object} state { running }
  * @param {Function} log
- * @param {object} [deps] { execFileP, existsSync, getDirectives, stopDevServers }（テスト用の差し替え）
+ * @param {object} [deps] { execFileP, existsSync, getDirectives, stopLeftovers }（テスト用の差し替え）
  * @returns {Promise<{status: 'removed'|'kept'|'absent'|'error', reason?: string}>}
  */
 async function cleanupIssueWorktree(item, cfg, state, log, deps = {}) {
     const exec = deps.execFileP || execFileP;
     const exists = deps.existsSync || fs.existsSync;
     const directives = deps.getDirectives || ((issue) => getDirectives(cfg, state, issue, log));
-    const stopDevServers = deps.stopDevServers || stopWorktreeDevServers;
+    const stopLeftovers = deps.stopLeftovers || stopWorktreeLeftovers;
     const issue = item.issue;
     try {
         const { stdout } = await exec(WORKTREE_BIN, ['path', String(issue)], { encoding: 'utf8' });
@@ -1908,8 +1919,8 @@ async function cleanupIssueWorktree(item, cfg, state, log, deps = {}) {
             log(`#${issue}: worktree を片付けない（${why}${decision.reason === 'not-merged' ? `: ${baseRef}` : ''}）: ${wt}`);
             return { status: 'kept', reason: decision.reason };
         }
-        // 消す worktree を cwd に持つ dev server を先に止める（cwd が消えても動き続けるため・#1381）
-        stopDevServers({ issues: [issue], runningIssues: [...state.running.keys()] }, log);
+        // 消す worktree を cwd に持つ dev server・ブラウザを先に止める（cwd が消えても動き続けるため・#1381）
+        stopLeftovers({ issues: [issue], runningIssues: [...state.running.keys()] }, log);
         const mainOpts = { cwd: project.REPO_ROOT, maxBuffer: 16 * 1024 * 1024 };
         await exec('git', ['worktree', 'remove', '--force', wt], mainOpts);
         let removedBranch = '';
@@ -2462,13 +2473,18 @@ async function tick(cfg, state, log) {
     }
     // topic 宛ての PR（Review + 🙋 なし）を CI 通過・コンフリクト無しで自動マージ（#2385）。
     // マージした PR は直後の merge-progression が Close + GitHub の Issue を閉じる。
-    await applyEpicAutoMerge(items, contexts, cfg, state, log, {
+    const autoMerged = await applyEpicAutoMerge(items, contexts, cfg, state, log, {
         resolveConflict: (it) => dispatchResolveConflict(it, cfg, state, log),
         hasCapacity: () => state.running.size < cfg.concurrency,
         patchBoard: (issue, intents) => patchBoardCache(state, issue, intents),
         syncFaces: (it, intents) => syncFacesAfterIntents(it, intents, cfg, log),
         onDecisions: (epic, count) => recordEpicDecisionCount(state, epic, count),
-    }).catch((e) => log(`epic auto-merge error: ${e.message}`));
+    }).catch((e) => { log(`epic auto-merge error: ${e.message}`); return []; });
+    // 子を topic に入れたら、topic → develop の draft PR を作る・本文を直す（#2473）
+    await applyEpicTopicPrs((autoMerged || []).filter((d) => d.action === 'merge'), cfg, log, {
+        defaultBase: DEFAULT_BASE_BRANCH,
+        statuses: Object.fromEntries(items.map((it) => [it.issue, it.status])),
+    }).catch((e) => log(`epic topic PR error: ${e.message}`));
     // 時刻が来たタスク（1 回・定期）を worker で実行する（fire-and-forget）。Issue の worker を先に計画し、
     // 残りの枠（全体・重い・空きメモリ）でタスクを始める（planExtraSlots）
     learnTasks.applyDueTasks(cfg, state, log, { workerCommand, planSlots: (cands) => planExtraSlots(cands, cfg, state) })
@@ -2477,8 +2493,8 @@ async function tick(cfg, state, log) {
     await applyMergeProgression(items, cfg, state, log);
     // GitHub で closed な issue（EPIC・人手 close 含む）の Project Status を Close へ整合（#843 Fix B）
     await applyClosedReconcile(items, cfg, state, log, { closedSet });
-    // 終わった worktree（cwd が消えた・終端 Issue）に残った dev server を止める（#1381・/proc を読むだけ）
-    applyDevServerSweep(items, state, log);
+    // 終わった worktree（cwd が消えた・終端 Issue）に残った dev server・ブラウザを止める（#1381・/proc を読むだけ）
+    applyLeftoverSweep(items, state, log);
     // 非終端 item に 🤖 autopilot / 🧭 tracking ラベルを担保（問い合わせのラベル限定の前提）
     await applyLabelHealing(items, cfg, state, log);
     // In Progress + AI 作業中のまま止まった item を検知して Blocked へ（#816）
@@ -3465,6 +3481,12 @@ async function main(opts = {}) {
     // 起動時の孤児 worker 自動復帰（#953）: crash → supervisor 再起動で in-memory running を
     // 失っても、in-flight のまま worker 不在の item を検出して対応フェーズへ再ディスパッチする。
     await recoverOrphanedWorkers(cfg, state, log).catch((e) => log(`orphan recovery error: ${e.message}`));
+    // 既に子が topic に入っている EPIC の topic → develop の PR をそろえる（#2473・起動時に 1 回・fire-and-forget）。
+    // 人間の一時停止中は GitHub に書かない（次の topic へのマージか、再開後の起動でそろう）
+    if (!state.paused) {
+        bootEpicTopicPrs(cfg, log, { defaultBase: DEFAULT_BASE_BRANCH })
+            .catch((e) => log(`epic topic PR (boot) error: ${e.message}`));
+    }
     /* eslint-disable no-constant-condition */
     while (!opts.once) {
         // 認証ヘルスチェック（失効 → auto-pause / 回復 → auto-resume）を tick の前に行う。
@@ -3488,7 +3510,7 @@ module.exports = {
     currentSchedulerLimits, readResources, planDispatch, setItemPriority, setSchedulerOverrides,
     main, tick, runTickOnce, dispatch, applyMergeProgression, applyClosedReconcile, applyPrProjection,
     cleanupIssueWorktree,
-    listProcesses, stopWorktreeDevServers, applyDevServerSweep,
+    listProcesses, stopWorktreeLeftovers, applyLeftoverSweep,
     applyDodHandoffs, detectStuck, recoverOrphanedWorkers, recoverStalledInFlightWorkers,
     markBlocked, getDirectives, populateAssigneeDirectives,
     applyLabelHealing, applyAfterWaitLabels,

@@ -148,6 +148,9 @@ const withSavedGrade = (cell, saved) => {
         grade: saved.grade,
         reason: saved.reason || '',
         needsReview: saved.needsReview === true,
+        // Why is not saved: a work read again keeps its own reason (it could not be read),
+        // else the reason is not known.
+        reviewReason: saved.needsReview === true ? cell.reviewReason || null : null,
         manual: teacher,
         gradeEdited: teacher,
     };

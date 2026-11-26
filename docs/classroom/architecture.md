@@ -213,7 +213,8 @@ One Tap に頼ると 1 回目のクリックが何も起こさない。Google �
 | `PATCH` | `/classroom-groups/{groupId}/topics` | トピックの add / remove / rename（rename・remove は課題へ一括追従） |
 | `POST` | `/classrooms/{id}/duplicate` | 課題（1 授業）の複製。課題コンテンツの S3 オブジェクトもコピー。`groupId` / `className` / `assignmentName` を上書き可。メンバー・提出は複製しない。課題の採点は基準（`rubric`）だけをコピーする（`grades` と `confirmedAt` はコピーしない）。`meshGroupLimit` は元の保存値をそのまま写し（未設定なら未設定のまま）、レスポンスにも含む |
 | `GET` | `/classrooms/{id}/lesson-progress` | レッスンの進み具合（EPIC #1592）。`{lesson, progress: [{memberId, seatNumber, challenges, current, readiness, updatedAt}]}` を席番号順に返す（`lesson` は課題の設定・無ければ `null`。TTL 切れの行と、いま別の生徒が座っている席の前の人の行は除く）。**`challenges` には今の `lesson.challengeIds` に無い ID も含まれる**（サーバーは課題の設定を変える前の記録も残す）ので、できた数・完了の条件・得点は `lesson.challengeIds` で絞って数えること。`current.review: true`（おさらい）と `readiness`（じゅんびチェックの結果・無ければ `null`）は表示のためのもので、できた数・完了の条件・得点には使わない。形は下記「ClassroomLessonProgress テーブル」 |
-| `POST` | `/classrooms/{id}/evaluate` | AI 評価支援。静的解析結果（シグナル + 擬似コード）を Anthropic API にリレーする。`mode` は `grade`（S/A/B/C 案 + 根拠 + needsReview）/ `comment`（生徒向けポジティブコメント下書き）/ `describe`（課題の説明の案）/ `rubric`（S/A/B/C の基準の文）/ `fairness`（評価がずれていそうなところの質問）。入出力は下記「AI 評価支援（evaluate）」。1リクエスト最大10提出（API GW の30秒制限対策、クライアントがチャンク分割）。先生ごとにレート制限（既定 60回/時）と日次上限（全モードをまとめて数える） |
+| `POST` | `/classrooms/{id}/evaluate` | AI 評価支援。静的解析結果（シグナル + 擬似コード）を Anthropic API にリレーする。`mode` は `grade`（S/A/B/C 案 + 根拠 + needsReview）/ `comment`（生徒向けポジティブコメント下書き）/ `describe`（課題の説明の案）/ `rubric`（S/A/B/C の基準の文）/ `fairness`（評価がずれていそうなところの質問）。入出力は下記「AI 評価支援（evaluate）」。1リクエスト最大10提出（API GW の30秒制限対策、クライアントがチャンク分割）。先生ごとにレート制限（既定 60回/時）と日次上限（全モードをまとめて数える）。成功した応答には `quota`（下記）も付く |
+| `GET` | `/teacher/evaluation-quota` | 自分（先生）の今日の AI 評価の使用量 `{quota: {used, limit, resetsAt}}`。数を読むだけで増やさない（まだ使っていない日は `used: 0`） |
 | `GET` | `/classrooms/{id}/grading` | 課題の採点（下記「課題の採点（grading）」）。`{grading}`、無ければ `{grading: null}`。認可は `PUT /assignment` と同じ（所有者か共同管理者・ほかは 401）。アーカイブ済みの課題も読める（無い課題は 404） |
 | `PUT` | `/classrooms/{id}/grading` | 課題の採点の保存。本文の `rubric` / `grades` / `confirmedAt` のうち**送ったキーだけ**を置きかえる（どれも無い本文は 400）。レスポンスは `{grading}`（保存後）。認可は `PUT /assignment` と同じ。active な課題だけ（ほかは 404） |
 | `GET` | `/notifications` | お知らせ一覧（EPIC #1111）。自分宛て（teacherSub）の直近 50 件 + `unreadCount` を返す。書き込みは admin スタックのみ（単一ライター） |
@@ -635,7 +636,7 @@ erDiagram
 - **座席数はクラスの `studentCount` が真実**: 生徒の lookup / join はクラスの人数と課題側スナップショットの **max** を使う（人数を減らしても既存の着席と衝突しない増加方向のみの反映）。クラスの人数を変更するとクラス内のアクティブな課題へ波及するが、この列挙も `groupId` 起点なので共同管理者が作った課題の表示人数が古いまま残らない
 - **クラス単位の列挙は必ず `groupId` 起点**（トピック追従・人数の波及・前回コメント再掲・同名課題のオートナンバリング）。クラスのオーナーの `teacherSub` で引くと、共同管理者が作った課題を取りこぼす。例外は **クラスに属さない（v1 の）課題**を扱う `POST /classroom-groups/migrate` で、そこは引く手がかりが呼び出し元の `teacherSub` しか無い
 - **トピック**（`PATCH /classroom-groups/{groupId}/topics`、body `{action: add|remove|rename, name, to?}`）: クラスの `topics` 配列を管理。**rename / remove はクラス内の課題の `topic` へ一括追従**（rename は付け替え、remove は解除）。追従は `groupId` で課題を引くので、共同管理者が作った課題（`teacherSub` がクラスのオーナーと異なる）も取り残さない。課題の作成・更新で新しいトピック名を使うとクラスの一覧へ自動追加される
-- **AI 評価の日次上限**: 先生ごとに `EVAL_DAILY_LIMIT`（既定 50 呼び出し/日 ≈ 1 課題分の全生徒の採点+コメントで約 5 回分）を DynamoDB のアトミックカウンタ（`Classrooms` テーブルの予約キー `eval-quota#<teacherSub>#<日付>`、TTL 2 日）で永続的に強制。インスタンス内メモリの時間窓（`EVAL_RATE_LIMIT_*`）は高速な一次ゲートとして併用
+- **AI 評価の日次上限**: 先生ごとに `EVAL_DAILY_LIMIT`（既定 200 呼び出し/日。35 人のクラスの全員の採点 1 回 ≈ 4 呼び出しなので、クラスが 4〜6 つの先生が採点・コメント・基準づくりを何度かやり直しても足りる）を DynamoDB のアトミックカウンタ（`Classrooms` テーブルの予約キー `eval-quota#<teacherSub>#<日付>`、TTL 2 日）で永続的に強制。インスタンス内メモリの時間窓（`EVAL_RATE_LIMIT_*`）は高速な一次ゲートとして併用
 - **課題の `topic` / `sortDate`**: `topic` はクラスのトピックへの文字列参照。`sortDate` は並び順キー（既定=作成日・意味なし・生徒非表示・自由変更可）で、課題管理画面はトピックごと・sortDate 降順に表示する
 
 ### AI 評価支援（evaluate）
@@ -643,7 +644,7 @@ erDiagram
 先生の評価作業を支援する。**AI は判定者ではなく提案者**: 全結果に機械シグナルを引用した根拠と needsReview フラグが付き、先生が UI で確認・修正・承認してはじめて記録される。
 
 - 入力: 課題名/課題文 + 評価軸（1〜6、grade モードのみ必須）+ 厳しさ（lenient/standard/strict）+ 較正サンプル（先生が採点した実例、最大5件）+ 提出（席番号・シグナル・擬似コード最大4000字）
-- 入力（`grade` の追加分・どれも任意で、無ければいままでどおり）: `starterPseudocode`（スターターの擬似コード・4000字で切る）、`rubricLevels`（`[{grade, text}]`・最大4・text 500字。送ると評価軸 `rubricAxes` は省略できる）、`examples`（先生が評価した正解の例 `[{seatNumber, grade, reason, group, code}]`・最大20・reason 300字・group 80字・code 4000字で切る）。スターターがあるときは「足した・変えたところを見る」、新しい入力があるときは「同じ形の作品は同じ評価」をプロンプトで指示する
+- 入力（`grade` の追加分・どれも任意で、無ければいままでどおり）: `starterPseudocode`（スターターの擬似コード・4000字で切る）、`rubricLevels`（`[{grade, text}]`・最大4・text 500字。送ると評価軸 `rubricAxes` は省略できる）、`examples`（先生が評価した正解の例 `[{seatNumber, grade, reason, group, code}]`・最大20・reason 300字・group 80字・code 4000字で切る）。スターターがあるときは「足した・変えたところを見る」、新しい入力があるときは「同じ形の作品は同じ評価」をプロンプトで指示する。正解の例はプロンプトで「正解の例1」「正解の例2」…（並び順の番号）と書き、`seatNumber` は出さない（別のクラスからコピーした基準の例は、そのクラスの出席番号を持つため）。grade / rubric / fairness では、理由や質問で例に触れるときは例の番号で呼び、出席番号で呼ばないよう指示する。fairness の `seatNumbers` には提出作品の出席番号だけを入れ、例は入れないよう指示する
 - モード別の入力と応答:
 
   | mode | 必須の入力 | 任意の入力 | 応答 |
@@ -659,6 +660,7 @@ erDiagram
 - Claude は Anthropic の TypeScript SDK（`@anthropic-ai/sdk`）で呼ぶ。`ANTHROPIC_FEDERATION_RULE_ID` / `ANTHROPIC_ORGANIZATION_ID` / `ANTHROPIC_SERVICE_ACCOUNT_ID`（+ 任意の `ANTHROPIC_WORKSPACE_ID`）がそろえば Workload Identity Federation（Lambda の実行ロールの JWT を AWS STS `GetWebIdentityToken` で取り、短期トークンに交換）で呼ぶ。静的な API キーの経路は無い。値がそろわないステージではエンドポイントは 503（機能無効）。設定は `docs/infra/claude-api-wif.md`
 - 1 回の呼び出しは 25 秒で打ち切り（API Gateway の 30 秒の上限より前）・再送しない。タイムアウトは 504 `AI_TIMEOUT`、Claude のエラーと WIF の交換の失敗は 502 `AI_API_ERROR`
 - CloudWatch に `classroom_evaluate` イベント（トークン数・キャッシュヒット）を構造化ログ出力
+- 成功した応答には、モードごとの項目に加えて `quota: {used, limit, resetsAt}` が付く。`used` はこの呼び出しを数えたあとの今日の回数（`limit` を超えない）、`limit` は `EVAL_DAILY_LIMIT`、`resetsAt` は数え直しになる次の日本時間の 0 時の ISO 文字列（1 日の上限は日本の日付で数える。理由は `docs/adr/0004-daily-limits-reset-at-jst-midnight.ja.md`）。上限を超えた呼び出しは 400 で、`quota` は付かない。画面を開いたときなど、数を増やさずに読むときは `GET /teacher/evaluation-quota`（同じ形の `quota`）
 
 ### 課題の採点（grading）
 
