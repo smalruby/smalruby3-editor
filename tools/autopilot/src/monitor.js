@@ -49,9 +49,9 @@ const ICON_SPARK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="url(
 const ICON_SIDEBAR = '<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.4">'
     + '<rect x="1.7" y="2.7" width="12.6" height="10.6" rx="2"/><path d="M6 2.9v10.2"/></g></svg>';
 const ICON_MORE = '<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><g fill="currentColor"><circle cx="3" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="13" cy="8" r="1.5"/></g></svg>';
-/** GitHub API の印（git の枝分かれの形。ロゴではない） */
 /** 外部サイトへのリンク（箱から矢印が出る形・#2471）。状況板の「Issue」「PR」の後ろに付ける */
 const ICON_EXT = '<svg class="ext" viewBox="0 0 16 16" width="11" height="11" aria-hidden="true" focusable="false"><path d="M9 2h5v5M14 2 7.5 8.5M12 9.5V13a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+/** GitHub API の印（git の枝分かれの形。ロゴではない） */
 const ICON_GITHUB = '<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="4.5" cy="3.5" r="1.8"/><circle cx="4.5" cy="12.5" r="1.8"/><circle cx="11.5" cy="5.5" r="1.8"/><path d="M4.5 5.3v5.4M11.5 7.3c0 2.6-2.4 3-5.4 3.8"/></g></svg>';
 
 const MONITOR_HTML = `<!doctype html>
