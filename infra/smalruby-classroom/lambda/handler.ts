@@ -5232,11 +5232,17 @@ function rubricLevelLines(levels: EvalRubricLevel[]): string[] {
     .map(level => `- ${level.grade}: ${level.text}`);
 }
 
-/** Teacher-graded examples with their reasons and works. */
+/**
+ * Teacher-graded examples with their reasons and works.
+ *
+ * Examples are numbered by their order (正解の例1, 2, …), not by seat: a
+ * rubric copied from another class carries that class's seat numbers, and
+ * the AI would otherwise cite them as if they were this class's students.
+ */
 function exampleLines(examples: EvalExample[]): string[] {
   const lines: string[] = [];
-  for (const example of examples) {
-    lines.push(`--- 正解の例 出席番号${example.seatNumber}: ${example.grade}${example.group ? `（まとまり「${example.group}」）` : ''} ---`);
+  for (const [index, example] of examples.entries()) {
+    lines.push(`--- 正解の例${index + 1}: ${example.grade}${example.group ? `（まとまり「${example.group}」）` : ''} ---`);
     lines.push(`理由: ${example.reason || '(理由なし)'}`);
     lines.push('擬似コード:');
     lines.push(example.code || '(空)');
@@ -5244,6 +5250,10 @@ function exampleLines(examples: EvalExample[]): string[] {
   }
   return lines;
 }
+
+/** How the AI may refer to the examples in its reasons and questions. */
+const EXAMPLE_REFERENCE_RULE =
+  '- reason や質問の文で正解の例に触れるときは「正解の例1」のように例の番号で呼び、出席番号では呼ばないでください（例は別のクラスの作品のことがあります）。';
 
 function submissionLines(submissions: EvalSubmission[]): string[] {
   const lines: string[] = [];
@@ -5310,6 +5320,7 @@ export function buildEvaluationPrompt(request: EvaluateRequest): { system: strin
       ...(rubricAware
         ? ['- 同じ形の作品（足した・変えたところが同じ作品）には同じ評価を付けてください。正解の例と同じ形なら、その例と同じ評価にしてください。']
         : []),
+      ...(request.examples.length > 0 ? [EXAMPLE_REFERENCE_RULE] : []),
       `- 評価の厳しさ: ${strictnessLabel}`,
       '',
     ];
@@ -5367,6 +5378,7 @@ export function buildEvaluationPrompt(request: EvaluateRequest): { system: strin
       '- 4つの評価すべての基準を書いてください。それぞれ150文字以内の日本語。',
       '- 正解の例の理由に書かれた観点を使い、例のどれもがその基準どおりの評価になるように書いてください。',
       '- 作品の形（スターターに足したこと・変えたこと）で判断できる、具体的な文にしてください。',
+      EXAMPLE_REFERENCE_RULE,
       ...starterRule,
       '',
       '出力は次の JSON のみ（説明文・コードフェンス禁止）:',
@@ -5380,7 +5392,8 @@ export function buildEvaluationPrompt(request: EvaluateRequest): { system: strin
       '原則:',
       '- 同じ形の作品は同じ評価になるべきです。正解の例どうし、または例とほかの作品の間で、評価や理由が食い違っていそうなところだけを質問にしてください。',
       '- question は先生が選ぶだけで答えられる日本語の質問（150文字以内）。options は2〜4個の短い選択肢。',
-      '- seatNumbers には、その質問に関係する作品の出席番号を入れてください。',
+      EXAMPLE_REFERENCE_RULE,
+      '- seatNumbers には、その質問に関係する提出作品（まとまりに入った作品）の出席番号を入れてください。正解の例は入れないでください。',
       `- 質問は多くても${EVAL_MAX_CHECKS}個。ずれが見つからなければ checks は空の配列にしてください。`,
       ...starterRule,
       '',
