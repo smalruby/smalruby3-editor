@@ -47,6 +47,7 @@ autopilot は、複数の GitHub Issue を Claude が**並行**して
 | **フェーズ・プロンプト** | 各フェーズの「頭脳」。非対話で1フェーズを遂行 | `tools/autopilot/prompts/autopilot-*` |
 | **worktree** | Issue ごとの隔離作業場（軽量・即作成） | `bin/autopilot-worktree` |
 | **UI 確認ヘルパー** | worker が headless bundled chromium で UI を確認（スクショ `tmp/`・Playwright MCP は使わない・#891） | `tools/autopilot/bin/pw-check` |
+| **後片付け** | worker が終わる前に、自分の worktree に残した dev server・ブラウザを止める（#2463） | `tools/autopilot/bin/cleanup-leftovers` |
 
 > daemon は常駐の単独プロセスとして起動する。並行数は設定可能（既定 2、必要に応じて増やす）。
 
@@ -848,6 +849,36 @@ GitHub App bot は `workflows` 権限を持たないため、`.github/workflows/
 
 ---
 
+## 手元の lint は変えたファイルだけ（`bin/lint-changed`）
+
+ルートの `npm run lint` は、秘密の検査・hosting のスクリプトのテスト・scratch-vm と scratch-gui の
+**全ファイル**の eslint と prettier を流すので重い。worker が流すとコンテナがもたつくので、
+implement・review・address-review・resolve-conflict のプロンプトは **`bin/lint-changed`** を使う
+（全体は CI が流す。重い処理の一覧は `.claude/rules/parallel-work.md`）。
+
+- **検査するファイル**: base（既定は `origin/$AUTOPILOT_BASE_BRANCH`、無ければ `origin/develop`。
+  `--base <ref>` で変えられる）との merge-base からの差分（消したファイルは除く）+
+  まだコミットしていない変更 + 新しいファイル。
+- **パッケージごと**（`packages/<name>/`・`infra/<name>/`・`tools/autopilot/`）に、そのディレクトリで:
+  - eslint: `npx eslint [--max-warnings N] --no-warn-ignored <files>`（`.js` `.jsx` `.mjs` `.cjs` `.ts` `.tsx`。
+    `eslint.config.*` の無いパッケージは飛ばす）。`--max-warnings` は `package.json` の `lint` の eslint に合わせる
+    （scratch-gui は 0、警告を許している upstream の scratch-vm・scratch-render などは付けない）。`lint` に eslint が
+    無い Smalruby のパッケージ（admin など）は 0
+  - prettier: `npx prettier --check --ignore-unknown --no-error-on-unmatched-pattern <files>`
+    （`package.json` の `lint` に prettier があるパッケージだけ。`.prettierignore` のホワイトリストで外れるものは
+    prettier が自分で飛ばす）
+  - `format-message lint`: `lint` に含まれるパッケージ（scratch-vm）で、`lint` の glob に合うファイルを変えたときだけ、
+    `lint` と同じ引数でそのファイルにかける。npm の scripts は globstar の無い sh で動くので、`src/**/*.js` は
+    `src/<dir>/<file>.js` にだけ合う（全体の lint もそれより深いファイルを見ない。深いファイルにかけると古いパーサーが
+    `?.` や `import()` で落ち、CI は通るのに手元だけ落ちる）
+- **リポジトリ root**: `npm run lint:secrets` はいつも、`npm run test:hosting-scripts` は
+  `scripts/hosting/`・`scripts/precompress-assets*` を変えたときだけ。
+- 変えたファイルが無ければ何もせず 0。どれかが失敗したら 1 で終わり、失敗したパッケージとコマンドを出す。
+- `--dry-run` で流すコマンドだけを出す。
+- 判断（振り分け・コマンドの組み立て）は `tools/autopilot/src/lint-changed.js` の純粋関数。
+
+---
+
 ## Web モニタ（あなた宛て＋表）
 
 daemon の `GET /`（既定 `http://localhost:8787/`）は、人間と同意した並べ方 **D「あなた宛て＋表」** の画面を出す。
@@ -1202,21 +1233,32 @@ daemon ログに理由を残す（残った worktree は `bin/autopilot-worktree
 判定は `phases.js` の `shouldCleanupWorktree`（純粋関数）、git の実行は daemon の `cleanupIssueWorktree`。
 片付けに失敗しても Close への前進は止めない。
 
-**dev server の後片付け（#1381）**: worker が UI 確認で起動した dev server（`webpack serve` / `npm start`）は、
-worker の tmux を閉じても残り、8601 をふさいだり、別の worktree の古いコードを返したりする。verify の
-プロンプトは起動前に 8601 の持ち主（cwd）を確かめ、結果ファイルを書く前に自分で止める。それに加えて
-daemon が次のときに止める（SIGTERM・止めた PID と理由を daemon ログに残す）:
+**dev server・ブラウザの後片付け（#1381・#2463）**: worker が UI 確認で起動した dev server（`webpack serve` /
+`npm start`）は、worker の tmux を閉じても残り、8601 をふさいだり、別の worktree の古いコードを返したり、
+親を失って大きくなり続けたりする。integration テストや pw-check を途中で止めたときのブラウザ
+（chromedriver・chromium・headless_shell）も、作業場が消えたあとまで残る。
 
-- **run が終わったとき**: その Issue の worktree を cwd に持つ dev server
+- **worker**: implement・verify・review・address-review・resolve-conflict のプロンプトの「終わる前の後片付け」で、
+  dev server は `setsid -f` で起動して PGID を記録しプロセスグループごと止め、結果ファイルを書く前に
+  **`tools/autopilot/bin/cleanup-leftovers`**（`--dry-run` で一覧だけ）を流す。自分の worktree を cwd に持つ
+  dev server・ブラウザだけを止める。
+- **webpack のコマンド行**: webpack-cli は `process.title = "webpack"` で `/proc/<pid>/cmdline` を `webpack` だけに
+  書き換える。`webpack serve` だけを探すと npm と sh だけが止まり、webpack そのものが親を失って残るので、
+  引数の無い `webpack` も dev server として扱う。
+
+それに加えて daemon が次のときに止める（SIGTERM・種類と PID と理由を daemon ログに残す）:
+
+- **run が終わったとき**: その Issue の worktree を cwd に持つ dev server・ブラウザ
 - **worktree を片付けるとき**（上の自動の片付け）: `git worktree remove` の前に、その worktree のもの
 - **毎 tick の掃除**: cwd の worktree が削除済みのもの（`/proc/<pid>/cwd` が `(deleted)`）と、
   Status が終端（Close / Done）の Issue の worktree のもの
 
 止めるのは **autopilot の worktree（`.autopilot-worktrees/issue-<N>`）を cwd に持つプロセスだけ**。
-main checkout（`/app`）や人間・ほかのセッションが立てた dev server、worker が実行中の Issue のものは止めない。
+main checkout（`/app`）や人間・ほかのセッションが立てた dev server・ブラウザ、worker が実行中の Issue のものは止めない。
+ブラウザは実行ファイルの名前（先頭の語）だけで見る（引数にブラウザの名前が出るだけの jest や `pgrep` は含めない）。
 `pkill -f` のような広い一致は使わず、`/proc` を読んで PID と cwd で特定する（`/proc` が無い環境では何もしない）。
-判定は `phases.js` の `selectDevServersToStop`（純粋関数）、プロセスの列挙と停止は daemon の
-`listProcesses` / `stopWorktreeDevServers`。
+判定は `phases.js` の `selectLeftoversToStop`（純粋関数）、プロセスの列挙と停止は daemon の
+`listProcesses` / `stopWorktreeLeftovers`。
 
 **base 追従（stale 起点の衝突防止・#950/#953）**: 新ブランチ作業フェーズ（implement 等）**と**
 PR ブランチ作業フェーズ（review / address-review）の**両方**で、着手時に daemon が作業ブランチを
@@ -1453,6 +1495,7 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 | `tools/autopilot/prompts/autopilot-*/` | 各フェーズのプロンプト |
 | `bin/autopilot-worktree` | 軽量 worktree スクリプト |
 | `bin/autopilot-push` | push 経路の自動判定（Bot / 個人トークン。権限外パス対応） |
+| `bin/lint-changed`, `tools/autopilot/src/lint-changed.js` | 変えたファイルだけの lint（全体は CI） |
 | `tools/autopilot/src/contract.js` | 番兵/結果ファイルの検証（純粋） |
 | `tools/autopilot/src/phases.js` | フェーズ↔プロンプト、結果→フィールド意図、watchdog 判断、ゲート解除、merge-progression、PR 投影、enroll/並び順、ディレクティブ、サニタイズ（純粋） |
 | `tools/autopilot/src/epic-flow.js` | EPIC の流れの判断（review の Must の数→次の状態、自動マージの計画、決定待ちのまとめコメント）（純粋） |
@@ -1483,6 +1526,7 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 | `tools/autopilot/prompts/autopilot-current-status.md` | 現在地を作る worker のプロンプト |
 | `tools/autopilot/src/usage.js` | usage ファイルから Claude 使用率（session/weekly）を読む純粋関数 |
 | `tools/autopilot/bin/usage-statusline.sh` | worker の status line。stdin JSON の `rate_limits` を usage ファイルへ書き出す |
+| `tools/autopilot/bin/cleanup-leftovers` | worker が終わる前に、自分の worktree に残した dev server・ブラウザを止める（判定は `phases.js` の `selectLeftoversToStop`） |
 | `tools/autopilot/src/cli.js`, `bin/autopilot` | CLI（単発フェーズ + `daemon` サブコマンド） |
 | `tools/autopilot/test/` | unit テスト（状態遷移網羅 `state-machine.test.js` を含む） |
 | `.claude/skills/autopilot/` | 総合サポートスキル（初期化インタビュー→`tmp/autopilot_up.sh` 生成・enroll ショートカット・運用支援。`init autopilot` / `autopilot開始` / `go autopilot` 等で起動） |

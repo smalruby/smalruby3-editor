@@ -58,7 +58,8 @@ GH_TOKEN="$(bin/bot-token)" gh issue view "$AUTOPILOT_ISSUE" --repo "${AUTOPILOT
 - 変える分野の「人間から学んだこと」（`docs/autopilot/learned/<area>.md`。`learnedRuleFilesFor`・
   `tools/autopilot/src/learnings.js`。`general.md` はいつも）があれば先に読み、そこに書かれた意図に沿って決める。
 - プロジェクト規約（`CLAUDE.md` / `.claude/rules`）に従う。**[RED] テストを先に書き失敗を確認 → [GREEN] 実装 → [PASS]**。
-- ローカルで流すのは**関連する直接のテストファイルだけ** + lint。ディレクトリ全体や `npm test` は流さない（`CLAUDE.md` の「ローカルで流すテストの範囲」。全体実行は PR の CI で。どうしても全体の結果が要るときだけ例外で、理由を書く）。
+- ローカルで流すのは**関連する直接のテストファイルだけ** + lint（**`bin/lint-changed`** で変えたファイルだけ。ルートの `npm run lint` の全体は流さない・全体は CI）。ディレクトリ全体や `npm test` は流さない（`CLAUDE.md` の「ローカルで流すテストの範囲」。全体実行は PR の CI で。どうしても全体の結果が要るときだけ例外で、理由を書く）。
+- 重い処理は `.claude/rules/parallel-work.md` の「重い処理の一覧」を読んでから流す（jest は `npm exec jest -- --runInBand <file>` でファイルを指定、dev server を 2 つ立てない、終わったらブラウザ・webpack の残りを確かめる）。
 - **翻訳キーを足したら `en.js` / `ja.js` / `ja-Hira.js` の 3 ファイルすべてに入れる**
   （`packages/scratch-gui/src/locales/`。`en.js` も省略しない・`.claude/rules/scratch-gui/development.md`
   の i18n 節）。コミット前に `git diff -U0 -- packages/scratch-gui/src/locales/` で同じキーが
@@ -152,6 +153,8 @@ GH_TOKEN="$(bin/bot-token)" gh pr create --repo "$AUTOPILOT_REPO" --draft --base
 
 ### 4. 結果を返す（自己レビューへ）
 
+**先に「終わる前の後片付け」（下の節）を行う**（dev server・ブラウザを使ったとき。`tools/autopilot/bin/cleanup-leftovers`）。
+
 ```bash
 cat > "$AUTOPILOT_RESULT_FILE" <<EOF
 {"issue":$AUTOPILOT_ISSUE,"phase":"implement","signal":"done","summary":"実装+Draft PR 作成。",
@@ -169,6 +172,24 @@ cat > "$AUTOPILOT_RESULT_FILE" <<EOF
 EOF
 echo AUTOPILOT_ERROR
 ```
+
+## 終わる前の後片付け（dev server・ブラウザ・#2463）
+
+dev server やブラウザ（integration テストの chromedriver・chromium、pw-check の headless_shell）を使ったら、
+**結果ファイルを書く前**（`AUTOPILOT_DONE` / `AUTOPILOT_HITL` / `AUTOPILOT_ERROR`・checkpoint のどれで終わるときも）に、
+自分が起動したものを止める。残すと親を失って動き続け、コンテナのメモリと CPU を食う
+（webpack の dev server が 2.4 GB まで大きくなった・作業場が消えたあとも chromium が残った例がある）。
+
+1. dev server は `tools/autopilot/prompts/autopilot-verify.md` の「dev server の起動と停止」の形で起動・停止する
+   （起動前に 8601 の持ち主の cwd を確かめる・`setsid -f` で起動して PGID を `$WT/tmp/dev-server.pgid` に記録する・
+   `kill -- "-$PGID"` でプロセスグループごと止める）。`npx` / `npm` のラッパーだけを止めない。
+   webpack は自分のコマンド行を `webpack` に書き換えるので、`pgrep -f 'webpack serve'` では見つからない。
+2. 最後に **`tools/autopilot/bin/cleanup-leftovers`** を流す。`/proc/<pid>/cwd` が**自分の worktree** の
+   webpack・chromedriver・chromium・headless_shell だけを止め、止めたものを出す（`--dry-run` で一覧だけ）。
+   ほかの worker・人間のもの（cwd がほかの worktree や `/app`）は止めない。`pkill -f` のような広い一致を使わない。
+3. 手で確かめるときは `.claude/rules/parallel-work.md` の「後片付け」に従う。
+
+daemon も run の終了時にこの worktree に残ったものを止める（保険。頼らないこと）。
 
 ## 人間に選んでほしいことがあるとき（モニターで答える質問）
 

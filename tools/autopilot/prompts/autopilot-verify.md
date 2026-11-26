@@ -181,7 +181,12 @@ worker の tmux を閉じても、バックグラウンドで起動した dev se
    ```
 
    まだ応答するなら、1 と同じ方法で 8601 の PID と cwd を見て、自分の worktree のものだけを止める。
-   止め忘れても daemon が run の終了時にこの worktree の dev server を止める（保険。頼らないこと）。
+5. **最後に `tools/autopilot/bin/cleanup-leftovers` を流す**（#2463）。`/proc/<pid>/cwd` が自分の worktree の
+   webpack・chromedriver・chromium・headless_shell だけを止め、止めたものを出す（`--dry-run` で一覧だけ）。
+   webpack は自分のコマンド行を `webpack` に書き換えるので、PGID で止めそこねた webpack もここで見つかる。
+   dev server を立てなかったときも、pw-check や integration テストのブラウザが残っていないかをこれで確かめる。
+   止め忘れても daemon が run の終了時にこの worktree の dev server・ブラウザを止める（保険。頼らないこと）。
+   手で確かめるときは `.claude/rules/parallel-work.md` の「後片付け」に従う（ほかの worktree のものは止めない）。
 
 `.claude/rules/scratch-gui/e2e-test.md` の URL パラメータ（`?no_beforeunload=1` 必須、`tab` / `rubyMode` 等）、
 data-testid 一覧、Monaco 操作に従う。`?tab=sounds` 直アクセスの扱いも同ドキュメントに従う。
@@ -232,6 +237,7 @@ echo AUTOPILOT_HITL
 - **トークンの値を書かない**（#1393）: `DEV_BYPASS_TOKEN` など秘密の値を、PR / Issue のコメント・PR 本文・コミット（メッセージ・コード・テスト）・スクリーンショットの説明に書かない。確認手順は `?devlogin=<DEV_BYPASS_TOKEN>` / `Authorization: Bearer <DEV_BYPASS_TOKEN>` のように**キー名で**書く。テストにはダミーの値を使う。
 - dev server 起動は重い。**プレビュー URL があれば優先**し、無闇に毎回ビルドしない。
 - 起動した dev server は**結果ファイルを書く前に必ず止める**。8601 がほかの worktree のものなら使わない（3-B「dev server の起動と停止」）。
+- 結果ファイルを書く前（DONE / HITL / ERROR・checkpoint のどれでも）に **`tools/autopilot/bin/cleanup-leftovers`** を流し、自分の worktree に残った dev server・ブラウザを止める（3-B の 5）。
 - 音/autoplay の最終確認は実 Chrome（ホスト）— headless で「OK」と誤判定しない（種別 3-C）。
 - スクショは必ず `tmp/` 配下、`?tab=sounds` 直アクセス等 `.claude/rules/scratch-gui/e2e-test.md` の注意を尊重。
 - `AskUserQuestion` を使わない。Project/PR の状態反映は daemon（単一ライター）。bot 認証必須。

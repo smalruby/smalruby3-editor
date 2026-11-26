@@ -308,15 +308,50 @@ function shouldCleanupWorktree(facts = {}) {
  * worker が UI 確認で起動した dev server は tmux を閉じても残り、8601 をふさいだり古いコードの UI を
  * 返したりする。止める対象を広げすぎないよう、`webpack serve` / `webpack-dev-server` / `npm [run] start`
  * だけを拾う（`webpack --mode production` のようなビルドや jest は含めない）。
+ *
+ * webpack-cli は `process.title = "webpack"` で自分のコマンドラインを `webpack` だけに書き換える。
+ * `webpack serve` だけを探すと npm と sh だけが止まり、webpack のプロセスそのものは親を失って残る
+ * （2.4 GB まで大きくなった・#2463）。だから引数の無い `webpack` も拾う。書き換えたあとはビルドと
+ * 見分けられないが、止めるのは終わった worker の worktree に残ったものだけなので、ビルドでも残りとして止めてよい。
  * @param {string} cmd 引数を空白でつないだコマンドライン（`/proc/<pid>/cmdline` 相当）
  * @returns {boolean}
  */
 function isDevServerCommand(cmd) {
     if (!cmd) return false;
     const s = String(cmd);
-    return /\bwebpack(?:\.js)?\s+serve\b/.test(s)
+    return /^\s*webpack\s*$/.test(s)
+        || /\bwebpack(?:\.js)?\s+serve\b/.test(s)
         || /\bwebpack-dev-server\b/.test(s)
         || /(?:^|[\s/])npm(?:-cli\.js)?\s+(?:run\s+)?start\b/.test(s);
+}
+
+/** worker が残すブラウザの実行ファイル名（Selenium の chromedriver・chromium、Playwright の headless_shell・#2463） */
+const BROWSER_EXECUTABLES = new Set(['chromedriver', 'chromium', 'chromium-browser', 'headless_shell', 'chrome']);
+
+/**
+ * プロセスのコマンドラインがブラウザ（chromedriver・chromium・headless_shell）かを判定する（純粋関数・#2463）。
+ *
+ * integration テストや pw-check を途中で止めると、ブラウザが親を失って残り、作業場が消えたあとも
+ * 動き続ける。実行ファイル（先頭の語）の名前だけで見て、引数にブラウザの名前が出るだけのもの
+ * （`pgrep -af chromium` や jest）は含めない。
+ * @param {string} cmd 引数を空白でつないだコマンドライン
+ * @returns {boolean}
+ */
+function isBrowserCommand(cmd) {
+    if (!cmd) return false;
+    const exe = String(cmd).trim().split(/\s+/)[0] || '';
+    return BROWSER_EXECUTABLES.has(exe.split('/').pop());
+}
+
+/**
+ * worker が残しうるプロセスの種類を返す（純粋関数・#2463）。
+ * @param {string} cmd
+ * @returns {'dev-server'|'browser'|null}
+ */
+function leftoverKind(cmd) {
+    if (isDevServerCommand(cmd)) return 'dev-server';
+    if (isBrowserCommand(cmd)) return 'browser';
+    return null;
 }
 
 /**
@@ -339,12 +374,13 @@ function worktreeIssueFromCwd(cwd, worktreeRoot) {
 }
 
 /**
- * 止める dev server を選ぶ（純粋関数・#1381）。プロセスの列挙と停止は daemon 側。
+ * worker が残した dev server とブラウザから止めるものを選ぶ（純粋関数・#1381・#2463）。
+ * プロセスの列挙と停止は daemon 側。種類は {@link leftoverKind}。
  *
  * - `issues` を渡したとき（run の終了・worktree の削除）: その Issue の worktree のものだけ（reason=`target`）。
  * - `issues` が無いとき（tick の掃除）: cwd が消えた worktree のもの（`cwd-deleted`）と、終端 Issue の
  *   worktree のもの（`terminal-issue`）。
- * どちらの場合も、autopilot の worktree 外・dev server でないもの・実行中の Issue・自分自身は止めない。
+ * どちらの場合も、autopilot の worktree 外・dev server でもブラウザでもないもの・実行中の Issue・自分自身は止めない。
  * @param {Array<{pid: number, cwd: string, cwdDeleted?: boolean, cmd: string}>} procs
  * @param {object} opts
  * @param {string} opts.worktreeRoot
@@ -352,23 +388,25 @@ function worktreeIssueFromCwd(cwd, worktreeRoot) {
  * @param {Iterable<number>} [opts.terminalIssues] Status が終端（Close / Done）の Issue
  * @param {Iterable<number>} [opts.runningIssues] worker が実行中の Issue
  * @param {number} [opts.selfPid]
- * @returns {Array<{pid: number, issue: number, cwd: string, reason: 'target'|'cwd-deleted'|'terminal-issue'}>}
+ * @returns {Array<{pid: number, issue: number, cwd: string, kind: 'dev-server'|'browser',
+ *   reason: 'target'|'cwd-deleted'|'terminal-issue'}>}
  */
-function selectDevServersToStop(procs, opts = {}) {
+function selectLeftoversToStop(procs, opts = {}) {
     if (!Array.isArray(procs) || !opts.worktreeRoot) return [];
     const targets = Array.isArray(opts.issues) ? new Set(opts.issues) : null;
     const terminal = new Set(opts.terminalIssues || []);
     const running = new Set(opts.runningIssues || []);
     const out = [];
     for (const p of procs) {
-        if (!p || p.pid === opts.selfPid || !isDevServerCommand(p.cmd)) continue;
+        const kind = p && p.pid !== opts.selfPid ? leftoverKind(p.cmd) : null;
+        if (!kind) continue;
         const issue = worktreeIssueFromCwd(p.cwd, opts.worktreeRoot);
         if (issue == null || running.has(issue)) continue;
         let reason = null;
         if (targets) reason = targets.has(issue) ? 'target' : null;
         else if (p.cwdDeleted) reason = 'cwd-deleted';
         else if (terminal.has(issue)) reason = 'terminal-issue';
-        if (reason) out.push({ pid: p.pid, issue, cwd: p.cwd, reason });
+        if (reason) out.push({ pid: p.pid, issue, cwd: p.cwd, kind, reason });
     }
     return out;
 }
@@ -4057,8 +4095,10 @@ module.exports = {
     resolveBaseRef,
     shouldCleanupWorktree,
     isDevServerCommand,
+    isBrowserCommand,
+    leftoverKind,
     worktreeIssueFromCwd,
-    selectDevServersToStop,
+    selectLeftoversToStop,
     baseFollowConflictBody,
     resolveConflictFailureBody,
     prConflictState,
