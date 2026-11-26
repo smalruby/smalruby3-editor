@@ -69,19 +69,47 @@
 
 ![書くモード](screenshots/0102-text-1280x800.png)
 
-- **読むモードになるとき**（ボタンを押さなくても切りかわる）:
+- **読むモードになるとき**（スイッチを押さなくても切りかわる）:
   - 書いている途中で **5 秒、入力が無い**とき（`dncl-problem-form-view.js` の `READ_MODE_IDLE_MS`。考えるために手を止めたくらいでは切りかわらず、手を離したらすぐ罫線が見える長さ）。キーを押す・クリックするたびに数え直す。
   - **実行したとき**（緑の旗、ルビーツールバーの実行ボタン）。行番号を見ながら動きを追えるように。
   - **貼り付けた直後**（貼り付けた問題を、罫線で確かめられるように）。
   - エディタの**フォーカスが外れたとき**（検索などでフォーカスが外れたときも）。
 - **書くモードにもどるとき**: エディタを**クリックしたとき**・エディタに**フォーカスが移ったとき**・読むモードのまま**文字を打ったとき**（打った文字はそのまま入る）。ブロックや別のスプライトからテキストが変わったときは、モードはそのままで罫線を描き直す。
-- **切りかえのボタン**: ルビーツールバーの「読む」ボタン（`ruby-toolbar-read-mode`。日本語タブのときだけ出る。読むモードのあいだは押された色で `aria-pressed="true"`）。ツールチップは、書くモードのとき「読むモード（行番号と罫線で、問題と同じ形に見せる）」、読むモードのとき「書くモードにもどす」。押してもエディタのフォーカスは動かない（カーソルはそのまま）。書くモードにもどすときは、エディタにフォーカスを移す。
+- **切りかえのスイッチ**: ツールバーの「行番号と罫線」のスイッチ（`ruby-toolbar-rules`・`role="switch"`。日本語タブのときだけ出る。読むモードのあいだは ON で `aria-checked="true"`）。ツールチップは「行番号と罫線を表示して、問題と同じ形で読む」。押してもエディタのフォーカスは動かない（カーソルはそのまま）。書くモードにもどすときは、エディタにフォーカスを移す。形はデザインシステムの「スイッチ」（[`../design-system/components/buttons.md`](../design-system/components/buttons.md)）。
 - **罫線は打たない**: テキストでは字下げを空白で書く（罫線の文字 `│` `└` などは打たなくてよい）。キーボードでは、`:` で終わる行（`もし … ならば:`・`… の間繰り返す:`・`… ずつ増やしながら繰り返す:`・`関数 名前(引数):`・`そうでなければ:`）で Enter を押すと次の行が 4 空白字下げされ、中の行で Enter を押すと同じ字下げが続く。`そうでなければ:` / `そうでなくもし … ならば:` は打つと 1 段もどる。ブロックを出るときは、字下げの直後で Backspace（1 回で 1 段もどる）か Shift+Tab。Tab は 4 空白。補完のスニペット（`もし...ならば` など）も 4 空白で入る。罫線の付いた問題をコピーして貼り付けたときは、罫線を読み飛ばして読み込む。
 - 罫線は字下げから決める（`dncl-problem-form.js` の `layoutProblemForm`）。字下げの幅の数え方（タブは 4 桁、全角空白は 2 桁）は読み込みと共通（`dncl-indent.js`）。字下げの幅は 2 空白でも 4 空白でもよい。ブロックの最後の行は L 字、それ以外は縦線。
   - **if/else は最後の枝だけ L 字**（次の行が同じ深さの `そうでなくもし` / `そうでなければ` なら縦線のまま）。
   - **DNCL 風の形**（`を実行する` / `を繰り返す` / `と定義する` で閉じる）は、縦線を閉じの行の手前まで引き、L 字にしない。閉じのことばがブロックの終わりを示すので、L 字を足すと終わりが 2 つになり、コピーを読み込むと `end` が 1 つ余る。
   - 空の行と、コメントだけの行は、ブロックを開きも閉じもしない（読み込みと同じ）。前後でつづくブロックの縦線を通す。字下げの無い空の行には、テキストに無い空白を見た目だけ足して縦線を描く。字下げより左に書いたコメントの行は、その行の縦線を省く（文字の位置を動かさない）。
-- **コピー**: ふつうのコピーはテキストのまま。`⋯` メニューの **「行番号と罫線つきでコピー」**（`ruby-toolbar-menu-copy-problem-form`。日本語モードのときだけ）は、行番号と罫線（`｜` / `⎿`）を文字で付けた形をクリップボードに入れる（行の終わりの空白は落とす）。これを日本語モードに貼り付けると、同じプログラムとして読み込める。
+- **コピー**: ふつうのコピーはテキストのまま。`⋯` メニューの **「行番号と罫線つきでコピー」**（`ruby-toolbar-menu-copy-problem-form`。日本語タブのときだけ）は、行番号と罫線（`｜` / `⎿`）を文字で付けた形をクリップボードに入れる（行の終わりの空白は落とす）。これを日本語モードに貼り付けると、同じプログラムとして読み込める。
+
+
+### 日本語タブのツールバーとメニュー
+
+ツールバーはルビータブと同じ並び・大きさ・ツールチップで、日本語タブに要らないものを出さない。
+
+| 部分 | 日本語タブ | ルビータブ |
+|---|---|---|
+| 実行・元に戻す / やり直す・検索・自動置換 | 同じ | 同じ |
+| スプライトを選ぶ ◀ ▶ と入力欄（`ruby-toolbar-prev-sprite` など） | **出さない**（スプライトはスプライトのペインで選ぶ） | 出す |
+| ふりがな / Ruby | 出さない | 出す |
+| 「行番号と罫線」のスイッチ（`ruby-toolbar-rules`） | 出す（上の「読むモードと書くモード」） | 出さない |
+
+`⋯` メニュー（日本語タブ。上から）:
+
+![日本語タブのその他メニュー](screenshots/0106-more-menu-1280x800.png)
+
+| 項目 | data-testid | 動き |
+|---|---|---|
+| 行番号と罫線つきでコピー | `ruby-toolbar-menu-copy-problem-form` | 上の「コピー」 |
+| ルビーに直したものを確認 | `ruby-toolbar-menu-preview` | ルビータブの「ルビースクリプトを確認」と同じ画面 |
+| 日本語のプログラムを保存（.txt） | `ruby-toolbar-menu-download-japanese` | エディタのテキスト（行番号と罫線を付けない形）を、**UTF-8** のテキストファイル `<作品の名前>_<スプライトの名前>_japanese.txt` に保存する。読み込みなおせるように、行番号と罫線は付けない |
+| 見出し「問題の約束」 | `ruby-toolbar-menu-settings-heading` | — |
+| 例示の形（添字は 0 から） | `ruby-toolbar-menu-settings-pattern-example` | 下の「設定（冒頭の説明文）」 |
+| 添字が 1 から始まる問題 | `ruby-toolbar-menu-settings-pattern-index-from-one` | 同上 |
+| 自動置換設定 | `ruby-toolbar-menu-auto-correct-settings` | ルビータブと同じ |
+
+「ルビースクリプトを保存」と「クラスを挿入」は Ruby のための項目なので、日本語タブには出さない。ルビータブのメニューは変わらない。
 
 ### ブロック制限の通知と、すべてのブロックに戻す導線
 
@@ -289,7 +317,8 @@ DNCL モードでは、DNCL を Ruby に変換してからブロックに変換�
 - `packages/scratch-gui/src/containers/ruby-tab/dncl-snippets.js` — DNCL コード補完スニペット。ブロックは標準の形（`もし 条件 ならば:` / `〜の間繰り返す:` / `関数 名前(引数):` と字下げ 4 つ。閉じのことばの行は入れない）で入れる
 - `packages/scratch-gui/src/containers/ruby-tab/dncl-problem-form-view.js` — 読むモードを Monaco に描く（罫線のデコレーション、行番号 `(01)` の `lineNumbers`、読むモードと書くモードの切りかえ `createProblemFormView`: フォーカス・クリック・入力・5 秒の待ち・貼り付け・`showReadMode` / `toggle`）
 - `packages/scratch-gui/src/containers/ruby-tab/dncl-index-setting.js` — 貼り付け時の添字の設定の確認ダイアログと、冒頭への説明文の書きこみ（1 回の Undo。違うところだけを書きかえる `replaceEditorText`。設定のパターンのメニューも使う）（`offerDnclIndexSetting`）
-- `packages/scratch-gui/src/components/ruby-toolbar/ruby-toolbar.jsx` — その他メニューの設定のパターン（`ruby-toolbar-menu-settings-pattern-example` / `ruby-toolbar-menu-settings-pattern-index-from-one`。日本語モードのときだけ。いまのパターンに ✓）
+- `packages/scratch-gui/src/components/ruby-toolbar/ruby-toolbar.jsx` — 日本語タブのツールバー（上の「日本語タブのツールバーとメニュー」）。その他メニューの設定のパターン（`ruby-toolbar-menu-settings-pattern-example` / `ruby-toolbar-menu-settings-pattern-index-from-one`。見出し「問題の約束」の下。いまのパターンに ✓）
+- `packages/scratch-gui/src/lib/dncl/dncl-download.js` — 「日本語のプログラムを保存（.txt）」のファイル名（`dnclTextFilename`）と中身（`dnclTextBlob`。UTF-8 のテキスト）
 
 #### UI / 状態管理
 
@@ -333,12 +362,12 @@ DNCL モードは特定のブロックに紐づくものではなく、**Ruby �
 | コメントの記号（`commentMarker`） | `// 「//」から行の終わりまでは，処理の対象とならない。` | `#` | `//` のとき、`//` はコメント（整数の商は `÷`）。`#` もコメントとして読む。Ruby では `#`、日本語に戻すときは `//` で書く |
 | 論理演算子の説明（`logicNote`） | `# 「and」は「かつ」を意味する論理演算子であり，…` の型の文 | 書かない | 変換は変えない（書き方はいつも `and` / `or` / `not`）。説明文があるかどうかだけを持つ |
 
-- 説明文は手で書いてもよいし、その他メニュー（⋯）の**設定のパターン**から選んでもよい（日本語モードのときだけ出る）。
+- 説明文は手で書いてもよいし、その他メニュー（⋯）の**設定のパターン**（見出し「問題の約束」の下）から選んでもよい（日本語タブのときだけ出る）。
 
   | パターン（メニュー） | 添字 | コメント | 論理演算子の説明 | data-testid |
   |---|---|---|---|---|
-  | 設定: 例示の形（添字は 0 から） | 0 から | `#` | 書かない | `ruby-toolbar-menu-settings-pattern-example` |
-  | 設定: 添字が 1 から始まる問題 | 1 から | `#` | 書く（`and` / `or` / `not` の 3 文） | `ruby-toolbar-menu-settings-pattern-index-from-one` |
+  | 例示の形（添字は 0 から） | 0 から | `#` | 書かない | `ruby-toolbar-menu-settings-pattern-example` |
+  | 添字が 1 から始まる問題 | 1 から | `#` | 書く（`and` / `or` / `not` の 3 文） | `ruby-toolbar-menu-settings-pattern-index-from-one` |
 
   選ぶと、冒頭の設定の文を消してパターンの文を先頭に書き（ほかのコメントは残す）、プログラムを Ruby にしてからその設定で日本語に戻す（`dnclWithSettingsPattern`）。意味は変わらないので、添字は書きかわる（0 からで `A[0]` のプログラムを 1 からにすると `A[1]`）。Ruby にできないプログラムは、冒頭の文だけを書きかえる。1 回の Undo で戻る。メニューの ✓ は、冒頭の文がどちらかのパターンにちょうど合うときに付く（`//` をコメントにしたときなどはどちらにも付かない）。
 - 自動置換（既定でオン）はコメントの中を変えないので、説明文の `，` は `，` のまま残る（`#` と、設定で `//` をコメントにしたときの `//` の後ろ。`「…」` の中の `#` はコメントにしない）。`,` で書いた文も同じ設定として読む。
@@ -498,7 +527,7 @@ Smalruby は **共通テスト用プログラム表記の形のプログラム�
 
 スモウルビーとスモウルビーの日本語は、配列の添字を 0 から始める（共通テストのプログラム表記の既定と同じ）。プログラムの冒頭に `# すべての配列の添字は 1 から始まる。` と書いたときだけ 1 から始まる（上の「設定（冒頭の説明文）」。Ruby は 0 から数えるので、Ruby にするときに添字を 1 ずらす）。
 
-冒頭の説明文を書かずに、問題文が「添字は 1 から始まる」と指定するプログラムを写すときは、冒頭に説明文を書くか（メニューの「設定: 添字が 1 から始まる問題」でも書ける）、添字を 1 ずらして書く（そのような注釈付きのプログラムを貼り付けたときは、下の「貼り付け時の添字の設定」で説明文を書くことを提案する）。ずらさずに書くと配列の範囲外を読むが、Scratch VM は範囲外の要素を空の値として返すだけでエラーにならず、結果だけがずれる。そこで日本語モードのエディタは、範囲外になることが確実に分かる添字に警告マーカーを出す（`dncl-array-index-hint.js`。条件は [`docs/smalruby-dncl-spec.ja.md`](../smalruby-dncl-spec.ja.md) の「配列アクセス」）。警告は変換を止めない。マーカーの owner は `smalruby-dncl-index`（`ruby-tab/constants.js` の `DNCL_INDEX_HINT_OWNER`）で、変換エラーのマーカー（`smalruby`）を消しても残る。実行時（VM）で検知しないのは、upstream の VM の挙動を変えずに済ませるため。
+冒頭の説明文を書かずに、問題文が「添字は 1 から始まる」と指定するプログラムを写すときは、冒頭に説明文を書くか（メニューの「添字が 1 から始まる問題」でも書ける）、添字を 1 ずらして書く（そのような注釈付きのプログラムを貼り付けたときは、下の「貼り付け時の添字の設定」で説明文を書くことを提案する）。ずらさずに書くと配列の範囲外を読むが、Scratch VM は範囲外の要素を空の値として返すだけでエラーにならず、結果だけがずれる。そこで日本語モードのエディタは、範囲外になることが確実に分かる添字に警告マーカーを出す（`dncl-array-index-hint.js`。条件は [`docs/smalruby-dncl-spec.ja.md`](../smalruby-dncl-spec.ja.md) の「配列アクセス」）。警告は変換を止めない。マーカーの owner は `smalruby-dncl-index`（`ruby-tab/constants.js` の `DNCL_INDEX_HINT_OWNER`）で、変換エラーのマーカー（`smalruby`）を消しても残る。実行時（VM）で検知しないのは、upstream の VM の挙動を変えずに済ませるため。
 
 ### 貼り付け時の添字の設定
 
@@ -581,7 +610,7 @@ Smalruby は **共通テスト用プログラム表記の形のプログラム�
   - `dncl-unsupported-command.test.js` — 日本語モードに無い命令（引数あり・なし・変数と同じ名前・式や条件の中・`xxx do` と `|x|`）がその行のエラーで止まり、定義した関数の呼び出しや組み込み関数は往復できること（DNCL → Ruby と Ruby → DNCL の両方）
   - `dncl-do-block.test.js` — 日本語にしない `xxx do ... end` が `を実行する` で閉じ、外側の `〜の間` / `もし` / `関数` の閉じのことばがずれないこと（入れ子・`until x do`・後判定の中・文字列やコメントの中の `do`）
   - `dncl-roundtrip.test.js` — DNCL ↔ Ruby round-trip 安定性
-- エディタ側の単体テスト: `packages/scratch-gui/test/unit/containers/ruby-tab/dncl-index-setting.test.js`（注釈なし・設定済みでは聞かない・「いいえ」で何も変えない・「はい」で冒頭に 1 回の編集、違うところだけの書きかえ）、`test/unit/components/ruby-toolbar-settings-pattern.test.jsx`（メニューのパターン・✓・選んだときの呼び出し）、`dncl-problem-form-view.test.js`（罫線のデコレーションの位置・タブの字下げ・空の行の縦線・行番号の桁と欄の幅・読むモードと書くモードの切りかえ: フォーカス・クリック・入力・5 秒の待ち・貼り付け・ボタン・日本語モードの出入り）、`test/unit/components/ruby-toolbar-read-mode.test.jsx`（切りかえのボタンは日本語タブだけ・ツールチップ・`aria-pressed`・フォーカスを動かさない・メニューの「行番号と罫線つきでコピー」）。統合テスト `test/integration/dncl-problem-form.test.js`（ボタン・入力・5 秒の待ち・クリック・貼り付け・緑の旗での切りかえ、Ruby に戻すと行番号と空白の点が戻ること）
+- エディタ側の単体テスト: `packages/scratch-gui/test/unit/containers/ruby-tab/dncl-index-setting.test.js`（注釈なし・設定済みでは聞かない・「いいえ」で何も変えない・「はい」で冒頭に 1 回の編集、違うところだけの書きかえ）、`test/unit/components/ruby-toolbar-settings-pattern.test.jsx`（メニューのパターン・✓・選んだときの呼び出し）、`dncl-problem-form-view.test.js`（罫線のデコレーションの位置・タブの字下げ・空の行の縦線・行番号の桁と欄の幅・読むモードと書くモードの切りかえ: フォーカス・クリック・入力・5 秒の待ち・貼り付け・ボタン・日本語モードの出入り）、`test/unit/components/ruby-toolbar-rules-switch.test.jsx`（日本語タブにスプライトを選ぶ部品が無い・スイッチは日本語タブだけ・`role="switch"` と `aria-checked`・フォーカスを動かさない・その他メニューの項目と並び・.txt の保存）、`test/unit/lib/dncl/dncl-download.test.js`（.txt のファイル名と UTF-8）。統合テスト `test/integration/dncl-problem-form.test.js`（スイッチ・入力・5 秒の待ち・クリック・貼り付け・緑の旗での切りかえ、Ruby に戻すと行番号と空白の点が戻ること）
 - 補完と色分けの単体テスト: `packages/scratch-gui/test/unit/containers/ruby-tab/dncl-snippets.test.js`（スニペットが標準の形（`:` と字下げ 4 つ・閉じのことばの行なし・`繰り返す:`）で、場所を埋めて入れたものがそのまま Ruby とブロックになり、Ruby から同じ日本語に戻ること）、`dncl-mode.test.js`（開始の行の後の字下げ・`and` / `or` / `not`・`繰り返す` の付いたことば・`を返す`・全角の `％` の色分け）
 - Round-trip テスト (左結合演算子の括弧除去): `packages/scratch-gui/test/unit/lib/ruby-roundtrip-puts-concat.test.js`
 - ブロック制限 UX の単体テスト:

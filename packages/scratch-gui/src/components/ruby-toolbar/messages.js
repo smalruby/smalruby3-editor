@@ -127,29 +127,40 @@ const messages = defineMessages({
         defaultMessage: 'Copy with line numbers and rules',
         description: 'More menu item of the Japanese mode: copy the program with line numbers and rules',
     },
-    readMode: {
-        id: 'gui.rubyToolbar.readMode',
-        defaultMessage: 'Read',
-        description: 'Label of the toggle of the Japanese mode that shows the program in the read mode',
+    rulesSwitch: {
+        id: 'gui.rubyToolbar.rulesSwitch',
+        defaultMessage: 'Line numbers and rules',
+        description:
+            'Label of the switch of the Japanese mode that shows the line numbers and the rules (the read mode)',
     },
-    readModeOn: {
-        id: 'gui.rubyToolbar.readModeOn',
-        defaultMessage: 'Read mode (line numbers and rules, in the form of the test questions)',
-        description: 'Tooltip of the read mode toggle while the program is shown in the write mode',
+    rulesSwitchTitle: {
+        id: 'gui.rubyToolbar.rulesSwitchTitle',
+        defaultMessage: 'Show the line numbers and the rules, in the form of the test questions',
+        description: 'Tooltip of the switch of the line numbers and the rules of the Japanese mode',
     },
-    readModeOff: {
-        id: 'gui.rubyToolbar.readModeOff',
-        defaultMessage: 'Back to the write mode',
-        description: 'Tooltip of the read mode toggle while the program is shown in the read mode',
+    problemSettingsHeading: {
+        id: 'gui.rubyToolbar.problemSettingsHeading',
+        defaultMessage: 'Rules of the problem',
+        description: 'Heading in the More menu of the Japanese mode over the patterns of the settings',
+    },
+    previewRubyOfJapanese: {
+        id: 'gui.rubyToolbar.previewRubyOfJapanese',
+        defaultMessage: 'Preview the program in Ruby',
+        description: 'More menu item of the Japanese mode: show the Ruby the Japanese program is converted to',
+    },
+    saveJapaneseProgram: {
+        id: 'gui.rubyToolbar.saveJapaneseProgram',
+        defaultMessage: 'Save the Japanese program (.txt)',
+        description: 'More menu item of the Japanese mode: save the Japanese program as a text file',
     },
     settingsPatternExample: {
         id: 'gui.rubyToolbar.settingsPatternExample',
-        defaultMessage: 'Settings: the form of the examples (indices from 0)',
+        defaultMessage: 'The form of the examples (indices from 0)',
         description: 'More menu item of the Japanese mode: write the program by the settings of the examples',
     },
     settingsPatternIndexFromOne: {
         id: 'gui.rubyToolbar.settingsPatternIndexFromOne',
-        defaultMessage: 'Settings: a problem whose indices start at 1',
+        defaultMessage: 'A problem whose indices start at 1',
         description:
             'More menu item of the Japanese mode: write the program by the settings of a problem whose indices start at 1',
     },

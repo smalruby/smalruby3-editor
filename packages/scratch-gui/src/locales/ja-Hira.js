@@ -1991,15 +1991,17 @@ export default {
     'gui.rubyTab.dnclStringArithmeticHint':
         'もじれつと - * / をつかうと、ひだりからじゅんにけいさんされます。"a" + x - 1 は、もじれつ "a" + x から 1 をひきます。かずのけいさんは "a" + (x - 1) のようにかっこでかこんでください。',
     'gui.rubyTab.dnclArrayIndexHint':
-        '{access} ははいれつのはんいがいになります。スモウルビーのにほんごでは、はいれつのそえじは 0 からはじまります（さいしょのようそは {array}[0]、さいごのようそは {array}[{last}]）。もんだいぶんでそえじが 1 からはじまるときは、{fixed} のようにそえじを 1 ずらしてかくか、プログラムのはじめに「すべての配列の添字は 1 から始まる。」とかいてください（メニューの「せってい: そえじが 1 からはじまるもんだい」でかけます）。',
+        '{access} ははいれつのはんいがいになります。スモウルビーのにほんごでは、はいれつのそえじは 0 からはじまります（さいしょのようそは {array}[0]、さいごのようそは {array}[{last}]）。もんだいぶんでそえじが 1 からはじまるときは、{fixed} のようにそえじを 1 ずらしてかくか、プログラムのはじめに「すべての配列の添字は 1 から始まる。」とかいてください（メニューの「そえじが 1 からはじまるもんだい」でかけます）。',
     'gui.rubyToolbar.copyProblemForm': 'ぎょうばんごうとけいせんつきでコピー',
-    'gui.rubyToolbar.readMode': 'よむ',
-    'gui.rubyToolbar.readModeOn': 'よむモード（ぎょうばんごうとけいせんで、もんだいとおなじかたちにみせる）',
-    'gui.rubyToolbar.readModeOff': 'かくモードにもどす',
+    'gui.rubyToolbar.rulesSwitch': 'ぎょうばんごうとけいせん',
+    'gui.rubyToolbar.rulesSwitchTitle': 'ぎょうばんごうとけいせんをひょうじして、もんだいとおなじかたちでよむ',
+    'gui.rubyToolbar.problemSettingsHeading': 'もんだいのやくそく',
+    'gui.rubyToolbar.previewRubyOfJapanese': 'ルビーになおしたものをかくにん',
+    'gui.rubyToolbar.saveJapaneseProgram': 'にほんごのプログラムをほぞん（.txt）',
     'gui.rubyTab.dnclIndexSettingConfirm':
         'はりつけたプログラムには、はいれつのそえじは 1 からはじまるとかいてあります。プログラムのはじめに「すべての配列の添字は 1 から始まる。」とかいて、そえじが 1 からはじまるせっていにしますか？',
-    'gui.rubyToolbar.settingsPatternExample': 'せってい: れいじのかたち（そえじは 0 から）',
-    'gui.rubyToolbar.settingsPatternIndexFromOne': 'せってい: そえじが 1 からはじまるもんだい',
+    'gui.rubyToolbar.settingsPatternExample': 'れいじのかたち（そえじは 0 から）',
+    'gui.rubyToolbar.settingsPatternIndexFromOne': 'そえじが 1 からはじまるもんだい',
     'gui.rubyTab.dnclForbiddenPrefixError': 'にほんごモードでは、へんすうに「{name}」はつかえません',
     'gui.rubyTab.dnclPostTestLoopError':
         'あとではんていするくりかえし（さきに 1 かいうごかしてからじょうけんをたしかめるくりかえし）は、にほんごではかけません。さいしょの 1 かいをループのまえにかいてから、「〜のあいだくりかえす」にしてください。Ruby モードではかけます。',
@@ -2129,7 +2131,7 @@ export default {
     'gui.genaiConcierge.indexHintsTitle':
         'ちゅうい: そえじが 1 からはじまっているかもしれません。スモウルビーのにほんごでは、はいれつのそえじは 0 からはじまります。',
     'gui.genaiConcierge.indexHint':
-        '{access} ははいれつのはんいがいになります（さいごのようそは {array}[{last}]）。もんだいぶんでそえじが 1 からはじまるときは、{fixed} のようにそえじを 1 ずらしてかくか、プログラムのはじめに「すべての配列の添字は 1 から始まる。」とかいてください（メニューの「せってい: そえじが 1 からはじまるもんだい」でかけます）。',
+        '{access} ははいれつのはんいがいになります（さいごのようそは {array}[{last}]）。もんだいぶんでそえじが 1 からはじまるときは、{fixed} のようにそえじを 1 ずらしてかくか、プログラムのはじめに「すべての配列の添字は 1 から始まる。」とかいてください（メニューの「そえじが 1 からはじまるもんだい」でかけます）。',
     'gui.genaiConcierge.lineOf': '{line} ぎょうめ',
     'gui.genaiConcierge.spriteLineOf': '「{sprite}」の {line} ぎょうめ',
     'gui.genaiConcierge.spriteOf': '「{sprite}」',

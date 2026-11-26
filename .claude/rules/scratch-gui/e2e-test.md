@@ -56,14 +56,16 @@ expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-furigana')).toBe(true);
 | `ruby-toolbar-auto-correct` | button | 自動置換トグル |
 | `ruby-toolbar-mode-furigana` | button | ふりがなモード |
 | `ruby-toolbar-mode-ruby` | button | Rubyモード |
-| `ruby-toolbar-read-mode` | button | 日本語タブの読むモード／書くモードの切りかえ（日本語タブのみ。`aria-pressed`） |
+| `ruby-toolbar-rules` | button | 日本語タブの「行番号と罫線」のスイッチ（読むモード／書くモード。日本語タブのみ。`role="switch"`・`aria-checked`） |
 | `ruby-toolbar-more-menu` | button | その他メニュー |
-| `ruby-toolbar-menu-download` | div | Rubyスクリプト保存 |
-| `ruby-toolbar-menu-insert-class` | div | クラス挿入 |
-| `ruby-toolbar-menu-preview` | div | プレビュー |
+| `ruby-toolbar-menu-download` | div | Rubyスクリプト保存（ルビータブのみ） |
+| `ruby-toolbar-menu-insert-class` | div | クラス挿入（ルビータブのみ） |
+| `ruby-toolbar-menu-preview` | div | プレビュー（日本語タブでは「ルビーに直したものを確認」） |
+| `ruby-toolbar-menu-download-japanese` | div | 日本語のプログラムを保存（.txt）。日本語タブのときだけ |
+| `ruby-toolbar-menu-settings-heading` | div | 見出し「問題の約束」。日本語タブのときだけ |
 | `ruby-toolbar-menu-auto-correct-settings` | div | 自動置換設定 |
-| `ruby-toolbar-menu-settings-pattern-example` | div | 設定: 例示の形（添字は 0 から）。日本語タブのときだけ |
-| `ruby-toolbar-menu-settings-pattern-index-from-one` | div | 設定: 添字が 1 から始まる問題。日本語タブのときだけ |
+| `ruby-toolbar-menu-settings-pattern-example` | div | 例示の形（添字は 0 から）。日本語タブのときだけ |
+| `ruby-toolbar-menu-settings-pattern-index-from-one` | div | 添字が 1 から始まる問題。日本語タブのときだけ |
 
 日本語モードは、ルビータブのボタンではなく**日本語タブ**（`gui-tab-japanese`）で開く（URL は `?tab=japanese`）。ルビータブのツールバーは、ふりがな・Ruby の 2 つ。
 
@@ -91,7 +93,7 @@ expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-furigana')).toBe(true);
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
-| `ruby-toolbar-prev-sprite` | button | 前のスプライト |
+| `ruby-toolbar-prev-sprite` | button | 前のスプライト（ルビータブのみ。日本語タブには出ない） |
 | `ruby-toolbar-next-sprite` | button | 次のスプライト |
 | `ruby-toolbar-sprite-search` | input | スプライト検索 |
 

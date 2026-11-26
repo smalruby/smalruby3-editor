@@ -1947,15 +1947,17 @@ export default {
     'gui.rubyTab.dnclStringArithmeticHint':
         '文字列と - * / を使うと、左から順に計算されます。"a" + x - 1 は、文字列 "a" + x から 1 を引きます。数の計算は "a" + (x - 1) のようにかっこで囲んでください。',
     'gui.rubyTab.dnclArrayIndexHint':
-        '{access} は配列の範囲外になります。スモウルビーの日本語では、配列の添字は 0 から始まります（最初の要素は {array}[0]、最後の要素は {array}[{last}]）。問題文で添字が 1 から始まるときは、{fixed} のように添字を 1 ずらして書くか、プログラムの冒頭に「すべての配列の添字は 1 から始まる。」と書いてください（メニューの「設定: 添字が 1 から始まる問題」で書けます）。',
+        '{access} は配列の範囲外になります。スモウルビーの日本語では、配列の添字は 0 から始まります（最初の要素は {array}[0]、最後の要素は {array}[{last}]）。問題文で添字が 1 から始まるときは、{fixed} のように添字を 1 ずらして書くか、プログラムの冒頭に「すべての配列の添字は 1 から始まる。」と書いてください（メニューの「添字が 1 から始まる問題」で書けます）。',
     'gui.rubyToolbar.copyProblemForm': '行番号と罫線つきでコピー',
-    'gui.rubyToolbar.readMode': '読む',
-    'gui.rubyToolbar.readModeOn': '読むモード（行番号と罫線で、問題と同じ形に見せる）',
-    'gui.rubyToolbar.readModeOff': '書くモードにもどす',
+    'gui.rubyToolbar.rulesSwitch': '行番号と罫線',
+    'gui.rubyToolbar.rulesSwitchTitle': '行番号と罫線を表示して、問題と同じ形で読む',
+    'gui.rubyToolbar.problemSettingsHeading': '問題の約束',
+    'gui.rubyToolbar.previewRubyOfJapanese': 'ルビーに直したものを確認',
+    'gui.rubyToolbar.saveJapaneseProgram': '日本語のプログラムを保存（.txt）',
     'gui.rubyTab.dnclIndexSettingConfirm':
         '貼り付けたプログラムには、配列の添字は 1 から始まると書いてあります。プログラムの冒頭に「すべての配列の添字は 1 から始まる。」と書いて、添字が 1 から始まる設定にしますか？',
-    'gui.rubyToolbar.settingsPatternExample': '設定: 例示の形（添字は 0 から）',
-    'gui.rubyToolbar.settingsPatternIndexFromOne': '設定: 添字が 1 から始まる問題',
+    'gui.rubyToolbar.settingsPatternExample': '例示の形（添字は 0 から）',
+    'gui.rubyToolbar.settingsPatternIndexFromOne': '添字が 1 から始まる問題',
     'gui.rubyTab.dnclForbiddenPrefixError': '日本語モードでは変数に「{name}」は使えません',
     'gui.rubyTab.dnclPostTestLoopError':
         '後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。',
@@ -2084,7 +2086,7 @@ export default {
     'gui.genaiConcierge.indexHintsTitle':
         '注意: 添字が 1 から始まっているかもしれません。スモウルビーの日本語では、配列の添字は 0 から始まります。',
     'gui.genaiConcierge.indexHint':
-        '{access} は配列の範囲外になります（最後の要素は {array}[{last}]）。問題文で添字が 1 から始まるときは、{fixed} のように添字を 1 ずらして書くか、プログラムの冒頭に「すべての配列の添字は 1 から始まる。」と書いてください（メニューの「設定: 添字が 1 から始まる問題」で書けます）。',
+        '{access} は配列の範囲外になります（最後の要素は {array}[{last}]）。問題文で添字が 1 から始まるときは、{fixed} のように添字を 1 ずらして書くか、プログラムの冒頭に「すべての配列の添字は 1 から始まる。」と書いてください（メニューの「添字が 1 から始まる問題」で書けます）。',
     'gui.genaiConcierge.lineOf': '{line} 行目',
     'gui.genaiConcierge.spriteLineOf': '「{sprite}」の {line} 行目',
     'gui.genaiConcierge.spriteOf': '「{sprite}」',

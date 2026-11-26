@@ -15,6 +15,7 @@ import analytics from '../lib/analytics';
 import { autoCorrect, defaultSettings as defaultAutoCorrectSettings } from '../lib/auto-correct';
 import collectMetadata from '../lib/collect-metadata.js';
 import { findArrayIndexHints } from '../lib/dncl/dncl-array-index-hint';
+import { dnclTextBlob, dnclTextFilename } from '../lib/dncl/dncl-download';
 import { slashCommentRows, tidyPastedDncl, withDoubleSlashHint } from '../lib/dncl/dncl-paste-tidy';
 import { problemFormText } from '../lib/dncl/dncl-problem-form';
 import { dnclWithSettingsPattern } from '../lib/dncl/dncl-settings';
@@ -30,6 +31,7 @@ import {
     UNSUPPORTED_NUMBER_ERROR_ID,
 } from '../lib/dncl/dncl-validator';
 import { rubyToDncl } from '../lib/dncl/ruby-to-dncl';
+import downloadBlob from '../lib/download-blob';
 import FuriganaAnnotator from '../lib/furigana-annotator';
 import { makeRubyTabAdapterFactory } from '../lib/genai-ruby-adapter.js';
 import { wrapCurrentCodeWithClass } from '../lib/insert-class';
@@ -686,6 +688,15 @@ const RubyTab = (props) => {
             handler();
         }
     }, [getSaveToComputerHandler]);
+
+    // Save the Japanese program as it is in the editor, as a text file in
+    // UTF-8 (Issue #2453).
+    const handleDownloadJapanese = useCallback(() => {
+        if (!editorRef.current) return;
+        const target = vm.editingTarget;
+        const spriteName = target ? target.sprite.name : 'sprite';
+        downloadBlob(dnclTextFilename(props.projectTitle, spriteName), dnclTextBlob(editorRef.current.getValue()));
+    }, [vm, props.projectTitle]);
 
     // The toggle of the toolbar: the read mode, or back to the write mode
     // (Issue #2380).
@@ -1426,7 +1437,7 @@ const RubyTab = (props) => {
                         {
                             id: 'gui.rubyTab.dnclArrayIndexHint',
                             defaultMessage:
-                                '{access} reads past the end of the array. In Smalruby Japanese mode, array indices start at 0 (the first element is {array}[0] and the last is {array}[{last}]). If the problem counts from 1, shift the index by 1, like {fixed}, or write "すべての配列の添字は 1 から始まる。" at the top of the program (the menu "Settings: a problem whose indices start at 1" writes it).',
+                                '{access} reads past the end of the array. In Smalruby Japanese mode, array indices start at 0 (the first element is {array}[0] and the last is {array}[{last}]). If the problem counts from 1, shift the index by 1, like {fixed}, or write "すべての配列の添字は 1 から始まる。" at the top of the program (the menu "A problem whose indices start at 1" writes it).',
                         },
                         hint,
                     ),
@@ -1794,6 +1805,7 @@ const RubyTab = (props) => {
                     editorRef={editorRef.current}
                     onSelectTarget={handleSelectTarget}
                     onDownload={handleDownload}
+                    onDownloadJapanese={handleDownloadJapanese}
                     onInsertClass={handleInsertClass}
                     onExecuteLine={handleExecuteLine}
                     onDismissBubble={handleDismissBubbleStable}
