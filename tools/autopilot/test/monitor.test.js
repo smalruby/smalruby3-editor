@@ -551,7 +551,7 @@ test('MONITOR_HTML: あなた宛ては動詞のボタン → 行の中の確か�
     assert.match(MONITOR_HTML, /for \(const n of w\.targets\) await delegateIssue\(n, btn\)/);
     // 「押すと」はいつも出し、状態の一文と「押すと」の #N は別タブのリンクにする
     assert.ok(MONITOR_HTML.includes("'<div class=\"fy-happens\"><b>押すと:</b> ' + lr(w.happens)"));
-    assert.ok(MONITOR_HTML.includes("'<div class=\"fy-state\">' + ep + lr(w.state)"));
+    assert.ok(MONITOR_HTML.includes("'<div class=\"fy-state\">' + lr(w.state)"));
     // 人間の番ではないものは最後にたたむ
     assert.ok(MONITOR_HTML.includes('data-testid="inbox-idle"'));
     const ha = require('../src/human-action');
@@ -563,4 +563,23 @@ test('MONITOR_HTML: monitor-inbox.js の純粋関数を verbatim で埋め込む
     for (const fn of inbox.INBOX_CLIENT_FNS) {
         assert.ok(MONITOR_HTML.includes(String(fn)), `${fn.name} should be embedded verbatim`);
     }
+});
+
+test('MONITOR_HTML: あなた宛ての行は 2 行。1 行目は種類の札と題名だけ（#2483）', () => {
+    // 1 行目: 種類の札と題名だけ（番号のリンク・ボタンを置かない）
+    const title = MONITOR_HTML.match(/'<div class="fy-title" data-testid="inbox-wait-title">' \+ ([^\n]*?) \+ '<\/div>'/);
+    assert.ok(title, 'fy-title の 1 行目がある');
+    assert.doesNotMatch(title[1], /ilink|acts-r|moreBtn|btn/);
+    assert.match(title[1], /^kindChip \+ tipTitle\('span', 'i:' \+ w\.issue/);
+    // 2 行目: 番号のリンク・優先度・親 EPIC・ボタン・「⋯」
+    const meta = MONITOR_HTML.indexOf('\'<div class="fy-meta" data-testid="inbox-wait-meta">\' + ilink(w.issue, w.url)');
+    assert.ok(meta > 0, 'fy-meta の 2 行目は番号のリンクから始まる');
+    const metaEnd = MONITOR_HTML.indexOf("'</span></div>'", meta);
+    const metaSrc = MONITOR_HTML.slice(meta, metaEnd);
+    for (const part of ['gprio', 'parentChip', "'<span class=\"acts-r\">' + btn + moreBtn(w.issue)"]) {
+        assert.ok(metaSrc.includes(part), part);
+    }
+    // 題名は 1 行目の幅いっぱい（行を 3 列の grid にしない）
+    assert.match(MONITOR_HTML, /\.fy-row \{ display: flex; flex-direction: column;/);
+    assert.doesNotMatch(MONITOR_HTML, /\.fy-row \{ display: grid/);
 });
