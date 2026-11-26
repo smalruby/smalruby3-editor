@@ -162,22 +162,26 @@ function selectReleaseCheckEntries(boardItems, opts = {}) {
  * - いちばん新しい round の結果（review）があり、まだ受けていない（result が無い）→ result
  * - いちばん新しい round の結果をもう受けた → collect（次の round。NG の sub-issue が済んで戻ってきた）
  * - 観点はあるが結果が無い（人間が結果を書かずに 🙋 を外した）→ collect（同じ round を書き直す）
- * - topic → develop の PR にまだ受けていない人間のレビュー・コメントがある（#2459）→ result。round は
- *   まだ受けていないモニターの結果があればその round、無ければいちばん新しい観点の round（観点がまだ無ければ 0）
+ * - topic → develop の PR にまだ受けていない人間のレビュー・コメントがある（#2459）→ result（`prOnly`）。
+ *   まだ受けていないモニターの結果があれば、その round で両方を受ける（`prOnly` は付かない）
+ *
+ * `prOnly` のとき、`round` は PR のレビューを受けたあとに続ける観点の round（上の collect と同じ値）。
+ * PR のレビューだけを受けた段は `autopilot-release-result` の目印を書かない: 書くと、人間がその round の
+ * モニターの結果をあとで書いても「もう受けた」と読まれて取りこぼす（受けた ref は sub-issue の本文と seen の目印に残る）。
  * @param {Array<{body?:string, user?:object}>} comments トラッカーの会話コメント
  * @param {{pendingPrFeedback?:number}} [opts] {@link selectPrFeedback} が選んだ数
- * @returns {{mode:'collect'|'result', round:number}}
+ * @returns {{mode:'collect'|'result', round:number, prOnly?:boolean}}
  */
 function releaseCheckMode(comments, opts = {}) {
     const check = maxRound(roundsOf(comments, CHECK_RE));
     const review = maxRound(roundsOf(comments, REVIEW_RE));
     const result = maxRound(roundsOf(comments, RESULT_RE));
-    const reviewPending = check > 0 && review >= check && result < review;
-    if (opts.pendingPrFeedback > 0) return { mode: 'result', round: reviewPending ? review : check };
-    if (check === 0) return { mode: 'collect', round: 1 };
-    if (reviewPending) return { mode: 'result', round: review };
-    if (result >= check) return { mode: 'collect', round: check + 1 };
-    return { mode: 'collect', round: check };
+    if (check > 0 && review >= check && result < review) return { mode: 'result', round: review };
+    let round = check;
+    if (check === 0) round = 1;
+    else if (result >= check) round = check + 1;
+    if (opts.pendingPrFeedback > 0) return { mode: 'result', round, prOnly: true };
+    return { mode: 'collect', round };
 }
 
 /**
@@ -393,7 +397,8 @@ function handledPrFeedbackRefs({ epic, existingBodies, comments }) {
 
 /**
  * topic → develop の PR の、人間のレビュー・行コメント・PR のコメントのうち、まだ受けていないものを選ぶ（純粋関数）。
- * - レビュー（`/pulls/N/reviews`）: 本文のあるもの。下書き（PENDING）は除く。本文の無い承認は直してほしいことではない
+ * - レビュー（`/pulls/N/reviews`）: 本文のあるもの。下書き（PENDING）と取り下げたもの（DISMISSED）は除く。
+ *   本文の無い承認は直してほしいことではない
  * - 行コメント（`/pulls/N/comments`）と PR のコメント（`/issues/N/comments`）: 本文のあるもの
  * - Bot のもの（autopilot のまとめ・CI のプレビューのコメントなど）は読まない
  * @param {{reviews?:object[], reviewComments?:object[], issueComments?:object[], handled?:Set<string>}} p GitHub REST の形
@@ -415,7 +420,7 @@ function selectPrFeedback({ reviews, reviewComments, issueComments, handled }) {
         });
     };
     for (const r of reviews || []) {
-        if (!r || r.state === 'PENDING') continue;
+        if (!r || r.state === 'PENDING' || r.state === 'DISMISSED') continue;
         push('review', r, { state: r.state || null });
     }
     for (const c of reviewComments || []) {

@@ -171,6 +171,7 @@ const prReviews = [
     { id: 7001, user: human, state: 'APPROVED', body: '' }, // 本文の無い承認は直してほしいことではない
     { id: 7002, user: bot, state: 'COMMENTED', body: '<!-- autopilot-review-findings round=1 -->' },
     { id: 7003, user: human, state: 'PENDING', body: '下書き' },
+    { id: 7004, user: human, state: 'DISMISSED', body: '取り下げた' },
 ];
 const prReviewComments = [
     { id: 8001, user: human, body: 'ここは「，」にそろえる', path: 'docs/dncl/policy.md', line: 12, pull_request_review_id: 6073229022 },
@@ -213,17 +214,20 @@ test('handledPrFeedbackRefs: sub-issue の本文と、トラッカーの bot の
 test('releaseCheckMode: topic → develop の PR にまだ受けていない人間のレビューがあれば、結果を受ける段にする（#2459）', () => {
     const c = (body) => ({ id: Math.random(), body, user: bot });
     const check1 = c(rc.releaseCheckMarker(1));
-    assert.deepEqual(rc.releaseCheckMode([check1], { pendingPrFeedback: 2 }), { mode: 'result', round: 1 });
+    assert.deepEqual(rc.releaseCheckMode([check1], { pendingPrFeedback: 2 }), { mode: 'result', round: 1, prOnly: true });
     assert.deepEqual(rc.releaseCheckMode([check1], { pendingPrFeedback: 0 }), { mode: 'collect', round: 1 });
     // モニターの結果もあれば、その round で両方を受ける
     const review1 = c(rc.releaseReviewMarker(1));
     assert.deepEqual(rc.releaseCheckMode([check1, review1], { pendingPrFeedback: 1 }), { mode: 'result', round: 1 });
-    // 受けた後に人間が新しいレビューを書いた → 同じ観点の round の結果としてもう一度受ける
+    // 受けた後に人間が新しいレビューを書いた → 受けた round を読み直さず、PR のレビューだけを受けて次の round へ
     const result1 = c(rc.releaseResultMarker(1));
-    assert.deepEqual(rc.releaseCheckMode([check1, review1, result1], { pendingPrFeedback: 1 }), { mode: 'result', round: 1 });
-    // 観点をまとめる前でも受ける（round 0 = 観点の前に受けた PR のレビュー）
-    assert.deepEqual(rc.releaseCheckMode([], { pendingPrFeedback: 1 }), { mode: 'result', round: 0 });
-    assert.deepEqual(rc.releaseCheckMode([c(rc.releaseResultMarker(0))]), { mode: 'collect', round: 1 }, 'round 0 の結果で次が進まなくならない');
+    assert.deepEqual(rc.releaseCheckMode([check1, review1, result1], { pendingPrFeedback: 1 }), { mode: 'result', round: 2, prOnly: true });
+    // 観点をまとめる前でも受ける
+    assert.deepEqual(rc.releaseCheckMode([], { pendingPrFeedback: 1 }), { mode: 'result', round: 1, prOnly: true });
+    // PR のレビューだけを受けた段は結果の目印を書かない（seen の目印だけ）。あとで人間がその round の
+    // モニターの結果を書いても取りこぼさない
+    const seen = c(rc.releasePrSeenMarker(['comment-9001']));
+    assert.deepEqual(rc.releaseCheckMode([check1, seen, review1]), { mode: 'result', round: 1 });
 });
 
 test('planReleaseResult: PR のレビューも直してほしいことの候補として返す（#2459）', () => {

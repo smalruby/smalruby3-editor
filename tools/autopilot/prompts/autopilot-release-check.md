@@ -23,15 +23,16 @@ topic → develop の PR に人間が直接書いたレビュー・コメント�
 REPO="${AUTOPILOT_REPO:-smalruby/smalruby3-editor}"
 N="$AUTOPILOT_ISSUE"
 GH_TOKEN="$(bin/bot-token)" gh issue view "$N" --repo "$REPO" --json title,body,labels
-GH_TOKEN="$(bin/bot-token)" gh api "repos/$REPO/issues/$N/comments" --paginate > tmp/release-check-comments-$N.json
+GH_TOKEN="$(bin/bot-token)" gh api "repos/$REPO/issues/$N/comments" --paginate | jq -s 'add // []' > tmp/release-check-comments-$N.json
 # EPIC の sub-issue の本文（目印で、受けたものを二重に受けない）。topic ブランチは本文の行頭の autopilot-base: の値
-GH_TOKEN="$(bin/bot-token)" gh api "repos/$REPO/issues/$N/sub_issues" --paginate > tmp/release-check-subs-$N.json
+GH_TOKEN="$(bin/bot-token)" gh api "repos/$REPO/issues/$N/sub_issues" --paginate | jq -s 'add // []' > tmp/release-check-subs-$N.json
+# --paginate は 30 件ごとに別の配列を続けて出す（`[..][..]`。JSON として読めない）ので、jq -s 'add' で 1 つにする
 # topic → develop の open な PR（無ければ PR の 3 ファイルは [] にする）
 GH_TOKEN="$(bin/bot-token)" gh pr list --repo "$REPO" --base develop --head <topic> --state open --json number,url
 PR=<PR の番号>
-GH_TOKEN="$(bin/bot-token)" gh api "repos/$REPO/pulls/$PR/reviews" --paginate > tmp/release-check-pr-reviews-$N.json
-GH_TOKEN="$(bin/bot-token)" gh api "repos/$REPO/pulls/$PR/comments" --paginate > tmp/release-check-pr-review-comments-$N.json
-GH_TOKEN="$(bin/bot-token)" gh api "repos/$REPO/issues/$PR/comments" --paginate > tmp/release-check-pr-comments-$N.json
+GH_TOKEN="$(bin/bot-token)" gh api "repos/$REPO/pulls/$PR/reviews" --paginate | jq -s 'add // []' > tmp/release-check-pr-reviews-$N.json
+GH_TOKEN="$(bin/bot-token)" gh api "repos/$REPO/pulls/$PR/comments" --paginate | jq -s 'add // []' > tmp/release-check-pr-review-comments-$N.json
+GH_TOKEN="$(bin/bot-token)" gh api "repos/$REPO/issues/$PR/comments" --paginate | jq -s 'add // []' > tmp/release-check-pr-comments-$N.json
 node -e '
 const fs = require("fs");
 const rc = require("./tools/autopilot/src/release-check");
@@ -46,7 +47,9 @@ console.log(JSON.stringify({ ...rc.releaseCheckMode(comments, { pendingPrFeedbac
 ```
 
 - `{"mode":"collect","round":N}` → **1. 観点をまとめる**
-- `{"mode":"result","round":N}` → **2. 結果を受ける**（モニターの結果か、PR のまだ受けていないレビュー・コメントがある）
+- `{"mode":"result","round":N}` → **2. 結果を受ける**（その round のモニターの結果。PR のまだ受けていないレビュー・コメントも一緒に受ける）
+- `{"mode":"result","round":N,"prOnly":true}` → **2. 結果を受ける**（PR のレビュー・コメントだけ。`review` は null。
+  `round` は、受けたあとに続ける観点の round）
 - 読むのは**人間の**ものだけ（Bot のまとめ・CI のプレビューのコメントは `selectPrFeedback` が除く）。
   段に入る合図はトラッカーの 🙋 を外したときだけ（PR の 🙋 は合図にしない）。子が残っているあいだに書かれた
   レビューも、ここで未対応のものとして拾う。
@@ -97,8 +100,8 @@ console.log(JSON.stringify({ ...rc.releaseCheckMode(comments, { pendingPrFeedbac
 
 ## 2. 結果を受ける（result）
 
-1. その round の結果のコメント（`<!-- autopilot-release-review round=N -->`）を `parseReleaseReview` で読み（無ければ
-   `review` は null。PR のレビューだけを受けるとき）、
+1. その round の結果のコメント（`<!-- autopilot-release-review round=N -->`）を `parseReleaseReview` で読み（`prOnly` の
+   ときは読まず `review` は null）、
    `planReleaseResult({epic, round, review, points, existingBodies, prFeedback})` で計画する（`points` は同じ round の観点の
    コメントを `parseReleaseCheckPoints`、`existingBodies` は EPIC の sub-issue の本文、`prFeedback` は 0. で書いた
    `tmp/release-check-pr-feedback-<N>.json`）。
@@ -117,18 +120,24 @@ console.log(JSON.stringify({ ...rc.releaseCheckMode(comments, { pendingPrFeedbac
      元のレビュー・コメントの URL（`url`）と、行コメントならファイルと行（`path` / `line`）を書く。
    - 直すことが無いもの（承認・感想・質問への答えだけ）は sub-issue にしない。その ref は 4. の結果のコメントに
      `releasePrSeenMarker(refs)` の目印（`<!-- autopilot-release-pr-seen refs=... -->`）で残す（次から読まない）。
+   - 同じことを直す sub-issue が既にあれば（目印の無い、人間や AI が手で作ったものも EPIC の sub-issue の一覧から探す）、
+     新しく作らない。その ref は seen の目印に入れ、結果のコメントに既にある sub-issue の番号を書く。
    - 仕様の選択が要るもの（どう直すか決まらない）は、sub-issue の本文に選択肢と AI のおすすめを書いて作る。
 4. 結果を受けたことをトラッカーに書く（`<!-- autopilot-release-result round=N -->` で始め、作った sub-issue の一覧か
    「全部 OK」、受けた PR のレビュー・コメントの一覧）。同じ round のものがあれば PATCH する。PATCH するときは、前に
    書いた `autopilot-release-pr-seen` の行を消さずに残し、新しい ref を足す。
+   - **`prOnly` のときは `autopilot-release-result` の目印を書かない**（書くと、その round のモニターの結果をあとで
+     人間が書いても「もう受けた」と読まれて取りこぼす・`releaseCheckMode`）。新しいコメントに、1 行目に
+     `releasePrSeenMarker(refs)`（直すことが無かった ref が無ければ省く）、続けて受けた PR のレビュー・コメントと
+     作った sub-issue の一覧を書く。
 5. 結果:
    - **NG・PR のレビューから sub-issue を作った** → 子を待つ（済んだら daemon が次の round のリリース確認に入れる）:
      `{"signal":"done","hitl":false,"nextAiStatus":"EPIC Decomposed","createdSubIssues":[<番号>...], ...}`
    - **全部 OK**（作るものが無い）→ topic → develop の PR の本文を更新する（入っている sub-issue・確認の結果・プレビュー）。
      draft は外さない・マージしない。トラッカーに「develop へのマージと EPIC の Close は人間」と書いて人間に返す:
      `{"signal":"done","hitl":true,"nextAiStatus":"Release Check", ...}`
-   - round 0（観点をまとめる前に PR のレビューだけを受けた）で作るものが無かったときは、続けて **1. 観点をまとめる**
-     （round 1）を行い、その結果を返す。
+   - **`prOnly` で作るものが無かった**ときは「全部 OK」にしない（人間はまだその round の観点を確かめていない）。
+     続けて **1. 観点をまとめる**（0. の `round`）を行い、その結果を返す。
 
 ## 結果ファイルの書き方
 
