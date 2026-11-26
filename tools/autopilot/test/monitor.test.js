@@ -400,6 +400,46 @@ test('monitorHtmlWithToken: 合言葉を meta に埋め、書き込みの fetch 
     assert.throws(() => monitorHtmlWithToken('"><script>'), /token/);
 });
 
+test('monitor の fetch の包み: 合言葉が古い 403 なら、ページから読み直して 1 回だけやり直す（daemon の再起動をまたいだページ）', async () => {
+    const { monitorHtmlWithToken } = require('../src/monitor');
+    const html = monitorHtmlWithToken('a'.repeat(64));
+    const start = html.indexOf('(() => {\n  const meta = document.querySelector');
+    const wrapper = html.slice(start, html.indexOf('})();', start) + 5);
+    const fresh = 'b'.repeat(64);
+    const sent = [];
+    const metaEl = { content: 'a'.repeat(64) };
+    const reply = (status, body) => ({
+        status, ok: status < 400,
+        clone() { return this; },
+        json: async () => body,
+        text: async () => body,
+    });
+    const origFetch = async (input, opts = {}) => {
+        if (input === '/') return reply(200, `<meta name="autopilot-token" content="${fresh}">`);
+        const tok = opts.headers.get('X-Autopilot-Token');
+        sent.push(tok);
+        return tok === fresh ? reply(200, { ok: true }) : reply(403, { error: 'forbidden: token' });
+    };
+    const win = { fetch: origFetch };
+    const doc = {
+        querySelector: () => metaEl,
+        createElement: () => ({ remove() {} }),
+        getElementById: () => ({ appendChild() {} }),
+        body: { appendChild() {} },
+    };
+    // eslint-disable-next-line no-new-func
+    new Function('window', 'document', 'location', 'Headers', 'URL', 'setTimeout', wrapper)(
+        win, doc, { href: 'http://localhost:8787/', origin: 'http://localhost:8787' }, Headers, URL, () => {},
+    );
+    const res = await win.fetch('/delegate?issue=1', { method: 'POST' });
+    assert.equal(res.status, 200);
+    assert.deepEqual(sent, ['a'.repeat(64), fresh]);
+    assert.equal(metaEl.content, fresh);
+    // 2 回目からは新しい合言葉をそのまま使う（読み直さない）
+    await win.fetch('/pause', { method: 'POST' });
+    assert.deepEqual(sent.slice(2), [fresh]);
+});
+
 test('MONITOR_HTML: 色は :root の --ap-* トークンで持ち、CSS に 16 進の直書きを残さない（EPIC #2384）', () => {
     const style = MONITOR_HTML.match(/<style>([\s\S]*?)<\/style>/)[1];
     const root = style.match(/:root \{[\s\S]*?\n {2}\}/)[0];
