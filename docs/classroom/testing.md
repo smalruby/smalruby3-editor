@@ -632,6 +632,15 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-eval-counts` | div | 右の上の人数 |
 | `classroom-eval-count-notSubmitted` / `-drafts` / `-confirmed` / `-returned` | div | 未提出・AI の案・確定・返却済みの数（読み込む前の未提出は「—」） |
 | `classroom-eval-tab-rubric` / `classroom-eval-tab-student` | button (tab) | 右の［基準］［生徒］（`aria-selected`。作品を出さないレッスンの課題では出さない） |
+| `classroom-eval-tab-shape` | button (tab) | 右の［形］（形の札でまとめて採点。`aria-selected`） |
+| `classroom-eval-shapes` | div | ［形］の一覧 |
+| `classroom-eval-shape-<i>` | li | 形（人数の多い順に 0 から）。札・人数・いまの評価 |
+| `classroom-eval-shape-mixed-<i>` | span | 「同じ形なのに評価が分かれています」 |
+| `classroom-eval-shape-grade-<i>` / `classroom-eval-shape-apply-<i>` | select / button | 「この形は」の評価と［{n} 人にまとめて付ける］ |
+| `classroom-eval-shape-works-<i>` | summary | ［作品を見る（n）］ |
+| `classroom-eval-shape-work-<seat>` | button | 形の中の作品（押すと［生徒］で開く） |
+| `classroom-eval-shape-tags` | div | ［生徒］の形の札 |
+| `classroom-eval-same-shape-<seat>` | button | ［生徒］の「同じ形の作品」の席 |
 | `classroom-eval-rubric-pane` | div | ［基準］の中身（課題の説明・基準・採点の観点と厳しさ） |
 | `classroom-eval-description` | p | 課題の説明（AI に渡す。無ければその旨） |
 | `classroom-eval-rubric-levels` | table | 課題の基準（S/A/B/C の文） |

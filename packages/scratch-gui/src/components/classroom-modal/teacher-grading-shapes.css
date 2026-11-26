@@ -1,0 +1,189 @@
+/* ［形］のタブ（形の札でまとめて採点）。色はデザインシステムのトークン（docs/design-system/tokens.md）。
+   札の色: できていること = 緑、見てほしいこと = 確認の色（赤は使わない・R4）、部品 = 青、数 = 灰色。 */
+@import '../../css/smalruby-tokens.css';
+
+.shapes {
+    display: flex;
+    flex-direction: column;
+    gap: $space-small;
+}
+
+.lead {
+    margin: 0;
+    color: $color-text-muted;
+    font-size: $font-size-small;
+}
+
+.groups {
+    display: flex;
+    flex-direction: column;
+    gap: $space-small;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.group {
+    border: 1px solid $color-border;
+    border-radius: $radius-small;
+    background-color: $color-surface;
+}
+
+.group-mixed {
+    border-color: $color-confirm-text;
+}
+
+.group-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.4rem 0.8rem;
+    padding: 0.5rem 0.6rem;
+}
+
+.group-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.group-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem 0.8rem;
+    color: $color-text-muted;
+    font-size: $font-size-small;
+}
+
+.mixed {
+    color: $color-confirm-text;
+    font-weight: $font-weight-bold;
+}
+
+.group-action {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.grade-label {
+    color: $color-text;
+    font-size: $font-size-small;
+}
+
+.tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+}
+
+.tag {
+    padding: 0.05rem 0.5rem;
+    border-radius: 999px;
+    font-size: $font-size-small;
+    white-space: nowrap;
+}
+
+.tags-small .tag {
+    padding: 0 0.4rem;
+    font-size: 0.7rem;
+}
+
+.tag-good {
+    background-color: $color-success-background;
+    color: $color-success;
+}
+
+.tag-note {
+    background-color: $color-confirm-background;
+    color: $color-confirm-text;
+}
+
+.tag-part {
+    background-color: $color-seat-joined;
+    color: $color-seat-joined-text;
+}
+
+.tag-number {
+    background-color: $color-seat-not-started;
+    color: $color-seat-not-started-text;
+}
+
+.works > summary {
+    padding: 0.35rem 0.6rem;
+    border-top: 1px solid $color-border;
+    color: $color-action;
+    font-size: $font-size-small;
+    cursor: pointer;
+}
+
+.work-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+    gap: 0.4rem;
+    margin: 0;
+    padding: 0.4rem 0.6rem 0.6rem;
+    list-style: none;
+}
+
+.work {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    min-width: 0;
+    padding: 0.4rem;
+    border: 1px solid $color-border;
+    border-radius: $radius-small;
+}
+
+.work-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: $color-action;
+    font-weight: $font-weight-bold;
+    cursor: pointer;
+}
+
+.code {
+    max-height: 10rem;
+    margin: 0;
+    padding: 0.3rem;
+    overflow: auto;
+    border-radius: $radius-small;
+    background-color: $color-background;
+    color: $color-text;
+    font-size: 0.7rem;
+    line-height: 1.4;
+    white-space: pre;
+}
+
+/* 席の一覧の色の点（札の種類）。 */
+.dots {
+    display: inline-flex;
+    gap: 0.15rem;
+}
+
+.dot {
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+}
+
+.dot-good {
+    background-color: $color-success;
+}
+
+.dot-note {
+    background-color: $color-confirm-text;
+}
+
+.dot-part {
+    background-color: $color-seat-joined-text;
+}

@@ -115,8 +115,11 @@ const carryOverExamples = ({
 };
 
 /**
- * Works of the same shape that got different grades.
- * @param {Array<{seatNumber: number, added: string[], grade: ?string}>} works - graded works
+ * Works of the same shape that got different grades. A work may bring its own
+ * shape (`shape`, the key of its shape tags, shape-tags.js); otherwise its
+ * added scripts without numbers are compared. The tags tell 「サーボを 90 度と
+ * 0 度で切りかえ」 from 「どちらも 90 度」, which the number-less scripts do not.
+ * @param {Array<{seatNumber: number, added: string[], grade: ?string, shape: ?string}>} works - graded works
  * @returns {Array<{signature: string, seatNumbers: number[], grades: string[]}>} one entry per shape
  *   whose works do not all have the same grade; seats and grades sorted
  */
@@ -124,7 +127,7 @@ const inconsistentShapes = (works) => {
     const byShape = new Map();
     for (const work of works || []) {
         if (!work || !GRADES.includes(work.grade)) continue;
-        const signature = shapeSignature(work.added);
+        const signature = typeof work.shape === 'string' ? work.shape : shapeSignature(work.added);
         if (!byShape.has(signature)) byShape.set(signature, []);
         byShape.get(signature).push(work);
     }

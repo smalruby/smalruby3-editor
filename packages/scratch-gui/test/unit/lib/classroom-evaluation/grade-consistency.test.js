@@ -136,6 +136,16 @@ describe('inconsistentShapes', () => {
     });
 });
 
+describe('seatsToReview with shape tags', () => {
+    test('uses the shape of the tags when a work brings one', () => {
+        const works = [
+            { seatNumber: 30, added: ['a 0'], shape: 'switch', grade: 'A' },
+            { seatNumber: 37, added: ['a 90'], shape: 'same', grade: 'B' },
+        ];
+        expect(seatsToReview(works)).toEqual([]);
+    });
+});
+
 describe('seatsToReview', () => {
     test('marks the AI grades of an inconsistent shape, not the teacher’s', () => {
         const works = [
