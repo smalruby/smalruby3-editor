@@ -108,6 +108,17 @@ test('humanWaitReason: 🙋 の item の理由を 1 つに決める', () => {
     assert.strictEqual(humanWaitReason({ status: 'In Progress', aiStatus: 'Decomposing', hitlLabel: true }), 'other');
 });
 
+test('humanWaitReason: 「すること」と同じ分け方で、そのほか を減らす（#2466）', () => {
+    const r = (it) => humanWaitReason(Object.assign({ hitlLabel: true }, it));
+    assert.strictEqual(r({ status: 'Sprint Backlog', labels: ['🚀 after-release'] }), 'waiting');
+    assert.strictEqual(r({ status: 'In Progress', aiStatus: 'Awaiting Continuation' }), 'continue');
+    assert.strictEqual(r({ status: 'In Progress', aiStatus: 'EPIC Decomposed', kind: 'EPIC' }), 'epic');
+    assert.strictEqual(r({ status: 'In Progress', labels: ['🧭 tracking'] }), 'epic');
+    assert.strictEqual(r({ status: 'Sprint Backlog', kind: 'Issue' }), 'go');
+    assert.strictEqual(r({ status: 'Backlog', kind: 'EPIC' }), 'decompose');
+    assert.strictEqual(r({ status: 'Backlog', kind: 'Issue' }), 'hand');
+});
+
 test('humanWaitReason: 🙋 が無ければ依存待ちだけを返し、ほかは null', () => {
     assert.strictEqual(humanWaitReason({ status: 'Sprint Backlog', hitlLabel: false, labels: [WAITING_LABEL] }), 'waiting');
     assert.strictEqual(humanWaitReason({ status: 'Backlog', aiStatus: 'Discussing', hitlLabel: false }), null);
@@ -117,7 +128,8 @@ test('humanWaitReason: 🙋 が無ければ依存待ちだけを返し、ほか�
 });
 
 test('HUMAN_WAIT_REASONS: humanWaitReason の全理由を表示順で持つ', () => {
-    assert.deepStrictEqual(HUMAN_WAIT_REASONS.map((r) => r.key), ['spike', 'review', 'dod', 'release', 'blocked', 'waiting', 'other']);
+    assert.deepStrictEqual(HUMAN_WAIT_REASONS.map((r) => r.key),
+        ['spike', 'review', 'dod', 'release', 'blocked', 'waiting', 'continue', 'epic', 'go', 'decompose', 'hand', 'other']);
     for (const r of HUMAN_WAIT_REASONS) assert.ok(r.icon && r.label && r.detail, r.key);
 });
 

@@ -20,14 +20,10 @@
  * I/O・時計を持ち込まない。phases.js を require する側（phases.js からは require しない・循環させない）。
  */
 
-const { TRACKING_LABEL, TERMINAL_STATUSES, RELEASE_CHECK_AI_STATUS, extractPreviewUrl } = require('./phases');
-
-/**
- * 「リリース後の作業」の sub-issue に人間（または decompose）が付けるラベル。これだけが残っていれば、
- * 子が全部済んだとみなしてリリース確認に入る。本文のディレクティブにしなかったのは、ボードが既に
- * 持っているラベルで判定でき、sub-issue の本文を読みに行かなくて済むから（API 予算・github-api.md）。
- */
-const AFTER_RELEASE_LABEL = '🚀 after-release';
+// AFTER_RELEASE_LABEL は人間待ちの理由（phases.js の humanWaitReason）でも使うので phases.js に置く
+const {
+    TRACKING_LABEL, TERMINAL_STATUSES, RELEASE_CHECK_AI_STATUS, AFTER_RELEASE_LABEL, extractPreviewUrl,
+} = require('./phases');
 
 /** 目印の正規表現（round を捕捉する） */
 const CHECK_RE = /<!--\s*autopilot-release-check\s+round=(\d+)\s*-->/;
