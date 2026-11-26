@@ -913,7 +913,7 @@ daemon の `GET /`（既定 `http://localhost:8787/`）は、人間と同意し�
   | 🧭 EPIC で、子に Sprint Backlog + 🙋 がある | ゴーサイン（EPIC にまとめる） | N 件の実装を始めてもらう | 子 N 件の 🙋 を外す（子ごとに `POST /delegate`）。子の行は重ねない |
   | Awaiting Continuation | ゴーサイン | 続きを始めてもらう | 🙋 を外す |
   | Backlog + 🙋（EPIC・未分解） | 分解を始めるか決める | 分解を始めてもらう | Sprint Backlog へ動かす（`POST /delegate`） |
-  | Backlog + 🙋（Issue） | 人間の作業 | 済んだ | Issue を開く。済んだら GitHub で閉じる |
+  | Backlog + 🙋（Issue） | 人間の作業 | Issue を開く | Issue を開く（閉じない）。済んだら GitHub で閉じる |
 
   行は 優先度・題・`#番号`・状態の一文（EPIC の子には札「EPIC #N」）・「押すと: …」・動詞のボタン・「⋯」。
   ボタンを押すと行の中で「これを行います: …」と確かめ、「行う」で初めて行う。前の「AI に任せる」「AI に直してもらう」

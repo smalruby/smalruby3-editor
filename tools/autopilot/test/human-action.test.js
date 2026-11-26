@@ -88,7 +88,7 @@ test('humanAction: 状態ごとの すること・ボタン・押すと', () => 
     // 未分解の EPIC は分解、Backlog の Issue は人間の作業
     assert.strictEqual(a({ status: 'Backlog', kind: 'EPIC' }).kind, 'decompose');
     r = a({ status: 'Backlog', kind: 'Issue' });
-    assert.deepStrictEqual([r.kind, r.button, r.act], ['hand', '済んだ', 'open']);
+    assert.deepStrictEqual([r.kind, r.button, r.act], ['hand', 'Issue を開く', 'open']);
     // 相談中は答える。⏳ 待ちと動いているものは人間の番ではない
     assert.strictEqual(a({ status: 'Backlog', aiStatus: 'Discussing' }).kind, 'answer');
     assert.strictEqual(a({ status: 'Sprint Backlog', waiting: true }).kind, 'idle');

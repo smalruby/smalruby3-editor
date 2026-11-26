@@ -106,7 +106,7 @@ function humanAction(it, ctx) {
             'まだ分解していない EPIC', 'delegate', null, [it.issue]);
     }
     if (s === 'Backlog') {
-        return r('hand', '済んだ', 'Issue を開く。済んだら GitHub で閉じる', '人間が行う作業', 'open', issueUrl);
+        return r('hand', 'Issue を開く', 'Issue を開く。済んだら GitHub で閉じる', '人間が行う作業', 'open', issueUrl);
     }
     // 🙋 を外せない（planDelegate が受けない）ときはゴーサインにしない。押しても失敗するだけなので、Issue を見てもらう
     if (s === 'Sprint Backlog' && it.hitl && !(it.delegate && it.delegate.ok === false)) {
