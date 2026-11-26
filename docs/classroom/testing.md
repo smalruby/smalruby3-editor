@@ -679,6 +679,11 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-overall-open-{classroomId}` | button | 確定していない課題へのリンク（その課題の採点を開く） |
 | `classroom-overall-loading` / `classroom-overall-no-columns` / `classroom-overall-no-seats` | p | 読み込み中 / 課題が入っていない / 採点した席が無い |
 | `classroom-overall-table` | table | 結果の表（`classroom-overall-row-{seat}`・`classroom-overall-average-{seat}`・`classroom-overall-grade-{seat}`） |
+| `classroom-overall-chart` | div | 表の上の分布のグラフ（#2458） |
+| `classroom-overall-chart-sab` | span | S+A+B の人数と %（`data-ok`。75% 未満で `false`） |
+| `classroom-overall-chart-band` / `classroom-overall-chart-band-before` | div | 100% の積み上げ帯（いま / 開いたときの薄い帯）。中の `-{S\|A\|B\|C}` が評価ごとの部分（`data-count`・人数 0 の評価は出さない） |
+| `classroom-overall-chart-dots` / `classroom-overall-chart-dot-{seat}` | div / span | 平均の点の分布の枠 / 席ごとの点 |
+| `classroom-overall-chart-cut-{S\|A\|B}` | div | 区切りの線（`role="slider"`・ドラッグか矢印のキーで動かす） |
 | `classroom-eval-detail-title` | h3 | 右の列の見出し「出席番号 NN」 |
 | `classroom-eval-detail-lesson` | span | 右の列の課題名 |
 | `classroom-eval-detail-open-work` | button | 右の列の課題名の右の［作品を開く］。選んだ席の作品をエディタで開き、クラス管理を閉じる（課題の詳細の［スモウルビーで開く］と同じ処理）。採点の下書きについては確かめずに開く（採点の画面は隠して残る・下の戻る帯）。エディタに保存していない変更があれば `classroom-teacher-open-work-confirm-box` を先に出す。開いている間は押せず「開いています…」と出す |

@@ -103,6 +103,16 @@ $color-step-now: $color-action;
 $color-step-done: $color-seat-submitted;
 $color-step-todo: $color-border;
 
+/* 評価 S/A/B/C のグラフの色（総合評価の積み上げ帯と点・teacher-overall-chart.jsx・#2458）。
+   S → C の順の評価なので、操作の青の 1 色の濃さで並べる（赤は使わない・R4）。
+   S・A の地には白い文字（白に 8.7:1 / 4.7:1）、B・C の地には濃い紺の文字（7.3:1 / 11:1） */
+$color-grade-s: #1e4a8c;
+$color-grade-a: $color-action;
+$color-grade-b: #9dbce8;
+$color-grade-c: #dbe6f6;
+$color-grade-on-dark: #ffffff;
+$color-grade-on-light: #1a2a4a;
+
 /* クラスの色の帯（クラス管理のカード・クラスの見出し）は、クラスごとに画面の側で決める。
    値は JS（src/lib/classroom-class-color.js の CLASS_COLORS）が正。CSS には置かない */
 

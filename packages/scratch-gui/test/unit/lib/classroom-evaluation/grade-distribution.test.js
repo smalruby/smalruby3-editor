@@ -9,8 +9,8 @@ import {
 } from '../../../../src/lib/classroom-evaluation/grade-distribution.js';
 
 describe('GRADE_TARGETS: 目安の数字', () => {
-    test('S は 5〜25%、S+A は 75% 以上', () => {
-        expect(GRADE_TARGETS).toEqual({ sMin: 5, sMax: 25, saMin: 75 });
+    test('S は 5〜25%、S+A は 75% 以上、総合評価の S+A+B は 75% 以上', () => {
+        expect(GRADE_TARGETS).toEqual({ sMin: 5, sMax: 25, saMin: 75, sabMin: 75 });
     });
 });
 
@@ -21,6 +21,12 @@ describe('gradeDistribution: 人数と %', () => {
         expect(d.graded).toBe(10);
         expect(d.sa).toEqual({ count: 8, percent: 80, ok: true });
         expect(d.s).toEqual({ count: 2, percent: 20, ok: true });
+    });
+
+    test('S+A+B の人数と %。75% に届かなければ注意 (#2458・F7)', () => {
+        expect(gradeDistribution({ S: 1, A: 2, B: 5, C: 2 }).sab).toEqual({ count: 8, percent: 80, ok: true });
+        expect(gradeDistribution({ S: 1, A: 2, B: 3, C: 4 }).sab).toEqual({ count: 6, percent: 60, ok: false });
+        expect(gradeDistribution({ S: 0, A: 0, B: 0, C: 0 }).sab).toEqual({ count: 0, percent: null, ok: true });
     });
 
     test('S+A が 75% に届かなければ注意', () => {

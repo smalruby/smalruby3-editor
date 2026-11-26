@@ -11,8 +11,9 @@ import { GRADES, gradeCounts } from './gradebook.js';
 /**
  * The targets (percent, F6): S is aimed at 5–25% of the graded seats, and S+A at
  * 75% or more. Out of them, the band turns to the attention colour.
+ * The overall grade aims S+A+B at 75% or more (F7, #2458).
  */
-const GRADE_TARGETS = Object.freeze({ sMin: 5, sMax: 25, saMin: 75 });
+const GRADE_TARGETS = Object.freeze({ sMin: 5, sMax: 25, saMin: 75, sabMin: 75 });
 
 const percentOf = (count, total) => (total > 0 ? Math.round((count / total) * 100) : null);
 
@@ -22,10 +23,11 @@ const percentOf = (count, total) => (total > 0 ? Math.round((count / total) * 10
  * marked as below the 5–25% aim (1 S of 21 is 4.76%).
  * With no grade yet, there is no share and nothing to warn about.
  * @param {{S: number, A: number, B: number, C: number}} counts - seats per grade
- * @param {{sMin: number, sMax: number, saMin: number}} [targets] - the targets in percent
+ * @param {{sMin: number, sMax: number, saMin: number, sabMin: number}} [targets] - the targets in percent
  * @returns {{counts: object, graded: number,
  *     sa: {count: number, percent: ?number, ok: boolean},
- *     s: {count: number, percent: ?number, ok: boolean}}} the distribution
+ *     s: {count: number, percent: ?number, ok: boolean},
+ *     sab: {count: number, percent: ?number, ok: boolean}}} the distribution
  */
 const gradeDistribution = (counts, targets = GRADE_TARGETS) => {
     const graded = GRADES.reduce((sum, grade) => sum + (counts[grade] || 0), 0);
@@ -33,6 +35,8 @@ const gradeDistribution = (counts, targets = GRADE_TARGETS) => {
     const sCount = counts.S || 0;
     const saPercent = percentOf(saCount, graded);
     const sPercent = percentOf(sCount, graded);
+    const sabCount = saCount + (counts.B || 0);
+    const sabPercent = percentOf(sabCount, graded);
     return {
         counts: { S: counts.S || 0, A: counts.A || 0, B: counts.B || 0, C: counts.C || 0 },
         graded,
@@ -45,6 +49,11 @@ const gradeDistribution = (counts, targets = GRADE_TARGETS) => {
             count: sCount,
             percent: sPercent,
             ok: sPercent === null || (sPercent >= targets.sMin && sPercent <= targets.sMax),
+        },
+        sab: {
+            count: sabCount,
+            percent: sabPercent,
+            ok: sabPercent === null || sabPercent >= targets.sabMin,
         },
     };
 };

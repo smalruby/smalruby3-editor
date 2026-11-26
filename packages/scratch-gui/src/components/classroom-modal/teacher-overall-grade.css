@@ -129,3 +129,192 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+/* 表の上のグラフ（#2458・F7 / F8）: S+A+B の %、100% の積み上げ帯（いまと、開いたときの薄い帯）、
+   平均の点の分布と区切りの線（ドラッグで動かす）。評価の色は $color-grade-*（青の濃さの順）。 */
+.chart {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    flex-shrink: 0;
+    padding: $space-small $space-medium;
+    border: 1px solid $color-border;
+    border-radius: $radius-medium;
+    background-color: $color-surface;
+    color: $color-text;
+    font-size: $font-size-small;
+}
+
+.chart-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 0.75rem;
+}
+
+.chart-share {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.3rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: $radius-small;
+}
+
+.chart-share-off {
+    background-color: $color-confirm-background;
+    color: $color-confirm-text;
+}
+
+.chart-muted {
+    color: $color-text-muted;
+    font-size: $font-size-xsmall;
+}
+
+.chart-share-off .chart-muted {
+    color: $color-confirm-text;
+}
+
+.band-row {
+    display: grid;
+    grid-template-columns: 5rem minmax(0, 1fr);
+    align-items: center;
+    gap: $space-small;
+}
+
+.band-label {
+    color: $color-text-muted;
+    font-size: $font-size-xsmall;
+    text-align: right;
+}
+
+.band {
+    display: flex;
+    height: 1.1rem;
+    overflow: hidden;
+    border: 1px solid $color-border;
+    border-radius: $radius-small;
+    background-color: $color-background;
+}
+
+.band-faint {
+    height: 0.7rem;
+    opacity: 0.45;
+}
+
+.band-faint .segment {
+    font-size: 0;
+}
+
+.segment {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    overflow: hidden;
+    font-size: $font-size-xsmall;
+    font-weight: $font-weight-bold;
+    white-space: nowrap;
+    transition: $transition-standard;
+}
+
+.grade-s {
+    background-color: $color-grade-s;
+    color: $color-grade-on-dark;
+}
+
+.grade-a {
+    background-color: $color-grade-a;
+    color: $color-grade-on-dark;
+}
+
+.grade-b {
+    background-color: $color-grade-b;
+    color: $color-grade-on-light;
+}
+
+.grade-c {
+    background-color: $color-grade-c;
+    color: $color-grade-on-light;
+}
+
+.dot-area {
+    padding: 0 0.5rem;
+}
+
+.dot-track {
+    position: relative;
+    height: 5rem;
+    border-bottom: 1px solid $color-text-muted;
+}
+
+.dot {
+    position: absolute;
+    width: 0.5rem;
+    height: 0.5rem;
+    margin-left: -0.25rem;
+    border: 1px solid $color-grade-s;
+    border-radius: 50%;
+    box-sizing: border-box;
+}
+
+/* 区切りの線: 細い線と、つかみやすい幅の当たり（透明）。 */
+.cut-line {
+    position: absolute;
+    top: -0.2rem;
+    bottom: 0;
+    width: 0.9rem;
+    margin-left: -0.45rem;
+    cursor: ew-resize;
+    touch-action: none;
+}
+
+.cut-line::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(50% - 1px);
+    width: 2px;
+    background-color: $color-action-dark;
+}
+
+.cut-line:focus-visible {
+    outline: 2px solid $color-action;
+    outline-offset: 1px;
+}
+
+.cut-label {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    padding: 0 0.2rem;
+    border-radius: $radius-small;
+    background-color: $color-action-dark;
+    color: $color-grade-on-dark;
+    font-size: $font-size-xsmall;
+    line-height: 0.9rem;
+    white-space: nowrap;
+    transform: translateX(-50%);
+    user-select: none;
+}
+
+/* 区切りが同じ値に重なっても名札が読めるよう、S・A・B で段を変える。 */
+.cut-label-a {
+    top: 1rem;
+}
+
+.cut-label-b {
+    top: 2rem;
+}
+
+.axis {
+    position: relative;
+    height: 0.9rem;
+}
+
+.tick {
+    position: absolute;
+    color: $color-text-muted;
+    font-size: $font-size-xsmall;
+    transform: translateX(-50%);
+}
