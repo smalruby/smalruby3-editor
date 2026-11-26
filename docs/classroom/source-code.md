@@ -49,6 +49,7 @@ smalruby3-editor/
 │   │   │   │   ├── teacher-group-manage.jsx ← 組（グループ）管理
 │   │   │   │   ├── teacher-evaluation.jsx ← 採点（点だけの採点簿の表・手順 1〜4・書き出しメニュー）
 │   │   │   │   ├── teacher-overall-grade.jsx ← 総合評価（入れる課題と重み・点・区切り・結果の表・CSV）
+│   │   │   │   ├── teacher-overall-chart.jsx ← 総合評価の分布のグラフ（S+A+B・積み上げ帯・点の分布・区切りの線のドラッグ）
 │   │   │   │   ├── teacher-grading-rubric.jsx ← 採点の［基準］のタブ（縦のステッパーで 2-1 課題の説明・2-2 代表の作品・2-3 フェアの確認・2-4 基準の文、各小手順の上部に「AI に相談」・コピー）と同じまとまりの問い
 │   │   │   │   ├── teacher-evaluation-detail.jsx ← 採点の右の列（選んだ席の点・根拠・コメント・‹ ›・［作品を開く］）
 │   │   │   │   └── teacher-post-assignment.jsx ← 課題配信
@@ -110,7 +111,7 @@ smalruby3-editor/
 │   │   │   ├── classroom-stream.js ← クラスの［ストリーム］の行（作成・アーカイブ・残り 7 日以内の自動削除の予定）と保存期限のカード `retentionSummary` を組み立てる（純粋）
 │   │   │   ├── classroom-genai-settings.js ← クラスの生成AI・ルビティー設定の下書き・検証・PATCH 差分（純粋）#1277
 │   │   │   ├── classroom-google-share.js ← GC 共有の既定ブロック判定 + 解除導線の文言（純粋）#1184
-│   │   │   ├── classroom-evaluation/ ← sb3-analyzer（静的解析）+ evaluation-utils（総合評価/CSV）+ robot-humanize（ロボットのブロックを日本語に）+ starter-diff（スターターに足したスクリプト）+ grouping（まとまり分け・代表・少ないブロック）+ overall-grade（重み付きの総合評価）+ overall-view（総合評価の画面の表と書き出しの可否）+ grading-csv（採点の CSV の行）+ grading-ai（［基準］のタブの AI の依頼・送る観点・小手順の状態・保存する基準・同じまとまりの直しの計画） + grade-distribution（課題ごとの評価の分布と目安 `GRADE_TARGETS`）
+│   │   │   ├── classroom-evaluation/ ← sb3-analyzer（静的解析）+ evaluation-utils（総合評価/CSV）+ robot-humanize（ロボットのブロックを日本語に）+ starter-diff（スターターに足したスクリプト）+ grouping（まとまり分け・代表・少ないブロック）+ overall-grade（重み付きの総合評価）+ overall-view（総合評価の画面の表と書き出しの可否）+ grading-csv（採点の CSV の行）+ grading-ai（［基準］のタブの AI の依頼・送る観点・小手順の状態・保存する基準・同じまとまりの直しの計画） + grade-distribution（課題ごとの評価の分布と目安 `GRADE_TARGETS`）+ overall-chart（総合評価のグラフの帯・点の位置・区切りの線の動かし方）
 │   │   │   ├── classroom-kick-request-storage.js ← 退室依頼の localStorage 永続化 (#692)
 │   │   │   ├── classroom-seat-selection.js ← 席選択の純粋ロジック（番号入力の検証・ポーリング判定・定数）
 │   │   │   ├── classroom-continue-options.js ← 続きに使える提出物の正規化・参加したあとの始め方を 1 つに決める decideStartMethod（純粋）#1201 #1202 #1793

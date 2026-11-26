@@ -9,20 +9,30 @@
  * is listed with a link that opens its grading, and the CSV button stays disabled
  * (the table still shows the provisional result).
  *
+ * Above the table, the charts (#2458): the S+A+B share, the stacked bands of S/A/B/C now
+ * and with the settings when the screen was opened, and the dots of the averages with
+ * cut lines that can be dragged (`TeacherOverallChart`).
+ *
  * The computation is `overallView` (pure); the settings are kept per class in this
  * browser (`useOverallGradeSettings`).
  */
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
-import useOverallGradeSettings from '../../containers/use-overall-grade-settings.js';
+import useOverallGradeSettings, { loadOverallSettings } from '../../containers/use-overall-grade-settings.js';
 import { columnStatus, gradebookCell } from '../../lib/classroom-evaluation/gradebook.js';
 import { gradingCsvText } from '../../lib/classroom-evaluation/grading-csv.js';
-import { DEFAULT_WEIGHT, overallExportRows, overallView } from '../../lib/classroom-evaluation/overall-view.js';
+import {
+    DEFAULT_WEIGHT,
+    normalizeSettings,
+    overallExportRows,
+    overallView,
+} from '../../lib/classroom-evaluation/overall-view.js';
 import ClassroomButton from './classroom-button.jsx';
 import styles from './classroom-modal.css';
 import { gradebookMessages } from './teacher-gradebook.jsx';
+import TeacherOverallChart from './teacher-overall-chart.jsx';
 import overallStyles from './teacher-overall-grade.css';
 
 const messages = defineMessages({
@@ -242,6 +252,14 @@ const TeacherOverallGrade = ({ group, gradings, lessons, onOpenAssignment }) => 
     const groupId = group ? group.groupId || null : null;
     const { settings, setIncluded, setWeight, setPoint, setCut, reset } = useOverallGradeSettings(groupId);
     const view = overallView({ lessons, gradings, settings });
+    // The faint band of the chart: the settings when the screen was opened (with the
+    // grades as they are now), so the teacher sees what the change did.
+    const [baselineSettings, setBaselineSettings] = useState(() => loadOverallSettings(groupId));
+    useEffect(() => {
+        setBaselineSettings(loadOverallSettings(groupId));
+    }, [groupId]);
+    const baselineView = overallView({ lessons, gradings, settings: baselineSettings });
+    const numbers = normalizeSettings(settings);
     const includedIds = new Set(view.columns.map((c) => c.classroomId));
 
     const handleExport = useCallback(() => {
@@ -351,6 +369,15 @@ const TeacherOverallGrade = ({ group, gradings, lessons, onOpenAssignment }) => 
                         <p className={overallStyles.note} data-testid="classroom-overall-loading">
                             {intl.formatMessage(messages.loading)}
                         </p>
+                    )}
+                    {view.columns.length > 0 && view.rows.length > 0 && (
+                        <TeacherOverallChart
+                            baselineRows={baselineView.rows}
+                            cuts={numbers.cuts}
+                            points={numbers.points}
+                            rows={view.rows}
+                            onSetCut={setCut}
+                        />
                     )}
                     {view.columns.length === 0 ? (
                         <p className={styles.gradebookNote} data-testid="classroom-overall-no-columns">

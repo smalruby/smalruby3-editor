@@ -186,6 +186,8 @@
 | `$color-disabled` / `$color-disabled-text` | `#eceef3` / `#9ca0ad` | クラス管理の押せないボタン（主・副・テキストとも同じ）。押せない部品は WCAG 1.4.3 の対象外なので、はっきり淡くする（文字は地に 2.3:1） |
 | `$color-ai-background` / `$color-ai-text` / `$color-ai-border` | `#f1ecff` / `#4b2a91` / `#b9a3ef` | 「AI に相談」の囲みとボタン（[`components/ask-ai.md`](components/ask-ai.md)）。淡い紫の地・濃い紫の文字（地に 9:1 以上）・紫の点線の枠。「AI」の印は文字の色を地にして白い文字（10:1） |
 | `$color-step-now` / `$color-step-done` / `$color-step-todo` | `$color-action` / `$color-seat-submitted` / `$color-border` | 縦のステッパーの番号の丸と枠（[`components/inner-stepper.md`](components/inner-stepper.md)）。いまの小手順と枠は操作の青、済んだ小手順は提出済みの緑（白い ✓ が 5.1:1）、まだの小手順は枠線の色 |
+| `$color-grade-s` / `$color-grade-a` / `$color-grade-b` / `$color-grade-c` | `#1e4a8c` / `$color-action` / `#9dbce8` / `#dbe6f6` | 評価 S/A/B/C のグラフの色（総合評価の積み上げ帯と点）。S → C の順の評価なので、操作の青の 1 色の濃さで並べる（赤は使わない） |
+| `$color-grade-on-dark` / `$color-grade-on-light` | `#ffffff` / `#1a2a4a` | 評価の色の上の文字。S・A の地には白（8.7:1 / 4.7:1）、B・C の地には濃い紺（7.3:1 / 11:1） |
 | （クラスの色） | JS の `CLASS_COLORS`（`src/lib/classroom-class-color.js`） | クラス管理のクラスの色の帯。その先生のクラスの一覧から画面の側で選ぶので CSS のトークンにはしない。8 色・どれも白に 4.5:1 以上。決め方は [`../classroom/ui-ux.md`](../classroom/ui-ux.md) の「共通: クラスの色」 |
 | `$space-small` / `$space-medium` / `$space-large` | `calc($space / 2)` / `$space` / `calc($space * 2)` | 余白 0.25rem / 0.5rem / 1rem |
 | `$radius-small` | `$form-radius` | ボタン・入力欄 |

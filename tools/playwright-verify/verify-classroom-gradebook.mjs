@@ -46,6 +46,7 @@ const DOC_SHOT_NAMES = {
     confirmed: "0355-teacher-grading-confirmed.png",
     "gradebook-after-confirm": "0356-teacher-gradebook-confirmed.png",
     overall: "0357-teacher-grading-overall.png",
+    "overall-dragged": "0363-teacher-grading-overall-dragged.png",
     loading: "0348-teacher-grading-loading.png",
     "ai-grading": "0349-teacher-grading-ai-grading.png",
     "hint-open": "0237-teacher-grading-hint-detail.png",
@@ -450,7 +451,68 @@ await judge(page, { name: "0 gradebook", expected: null, shot: "gradebook" });
 
 await page.click('[data-testid="classroom-gradebook-switch-overall"]');
 await page.waitForSelector('[data-testid="classroom-gradebook-overall"]');
-await shoot(page, "overall");
+// #2458 (F7 / F8): the S+A+B share, the stacked bands and the dots with the cut lines.
+await page.waitForSelector('[data-testid="classroom-overall-chart"]');
+const chartState = () =>
+    page.evaluate(() => {
+        const q = (id) => document.querySelector(`[data-testid="${id}"]`);
+        const band = (id) =>
+            Object.fromEntries(
+                ["S", "A", "B", "C"].map((g) => [
+                    g,
+                    Number(q(`${id}-${g}`)?.getAttribute("data-count") || 0),
+                ]),
+            );
+        return {
+            sab: q("classroom-overall-chart-sab")?.textContent,
+            sabOk: q("classroom-overall-chart-sab")?.getAttribute("data-ok"),
+            now: band("classroom-overall-chart-band"),
+            before: band("classroom-overall-chart-band-before"),
+            dots: document.querySelectorAll(
+                '[data-testid^="classroom-overall-chart-dot-"]',
+            ).length,
+            cutB: q("classroom-overall-cut-B")?.value,
+        };
+    });
+const chart1 = await chartState();
+record({
+    name: "overall: S+A+B share, stacked band = before band, a dot per graded seat",
+    ok:
+        /S\+A\+B \d+/.test(chart1.sab || "") &&
+        JSON.stringify(chart1.now) === JSON.stringify(chart1.before) &&
+        chart1.dots === submittedSeats.length,
+    detail: JSON.stringify(chart1),
+});
+await judge(page, {
+    name: "0 overall with charts",
+    expected: null,
+    shot: "overall",
+});
+// Drag the B line to the right of the A cut: it stops at the A cut, and the bands follow.
+const line = await page
+    .locator('[data-testid="classroom-overall-chart-cut-B"]')
+    .boundingBox();
+const track = await page
+    .locator('[data-testid="classroom-overall-chart-dots"]')
+    .boundingBox();
+await page.mouse.move(line.x + line.width / 2, line.y + line.height / 2);
+await page.mouse.down();
+await page.mouse.move(track.x + track.width * 0.7, line.y + line.height / 2, {
+    steps: 8,
+});
+await page.mouse.up();
+await page.waitForTimeout(200);
+const chart2 = await chartState();
+record({
+    name: "overall: dragging the B cut line moves the cut field and changes the band at once",
+    ok:
+        chart2.cutB === "2.5" &&
+        JSON.stringify(chart2.now) !== JSON.stringify(chart1.now) &&
+        JSON.stringify(chart2.before) === JSON.stringify(chart1.before),
+    detail: JSON.stringify(chart2),
+});
+await shoot(page, "overall-dragged");
+await page.click('[data-testid="classroom-overall-reset"]');
 await page.click('[data-testid="classroom-gradebook-switch-book"]');
 
 // 2 列の見出しで課題の採点を開く
