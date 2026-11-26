@@ -27,6 +27,8 @@ const {
 const { LEARN_TASKS_CSS, LEARN_TASKS_HTML, LEARN_TASKS_SCRIPT } = require('./monitor-learn-tasks');
 // D「あなた宛て＋表」の判断（#2404）
 const { INBOX_CLIENT_FNS } = require('./monitor-inbox');
+// あなた宛ての「人間がすること」（#2466）
+const { HUMAN_ACTION_CLIENT_FNS } = require('./human-action');
 // 虹色の ∞ + A のアイコン（#2413）。assets/make-icon.py が作る PNG の data URI（自己完結のまま埋める）
 const { ICON_FAVICON_64, ICON_HEADING_40 } = require('./icon-data');
 
@@ -34,7 +36,7 @@ const { ICON_FAVICON_64, ICON_HEADING_40 } = require('./icon-data');
 const SHARED_CLIENT_FNS = [
     canToggleLater, effectiveLater, splitLaterBoard, laterPendingReducer, splitPrsForTitle, issueCopyText,
     renderHumanWaitCell, canResolveConflict,
-    ...INBOX_CLIENT_FNS,
+    ...INBOX_CLIENT_FNS, ...HUMAN_ACTION_CLIENT_FNS,
 ]
     .map(String).join('\n');
 
@@ -127,6 +129,9 @@ ${TOKEN_META_EMPTY}
     --ap-size-l:var(--ap-ink-2); --ap-size-l-wash:var(--ap-line);
     --ap-prio:var(--ap-muted); --ap-prio-wash:transparent;
     --ap-prio0:var(--ap-ink); --ap-prio0-wash:transparent; --ap-prio1:var(--ap-ink); --ap-prio1-wash:transparent;
+    /* あなた宛ての「すること」（#2466・同意したモックアップの値）。確かめる / ゴーサイン / 人間の作業 */
+    --ap-act-check:#0b7a75; --ap-act-check-wash:#e3f4f2; --ap-act-go:#2f6fd6; --ap-act-go-wash:#e7effc;
+    --ap-act-hand:#9a5b00; --ap-act-hand-wash:#fbf0dd;
 
     /* ---- 大きさ・間隔・角・動き ---- */
     --ap-font-xs:12px; --ap-font-sm:13px; --ap-font-md:14px; --ap-font-lg:16px; --ap-font-xl:20px;
@@ -148,6 +153,8 @@ ${TOKEN_META_EMPTY}
     --ap-stop:#e39ab6; --ap-stop-wash:#3a2230; --ap-notice:#d9bf6a; --ap-notice-wash:#332c17;
     --ap-go-1:#a79cff; --ap-go-2:#6cc6f5; --ap-go-3:#62dcb3; --ap-go-4:#f1cd66; --ap-go-5:#f59aa5; --ap-go-6:#cf9ce9;
     --ap-go-wash:#231f3a;
+    --ap-act-check:#45c2bb; --ap-act-check-wash:#173230; --ap-act-go:#7aa7ff; --ap-act-go-wash:#1b2740;
+    --ap-act-hand:#f0b35a; --ap-act-hand-wash:#352816;
     --ap-on-solid:#15121f;
     --ap-tint-1:rgba(255,255,255,.04); --ap-tint-2:rgba(255,255,255,.08); --ap-count-wash:rgba(154,166,177,.2);
     --ap-overlay:rgba(0,0,0,.6); --ap-shadow-menu:rgba(0,0,0,.45); --ap-shadow-pop:rgba(0,0,0,.55);
@@ -163,6 +170,8 @@ ${TOKEN_META_EMPTY}
     --ap-stop:#e39ab6; --ap-stop-wash:#3a2230; --ap-notice:#d9bf6a; --ap-notice-wash:#332c17;
     --ap-go-1:#a79cff; --ap-go-2:#6cc6f5; --ap-go-3:#62dcb3; --ap-go-4:#f1cd66; --ap-go-5:#f59aa5; --ap-go-6:#cf9ce9;
     --ap-go-wash:#231f3a;
+    --ap-act-check:#45c2bb; --ap-act-check-wash:#173230; --ap-act-go:#7aa7ff; --ap-act-go-wash:#1b2740;
+    --ap-act-hand:#f0b35a; --ap-act-hand-wash:#352816;
     --ap-on-solid:#15121f;
     --ap-tint-1:rgba(255,255,255,.04); --ap-tint-2:rgba(255,255,255,.08); --ap-count-wash:rgba(154,166,177,.2);
     --ap-overlay:rgba(0,0,0,.6); --ap-shadow-menu:rgba(0,0,0,.45); --ap-shadow-pop:rgba(0,0,0,.55);
@@ -423,6 +432,38 @@ ${TOKEN_META_EMPTY}
   .ig .ig-more { min-height: 0; padding-top: 4px; padding-bottom: 6px; font-size: var(--ap-font-sm); }
   .gprio { font-size: var(--ap-font-xs); font-weight: 600; color: var(--ap-faint); }
   .gprio.p0, .gprio.p1 { color: var(--ap-ink); }
+  /* ---- あなた宛ての「すること」（#2466・docs/autopilot/design-system.md） ---- */
+  .a-check { --c: var(--ap-act-check); --w: var(--ap-act-check-wash); }
+  .a-answer { --c: var(--ap-human); --w: var(--ap-human-wash); }
+  .a-go, .a-decompose { --c: var(--ap-act-go); --w: var(--ap-act-go-wash); }
+  .a-hand { --c: var(--ap-act-hand); --w: var(--ap-act-hand-wash); }
+  .a-idle { --c: var(--ap-idle); --w: var(--ap-idle-wash); }
+  .fy-sum { font-weight: 400; margin-left: 6px; }
+  .fy-sec { border-bottom: 1px solid var(--ap-line); }
+  .fy-sec-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; padding: 8px 16px 4px; }
+  .fy-sec-h .verb { font-weight: 700; color: var(--c); }
+  .fy-sec-h .why { flex-basis: 100%; font-size: var(--ap-font-xs); color: var(--ap-muted); }
+  .fy-row { display: grid; grid-template-columns: 2.2em minmax(0, 1fr) auto; gap: 2px 10px; align-items: start; padding: 8px 16px;
+            border-top: 1px solid var(--ap-line-soft); }
+  .fy-sec-h + .fy-row { border-top: 0; }
+  .fy-body { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .fy-title { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+  .fy-title .tt { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fy-title .ilink, .fy-title .small { flex: none; }
+  .fy-state { font-size: var(--ap-font-sm); color: var(--ap-ink-2); overflow-wrap: anywhere; }
+  .fy-happens { font-size: var(--ap-font-xs); color: var(--ap-muted); overflow-wrap: anywhere; }
+  .fy-state .ilink, .fy-happens .ilink, .fy-confirm .ilink { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+  .epicchip { font-size: 11px; color: var(--ap-muted); border: 1px solid var(--ap-line); border-radius: var(--ap-radius-sm); padding: 0 4px; margin-right: 4px; }
+  .vbtn { font-size: var(--ap-font-xs); font-weight: 700; border-radius: var(--ap-radius-md); padding: 3px 10px; white-space: nowrap;
+          background: var(--w); color: var(--c); border: 1px solid var(--c); }
+  .fy-confirm { grid-column: 2 / -1; background: var(--ap-surface-2); border: 1px solid var(--ap-line); border-radius: var(--ap-radius-md);
+                padding: 8px 10px; font-size: var(--ap-font-sm); display: flex; flex-direction: column; gap: 6px; }
+  .fy-confirm .cbtns { display: flex; flex-wrap: wrap; gap: 6px; }
+  .fy-fold > summary { cursor: pointer; padding: 8px 16px; font-size: var(--ap-font-sm); color: var(--ap-muted); }
+  @media (max-width: 560px) {
+    .fy-row { grid-template-columns: 2.2em minmax(0, 1fr); }
+    .fy-row > .acts-r { grid-column: 2; margin-left: 0; }
+  }
   /* ---- 「あなた宛て」の開け閉め（幅の広い画面だけ） ---- */
   .paneltoggle { display: none; padding: 2px 5px; margin-left: -4px; color: var(--ap-muted); }
   .paneltoggle svg.i { width: 16px; height: 16px; }
@@ -1256,6 +1297,9 @@ function questionCard(entry, open) {
 let openQuestion = null;   // いま開いている質問の Issue（null なら 1 件目）
 let lastQuestionsHtml = '';
 let lastInbox = { questions: [], answered: [], learn: [], waits: [] };
+let lastForYou = { sections: [], idle: [], counts: { total: 0, check: 0, answer: 0, go: 0, hand: 0 } };
+let fyConfirm = null;     // 「これを行います」と確かめている行の Issue
+let fyIdleOpen = false;   // 「人間の番ではない」を開いているか（5 秒ごとの描き直しで閉じないように覚える）
 function renderInbox(d) {
   tipInfos = {};
   // 描き直すとフォーカスしていたタイトルが消えるので、同じ key のタイトルへ戻す（キーボードで読んでいる途中に外れない）
@@ -1282,40 +1326,42 @@ function renderInbox(d) {
       + '<span class="acts-r"><button type="button" class="ibtn" data-act="learn-act"' + (l.disabled ? ' disabled' : '') + '>' + esc(l.label) + '</button>'
       + '<button type="button" class="ibtn" data-drawer="tasks">中身を見る</button></span></div>').join('')
     : '';
-  // 人間待ち: 親の EPIC ごとのまとまり。EPIC 自身の行は見出しに畳む（inboxGroups）
-  const groups = inboxGroups(m.waits, { epicGroups: d.epicGroups, items, open: Array.from(openInboxGroups) });
-  const tagPill = (w) => '<span class="kind c-' + w.tag.key + '" data-testid="inbox-tag" data-tag="' + w.tag.tag + '">' + esc(w.tag.label) + '</span>';
-  const why = (w) => (w.delegateError ? ' title="AI に任せられない理由: ' + esc(w.delegateError) + '"' : '');
-  // Review / DoD（差し戻し）は、すぐ 🙋 を外さず指摘とコメント欄を開く（#2415）
-  // リリース確認（#2430）は観点と OK / NG のダイアログを開く。プレビューのリンクも並べる
-  const goOf = (w) => (w.previewUrl ? '<a class="ibtn" href="' + esc(w.previewUrl) + '" target="_blank" rel="noopener noreferrer" data-testid="inbox-preview">プレビュー ↗</a>' : '')
-    + (w.goLabel ? goBtn(w.goLabel, 'data-act="' + (w.release ? 'release' : w.fix ? 'fix' : 'delegate') + '" data-issue="' + w.issue + '" data-testid="inbox-delegate"') : '');
-  document.getElementById('inbox-wait').innerHTML = m.waits.length
-    ? '<div class="feed-h">人間待ち · ' + m.waits.length + '</div>' + groups.map((g) => {
-      const h = g.header;
-      const p = g.priority ? '<span class="gprio ' + g.priority.toLowerCase() + '">' + esc(g.priority) + '</span>' : '';
-      const head = '<div class="ig-h" data-testid="inbox-group-head"' + (h ? ' data-issue="' + h.issue + '"' + why(h) : '') + '>'
-        + (h ? tagPill(h) : '')
-        + '<span class="t1">' + (g.epic == null ? '<b class="tt">' + esc(g.title) + '</b>'
-          : tipTitle('b', 'i:' + g.epic, h ? Object.assign({}, h, { title: g.title }) : { issue: g.epic, title: g.title }, shortTitle(g.title)))
-        + (g.epic != null ? ilink(g.epic, g.url) : '') + '</span>'
-        + p + (g.count ? '<span class="small">' + g.count + ' 件</span>' : '')
-        + (h ? '<span class="acts-r">' + goOf(h) + moreBtn(h.issue) + '</span>' : '') + '</div>';
-      const rows = g.rows.map((w) => '<div class="fi" data-testid="inbox-wait" data-issue="' + w.issue + '"' + why(w) + '>'
-        + tagPill(w)
-        + '<span class="t1">' + tipTitle('span', 'i:' + w.issue, w, shortTitle(w.title)) + ilink(w.issue, w.url)
-        // 札で分かる状態は繰り返さない。札が「人間の番」（理由が分からない）ときだけ Status を添える
-        + (w.tag.tag === 'other' && w.status ? '<span class="small">' + esc(w.status) + '</span>' : '')
-        + (w.later ? '<span class="small">💤 あとで</span>' : '') + '</span>'
-        + '<span class="acts-r">' + goOf(w) + moreBtn(w.issue) + '</span></div>').join('');
-      const more = g.hidden || (openInboxGroups.has(g.key) && g.count > 4)
-        ? '<div class="fi ig-more"><button type="button" class="more" data-act="group-more" data-key="' + esc(g.key) + '">'
-          + (g.hidden ? 'ほか ' + g.hidden + ' 件' : 'たたむ') + '</button></div>' : '';
-      return '<div class="ig" data-testid="inbox-group" data-key="' + esc(g.key) + '">' + head + rows + more + '</div>';
-    }).join('')
+  // 人間待ち: することごとの欄（確かめる → 答える → ゴーサイン → 分解 → 人間の作業）。中は P1 → P3（#2466・forYouModel）
+  const fy = forYouModel(Object.assign({}, d, { items }), { repoUrl });
+  lastForYou = fy;
+  const fyAll = fy.sections.reduce((a, sec) => a.concat(sec.rows), []).concat(fy.idle);
+  if (fyConfirm != null && !fyAll.some((w) => w.issue === fyConfirm && w.button)) fyConfirm = null;
+  const lr = (t) => linkIssueRefs(t, repoUrl);
+  const fyRow = (w) => {
+    const ep = w.parent != null ? '<span class="epicchip">EPIC ' + ilink(w.parent) + '</span>' : (w.isEpic ? '<span class="epicchip">EPIC</span>' : '');
+    const btn = w.button ? '<button type="button" class="vbtn a-' + w.kind + '" data-act="fy-ask" data-issue="' + w.issue + '" data-testid="inbox-action"'
+      + ' title="押すと: ' + esc(w.happens) + '">' + esc(w.button) + '</button>' : '';
+    // 押すとすぐ行わず、行の中で「これを行います」と確かめる
+    const confirm = fyConfirm === w.issue && w.button
+      ? '<div class="fy-confirm" role="status" data-testid="inbox-confirm"><span>これを行います: ' + lr(w.happens) + '</span><span class="cbtns">'
+        + '<button type="button" class="vbtn a-' + w.kind + '" data-act="fy-do" data-issue="' + w.issue + '" data-testid="inbox-confirm-do">行う</button>'
+        + '<button type="button" class="ibtn" data-act="fy-cancel" data-testid="inbox-confirm-cancel">やめる</button></span></div>' : '';
+    return '<div class="fy-row" data-testid="inbox-wait" data-issue="' + w.issue + '" data-kind="' + w.kind + '">'
+      + (w.priority ? '<span class="gprio ' + esc(w.priority.toLowerCase()) + '">' + esc(w.priority) + '</span>' : '<span></span>')
+      + '<div class="fy-body"><div class="fy-title">' + tipTitle('span', 'i:' + w.issue, w, shortTitle(w.title)) + ilink(w.issue, w.url)
+      + (w.later ? '<span class="small">💤 あとで</span>' : '') + '</div>'
+      + (w.state ? '<div class="fy-state">' + ep + lr(w.state) + '</div>' : '')
+      + (w.happens ? '<div class="fy-happens"><b>押すと:</b> ' + lr(w.happens) + '</div>' : '') + '</div>'
+      + '<span class="acts-r">' + btn + moreBtn(w.issue) + '</span>' + confirm + '</div>';
+  };
+  const c = fy.counts;
+  const sum = [['確かめる', c.check], ['答える', c.answer], ['ゴーサイン', c.go], ['人間の作業', c.hand]]
+    .filter((x) => x[1]).map((x) => x[0] + ' ' + x[1]).join(' · ');
+  document.getElementById('inbox-wait').innerHTML = fyAll.length
+    ? '<div class="feed-h" data-testid="inbox-foryou-head">することがある · ' + c.total + (sum ? '<span class="fy-sum">' + esc(sum) + '</span>' : '') + '</div>'
+      + fy.sections.map((sec) => '<div class="fy-sec a-' + sec.kind + '" data-testid="inbox-section" data-kind="' + sec.kind + '">'
+        + '<div class="fy-sec-h"><span class="verb">' + esc(sec.verb) + '</span><span class="small">' + sec.rows.length + ' 件</span>'
+        + '<span class="why">' + esc(sec.why) + '</span></div>' + sec.rows.map(fyRow).join('') + '</div>').join('')
+      + (fy.idle.length ? '<details class="fy-fold a-idle" data-testid="inbox-idle"' + (fyIdleOpen ? ' open' : '') + '><summary>人間の番ではない · '
+        + fy.idle.length + '（いま、することはありません）</summary>' + fy.idle.map(fyRow).join('') + '</details>' : '')
     : '';
   renderRail(m);
-  const total = m.questions.length + m.learn.length + m.waits.length;
+  const total = m.questions.length + m.learn.length + fy.counts.total;
   document.getElementById('inboxcount').textContent = total + ' 件';
   document.getElementById('inbox-empty').hidden = total > 0 || m.answered.length > 0;
   if (focusTip) { const a = tipAnchor(focusTip); if (a && a !== document.activeElement) a.focus({ preventScroll: true }); }
@@ -1465,7 +1511,7 @@ function applyInboxOpen() {
 function renderRail(m) {
   const b = (cls, n, label, tip) => '<span class="rb ' + cls + (n ? '' : ' zero') + '" title="' + esc(tip + ' ' + n + ' 件') + '"><b>' + n + '</b><span>' + label + '</span></span>';
   document.getElementById('railbadges').innerHTML = b('c-human', m.questions.length, '答え', '答えが要る')
-    + b('c-notice', m.learn.length, '学び', '確かめてほしい学び') + b('c-idle', m.waits.length, '人間待ち', '人間待ち');
+    + b('c-notice', m.learn.length, '学び', '確かめてほしい学び') + b('c-idle', lastForYou.counts.total, 'すること', '人間がすること');
 }
 const wideLayout = () => window.matchMedia('(min-width: 900px)').matches;
 
@@ -1474,7 +1520,7 @@ function renderTabs() {
   const d = lastBoard || {};
   const m = lastInbox;
   const counts = {
-    inbox: m.questions.length + m.learn.length + m.waits.length,
+    inbox: m.questions.length + m.learn.length + lastForYou.counts.total,
     board: (d.epicGroups || []).length,
     hist: (d.history || []).length,
     tasks: (lastTasks && lastTasks.tasks ? lastTasks.tasks.length : 0) + (lastLearn ? lastLearn.count || 0 : 0),
@@ -1548,6 +1594,11 @@ function openRowMenu(anchor, issue) {
     entries.push({ label: PR_KIND_ICON[p.kind] + ' PR#' + p.number, note: p.kind, href: repoUrl + '/pull/' + p.number });
   }
   if (running.indexOf(issue) >= 0) entries.push({ label: 'worker の log を見る', act: () => openLog(issue) });
+  // 前の「AI に任せる」は、いつも使うものではないので ⋯ に残す（#2466）
+  const wait = (lastInbox.waits || []).find((w) => w.issue === issue);
+  if (wait && wait.goLabel) {
+    entries.push({ label: '✨ ' + wait.goLabel, act: () => (wait.release ? openRelease(issue) : wait.fix ? openFix(issue) : delegateIssue(issue)) });
+  }
   if (it.title && canResolveConflict(it, running)) {
     entries.push(resolveRequested[issue] ? { label: '⏳ 依頼中', disabled: true }
       : { label: '🔀 コンフリクトを解消', note: 'Status と 🙋 は変えない', act: () => resolveConflict(issue) });
@@ -1567,6 +1618,20 @@ function openRowMenu(anchor, issue) {
 }
 
 // ---- 操作 ----
+// あなた宛ての動詞のボタン（#2466）: 「行う」を押したときだけ行う。EPIC にまとめたゴーサインは子ごとに POST /delegate
+function findForYou(issue) {
+  return lastForYou.sections.reduce((a, sec) => a.concat(sec.rows), []).concat(lastForYou.idle).find((w) => w.issue === issue) || null;
+}
+async function doForYou(issue, btn) {
+  const w = findForYou(issue);
+  fyConfirm = null;
+  if (!w) { rerender(); return; }
+  if (w.act === 'open' && w.url) window.open(w.url, '_blank', 'noopener');
+  else if (w.act === 'release') { if (w.url) window.open(w.url, '_blank', 'noopener'); openRelease(issue); }
+  else if (w.act === 'answer') { openQuestion = issue; lastQuestionsHtml = ''; }
+  else if (w.act === 'delegate') { for (const n of w.targets) await delegateIssue(n, btn); return; }
+  rerender();
+}
 // 「AI に任せる」（人間待ちの行）: daemon が 🙋 を外し、autopilot が次のフェーズを拾う（POST /delegate）
 async function delegateIssue(issue, btn) {
   if (btn) btn.disabled = true;
@@ -1911,6 +1976,9 @@ document.getElementById('relsend').onclick = sendRelease;
 document.getElementById('relnote').addEventListener('input', updateRelSend);
 document.getElementById('relpoints').addEventListener('input', updateRelSend);
 document.getElementById('relmodal').addEventListener('click', (e) => { if (e.target.id === 'relmodal') closeRelease(); });
+document.addEventListener('toggle', (e) => {
+  if (e.target && e.target.dataset && e.target.dataset.testid === 'inbox-idle') fyIdleOpen = e.target.open;
+}, true);
 document.getElementById('fixcancel').onclick = closeFix;
 document.getElementById('fixsend').onclick = sendFix;
 document.getElementById('fixnote').addEventListener('input', updateFixSend);
@@ -1985,6 +2053,9 @@ document.addEventListener('click', (ev) => {
   if (act === 'rowmenu') { ev.stopPropagation(); openRowMenu(t, issue); return; }
   if (act === 'exp') { const k = t.dataset.key; if (openGroups.has(k)) openGroups.delete(k); else openGroups.add(k); rerender(); return; }
   if (act === 'delegate') { delegateIssue(issue, t); return; }
+  if (act === 'fy-ask') { fyConfirm = issue; rerender(); return; }
+  if (act === 'fy-cancel') { fyConfirm = null; rerender(); return; }
+  if (act === 'fy-do') { doForYou(issue, t); return; }
   if (act === 'fix') { openFix(issue); return; }
   if (act === 'release') { openRelease(issue); return; }
   if (act === 'rel-collect') { closeRelease(); delegateIssue(issue, t); return; }

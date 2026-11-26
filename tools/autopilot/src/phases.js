@@ -1474,13 +1474,20 @@ const HUMAN_WAIT_REASONS = [
     { key: 'dod', icon: '✅', label: 'DoD の確認待ち', detail: '動作確認（DoD）を待っています' },
     { key: 'release', icon: '🚀', label: 'リリース確認待ち', detail: 'EPIC のプレビューでの確認を待っています' },
     { key: 'blocked', icon: '🧱', label: 'Blocked（障害）', detail: '障害の対処を待っています' },
-    { key: 'waiting', icon: '⏳', label: '依存待ち', detail: '先行 Issue（autopilot-after）の完了を待っています' },
+    { key: 'waiting', icon: '⏳', label: '依存待ち', detail: '先に済ませるもの（autopilot-after・リリース）を待っています' },
+    { key: 'continue', icon: '⏯', label: '続きの確認', detail: '時間切れで区切った作業を続けてよいかを待っています' },
+    { key: 'epic', icon: '🧭', label: 'EPIC の見守り', detail: '分解済みの EPIC。子が全部済んだら確かめて閉じます' },
+    { key: 'go', icon: '▶', label: 'ゴーサイン待ち', detail: '実装を始めてよいかのゴーサインを待っています' },
+    { key: 'decompose', icon: '✂', label: '分解待ち', detail: 'まだ分解していない EPIC。分解を始めるかを待っています' },
+    { key: 'hand', icon: '✋', label: '人間の作業', detail: 'AI にはできない作業。済んだら閉じます' },
     { key: 'other', icon: '🙋', label: 'そのほか', detail: 'あなたの対応を待っています' },
 ];
 
 /**
  * 人間が「何待ちで止まっているか」を 1 つに決める（純粋関数・#1315）。
- * 🙋 の item は Spike → Review → DoD → リリース確認 → Blocked → 依存待ち → そのほか の順で最初に当たる理由。
+ * 🙋 の item は Spike → Review → DoD → リリース確認 → Blocked → 依存待ち（⏳・🚀 after-release）→ 続きの確認 →
+ * EPIC の見守り → ゴーサイン → 分解 → 人間の作業 → そのほか の順で最初に当たる理由。
+ * 「あなた宛て」の「すること」（human-action.js の humanAction）と同じ分け方にそろえ、そのほか を減らす（#2466）。
  * 🙋 が無い item は依存待ち（⏳ waiting）だけを返し、ほかは null（人間待ちではない）。
  * @param {object} item { status, aiStatus, hitlLabel, labels }
  * @returns {string|null} {@link HUMAN_WAIT_REASONS} の key または null
@@ -1496,7 +1503,12 @@ function humanWaitReason(item) {
     if (status === 'DoD') return 'dod';
     if (status === 'In Progress' && item.aiStatus === RELEASE_CHECK_AI_STATUS) return 'release';
     if (status === 'Blocked') return 'blocked';
-    if (waiting) return 'waiting';
+    // 🚀 after-release はリリースを待っているだけで、人間の番ではない（依存待ちと同じ扱い）
+    if (waiting || (Array.isArray(item.labels) && item.labels.includes('🚀 after-release'))) return 'waiting';
+    if (item.aiStatus === AWAITING_CONTINUATION_STATUS) return 'continue';
+    if (hasTrackingLabel(item) || item.aiStatus === 'EPIC Decomposed') return 'epic';
+    if (status === 'Sprint Backlog') return 'go';
+    if (status === 'Backlog') return item.kind === 'EPIC' ? 'decompose' : 'hand';
     return 'other';
 }
 

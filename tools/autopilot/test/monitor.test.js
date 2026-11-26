@@ -471,7 +471,7 @@ test('MONITOR_HTML: あなた宛ての操作 — AI に任せる（/delegate）�
     assert.match(MONITOR_HTML, /を任せられませんでした: ' \+ e\.message, true/);
     // 質問: 推奨で進める / 選んだ答えで進める / メモだけ保存 は POST /answer
     assert.match(MONITOR_HTML, /postJson\('\/answer', \{ issue, answers, proceed \}\)/);
-    for (const id of ['inbox-answer-recommended', 'inbox-answer-chosen', 'inbox-answer-save', 'inbox-delegate']) {
+    for (const id of ['inbox-answer-recommended', 'inbox-answer-chosen', 'inbox-answer-save', 'inbox-action']) {
         assert.ok(MONITOR_HTML.includes(`data-testid="${id}"`), id);
     }
     // 数字キーは monitor-inbox.js の digitTarget で決める（入力欄の中では効かない）
@@ -483,15 +483,16 @@ test('MONITOR_HTML: あなた宛ての操作 — AI に任せる（/delegate）�
 });
 
 test('MONITOR_HTML: 「確認の結果を書く」は観点ごとに OK / NG を選び /release-check/review へ送る（#2430）', () => {
-    assert.match(MONITOR_HTML, /w\.release \? 'release'/);
+    // 「確認の結果を書く」は ⋯ のメニューと、動詞のボタン（act=release）から開く（#2466）
+    assert.match(MONITOR_HTML, /wait\.release \? openRelease\(issue\)/);
+    assert.match(MONITOR_HTML, /else if \(w\.act === 'release'\) \{ if \(w\.url\) window\.open\(w\.url, '_blank', 'noopener'\); openRelease\(issue\); \}/);
     assert.match(MONITOR_HTML, /fetch\('\/release-check\?issue=' \+ issue\)/);
     assert.match(MONITOR_HTML, /postJson\('\/release-check\/review', \{ issue, round: relRound, results/);
-    for (const id of ['release-modal', 'release-points', 'release-note', 'release-send', 'release-cancel', 'inbox-preview']) {
+    for (const id of ['release-modal', 'release-points', 'release-note', 'release-send', 'release-cancel']) {
         assert.ok(MONITOR_HTML.includes(`data-testid="${id}"`), id);
     }
     assert.match(MONITOR_HTML, /data-testid="release-send" disabled>/);
-    // プレビューのリンクと観点の本文はエスケープ・自前の整形を通す
-    assert.match(MONITOR_HTML, /href="' \+ esc\(w\.previewUrl\)/);
+    // 観点の本文は自前の整形を通す
     assert.match(MONITOR_HTML, /renderMiniMarkdown\(p\.body\)/);
     // テンプレート文字列の中なので、観点の番号の正規表現は \\d を二重にしないと /^Rd+$/ になり OK / NG が効かない
     assert.ok(MONITOR_HTML.includes('if (!/^R\\d+$/.test(String(id))) return;'));
@@ -505,7 +506,7 @@ test('MONITOR_HTML: 「確認の結果を書く」は観点ごとに OK / NG を
 
 test('MONITOR_HTML: 「AI に直してもらう」は指摘とコメント欄を開き、指示と一緒に /delegate へ送る（#2415）', () => {
     // 差し戻しの行は data-act="fix"（すぐ 🙋 を外さない）
-    assert.match(MONITOR_HTML, /w\.fix \? 'fix' : 'delegate'/);
+    assert.match(MONITOR_HTML, /wait\.fix \? openFix\(issue\)/);
     // 押したときだけ指摘を取ってくる・markdown は自前の整形（外部ライブラリなし）
     assert.match(MONITOR_HTML, /fetch\('\/delegate\/findings\?issue=' \+ issue\)/);
     assert.match(MONITOR_HTML, /function renderMiniMarkdown\(src\)/);
@@ -536,9 +537,25 @@ test('MONITOR_HTML: 「あなた宛て」の開け閉め — 印のボタン・�
     assert.match(MONITOR_HTML, /try \{ localStorage\.setItem\(INBOX_OPEN_KEY, String\(inboxOpen\)\); \} catch/);
     // 数字キー 1 は閉じていれば開く
     assert.match(MONITOR_HTML, /if \(target === 'inbox' && !inboxOpen && wideLayout\(\)\) setInboxOpen\(true\);/);
-    // 人間待ちは EPIC ごとのまとまり（inboxGroups）。「EPIC に属さない」を行ごとに書かない
-    assert.match(MONITOR_HTML, /inboxGroups\(m\.waits, \{ epicGroups: d\.epicGroups, items, open: Array\.from\(openInboxGroups\) \}\)/);
+    // 人間待ちは することごとの欄（forYouModel・#2466）。「EPIC に属さない」を行ごとに書かない
+    assert.match(MONITOR_HTML, /forYouModel\(Object\.assign\(\{\}, d, \{ items \}\), \{ repoUrl \}\)/);
     assert.ok(!MONITOR_HTML.includes("w.from || 'EPIC に属さない'"));
+});
+
+test('MONITOR_HTML: あなた宛ては動詞のボタン → 行の中の確かめ → 行う（#2466）', () => {
+    // ボタンを押すと行の中で「これを行います」と確かめ、「行う」で初めて doForYou が動く
+    assert.match(MONITOR_HTML, /data-act="fy-ask"/);
+    assert.ok(MONITOR_HTML.includes("'<div class=\"fy-confirm\" role=\"status\" data-testid=\"inbox-confirm\"><span>これを行います: '"));
+    assert.match(MONITOR_HTML, /if \(act === 'fy-do'\) \{ doForYou\(issue, t\); return; \}/);
+    // EPIC にまとめたゴーサインは、子ごとに既存の POST /delegate
+    assert.match(MONITOR_HTML, /for \(const n of w\.targets\) await delegateIssue\(n, btn\)/);
+    // 「押すと」はいつも出し、状態の一文と「押すと」の #N は別タブのリンクにする
+    assert.ok(MONITOR_HTML.includes("'<div class=\"fy-happens\"><b>押すと:</b> ' + lr(w.happens)"));
+    assert.ok(MONITOR_HTML.includes("'<div class=\"fy-state\">' + ep + lr(w.state)"));
+    // 人間の番ではないものは最後にたたむ
+    assert.ok(MONITOR_HTML.includes('data-testid="inbox-idle"'));
+    const ha = require('../src/human-action');
+    for (const fn of ha.HUMAN_ACTION_CLIENT_FNS) assert.ok(MONITOR_HTML.includes(String(fn)), fn.name);
 });
 
 test('MONITOR_HTML: monitor-inbox.js の純粋関数を verbatim で埋め込む（二重定義しない）', () => {
