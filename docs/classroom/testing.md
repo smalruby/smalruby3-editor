@@ -698,8 +698,9 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `grading-rubric` | div | ［基準］のタブの中身（#2425） |
 | `grading-rubric-steps` | section | 基準づくりの縦のステッパー（手順 2 の中の 2-1〜2-4・#2455）。小手順は `grading-rubric-steps-step-<describe\|examples\|fairness\|sentences>`（`data-state` = `done` / `now` / `todo`）、見出しは `grading-rubric-steps-head-<id>`（押すと開く）、たたんだ 1 行は `grading-rubric-steps-summary-<id>` |
 | `grading-rubric-description` / `grading-rubric-description-text` | div / p | 2-1 課題の説明 |
-| `grading-rubric-describe-ai` / `grading-rubric-describe-ai-button` | div / button | 2-1 の「AI に相談」／［AI に説明の案を書いてもらう］（説明が空のときだけ。一度実行したら押せない） |
-| `grading-rubric-describe-proposal` / `grading-rubric-describe-text` | div / textarea | AI の説明の案（直せる） |
+| `grading-rubric-describe-ai` / `grading-rubric-describe-ai-button` | div / button | 2-1 の「AI に相談」／［AI に説明の案を書いてもらう］（説明があるときは［AI に説明を作り直してもらう］。一度実行したら押せない） |
+| `grading-rubric-describe-proposal` / `grading-rubric-describe-text` | div / textarea | AI の説明の案（直せる）／下書きの文（AI の案・コピーした説明） |
+| `grading-rubric-describe-copied` | div | ほかの課題からコピーした説明の下書き（答えのボタンは AI の案と同じ `grading-rubric-describe-ok` など） |
 | `grading-rubric-describe-ok` / `-fix` / `-only-here` | button | ［合っている（課題に保存）］／［直して保存］／［保存せず、この採点だけで使う］ |
 | `grading-rubric-running` | p | 保存・コピー・スターターの読み込みの間の表示（AI が動いている間は、その「AI に相談」のボタンが `aria-busy="true"`） |
 | `grading-rubric-saved` / `grading-rubric-edit` | div / button | 保存した基準／［基準をつくり直す］ |
@@ -712,9 +713,9 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `grading-rubric-check-<i>` / `-option-<j>` / `-compare` | li / button / button | 質問・選択肢・［作品を並べて見る］ |
 | `grading-rubric-sentences` / `grading-rubric-level-<S\|A\|B\|C>` / `grading-rubric-save` | div / input / button | 2-4 基準の文・文の欄・［基準を保存］ |
 | `grading-rubric-draft-ai` / `grading-rubric-draft-ai-button` | div / button | 2-4 の「AI に相談」／［AI に基準の文の案を書いてもらう］（一度実行したら押せない） |
-| `grading-rubric-copy` / `grading-rubric-copy-dialog` | button / div | ［ほかの課題から基準をコピー…］／コピーの小さな画面 |
+| `grading-rubric-copy` / `grading-rubric-copy-dialog` | button / div | ［説明と基準をコピー…］／コピーの小さな画面 |
 | `grading-rubric-copy-class` / `grading-rubric-copy-assignment` | select | コピー元のクラス・課題 |
-| `grading-rubric-copy-preview` / `grading-rubric-copy-levels` / `grading-rubric-copy-none` | div / table / p | コピー元の基準の中身／基準が無い |
+| `grading-rubric-copy-preview` / `grading-rubric-copy-description` / `grading-rubric-copy-levels` / `grading-rubric-copy-none` | div / p / table / p | コピー元の中身／その説明／その基準／説明も基準も無い |
 | `grading-rubric-copy-do` / `grading-rubric-copy-cancel` | button | ［コピーする］／［やめる］ |
 | `grading-group-prompt` / `-yes` / `-no` | div / button / button | 1 件を直したあとの「同じまとまりも変えますか？」と［{n} 件も変える］［この 1 件だけ］（［生徒］のタブ） |
 

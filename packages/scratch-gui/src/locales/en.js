@@ -1964,16 +1964,24 @@ export default {
     'gui.classroom.gradingRubric.answer': 'Right grade',
     'gui.classroom.gradingRubric.cancel': 'Cancel',
     'gui.classroom.gradingRubric.compare': 'Compare the Works',
-    'gui.classroom.gradingRubric.copy': 'Copy from Another Assignment…',
+    'gui.classroom.gradingRubric.copy': 'Copy the Description and Rubric…',
+    'gui.classroom.gradingRubric.copyDescriptionDraft':
+        'The description goes into 2-1 as a draft. You choose there whether the students see it.',
+    'gui.classroom.gradingRubric.copyNoRubric': 'This assignment has no rubric: only the description is copied.',
+    'gui.classroom.gradingRubric.copyNoDescription': 'This assignment has no description: only the rubric is copied.',
+    'gui.classroom.gradingRubric.copyDescription': 'Description',
     'gui.classroom.gradingRubric.copyAssignment': 'Assignment',
     'gui.classroom.gradingRubric.copyChoose': 'Choose…',
     'gui.classroom.gradingRubric.copyClass': 'Class',
     'gui.classroom.gradingRubric.copyDo': 'Copy',
     'gui.classroom.gradingRubric.copyExamples': '{count} examples are copied with it.',
-    'gui.classroom.gradingRubric.copyNone': 'This assignment has no rubric.',
-    'gui.classroom.gradingRubric.copyTitle': 'Copy a rubric from another assignment',
+    'gui.classroom.gradingRubric.copyNone': 'This assignment has no description and no rubric.',
+    'gui.classroom.gradingRubric.copyTitle': 'Copy the description and rubric from another assignment',
     'gui.classroom.gradingRubric.copyWarn': 'The rubric of this assignment is replaced by the copied one.',
     'gui.classroom.gradingRubric.describe': 'Ask the AI to Write a Description',
+    'gui.classroom.gradingRubric.describeCopied':
+        'This description was copied from another assignment (a draft). Choose whether to put it into the description the students see.',
+    'gui.classroom.gradingRubric.describeRewrite': 'Ask the AI to Rewrite the Description',
     'gui.classroom.gradingRubric.describeFix': 'Save as Edited',
     'gui.classroom.gradingRubric.describeOk': 'Right (Save to the Assignment)',
     'gui.classroom.gradingRubric.describeOnlyHere': 'Do Not Save, Use for This Grading Only',
@@ -2025,6 +2033,8 @@ export default {
     'gui.classroom.gradingRubric.stepSentences': 'Rubric sentences',
     'gui.classroom.gradingRubric.aiDescribe':
         'From the starter and a few works, it writes a draft of the assignment’s description.',
+    'gui.classroom.gradingRubric.aiDescribeRewrite':
+        'From the starter and a few works, it writes the description again. Saving it overwrites the current one.',
     'gui.classroom.gradingRubric.aiPropose':
         'It proposes S/A/B/C and a reason for every representative work. You give the right grade.',
     'gui.classroom.gradingRubric.aiFairness':
