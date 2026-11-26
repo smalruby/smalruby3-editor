@@ -49,7 +49,6 @@ const DOC_SHOT_NAMES = {
     loading: "0348-teacher-grading-loading.png",
     "ai-grading": "0349-teacher-grading-ai-grading.png",
     "hint-open": "0237-teacher-grading-hint-detail.png",
-    "settings-open": "0238-teacher-grading-settings.png",
     "export-menu": "0236-teacher-grading-export-menu.png",
     "leave-confirm": "0259-teacher-grading-leave-confirm.png",
 };
@@ -187,7 +186,10 @@ const record = (row) => {
 const measure = (page) =>
     page.evaluate((root) => {
         const el = document.querySelector(root);
-        const current = document.querySelector('[aria-current="step"]');
+        // The footer's steps only: the inner stepper of the［基準］tab has its own current step (#2455).
+        const current = document.querySelector(
+            '[data-testid="classroom-eval-steps"] [aria-current="step"]',
+        );
         const primary =
             current ||
             document.querySelector(
@@ -455,9 +457,11 @@ await page.click('[data-testid="classroom-gradebook-switch-book"]');
 await page.click('[data-testid="classroom-gradebook-open-c2"]');
 await page.waitForSelector('[data-testid="classroom-eval-steps"]');
 await page.waitForTimeout(500);
-// The ［基準］ tab of #2425 shows the description in grading-rubric-description.
+// The ［基準］ tab of #2425 shows the description in grading-rubric-description; with a description,
+// inner step 2-1 is done and folded into its one line (#2455).
 const desc = await page.textContent(
-    '[data-testid="classroom-eval-description"], [data-testid="grading-rubric-description"]',
+    '[data-testid="classroom-eval-description"], [data-testid="grading-rubric-description"], ' +
+        '[data-testid="grading-rubric-steps-summary-describe"]',
 );
 record({
     name: "assignment: the description is shown",
@@ -505,14 +509,17 @@ await judge(page, {
     shot: "hint-open",
 });
 await page.click('[data-testid="classroom-eval-hint-toggle"]');
-await page.click('[data-testid="classroom-eval-settings-toggle"]');
-await page.waitForTimeout(200);
-await judge(page, {
-    name: "2 grading settings opened",
-    expected: "classroom-eval-run-grade",
-    shot: "settings-open",
+// #2455 F2: the criteria and the strictness are not on the screen any more.
+record({
+    name: "2 no grading criteria / strictness on the screen",
+    ok: await page.evaluate(
+        () =>
+            !document.querySelector(
+                '[data-testid="classroom-eval-settings-summary"], [data-testid="classroom-eval-strictness"]',
+            ),
+    ),
+    detail: "",
 });
-await page.click('[data-testid="classroom-eval-settings-toggle"]');
 
 await page.click('[data-testid="classroom-eval-run-grade"]');
 await page.waitForSelector('[data-testid="classroom-eval-run-grade-running"]');
@@ -531,6 +538,16 @@ record({
                 ),
         ),
     detail: `assignmentText=${JSON.stringify(NEW.lastEvaluate?.assignmentText)} puts=${puts.length}`,
+});
+// No rubric yet: the screen sends the fixed criteria with the standard strictness (#2455 F2).
+record({
+    name: "grade: without a rubric, the fixed criteria are sent",
+    ok:
+        JSON.stringify(
+            (NEW.lastEvaluate?.rubricAxes || []).map((a) => a.name),
+        ) === JSON.stringify(["動くこと", "課題の要件", "工夫"]) &&
+        NEW.lastEvaluate?.strictness === "standard",
+    detail: JSON.stringify(NEW.lastEvaluate?.rubricAxes?.map((a) => a.name)),
 });
 await judge(page, {
     name: "3 graded",

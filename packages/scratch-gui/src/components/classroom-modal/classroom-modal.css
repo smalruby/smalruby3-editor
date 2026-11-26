@@ -3215,44 +3215,6 @@ $seat-tile-min: 36px;
     background-color: white;
 }
 
-.eval-rubric-row {
-    display: flex;
-    gap: 0.5rem;
-    width: 100%;
-}
-
-.eval-rubric-name {
-    width: 12rem;
-    padding: 0.35rem 0.5rem;
-    border: 1px solid #c9cdd3;
-    border-radius: 0.4rem;
-    font-size: 0.85rem;
-}
-
-.eval-rubric-description {
-    flex: 1 1 auto;
-    padding: 0.35rem 0.5rem;
-    border: 1px solid #c9cdd3;
-    border-radius: 0.4rem;
-    font-size: 0.85rem;
-}
-
-/* 観点の欄の見出し（R1）。欄と同じ幅で、枠は付けない。 */
-.eval-rubric-header > span {
-    padding-top: 0;
-    padding-bottom: 0;
-    border-color: transparent;
-    color: #8a8fa3;
-    font-size: 0.8rem;
-}
-
-/* 閉じた設定の 1 行に出す、いまの値。 */
-.eval-settings-value {
-    color: #3d4157;
-    font-size: 0.9rem;
-    margin-right: 0.75rem;
-}
-
 /* 採点の画面の「レッスンの点」の欄（#1778）: 課題名と欄を 1 行に並べる。 */
 .eval-scoring-row {
     display: flex;
@@ -3272,14 +3234,6 @@ $seat-tile-min: 36px;
 .eval-settings-note {
     color: #575e75;
     font-size: 0.8rem;
-}
-
-.eval-strictness-row {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.9rem;
-    color: #575e75;
 }
 
 .eval-progress {

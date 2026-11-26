@@ -632,7 +632,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-eval-counts` | div | 右の上の人数 |
 | `classroom-eval-count-notSubmitted` / `-drafts` / `-confirmed` / `-returned` | div | 未提出・AI の案・確定・返却済みの数（読み込む前の未提出は「—」） |
 | `classroom-eval-tab-rubric` / `classroom-eval-tab-student` | button (tab) | 右の［基準］［生徒］（`aria-selected`。作品を出さないレッスンの課題では出さない） |
-| `classroom-eval-rubric-pane` | div | ［基準］の中身（課題の説明・基準・採点の観点と厳しさ） |
+| `classroom-eval-rubric-pane` | div | ［基準］の中身（課題の説明・基準） |
 | `classroom-eval-description` | p | 課題の説明（AI に渡す。無ければその旨） |
 | `classroom-eval-rubric-levels` | table | 課題の基準（S/A/B/C の文） |
 | `classroom-eval-no-rubric` | p | 基準がまだ無いときの文 |
@@ -656,11 +656,6 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-eval-lesson-only-hint` | span | 作品を出さないレッスンの課題だけのときの説明（タブの行の右・「…自動で採点します。AI の採点は使いません」） |
 | `classroom-eval-lesson-scoring` | div | 採点の画面の「レッスンの点」の欄のまとまり（設定を読めたレッスンの課題だけ） |
 | `classroom-eval-lesson-scoring-{classroomId}` | div | 課題ごとのレッスンの点の欄（課題名 + `classroom-lesson-scoring`。変えるとすぐ保存） |
-| `classroom-eval-settings-summary` | div | 採点の設定の 1 行（観点の名前・採点の厳しさ・［変える］） |
-| `classroom-eval-settings-toggle` | button | 採点の設定の「変える / 閉じる」（`aria-expanded`） |
-| `classroom-eval-settings` | div | 開いた採点の設定（観点の欄・厳しさ） |
-| `classroom-eval-axis-name-{i}` / `classroom-eval-axis-desc-{i}` | input | 観点の名前 / どこを見るか（設定を開いたときだけ） |
-| `classroom-eval-strictness` | select | 採点の厳しさ（やや甘め/標準/やや厳しめ・設定を開いたときだけ） |
 | `classroom-eval-progress` | div | 処理中の表示（スピナー + 何をしているかの文・`role="status"`・`aria-busy`） |
 | `classroom-eval-progress-text` | span | 処理中の文（「02_LED の提出を読み込んでいます（3/28）」など） |
 | `classroom-eval-progress-bar` | div | 件数が分かるときの細い進み具合のバー（`data-percent`） |
@@ -701,18 +696,22 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-eval-leave-cancel` | button | 離れる確認の［採点を続ける］ |
 | `classroom-eval-leave-confirm` | button | 離れる確認の確定（［戻る］／［離れる］／［読み込み直す］・赤） |
 | `grading-rubric` | div | ［基準］のタブの中身（#2425） |
-| `grading-rubric-description` / `grading-rubric-description-text` | div / p | 課題の説明 |
-| `grading-rubric-describe` | button | ［AI に説明の案を出してもらう］ |
+| `grading-rubric-steps` | section | 基準づくりの縦のステッパー（手順 2 の中の 2-1〜2-4・#2455）。小手順は `grading-rubric-steps-step-<describe\|examples\|fairness\|sentences>`（`data-state` = `done` / `now` / `todo`）、見出しは `grading-rubric-steps-head-<id>`（押すと開く）、たたんだ 1 行は `grading-rubric-steps-summary-<id>` |
+| `grading-rubric-description` / `grading-rubric-description-text` | div / p | 2-1 課題の説明 |
+| `grading-rubric-describe-ai` / `grading-rubric-describe-ai-button` | div / button | 2-1 の「AI に相談」／［AI に説明の案を書いてもらう］（説明が空のときだけ。一度実行したら押せない） |
 | `grading-rubric-describe-proposal` / `grading-rubric-describe-text` | div / textarea | AI の説明の案（直せる） |
 | `grading-rubric-describe-ok` / `-fix` / `-only-here` | button | ［合っている（課題に保存）］／［直して保存］／［保存せず、この採点だけで使う］ |
-| `grading-rubric-running` | p | AI が動いている間の表示 |
+| `grading-rubric-running` | p | 保存・コピー・スターターの読み込みの間の表示（AI が動いている間は、その「AI に相談」のボタンが `aria-busy="true"`） |
 | `grading-rubric-saved` / `grading-rubric-edit` | div / button | 保存した基準／［基準をつくり直す］ |
-| `grading-rubric-reps` / `grading-rubric-propose` | div / button | 代表の作品の一覧／［AI の案を出す］ |
+| `grading-rubric-reps` | div | 2-2 代表の作品の一覧 |
+| `grading-rubric-propose-ai` / `grading-rubric-propose-ai-button` | div / button | 2-2 の上の「AI に相談」／［AI に代表 N 件の案を出してもらう］（代表すべてをまとめて。一度実行したら押せない） |
 | `grading-rubric-rep-<席>` / `grading-rubric-rep-body-<席>` | button / div | 代表の行（押すと開く）／開いた中身 |
 | `grading-rubric-rep-grade-<席>-<S\|A\|B\|C>` / `grading-rubric-rep-reason-<席>` / `grading-rubric-rep-open-<席>` | button / input / button | 正解・理由・［作品を開く］ |
-| `grading-rubric-fairness` / `grading-rubric-fairness-run` | div / button | フェアの確認／［フェアか確かめる］ |
+| `grading-rubric-fairness` | div | 2-3 フェアの確認 |
+| `grading-rubric-fairness-ai` / `grading-rubric-fairness-ai-button` | div / button | 2-3 の「AI に相談」／［AI にフェアか確かめてもらう］（一度実行したら押せない） |
 | `grading-rubric-check-<i>` / `-option-<j>` / `-compare` | li / button / button | 質問・選択肢・［作品を並べて見る］ |
-| `grading-rubric-sentences` / `grading-rubric-draft` / `grading-rubric-level-<S\|A\|B\|C>` / `grading-rubric-save` | div / button / input / button | 基準の文・［AI に基準の文を書いてもらう］・文の欄・［基準を保存］ |
+| `grading-rubric-sentences` / `grading-rubric-level-<S\|A\|B\|C>` / `grading-rubric-save` | div / input / button | 2-4 基準の文・文の欄・［基準を保存］ |
+| `grading-rubric-draft-ai` / `grading-rubric-draft-ai-button` | div / button | 2-4 の「AI に相談」／［AI に基準の文の案を書いてもらう］（一度実行したら押せない） |
 | `grading-rubric-copy` / `grading-rubric-copy-dialog` | button / div | ［ほかの課題から基準をコピー…］／コピーの小さな画面 |
 | `grading-rubric-copy-class` / `grading-rubric-copy-assignment` | select | コピー元のクラス・課題 |
 | `grading-rubric-copy-preview` / `grading-rubric-copy-levels` / `grading-rubric-copy-none` | div / table / p | コピー元の基準の中身／基準が無い |

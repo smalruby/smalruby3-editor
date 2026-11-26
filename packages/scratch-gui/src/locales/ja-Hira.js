@@ -389,16 +389,7 @@ export default {
     'gui.classroom.evaluation.hintDetail':
         'さきにすうにんをてでさいてんすると、AIがせんせいのきじゅんにあわせます。きまつのせいせきはせいとにはみえません。へんきゃくされるのはポジティブなコメントだけです。',
     'gui.classroom.evaluation.export': 'かきだし',
-    'gui.classroom.evaluation.settingsChange': 'かえる',
-    'gui.classroom.evaluation.settingsDone': 'とじる',
-    'gui.classroom.evaluation.axisNameHeader': 'かんてん',
-    'gui.classroom.evaluation.axisDescriptionHeader': 'どこをみるか',
     'gui.classroom.evaluation.load': 'ていしゅつをよみこむ',
-    'gui.classroom.evaluation.rubric': 'さいてんのかんてん:',
-    'gui.classroom.evaluation.strictness': 'さいてんのきびしさ:',
-    'gui.classroom.evaluation.strictnessLenient': 'ややあまめ',
-    'gui.classroom.evaluation.strictnessStandard': 'ひょうじゅん',
-    'gui.classroom.evaluation.strictnessStrict': 'ややきびしめ',
     'gui.classroom.evaluation.runComment': 'コメントをしたがき',
     'gui.classroom.evaluation.exportCsv': 'さいてんけっか（CSV）',
     'gui.classroom.evaluation.exportAuditCsv': 'けんしょうようデータ（CSV）',
@@ -982,7 +973,7 @@ export default {
         'せつめいはかかれていません。AI はかだいめいとさくひんからさいてんします。',
     'gui.classroom.evaluation.rubricTitle': 'きじゅん',
     'gui.classroom.evaluation.noRubric':
-        'このかだいにはまだきじゅんがありません。すうけんのさくひんからきじゅんをつくるてじゅんは、ここにはいります。それまでは、したのさいてんのかんてんで AI がさいてんします。',
+        'このかだいにはまだきじゅんがありません。きじゅんがないときは、うごくこと・かだいのようけん・くふうのかんてんで AI がさいてんします。',
     'gui.classroom.evaluation.notSubmitted': 'みていしゅつ',
     'gui.classroom.evaluation.seatListName': 'しゅっせきばんごう',
     'gui.classroom.evaluation.notLoaded': 'ていしゅつをよみこむと、さくひんをみてさいてんできます。',
@@ -2407,7 +2398,7 @@ export default {
     'gui.classroom.gradingRubric.copyNone': 'このかだいにはきじゅんがありません。',
     'gui.classroom.gradingRubric.copyTitle': 'ほかのかだいからきじゅんをコピー',
     'gui.classroom.gradingRubric.copyWarn': 'このかだいのきじゅんは、コピーしたきじゅんでおきかわります。',
-    'gui.classroom.gradingRubric.describe': 'AI にせつめいのあんをだしてもらう',
+    'gui.classroom.gradingRubric.describe': 'AI にせつめいのあんをかいてもらう',
     'gui.classroom.gradingRubric.describeFix': 'なおしてほぞん',
     'gui.classroom.gradingRubric.describeOk': 'あっている（かだいにほぞん）',
     'gui.classroom.gradingRubric.describeOnlyHere': 'ほぞんせず、このさいてんだけでつかう',
@@ -2421,13 +2412,13 @@ export default {
     'gui.classroom.gradingRubric.descriptionSaveFailed':
         'かだいにせつめいをほぞんできませんでした。このさいてんだけでつかいます。',
     'gui.classroom.gradingRubric.differs': 'ちがう',
-    'gui.classroom.gradingRubric.draft': 'AI にきじゅんのぶんをかいてもらう',
+    'gui.classroom.gradingRubric.draft': 'AI にきじゅんのぶんのあんをかいてもらう',
     'gui.classroom.gradingRubric.editRubric': 'きじゅんをつくりなおす',
     'gui.classroom.gradingRubric.examplesNote':
         'せいかいのれい {count} けんもいっしょにほぞんし、ぜんいんのさいてんのときに AI にわたします。',
     'gui.classroom.gradingRubric.fairness': 'フェアのかくにん',
     'gui.classroom.gradingRubric.fairnessNone': 'きくことはありません。にたさくひんはおなじひょうかになっています。',
-    'gui.classroom.gradingRubric.fairnessRun': 'フェアかたしかめる',
+    'gui.classroom.gradingRubric.fairnessRun': 'AI にフェアかたしかめてもらう',
     'gui.classroom.gradingRubric.groupAsk': '「{group}」のまとまりのほかの {count} けんも {grade} にしますか？',
     'gui.classroom.gradingRubric.groupNo': 'この 1 けんだけ',
     'gui.classroom.gradingRubric.groupYes': '{count} けんもかえる',
@@ -2435,7 +2426,7 @@ export default {
     'gui.classroom.gradingRubric.noWorks': 'ていしゅつされたさくひんがありません。',
     'gui.classroom.gradingRubric.notLoaded': 'ていしゅつをよみこむ（てじゅん 1）と、だいひょうのさくひんがでます。',
     'gui.classroom.gradingRubric.openWork': 'さくひんをひらく',
-    'gui.classroom.gradingRubric.propose': 'AI のあんをだす',
+    'gui.classroom.gradingRubric.propose': 'AI にだいひょう {count} けんのあんをだしてもらう',
     'gui.classroom.gradingRubric.reason': 'りゆう（ひとこと・にんい）',
     'gui.classroom.gradingRubric.repMeta': '{size} けん・だいひょう {seat} ばん',
     'gui.classroom.gradingRubric.reps':
@@ -2451,5 +2442,22 @@ export default {
         'スターターをよみこめませんでした。さくひんのだいほんはすべて「たした」ものとしてみます。',
     'gui.classroom.gradingRubric.starterNone':
         'このかだいにはスターターがありません。さくひんのだいほんはすべて「たした」ものとしてみます。',
-    'gui.classroom.gradingRubric.working': 'AI がかんがえています…',
+    'gui.classroom.gradingRubric.working': 'しょりしています…',
+    'gui.classroom.gradingRubric.stepsTitle': 'てじゅん 2　きじゅんをつくる（2-1 → 2-4 のじゅんに）',
+    'gui.classroom.gradingRubric.stepDescribe': 'かだいのせつめい',
+    'gui.classroom.gradingRubric.stepExamples': 'だいひょうのさくひんにせいかいをつける',
+    'gui.classroom.gradingRubric.stepFairness': 'フェアのかくにん',
+    'gui.classroom.gradingRubric.stepSentences': 'きじゅんのぶん',
+    'gui.classroom.gradingRubric.aiDescribe':
+        'スターターとすうけんのさくひんから、かだいのせつめいのあんをかきます。',
+    'gui.classroom.gradingRubric.aiPropose':
+        'だいひょうのさくひんすべてに S/A/B/C のあんとりゆうをつけます。せんせいはそれをみてせいかいをつけます。',
+    'gui.classroom.gradingRubric.aiFairness':
+        'つけたせいかいと、おなじまとまりのほかのさくひんをくらべ、ひょうかがわれそうなところをしつもんします。',
+    'gui.classroom.gradingRubric.aiDraft':
+        'せいかいのれいから S/A/B/C のきじゅんのぶんのあんをかきます。せんせいはなおしてからほぞんします。',
+    'gui.classroom.gradingRubric.summaryDescribe': 'せつめい: {text}',
+    'gui.classroom.gradingRubric.summaryExamples': 'せいかいをつけた: {done}/{total} けん',
+    'gui.classroom.gradingRubric.summaryFairness': '{count} けんのしつもんにこたえた',
+    'gui.classroom.gradingRubric.summarySentences': 'きじゅんのぶんをほぞんしました。',
 };

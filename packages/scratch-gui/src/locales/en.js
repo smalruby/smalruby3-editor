@@ -345,16 +345,7 @@ export default {
     'gui.classroom.evaluation.hintDetail':
         'Grading a few students by hand first calibrates the AI to your standard. Term grades are never shown to students; only the positive comments are returned.',
     'gui.classroom.evaluation.export': 'Export',
-    'gui.classroom.evaluation.settingsChange': 'Change',
-    'gui.classroom.evaluation.settingsDone': 'Done',
-    'gui.classroom.evaluation.axisNameHeader': 'Criterion',
-    'gui.classroom.evaluation.axisDescriptionHeader': 'What it looks for',
     'gui.classroom.evaluation.load': 'Load Submissions',
-    'gui.classroom.evaluation.rubric': 'Grading criteria:',
-    'gui.classroom.evaluation.strictness': 'Strictness:',
-    'gui.classroom.evaluation.strictnessLenient': 'Lenient',
-    'gui.classroom.evaluation.strictnessStandard': 'Standard',
-    'gui.classroom.evaluation.strictnessStrict': 'Strict',
     'gui.classroom.evaluation.runComment': 'Draft Comments',
     'gui.classroom.evaluation.exportCsv': 'Grades (CSV)',
     'gui.classroom.evaluation.exportAuditCsv': 'Audit data (CSV)',
@@ -873,7 +864,7 @@ export default {
     'gui.classroom.evaluation.noDescription': 'No description is written. The AI grades from the name and the works.',
     'gui.classroom.evaluation.rubricTitle': 'Rubric',
     'gui.classroom.evaluation.noRubric':
-        'This assignment has no rubric yet. Making one from a few works will come here. Until then the AI grades with the grading criteria below.',
+        'This assignment has no rubric yet. Without one, the AI grades on whether it runs, the assignment’s requirements and extra ideas.',
     'gui.classroom.evaluation.notSubmitted': 'Not submitted',
     'gui.classroom.evaluation.seatListName': 'Seats',
     'gui.classroom.evaluation.notLoaded': 'Load the submissions to see the works and grade them.',
@@ -1982,7 +1973,7 @@ export default {
     'gui.classroom.gradingRubric.copyNone': 'This assignment has no rubric.',
     'gui.classroom.gradingRubric.copyTitle': 'Copy a rubric from another assignment',
     'gui.classroom.gradingRubric.copyWarn': 'The rubric of this assignment is replaced by the copied one.',
-    'gui.classroom.gradingRubric.describe': 'Ask the AI to Guess It',
+    'gui.classroom.gradingRubric.describe': 'Ask the AI to Write a Description',
     'gui.classroom.gradingRubric.describeFix': 'Save as Edited',
     'gui.classroom.gradingRubric.describeOk': 'Right (Save to the Assignment)',
     'gui.classroom.gradingRubric.describeOnlyHere': 'Do Not Save, Use for This Grading Only',
@@ -1996,13 +1987,13 @@ export default {
     'gui.classroom.gradingRubric.descriptionSaveFailed':
         'The description could not be saved to the assignment. It is used for this grading only.',
     'gui.classroom.gradingRubric.differs': 'differs',
-    'gui.classroom.gradingRubric.draft': 'Let the AI Write the Rubric',
+    'gui.classroom.gradingRubric.draft': 'Ask the AI to Draft the Sentences',
     'gui.classroom.gradingRubric.editRubric': 'Rework the Rubric',
     'gui.classroom.gradingRubric.examplesNote':
         '{count} examples (the right grades) are saved with it and given to the AI when grading.',
     'gui.classroom.gradingRubric.fairness': 'Fairness check',
     'gui.classroom.gradingRubric.fairnessNone': 'Nothing to ask: similar works get the same grade.',
-    'gui.classroom.gradingRubric.fairnessRun': 'Check Fairness',
+    'gui.classroom.gradingRubric.fairnessRun': 'Ask the AI to Check Fairness',
     'gui.classroom.gradingRubric.groupAsk': 'Change the other {count} works of the group “{group}” to {grade} too?',
     'gui.classroom.gradingRubric.groupNo': 'Only This One',
     'gui.classroom.gradingRubric.groupYes': 'Change {count} More',
@@ -2010,7 +2001,7 @@ export default {
     'gui.classroom.gradingRubric.noWorks': 'No work was submitted.',
     'gui.classroom.gradingRubric.notLoaded': 'Load the submissions (step 1) to see the representative works.',
     'gui.classroom.gradingRubric.openWork': 'Open the Work',
-    'gui.classroom.gradingRubric.propose': 'Show the AI’s Proposals',
+    'gui.classroom.gradingRubric.propose': 'Ask the AI to Propose Grades for the {count} Works',
     'gui.classroom.gradingRubric.reason': 'Reason (a few words, optional)',
     'gui.classroom.gradingRubric.repMeta': '{size} works · seat {seat}',
     'gui.classroom.gradingRubric.reps': 'Representative works ({done}/{total}) — {works} works in {groups} groups',
@@ -2026,5 +2017,22 @@ export default {
         'The starter could not be read: every script of a work counts as added.',
     'gui.classroom.gradingRubric.starterNone':
         'This assignment has no starter: every script of a work counts as added.',
-    'gui.classroom.gradingRubric.working': 'The AI is working…',
+    'gui.classroom.gradingRubric.working': 'Working…',
+    'gui.classroom.gradingRubric.stepsTitle': 'Step 2  Make the rubric (2-1 → 2-4 in order)',
+    'gui.classroom.gradingRubric.stepDescribe': 'Assignment description',
+    'gui.classroom.gradingRubric.stepExamples': 'Give the representative works the right grade',
+    'gui.classroom.gradingRubric.stepFairness': 'Fairness check',
+    'gui.classroom.gradingRubric.stepSentences': 'Rubric sentences',
+    'gui.classroom.gradingRubric.aiDescribe':
+        'From the starter and a few works, it writes a draft of the assignment’s description.',
+    'gui.classroom.gradingRubric.aiPropose':
+        'It proposes S/A/B/C and a reason for every representative work. You give the right grade.',
+    'gui.classroom.gradingRubric.aiFairness':
+        'It compares your grades with the other works of each group and asks where they may differ.',
+    'gui.classroom.gradingRubric.aiDraft':
+        'From your right grades, it drafts the S/A/B/C sentences. You fix them and save.',
+    'gui.classroom.gradingRubric.summaryDescribe': 'Description: {text}',
+    'gui.classroom.gradingRubric.summaryExamples': 'Right grades given: {done}/{total}',
+    'gui.classroom.gradingRubric.summaryFairness': 'Answered {count} questions',
+    'gui.classroom.gradingRubric.summarySentences': 'The sentences are saved.',
 };

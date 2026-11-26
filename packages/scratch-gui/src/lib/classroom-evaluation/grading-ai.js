@@ -14,6 +14,7 @@
  * `POST /classrooms/{id}/evaluate`, the `rubric` saved with `PUT .../grading`,
  * and the plan of a change to a whole group. No I/O.
  */
+import { DEFAULT_RUBRIC_AXES } from './evaluation-utils.js';
 import { GRADES } from './gradebook.js';
 import { groupSubmissions, pickRepresentatives } from './grouping.js';
 import { diffFromStarter } from './starter-diff.js';
@@ -131,28 +132,17 @@ const buildDescribeRequest = ({ assignmentName, starterPseudocode = '', works })
  * @param {string} [args.assignmentText] - the description
  * @param {string} [args.starterPseudocode] - the starter
  * @param {?object} [args.rubric] - the saved rubric ({levels, examples})
- * @param {Array<object>} [args.rubricAxes] - criteria used when there are no levels
- * @param {string} [args.strictness] - lenient | standard | strict
  * @param {Array<object>} args.works - the works to grade (at most 10)
  * @returns {object} the request body
  */
-const buildGradeRequest = ({
-    assignmentName,
-    assignmentText = '',
-    starterPseudocode = '',
-    rubric = null,
-    rubricAxes = [],
-    strictness = 'standard',
-    works,
-}) => {
+const buildGradeRequest = ({ assignmentName, assignmentText = '', starterPseudocode = '', rubric = null, works }) => {
     const levels = (rubric && rubric.levels) || [];
     const examples = (rubric && rubric.examples) || [];
     return {
         mode: 'grade',
         assignmentName: assignmentName || '',
         assignmentText: assignmentText || '',
-        rubricAxes: rubricAxes || [],
-        strictness,
+        ...gradingCriteriaFor(rubric),
         samples: [],
         ...(starterPseudocode ? { starterPseudocode } : {}),
         ...(levels.length > 0 ? { rubricLevels: levels } : {}),
@@ -428,6 +418,50 @@ const groupChangePlan = ({ seat, from, to, groupBySeat, seats, gradeOf }) => {
  */
 const hasRubricLevels = (rubric) => !!(rubric && (rubric.levels || []).length > 0);
 
+/**
+ * The criteria sent with `grade` / `comment` (#2455 F2). The screen has no criteria or
+ * strictness any more: with the S/A/B/C sentences, the sentences and the teacher's
+ * examples grade, so no criteria are sent; without a rubric, the fixed criteria
+ * (it runs, the assignment's requirements, extra ideas) are sent, because the API needs
+ * 1 to 6 of them then. The API stays the same.
+ * @param {?object} rubric - grading.rubric
+ * @returns {{rubricAxes: Array<object>, strictness: string}} the criteria of the request
+ */
+const gradingCriteriaFor = (rubric) => ({
+    rubricAxes: hasRubricLevels(rubric) ? [] : DEFAULT_RUBRIC_AXES,
+    strictness: 'standard',
+});
+
+/** The inner steps of step 2 (make the rubric), in order (#2455 F1). */
+const RUBRIC_STEP_IDS = ['describe', 'examples', 'fairness', 'sentences'];
+
+/**
+ * The state of each inner step of the［基準］tab (2-1 description → 2-2 the right grades of
+ * the representatives → 2-3 fairness → 2-4 the sentences). A step is done by what it made,
+ * not by the order, so a step done out of order stays done; the first one not done is the
+ * current step ('now') and the others not done are 'todo'.
+ * @param {object} args - what the tab has
+ * @param {boolean} args.hasDescription - the assignment has a description (written or used)
+ * @param {number} args.repsTotal - representatives
+ * @param {number} args.repsDone - representatives with the teacher's grade
+ * @param {?object} args.fairness - {checks, answers} after the fairness check (null = not run)
+ * @param {boolean} args.saved - the sentences were saved
+ * @returns {{describe: string, examples: string, fairness: string, sentences: string}} 'done' | 'now' | 'todo'
+ */
+const rubricStepStates = ({ hasDescription, repsTotal, repsDone, fairness, saved }) => {
+    const checks = (fairness && fairness.checks) || [];
+    const done = {
+        describe: !!hasDescription,
+        examples: repsTotal > 0 && repsDone >= repsTotal,
+        fairness: !!fairness && checks.every((_, i) => !!(fairness.answers || {})[i]),
+        sentences: !!saved,
+    };
+    const now = RUBRIC_STEP_IDS.find((id) => !done[id]);
+    const states = {};
+    for (const id of RUBRIC_STEP_IDS) states[id] = done[id] ? 'done' : id === now ? 'now' : 'todo';
+    return states;
+};
+
 export {
     LIMITS,
     UNCHANGED_CODE,
@@ -441,11 +475,13 @@ export {
     examplesFromAnswers,
     fullGradeExtras,
     gradeOfOption,
+    gradingCriteriaFor,
     groupChangePlan,
     groupNameBySeat,
     hasRubricLevels,
     normalizeLevels,
     representativesOf,
+    rubricStepStates,
     rubricToSave,
     worksOf,
 };
