@@ -43,6 +43,12 @@ unit テスト全体を 4 ワーカーで流し（約 4.3 GB）、同時に別�
 - 終わったら、自分が起動したプロセスが残っていないか確かめる
   （`ps -eo pid,rss,etime,args --sort=-rss | head`）。ブラウザは
   `pgrep -af 'chromedriver|chromium|headless_shell|webpack'`。
+- 止めるのは自分のものだけ。`/proc/<pid>/cwd` が自分の作業場（worktree）かを確かめてから PID で止める
+  （`pkill -f` のような広い一致は使わない）。autopilot の worker は `tools/autopilot/bin/cleanup-leftovers` で
+  まとめて確かめて止める。
+- webpack は自分のコマンド行を `webpack` に書き換えるので、`pgrep -f 'webpack serve'` では見つからない。
+  dev server は `setsid -f` で起動して PGID を記録し、プロセスグループごと止める
+  （手順の正は `tools/autopilot/prompts/autopilot-verify.md` の「dev server の起動と停止」）。
 - 「終わるまで待つ」ループに `pgrep -f <パターン>` を使わない。ループ自身のコマンド行に一致して
   永久に終わらないことがある。待つときは、バックグラウンド実行の通知か `gh pr checks --watch` を使う。
 

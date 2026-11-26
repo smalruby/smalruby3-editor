@@ -47,6 +47,7 @@ autopilot は、複数の GitHub Issue を Claude が**並行**して
 | **フェーズ・プロンプト** | 各フェーズの「頭脳」。非対話で1フェーズを遂行 | `tools/autopilot/prompts/autopilot-*` |
 | **worktree** | Issue ごとの隔離作業場（軽量・即作成） | `bin/autopilot-worktree` |
 | **UI 確認ヘルパー** | worker が headless bundled chromium で UI を確認（スクショ `tmp/`・Playwright MCP は使わない・#891） | `tools/autopilot/bin/pw-check` |
+| **後片付け** | worker が終わる前に、自分の worktree に残した dev server・ブラウザを止める（#2463） | `tools/autopilot/bin/cleanup-leftovers` |
 
 > daemon は常駐の単独プロセスとして起動する。並行数は設定可能（既定 2、必要に応じて増やす）。
 
@@ -1232,21 +1233,32 @@ daemon ログに理由を残す（残った worktree は `bin/autopilot-worktree
 判定は `phases.js` の `shouldCleanupWorktree`（純粋関数）、git の実行は daemon の `cleanupIssueWorktree`。
 片付けに失敗しても Close への前進は止めない。
 
-**dev server の後片付け（#1381）**: worker が UI 確認で起動した dev server（`webpack serve` / `npm start`）は、
-worker の tmux を閉じても残り、8601 をふさいだり、別の worktree の古いコードを返したりする。verify の
-プロンプトは起動前に 8601 の持ち主（cwd）を確かめ、結果ファイルを書く前に自分で止める。それに加えて
-daemon が次のときに止める（SIGTERM・止めた PID と理由を daemon ログに残す）:
+**dev server・ブラウザの後片付け（#1381・#2463）**: worker が UI 確認で起動した dev server（`webpack serve` /
+`npm start`）は、worker の tmux を閉じても残り、8601 をふさいだり、別の worktree の古いコードを返したり、
+親を失って大きくなり続けたりする。integration テストや pw-check を途中で止めたときのブラウザ
+（chromedriver・chromium・headless_shell）も、作業場が消えたあとまで残る。
 
-- **run が終わったとき**: その Issue の worktree を cwd に持つ dev server
+- **worker**: implement・verify・review・address-review・resolve-conflict のプロンプトの「終わる前の後片付け」で、
+  dev server は `setsid -f` で起動して PGID を記録しプロセスグループごと止め、結果ファイルを書く前に
+  **`tools/autopilot/bin/cleanup-leftovers`**（`--dry-run` で一覧だけ）を流す。自分の worktree を cwd に持つ
+  dev server・ブラウザだけを止める。
+- **webpack のコマンド行**: webpack-cli は `process.title = "webpack"` で `/proc/<pid>/cmdline` を `webpack` だけに
+  書き換える。`webpack serve` だけを探すと npm と sh だけが止まり、webpack そのものが親を失って残るので、
+  引数の無い `webpack` も dev server として扱う。
+
+それに加えて daemon が次のときに止める（SIGTERM・種類と PID と理由を daemon ログに残す）:
+
+- **run が終わったとき**: その Issue の worktree を cwd に持つ dev server・ブラウザ
 - **worktree を片付けるとき**（上の自動の片付け）: `git worktree remove` の前に、その worktree のもの
 - **毎 tick の掃除**: cwd の worktree が削除済みのもの（`/proc/<pid>/cwd` が `(deleted)`）と、
   Status が終端（Close / Done）の Issue の worktree のもの
 
 止めるのは **autopilot の worktree（`.autopilot-worktrees/issue-<N>`）を cwd に持つプロセスだけ**。
-main checkout（`/app`）や人間・ほかのセッションが立てた dev server、worker が実行中の Issue のものは止めない。
+main checkout（`/app`）や人間・ほかのセッションが立てた dev server・ブラウザ、worker が実行中の Issue のものは止めない。
+ブラウザは実行ファイルの名前（先頭の語）だけで見る（引数にブラウザの名前が出るだけの jest や `pgrep` は含めない）。
 `pkill -f` のような広い一致は使わず、`/proc` を読んで PID と cwd で特定する（`/proc` が無い環境では何もしない）。
-判定は `phases.js` の `selectDevServersToStop`（純粋関数）、プロセスの列挙と停止は daemon の
-`listProcesses` / `stopWorktreeDevServers`。
+判定は `phases.js` の `selectLeftoversToStop`（純粋関数）、プロセスの列挙と停止は daemon の
+`listProcesses` / `stopWorktreeLeftovers`。
 
 **base 追従（stale 起点の衝突防止・#950/#953）**: 新ブランチ作業フェーズ（implement 等）**と**
 PR ブランチ作業フェーズ（review / address-review）の**両方**で、着手時に daemon が作業ブランチを
@@ -1514,6 +1526,7 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 | `tools/autopilot/prompts/autopilot-current-status.md` | 現在地を作る worker のプロンプト |
 | `tools/autopilot/src/usage.js` | usage ファイルから Claude 使用率（session/weekly）を読む純粋関数 |
 | `tools/autopilot/bin/usage-statusline.sh` | worker の status line。stdin JSON の `rate_limits` を usage ファイルへ書き出す |
+| `tools/autopilot/bin/cleanup-leftovers` | worker が終わる前に、自分の worktree に残した dev server・ブラウザを止める（判定は `phases.js` の `selectLeftoversToStop`） |
 | `tools/autopilot/src/cli.js`, `bin/autopilot` | CLI（単発フェーズ + `daemon` サブコマンド） |
 | `tools/autopilot/test/` | unit テスト（状態遷移網羅 `state-machine.test.js` を含む） |
 | `.claude/skills/autopilot/` | 総合サポートスキル（初期化インタビュー→`tmp/autopilot_up.sh` 生成・enroll ショートカット・運用支援。`init autopilot` / `autopilot開始` / `go autopilot` 等で起動） |
