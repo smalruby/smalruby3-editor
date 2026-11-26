@@ -561,7 +561,7 @@ export class ClassroomStack extends cdk.Stack {
         EVAL_MAX_SUBMISSIONS: process.env.EVAL_MAX_SUBMISSIONS || '10',
         EVAL_RATE_LIMIT_WINDOW_SECONDS: process.env.EVAL_RATE_LIMIT_WINDOW_SECONDS || '3600',
         EVAL_RATE_LIMIT_MAX_REQUESTS: process.env.EVAL_RATE_LIMIT_MAX_REQUESTS || '60',
-        EVAL_DAILY_LIMIT: process.env.EVAL_DAILY_LIMIT || '50',
+        EVAL_DAILY_LIMIT: process.env.EVAL_DAILY_LIMIT || '200',
         STAGE: stage,
       },
       bundling: {
@@ -910,6 +910,13 @@ export class ClassroomStack extends cdk.Stack {
     // marks-read for the authenticated teacher.
     this.api.addRoutes({
       path: '/notifications',
+      methods: [apigatewayv2.HttpMethod.GET],
+      integration,
+    });
+
+    // Today's AI evaluation usage of the authenticated teacher (#2448).
+    this.api.addRoutes({
+      path: '/teacher/evaluation-quota',
       methods: [apigatewayv2.HttpMethod.GET],
       integration,
     });
