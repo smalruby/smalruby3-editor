@@ -25,7 +25,9 @@ if (!Number.isInteger(issue) || issue <= 0 || !file) {
     process.exit(2);
 }
 const answer = JSON.parse(fs.readFileSync(file, 'utf8'));
-postReleasePageAnswer({ cfg: { repo } }, { issue, answer }).then((r) => {
+// 結果のコメントの「誰の確認か」はモニターと同じ担当（daemon の cfg.assignee と同じ env）
+const assignee = process.env.AUTOPILOT_ASSIGNEE || null;
+postReleasePageAnswer({ cfg: { repo, assignee } }, { issue, answer }).then((r) => {
     process.stdout.write(JSON.stringify(r) + '\n');
     process.exit(r.ok ? 0 : 1);
 }).catch((e) => {

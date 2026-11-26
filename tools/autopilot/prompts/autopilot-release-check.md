@@ -8,8 +8,6 @@ pane に signal トークンを出す。
 対象は環境変数 `AUTOPILOT_ISSUE` の **分解済み EPIC（🧭 トラッカー）**。子の sub-issue が全部済んだ（または残りが
 `🚀 after-release` だけ）ので、daemon が AI Status を **Release Check** にした。このフェーズは
 topic → develop の前の、人間のプレビューでの確認を準備し、確認の結果を受ける（`.claude/rules/topic-branches.md`）。
-結果は、モニターの「確認の結果を書く」と、人間が topic → develop の PR に直接書いたレビュー・コメントの両方から受ける。
-
 結果は、**確認ページ**（claude.ai の artifact・#2474）と、モニターの「確認の結果を書く」（確認ページが開けないときの予備）と、
 topic → develop の PR に人間が直接書いたレビュー・コメントから受ける。
 
@@ -69,7 +67,9 @@ console.log(JSON.stringify({ ...rc.releaseCheckMode(comments, { pendingPrFeedbac
 3. `node "$AUTOPILOT_RELEASE_PAGE_ANSWER" --issue "$N" --answer "tmp/release-page-answer-$N.json"` を流す。
    送った答え（`status: "submitted"`・その round）なら、モニターの結果と同じ目印
    `<!-- autopilot-release-review round=R -->` のコメントを Bot で書く（同じ round の結果が既にあれば書かない・`action:"skip"`）。
-   `action:"none"` は下書きのまま（まだ送っていない）。形が悪くて断られたら（`ok:false`）、理由をトラッカーにコメントして、
+   `action:"none"` は下書きのまま（まだ送っていない）。そのまま下の段（同じ round の観点をまとめ直す・同じ URL を更新するので
+   db の下書きは残る）へ進み、トラッカーの観点のコメントの末尾と結果の `summary` に「確認ページの答えはまだ送られていない
+   （下書きのまま）」と 1 行書く（人間が「答えを送る」を押し忘れたと分かるように）。形が悪くて断られたら（`ok:false`）、理由をトラッカーにコメントして、
    観点のコメントとページはそのままで 🙋 で人間に返す（`hitl:true`・`nextAiStatus:"Release Check"`）。
 4. `action:"post"` なら、トラッカーのコメントを取り直してから上の node を流し直す（`result` の段になる）。
 
