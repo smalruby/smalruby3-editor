@@ -371,21 +371,39 @@ const rubricToSave = (levels, examples) => ({
 
 /**
  * The pages to send back with `PUT /assignment` to save a description into an
- * assignment that has none: the first page gets the text (images are kept by
- * their key), and an assignment without pages gets one page.
+ * assignment: the first page gets the text and the text of the other pages is
+ * cleared, so the description becomes exactly the saved one (it replaces a written
+ * description too, #2456; the description shown is the text of all the pages).
+ * Images are kept by their key; a later page left with neither text nor image is
+ * dropped. An assignment without pages gets one page.
  * @param {?object} assignment - `assignment` of GET /assignment (pages with imageKey)
  * @param {string} description - the description to save
  * @returns {{pages: Array<object>, keepStarter?: boolean}} the request body
  */
 const descriptionSaveRequest = (assignment, description) => {
     const text = cut(String(description || '').trim(), LIMITS.pageText);
-    const pages = ((assignment && assignment.pages) || []).map((page) => ({
-        text: page.text || '',
-        ...(page.imageKey ? { imageKey: page.imageKey } : {}),
-    }));
+    const pages = ((assignment && assignment.pages) || [])
+        .map((page, i) => ({
+            text: i === 0 ? text : '',
+            ...(page.imageKey ? { imageKey: page.imageKey } : {}),
+        }))
+        .filter((page, i) => i === 0 || page.imageKey);
     if (pages.length === 0) pages.push({ text });
-    else pages[0] = { ...pages[0], text };
     return { pages, ...(assignment && assignment.starterKey ? { keepStarter: true } : {}) };
+};
+
+/**
+ * The draft made from the description copied from another assignment (#2456): cut to
+ * what one page can hold (it is saved into the first page, so the teacher sees what
+ * would be saved), and none when it is the same as this assignment's description
+ * (an assignment reused from the other one already has it: nothing to decide).
+ * @param {string} copied - the description of the other assignment (all its pages)
+ * @param {string} current - this assignment's description
+ * @returns {string} the draft, or '' when there is nothing to decide
+ */
+const copiedDescriptionDraft = (copied, current) => {
+    const text = cut(String(copied || '').trim(), LIMITS.pageText).trim();
+    return text && text !== String(current || '').trim() ? text : '';
 };
 
 /**
@@ -442,16 +460,18 @@ const RUBRIC_STEP_IDS = ['describe', 'examples', 'fairness', 'sentences'];
  * current step ('now') and the others not done are 'todo'.
  * @param {object} args - what the tab has
  * @param {boolean} args.hasDescription - the assignment has a description (written or used)
+ * @param {boolean} [args.descriptionDraft] - a description waits for the teacher's decision (copied
+ *   from another assignment, or proposed by the AI): 2-1 is not done until it is saved or used (#2456)
  * @param {number} args.repsTotal - representatives
  * @param {number} args.repsDone - representatives with the teacher's grade
  * @param {?object} args.fairness - {checks, answers} after the fairness check (null = not run)
  * @param {boolean} args.saved - the sentences were saved
  * @returns {{describe: string, examples: string, fairness: string, sentences: string}} 'done' | 'now' | 'todo'
  */
-const rubricStepStates = ({ hasDescription, repsTotal, repsDone, fairness, saved }) => {
+const rubricStepStates = ({ hasDescription, descriptionDraft = false, repsTotal, repsDone, fairness, saved }) => {
     const checks = (fairness && fairness.checks) || [];
     const done = {
-        describe: !!hasDescription,
+        describe: !!hasDescription && !descriptionDraft,
         examples: repsTotal > 0 && repsDone >= repsTotal,
         fairness: !!fairness && checks.every((_, i) => !!(fairness.answers || {})[i]),
         sentences: !!saved,
@@ -470,6 +490,7 @@ export {
     buildFairnessRequest,
     buildGradeRequest,
     buildRubricRequest,
+    copiedDescriptionDraft,
     descriptionSaveRequest,
     editableLevels,
     examplesFromAnswers,

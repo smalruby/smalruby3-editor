@@ -2347,16 +2347,24 @@ export default {
     'gui.classroom.gradingRubric.answer': '正解',
     'gui.classroom.gradingRubric.cancel': 'やめる',
     'gui.classroom.gradingRubric.compare': '作品を並べて見る',
-    'gui.classroom.gradingRubric.copy': 'ほかの課題から基準をコピー…',
+    'gui.classroom.gradingRubric.copy': '説明と基準をコピー…',
+    'gui.classroom.gradingRubric.copyDescriptionDraft':
+        '説明は 2-1 に下書きとして入ります。生徒に見せる説明に反映するかは、そこで決めます。',
+    'gui.classroom.gradingRubric.copyNoRubric': 'この課題には基準がありません。説明だけコピーします。',
+    'gui.classroom.gradingRubric.copyNoDescription': 'この課題には説明がありません。基準だけコピーします。',
+    'gui.classroom.gradingRubric.copyDescription': '説明',
     'gui.classroom.gradingRubric.copyAssignment': '課題',
     'gui.classroom.gradingRubric.copyChoose': '選んでください',
     'gui.classroom.gradingRubric.copyClass': 'クラス',
     'gui.classroom.gradingRubric.copyDo': 'コピーする',
     'gui.classroom.gradingRubric.copyExamples': '正解の例 {count} 件も一緒にコピーします。',
-    'gui.classroom.gradingRubric.copyNone': 'この課題には基準がありません。',
-    'gui.classroom.gradingRubric.copyTitle': 'ほかの課題から基準をコピー',
+    'gui.classroom.gradingRubric.copyNone': 'この課題には説明も基準もありません。',
+    'gui.classroom.gradingRubric.copyTitle': 'ほかの課題から説明と基準をコピー',
     'gui.classroom.gradingRubric.copyWarn': 'この課題の基準は、コピーした基準で置きかわります。',
     'gui.classroom.gradingRubric.describe': 'AI に説明の案を書いてもらう',
+    'gui.classroom.gradingRubric.describeCopied':
+        'ほかの課題からコピーした説明です（下書き）。生徒に見せている課題の説明に反映するかを選んでください。',
+    'gui.classroom.gradingRubric.describeRewrite': 'AI に説明を作り直してもらう',
     'gui.classroom.gradingRubric.describeFix': '直して保存',
     'gui.classroom.gradingRubric.describeOk': '合っている（課題に保存）',
     'gui.classroom.gradingRubric.describeOnlyHere': '保存せず、この採点だけで使う',
@@ -2406,6 +2414,8 @@ export default {
     'gui.classroom.gradingRubric.stepFairness': 'フェアの確認',
     'gui.classroom.gradingRubric.stepSentences': '基準の文',
     'gui.classroom.gradingRubric.aiDescribe': 'スターターと数件の作品から、課題の説明の案を書きます。',
+    'gui.classroom.gradingRubric.aiDescribeRewrite':
+        'スターターと数件の作品から、課題の説明を書き直します。保存すると、いまの説明を上書きします。',
     'gui.classroom.gradingRubric.aiPropose':
         '代表の作品すべてに S/A/B/C の案と理由を付けます。先生はそれを見て正解を付けます。',
     'gui.classroom.gradingRubric.aiFairness':

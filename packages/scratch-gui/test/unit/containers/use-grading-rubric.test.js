@@ -222,7 +222,7 @@ describe('useGradingRubric (#2425)', () => {
         expect(hook.result.current.currentLesson.assignmentText).toBe('LED');
     });
 
-    test('ほかの課題の基準を読んでコピーする', async () => {
+    test('ほかの課題の説明と基準を読んでコピーする: 説明は下書きにし、課題には保存しない (#2456)', async () => {
         const { hook } = await setup();
         expect(tools(hook).copyClasses).toEqual([
             {
@@ -233,14 +233,88 @@ describe('useGradingRubric (#2425)', () => {
         ]);
         const source = { levels: [{ grade: 'S', text: '両方' }], examples: [] };
         mockGetGrading.mockResolvedValueOnce({ grading: { rubric: source } });
+        mockGetAssignment.mockResolvedValueOnce({ assignment: { pages: [{ text: 'サーボとモーター' }] } });
         let read = null;
         await act(async () => {
             read = await tools(hook).handleReadCopySource('b1');
         });
-        expect(read).toEqual(source);
+        expect(mockGetAssignment).toHaveBeenLastCalledWith('id-token', 'b1');
+        expect(read).toEqual({ rubric: source, description: 'サーボとモーター' });
+        let copied = false;
         await act(async () => {
-            await tools(hook).handleCopyRubric(read);
+            copied = await tools(hook).handleCopyFromAssignment(read);
+        });
+        expect(copied).toBe(true);
+        expect(mockPutGrading).toHaveBeenLastCalledWith('id-token', 'a1', { rubric: source });
+        // The description is a draft: the students' assignment is not changed until the teacher decides.
+        expect(tools(hook).description).toEqual({ status: 'copied', text: 'サーボとモーター' });
+        expect(mockSetAssignment).not.toHaveBeenCalled();
+        expect(hook.result.current.currentLesson.assignmentText).toBeFalsy();
+        // The AI did not write it: its button can still be pressed.
+        expect(tools(hook).described).toBe(false);
+        await act(async () => {
+            await tools(hook).handleUseDescription('サーボとモーター', true);
+        });
+        expect(mockSetAssignment).toHaveBeenCalledTimes(1);
+        expect(tools(hook).description.status).toBe('saved');
+    });
+
+    test('説明だけの課題からもコピーでき、基準が無ければ基準は書きかえない (#2456)', async () => {
+        const { hook } = await setup();
+        mockGetGrading.mockResolvedValueOnce({ grading: null });
+        mockGetAssignment.mockResolvedValueOnce({ assignment: { pages: [{ text: 'LED を点ける' }] } });
+        let read = null;
+        await act(async () => {
+            read = await tools(hook).handleReadCopySource('b1');
+        });
+        expect(read).toEqual({ rubric: null, description: 'LED を点ける' });
+        mockPutGrading.mockClear();
+        await act(async () => {
+            await tools(hook).handleCopyFromAssignment(read);
+        });
+        expect(mockPutGrading).not.toHaveBeenCalled();
+        expect(tools(hook).description).toEqual({ status: 'copied', text: 'LED を点ける' });
+    });
+
+    test('いまの説明と同じ説明は下書きにしない (#2456 review)', async () => {
+        const { hook } = await setup();
+        await act(async () => {
+            await tools(hook).handleUseDescription('LED を点ける', false);
+        });
+        const source = { levels: [{ grade: 'S', text: '両方' }], examples: [] };
+        await act(async () => {
+            await tools(hook).handleCopyFromAssignment({ rubric: source, description: 'LED を点ける' });
         });
         expect(mockPutGrading).toHaveBeenLastCalledWith('id-token', 'a1', { rubric: source });
+        expect(tools(hook).description).toEqual({ status: 'used', text: 'LED を点ける' });
+    });
+
+    test('説明も基準も無い課題は null (#2456)', async () => {
+        const { hook } = await setup();
+        mockGetGrading.mockResolvedValueOnce({ grading: null });
+        mockGetAssignment.mockResolvedValueOnce({ assignment: { pages: [{ text: '' }] } });
+        let read = 'x';
+        await act(async () => {
+            read = await tools(hook).handleReadCopySource('b1');
+        });
+        expect(read).toBeNull();
+    });
+
+    test('説明があっても AI に作り直してもらえ、一度実行したら described になる (#2456)', async () => {
+        const { hook } = await setup();
+        await act(async () => {
+            await tools(hook).handleUseDescription('前の説明', false);
+        });
+        expect(hook.result.current.currentLesson.assignmentText).toBe('前の説明');
+        await act(async () => {
+            await tools(hook).handleDescribe();
+        });
+        expect(tools(hook).description).toEqual({ status: 'proposed', text: 'サーボを動かす' });
+        expect(tools(hook).described).toBe(true);
+        await act(async () => {
+            await tools(hook).handleUseDescription('サーボを動かす', true);
+        });
+        expect(hook.result.current.currentLesson.assignmentText).toBe('サーボを動かす');
+        expect(tools(hook).described).toBe(true);
     });
 });

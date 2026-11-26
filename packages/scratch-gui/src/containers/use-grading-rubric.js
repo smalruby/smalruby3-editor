@@ -8,12 +8,14 @@
  *   works are compared with what the teacher handed out;
  * - the groups and representatives (grading-ai.js / grouping.js: a fixed
  *   calculation from the works, so they are the same every time);
- * - the AI calls of the tab: `describe` (when the description is empty), `grade`
+ * - the AI calls of the tab: `describe` (also over a written description, when the teacher
+ *   asks: it is only a draft until the teacher saves it, #2456), `grade`
  *   on the representatives (the AI's proposal next to the teacher's answer),
  *   `fairness` and `rubric`;
- * - saving the rubric (`PUT /grading` with `rubric` only), copying one from another
- *   assignment, and saving the description into the assignment (`PUT /assignment`
- *   with the pages read just before, images kept by key);
+ * - saving the rubric (`PUT /grading` with `rubric` only), copying the description and the
+ *   rubric from another assignment (the rubric is saved; the description is a draft the
+ *   teacher decides on in 2-1, #2456), and saving the description into the assignment
+ *   (`PUT /assignment` with the pages read just before, images kept by key);
  * - after everyone is graded, changing one grade asks whether to change the rest of
  *   the same group (`groupPrompt`).
  *
@@ -24,12 +26,14 @@ import JSZip from 'jszip';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { defineMessages } from 'react-intl';
 import classroomAPI from '../lib/classroom-api.js';
+import { assignmentTextOf } from '../lib/classroom-evaluation/gradebook.js';
 import {
     applyFairnessAnswers,
     buildDescribeRequest,
     buildFairnessRequest,
     buildGradeRequest,
     buildRubricRequest,
+    copiedDescriptionDraft,
     descriptionSaveRequest,
     editableLevels,
     examplesFromAnswers,
@@ -58,7 +62,10 @@ const rubricHookMessages = defineMessages({
 
 const EMPTY_STATE = Object.freeze({
     starter: null, // null = not read | {status: 'loading'|'ready'|'none'|'failed', pseudocode, assignment}
-    description: null, // {status: 'running'|'proposed'|'failed', text}
+    // {status: 'running'|'proposed'|'copied'|'failed'|'used'|'saving'|'saved', text}
+    // 'proposed' (by the AI) and 'copied' (from another assignment) are drafts the teacher decides on.
+    description: null,
+    described: false, // the AI wrote a description once (its button cannot be pressed again)
     answers: null, // "<seat>" → {grade, reason}; null = not started (taken from the saved rubric)
     proposals: {}, // "<seat>" → {grade, reason}
     fairness: null, // {checks, answers: {index: option}}
@@ -199,7 +206,10 @@ const useGradingRubric = ({
         [idTokenRef, id],
     );
 
-    /** 1. The description is empty: the AI guesses it from the starter and a few works. */
+    /**
+     * 1. The AI guesses the description from the starter and a few works. Also over a written
+     * description when the teacher asks (#2456): it stays a draft until the teacher saves it.
+     */
     const handleDescribe = useCallback(async () => {
         if (!lesson) return;
         const classroomId = lesson.classroomId;
@@ -215,6 +225,7 @@ const useGradingRubric = ({
             const data = await evaluate(payload);
             update(classroomId, {
                 running: null,
+                described: true,
                 description: { status: 'proposed', text: (data && data.description) || '' },
             });
         } catch (err) {
@@ -473,18 +484,23 @@ const useGradingRubric = ({
     }, [classrooms, classGroups, id]);
 
     /**
-     * 5. Read the rubric of another assignment (shown before copying).
+     * 5. Read the description and the rubric of another assignment (shown before copying).
+     * The description is copied too, or the classes would be graded with different ones (#2456).
      * @param {string} sourceId - the other assignment
-     * @returns {Promise<?object>} its rubric, or null when it has none
+     * @returns {Promise<?{rubric: ?object, description: string}>} null when it has neither
      */
     const handleReadCopySource = useCallback(
         async (sourceId) => {
             try {
-                const data = await classroomAPI.getGrading(idTokenRef.current, sourceId);
-                const rubric = data && data.grading && data.grading.rubric;
-                return rubric && ((rubric.levels || []).length > 0 || (rubric.examples || []).length > 0)
-                    ? rubric
-                    : null;
+                const [gradingData, assignmentData] = await Promise.all([
+                    classroomAPI.getGrading(idTokenRef.current, sourceId),
+                    classroomAPI.getAssignment(idTokenRef.current, sourceId),
+                ]);
+                const found = gradingData && gradingData.grading && gradingData.grading.rubric;
+                const rubric =
+                    found && ((found.levels || []).length > 0 || (found.examples || []).length > 0) ? found : null;
+                const description = assignmentTextOf(assignmentData);
+                return rubric || description ? { rubric, description } : null;
             } catch (err) {
                 fail(err);
                 return null;
@@ -494,25 +510,35 @@ const useGradingRubric = ({
     );
 
     /**
-     * 5. Copy the rubric (it replaces this assignment's rubric).
-     * @param {object} rubric - the rubric read with handleReadCopySource
+     * 5. Copy what was read: the rubric replaces this assignment's rubric (saved), and the
+     * description becomes a draft in 2-1. It is not saved into the assignment the students see
+     * until the teacher decides there, the same way as a description the AI proposed (#2456).
+     * @param {object} source - what handleReadCopySource returned
      * @returns {Promise<boolean>} true when copied
      */
-    const handleCopyRubric = useCallback(
-        async (rubric) => {
-            if (!lesson || !rubric) return false;
+    const handleCopyFromAssignment = useCallback(
+        async (source) => {
+            if (!lesson || !source || (!source.rubric && !source.description)) return false;
             const classroomId = lesson.classroomId;
-            update(classroomId, { running: 'copy' });
-            try {
-                await putRubric(classroomId, rubricToSave(rubric.levels || [], rubric.examples || []));
-                update(classroomId, { running: null, levels: null, answers: null, extraExamples: null });
-                return true;
-            } catch (err) {
-                update(classroomId, { running: null });
-                if (err && err.status === 401) handleTeacher401();
-                else showError(intl.formatMessage(rubricHookMessages.rubricSaveFailed));
-                return false;
+            const { rubric } = source;
+            const description = copiedDescriptionDraft(source.description, lesson.assignmentText);
+            if (rubric) {
+                update(classroomId, { running: 'copy' });
+                try {
+                    await putRubric(classroomId, rubricToSave(rubric.levels || [], rubric.examples || []));
+                } catch (err) {
+                    update(classroomId, { running: null });
+                    if (err && err.status === 401) handleTeacher401();
+                    else showError(intl.formatMessage(rubricHookMessages.rubricSaveFailed));
+                    return false;
+                }
             }
+            update(classroomId, {
+                running: null,
+                ...(rubric ? { levels: null, answers: null, extraExamples: null } : {}),
+                ...(description ? { description: { status: 'copied', text: description } } : {}),
+            });
+            return true;
         },
         [lesson, update, putRubric, handleTeacher401, showError, intl],
     );
@@ -574,6 +600,7 @@ const useGradingRubric = ({
         starter: state.starter,
         starterPseudocode,
         description: state.description,
+        described: !!state.described,
         works,
         groups,
         representatives,
@@ -604,7 +631,7 @@ const useGradingRubric = ({
         handleSetLevel,
         handleSaveRubric,
         handleReadCopySource,
-        handleCopyRubric,
+        handleCopyFromAssignment,
         noteGradeChange,
         handleApplyGroupChange,
         handleDismissGroupChange,

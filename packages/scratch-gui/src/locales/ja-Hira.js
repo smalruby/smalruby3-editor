@@ -2397,16 +2397,24 @@ export default {
     'gui.classroom.gradingRubric.answer': 'せいかい',
     'gui.classroom.gradingRubric.cancel': 'やめる',
     'gui.classroom.gradingRubric.compare': 'さくひんをならべてみる',
-    'gui.classroom.gradingRubric.copy': 'ほかのかだいからきじゅんをコピー…',
+    'gui.classroom.gradingRubric.copy': 'せつめいときじゅんをコピー…',
+    'gui.classroom.gradingRubric.copyDescriptionDraft':
+        'せつめいは 2-1 にしたがきとしてはいります。せいとにみせるせつめいにはんえいするかは、そこできめます。',
+    'gui.classroom.gradingRubric.copyNoRubric': 'このかだいにはきじゅんがありません。せつめいだけコピーします。',
+    'gui.classroom.gradingRubric.copyNoDescription': 'このかだいにはせつめいがありません。きじゅんだけコピーします。',
+    'gui.classroom.gradingRubric.copyDescription': 'せつめい',
     'gui.classroom.gradingRubric.copyAssignment': 'かだい',
     'gui.classroom.gradingRubric.copyChoose': 'えらんでください',
     'gui.classroom.gradingRubric.copyClass': 'クラス',
     'gui.classroom.gradingRubric.copyDo': 'コピーする',
     'gui.classroom.gradingRubric.copyExamples': 'せいかいのれい {count} けんもいっしょにコピーします。',
-    'gui.classroom.gradingRubric.copyNone': 'このかだいにはきじゅんがありません。',
-    'gui.classroom.gradingRubric.copyTitle': 'ほかのかだいからきじゅんをコピー',
+    'gui.classroom.gradingRubric.copyNone': 'このかだいにはせつめいもきじゅんもありません。',
+    'gui.classroom.gradingRubric.copyTitle': 'ほかのかだいからせつめいときじゅんをコピー',
     'gui.classroom.gradingRubric.copyWarn': 'このかだいのきじゅんは、コピーしたきじゅんでおきかわります。',
     'gui.classroom.gradingRubric.describe': 'AI にせつめいのあんをかいてもらう',
+    'gui.classroom.gradingRubric.describeCopied':
+        'ほかのかだいからコピーしたせつめいです（したがき）。せいとにみせているかだいのせつめいにはんえいするかをえらんでください。',
+    'gui.classroom.gradingRubric.describeRewrite': 'AI にせつめいをつくりなおしてもらう',
     'gui.classroom.gradingRubric.describeFix': 'なおしてほぞん',
     'gui.classroom.gradingRubric.describeOk': 'あっている（かだいにほぞん）',
     'gui.classroom.gradingRubric.describeOnlyHere': 'ほぞんせず、このさいてんだけでつかう',
@@ -2458,6 +2466,8 @@ export default {
     'gui.classroom.gradingRubric.stepSentences': 'きじゅんのぶん',
     'gui.classroom.gradingRubric.aiDescribe':
         'スターターとすうけんのさくひんから、かだいのせつめいのあんをかきます。',
+    'gui.classroom.gradingRubric.aiDescribeRewrite':
+        'スターターとすうけんのさくひんから、かだいのせつめいをかきなおします。ほぞんすると、いまのせつめいをうわがきします。',
     'gui.classroom.gradingRubric.aiPropose':
         'だいひょうのさくひんすべてに S/A/B/C のあんとりゆうをつけます。せんせいはそれをみてせいかいをつけます。',
     'gui.classroom.gradingRubric.aiFairness':
