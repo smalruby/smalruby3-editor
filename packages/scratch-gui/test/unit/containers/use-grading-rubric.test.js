@@ -276,6 +276,19 @@ describe('useGradingRubric (#2425)', () => {
         expect(tools(hook).description).toEqual({ status: 'copied', text: 'LED を点ける' });
     });
 
+    test('いまの説明と同じ説明は下書きにしない (#2456 review)', async () => {
+        const { hook } = await setup();
+        await act(async () => {
+            await tools(hook).handleUseDescription('LED を点ける', false);
+        });
+        const source = { levels: [{ grade: 'S', text: '両方' }], examples: [] };
+        await act(async () => {
+            await tools(hook).handleCopyFromAssignment({ rubric: source, description: 'LED を点ける' });
+        });
+        expect(mockPutGrading).toHaveBeenLastCalledWith('id-token', 'a1', { rubric: source });
+        expect(tools(hook).description).toEqual({ status: 'used', text: 'LED を点ける' });
+    });
+
     test('説明も基準も無い課題は null (#2456)', async () => {
         const { hook } = await setup();
         mockGetGrading.mockResolvedValueOnce({ grading: null });

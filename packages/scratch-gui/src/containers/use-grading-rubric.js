@@ -33,6 +33,7 @@ import {
     buildFairnessRequest,
     buildGradeRequest,
     buildRubricRequest,
+    copiedDescriptionDraft,
     descriptionSaveRequest,
     editableLevels,
     examplesFromAnswers,
@@ -519,7 +520,8 @@ const useGradingRubric = ({
         async (source) => {
             if (!lesson || !source || (!source.rubric && !source.description)) return false;
             const classroomId = lesson.classroomId;
-            const { rubric, description } = source;
+            const { rubric } = source;
+            const description = copiedDescriptionDraft(source.description, lesson.assignmentText);
             if (rubric) {
                 update(classroomId, { running: 'copy' });
                 try {

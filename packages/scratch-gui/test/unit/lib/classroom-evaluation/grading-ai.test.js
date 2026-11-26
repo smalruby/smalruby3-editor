@@ -5,6 +5,7 @@ import {
     buildFairnessRequest,
     buildGradeRequest,
     buildRubricRequest,
+    copiedDescriptionDraft,
     descriptionSaveRequest,
     editableLevels,
     examplesFromAnswers,
@@ -222,13 +223,35 @@ describe('descriptionSaveRequest', () => {
             ' LED を点ける ',
         );
         expect(body).toEqual({
-            pages: [{ text: 'LED を点ける', imageKey: 'c/assignment/a.png' }, { text: 'two' }],
+            pages: [{ text: 'LED を点ける', imageKey: 'c/assignment/a.png' }],
             keepStarter: true,
         });
     });
 
+    test('replaces a written description of several pages: the other pages keep only their images (#2456)', () => {
+        const body = descriptionSaveRequest(
+            {
+                pages: [{ text: 'one' }, { text: 'two', imageKey: 'c/assignment/b.png' }, { text: 'three' }],
+            },
+            'new',
+        );
+        expect(body).toEqual({ pages: [{ text: 'new' }, { text: '', imageKey: 'c/assignment/b.png' }] });
+    });
+
     test('an assignment without pages gets one', () => {
         expect(descriptionSaveRequest(null, 'x')).toEqual({ pages: [{ text: 'x' }] });
+    });
+});
+
+describe('copiedDescriptionDraft', () => {
+    test('the copied description, cut to one page', () => {
+        expect(copiedDescriptionDraft(' サーボ ', '')).toBe('サーボ');
+        expect(copiedDescriptionDraft('あ'.repeat(600), '')).toHaveLength(500);
+    });
+
+    test('none when it is the same as this assignment or empty', () => {
+        expect(copiedDescriptionDraft('LED を点ける', ' LED を点ける ')).toBe('');
+        expect(copiedDescriptionDraft('', 'x')).toBe('');
     });
 });
 
