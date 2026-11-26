@@ -184,6 +184,8 @@
 | `$color-seat-returned` / `$color-seat-returned-text` | `#ffe1bf` / `#7a3e00` | 座席: 返却済み（↩）。文字は地に 6.7:1 |
 | `$color-seat-not-started` / `$color-seat-not-started-text` | `#eceef3` / `$text-primary` | 座席: レッスンを始めていない。文字は地に 5.5:1 |
 | `$color-disabled` / `$color-disabled-text` | `#eceef3` / `#9ca0ad` | クラス管理の押せないボタン（主・副・テキストとも同じ）。押せない部品は WCAG 1.4.3 の対象外なので、はっきり淡くする（文字は地に 2.3:1） |
+| `$color-ai-background` / `$color-ai-text` / `$color-ai-border` | `#f1ecff` / `#4b2a91` / `#b9a3ef` | 「AI に相談」の囲みとボタン（[`components/ask-ai.md`](components/ask-ai.md)）。淡い紫の地・濃い紫の文字（地に 9:1 以上）・紫の点線の枠。「AI」の印は文字の色を地にして白い文字（10:1） |
+| `$color-step-now` / `$color-step-done` / `$color-step-todo` | `$color-action` / `$color-seat-submitted` / `$color-border` | 縦のステッパーの番号の丸と枠（[`components/inner-stepper.md`](components/inner-stepper.md)）。いまの小手順と枠は操作の青、済んだ小手順は提出済みの緑（白い ✓ が 5.1:1）、まだの小手順は枠線の色 |
 | （クラスの色） | JS の `CLASS_COLORS`（`src/lib/classroom-class-color.js`） | クラス管理のクラスの色の帯。その先生のクラスの一覧から画面の側で選ぶので CSS のトークンにはしない。8 色・どれも白に 4.5:1 以上。決め方は [`../classroom/ui-ux.md`](../classroom/ui-ux.md) の「共通: クラスの色」 |
 | `$space-small` / `$space-medium` / `$space-large` | `calc($space / 2)` / `$space` / `calc($space * 2)` | 余白 0.25rem / 0.5rem / 1rem |
 | `$radius-small` | `$form-radius` | ボタン・入力欄 |
@@ -191,6 +193,7 @@
 | `$radius-round` | `50%` | 丸いアイコンボタン・アバター |
 | `$size-button-height` / `$size-button-height-small` | `2.25rem`（36px）/ `1.875rem`（30px） | クラス管理のボタンの高さ（`min-height`）。小さいほうはカードの下の文字のボタンなど |
 | `$size-tab-indicator` | `3px` | クラス管理の選ばれたタブの下の線 |
+| `$size-stepper-marker` / `$size-stepper-line` | `1.625rem`（26px）/ `2px` | 縦のステッパーの番号の丸の大きさと、枠・丸の輪・縦の線の太さ |
 | `$font-size-xsmall` | `0.625rem` | 入力欄のラベル・バッジ |
 | `$font-size-small` | `$menu-bar-standard-font-size` | メニューバー・タブ |
 | `$font-size-dialog` | `0.85rem` | ダイアログの本文・ボタン |

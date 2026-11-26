@@ -42,6 +42,8 @@
 
 これらは**トークンを使う側**。このデザインシステムに合わせて作る。
 
+ただし、独自の画面のあいだで同じ形をくり返し使うもの（縦のステッパー・「AI に相談」）は、独自の部品としてこのデザインシステムに入れる（[`components/`](components/)）。
+
 クラス管理は、UI 部品の形をこのデザインシステムに合わせ、ページの構成・言葉・操作の置き場所は Google Classroom に合わせる（[`../classroom/google-classroom-reference.md`](../classroom/google-classroom-reference.md)）。
 
 ## 文書の地図
@@ -58,7 +60,7 @@
 | [`dialogs.md`](dialogs.md) | 変数・リスト・ブロックを作るダイアログと削除の確認の並び・色・値、スモウルビーの追加 |
 | [`extension-modals.md`](extension-modals.md) | 拡張機能を選ぶモーダルと、micro:bit などの機器との接続のモーダルの並び・色・値、スモウルビーの追加 |
 | [`tutorial-debug.md`](tutorial-debug.md) | チュートリアル（選ぶモーダルとカード）とデバッグのモーダルの並び・色・値、色の違いのわけ、スモウルビーの追加 |
-| [`components/`](components/) | 共通部品（ボタン・入力欄・メニュー・モーダル・タブ・カード・確認・アラート・ページ送り）の状態の表と、独自の画面で使うボタン・フォーカス・モーダルの色・ページ送りの形 |
+| [`components/`](components/) | 共通部品（ボタン・入力欄・メニュー・モーダル・タブ・カード・確認・アラート・ページ送り、独自の縦のステッパー・「AI に相談」）の状態の表と、独自の画面で使うボタン・フォーカス・モーダルの色・ページ送りの形 |
 | [`screenshots/`](screenshots/) | 見本の画像（名前の付け方は [`../_screenshot-guidelines.md`](../_screenshot-guidelines.md)） |
 
 ## 独自の画面でトークンを使う
@@ -120,6 +122,8 @@ DOCS_SHOTS=1 node capture-design-system.mjs                  # screenshots/ の�
 - `packages/scratch-gui/src/css/smalruby-tokens.css` — スモウルビーの別名（独自のファイル。Prettier の対象）
 - `packages/scratch-gui/test/unit/css/smalruby-tokens.test.js` — `smalruby-tokens.css` をビルドと同じ PostCSS のプラグインでコンパイルし、未定義の変数が無いことを確かめるテスト（上流でトークンが消えたら落ちる）
 - `packages/scratch-gui/src/lib/settings/color-mode/` — ブロックの 3 つの色のモード（[`blocks.md`](blocks.md)）
+- `packages/scratch-gui/src/components/inner-stepper/` — 縦のステッパー（中の手順）の部品（独自。[`components/inner-stepper.md`](components/inner-stepper.md)）
+- `packages/scratch-gui/src/components/ask-ai/` — 「AI に相談」の部品（独自。[`components/ask-ai.md`](components/ask-ai.md)）
 - `tools/playwright-verify/capture-design-system.mjs` — 対象の画面を headless で開き、計算済みのスタイル・ホバーの値・スクリーンショットを取る撮影スクリプト（下の「撮影スクリプトで値と見本を取る」）
 
 ## 文書を新しく保つ
