@@ -384,6 +384,27 @@ worker が人間に選んでほしいことがあるとき、`signal=hitl` の�
 
 ![「AI に直してもらう」のダイアログ](screenshots/monitor-fix-instruction-light.png)
 
+### topic → develop の draft PR（daemon が作る）
+
+EPIC の子の PR は topic ブランチ宛てで、daemon が CI 通過後に topic へ自動でマージする（`src/epic-merge.js`）。
+子を topic にマージしたあと、daemon は **topic → develop の open な PR が無ければ draft で作る**（Bot 名義）。
+判断は `src/epic-pr.js`（純粋関数 `epicPrPlan`）、GitHub の読み書きは `project.js`（`getEpicPrFacts` は GraphQL 1 回）。
+
+- 題は `epic: <EPIC の題>`（EPIC の題が `EPIC:` / `epic(scope):` で始まるときは重ねない）。本文の 1 行目は目印 `<!-- autopilot-epic-pr epic=N -->`。
+  **本文は daemon だけが書く**（単一ライター。手で直しても次の更新で上書きされる）。
+- 本文: EPIC への `Refs #N`（topic → develop のマージで EPIC を閉じるかは人間が決めるので `Closes` にしない）、
+  プレビューの URL（`scripts/preview-slug.mjs` と同じ規則の slug。`previewSlug` は同じ値になることをテストで確かめる）、
+  sub-issue の一覧と状態（✅ topic に入った / 🚧 作業中 / ⏳ 待ち / ⛔ 閉じた）とそれぞれの PR、
+  「develop へのマージは人間がリリース確認のあとで行う」の一文。
+- 子を topic にマージするたびに本文を作り直し、**変わったときだけ** PATCH する。
+- **人間が作った topic → develop の PR**（目印なし）があれば新しく作らず、本文も書きかえない。代わりに
+  目印 `<!-- autopilot-epic-pr-status epic=N -->` のコメント 1 つで進み具合を出す（`upsertMarkedComment`）。
+- 子がまだ topic に入っていない・EPIC が閉じている・topic ブランチが無いときは何もしない。
+- **起動時に 1 回**（人間の一時停止中は行わない）、最近マージされた PR 100 件から topic 宛ての子を見つけ、
+  既に子が topic に入っている EPIC の PR もそろえる（`bootEpicTopicPrs`）。人間が手で topic にマージしたときは、
+  次の自動マージか daemon の起動でそろう。
+- daemon は develop へのマージをしない（下のリリース確認の 5.）。
+
 ### リリース確認（分解済み EPIC の最後の確認）
 
 EPIC は topic ブランチに sub-issue の PR を集め、最後に人間がプレビューで確かめて develop へ出す
