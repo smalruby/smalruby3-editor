@@ -18,7 +18,8 @@ const percentOf = (count, total) => (total > 0 ? Math.round((count / total) * 10
 
 /**
  * The distribution from the counts of each grade.
- * The `ok` checks use the exact share (not the rounded one), so 74.6% is not 75%.
+ * The `ok` checks use the rounded share the teacher sees, so a shown "5%" is never
+ * marked as below the 5–25% aim (1 S of 21 is 4.76%).
  * With no grade yet, there is no share and nothing to warn about.
  * @param {{S: number, A: number, B: number, C: number}} counts - seats per grade
  * @param {{sMin: number, sMax: number, saMin: number}} [targets] - the targets in percent
@@ -30,19 +31,20 @@ const gradeDistribution = (counts, targets = GRADE_TARGETS) => {
     const graded = GRADES.reduce((sum, grade) => sum + (counts[grade] || 0), 0);
     const saCount = (counts.S || 0) + (counts.A || 0);
     const sCount = counts.S || 0;
-    const exact = (count) => (count / graded) * 100;
+    const saPercent = percentOf(saCount, graded);
+    const sPercent = percentOf(sCount, graded);
     return {
         counts: { S: counts.S || 0, A: counts.A || 0, B: counts.B || 0, C: counts.C || 0 },
         graded,
         sa: {
             count: saCount,
-            percent: percentOf(saCount, graded),
-            ok: graded === 0 || exact(saCount) >= targets.saMin,
+            percent: saPercent,
+            ok: saPercent === null || saPercent >= targets.saMin,
         },
         s: {
             count: sCount,
-            percent: percentOf(sCount, graded),
-            ok: graded === 0 || (exact(sCount) >= targets.sMin && exact(sCount) <= targets.sMax),
+            percent: sPercent,
+            ok: sPercent === null || (sPercent >= targets.sMin && sPercent <= targets.sMax),
         },
     };
 };

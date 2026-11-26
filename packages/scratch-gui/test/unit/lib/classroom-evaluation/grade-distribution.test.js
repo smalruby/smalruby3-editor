@@ -39,6 +39,14 @@ describe('gradeDistribution: 人数と %', () => {
         expect(gradeDistribution({ S: 1, A: 19, B: 0, C: 0 }).s.ok).toBe(true);
     });
 
+    test('目安の判定は画面に出す丸めた % で行う（「5%」なのに注意にしない）', () => {
+        // 1 / 21 = 4.76% → 5%、29 / 39 = 74.36% → 74%
+        expect(gradeDistribution({ S: 1, A: 19, B: 1, C: 0 }).s).toEqual({ count: 1, percent: 5, ok: true });
+        expect(gradeDistribution({ S: 0, A: 29, B: 10, C: 0 }).sa).toEqual({ count: 29, percent: 74, ok: false });
+        // 10 / 39 = 25.64% → 26% は目安の外
+        expect(gradeDistribution({ S: 10, A: 29, B: 0, C: 0 }).s.ok).toBe(false);
+    });
+
     test('% は整数に丸める', () => {
         expect(gradeDistribution({ S: 1, A: 1, B: 1, C: 0 }).s.percent).toBe(33);
     });

@@ -752,11 +752,7 @@ const Distribution = ({ distribution }) => {
         <div className={styles.evalDist} data-testid="classroom-eval-distribution">
             <span className={styles.evalDistGrades}>
                 {['S', 'A', 'B', 'C'].map((grade) => (
-                    <span
-                        className={styles.evalDistGrade}
-                        data-testid={`classroom-eval-dist-grade-${grade}`}
-                        key={grade}
-                    >
+                    <span data-testid={`classroom-eval-dist-grade-${grade}`} key={grade}>
                         {grade} <b>{counts[grade]}</b>
                     </span>
                 ))}
