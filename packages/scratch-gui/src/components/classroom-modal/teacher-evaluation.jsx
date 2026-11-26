@@ -46,6 +46,7 @@ import { breadcrumbMessages } from './teacher-breadcrumbs.jsx';
 import TeacherEvaluationDetail, { detailMessages } from './teacher-evaluation-detail.jsx';
 import TeacherGradebook, { GradebookSwitch, gradebookMessages } from './teacher-gradebook.jsx';
 import TeacherGradingRubric, { TeacherGradingGroupPrompt } from './teacher-grading-rubric.jsx';
+import TeacherGradingShapes, { ShapeDots, ShapeTags, shapeMessages } from './teacher-grading-shapes.jsx';
 import TeacherLegacyImport from './teacher-legacy-import.jsx';
 import TeacherOverallGrade from './teacher-overall-grade.jsx';
 import { TeacherScreen } from './teacher-view-layout.jsx';
@@ -485,6 +486,11 @@ const assignmentMessages = defineMessages({
         description: 'Assignment grading: tab with the description, the rubric and the criteria (#2424)',
         id: 'gui.classroom.evaluation.tabRubric',
     },
+    tabShape: {
+        defaultMessage: 'Shapes',
+        description: 'Assignment grading: tab with the works grouped by their shape tags',
+        id: 'gui.classroom.evaluation.tabShape',
+    },
     tabStudent: {
         defaultMessage: 'Student',
         description: "Assignment grading: tab with the chosen seat's grade, reason and comment (#2424)",
@@ -644,6 +650,7 @@ const SeatRow = ({
             >
                 <span className={styles.evalSeatRowNumber}>{pad(seatNumber)}</span>
                 <span className={styles.evalSeatRowMarks} aria-hidden="true">
+                    {cell && cell.submitted && cell.shape && <ShapeDots tags={cell.shape.tags} />}
                     {cell && cell.needsReview && <span className={styles.evalCellMark}>{'!'}</span>}
                     {cell && cell.returned && <span className={styles.evalCellMark}>{'↩'}</span>}
                     {hasComment && <span className={styles.evalCellMark}>{'💬'}</span>}
@@ -759,6 +766,7 @@ const TeacherEvaluation = ({
     onReturnComments,
     onRunAi,
     onSetCellGrade,
+    onSetSeatsGrade = null,
     onSetCellReason,
     onSetComment,
     onSetInnerTab = null,
@@ -833,6 +841,15 @@ const TeacherEvaluation = ({
     );
     const handleTabRubric = useCallback(() => setInnerTab('rubric'), [setInnerTab]);
     const handleTabStudent = useCallback(() => setInnerTab('student'), [setInnerTab]);
+    const handleTabShape = useCallback(() => setInnerTab('shape'), [setInnerTab]);
+    // A seat of the same shape (the［生徒］tab): open it there.
+    const handleSameShape = useCallback(
+        (e) => {
+            if (!lesson) return;
+            handleSelectSeat(parseInt(e.currentTarget.dataset.seat, 10), lesson.classroomId);
+        },
+        [lesson, handleSelectSeat],
+    );
     const [hintOpen, setHintOpen] = useState(false);
     const handleHintToggle = useCallback(() => setHintOpen((prev) => !prev), []);
     const [settingsOpen, setSettingsOpen] = useState(false);
@@ -1323,6 +1340,18 @@ const TeacherEvaluation = ({
             </div>
         );
         const added = detailInfo && detailInfo.submitted ? detailInfo.added : null;
+        // The other works with the same shape tags (to compare their grades).
+        const sameShapeSeats =
+            detailInfo && detailInfo.shape && detailCell
+                ? seats
+                      .filter((seat) => seat !== detailCell.seat)
+                      .map((seat) => ({ seat, cell: getCell(seat, detailCell.classroomId) }))
+                      .filter(
+                          ({ cell }) =>
+                              cell && cell.submitted && cell.shape && cell.shape.key === detailInfo.shape.key,
+                      )
+                      .map(({ seat, cell }) => ({ seat, grade: cell.grade }))
+                : [];
         const studentPane = loaded ? (
             <>
                 {rubricTools && (
@@ -1347,6 +1376,29 @@ const TeacherEvaluation = ({
                     onSetCellReason={onSetCellReason}
                     onSetComment={onSetComment}
                 />
+                {detailInfo && detailInfo.submitted && detailInfo.shape && (
+                    <div className={styles.evalPaneBody} data-testid="classroom-eval-shape-tags">
+                        <div className={styles.evalPaneLabel}>{intl.formatMessage(shapeMessages.tagsLabel)}</div>
+                        <ShapeTags tags={detailInfo.shape.tags} />
+                        {sameShapeSeats.length > 0 && (
+                            <div className={styles.evalSettingsNote} data-testid="classroom-eval-same-shape">
+                                {intl.formatMessage(shapeMessages.sameShape)}{' '}
+                                {sameShapeSeats.map(({ seat, grade }) => (
+                                    <button
+                                        className={styles.textButton}
+                                        data-seat={seat}
+                                        data-testid={`classroom-eval-same-shape-${seat}`}
+                                        key={seat}
+                                        type="button"
+                                        onClick={handleSameShape}
+                                    >
+                                        {`${pad(seat)} ${grade || '—'}`}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
                 {added && (
                     <div className={styles.evalPaneBody} data-testid="classroom-eval-added">
                         <div className={styles.evalPaneLabel}>
@@ -1473,6 +1525,20 @@ const TeacherEvaluation = ({
                                 >
                                     {intl.formatMessage(assignmentMessages.tabRubric)}
                                 </button>
+                                {onSetSeatsGrade && (
+                                    <button
+                                        aria-selected={innerTab === 'shape'}
+                                        className={classNames(styles.evalInnerTab, {
+                                            [styles.evalInnerTabOn]: innerTab === 'shape',
+                                        })}
+                                        data-testid="classroom-eval-tab-shape"
+                                        role="tab"
+                                        type="button"
+                                        onClick={handleTabShape}
+                                    >
+                                        {intl.formatMessage(assignmentMessages.tabShape)}
+                                    </button>
+                                )}
                                 <button
                                     aria-selected={innerTab === 'student'}
                                     className={classNames(styles.evalInnerTab, {
@@ -1489,7 +1555,22 @@ const TeacherEvaluation = ({
                         )}
                         {lessonOnly ? null : (
                             <div className={styles.evalPaneScroll} role="tabpanel">
-                                {innerTab === 'student' ? studentPane : rubricPane}
+                                {innerTab === 'student' && studentPane}
+                                {innerTab === 'rubric' && rubricPane}
+                                {innerTab === 'shape' &&
+                                    (loaded && onSetSeatsGrade ? (
+                                        <TeacherGradingShapes
+                                            classroomId={lesson.classroomId}
+                                            getCell={getCell}
+                                            seats={seats}
+                                            onSelectSeat={handleSelectCell}
+                                            onSetSeatsGrade={onSetSeatsGrade}
+                                        />
+                                    ) : (
+                                        <p className={styles.evalSettingsNote}>
+                                            {intl.formatMessage(assignmentMessages.notLoaded)}
+                                        </p>
+                                    ))}
                             </div>
                         )}
                     </div>
@@ -1570,7 +1651,7 @@ TeacherEvaluation.propTypes = {
     /** (classroomId, body) → Promise: save grades imported from an old CSV (#2431) */
     onImportGrading: PropTypes.func,
     /** The tab of the right column, when the container keeps it: 'rubric' | 'student'. */
-    innerTab: PropTypes.oneOf(['rubric', 'student']),
+    innerTab: PropTypes.oneOf(['rubric', 'student', 'shape']),
     /** A leave waiting for the teacher's answer (#1923 C4): {kind: 'back'|'leave'|'reload'}. */
     leaveRequest: PropTypes.shape({
         kind: PropTypes.oneOf(['back', 'leave', 'reload']),
@@ -1628,6 +1709,8 @@ TeacherEvaluation.propTypes = {
     onReturnComments: PropTypes.func.isRequired,
     onRunAi: PropTypes.func.isRequired,
     onSetCellGrade: PropTypes.func.isRequired,
+    /** (seats, classroomId, grade) → give one grade to several works (the［形］tab). */
+    onSetSeatsGrade: PropTypes.func,
     onSetCellReason: PropTypes.func.isRequired,
     onSetComment: PropTypes.func.isRequired,
     /** ('rubric'|'student') → choose the right column's tab, when the container keeps it. */

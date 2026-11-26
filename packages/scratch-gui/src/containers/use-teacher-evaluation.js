@@ -57,6 +57,7 @@ import {
 import { assignmentCsvRows, gradingCsvText } from '../lib/classroom-evaluation/grading-csv.js';
 import { groupSubmissions } from '../lib/classroom-evaluation/grouping.js';
 import { analyzeProject } from '../lib/classroom-evaluation/sb3-analyzer.js';
+import { shapeOf } from '../lib/classroom-evaluation/shape-tags.js';
 import { diffFromStarter } from '../lib/classroom-evaluation/starter-diff.js';
 import { isSameLessonScoring } from '../lib/classroom-lesson-settings.js';
 import { lessonScoresBySeat } from '../lib/classroom-lesson-summary.js';
@@ -600,6 +601,8 @@ const useTeacherEvaluation = ({
                         }
                         // What the student added to the starter: the main thing to grade (EPIC #2421).
                         cell.added = diffFromStarter(cell.pseudocode, starterPseudocode).added;
+                        // The shape tags (「明るさでサーボを切りかえ」…): grading by shape, without the AI.
+                        cell.shape = shapeOf({ pseudocode: cell.pseudocode, added: cell.added, starterPseudocode });
                     } catch (err) {
                         // Analysis failure is per-cell: keep the submission
                         // visible and let the AI/teacher treat it as unknown.
@@ -811,6 +814,7 @@ const useTeacherEvaluation = ({
                                       return {
                                           seatNumber: entry.seatNumber,
                                           added: entry.cell.added,
+                                          shape: entry.cell.shape ? entry.cell.shape.key : null,
                                           grade: result ? result.grade : entry.cell.grade,
                                           manual: !result && !!entry.cell.manual,
                                       };
@@ -1054,6 +1058,28 @@ const useTeacherEvaluation = ({
         [gradesChanged, noteGradeChange],
     );
 
+    /**
+     * The teacher gives one grade to several works at once (a shape on the［形］tab).
+     * Each becomes the teacher's, as with handleSetCellGrade, without asking about
+     * the rest of the group: the teacher chose the works already.
+     */
+    const handleSetSeatsGrade = useCallback(
+        (seatNumbers, classroomId, grade) => {
+            if (!grade) return;
+            setMatrix((prev) => {
+                const next = { ...prev };
+                for (const seat of seatNumbers || []) {
+                    const key = cellKey(seat, classroomId);
+                    if (!next[key] || !next[key].submitted) continue;
+                    next[key] = { ...next[key], grade, needsReview: false, manual: true, gradeEdited: true };
+                }
+                return next;
+            });
+            gradesChanged(classroomId);
+        },
+        [gradesChanged],
+    );
+
     /** Editing only the reason keeps the AI's grade (it stays a draft); it is saved too. */
     const handleSetCellReason = useCallback(
         (seatNumber, classroomId, reason) => {
@@ -1282,6 +1308,7 @@ const useTeacherEvaluation = ({
         handleVisitRubric,
         handleConfirmGrades,
         handleSetCellGrade,
+        handleSetSeatsGrade,
         handleSetCellReason,
         handleSetComment,
         handleChangeRubricAxis,

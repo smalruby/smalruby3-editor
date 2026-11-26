@@ -907,3 +907,66 @@ describe('［生徒］のスターターから足した台本 (#2424)', () => {
         expect(getByTestId('classroom-eval-added')).toHaveTextContent('Nothing that runs was added');
     });
 });
+
+describe('［形］のタブ（形の札でまとめて採点）', () => {
+    const SWITCH = { tags: ['明るさで LED を切りかえ', 'しきい値 300'], key: '明るさで LED を切りかえ' };
+    const SWITCH2 = { tags: ['明るさで LED を切りかえ', 'しきい値 415'], key: '明るさで LED を切りかえ' };
+    const BLINK = { tags: ['LED', 'センサーを使わない'], key: 'LED / センサーを使わない' };
+    const cells = {
+        '1:c1': { submitted: true, grade: 'A', shape: SWITCH, added: ['ずっと'] },
+        '2:c1': { submitted: true, grade: 'B', shape: SWITCH2, added: ['ずっと'] },
+        '3:c1': { submitted: true, grade: 'B', shape: BLINK, added: [] },
+        '4:c1': { submitted: false },
+    };
+    const getCell = (seat, id) => cells[`${seat}:${id}`] || null;
+    const seats = [1, 2, 3, 4];
+    const shapeTab = (extra = {}) => ({
+        seats,
+        getCell,
+        innerTab: 'shape',
+        onSetInnerTab: jest.fn(),
+        onSetSeatsGrade: jest.fn(),
+        ...extra,
+    });
+
+    test('works of the same tags are one shape, largest first; a split grade is marked', () => {
+        const { getByTestId, queryByTestId } = renderEvaluation(shapeTab());
+        expect(getByTestId('classroom-eval-tab-shape')).toHaveAttribute('aria-selected', 'true');
+        const first = getByTestId('classroom-eval-shape-0');
+        // しきい値の数がちがうだけなら同じ形。数は札から外す
+        expect(first).toHaveTextContent('明るさで LED を切りかえ');
+        // 開くと作品ごとの札（数を含む）が出るので、見出しの行だけを見る
+        expect(first.firstChild).not.toHaveTextContent('しきい値');
+        expect(first).toHaveTextContent('2 works (01・02)');
+        expect(getByTestId('classroom-eval-shape-mixed-0')).toBeInTheDocument();
+        expect(queryByTestId('classroom-eval-shape-mixed-1')).toBeNull();
+        // 評価が分かれているときは、選ぶまで押せない
+        expect(getByTestId('classroom-eval-shape-apply-0')).toBeDisabled();
+    });
+
+    test('giving a grade to a shape passes every seat of it', () => {
+        const props = shapeTab();
+        const { getByTestId } = renderEvaluation(props);
+        fireEvent.change(getByTestId('classroom-eval-shape-grade-0'), { target: { value: 'A' } });
+        fireEvent.click(getByTestId('classroom-eval-shape-apply-0'));
+        expect(props.onSetSeatsGrade).toHaveBeenCalledWith([1, 2], 'c1', 'A');
+    });
+
+    test('a work in a shape opens in the［生徒］tab', () => {
+        const props = shapeTab();
+        const { getByTestId } = renderEvaluation(props);
+        fireEvent.click(getByTestId('classroom-eval-shape-work-2'));
+        expect(props.onSetInnerTab).toHaveBeenCalledWith('student');
+    });
+
+    test('the［生徒］tab shows the tags and the other works of the same shape', () => {
+        const { getByTestId } = renderEvaluation(shapeTab({ innerTab: 'student' }));
+        expect(getByTestId('classroom-eval-shape-tags')).toHaveTextContent('しきい値 300');
+        expect(getByTestId('classroom-eval-same-shape-2')).toHaveTextContent('02 B');
+    });
+
+    test('without the handler there is no［形］tab', () => {
+        const { queryByTestId } = renderEvaluation({ seats, getCell });
+        expect(queryByTestId('classroom-eval-tab-shape')).toBeNull();
+    });
+});
