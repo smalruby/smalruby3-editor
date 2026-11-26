@@ -721,7 +721,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 
 課題の採点の手順のボタンのうち、いまの手順だけが `aria-current="step"`（主ボタン）。読み込む前 → 1、読み込んだら → 2、
 基準がある・基準を見たら → 3、評価が 1 つでも入ったら → 4、確定したら → 5、コメントの下書きが 1 つでもあれば → 6（`currentGradingStep`）。
-採点簿 → 課題の採点 → 確定 → 採点簿の流れと 1300×600 の収まりは `tools/playwright-verify/verify-classroom-gradebook.mjs` が測る。タブを切りかえてもタブの行が上下に動かないことは `tools/playwright-verify/verify-classroom-tab-offsets.mjs` が測る。
+採点簿 → 課題の採点 → 確定 → 採点簿の流れと 1300×600 の収まりは `tools/playwright-verify/verify-classroom-gradebook.mjs` が測る。以前の採点結果 CSV の取り込み・［基準］タブ・確定の取り消し・総合評価・返却と失敗の表示は `tools/playwright-verify/verify-classroom-grading.mjs` が測る。タブを切りかえてもタブの行が上下に動かないことは `tools/playwright-verify/verify-classroom-tab-offsets.mjs` が測る。
 
 ### メニューバー
 
