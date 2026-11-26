@@ -123,7 +123,10 @@ const project = require('./project');
 const learnTasks = require('./learn-tasks');
 // EPIC 単位の確認（#2385）: 判断は epic-flow.js、実行のつなぎは epic-merge.js
 const { resolveRunOutcome, isEpicFlowBase, markAutoMergeContexts } = require('./epic-flow');
-const { applyEpicRunSideEffects, applyEpicAutoMerge, applyEpicTopicPrs, bootEpicTopicPrs } = require('./epic-merge');
+const {
+    applyEpicRunSideEffects, applyEpicAutoMerge, applyEpicTopicPrs, bootEpicTopicPrs,
+    topicSyncTarget, applyEpicTopicSync, runTopicSync,
+} = require('./epic-merge');
 // EPIC ごとの進み具合と現在地（#2388）。判断は epic-summary.js / current-status.js、I/O は current-status-job.js
 const { buildStatusMaterial, groupItemsByEpic } = require('./epic-summary');
 const currentStatusJob = require('./current-status-job');
@@ -1637,6 +1640,26 @@ async function resolveInline(item, p) {
 }
 
 /**
+ * develop を topic に取り込む（#2485）ときの I/O のつなぎ。判断は epic-pr.js の topicSyncPlan、
+ * 実行は epic-merge.js の applyEpicTopicSync / runTopicSync。
+ * @param {object[]} items tick の item（本文を直すときの Status）
+ */
+function topicSyncDeps(cfg, state, log, items) {
+    const statuses = Object.fromEntries((items || []).map((it) => [it.issue, it.status]));
+    return {
+        hasCapacity: () => state.running.size < cfg.concurrency,
+        startSync: (t) => runTopicSync(t, cfg, state, log, {
+            execFileP, followBaseBranch, runConflictResolver, worktreeBin: WORKTREE_BIN, botGitBin: BOT_GIT_BIN,
+            stopLeftovers: () => stopWorktreeLeftovers({ issues: [t.epic], runningIssues: [...state.running.keys()] }, log),
+        }).catch((e) => log(`EPIC #${t.epic}: topic sync error: ${e.message}`)),
+        // 取り込んだら、topic → develop の PR の本文（プレビューの状態）を直す
+        refreshTopicPr: (epic, topic) => applyEpicTopicPrs([{ epic, base: topic }], cfg, log, {
+            defaultBase: DEFAULT_BASE_BRANCH, statuses,
+        }),
+    };
+}
+
+/**
  * モニタの「解消」ボタン（POST /resolve-conflict）や /inject から、PR のコンフリクトだけを
  * 解消する（#1348）。**Status と 🙋 HITL は動かさない**（レビュー待ちなどの人間ゲートのまま解消
  * する）。AI Status は解消中だけ Resolving Conflicts にし、終わったら元に戻す。
@@ -2481,10 +2504,15 @@ async function tick(cfg, state, log) {
         onDecisions: (epic, count) => recordEpicDecisionCount(state, epic, count),
     }).catch((e) => { log(`epic auto-merge error: ${e.message}`); return []; });
     // 子を topic に入れたら、topic → develop の draft PR を作る・本文を直す（#2473）
+    const syncTargets = [];
     await applyEpicTopicPrs((autoMerged || []).filter((d) => d.action === 'merge'), cfg, log, {
         defaultBase: DEFAULT_BASE_BRANCH,
         statuses: Object.fromEntries(items.map((it) => [it.issue, it.status])),
+        onFacts: (f) => syncTargets.push(topicSyncTarget(f)),
     }).catch((e) => log(`epic topic PR error: ${e.message}`));
+    // topic → develop の PR が develop と競合していたら、develop を topic に取り込む（#2485）
+    await applyEpicTopicSync(syncTargets, cfg, state, log, topicSyncDeps(cfg, state, log, items))
+        .catch((e) => log(`epic topic sync error: ${e.message}`));
     // 時刻が来たタスク（1 回・定期）を worker で実行する（fire-and-forget）。Issue の worker を先に計画し、
     // 残りの枠（全体・重い・空きメモリ）でタスクを始める（planExtraSlots）
     learnTasks.applyDueTasks(cfg, state, log, { workerCommand, planSlots: (cands) => planExtraSlots(cands, cfg, state) })
@@ -3484,7 +3512,10 @@ async function main(opts = {}) {
     // 既に子が topic に入っている EPIC の topic → develop の PR をそろえる（#2473・起動時に 1 回・fire-and-forget）。
     // 人間の一時停止中は GitHub に書かない（次の topic へのマージか、再開後の起動でそろう）
     if (!state.paused) {
-        bootEpicTopicPrs(cfg, log, { defaultBase: DEFAULT_BASE_BRANCH })
+        const bootSync = [];
+        bootEpicTopicPrs(cfg, log, { defaultBase: DEFAULT_BASE_BRANCH, onFacts: (f) => bootSync.push(topicSyncTarget(f)) })
+            // 起動時に競合を見つけたものは、取り込みの追跡に載せる（次の tick で取り込む・#2485）
+            .then(() => applyEpicTopicSync(bootSync, cfg, state, log, topicSyncDeps(cfg, state, log, [])))
             .catch((e) => log(`epic topic PR (boot) error: ${e.message}`));
     }
     /* eslint-disable no-constant-condition */
