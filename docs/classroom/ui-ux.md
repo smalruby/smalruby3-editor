@@ -731,11 +731,11 @@ Google Classroom の「生徒の提出物」の形。ヘッダーは「クラス
 
 ![採点 — AI が採点しているところ](screenshots/0349-teacher-grading-ai-grading.png)
 
-![採点 — コメントを返却しているところ](screenshots/0350-teacher-grading-returning.png)
+![課題の採点 — 手順 6 でコメントを返却しているところ（件数のバー）](screenshots/0350-teacher-grading-returning.png)
 
-![採点 — 返却が終わったあとの結果](screenshots/0351-teacher-grading-returned-result.png)
+![課題の採点 — 返却が終わったあとの結果](screenshots/0351-teacher-grading-returned-result.png)
 
-![採点 — AI の採点が失敗したとき](screenshots/0352-teacher-grading-failed-result.png)
+![課題の採点 — 全員を採点が途中で失敗したとき（赤い地の結果）](screenshots/0352-teacher-grading-failed-result.png)
 
 - レッスンの課題では、作品の点とは別に、進み具合から出す**レッスンの点**がある（[レッスンの課題](#レッスンの課題)の「採点」）。
   表の見出しは「**レッスン（自動）**」にして、AI ではなく進み具合から自動で出す列だと分かるようにする。
