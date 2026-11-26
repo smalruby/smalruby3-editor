@@ -5,7 +5,8 @@
  * 「人間待ち」を 1 つの札（🙋）でひとまとめにすると、人間の番ではないもの（🚀 after-release・⏳ 待ち）まで
  * 数えてしまい、ボタンもどれも「AI に任せる」になって、押すと何が起きるか分からなかった。
  * ここでは Status・AI Status・Kind・🙋・🧭・子の状態・ラベル・PR・質問から「すること」を 1 つに決め、
- * 動詞のボタンと「押すと: …」の説明、状態の一文を作る（親の EPIC はモニターの行の札で見せるので、一文には書かない）。材料はボードの値だけ（追加の GitHub の read をしない）。
+ * 動詞のボタンと「押すと: …」の説明、状態の一文を作る。分解済み EPIC は「いま」を 1 つに決め（#2475）、
+ * 自律で進んでいる EPIC は人間の番に数えず、任せる前の EPIC は 1 つのボタン「この EPIC を AI に任せる」で子の 🙋 をまとめて外す（親の EPIC はモニターの行の札で見せるので、一文には書かない）。材料はボードの値だけ（追加の GitHub の read をしない）。
  *
  * monitor.js がブラウザへ `fn.toString()` で埋め込むので、どの関数も**モジュールの外を参照しない**
  * （定数も中に持つ。ほかの関数を呼ぶのは、同じく埋め込む関数だけ）。I/O・`Date.now()` は持ち込まない。
@@ -19,8 +20,11 @@
  * act はボタンを押して「行う」を選んだときの操作:
  * open（url を別タブで開く）/ release（確認の結果を書くダイアログ）/ delegate（targets の 🙋 を外す）/ null（ボタンなし）。
  * @param {object} it board item（GET /board の items に humanWait の delegate を重ねたもの）
- * @param {object} [ctx] { kids: object[]（親がこの item の board item）, running: number[], questions: number[], repoUrl: string }
- * @returns {object|null} { kind, button, happens, state, act, url, targets }
+ * @param {object} [ctx] { kids: object[]（親がこの item の board item）, running: number[], questions: number[], repoUrl: string,
+ *   decisions: number（この EPIC の決定待ちの件数） }
+ * @returns {object|null} { kind, button, happens, state, act, url, targets, epicPhase? }
+ *   epicPhase は分解済み EPIC だけ: autonomous（自律で進行中・人間の番ではない）/ before-delegate（任せる前）/
+ *   consult（途中の相談）/ final-check（最後の確認）
  */
 function humanAction(it, ctx) {
     if (!it) return null;
@@ -50,7 +54,8 @@ function humanAction(it, ctx) {
         && !(k.delegate && k.delegate.ok === false);
     // 宛て先: 🧱 infra の子は develop 宛て（infra-first）、ほかの EPIC の子は topic 宛て、EPIC に属さないものは develop 宛て
     const isInfra = (x) => (x.labels || []).indexOf('🧱 infra') >= 0;
-    const decomposed = Boolean(it.tracker) || ai === 'EPIC Decomposed' || sub.total > 0;
+    // 🧭 が付いていても、Backlog で子が 0 件なら未分解（分解を始めるか決める）
+    const decomposed = ai === 'EPIC Decomposed' || sub.total > 0 || (Boolean(it.tracker) && s !== 'Backlog');
 
     if (running.indexOf(it.issue) >= 0) return r('idle', null, null, 'AI が作業中');
     if (labels.indexOf('🚀 after-release') >= 0) {
@@ -60,30 +65,56 @@ function humanAction(it, ctx) {
     if (questions.indexOf(it.issue) >= 0) {
         return r('answer', '答える', '質問の欄を開く。選んだ答えで AI が先へ進む', 'AI の質問への答え待ち', 'answer', null);
     }
-    // リリース確認（#2430）: topic → develop の PR とプレビューで確かめる
+    // EPIC の「いま」（#2475）: 最後の確認 / 途中の相談 / 任せる前 / 自律で進行中 のどれか 1 つ。行に epicPhase を付ける
+    const phase = (p, row) => Object.assign(row, { epicPhase: p });
+    // リリース確認（#2430）: topic → develop の PR とプレビューで確かめる。確認ページ（artifact）が無いあいだは確認の結果を書くダイアログ
     if (ai === 'Release Check' && it.hitl) {
         const pr = prUrl ? 'PR #' + openPr.number : 'topic → develop の PR';
-        return r('check', 'プレビューで確かめる', 'プレビューと ' + pr + ' を開く。確かめた結果は「確認の結果を書く」か PR のレビューで AI に返す',
-            '子は ' + (sub.completed || 0) + '/' + (sub.total || 0) + ' 済み。' + pr + ' のプレビューで、成果物を確かめる番', 'release', it.previewUrl || prUrl);
+        return phase('final-check', r('check', '確認ページを開く', 'プレビューと ' + pr + ' を開き、確認の結果を書く欄を出す。結果は「確認の結果を書く」か PR のレビューで AI に返す',
+            '子は全部 topic に入りました（' + (sub.completed || 0) + '/' + (sub.total || 0) + ' 済み）。確認ページで答えてください', 'release', it.previewUrl || prUrl));
     }
     if (decomposed) {
         const go = kids.filter(goKid).sort((a, b) => a.issue - b.issue);
         const done = (sub.completed || 0) + '/' + (sub.total || 0);
+        const decisions = Number(c.decisions) > 0 ? '決定待ち ' + Number(c.decisions) + ' 件（最後にまとめて確認）。' : '';
+        const hands = kids.filter((k) => k.status === 'Backlog' && (k.hitl || k.hitlLabel) && k.kind !== 'EPIC').map((k) => '#' + k.issue);
+        const handNote = hands.length ? hands.join('・') + ' は人間の作業。' : '';
         if (go.length) {
             const nums = go.map((k) => '#' + k.issue).join('・');
-            const button = go.length === 1 ? '#' + go[0].issue + ' を始めてもらう' : go.length + ' 件の実装を始めてもらう';
-            const infraN = go.filter(isInfra).length;
-            const to = infraN === 0 ? 'topic 宛ての ' : infraN === go.length ? 'develop 宛ての ' : '';
-            return r('go', button, nums + ' の 🙋 を外す。AI が順に実装し、' + to + 'PR を作る',
-                '子は ' + done + ' 済み。' + nums + ' があなたのゴーサイン待ち', 'delegate', null, go.map((k) => k.issue));
+            const infra = go.filter(isInfra).map((k) => '#' + k.issue);
+            const to = infra.length === 0 ? '' : infra.length === go.length ? '（🧱 infra なので develop 宛ての PR）' : '（🧱 infra の ' + infra.join('・') + ' は develop 宛ての PR）';
+            return phase('before-delegate', r('go', 'この EPIC を AI に任せる',
+                '子 ' + go.length + ' 件（' + nums + '）の 🙋 を外す。AI が順に実装して topic にマージし' + to + '、最後の確認だけあなたに返します',
+                '子 ' + go.length + ' 件があなたのゴーサイン待ち（' + done + ' 済み）。任せると最後の確認まで AI が進めます。' + decisions,
+                'delegate', null, go.map((k) => k.issue)));
         }
         if (sub.total > 0 && sub.completed >= sub.total) {
             const pr = prUrl ? 'PR #' + openPr.number : 'topic → develop の PR';
-            return r('check', 'プレビューで確かめる', pr + ' とプレビューを開く。結果は PR のレビューで返す',
-                '子は ' + done + ' 済み。topic のプレビューで成果物を確かめる番', 'open', it.previewUrl || prUrl || issueUrl);
+            return phase('final-check', r('check', 'プレビューで確かめる', pr + ' とプレビューを開く。結果は PR のレビューで返す',
+                '子は ' + done + ' 済み。topic のプレビューで成果物を確かめる番', 'open', it.previewUrl || prUrl || issueUrl));
         }
-        const hands = kids.filter((k) => k.status === 'Backlog' && (k.hitl || k.hitlLabel) && k.kind !== 'EPIC').map((k) => '#' + k.issue);
-        return r('idle', null, null, '子は ' + done + ' 済み。' + (hands.length ? hands.join('・') + ' は人間の作業。' : '') + 'ほかの子を AI が進めている');
+        // 途中の相談: 子のうち、人間が答える・確かめるもの（方針が分かれた・止まった など）。先頭の 1 件を EPIC の行で示す
+        const consult = kids.filter((k) => k.kind !== 'EPIC')
+            .map((k) => ({ k, a: humanAction(k, { running, questions, repoUrl: repo }) }))
+            .filter((x) => x.a && (x.a.kind === 'answer' || x.a.kind === 'check'))
+            .sort((a, b) => a.k.issue - b.k.issue);
+        if (consult.length) {
+            const x = consult[0];
+            const n = '#' + x.k.issue;
+            const what = x.k.status === 'Blocked' ? n + ' が止まりました（環境の問題など）。理由を確かめてください'
+                : x.a.kind === 'answer' ? n + ' で方針が分かれました。選んでください'
+                    : n + ': ' + x.a.state;
+            const more = consult.length > 1 ? '（ほか ' + consult.slice(1).map((y) => '#' + y.k.issue).join('・') + ' も）' : '';
+            return phase('consult', r(x.a.kind, x.a.button, x.a.happens, what + more + '。' + decisions, x.a.act, x.a.url, [x.k.issue]));
+        }
+        // 残りが人間の作業だけなら、AI は進めていない（人間の作業の行は「人間の作業」の欄に出る）
+        const aiLeft = kids.filter((k) => k.kind !== 'EPIC' && !(k.status === 'Backlog' && (k.hitl || k.hitlLabel))).length;
+        if (hands.length && !aiLeft) {
+            return phase('autonomous', r('idle', null, null,
+                '子は ' + done + ' 済み。残りは人間の作業 ' + hands.join('・') + ' だけ（済んだら最後の確認へ進みます）。' + decisions));
+        }
+        return phase('autonomous', r('idle', null, null,
+            'AI が進めています（' + done + ' 済み・topic に自動でマージ）。人間の番は最後の確認だけ。' + handNote + decisions));
     }
     if (s === 'Review' || s === 'DoD') {
         const what = s === 'Review' ? 'あなたのレビュー待ち' : '動作の確認（DoD）待ち';
@@ -150,12 +181,17 @@ function forYouModel(board, opts) {
         const p = it.parent && it.parent.number != null ? it.parent.number : null;
         if (p != null) (kidsOf[p] = kidsOf[p] || []).push(delegateOf[it.issue] ? Object.assign({}, it, { delegate: delegateOf[it.issue] }) : it);
     }
+    // EPIC の決定待ちの件数（epicGroups の pendingDecisions。最後にまとめて確認する）
+    const decisionsOf = {};
+    for (const g of Array.isArray(d.epicGroups) ? d.epicGroups : []) if (g && g.epic != null) decisionsOf[g.epic] = g.pendingDecisions || 0;
     const rank = (p) => ({ P0: 0, P1: 1, P2: 2, P3: 3 }[p] == null ? 4 : { P0: 0, P1: 1, P2: 2, P3: 3 }[p]);
     const prio = (it) => (it.effectivePriority && it.effectivePriority.priority) || it.priority || null;
     const rows = [];
     for (const it of source) {
         if (asked.indexOf(it.issue) >= 0) continue;
-        const a = humanAction(it, { kids: kidsOf[it.issue] || [], running, questions: [], repoUrl: o.repoUrl });
+        const a = humanAction(it, {
+            kids: kidsOf[it.issue] || [], running, questions: asked, repoUrl: o.repoUrl, decisions: decisionsOf[it.issue] || 0,
+        });
         if (!a) continue;
         rows.push(Object.assign({
             issue: it.issue, title: it.title || '', url: it.url || null, priority: prio(it),
@@ -164,9 +200,11 @@ function forYouModel(board, opts) {
             delegate: it.delegate || null, previewUrl: it.previewUrl || null,
         }, a));
     }
-    // EPIC の行のゴーサインにまとめた子は、子の行として重ねない
+    // EPIC の行にまとめた子（任せる前のゴーサイン・途中の相談）は、子の行として重ねない
     const folded = [];
-    for (const w of rows) if (w.isEpic && w.kind === 'go') for (const n of w.targets) if (n !== w.issue) folded.push(n);
+    for (const w of rows) {
+        if (w.isEpic && (w.epicPhase === 'before-delegate' || w.epicPhase === 'consult')) for (const n of w.targets) if (n !== w.issue) folded.push(n);
+    }
     const shown = rows.filter((w) => folded.indexOf(w.issue) < 0);
     const order = (a, b) => rank(a.priority) - rank(b.priority) || a.issue - b.issue;
     const SECTIONS = [
@@ -201,7 +239,28 @@ function linkIssueRefs(text, repoUrl) {
         : e(part))).join('');
 }
 
-/** ブラウザへ埋め込む関数（monitor.js の SHARED_CLIENT_FNS） */
-const HUMAN_ACTION_CLIENT_FNS = [humanAction, forYouModel, linkIssueRefs];
+/**
+ * 行の targets の 🙋 を 1 件ずつ外してもらう（「この EPIC を AI に任せる」・#2475）。順に送り、1 件が失敗しても残りは送る。
+ * I/O は post で受ける（モニターでは `POST /delegate`）。
+ * @param {number[]} targets
+ * @param {function(number): Promise<object>} post 1 件を任せる（失敗は throw）
+ * @returns {Promise<{ok: number[], failed: {issue:number, error:string}[], nextPhase: (string|null)}>}
+ */
+async function delegateTargets(targets, post) {
+    const out = { ok: [], failed: [], nextPhase: null };
+    for (const n of targets || []) {
+        try {
+            const j = await post(n);
+            out.ok.push(n);
+            if (j && j.nextPhase && !out.nextPhase) out.nextPhase = j.nextPhase;
+        } catch (e) {
+            out.failed.push({ issue: n, error: (e && e.message) || String(e) });
+        }
+    }
+    return out;
+}
 
-module.exports = { humanAction, forYouModel, linkIssueRefs, HUMAN_ACTION_CLIENT_FNS };
+/** ブラウザへ埋め込む関数（monitor.js の SHARED_CLIENT_FNS） */
+const HUMAN_ACTION_CLIENT_FNS = [humanAction, forYouModel, linkIssueRefs, delegateTargets];
+
+module.exports = { humanAction, forYouModel, linkIssueRefs, delegateTargets, HUMAN_ACTION_CLIENT_FNS };

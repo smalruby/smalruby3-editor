@@ -937,12 +937,15 @@ daemon の `GET /`（既定 `http://localhost:8787/`）は、人間と同意し�
 
   | 状態 | すること | ボタン | 押すと |
   |---|---|---|---|
-  | 🧭 EPIC で子が全部済んだ・Release Check | 確かめる | プレビューで確かめる | プレビュー / topic → develop の PR を開く（Release Check は「確認の結果を書く」のダイアログも開く） |
+  | 🧭 EPIC で Release Check（最後の確認） | 確かめる | 確認ページを開く | プレビュー / topic → develop の PR と「確認の結果を書く」のダイアログを開く（確認ページの artifact ができるまでのあいだ） |
+  | 🧭 EPIC で子が全部済んだ（Release Check の前） | 確かめる | プレビューで確かめる | プレビュー / topic → develop の PR を開く |
   | Review / DoD（PR あり） | 確かめる | PR を見る | PR を開く。OK なら 🙋 を外すと AI が先へ進む |
   | Blocked | 確かめる | Issue を見る | Issue を開く |
   | モニターの質問・相談中（Discussing / 🔬 spike） | 答える | 答える | 質問の欄を開く / Issue を開く |
   | Sprint Backlog + 🙋（Issue） | ゴーサイン | 実装を始めてもらう | 🙋 を外す（`POST /delegate`）。AI が実装して PR を作る |
-  | 🧭 EPIC で、子に Sprint Backlog + 🙋 がある | ゴーサイン（EPIC にまとめる） | N 件の実装を始めてもらう | 子 N 件の 🙋 を外す（子ごとに `POST /delegate`）。子の行は重ねない |
+  | 🧭 EPIC で、子に Sprint Backlog + 🙋 がある（任せる前） | ゴーサイン（EPIC にまとめる） | この EPIC を AI に任せる | 子 N 件の 🙋 を外す（子ごとに `POST /delegate`）。AI が順に実装して topic にマージし、最後の確認だけ返す。子の行は重ねない |
+  | 🧭 EPIC で、子が答え・確認を待つ（途中の相談） | 答える / 確かめる | 子のボタン（答える・Issue を見る など） | 子の質問の欄・Issue を開く。子の行は重ねない |
+  | 🧭 EPIC で、子を AI が進めている（自律で進行中） | 人間の番ではない | なし | — 進み具合と「決定待ち n 件（最後にまとめて確認）」を一文に出す |
   | Awaiting Continuation | ゴーサイン | 続きを始めてもらう | 🙋 を外す |
   | Backlog + 🙋（EPIC・未分解） | 分解を始めるか決める | 分解を始めてもらう | Sprint Backlog へ動かす（`POST /delegate`） |
   | Backlog + 🙋（Issue） | 人間の作業 | Issue を開く | Issue を開く（閉じない）。済んだら GitHub で閉じる |
@@ -951,6 +954,22 @@ daemon の `GET /`（既定 `http://localhost:8787/`）は、人間と同意し�
   ボタンを押すと行の中で「これを行います: …」と確かめ、「行う」で初めて行う。前の「AI に任せる」「AI に直してもらう」
   「確認の結果を書く」は「⋯」のメニューに残す。一文・「押すと」の `#N` は別タブで開くリンク。
   `GET /board` の `waitReason`（`humanWaitReason`）も同じ分け方（`continue` / `epic` / `go` / `decompose` / `hand`）にそろえた。
+
+- **EPIC を AI に任せる流れ**（`humanAction` の `epicPhase`・#2475）: 分解済みの EPIC は、ボードの値（子の Status・AI Status・🙋・
+  Release Check・決定待ちの件数 = `epicGroups` の `pendingDecisions`）だけで「いま」を 1 つに決め、「あなた宛て」の EPIC の行に出す。
+
+  1. **任せる前**（`before-delegate`）: 🙋 の付いた子（Sprint Backlog）が残る。人間は「この EPIC を AI に任せる」を 1 回押す
+     （確かめてから、子ごとに `POST /delegate` で 🙋 を外す）。
+  2. **自律で進行中**（`autonomous`）: AI が子を順に実装し、topic 宛ての PR を自分でマージする。人間の番ではないので数えない。
+     途中で AI が決めたことは「決定待ち」にためて、最後にまとめて確かめる。
+  3. **途中の相談**（`consult`）: 途中で人間に返すのは 2 種類だけ — 方針が 3 案以上に分かれた（`diverge`。子の質問に答える）と、
+     環境の問題で止まった（`environment`。Blocked の理由を確かめる）。EPIC の行に子の番号とボタンを出す。
+  4. **最後の確認**（`final-check`）: 子が全部 topic に入ると Release Check になる。「確認ページを開く」で確かめて答える
+     （確認ページの artifact ができるまでは「確認の結果を書く」のダイアログ）。develop へのマージは人間。
+
+  ![EPIC の「いま」（ライト・人間の番ではない欄の自律で進行中の EPIC）](./screenshots/monitor-for-you-epic-light.png)
+  ![EPIC の「いま」（ダーク）](./screenshots/monitor-for-you-epic-dark.png)
+  ![EPIC の「いま」（スマホの幅）](./screenshots/monitor-for-you-epic-phone.png)
 
   ![あなた宛て（ライト・確かめの表示）](./screenshots/monitor-for-you-light.png)
   ![あなた宛て（ダーク）](./screenshots/monitor-for-you-dark.png)
