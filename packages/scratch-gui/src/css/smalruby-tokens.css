@@ -91,6 +91,18 @@ $color-seat-not-started-text: $text-primary;
 $color-disabled: #eceef3;
 $color-disabled-text: #9ca0ad;
 
+/* 「AI に相談」の囲み（ask-ai/ask-ai.jsx・#2454）。「AI に相談といえばこの見た目」として、どの画面でも同じ紫を使う。
+   淡い紫の地・紫の点線の枠・濃い紫の文字（文字は地に 9:1 以上）。AI の印は濃い紫の地に白い文字 */
+$color-ai-background: #f1ecff;
+$color-ai-text: #4b2a91;
+$color-ai-border: #b9a3ef;
+
+/* 縦のステッパー（中の手順・inner-stepper/inner-stepper.jsx・#2454）の番号の丸と枠。
+   いまの小手順と枠は操作の青、済んだ小手順は提出済みの緑（白い ✓ が 5.1:1）、まだの小手順は枠線の色 */
+$color-step-now: $color-action;
+$color-step-done: $color-seat-submitted;
+$color-step-todo: $color-border;
+
 /* クラスの色の帯（クラス管理のカード・クラスの見出し）は、クラスごとに画面の側で決める。
    値は JS（src/lib/classroom-class-color.js の CLASS_COLORS）が正。CSS には置かない */
 
@@ -120,6 +132,9 @@ $size-button-height: 2.25rem;
 $size-button-height-small: 1.875rem;
 /* 選ばれたタブの下の線の太さ（クラス管理のタブ。#1956 Q7） */
 $size-tab-indicator: 3px;
+/* 縦のステッパーの番号の丸の大きさ 26px と、外の枠・丸をつなぐ縦の線の太さ 2px（#2454） */
+$size-stepper-marker: 1.625rem;
+$size-stepper-line: 2px;
 
 /* ---- 文字 ---- */
 

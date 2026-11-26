@@ -32,6 +32,8 @@
 | [`cards.md`](cards.md) | ライブラリの項目・スプライトの項目 | `0505`・`0201` |
 | [`confirm.md`](confirm.md) | 確認（削除の確認） | `0402` |
 | [`alerts.md`](alerts.md) | アラート（注意・成功・お知らせ） | `0507` |
+| [`inner-stepper.md`](inner-stepper.md) | 縦のステッパー（独自。外の手順の中のもう一段の手順。枠で囲んだ縦の番号つき・いまの小手順だけ開く） | `0510` |
+| [`ask-ai.md`](ask-ai.md) | 「AI に相談」（独自。紫の囲み・「AI」の印のボタン・押したときだけ動く・一度実行したら押せない） | `0511` |
 
 見本の画像は [`../screenshots/`](../screenshots/)（一覧は [`../screenshots/README.md`](../screenshots/README.md)）。
 

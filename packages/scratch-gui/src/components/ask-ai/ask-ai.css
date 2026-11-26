@@ -1,0 +1,77 @@
+/* 「AI に相談」の囲みとボタン（#2454）。色はデザインシステムのトークン（docs/design-system/components/ask-ai.md）。 */
+@import '../../css/smalruby-tokens.css';
+
+.box {
+    display: flex;
+    flex-direction: column;
+    gap: $space-small;
+    padding: $space-medium 0.625rem;
+    border: 1px dashed $color-ai-border;
+    border-radius: $radius-medium;
+    background-color: $color-ai-background;
+    color: $color-ai-text;
+    font-size: $font-size-medium;
+}
+
+.description,
+.note {
+    margin: 0;
+}
+
+.lead {
+    font-weight: $font-weight-bold;
+}
+
+.note {
+    font-size: $font-size-small;
+}
+
+.button {
+    display: inline-flex;
+    align-self: flex-start;
+    align-items: center;
+    gap: 0.375rem;
+    min-height: $size-button-height;
+    padding: 0 0.75rem;
+    border: 1.5px solid $color-ai-border;
+    border-radius: $radius-small;
+    background-color: $color-surface;
+    color: $color-ai-text;
+    font: inherit;
+    font-size: $font-size-medium;
+    font-weight: $font-weight-bold;
+    cursor: pointer;
+    transition: $transition-standard;
+}
+
+.button:hover:not(:disabled) {
+    border-color: $color-ai-text;
+}
+
+.button:focus-visible {
+    outline: 2px solid $color-ai-text;
+    outline-offset: 2px;
+}
+
+/* 一度実行した・動いている・画面が止めた: クラス管理の押せないボタンと同じ淡い地（はっきり押せない） */
+.button:disabled {
+    border-color: $color-disabled;
+    background-color: $color-disabled;
+    color: $color-disabled-text;
+    cursor: default;
+}
+
+/* 「AI」の印: 濃い紫の地に白い文字（10:1）。押せないときは淡い灰色の地にする */
+.mark {
+    padding: 0 0.25rem;
+    border-radius: $radius-small;
+    background-color: $color-ai-text;
+    color: $color-surface;
+    font-size: $font-size-xsmall;
+    font-weight: $font-weight-bold;
+    line-height: 1.4;
+}
+
+.button:disabled .mark {
+    background-color: $color-disabled-text;
+}
