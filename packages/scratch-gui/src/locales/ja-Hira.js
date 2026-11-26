@@ -345,6 +345,42 @@ export default {
     'gui.classroom.error.googleApiFailed':
         'Google Classroom にはいしんできませんでした。しばらくまってからもういちどおためしください。',
     'gui.classroom.error.generic': 'よきしないエラーがはっせいしました。もういちどおためしください。',
+    'gui.classroom.serverError.evalDailyLimit':
+        'AI のさいてんは 1にち {limit}かいまでです。きょうのぶんを つかいきりました。あした（あさ 9じ）また つかえます。',
+    'gui.classroom.serverError.evalRateLimit':
+        'みじかい じかんに AI のさいてんを なんども たのんだため、いまは つかえません。しばらく まってから、もういちど ためしてください。',
+    'gui.classroom.serverError.sharedDailyLimit':
+        'このそうさは 1にち {limit}かいまでです。きょうのぶんを つかいきりました。あした（あさ 9じ）また できます。',
+    'gui.classroom.serverError.joinRateLimit':
+        'さんかの そうさが おおすぎます。しばらく まってから、もういちど ためしてください。',
+    'gui.classroom.serverError.lessonProgressRateLimit':
+        'すすみぐあいを みじかい じかんに なんども おくったため、いまは おくれません。しばらく まってから、もういちど ためしてください。',
+    'gui.classroom.serverError.aiTimeout':
+        'AI のこたえが じかんないに かえってきませんでした。すこし まってから、もういちど ためしてください。',
+    'gui.classroom.serverError.aiApiError':
+        'いま AI が こたえられませんでした。すこし まってから、もういちど ためしてください。',
+    'gui.classroom.serverError.aiResponseInvalid':
+        'AI のこたえを よみとれませんでした。もういちど ためしてください。',
+    'gui.classroom.serverError.aiNotConfigured': 'このサーバーでは AI のさいてんを つかえません。',
+    'gui.classroom.serverError.classroomNotFound':
+        'クラス（かだい）が みつかりません。さくじょされた かのうせいが あります。',
+    'gui.classroom.serverError.submissionNotFound':
+        'ていしゅつされた さくひんが みつかりません。さくじょされた かのうせいが あります。',
+    'gui.classroom.serverError.sharedNotFound':
+        'こうかいされた かだいが みつかりません。さくじょされた かのうせいが あります。',
+    'gui.classroom.serverError.noLesson': 'このかだいには レッスンが ありません。',
+    'gui.classroom.serverError.shareNoContent':
+        'このかだいには こうかいできる なかみが ありません。さきに ページ・はじめのさくひん・レッスンの どれかを いれてください。',
+    'gui.classroom.serverError.starterTooLarge': 'はじめのさくひんが おおきすぎます。{size} MB いかに してください。',
+    'gui.classroom.serverError.coTeacherOwnerOnly':
+        'きょうどうの せんせいを かえられるのは、クラスを つくった せんせいだけです。',
+    'gui.classroom.serverError.coTeacherMax': 'きょうどうの せんせいは 1つのクラスに {max}にんまでです。',
+    'gui.classroom.serverError.seatNotOccupied': 'いま {seat}ばんの せきには だれも いません。',
+    'gui.classroom.serverError.joinCodeFailed': 'コードを つくれませんでした。もういちど ためしてください。',
+    'gui.classroom.serverError.internalError':
+        'サーバーで もんだいが おきました。すこし まってから、もういちど ためしてください。',
+    'gui.classroom.serverError.httpStatus':
+        'サーバーから エラーが かえりました（{status}）。すこし まってから、もういちど ためしてください。',
     'gui.classroom.error.goToLogin': 'ログインがめんをひょうじ',
     'gui.classroom.error.goToJoin': 'さんかがめんをひょうじ',
     'gui.classroom.teacherDetail.openSubmission': 'スモウルビーでひらく',

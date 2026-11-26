@@ -337,6 +337,35 @@ export default {
     'gui.classroom.error.googleApiFailed':
         'Google Classroom に配信できませんでした。しばらく待ってからもう一度お試しください。',
     'gui.classroom.error.generic': '予期しないエラーが発生しました。もう一度お試しください。',
+    'gui.classroom.serverError.evalDailyLimit':
+        'AI の採点は 1 日 {limit} 回までです。今日の分を使い切りました。明日（朝 9 時）また使えます。',
+    'gui.classroom.serverError.evalRateLimit':
+        '短い時間に AI の採点を何度も頼んだため、いまは使えません。しばらく待ってから、もう一度試してください。',
+    'gui.classroom.serverError.sharedDailyLimit':
+        'この操作は 1 日 {limit} 回までです。今日の分を使い切りました。明日（朝 9 時）またできます。',
+    'gui.classroom.serverError.joinRateLimit': '参加の操作が多すぎます。しばらく待ってから、もう一度試してください。',
+    'gui.classroom.serverError.lessonProgressRateLimit':
+        '進み具合を短い時間に何度も送ったため、いまは送れません。しばらく待ってから、もう一度試してください。',
+    'gui.classroom.serverError.aiTimeout':
+        'AI の答えが時間内に返ってきませんでした。少し待ってから、もう一度試してください。',
+    'gui.classroom.serverError.aiApiError':
+        'いま AI が答えられませんでした。少し待ってから、もう一度試してください。',
+    'gui.classroom.serverError.aiResponseInvalid': 'AI の答えを読み取れませんでした。もう一度試してください。',
+    'gui.classroom.serverError.aiNotConfigured': 'このサーバーでは AI の採点を使えません。',
+    'gui.classroom.serverError.classroomNotFound': 'クラス（課題）が見つかりません。削除された可能性があります。',
+    'gui.classroom.serverError.submissionNotFound': '提出された作品が見つかりません。削除された可能性があります。',
+    'gui.classroom.serverError.sharedNotFound': '公開された課題が見つかりません。削除された可能性があります。',
+    'gui.classroom.serverError.noLesson': 'この課題にはレッスンがありません。',
+    'gui.classroom.serverError.shareNoContent':
+        'この課題には公開できる中身がありません。先にページ・はじめの作品・レッスンのどれかを入れてください。',
+    'gui.classroom.serverError.starterTooLarge': 'はじめの作品が大きすぎます。{size} MB 以下にしてください。',
+    'gui.classroom.serverError.coTeacherOwnerOnly': '共同の先生を変えられるのは、クラスを作った先生だけです。',
+    'gui.classroom.serverError.coTeacherMax': '共同の先生は 1 つのクラスに {max} 人までです。',
+    'gui.classroom.serverError.seatNotOccupied': 'いま {seat} 番の席にはだれもいません。',
+    'gui.classroom.serverError.joinCodeFailed': 'コードを作れませんでした。もう一度試してください。',
+    'gui.classroom.serverError.internalError': 'サーバーで問題が起きました。少し待ってから、もう一度試してください。',
+    'gui.classroom.serverError.httpStatus':
+        'サーバーからエラーが返りました（{status}）。少し待ってから、もう一度試してください。',
     'gui.classroom.error.goToLogin': 'ログイン画面を表示',
     'gui.classroom.error.goToJoin': '参加画面を表示',
     'gui.classroom.teacherDetail.openSubmission': 'スモウルビーで開く',

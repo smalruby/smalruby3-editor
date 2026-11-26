@@ -301,6 +301,7 @@ src/lib/*
 !src/lib/classroom-evaluation/
 !src/lib/classroom-evaluation/**
 !src/lib/classroom-download-utils.js
+!src/lib/classroom-error-messages.js
 !src/lib/classroom-google-share.js
 !src/lib/classroom-class-color.js
 !src/lib/classroom-class-list-summary.js
@@ -732,6 +733,7 @@ test/unit/lib/*
 !test/unit/lib/scratch-blocks-ime-patch.test.js
 !test/unit/lib/avatar-initials.test.js
 !test/unit/lib/classroom-api.test.js
+!test/unit/lib/classroom-error-messages.test.js
 !test/unit/lib/classroom-student-steps.test.js
 !test/unit/lib/classroom-student-analytics.test.js
 !test/unit/lib/classroom-menu-submit.test.js

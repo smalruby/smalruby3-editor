@@ -301,6 +301,36 @@ export default {
     'gui.classroom.error.networkUnreachable':
         'Could not connect to the server. Please check that your network or firewall allows access to {host} (HTTPS / port 443).',
     'gui.classroom.error.generic': 'An unexpected error occurred. Please try again.',
+    'gui.classroom.serverError.evalDailyLimit':
+        'AI grading can be used up to {limit} times a day, and today’s limit has been used up. You can use it again tomorrow (from 9:00 a.m. Japan time).',
+    'gui.classroom.serverError.evalRateLimit':
+        'Too many AI grading requests in a short time. Please wait a while and try again.',
+    'gui.classroom.serverError.sharedDailyLimit':
+        'This can be done up to {limit} times a day, and today’s limit has been used up. You can do it again tomorrow (from 9:00 a.m. Japan time).',
+    'gui.classroom.serverError.joinRateLimit': 'Too many attempts to join. Please wait a while and try again.',
+    'gui.classroom.serverError.lessonProgressRateLimit':
+        'Too many progress updates in a short time. Please wait a while and try again.',
+    'gui.classroom.serverError.aiTimeout': 'The AI took too long to answer. Please wait a moment and try again.',
+    'gui.classroom.serverError.aiApiError': 'The AI could not answer right now. Please wait a moment and try again.',
+    'gui.classroom.serverError.aiResponseInvalid': 'The AI’s answer could not be read. Please try again.',
+    'gui.classroom.serverError.aiNotConfigured': 'AI grading is not available on this server.',
+    'gui.classroom.serverError.classroomNotFound': 'The class could not be found. It may have been deleted.',
+    'gui.classroom.serverError.submissionNotFound':
+        'The submitted work could not be found. It may have been deleted.',
+    'gui.classroom.serverError.sharedNotFound': 'The shared assignment could not be found. It may have been deleted.',
+    'gui.classroom.serverError.noLesson': 'This assignment has no lesson.',
+    'gui.classroom.serverError.shareNoContent':
+        'This assignment has nothing to share. Add pages, a starter project or a lesson first.',
+    'gui.classroom.serverError.starterTooLarge': 'The starter project is too large. It must be {size} MB or less.',
+    'gui.classroom.serverError.coTeacherOwnerOnly':
+        'Only the teacher who created the class can change the co-teachers.',
+    'gui.classroom.serverError.coTeacherMax': 'A class can have up to {max} co-teachers.',
+    'gui.classroom.serverError.seatNotOccupied': 'No student is in seat {seat} now.',
+    'gui.classroom.serverError.joinCodeFailed': 'Could not make a code. Please try again.',
+    'gui.classroom.serverError.internalError':
+        'Something went wrong on the server. Please wait a moment and try again.',
+    'gui.classroom.serverError.httpStatus':
+        'The server answered with an error ({status}). Please wait a moment and try again.',
     'gui.classroom.error.goToLogin': 'Go to login screen',
     'gui.classroom.error.goToJoin': 'Go to join screen',
     'gui.classroom.teacherDetail.openSubmission': 'Open in Smalruby',
