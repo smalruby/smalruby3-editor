@@ -859,13 +859,17 @@ implement・review・address-review・resolve-conflict のプロンプトは **`
   `--base <ref>` で変えられる）との merge-base からの差分（消したファイルは除く）+
   まだコミットしていない変更 + 新しいファイル。
 - **パッケージごと**（`packages/<name>/`・`infra/<name>/`・`tools/autopilot/`）に、そのディレクトリで:
-  - eslint: `npx eslint --max-warnings 0 --no-warn-ignored <files>`（`.js` `.jsx` `.mjs` `.cjs` `.ts` `.tsx`。
-    `eslint.config.*` の無いパッケージは飛ばす）
+  - eslint: `npx eslint [--max-warnings N] --no-warn-ignored <files>`（`.js` `.jsx` `.mjs` `.cjs` `.ts` `.tsx`。
+    `eslint.config.*` の無いパッケージは飛ばす）。`--max-warnings` は `package.json` の `lint` の eslint に合わせる
+    （scratch-gui は 0、警告を許している upstream の scratch-vm・scratch-render などは付けない）。`lint` に eslint が
+    無い Smalruby のパッケージ（admin など）は 0
   - prettier: `npx prettier --check --ignore-unknown --no-error-on-unmatched-pattern <files>`
     （`package.json` の `lint` に prettier があるパッケージだけ。`.prettierignore` のホワイトリストで外れるものは
     prettier が自分で飛ばす）
-  - `format-message lint`: `lint` に含まれるパッケージ（scratch-vm）で、`src/**/*.js` を変えたときだけ、
-    `lint` と同じ引数でそのファイルにかける
+  - `format-message lint`: `lint` に含まれるパッケージ（scratch-vm）で、`lint` の glob に合うファイルを変えたときだけ、
+    `lint` と同じ引数でそのファイルにかける。npm の scripts は globstar の無い sh で動くので、`src/**/*.js` は
+    `src/<dir>/<file>.js` にだけ合う（全体の lint もそれより深いファイルを見ない。深いファイルにかけると古いパーサーが
+    `?.` や `import()` で落ち、CI は通るのに手元だけ落ちる）
 - **リポジトリ root**: `npm run lint:secrets` はいつも、`npm run test:hosting-scripts` は
   `scripts/hosting/`・`scripts/precompress-assets*` を変えたときだけ。
 - 変えたファイルが無ければ何もせず 0。どれかが失敗したら 1 で終わり、失敗したパッケージとコマンドを出す。

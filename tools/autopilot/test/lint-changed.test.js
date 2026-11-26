@@ -68,21 +68,60 @@ test('packageCommands: eslint は lint 対象の拡張子だけ・設定の無�
 
 test('packageCommands: scratch-vm の format-message は src/**/*.js を変えたときだけ', () => {
     const info = { hasEslintConfig: true, lintScript: VM_LINT };
-    const withSrc = lc.packageCommands('packages/scratch-vm', ['src/x.js', 'test/unit/y.js'], info);
+    const withSrc = lc.packageCommands('packages/scratch-vm', ['src/engine/x.js', 'test/unit/y.js'], info);
     assert.deepEqual(
         withSrc.map(c => c.args.slice(0, 3)),
         [
-            ['npx', 'eslint', '--max-warnings'],
+            ['npx', 'eslint', '--no-warn-ignored'],
             ['npx', 'format-message', 'lint'],
             ['npx', 'prettier', '--check'],
         ],
     );
-    assert.deepEqual(withSrc[1].args.slice(-1), ['src/x.js']);
+    assert.deepEqual(withSrc[1].args.slice(-1), ['src/engine/x.js']);
     const testOnly = lc.packageCommands('packages/scratch-vm', ['test/unit/y.js'], info);
     assert.equal(
         testOnly.some(c => c.args[1] === 'format-message'),
         false,
     );
+});
+
+test('packageCommands: format-message は全体の lint と同じく sh の glob に合うファイルだけ', () => {
+    const info = { hasEslintConfig: true, lintScript: VM_LINT };
+    const deep = lc.packageCommands(
+        'packages/scratch-vm',
+        ['src/index.js', 'src/extensions/scratch3_mesh_v2/index.js', 'src/engine/runtime.js'],
+        info,
+    );
+    const fm = deep.find(c => c.args[1] === 'format-message');
+    assert.deepEqual(fm.args.slice(-1), ['src/engine/runtime.js']);
+    const onlyDeep = lc.packageCommands('packages/scratch-vm', ['src/extensions/scratch3_mesh_v2/index.js'], info);
+    assert.equal(
+        onlyDeep.some(c => c.args[1] === 'format-message'),
+        false,
+    );
+});
+
+test('shGlobMatch: ** も * と同じで / をまたがない（globstar の無い sh）', () => {
+    assert.equal(lc.shGlobMatch('src/**/*.js', 'src/engine/runtime.js'), true);
+    assert.equal(lc.shGlobMatch('src/**/*.js', 'src/index.js'), false);
+    assert.equal(lc.shGlobMatch('src/**/*.js', 'src/a/b/c.js'), false);
+    assert.equal(lc.shGlobMatch('src/**/*.js', 'src/engine/runtime.jsx'), false);
+    assert.deepEqual(lc.formatMessageGlobs(VM_LINT), ['src/**/*.js']);
+    assert.deepEqual(lc.formatMessageGlobs(GUI_LINT), []);
+});
+
+test('eslintMaxWarnings: パッケージの lint の eslint に合わせ、lint に eslint が無ければ 0', () => {
+    assert.equal(lc.eslintMaxWarnings(GUI_LINT), '0');
+    assert.equal(lc.eslintMaxWarnings(VM_LINT), null);
+    assert.equal(lc.eslintMaxWarnings('eslint'), null);
+    assert.equal(lc.eslintMaxWarnings(''), '0');
+    assert.equal(lc.eslintMaxWarnings('eslint --max-warnings=3 .'), '3');
+    // upstream の scratch-render は警告を許す（lint は `eslint` だけ）ので付けない
+    const render = lc.packageCommands('packages/scratch-render', ['src/a.js'], {
+        hasEslintConfig: true,
+        lintScript: 'eslint',
+    });
+    assert.deepEqual(render[0].args, ['npx', 'eslint', '--no-warn-ignored', 'src/a.js']);
 });
 
 test('rootCommands: 秘密の検査はいつも・hosting のテストは対象を変えたときだけ', () => {

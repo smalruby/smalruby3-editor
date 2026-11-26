@@ -73,6 +73,58 @@ function formatMessageArgs(lintScript) {
 }
 
 /**
+ * パッケージの `lint` スクリプトにある `format-message lint` の glob。無ければ空。
+ * @param {string} lintScript package.json の scripts.lint
+ * @returns {string[]}
+ */
+function formatMessageGlobs(lintScript) {
+    const segment = String(lintScript || '')
+        .split('&&')
+        .map(s => s.trim())
+        .find(s => s.startsWith('format-message lint'));
+    if (!segment) return [];
+    return segment.split(/\s+/).filter(t => t.includes('*'));
+}
+
+/**
+ * npm の scripts を流す sh（globstar なし）と同じ意味で glob に合うか。sh では `**` も `*` と同じで
+ * `/` をまたがないので、scratch-vm の glob（src の下の 2 つ星）は `src/<dir>/<file>.js` だけに合う。
+ * 全体の lint が見ないファイル（`src/extensions/<ext>/index.js` など）に format-message をかけると、
+ * 古いパーサーが `?.` や `import()` で落ち、CI は通るのに手元だけ落ちる。
+ * @param {string} glob パッケージからの相対の glob
+ * @param {string} file パッケージからの相対パス
+ * @returns {boolean}
+ */
+function shGlobMatch(glob, file) {
+    const re = glob
+        .split('')
+        .map(c => {
+            if (c === '*') return '[^/]*';
+            if (c === '?') return '[^/]';
+            return c.replace(/[\\^$.+()|{}[\]]/g, '\\$&');
+        })
+        .join('');
+    return new RegExp(`^${re}$`).test(file);
+}
+
+/**
+ * eslint の `--max-warnings` の値。パッケージの `lint` の eslint と同じにする（upstream の
+ * scratch-render・scratch-svg-renderer は警告を許していて、0 にすると触っただけで落ちる）。
+ * `lint` に eslint が無いパッケージ（Smalruby のもの）は 0（警告も残さない決まり）。
+ * @param {string} lintScript package.json の scripts.lint
+ * @returns {(string|null)} 付けないときは null
+ */
+function eslintMaxWarnings(lintScript) {
+    const segment = String(lintScript || '')
+        .split('&&')
+        .map(s => s.trim())
+        .find(s => /^eslint(\s|$)/.test(s));
+    if (!segment) return '0';
+    const m = /--max-warnings[\s=]+(\d+)/.exec(segment);
+    return m ? m[1] : null;
+}
+
+/**
  * 1 パッケージで流すコマンド。eslint は設定のあるパッケージだけ、prettier は `lint` に
  * prettier があるパッケージだけ（`.prettierignore` のホワイトリストは prettier が自分で見る）。
  * @param {string} dir パッケージのディレクトリ
@@ -85,11 +137,22 @@ function packageCommands(dir, files, info) {
     const lintScript = (info && info.lintScript) || '';
     const eslintFiles = files.filter(f => ESLINT_EXTS.includes(path.extname(f)));
     if (info && info.hasEslintConfig && eslintFiles.length > 0) {
+        const maxWarnings = eslintMaxWarnings(lintScript);
         // --no-warn-ignored: 設定で外したファイルを渡しても警告にしない（--max-warnings 0 で落ちるため）
-        cmds.push({ cwd: dir, args: ['npx', 'eslint', '--max-warnings', '0', '--no-warn-ignored', ...eslintFiles] });
+        cmds.push({
+            cwd: dir,
+            args: [
+                'npx',
+                'eslint',
+                ...(maxWarnings === null ? [] : ['--max-warnings', maxWarnings]),
+                '--no-warn-ignored',
+                ...eslintFiles,
+            ],
+        });
     }
     const fmArgs = formatMessageArgs(lintScript);
-    const fmFiles = files.filter(f => f.startsWith('src/') && f.endsWith('.js'));
+    const fmGlobs = formatMessageGlobs(lintScript);
+    const fmFiles = files.filter(f => fmGlobs.some(g => shGlobMatch(g, f)));
     if (fmArgs && fmFiles.length > 0) {
         cmds.push({ cwd: dir, args: ['npx', 'format-message', 'lint', ...fmArgs, ...fmFiles] });
     }
@@ -187,7 +250,7 @@ const USAGE = `usage: bin/lint-changed [--base <ref>] [--dry-run]
  */
 function gitChangedFiles(repoRoot, candidates) {
     const git = args => execFileSync('git', args, { cwd: repoRoot, encoding: 'utf8' });
-    const lines = s => s.split('\n').filter(Boolean);
+    const nul = s => s.split('\0').filter(Boolean);
     let mergeBase = null;
     for (const ref of candidates) {
         try {
@@ -198,10 +261,11 @@ function gitChangedFiles(repoRoot, candidates) {
         }
     }
     if (!mergeBase) throw new Error(`cannot resolve base: ${candidates.join(' / ')}`);
+    // -z: 日本語などのファイル名を "\\346..." の形に引用させない（引用されると existsSync で消える）
     const files = [
         // merge-base と作業ツリーの差分 = コミット済みの差分 + まだコミットしていない変更
-        ...lines(git(['diff', '--name-only', '--diff-filter=ACMR', mergeBase])),
-        ...lines(git(['ls-files', '--others', '--exclude-standard'])),
+        ...nul(git(['diff', '--name-only', '-z', '--diff-filter=ACMR', mergeBase])),
+        ...nul(git(['ls-files', '-z', '--others', '--exclude-standard'])),
     ];
     return [...new Set(files)].filter(f => fs.existsSync(path.join(repoRoot, f))).sort();
 }
@@ -296,6 +360,9 @@ module.exports = {
     packageDirOf,
     groupByPackage,
     formatMessageArgs,
+    formatMessageGlobs,
+    shGlobMatch,
+    eslintMaxWarnings,
     packageCommands,
     rootCommands,
     planCommands,

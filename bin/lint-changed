@@ -4,10 +4,13 @@
 #
 # 検査するファイル: base との差分（消したファイルは除く）+ まだコミットしていない変更 + 新しいファイル。
 # パッケージ（packages/<name>/・infra/<name>/・tools/autopilot/）ごとに、そのディレクトリで:
-#   - eslint:   npx eslint --max-warnings 0 <files>（.js .jsx .mjs .cjs .ts .tsx。eslint.config が無ければ飛ばす）
+#   - eslint:   npx eslint [--max-warnings N] --no-warn-ignored <files>（.js .jsx .mjs .cjs .ts .tsx。
+#               eslint.config が無ければ飛ばす。--max-warnings は package.json の lint の eslint に合わせ、
+#               lint に eslint が無いパッケージは 0）
 #   - prettier: npx prettier --check --ignore-unknown <files>（package.json の lint に prettier があるときだけ。
 #               .prettierignore のホワイトリストで外れるものは prettier が自分で飛ばす）
-#   - format-message lint: lint に含まれるパッケージ（scratch-vm）で、src/**/*.js を変えたときだけ
+#   - format-message lint: lint に含まれるパッケージ（scratch-vm）で、lint の glob（src/**/*.js を
+#               globstar の無い sh で展開したもの = src/<dir>/<file>.js）に合うファイルを変えたときだけ
 # リポジトリ root では `npm run lint:secrets` をいつも、`npm run test:hosting-scripts` は
 # scripts/hosting/・scripts/precompress-assets* を変えたときだけ流す。
 #
