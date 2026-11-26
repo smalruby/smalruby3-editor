@@ -90,6 +90,26 @@ describe('TeacherGradingRubric (#2425)', () => {
         expect(tools.handleSetAnswer).toHaveBeenCalledWith(4, { grade: 'B' });
     });
 
+    test('選んだ答えは aria-pressed でも分かる（代表の正解・フェアの確認）', () => {
+        const tools = makeTools({
+            answers: { 4: { grade: 'B', reason: '' } },
+            fairness: {
+                checks: [{ question: '2 番は B ですか？', options: ['B のまま', 'A にする'], seatNumbers: [2] }],
+                answers: { 0: 'A にする' },
+            },
+        });
+        renderTab(tools);
+        fireEvent.click(screen.getByTestId('grading-rubric-rep-4'));
+        expect(screen.getByTestId('grading-rubric-rep-grade-4-B')).toHaveAttribute('aria-pressed', 'true');
+        for (const g of ['S', 'A', 'C']) {
+            expect(screen.getByTestId(`grading-rubric-rep-grade-4-${g}`)).toHaveAttribute('aria-pressed', 'false');
+        }
+        expect(screen.getByTestId('grading-rubric-check-0-option-0')).toHaveAttribute('aria-pressed', 'false');
+        expect(screen.getByTestId('grading-rubric-check-0-option-1')).toHaveAttribute('aria-pressed', 'true');
+        fireEvent.click(screen.getByTestId('grading-rubric-check-0-option-0'));
+        expect(tools.handleAnswerFairness).toHaveBeenCalledWith(0, 'B のまま');
+    });
+
     test('基準がある課題は基準を見せ、つくり直しは選んだときだけ', () => {
         const tools = makeTools({ savedRubric: { levels: [{ grade: 'B', text: 'サーボ' }], examples: [] } });
         renderTab(tools);

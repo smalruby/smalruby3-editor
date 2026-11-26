@@ -16,7 +16,8 @@
  * shows changed grades as confirmed.
  *
  * The matrix is a plain object keyed by `${seatNumber}:${classroomId}`. Each cell:
- * {submissionId, submitted, signals, pseudocode, grade, reason, needsReview,
+ * {submissionId, submitted, signals, pseudocode, grade, reason, needsReview, reviewReason
+ * (why it needs a check: 'ai' | 'shape' | 'analysis' | null),
  * returned, returnedComment}. It keeps every assignment opened so far, so going
  * back to the gradebook and opening another assignment loses nothing.
  *
@@ -608,6 +609,7 @@ const useTeacherEvaluation = ({
                         // visible and let the AI/teacher treat it as unknown.
                         cell.pseudocode = `(解析失敗: ${err.message})`;
                         cell.needsReview = true;
+                        cell.reviewReason = 'analysis';
                     }
                     // A grade saved before comes back as it was (#2424).
                     nextMatrix[cellKey(seatNumber, id)] = withSavedGrade(cell, savedGrades[String(seatNumber)]);
@@ -769,6 +771,7 @@ const useTeacherEvaluation = ({
                                     grade: result.grade,
                                     reason: result.reason || '',
                                     needsReview: result.needsReview === true,
+                                    reviewReason: result.needsReview === true ? 'ai' : null,
                                     manual: false,
                                     gradeEdited: false,
                                 };
@@ -826,7 +829,7 @@ const useTeacherEvaluation = ({
                         const next = { ...prev };
                         for (const seat of review) {
                             const key = cellKey(seat, lesson.classroomId);
-                            if (next[key]) next[key] = { ...next[key], needsReview: true };
+                            if (next[key]) next[key] = { ...next[key], needsReview: true, reviewReason: 'shape' };
                         }
                         return next;
                     });
@@ -1046,6 +1049,7 @@ const useTeacherEvaluation = ({
                         ...prev[key],
                         grade: grade || null,
                         needsReview: false,
+                        reviewReason: null,
                         manual: true,
                         gradeEdited: true,
                     },
@@ -1071,7 +1075,14 @@ const useTeacherEvaluation = ({
                 for (const seat of seatNumbers || []) {
                     const key = cellKey(seat, classroomId);
                     if (!next[key] || !next[key].submitted) continue;
-                    next[key] = { ...next[key], grade, needsReview: false, manual: true, gradeEdited: true };
+                    next[key] = {
+                        ...next[key],
+                        grade,
+                        needsReview: false,
+                        reviewReason: null,
+                        manual: true,
+                        gradeEdited: true,
+                    };
                 }
                 return next;
             });

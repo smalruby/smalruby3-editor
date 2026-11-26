@@ -558,6 +558,7 @@ const useGradingRubric = ({
                     ...next[key],
                     grade: prompt.grade,
                     needsReview: false,
+                    reviewReason: null,
                     manual: true,
                     gradeEdited: true,
                 };

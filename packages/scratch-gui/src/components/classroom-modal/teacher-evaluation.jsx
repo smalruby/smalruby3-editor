@@ -43,7 +43,7 @@ import ClassroomButton from './classroom-button.jsx';
 import styles from './classroom-modal.css';
 import LessonScoringField from './lesson-scoring-field.jsx';
 import { breadcrumbMessages } from './teacher-breadcrumbs.jsx';
-import TeacherEvaluationDetail, { detailMessages } from './teacher-evaluation-detail.jsx';
+import TeacherEvaluationDetail, { detailMessages, needsReviewText } from './teacher-evaluation-detail.jsx';
 import TeacherGradebook, { GradebookSwitch, gradebookMessages } from './teacher-gradebook.jsx';
 import TeacherGradingRubric, { TeacherGradingGroupPrompt } from './teacher-grading-rubric.jsx';
 import TeacherGradingShapes, { ShapeDots, ShapeTags, shapeMessages } from './teacher-grading-shapes.jsx';
@@ -621,7 +621,7 @@ const SeatRow = ({
         : !!(saved && saved.draft);
     const hasComment = (comment || '').trim() !== '';
     const states = [
-        cell && cell.needsReview && intl.formatMessage(detailMessages.needsReview),
+        cell && cell.needsReview && needsReviewText(intl, cell),
         cell && cell.returned && intl.formatMessage(detailMessages.returned),
         hasComment && intl.formatMessage(evalMessages.commentMark),
         draft && intl.formatMessage(detailMessages.aiDraft),

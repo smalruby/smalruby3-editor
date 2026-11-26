@@ -526,6 +526,22 @@ describe('席の一覧と［生徒］の詳細 (#1962・R1・#2424)', () => {
         expect(getByTestId('classroom-eval-comment-3-c1').value).toBe('');
     });
 
+    test.each([
+        ['ai', 'Needs check: the AI was unsure'],
+        ['shape', 'Needs check: same shape, different grade'],
+        ['analysis', 'Needs check: the work could not be read'],
+    ])('要確認の理由（%s）を右の列と席の読み上げに出す', (reviewReason, text) => {
+        const withReason = (seat, id) => (seat === 3 ? { ...cells['3:c1'], reviewReason } : getCell(seat, id));
+        const { getByTestId } = renderEvaluation({ seats, getCell: withReason, ...student });
+        expect(getByTestId('classroom-eval-cell-button-3-c1').getAttribute('aria-label')).toBe(
+            `Seat 3, 迷路: Not graded (${text})`,
+        );
+        fireEvent.click(getByTestId('classroom-eval-cell-button-3-c1'));
+        const badge = getByTestId('classroom-eval-detail-needs-review');
+        expect(badge).toHaveTextContent(text);
+        expect(badge).toHaveAttribute('data-reason', reviewReason);
+    });
+
     test('提出が 1 つも無いときは、右の列にそう書く', () => {
         const { getByTestId } = renderEvaluation({ seats: [2], getCell, ...student });
         expect(getByTestId('classroom-eval-detail-empty')).toHaveTextContent('No work has been submitted.');
