@@ -95,6 +95,36 @@ describe('InnerStepper', () => {
         expect(screen.queryByText('c2')).not.toBeInTheDocument();
     });
 
+    test('moves the open step to the new current step when the steps advance', () => {
+        const { rerender } = renderStepper();
+        fireEvent.click(screen.getByTestId('stepper-head-describe'));
+        expect(screen.getByText('c1')).toBeInTheDocument();
+        const advanced = steps.map((step) => {
+            if (step.id === 'examples') return { ...step, state: 'done', summary: '正解を付けた' };
+            if (step.id === 'fairness') return { ...step, state: 'now' };
+            return step;
+        });
+        rerender(
+            <IntlProvider locale="en">
+                <InnerStepper steps={advanced} testId="stepper" title="手順 2 基準をつくる" />
+            </IntlProvider>,
+        );
+        expect(screen.getByText('c3')).toBeInTheDocument();
+        expect(screen.queryByText('c1')).not.toBeInTheDocument();
+        expect(screen.getByTestId('stepper-summary-examples')).toHaveTextContent('正解を付けた');
+    });
+
+    test('keeps a step opened by its head while the current step stays the same', () => {
+        const { rerender } = renderStepper();
+        fireEvent.click(screen.getByTestId('stepper-head-describe'));
+        rerender(
+            <IntlProvider locale="en">
+                <InnerStepper steps={[...steps]} testId="stepper" title="手順 2 基準をつくる" />
+            </IntlProvider>,
+        );
+        expect(screen.getByText('c1')).toBeInTheDocument();
+    });
+
     test('follows openStepId and reports a press when it is controlled', () => {
         const onToggleStep = jest.fn();
         renderStepper({ openStepId: 'fairness', onToggleStep });

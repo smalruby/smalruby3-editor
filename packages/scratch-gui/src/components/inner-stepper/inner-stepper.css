@@ -61,13 +61,13 @@
 .step[data-state='done'] .marker {
     border-color: $color-step-done;
     background-color: $color-step-done;
-    color: $ui-white;
+    color: $color-surface;
 }
 
 .step[data-state='now'] .marker {
     border-color: $color-step-now;
     background-color: $color-step-now;
-    color: $ui-white;
+    color: $color-surface;
 }
 
 .line {
@@ -117,7 +117,7 @@
     padding: 0 $space-medium;
     border-radius: 99px;
     background-color: $color-disabled;
-    color: $text-primary;
+    color: $color-text;
     font-size: $font-size-small;
 }
 

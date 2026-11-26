@@ -9,7 +9,7 @@
  * 決まりは docs/design-system/components/inner-stepper.md。
  */
 import PropTypes from 'prop-types';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
 import styles from './inner-stepper.css';
 
@@ -59,7 +59,13 @@ export const initialOpenStepId = (steps) => {
 const InnerStepper = ({ openStepId, steps, testId, title, onToggleStep }) => {
     const intl = useIntl();
     const controlled = typeof openStepId !== 'undefined';
-    const [ownOpenId, setOwnOpenId] = useState(() => initialOpenStepId(steps));
+    const autoOpenId = initialOpenStepId(steps);
+    const [ownOpenId, setOwnOpenId] = useState(autoOpenId);
+    // 使う側が小手順の状態を進めたら（2-2 が済んで 2-3 がいまここ）、開く小手順もいまの小手順へ移す。
+    // 見出しで開いた小手順は、いまの小手順が変わるまではそのまま残す。
+    useEffect(() => {
+        setOwnOpenId(autoOpenId);
+    }, [autoOpenId]);
     const openId = controlled ? openStepId : ownOpenId;
     const tid = (part, id) => testId && `${testId}-${part}-${id}`;
 
