@@ -653,18 +653,47 @@ ${LEARN_TASKS_CSS}</style></head><body>
 <script>
 // 書き込み（GET / HEAD 以外）の fetch に合言葉のヘッダを付ける（EPIC #2384 U3）。
 // どの欄の fetch も通るように、ほかのスクリプトより先に window.fetch を 1 か所で包む。
+// 合言葉は daemon が起動するたびに作り直す。開いたままのページが daemon の再起動をまたぐと
+// 古い合言葉を送り続けて、どの書き込みも 403（forbidden: token）になる（押しても無反応に見える）。
+// そこで 403 の token を受けたら、同じオリジンのページ（GET /）から新しい合言葉を読み直して 1 回だけやり直す。
 (() => {
   const meta = document.querySelector('meta[name="autopilot-token"]');
-  const token = meta ? meta.content : '';
+  let token = meta ? meta.content : '';
   const origFetch = window.fetch.bind(window);
-  window.fetch = (input, init) => {
+  const send = (input, opts) => {
+    const headers = new Headers(opts.headers || {});
+    headers.set('X-Autopilot-Token', token);
+    return origFetch(input, { ...opts, headers });
+  };
+  const isStaleToken = async (res) => {
+    if (res.status !== 403) return false;
+    try { return /forbidden: token/.test((await res.clone().json()).error || ''); } catch (e) { return false; }
+  };
+  const refreshToken = async () => {
+    const html = await origFetch('/', { cache: 'no-store' }).then((r) => (r.ok ? r.text() : ''));
+    const m = html.match(/<meta name="autopilot-token" content="([A-Za-z0-9_-]+)">/);
+    if (!m) return false;
+    token = m[1];
+    if (meta) meta.content = token;
+    return true;
+  };
+  window.fetch = async (input, init) => {
     const opts = init || {};
     const method = String(opts.method || (input && input.method) || 'GET').toUpperCase();
     const url = new URL(typeof input === 'string' ? input : (input && input.url) || '', location.href);
     if (method === 'GET' || method === 'HEAD' || url.origin !== location.origin) return origFetch(input, init);
-    const headers = new Headers(opts.headers || {});
-    headers.set('X-Autopilot-Token', token);
-    return origFetch(input, { ...opts, headers });
+    const res = await send(input, opts);
+    if (!(await isStaleToken(res))) return res;
+    if (!(await refreshToken().catch(() => false))) return res;
+    const retried = await send(input, opts);
+    if (await isStaleToken(retried)) {
+      const t = document.createElement('div');
+      t.className = 'toast err';
+      t.textContent = 'daemon とつながりません。ページを読み直してください';
+      (document.getElementById('toasts') || document.body).appendChild(t);
+      setTimeout(() => t.remove(), 6000);
+    }
+    return retried;
   };
 })();
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
