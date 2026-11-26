@@ -3,7 +3,8 @@
  *
  *   A. 以前の採点結果 CSV の取り込み (#2431): 採点結果でないファイルを断る → プレビュー（照らし合わせた課題・
  *      見つからない課題）→［取り込む］で先生の評価として確定で PUT /grading → 採点簿の列が「確定」
- *   B. ［基準］タブ (#2425): ほかの課題から基準をコピー → つくり直す。縦のステッパー（2-1 説明 → 2-2 代表 →
+ *   B. ［基準］タブ (#2425): ほかの課題から説明と基準をコピー（説明は 2-1 の下書き。先生が保存を決める・#2456）→
+ *      つくり直す（説明があっても AI に作り直してもらえる・#2456）。縦のステッパー（2-1 説明 → 2-2 代表 →
  *      2-3 フェア → 2-4 基準の文・#2455）で、いまの小手順だけ開く。各小手順の上部の「AI に相談」（代表すべての
  *      AI の案・フェアの確認・基準の文の案）は一度実行したら押せない →［基準を保存］で PUT /grading の rubric →
  *      全員を採点で AI に基準の文が渡り、観点は送らない
@@ -20,7 +21,7 @@
  *
  *   node verify-classroom-grading.mjs                    # コンテナ内 (headless)
  *   BASE=http://localhost:8624 node verify-classroom-grading.mjs
- *   DOCS_SHOTS=1 node verify-classroom-grading.mjs       # docs/classroom/screenshots の 0350〜0352・0358〜0360 も撮り直す
+ *   DOCS_SHOTS=1 node verify-classroom-grading.mjs       # docs/classroom/screenshots の 0350〜0352・0358〜0362 も撮り直す
  *   LOCALE=ja-Hira node verify-classroom-grading.mjs     # ひらがなで測る (DOCS_SHOTS は ja のときだけ)
  */
 import { readFile } from "node:fs/promises";
@@ -51,6 +52,9 @@ const DOC_SHOT_NAMES = {
     "rubric-proposed": "0358-teacher-grading-rubric-steps.png",
     "rubric-fairness": "0359-teacher-grading-rubric-fairness.png",
     "rubric-drafted": "0360-teacher-grading-rubric-sentences.png",
+    "rubric-copy": "0361-teacher-grading-rubric-copy.png",
+    "rubric-copied-description":
+        "0362-teacher-grading-rubric-copied-description.png",
 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const tid = (id) => `[data-testid="${id}"]`;
@@ -61,11 +65,16 @@ const OLDEST = {
     classroomId: "c0",
     assignmentName: "01_ねこ",
     createdAt: "2026-09-10T00:00:00.000Z",
+    // 説明も基準も無い（コピーの画面で「説明も基準もありません」）。
+    description: "",
 };
 const OLD = {
     classroomId: "c1",
     assignmentName: "02_LED",
     createdAt: "2026-10-10T00:00:00.000Z",
+    // コピー元の説明（#2456）。下書きとして c2 の 2-1 に入る。
+    description:
+        "モーターとサーボを動かし、話す台本で状態を知らせる（ほかのクラスの説明）",
 };
 const NEW = {
     classroomId: "c2",
@@ -141,6 +150,7 @@ const gradings = {
     c2: null,
 };
 const puts = [];
+const assignmentPuts = [];
 const evaluates = [];
 const patches = [];
 let failNextGrade = false;
@@ -410,13 +420,23 @@ for (const lesson of LESSONS) {
             },
         }),
     );
-    await page.route(`**/classrooms/${id}/assignment`, (r) =>
-        r.fulfill({
+    await page.route(`**/classrooms/${id}/assignment`, (r) => {
+        if (r.request().method() === "PUT") {
+            const body = JSON.parse(r.request().postData() || "{}");
+            assignmentPuts.push({ id, body });
+            lesson.description =
+                (body.pages && body.pages[0] && body.pages[0].text) || "";
+            return r.fulfill({ json: {} });
+        }
+        return r.fulfill({
             json: {
                 assignment: {
                     pages: [
                         {
-                            text: "モーターを動かし、動いたことを話す台本で知らせる",
+                            text:
+                                typeof lesson.description === "string"
+                                    ? lesson.description
+                                    : "モーターを動かし、動いたことを話す台本で知らせる",
                         },
                     ],
                 },
@@ -424,8 +444,8 @@ for (const lesson of LESSONS) {
                 startFromPrevious: false,
                 peerView: "none",
             },
-        }),
-    );
+        });
+    });
     await page.route(`**/classrooms/${id}/submissions`, (r) =>
         r.fulfill({
             json: {
@@ -474,6 +494,15 @@ for (const lesson of LESSONS) {
                               },
                           ]
                         : [],
+                },
+            });
+            return;
+        }
+        if (body.mode === "describe") {
+            await r.fulfill({
+                json: {
+                    description:
+                        "モーターを動かし、話す台本で知らせる（AI の案）",
                 },
             });
             return;
@@ -654,7 +683,8 @@ await judge(page, {
     shot: "rubric-empty",
 });
 
-// ほかの課題から基準をコピー
+// ほかの課題から説明と基準をコピー（#2456）
+const copyLabel = await text(page, "grading-rubric-copy");
 await page.click(tid("grading-rubric-copy"));
 await page.waitForSelector(tid("grading-rubric-copy-dialog"));
 const copyOptions = await page.evaluate(() =>
@@ -677,15 +707,24 @@ await page.waitForSelector(tid("grading-rubric-copy-none"));
 await page.selectOption(tid("grading-rubric-copy-assignment"), "c1");
 await page.waitForSelector(tid("grading-rubric-copy-levels"));
 const copyPreview = await text(page, "grading-rubric-copy-levels");
+const copyDescription = await text(page, "grading-rubric-copy-description");
 record({
-    name: "copy: the other assignments of the class are listed (not this one), a rubric is previewed",
+    name: "copy: the other assignments of the class are listed (not this one), the description and rubric are previewed",
     ok:
+        /説明と基準/.test(copyLabel || "") &&
+        /ほかのクラスの説明/.test(copyDescription || "") &&
         copyOptions.includes("g1") &&
         assignmentOptions.includes("c1") &&
         !assignmentOptions.includes("c2") &&
         copyPreview.includes(OLD_LEVELS[1].text),
     detail: `classes=${copyOptions} assignments=${assignmentOptions}`,
 });
+// 撮る前に、コピーの小さな画面の中身（説明と基準）を枠の中で見えるところへ出す。
+await page.evaluate(() =>
+    document
+        .querySelector('[data-testid="grading-rubric-copy-preview"]')
+        ?.scrollIntoView({ block: "start" }),
+);
 await shoot(page, "rubric-copy");
 await page.click(tid("grading-rubric-copy-do"));
 await page.waitForSelector(tid("grading-rubric-saved"));
@@ -700,9 +739,66 @@ record({
         copyPut?.updates.rubric?.levels?.map((l) => l.grade),
     ),
 });
+// コピーした説明は下書き: 課題（生徒に見せる説明）にはまだ保存しない。
+await page.waitForSelector(tid("grading-rubric-describe-copied"));
+const copiedDraft = await page.evaluate(
+    () =>
+        document.querySelector('[data-testid="grading-rubric-describe-text"]')
+            ?.value,
+);
+record({
+    name: "copy: the description is a draft in 2-1, not saved into the assignment yet",
+    ok:
+        /ほかのクラスの説明/.test(copiedDraft || "") &&
+        assignmentPuts.length === 0,
+    detail: JSON.stringify({
+        copiedDraft,
+        assignmentPuts: assignmentPuts.length,
+    }),
+});
+await page.evaluate(() =>
+    document
+        .querySelector('[data-testid="grading-rubric-describe-copied"]')
+        ?.scrollIntoView({ block: "start" }),
+);
+await judge(page, {
+    name: "B copied description (draft)",
+    expected: "classroom-eval-run-grade",
+    shot: "rubric-copied-description",
+});
+// 先生が［合っている（課題に保存）］で反映を決める（2-1 と同じ操作）。
+await page.click(tid("grading-rubric-describe-ok"));
+await page.waitForSelector(tid("grading-rubric-describe-copied"), {
+    state: "detached",
+});
+await waitIdle(page);
+const copiedPut = assignmentPuts.filter((p) => p.id === "c2").at(-1);
+record({
+    name: "copy: the teacher saves the copied description into the assignment (PUT /assignment)",
+    ok:
+        !!copiedPut &&
+        /ほかのクラスの説明/.test(copiedPut.body.pages?.[0]?.text || ""),
+    detail: JSON.stringify(copiedPut?.body?.pages?.[0]),
+});
 
 // つくり直す: 代表 → AI の案 → 正解 → フェアの確認 → AI に基準の文 → 保存
 await page.click(tid("grading-rubric-edit"));
+await page.waitForSelector(tid("grading-rubric-propose-ai-button"));
+// 説明があっても、2-1 を開けば AI に作り直してもらえる（#2456）。押すのは先生が望んだときだけ。
+await page.click(tid("grading-rubric-steps-head-describe"));
+await page.waitForSelector(tid("grading-rubric-describe-ai-button"));
+const rewrite = await page.evaluate(() => {
+    const b = document.querySelector(
+        '[data-testid="grading-rubric-describe-ai-button"]',
+    );
+    return { label: b?.textContent, disabled: b?.disabled };
+});
+record({
+    name: "2-1: a written description can be rewritten by the AI (the button is there and can be pressed)",
+    ok: /作り直/.test(rewrite.label || "") && rewrite.disabled === false,
+    detail: JSON.stringify(rewrite),
+});
+await page.click(tid("grading-rubric-steps-head-examples"));
 await page.waitForSelector(tid("grading-rubric-propose-ai-button"));
 const stepStates = () =>
     page.evaluate(() =>

@@ -297,6 +297,13 @@ describe('rubricStepStates (#2455 F1: the inner steps 2-1 → 2-4)', () => {
         expect(states({ hasDescription: true })).toMatchObject({ describe: 'done', examples: 'now' });
     });
 
+    test('a description draft (copied or proposed by the AI) keeps 2-1 the current step (#2456)', () => {
+        expect(states({ hasDescription: true, descriptionDraft: true })).toMatchObject({
+            describe: 'now',
+            examples: 'todo',
+        });
+    });
+
     test('every representative with an answer moves it to 2-3', () => {
         expect(states({ hasDescription: true, repsDone: 3 })).toMatchObject({ examples: 'done', fairness: 'now' });
         expect(states({ hasDescription: true, repsDone: 2 })).toMatchObject({ examples: 'now', fairness: 'todo' });

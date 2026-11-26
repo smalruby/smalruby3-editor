@@ -8,7 +8,8 @@
  * - 説明が空で AI の案があると「合っていますか？」と 3 つのボタンを出す。
  * - 代表の作品は一覧で、押した行だけ開く（アコーディオン）。
  * - 基準がある課題は基準を見せ、基準づくりを飛ばせる。
- * - ほかの課題から基準をコピー: クラスと課題を選び、中身を見てからコピーする。
+ * - ほかの課題から説明と基準をコピー: クラスと課題を選び、中身を見てからコピーする。説明は 2-1 の下書き（#2456）。
+ * - 説明があっても、AI に作り直してもらえる（一度だけ・#2456）。
  * - 1 件を直したあとの「同じまとまりも直すか」の問い。
  */
 import '@testing-library/jest-dom';
@@ -51,7 +52,7 @@ const makeTools = (overrides = {}) => ({
     handleSetLevel: jest.fn(),
     handleSaveRubric: jest.fn(() => Promise.resolve(true)),
     handleReadCopySource: jest.fn(),
-    handleCopyRubric: jest.fn(() => Promise.resolve(true)),
+    handleCopyFromAssignment: jest.fn(() => Promise.resolve(true)),
     ...overrides,
 });
 
@@ -109,10 +110,14 @@ describe('TeacherGradingRubric (#2425)', () => {
         expect(screen.getByTestId('grading-rubric-reps')).toBeInTheDocument();
     });
 
-    test('ほかの課題から基準をコピー: 選んで中身を見てからコピーする', async () => {
-        const source = { levels: [{ grade: 'S', text: '両方' }], examples: [{ seatNumber: 1 }] };
+    test('ほかの課題から説明と基準をコピー: 選んで中身を見てからコピーする (#2456)', async () => {
+        const source = {
+            rubric: { levels: [{ grade: 'S', text: '両方' }], examples: [{ seatNumber: 1 }] },
+            description: 'サーボとモーターを動かす',
+        };
         const tools = makeTools({ handleReadCopySource: jest.fn(() => Promise.resolve(source)) });
         renderTab(tools);
+        expect(screen.getByTestId('grading-rubric-copy')).toHaveTextContent('Description and Rubric');
         fireEvent.click(screen.getByTestId('grading-rubric-copy'));
         expect(screen.getByTestId('grading-rubric-copy-do')).toBeDisabled();
         fireEvent.change(screen.getByTestId('grading-rubric-copy-class'), { target: { value: 'g2' } });
@@ -121,11 +126,51 @@ describe('TeacherGradingRubric (#2425)', () => {
         });
         expect(tools.handleReadCopySource).toHaveBeenCalledWith('b1');
         expect(screen.getByTestId('grading-rubric-copy-preview')).toHaveTextContent('両方');
+        expect(screen.getByTestId('grading-rubric-copy-description')).toHaveTextContent('サーボとモーターを動かす');
         await act(async () => {
             fireEvent.click(screen.getByTestId('grading-rubric-copy-do'));
         });
-        expect(tools.handleCopyRubric).toHaveBeenCalledWith(source);
+        expect(tools.handleCopyFromAssignment).toHaveBeenCalledWith(source);
         expect(screen.queryByTestId('grading-rubric-copy-dialog')).toBeNull();
+    });
+
+    test('説明だけの課題も選べる（基準が無いことを書く）(#2456)', async () => {
+        const source = { rubric: null, description: 'LED を点ける' };
+        const tools = makeTools({ handleReadCopySource: jest.fn(() => Promise.resolve(source)) });
+        renderTab(tools);
+        fireEvent.click(screen.getByTestId('grading-rubric-copy'));
+        fireEvent.change(screen.getByTestId('grading-rubric-copy-class'), { target: { value: 'g2' } });
+        await act(async () => {
+            fireEvent.change(screen.getByTestId('grading-rubric-copy-assignment'), { target: { value: 'b1' } });
+        });
+        expect(screen.getByTestId('grading-rubric-copy-preview')).toHaveTextContent('no rubric');
+        expect(screen.getByTestId('grading-rubric-copy-do')).toBeEnabled();
+    });
+
+    test('コピーした説明は 2-1 の下書き: 先生が課題に保存するかを決める (#2456)', () => {
+        const tools = makeTools({ description: { status: 'copied', text: 'コピーした説明' } });
+        renderTab(tools, described);
+        // A draft keeps 2-1 open even when the assignment has a description.
+        expect(stepState('describe')).toBe('now');
+        const draft = screen.getByTestId('grading-rubric-describe-copied');
+        expect(draft).toHaveTextContent('copied from another assignment');
+        expect(screen.getByTestId('grading-rubric-describe-text')).toHaveValue('コピーした説明');
+        fireEvent.click(screen.getByTestId('grading-rubric-describe-ok'));
+        expect(tools.handleUseDescription).toHaveBeenCalledWith('コピーした説明', true);
+        fireEvent.click(screen.getByTestId('grading-rubric-describe-only-here'));
+        expect(tools.handleUseDescription).toHaveBeenLastCalledWith('コピーした説明', false);
+        // The AI did not write it: the AI can still be asked.
+        expect(screen.getByTestId('grading-rubric-describe-ai-button')).toBeEnabled();
+    });
+
+    test('基準をコピーしたあとも、コピーした説明の下書きは基準の画面に出る (#2456)', () => {
+        const tools = makeTools({
+            description: { status: 'copied', text: 'コピーした説明' },
+            savedRubric: { levels: [{ grade: 'B', text: 'サーボ' }], examples: [] },
+        });
+        renderTab(tools, described);
+        expect(screen.getByTestId('grading-rubric-saved')).toBeInTheDocument();
+        expect(screen.getByTestId('grading-rubric-describe-copied')).toBeInTheDocument();
     });
 });
 
@@ -177,6 +222,7 @@ describe('TeacherGradingRubric の縦のステッパーと「AI に相談」(#24
         const tools = makeTools({
             answers: { 1: { grade: 'A' }, 4: { grade: 'B' } },
             description: { status: 'used', text: 'x' },
+            described: true,
             drafted: true,
             examples: [{ seatNumber: 1, grade: 'A' }],
             fairness: { checks: [], answers: {} },
@@ -192,14 +238,28 @@ describe('TeacherGradingRubric の縦のステッパーと「AI に相談」(#24
         expect(screen.getByTestId('grading-rubric-draft-ai-button')).toBeDisabled();
     });
 
-    test('失敗した AI はもう一度押せる・説明が書いてあれば 2-1 に AI は出さない', () => {
-        const { unmount } = renderTab(makeTools({ description: { status: 'failed', text: '' } }));
+    test('失敗した AI はもう一度押せる', () => {
+        renderTab(makeTools({ description: { status: 'failed', text: '' } }));
         expect(screen.getByTestId('grading-rubric-describe-ai-button')).toBeEnabled();
-        unmount();
-        renderTab(makeTools(), described);
+    });
+
+    test('説明が書いてあっても、AI に作り直してもらえる（上書きは先生が保存したときだけ）(#2456)', () => {
+        const tools = makeTools();
+        const { unmount } = renderTab(tools, described);
         fireEvent.click(screen.getByTestId('grading-rubric-steps-head-describe'));
-        expect(screen.queryByTestId('grading-rubric-describe-ai')).toBeNull();
         expect(screen.getByTestId('grading-rubric-description-text')).toHaveTextContent('サーボを動かす課題');
+        const ai = screen.getByTestId('grading-rubric-describe-ai');
+        expect(ai).toHaveTextContent('overwrites');
+        const button = screen.getByTestId('grading-rubric-describe-ai-button');
+        expect(button).toHaveTextContent('Rewrite');
+        fireEvent.click(button);
+        expect(tools.handleDescribe).toHaveBeenCalledTimes(1);
+        unmount();
+        // The proposal waits for the teacher: 2-1 stays open, the AI cannot be pressed again.
+        renderTab(makeTools({ described: true, description: { status: 'proposed', text: '新しい説明' } }), described);
+        expect(stepState('describe')).toBe('now');
+        expect(screen.getByTestId('grading-rubric-describe-text')).toHaveValue('新しい説明');
+        expect(screen.getByTestId('grading-rubric-describe-ai-button')).toBeDisabled();
     });
 
     test('AI が動いている間は、その小手順のボタンに出す', () => {

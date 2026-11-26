@@ -442,16 +442,18 @@ const RUBRIC_STEP_IDS = ['describe', 'examples', 'fairness', 'sentences'];
  * current step ('now') and the others not done are 'todo'.
  * @param {object} args - what the tab has
  * @param {boolean} args.hasDescription - the assignment has a description (written or used)
+ * @param {boolean} [args.descriptionDraft] - a description waits for the teacher's decision (copied
+ *   from another assignment, or proposed by the AI): 2-1 is not done until it is saved or used (#2456)
  * @param {number} args.repsTotal - representatives
  * @param {number} args.repsDone - representatives with the teacher's grade
  * @param {?object} args.fairness - {checks, answers} after the fairness check (null = not run)
  * @param {boolean} args.saved - the sentences were saved
  * @returns {{describe: string, examples: string, fairness: string, sentences: string}} 'done' | 'now' | 'todo'
  */
-const rubricStepStates = ({ hasDescription, repsTotal, repsDone, fairness, saved }) => {
+const rubricStepStates = ({ hasDescription, descriptionDraft = false, repsTotal, repsDone, fairness, saved }) => {
     const checks = (fairness && fairness.checks) || [];
     const done = {
-        describe: !!hasDescription,
+        describe: !!hasDescription && !descriptionDraft,
         examples: repsTotal > 0 && repsDone >= repsTotal,
         fairness: !!fairness && checks.every((_, i) => !!(fairness.answers || {})[i]),
         sentences: !!saved,
