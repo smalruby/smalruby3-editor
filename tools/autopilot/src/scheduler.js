@@ -309,7 +309,7 @@ const PR_PHASES = new Set(['review', 'verify', 'resolve-conflict']);
  */
 function workStage(c = {}) {
     if (c.phase === 'address-review') return 'fix';
-    if (PR_PHASES.has(c.phase) || (c.pr != null && c.pr !== false && c.pr !== 0)) return 'pr';
+    if (PR_PHASES.has(c.phase) || c.pr) return 'pr';
     return 'new';
 }
 
