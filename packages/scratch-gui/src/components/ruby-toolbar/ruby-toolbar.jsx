@@ -110,6 +110,12 @@ const RubyToolbar = (props) => {
         if (props.onDownload) props.onDownload();
     }, [props]);
 
+    const handleDownloadJapanese = useCallback(() => {
+        setShowMoreMenu(false);
+        if (props.onDismissBubble) props.onDismissBubble();
+        if (props.onDownloadJapanese) props.onDownloadJapanese();
+    }, [props]);
+
     const trackFuriganaToggle = useCallback((next) => {
         try {
             analytics.event({
@@ -235,8 +241,6 @@ const RubyToolbar = (props) => {
         e.preventDefault();
     }, []);
 
-    const readModeTitle = props.readMode ? messages.readModeOff : messages.readModeOn;
-
     // === Smalruby: Start of DNCL execute button label ===
     const executeMessage = props.isRunning
         ? messages.stopExecution
@@ -244,6 +248,17 @@ const RubyToolbar = (props) => {
           ? messages.executeAll
           : messages.executeLine;
     // === Smalruby: End of DNCL execute button label ===
+
+    const autoCorrectSettingsItem = (
+        <div
+            className={styles.moreMenuItem}
+            data-testid="ruby-toolbar-menu-auto-correct-settings"
+            onClick={handleOpenAutoCorrectSettings}
+        >
+            <img className={styles.moreMenuIconImg} src={iconAutoCorrect} alt="" />
+            {intl.formatMessage(messages.autoCorrectSettings)}
+        </div>
+    );
 
     return (
         <div className={styles.toolbar}>
@@ -333,14 +348,16 @@ const RubyToolbar = (props) => {
                 </button>
             </div>
 
-            {/* Center: Navigation */}
+            {/* Center: Navigation. The Japanese tab has no sprite selector (Issue #2453) */}
             <div className={`${styles.toolbarPart} ${styles.modDashedBorder} ${styles.modCenter}`}>
-                <TargetSelector
-                    editingTarget={props.editingTarget}
-                    vm={props.vm}
-                    onSelectTarget={props.onSelectTarget}
-                    onDismissBubble={props.onDismissBubble}
-                />
+                {!props.dnclMode && (
+                    <TargetSelector
+                        editingTarget={props.editingTarget}
+                        vm={props.vm}
+                        onSelectTarget={props.onSelectTarget}
+                        onDismissBubble={props.onDismissBubble}
+                    />
+                )}
             </div>
 
             {/* === Smalruby: Start of mode toggle group === */}
@@ -380,22 +397,25 @@ const RubyToolbar = (props) => {
                     </div>
                 </div>
             )}
-            {/* The read mode / the write mode of the Japanese tab (Issue #2380) */}
+            {/* The switch of the line numbers and the rules: the read mode / the write mode of
+                the Japanese tab (Issue #2380, #2453. docs/design-system/components/buttons.md の「スイッチ」) */}
             {props.dnclMode && (
                 <div className={`${styles.toolbarPart} ${styles.modDashedBorder}`}>
-                    <div className={styles.modeToggleGroup}>
-                        <button
-                            className={`${styles.modeToggleItem} ${props.readMode ? styles.modeToggleItemActive : ''}`}
-                            data-testid="ruby-toolbar-read-mode"
-                            type="button"
-                            aria-pressed={!!props.readMode}
-                            onClick={handleToggleReadMode}
-                            onMouseDown={handleReadModeMouseDown}
-                            title={intl.formatMessage(readModeTitle)}
-                        >
-                            {intl.formatMessage(messages.readMode)}
-                        </button>
-                    </div>
+                    <button
+                        className={styles.switch}
+                        data-testid="ruby-toolbar-rules"
+                        type="button"
+                        role="switch"
+                        aria-checked={!!props.readMode}
+                        onClick={handleToggleReadMode}
+                        onMouseDown={handleReadModeMouseDown}
+                        title={intl.formatMessage(messages.rulesSwitchTitle)}
+                    >
+                        <span className={styles.switchTrack} aria-hidden="true">
+                            <span className={styles.switchThumb} />
+                        </span>
+                        <span className={styles.switchLabel}>{intl.formatMessage(messages.rulesSwitch)}</span>
+                    </button>
                 </div>
             )}
             {/* === Smalruby: End of mode toggle group === */}
@@ -412,7 +432,7 @@ const RubyToolbar = (props) => {
                     >
                         <span className={styles.moreIcon}>{'⋯'}</span>
                     </button>
-                    {showMoreMenu && (
+                    {showMoreMenu && !props.dnclMode && (
                         <div className={styles.moreMenu}>
                             <div
                                 className={styles.moreMenuItem}
@@ -438,52 +458,66 @@ const RubyToolbar = (props) => {
                                 <span className={styles.moreMenuIcon}>{'</>'}</span>
                                 {intl.formatMessage(messages.previewRubyScript)}
                             </div>
-                            {props.dnclMode && (
-                                <div
-                                    className={styles.moreMenuItem}
-                                    data-testid="ruby-toolbar-menu-copy-problem-form"
-                                    onClick={handleCopyProblemForm}
-                                >
-                                    <span className={styles.moreMenuIcon}>{'(01)'}</span>
-                                    {intl.formatMessage(messages.copyProblemForm)}
-                                </div>
-                            )}
-                            {props.dnclMode && (
-                                <div
-                                    className={styles.moreMenuItem}
-                                    data-testid="ruby-toolbar-menu-settings-pattern-example"
-                                    aria-checked={currentPatternId === 'example'}
-                                    role="menuitemradio"
-                                    onClick={handleSelectExamplePattern}
-                                >
-                                    <span className={styles.moreMenuIcon}>
-                                        {currentPatternId === 'example' ? '✓' : ''}
-                                    </span>
-                                    {intl.formatMessage(messages.settingsPatternExample)}
-                                </div>
-                            )}
-                            {props.dnclMode && (
-                                <div
-                                    className={styles.moreMenuItem}
-                                    data-testid="ruby-toolbar-menu-settings-pattern-index-from-one"
-                                    aria-checked={currentPatternId === 'indexFromOne'}
-                                    role="menuitemradio"
-                                    onClick={handleSelectIndexFromOnePattern}
-                                >
-                                    <span className={styles.moreMenuIcon}>
-                                        {currentPatternId === 'indexFromOne' ? '✓' : ''}
-                                    </span>
-                                    {intl.formatMessage(messages.settingsPatternIndexFromOne)}
-                                </div>
-                            )}
+                            {autoCorrectSettingsItem}
+                        </div>
+                    )}
+                    {/* The menu of the Japanese tab: the items for the Japanese program only (Issue #2453) */}
+                    {showMoreMenu && props.dnclMode && (
+                        <div className={styles.moreMenu}>
                             <div
                                 className={styles.moreMenuItem}
-                                data-testid="ruby-toolbar-menu-auto-correct-settings"
-                                onClick={handleOpenAutoCorrectSettings}
+                                data-testid="ruby-toolbar-menu-copy-problem-form"
+                                onClick={handleCopyProblemForm}
                             >
-                                <img className={styles.moreMenuIconImg} src={iconAutoCorrect} alt="" />
-                                {intl.formatMessage(messages.autoCorrectSettings)}
+                                <span className={styles.moreMenuIcon}>{'(01)'}</span>
+                                {intl.formatMessage(messages.copyProblemForm)}
                             </div>
+                            <div
+                                className={styles.moreMenuItem}
+                                data-testid="ruby-toolbar-menu-preview"
+                                onClick={handlePreviewRubyScript}
+                            >
+                                <span className={styles.moreMenuIcon}>{'</>'}</span>
+                                {intl.formatMessage(messages.previewRubyOfJapanese)}
+                            </div>
+                            <div
+                                className={styles.moreMenuItem}
+                                data-testid="ruby-toolbar-menu-download-japanese"
+                                onClick={handleDownloadJapanese}
+                            >
+                                <img className={styles.moreMenuIconImg} src={iconDownload} alt="" />
+                                {intl.formatMessage(messages.saveJapaneseProgram)}
+                            </div>
+                            <div className={styles.moreMenuSeparator} role="separator" />
+                            <div className={styles.moreMenuHeading} data-testid="ruby-toolbar-menu-settings-heading">
+                                {intl.formatMessage(messages.problemSettingsHeading)}
+                            </div>
+                            <div
+                                className={styles.moreMenuItem}
+                                data-testid="ruby-toolbar-menu-settings-pattern-example"
+                                aria-checked={currentPatternId === 'example'}
+                                role="menuitemradio"
+                                onClick={handleSelectExamplePattern}
+                            >
+                                <span className={styles.moreMenuIcon}>
+                                    {currentPatternId === 'example' ? '✓' : ''}
+                                </span>
+                                {intl.formatMessage(messages.settingsPatternExample)}
+                            </div>
+                            <div
+                                className={styles.moreMenuItem}
+                                data-testid="ruby-toolbar-menu-settings-pattern-index-from-one"
+                                aria-checked={currentPatternId === 'indexFromOne'}
+                                role="menuitemradio"
+                                onClick={handleSelectIndexFromOnePattern}
+                            >
+                                <span className={styles.moreMenuIcon}>
+                                    {currentPatternId === 'indexFromOne' ? '✓' : ''}
+                                </span>
+                                {intl.formatMessage(messages.settingsPatternIndexFromOne)}
+                            </div>
+                            <div className={styles.moreMenuSeparator} role="separator" />
+                            {autoCorrectSettingsItem}
                         </div>
                     )}
                 </div>
@@ -498,6 +532,7 @@ RubyToolbar.propTypes = {
     editorRef: PropTypes.object,
     onSelectTarget: PropTypes.func.isRequired,
     onDownload: PropTypes.func,
+    onDownloadJapanese: PropTypes.func,
     onInsertClass: PropTypes.func,
     onExecuteLine: PropTypes.func,
     onDismissBubble: PropTypes.func,

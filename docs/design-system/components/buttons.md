@@ -52,6 +52,28 @@
 | 押せない | `.disabled .button`: `cursor: default` だけ | | |
 | フォーカス | `:focus::before` に `1px solid $looks-secondary` の枠（`top`〜`left` を `-1px` にして、ボタンの枠に重ねて紫に塗り替える。外に足すのではない）。`outline: none` | `$color-primary` | 一致（`::before` の枠 `1px solid rgb(133, 92, 214)`） |
 
+## スイッチ（独自。`ruby-toolbar/ruby-toolbar.css` の `.switch`）
+
+上流に無い部品。**1 つのものを表示する / しないを、押すたびに入れ替える**ときに使う（日本語タブのツールバーの「行番号と罫線」・`ruby-toolbar-rules`）。形は VS Code の設定のトグル（つまみが左右に動く丸いトラック）を手本にし、色は主の色にそろえた。
+
+- **切り替えボタンとの使い分け**: 2 つ以上の**並んだ選択肢から 1 つ選ぶ**（ステージの大きさ・スプライトの表示する / しない）は切り替えボタン。**1 つのことの ON / OFF だけ**で、ラベルに「何を」を書けば足りるもの（「行番号と罫線」）はスイッチ。スイッチのラベルには「表示する」のような動詞を付けず、ON で何が見えるかの名前だけを書く（VS Code の設定と同じ）。
+- **道具・モードの切り替えには使わない**（[`README.md`](README.md) の「選ぶボタン」）。スイッチで切りかえてよいのは、見た目だけが変わり、押したあとの操作が変わらないもの。
+- **意味づけ**: `<button type="button" role="switch" aria-checked="true|false">`。ラベルはボタンの中の文字（トラックは `aria-hidden`）。ツールチップ（`title`）に、ON で何が起きるかを 1 文で書く。
+- **キーボード**: `Tab` で止まり、`Space` / `Enter` で入れ替える（`<button>` の既定）。エディタのフォーカスを動かさないときは `mousedown` を `preventDefault()` する（マウスで押してもフォーカスは動かず、キーボードでは止まれる）。
+
+| 状態 | 値 | トークン |
+|---|---|---|
+| ふつう（OFF） | 全体: 高さ 32px（ツールバーのアイコンボタンと同じ）・余白 `0 6px`・地なし。トラック: 28×16px・角丸 8px・地 `$ui-white`・枠 `1px solid $text-primary-transparent`。つまみ: 10px の丸・`$text-primary-transparent`・左。ラベル: 12px・太さ 600・`$text-primary` | `$color-surface`・`$color-text-muted`・`$color-text` |
+| ON（`aria-checked='true'`） | トラック: 地と枠 `$looks-secondary`。つまみ: `$ui-white`・右へ 12px（`transform`。0.2 秒） | `$color-primary`・`$color-surface` |
+| ホバー | 全体の地 `hsla(0, 0%, 0%, 0.05)`（ツールバーのアイコンボタンのホバーと同じ） | 直書き |
+| 押した | — | |
+| 押せない | — | |
+| フォーカス | `:focus-visible`: `outline: 2px solid $looks-secondary`・`outline-offset: 2px`（[`README.md`](README.md) の「フォーカス」） | `$color-primary` |
+| 右から左（`[dir='rtl']`） | つまみは右から始まり、ON で左へ動く | |
+| ダーク | エディタのまわりの画面にダークの見た目は無い（ブロックの色の `dark` も画面から選べない。[`../blocks.md`](../blocks.md)）。ダークを足すときは、トラックの OFF の地を画面の地に、枠とつまみを補助の文字の色にそろえ、ON は主の色のまま | |
+
+OFF のトラックの枠とつまみ（`$text-primary-transparent`）は白の上で 4.1:1 で、部品の境目に要る 3:1 を満たす。
+
 ## タグボタン（`tag-button/tag-button.css`）
 
 ライブラリの絞り込みの丸いボタン。見本: [`0504-library-filter-bar.png`](../screenshots/0504-library-filter-bar.png)。

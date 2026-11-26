@@ -39,9 +39,9 @@ const firstLineNumber = (d) =>
 
 const waitFor = (d, check, message) => d.wait(check, 10000, message);
 
-const readModePressed = (d) =>
+const rulesSwitchOn = (d) =>
     d.executeScript(
-        `return document.querySelector('[data-testid="ruby-toolbar-read-mode"]').getAttribute('aria-pressed')`,
+        `return document.querySelector('[data-testid="ruby-toolbar-rules"]').getAttribute('aria-checked')`,
     );
 
 const waitForRules = (d, count, message) => waitFor(d, async () => (await ruleCount(d)) === count, message);
@@ -72,17 +72,17 @@ describe('Japanese mode: the problem form', () => {
         await driver.executeScript(
             `window.monacoEditor.focus(); window.monacoEditor.setValue(${JSON.stringify(CODE)});`,
         );
-        await waitFor(driver, async () => (await readModePressed(driver)) === 'false', 'Not in the write mode');
+        await waitFor(driver, async () => (await rulesSwitchOn(driver)) === 'false', 'Not in the write mode');
         expect(await existsByTestId(driver, 'ruby-tab-problem-form-done')).toBe(false);
         expect(await ruleCount(driver)).toBe(0);
         expect(await rawOption(driver, 'renderWhitespace')).toBe('all');
         expect(await rawOption(driver, 'lineNumbers')).toBe('function');
         expect(await firstLineNumber(driver)).toBe('(01)');
 
-        // The toggle of the toolbar shows the read mode; the text stays.
-        await clickByTestId(driver, 'ruby-toolbar-read-mode');
-        await waitForRules(driver, 6, 'The rules were not drawn by the toggle');
-        expect(await readModePressed(driver)).toBe('true');
+        // The switch of the toolbar shows the read mode; the text stays.
+        await clickByTestId(driver, 'ruby-toolbar-rules');
+        await waitForRules(driver, 6, 'The rules were not drawn by the switch');
+        expect(await rulesSwitchOn(driver)).toBe('true');
         expect(await rawOption(driver, 'renderWhitespace')).toBe('none');
         expect(await driver.executeScript('return window.monacoEditor.getValue()')).toBe(CODE);
 
@@ -107,9 +107,9 @@ describe('Japanese mode: the problem form', () => {
         );
         await waitForRules(driver, 6, 'The read mode did not come after a paste');
 
-        // The toggle brings the write mode back, with the focus in the editor.
-        await clickByTestId(driver, 'ruby-toolbar-read-mode');
-        await waitForRules(driver, 0, 'The toggle did not bring the write mode back');
+        // The switch brings the write mode back, with the focus in the editor.
+        await clickByTestId(driver, 'ruby-toolbar-rules');
+        await waitForRules(driver, 0, 'The switch did not bring the write mode back');
         expect(await driver.executeScript('return window.monacoEditor.hasTextFocus()')).toBe(true);
         await driver.executeScript("window.monacoEditor.trigger('keyboard', 'undo', null);");
         expect(await driver.executeScript('return window.monacoEditor.getValue()')).toBe(CODE);

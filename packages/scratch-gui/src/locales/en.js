@@ -1615,13 +1615,15 @@ export default {
     'gui.rubyTab.dnclArrayIndexHint':
         '{access} reads past the end of the array. In Smalruby Japanese mode, array indices start at 0 (the first element is {array}[0] and the last is {array}[{last}]). If the problem counts from 1, shift the index by 1, like {fixed}, or write "すべての配列の添字は 1 から始まる。" at the top of the program (the menu "Settings: a problem whose indices start at 1" writes it).',
     'gui.rubyToolbar.copyProblemForm': 'Copy with line numbers and rules',
-    'gui.rubyToolbar.readMode': 'Read',
-    'gui.rubyToolbar.readModeOn': 'Read mode (line numbers and rules, in the form of the test questions)',
-    'gui.rubyToolbar.readModeOff': 'Back to the write mode',
+    'gui.rubyToolbar.rulesSwitch': 'Line numbers and rules',
+    'gui.rubyToolbar.rulesSwitchTitle': 'Show the line numbers and the rules, in the form of the test questions',
+    'gui.rubyToolbar.problemSettingsHeading': 'Rules of the problem',
+    'gui.rubyToolbar.previewRubyOfJapanese': 'Preview the program in Ruby',
+    'gui.rubyToolbar.saveJapaneseProgram': 'Save the Japanese program (.txt)',
     'gui.rubyTab.dnclIndexSettingConfirm':
         'The pasted program says that its array indices start at 1. Write "すべての配列の添字は 1 から始まる。" at the top of the program, so that the indices start at 1?',
-    'gui.rubyToolbar.settingsPatternExample': 'Settings: the form of the examples (indices from 0)',
-    'gui.rubyToolbar.settingsPatternIndexFromOne': 'Settings: a problem whose indices start at 1',
+    'gui.rubyToolbar.settingsPatternExample': 'The form of the examples (indices from 0)',
+    'gui.rubyToolbar.settingsPatternIndexFromOne': 'A problem whose indices start at 1',
     'gui.rubyTab.dnclForbiddenPrefixError': '"{name}" cannot be used in a variable in Japanese mode.',
     'gui.rubyTab.dnclPostTestLoopError':
         'A post-test loop (a loop that runs once before it checks the condition) cannot be written in Japanese. Write the first run before the loop, then make it a "〜の間繰り返す" loop. You can write it in Ruby mode.',
