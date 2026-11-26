@@ -128,6 +128,15 @@ test('I1(release-check): 🧭 トラッカーの Release Check は 🙋 を外�
     }
 });
 
+test('I2(release-check): 子が残る EPIC Decomposed のトラッカーは 🙋 を外しても動かない（PR のレビューはリリース確認で受ける・#2459）', () => {
+    // 合図はトラッカーの 🙋 だけで、Release Check に入るまでは何もしない。子が残っているあいだに人間が
+    // topic → develop の PR に書いたレビューは、目印で未対応だけを選ぶので、リリース確認の結果を受ける段で取りこぼさない
+    const item = { issue: 1, status: 'In Progress', aiStatus: 'EPIC Decomposed', kind: 'EPIC', hitlLabel: false, labels: [TRACKING_LABEL] };
+    assert.equal(phaseForItem(item, {}), null);
+    assert.equal(phaseForItem({ ...item, hitlLabel: true }, {}), null);
+    assert.equal(phaseForItem({ ...item, aiStatus: 'Release Check' }, {}), 'release-check');
+});
+
 test('I1(tracker): 🧭 tracking 付きも merge/close 整合という出口を持つ', () => {
     for (const status of STATUSES) {
         if (TERMINAL_STATUSES.has(status)) continue;
