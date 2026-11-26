@@ -271,6 +271,9 @@ export default {
     'gui.classroom.evaluation.aiDraft': 'AI draft',
     'gui.classroom.evaluation.needsReview': 'Needs check',
     'gui.classroom.evaluation.needsReviewTitle': 'The AI was unsure about this one.',
+    'gui.classroom.evaluation.needsReviewAi': 'Needs check: the AI was unsure',
+    'gui.classroom.evaluation.needsReviewShape': 'Needs check: same shape, different grade',
+    'gui.classroom.evaluation.needsReviewAnalysis': 'Needs check: the work could not be read',
     'gui.classroom.evaluation.returned': 'Returned',
     'gui.classroom.teacherLogoutConfirm.message': 'The comments you have not returned will be lost. Log out?',
     'gui.classroom.teacherLogoutConfirm.stay': 'Stay',
@@ -302,11 +305,11 @@ export default {
         'Could not connect to the server. Please check that your network or firewall allows access to {host} (HTTPS / port 443).',
     'gui.classroom.error.generic': 'An unexpected error occurred. Please try again.',
     'gui.classroom.serverError.evalDailyLimit':
-        'AI grading can be used up to {limit} times a day, and today’s limit has been used up. You can use it again tomorrow (from 9:00 a.m. Japan time).',
+        'AI grading can be used up to {limit} times a day, and today’s limit has been used up. You can use it again when the date changes (midnight, Japan time).',
     'gui.classroom.serverError.evalRateLimit':
         'Too many AI grading requests in a short time. Please wait a while and try again.',
     'gui.classroom.serverError.sharedDailyLimit':
-        'This can be done up to {limit} times a day, and today’s limit has been used up. You can do it again tomorrow (from 9:00 a.m. Japan time).',
+        'This can be done up to {limit} times a day, and today’s limit has been used up. You can do it again when the date changes (midnight, Japan time).',
     'gui.classroom.serverError.joinRateLimit': 'Too many attempts to join. Please wait a while and try again.',
     'gui.classroom.serverError.lessonProgressRateLimit':
         'Too many progress updates in a short time. Please wait a while and try again.',
@@ -919,6 +922,8 @@ export default {
     'gui.classroom.evaluation.notLoaded': 'Load the submissions to see the works and grade them.',
     'gui.classroom.evaluation.saving': 'Saving…',
     'gui.classroom.evaluation.saveFailedShort': 'Not saved',
+    'gui.classroom.evaluation.aiQuota': "Today's AI left: {left} / {limit}",
+    'gui.classroom.evaluation.aiQuotaEmpty': 'You can use it again when the date changes (midnight).',
     'gui.classroom.evaluation.confirmedBadge': 'Confirmed',
     'gui.classroom.evaluation.unconfirmedNote':
         'A grade changed, so the grades are no longer confirmed. Press [Confirm] again.',

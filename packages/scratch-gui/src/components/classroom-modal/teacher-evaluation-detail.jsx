@@ -72,6 +72,23 @@ export const detailMessages = defineMessages({
         description: 'Grading screen: tooltip of the "Check" tag',
         id: 'gui.classroom.evaluation.needsReviewTitle',
     },
+    needsReviewAi: {
+        defaultMessage: 'Needs check: the AI was unsure',
+        description: 'Grading screen: the "Needs check" tag when the AI said it was unsure about the grade',
+        id: 'gui.classroom.evaluation.needsReviewAi',
+    },
+    needsReviewShape: {
+        defaultMessage: 'Needs check: same shape, different grade',
+        description:
+            'Grading screen: the "Needs check" tag when works with the same shape tags got different grades ' +
+            '(the last check after grading everyone)',
+        id: 'gui.classroom.evaluation.needsReviewShape',
+    },
+    needsReviewAnalysis: {
+        defaultMessage: 'Needs check: the work could not be read',
+        description: 'Grading screen: the "Needs check" tag when the submitted work could not be analyzed',
+        id: 'gui.classroom.evaluation.needsReviewAnalysis',
+    },
     openWork: {
         defaultMessage: 'Open the work',
         description:
@@ -93,6 +110,22 @@ export const detailMessages = defineMessages({
 });
 
 const pad = (seat) => String(seat).padStart(2, '0');
+
+const REVIEW_REASON_MESSAGES = {
+    ai: detailMessages.needsReviewAi,
+    shape: detailMessages.needsReviewShape,
+    analysis: detailMessages.needsReviewAnalysis,
+};
+
+/**
+ * The 「要確認」 tag of a cell with why it needs a check (「要確認: AI が迷った」).
+ * A grade saved before has no reason (it is not saved): then only 「要確認」.
+ * @param {object} intl - react-intl
+ * @param {?object} cell - the cell
+ * @returns {string} the text of the tag
+ */
+export const needsReviewText = (intl, cell) =>
+    intl.formatMessage(REVIEW_REASON_MESSAGES[cell && cell.reviewReason] || detailMessages.needsReview);
 
 const TeacherEvaluationDetail = ({
     cell,
@@ -215,9 +248,11 @@ const TeacherEvaluationDetail = ({
                 {cell.needsReview && (
                     <span
                         className={styles.evalNeedsReviewBadge}
-                        title={intl.formatMessage(detailMessages.needsReviewTitle)}
+                        data-reason={cell.reviewReason || ''}
+                        data-testid="classroom-eval-detail-needs-review"
+                        title={cell.reviewReason ? null : intl.formatMessage(detailMessages.needsReviewTitle)}
                     >
-                        {intl.formatMessage(detailMessages.needsReview)}
+                        {needsReviewText(intl, cell)}
                     </span>
                 )}
                 {cell.returned && (

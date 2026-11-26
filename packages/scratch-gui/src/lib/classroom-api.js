@@ -537,6 +537,16 @@ class ClassroomAPI {
     }
 
     /**
+     * How many AI evaluations the teacher used today (#2448). Reading does not
+     * count as a use. The success of `evaluateSubmissions` carries the same `quota`.
+     * @param {string} idToken - Teacher ID token
+     * @returns {Promise<object>} {quota: {used, limit, resetsAt}}
+     */
+    async getEvaluationQuota(idToken) {
+        return this._request('GET', '/teacher/evaluation-quota', null, idToken);
+    }
+
+    /**
      * Read the saved grading of an assignment (EPIC #2421): its rubric, the grade of
      * each seat and whether the teacher confirmed them.
      * @param {string} idToken - Teacher ID token

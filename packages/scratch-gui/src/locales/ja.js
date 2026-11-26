@@ -286,6 +286,9 @@ export default {
     'gui.classroom.evaluation.aiDraft': 'AI の下書き',
     'gui.classroom.evaluation.needsReview': '要確認',
     'gui.classroom.evaluation.needsReviewTitle': 'AI が判断に迷いました。',
+    'gui.classroom.evaluation.needsReviewAi': '要確認: AI が迷った',
+    'gui.classroom.evaluation.needsReviewShape': '要確認: 同じ形なのに評価が違う',
+    'gui.classroom.evaluation.needsReviewAnalysis': '要確認: 作品を読めなかった',
     'gui.classroom.evaluation.returned': '返却済み',
     'gui.classroom.teacherLogoutConfirm.message': '返却していないコメントは消えます。ログアウトしますか？',
     'gui.classroom.teacherLogoutConfirm.stay': 'とどまる',
@@ -338,11 +341,11 @@ export default {
         'Google Classroom に配信できませんでした。しばらく待ってからもう一度お試しください。',
     'gui.classroom.error.generic': '予期しないエラーが発生しました。もう一度お試しください。',
     'gui.classroom.serverError.evalDailyLimit':
-        'AI の採点は 1 日 {limit} 回までです。今日の分を使い切りました。明日（朝 9 時）また使えます。',
+        'AI の採点は 1 日 {limit} 回までです。今日の分を使い切りました。0 時（日付が変わると）また使えます。',
     'gui.classroom.serverError.evalRateLimit':
         '短い時間に AI の採点を何度も頼んだため、いまは使えません。しばらく待ってから、もう一度試してください。',
     'gui.classroom.serverError.sharedDailyLimit':
-        'この操作は 1 日 {limit} 回までです。今日の分を使い切りました。明日（朝 9 時）またできます。',
+        'この操作は 1 日 {limit} 回までです。今日の分を使い切りました。0 時（日付が変わると）またできます。',
     'gui.classroom.serverError.joinRateLimit': '参加の操作が多すぎます。しばらく待ってから、もう一度試してください。',
     'gui.classroom.serverError.lessonProgressRateLimit':
         '進み具合を短い時間に何度も送ったため、いまは送れません。しばらく待ってから、もう一度試してください。',
@@ -1004,6 +1007,8 @@ export default {
     'gui.classroom.evaluation.notLoaded': '提出を読み込むと、作品を見て採点できます。',
     'gui.classroom.evaluation.saving': '保存しています…',
     'gui.classroom.evaluation.saveFailedShort': '保存できていません',
+    'gui.classroom.evaluation.aiQuota': '今日の AI の残り: {left} / {limit} 回',
+    'gui.classroom.evaluation.aiQuotaEmpty': '日付が変わると（0 時）また使えます。',
     'gui.classroom.evaluation.confirmedBadge': '確定',
     'gui.classroom.evaluation.unconfirmedNote':
         '評価を変えたので、確定を取り消しました。もう一度［確定］を押してください。',

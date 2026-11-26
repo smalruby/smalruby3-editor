@@ -89,6 +89,7 @@ const cellKey = (seatNumber, classroomId) => `${seatNumber}:${classroomId}`;
  * @param {Function} params.handleTeacher401 - 401 handler
  * @param {Function} params.showError - error display helper
  * @param {object} params.intl - react-intl intl object
+ * @param {?Function} [params.noteQuota] - (quota) → keep today's AI calls from an evaluate answer
  * @returns {object} the rubric state and handlers
  */
 const useGradingRubric = ({
@@ -109,6 +110,7 @@ const useGradingRubric = ({
     handleTeacher401,
     showError,
     intl,
+    noteQuota = null,
 }) => {
     const [byId, setById] = useState({});
     const [groupPrompt, setGroupPrompt] = useState(null);
@@ -197,8 +199,13 @@ const useGradingRubric = ({
     }, [lesson, idTokenRef, update, handleTeacher401]);
 
     const evaluate = useCallback(
-        (payload) => classroomAPI.evaluateSubmissions(idTokenRef.current, id, payload),
-        [idTokenRef, id],
+        async (payload) => {
+            const data = await classroomAPI.evaluateSubmissions(idTokenRef.current, id, payload);
+            // Every AI call counts: the screen's 「今日の AI の残り」 follows the answer (#2448).
+            if (noteQuota) noteQuota(data && data.quota);
+            return data;
+        },
+        [idTokenRef, id, noteQuota],
     );
 
     /** 1. The description is empty: the AI guesses it from the starter and a few works. */
@@ -558,6 +565,7 @@ const useGradingRubric = ({
                     ...next[key],
                     grade: prompt.grade,
                     needsReview: false,
+                    reviewReason: null,
                     manual: true,
                     gradeEdited: true,
                 };

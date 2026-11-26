@@ -293,6 +293,9 @@ export default {
     'gui.classroom.evaluation.aiDraft': 'AI のしたがき',
     'gui.classroom.evaluation.needsReview': 'ようかくにん',
     'gui.classroom.evaluation.needsReviewTitle': 'AI がはんだんにまよいました。',
+    'gui.classroom.evaluation.needsReviewAi': 'ようかくにん: AI がまよった',
+    'gui.classroom.evaluation.needsReviewShape': 'ようかくにん: おなじかたちなのにひょうかがちがう',
+    'gui.classroom.evaluation.needsReviewAnalysis': 'ようかくにん: さくひんをよめなかった',
     'gui.classroom.evaluation.returned': 'へんきゃくずみ',
     'gui.classroom.teacherLogoutConfirm.message': 'へんきゃくしていないコメントはきえます。ログアウトしますか？',
     'gui.classroom.teacherLogoutConfirm.stay': 'とどまる',
@@ -346,11 +349,11 @@ export default {
         'Google Classroom にはいしんできませんでした。しばらくまってからもういちどおためしください。',
     'gui.classroom.error.generic': 'よきしないエラーがはっせいしました。もういちどおためしください。',
     'gui.classroom.serverError.evalDailyLimit':
-        'AI のさいてんは 1にち {limit}かいまでです。きょうのぶんを つかいきりました。あした（あさ 9じ）また つかえます。',
+        'AI のさいてんは 1にち {limit}かいまでです。きょうのぶんを つかいきりました。0じ（ひづけが かわると）また つかえます。',
     'gui.classroom.serverError.evalRateLimit':
         'みじかい じかんに AI のさいてんを なんども たのんだため、いまは つかえません。しばらく まってから、もういちど ためしてください。',
     'gui.classroom.serverError.sharedDailyLimit':
-        'このそうさは 1にち {limit}かいまでです。きょうのぶんを つかいきりました。あした（あさ 9じ）また できます。',
+        'このそうさは 1にち {limit}かいまでです。きょうのぶんを つかいきりました。0じ（ひづけが かわると）また できます。',
     'gui.classroom.serverError.joinRateLimit':
         'さんかの そうさが おおすぎます。しばらく まってから、もういちど ためしてください。',
     'gui.classroom.serverError.lessonProgressRateLimit':
@@ -1034,6 +1037,8 @@ export default {
     'gui.classroom.evaluation.notLoaded': 'ていしゅつをよみこむと、さくひんをみてさいてんできます。',
     'gui.classroom.evaluation.saving': 'ほぞんしています…',
     'gui.classroom.evaluation.saveFailedShort': 'ほぞんできていません',
+    'gui.classroom.evaluation.aiQuota': 'きょうの AI ののこり: {left} / {limit} かい',
+    'gui.classroom.evaluation.aiQuotaEmpty': 'ひづけが かわると（0じ）また つかえます。',
     'gui.classroom.evaluation.confirmedBadge': 'かくてい',
     'gui.classroom.evaluation.unconfirmedNote':
         'ひょうかをかえたので、かくていをとりけしました。もういちど［かくてい］をおしてください。',

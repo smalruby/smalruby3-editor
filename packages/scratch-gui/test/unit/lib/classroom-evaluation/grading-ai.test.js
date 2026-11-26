@@ -70,6 +70,42 @@ describe('representativesOf', () => {
         expect(groups).toHaveLength(12);
         expect(representatives).toHaveLength(8);
     });
+
+    test('with shape tags, one per shape named by its tags; the group stays the operations', () => {
+        const LED = { tags: ['明るさで LED を切りかえ', 'しきい値 300'], key: '明るさで LED を切りかえ' };
+        const LED_400 = { tags: ['明るさで LED を切りかえ', 'しきい値 400'], key: '明るさで LED を切りかえ' };
+        const LED_MOTOR = {
+            tags: ['明るさで LED を切りかえ', 'モーター'],
+            key: '明るさで LED を切りかえ / モーター',
+        };
+        const shaped = {
+            1: { ...cells[1], shape: LED },
+            2: { ...cells[2], shape: LED_400 },
+            3: { ...cells[3], shape: LED },
+            4: { ...cells[4], shape: LED_MOTOR },
+            5: { ...cells[5], shape: { tags: ['スターターのまま'], key: 'スターターのまま' } },
+        };
+        const works = worksOf({ seats, getCell: (seat) => shaped[seat] || null, starterPseudocode: STARTER });
+        const { groups, representatives } = representativesOf(works);
+        // The groups saved with the grades are still the groups of operations.
+        expect(groups.map((g) => g.name).sort()).toEqual(['サーボだけ', 'スターターのまま', 'モーターだけ'].sort());
+        expect(representatives.map((r) => [r.seatNumber, r.name, r.size])).toEqual([
+            [1, '明るさで LED を切りかえ', 3],
+            [4, '明るさで LED を切りかえ / モーター', 1],
+            [5, 'スターターのまま', 1],
+        ]);
+        expect(representatives[1].group).toBe('モーターだけ');
+        // The example keeps the group of operations, as the grades do.
+        const examples = examplesFromAnswers(representatives, { 4: { grade: 'S', reason: '' } });
+        expect(examples[0].group).toBe('モーターだけ');
+    });
+
+    test('a work without shape tags: the groups of operations are used', () => {
+        const partly = { ...cells, 1: { ...cells[1], shape: { tags: ['LED'], key: 'LED' } } };
+        const works = worksOf({ seats, getCell: (seat) => partly[seat] || null, starterPseudocode: STARTER });
+        const { representatives } = representativesOf(works);
+        expect(representatives.map((r) => r.name)).toEqual(['サーボだけ', 'モーターだけ', 'スターターのまま']);
+    });
 });
 
 describe('request builders', () => {

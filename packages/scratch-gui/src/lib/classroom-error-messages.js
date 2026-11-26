@@ -14,7 +14,7 @@ const messages = defineMessages({
     evalDailyLimit: {
         defaultMessage:
             'AI grading can be used up to {limit} times a day, and today’s limit has been used up. ' +
-            'You can use it again tomorrow (from 9:00 a.m. Japan time).',
+            'You can use it again when the date changes (midnight, Japan time).',
         description: 'Error when the teacher used up the daily AI evaluation calls; {limit} is calls per day',
         id: 'gui.classroom.serverError.evalDailyLimit',
     },
@@ -26,7 +26,7 @@ const messages = defineMessages({
     sharedDailyLimit: {
         defaultMessage:
             'This can be done up to {limit} times a day, and today’s limit has been used up. ' +
-            'You can do it again tomorrow (from 9:00 a.m. Japan time).',
+            'You can do it again when the date changes (midnight, Japan time).',
         description:
             'Error when the teacher used up the daily limit of sharing or reporting an assignment; {limit} is per day',
         id: 'gui.classroom.serverError.sharedDailyLimit',

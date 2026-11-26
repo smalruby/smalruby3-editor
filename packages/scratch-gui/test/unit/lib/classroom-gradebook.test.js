@@ -136,11 +136,26 @@ describe('gradesFromMatrix / withSavedGrade: 保存と読み戻し', () => {
             grade: 'B',
             reason: 'r',
             needsReview: false,
+            reviewReason: null,
             manual: true,
             gradeEdited: true,
         });
         expect(withSavedGrade(cell, { grade: 'A', source: 'ai' }).manual).toBe(false);
         expect(withSavedGrade(cell, null)).toBe(cell);
+    });
+
+    test('要確認の理由は保存しない: 読み直したセルの理由だけが残る', () => {
+        const failed = { submitted: true, needsReview: true, reviewReason: 'analysis' };
+        expect(withSavedGrade(failed, { grade: 'C', source: 'ai', needsReview: true }).reviewReason).toBe(
+            'analysis',
+        );
+        const cell = { submitted: true, needsReview: false };
+        expect(withSavedGrade(cell, { grade: 'C', source: 'ai', needsReview: true })).toMatchObject({
+            needsReview: true,
+            reviewReason: null,
+        });
+        expect(withSavedGrade(failed, { grade: 'C', source: 'ai' }).reviewReason).toBeNull();
+        expect(gradesFromMatrix({ '1:a1': { ...failed, grade: 'C' } }, 'a1')[1]).not.toHaveProperty('reviewReason');
     });
 
     test('sameGrades', () => {
