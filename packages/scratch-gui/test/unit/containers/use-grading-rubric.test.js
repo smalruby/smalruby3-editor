@@ -185,6 +185,11 @@ describe('useGradingRubric (#2425)', () => {
             expect.objectContaining({ seatNumber: 1, grade: 'B', reason: 'サーボだけ', group: 'サーボだけ' }),
         ]);
         expect(hook.result.current.currentGrading.rubric).toEqual(rubric);
+        expect(tools(hook).drafted).toBe(true);
+        expect(tools(hook).sentencesSaved).toBe(true);
+        // An edit after saving is not saved yet: 2-4 is not done until it is saved again (#2455).
+        act(() => tools(hook).handleSetLevel('B', 'サーボを 2 回動かす'));
+        expect(tools(hook).sentencesSaved).toBe(false);
     });
 
     test('説明が空なら AI の案を出し、［合っている］で課題に保存する（画像とスターターは残す）', async () => {

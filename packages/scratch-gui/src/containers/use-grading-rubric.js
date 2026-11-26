@@ -587,8 +587,9 @@ const useGradingRubric = ({
         savedRubric,
         running: state.running,
         savedAt: state.savedAt,
-        // The sentences are saved: saved in this tab, or the saved rubric is not being edited.
-        sentencesSaved: !!state.savedAt || (hasRubricLevels(savedRubric) && !state.levels),
+        // The sentences are saved (saved in this tab, or a saved rubric) and not being edited:
+        // an edit after saving is not saved yet, so 2-4 is not done again until it is saved.
+        sentencesSaved: !state.levels && (!!state.savedAt || hasRubricLevels(savedRubric)),
         drafted: !!state.drafted,
         copyClasses,
         groupPrompt: groupPrompt && groupPrompt.classroomId === id ? groupPrompt : null,
