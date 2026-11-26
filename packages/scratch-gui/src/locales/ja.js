@@ -951,7 +951,8 @@ export default {
     'gui.classroom.evaluation.tabRubric': '基準',
     'gui.classroom.evaluation.tabStudent': '生徒',
     'gui.classroom.evaluation.tabShape': '形',
-    'gui.classroom.gradingShapes.lead': '作品を形の札でまとめました。形ごとに評価を選んで、まとめて付けられます。ちがう作品は、開いて 1 人ずつ直します。',
+    'gui.classroom.gradingShapes.lead':
+        '作品を形の札でまとめました。形ごとに評価を選んで、まとめて付けられます。ちがう作品は、開いて 1 人ずつ直します。',
     'gui.classroom.gradingShapes.count': '{count} 人（{seats}）',
     'gui.classroom.gradingShapes.now': 'いま: {grades}',
     'gui.classroom.gradingShapes.mixed': '同じ形なのに評価が分かれています',

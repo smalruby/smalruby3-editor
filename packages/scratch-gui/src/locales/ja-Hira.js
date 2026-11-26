@@ -973,7 +973,8 @@ export default {
     'gui.classroom.evaluation.tabRubric': 'きじゅん',
     'gui.classroom.evaluation.tabStudent': 'せいと',
     'gui.classroom.evaluation.tabShape': 'かたち',
-    'gui.classroom.gradingShapes.lead': 'さくひんを かたちの ふだで まとめました。かたちごとに ひょうかを えらんで、まとめて つけられます。ちがう さくひんは、ひらいて 1 にんずつ なおします。',
+    'gui.classroom.gradingShapes.lead':
+        'さくひんを かたちの ふだで まとめました。かたちごとに ひょうかを えらんで、まとめて つけられます。ちがう さくひんは、ひらいて 1 にんずつ なおします。',
     'gui.classroom.gradingShapes.count': '{count} にん（{seats}）',
     'gui.classroom.gradingShapes.now': 'いま: {grades}',
     'gui.classroom.gradingShapes.mixed': 'おなじ かたちなのに ひょうかが わかれています',

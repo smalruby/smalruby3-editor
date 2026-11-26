@@ -865,7 +865,8 @@ export default {
     'gui.classroom.evaluation.tabRubric': 'Rubric',
     'gui.classroom.evaluation.tabStudent': 'Student',
     'gui.classroom.evaluation.tabShape': 'Shapes',
-    'gui.classroom.gradingShapes.lead': 'Works are grouped by their shape. Choose a grade for a shape and give it to all of its works at once. Open the works to change one of them.',
+    'gui.classroom.gradingShapes.lead':
+        'Works are grouped by their shape. Choose a grade for a shape and give it to all of its works at once. Open the works to change one of them.',
     'gui.classroom.gradingShapes.count': '{count} works ({seats})',
     'gui.classroom.gradingShapes.now': 'Now: {grades}',
     'gui.classroom.gradingShapes.mixed': 'Same shape, different grades',
