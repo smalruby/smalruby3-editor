@@ -124,13 +124,24 @@ daemon に `--assignee <GitHub login>`（または env `AUTOPILOT_ASSIGNEE`）�
   item を表示する（下記「俯瞰ボード」参照）。ある機能に詳しくない担当が別の担当に駆動を
   引き継ぎつつ、進捗だけ自分の monitor で見続けたいケースを想定する。
 
-### 投入順は 優先度 → after が解けたもの → Project Board view の見た目
+### 投入順は 優先度 → 続きの作業か → Project Board view の見た目
 
 着手候補は、まず **Project の `Priority`**（P0〜P3。P0 が最優先）の順に並べる。sub-issue は自分に
 `Priority` が無ければ**親の EPIC の値を継ぐ**（親の親まで遡る。どこにも無ければ P2 とみなす）。
-`autopilot-after` が解けていないものは除き、同じ優先度の中は **Board view の見た目**（Status 列順 =
-Status フィールドの option 定義順、列内は Project の手動並び順）の順。Project 上で上に置いた item から
-処理される。優先度はモニターの ▲▼ でも変えられる（下記「並列の計画と優先度」）。
+`autopilot-after` が解けていないものは除く。
+
+同じ優先度の中は、**続きの作業を新しい作業より先に**する（人間を待たせない・作りかけを減らす）:
+
+1. 人間のレビューへの直し（`address-review`。Request changes・モニターの指示）
+2. PR がある作業の続き（`review`・`verify` など、すでに PR を作ったもの）
+3. 新しく始める作業（`triage`・`implement`・`decompose` など）
+
+判定は daemon が dispatch のために持っている値（次のフェーズ・PR の有無）だけで行い、GitHub の read は
+増やさない（`scheduler.workStage`）。優先度は段より強い（P0 の新しい作業は P1 の直しより先）。
+同じ段の中は **Board view の見た目**（Status 列順 = Status フィールドの option 定義順、列内は Project の
+手動並び順）の順。Project 上で上に置いた item から処理される。段で順が変わったときは、モニターの「並列:」の
+行の最後に「順: 同じ P1 で、直しを先に」のように理由が出る。優先度はモニターの ▲▼ でも変えられる
+（下記「並列の計画と優先度」）。
 
 ### 並列の計画と優先度
 
@@ -1500,7 +1511,7 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 | `tools/autopilot/src/phases.js` | フェーズ↔プロンプト、結果→フィールド意図、watchdog 判断、ゲート解除、merge-progression、PR 投影、enroll/並び順、ディレクティブ、サニタイズ（純粋） |
 | `tools/autopilot/src/epic-flow.js` | EPIC の流れの判断（review の Must の数→次の状態、自動マージの計画、決定待ちのまとめコメント）（純粋） |
 | `tools/autopilot/src/epic-merge.js` | EPIC の流れの daemon 側の実行（topic への自動マージ・決定待ちの書き込み） |
-| `tools/autopilot/src/scheduler.js` | 並列の計画（重さの推定・上限と空きメモリ・CPU）と優先度（Priority・EPIC からの継承・並べ替え）（純粋） |
+| `tools/autopilot/src/scheduler.js` | 並列の計画（重さの推定・上限と空きメモリ・CPU）と優先度（Priority・EPIC からの継承・続きの作業か・並べ替え）（純粋） |
 | `tools/autopilot/src/settings.js` | worker 設定（フェーズ別 model/effort・addDirs）+ スナップショット |
 | `tools/autopilot/src/project.js` | GitHub Projects v2 + Issue/PR ラベル・Draft・sticky への gh ラッパ（非同期） |
 | `tools/autopilot/src/runner.js` | runner + watchdog（端末は terminal.js） |

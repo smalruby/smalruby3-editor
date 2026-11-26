@@ -454,7 +454,8 @@ function planExtraSlots(cands, cfg, state, deps = {}) {
 
 /**
  * after が解けた候補から、この tick で始めるものを決める（EPIC #2384）。
- * 優先度（自分 → 親 EPIC → 既定 P2）→ Project の並びで並べ、重さを推定し、上限と空きメモリ・CPU で
+ * 優先度（自分 → 親 EPIC → 既定 P2）→ 続きの作業か（直し → PR の続き → 新しい作業・#2472）→
+ * Project の並びで並べ、重さを推定し、上限と空きメモリ・CPU で
  * 計画する（判断は scheduler.js の純粋関数）。計画と理由は `state.schedulePlan` に置き、モニターと
  * ログに出す。始めるものの重さは `state.weights` に覚え、次の tick の「実行中の重いもの」に数える。
  * @param {object[]} eligible Project の並びの候補（phase 付き）
@@ -484,6 +485,9 @@ function planDispatch(eligible, directivesByIssue, items, limits, cfg, state, lo
     const running = runningWorkersForPlan(state);
     const resources = (deps.readResources || readResources)();
     const plan = scheduler.planSlots({ candidates: withWeight, running, limits, resources });
+    // 同じ優先度で直し・PR の続きを先にしたときは、その理由も「並列:」の行に出す（#2472）
+    const orderNote = scheduler.describeOrder(ordered);
+    if (orderNote) plan.reason += `。順: ${orderNote}`;
     const pickedSet = new Set(plan.picked);
     const picked = withWeight.filter((c) => pickedSet.has(c.issue));
     for (const c of picked) state.weights.set(c.issue, c.weight);
@@ -495,7 +499,7 @@ function planDispatch(eligible, directivesByIssue, items, limits, cfg, state, lo
         started: picked.map((c) => ({ issue: c.issue, phase: c.phase, weight: c.weight, priority: c.priority })),
         waiting: plan.waiting.slice(0, 20),
         order: withWeight.slice(0, 20).map((c) => ({
-            issue: c.issue, priority: c.priority, prioritySource: c.prioritySource, weight: c.weight,
+            issue: c.issue, priority: c.priority, prioritySource: c.prioritySource, stage: c.stage, weight: c.weight,
         })),
     };
     // 同じ理由を毎 tick 出し続けない（変わったとき・始めたときだけ）
