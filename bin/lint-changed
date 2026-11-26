@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: MIT (see tools/autopilot/LICENSE)
+# bin/lint-changed — 変えたファイルだけに lint をかける（ルートの `npm run lint` の全体は CI が流す）。
+#
+# 検査するファイル: base との差分（消したファイルは除く）+ まだコミットしていない変更 + 新しいファイル。
+# パッケージ（packages/<name>/・infra/<name>/・tools/autopilot/）ごとに、そのディレクトリで:
+#   - eslint:   npx eslint --max-warnings 0 <files>（.js .jsx .mjs .cjs .ts .tsx。eslint.config が無ければ飛ばす）
+#   - prettier: npx prettier --check --ignore-unknown <files>（package.json の lint に prettier があるときだけ。
+#               .prettierignore のホワイトリストで外れるものは prettier が自分で飛ばす）
+#   - format-message lint: lint に含まれるパッケージ（scratch-vm）で、src/**/*.js を変えたときだけ
+# リポジトリ root では `npm run lint:secrets` をいつも、`npm run test:hosting-scripts` は
+# scripts/hosting/・scripts/precompress-assets* を変えたときだけ流す。
+#
+# Usage:
+#   bin/lint-changed [--base <ref>] [--dry-run]
+#     --base <ref>  比べる base（既定: origin/$AUTOPILOT_BASE_BRANCH、無ければ origin/develop）
+#     --dry-run     流すコマンドだけを出す
+#
+# 終了コード: 0 = 通った（変えたファイルが無いときも 0）/ 1 = どれかが失敗 / 2 = 使い方・git の誤り
+# 判断は tools/autopilot/src/lint-changed.js の純粋関数（node --test でテストしている）。
+set -euo pipefail
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+exec node "$REPO_ROOT/tools/autopilot/src/lint-changed.js" "$@"

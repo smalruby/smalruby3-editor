@@ -58,7 +58,8 @@ GH_TOKEN="$(bin/bot-token)" gh issue view "$AUTOPILOT_ISSUE" --repo "${AUTOPILOT
 - 変える分野の「人間から学んだこと」（`docs/autopilot/learned/<area>.md`。`learnedRuleFilesFor`・
   `tools/autopilot/src/learnings.js`。`general.md` はいつも）があれば先に読み、そこに書かれた意図に沿って決める。
 - プロジェクト規約（`CLAUDE.md` / `.claude/rules`）に従う。**[RED] テストを先に書き失敗を確認 → [GREEN] 実装 → [PASS]**。
-- ローカルで流すのは**関連する直接のテストファイルだけ** + lint。ディレクトリ全体や `npm test` は流さない（`CLAUDE.md` の「ローカルで流すテストの範囲」。全体実行は PR の CI で。どうしても全体の結果が要るときだけ例外で、理由を書く）。
+- ローカルで流すのは**関連する直接のテストファイルだけ** + lint（**`bin/lint-changed`** で変えたファイルだけ。ルートの `npm run lint` の全体は流さない・全体は CI）。ディレクトリ全体や `npm test` は流さない（`CLAUDE.md` の「ローカルで流すテストの範囲」。全体実行は PR の CI で。どうしても全体の結果が要るときだけ例外で、理由を書く）。
+- 重い処理は `.claude/rules/parallel-work.md` の「重い処理の一覧」を読んでから流す（jest は `npm exec jest -- --runInBand <file>` でファイルを指定、dev server を 2 つ立てない、終わったらブラウザ・webpack の残りを確かめる）。
 - **翻訳キーを足したら `en.js` / `ja.js` / `ja-Hira.js` の 3 ファイルすべてに入れる**
   （`packages/scratch-gui/src/locales/`。`en.js` も省略しない・`.claude/rules/scratch-gui/development.md`
   の i18n 節）。コミット前に `git diff -U0 -- packages/scratch-gui/src/locales/` で同じキーが

@@ -198,7 +198,7 @@ Issue と PR の Blocked コメント（理由）と、その後の人間のコ�
 
 ### 3. 対応する
 
-- **Must / 改善依頼 / `action:"fix"`**: worktree 内で修正 → 関連テスト（直接関係するテストファイルだけ（`CLAUDE.md` の「ローカルで流すテストの範囲」。全体実行は PR の CI で。どうしても全体の結果が要るときだけ例外で、理由を書く））/lint → `bin/bot-git` でコミット・push。
+- **Must / 改善依頼 / `action:"fix"`**: worktree 内で修正 → 関連テスト（直接関係するテストファイルだけ（`CLAUDE.md` の「ローカルで流すテストの範囲」。全体実行は PR の CI で。どうしても全体の結果が要るときだけ例外で、理由を書く））/lint は **`bin/lint-changed`**（変えたファイルだけ。ルートの `npm run lint` の全体は流さない・全体は CI） → `bin/bot-git` でコミット・push。重い処理は `.claude/rules/parallel-work.md` の「重い処理の一覧」を読んでから流す（jest は `npm exec jest -- --runInBand <file>` でファイルを指定、dev server を 2 つ立てない、終わったらブラウザ・webpack の残りを確かめる）。
 - **質問 / `action:"reply"`**: PR に bot で返信。コード変更を伴うならあわせて push。
 - **`action:"no-change"`**: 何もしない（既存のコメントを消さない）。
 - **人間が「直して」と言った指摘を、よほど大変・効果が小さいなどの理由でこの PR では直せないとき**は、

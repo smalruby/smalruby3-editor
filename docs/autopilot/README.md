@@ -848,6 +848,32 @@ GitHub App bot は `workflows` 権限を持たないため、`.github/workflows/
 
 ---
 
+## 手元の lint は変えたファイルだけ（`bin/lint-changed`）
+
+ルートの `npm run lint` は、秘密の検査・hosting のスクリプトのテスト・scratch-vm と scratch-gui の
+**全ファイル**の eslint と prettier を流すので重い。worker が流すとコンテナがもたつくので、
+implement・review・address-review・resolve-conflict のプロンプトは **`bin/lint-changed`** を使う
+（全体は CI が流す。重い処理の一覧は `.claude/rules/parallel-work.md`）。
+
+- **検査するファイル**: base（既定は `origin/$AUTOPILOT_BASE_BRANCH`、無ければ `origin/develop`。
+  `--base <ref>` で変えられる）との merge-base からの差分（消したファイルは除く）+
+  まだコミットしていない変更 + 新しいファイル。
+- **パッケージごと**（`packages/<name>/`・`infra/<name>/`・`tools/autopilot/`）に、そのディレクトリで:
+  - eslint: `npx eslint --max-warnings 0 --no-warn-ignored <files>`（`.js` `.jsx` `.mjs` `.cjs` `.ts` `.tsx`。
+    `eslint.config.*` の無いパッケージは飛ばす）
+  - prettier: `npx prettier --check --ignore-unknown --no-error-on-unmatched-pattern <files>`
+    （`package.json` の `lint` に prettier があるパッケージだけ。`.prettierignore` のホワイトリストで外れるものは
+    prettier が自分で飛ばす）
+  - `format-message lint`: `lint` に含まれるパッケージ（scratch-vm）で、`src/**/*.js` を変えたときだけ、
+    `lint` と同じ引数でそのファイルにかける
+- **リポジトリ root**: `npm run lint:secrets` はいつも、`npm run test:hosting-scripts` は
+  `scripts/hosting/`・`scripts/precompress-assets*` を変えたときだけ。
+- 変えたファイルが無ければ何もせず 0。どれかが失敗したら 1 で終わり、失敗したパッケージとコマンドを出す。
+- `--dry-run` で流すコマンドだけを出す。
+- 判断（振り分け・コマンドの組み立て）は `tools/autopilot/src/lint-changed.js` の純粋関数。
+
+---
+
 ## Web モニタ（あなた宛て＋表）
 
 daemon の `GET /`（既定 `http://localhost:8787/`）は、人間と同意した並べ方 **D「あなた宛て＋表」** の画面を出す。
@@ -1453,6 +1479,7 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 | `tools/autopilot/prompts/autopilot-*/` | 各フェーズのプロンプト |
 | `bin/autopilot-worktree` | 軽量 worktree スクリプト |
 | `bin/autopilot-push` | push 経路の自動判定（Bot / 個人トークン。権限外パス対応） |
+| `bin/lint-changed`, `tools/autopilot/src/lint-changed.js` | 変えたファイルだけの lint（全体は CI） |
 | `tools/autopilot/src/contract.js` | 番兵/結果ファイルの検証（純粋） |
 | `tools/autopilot/src/phases.js` | フェーズ↔プロンプト、結果→フィールド意図、watchdog 判断、ゲート解除、merge-progression、PR 投影、enroll/並び順、ディレクティブ、サニタイズ（純粋） |
 | `tools/autopilot/src/epic-flow.js` | EPIC の流れの判断（review の Must の数→次の状態、自動マージの計画、決定待ちのまとめコメント）（純粋） |
