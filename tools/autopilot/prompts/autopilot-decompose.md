@@ -186,6 +186,12 @@ Sprint Backlog にそのまま入れると autopilot が**並列着手**し、**
        「PR は develop 宛て・本文は **`Refs #<この Issue>`**（`Closes` にしない。prod デプロイの
        成功で `Deploy Infra` workflow が閉じる）」。
      - infra 以外の leaf の本文に `autopilot-after: #<infra の leaf>` を入れる。
+   - **develop に出してからする作業の leaf**（リリース後に測り直す・本番のデータで確かめる・告知するなど、
+     topic → develop のマージを待つもの）は `--label "🚀 after-release"` を付ける（`release-check.js` の
+     `AFTER_RELEASE_LABEL`）。付けないと、残りがその leaf だけになっても EPIC がリリース確認に入らない
+     （daemon は「済んだ子 + 開いている 🚀 after-release の子」が全部のときだけ入れる）。この leaf に
+     `autopilot-base:` は書かない（develop で作業する）。EPIC 自身を `autopilot-after:` で待たせるときも、ラベルは付ける
+     （本文の依存は daemon が本文を読んであるときだけ数えるので、ラベルが確かな印になる）。
    - **冪等**: 既に同名 sub-issue が存在する場合は作り直さない（`gh issue list` で確認）。
      既存 sub-issue の assignee が空なら `gh issue edit <num> --add-assignee "$assignee"` で補う。
    - 作成した leaf の **番号と、分解案で決めた size（small/middle/large）を控えておく**

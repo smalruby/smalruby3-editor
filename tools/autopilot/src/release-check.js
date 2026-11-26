@@ -11,6 +11,12 @@
  *
  * どちらの段（観点をまとめる / 結果を受ける）かは、トラッカーの目印付きコメントだけで決める
  * （{@link releaseCheckMode}。時刻や daemon の状態ファイルを使わない・I5）。
+ *
+ * 人間が topic → develop の PR に直接書いたレビュー・コメント（#2459）も、結果を受ける段で読む
+ * （{@link selectPrFeedback}）。受けたものは sub-issue の本文（`<!-- autopilot-release-pr epic=E ref=... -->`）か、
+ * 直すことが無かったものは結果のコメント（`<!-- autopilot-release-pr-seen refs=... -->`）に残し、二重に受けない。
+ * 段に入る合図は今と同じトラッカーの 🙋 を外したときだけ（I2）。PR の 🙋 は合図にしない: topic → develop の PR は
+ * autopilot の head ブランチではないので daemon が 🙋 を投影せず、トラッカーのゲートの ctx も集めていないから。
  * I/O・時計を持ち込まない。phases.js を require する側（phases.js からは require しない・循環させない）。
  */
 
@@ -32,6 +38,11 @@ const REVIEW_DATA_RE = /<!--\s*autopilot-release-review-data\s+([\s\S]*?)\s*-->/
 /** NG から作った sub-issue の本文に入れる目印（同じ round の同じ観点から二重に作らない） */
 const NG_RE = /<!--\s*autopilot-release-ng\s+epic=(\d+)\s+round=(\d+)\s+point=(R\d+|C)\s*-->/g;
 
+/** topic → develop の PR のレビュー・コメントから作った sub-issue の本文に入れる目印（ref ごとに 1 つ） */
+const PR_RE = /<!--\s*autopilot-release-pr\s+epic=(\d+)\s+ref=((?:review|review-comment|comment)-\d+)\s*-->/g;
+/** 直すことが無かった PR のレビュー・コメント（感想・承認など）を、トラッカーの結果のコメントに残す目印 */
+const PR_SEEN_RE = /<!--\s*autopilot-release-pr-seen\s+refs=([a-z0-9,-]*)\s*-->/g;
+
 /** 観点 1 つのメモと全体のコメントの上限（GitHub のコメントの上限より十分小さく） */
 const MAX_RELEASE_NOTE = 2000;
 const MAX_RELEASE_COMMENT = 4000;
@@ -50,6 +61,23 @@ function releaseResultMarker(round) { return `<!-- autopilot-release-result roun
  */
 function releaseNgMarker({ epic, round, point }) {
     return `<!-- autopilot-release-ng epic=${epic} round=${round} point=${point} -->`;
+}
+
+/**
+ * PR のレビュー・コメントから作る sub-issue の本文に入れる目印。
+ * @param {{epic:number, ref:string}} p ref は {@link selectPrFeedback} の `ref`
+ * @returns {string}
+ */
+function releasePrMarker({ epic, ref }) { return `<!-- autopilot-release-pr epic=${epic} ref=${ref} -->`; }
+
+/**
+ * 直すことが無かった PR のレビュー・コメントの目印（結果のコメントに入れる）。refs が空なら空文字。
+ * @param {string[]} refs
+ * @returns {string}
+ */
+function releasePrSeenMarker(refs) {
+    const list = (refs || []).filter((r) => /^(?:review|review-comment|comment)-\d+$/.test(r));
+    return list.length ? `<!-- autopilot-release-pr-seen refs=${list.join(',')} -->` : '';
 }
 
 /** REST のユーザーが bot か。user が無い形（daemon の listIssueComments）は目印だけで見る */
@@ -72,12 +100,20 @@ function roundsOf(comments, re) {
 function maxRound(list) { return list.reduce((a, x) => Math.max(a, x.round), 0); }
 
 /**
- * item が「リリース後の作業」か（純粋関数）。
- * @param {object} item { labels }
+ * item が「リリース後の作業」か（純粋関数）。🚀 after-release ラベルか、自分の親 EPIC を
+ * `autopilot-after:` で待っている子（#2459。親が閉じるまで着手できないので、リリース後の作業でしかない）。
+ * 本文は daemon が既に持っているキャッシュ（`afterOf`）だけで見る。無ければラベルだけで決める
+ * （本文を読みに行かない・API 予算・github-api.md）。
+ * @param {object} item { issue, labels }
+ * @param {{trackerIssue?:number, afterOf?:function(number):(number[]|null|undefined)}} [opts]
  * @returns {boolean}
  */
-function isAfterReleaseItem(item) {
-    return Boolean(item) && Array.isArray(item.labels) && item.labels.includes(AFTER_RELEASE_LABEL);
+function isAfterReleaseItem(item, opts = {}) {
+    if (!item) return false;
+    if (Array.isArray(item.labels) && item.labels.includes(AFTER_RELEASE_LABEL)) return true;
+    if (!opts.trackerIssue || typeof opts.afterOf !== 'function') return false;
+    const after = opts.afterOf(item.issue);
+    return Array.isArray(after) && after.includes(opts.trackerIssue);
 }
 
 /**
@@ -94,26 +130,29 @@ function isAfterReleaseItem(item) {
  * （担当がほかの人）は数えられないので、そのときは入らない（早すぎるリリース確認より安全側）。
  * @param {object} tracker board item { issue, labels, status, aiStatus, subIssues:{total, completed} }
  * @param {object[]} boardItems 同じボードの item（parent: {number}）
+ * @param {{afterOf?:function(number):(number[]|null|undefined)}} [opts] 子の `autopilot-after` のキャッシュ
  * @returns {boolean}
  */
-function releaseCheckReady(tracker, boardItems) {
+function releaseCheckReady(tracker, boardItems, opts = {}) {
     if (!tracker || !Array.isArray(tracker.labels) || !tracker.labels.includes(TRACKING_LABEL)) return false;
     if (tracker.status !== 'In Progress' || tracker.aiStatus !== 'EPIC Decomposed') return false;
     const { total = 0, completed = 0 } = tracker.subIssues || {};
     if (!(total > 0)) return false;
     if (completed >= total) return true;
     const afterRelease = (boardItems || []).filter((it) => it && it.parent && it.parent.number === tracker.issue
-        && !TERMINAL_STATUSES.has(it.status) && isAfterReleaseItem(it)).length;
+        && !TERMINAL_STATUSES.has(it.status)
+        && isAfterReleaseItem(it, { trackerIssue: tracker.issue, afterOf: opts.afterOf })).length;
     return afterRelease > 0 && completed + afterRelease >= total;
 }
 
 /**
  * リリース確認に入れるトラッカーを選び、書く意図を添える（純粋関数）。書くのは daemon（単一ライター）。
  * @param {object[]} boardItems
+ * @param {{afterOf?:function(number):(number[]|null|undefined)}} [opts] {@link releaseCheckReady} と同じ
  * @returns {Array<{item:object, intents:Array<{field:string, value:string}>}>}
  */
-function selectReleaseCheckEntries(boardItems) {
-    return (boardItems || []).filter((it) => it && it.itemId && releaseCheckReady(it, boardItems))
+function selectReleaseCheckEntries(boardItems, opts = {}) {
+    return (boardItems || []).filter((it) => it && it.itemId && releaseCheckReady(it, boardItems, opts))
         .map((item) => ({ item, intents: [{ field: 'AI Status', value: RELEASE_CHECK_AI_STATUS }] }));
 }
 
@@ -123,15 +162,20 @@ function selectReleaseCheckEntries(boardItems) {
  * - いちばん新しい round の結果（review）があり、まだ受けていない（result が無い）→ result
  * - いちばん新しい round の結果をもう受けた → collect（次の round。NG の sub-issue が済んで戻ってきた）
  * - 観点はあるが結果が無い（人間が結果を書かずに 🙋 を外した）→ collect（同じ round を書き直す）
+ * - topic → develop の PR にまだ受けていない人間のレビュー・コメントがある（#2459）→ result。round は
+ *   まだ受けていないモニターの結果があればその round、無ければいちばん新しい観点の round（観点がまだ無ければ 0）
  * @param {Array<{body?:string, user?:object}>} comments トラッカーの会話コメント
+ * @param {{pendingPrFeedback?:number}} [opts] {@link selectPrFeedback} が選んだ数
  * @returns {{mode:'collect'|'result', round:number}}
  */
-function releaseCheckMode(comments) {
+function releaseCheckMode(comments, opts = {}) {
     const check = maxRound(roundsOf(comments, CHECK_RE));
     const review = maxRound(roundsOf(comments, REVIEW_RE));
     const result = maxRound(roundsOf(comments, RESULT_RE));
+    const reviewPending = check > 0 && review >= check && result < review;
+    if (opts.pendingPrFeedback > 0) return { mode: 'result', round: reviewPending ? review : check };
     if (check === 0) return { mode: 'collect', round: 1 };
-    if (review >= check && result < review) return { mode: 'result', round: review };
+    if (reviewPending) return { mode: 'result', round: review };
     if (result >= check) return { mode: 'collect', round: check + 1 };
     return { mode: 'collect', round: check };
 }
@@ -293,12 +337,16 @@ function planReleaseReviewPost(comments, round) {
  * 結果を受ける段の計画（純粋関数）。NG の観点ごとに sub-issue を作る。全体のコメントは、直してほしい
  * ことか（sub-issue にするか）をプロンプトが読んで決める（`comment` で渡す）。既にその目印の sub-issue が
  * あれば作らない（冪等）。
- * @param {{epic:number, round:number, review:{results:object[], comment:string}, points?:object[],
- *   existingBodies?:string[]}} p existingBodies は EPIC の sub-issue の本文
+ *
+ * PR のレビュー・コメント（`prFeedback`・{@link selectPrFeedback} が選んだまだ受けていないもの）は、直してほしい
+ * ことか、どうまとめて sub-issue にするかをプロンプトが読んで決める。ここでは目印を添えて返すだけ。
+ * @param {{epic:number, round:number, review:({results:object[], comment:string}|null), points?:object[],
+ *   existingBodies?:string[], prFeedback?:object[]}} p existingBodies は EPIC の sub-issue の本文
  * @returns {{allOk:boolean, create:Array<{point:string, title:string, note:string, marker:string}>,
- *   existing:string[], comment:string, commentDone:boolean}} commentDone は全体のコメントから作った sub-issue（point=C）があるか
+ *   existing:string[], comment:string, commentDone:boolean, prFeedback:object[]}}
+ *   commentDone は全体のコメントから作った sub-issue（point=C）があるか
  */
-function planReleaseResult({ epic, round, review, points, existingBodies }) {
+function planReleaseResult({ epic, round, review, points, existingBodies, prFeedback }) {
     const made = new Set();
     for (const b of existingBodies || []) {
         for (const m of String(b || '').matchAll(NG_RE)) {
@@ -316,7 +364,65 @@ function planReleaseResult({ epic, round, review, points, existingBodies }) {
     }
     const comment = String((review && review.comment) || '');
     const ngCount = create.length + existing.length;
-    return { allOk: ngCount === 0 && !comment, create, existing, comment, commentDone: made.has('C') };
+    const pr = (prFeedback || []).map((f) => ({ ...f, marker: releasePrMarker({ epic, ref: f.ref }) }));
+    return { allOk: ngCount === 0 && !comment && !pr.length, create, existing, comment, commentDone: made.has('C'), prFeedback: pr };
+}
+
+/** 人間のもの（bot でない・user がある）か。PR の REST はいつも user を返す */
+function isHuman(user) { return Boolean(user) && !isBotish(user); }
+
+/**
+ * 受けた PR のレビュー・コメントの ref を集める（純粋関数）。EPIC の sub-issue の本文の目印と、
+ * トラッカーの bot のコメントの「直すことが無かった」目印から。時刻や状態ファイルを使わない（I5）。
+ * @param {{epic:number, existingBodies?:string[], comments?:object[]}} p comments はトラッカーの会話コメント
+ * @returns {Set<string>}
+ */
+function handledPrFeedbackRefs({ epic, existingBodies, comments }) {
+    const out = new Set();
+    for (const b of existingBodies || []) {
+        for (const m of String(b || '').matchAll(PR_RE)) if (Number(m[1]) === epic) out.add(m[2]);
+    }
+    for (const c of comments || []) {
+        if (!c || !isBotish(c.user)) continue;
+        for (const m of String(c.body || '').matchAll(PR_SEEN_RE)) {
+            for (const r of m[1].split(',')) if (r) out.add(r);
+        }
+    }
+    return out;
+}
+
+/**
+ * topic → develop の PR の、人間のレビュー・行コメント・PR のコメントのうち、まだ受けていないものを選ぶ（純粋関数）。
+ * - レビュー（`/pulls/N/reviews`）: 本文のあるもの。下書き（PENDING）は除く。本文の無い承認は直してほしいことではない
+ * - 行コメント（`/pulls/N/comments`）と PR のコメント（`/issues/N/comments`）: 本文のあるもの
+ * - Bot のもの（autopilot のまとめ・CI のプレビューのコメントなど）は読まない
+ * @param {{reviews?:object[], reviewComments?:object[], issueComments?:object[], handled?:Set<string>}} p GitHub REST の形
+ * @returns {Array<{ref:string, kind:'review'|'review-comment'|'comment', author:string, body:string,
+ *   state:(string|null), path:(string|null), line:(number|null), url:(string|null)}>}
+ */
+function selectPrFeedback({ reviews, reviewComments, issueComments, handled }) {
+    const seen = handled || new Set();
+    const out = [];
+    const push = (kind, x, extra = {}) => {
+        if (!x || x.id == null || !isHuman(x.user)) return;
+        const body = String(x.body || '').trim();
+        if (!body) return;
+        const ref = `${kind}-${x.id}`;
+        if (seen.has(ref)) return;
+        out.push({
+            ref, kind, author: String(x.user.login || ''), body, state: null, path: null, line: null,
+            url: x.html_url || null, ...extra,
+        });
+    };
+    for (const r of reviews || []) {
+        if (!r || r.state === 'PENDING') continue;
+        push('review', r, { state: r.state || null });
+    }
+    for (const c of reviewComments || []) {
+        push('review-comment', c, { path: (c && c.path) || null, line: (c && (c.line != null ? c.line : c.original_line)) ?? null });
+    }
+    for (const c of issueComments || []) push('comment', c);
+    return out;
 }
 
 module.exports = {
@@ -327,6 +433,8 @@ module.exports = {
     releaseReviewMarker,
     releaseResultMarker,
     releaseNgMarker,
+    releasePrMarker,
+    releasePrSeenMarker,
     isAfterReleaseItem,
     releaseCheckReady,
     selectReleaseCheckEntries,
@@ -339,4 +447,6 @@ module.exports = {
     parseReleaseReview,
     planReleaseReviewPost,
     planReleaseResult,
+    handledPrFeedbackRefs,
+    selectPrFeedback,
 };

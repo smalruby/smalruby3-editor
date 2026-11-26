@@ -379,9 +379,12 @@ EPIC は topic ブランチに sub-issue の PR を集め、最後に人間が�
 daemon とのつなぎ・HTTP は `src/release-check-http.js`、段のプロンプトは `prompts/autopilot-release-check.md`。
 
 1. **入る**: 🧭 トラッカー（In Progress / EPIC Decomposed）で、sub-issue が全部済んだか、残りが
-   **`🚀 after-release`** ラベルの付いたもの（リリース後の作業）だけになったら、daemon がボードを更新したあと
-   AI Status を **Release Check** にする（`releaseCheckReady` / `selectReleaseCheckEntries`。ボードの値だけで決め、
-   追加の read はしない。担当がほかの人でボードに載らない子があるときは入らない）。🙋 の有無は問わない。分解済みの EPIC は決まりどおり 🙋 を付けたままのことが多く（`.claude/rules/human-wait.md`）、そのときは入った時点で人間の番になる。「確認の結果を書く」のダイアログの **「AI に観点をまとめてもらう」** で 🙋 を外すと 2. に進む。
+   リリース後の作業だけになったら、daemon がボードを更新したあと
+   AI Status を **Release Check** にする（`releaseCheckReady` / `selectReleaseCheckEntries`。ボードの値と、dispatch の計画で
+   既に読んだ本文のキャッシュだけで決め、追加の read はしない。担当がほかの人でボードに載らない子があるときは入らない）。
+   リリース後の作業とみなすのは、**`🚀 after-release`** ラベルの付いた子と、自分の親 EPIC を `autopilot-after:` で
+   待っている子（本文のキャッシュがあるときだけ）。decompose は「develop に出してからする作業」の sub-issue に
+   `🚀 after-release` を付ける（`prompts/autopilot-decompose.md`）。🙋 の有無は問わない。分解済みの EPIC は決まりどおり 🙋 を付けたままのことが多く（`.claude/rules/human-wait.md`）、そのときは入った時点で人間の番になる。「確認の結果を書く」のダイアログの **「AI に観点をまとめてもらう」** で 🙋 を外すと 2. に進む。
 2. **観点をまとめる**: release-check フェーズが topic → develop の PR とプレビューの URL を探し、EPIC の本文・
    決めたこと・sub-issue の DoD・見送った指摘・関係する docs の方針から、番号付きの確認の観点（`### R1. <題>` …
    「どこを開いて何をすると、どうなれば OK か」）を、トラッカーに目印付きのコメント
@@ -396,10 +399,20 @@ daemon とのつなぎ・HTTP は `src/release-check-http.js`、段のプロン�
    `planReleaseResult`）。daemon が sub-issue を Sprint Backlog / Kind=Issue にし、トラッカーは EPIC Decomposed に戻る。
    作った子が全部済むと、1. から次の round になる。全部 OK なら topic → develop の PR の本文を更新して 🙋 で人間に返す。
    受けたことは `<!-- autopilot-release-result round=N -->` で残す。
+   **topic → develop の PR に人間が直接書いたレビュー・コメント**（Request changes・レビューの本文・行コメント・
+   PR のコメント。Bot のものは読まない）も、この段で結果として受ける（`selectPrFeedback`）。直してほしいことごとに
+   EPIC の sub-issue を作り（本文に目印 `<!-- autopilot-release-pr epic=E ref=review-<id> -->`。行コメントは
+   `review-comment-<id>`、PR のコメントは `comment-<id>`）、直すことが無かったものは結果のコメントに
+   `<!-- autopilot-release-pr-seen refs=... -->` で残す。どちらも次から読まない（`handledPrFeedbackRefs`。時刻や
+   状態ファイルでは管理しない）。段に入る合図は今と同じ**トラッカーの 🙋 を外したときだけ**（PR に書いただけでは
+   動き出さない）。PR の 🙋 は合図にしない（topic → develop の PR は autopilot の head ブランチではないので、daemon は
+   🙋 を投影しない）。子が残っているあいだに書いたレビューは、そのときは動かず、リリース確認に入ってから
+   未対応のものとして受ける。観点をまとめる前に受けたものは round 0 として扱う。
 5. **develop へのマージは人間**。autopilot はマージせず、EPIC も閉じない。マージして EPIC を閉じると closed-reconcile が
    Project を Close にそろえる。
 
-どちらの段（まとめる / 受ける）かは、トラッカーの目印付きコメントだけで決める（`releaseCheckMode`）。
+どちらの段（まとめる / 受ける）かは、トラッカーの目印付きコメントと、PR のまだ受けていないレビュー・コメントの数だけで
+決める（`releaseCheckMode`）。
 プレビューの URL は段の結果（`previewUrl`）か、ダイアログを開いたときに覚えたものだけを行に出す（定期では取らない）。
 
 ![「あなた宛て」のリリース確認の行](screenshots/monitor-release-check-row-light.png)
