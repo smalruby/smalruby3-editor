@@ -1309,6 +1309,13 @@ const HUMAN_REVIEW_LABEL = '👥 human-review-required';
  */
 const WAITING_LABEL = '⏳ waiting';
 /**
+ * 「リリース後の作業」の sub-issue に人間（または decompose）が付けるラベル。これだけが残っていれば、
+ * 子が全部済んだとみなしてリリース確認に入る（release-check.js）。本文のディレクティブにしなかったのは、
+ * ボードが既に持っているラベルで判定でき、sub-issue の本文を読みに行かなくて済むから（API 予算・github-api.md）。
+ * 人間待ちの理由（{@link humanWaitReason}）でも使うので、ラベルの定数をまとめる phases.js に置く。
+ */
+const AFTER_RELEASE_LABEL = '🚀 after-release';
+/**
  * 要件の相談・調査中（Spike）を示すラベル（#1315）。技術調査に加え、要件が決まっていないときに
  * 人間と決めきる行動も Spike とみなす。GitHub のラベル絞り込みで「相談中」を探せるようにする。
  * ⏳ waiting と同じく daemon が**状態から毎 tick 導出**して付け外しする（{@link isSpikeItem}）。
@@ -1504,7 +1511,7 @@ function humanWaitReason(item) {
     if (status === 'In Progress' && item.aiStatus === RELEASE_CHECK_AI_STATUS) return 'release';
     if (status === 'Blocked') return 'blocked';
     // 🚀 after-release はリリースを待っているだけで、人間の番ではない（依存待ちと同じ扱い）
-    if (waiting || (Array.isArray(item.labels) && item.labels.includes('🚀 after-release'))) return 'waiting';
+    if (waiting || (Array.isArray(item.labels) && item.labels.includes(AFTER_RELEASE_LABEL))) return 'waiting';
     if (item.aiStatus === AWAITING_CONTINUATION_STATUS) return 'continue';
     if (hasTrackingLabel(item) || item.aiStatus === 'EPIC Decomposed') return 'epic';
     if (status === 'Sprint Backlog') return 'go';
@@ -4168,6 +4175,7 @@ module.exports = {
     touchedRuleAreas,
     TRACKING_LABEL,
     WAITING_LABEL,
+    AFTER_RELEASE_LABEL,
     SPIKE_LABEL,
     isSpikeItem,
     spikeLabelAction,

@@ -101,6 +101,29 @@ test('humanAction: 状態ごとの すること・ボタン・押すと', () => 
     assert.strictEqual(a({ status: 'Close' }), null);
 });
 
+test('humanAction: 🙋 を外せない（delegate.ok=false）ものはゴーサインにせず、🧱 infra の子は develop 宛て', () => {
+    const a = (it, ctx) => humanAction(Object.assign({ issue: 1, hitl: true }, it), Object.assign({ repoUrl: REPO }, ctx));
+    let r = a({ status: 'Sprint Backlog', delegate: { ok: false, code: 'no-ai-phase' } });
+    assert.deepStrictEqual([r.kind, r.act], ['check', 'open']);
+    assert.match(a({ status: 'Sprint Backlog', parent: { number: 5 }, labels: ['🧱 infra'] }).happens, /develop 宛て/);
+    // EPIC のまとめ: 外せない子は入れない。全部 infra なら develop 宛て
+    const epic = { status: 'In Progress', aiStatus: 'EPIC Decomposed', tracker: true, subIssues: { total: 3, completed: 1 } };
+    r = a(epic, { kids: [
+        { issue: 7, status: 'Sprint Backlog', hitl: true, labels: ['🧱 infra'] },
+        { issue: 8, status: 'Sprint Backlog', hitl: true, delegate: { ok: false } },
+    ] });
+    assert.deepStrictEqual(r.targets, [7]);
+    assert.match(r.happens, /develop 宛ての PR/);
+});
+
+test('forYouModel: 子の delegate は humanWait から重ね、外せない子は EPIC のゴーサインに入れない', () => {
+    const hw = BOARD.humanWait.map((h) => (h.issue === 2090 ? { issue: 2090, delegate: { ok: false, code: 'no-ai-phase' } } : h));
+    const m = forYouModel(Object.assign({}, BOARD, { humanWait: hw }), { repoUrl: REPO });
+    const e = m.sections.flatMap((s) => s.rows).find((w) => w.issue === 1826);
+    assert.deepStrictEqual(e.targets, [1830]);
+    assert.strictEqual(e.button, '#1830 を始めてもらう');
+});
+
 test('linkIssueRefs: #N は別タブで開くリンクにし、ほかはエスケープする', () => {
     const h = linkIssueRefs('PR #2460 と <b>#12</b>', REPO);
     assert.strictEqual(h, 'PR <a class="ilink" href="' + REPO + '/issues/2460" target="_blank" rel="noopener">#2460</a> と &lt;b&gt;'

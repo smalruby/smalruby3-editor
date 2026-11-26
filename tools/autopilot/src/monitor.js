@@ -416,20 +416,10 @@ ${TOKEN_META_EMPTY}
     .topline .sep { display: none; }
     .keyhint { display: none; }
   }
-  /* ---- 人間待ちのまとまり（親の EPIC ごと） ---- */
-  .ig { border-bottom: 1px solid var(--ap-line); }
-  .ig-h { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; padding: 8px 16px 6px; font-size: var(--ap-font-md);
-          border-bottom: 1px solid var(--ap-line-soft); }
-  .ig-h .tt { font-weight: 600; }
   /* 1 行に収める: 題名だけを … で切り、#番号は残す */
   .t1 { flex: 1 1 0; min-width: 0; display: flex; align-items: baseline; gap: 6px; }
   .t1 .tt { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .t1 .ilink, .t1 .small { flex: none; white-space: nowrap; }
-  .ig .fi { flex-wrap: nowrap; padding-left: 28px; min-height: 0; padding-top: 6px; padding-bottom: 6px; }
-  .ig-h, .ig .fi { flex-wrap: nowrap; }
-  .ig .acts-r .go { padding-top: 1px; padding-bottom: 1px; }
-  .ig .kind { min-width: 5.2em; text-align: center; }
-  .ig .ig-more { min-height: 0; padding-top: 4px; padding-bottom: 6px; font-size: var(--ap-font-sm); }
   .gprio { font-size: var(--ap-font-xs); font-weight: 600; color: var(--ap-faint); }
   .gprio.p0, .gprio.p1 { color: var(--ap-ink); }
   /* ---- あなた宛ての「すること」（#2466・docs/autopilot/design-system.md） ---- */
@@ -903,7 +893,6 @@ try { const f = localStorage.getItem(BOARD_FILTER_KEY); if (f) boardFilter = f; 
 // 状況板で開いているまとまり（key）。EPIC に属さない Issue は優先度ごとのまとまり（solo-P0〜P3・#2411）で、最初から開く
 const openGroups = new Set(['solo-P0', 'solo-P1', 'solo-P2', 'solo-P3']);
 let view = 'inbox';                     // 900px 未満のタブ
-const openInboxGroups = new Set();  // 「ほか N 件」を開いた人間待ちのまとまり（key）
 const qPick = {};                       // 質問の答え: issue → { 質問 id → key }
 const qNote = {};                       // 質問のメモ: issue → { 質問 id → 文 }
 const findItem = (issue) => ((lastBoard && lastBoard.items) || []).find((x) => x.issue === issue) || null;
@@ -2070,11 +2059,6 @@ document.addEventListener('click', (ev) => {
   }
   if (act === 'ans-rec' || act === 'ans-go' || act === 'ans-save') { answerAction(act, issue, t); return; }
   if (act === 'learn-act') { const b = document.getElementById('lt-learn-btn'); if (b && !b.disabled) b.click(); setTimeout(refresh, 800); return; }
-  if (act === 'group-more') {
-    const k = t.dataset.key;
-    if (openInboxGroups.has(k)) openInboxGroups.delete(k); else openInboxGroups.add(k);
-    rerender();
-  }
 });
 document.addEventListener('input', (ev) => {
   const t = ev.target;

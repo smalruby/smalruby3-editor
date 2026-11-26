@@ -962,7 +962,7 @@ daemon の `GET /`（既定 `http://localhost:8787/`）は、人間と同意し�
 - **除外**: Close / Done / Icebox はボードに出さない。`--assignee` 起動時は自分が Assignees のいずれかの item に限る
   （共同担当も観察のため出る。観察中の item は `refreshBoard` の周期か「更新」でだけ最新になる）。
 - **判断の置き場**: 意味の色・あなた宛ての組み立て・状況板の行の絞り込み・答えの組み立て・数字キーは
-  `src/monitor-inbox.js` の純粋関数（`itemSem` / `epicSem` / `inboxModel` / `inboxGroups` / `boardRows` / `recommendedAnswers` /
+  `src/monitor-inbox.js` の純粋関数（`itemSem` / `epicSem` / `inboxModel` / `boardRows` / `recommendedAnswers` /
   `chosenAnswers` / `digitTarget` / `isInboxToggleKey`）で、`phases.js` の `splitLaterBoard` などと同じく `fn.toString()` でページに埋め込む
   （二重定義しない）。
 - **Claude 使用量**: 値は worker の status line が書く usage ファイル（`tools/autopilot/bin/usage-statusline.sh` →

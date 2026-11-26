@@ -46,7 +46,10 @@ function humanAction(it, ctx) {
     // 子のうち、ゴーサインを待っているもの（Sprint Backlog + 🙋・待ちでもリリース後でもない・動いていない）
     const goKid = (k) => k.status === 'Sprint Backlog' && (k.hitl || k.hitlLabel)
         && k.kind !== 'EPIC' && !k.waiting && (k.labels || []).indexOf('⏳ waiting') < 0
-        && (k.labels || []).indexOf('🚀 after-release') < 0 && running.indexOf(k.issue) < 0;
+        && (k.labels || []).indexOf('🚀 after-release') < 0 && running.indexOf(k.issue) < 0
+        && !(k.delegate && k.delegate.ok === false);
+    // 宛て先: 🧱 infra の子は develop 宛て（infra-first）、ほかの EPIC の子は topic 宛て、EPIC に属さないものは develop 宛て
+    const isInfra = (x) => (x.labels || []).indexOf('🧱 infra') >= 0;
     const decomposed = Boolean(it.tracker) || ai === 'EPIC Decomposed' || sub.total > 0;
 
     if (running.indexOf(it.issue) >= 0) return r('idle', null, null, 'AI が作業中');
@@ -69,12 +72,14 @@ function humanAction(it, ctx) {
         if (go.length) {
             const nums = go.map((k) => '#' + k.issue).join('・');
             const button = go.length === 1 ? '#' + go[0].issue + ' を始めてもらう' : go.length + ' 件の実装を始めてもらう';
-            return r('go', button, nums + ' の 🙋 を外す。AI が順に実装し、topic 宛ての PR を作る',
+            const infraN = go.filter(isInfra).length;
+            const to = infraN === 0 ? 'topic 宛ての ' : infraN === go.length ? 'develop 宛ての ' : '';
+            return r('go', button, nums + ' の 🙋 を外す。AI が順に実装し、' + to + 'PR を作る',
                 '子は ' + done + ' 済み。' + nums + ' があなたのゴーサイン待ち', 'delegate', null, go.map((k) => k.issue));
         }
         if (sub.total > 0 && sub.completed >= sub.total) {
             const pr = prUrl ? 'PR #' + openPr.number : 'topic → develop の PR';
-            return r('check', 'プレビューで確かめる', pr + ' とプレビューを開く。結果は「確認の結果を書く」か PR のレビューで返す',
+            return r('check', 'プレビューで確かめる', pr + ' とプレビューを開く。結果は PR のレビューで返す',
                 '子は ' + done + ' 済み。topic のプレビューで成果物を確かめる番', 'open', it.previewUrl || prUrl || issueUrl);
         }
         const hands = kids.filter((k) => k.status === 'Backlog' && (k.hitl || k.hitlLabel) && k.kind !== 'EPIC').map((k) => '#' + k.issue);
@@ -103,8 +108,9 @@ function humanAction(it, ctx) {
     if (s === 'Backlog') {
         return r('hand', '済んだ', 'Issue を開く。済んだら GitHub で閉じる', '人間が行う作業', 'open', issueUrl);
     }
-    if (s === 'Sprint Backlog' && it.hitl) {
-        const to = parent != null ? 'topic 宛て' : 'develop 宛て';
+    // 🙋 を外せない（planDelegate が受けない）ときはゴーサインにしない。押しても失敗するだけなので、Issue を見てもらう
+    if (s === 'Sprint Backlog' && it.hitl && !(it.delegate && it.delegate.ok === false)) {
+        const to = parent != null && !isInfra(it) ? 'topic 宛て' : 'develop 宛て';
         return r('go', '実装を始めてもらう', '🙋 を外す。AI が実装して ' + to + 'の PR を作る',
             (parent != null ? '' : 'EPIC に属さない。') + '着手してよいかのゴーサイン待ち', 'delegate', null, [it.issue]);
     }
@@ -136,10 +142,13 @@ function forYouModel(board, opts) {
     const source = Array.isArray(d.humanWait)
         ? d.humanWait.filter(Boolean).map((h) => Object.assign({}, byIssue[h.issue] || {}, h))
         : items.filter((it) => it.hitl && it.status !== 'Close' && it.status !== 'Done');
+    // 子にも humanWait の delegate（🙋 を外せるか）を重ねる。外せない子は EPIC のゴーサインに入れない
+    const delegateOf = {};
+    for (const h of Array.isArray(d.humanWait) ? d.humanWait : []) if (h && h.delegate) delegateOf[h.issue] = h.delegate;
     const kidsOf = {};
     for (const it of items) {
         const p = it.parent && it.parent.number != null ? it.parent.number : null;
-        if (p != null) (kidsOf[p] = kidsOf[p] || []).push(it);
+        if (p != null) (kidsOf[p] = kidsOf[p] || []).push(delegateOf[it.issue] ? Object.assign({}, it, { delegate: delegateOf[it.issue] }) : it);
     }
     const rank = (p) => ({ P0: 0, P1: 1, P2: 2, P3: 3 }[p] == null ? 4 : { P0: 0, P1: 1, P2: 2, P3: 3 }[p]);
     const prio = (it) => (it.effectivePriority && it.effectivePriority.priority) || it.priority || null;
