@@ -837,6 +837,8 @@ export default {
     'gui.classroom.evaluation.status.loadDone': 'Loaded {count} submissions.',
     'gui.classroom.evaluation.status.loadProgressDone': 'Loaded the progress of {lessons} assignments.',
     'gui.classroom.evaluation.status.gradeDone': 'The AI graded {count} submissions.',
+    'gui.classroom.evaluation.status.gradeDoneInconsistent':
+        'The AI graded {count} submissions. {inconsistent} works have the same shape but different grades (check them).',
     'gui.classroom.evaluation.status.commentDone': 'The AI drafted {count} comments.',
     'gui.classroom.evaluation.status.returnDone': 'Returned {count} comments.',
     'gui.classroom.evaluation.status.loadFailed': 'Could not load the submissions.',
@@ -2001,6 +2003,10 @@ export default {
     'gui.classroom.gradingRubric.groupYes': 'Change {count} More',
     'gui.classroom.gradingRubric.hasRubric': 'This assignment has a rubric. You can grade everyone with it now.',
     'gui.classroom.gradingRubric.noWorks': 'No work was submitted.',
+    'gui.classroom.gradingRubric.noSExample':
+        'There is no example of S, so the line between S and A moves. If another class has the same ' +
+        'assignment, grade the class that has S works first to make the rubric, then copy it here.',
+    'gui.classroom.gradingRubric.noExample': 'No example (the AI’s guess)',
     'gui.classroom.gradingRubric.notLoaded': 'Load the submissions (step 1) to see the representative works.',
     'gui.classroom.gradingRubric.openWork': 'Open the Work',
     'gui.classroom.gradingRubric.propose': 'Show the AI’s Proposals',

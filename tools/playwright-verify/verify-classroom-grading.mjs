@@ -18,7 +18,7 @@
  *
  *   node verify-classroom-grading.mjs                    # コンテナ内 (headless)
  *   BASE=http://localhost:8624 node verify-classroom-grading.mjs
- *   DOCS_SHOTS=1 node verify-classroom-grading.mjs       # docs/classroom/screenshots の 0350〜0352 も撮り直す
+ *   DOCS_SHOTS=1 node verify-classroom-grading.mjs       # docs/classroom/screenshots の 0350〜0352・0358・0359 も撮り直す
  *   LOCALE=ja-Hira node verify-classroom-grading.mjs     # ひらがなで測る (DOCS_SHOTS は ja のときだけ)
  */
 import { readFile } from "node:fs/promises";
@@ -46,6 +46,8 @@ const DOC_SHOT_NAMES = {
     returning: "0350-teacher-grading-returning.png",
     returned: "0351-teacher-grading-returned-result.png",
     "grade-failed": "0352-teacher-grading-failed-result.png",
+    "rubric-saved": "0358-teacher-grading-rubric-no-s-example.png",
+    "grade-inconsistent": "0359-teacher-grading-inconsistent-result.png",
 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const tid = (id) => `[data-testid="${id}"]`;
@@ -675,6 +677,25 @@ record({
         copyPreview.includes(OLD_LEVELS[1].text),
     detail: `classes=${copyOptions} assignments=${assignmentOptions}`,
 });
+// 02_LED の基準には正解の例が無い: S の注意と、すべての段に「正解の例が無い」
+const has = (id) => page.evaluate((s) => !!document.querySelector(s), tid(id));
+const copyWarn = {
+    noS: await has("grading-rubric-copy-no-s-example"),
+    marks: await page.evaluate(
+        () =>
+            document.querySelectorAll(
+                '[data-testid^="grading-rubric-copy-levels-no-example-"]',
+            ).length,
+    ),
+};
+record({
+    name: "copy: a rubric without an S example warns, and every level without an example is marked",
+    ok: copyWarn.noS && copyWarn.marks === 4,
+    detail: JSON.stringify(copyWarn),
+});
+await page
+    .locator(tid("grading-rubric-copy-no-s-example"))
+    .scrollIntoViewIfNeeded();
 await shoot(page, "rubric-copy");
 await page.click(tid("grading-rubric-copy-do"));
 await page.waitForSelector(tid("grading-rubric-saved"));
@@ -688,6 +709,13 @@ record({
     detail: JSON.stringify(
         copyPut?.updates.rubric?.levels?.map((l) => l.grade),
     ),
+});
+record({
+    name: "saved rubric: no S example → the warning above the sentences and the marks",
+    ok:
+        (await has("grading-rubric-no-s-example")) &&
+        (await has("classroom-eval-rubric-levels-no-example-S")) &&
+        (await has("classroom-eval-rubric-levels-no-example-A")),
 });
 
 // つくり直す: 代表 → AI の案 → 正解 → フェアの確認 → AI に基準の文 → 保存
@@ -728,6 +756,19 @@ await waitIdle(page);
 await page.waitForSelector(tid("grading-rubric-check-0"));
 await shoot(page, "rubric-fairness");
 await page.click(tid("grading-rubric-check-0-option-1"));
+// 先生の正解は A と B だけ: 文を書いてもらう前に S の注意
+record({
+    name: "builder: the teacher's answers have no S → the warning before drafting",
+    ok: await has("grading-rubric-draft-no-s-example"),
+});
+await page
+    .locator(tid("grading-rubric-draft-no-s-example"))
+    .scrollIntoViewIfNeeded();
+await judge(page, {
+    name: "B rubric builder with the no-S warning",
+    expected: "classroom-eval-run-grade",
+    shot: "rubric-no-s",
+});
 await page.click(tid("grading-rubric-draft"));
 await waitIdle(page);
 const rubricCall = evaluates.filter((e) => e.body.mode === "rubric").at(-1);
@@ -765,6 +806,9 @@ record({
         examples: savePut?.updates.rubric.examples?.length,
     }),
 });
+await page
+    .locator(tid("grading-rubric-saved"))
+    .evaluate((e) => e.scrollIntoView({ block: "start" }));
 await judge(page, {
     name: "B rubric saved",
     expected: "classroom-eval-run-grade",
@@ -785,6 +829,42 @@ record({
         ) &&
         (gradeCall.body.examples || []).length >= 2,
     detail: `levels=${gradeCall?.body.rubricLevels?.length} examples=${gradeCall?.body.examples?.length}`,
+});
+// 10 人ずつのまとまりの間: 前のまとまりの新しい形の作品が例に足され、同じ形で評価が違えば要確認
+const gradeCalls = evaluates
+    .slice(evaluates.indexOf(proposeCall) + 1)
+    .filter((e) => e.body.mode === "grade");
+const exampleCounts = gradeCalls.map((e) => (e.body.examples || []).length);
+const teacherExamples = savePut.updates.rubric.examples.length;
+record({
+    name: "grade everyone: the examples carry one work per new shape to the next chunks (after the teacher's)",
+    ok:
+        gradeCalls.length >= 2 &&
+        exampleCounts[0] === teacherExamples &&
+        exampleCounts[1] > teacherExamples &&
+        gradeCalls[1].body.examples
+            .slice(0, teacherExamples)
+            .every(
+                (e, i) =>
+                    e.seatNumber ===
+                    savePut.updates.rubric.examples[i].seatNumber,
+            ),
+    detail: `examples per chunk=${exampleCounts} teacher=${teacherExamples}`,
+});
+const inconsistentText = await text(page, "classroom-eval-result");
+record({
+    name: "grade everyone: works of the same shape with different grades are 「要確認」 and the result says so",
+    ok:
+        /同じ形なのに評価が違う作品が \d+ 件あります（要確認）/.test(
+            inconsistentText,
+        ) ||
+        (LOCALE === "ja-Hira" && /ようかくにん/.test(inconsistentText)),
+    detail: inconsistentText,
+});
+await judge(page, {
+    name: "grade everyone with inconsistent shapes",
+    expected: "classroom-eval-confirm",
+    shot: "grade-inconsistent",
 });
 
 // ---- C. 確定と取り消し ----

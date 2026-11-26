@@ -635,6 +635,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-eval-rubric-pane` | div | ［基準］の中身（課題の説明・基準・採点の観点と厳しさ） |
 | `classroom-eval-description` | p | 課題の説明（AI に渡す。無ければその旨） |
 | `classroom-eval-rubric-levels` | table | 課題の基準（S/A/B/C の文） |
+| `classroom-eval-rubric-levels-no-example-<S\|A\|B\|C>` | span | 保存した基準で、正解の例に無い段の「正解の例が無い（AI の推測）」 |
 | `classroom-eval-no-rubric` | p | 基準がまだ無いときの文 |
 | `classroom-eval-not-loaded` | p | 読み込む前の［生徒］の案内 |
 | `classroom-eval-detail` | aside | ［生徒］の中の選んだ席の点・根拠・コメント |
@@ -707,6 +708,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `grading-rubric-describe-ok` / `-fix` / `-only-here` | button | ［合っている（課題に保存）］／［直して保存］／［保存せず、この採点だけで使う］ |
 | `grading-rubric-running` | p | AI が動いている間の表示 |
 | `grading-rubric-saved` / `grading-rubric-edit` | div / button | 保存した基準／［基準をつくり直す］ |
+| `grading-rubric-no-s-example` / `grading-rubric-draft-no-s-example` / `grading-rubric-copy-no-s-example` | p | S の正解の例が無いときの注意（保存した基準／基準づくりの途中／コピーで選んだ基準） |
 | `grading-rubric-reps` / `grading-rubric-propose` | div / button | 代表の作品の一覧／［AI の案を出す］ |
 | `grading-rubric-rep-<席>` / `grading-rubric-rep-body-<席>` | button / div | 代表の行（押すと開く）／開いた中身 |
 | `grading-rubric-rep-grade-<席>-<S\|A\|B\|C>` / `grading-rubric-rep-reason-<席>` / `grading-rubric-rep-open-<席>` | button / input / button | 正解・理由・［作品を開く］ |
@@ -716,6 +718,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `grading-rubric-copy` / `grading-rubric-copy-dialog` | button / div | ［ほかの課題から基準をコピー…］／コピーの小さな画面 |
 | `grading-rubric-copy-class` / `grading-rubric-copy-assignment` | select | コピー元のクラス・課題 |
 | `grading-rubric-copy-preview` / `grading-rubric-copy-levels` / `grading-rubric-copy-none` | div / table / p | コピー元の基準の中身／基準が無い |
+| `grading-rubric-copy-levels-no-example-<S\|A\|B\|C>` | span | コピー元の基準で、正解の例に無い段の「正解の例が無い（AI の推測）」 |
 | `grading-rubric-copy-do` / `grading-rubric-copy-cancel` | button | ［コピーする］／［やめる］ |
 | `grading-group-prompt` / `-yes` / `-no` | div / button / button | 1 件を直したあとの「同じまとまりも変えますか？」と［{n} 件も変える］［この 1 件だけ］（［生徒］のタブ） |
 

@@ -9,6 +9,7 @@ import {
     examplesFromAnswers,
     fullGradeExtras,
     gradeOfOption,
+    gradesWithoutExamples,
     groupChangePlan,
     normalizeLevels,
     representativesOf,
@@ -249,5 +250,13 @@ describe('groupChangePlan', () => {
         expect(groupChangePlan({ seat: 2, from: 'B', to: 'B', groupBySeat, seats: [1, 2, 3], gradeOf })).toBeNull();
         expect(groupChangePlan({ seat: 2, from: null, to: 'A', groupBySeat, seats: [1, 2, 3], gradeOf })).toBeNull();
         expect(groupChangePlan({ seat: 9, from: 'B', to: 'A', groupBySeat, seats: [9], gradeOf })).toBeNull();
+    });
+});
+
+describe('gradesWithoutExamples', () => {
+    test('the grades no example has, in S/A/B/C order', () => {
+        expect(gradesWithoutExamples([{ grade: 'C' }, { grade: 'B' }, { grade: 'B' }])).toEqual(['S', 'A']);
+        expect(gradesWithoutExamples([{ grade: 'S' }, { grade: 'A' }, { grade: 'B' }, { grade: 'C' }])).toEqual([]);
+        expect(gradesWithoutExamples(undefined)).toEqual(['S', 'A', 'B', 'C']);
     });
 });

@@ -945,6 +945,8 @@ export default {
     'gui.classroom.evaluation.status.loadDone': '{count} けんのていしゅつをよみこみました',
     'gui.classroom.evaluation.status.loadProgressDone': '{lessons} けんのかだいのすすみぐあいをよみこみました',
     'gui.classroom.evaluation.status.gradeDone': 'AI が {count} けんをさいてんしました',
+    'gui.classroom.evaluation.status.gradeDoneInconsistent':
+        'AI が {count} けんをさいてんしました。おなじかたちなのにひょうかがちがうさくひんが {inconsistent} けんあります（ようかくにん）',
     'gui.classroom.evaluation.status.commentDone': 'AI が {count} けんのコメントをしたがきしました',
     'gui.classroom.evaluation.status.returnDone': '{count} けんのコメントをへんきゃくしました',
     'gui.classroom.evaluation.status.loadFailed': 'ていしゅつをよみこめませんでした',
@@ -2426,6 +2428,10 @@ export default {
     'gui.classroom.gradingRubric.groupYes': '{count} けんもかえる',
     'gui.classroom.gradingRubric.hasRubric': 'このかだいにはきじゅんがあります。このままぜんいんをさいてんできます。',
     'gui.classroom.gradingRubric.noWorks': 'ていしゅつされたさくひんがありません。',
+    'gui.classroom.gradingRubric.noSExample':
+        'S のせいかいのれいがありません。このままでは S と A のきじゅんがぶれます。べつのクラスにおなじかだいがあれば、' +
+        'S のさくひんがあるクラスをさきにさいてんしてきじゅんをつくり、それをコピーしてください。',
+    'gui.classroom.gradingRubric.noExample': 'せいかいのれいがない（AI のすいそく）',
     'gui.classroom.gradingRubric.notLoaded': 'ていしゅつをよみこむ（てじゅん 1）と、だいひょうのさくひんがでます。',
     'gui.classroom.gradingRubric.openWork': 'さくひんをひらく',
     'gui.classroom.gradingRubric.propose': 'AI のあんをだす',

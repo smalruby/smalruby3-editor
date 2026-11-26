@@ -359,4 +359,59 @@ describe('useTeacherEvaluation — スターターから足した台本とまと
         expect(saved['2'].group).toBe('スターターのまま');
         expect(saved['1'].group).toBe(one.groupName);
     });
+
+    test('全員の採点: まとまりの間で例を引き継ぎ、同じ形なのに評価が違えば要確認にする', async () => {
+        // 12 人とも「スペースで 言う + n 歩動かす」を足した同じ形（数だけ違う）。10 人ずつに分けて AI に頼む。
+        const work = (steps) => {
+            const json = project(true);
+            const blocks = json.targets[1].blocks;
+            blocks.d.next = 'e';
+            blocks.e = block('motion_movesteps', null, 'd', { inputs: { STEPS: [1, [4, String(steps)]] } });
+            return json;
+        };
+        const seats = Array.from({ length: 12 }, (_, i) => i + 1);
+        const files = { 'https://example.invalid/starter.sb3': await sb3(project(false)) };
+        for (const n of seats) files[`https://example.invalid/${n}.sb3`] = await sb3(work(n * 5));
+        global.fetch = jest.fn((url) =>
+            Promise.resolve({ ok: true, arrayBuffer: () => Promise.resolve(files[url]) }),
+        );
+        mockGetAssignment.mockResolvedValue({
+            assignment: { pages: [{ text: '言わせる' }], starterUrl: 'https://example.invalid/starter.sb3' },
+            lesson: null,
+        });
+        mockListMembers.mockResolvedValue({ members: seats.map((n) => ({ memberId: `seat-${n}` })) });
+        mockListSubmissions.mockResolvedValue({
+            submissions: seats.map((n) => ({
+                submissionId: `s${n}`,
+                memberId: `seat-${n}`,
+                status: 'submitted',
+                projectUrl: `https://example.invalid/${n}.sb3`,
+            })),
+        });
+        // 1 つ目のまとまりは B、2 つ目は S（本番で起きたぶれ）。
+        let call = 0;
+        mockEvaluateSubmissions.mockImplementation((token, id, payload) => {
+            call++;
+            const grade = call === 1 ? 'B' : 'S';
+            return Promise.resolve({
+                results: payload.submissions.map((x) => ({ seatNumber: x.seatNumber, grade, reason: `理由${grade}` })),
+            });
+        });
+        const { hook } = await setup();
+        await open(hook, 'new');
+        await load(hook);
+        await act(async () => {
+            await hook.result.current.handleRunAi('grade');
+        });
+        expect(mockEvaluateSubmissions).toHaveBeenCalledTimes(2);
+        expect(mockEvaluateSubmissions.mock.calls[0][2].examples).toBeUndefined();
+        // 2 つ目のまとまりには、1 つ目の形の作品が 1 件だけ AI の評価と理由つきで例に入る。
+        expect(mockEvaluateSubmissions.mock.calls[1][2].examples).toEqual([
+            expect.objectContaining({ seatNumber: 1, grade: 'B', reason: '理由B' }),
+        ]);
+        // 評価は書きかえず、同じ形の 12 件を要確認にして知らせる。
+        expect(hook.result.current.getCell(1, 'new')).toMatchObject({ grade: 'B', needsReview: true });
+        expect(hook.result.current.getCell(12, 'new')).toMatchObject({ grade: 'S', needsReview: true });
+        expect(hook.result.current.evalResult).toMatchObject({ kind: 'grade', count: 12, inconsistent: 12 });
+    });
 });

@@ -16,7 +16,7 @@
  *   - {kind: 'gradebook', done, total}: the saved gradings of the class's assignments (#2424)
  *   - {kind: 'confirm', assignmentName}: the grades of an assignment are being confirmed (#2424)
  * A result (`evalResult`) is {kind: 'load'|'grade'|'comment'|'return'|'confirm', count, lessons, failed, done,
- * total}.
+ * total, inconsistent} (inconsistent: works of the same shape with different grades after grading everyone).
  */
 import { defineMessages } from 'react-intl';
 
@@ -111,6 +111,15 @@ const evalStatusMessages = defineMessages({
         defaultMessage: 'Could not load the submissions.',
         description: 'Grading screen: result when reading the submissions failed (#2419)',
         id: 'gui.classroom.evaluation.status.loadFailed',
+    },
+    gradeDoneInconsistent: {
+        defaultMessage:
+            'The AI graded {count} submissions. {inconsistent} works have the same shape but different grades ' +
+            '(check them).',
+        description:
+            'Grading screen: result after the AI grading when works of the same shape (the same added scripts) ' +
+            'got different grades; they are marked to check',
+        id: 'gui.classroom.evaluation.status.gradeDoneInconsistent',
     },
     gradeFailed: {
         defaultMessage: 'The AI grading stopped on the way.',
@@ -245,6 +254,13 @@ const describeEvalResult = (result) => {
     }
     if (result.kind === 'load' && !result.count && result.lessons > 0) {
         return { message: evalStatusMessages.loadProgressDone, values: { lessons: result.lessons }, failed: false };
+    }
+    if (result.kind === 'grade' && result.inconsistent > 0) {
+        return {
+            message: evalStatusMessages.gradeDoneInconsistent,
+            values: { count: result.count || 0, inconsistent: result.inconsistent },
+            failed: false,
+        };
     }
     const message = evalStatusMessages[`${RUNNING_STEP_OF_KIND[result.kind]}Done`];
     return { message, values: { count: result.count || 0 }, failed: false };
