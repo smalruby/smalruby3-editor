@@ -130,6 +130,7 @@ const currentStatusJob = require('./current-status-job');
 // モニターで答える（ui-policy §8 の U1・U2）。判断は phases.js、置き場・HTTP・GitHub のつなぎは monitor-answers.js
 const monitorAnswers = require('./monitor-answers');
 const releaseCheckHttp = require('./release-check-http');
+const { releasePageUrl } = require('./release-page');
 const { pruneMonitorReleases, withMonitorReleases, humanWaitRows } = require('./phases');
 
 const execFileP = promisify(execFile);
@@ -1525,6 +1526,8 @@ async function dispatch(item, cfg, state, log) {
             AUTOPILOT_AI_STATUS: item.aiStatus || '',
             AUTOPILOT_EPIC_FLOW: isEpicFlowBase(baseBranch, DEFAULT_BASE_BRANCH) ? '1' : '',
         };
+        // リリース確認の確認ページ（#2474）: 同じ URL を更新させる（空なら初回）
+        if (phase === 'release-check') Object.assign(env, releaseCheckHttp.releasePageEnv(state, item.issue, cfg));
         // モニターで人間が答えた質問があれば、答えのファイルを置いてプロンプトで読ませる（U2）
         const answersFile = monitorAnswers.deliverMonitorAnswers(item.issue, cwd, state);
         env.AUTOPILOT_ANSWERS_FILE = answersFile || '';
@@ -1578,7 +1581,11 @@ async function dispatch(item, cfg, state, log) {
             await applyDecomposeSubIssueSetup(parsed.result, cfg, log);
         }
         // リリース確認（#2430）のプレビューの URL をモニターの行に出す
-        if (phase === 'release-check') releaseCheckHttp.rememberPreview(state, item.issue, parsed.result.previewUrl);
+        if (phase === 'release-check') {
+            releaseCheckHttp.rememberPreview(state, item.issue, parsed.result.previewUrl);
+            // 確認ページ（#2474）の URL を覚え、次の round と「あなた宛て」のボタンに使う
+            releaseCheckHttp.rememberReleasePage(state, item.issue, parsed.result, cfg.now(), log);
+        }
         // signal=error は Blocked で surface する（churn を止める）。理由はサニタイズ済みの
         // 要約だけを GitHub に出し、生ログ（機密を含みうる）はローカル参照に誘導する。
         if (parsed.result.signal === 'error') {
@@ -2808,6 +2815,8 @@ async function refreshBoard(cfg, state, log, deps = {}) {
                 parent: extra.parent || null,
                 // リリース確認（#2430）のプレビュー。段の結果か「確認の結果を書く」で知ったものだけ（定期では取らない）
                 previewUrl: (state.releasePreviews && state.releasePreviews[it.issue]) || null,
+                // リリース確認の確認ページ（#2474）。worker が作った artifact の URL（状態ファイルに残す）
+                releasePageUrl: releasePageUrl(state.releasePages, it.issue),
             });
         }
         state.board = { updatedAt: cfg.now(), items: enriched };
@@ -3437,6 +3446,7 @@ async function main(opts = {}) {
     process.on('exit', () => { try { shutdownTerminal(); } catch { /* noop */ } });
     // 現在地の artifact の URL・最終更新（#2388）は再起動をまたいで残す
     state.currentStatusState = currentStatusJob.loadCurrentStatusState(cfg);
+    state.releasePages = releaseCheckHttp.loadReleasePages();
     currentStatusJob.refreshCurrentStatusView(state);
     // プロセスレベルの安全網（#949/#953）: fire-and-forget な非同期経路のエラーを捕捉し、
     // 認証系は auto-pause で耐え、未知の非認証エラーは Node 準拠で exit（supervisor が再起動）。

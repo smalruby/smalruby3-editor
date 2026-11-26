@@ -1587,6 +1587,11 @@ function openRowMenu(anchor, issue) {
   if (running.indexOf(issue) >= 0) entries.push({ label: 'worker の log を見る', act: () => openLog(issue) });
   // 前の「AI に任せる」は、いつも使うものではないので ⋯ に残す（#2466）
   const wait = (lastInbox.waits || []).find((w) => w.issue === issue);
+  // 確認ページ（#2474）で答えを送ったあと、🙋 を外して AI に読ませる。ダイアログは確認ページが開けないときの予備
+  if (wait && wait.release && it.releasePageUrl) {
+    entries.push({ label: '📄 確認ページを開く', href: it.releasePageUrl });
+    entries.push({ label: '✨ 確認ページの答えを AI に渡す', note: '🙋 を外す', act: () => delegateIssue(issue) });
+  }
   if (wait && wait.goLabel) {
     entries.push({ label: '✨ ' + wait.goLabel, act: () => (wait.release ? openRelease(issue) : wait.fix ? openFix(issue) : delegateIssue(issue)) });
   }

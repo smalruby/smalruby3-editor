@@ -17,7 +17,8 @@
  * hand（人間の作業）/ idle（人間の番ではない）。終端（Close / Done）・Icebox は null。
  *
  * act はボタンを押して「行う」を選んだときの操作:
- * open（url を別タブで開く）/ release（確認の結果を書くダイアログ）/ delegate（targets の 🙋 を外す）/ null（ボタンなし）。
+ * open（url を別タブで開く。リリース確認の確認ページもこれ）/ release（確認の結果を書くダイアログ）/
+ * delegate（targets の 🙋 を外す）/ null（ボタンなし）。
  * @param {object} it board item（GET /board の items に humanWait の delegate を重ねたもの）
  * @param {object} [ctx] { kids: object[]（親がこの item の board item）, running: number[], questions: number[], repoUrl: string }
  * @returns {object|null} { kind, button, happens, state, act, url, targets }
@@ -63,6 +64,12 @@ function humanAction(it, ctx) {
     // リリース確認（#2430）: topic → develop の PR とプレビューで確かめる
     if (ai === 'Release Check' && it.hitl) {
         const pr = prUrl ? 'PR #' + openPr.number : 'topic → develop の PR';
+        // 確認ページ（#2474）があれば、プレビュー・観点・決定待ちを 1 枚で見て答えを送る
+        if (it.releasePageUrl) {
+            return r('check', '確認ページを開く', 'プレビューと確認の観点・決定待ちを 1 枚で見て、答えを送る（別タブ）',
+                '子は ' + (sub.completed || 0) + '/' + (sub.total || 0) + ' 済み。確認ページで ' + pr + ' のプレビューを確かめる番',
+                'open', it.releasePageUrl);
+        }
         return r('check', 'プレビューで確かめる', 'プレビューと ' + pr + ' を開く。確かめた結果は「確認の結果を書く」か PR のレビューで AI に返す',
             '子は ' + (sub.completed || 0) + '/' + (sub.total || 0) + ' 済み。' + pr + ' のプレビューで、成果物を確かめる番', 'release', it.previewUrl || prUrl);
     }

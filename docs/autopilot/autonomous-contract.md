@@ -87,6 +87,7 @@ Runner はこの短語を pane で検出してから `AUTOPILOT_RESULT_FILE` を
 | `subIssueSizes` | object \| null | decompose で作成した leaf ごとの size（`{"<issue番号>":"small"\|"middle"\|"large"}`）。daemon が `createdSubIssues` と合わせて各 sub-issue の Status=`Sprint Backlog`/Kind=`Issue`/Size を設定する（#914） |
 | `prUrl` | string \| null | implement で作成/更新した PR |
 | `previewUrl` | string \| null | 任意。release-check が見つけた topic → develop の PR のプレビューの URL。daemon が覚えてモニターの「あなた宛て」の行に出す（#2430） |
+| `artifactUrl` | string \| null | 任意。release-check が作った・更新した確認ページ（`https://claude.ai/artifact/…`）。daemon が EPIC ごとに状態ファイルに覚え、次の round の `AUTOPILOT_ARTIFACT_URL` と「あなた宛て」の「確認ページを開く」に使う（#2474）。current-status の job も同じ名前で使う |
 
 `signal=hitl` のとき追加で:
 

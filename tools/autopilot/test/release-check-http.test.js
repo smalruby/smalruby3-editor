@@ -4,7 +4,10 @@
  */
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { applyReleaseCheckEntries, releaseCheckViewOnce, releaseReviewOnce, rememberPreview } = require('../src/release-check-http');
+const {
+    applyReleaseCheckEntries, releaseCheckViewOnce, releaseReviewOnce, rememberPreview,
+    loadReleasePages, releasePageEnv, rememberReleasePage, postReleasePageAnswer,
+} = require('../src/release-check-http');
 const { refreshBoardAndProjectTrackers } = require('../src/daemon');
 const rc = require('../src/release-check');
 const { TRACKING_LABEL } = require('../src/phases');
@@ -159,4 +162,75 @@ test('applyReleaseCheckEntries: 親を autopilot-after で待つ子は、本文�
     assert.deepEqual(await applyReleaseCheckEntries([{ ...t, aiStatus: 'EPIC Decomposed' }, child], cfg, {}, () => {}, {
         botToken: async () => { throw new Error('should not be called'); },
     }), [], 'キャッシュが無ければ入らない');
+});
+
+const PAGE = 'https://claude.ai/artifact/page-1';
+
+test('loadReleasePages / rememberReleasePage: EPIC ごとに URL を状態ファイルに持ち、board の行にも載せる（#2474）', () => {
+    const files = {};
+    const deps = {
+        env: { AUTOPILOT_STATE_DIR: '/s' },
+        mkdirSync: () => {}, writeFileSync: (f, v) => { files[f] = v; },
+        readFileSync: (f) => { if (!(f in files)) throw new Error('ENOENT'); return files[f]; },
+    };
+    assert.deepEqual(loadReleasePages(deps), {}, '無ければ空');
+    const state = { board: { items: [trackerItem()] }, releasePages: loadReleasePages(deps) };
+    assert.equal(rememberReleasePage(state, 10, { artifactUrl: 'https://evil.example/x' }, 1, () => {}, deps), false);
+    assert.deepEqual(files, {});
+    assert.equal(rememberReleasePage(state, 10, { artifactUrl: PAGE, round: 1 }, 100, () => {}, deps), true);
+    assert.equal(state.board.items[0].releasePageUrl, PAGE);
+    assert.deepEqual(loadReleasePages(deps), { 10: { url: PAGE, round: 1, updatedAt: 100 } }, '再起動しても読める');
+    // 2 回目の round: worker に同じ URL を渡し、同じ場所を上書きする
+    const restarted = { releasePages: loadReleasePages(deps) };
+    assert.equal(releasePageEnv(restarted, 10).AUTOPILOT_ARTIFACT_URL, PAGE);
+    assert.equal(releasePageEnv(restarted, 11).AUTOPILOT_ARTIFACT_URL, '', 'まだ無い EPIC は初回');
+    assert.match(releasePageEnv(restarted, 10).AUTOPILOT_RELEASE_PAGE_TEMPLATE, /templates[\\/]release-check[\\/]template\.html$/);
+    rememberReleasePage(restarted, 10, { artifactUrl: PAGE, round: 2 }, 200, () => {}, deps);
+    assert.deepEqual(loadReleasePages(deps), { 10: { url: PAGE, round: 2, updatedAt: 200 } });
+});
+
+test('postReleasePageAnswer: 確認ページで送った答えから結果のコメントを書き、NG と別の案が sub-issue の計画になる（#2474）', async () => {
+    const posted = [];
+    const comments = [{ id: 7, body: CHECK, user: bot }];
+    const deps = {
+        readToken: async () => 'r', botToken: async () => 'b',
+        listIssueComments: async () => comments,
+        postIssueComment: async (repo, n, body) => { posted.push({ repo, n, body }); comments.push({ id: 8, body, user: bot }); },
+    };
+    const answer = {
+        status: 'submitted', round: 1, results: [{ id: 'R1', verdict: 'ng', note: '開かない' }],
+        decisions: [{ id: 'D1', title: '添字', choice: 'alternative', alternative: '1 から' }, { id: 'D2', title: '色', choice: 'recommended' }],
+        comment: '',
+    };
+    const r = await postReleasePageAnswer({ cfg }, { issue: 10, answer }, deps);
+    assert.deepEqual(r, { ok: true, action: 'post', round: 1, ng: 1 });
+    assert.equal(posted.length, 1);
+    assert.equal(posted[0].n, 10);
+    assert.match(posted[0].body, /📄 確認ページから/);
+    // 結果を受ける段が読むのと同じ道で、NG と「推奨でよい」以外が子の計画になる
+    assert.deepEqual(rc.releaseCheckMode(comments), { mode: 'result', round: 1 });
+    const review = rc.parseReleaseReview(posted[0].body);
+    const plan = rc.planReleaseResult({ epic: 10, round: 1, review, points: rc.parseReleaseCheckPoints(CHECK), existingBodies: [] });
+    assert.deepEqual(plan.create.map((c) => [c.point, c.title, c.note]), [['R1', '開ける', '開かない']]);
+    assert.deepEqual(plan.decisions.map((d) => [d.point, d.choice, d.alternative]), [['D1', 'alternative', '1 から']]);
+    // 押し直し（worker の再実行）でも二重に書かない
+    assert.equal((await postReleasePageAnswer({ cfg }, { issue: 10, answer }, deps)).action, 'skip');
+    assert.equal(posted.length, 1);
+});
+
+test('postReleasePageAnswer: 下書き・ほかの round・形の悪い答えは書かない', async () => {
+    const posted = [];
+    const deps = {
+        readToken: async () => 'r', botToken: async () => 'b',
+        listIssueComments: async () => [{ id: 7, body: CHECK, user: bot }],
+        postIssueComment: async (repo, n, body) => posted.push(body),
+    };
+    const base = { status: 'submitted', round: 1, results: [{ id: 'R1', verdict: 'ok' }] };
+    assert.equal((await postReleasePageAnswer({ cfg }, { issue: 10, answer: { ...base, status: 'draft' } }, deps)).action, 'none');
+    assert.equal((await postReleasePageAnswer({ cfg }, { issue: 10, answer: { ...base, round: 2 } }, deps)).action, 'none');
+    const bad = await postReleasePageAnswer({ cfg }, { issue: 10, answer: { ...base, results: [{ id: '<b>', verdict: 'ok' }] } }, deps);
+    assert.equal(bad.ok, false);
+    const none = await postReleasePageAnswer({ cfg }, { issue: 10, answer: base }, { ...deps, listIssueComments: async () => [] });
+    assert.equal(none.ok, false, '観点のコメントが無い');
+    assert.deepEqual(posted, []);
 });

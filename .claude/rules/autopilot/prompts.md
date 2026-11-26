@@ -89,6 +89,10 @@ review / verify などのプロンプトから **`/code-review` / `/security-rev
 - ページの形はテンプレート（`tools/autopilot/templates/current-status/`）が正。worker はデータ（ことば）だけを足し、形の
   改善は `templateNotes` に出す（テンプレートを直すのは人間か指揮役の PR）。データの形を変えたら
   `TEMPLATE_DATA_SCHEMA`・`draftDataFromMaterial`・`template.html` を対で直す。
+- リリース確認の確認ページ（#2474）も同じ形: URL は daemon が EPIC ごとに状態ファイルに持ち `AUTOPILOT_ARTIFACT_URL` で渡す、
+  形はテンプレート（`tools/autopilot/templates/release-check/`）が正。データの形を変えたら `RELEASE_PAGE_SCHEMA`・
+  `draftReleasePageData`・`template.html` を対で直す。ページの db の答えは worker が ArtifactData で読み、必ず
+  `bin/release-page-answer.js`（検証つき）を通してコメントにする（daemon は db を読めない）。
 
 ## 本文ディレクティブの記法（行頭マーカー）
 
