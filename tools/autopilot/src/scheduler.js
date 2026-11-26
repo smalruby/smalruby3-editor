@@ -289,22 +289,73 @@ function effectivePriority(issue, ctx = {}) {
     return { priority: DEFAULT_PRIORITY, source: 'default', from: null };
 }
 
+// ---- 続きの作業か（#2472） ----
+
 /**
- * 候補を優先度の順に並べる（安定ソート。同じ優先度は渡された順 = Project の並びのまま）。
- * autopilot-after が解けていないものは daemon が先に除くので、結果は
- * 「優先度 → after が解けたもの → Project の並び」になる。
- * @param {Array<{issue:number}>} candidates Project の並びの候補
+ * 同じ優先度の中で先に進める順（先ほど前）。人間のレビューへの直しは人間を待たせているので最初、
+ * PR を作ったものの続きは作りかけを減らすため次、新しく始める作業は最後（#2472）。
+ */
+const WORK_STAGES = ['fix', 'pr', 'new'];
+/** モニター・ログで段を言うときの言葉 */
+const WORK_STAGE_LABELS = { fix: '直し', pr: 'PR の続き', new: '新しい作業' };
+/** PR があることがフェーズから分かるもの（review・verify は PR を作ったあとにしか来ない） */
+const PR_PHASES = new Set(['review', 'verify', 'resolve-conflict']);
+
+/**
+ * 候補が「続きの作業」のどの段か。daemon が dispatch のために既に持っている値
+ * （次のフェーズ `phase` と、ゲートの ctx から来る `pr`）だけで決める（追加の GitHub の read をしない）。
+ * @param {{phase?:string, pr?:*}} c
+ * @returns {'fix'|'pr'|'new'}
+ */
+function workStage(c = {}) {
+    if (c.phase === 'address-review') return 'fix';
+    if (PR_PHASES.has(c.phase) || c.pr) return 'pr';
+    return 'new';
+}
+
+/**
+ * 候補を「優先度 → 続きの作業か → 渡された順（= Project の並び）」に並べる（安定ソート）。
+ * autopilot-after が解けていないものは daemon が先に除く。優先度は今までどおり最優先
+ * （P0 の新しい作業は P1 の直しより先）。
+ * @param {Array<{issue:number, phase?:string, pr?:*}>} candidates Project の並びの候補
  * @param {object} ctx {@link effectivePriority} の ctx
- * @returns {Array<object>} 新しい配列（各要素に `priority` / `prioritySource` を足す）
+ * @returns {Array<object>} 新しい配列（各要素に `priority` / `prioritySource` / `stage` を足す）
  */
 function orderByPriority(candidates, ctx = {}) {
     return (candidates || [])
         .map((c, i) => {
             const e = effectivePriority(c.issue, ctx);
-            return { c: { ...c, priority: e.priority, prioritySource: e.source }, i, rank: PRIORITIES.indexOf(e.priority) };
+            const stage = workStage(c);
+            return {
+                c: { ...c, priority: e.priority, prioritySource: e.source, stage },
+                i,
+                rank: PRIORITIES.indexOf(e.priority),
+                stageRank: WORK_STAGES.indexOf(stage),
+            };
         })
-        .sort((a, b) => a.rank - b.rank || a.i - b.i)
+        .sort((a, b) => a.rank - b.rank || a.stageRank - b.stageRank || a.i - b.i)
         .map((x) => x.c);
+}
+
+/**
+ * 並べた順の理由（モニターの「並列:」の行に足す）。同じ優先度の中で段が分かれたときだけ
+ * 「同じ P1 で、直しを先に」のように書く。分かれていなければ空文字。
+ * @param {Array<{priority:string, stage:string}>} ordered {@link orderByPriority} の結果
+ * @returns {string}
+ */
+function describeOrder(ordered) {
+    const byPriority = new Map();
+    for (const c of ordered || []) {
+        if (!byPriority.has(c.priority)) byPriority.set(c.priority, new Set());
+        byPriority.get(c.priority).add(c.stage);
+    }
+    const notes = [];
+    for (const [p, stages] of byPriority) {
+        if (stages.size < 2) continue;
+        const present = WORK_STAGES.filter((st) => stages.has(st));
+        notes.push(`同じ ${p} で、${present.slice(0, -1).map((st) => WORK_STAGE_LABELS[st]).join(' → ')}を先に`);
+    }
+    return notes.join('・');
 }
 
 /**
@@ -338,6 +389,10 @@ module.exports = {
     DEFAULT_PRIORITY,
     normalizePriority,
     effectivePriority,
+    WORK_STAGES,
+    WORK_STAGE_LABELS,
+    workStage,
     orderByPriority,
+    describeOrder,
     shiftPriority,
 };

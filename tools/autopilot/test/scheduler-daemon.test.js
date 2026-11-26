@@ -49,6 +49,22 @@ test('planDispatch: 優先度（親から継ぐ）の順に、重さと上限で
     assert.ok(logs.some((l) => l.startsWith('schedule: ')));
 });
 
+test('planDispatch: 重いものの枠が 1 つなら、同じ P1 の直しを新しい implement より先に始める（#2472）', () => {
+    // 2026-11-26 の形: 実行中の重い 1 件で枠は残り 1。#2471（implement）が Project の並びで上
+    const state = { running: new Map([[90, { phase: 'implement' }]]), parents: new Map() };
+    const items = [{ issue: 2471, priority: 'P1' }, { issue: 2466, priority: 'P1' }];
+    const eligible = [
+        { issue: 2471, phase: 'implement', title: 'feat: jest の integration' },
+        { issue: 2466, phase: 'address-review', pr: 2468, title: 'fix: playwright の確認' },
+    ];
+    const picked = planDispatch(eligible, new Map(), items, currentSchedulerLimits(cfg(), {}), cfg(), state,
+        () => {}, { readResources: () => ({ memAvailableMb: 8000, load1: 0.5, cpus: 5 }) });
+    assert.deepEqual(picked.map((p) => p.issue), [2466]);
+    assert.equal(state.schedulePlan.waiting[0].issue, 2471);
+    assert.equal(state.schedulePlan.order[0].stage, 'fix');
+    assert.match(state.schedulePlan.reason, /順: 同じ P1 で、直しを先に/);
+});
+
 test('setItemPriority: 継いだ値から 1 段上げ、キャッシュにも反映する', async () => {
     const state = {
         itemsCache: { items: [{ issue: 1, itemId: 'I1', priority: 'P1' }, { issue: 2, itemId: 'I2' }] },
