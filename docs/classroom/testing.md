@@ -631,6 +631,10 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-eval-cell-button-{seat}-{classroomId}` | button | 席の一覧の 1 行（出席番号と評価。未提出は「未提出」、評価が無ければ —、確定していない AI の案は `data-draft="true"` で点線。要確認は「!」、返却済みは「↩」、コメントがあれば「💬」。レッスンの課題はレッスンの点も出す。押すと［生徒］に出す・`aria-pressed`）。`aria-label` は「出席番号 N・{課題名}: {点}」で、点が無いときは「未採点」、未提出は「未提出」、印があれば「（要確認・返却済み・コメントあり・AI の下書き）」を足す |
 | `classroom-eval-counts` | div | 右の上の人数 |
 | `classroom-eval-count-notSubmitted` / `-drafts` / `-confirmed` / `-returned` | div | 未提出・AI の案・確定・返却済みの数（読み込む前の未提出は「—」） |
+| `classroom-eval-distribution` | div | 人数の下の評価の分布の帯（#2457） |
+| `classroom-eval-dist-grade-S` / `-A` / `-B` / `-C` | span | S/A/B/C の人数（数は中の `b`） |
+| `classroom-eval-dist-sa` / `classroom-eval-dist-s` | span | S+A・S の人数と %、目標・目安。`data-ok="false"` で目安から外れている（注意の色と「!」） |
+| `classroom-eval-dist-base` | span | % の分母（評価のついた人数）と、数えない未提出の人数 |
 | `classroom-eval-tab-rubric` / `classroom-eval-tab-student` | button (tab) | 右の［基準］［生徒］（`aria-selected`。作品を出さないレッスンの課題では出さない） |
 | `classroom-eval-rubric-pane` | div | ［基準］の中身（課題の説明・基準） |
 | `classroom-eval-description` | p | 課題の説明（AI に渡す。無ければその旨） |

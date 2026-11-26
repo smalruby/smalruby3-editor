@@ -6648,6 +6648,49 @@ $seat-tile-min: 36px;
     font-size: $font-size-small;
 }
 
+/* 課題ごとの評価の分布（#2457）: 人数の下の 1 行。目安を外れた % は注意の色（赤は使わない・R4）。 */
+.eval-dist {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.75rem;
+    margin-bottom: 0.4rem;
+    color: $color-text;
+    font-size: $font-size-small;
+}
+
+.eval-dist-grades {
+    display: flex;
+    gap: 0.6rem;
+}
+
+.eval-dist-share {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.3rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: $radius-small;
+}
+
+.eval-dist-share-off {
+    background-color: $color-confirm-background;
+    color: $color-confirm-text;
+}
+
+.eval-dist-mark {
+    font-weight: bold;
+}
+
+.eval-dist-target,
+.eval-dist-base {
+    color: $color-text-muted;
+    font-size: $font-size-xsmall;
+}
+
+.eval-dist-share-off .eval-dist-target {
+    color: $color-confirm-text;
+}
+
 .eval-inner-tabs {
     display: flex;
     gap: 1.25rem;

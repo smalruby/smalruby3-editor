@@ -110,7 +110,7 @@ smalruby3-editor/
 │   │   │   ├── classroom-stream.js ← クラスの［ストリーム］の行（作成・アーカイブ・残り 7 日以内の自動削除の予定）と保存期限のカード `retentionSummary` を組み立てる（純粋）
 │   │   │   ├── classroom-genai-settings.js ← クラスの生成AI・ルビティー設定の下書き・検証・PATCH 差分（純粋）#1277
 │   │   │   ├── classroom-google-share.js ← GC 共有の既定ブロック判定 + 解除導線の文言（純粋）#1184
-│   │   │   ├── classroom-evaluation/ ← sb3-analyzer（静的解析）+ evaluation-utils（総合評価/CSV）+ robot-humanize（ロボットのブロックを日本語に）+ starter-diff（スターターに足したスクリプト）+ grouping（まとまり分け・代表・少ないブロック）+ overall-grade（重み付きの総合評価）+ overall-view（総合評価の画面の表と書き出しの可否）+ grading-csv（採点の CSV の行）+ grading-ai（［基準］のタブの AI の依頼・送る観点・小手順の状態・保存する基準・同じまとまりの直しの計画）
+│   │   │   ├── classroom-evaluation/ ← sb3-analyzer（静的解析）+ evaluation-utils（総合評価/CSV）+ robot-humanize（ロボットのブロックを日本語に）+ starter-diff（スターターに足したスクリプト）+ grouping（まとまり分け・代表・少ないブロック）+ overall-grade（重み付きの総合評価）+ overall-view（総合評価の画面の表と書き出しの可否）+ grading-csv（採点の CSV の行）+ grading-ai（［基準］のタブの AI の依頼・送る観点・小手順の状態・保存する基準・同じまとまりの直しの計画） + grade-distribution（課題ごとの評価の分布と目安 `GRADE_TARGETS`）
 │   │   │   ├── classroom-kick-request-storage.js ← 退室依頼の localStorage 永続化 (#692)
 │   │   │   ├── classroom-seat-selection.js ← 席選択の純粋ロジック（番号入力の検証・ポーリング判定・定数）
 │   │   │   ├── classroom-continue-options.js ← 続きに使える提出物の正規化・参加したあとの始め方を 1 つに決める decideStartMethod（純粋）#1201 #1202 #1793
