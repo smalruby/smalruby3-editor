@@ -174,7 +174,7 @@ GH_TOKEN="$(bin/bot-token)" gh api --method POST "repos/$REPO/issues/$AUTOPILOT_
   「PR は `Refs #<番号>`」を書く（infra-first）。
 
 - 修正は worktree 内で行い `bin/bot-git` でコミット・push（commitlint: 小文字 subject / 各行 ≤100 字）。
-- 修正 → 関連テスト（直接関係するテストファイルだけ（`CLAUDE.md` の「ローカルで流すテストの範囲」。全体実行は PR の CI で。どうしても全体の結果が要るときだけ例外で、理由を書く））/lint をローカル再実行 → push。
+- 修正 → 関連テスト（直接関係するテストファイルだけ（`CLAUDE.md` の「ローカルで流すテストの範囲」。全体実行は PR の CI で。どうしても全体の結果が要るときだけ例外で、理由を書く））/lint は **`bin/lint-changed`**（変えたファイルだけ。ルートの `npm run lint` の全体は流さない・全体は CI）をローカル再実行 → push。重い処理は `.claude/rules/parallel-work.md` の「重い処理の一覧」を読んでから流す（jest は `npm exec jest -- --runInBand <file>` でファイルを指定、dev server を 2 つ立てない、終わったらブラウザ・webpack の残りを確かめる）。
 - 判断に迷う **Must 級の重大指摘**で、修正方針そのものに人間の意見が要る場合（設計判断が割れる等）は、
   自分で直さずコメント + `AUTOPILOT_HITL` で確認する（後述）。
 
@@ -218,6 +218,8 @@ console.log(existing ? `PATCH ${existing.id}` : "POST");
 
 ### 7. 結果を返す（人間レビューへ）
 
+**先に「終わる前の後片付け」（下の節）を行う**（dev server・ブラウザを使ったとき。`tools/autopilot/bin/cleanup-leftovers`）。
+
 レビュー＋修正が済んだら、PR を **Ready + `🙋 HITL`** に上げて人間レビューへ（実際の Ready/ラベル/Status は daemon が反映）:
 
 ```bash
@@ -242,6 +244,24 @@ cat > "$AUTOPILOT_RESULT_FILE" <<EOF
 EOF
 echo AUTOPILOT_DONE
 ```
+
+## 終わる前の後片付け（dev server・ブラウザ・#2463）
+
+dev server やブラウザ（integration テストの chromedriver・chromium、pw-check の headless_shell）を使ったら、
+**結果ファイルを書く前**（`AUTOPILOT_DONE` / `AUTOPILOT_HITL` / `AUTOPILOT_ERROR`・checkpoint のどれで終わるときも）に、
+自分が起動したものを止める。残すと親を失って動き続け、コンテナのメモリと CPU を食う
+（webpack の dev server が 2.4 GB まで大きくなった・作業場が消えたあとも chromium が残った例がある）。
+
+1. dev server は `tools/autopilot/prompts/autopilot-verify.md` の「dev server の起動と停止」の形で起動・停止する
+   （起動前に 8601 の持ち主の cwd を確かめる・`setsid -f` で起動して PGID を `$WT/tmp/dev-server.pgid` に記録する・
+   `kill -- "-$PGID"` でプロセスグループごと止める）。`npx` / `npm` のラッパーだけを止めない。
+   webpack は自分のコマンド行を `webpack` に書き換えるので、`pgrep -f 'webpack serve'` では見つからない。
+2. 最後に **`tools/autopilot/bin/cleanup-leftovers`** を流す。`/proc/<pid>/cwd` が**自分の worktree** の
+   webpack・chromedriver・chromium・headless_shell だけを止め、止めたものを出す（`--dry-run` で一覧だけ）。
+   ほかの worker・人間のもの（cwd がほかの worktree や `/app`）は止めない。`pkill -f` のような広い一致を使わない。
+3. 手で確かめるときは `.claude/rules/parallel-work.md` の「後片付け」に従う。
+
+daemon も run の終了時にこの worktree に残ったものを止める（保険。頼らないこと）。
 
 ## 人間に選んでほしいことがあるとき（モニターで答える質問）
 

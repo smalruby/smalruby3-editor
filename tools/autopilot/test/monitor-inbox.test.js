@@ -5,7 +5,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 const {
-    itemSem, epicSem, inboxModel, inboxGroups, isInboxToggleKey, boardRows, recommendedAnswers, chosenAnswers, digitTarget,
+    itemSem, epicSem, inboxModel, isInboxToggleKey, boardRows, recommendedAnswers, chosenAnswers, digitTarget,
     agoLabel, shortTitle, titleTipNext, titleTipPlace, titleTipInfo, renderMiniMarkdown,
     INBOX_CLIENT_FNS,
 } = require('../src/monitor-inbox');
@@ -124,46 +124,6 @@ test('inboxModel: 人間待ちの札は「何を待たれているか」（そ�
     assert.strictEqual(st.waits[0].tag.label, 'topic の確認');
 });
 
-test('inboxGroups: 親の EPIC ごとにまとめ、EPIC 自身は見出しに畳む。押せるまとまりが先', () => {
-    const items = TAG_ITEMS.concat([
-        { issue: 20, title: 'P0 の子', status: 'Sprint Backlog', parent: { number: 30, title: 'EPIC: 表に無い親' } },
-    ]);
-    const hw = TAG_WAIT.concat([{ issue: 20, delegate: ok('implement') }]);
-    const epicGroups = [{ epic: 30, title: 'EPIC: 表に無い親', priority: 'P0' }];
-    const m = inboxModel({ items, humanWait: hw, epicGroups }, null);
-    const gs = inboxGroups(m.waits, { items, epicGroups });
-    assert.deepStrictEqual(gs.map((g) => g.key + ':' + g.tier), ['30:0', '1:0', '3:0', 'none:0', '2:1']);
-    const e1 = gs.find((g) => g.key === '1');
-    assert.strictEqual(e1.header.issue, 1);
-    assert.strictEqual(e1.header.tag.label, '見守り');
-    assert.deepStrictEqual(e1.rows.map((r) => r.issue), [4]);
-    assert.strictEqual(e1.priority, 'P2');
-    // 親が人間待ちに無くても、epicGroups から題名・優先度を引く
-    assert.strictEqual(gs[0].title, 'EPIC: 表に無い親');
-    assert.strictEqual(gs[0].priority, 'P0');
-    assert.strictEqual(gs[0].header, null);
-    // 分解待ちの EPIC は見出しだけ（行は 0）
-    assert.strictEqual(gs.find((g) => g.key === '3').count, 0);
-    // EPIC に属さない: 押せる行が先
-    const none = gs.find((g) => g.key === 'none');
-    assert.strictEqual(none.title, 'EPIC に属さない');
-    assert.deepStrictEqual(none.rows.map((r) => r.issue), [6, 8, 10, 7]);
-    assert.strictEqual(none.hidden, 2);
-    const opened = inboxGroups(m.waits, { items, epicGroups, open: ['none'] }).find((g) => g.key === 'none');
-    assert.deepStrictEqual(opened.rows.map((r) => r.issue), [6, 8, 10, 7, 9, 11]);
-});
-
-test('inboxGroups: 1 まとまり 4 行まで。開いたまとまりは全部', () => {
-    const waits = [1, 2, 3, 4, 5, 6].map((n) => ({ issue: n, parent: null, tag: { key: 'idle' }, goLabel: 'AI に任せる' }));
-    const [g] = inboxGroups(waits, {});
-    assert.strictEqual(g.rows.length, 4);
-    assert.strictEqual(g.hidden, 2);
-    assert.strictEqual(g.count, 6);
-    const [all] = inboxGroups(waits, { open: ['none'] });
-    assert.strictEqual(all.rows.length, 6);
-    assert.strictEqual(all.hidden, 0);
-});
-
 test('isInboxToggleKey: 入力欄の外の [ だけ（⌘ / Ctrl / Alt と一緒なら効かない）', () => {
     assert.strictEqual(isInboxToggleKey({ key: '[' }), true);
     assert.strictEqual(isInboxToggleKey({ key: '[', inInput: true }), false);
@@ -255,14 +215,13 @@ test('agoLabel / shortTitle', () => {
 test('INBOX_CLIENT_FNS: どれも自己完結（モジュールの外を参照せずにブラウザで動く）', () => {
     const src = INBOX_CLIENT_FNS.map(String).join('\n');
     // eslint-disable-next-line no-new-func
-    const fns = new Function(`${src}; return { boardRows, inboxModel, inboxGroups, digitTarget, titleTipNext, titleTipPlace, titleTipInfo };`)();
+    const fns = new Function(`${src}; return { boardRows, inboxModel, digitTarget, titleTipNext, titleTipPlace, titleTipInfo };`)();
     assert.strictEqual(fns.titleTipNext(null, { type: 'click-title', key: 'i:1' }).open, 'i:1');
     assert.strictEqual(fns.titleTipPlace({ top: 10, bottom: 30, left: 0, right: 50 }, { width: 100, height: 40 }, { width: 400, height: 800 }).side, 'below');
     assert.strictEqual(fns.titleTipInfo({ issue: 3, title: 't' }).issue, 3);
     assert.deepStrictEqual(fns.boardRows(GROUPS, ITEMS, { open: ['10'], later: [15] }).length, 4);
     assert.deepStrictEqual(fns.inboxModel({ items: ITEMS }, null).waits.map((w) => w.issue), [11, 12, 13]);
     assert.strictEqual(fns.digitTarget({ code: 'Digit2' }), 'board');
-    assert.strictEqual(fns.inboxGroups(fns.inboxModel({ items: ITEMS }, null).waits, { items: ITEMS })[0].key, '10');
 });
 
 // ---- タイトルのツールチップ（#2416） ----

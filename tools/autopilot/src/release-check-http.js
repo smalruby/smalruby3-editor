@@ -3,7 +3,8 @@
  * release-check-http.js — 分解済み EPIC のリリース確認（#2430）の I/O。
  *
  * - {@link applyReleaseCheckEntries}: 子が全部済んだトラッカーの AI Status を Release Check にする
- *   （俯瞰ボードの再取得のあと。ボードが持つ sub-issue の数とラベルだけで決めるので、追加の read は無い）
+ *   （俯瞰ボードの再取得のあと。ボードが持つ sub-issue の数とラベル、既に読んだ本文のキャッシュだけで決めるので、
+ *   追加の read は無い）
  * - `GET /release-check?issue=N`: モニターの「確認の結果を書く」を押したときだけ、トラッカーのコメントを
  *   1 回読んで、観点とプレビューの URL を返す（定期では取らない・`.claude/rules/autopilot/github-api.md`）
  * - `POST /release-check/review`: 結果を目印付きのコメントとして Bot で書き、🙋 を外す
@@ -40,7 +41,10 @@ const inFlight = new Set();
  * @returns {Promise<number[]>} 入れたトラッカーの番号
  */
 async function applyReleaseCheckEntries(boardItems, cfg, state, log, deps = {}) {
-    const entries = selectReleaseCheckEntries(boardItems);
+    // 親を autopilot-after で待つ子（#2459）は、dispatch の計画が既に読んだ本文のキャッシュだけで見る
+    const directives = state && state.directives instanceof Map ? state.directives : null;
+    const afterOf = (n) => (directives && directives.get(n) ? directives.get(n).after : null);
+    const entries = selectReleaseCheckEntries(boardItems, { afterOf });
     if (!entries.length) return [];
     const io = { ...defaultIo(), ...deps };
     const token = await io.botToken();

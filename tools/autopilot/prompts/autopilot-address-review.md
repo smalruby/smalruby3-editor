@@ -198,7 +198,7 @@ Issue と PR の Blocked コメント（理由）と、その後の人間のコ�
 
 ### 3. 対応する
 
-- **Must / 改善依頼 / `action:"fix"`**: worktree 内で修正 → 関連テスト（直接関係するテストファイルだけ（`CLAUDE.md` の「ローカルで流すテストの範囲」。全体実行は PR の CI で。どうしても全体の結果が要るときだけ例外で、理由を書く））/lint → `bin/bot-git` でコミット・push。
+- **Must / 改善依頼 / `action:"fix"`**: worktree 内で修正 → 関連テスト（直接関係するテストファイルだけ（`CLAUDE.md` の「ローカルで流すテストの範囲」。全体実行は PR の CI で。どうしても全体の結果が要るときだけ例外で、理由を書く））/lint は **`bin/lint-changed`**（変えたファイルだけ。ルートの `npm run lint` の全体は流さない・全体は CI） → `bin/bot-git` でコミット・push。重い処理は `.claude/rules/parallel-work.md` の「重い処理の一覧」を読んでから流す（jest は `npm exec jest -- --runInBand <file>` でファイルを指定、dev server を 2 つ立てない、終わったらブラウザ・webpack の残りを確かめる）。
 - **質問 / `action:"reply"`**: PR に bot で返信。コード変更を伴うならあわせて push。
 - **`action:"no-change"`**: 何もしない（既存のコメントを消さない）。
 - **人間が「直して」と言った指摘を、よほど大変・効果が小さいなどの理由でこの PR では直せないとき**は、
@@ -232,6 +232,8 @@ Issue と PR の Blocked コメント（理由）と、その後の人間のコ�
 続きから対応する。
 
 ### 4. 終了する（3 つの出口）
+
+**先に「終わる前の後片付け」（下の節）を行う**（dev server・ブラウザを使ったとき。`tools/autopilot/bin/cleanup-leftovers`）。
 
 **(a) 質問・改善依頼に対応した → 再び人間レビューへ**（再レビュー/マージ判断を仰ぐ）:
 
@@ -269,6 +271,24 @@ echo AUTOPILOT_HITL
 > (a)(b) はどちらも `hitl:true` で人間の番に戻す。違いは「コードを変えたか」だけ。
 > 人間は新しい Request changes を出して再び 🙋 を外すか、モニターの「AI に直してもらう」に書いて送れば、
 > また本スキルが起動してその分に対応する。
+
+## 終わる前の後片付け（dev server・ブラウザ・#2463）
+
+dev server やブラウザ（integration テストの chromedriver・chromium、pw-check の headless_shell）を使ったら、
+**結果ファイルを書く前**（`AUTOPILOT_DONE` / `AUTOPILOT_HITL` / `AUTOPILOT_ERROR`・checkpoint のどれで終わるときも）に、
+自分が起動したものを止める。残すと親を失って動き続け、コンテナのメモリと CPU を食う
+（webpack の dev server が 2.4 GB まで大きくなった・作業場が消えたあとも chromium が残った例がある）。
+
+1. dev server は `tools/autopilot/prompts/autopilot-verify.md` の「dev server の起動と停止」の形で起動・停止する
+   （起動前に 8601 の持ち主の cwd を確かめる・`setsid -f` で起動して PGID を `$WT/tmp/dev-server.pgid` に記録する・
+   `kill -- "-$PGID"` でプロセスグループごと止める）。`npx` / `npm` のラッパーだけを止めない。
+   webpack は自分のコマンド行を `webpack` に書き換えるので、`pgrep -f 'webpack serve'` では見つからない。
+2. 最後に **`tools/autopilot/bin/cleanup-leftovers`** を流す。`/proc/<pid>/cwd` が**自分の worktree** の
+   webpack・chromedriver・chromium・headless_shell だけを止め、止めたものを出す（`--dry-run` で一覧だけ）。
+   ほかの worker・人間のもの（cwd がほかの worktree や `/app`）は止めない。`pkill -f` のような広い一致を使わない。
+3. 手で確かめるときは `.claude/rules/parallel-work.md` の「後片付け」に従う。
+
+daemon も run の終了時にこの worktree に残ったものを止める（保険。頼らないこと）。
 
 ## 人間に選んでほしいことがあるとき（モニターで答える質問）
 

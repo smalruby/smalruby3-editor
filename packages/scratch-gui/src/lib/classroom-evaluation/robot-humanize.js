@@ -77,7 +77,10 @@ const humanizeRobotBlock = (opcode, args) => {
 };
 
 // `[smalrubotS1_bendArm] SECS=1, DEGREE=100` — the analyzer's raw fallback.
-const RAW_ROBOT_RE = /\[(smalrubotS1_\w+)\](?: ([^\n]*?))?(?=$|\n)/g;
+// The arguments are `KEY=value` pairs (menu values and numbers have no spaces),
+// so a reporter inside a sentence keeps the words after it:
+// `変数 明るさ を [smalrubotS1_getSensorValue] POSITION=left にする`.
+const RAW_ROBOT_RE = /\[(smalrubotS1_\w+)\](?: ([A-Z][A-Z0-9_]*=[^\s,]*(?:, [A-Z][A-Z0-9_]*=[^\s,]*)*))?/g;
 
 /**
  * Parse the `K=V, K=V` arguments of the raw fallback form. A value may itself

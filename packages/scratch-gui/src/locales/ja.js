@@ -293,6 +293,9 @@ export default {
     'gui.classroom.evaluation.aiDraft': 'AI の下書き',
     'gui.classroom.evaluation.needsReview': '要確認',
     'gui.classroom.evaluation.needsReviewTitle': 'AI が判断に迷いました。',
+    'gui.classroom.evaluation.needsReviewAi': '要確認: AI が迷った',
+    'gui.classroom.evaluation.needsReviewShape': '要確認: 同じ形なのに評価が違う',
+    'gui.classroom.evaluation.needsReviewAnalysis': '要確認: 作品を読めなかった',
     'gui.classroom.evaluation.returned': '返却済み',
     'gui.classroom.teacherLogoutConfirm.message': '返却していないコメントは消えます。ログアウトしますか？',
     'gui.classroom.teacherLogoutConfirm.stay': 'とどまる',
@@ -344,6 +347,35 @@ export default {
     'gui.classroom.error.googleApiFailed':
         'Google Classroom に配信できませんでした。しばらく待ってからもう一度お試しください。',
     'gui.classroom.error.generic': '予期しないエラーが発生しました。もう一度お試しください。',
+    'gui.classroom.serverError.evalDailyLimit':
+        'AI の採点は 1 日 {limit} 回までです。今日の分を使い切りました。0 時（日付が変わると）また使えます。',
+    'gui.classroom.serverError.evalRateLimit':
+        '短い時間に AI の採点を何度も頼んだため、いまは使えません。しばらく待ってから、もう一度試してください。',
+    'gui.classroom.serverError.sharedDailyLimit':
+        'この操作は 1 日 {limit} 回までです。今日の分を使い切りました。0 時（日付が変わると）またできます。',
+    'gui.classroom.serverError.joinRateLimit': '参加の操作が多すぎます。しばらく待ってから、もう一度試してください。',
+    'gui.classroom.serverError.lessonProgressRateLimit':
+        '進み具合を短い時間に何度も送ったため、いまは送れません。しばらく待ってから、もう一度試してください。',
+    'gui.classroom.serverError.aiTimeout':
+        'AI の答えが時間内に返ってきませんでした。少し待ってから、もう一度試してください。',
+    'gui.classroom.serverError.aiApiError':
+        'いま AI が答えられませんでした。少し待ってから、もう一度試してください。',
+    'gui.classroom.serverError.aiResponseInvalid': 'AI の答えを読み取れませんでした。もう一度試してください。',
+    'gui.classroom.serverError.aiNotConfigured': 'このサーバーでは AI の採点を使えません。',
+    'gui.classroom.serverError.classroomNotFound': 'クラス（課題）が見つかりません。削除された可能性があります。',
+    'gui.classroom.serverError.submissionNotFound': '提出された作品が見つかりません。削除された可能性があります。',
+    'gui.classroom.serverError.sharedNotFound': '公開された課題が見つかりません。削除された可能性があります。',
+    'gui.classroom.serverError.noLesson': 'この課題にはレッスンがありません。',
+    'gui.classroom.serverError.shareNoContent':
+        'この課題には公開できる中身がありません。先にページ・はじめの作品・レッスンのどれかを入れてください。',
+    'gui.classroom.serverError.starterTooLarge': 'はじめの作品が大きすぎます。{size} MB 以下にしてください。',
+    'gui.classroom.serverError.coTeacherOwnerOnly': '共同の先生を変えられるのは、クラスを作った先生だけです。',
+    'gui.classroom.serverError.coTeacherMax': '共同の先生は 1 つのクラスに {max} 人までです。',
+    'gui.classroom.serverError.seatNotOccupied': 'いま {seat} 番の席にはだれもいません。',
+    'gui.classroom.serverError.joinCodeFailed': 'コードを作れませんでした。もう一度試してください。',
+    'gui.classroom.serverError.internalError': 'サーバーで問題が起きました。少し待ってから、もう一度試してください。',
+    'gui.classroom.serverError.httpStatus':
+        'サーバーからエラーが返りました（{status}）。少し待ってから、もう一度試してください。',
     'gui.classroom.error.goToLogin': 'ログイン画面を表示',
     'gui.classroom.error.goToJoin': '参加画面を表示',
     'gui.classroom.teacherDetail.openSubmission': 'スモウルビーで開く',
@@ -922,6 +954,8 @@ export default {
     'gui.classroom.evaluation.status.loadDone': '{count} 件の提出を読み込みました',
     'gui.classroom.evaluation.status.loadProgressDone': '{lessons} 件の課題の進み具合を読み込みました',
     'gui.classroom.evaluation.status.gradeDone': 'AI が {count} 件を採点しました',
+    'gui.classroom.evaluation.status.gradeDoneInconsistent':
+        'AI が {count} 件を採点しました。同じ形なのに評価が違う作品が {inconsistent} 件あります（要確認）',
     'gui.classroom.evaluation.status.commentDone': 'AI が {count} 件のコメントを下書きしました',
     'gui.classroom.evaluation.status.returnDone': '{count} 件のコメントを返却しました',
     'gui.classroom.evaluation.status.loadFailed': '提出を読み込めませんでした',
@@ -954,6 +988,21 @@ export default {
     'gui.classroom.evaluation.distributionOff': '目安から外れています',
     'gui.classroom.evaluation.tabRubric': '基準',
     'gui.classroom.evaluation.tabStudent': '生徒',
+    'gui.classroom.evaluation.tabShape': '形',
+    'gui.classroom.gradingShapes.lead':
+        '作品を形の札でまとめました。形ごとに評価を選んで、まとめて付けられます。ちがう作品は、開いて 1 人ずつ直します。',
+    'gui.classroom.gradingShapes.count': '{count} 人（{seats}）',
+    'gui.classroom.gradingShapes.now': 'いま: {grades}',
+    'gui.classroom.gradingShapes.mixed': '同じ形なのに評価が分かれています',
+    'gui.classroom.gradingShapes.gradeLabel': 'この形は',
+    'gui.classroom.gradingShapes.choose': '選ぶ',
+    'gui.classroom.gradingShapes.apply': '{count} 人にまとめて付ける',
+    'gui.classroom.gradingShapes.works': '作品を見る（{count}）',
+    'gui.classroom.gradingShapes.seat': '出席番号 {seat}',
+    'gui.classroom.gradingShapes.noScripts': '（スターターに足した台本はありません）',
+    'gui.classroom.gradingShapes.empty': 'まだ作品がありません。先に提出を読み込んでください。',
+    'gui.classroom.gradingShapes.tagsLabel': '形の札',
+    'gui.classroom.gradingShapes.sameShape': '同じ形の作品:',
     'gui.classroom.evaluation.description': '課題の説明',
     'gui.classroom.evaluation.noDescription': '説明は書かれていません。AI は課題名と作品から採点します。',
     'gui.classroom.evaluation.rubricTitle': '基準',
@@ -964,6 +1013,8 @@ export default {
     'gui.classroom.evaluation.notLoaded': '提出を読み込むと、作品を見て採点できます。',
     'gui.classroom.evaluation.saving': '保存しています…',
     'gui.classroom.evaluation.saveFailedShort': '保存できていません',
+    'gui.classroom.evaluation.aiQuota': '今日の AI の残り: {left} / {limit} 回',
+    'gui.classroom.evaluation.aiQuotaEmpty': '日付が変わると（0 時）また使えます。',
     'gui.classroom.evaluation.confirmedBadge': '確定',
     'gui.classroom.evaluation.unconfirmedNote':
         '評価を変えたので、確定を取り消しました。もう一度［確定］を押してください。',
@@ -2399,6 +2450,10 @@ export default {
     'gui.classroom.gradingRubric.groupYes': '{count} 件も変える',
     'gui.classroom.gradingRubric.hasRubric': 'この課題には基準があります。このまま全員を採点できます。',
     'gui.classroom.gradingRubric.noWorks': '提出された作品がありません。',
+    'gui.classroom.gradingRubric.noSExample':
+        'S の正解の例がありません。このままでは S と A の基準がぶれます。別のクラスに同じ課題があれば、' +
+        'S の作品があるクラスを先に採点して基準をつくり、それをコピーしてください。',
+    'gui.classroom.gradingRubric.noExample': '正解の例が無い（AI の推測）',
     'gui.classroom.gradingRubric.notLoaded': '提出を読み込む（手順 1）と、代表の作品が出ます。',
     'gui.classroom.gradingRubric.openWork': '作品を開く',
     'gui.classroom.gradingRubric.propose': 'AI に代表 {count} 件の案を出してもらう',

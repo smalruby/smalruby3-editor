@@ -1,3 +1,5 @@
+import { localizeServerError } from '../lib/classroom-error-messages.js';
+
 /**
  * Translate a Google Classroom proxy failure (`reason` starting with `google`)
  * into a localized, actionable message. Returns null when the error did not
@@ -167,8 +169,10 @@ const translateError = (intl, err, context = 'general') => {
             id: 'gui.classroom.error.sessionExpired',
         });
     }
+    // The server answers in English; show the known sentences in the user's
+    // language (unknown ones stay as they are).
     return (
-        msg ||
+        (msg && localizeServerError(intl, msg)) ||
         intl.formatMessage({
             defaultMessage: 'An unexpected error occurred. Please try again.',
             description: 'Generic error message',

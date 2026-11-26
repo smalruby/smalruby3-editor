@@ -173,9 +173,32 @@ describe('evaluate: rubric-aware grade and the new modes (#2422)', () => {
     expect(system).toContain('足したところ・変えたところ');
     expect(system).toContain('同じ形の作品');
     expect(system).toContain('- S: LED を順につけ');
-    expect(system).toContain('正解の例 出席番号4: A（まとまり「順につける」）');
+    expect(system).toContain('--- 正解の例1: A（まとまり「順につける」） ---');
+    expect(system).toContain('--- 正解の例2: C（まとまり「そのまま」） ---');
+    expect(system).not.toContain('出席番号4');
+    expect(system).not.toContain('出席番号7');
+    expect(system).toContain('「正解の例1」のように例の番号で呼び、出席番号では呼ばないでください');
     expect(system).toContain('スターター（先生が配った最初のプロジェクト）の擬似コード:');
     expect(user).toContain('出席番号2');
+  });
+
+  test('examples are numbered by order in every mode, never by seat', () => {
+    const groups = [{ name: '順につける', seatNumbers: [4, 5], submissions: [{ seatNumber: 5, pseudocode: '◆ 旗' }] }];
+    for (const body of [
+      { mode: 'rubric', examples },
+      { mode: 'fairness', examples, groups },
+    ]) {
+      const { system, user } = buildEvaluationPrompt(validateEvaluateRequest(body));
+      expect(user).toContain('--- 正解の例1: A（まとまり「順につける」） ---');
+      expect(user).toContain('--- 正解の例2: C（まとまり「そのまま」） ---');
+      expect(user).not.toMatch(/正解の例 ?出席番号/);
+      expect(system).toContain('「正解の例1」のように例の番号で呼び、出席番号では呼ばないでください');
+    }
+    const fairness = buildEvaluationPrompt(validateEvaluateRequest({ mode: 'fairness', examples, groups }));
+    expect(fairness.system).toContain('正解の例は入れないでください');
+    // Without examples, grade does not mention how to refer to them.
+    const plain = buildEvaluationPrompt(validateEvaluateRequest(validBody()));
+    expect(plain.system).not.toContain('例の番号で呼び');
   });
 
   test('rejects bad rubric levels and too many examples', () => {

@@ -17,6 +17,7 @@ const mockListMembers = jest.fn();
 const mockGetAssignment = jest.fn();
 const mockListSubmissions = jest.fn();
 const mockEvaluateSubmissions = jest.fn();
+const mockGetEvaluationQuota = jest.fn();
 jest.mock('../../../src/lib/classroom-api.js', () => ({
     __esModule: true,
     default: {
@@ -26,6 +27,7 @@ jest.mock('../../../src/lib/classroom-api.js', () => ({
         getAssignment: (...args) => mockGetAssignment(...args),
         listSubmissions: (...args) => mockListSubmissions(...args),
         evaluateSubmissions: (...args) => mockEvaluateSubmissions(...args),
+        getEvaluationQuota: (...args) => mockGetEvaluationQuota(...args),
         updateSubmission: jest.fn(() => Promise.resolve({})),
     },
 }));
@@ -92,6 +94,7 @@ beforeEach(() => {
         }),
     );
     global.fetch = jest.fn(() => Promise.reject(new Error('offline')));
+    mockGetEvaluationQuota.mockRejectedValue(Object.assign(new Error('Not Found'), { status: 404 }));
 });
 
 describe('useTeacherEvaluation — 採点簿 (#2424)', () => {
@@ -374,5 +377,105 @@ describe('useTeacherEvaluation — スターターから足した台本とまと
         const saved = mockPutGrading.mock.calls[mockPutGrading.mock.calls.length - 1][2].grades;
         expect(saved['2'].group).toBe('スターターのまま');
         expect(saved['1'].group).toBe(one.groupName);
+    });
+
+    test('全員の採点: まとまりの間で例を引き継ぎ、同じ形なのに評価が違えば要確認にする', async () => {
+        // 12 人とも「スペースで 言う + n 歩動かす」を足した同じ形（数だけ違う）。10 人ずつに分けて AI に頼む。
+        const work = (steps) => {
+            const json = project(true);
+            const blocks = json.targets[1].blocks;
+            blocks.d.next = 'e';
+            blocks.e = block('motion_movesteps', null, 'd', { inputs: { STEPS: [1, [4, String(steps)]] } });
+            return json;
+        };
+        const seats = Array.from({ length: 12 }, (_, i) => i + 1);
+        const files = { 'https://example.invalid/starter.sb3': await sb3(project(false)) };
+        for (const n of seats) files[`https://example.invalid/${n}.sb3`] = await sb3(work(n * 5));
+        global.fetch = jest.fn((url) =>
+            Promise.resolve({ ok: true, arrayBuffer: () => Promise.resolve(files[url]) }),
+        );
+        mockGetAssignment.mockResolvedValue({
+            assignment: { pages: [{ text: '言わせる' }], starterUrl: 'https://example.invalid/starter.sb3' },
+            lesson: null,
+        });
+        mockListMembers.mockResolvedValue({ members: seats.map((n) => ({ memberId: `seat-${n}` })) });
+        mockListSubmissions.mockResolvedValue({
+            submissions: seats.map((n) => ({
+                submissionId: `s${n}`,
+                memberId: `seat-${n}`,
+                status: 'submitted',
+                projectUrl: `https://example.invalid/${n}.sb3`,
+            })),
+        });
+        // 1 つ目のまとまりは B、2 つ目は S（本番で起きたぶれ）。
+        let call = 0;
+        mockEvaluateSubmissions.mockImplementation((token, id, payload) => {
+            call++;
+            const grade = call === 1 ? 'B' : 'S';
+            return Promise.resolve({
+                results: payload.submissions.map((x) => ({ seatNumber: x.seatNumber, grade, reason: `理由${grade}` })),
+            });
+        });
+        const { hook } = await setup();
+        await open(hook, 'new');
+        await load(hook);
+        await act(async () => {
+            await hook.result.current.handleRunAi('grade');
+        });
+        expect(mockEvaluateSubmissions).toHaveBeenCalledTimes(2);
+        expect(mockEvaluateSubmissions.mock.calls[0][2].examples).toBeUndefined();
+        // 2 つ目のまとまりには、1 つ目の形の作品が 1 件だけ AI の評価と理由つきで例に入る。
+        expect(mockEvaluateSubmissions.mock.calls[1][2].examples).toEqual([
+            expect.objectContaining({ seatNumber: 1, grade: 'B', reason: '理由B' }),
+        ]);
+        // 評価は書きかえず、同じ形の 12 件を要確認にして知らせる。
+        expect(hook.result.current.getCell(1, 'new')).toMatchObject({
+            grade: 'B',
+            needsReview: true,
+            reviewReason: 'shape',
+        });
+        expect(hook.result.current.getCell(12, 'new')).toMatchObject({
+            grade: 'S',
+            needsReview: true,
+            reviewReason: 'shape',
+        });
+        expect(hook.result.current.evalResult).toMatchObject({ kind: 'grade', count: 12, inconsistent: 12 });
+    });
+});
+
+describe('useTeacherEvaluation — 今日の AI の残り (#2448)', () => {
+    test('課題を開くと 1 回読み、AI の答えの quota で更新する', async () => {
+        mockGetEvaluationQuota.mockResolvedValue({ quota: { used: 3, limit: 200, resetsAt: 'r' } });
+        mockEvaluateSubmissions.mockImplementation((token, id, payload) =>
+            Promise.resolve({
+                results: payload.submissions.map((s) => ({ seatNumber: s.seatNumber, grade: 'B', reason: 'ok' })),
+                quota: { used: 4, limit: 200, resetsAt: 'r' },
+            }),
+        );
+        const { hook } = await setup();
+        expect(hook.result.current.aiQuota).toBeNull();
+        expect(mockGetEvaluationQuota).not.toHaveBeenCalled();
+        await open(hook, 'new');
+        expect(mockGetEvaluationQuota).toHaveBeenCalledTimes(1);
+        expect(mockGetEvaluationQuota.mock.calls[0][0]).toBe('id-token');
+        expect(hook.result.current.aiQuota).toEqual({ used: 3, limit: 200, resetsAt: 'r' });
+        await load(hook);
+        await act(async () => {
+            await hook.result.current.handleRunAi('grade');
+        });
+        expect(hook.result.current.aiQuota).toMatchObject({ used: 4 });
+    });
+
+    test('読めないとき（404・quota の無い答え）は何も出さず、ほかは動く', async () => {
+        const { hook, deps } = await setup();
+        await open(hook, 'new');
+        expect(hook.result.current.aiQuota).toBeNull();
+        expect(deps.showError).not.toHaveBeenCalled();
+        await load(hook);
+        await act(async () => {
+            await hook.result.current.handleRunAi('grade');
+        });
+        expect(hook.result.current.aiQuota).toBeNull();
+        expect(hook.result.current.getCell(1, 'new')).toMatchObject({ grade: 'B' });
     });
 });

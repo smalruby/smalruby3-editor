@@ -278,6 +278,9 @@ export default {
     'gui.classroom.evaluation.aiDraft': 'AI draft',
     'gui.classroom.evaluation.needsReview': 'Needs check',
     'gui.classroom.evaluation.needsReviewTitle': 'The AI was unsure about this one.',
+    'gui.classroom.evaluation.needsReviewAi': 'Needs check: the AI was unsure',
+    'gui.classroom.evaluation.needsReviewShape': 'Needs check: same shape, different grade',
+    'gui.classroom.evaluation.needsReviewAnalysis': 'Needs check: the work could not be read',
     'gui.classroom.evaluation.returned': 'Returned',
     'gui.classroom.teacherLogoutConfirm.message': 'The comments you have not returned will be lost. Log out?',
     'gui.classroom.teacherLogoutConfirm.stay': 'Stay',
@@ -308,6 +311,36 @@ export default {
     'gui.classroom.error.networkUnreachable':
         'Could not connect to the server. Please check that your network or firewall allows access to {host} (HTTPS / port 443).',
     'gui.classroom.error.generic': 'An unexpected error occurred. Please try again.',
+    'gui.classroom.serverError.evalDailyLimit':
+        'AI grading can be used up to {limit} times a day, and today’s limit has been used up. You can use it again when the date changes (midnight, Japan time).',
+    'gui.classroom.serverError.evalRateLimit':
+        'Too many AI grading requests in a short time. Please wait a while and try again.',
+    'gui.classroom.serverError.sharedDailyLimit':
+        'This can be done up to {limit} times a day, and today’s limit has been used up. You can do it again when the date changes (midnight, Japan time).',
+    'gui.classroom.serverError.joinRateLimit': 'Too many attempts to join. Please wait a while and try again.',
+    'gui.classroom.serverError.lessonProgressRateLimit':
+        'Too many progress updates in a short time. Please wait a while and try again.',
+    'gui.classroom.serverError.aiTimeout': 'The AI took too long to answer. Please wait a moment and try again.',
+    'gui.classroom.serverError.aiApiError': 'The AI could not answer right now. Please wait a moment and try again.',
+    'gui.classroom.serverError.aiResponseInvalid': 'The AI’s answer could not be read. Please try again.',
+    'gui.classroom.serverError.aiNotConfigured': 'AI grading is not available on this server.',
+    'gui.classroom.serverError.classroomNotFound': 'The class could not be found. It may have been deleted.',
+    'gui.classroom.serverError.submissionNotFound':
+        'The submitted work could not be found. It may have been deleted.',
+    'gui.classroom.serverError.sharedNotFound': 'The shared assignment could not be found. It may have been deleted.',
+    'gui.classroom.serverError.noLesson': 'This assignment has no lesson.',
+    'gui.classroom.serverError.shareNoContent':
+        'This assignment has nothing to share. Add pages, a starter project or a lesson first.',
+    'gui.classroom.serverError.starterTooLarge': 'The starter project is too large. It must be {size} MB or less.',
+    'gui.classroom.serverError.coTeacherOwnerOnly':
+        'Only the teacher who created the class can change the co-teachers.',
+    'gui.classroom.serverError.coTeacherMax': 'A class can have up to {max} co-teachers.',
+    'gui.classroom.serverError.seatNotOccupied': 'No student is in seat {seat} now.',
+    'gui.classroom.serverError.joinCodeFailed': 'Could not make a code. Please try again.',
+    'gui.classroom.serverError.internalError':
+        'Something went wrong on the server. Please wait a moment and try again.',
+    'gui.classroom.serverError.httpStatus':
+        'The server answered with an error ({status}). Please wait a moment and try again.',
     'gui.classroom.error.goToLogin': 'Go to login screen',
     'gui.classroom.error.goToJoin': 'Go to join screen',
     'gui.classroom.teacherDetail.openSubmission': 'Open in Smalruby',
@@ -835,6 +868,8 @@ export default {
     'gui.classroom.evaluation.status.loadDone': 'Loaded {count} submissions.',
     'gui.classroom.evaluation.status.loadProgressDone': 'Loaded the progress of {lessons} assignments.',
     'gui.classroom.evaluation.status.gradeDone': 'The AI graded {count} submissions.',
+    'gui.classroom.evaluation.status.gradeDoneInconsistent':
+        'The AI graded {count} submissions. {inconsistent} works have the same shape but different grades (check them).',
     'gui.classroom.evaluation.status.commentDone': 'The AI drafted {count} comments.',
     'gui.classroom.evaluation.status.returnDone': 'Returned {count} comments.',
     'gui.classroom.evaluation.status.loadFailed': 'Could not load the submissions.',
@@ -868,6 +903,21 @@ export default {
     'gui.classroom.evaluation.distributionOff': 'Off the target',
     'gui.classroom.evaluation.tabRubric': 'Rubric',
     'gui.classroom.evaluation.tabStudent': 'Student',
+    'gui.classroom.evaluation.tabShape': 'Shapes',
+    'gui.classroom.gradingShapes.lead':
+        'Works are grouped by their shape. Choose a grade for a shape and give it to all of its works at once. Open the works to change one of them.',
+    'gui.classroom.gradingShapes.count': '{count} works ({seats})',
+    'gui.classroom.gradingShapes.now': 'Now: {grades}',
+    'gui.classroom.gradingShapes.mixed': 'Same shape, different grades',
+    'gui.classroom.gradingShapes.gradeLabel': 'This shape is',
+    'gui.classroom.gradingShapes.choose': 'Choose',
+    'gui.classroom.gradingShapes.apply': 'Give to {count} works',
+    'gui.classroom.gradingShapes.works': 'Show the works ({count})',
+    'gui.classroom.gradingShapes.seat': 'Seat {seat}',
+    'gui.classroom.gradingShapes.noScripts': '(No script added to the starter)',
+    'gui.classroom.gradingShapes.empty': 'No work to group yet. Load the submissions first.',
+    'gui.classroom.gradingShapes.tagsLabel': 'Shape',
+    'gui.classroom.gradingShapes.sameShape': 'Same shape:',
     'gui.classroom.evaluation.description': 'Assignment description',
     'gui.classroom.evaluation.noDescription': 'No description is written. The AI grades from the name and the works.',
     'gui.classroom.evaluation.rubricTitle': 'Rubric',
@@ -878,6 +928,8 @@ export default {
     'gui.classroom.evaluation.notLoaded': 'Load the submissions to see the works and grade them.',
     'gui.classroom.evaluation.saving': 'Saving…',
     'gui.classroom.evaluation.saveFailedShort': 'Not saved',
+    'gui.classroom.evaluation.aiQuota': "Today's AI left: {left} / {limit}",
+    'gui.classroom.evaluation.aiQuotaEmpty': 'You can use it again when the date changes (midnight).',
     'gui.classroom.evaluation.confirmedBadge': 'Confirmed',
     'gui.classroom.evaluation.unconfirmedNote':
         'A grade changed, so the grades are no longer confirmed. Press [Confirm] again.',
@@ -2025,6 +2077,10 @@ export default {
     'gui.classroom.gradingRubric.groupYes': 'Change {count} More',
     'gui.classroom.gradingRubric.hasRubric': 'This assignment has a rubric. You can grade everyone with it now.',
     'gui.classroom.gradingRubric.noWorks': 'No work was submitted.',
+    'gui.classroom.gradingRubric.noSExample':
+        'There is no example of S, so the line between S and A moves. If another class has the same ' +
+        'assignment, grade the class that has S works first to make the rubric, then copy it here.',
+    'gui.classroom.gradingRubric.noExample': 'No example (the AI’s guess)',
     'gui.classroom.gradingRubric.notLoaded': 'Load the submissions (step 1) to see the representative works.',
     'gui.classroom.gradingRubric.openWork': 'Open the Work',
     'gui.classroom.gradingRubric.propose': 'Ask the AI to Propose Grades for the {count} Works',

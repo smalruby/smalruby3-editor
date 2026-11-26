@@ -1,4 +1,5 @@
 import {
+    aiQuotaView,
     buildAuditCsv,
     buildEvaluationCsv,
     chunk,
@@ -290,5 +291,25 @@ describe('unsavedEvaluation (#1923 C4)', () => {
                 comments: true,
             });
         });
+    });
+});
+
+describe('aiQuotaView (#2448)', () => {
+    test('残りの回数と、少ない・0 回', () => {
+        expect(aiQuotaView({ used: 10, limit: 200, resetsAt: 'x' })).toEqual({
+            left: 190,
+            limit: 200,
+            low: false,
+            empty: false,
+        });
+        expect(aiQuotaView({ used: 180, limit: 200 })).toMatchObject({ left: 20, low: true, empty: false });
+        expect(aiQuotaView({ used: 250, limit: 200 })).toMatchObject({ left: 0, low: true, empty: true });
+    });
+
+    test('読めないものは null（何も出さない）', () => {
+        expect(aiQuotaView(null)).toBeNull();
+        expect(aiQuotaView({})).toBeNull();
+        expect(aiQuotaView({ used: '3', limit: 200 })).toBeNull();
+        expect(aiQuotaView({ used: 0, limit: 0 })).toBeNull();
     });
 });

@@ -151,3 +151,96 @@ test('phases: Release Check は 🙋 を外したときだけ release-check へ�
     assert.equal(p.nextPhase, 'release-check');
     assert.equal(planDelegate(tracker({ hitl: true }), {}).code, 'tracker', 'EPIC Decomposed は従来どおり受けない');
 });
+
+test('releaseCheckReady: 親 EPIC を autopilot-after で待つ子は、ラベルが無くてもリリース後の作業とみなす（#2459）', () => {
+    const t = tracker({ subIssues: { total: 3, completed: 2 } });
+    const child = { issue: 11, parent: { number: 10 }, status: 'Sprint Backlog', labels: [] };
+    // 本文のキャッシュ（daemon の state.directives）だけで見る。無ければ数えない（追加の read はしない）
+    assert.equal(rc.releaseCheckReady(t, [t, child]), false);
+    assert.equal(rc.releaseCheckReady(t, [t, child], { afterOf: (n) => (n === 11 ? [10] : null) }), true);
+    assert.equal(rc.releaseCheckReady(t, [t, child], { afterOf: (n) => (n === 11 ? [12] : null) }), false, 'ほかを待つ子は数えない');
+    assert.equal(rc.isAfterReleaseItem(child, { trackerIssue: 10, afterOf: () => [10] }), true);
+    assert.equal(rc.isAfterReleaseItem(child), false);
+    const out = rc.selectReleaseCheckEntries([t, child], { afterOf: () => [10] });
+    assert.deepEqual(out.map((x) => x.item.issue), [10]);
+});
+
+// PR #2206 と同じ形: topic → develop の draft PR に、人間が Request changes と行コメントを書いた
+const prReviews = [
+    { id: 6073229022, user: human, state: 'CHANGES_REQUESTED', body: '冒頭の説明文を常体にしてください', html_url: 'https://github.com/o/r/pull/2206#pullrequestreview-6073229022' },
+    { id: 7001, user: human, state: 'APPROVED', body: '' }, // 本文の無い承認は直してほしいことではない
+    { id: 7002, user: bot, state: 'COMMENTED', body: '<!-- autopilot-review-findings round=1 -->' },
+    { id: 7003, user: human, state: 'PENDING', body: '下書き' },
+    { id: 7004, user: human, state: 'DISMISSED', body: '取り下げた' },
+];
+const prReviewComments = [
+    { id: 8001, user: human, body: 'ここは「，」にそろえる', path: 'docs/dncl/policy.md', line: 12, pull_request_review_id: 6073229022 },
+    { id: 8002, user: { login: 'github-actions[bot]', type: 'Bot' }, body: 'lint' },
+];
+const prIssueComments = [
+    { id: 9001, user: human, body: 'プレビューの色が薄い' },
+    { id: 9002, user: bot, body: 'Preview: https://preview.smalruby.app/topic-x/' },
+];
+
+test('selectPrFeedback: 人間のレビュー・行コメント・PR のコメントだけを、まだ受けていないものから選ぶ（#2459）', () => {
+    const all = rc.selectPrFeedback({ reviews: prReviews, reviewComments: prReviewComments, issueComments: prIssueComments });
+    assert.deepEqual(all.map((f) => f.ref), ['review-6073229022', 'review-comment-8001', 'comment-9001']);
+    assert.equal(all[0].state, 'CHANGES_REQUESTED');
+    assert.equal(all[0].author, 'someone');
+    assert.deepEqual([all[1].path, all[1].line], ['docs/dncl/policy.md', 12]);
+    const rest = rc.selectPrFeedback({
+        reviews: prReviews, reviewComments: prReviewComments, issueComments: prIssueComments,
+        handled: new Set(['review-6073229022', 'comment-9001']),
+    });
+    assert.deepEqual(rest.map((f) => f.ref), ['review-comment-8001']);
+});
+
+test('handledPrFeedbackRefs: sub-issue の本文と、トラッカーの bot の結果のコメントの目印から集める（二重に作らない）', () => {
+    const bodies = [
+        `${rc.releasePrMarker({ epic: 10, ref: 'review-6073229022' })}\n${rc.releasePrMarker({ epic: 10, ref: 'review-comment-8001' })}\n本文`,
+        rc.releasePrMarker({ epic: 99, ref: 'comment-1' }), // ほかの EPIC のもの
+    ];
+    const comments = [
+        { id: 1, user: bot, body: `${rc.releaseResultMarker(1)}\n${rc.releasePrSeenMarker(['comment-9001'])}` },
+        { id: 2, user: human, body: rc.releasePrSeenMarker(['comment-5']) }, // 人間がまねたものは数えない
+    ];
+    const handled = rc.handledPrFeedbackRefs({ epic: 10, existingBodies: bodies, comments });
+    assert.deepEqual([...handled].sort(), ['comment-9001', 'review-6073229022', 'review-comment-8001']);
+    const rest = rc.selectPrFeedback({ reviews: prReviews, reviewComments: prReviewComments, issueComments: prIssueComments, handled });
+    assert.deepEqual(rest, []);
+    assert.equal(rc.releasePrSeenMarker([]), '');
+});
+
+test('releaseCheckMode: topic → develop の PR にまだ受けていない人間のレビューがあれば、結果を受ける段にする（#2459）', () => {
+    const c = (body) => ({ id: Math.random(), body, user: bot });
+    const check1 = c(rc.releaseCheckMarker(1));
+    assert.deepEqual(rc.releaseCheckMode([check1], { pendingPrFeedback: 2 }), { mode: 'result', round: 1, prOnly: true });
+    assert.deepEqual(rc.releaseCheckMode([check1], { pendingPrFeedback: 0 }), { mode: 'collect', round: 1 });
+    // モニターの結果もあれば、その round で両方を受ける
+    const review1 = c(rc.releaseReviewMarker(1));
+    assert.deepEqual(rc.releaseCheckMode([check1, review1], { pendingPrFeedback: 1 }), { mode: 'result', round: 1 });
+    // 受けた後に人間が新しいレビューを書いた → 受けた round を読み直さず、PR のレビューだけを受けて次の round へ
+    const result1 = c(rc.releaseResultMarker(1));
+    assert.deepEqual(rc.releaseCheckMode([check1, review1, result1], { pendingPrFeedback: 1 }), { mode: 'result', round: 2, prOnly: true });
+    // 観点をまとめる前でも受ける
+    assert.deepEqual(rc.releaseCheckMode([], { pendingPrFeedback: 1 }), { mode: 'result', round: 1, prOnly: true });
+    // PR のレビューだけを受けた段は結果の目印を書かない（seen の目印だけ）。あとで人間がその round の
+    // モニターの結果を書いても取りこぼさない
+    const seen = c(rc.releasePrSeenMarker(['comment-9001']));
+    assert.deepEqual(rc.releaseCheckMode([check1, seen, review1]), { mode: 'result', round: 1 });
+});
+
+test('planReleaseResult: PR のレビューも直してほしいことの候補として返す（#2459）', () => {
+    const pr = rc.selectPrFeedback({ reviews: prReviews, reviewComments: prReviewComments, issueComments: prIssueComments });
+    const plan = rc.planReleaseResult({ epic: 10, round: 1, review: null, prFeedback: pr });
+    assert.equal(plan.allOk, false);
+    assert.deepEqual(plan.prFeedback.map((f) => [f.ref, f.marker]), [
+        ['review-6073229022', '<!-- autopilot-release-pr epic=10 ref=review-6073229022 -->'],
+        ['review-comment-8001', '<!-- autopilot-release-pr epic=10 ref=review-comment-8001 -->'],
+        ['comment-9001', '<!-- autopilot-release-pr epic=10 ref=comment-9001 -->'],
+    ]);
+    assert.deepEqual(plan.create, []);
+    const none = rc.planReleaseResult({ epic: 10, round: 1, review: { results: [{ id: 'R1', verdict: 'ok' }], comment: '' }, prFeedback: [] });
+    assert.equal(none.allOk, true);
+    assert.deepEqual(none.prFeedback, []);
+});

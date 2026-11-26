@@ -300,6 +300,9 @@ export default {
     'gui.classroom.evaluation.aiDraft': 'AI のしたがき',
     'gui.classroom.evaluation.needsReview': 'ようかくにん',
     'gui.classroom.evaluation.needsReviewTitle': 'AI がはんだんにまよいました。',
+    'gui.classroom.evaluation.needsReviewAi': 'ようかくにん: AI がまよった',
+    'gui.classroom.evaluation.needsReviewShape': 'ようかくにん: おなじかたちなのにひょうかがちがう',
+    'gui.classroom.evaluation.needsReviewAnalysis': 'ようかくにん: さくひんをよめなかった',
     'gui.classroom.evaluation.returned': 'へんきゃくずみ',
     'gui.classroom.teacherLogoutConfirm.message': 'へんきゃくしていないコメントはきえます。ログアウトしますか？',
     'gui.classroom.teacherLogoutConfirm.stay': 'とどまる',
@@ -352,6 +355,42 @@ export default {
     'gui.classroom.error.googleApiFailed':
         'Google Classroom にはいしんできませんでした。しばらくまってからもういちどおためしください。',
     'gui.classroom.error.generic': 'よきしないエラーがはっせいしました。もういちどおためしください。',
+    'gui.classroom.serverError.evalDailyLimit':
+        'AI のさいてんは 1にち {limit}かいまでです。きょうのぶんを つかいきりました。0じ（ひづけが かわると）また つかえます。',
+    'gui.classroom.serverError.evalRateLimit':
+        'みじかい じかんに AI のさいてんを なんども たのんだため、いまは つかえません。しばらく まってから、もういちど ためしてください。',
+    'gui.classroom.serverError.sharedDailyLimit':
+        'このそうさは 1にち {limit}かいまでです。きょうのぶんを つかいきりました。0じ（ひづけが かわると）また できます。',
+    'gui.classroom.serverError.joinRateLimit':
+        'さんかの そうさが おおすぎます。しばらく まってから、もういちど ためしてください。',
+    'gui.classroom.serverError.lessonProgressRateLimit':
+        'すすみぐあいを みじかい じかんに なんども おくったため、いまは おくれません。しばらく まってから、もういちど ためしてください。',
+    'gui.classroom.serverError.aiTimeout':
+        'AI のこたえが じかんないに かえってきませんでした。すこし まってから、もういちど ためしてください。',
+    'gui.classroom.serverError.aiApiError':
+        'いま AI が こたえられませんでした。すこし まってから、もういちど ためしてください。',
+    'gui.classroom.serverError.aiResponseInvalid':
+        'AI のこたえを よみとれませんでした。もういちど ためしてください。',
+    'gui.classroom.serverError.aiNotConfigured': 'このサーバーでは AI のさいてんを つかえません。',
+    'gui.classroom.serverError.classroomNotFound':
+        'クラス（かだい）が みつかりません。さくじょされた かのうせいが あります。',
+    'gui.classroom.serverError.submissionNotFound':
+        'ていしゅつされた さくひんが みつかりません。さくじょされた かのうせいが あります。',
+    'gui.classroom.serverError.sharedNotFound':
+        'こうかいされた かだいが みつかりません。さくじょされた かのうせいが あります。',
+    'gui.classroom.serverError.noLesson': 'このかだいには レッスンが ありません。',
+    'gui.classroom.serverError.shareNoContent':
+        'このかだいには こうかいできる なかみが ありません。さきに ページ・はじめのさくひん・レッスンの どれかを いれてください。',
+    'gui.classroom.serverError.starterTooLarge': 'はじめのさくひんが おおきすぎます。{size} MB いかに してください。',
+    'gui.classroom.serverError.coTeacherOwnerOnly':
+        'きょうどうの せんせいを かえられるのは、クラスを つくった せんせいだけです。',
+    'gui.classroom.serverError.coTeacherMax': 'きょうどうの せんせいは 1つのクラスに {max}にんまでです。',
+    'gui.classroom.serverError.seatNotOccupied': 'いま {seat}ばんの せきには だれも いません。',
+    'gui.classroom.serverError.joinCodeFailed': 'コードを つくれませんでした。もういちど ためしてください。',
+    'gui.classroom.serverError.internalError':
+        'サーバーで もんだいが おきました。すこし まってから、もういちど ためしてください。',
+    'gui.classroom.serverError.httpStatus':
+        'サーバーから エラーが かえりました（{status}）。すこし まってから、もういちど ためしてください。',
     'gui.classroom.error.goToLogin': 'ログインがめんをひょうじ',
     'gui.classroom.error.goToJoin': 'さんかがめんをひょうじ',
     'gui.classroom.teacherDetail.openSubmission': 'スモウルビーでひらく',
@@ -943,6 +982,8 @@ export default {
     'gui.classroom.evaluation.status.loadDone': '{count} けんのていしゅつをよみこみました',
     'gui.classroom.evaluation.status.loadProgressDone': '{lessons} けんのかだいのすすみぐあいをよみこみました',
     'gui.classroom.evaluation.status.gradeDone': 'AI が {count} けんをさいてんしました',
+    'gui.classroom.evaluation.status.gradeDoneInconsistent':
+        'AI が {count} けんをさいてんしました。おなじかたちなのにひょうかがちがうさくひんが {inconsistent} けんあります（ようかくにん）',
     'gui.classroom.evaluation.status.commentDone': 'AI が {count} けんのコメントをしたがきしました',
     'gui.classroom.evaluation.status.returnDone': '{count} けんのコメントをへんきゃくしました',
     'gui.classroom.evaluation.status.loadFailed': 'ていしゅつをよみこめませんでした',
@@ -976,6 +1017,21 @@ export default {
     'gui.classroom.evaluation.distributionOff': 'めやすからはずれています',
     'gui.classroom.evaluation.tabRubric': 'きじゅん',
     'gui.classroom.evaluation.tabStudent': 'せいと',
+    'gui.classroom.evaluation.tabShape': 'かたち',
+    'gui.classroom.gradingShapes.lead':
+        'さくひんを かたちの ふだで まとめました。かたちごとに ひょうかを えらんで、まとめて つけられます。ちがう さくひんは、ひらいて 1 にんずつ なおします。',
+    'gui.classroom.gradingShapes.count': '{count} にん（{seats}）',
+    'gui.classroom.gradingShapes.now': 'いま: {grades}',
+    'gui.classroom.gradingShapes.mixed': 'おなじ かたちなのに ひょうかが わかれています',
+    'gui.classroom.gradingShapes.gradeLabel': 'この かたちは',
+    'gui.classroom.gradingShapes.choose': 'えらぶ',
+    'gui.classroom.gradingShapes.apply': '{count} にんに まとめて つける',
+    'gui.classroom.gradingShapes.works': 'さくひんを みる（{count}）',
+    'gui.classroom.gradingShapes.seat': 'しゅっせきばんごう {seat}',
+    'gui.classroom.gradingShapes.noScripts': '（スターターに たした だいほんは ありません）',
+    'gui.classroom.gradingShapes.empty': 'まだ さくひんが ありません。さきに ていしゅつを よみこんで ください。',
+    'gui.classroom.gradingShapes.tagsLabel': 'かたちの ふだ',
+    'gui.classroom.gradingShapes.sameShape': 'おなじ かたちの さくひん:',
     'gui.classroom.evaluation.description': 'かだいのせつめい',
     'gui.classroom.evaluation.noDescription':
         'せつめいはかかれていません。AI はかだいめいとさくひんからさいてんします。',
@@ -987,6 +1043,8 @@ export default {
     'gui.classroom.evaluation.notLoaded': 'ていしゅつをよみこむと、さくひんをみてさいてんできます。',
     'gui.classroom.evaluation.saving': 'ほぞんしています…',
     'gui.classroom.evaluation.saveFailedShort': 'ほぞんできていません',
+    'gui.classroom.evaluation.aiQuota': 'きょうの AI ののこり: {left} / {limit} かい',
+    'gui.classroom.evaluation.aiQuotaEmpty': 'ひづけが かわると（0じ）また つかえます。',
     'gui.classroom.evaluation.confirmedBadge': 'かくてい',
     'gui.classroom.evaluation.unconfirmedNote':
         'ひょうかをかえたので、かくていをとりけしました。もういちど［かくてい］をおしてください。',
@@ -2450,6 +2508,10 @@ export default {
     'gui.classroom.gradingRubric.groupYes': '{count} けんもかえる',
     'gui.classroom.gradingRubric.hasRubric': 'このかだいにはきじゅんがあります。このままぜんいんをさいてんできます。',
     'gui.classroom.gradingRubric.noWorks': 'ていしゅつされたさくひんがありません。',
+    'gui.classroom.gradingRubric.noSExample':
+        'S のせいかいのれいがありません。このままでは S と A のきじゅんがぶれます。べつのクラスにおなじかだいがあれば、' +
+        'S のさくひんがあるクラスをさきにさいてんしてきじゅんをつくり、それをコピーしてください。',
+    'gui.classroom.gradingRubric.noExample': 'せいかいのれいがない（AI のすいそく）',
     'gui.classroom.gradingRubric.notLoaded': 'ていしゅつをよみこむ（てじゅん 1）と、だいひょうのさくひんがでます。',
     'gui.classroom.gradingRubric.openWork': 'さくひんをひらく',
     'gui.classroom.gradingRubric.propose': 'AI にだいひょう {count} けんのあんをだしてもらう',

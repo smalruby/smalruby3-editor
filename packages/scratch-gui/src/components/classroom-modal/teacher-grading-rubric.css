@@ -121,7 +121,9 @@
     white-space: nowrap;
 }
 
-.differs {
+/* 「ちがう」と「正解の例が無い（AI の推測）」は同じ注意の小さな札。 */
+.differs,
+.no-example {
     padding: 0 0.3rem;
     border-radius: $radius-small;
     background-color: $color-warning-background;

@@ -627,8 +627,9 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-eval-confirmed` | span | 「確定」（確定した課題） |
 | `classroom-eval-save-state` | span | 採点の保存の状態（`data-state` は `pending`「保存しています…」/ `failed`「保存できていません」） |
 | `classroom-eval-unconfirmed` | span | 確定のあとに評価を変えたので確定を取り消したことの知らせ |
+| `classroom-eval-ai-quota` | span | 課題の採点の上の行の右の「今日の AI の残り: {残り} / {上限} 回」。課題を開いたときに `GET /teacher/evaluation-quota` を 1 回読み、AI を使うたびに答えの `quota` で更新する。20 回以下は `data-low="true"`（確認の色）、0 回は「日付が変わると（0 時）また使えます。」を添える。読めないとき（404・通信の失敗）は出さない |
 | `classroom-eval-seat-list` | ul | 左の席の一覧（メンバー全員。枠の中だけスクロール） |
-| `classroom-eval-cell-button-{seat}-{classroomId}` | button | 席の一覧の 1 行（出席番号と評価。未提出は「未提出」、評価が無ければ —、確定していない AI の案は `data-draft="true"` で点線。要確認は「!」、返却済みは「↩」、コメントがあれば「💬」。レッスンの課題はレッスンの点も出す。押すと［生徒］に出す・`aria-pressed`）。`aria-label` は「出席番号 N・{課題名}: {点}」で、点が無いときは「未採点」、未提出は「未提出」、印があれば「（要確認・返却済み・コメントあり・AI の下書き）」を足す |
+| `classroom-eval-cell-button-{seat}-{classroomId}` | button | 席の一覧の 1 行（出席番号と評価。未提出は「未提出」、評価が無ければ —、確定していない AI の案は `data-draft="true"` で点線。要確認は「!」、返却済みは「↩」、コメントがあれば「💬」。レッスンの課題はレッスンの点も出す。押すと［生徒］に出す・`aria-pressed`）。`aria-label` は「出席番号 N・{課題名}: {点}」で、点が無いときは「未採点」、未提出は「未提出」、印があれば「（要確認・返却済み・コメントあり・AI の下書き）」を足す（要確認は理由つき: 「要確認: AI が迷った」など） |
 | `classroom-eval-counts` | div | 右の上の人数 |
 | `classroom-eval-count-notSubmitted` / `-drafts` / `-confirmed` / `-returned` | div | 未提出・AI の案・確定・返却済みの数（読み込む前の未提出は「—」） |
 | `classroom-eval-distribution` | div | 人数の下の評価の分布の帯（#2457） |
@@ -636,9 +637,19 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-eval-dist-sa` / `classroom-eval-dist-s` | span | S+A・S の人数と %、目標・目安。`data-ok="false"` で目安から外れている（注意の色と「!」） |
 | `classroom-eval-dist-base` | span | % の分母（評価のついた人数）と、数えない未提出の人数 |
 | `classroom-eval-tab-rubric` / `classroom-eval-tab-student` | button (tab) | 右の［基準］［生徒］（`aria-selected`。作品を出さないレッスンの課題では出さない） |
+| `classroom-eval-tab-shape` | button (tab) | 右の［形］（形の札でまとめて採点。`aria-selected`） |
+| `classroom-eval-shapes` | div | ［形］の一覧 |
+| `classroom-eval-shape-<i>` | li | 形（人数の多い順に 0 から）。札・人数・いまの評価 |
+| `classroom-eval-shape-mixed-<i>` | span | 「同じ形なのに評価が分かれています」 |
+| `classroom-eval-shape-grade-<i>` / `classroom-eval-shape-apply-<i>` | select / button | 「この形は」の評価と［{n} 人にまとめて付ける］ |
+| `classroom-eval-shape-works-<i>` | summary | ［作品を見る（n）］ |
+| `classroom-eval-shape-work-<seat>` | button | 形の中の作品（押すと［生徒］で開く） |
+| `classroom-eval-shape-tags` | div | ［生徒］の形の札 |
+| `classroom-eval-same-shape-<seat>` | button | ［生徒］の「同じ形の作品」の席 |
 | `classroom-eval-rubric-pane` | div | ［基準］の中身（課題の説明・基準） |
 | `classroom-eval-description` | p | 課題の説明（AI に渡す。無ければその旨） |
 | `classroom-eval-rubric-levels` | table | 課題の基準（S/A/B/C の文） |
+| `classroom-eval-rubric-levels-no-example-<S\|A\|B\|C>` | span | 保存した基準で、正解の例に無い段の「正解の例が無い（AI の推測）」 |
 | `classroom-eval-no-rubric` | p | 基準がまだ無いときの文 |
 | `classroom-eval-not-loaded` | p | 読み込む前の［生徒］の案内 |
 | `classroom-eval-detail` | aside | ［生徒］の中の選んだ席の点・根拠・コメント |
@@ -692,6 +703,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-teacher-work-bar-expired` | span | ログインが切れたときだけ出す「ログインが切れました。戻ってログインし直してください。」 |
 | `classroom-teacher-work-bar-back` | button | ［‹ 採点に戻る］／［‹ 課題に戻る］。クラス管理を開き直す（隠して残してある画面・下書きのまま） |
 | `classroom-eval-detail-prev` / `classroom-eval-detail-next` | button | 同じ課題を提出した前 / 次の席へ（「‹ NN」/「NN ›」。端では押せない）。`aria-label` は「前の出席番号 NN」/「次の出席番号 NN」（端では番号なし） |
+| `classroom-eval-detail-needs-review` | span | 右の列の「要確認」。理由があれば添える（「要確認: AI が迷った」「要確認: 同じ形なのに評価が違う」「要確認: 作品を読めなかった」）。`data-reason` は `ai` / `shape` / `analysis`（理由が分からない＝保存から読み戻しただけのときは空） |
 | `classroom-eval-detail-ai-draft` | span | 「AI の下書き」（AI が出した点を先生がまだ変えていないとき。根拠だけを直したときは残る） |
 | `classroom-eval-detail-empty` | p | 提出が 1 つも無いときの「提出された作品はありません。」 |
 | `classroom-eval-grade-{seat}-{classroomId}` | select | 右の列の点（S/A/B/C。手動変更は較正サンプルになる）。見えるラベル「点」。選んだ席の分だけ出る |
@@ -713,6 +725,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `grading-rubric-describe-ok` / `-fix` / `-only-here` | button | ［合っている（課題に保存）］／［直して保存］／［保存せず、この採点だけで使う］ |
 | `grading-rubric-running` | p | 保存・コピー・スターターの読み込みの間の表示（AI が動いている間は、その「AI に相談」のボタンが `aria-busy="true"`） |
 | `grading-rubric-saved` / `grading-rubric-edit` | div / button | 保存した基準／［基準をつくり直す］ |
+| `grading-rubric-no-s-example` / `grading-rubric-draft-no-s-example` / `grading-rubric-copy-no-s-example` | p | S の正解の例が無いときの注意（保存した基準／基準づくりの途中／コピーで選んだ基準） |
 | `grading-rubric-reps` | div | 2-2 代表の作品の一覧 |
 | `grading-rubric-propose-ai` / `grading-rubric-propose-ai-button` | div / button | 2-2 の上の「AI に相談」／［AI に代表 N 件の案を出してもらう］（代表すべてをまとめて。一度実行したら押せない） |
 | `grading-rubric-rep-<席>` / `grading-rubric-rep-body-<席>` | button / div | 代表の行（押すと開く）／開いた中身 |
@@ -725,6 +738,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `grading-rubric-copy` / `grading-rubric-copy-dialog` | button / div | ［説明と基準をコピー…］／コピーの小さな画面 |
 | `grading-rubric-copy-class` / `grading-rubric-copy-assignment` | select | コピー元のクラス・課題 |
 | `grading-rubric-copy-preview` / `grading-rubric-copy-description` / `grading-rubric-copy-levels` / `grading-rubric-copy-none` | div / p / table / p | コピー元の中身／その説明／その基準／説明も基準も無い |
+| `grading-rubric-copy-levels-no-example-<S\|A\|B\|C>` | span | コピー元の基準で、正解の例に無い段の「正解の例が無い（AI の推測）」 |
 | `grading-rubric-copy-do` / `grading-rubric-copy-cancel` | button | ［コピーする］／［やめる］ |
 | `grading-group-prompt` / `-yes` / `-no` | div / button / button | 1 件を直したあとの「同じまとまりも変えますか？」と［{n} 件も変える］［この 1 件だけ］（［生徒］のタブ） |
 

@@ -124,8 +124,6 @@ function inboxModel(board, learnings) {
                 reason: it.waitReason || 'other', status: it.status || null, hitl: Boolean(it.hitl),
                 later: Boolean(it.later), from: it.parent && it.parent.title ? it.parent.title : null,
                 parent: it.parent && it.parent.number != null ? it.parent.number : null,
-                // 自分が EPIC なら、行ではなく自分のまとまりの見出しに畳む（inboxGroups）
-                isEpic: it.kind === 'EPIC' || Boolean(it.tracker) || tag.tag === 'topic' || tag.tag === 'watch',
                 priority: prio(it), tag,
                 // 差し戻し（address-review）は、押すと指摘とコメント欄を開く（#2415）
                 goLabel, fix: Boolean(dg && dg.ok && dg.nextPhase === 'address-review'), delegateError: dg && !dg.ok ? dg.error || dg.code || null : null,
@@ -142,63 +140,6 @@ function inboxModel(board, learnings) {
         });
     }
     return { questions, answered, learn, waits };
-}
-
-/**
- * 人間待ちを親の EPIC ごとのまとまりにする。EPIC 自身の行（分解済みの見守り・分解待ちなど）は
- * 行にせず、そのまとまりの見出し（header）に畳む。EPIC の無い Issue は「EPIC に属さない」のまとまり。
- *
- * 並びは「押せるもの（AI に任せられる行）があるまとまり」→「人間の作業があるまとまり」→
- * 「見守りだけのまとまり」の順にし、同じ段の中は優先度（P0→P3）→ EPIC の番号の大きい順。
- * 「EPIC に属さない」は同じ段の最後に置く（押せる行を、押せない見守りの EPIC の下に沈めないため）。
- * まとまりの中は、押せる行 → 優先度 → 番号の小さい順。
- * @param {object[]} waits inboxModel の waits
- * @param {object} [opts] { epicGroups, items, limit（1 まとまりで最初に見せる行の数・既定 4）, open: string[]（全部を見せるまとまりの key） }
- * @returns {object[]} { key, epic, title, url, priority, header, rows, hidden, tier, count }
- */
-function inboxGroups(waits, opts) {
-    const o = opts || {};
-    const limit = o.limit == null ? 4 : o.limit;
-    const open = (o.open || []).map(String);
-    const rankOf = (p) => ({ P0: 0, P1: 1, P2: 2, P3: 3 }[p] == null ? 4 : { P0: 0, P1: 1, P2: 2, P3: 3 }[p]);
-    const itemOf = {};
-    for (const it of o.items || []) if (it) itemOf[it.issue] = it;
-    const groupOf = {};
-    for (const g of o.epicGroups || []) if (g && g.epic != null) groupOf[g.epic] = g;
-    const byKey = {};
-    const order = [];
-    const ensure = (key, epic) => {
-        if (!byKey[key]) { byKey[key] = { key, epic, header: null, rows: [], from: null }; order.push(key); }
-        return byKey[key];
-    };
-    for (const w of waits || []) {
-        if (!w) continue;
-        if (w.isEpic) ensure(String(w.issue), w.issue).header = w;
-        else if (w.parent != null) { const g = ensure(String(w.parent), w.parent); g.rows.push(w); g.from = g.from || w.from; }
-        else ensure('none', null).rows.push(w);
-    }
-    const human = (w) => w.tag && (w.tag.key === 'human' || w.tag.key === 'stop');
-    const out = order.map((key) => {
-        const g = byKey[key];
-        const it = g.epic != null ? itemOf[g.epic] || null : null;
-        const eg = g.epic != null ? groupOf[g.epic] || null : null;
-        const h = g.header;
-        const priority = g.epic == null ? null
-            : (h && h.priority) || (it && ((it.effectivePriority && it.effectivePriority.priority) || it.priority)) || (eg && eg.priority) || null;
-        const rows = g.rows.slice().sort((a, b) => (b.goLabel ? 1 : 0) - (a.goLabel ? 1 : 0)
-            || rankOf(a.priority) - rankOf(b.priority) || a.issue - b.issue);
-        const all = (h ? [h] : []).concat(rows);
-        const tier = all.some((w) => w.goLabel) ? 0 : (all.some(human) ? 1 : 2);
-        const shown = open.indexOf(key) >= 0 ? rows : rows.slice(0, limit);
-        return {
-            key, epic: g.epic,
-            title: g.epic == null ? 'EPIC に属さない' : (h && h.title) || (it && it.title) || g.from || (eg && eg.title) || '#' + g.epic,
-            url: (h && h.url) || (it && it.url) || null,
-            priority, header: h, rows: shown, hidden: rows.length - shown.length, tier, count: rows.length,
-        };
-    });
-    return out.sort((a, b) => a.tier - b.tier || (a.epic == null ? 1 : 0) - (b.epic == null ? 1 : 0)
-        || rankOf(a.priority) - rankOf(b.priority) || (b.epic || 0) - (a.epic || 0));
 }
 
 /**
@@ -481,12 +422,12 @@ function renderMiniMarkdown(src) {
 
 /** ブラウザへ埋め込む関数（順序は問わない。どれも自己完結） */
 const INBOX_CLIENT_FNS = [
-    itemSem, epicSem, inboxModel, inboxGroups, isInboxToggleKey, boardRows, recommendedAnswers, chosenAnswers, digitTarget,
+    itemSem, epicSem, inboxModel, isInboxToggleKey, boardRows, recommendedAnswers, chosenAnswers, digitTarget,
     agoLabel, shortTitle, titleTipNext, titleTipPlace, titleTipInfo, renderMiniMarkdown,
 ];
 
 module.exports = {
-    itemSem, epicSem, inboxModel, inboxGroups, isInboxToggleKey, boardRows, recommendedAnswers, chosenAnswers, digitTarget,
+    itemSem, epicSem, inboxModel, isInboxToggleKey, boardRows, recommendedAnswers, chosenAnswers, digitTarget,
     agoLabel, shortTitle, titleTipNext, titleTipPlace, titleTipInfo, renderMiniMarkdown,
     INBOX_CLIENT_FNS,
 };
