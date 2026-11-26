@@ -1,5 +1,6 @@
 // === Smalruby: This file is Smalruby-specific (arithmetic operators and math function handlers) ===
 import _ from 'lodash';
+import Primitive from './primitive';
 import { numberArg, registerSendTable } from './send-table';
 
 const Math = '::Math';
@@ -10,6 +11,9 @@ const UNARY_MINUS_COMMENT = '@ruby:unary_minus';
 
 /** Marker on "pick random (0) to (n - 1)" that came from `rand(n)` (the generator writes `rand(n)` back). */
 const RAND_N_COMMENT = '@ruby:rand:n';
+
+/** Marker on "pick random (0) to (1.0)" that came from `rand` (the generator writes `rand` back). */
+const RAND_FLOAT_COMMENT = '@ruby:rand:float';
 
 /**
  * `x.round`, `x.abs`, `x.floor` and `x.ceil` map one to one onto a block (see `send-table.js`):
@@ -85,10 +89,36 @@ const OperatorsMath = {
                 block.comment = converter._createComment(RAND_N_COMMENT, block.id);
                 return block;
             }
-            if (!converter._isBlock(args[0]) || args[0].opcode !== 'ruby_range') return null;
-            if (converter._context.rangesWithWrongEnd.has(args[0].id)) return null;
+            if (converter._isBlock(args[0]) && args[0].opcode === 'ruby_range') {
+                if (converter._context.rangesWithWrongEnd.has(args[0].id)) return null;
+                return converter._changeBlock(args[0], 'operator_random', 'value');
+            }
+            // `rand(n)` with a value (`rand(@n)`, `rand(@a.length)`) is "pick random (0) to
+            // ((n) - (1))" (issue #2049). n is known only when the code runs, so for an n of 0, a
+            // float or a negative number the block picks something else than Kernel#rand does
+            // (`rand(0)` is a float from 0 to 1, the block -1 or 0). The Ruby stays as it was.
+            if (!converter._isValueBlock(args[0]) || converter._getBlockType(args[0]) === 'value_boolean') {
+                return null;
+            }
+            const block = converter._createBlock('operator_random', 'value');
+            converter._addNumberInput(block, 'FROM', 'math_number', 0, 1);
+            const to = converter._createBlock('operator_subtract', 'value');
+            converter._addNumberInput(to, 'NUM1', 'math_number', args[0], '');
+            converter._addNumberInput(to, 'NUM2', 'math_number', 1, '');
+            converter._addNumberInput(block, 'TO', 'math_number', to, 10);
+            block.comment = converter._createComment(RAND_N_COMMENT, block.id);
+            return block;
+        });
 
-            return converter._changeBlock(args[0], 'operator_random', 'value');
+        converter.registerOnSend('self', 'rand', 0, () => {
+            // `rand` picks a float from 0 up to (not including) 1 (issue #2049). "pick random (0)
+            // to (1.0)" picks the same: the decimal point of "1.0" makes the VM pick a float, and
+            // it multiplies `Math.random()`, which is below 1.
+            const block = converter._createBlock('operator_random', 'value');
+            converter._addNumberInput(block, 'FROM', 'math_number', 0, 1);
+            converter._addNumberInput(block, 'TO', 'math_number', new Primitive('float', 1, null), 10);
+            block.comment = converter._createComment(RAND_FLOAT_COMMENT, block.id);
+            return block;
         });
 
         ['+', '-', '*', '/', '%'].forEach((operator) => {

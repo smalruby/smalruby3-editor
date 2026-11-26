@@ -113,6 +113,28 @@ export default function (Generator) {
         ) {
             return [`rand(${Number(toNum) + 1})`, Generator.ORDER_FUNCTION_CALL];
         }
+        if (Generator.hasRubyMarker(block, '@ruby:rand:n') && String(fromNum) === '0') {
+            // "pick random (0) to ((n) - (1))" made from `rand(n)` with a value (issue #2049).
+            const toId = block.inputs && block.inputs.TO && block.inputs.TO.block;
+            const to = toId && Generator.getBlock(toId);
+            if (
+                to &&
+                to.opcode === 'operator_subtract' &&
+                !Generator.getRubyMarkerText(to) &&
+                String(Generator.valueToCode(to, 'NUM2', Generator.ORDER_NONE)) === '1'
+            ) {
+                const n = Generator.valueToCode(to, 'NUM1', Generator.ORDER_NONE);
+                if (n) return [`rand(${n})`, Generator.ORDER_FUNCTION_CALL];
+            }
+        }
+        // "pick random (0) to (1.0)" made from `rand` (issue #2049).
+        if (
+            Generator.hasRubyMarker(block, '@ruby:rand:float') &&
+            String(fromNum) === '0' &&
+            String(toNum) === '1.0'
+        ) {
+            return ['rand', Generator.ORDER_FUNCTION_CALL];
+        }
         return [`rand(${fromNum}..${toNum})`, Generator.ORDER_FUNCTION_CALL];
     };
 

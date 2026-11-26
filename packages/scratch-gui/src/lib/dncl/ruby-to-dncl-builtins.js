@@ -2,6 +2,7 @@
 import { stringEndAt } from './dncl-trailing-comment';
 import {
     findMatchingClose,
+    isWholeWordAt,
     isWrappedInParens,
     replaceCall,
     skipString,
@@ -416,6 +417,38 @@ const replacePostfixMethods = (text) => {
 };
 
 /**
+ * Replace `rand` written without arguments (the generator writes `rand()` as `rand`) with
+ * `乱数()`. Skips strings, a name that only contains `rand` (`brand`, `rand_x`), a method
+ * (`@a.rand`), a variable (`@rand`, `$rand`, `:rand`) and an assignment to a local `rand`.
+ * @param {string} line - A line of code.
+ * @returns {string} Line with `乱数()`.
+ */
+const replaceBareRand = (line) => {
+    let result = '';
+    let i = 0;
+    while (i < line.length) {
+        const ch = line[i];
+        if (ch === '"' || ch === "'") {
+            const end = skipString(line, i, ch);
+            result += line.substring(i, end);
+            i = end;
+            continue;
+        }
+        if (isWholeWordAt(line, i, 'rand') && !/[.@$:]/.test(line[i - 1] || '')) {
+            const rest = line.substring(i + 4);
+            if (!/^(?:\(|[?!]|\s*=(?!=))/.test(rest)) {
+                result += '乱数()';
+                i += 4;
+                continue;
+            }
+        }
+        result += ch;
+        i++;
+    }
+    return result;
+};
+
+/**
  * Convert Ruby built-in method calls back to DNCL. Uses balanced-paren
  * matching for prefix-call forms so nested same-name calls work.
  *
@@ -471,6 +504,9 @@ const convertBuiltins = (line) => {
 
     // rand(n) → 乱数(n)
     result = replaceCall(result, 'rand', (n) => `乱数(${n})`);
+
+    // rand → 乱数() (a float from 0 up to 1, issue #2049)
+    result = replaceBareRand(result);
 
     return result;
 };

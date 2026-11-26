@@ -447,10 +447,14 @@ end
 | `a != b` | `(a = b) ではない` | 2 つに `@ruby:operator:!=:<番号>` |
 | `-a` | `0 - a` | `@ruby:unary_minus` |
 | `rand(10)`（1 以上の整数） | `0 から 9 までの乱数` | `@ruby:rand:n` |
+| `rand(@n)`（変数や式。整数の数字でないもの） | `0 から ((n) - (1)) までの乱数` | `@ruby:rand:n` |
+| `rand` / `rand()` | `0 から 1.0 までの乱数` | `@ruby:rand:float` |
 | `x.empty?` | `(x の長さ) = 0`（リストならリストの長さ） | 2 つに `@ruby:method:empty?:<番号>` |
 | `x.to_s` | `x と ""` をつなぐ | `@ruby:method:to_s` |
 | `"3".to_i` | `"3"` の切り下げ | `@ruby:method:to_i` |
 | `self.direction += 15` / `-= 15` | 右に回す / 左に回す | `@ruby:operator:+=` / `@ruby:operator:-=` |
+
+**乱数の注釈の決まり**: 生成器は、注釈があり「から」が `0` のままのときだけ元の形に戻す。`@ruby:rand:n` は「まで」が整数なら `rand(まで + 1)`、「まで」が注釈の無い「(n) - (1)」なら `rand(n)`。`@ruby:rand:float` は「まで」が `1.0` のままなら `rand`（`rand()` も `rand` と書く）。それ以外に変えたら `rand(から..まで)` と書く。「0 から 1.0 までの乱数」は、VM が「1.0」の小数点を見て小数を選び、`Math.random()`（1 未満）を掛けるので、Ruby の `rand` と同じく 0 以上 1 未満になる。`rand(@n)` は、n が 0・小数・負の数のとき Kernel#rand（`rand(0)` は 0 以上 1 未満の小数、`rand(2.5)` は 0〜1、`rand(-5)` は 0〜4）とブロック（「0 から -1」「0 から 1.5」「0 から -6」）の選ぶ数が違う。n は動かすまで分からないので、ブロックにはそのまま置き、Ruby の文字は変えない（Ruby の引数が 1 以上の整数になるプログラムを前提にする）。
 
 生成器は、内側のブロックを書くときに注釈の文字列（例: `@ruby:operator:>=:1`）を値として返し、外側のブロックが両方の値がその文字列のときだけ `a >= b` と書く。利用者が片方を書きかえたら、ふつうの `or` などとして書く。
 
@@ -467,7 +471,7 @@ say(@a.empty?)
 
 - 同じコードに戻る。
 
-**テスト**: `ruby-to-blocks-converter/operators/comparison-compound.test.js`、`comparison-not-equals.test.js`、`type-conversion.test.js`、`string.test.js`、`ruby-generator/operators/operators1.test.js`、`operators2.test.js`、`ruby-roundtrip/operators.test.js`、`operator-order.test.js`、`unary-minus.test.js`、`rand-integer.test.js`。
+**テスト**: `ruby-to-blocks-converter/operators/comparison-compound.test.js`、`comparison-not-equals.test.js`、`type-conversion.test.js`、`string.test.js`、`ruby-generator/operators/operators1.test.js`、`operators2.test.js`、`ruby-roundtrip/operators.test.js`、`operator-order.test.js`、`unary-minus.test.js`、`rand-integer.test.js`、`rand-value-and-float.test.js`。
 
 ### P11. Scratch に無いメソッド（`@ruby:method`・`@ruby:argument`）
 
@@ -802,7 +806,7 @@ _1_文字えらぶ(1)
 | `@ruby:variable_condition` | `@ruby:variable_condition` | 変換器 `node-utils.js` | 生成器 `operators.js` | `if @f` | P9 |
 | `@ruby:operator` | `>=:<番号>` / `<=:<番号>` / `!=:<番号>` / `=~:<番号>[:receiver]` / `!~:<番号>[:receiver]` / `+=` / `-=` | 変換器 `operators.js` / `motion.js` | 生成器 `operators.js` / `motion.js` | `@ruby:operator:>=:1` | P8・P10 |
 | `@ruby:unary_minus` | `@ruby:unary_minus` | 変換器 `operators-math.js` | 生成器 `operators-math-gen.js` | `-@a` | P10 |
-| `@ruby:rand` | `@ruby:rand:n` | 変換器 `operators-math.js` | 生成器 `operators-math-gen.js` | `rand(10)` | P10 |
+| `@ruby:rand` | `@ruby:rand:n` / `@ruby:rand:float` | 変換器 `operators-math.js` | 生成器 `operators-math-gen.js` | `rand(10)` / `rand(@n)` / `rand` | P10 |
 | `@ruby:method` | `@ruby:method:<名前>`（`puts` / `print` / `p` / `gets` / `clone` / `wait` / `with_screen_refresh` / `to_s` / `to_i`）、`@ruby:method:empty?:<番号>` | 変換器 `looks.js` / `sensing.js` / `control.js` / `operators.js` / `variable-list-ops.js` | 生成器 `looks.js` / `sensing.js` / `control.js` / `operators.js` / `operators-math-gen.js` / `data-list.js`、変換器 `node-utils.js`（型の推定） | `@ruby:method:puts` | P10・P11 |
 | `@ruby:argument` | `@ruby:argument:1:type:Integer\|Float` | 変換器 `looks.js` | 生成器 `looks.js` | `puts(1)` | P11 |
 | `@ruby:syntax` | `+=` / `-=` / `*=` / `/=` / `%=` / `elsif:<番号>` / `if_modifier` / `unless` / `unless_else` / `unless_modifier` / `case:<式>:<番号>` / `while` / `wait_until` / `begin_end` / `return` | 変換器 `variables.js` / `ast-handlers/control-flow.js` / `expressions.js` | 生成器 `data.js` / `control.js` / `scrub.js`、変換器 `my-blocks.js` | `@ruby:syntax:elsif:1` | P2・P12 |
