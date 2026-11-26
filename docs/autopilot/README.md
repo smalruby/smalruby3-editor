@@ -379,7 +379,7 @@ EPIC の子の PR は topic ブランチ宛てで、daemon が CI 通過後に t
 子を topic にマージしたあと、daemon は **topic → develop の open な PR が無ければ draft で作る**（Bot 名義）。
 判断は `src/epic-pr.js`（純粋関数 `epicPrPlan`）、GitHub の読み書きは `project.js`（`getEpicPrFacts` は GraphQL 1 回）。
 
-- 題は `epic: <EPIC の題>`（小文字始まり）。本文の 1 行目は目印 `<!-- autopilot-epic-pr epic=N -->`。
+- 題は `epic: <EPIC の題>`（EPIC の題が `EPIC:` / `epic(scope):` で始まるときは重ねない）。本文の 1 行目は目印 `<!-- autopilot-epic-pr epic=N -->`。
   **本文は daemon だけが書く**（単一ライター。手で直しても次の更新で上書きされる）。
 - 本文: EPIC への `Refs #N`（topic → develop のマージで EPIC を閉じるかは人間が決めるので `Closes` にしない）、
   プレビューの URL（`scripts/preview-slug.mjs` と同じ規則の slug。`previewSlug` は同じ値になることをテストで確かめる）、

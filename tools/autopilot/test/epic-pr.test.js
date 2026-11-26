@@ -38,8 +38,12 @@ test('previewSlug: scripts/preview-slug.mjs と同じ値', async () => {
     assert.equal(ep.previewUrlForBranch('develop'), 'https://preview.smalruby.app/develop/');
 });
 
-test('epicPrTitle: epic: + 小文字始まり', () => {
-    assert.equal(ep.epicPrTitle('Classroom grading  feedback'), 'epic: classroom grading feedback');
+test('epicPrTitle: epic: + EPIC の題（頭文字は崩さない・接頭辞は重ねない）', () => {
+    assert.equal(ep.epicPrTitle('Classroom grading  feedback'), 'epic: Classroom grading feedback');
+    assert.equal(ep.epicPrTitle('GA の計測'), 'epic: GA の計測');
+    assert.equal(ep.epicPrTitle('EPIC: ブロックのコース'), 'epic: ブロックのコース');
+    assert.equal(ep.epicPrTitle('epic(studuino): Studuino モード'), 'epic(studuino): Studuino モード');
+    assert.equal(ep.epicPrTitle('feat(classroom): improve'), 'epic: feat(classroom): improve');
 });
 
 test('issueFromHeadBranch: topic/autopilot-<数字> だけ', () => {
@@ -56,6 +60,8 @@ test('childStates: topic に入った / 作業中 / 待ち / 閉じた', () => {
     ]);
     // PR が無くても Project の Status が作業中なら作業中
     assert.equal(ep.childStates(f.subIssues, f.childPrs, { 2470: 'In Progress' })[2].state, 'working');
+    // 🧱 infra の子: develop へマージ済みで Issue は開いたまま・Project は Close → 閉じた（作業中・待ちにしない）
+    assert.equal(ep.childStates(f.subIssues, f.childPrs, { 2470: 'Close' })[2].state, 'closed');
 });
 
 test('epicPrPlan: 子が topic に入っていなければ作らない', () => {
@@ -72,7 +78,7 @@ test('epicPrPlan: EPIC が閉じている・topic が無いときは何もしな
 test('epicPrPlan: PR が無ければ draft で作る（本文に目印・Refs・プレビュー・sub-issue の状態）', () => {
     const plan = ep.epicPrPlan(facts());
     assert.equal(plan.action, 'create');
-    assert.equal(plan.title, 'epic: classroom grading feedback');
+    assert.equal(plan.title, 'epic: Classroom grading feedback');
     assert.ok(plan.body.startsWith('<!-- autopilot-epic-pr epic=2438 -->\n'));
     assert.match(plan.body, /^Refs #2438$/m);
     assert.doesNotMatch(plan.body, /Closes #2438/);
@@ -150,7 +156,7 @@ test('applyEpicTopicPrs: 最初のマージで draft PR を作り、2 回目は�
     assert.deepEqual(first, [{ epic: 2438, action: 'create', pr: 2480 }]);
     assert.equal(store.created[0].head, TOPIC);
     assert.equal(store.created[0].base, 'develop');
-    assert.equal(store.created[0].title, 'epic: classroom grading feedback');
+    assert.equal(store.created[0].title, 'epic: Classroom grading feedback');
     const second = await em.applyEpicTopicPrs(targets, cfg, quiet, ioDeps(store));
     assert.deepEqual(second, [{ epic: 2438, action: 'skip', pr: 2480 }]);
     assert.equal(store.created.length, 1);

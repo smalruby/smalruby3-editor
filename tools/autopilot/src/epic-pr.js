@@ -13,7 +13,7 @@
  */
 
 const crypto = require('crypto');
-const { AUTOPILOT_BRANCH_PREFIX } = require('./phases');
+const { AUTOPILOT_BRANCH_PREFIX, TERMINAL_STATUSES } = require('./phases');
 
 /** daemon が作った topic → develop の PR の本文の目印（前方一致で探す） */
 const EPIC_PR_MARKER = '<!-- autopilot-epic-pr ';
@@ -83,13 +83,17 @@ function previewUrlForBranch(branch) {
 }
 
 /**
- * PR の題。commitlint の対象外だが、ほかの PR とそろえて小文字始まりにする。
+ * PR の題。commitlint の対象外だが、ほかの PR とそろえて小文字始まりにする（`epic:` で始まるので
+ * EPIC の題そのものは変えない。`GA` / `Ruby` / `DNCL` などの頭文字を崩さないため）。
+ * EPIC の題が既に `EPIC:` / `epic(scope):` で始まるときは、`epic: epic: ...` と重ねず接頭辞の大文字だけそろえる。
  * @param {string} epicTitle
  * @returns {string} `epic: <EPIC の題>`
  */
 function epicPrTitle(epicTitle) {
     const t = String(epicTitle || '').replace(/\s+/g, ' ').trim();
-    return `epic: ${t.charAt(0).toLowerCase()}${t.slice(1)}`.trim();
+    const m = t.match(/^epic(\([^)]*\))?:\s*/i);
+    if (m) return `epic${m[1] || ''}: ${t.slice(m[0].length)}`.trim();
+    return `epic: ${t}`.trim();
 }
 
 /**
@@ -110,7 +114,7 @@ function issueFromHeadBranch(head, prefix = AUTOPILOT_BRANCH_PREFIX) {
  * sub-issue ごとの状態と PR。
  * - topic 宛ての PR がマージ済み → merged
  * - open な PR がある、または Project の Status が作業中（{@link WORKING_STATUSES}）→ working
- * - Issue が閉じている → closed
+ * - Issue が閉じている、または Project の Status が終端（Close / Done）→ closed
  * - それ以外 → waiting
  * @param {Array<{number:number, title:string, state:string}>} subIssues
  * @param {Array<{number:number, state:string, headRefName:string}>} childPrs topic 宛ての PR
@@ -130,10 +134,13 @@ function childStates(subIssues, childPrs, statuses = {}) {
         const prs = byIssue.get(s.number) || [];
         const merged = prs.find((p) => p.state === 'MERGED');
         const open = prs.find((p) => p.state === 'OPEN');
+        const status = (statuses || {})[s.number];
+        // 🧱 infra の子は develop へ直接マージされ、prod に出るまで Issue が開いたまま Project だけ Close になる
+        const closed = s.state === 'CLOSED' || TERMINAL_STATUSES.has(status);
         let state = 'waiting';
         if (merged) state = 'merged';
-        else if (open || (s.state !== 'CLOSED' && WORKING_STATUSES.has((statuses || {})[s.number]))) state = 'working';
-        else if (s.state === 'CLOSED') state = 'closed';
+        else if (open || (!closed && WORKING_STATUSES.has(status))) state = 'working';
+        else if (closed) state = 'closed';
         const pr = (merged || open || null);
         return { issue: s.number, title: s.title || '', state, pr: pr ? pr.number : null };
     }).sort((a, b) => a.issue - b.issue);
