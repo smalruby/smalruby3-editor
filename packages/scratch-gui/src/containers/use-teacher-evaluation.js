@@ -40,6 +40,7 @@ import { defineMessages } from 'react-intl';
 import classroomAPI from '../lib/classroom-api.js';
 import {
     DEFAULT_RUBRIC_AXES,
+    aiQuotaView,
     buildAuditCsv,
     buildEvaluationCsv,
     chunk,
@@ -201,6 +202,17 @@ const useTeacherEvaluation = ({
     const [innerTab, setInnerTab] = useState('rubric');
     // A leave waiting for the teacher's answer: {kind: 'back'|'leave'|'reload', action} (#1923 C4)
     const [leaveRequest, setLeaveRequest] = useState(null);
+    // Today's AI calls of the teacher ({used, limit, resetsAt}, #2448). null = not read
+    // (or the API is older): the screen then shows nothing.
+    const [aiQuota, setAiQuota] = useState(null);
+    /**
+     * Keep the `quota` of an answer (GET /teacher/evaluation-quota or an evaluate call).
+     * An answer without one (an older API) leaves the shown count as it is.
+     * @param {?object} quota - the answer's `quota`
+     */
+    const noteQuota = useCallback((quota) => {
+        if (aiQuotaView(quota)) setAiQuota(quota);
+    }, []);
     // Settings fetched for a group that is no longer shown are dropped.
     const shownGroupRef = useRef(null);
     // The ID token at this moment (#1993): a long run (load, AI, return) reads it
@@ -246,6 +258,22 @@ const useTeacherEvaluation = ({
         const timer = setTimeout(() => setEvalResult(null), EVAL_RESULT_SHOWN_MS);
         return () => clearTimeout(timer);
     }, [evalResult]);
+    // Opening an assignment's grading reads today's AI calls once. A failure (an API
+    // not deployed yet, the network) shows nothing and does not show an error.
+    useEffect(() => {
+        if (!currentId) return;
+        let alive = true;
+        // Through a promise, so even an API object without this call (a test double) fails quietly.
+        Promise.resolve()
+            .then(() => classroomAPI.getEvaluationQuota(idTokenRef.current))
+            .then((data) => {
+                if (alive) noteQuota(data && data.quota);
+            })
+            .catch(() => {});
+        return () => {
+            alive = false;
+        };
+    }, [currentId, noteQuota]);
     // classroomId → when its submissions (and their links) were read (#1980)
     const urlsReadAtRef = useRef({});
     // A work is being opened: [Open the work] waits, so it is not pressed twice (#1980).
@@ -692,6 +720,7 @@ const useTeacherEvaluation = ({
         handleTeacher401,
         showError,
         intl,
+        noteQuota,
     });
     const { noteGradeChange } = rubricTools;
 
@@ -758,6 +787,7 @@ const useTeacherEvaluation = ({
                         lesson.classroomId,
                         payload,
                     );
+                    noteQuota(data && data.quota);
                     // Left (or started again) while the AI was answering: drop the result.
                     if (!current()) return;
                     if (mode === 'grade') {
@@ -865,6 +895,7 @@ const useTeacherEvaluation = ({
             handleTeacher401,
             startRun,
             gradesChanged,
+            noteQuota,
         ],
     );
 
@@ -1282,6 +1313,7 @@ const useTeacherEvaluation = ({
 
     return {
         rubricTools,
+        aiQuota,
         evalGroup,
         evalLessons,
         view,

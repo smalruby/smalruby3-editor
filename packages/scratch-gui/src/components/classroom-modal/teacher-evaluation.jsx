@@ -26,6 +26,7 @@ import {
     runningStepOf,
 } from '../../lib/classroom-evaluation/eval-status.js';
 import {
+    aiQuotaView,
     currentLessonOnlyStep,
     isLessonOnlyAssignment,
     lessonScoreOf,
@@ -543,6 +544,18 @@ const assignmentMessages = defineMessages({
         description: 'Assignment grading: saving the grades failed (#2424)',
         id: 'gui.classroom.evaluation.saveFailedShort',
     },
+    aiQuota: {
+        defaultMessage: "Today's AI left: {left} / {limit}",
+        description:
+            'Assignment grading: how many AI calls the teacher can still make today (#2448). ' +
+            '{left} = calls left, {limit} = calls per day',
+        id: 'gui.classroom.evaluation.aiQuota',
+    },
+    aiQuotaEmpty: {
+        defaultMessage: 'You can use it again when the date changes (midnight).',
+        description: 'Assignment grading: added after the AI calls left when none is left today (#2448)',
+        id: 'gui.classroom.evaluation.aiQuotaEmpty',
+    },
     confirmedBadge: {
         defaultMessage: 'Confirmed',
         description: 'Assignment grading: the grades of this assignment are confirmed (#2424)',
@@ -693,6 +706,27 @@ SeatRow.propTypes = {
     onSelect: PropTypes.func.isRequired,
 };
 
+/* 今日の AI の残りの回数（#2448）。読めないときは何も出さない。少ないときは確認の色（赤は使わない・R4）。 */
+const AiQuota = ({ quota }) => {
+    const intl = useIntl();
+    const view = aiQuotaView(quota);
+    if (!view) return null;
+    return (
+        <span
+            className={classNames(styles.evalAiQuota, { [styles.evalAiQuotaLow]: view.low })}
+            data-low={view.low ? 'true' : 'false'}
+            data-testid="classroom-eval-ai-quota"
+        >
+            {intl.formatMessage(assignmentMessages.aiQuota, { left: view.left, limit: view.limit })}
+            {view.empty && ` ${intl.formatMessage(assignmentMessages.aiQuotaEmpty)}`}
+        </span>
+    );
+};
+
+AiQuota.propTypes = {
+    quota: PropTypes.object,
+};
+
 /* 右の上の人数（Google Classroom の「生徒の提出物」）。 */
 const Counts = ({ counts }) => {
     const intl = useIntl();
@@ -719,6 +753,7 @@ Counts.propTypes = {
 };
 
 const TeacherEvaluation = ({
+    aiQuota = null,
     chosenCell: chosenCellProp = null,
     comments,
     currentId = null,
@@ -1460,6 +1495,7 @@ const TeacherEvaluation = ({
                             {intl.formatMessage(assignmentMessages.unconfirmedNote)}
                         </span>
                     )}
+                    <AiQuota quota={aiQuota} />
                 </div>
                 {/* レッスンの点（#1778）。変えるとすぐ保存し、表の点も変わる。 */}
                 {scoringLessons.length > 0 && (
@@ -1630,6 +1666,8 @@ const TeacherEvaluation = ({
 };
 
 TeacherEvaluation.propTypes = {
+    /** Today's AI calls of the teacher ({used, limit, resetsAt}, #2448); null shows nothing. */
+    aiQuota: PropTypes.object,
     /** The seat × assignment shown in［生徒］, when the container keeps it (#1990). */
     chosenCell: PropTypes.shape({ seat: PropTypes.number, classroomId: PropTypes.string }),
     comments: PropTypes.object.isRequired,

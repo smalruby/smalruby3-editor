@@ -627,6 +627,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-eval-confirmed` | span | 「確定」（確定した課題） |
 | `classroom-eval-save-state` | span | 採点の保存の状態（`data-state` は `pending`「保存しています…」/ `failed`「保存できていません」） |
 | `classroom-eval-unconfirmed` | span | 確定のあとに評価を変えたので確定を取り消したことの知らせ |
+| `classroom-eval-ai-quota` | span | 課題の採点の上の行の右の「今日の AI の残り: {残り} / {上限} 回」。課題を開いたときに `GET /teacher/evaluation-quota` を 1 回読み、AI を使うたびに答えの `quota` で更新する。20 回以下は `data-low="true"`（確認の色）、0 回は「日付が変わると（0 時）また使えます。」を添える。読めないとき（404・通信の失敗）は出さない |
 | `classroom-eval-seat-list` | ul | 左の席の一覧（メンバー全員。枠の中だけスクロール） |
 | `classroom-eval-cell-button-{seat}-{classroomId}` | button | 席の一覧の 1 行（出席番号と評価。未提出は「未提出」、評価が無ければ —、確定していない AI の案は `data-draft="true"` で点線。要確認は「!」、返却済みは「↩」、コメントがあれば「💬」。レッスンの課題はレッスンの点も出す。押すと［生徒］に出す・`aria-pressed`）。`aria-label` は「出席番号 N・{課題名}: {点}」で、点が無いときは「未採点」、未提出は「未提出」、印があれば「（要確認・返却済み・コメントあり・AI の下書き）」を足す（要確認は理由つき: 「要確認: AI が迷った」など） |
 | `classroom-eval-counts` | div | 右の上の人数 |

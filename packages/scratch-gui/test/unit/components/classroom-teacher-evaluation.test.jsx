@@ -986,3 +986,27 @@ describe('［形］のタブ（形の札でまとめて採点）', () => {
         expect(queryByTestId('classroom-eval-tab-shape')).toBeNull();
     });
 });
+
+describe('今日の AI の残り (#2448)', () => {
+    test('残りの回数を小さく出す。読めないときは出さない', () => {
+        const { getByTestId, queryByTestId, rerender } = renderEvaluation({
+            aiQuota: { used: 30, limit: 200, resetsAt: 'r' },
+        });
+        expect(getByTestId('classroom-eval-ai-quota')).toHaveTextContent("Today's AI left: 170 / 200");
+        expect(getByTestId('classroom-eval-ai-quota')).toHaveAttribute('data-low', 'false');
+        rerender(evaluationElement({ aiQuota: null }));
+        expect(queryByTestId('classroom-eval-ai-quota')).toBeNull();
+        rerender(evaluationElement({ aiQuota: { used: 1 } }));
+        expect(queryByTestId('classroom-eval-ai-quota')).toBeNull();
+    });
+
+    test('20 回以下は注意の色、0 回は日付が変わると使えると添える', () => {
+        const { getByTestId, rerender } = renderEvaluation({ aiQuota: { used: 180, limit: 200 } });
+        expect(getByTestId('classroom-eval-ai-quota')).toHaveAttribute('data-low', 'true');
+        expect(getByTestId('classroom-eval-ai-quota')).not.toHaveTextContent('midnight');
+        rerender(evaluationElement({ aiQuota: { used: 200, limit: 200 } }));
+        expect(getByTestId('classroom-eval-ai-quota')).toHaveTextContent(
+            "Today's AI left: 0 / 200 You can use it again when the date changes (midnight).",
+        );
+    });
+});

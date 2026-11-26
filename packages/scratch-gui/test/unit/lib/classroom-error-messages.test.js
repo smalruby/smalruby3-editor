@@ -75,7 +75,9 @@ describe('localizeServerError', () => {
             makeIntl(ja),
             'Daily AI evaluation limit reached (50 calls/day). Please continue tomorrow.',
         );
-        expect(text).toBe('AI の採点は 1 日 50 回までです。今日の分を使い切りました。明日（朝 9 時）また使えます。');
+        expect(text).toBe(
+            'AI の採点は 1 日 50 回までです。今日の分を使い切りました。0 時（日付が変わると）また使えます。',
+        );
     });
 
     test('falls back to the original text for an unknown message', () => {

@@ -6451,6 +6451,22 @@ $seat-tile-min: 36px;
     margin: 0.5rem 0;
 }
 
+/* 今日の AI の残りの回数（#2448）。行の右に小さく 1 行。少ないときは確認の色（赤は使わない・R4）。 */
+.eval-ai-quota {
+    margin-left: auto;
+    padding: 0.125rem 0.5rem;
+    border-radius: $radius-medium;
+    color: #575e75;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.eval-ai-quota-low {
+    background: $color-confirm-background;
+    color: $color-confirm-text;
+    font-weight: bold;
+}
+
 /* ［採点簿］［総合評価］の切りかえ。 */
 .gradebook-switch {
     display: inline-flex;
