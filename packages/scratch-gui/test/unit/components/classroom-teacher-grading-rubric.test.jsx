@@ -106,12 +106,13 @@ describe('TeacherGradingRubric (#2425)', () => {
                 answers: { 0: 'A にする' },
             },
         });
-        renderTab(tools);
+        renderTab(tools, described);
         fireEvent.click(screen.getByTestId('grading-rubric-rep-4'));
         expect(screen.getByTestId('grading-rubric-rep-grade-4-B')).toHaveAttribute('aria-pressed', 'true');
         for (const g of ['S', 'A', 'C']) {
             expect(screen.getByTestId(`grading-rubric-rep-grade-4-${g}`)).toHaveAttribute('aria-pressed', 'false');
         }
+        fireEvent.click(screen.getByTestId('grading-rubric-steps-head-fairness'));
         expect(screen.getByTestId('grading-rubric-check-0-option-0')).toHaveAttribute('aria-pressed', 'false');
         expect(screen.getByTestId('grading-rubric-check-0-option-1')).toHaveAttribute('aria-pressed', 'true');
         fireEvent.click(screen.getByTestId('grading-rubric-check-0-option-0'));
@@ -313,7 +314,10 @@ describe('TeacherGradingRubric: S の正解の例が無いときの注意', () =
     });
 
     test('コピーのダイアログ: 選んだ基準に S の例が無ければ注意', async () => {
-        const source = { levels: [{ grade: 'B', text: 'b' }], examples: [{ seatNumber: 1, grade: 'B' }] };
+        const source = {
+            rubric: { levels: [{ grade: 'B', text: 'b' }], examples: [{ seatNumber: 1, grade: 'B' }] },
+            description: '',
+        };
         renderTab(makeTools({ handleReadCopySource: jest.fn(() => Promise.resolve(source)) }));
         fireEvent.click(screen.getByTestId('grading-rubric-copy'));
         fireEvent.change(screen.getByTestId('grading-rubric-copy-class'), { target: { value: 'g2' } });
@@ -324,15 +328,18 @@ describe('TeacherGradingRubric: S の正解の例が無いときの注意', () =
     });
 
     test('基準づくり: 先生の正解に S が無ければ、文を書いてもらう前に注意', () => {
-        const { unmount } = renderTab(makeTools({ examples: [{ seatNumber: 1, grade: 'B' }] }));
+        const { unmount } = renderTab(makeTools({ examples: [{ seatNumber: 1, grade: 'B' }] }), described);
+        fireEvent.click(screen.getByTestId('grading-rubric-steps-head-sentences'));
         expect(screen.getByTestId('grading-rubric-draft-no-s-example')).toBeInTheDocument();
         unmount();
-        renderTab(makeTools({ examples: [{ seatNumber: 1, grade: 'S' }] }));
+        renderTab(makeTools({ examples: [{ seatNumber: 1, grade: 'S' }] }), described);
+        fireEvent.click(screen.getByTestId('grading-rubric-steps-head-sentences'));
         expect(screen.queryByTestId('grading-rubric-draft-no-s-example')).toBeNull();
     });
 
     test('基準づくり: 正解がまだ無いときは注意を出さない', () => {
-        renderTab(makeTools());
+        renderTab(makeTools(), described);
+        fireEvent.click(screen.getByTestId('grading-rubric-steps-head-sentences'));
         expect(screen.queryByTestId('grading-rubric-draft-no-s-example')).toBeNull();
     });
 });

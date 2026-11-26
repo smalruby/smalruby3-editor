@@ -29,7 +29,11 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useState } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
 import { GRADES } from '../../lib/classroom-evaluation/gradebook.js';
-import { gradesWithoutExamples, hasRubricLevels, rubricStepStates } from '../../lib/classroom-evaluation/grading-ai.js';
+import {
+    gradesWithoutExamples,
+    hasRubricLevels,
+    rubricStepStates,
+} from '../../lib/classroom-evaluation/grading-ai.js';
 import AskAi from '../ask-ai/ask-ai.jsx';
 import InnerStepper from '../inner-stepper/inner-stepper.jsx';
 import Spinner from '../spinner/spinner.jsx';
