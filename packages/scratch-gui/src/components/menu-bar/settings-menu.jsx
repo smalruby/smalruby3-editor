@@ -17,10 +17,14 @@ import displayModeIcon from './icon--display-mode.svg';
 
 import {DEFAULT_MODE, HIGH_CONTRAST_MODE, colorModeMap} from '../../lib/settings/color-mode/index.js';
 import {themeMap} from '../../lib/settings/theme/index.js';
+// === Smalruby: Start of ruby version menu ===
 import {rubyVersionMap, messages as rubyVersionMessages} from '../../lib/settings/ruby-version/index.js';
+// === Smalruby: End of ruby version menu ===
 import {persistColorMode} from '../../lib/settings/color-mode/persistence.js';
 import {persistTheme} from '../../lib/settings/theme/persistence.js';
+// === Smalruby: Start of ruby version menu ===
 import {persistRubyVersion} from '../../lib/settings/ruby-version/persistence.js';
+// === Smalruby: End of ruby version menu ===
 import {setColorMode, setTheme, setRubyVersion} from '../../reducers/settings.js';
 
 import menuBarStyles from './menu-bar.css';
@@ -29,8 +33,10 @@ import styles from './settings-menu.css';
 import dropdownCaret from './dropdown-caret.svg';
 import settingsIcon from './icon--settings.svg';
 import themeIcon from '../../lib/assets/icon--theme.svg';
+// === Smalruby: Start of smalruby settings menu items ===
 import rubyIcon from '../../containers/ruby-tab/icon--ruby.svg';
 import blockDisplayIcon from './block-display-icon.png';
+// === Smalruby: End of smalruby settings menu items ===
 // === Smalruby: Start of classroom management menu ===
 import {isClassroomConfigured} from '../../lib/classroom-api';
 import {openTeacherModal} from '../../reducers/classroom';
@@ -42,10 +48,14 @@ import {isRubyV2Comment} from '../../lib/ruby-markers.js';
 import {
     colorModeMenuOpen,
     themeMenuOpen,
+    // === Smalruby: Start of ruby version menu ===
     rubyVersionMenuOpen,
+    // === Smalruby: End of ruby version menu ===
     openColorModeMenu,
     openThemeMenu,
+    // === Smalruby: Start of ruby version menu ===
     openRubyVersionMenu,
+    // === Smalruby: End of ruby version menu ===
     // === Smalruby: Start of display mode menu ===
     displayModeMenuOpen,
     openDisplayModeMenu
@@ -55,33 +65,45 @@ import {
 const enabledColorModes = [DEFAULT_MODE, HIGH_CONTRAST_MODE];
 
 const SettingsMenu = ({
+    // === Smalruby: Start of v1 switch prevention ===
     vm,
     canChangeLanguage,
+    // === Smalruby: End of v1 switch prevention ===
     canChangeColorMode,
     canChangeTheme,
     hasActiveMembership,
     isRtl,
     isColorModeMenuOpen,
     isThemeMenuOpen,
+    // === Smalruby: Start of smalruby settings menu items ===
     isRubyVersionMenuOpen,
     isDisplayModeMenuOpen,
+    // === Smalruby: End of smalruby settings menu items ===
     activeColorMode,
+    // === Smalruby: Start of ruby version menu ===
     activeRubyVersion,
+    // === Smalruby: End of ruby version menu ===
     onChangeColorMode,
+    // === Smalruby: Start of ruby version menu ===
     onChangeRubyVersion,
+    // === Smalruby: End of ruby version menu ===
     onRequestOpenColorMode,
     onRequestOpenTheme,
+    // === Smalruby: Start of smalruby settings menu items ===
     onRequestOpenRubyVersion,
     onRequestOpenDisplayMode,
     onOpenBlockDisplayModal,
     onOpenTeacherModal,
+    // === Smalruby: End of smalruby settings menu items ===
     activeTheme,
     onChangeTheme,
     onRequestClose,
     onRequestOpen,
     settingsMenuOpen
 }) => {
+    // === Smalruby: Start of v1 switch prevention ===
     const intl = useIntl();
+    // === Smalruby: End of v1 switch prevention ===
     // === Smalruby: Start of display mode menu ===
     // 表示モード (auto / PC / スマホ) の現在値と切替ハンドラ (Issue #865)。
     // 他の設定メニュー (テーマ / Ruby バージョン) と同じ PreferenceMenu の
@@ -108,7 +130,9 @@ const SettingsMenu = ({
     }, {}), [hasActiveMembership]);
     const availableThemesLength = useMemo(() => Object.keys(availableThemesMap).length, [availableThemesMap]);
 
+    // === Smalruby: Start of ruby version menu ===
     const handleChangeRubyVersion = useCallback(rubyVersion => {
+    // === Smalruby: End of ruby version menu ===
         // === Smalruby: Start of v1 switch prevention ===
         // Prevent switching to v1 when v2 features (module/class) are in use
         if (rubyVersion === '1' && vm.runtime) { // eslint-disable-line react/prop-types
@@ -124,15 +148,19 @@ const SettingsMenu = ({
             }
         }
         // === Smalruby: End of v1 switch prevention ===
+        // === Smalruby: Start of ruby version menu ===
         onChangeRubyVersion(rubyVersion);
     }, [intl, vm, onChangeRubyVersion]);
+        // === Smalruby: End of ruby version menu ===
 
     return (
         <div
             className={classNames(menuBarStyles.menuBarItem, menuBarStyles.hoverable, menuBarStyles.colorModeMenu, {
                 [menuBarStyles.active]: settingsMenuOpen
             })}
+            // === Smalruby: Start of settings menu test id ===
             data-testid="settings-menu"
+            // === Smalruby: End of settings menu test id ===
             onClick={onRequestOpen}
         >
             <img
@@ -186,6 +214,7 @@ const SettingsMenu = ({
                         onRequestCloseSettings={onRequestClose}
                         onRequestOpen={onRequestOpenColorMode}
                     />}
+                    {/* === Smalruby: Start of ruby version menu === */}
                     <PreferenceMenu
                         open={isRubyVersionMenuOpen}
                         itemsMap={rubyVersionMap}
@@ -197,6 +226,7 @@ const SettingsMenu = ({
                         onRequestCloseSettings={onRequestClose}
                         onRequestOpen={onRequestOpenRubyVersion}
                     />
+                    {/* === Smalruby: End of ruby version menu === */}
                     {/* === Smalruby: Start of display mode menu === */}
                     {/*
                      * 表示モード切替 (Issue #865)。auto / PC / スマホ を選べる。
@@ -216,6 +246,7 @@ const SettingsMenu = ({
                         onRequestOpen={onRequestOpenDisplayMode}
                     />
                     {/* === Smalruby: End of display mode menu === */}
+                    {/* === Smalruby: Start of block display menu === */}
                     <MenuItem onClick={onOpenBlockDisplayModal}>
                         <div className={styles.option}>
                             <img
@@ -229,6 +260,7 @@ const SettingsMenu = ({
                             />
                         </div>
                     </MenuItem>
+                    {/* === Smalruby: End of block display menu === */}
                     {/* === Smalruby: Start of classroom management menu === */}
                     {isClassroomConfigured() && (
                         <MenuItem onClick={onOpenTeacherModal}>
@@ -256,11 +288,13 @@ const SettingsMenu = ({
 };
 
 SettingsMenu.propTypes = {
+    // === Smalruby: Start of v1 switch prevention ===
     vm: PropTypes.shape({
         extensionManager: PropTypes.shape({
             isExtensionLoaded: PropTypes.func
         })
     }),
+    // === Smalruby: End of v1 switch prevention ===
     canChangeLanguage: PropTypes.bool,
     canChangeColorMode: PropTypes.bool,
     canChangeTheme: PropTypes.bool,
@@ -270,17 +304,25 @@ SettingsMenu.propTypes = {
     onChangeColorMode: PropTypes.func,
     onRequestOpenColorMode: PropTypes.func,
     isColorModeMenuOpen: PropTypes.bool,
+    // === Smalruby: Start of smalruby settings menu items ===
     isRubyVersionMenuOpen: PropTypes.bool,
     isDisplayModeMenuOpen: PropTypes.bool,
     onRequestOpenDisplayMode: PropTypes.func,
     onOpenBlockDisplayModal: PropTypes.func,
     onOpenTeacherModal: PropTypes.func,
+    // === Smalruby: End of smalruby settings menu items ===
     activeTheme: PropTypes.string,
+    // === Smalruby: Start of ruby version menu ===
     activeRubyVersion: PropTypes.string,
+    // === Smalruby: End of ruby version menu ===
     onChangeTheme: PropTypes.func,
+    // === Smalruby: Start of ruby version menu ===
     onChangeRubyVersion: PropTypes.func,
+    // === Smalruby: End of ruby version menu ===
     onRequestOpenTheme: PropTypes.func,
+    // === Smalruby: Start of ruby version menu ===
     onRequestOpenRubyVersion: PropTypes.func,
+    // === Smalruby: End of ruby version menu ===
     isThemeMenuOpen: PropTypes.bool,
     onRequestClose: PropTypes.func,
     onRequestOpen: PropTypes.func,
@@ -288,13 +330,19 @@ SettingsMenu.propTypes = {
 };
 
 const mapStateToProps = state => ({
+    // === Smalruby: Start of v1 switch prevention ===
     vm: state.scratchGui.vm,
+    // === Smalruby: End of v1 switch prevention ===
     activeColorMode: state.scratchGui.settings.colorMode,
     activeTheme: state.scratchGui.settings.theme,
+    // === Smalruby: Start of ruby version menu ===
     activeRubyVersion: state.scratchGui.settings.rubyVersion,
+    // === Smalruby: End of ruby version menu ===
     isColorModeMenuOpen: colorModeMenuOpen(state),
     isThemeMenuOpen: themeMenuOpen(state),
+    // === Smalruby: Start of ruby version menu ===
     isRubyVersionMenuOpen: rubyVersionMenuOpen(state),
+    // === Smalruby: End of ruby version menu ===
     // === Smalruby: Start of display mode menu ===
     isDisplayModeMenuOpen: displayModeMenuOpen(state)
     // === Smalruby: End of display mode menu ===
@@ -307,17 +355,21 @@ const mapDispatchToProps = (dispatch, ownProps) => ({
     onRequestOpenTheme: () => {
         dispatch(openThemeMenu());
     },
+    // === Smalruby: Start of ruby version menu ===
     onRequestOpenRubyVersion: () => {
         dispatch(openRubyVersionMenu());
     },
+    // === Smalruby: End of ruby version menu ===
     // === Smalruby: Start of display mode menu ===
     onRequestOpenDisplayMode: () => {
         dispatch(openDisplayModeMenu());
     },
     // === Smalruby: End of display mode menu ===
+    // === Smalruby: Start of block display menu ===
     onOpenBlockDisplayModal: () => {
         ownProps.onOpenBlockDisplayModal();
     },
+    // === Smalruby: End of block display menu ===
     // === Smalruby: Start of classroom management menu ===
     onOpenTeacherModal: () => {
         dispatch(openTeacherModal());
@@ -334,11 +386,13 @@ const mapDispatchToProps = (dispatch, ownProps) => ({
         ownProps.onRequestClose();
         persistTheme(theme);
     },
+    // === Smalruby: Start of ruby version menu ===
     onChangeRubyVersion: rubyVersion => {
         dispatch(setRubyVersion(rubyVersion));
         ownProps.onRequestClose();
         persistRubyVersion(rubyVersion);
     }
+    // === Smalruby: End of ruby version menu ===
 });
 
 export default connect(
