@@ -2221,11 +2221,13 @@ $seat-tile-min: 36px;
     border: none;
     border-bottom: $size-tab-indicator solid transparent;
     margin-bottom: -1px;
+    min-width: $size-tab-min-width;
     padding: 0.5rem 1rem;
     font-family: inherit;
     font-size: $font-size-medium;
     font-weight: $font-weight-bold;
     color: $color-text;
+    text-align: center;
     cursor: pointer;
 }
 
@@ -6696,15 +6698,19 @@ $seat-tile-min: 36px;
 
 .eval-inner-tabs {
     display: flex;
-    gap: 1.25rem;
+    gap: 0.25rem;
     border-bottom: 1px solid $color-border;
     margin-bottom: 0.5rem;
 }
 
+/* 採点の［基準］［形］［生徒］。クラス管理のタブと同じ最小の幅にする（1 文字の「形」も押しやすい幅）。
+   縦の余白は 1300×600 に収めるため、ほかのタブより小さいまま。 */
 .eval-inner-tab {
-    padding: 0.3rem 0.1rem;
+    min-width: $size-tab-min-width;
+    padding: 0.3rem 1rem;
     border: 0;
-    border-bottom: 3px solid transparent;
+    border-bottom: $size-tab-indicator solid transparent;
+    text-align: center;
     background: none;
     color: $color-text-muted;
     font: inherit;
