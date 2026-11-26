@@ -355,6 +355,7 @@ src/lib/*
 !src/lib/teacher-auth.js
 !src/lib/module-sync.js
 !src/lib/monaco-i18n-helper.js
+!src/lib/prism-integer-values.js
 !src/lib/prism-parser.js
 !src/lib/project-loader-utils.js
 !src/lib/responsive-gui.jsx
@@ -803,6 +804,7 @@ test/unit/lib/*
 !test/unit/lib/use-display-mode.test.js
 !test/unit/lib/use-is-narrow-screen.test.js
 !test/unit/lib/module-sync.test.js
+!test/unit/lib/prism-integer-values.test.js
 !test/unit/lib/prism-parser.test.js
 !test/unit/lib/removed-trademarks.test.js
 !test/unit/lib/ruby-generator-procedure-arguments.test.js

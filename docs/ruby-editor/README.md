@@ -83,6 +83,7 @@ Scratch に無い Ruby の考え方（ローカル変数・戻り値・ハッシ
 | ファイル | 役割 |
 |---|---|
 | `packages/scratch-gui/src/lib/prism-parser.js` | `@ruby/prism` (WebAssembly) ローダ、prism インスタンスのキャッシュ |
+| `packages/scratch-gui/src/lib/prism-integer-values.js` | 構文木の整数をソースの文字列から読み直す。`@ruby/prism` は 2^31 以上の整数を 32 ビットの符号つきで読んで負にするため（上流が直るまでの回避）。2^53 を超える整数は、いちばん近い数（Scratch の数は浮動小数点数）にする |
 | `packages/scratch-gui/src/lib/ruby-parser.js` | prism-parser を高レベル API でラップ |
 
 #### Monaco Editor 統合
