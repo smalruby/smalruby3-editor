@@ -1613,7 +1613,7 @@ export default {
     'gui.rubyTab.dnclStringArithmeticHint':
         'With a string, - * / are worked out from the left, so "a" + x - 1 subtracts from the string "a" + x. Put the number part in parentheses, like "a" + (x - 1).',
     'gui.rubyTab.dnclArrayIndexHint':
-        '{access} reads past the end of the array. In Smalruby Japanese mode, array indices start at 0 (the first element is {array}[0] and the last is {array}[{last}]). If the problem counts from 1, shift the index by 1, like {fixed}, or write "すべての配列の添字は 1 から始まる。" at the top of the program (the menu "Settings: a problem whose indices start at 1" writes it).',
+        '{access} reads past the end of the array. In Smalruby Japanese mode, array indices start at 0 (the first element is {array}[0] and the last is {array}[{last}]). If the problem counts from 1, shift the index by 1, like {fixed}, or write "すべての配列の添字は 1 から始まる。" at the top of the program (the menu "A problem whose indices start at 1" writes it).',
     'gui.rubyToolbar.copyProblemForm': 'Copy with line numbers and rules',
     'gui.rubyToolbar.rulesSwitch': 'Line numbers and rules',
     'gui.rubyToolbar.rulesSwitchTitle': 'Show the line numbers and the rules, in the form of the test questions',
@@ -1713,7 +1713,7 @@ export default {
     'gui.genaiConcierge.indexHintsTitle':
         'Note: the indexes may start at 1. In Smalruby Japanese mode, array indices start at 0.',
     'gui.genaiConcierge.indexHint':
-        '{access} reads past the end of the array (the last element is {array}[{last}]). If the problem counts from 1, shift the index by 1, like {fixed}, or write "すべての配列の添字は 1 から始まる。" at the top of the program (the menu "Settings: a problem whose indices start at 1" writes it).',
+        '{access} reads past the end of the array (the last element is {array}[{last}]). If the problem counts from 1, shift the index by 1, like {fixed}, or write "すべての配列の添字は 1 から始まる。" at the top of the program (the menu "A problem whose indices start at 1" writes it).',
     'gui.genaiConcierge.lineOf': 'Line {line}',
     'gui.genaiConcierge.spriteLineOf': '"{sprite}" line {line}',
     'gui.genaiConcierge.spriteOf': '"{sprite}"',
