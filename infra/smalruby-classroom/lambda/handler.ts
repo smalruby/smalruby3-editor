@@ -194,9 +194,11 @@ const EVAL_RATE_LIMIT_MAX_REQUESTS = parseInt(process.env.EVAL_RATE_LIMIT_MAX_RE
 // Durable per-teacher daily cap on Claude API calls (adversarial review):
 // the in-memory hourly window resets on cold starts and is per-instance, so
 // a DynamoDB counter enforces the real budget. One 35-student class costs
-// ~4 chunked calls per run (grade or comment), so 50 calls/day ≈ 5 full
-// grade+comment runs. Env-configurable for tests and per-stage tuning.
-const EVAL_DAILY_LIMIT = parseInt(process.env.EVAL_DAILY_LIMIT || '50', 10);
+// ~4 chunked calls per run (grade or comment). 200 calls/day lets a teacher
+// with 4–6 classes grade, comment and build criteria with a few retries
+// (50 ran out within a day of real use, #2448). Env-configurable for tests
+// and per-stage tuning.
+const EVAL_DAILY_LIMIT = parseInt(process.env.EVAL_DAILY_LIMIT || '200', 10);
 const EVAL_GRADES = ['S', 'A', 'B', 'C'];
 
 // --- DynamoDB Client ---
@@ -5591,21 +5593,50 @@ export function evaluationResponseBody(text: string, request: EvaluateRequest): 
 // pattern as the join limiter — best-effort per Lambda instance).
 const evalAttempts = new Map<string, { count: number; windowStart: number }>();
 
+/** Today's AI evaluation usage as shown to the teacher (#2448). */
+export interface EvalQuota {
+  used: number;
+  limit: number;
+  /** Next UTC midnight (ISO string) — when the counter starts over. */
+  resetsAt: string;
+}
+
+/** Counter key of the teacher's daily quota for the UTC day of `nowMs`. */
+function evalQuotaKey(teacherSub: string, nowMs: number): string {
+  return `eval-quota#${teacherSub}#${new Date(nowMs).toISOString().slice(0, 10)}`;
+}
+
+/**
+ * Build the quota shown to the teacher from the day's counter. `used` is
+ * capped at the limit (calls refused after the limit still bump the counter).
+ * Pure — exported for unit tests.
+ */
+export function evalQuotaFromCount(count: number, limit: number, nowMs: number): EvalQuota {
+  const now = new Date(nowMs);
+  const resetsAt = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+  return {
+    used: Math.min(Math.max(0, count), limit),
+    limit,
+    resetsAt: resetsAt.toISOString(),
+  };
+}
+
 /**
  * Durable daily quota: an atomic counter item per teacher per UTC day in the
  * Classrooms table (reuses the table key space with a reserved prefix; TTL
- * cleans it up after two days). Throws when the day's budget is exhausted.
+ * cleans it up after two days). Throws when the day's budget is exhausted;
+ * otherwise returns the quota after this call.
  */
-async function checkEvalDailyLimit(teacherSub: string): Promise<void> {
-  const day = new Date().toISOString().slice(0, 10);
+async function checkEvalDailyLimit(teacherSub: string): Promise<EvalQuota> {
+  const nowMs = Date.now();
   const result = await docClient.send(new UpdateCommand({
     TableName: CLASSROOMS_TABLE,
-    Key: { classroomId: `eval-quota#${teacherSub}#${day}` },
+    Key: { classroomId: evalQuotaKey(teacherSub, nowMs) },
     UpdateExpression: 'ADD #c :one SET #ttl = if_not_exists(#ttl, :ttl)',
     ExpressionAttributeNames: { '#c': 'count', '#ttl': 'ttl' },
     ExpressionAttributeValues: {
       ':one': 1,
-      ':ttl': Math.floor(Date.now() / 1000) + 2 * 24 * 60 * 60,
+      ':ttl': Math.floor(nowMs / 1000) + 2 * 24 * 60 * 60,
     },
     ReturnValues: 'UPDATED_NEW',
   }));
@@ -5615,6 +5646,26 @@ async function checkEvalDailyLimit(teacherSub: string): Promise<void> {
       `Daily AI evaluation limit reached (${EVAL_DAILY_LIMIT} calls/day). Please continue tomorrow.`,
     );
   }
+  return evalQuotaFromCount(count, EVAL_DAILY_LIMIT, nowMs);
+}
+
+/**
+ * GET /teacher/evaluation-quota — the caller's AI evaluation usage today.
+ * Read-only: never bumps the counter (#2448).
+ */
+async function handleGetEvaluationQuota(
+  identity: TeacherIdentity,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const nowMs = Date.now();
+  const result = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId: evalQuotaKey(identity.sub, nowMs) },
+  }));
+  const count = (result.Item?.count as number) || 0;
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ quota: evalQuotaFromCount(count, EVAL_DAILY_LIMIT, nowMs) }),
+  };
 }
 
 function checkEvalRateLimit(teacherSub: string): void {
@@ -5717,7 +5768,7 @@ async function handleEvaluateSubmissions(
   // Every mode (grade / comment / describe / rubric / fairness) counts
   // toward the same hourly window and daily limit (#2422).
   checkEvalRateLimit(identity.sub);
-  await checkEvalDailyLimit(identity.sub);
+  const quota = await checkEvalDailyLimit(identity.sub);
 
   const { system, user } = buildEvaluationPrompt(request);
 
@@ -5747,7 +5798,7 @@ async function handleEvaluateSubmissions(
     return { statusCode: 502, body: JSON.stringify({ error: 'AI_RESPONSE_INVALID' }) };
   }
 
-  return { statusCode: 200, body: JSON.stringify(responseBody) };
+  return { statusCode: 200, body: JSON.stringify({ ...responseBody, quota }) };
 }
 
 // --- Per-assignment grading (#2422) ---
@@ -7130,6 +7181,12 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
       const token = extractBearerToken(event.headers?.authorization);
       const identity = await verifyTeacherIdToken(token);
       result = await handleListNotifications(identity);
+
+    // --- Today's AI evaluation usage (#2448). Read-only. ---
+    } else if (method === 'GET' && path === '/teacher/evaluation-quota') {
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      result = await handleGetEvaluationQuota(identity);
 
     // --- Pending kick requests across the teacher's assignments (#1200) ---
     } else if (method === 'GET' && path === '/kick-requests/pending') {

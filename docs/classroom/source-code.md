@@ -191,6 +191,7 @@ CDK スタック定義。以下のリソースを作成:
 | `handleGetGrading()` / `handleSetGrading()` | 課題の採点の読み書き（予約キー `grading#<classroomId>` の項目。PUT は送ったキーだけを SET）#2422 |
 | `validateGradingUpdate()` / `mergeGrading()` / `gradingOf()` / `gradingByteSize()` / `gradingForDuplicate()` | 採点の検証（大きさの上限）・送ったキーの重ね合わせ・読み出し・全体の大きさ・再利用でコピーする部分 #2422 |
 | `validateEvaluateRequest()` / `buildEvaluationPrompt()` / `evaluationResponseBody()` | AI 評価支援（`grade` / `comment` / `describe` / `rubric` / `fairness`）の入力検証・プロンプト・モード別の応答（`parseEvaluationResponse` / `parseDescribeResponse` / `parseRubricResponse` / `parseFairnessResponse`）#2422 |
+| `handleGetEvaluationQuota()` / `evalQuotaFromCount()` | 先生の今日の AI 評価の使用量 `{used, limit, resetsAt}`（`GET /teacher/evaluation-quota` は数を読むだけ。`POST .../evaluate` の応答の `quota` も同じ形）#2448 |
 | `handleListGoogleCourses()` | Google Classroom コース一覧 |
 | `handleGetGoogleCourseAccess()` | 押した先生が紐付け先コースの GC 教師か・連携者本人か（`linkedByMe`）の判定 |
 | `handleImportGoogleClassroom()` | Google Classroom コースインポート |
