@@ -997,6 +997,24 @@ await judge(page, {
     shot: "confirmed",
 });
 
+// 評価の分布 (#2457): S の人数は、評価を変えるとすぐ変わる
+const distS = () =>
+    page.evaluate(() =>
+        Number(
+            document.querySelector(
+                '[data-testid="classroom-eval-dist-grade-S"] b',
+            )?.textContent,
+        ),
+    );
+const distBefore = await page.evaluate(() => ({
+    sa: document.querySelector('[data-testid="classroom-eval-dist-sa"]')
+        ?.textContent,
+    s: document.querySelector('[data-testid="classroom-eval-dist-s"]')
+        ?.textContent,
+    base: document.querySelector('[data-testid="classroom-eval-dist-base"]')
+        ?.textContent,
+}));
+const sBefore = await distS();
 await page.click(tid("classroom-eval-cell-button-4-c2"));
 await page.waitForSelector(tid("classroom-eval-grade-4-c2"));
 const before4 = await page.inputValue(tid("classroom-eval-grade-4-c2"));
@@ -1005,6 +1023,16 @@ await page.selectOption(
     before4 === "S" ? "A" : "S",
 );
 await page.waitForSelector(tid("classroom-eval-unconfirmed"));
+const sAfter = await distS();
+record({
+    name: "distribution: S/A/B/C, S+A and S with %, and S changes with a grade",
+    ok:
+        /S\+A.*%/.test(distBefore.sa || "") &&
+        /%/.test(distBefore.s || "") &&
+        !!distBefore.base &&
+        sAfter === sBefore + (before4 === "S" ? -1 : 1),
+    detail: JSON.stringify({ ...distBefore, sBefore, sAfter }),
+});
 if (await page.locator(tid("grading-group-prompt-no")).count()) {
     await page.click(tid("grading-group-prompt-no"));
 }

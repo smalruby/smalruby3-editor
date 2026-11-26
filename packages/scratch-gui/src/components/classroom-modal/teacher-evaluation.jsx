@@ -30,6 +30,7 @@ import {
     isLessonOnlyAssignment,
     lessonScoreOf,
 } from '../../lib/classroom-evaluation/evaluation-utils.js';
+import { GRADE_TARGETS, assignmentDistribution } from '../../lib/classroom-evaluation/grade-distribution.js';
 import {
     assignmentCounts,
     currentGradingStep,
@@ -461,6 +462,41 @@ const assignmentMessages = defineMessages({
         description: 'Assignment grading: count of works whose comment was returned (#2424)',
         id: 'gui.classroom.evaluation.countReturned',
     },
+    distributionGraded: {
+        defaultMessage: 'Of {graded} graded',
+        description: 'Assignment grading: the base of the shares in the grade distribution (#2457)',
+        id: 'gui.classroom.evaluation.distributionGraded',
+    },
+    distributionGradedNotSubmitted: {
+        defaultMessage: 'Of {graded} graded ({notSubmitted} not submitted are not counted)',
+        description: 'Assignment grading: the base of the shares, and the seats that did not submit apart (#2457)',
+        id: 'gui.classroom.evaluation.distributionGradedNotSubmitted',
+    },
+    distributionSa: {
+        defaultMessage: 'S+A {count} ({percent})',
+        description: 'Assignment grading: seats with S or A and their share (#2457)',
+        id: 'gui.classroom.evaluation.distributionSa',
+    },
+    distributionSaTarget: {
+        defaultMessage: 'target {min}% or more',
+        description: 'Assignment grading: the target of the S+A share (#2457)',
+        id: 'gui.classroom.evaluation.distributionSaTarget',
+    },
+    distributionS: {
+        defaultMessage: 'S {count} ({percent})',
+        description: 'Assignment grading: seats with S and their share (#2457)',
+        id: 'gui.classroom.evaluation.distributionS',
+    },
+    distributionSTarget: {
+        defaultMessage: 'aim {min}–{max}%',
+        description: 'Assignment grading: the aimed range of the S share (#2457)',
+        id: 'gui.classroom.evaluation.distributionSTarget',
+    },
+    distributionOff: {
+        defaultMessage: 'Off the target',
+        description: 'Assignment grading: tooltip of a share out of its target (#2457)',
+        id: 'gui.classroom.evaluation.distributionOff',
+    },
     tabRubric: {
         defaultMessage: 'Rubric',
         description: 'Assignment grading: tab with the description and the rubric (#2424)',
@@ -690,6 +726,69 @@ const Counts = ({ counts }) => {
 
 Counts.propTypes = {
     counts: PropTypes.object.isRequired,
+};
+
+/*
+ * 人数の下の評価の分布（#2457・F5 / F6）: S/A/B/C の人数、S+A と S の人数と %。
+ * % の分母は評価のついた人で、未提出は数えない。目安を外れたら注意の色と「!」（色だけに頼らない）。
+ */
+const Distribution = ({ distribution }) => {
+    const intl = useIntl();
+    const { counts, graded, notSubmitted, sa, s } = distribution;
+    const percent = (value) => (value === null ? '—' : `${value}%`);
+    const share = (key, ok, label, target) => (
+        <span
+            className={classNames(styles.evalDistShare, { [styles.evalDistShareOff]: !ok })}
+            data-ok={ok}
+            data-testid={`classroom-eval-dist-${key}`}
+            title={ok ? null : intl.formatMessage(assignmentMessages.distributionOff)}
+        >
+            {ok ? null : <b className={styles.evalDistMark}>{'!'}</b>}
+            <b>{label}</b>
+            <span className={styles.evalDistTarget}>{target}</span>
+        </span>
+    );
+    return (
+        <div className={styles.evalDist} data-testid="classroom-eval-distribution">
+            <span className={styles.evalDistGrades}>
+                {['S', 'A', 'B', 'C'].map((grade) => (
+                    <span data-testid={`classroom-eval-dist-grade-${grade}`} key={grade}>
+                        {grade} <b>{counts[grade]}</b>
+                    </span>
+                ))}
+            </span>
+            {share(
+                'sa',
+                sa.ok,
+                intl.formatMessage(assignmentMessages.distributionSa, {
+                    count: sa.count,
+                    percent: percent(sa.percent),
+                }),
+                intl.formatMessage(assignmentMessages.distributionSaTarget, { min: GRADE_TARGETS.saMin }),
+            )}
+            {share(
+                's',
+                s.ok,
+                intl.formatMessage(assignmentMessages.distributionS, {
+                    count: s.count,
+                    percent: percent(s.percent),
+                }),
+                intl.formatMessage(assignmentMessages.distributionSTarget, {
+                    min: GRADE_TARGETS.sMin,
+                    max: GRADE_TARGETS.sMax,
+                }),
+            )}
+            <span className={styles.evalDistBase} data-testid="classroom-eval-dist-base">
+                {notSubmitted
+                    ? intl.formatMessage(assignmentMessages.distributionGradedNotSubmitted, { graded, notSubmitted })
+                    : intl.formatMessage(assignmentMessages.distributionGraded, { graded })}
+            </span>
+        </div>
+    );
+};
+
+Distribution.propTypes = {
+    distribution: PropTypes.object.isRequired,
 };
 
 const TeacherEvaluation = ({
@@ -1133,6 +1232,12 @@ const TeacherEvaluation = ({
             grading,
             loaded,
         });
+        const distribution = assignmentDistribution({
+            seats,
+            getCell: (seat) => getCell(seat, lesson.classroomId),
+            grading,
+            loaded,
+        });
         const rubricLevels = (grading && grading.rubric && grading.rubric.levels) || [];
         const detailInfo = detailCell ? getCell(detailCell.seat, detailCell.classroomId) : null;
         const rubricPane = (
@@ -1310,6 +1415,7 @@ const TeacherEvaluation = ({
                     </div>
                     <div className={styles.evalPane}>
                         <Counts counts={counts} />
+                        {lessonOnly ? null : <Distribution distribution={distribution} />}
                         {lessonOnly ? null : (
                             <div className={styles.evalInnerTabs} role="tablist">
                                 <button

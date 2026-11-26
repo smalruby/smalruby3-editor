@@ -856,6 +856,35 @@ describe('採点簿 (#2424)', () => {
         expect(getByTestId('classroom-eval-save-state')).toHaveAttribute('data-state', 'failed');
         expect(getByTestId('classroom-eval-unconfirmed')).toBeInTheDocument();
     });
+
+    test('評価の分布 (#2457): S/A/B/C、S+A と S の %（分母は評価のついた人）。目安を外れたら注意', () => {
+        const cells = {
+            '1:c1': { submitted: true, grade: 'A' },
+            '2:c1': { submitted: true, grade: 'B' },
+        };
+        const getCell = (seat, id) => cells[`${seat}:${id}`] || null;
+        const { getByTestId, rerender } = renderEvaluation({ seats: [1, 2, 3], loaded: true, getCell });
+        expect(getByTestId('classroom-eval-dist-grade-A')).toHaveTextContent('1');
+        expect(getByTestId('classroom-eval-dist-grade-B')).toHaveTextContent('1');
+        expect(getByTestId('classroom-eval-dist-sa')).toHaveTextContent('S+A 1 (50%)');
+        expect(getByTestId('classroom-eval-dist-sa')).toHaveAttribute('data-ok', 'false');
+        expect(getByTestId('classroom-eval-dist-s')).toHaveTextContent('S 0 (0%)');
+        expect(getByTestId('classroom-eval-dist-s')).toHaveAttribute('data-ok', 'false');
+        expect(getByTestId('classroom-eval-dist-base')).toHaveTextContent('Of 2 graded (1 not submitted');
+        // 評価が変わると更新される
+        cells['1:c1'] = { submitted: true, grade: 'S' };
+        cells['2:c1'] = { submitted: true, grade: 'A' };
+        cells['3:c1'] = { submitted: true, grade: 'A' };
+        cells['4:c1'] = { submitted: true, grade: 'A' };
+        rerender(
+            evaluationElement({ seats: [1, 2, 3, 4], loaded: true, getCell: (seat, id) => cells[`${seat}:${id}`] }),
+        );
+        expect(getByTestId('classroom-eval-dist-sa')).toHaveTextContent('S+A 4 (100%)');
+        expect(getByTestId('classroom-eval-dist-sa')).toHaveAttribute('data-ok', 'true');
+        expect(getByTestId('classroom-eval-dist-s')).toHaveTextContent('S 1 (25%)');
+        expect(getByTestId('classroom-eval-dist-s')).toHaveAttribute('data-ok', 'true');
+        expect(getByTestId('classroom-eval-dist-base')).toHaveTextContent('Of 4 graded');
+    });
 });
 
 describe('［生徒］のスターターから足した台本 (#2424)', () => {
