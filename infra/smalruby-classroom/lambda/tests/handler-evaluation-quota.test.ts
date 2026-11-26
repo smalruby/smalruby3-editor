@@ -31,7 +31,7 @@ jest.mock('../anthropic-client', () => {
 });
 
 const DEV_TOKEN = 'test-dev-bypass';
-const NOW = Date.UTC(2026, 10, 26, 15, 30, 0); // 2026-11-26T15:30:00Z
+const NOW = Date.UTC(2026, 10, 26, 5, 30, 0); // 2026-11-26T05:30:00Z = 14:30 JST
 
 const makeEvent = (method: string, path: string, body?: unknown, pathParameters: Record<string, string> = {}) => ({
   requestContext: { http: { method, path, sourceIp: '127.0.0.1' } },
@@ -45,6 +45,7 @@ describe('AI 評価の今日の使用量 (#2448)', () => {
   let mod: {
     handler: (event: unknown) => Promise<{ statusCode?: number; body?: string }>;
     evalQuotaFromCount: (count: number, limit: number, nowMs: number) => unknown;
+    jstDay: (nowMs: number) => string;
   };
 
   beforeEach(() => {
@@ -65,15 +66,24 @@ describe('AI 評価の今日の使用量 (#2448)', () => {
   });
 
   describe('evalQuotaFromCount', () => {
-    test('次の UTC 0 時を resetsAt にする', () => {
+    test('次の日本時間の 0 時を resetsAt にする', () => {
       expect(mod.evalQuotaFromCount(3, 200, NOW)).toEqual({
-        used: 3, limit: 200, resetsAt: '2026-11-27T00:00:00.000Z',
+        used: 3, limit: 200, resetsAt: '2026-11-26T15:00:00.000Z',
       });
     });
 
-    test('月末・年末もくり上がる', () => {
-      const quota = mod.evalQuotaFromCount(0, 200, Date.UTC(2026, 11, 31, 23, 59, 59)) as { resetsAt: string };
-      expect(quota.resetsAt).toBe('2027-01-01T00:00:00.000Z');
+    test('月末・年末もくり上がる（日本時間で数える）', () => {
+      // 12/31 23:59:59 JST
+      const lastSecond = mod.evalQuotaFromCount(0, 200, Date.UTC(2026, 11, 31, 14, 59, 59)) as { resetsAt: string };
+      expect(lastSecond.resetsAt).toBe('2026-12-31T15:00:00.000Z');
+      // 1/1 0:00 JST は新しい日
+      const newYear = mod.evalQuotaFromCount(0, 200, Date.UTC(2026, 11, 31, 15, 0, 0)) as { resetsAt: string };
+      expect(newYear.resetsAt).toBe('2027-01-01T15:00:00.000Z');
+    });
+
+    test('日付のキーは日本の日付（UTC の 15 時で変わる）', () => {
+      expect(mod.jstDay(Date.UTC(2026, 10, 26, 14, 59, 59))).toBe('2026-11-26');
+      expect(mod.jstDay(Date.UTC(2026, 10, 26, 15, 0, 0))).toBe('2026-11-27');
     });
 
     test('used は limit を超えない', () => {
@@ -91,7 +101,7 @@ describe('AI 評価の今日の使用量 (#2448)', () => {
       const res = await mod.handler(makeEvent('GET', '/teacher/evaluation-quota'));
       expect(res.statusCode).toBe(200);
       expect(JSON.parse(res.body!)).toEqual({
-        quota: { used: 52, limit: 200, resetsAt: '2026-11-27T00:00:00.000Z' },
+        quota: { used: 52, limit: 200, resetsAt: '2026-11-26T15:00:00.000Z' },
       });
       expect(mockSend).toHaveBeenCalledTimes(1);
     });
@@ -148,7 +158,7 @@ describe('AI 評価の今日の使用量 (#2448)', () => {
       expect(JSON.parse(res.body!)).toEqual({
         mode: 'describe',
         description: 'ねこを動かす',
-        quota: { used: 48, limit: 200, resetsAt: '2026-11-27T00:00:00.000Z' },
+        quota: { used: 48, limit: 200, resetsAt: '2026-11-26T15:00:00.000Z' },
       });
     });
 

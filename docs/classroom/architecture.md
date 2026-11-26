@@ -660,7 +660,7 @@ erDiagram
 - Claude は Anthropic の TypeScript SDK（`@anthropic-ai/sdk`）で呼ぶ。`ANTHROPIC_FEDERATION_RULE_ID` / `ANTHROPIC_ORGANIZATION_ID` / `ANTHROPIC_SERVICE_ACCOUNT_ID`（+ 任意の `ANTHROPIC_WORKSPACE_ID`）がそろえば Workload Identity Federation（Lambda の実行ロールの JWT を AWS STS `GetWebIdentityToken` で取り、短期トークンに交換）で呼ぶ。静的な API キーの経路は無い。値がそろわないステージではエンドポイントは 503（機能無効）。設定は `docs/infra/claude-api-wif.md`
 - 1 回の呼び出しは 25 秒で打ち切り（API Gateway の 30 秒の上限より前）・再送しない。タイムアウトは 504 `AI_TIMEOUT`、Claude のエラーと WIF の交換の失敗は 502 `AI_API_ERROR`
 - CloudWatch に `classroom_evaluate` イベント（トークン数・キャッシュヒット）を構造化ログ出力
-- 成功した応答には、モードごとの項目に加えて `quota: {used, limit, resetsAt}` が付く。`used` はこの呼び出しを数えたあとの今日の回数（`limit` を超えない）、`limit` は `EVAL_DAILY_LIMIT`、`resetsAt` は数え直しになる次の UTC 0 時（日本時間の朝 9 時）の ISO 文字列。上限を超えた呼び出しは 400 で、`quota` は付かない。画面を開いたときなど、数を増やさずに読むときは `GET /teacher/evaluation-quota`（同じ形の `quota`）
+- 成功した応答には、モードごとの項目に加えて `quota: {used, limit, resetsAt}` が付く。`used` はこの呼び出しを数えたあとの今日の回数（`limit` を超えない）、`limit` は `EVAL_DAILY_LIMIT`、`resetsAt` は数え直しになる次の日本時間の 0 時の ISO 文字列（1 日の上限は日本の日付で数える。理由は `docs/adr/0004-daily-limits-reset-at-jst-midnight.ja.md`）。上限を超えた呼び出しは 400 で、`quota` は付かない。画面を開いたときなど、数を増やさずに読むときは `GET /teacher/evaluation-quota`（同じ形の `quota`）
 
 ### 課題の採点（grading）
 

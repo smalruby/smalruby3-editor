@@ -5597,13 +5597,33 @@ const evalAttempts = new Map<string, { count: number; windowStart: number }>();
 export interface EvalQuota {
   used: number;
   limit: number;
-  /** Next UTC midnight (ISO string) — when the counter starts over. */
+  /** Next midnight in Japan (ISO string) — when the counter starts over. */
   resetsAt: string;
 }
 
-/** Counter key of the teacher's daily quota for the UTC day of `nowMs`. */
+/**
+ * The daily limits count by the Japanese date and start over at 0:00 JST
+ * (docs/adr/0004-daily-limits-reset-at-jst-midnight.ja.md). Teachers use the
+ * app on weekday daytime, and some finish their preparation early in the
+ * morning (before 8:00): a reset at midnight lets them plan the next morning,
+ * while the old UTC day reset at 9:00 JST, in the middle of that work.
+ */
+const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+/** The Japanese date (YYYY-MM-DD) of `nowMs`. Exported for unit tests. */
+export function jstDay(nowMs: number): string {
+  return new Date(nowMs + JST_OFFSET_MS).toISOString().slice(0, 10);
+}
+
+/** The next 0:00 JST after `nowMs`, as epoch ms. Exported for unit tests. */
+export function nextJstMidnight(nowMs: number): number {
+  const jst = new Date(nowMs + JST_OFFSET_MS);
+  return Date.UTC(jst.getUTCFullYear(), jst.getUTCMonth(), jst.getUTCDate() + 1) - JST_OFFSET_MS;
+}
+
+/** Counter key of the teacher's daily quota for the Japanese date of `nowMs`. */
 function evalQuotaKey(teacherSub: string, nowMs: number): string {
-  return `eval-quota#${teacherSub}#${new Date(nowMs).toISOString().slice(0, 10)}`;
+  return `eval-quota#${teacherSub}#${jstDay(nowMs)}`;
 }
 
 /**
@@ -5612,17 +5632,15 @@ function evalQuotaKey(teacherSub: string, nowMs: number): string {
  * Pure — exported for unit tests.
  */
 export function evalQuotaFromCount(count: number, limit: number, nowMs: number): EvalQuota {
-  const now = new Date(nowMs);
-  const resetsAt = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
   return {
     used: Math.min(Math.max(0, count), limit),
     limit,
-    resetsAt: resetsAt.toISOString(),
+    resetsAt: new Date(nextJstMidnight(nowMs)).toISOString(),
   };
 }
 
 /**
- * Durable daily quota: an atomic counter item per teacher per UTC day in the
+ * Durable daily quota: an atomic counter item per teacher per Japanese date in the
  * Classrooms table (reuses the table key space with a reserved prefix; TTL
  * cleans it up after two days). Throws when the day's budget is exhausted;
  * otherwise returns the quota after this call.
@@ -6360,11 +6378,11 @@ async function getSharedItemByPasscode(passcode: string): Promise<Record<string,
 
 /**
  * Durable daily quota shared by the share/report endpoints (D12): an atomic
- * counter per teacher per UTC day, stored in the Classrooms table's reserved
+ * counter per teacher per Japanese date (resets at 0:00 JST, like eval-quota), stored in the Classrooms table's reserved
  * key space (same pattern as eval-quota; TTL cleans it after two days).
  */
 async function checkSharedDailyLimit(kind: string, teacherSub: string, limit: number): Promise<void> {
-  const day = new Date().toISOString().slice(0, 10);
+  const day = jstDay(Date.now());
   const result = await docClient.send(new UpdateCommand({
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId: `${kind}-quota#${teacherSub}#${day}` },
