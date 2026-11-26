@@ -186,7 +186,10 @@ const record = (row) => {
 const measure = (page) =>
     page.evaluate((root) => {
         const el = document.querySelector(root);
-        const current = document.querySelector('[aria-current="step"]');
+        // The footer's steps only: the inner stepper of the［基準］tab has its own current step (#2455).
+        const current = document.querySelector(
+            '[data-testid="classroom-eval-steps"] [aria-current="step"]',
+        );
         const primary =
             current ||
             document.querySelector(

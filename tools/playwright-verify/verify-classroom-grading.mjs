@@ -250,7 +250,10 @@ const record = (row) => {
 const measure = (page) =>
     page.evaluate((root) => {
         const el = document.querySelector(root);
-        const current = document.querySelector('[aria-current="step"]');
+        // The footer's steps only: the inner stepper of the［基準］tab has its own current step (#2455).
+        const current = document.querySelector(
+            '[data-testid="classroom-eval-steps"] [aria-current="step"]',
+        );
         const primary =
             current ||
             document.querySelector(
@@ -629,8 +632,9 @@ const rubric0 = await page.evaluate(() => ({
     tab: document
         .querySelector('[data-testid="classroom-eval-tab-rubric"]')
         ?.getAttribute("aria-selected"),
+    // With a description, 2-1 is done and folded into its one line (#2455).
     description: document.querySelector(
-        '[data-testid="grading-rubric-description-text"]',
+        '[data-testid="grading-rubric-description-text"], [data-testid="grading-rubric-steps-summary-describe"]',
     )?.textContent,
     saved: !!document.querySelector('[data-testid="grading-rubric-saved"]'),
     builder: !!document.querySelector('[data-testid="grading-rubric-steps"]'),
@@ -798,6 +802,11 @@ record({
         (await page.isDisabled(tid("grading-rubric-fairness-ai-button"))),
     detail: JSON.stringify(fairnessAt),
 });
+// Show the open inner step from its head (the pane scrolls inside its frame, R6).
+await page.evaluate(
+    (sel) => document.querySelector(sel)?.scrollIntoView({ block: "start" }),
+    tid("grading-rubric-steps-step-fairness"),
+);
 await judge(page, {
     name: "B rubric 2-3 fairness questions",
     expected: "classroom-eval-run-grade",
