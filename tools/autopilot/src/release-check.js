@@ -214,8 +214,8 @@ function releasePreviewUrl(body) {
     const text = String(body || '');
     const m = text.match(/\*\*プレビュー\*\*\s*[:：]\s*<?(https?:\/\/[^\s<>)]+)/);
     if (m) return m[1];
-    // 「**プレビュー**: まだありません」と書いた観点（#2485）では、本文のほかの URL を拾わない
-    if (/\*\*プレビュー\*\*\s*[:：]/.test(text)) return null;
+    // 「**プレビュー**: まだありません / 無し」と書いた観点（#2485）では、本文のほかの URL を拾わない
+    if (/\*\*プレビュー\*\*\s*[:：]\s*(?:まだ|無し|なし)/.test(text)) return null;
     return extractPreviewUrl([{ body: text }]);
 }
 

@@ -253,7 +253,7 @@ function topicSyncTarget({ epic, topic, base, facts, plan }) {
  * - hitl: EPIC に理由を 1 回だけ書き、人間に任せる（追跡はやめる）
  * - wait: 次の tick でもう一度見る
  * @param {object[]} targets {@link topicSyncTarget} の結果
- * @param {object} deps { startSync(target), hasCapacity(), getPrMergeFacts, mergePr, postIssueComment,
+ * @param {object} deps { startSync(target), hasCapacity(), isRunning(epic), getPrMergeFacts, mergePr, postIssueComment,
  *   refreshTopicPr(epic, topic), token, readToken }
  * @returns {Promise<Array<{epic:number, action:string, reason:string}>>}
  */
@@ -269,7 +269,9 @@ async function applyEpicTopicSync(targets, cfg, state, log, deps = {}) {
     const now = (cfg.now || Date.now)();
     const done = [];
     for (const t of byEpic.values()) {
-        if (t.running) continue;
+        // 同じ tick の前の項目や起動時の確認が始めたものも見る（取り込みを二重に走らせない）
+        const live = state.topicSyncs[t.epic];
+        if (t.running || (live && live.running)) continue;
         try {
             const readTok = deps.readToken || await project.readToken();
             let syncPr = null;
@@ -287,7 +289,9 @@ async function applyEpicTopicSync(targets, cfg, state, log, deps = {}) {
             } else if (plan.action === 'wait') {
                 state.topicSyncs[t.epic] = { ...keep, polled: true };
             } else if (plan.action === 'resolve') {
-                if (deps.startSync && (!deps.hasCapacity || deps.hasCapacity())) {
+                // EPIC の worker（release-check など）が動いているあいだは始めない（state.running を同じ番号で使うため）
+                const busy = deps.isRunning && deps.isRunning(t.epic);
+                if (deps.startSync && !busy && (!deps.hasCapacity || deps.hasCapacity())) {
                     state.topicSyncs[t.epic] = { ...keep, running: true };
                     log(`EPIC #${t.epic}: topic → ${t.base} の PR #${topicPr.number} が競合 → ${t.base} を ${t.topic} に取り込む`);
                     deps.startSync({ epic: t.epic, topic: t.topic, base: t.base, topicPr: topicPr.number });

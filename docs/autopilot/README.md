@@ -404,8 +404,9 @@ EPIC の子の PR は topic ブランチ宛てで、daemon が CI 通過後に t
   既に子が topic に入っている EPIC の PR もそろえる（`bootEpicTopicPrs`）。人間が手で topic にマージしたときは、
   次の自動マージか daemon の起動でそろう。
 - daemon は develop へのマージをしない（下のリリース確認の 5.）。
-- 本文のプレビューの節に、**プレビューがまだできていないときはその理由**を書く（`previewStatus` / `previewStatusText`。
-  例「⚠️ develop と競合しています。プレビューはまだありません」）。`getEpicPrFacts` が同じ GraphQL 1 回で
+- 本文のプレビューの節に、**develop と競合していてプレビューが作られないときはそう**書く（`previewStatus` / `previewStatusText`。
+  「⚠️ develop と競合しています。プレビューはまだありません」）。CI を待つあいだの状態は、本文を次に直すまで
+  古い文として残るので書かない（リリース確認の前の確かめは下の `preview-status`）。`getEpicPrFacts` が同じ GraphQL 1 回で
   topic → develop の PR の `mergeable` と CI（`preview-deploy` のジョブ）を読む。
 
 ### topic を develop に追従させる（競合したら develop を取り込む）

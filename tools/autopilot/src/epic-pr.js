@@ -159,7 +159,9 @@ function cell(s) {
  */
 function progressLines({ topic, base, children, preview = null }) {
     const merged = children.filter((c) => c.state === 'merged').length;
-    const note = preview && !preview.ready ? previewStatusText(preview, base) : null;
+    // 書くのは競合だけ。CI を待つあいだの状態（no-ci / building）は本文を直す次の機会まで残り、古い文になるため
+    // （競合は develop を取り込んだあとに本文を直すので消える・#2485）
+    const note = preview && preview.state === 'conflict' ? previewStatusText(preview, base) : null;
     const lines = [
         '## プレビュー',
         '',

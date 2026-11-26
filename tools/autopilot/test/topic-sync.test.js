@@ -53,6 +53,9 @@ test('epicPrPlan: 競合している PR の本文は、プレビューがまだ�
     // できていれば書かない
     const ready = ep.epicPrPlan(facts([{ number: 2479, body, mergeable: 'MERGEABLE', statusCheckRollup: [ok('preview-deploy')] }]));
     assert.doesNotMatch(ready.body || '', /まだありません/);
+    // CI を待つあいだ（no-ci / building）は、次に本文を直すまで古い文として残るので書かない
+    const building = ep.epicPrPlan(facts([{ number: 2479, body, mergeable: 'UNKNOWN', statusCheckRollup: [] }]));
+    assert.doesNotMatch(building.body || '', /⚠️/);
     // 作るときは CI がこれからなので書かない
     assert.doesNotMatch(ep.epicPrPlan(facts([])).body, /⚠️/);
 });
@@ -65,6 +68,8 @@ test('releasePreviewLine / releasePreviewUrl: まだ無ければ URL を「確�
     assert.ok(!line.includes(url));
     assert.equal(rc.releasePreviewUrl(`${line}\n\n（前の round は ${url} で見た）`), null);
     assert.equal(rc.releasePreviewUrl(rc.releasePreviewLine({ ready: true }, url)), url);
+    // 「まだ / 無し」でない書き方（リンクの形など）は、これまでどおり本文から拾う
+    assert.equal(rc.releasePreviewUrl(`**プレビュー**: [開く](${url})`), url);
 });
 
 test('topicSyncBranch: 子の PR（topic/autopilot-<N>）と取り違えない', () => {
@@ -123,6 +128,26 @@ test('applyEpicTopicSync: 競合していたら取り込みを始め、取り込
     assert.deepEqual(merged, [2484]);
     assert.deepEqual(refreshed, [{ epic: 2438, topic: TOPIC }]);
     assert.deepEqual(state.topicSyncs, {});
+});
+
+test('applyEpicTopicSync: EPIC の worker が動いているあいだは取り込みを始めない', async () => {
+    const state = { running: new Map([[2438, { phase: 'release-check' }]]) };
+    const started = [];
+    const deps = {
+        token: 'b', readToken: 'r', hasCapacity: () => true, isRunning: (n) => state.running.has(n),
+        startSync: (t) => started.push(t),
+    };
+    const target = { epic: 2438, topic: TOPIC, base: 'develop', topicPr: { number: 2479, mergeable: 'CONFLICTING' }, syncPr: null };
+    assert.deepEqual((await em.applyEpicTopicSync([target], cfg, state, quiet, deps)).map((d) => d.action), ['resolve']);
+    assert.deepEqual(started, []);
+    assert.equal(state.topicSyncs[2438].polled, true);
+    // 終わったら次の tick で始める
+    state.running.clear();
+    await em.applyEpicTopicSync([], cfg, state, quiet, deps);
+    assert.equal(started.length, 1);
+    // 取り込み中（live の running）に、同じ EPIC を対象として渡されても二重に始めない
+    await em.applyEpicTopicSync([target], cfg, state, quiet, deps);
+    assert.equal(started.length, 1);
 });
 
 test('applyEpicTopicSync: 取り込む PR の CI が落ちたら EPIC に 1 回だけ書いて人間に渡す', async () => {

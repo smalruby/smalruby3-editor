@@ -1648,10 +1648,15 @@ function topicSyncDeps(cfg, state, log, items) {
     const statuses = Object.fromEntries((items || []).map((it) => [it.issue, it.status]));
     return {
         hasCapacity: () => state.running.size < cfg.concurrency,
+        isRunning: (epic) => state.running.has(epic),
         startSync: (t) => runTopicSync(t, cfg, state, log, {
             execFileP, followBaseBranch, runConflictResolver, worktreeBin: WORKTREE_BIN, botGitBin: BOT_GIT_BIN,
             stopLeftovers: () => stopWorktreeLeftovers({ issues: [t.epic], runningIssues: [...state.running.keys()] }, log),
-        }).catch((e) => log(`EPIC #${t.epic}: topic sync error: ${e.message}`)),
+        }).catch((e) => {
+            // running のまま残すと二度と見直さないので、追跡をやめる（次に子を topic に入れたときに見つけ直す）
+            if (state.topicSyncs) delete state.topicSyncs[t.epic];
+            log(`EPIC #${t.epic}: topic sync error: ${e.message}`);
+        }),
         // 取り込んだら、topic → develop の PR の本文（プレビューの状態）を直す
         refreshTopicPr: (epic, topic) => applyEpicTopicPrs([{ epic, base: topic }], cfg, log, {
             defaultBase: DEFAULT_BASE_BRANCH, statuses,
