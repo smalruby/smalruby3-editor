@@ -1,3 +1,4 @@
+import { DEFAULT_RUBRIC_AXES } from '../../../../src/lib/classroom-evaluation/evaluation-utils';
 import {
     applyFairnessAnswers,
     buildDescribeRequest,
@@ -9,9 +10,11 @@ import {
     examplesFromAnswers,
     fullGradeExtras,
     gradeOfOption,
+    gradingCriteriaFor,
     groupChangePlan,
     normalizeLevels,
     representativesOf,
+    rubricStepStates,
     rubricToSave,
     worksOf,
 } from '../../../../src/lib/classroom-evaluation/grading-ai';
@@ -85,7 +88,7 @@ describe('request builders', () => {
 
     test('grade adds the levels and examples of the rubric, and leaves out an empty starter', () => {
         const rubric = { levels: [{ grade: 'B', text: 'b' }], examples: [{ seatNumber: 1, grade: 'B' }] };
-        const body = buildGradeRequest({ assignmentName: 'x', rubric, rubricAxes: [], works });
+        const body = buildGradeRequest({ assignmentName: 'x', rubric, works });
         expect(body).toMatchObject({ mode: 'grade', rubricLevels: rubric.levels, examples: rubric.examples });
         expect(body).not.toHaveProperty('starterPseudocode');
         expect(body.submissions).toHaveLength(5);
@@ -249,5 +252,81 @@ describe('groupChangePlan', () => {
         expect(groupChangePlan({ seat: 2, from: 'B', to: 'B', groupBySeat, seats: [1, 2, 3], gradeOf })).toBeNull();
         expect(groupChangePlan({ seat: 2, from: null, to: 'A', groupBySeat, seats: [1, 2, 3], gradeOf })).toBeNull();
         expect(groupChangePlan({ seat: 9, from: 'B', to: 'A', groupBySeat, seats: [9], gradeOf })).toBeNull();
+    });
+});
+
+describe('gradingCriteriaFor (#2455 F2: no criteria on the screen)', () => {
+    test('with the S/A/B/C sentences, no criteria are sent: the rubric and the examples grade', () => {
+        expect(gradingCriteriaFor({ levels: [{ grade: 'S', text: 's' }] })).toEqual({
+            rubricAxes: [],
+            strictness: 'standard',
+        });
+    });
+
+    test('without a rubric, the fixed criteria are sent (it runs, the requirements, extra ideas)', () => {
+        for (const rubric of [null, {}, { levels: [], examples: [{ seatNumber: 1, grade: 'B' }] }]) {
+            const criteria = gradingCriteriaFor(rubric);
+            expect(criteria.rubricAxes).toBe(DEFAULT_RUBRIC_AXES);
+            expect(criteria.rubricAxes.map((a) => a.name)).toEqual(['動くこと', '課題の要件', '工夫']);
+            expect(criteria.strictness).toBe('standard');
+        }
+    });
+
+    test('the grade request of the representatives follows the same rule', () => {
+        const works = worksOf({ seats: [1], getCell, starterPseudocode: STARTER });
+        expect(buildGradeRequest({ assignmentName: 'x', rubric: null, works }).rubricAxes).toBe(DEFAULT_RUBRIC_AXES);
+        const withLevels = buildGradeRequest({
+            assignmentName: 'x',
+            rubric: { levels: [{ grade: 'B', text: 'b' }] },
+            works,
+        });
+        expect(withLevels.rubricAxes).toEqual([]);
+        expect(withLevels.strictness).toBe('standard');
+    });
+});
+
+describe('rubricStepStates (#2455 F1: the inner steps 2-1 → 2-4)', () => {
+    const base = { hasDescription: false, repsTotal: 3, repsDone: 0, fairness: null, saved: false };
+    const states = (patch) => rubricStepStates({ ...base, ...patch });
+
+    test('at the start, 2-1 is the current step and the rest are not yet', () => {
+        expect(states({})).toEqual({ describe: 'now', examples: 'todo', fairness: 'todo', sentences: 'todo' });
+    });
+
+    test('a description moves the current step to 2-2', () => {
+        expect(states({ hasDescription: true })).toMatchObject({ describe: 'done', examples: 'now' });
+    });
+
+    test('every representative with an answer moves it to 2-3', () => {
+        expect(states({ hasDescription: true, repsDone: 3 })).toMatchObject({ examples: 'done', fairness: 'now' });
+        expect(states({ hasDescription: true, repsDone: 2 })).toMatchObject({ examples: 'now', fairness: 'todo' });
+    });
+
+    test('the fairness is done when every question is answered (or there is none)', () => {
+        const done = { hasDescription: true, repsDone: 3 };
+        expect(states({ ...done, fairness: { checks: [], answers: {} } })).toMatchObject({
+            fairness: 'done',
+            sentences: 'now',
+        });
+        const asked = { checks: [{ question: 'q' }, { question: 'r' }], answers: { 0: 'x' } };
+        expect(states({ ...done, fairness: asked }).fairness).toBe('now');
+        expect(states({ ...done, fairness: { ...asked, answers: { 0: 'x', 1: 'y' } } }).fairness).toBe('done');
+    });
+
+    test('saving the sentences finishes 2-4; a step done out of order stays done', () => {
+        expect(
+            states({ hasDescription: true, repsDone: 3, fairness: { checks: [], answers: {} }, saved: true }),
+        ).toEqual({ describe: 'done', examples: 'done', fairness: 'done', sentences: 'done' });
+        // Without a description yet, the answered representatives still count as done.
+        expect(states({ repsDone: 3 })).toEqual({
+            describe: 'now',
+            examples: 'done',
+            fairness: 'todo',
+            sentences: 'todo',
+        });
+    });
+
+    test('no representative (not loaded / nothing submitted) keeps 2-2 not done', () => {
+        expect(states({ hasDescription: true, repsTotal: 0 }).examples).toBe('now');
     });
 });

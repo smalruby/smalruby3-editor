@@ -5,7 +5,7 @@
  * assignment opens its own grading (this file, `view: 'assignment'`), after Google
  * Classroom's 「生徒の提出物」: the seats and their grades on the left, the counts
  * (not submitted, AI drafts, confirmed, returned) and two tabs on the right:
- * ［基準］ (the description, the rubric and the grading criteria) and ［生徒］ (the
+ * ［基準］ (the description and the rubric) and ［生徒］ (the
  * chosen seat's grade, the AI's reason, the comment and［作品を開く］).
  *
  * The footer is a numbered flow: 1 load → 2 rubric → 3 grade everyone → 4 confirm →
@@ -173,25 +173,6 @@ const evalMessages = defineMessages({
         defaultMessage: 'Lesson points of {name}',
         description: 'Grading screen: label of the lesson points field of one assignment (#1778)',
         id: 'gui.classroom.evaluation.lessonScoringOf',
-    },
-});
-
-/* 厳しさの選択肢。閉じた設定の 1 行でも、いまの値として同じ言葉を出す。 */
-const STRICTNESS_MESSAGES = defineMessages({
-    lenient: {
-        defaultMessage: 'Lenient',
-        description: 'Strictness option',
-        id: 'gui.classroom.evaluation.strictnessLenient',
-    },
-    standard: {
-        defaultMessage: 'Standard',
-        description: 'Strictness option',
-        id: 'gui.classroom.evaluation.strictnessStandard',
-    },
-    strict: {
-        defaultMessage: 'Strict',
-        description: 'Strictness option',
-        id: 'gui.classroom.evaluation.strictnessStrict',
     },
 });
 
@@ -482,7 +463,7 @@ const assignmentMessages = defineMessages({
     },
     tabRubric: {
         defaultMessage: 'Rubric',
-        description: 'Assignment grading: tab with the description, the rubric and the criteria (#2424)',
+        description: 'Assignment grading: tab with the description and the rubric (#2424)',
         id: 'gui.classroom.evaluation.tabRubric',
     },
     tabStudent: {
@@ -507,8 +488,8 @@ const assignmentMessages = defineMessages({
     },
     noRubric: {
         defaultMessage:
-            'This assignment has no rubric yet. Making one from a few works will come here. Until then the AI ' +
-            'grades with the grading criteria below.',
+            'This assignment has no rubric yet. Without one, the AI grades on whether it runs, the ' +
+            'assignment\u2019s requirements and extra ideas.',
         description: 'Assignment grading: the assignment has no rubric (the rubric maker comes in #2425)',
         id: 'gui.classroom.evaluation.noRubric',
     },
@@ -728,13 +709,11 @@ const TeacherEvaluation = ({
     innerTab: innerTabProp = null,
     lessonScores = EMPTY_LESSON_SCORES,
     loaded: loadedProp = null,
-    rubricAxes,
     rubricDone = false,
     rubricTools = null,
     scoringChecked = false,
     scoringSavingId = null,
     seats,
-    strictness,
     tabs,
     leaveRequest = null,
     unconfirmedByEdit = false,
@@ -744,7 +723,6 @@ const TeacherEvaluation = ({
     onShowClassList,
     onCancelLeave,
     onChangeLessonScoring,
-    onChangeRubricAxis,
     onCheckScoring,
     onConfirmGrades = null,
     onConfirmLeave,
@@ -762,7 +740,6 @@ const TeacherEvaluation = ({
     onSetCellReason,
     onSetComment,
     onSetInnerTab = null,
-    onSetStrictness,
     onShowGradebook = null,
     onShowOverall = null,
     onVisitRubric = null,
@@ -835,18 +812,6 @@ const TeacherEvaluation = ({
     const handleTabStudent = useCallback(() => setInnerTab('student'), [setInnerTab]);
     const [hintOpen, setHintOpen] = useState(false);
     const handleHintToggle = useCallback(() => setHintOpen((prev) => !prev), []);
-    const [settingsOpen, setSettingsOpen] = useState(false);
-    const handleSettingsToggle = useCallback(() => setSettingsOpen((prev) => !prev), []);
-    const handleStrictnessChange = useCallback((e) => onSetStrictness(e.target.value), [onSetStrictness]);
-    const handleAxisChange = useCallback(
-        (e) =>
-            onChangeRubricAxis(
-                parseInt(e.currentTarget.dataset.index, 10),
-                e.currentTarget.dataset.field,
-                e.target.value,
-            ),
-        [onChangeRubricAxis],
-    );
     // Every way out asks first when comments not returned or grades not saved would be
     // lost (#1923 C4). The container decides (requestLeave).
     const handleLeave = useCallback(() => onRequestLeave(onBack, 'back'), [onRequestLeave, onBack]);
@@ -1206,120 +1171,6 @@ const TeacherEvaluation = ({
                         )}
                     </>
                 )}
-                {/* 採点の観点・厳しさ（基準が無いときに AI が使う）。あまり変えないので 1 行に畳む（R3）。 */}
-                <div className={styles.evalSection} data-testid="classroom-eval-settings-summary">
-                    <span className={styles.assignmentNameLabel}>
-                        <FormattedMessage
-                            defaultMessage="Grading criteria:"
-                            description="Label of the rubric axes (what the AI grades on)"
-                            id="gui.classroom.evaluation.rubric"
-                        />
-                    </span>
-                    <span className={styles.evalSettingsValue}>
-                        {rubricAxes
-                            .map((axis) => axis.name)
-                            .filter((name) => name)
-                            .join('・')}
-                    </span>
-                    <span className={styles.assignmentNameLabel}>
-                        <FormattedMessage
-                            defaultMessage="Strictness:"
-                            description="Strictness selector label"
-                            id="gui.classroom.evaluation.strictness"
-                        />
-                    </span>
-                    <span className={styles.evalSettingsValue}>
-                        {STRICTNESS_MESSAGES[strictness]
-                            ? intl.formatMessage(STRICTNESS_MESSAGES[strictness])
-                            : strictness}
-                    </span>
-                    <button
-                        aria-expanded={settingsOpen}
-                        className={styles.evalHintToggle}
-                        data-testid="classroom-eval-settings-toggle"
-                        disabled={busy}
-                        type="button"
-                        onClick={handleSettingsToggle}
-                    >
-                        {settingsOpen ? (
-                            <FormattedMessage
-                                defaultMessage="Done"
-                                description="Close the grading settings (criteria and strictness)"
-                                id="gui.classroom.evaluation.settingsDone"
-                            />
-                        ) : (
-                            <FormattedMessage
-                                defaultMessage="Change"
-                                description="Open the grading settings (criteria and strictness)"
-                                id="gui.classroom.evaluation.settingsChange"
-                            />
-                        )}
-                    </button>
-                </div>
-                {settingsOpen && (
-                    <div className={styles.evalSection} data-testid="classroom-eval-settings">
-                        {/* R1: 名前と説明の欄が何かを、いつも見える見出しで示す。 */}
-                        <div className={classNames(styles.evalRubricRow, styles.evalRubricHeader)}>
-                            <span className={styles.evalRubricName}>
-                                <FormattedMessage
-                                    defaultMessage="Criterion"
-                                    description="Column header of the grading criterion name fields"
-                                    id="gui.classroom.evaluation.axisNameHeader"
-                                />
-                            </span>
-                            <span className={styles.evalRubricDescription}>
-                                <FormattedMessage
-                                    defaultMessage="What it looks for"
-                                    description="Column header of the grading criterion description fields"
-                                    id="gui.classroom.evaluation.axisDescriptionHeader"
-                                />
-                            </span>
-                        </div>
-                        {rubricAxes.map((axis, i) => (
-                            <div className={styles.evalRubricRow} key={i}>
-                                <input
-                                    className={styles.evalRubricName}
-                                    data-field="name"
-                                    data-index={i}
-                                    data-testid={`classroom-eval-axis-name-${i}`}
-                                    maxLength={50}
-                                    type="text"
-                                    value={axis.name}
-                                    onChange={handleAxisChange}
-                                />
-                                <input
-                                    className={styles.evalRubricDescription}
-                                    data-field="description"
-                                    data-index={i}
-                                    data-testid={`classroom-eval-axis-desc-${i}`}
-                                    maxLength={300}
-                                    type="text"
-                                    value={axis.description}
-                                    onChange={handleAxisChange}
-                                />
-                            </div>
-                        ))}
-                        <label className={styles.evalStrictnessRow}>
-                            <FormattedMessage
-                                defaultMessage="Strictness:"
-                                description="Strictness selector label"
-                                id="gui.classroom.evaluation.strictness"
-                            />
-                            <select
-                                className={styles.groupSelect}
-                                data-testid="classroom-eval-strictness"
-                                value={strictness}
-                                onChange={handleStrictnessChange}
-                            >
-                                {Object.keys(STRICTNESS_MESSAGES).map((value) => (
-                                    <option key={value} value={value}>
-                                        {intl.formatMessage(STRICTNESS_MESSAGES[value])}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-                    </div>
-                )}
             </div>
         );
         const added = detailInfo && detailInfo.submitted ? detailInfo.added : null;
@@ -1580,7 +1431,6 @@ TeacherEvaluation.propTypes = {
     loaded: PropTypes.bool,
     /** A work is being opened from the right column (#1980). */
     openingWork: PropTypes.bool,
-    rubricAxes: PropTypes.arrayOf(PropTypes.object).isRequired,
     /** The rubric step is done (there is a rubric, or the teacher looked at it). */
     rubricDone: PropTypes.bool,
     /** The［基準］tab's state and handlers (useGradingRubric, #2425). */
@@ -1589,7 +1439,6 @@ TeacherEvaluation.propTypes = {
     scoringSavingId: PropTypes.string,
     /** The seats of the open assignment. */
     seats: PropTypes.arrayOf(PropTypes.number).isRequired,
-    strictness: PropTypes.string.isRequired,
     /** クラスの中のタブの行（［採点］が選ばれた `TeacherClassTabs`）。 */
     tabs: PropTypes.node,
     /** A grade changed after confirming, so the confirmation was taken back. */
@@ -1606,7 +1455,6 @@ TeacherEvaluation.propTypes = {
     onShowClassList: PropTypes.func,
     onCancelLeave: PropTypes.func,
     onChangeLessonScoring: PropTypes.func,
-    onChangeRubricAxis: PropTypes.func.isRequired,
     onCheckScoring: PropTypes.func,
     /** Confirm the grades of the open assignment (step 4). */
     onConfirmGrades: PropTypes.func,
@@ -1632,7 +1480,6 @@ TeacherEvaluation.propTypes = {
     onSetComment: PropTypes.func.isRequired,
     /** ('rubric'|'student') → choose the right column's tab, when the container keeps it. */
     onSetInnerTab: PropTypes.func,
-    onSetStrictness: PropTypes.func.isRequired,
     onShowGradebook: PropTypes.func,
     onShowOverall: PropTypes.func,
     /** Step 2: look at the rubric (#2425 makes it). */

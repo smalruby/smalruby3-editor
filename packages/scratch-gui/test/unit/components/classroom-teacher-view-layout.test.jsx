@@ -174,12 +174,9 @@ describe('screens built on the shared layout (#1125)', () => {
                 currentId="c1"
                 evalLessons={[{ classroomId: 'c1', assignmentName: '迷路' }]}
                 getCell={() => null}
-                rubricAxes={[]}
                 seats={[]}
-                strictness="standard"
                 view="assignment"
                 onBack={jest.fn()}
-                onChangeRubricAxis={jest.fn()}
                 onExportAuditCsv={jest.fn()}
                 onExportEvaluationCsv={jest.fn()}
                 onLoadSubmissions={jest.fn()}
@@ -188,7 +185,6 @@ describe('screens built on the shared layout (#1125)', () => {
                 onSetCellGrade={jest.fn()}
                 onSetCellReason={jest.fn()}
                 onSetComment={jest.fn()}
-                onSetStrictness={jest.fn()}
             />,
         );
         expect(getByTestId('classroom-phase-teacher-evaluation')).toBeInTheDocument();

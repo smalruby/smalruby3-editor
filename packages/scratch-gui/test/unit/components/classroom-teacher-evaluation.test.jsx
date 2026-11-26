@@ -23,7 +23,6 @@ const LESSONS = [{ classroomId: 'c1', assignmentName: '迷路' }];
 
 const baseHandlers = () => ({
     onBack: jest.fn(),
-    onChangeRubricAxis: jest.fn(),
     onExportAuditCsv: jest.fn(),
     onExportEvaluationCsv: jest.fn(),
     onLoadSubmissions: jest.fn(),
@@ -32,7 +31,6 @@ const baseHandlers = () => ({
     onSetCellGrade: jest.fn(),
     onSetCellReason: jest.fn(),
     onSetComment: jest.fn(),
-    onSetStrictness: jest.fn(),
 });
 
 const evaluationElement = (props = {}, handlers = baseHandlers()) => (
@@ -42,9 +40,7 @@ const evaluationElement = (props = {}, handlers = baseHandlers()) => (
             currentId="c1"
             evalLessons={LESSONS}
             getCell={() => null}
-            rubricAxes={[]}
             seats={[]}
-            strictness="standard"
             view="assignment"
             {...handlers}
             {...props}
@@ -296,34 +292,14 @@ describe('TeacherEvaluation hint (V2)', () => {
     });
 });
 
-describe('TeacherEvaluation grading settings (R3 / R6)', () => {
-    const AXES = [
-        { name: '動くこと', description: 'a' },
-        { name: '工夫', description: 'b' },
-    ];
-
-    test('shows the current criteria and strictness on one line, closed by default', () => {
-        const { getByTestId, queryByTestId } = renderEvaluation({ rubricAxes: AXES, strictness: 'strict' });
-        const summary = getByTestId('classroom-eval-settings-summary');
-        expect(summary).toHaveTextContent('動くこと・工夫');
-        expect(summary).toHaveTextContent('Strict');
-        expect(queryByTestId('classroom-eval-settings')).toBeNull();
-        expect(queryByTestId('classroom-eval-axis-name-0')).toBeNull();
-    });
-
-    test('"Change" opens the fields with visible headers; editing calls the handlers', () => {
-        const { getByTestId, handlers } = renderEvaluation({ rubricAxes: AXES });
-        const toggle = getByTestId('classroom-eval-settings-toggle');
-        expect(toggle).toHaveAttribute('aria-expanded', 'false');
-        fireEvent.click(toggle);
-        expect(toggle).toHaveAttribute('aria-expanded', 'true');
-        expect(getByTestId('classroom-eval-settings')).toHaveTextContent('Criterion');
-        expect(getByTestId('classroom-eval-settings')).toHaveTextContent('What it looks for');
-
-        fireEvent.change(getByTestId('classroom-eval-axis-name-1'), { target: { value: 'アイデア' } });
-        expect(handlers.onChangeRubricAxis).toHaveBeenCalledWith(1, 'name', 'アイデア');
-        fireEvent.change(getByTestId('classroom-eval-strictness'), { target: { value: 'lenient' } });
-        expect(handlers.onSetStrictness).toHaveBeenCalledWith('lenient');
+describe('TeacherEvaluation without the grading criteria (#2455 F2)', () => {
+    test('the criteria and the strictness are not on the screen any more', () => {
+        const { queryByTestId, getByTestId } = renderEvaluation({ seats: [1] });
+        expect(queryByTestId('classroom-eval-settings-summary')).toBeNull();
+        expect(queryByTestId('classroom-eval-settings-toggle')).toBeNull();
+        expect(queryByTestId('classroom-eval-strictness')).toBeNull();
+        // Without a rubric, it says which fixed criteria the AI grades on.
+        expect(getByTestId('classroom-eval-no-rubric')).toHaveTextContent('whether it runs');
     });
 });
 
@@ -377,7 +353,7 @@ describe('レッスンの課題の採点の流れ (#1778)', () => {
         lessonSetting: lessonSettingOf(true),
     };
 
-    test('作品を出さないレッスンの課題だけ: AI の観点・厳しさを出さず、①読み込む → ②点を確かめる → ③書き出す', () => {
+    test('作品を出さないレッスンの課題だけ: AI の採点ボタンを出さず、①読み込む → ②点を確かめる → ③書き出す', () => {
         const onCheckScoring = jest.fn();
         const { getByTestId, queryByTestId } = renderEvaluation({
             evalLessons: [lessonOnly],
@@ -386,7 +362,6 @@ describe('レッスンの課題の採点の流れ (#1778)', () => {
             onChangeLessonScoring: jest.fn(),
             onCheckScoring,
         });
-        expect(queryByTestId('classroom-eval-settings-summary')).toBeNull();
         expect(queryByTestId('classroom-eval-run-grade')).toBeNull();
         expect(queryByTestId('classroom-eval-return-comments')).toBeNull();
         expect(queryByTestId('classroom-eval-export-menu')).toBeNull();
@@ -411,13 +386,12 @@ describe('レッスンの課題の採点の流れ (#1778)', () => {
     });
 
     test('作品も提出するレッスンの課題: いつもの 6 つの手順のまま・レッスンの点の欄も出す', () => {
-        const { getByTestId, queryByTestId } = renderEvaluation({
+        const { getByTestId } = renderEvaluation({
             evalLessons: [withWork],
             currentId: 'lw',
             onChangeLessonScoring: jest.fn(),
         });
         expect(getByTestId('classroom-eval-run-grade')).toBeInTheDocument();
-        expect(getByTestId('classroom-eval-settings-summary')).toBeInTheDocument();
         expect(getByTestId('classroom-eval-lesson-scoring-lw')).toBeInTheDocument();
     });
 

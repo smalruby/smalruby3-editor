@@ -3,8 +3,10 @@
  *
  *   A. 以前の採点結果 CSV の取り込み (#2431): 採点結果でないファイルを断る → プレビュー（照らし合わせた課題・
  *      見つからない課題）→［取り込む］で先生の評価として確定で PUT /grading → 採点簿の列が「確定」
- *   B. ［基準］タブ (#2425): ほかの課題から基準をコピー → つくり直す（代表の作品・AI の案・正解・フェアの確認・
- *      AI に基準の文を書いてもらう）→［基準を保存］で PUT /grading の rubric → 全員を採点で AI に基準の文が渡る
+ *   B. ［基準］タブ (#2425): ほかの課題から基準をコピー → つくり直す。縦のステッパー（2-1 説明 → 2-2 代表 →
+ *      2-3 フェア → 2-4 基準の文・#2455）で、いまの小手順だけ開く。各小手順の上部の「AI に相談」（代表すべての
+ *      AI の案・フェアの確認・基準の文の案）は一度実行したら押せない →［基準を保存］で PUT /grading の rubric →
+ *      全員を採点で AI に基準の文が渡り、観点は送らない
  *   C. 確定と取り消し: 確定 → 評価を 1 つ変えると確定を取り消す（confirmedAt: null を保存・知らせが出る）→ もう一度確定
  *   D. 総合評価 (#2426): 確定していない課題があると注意とリンク・CSV を書き出せない → リンクで課題の採点を開く →
  *      確定すると書き出せる → CSV の中身（課題の列・平均・総合）
@@ -18,7 +20,7 @@
  *
  *   node verify-classroom-grading.mjs                    # コンテナ内 (headless)
  *   BASE=http://localhost:8624 node verify-classroom-grading.mjs
- *   DOCS_SHOTS=1 node verify-classroom-grading.mjs       # docs/classroom/screenshots の 0350〜0352 も撮り直す
+ *   DOCS_SHOTS=1 node verify-classroom-grading.mjs       # docs/classroom/screenshots の 0350〜0352・0358〜0360 も撮り直す
  *   LOCALE=ja-Hira node verify-classroom-grading.mjs     # ひらがなで測る (DOCS_SHOTS は ja のときだけ)
  */
 import { readFile } from "node:fs/promises";
@@ -46,6 +48,9 @@ const DOC_SHOT_NAMES = {
     returning: "0350-teacher-grading-returning.png",
     returned: "0351-teacher-grading-returned-result.png",
     "grade-failed": "0352-teacher-grading-failed-result.png",
+    "rubric-proposed": "0358-teacher-grading-rubric-steps.png",
+    "rubric-fairness": "0359-teacher-grading-rubric-fairness.png",
+    "rubric-drafted": "0360-teacher-grading-rubric-sentences.png",
 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const tid = (id) => `[data-testid="${id}"]`;
@@ -312,7 +317,11 @@ const waitIdle = (page) =>
             !document.querySelector(
                 '[data-testid="classroom-eval-progress"]',
             ) &&
-            !document.querySelector('[data-testid="grading-rubric-running"]'),
+            !document.querySelector('[data-testid="grading-rubric-running"]') &&
+            // The AI of the［基準］tab shows that it runs on its own button (#2455).
+            !document.querySelector(
+                '[data-testid="grading-rubric"] [aria-busy="true"]',
+            ),
         null,
         { timeout: 30000 },
     );
@@ -624,9 +633,7 @@ const rubric0 = await page.evaluate(() => ({
         '[data-testid="grading-rubric-description-text"]',
     )?.textContent,
     saved: !!document.querySelector('[data-testid="grading-rubric-saved"]'),
-    builder: !!document.querySelector(
-        '[data-testid="grading-rubric-sentences"]',
-    ),
+    builder: !!document.querySelector('[data-testid="grading-rubric-steps"]'),
 }));
 record({
     name: "rubric tab: opens with the description, and the builder when there is no rubric",
@@ -692,7 +699,47 @@ record({
 
 // つくり直す: 代表 → AI の案 → 正解 → フェアの確認 → AI に基準の文 → 保存
 await page.click(tid("grading-rubric-edit"));
-await page.waitForSelector(tid("grading-rubric-propose"));
+await page.waitForSelector(tid("grading-rubric-propose-ai-button"));
+const stepStates = () =>
+    page.evaluate(() =>
+        Object.fromEntries(
+            ["describe", "examples", "fairness", "sentences"].map((id) => [
+                id,
+                document
+                    .querySelector(
+                        `[data-testid="grading-rubric-steps-step-${id}"]`,
+                    )
+                    ?.getAttribute("data-state"),
+            ]),
+        ),
+    );
+const aiButtonAt = (id) =>
+    page.evaluate((sel) => {
+        const section = document.querySelector(sel);
+        const box = section?.firstElementChild;
+        const button = box?.querySelector("button");
+        return {
+            top: box?.getAttribute("data-testid") || null,
+            disabled: button ? button.disabled : null,
+        };
+    }, tid(id));
+const states0 = await stepStates();
+const proposeAt = await aiButtonAt("grading-rubric-reps");
+record({
+    name: "steps: the description is there, so 2-1 is done (one line) and 2-2 is open with its AI on top",
+    ok:
+        states0.describe === "done" &&
+        states0.examples === "now" &&
+        states0.fairness === "todo" &&
+        // The copied rubric is saved, so 2-4 shows done until the sentences are edited.
+        states0.sentences === "done" &&
+        /モーター/.test(
+            (await text(page, "grading-rubric-steps-summary-describe")) || "",
+        ) &&
+        proposeAt.top === "grading-rubric-propose-ai" &&
+        proposeAt.disabled === false,
+    detail: JSON.stringify({ states0, proposeAt }),
+});
 const reps = await page.evaluate(() =>
     [...document.querySelectorAll('[data-testid^="grading-rubric-rep-"]')]
         .map((e) => e.getAttribute("data-testid"))
@@ -704,7 +751,7 @@ record({
     ok: reps.length >= 2,
     detail: `${reps}`,
 });
-await page.click(tid("grading-rubric-propose"));
+await page.click(tid("grading-rubric-propose-ai-button"));
 await waitIdle(page);
 const proposeCall = evaluates.filter((e) => e.body.mode === "grade").at(-1);
 record({
@@ -715,6 +762,20 @@ record({
         proposeCall.body.submissions.every((s) => reps.includes(s.seatNumber)),
     detail: `${proposeCall?.body.submissions.map((s) => s.seatNumber)}`,
 });
+record({
+    name: "propose: one button for every representative, and it cannot be pressed again",
+    ok:
+        (await page
+            .locator(tid("grading-rubric-propose-ai-button"))
+            .count()) === 1 &&
+        (await page.isDisabled(tid("grading-rubric-propose-ai-button"))),
+    detail: "",
+});
+await judge(page, {
+    name: "B rubric 2-2 with the AI proposals",
+    expected: "classroom-eval-run-grade",
+    shot: "rubric-proposed",
+});
 const rep = reps[0];
 await page.click(tid(`grading-rubric-rep-${rep}`));
 await page.waitForSelector(tid(`grading-rubric-rep-grade-${rep}-A`));
@@ -723,13 +784,38 @@ await page.fill(
     tid(`grading-rubric-rep-reason-${rep}`),
     "話す台本で知らせている",
 );
-await page.click(tid("grading-rubric-fairness-run"));
+// Only some representatives have the right grade: 2-3 is not the current step yet, open it by its head.
+await page.click(tid("grading-rubric-steps-head-fairness"));
+const fairnessAt = await aiButtonAt("grading-rubric-fairness");
+await page.click(tid("grading-rubric-fairness-ai-button"));
 await waitIdle(page);
 await page.waitForSelector(tid("grading-rubric-check-0"));
-await shoot(page, "rubric-fairness");
+record({
+    name: "fairness: the AI is on top of 2-3, and it cannot be pressed again",
+    ok:
+        fairnessAt.top === "grading-rubric-fairness-ai" &&
+        fairnessAt.disabled === false &&
+        (await page.isDisabled(tid("grading-rubric-fairness-ai-button"))),
+    detail: JSON.stringify(fairnessAt),
+});
+await judge(page, {
+    name: "B rubric 2-3 fairness questions",
+    expected: "classroom-eval-run-grade",
+    shot: "rubric-fairness",
+});
 await page.click(tid("grading-rubric-check-0-option-1"));
-await page.click(tid("grading-rubric-draft"));
+await page.click(tid("grading-rubric-steps-head-sentences"));
+const draftAt = await aiButtonAt("grading-rubric-sentences");
+await page.click(tid("grading-rubric-draft-ai-button"));
 await waitIdle(page);
+record({
+    name: "draft: the AI is on top of 2-4, and it cannot be pressed again",
+    ok:
+        draftAt.top === "grading-rubric-draft-ai" &&
+        draftAt.disabled === false &&
+        (await page.isDisabled(tid("grading-rubric-draft-ai-button"))),
+    detail: JSON.stringify(draftAt),
+});
 const rubricCall = evaluates.filter((e) => e.body.mode === "rubric").at(-1);
 const levelS = await page.inputValue(tid("grading-rubric-level-S"));
 record({
@@ -783,8 +869,10 @@ record({
         gradeCall.body.rubricLevels?.some(
             (l) => l.text === "旗で動く台本を足していない",
         ) &&
-        (gradeCall.body.examples || []).length >= 2,
-    detail: `levels=${gradeCall?.body.rubricLevels?.length} examples=${gradeCall?.body.examples?.length}`,
+        (gradeCall.body.examples || []).length >= 2 &&
+        // The sentences grade: no criteria are sent (#2455 F2).
+        (gradeCall.body.rubricAxes || []).length === 0,
+    detail: `levels=${gradeCall?.body.rubricLevels?.length} examples=${gradeCall?.body.examples?.length} axes=${gradeCall?.body.rubricAxes?.length}`,
 });
 
 // ---- C. 確定と取り消し ----

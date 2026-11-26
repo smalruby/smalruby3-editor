@@ -35,6 +35,7 @@ import {
     examplesFromAnswers,
     fullGradeExtras,
     groupChangePlan,
+    hasRubricLevels,
     representativesOf,
     rubricToSave,
     worksOf,
@@ -64,6 +65,7 @@ const EMPTY_STATE = Object.freeze({
     levels: null, // edited levels; null = from the saved rubric
     extraExamples: null, // examples added by the fairness answers
     notes: [],
+    drafted: false, // the AI wrote the sentences once (its button cannot be pressed again, #2455)
     running: null, // 'starter' | 'describe' | 'propose' | 'fairness' | 'rubric' | 'save' | 'copy' | 'saveDescription'
     savedAt: null,
 });
@@ -82,8 +84,6 @@ const cellKey = (seatNumber, classroomId) => `${seatNumber}:${classroomId}`;
  * @param {Function} params.setMatrix - setter of the table
  * @param {Function} params.setEvalLessons - setter of the assignments (to keep a description)
  * @param {Function} params.gradesChanged - (classroomId) → schedule the grade save
- * @param {Array<object>} params.rubricAxes - the AI's criteria when there is no rubric
- * @param {string} params.strictness - lenient | standard | strict
  * @param {Array<object>} [params.classrooms] - every assignment of the teacher (copy source)
  * @param {Array<object>} [params.groups] - the teacher's classes (labels of the copy source)
  * @param {Function} params.handleTeacher401 - 401 handler
@@ -102,8 +102,6 @@ const useGradingRubric = ({
     setMatrix,
     setEvalLessons,
     gradesChanged,
-    rubricAxes,
-    strictness,
     classrooms = [],
     groups: classGroups = [],
     handleTeacher401,
@@ -318,8 +316,6 @@ const useGradingRubric = ({
                     assignmentText: lesson.assignmentText || '',
                     starterPseudocode,
                     rubric: savedRubric,
-                    rubricAxes,
-                    strictness,
                     works: representatives.map((r) => r.work).filter(Boolean),
                 }),
             );
@@ -332,7 +328,7 @@ const useGradingRubric = ({
             update(classroomId, { running: null });
             fail(err);
         }
-    }, [lesson, representatives, starterPseudocode, savedRubric, rubricAxes, strictness, update, evaluate, fail]);
+    }, [lesson, representatives, starterPseudocode, savedRubric, update, evaluate, fail]);
 
     /** 3. Fairness: the AI compares the answers with the other works of each group. */
     const handleCheckFairness = useCallback(async () => {
@@ -406,7 +402,11 @@ const useGradingRubric = ({
         update(classroomId, { running: 'rubric' });
         try {
             const data = await evaluate(payload);
-            update(classroomId, { running: null, levels: editableLevels((data && data.levels) || []) });
+            update(classroomId, {
+                running: null,
+                drafted: true,
+                levels: editableLevels((data && data.levels) || []),
+            });
         } catch (err) {
             update(classroomId, { running: null });
             fail(err);
@@ -587,6 +587,9 @@ const useGradingRubric = ({
         savedRubric,
         running: state.running,
         savedAt: state.savedAt,
+        // The sentences are saved: saved in this tab, or the saved rubric is not being edited.
+        sentencesSaved: !!state.savedAt || (hasRubricLevels(savedRubric) && !state.levels),
+        drafted: !!state.drafted,
         copyClasses,
         groupPrompt: groupPrompt && groupPrompt.classroomId === id ? groupPrompt : null,
         loadStarter,
