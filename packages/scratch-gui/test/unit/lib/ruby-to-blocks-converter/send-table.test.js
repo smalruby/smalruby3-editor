@@ -26,6 +26,7 @@ import {
     registerSendTable,
 } from '../../../../src/lib/ruby-to-blocks-converter/send-table';
 import SensingConverter from '../../../../src/lib/ruby-to-blocks-converter/sensing';
+import SmalrubotS1Converter from '../../../../src/lib/ruby-to-blocks-converter/smalrubot_s1';
 import SoundConverter from '../../../../src/lib/ruby-to-blocks-converter/sound';
 import Text2SpeechConverter from '../../../../src/lib/ruby-to-blocks-converter/text2speech';
 import TM2ScratchConverter from '../../../../src/lib/ruby-to-blocks-converter/tm2scratch';
@@ -75,6 +76,7 @@ describe('RubyToBlocksConverter/send table', () => {
         microbitMore: MicrobitMoreConverter,
         mesh: MeshConverter,
         meshV2: MeshV2Converter,
+        studuino: SmalrubotS1Converter,
     };
 
     test.each(Object.keys(tables))('every opcode of the %s table has a generator', (area) => {
