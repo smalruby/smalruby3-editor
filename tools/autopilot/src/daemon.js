@@ -1448,6 +1448,8 @@ async function dispatch(item, cfg, state, log) {
             log(`#${item.issue}: blockToHuman failed: ${e.message}`);
         }
     };
+    // フェーズが Issue を閉じたか（#2540）。finally で worktree を片付けるのに使う
+    let closedByRun = false;
     try {
         // base / after の宣言を着手前に確定させる。本文を一度も取れていない（ネット断など）なら
         // 既定 base で作業を始めず、Status にも触らずに見送る（fail-closed・#1309）。次 tick で再試行。
@@ -1577,7 +1579,7 @@ async function dispatch(item, cfg, state, log) {
         });
         // フェーズが Issue を閉じていたら Close にそろえる（#2540。Status が空に戻ると New Item として
         // また triage が走る）。プロンプトの nextStatus に頼らず、GitHub の状態を見て決める
-        const closedByRun = await isIssueClosedAfterRun(item, parsed.result, cfg, log);
+        closedByRun = await isIssueClosedAfterRun(item, parsed.result, cfg, log);
         const intents = closedRunIntents(outcome.intents, { signal: parsed.result.signal, closed: closedByRun });
         if (closedByRun) log(`#${item.issue}: ${phase} が Issue を閉じた → Status=Close`);
         const applied = await project.applyIntents(ctx, itemId, intents, await project.botToken());
@@ -1631,6 +1633,9 @@ async function dispatch(item, cfg, state, log) {
         state.running.delete(item.issue);
         // worker が UI 確認で起動したまま残した dev server・ブラウザを止める（#1381・#2463）
         stopWorktreeLeftovers({ issues: [item.issue], runningIssues: [...state.running.keys()] }, log);
+        // ここで Close にした Issue は終端になり、reconcile（worktree を片付ける・#1362）の対象から外れる。
+        // 代わりにここで片付ける。running から外したあとなので「実行中」で残されない
+        if (closedByRun) await safeCleanup((it) => cleanupIssueWorktree(it, cfg, state, log), item, log);
     }
 }
 

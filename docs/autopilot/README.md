@@ -565,8 +565,9 @@ close した leaf、(B) 統合 PR の `Closes #<epic>` で閉じた EPIC、(C) �
 - **フェーズが閉じたら Close**: run が done で終わったとき、その Issue が GitHub で閉じていれば、
   結果の `nextStatus` を問わず Status=Close・AI Status 空にし、🙋 を付けない（`closedRunIntents` /
   `isIssueClosedAfterRun`。1 件のバッチ GraphQL）。プロンプトは `nextStatus` に Close を書かない
-  （I4 の静的検査が `"nextStatus":"Close"` を禁じている）。hitl / error で終えたときは書きかえず、
-  次の tick の reconcile が Close にする。
+  （I4 の静的検査が `"nextStatus":"Close"` を禁じている）。Close にした Issue は reconcile の対象から
+  外れるので、worktree の片付け（#1362 と同じ判定）も run の終わりに daemon が行う。hitl / error で
+  終えたときは書きかえず、次の tick の reconcile が Close にする。
 
 ---
 
