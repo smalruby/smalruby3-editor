@@ -1,4 +1,4 @@
-import _ from 'lodash';
+import { fieldArg, numberArg, registerSendTable } from './send-table';
 
 // Ruby is written with `studuino.` (#2190). `smalrubot_s1.` is still read so that older programs
 // and teaching materials open as blocks. Both receivers share the same table below.
@@ -15,6 +15,49 @@ const MOTOR_DIRECTIONS = ['normal', 'reverse', 'stop'];
 // `ir_a4` / `ir_a5` are the textbook names of `left` / `right` (#2189). Only add values, never remove them.
 const SENSOR_POSITIONS = ['left', 'right', 'touch', 'light', 'sound', 'ir_a4', 'ir_a5'];
 
+// The calls of `studuino.xxx` that map one to one onto a block (send-table.js).
+const STUDUINO_CALLS = [
+    { name: 'action', opcode: 'smalrubotS1_action', args: [fieldArg('ACTION', ACTIONS)] },
+    {
+        name: 'action',
+        opcode: 'smalrubotS1_actionAndStopAfter',
+        args: [fieldArg('ACTION', ACTIONS), numberArg('SECS', 0.5)],
+    },
+    { name: 'bend_arm', opcode: 'smalrubotS1_bendArm', args: [numberArg('DEGREE', 90), numberArg('SECS', 1)] },
+    {
+        name: 'sensor_value',
+        opcode: 'smalrubotS1_getSensorValue',
+        type: 'value',
+        args: [fieldArg('POSITION', SENSOR_POSITIONS)],
+    },
+    {
+        name: 'get_motor_speed',
+        opcode: 'smalrubotS1_getMotorSpeed',
+        type: 'value',
+        args: [fieldArg('POSITION', POSITIONS)],
+    },
+    {
+        name: 'set_motor_speed',
+        opcode: 'smalrubotS1_setMotorSpeed',
+        args: [fieldArg('POSITION', POSITIONS), numberArg('SPEED', 100)],
+    },
+    {
+        name: 'dc_motor',
+        opcode: 'smalrubotS1_controlMotor',
+        args: [fieldArg('MOTOR', MOTORS), fieldArg('DIRECTION', MOTOR_DIRECTIONS)],
+    },
+    {
+        name: 'dc_motor',
+        opcode: 'smalrubotS1_controlMotorAndStopAfter',
+        args: [fieldArg('MOTOR', MOTORS), fieldArg('DIRECTION', MOTOR_DIRECTIONS), numberArg('SECS', 0.5)],
+    },
+    { name: 'arm_calibration=', opcode: 'smalrubotS1_setArmCalibration', args: [numberArg('DEGREE', 0)] },
+];
+
+const STUDUINO_SENDS = RECEIVERS.flatMap((receiver) =>
+    STUDUINO_CALLS.map((row) => ({ receiver, changesReceiver: true, ...row })),
+);
+
 /**
  * Register the conversions for one receiver name.
  * @param {object} converter - The Ruby to blocks converter.
@@ -28,54 +71,7 @@ const registerForReceiver = (converter, receiverName) => {
         return converter.createRubyExpressionBlock(receiverName, node);
     });
 
-    // Method calls on the receiver
-    converter.registerOnSend(receiverName, 'action', 1, (params) => {
-        const { receiver, args } = params;
-
-        if (!converter.isString(args[0]) || !ACTIONS.includes(args[0].toString())) return null;
-
-        const block = converter.changeRubyExpressionBlock(receiver, 'smalrubotS1_action', 'statement');
-        converter.addField(block, 'ACTION', args[0]);
-        return block;
-    });
-
-    converter.registerOnSend(receiverName, 'action', 2, (params) => {
-        const { receiver, args } = params;
-
-        if (
-            !converter.isString(args[0]) ||
-            !ACTIONS.includes(args[0].toString()) ||
-            !converter.isNumberOrBlock(args[1])
-        )
-            return null;
-
-        const block = converter.changeRubyExpressionBlock(receiver, 'smalrubotS1_actionAndStopAfter', 'statement');
-        converter.addField(block, 'ACTION', args[0]);
-        converter.addNumberInput(block, 'SECS', 'math_number', args[1], 0.5);
-        return block;
-    });
-
-    converter.registerOnSend(receiverName, 'bend_arm', 2, (params) => {
-        const { receiver, args } = params;
-
-        if (!converter.isNumberOrBlock(args[0]) || !converter.isNumberOrBlock(args[1])) return null;
-
-        const block = converter.changeRubyExpressionBlock(receiver, 'smalrubotS1_bendArm', 'statement');
-        converter.addNumberInput(block, 'DEGREE', 'math_number', args[0], 90);
-        converter.addNumberInput(block, 'SECS', 'math_number', args[1], 1);
-        return block;
-    });
-
-    converter.registerOnSend(receiverName, 'sensor_value', 1, (params) => {
-        const { receiver, args } = params;
-
-        if (!converter.isString(args[0]) || !SENSOR_POSITIONS.includes(args[0].toString())) return null;
-
-        const block = converter.changeRubyExpressionBlock(receiver, 'smalrubotS1_getSensorValue', 'value');
-        converter.addField(block, 'POSITION', args[0]);
-        return block;
-    });
-
+    // `led` picks the opcode by its second argument (`true` / `false`): it stays a handler.
     converter.registerOnSend(receiverName, 'led', 2, (params) => {
         const { receiver, args } = params;
 
@@ -96,83 +92,17 @@ const registerForReceiver = (converter, receiverName) => {
         converter.discardValue(args[1]);
         return block;
     });
-
-    converter.registerOnSend(receiverName, 'get_motor_speed', 1, (params) => {
-        const { receiver, args } = params;
-
-        if (!converter.isString(args[0]) || !POSITIONS.includes(args[0].toString())) return null;
-
-        const block = converter.changeRubyExpressionBlock(receiver, 'smalrubotS1_getMotorSpeed', 'value');
-        converter.addField(block, 'POSITION', args[0]);
-        return block;
-    });
-
-    converter.registerOnSend(receiverName, 'set_motor_speed', 2, (params) => {
-        const { receiver, args } = params;
-
-        if (
-            !converter.isString(args[0]) ||
-            !POSITIONS.includes(args[0].toString()) ||
-            !converter.isNumberOrBlock(args[1])
-        )
-            return null;
-
-        const block = converter.changeRubyExpressionBlock(receiver, 'smalrubotS1_setMotorSpeed', 'statement');
-        converter.addField(block, 'POSITION', args[0]);
-        converter.addNumberInput(block, 'SPEED', 'math_number', args[1], 100);
-        return block;
-    });
-
-    const isMotorAndDirection = (args) =>
-        converter.isString(args[0]) &&
-        MOTORS.includes(args[0].toString()) &&
-        converter.isString(args[1]) &&
-        MOTOR_DIRECTIONS.includes(args[1].toString());
-
-    converter.registerOnSend(receiverName, 'dc_motor', 2, (params) => {
-        const { receiver, args } = params;
-
-        if (!isMotorAndDirection(args)) return null;
-
-        const block = converter.changeRubyExpressionBlock(receiver, 'smalrubotS1_controlMotor', 'statement');
-        converter.addField(block, 'MOTOR', args[0]);
-        converter.addField(block, 'DIRECTION', args[1]);
-        return block;
-    });
-
-    converter.registerOnSend(receiverName, 'dc_motor', 3, (params) => {
-        const { receiver, args } = params;
-
-        if (!isMotorAndDirection(args) || !converter.isNumberOrBlock(args[2])) return null;
-
-        const block = converter.changeRubyExpressionBlock(
-            receiver,
-            'smalrubotS1_controlMotorAndStopAfter',
-            'statement',
-        );
-        converter.addField(block, 'MOTOR', args[0]);
-        converter.addField(block, 'DIRECTION', args[1]);
-        converter.addNumberInput(block, 'SECS', 'math_number', args[2], 0.5);
-        return block;
-    });
-
-    converter.registerOnSend(receiverName, 'arm_calibration=', 1, (params) => {
-        const { receiver, args } = params;
-
-        if (!converter.isNumberOrBlock(args[0])) return null;
-
-        const block = converter.changeRubyExpressionBlock(receiver, 'smalrubotS1_setArmCalibration', 'statement');
-        converter.addNumberInput(block, 'DEGREE', 'math_number', args[0], 0);
-        return block;
-    });
 };
 
 /**
  * Studuino (Smalrubot S1) extension converter
  */
 const SmalrubotS1Converter = {
+    sends: STUDUINO_SENDS,
+
     register: function (converter) {
         RECEIVERS.forEach((receiver) => registerForReceiver(converter, receiver));
+        registerSendTable(converter, STUDUINO_SENDS);
     },
 };
 
