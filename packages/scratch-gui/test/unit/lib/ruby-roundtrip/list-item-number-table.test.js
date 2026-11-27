@@ -77,6 +77,15 @@ defineBlockRubyTable(
             ),
         },
         {
+            // The user's comment comes before the mark; the generator still finds it.
+            name: 'index or -1 with a comment of the user',
+            only: 'toRuby',
+            ...rows(
+                `${LIST_A}\nlooks_say(MESSAGE: operator_subtract(NUM1: ${NUM_OF_X}, NUM2: 1) #"メモ\\n@ruby:array:index:or")`,
+                `${RUBY_A}\n# メモ\nsay(@a.index("x") || -1)`,
+            ),
+        },
+        {
             name: 'index or -1 times 2',
             ...rows(
                 `${LIST_A}\nlooks_say(MESSAGE: operator_multiply(NUM1: operator_subtract(NUM1: ${NUM_OF_X}, NUM2: 1) #"@ruby:array:index:or", NUM2: 2))`,
