@@ -12,8 +12,9 @@ CI（GitHub Actions）のジョブが落ちて原因を調べるとき、**コ�
 - `gh api .../check-runs/<id>/annotations` は `Process completed with exit code 1.` しか返さない。
 - 読めるのは、ジョブ・段（step）の名前と成否まで:
   `gh run view <run> --json jobs -q '.jobs[]|.name+" "+(.conclusion//"")+" "+([.steps[]|select(.conclusion=="failure")|.name]|join(","))'`
-- Bot はジョブの再実行もできない（`Resource not accessible by integration`）。流し直すときは
-  develop を merge して push するか、PR を閉じて開き直す。
+- Bot は落ちたジョブを流し直せる（GitHub App の Actions は Read and write）:
+  `GH_TOKEN="$(bin/bot-token)" gh run rerun <run> --failed --repo smalruby/smalruby3-editor`。
+  公開リポジトリの GitHub Actions は無料なので、一時的な失敗が疑わしいときは迷わず流し直してよい。
 
 ## 人間に頼むこと（この順で）
 
