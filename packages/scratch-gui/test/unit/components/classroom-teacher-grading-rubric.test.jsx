@@ -362,3 +362,39 @@ describe('TeacherGradingGroupPrompt (#2425)', () => {
         expect(onApply).toHaveBeenCalled();
     });
 });
+
+describe('基準を保存したあと (#2522)', () => {
+    test('保存できたら onSaved を呼ぶ', async () => {
+        const tools = makeTools({ levels: [{ grade: 'B', text: 'サーボを動かす' }] });
+        const onSaved = jest.fn();
+        render(
+            <IntlProvider locale="en" messages={{}}>
+                <TeacherGradingRubric lesson={described} tools={tools} onSaved={onSaved} />
+            </IntlProvider>,
+        );
+        fireEvent.click(screen.getByTestId('grading-rubric-steps-head-sentences'));
+        await act(async () => {
+            fireEvent.click(screen.getByTestId('grading-rubric-save'));
+        });
+        expect(tools.handleSaveRubric).toHaveBeenCalled();
+        expect(onSaved).toHaveBeenCalledTimes(1);
+    });
+
+    test('保存に失敗したら onSaved を呼ばない', async () => {
+        const tools = makeTools({
+            levels: [{ grade: 'B', text: 'サーボを動かす' }],
+            handleSaveRubric: jest.fn(() => Promise.resolve(false)),
+        });
+        const onSaved = jest.fn();
+        render(
+            <IntlProvider locale="en" messages={{}}>
+                <TeacherGradingRubric lesson={described} tools={tools} onSaved={onSaved} />
+            </IntlProvider>,
+        );
+        fireEvent.click(screen.getByTestId('grading-rubric-steps-head-sentences'));
+        await act(async () => {
+            fireEvent.click(screen.getByTestId('grading-rubric-save'));
+        });
+        expect(onSaved).not.toHaveBeenCalled();
+    });
+});

@@ -950,9 +950,33 @@ const TeacherEvaluation = ({
         },
         [setChosenCell],
     );
-    const handleTabRubric = useCallback(() => setInnerTab('rubric'), [setInnerTab]);
-    const handleTabStudent = useCallback(() => setInnerTab('student'), [setInnerTab]);
-    const handleTabShape = useCallback(() => setInnerTab('shape'), [setInnerTab]);
+    // The rubric was just saved and the grading moved to the［形］tab: the tab says why (#2522).
+    // Choosing a tab (or another assignment) drops the note.
+    // {classroomId, graded}: graded = some shaped work has a grade already (the note differs).
+    const [shapeArrival, setShapeArrival] = useState(null);
+    const handleTabRubric = useCallback(() => {
+        setShapeArrival(null);
+        setInnerTab('rubric');
+    }, [setInnerTab]);
+    const handleTabStudent = useCallback(() => {
+        setShapeArrival(null);
+        setInnerTab('student');
+    }, [setInnerTab]);
+    const handleTabShape = useCallback(() => {
+        setShapeArrival(null);
+        setInnerTab('shape');
+    }, [setInnerTab]);
+    // After the rubric (2-4) is saved, the AI's grades are checked shape by shape: that is
+    // where the［形］tab helps most (#2522). Without works that have shape tags it stays.
+    const handleRubricSaved = useCallback(() => {
+        if (!lesson || !loaded || !onSetSeatsGrade) return;
+        const shaped = seats
+            .map((seat) => getCell(seat, lesson.classroomId))
+            .filter((cell) => cell && cell.submitted && cell.shape);
+        if (shaped.length === 0) return;
+        setShapeArrival({ classroomId: lesson.classroomId, graded: shaped.some((cell) => !!cell.grade) });
+        setInnerTab('shape');
+    }, [lesson, loaded, onSetSeatsGrade, seats, getCell, setInnerTab]);
     // A seat of the same shape (the［生徒］tab): open it there.
     const handleSameShape = useCallback(
         (e) => {
@@ -1296,7 +1320,13 @@ const TeacherEvaluation = ({
             <div className={styles.evalPaneBody} data-testid="classroom-eval-rubric-pane">
                 {rubricTools ? (
                     // The［基準］tab of #2425: description, representatives, fairness, rubric.
-                    <TeacherGradingRubric busy={busy} lesson={lesson} tools={rubricTools} onOpenWork={onOpenWork} />
+                    <TeacherGradingRubric
+                        busy={busy}
+                        lesson={lesson}
+                        tools={rubricTools}
+                        onOpenWork={onOpenWork}
+                        onSaved={handleRubricSaved}
+                    />
                 ) : (
                     <>
                         <div className={styles.evalPaneLabel}>
@@ -1553,6 +1583,13 @@ const TeacherEvaluation = ({
                                 {innerTab === 'shape' &&
                                     (loaded && onSetSeatsGrade ? (
                                         <TeacherGradingShapes
+                                            arrived={
+                                                shapeArrival && shapeArrival.classroomId === lesson.classroomId
+                                                    ? shapeArrival.graded
+                                                        ? 'graded'
+                                                        : 'ungraded'
+                                                    : null
+                                            }
                                             classroomId={lesson.classroomId}
                                             getCell={getCell}
                                             seats={seats}

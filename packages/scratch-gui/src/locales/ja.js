@@ -991,6 +991,11 @@ export default {
     'gui.classroom.evaluation.tabShape': '形',
     'gui.classroom.gradingShapes.lead':
         '作品を形の札でまとめました。形ごとに評価を選んで、まとめて付けられます。ちがう作品は、開いて 1 人ずつ直します。',
+    'gui.classroom.gradingShapes.todo':
+        '基準ができたら、まず形ごとに評価がそろっているかを見てください。「評価が分かれています」の形から見ると早く済みます。',
+    'gui.classroom.gradingShapes.arrived': '基準ができたので、形ごとの評価を確かめましょう。',
+    'gui.classroom.gradingShapes.arrivedUngraded':
+        '基準ができました。［全員を採点］のあと、ここで形ごとに評価がそろっているかを確かめましょう。',
     'gui.classroom.gradingShapes.count': '{count} 人（{seats}）',
     'gui.classroom.gradingShapes.now': 'いま: {grades}',
     'gui.classroom.gradingShapes.mixed': '同じ形なのに評価が分かれています',

@@ -1020,6 +1020,11 @@ export default {
     'gui.classroom.evaluation.tabShape': 'かたち',
     'gui.classroom.gradingShapes.lead':
         'さくひんを かたちの ふだで まとめました。かたちごとに ひょうかを えらんで、まとめて つけられます。ちがう さくひんは、ひらいて 1 にんずつ なおします。',
+    'gui.classroom.gradingShapes.todo':
+        'きじゅんが できたら、まず かたちごとに ひょうかが そろって いるかを みて ください。「ひょうかが わかれて います」の かたちから みると はやく すみます。',
+    'gui.classroom.gradingShapes.arrived': 'きじゅんが できたので、かたちごとの ひょうかを たしかめましょう。',
+    'gui.classroom.gradingShapes.arrivedUngraded':
+        'きじゅんが できました。［ぜんいんをさいてん］の あと、ここで かたちごとに ひょうかが そろって いるかを たしかめましょう。',
     'gui.classroom.gradingShapes.count': '{count} にん（{seats}）',
     'gui.classroom.gradingShapes.now': 'いま: {grades}',
     'gui.classroom.gradingShapes.mixed': 'おなじ かたちなのに ひょうかが わかれています',
