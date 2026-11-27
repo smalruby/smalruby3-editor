@@ -16,4 +16,6 @@ autopilot モニタ（`tools/autopilot/src/monitor.js` の Web UI）の動作イ
 | `monitor-release-check-dialog-light.png` / `monitor-release-check-dialog-dark.png` | 「確認の結果を書く」のダイアログ。観点（R1, R2, …）ごとに OK / NG とメモ、全体のコメントを書いて送る（#2430） |
 | `monitor-board-sticky-before.png` / `monitor-board-sticky-after.png` | 状況板を横にスクロールする前と、右端までスクロールして行の ⋯ を開いたところ。開閉・Issue · PR・題名の 3 列は左に残る（#2527） |
 | `monitor-board-sticky-after-dark.png` / `monitor-board-sticky-phone-dark.png` | 同じくダーク（1280px）と、幅 400px で右端までスクロールしたところ（#2527） |
+| `monitor-for-you-conflict-light.png` / `monitor-for-you-conflict-dark.png` | 「あなた宛て」で、Review の PR が base とコンフリクトしている行。主ボタンは「コンフリクトを解消してもらう」（`POST /resolve-conflict`）（#2524） |
+| `monitor-global-menu-closed.png` | 上の行の「⋯」から「tick を 1 回走らせる」を選んだ直後。メニューはすぐ閉じ、「tick を頼みました」のトーストが出る（#2525） |
 | `monitor-heading-icon.png` | 上の行の見出しのアイコン（虹色の ∞ + A・ダーク・3 倍に拡大）（#2413） |

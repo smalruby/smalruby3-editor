@@ -1656,6 +1656,12 @@ async function doForYou(issue, btn) {
   if (w.act === 'open' && w.url) window.open(w.url, '_blank', 'noopener');
   else if (w.act === 'release') { if (w.url) window.open(w.url, '_blank', 'noopener'); openRelease(issue); }
   else if (w.act === 'answer') { openQuestion = (w.targets && w.targets[0]) || issue; lastQuestionsHtml = ''; }
+  else if (w.act === 'resolve') {
+    // コンフリクトの解消（#2524）。行の ⋯ の「🔀 コンフリクトを解消」と同じ POST /resolve-conflict。送っている間は押せない
+    if (btn) btn.disabled = true;
+    await resolveConflict((w.targets && w.targets[0]) || issue);
+    return;
+  }
   else if (w.act === 'delegate' && w.targets.length > 1) { await delegateMany(w, btn); return; }
   else if (w.act === 'delegate') { for (const n of w.targets) await delegateIssue(n, btn); return; }
   rerender();
@@ -2074,6 +2080,14 @@ document.addEventListener('click', (ev) => {
     if (willOpen) { m.hidden = false; t.setAttribute('aria-expanded', 'true'); placeMenu(m, t); }
     return;
   }
+  // 上の ⋯ の項目（更新・tick・現在地）は data-mi を持たないので、ここで閉じて ⋯ へフォーカスを戻す（#2525）。
+  // 押せない（disabled）項目は開いたまま（中の .note の click が届くブラウザでも閉じない）。処理はそれぞれの onclick が先に始めている
+  if (inMenu && inMenu.id === 'globalmenu') {
+    if (t.disabled) return;
+    closeMenus();
+    document.getElementById('globalmenubtn').focus({ preventScroll: true });
+    return;
+  }
   if (!inMenu) closeMenus();
   if (t.id === 'inboxtoggle') { setInboxOpen(false); document.getElementById('inbox-rail').focus(); return; }
   if (t.id === 'inbox-rail') { setInboxOpen(true); document.getElementById('inboxtoggle').focus(); return; }
@@ -2137,11 +2151,14 @@ document.getElementById('resume').onclick = async () => {
   } catch (e) { /* refresh 側で表示 */ }
   refresh();
 };
+// 上の ⋯ の項目は押すとすぐメニューが閉じるので、押した直後に「頼みました」を出し、済んだら結果を出す（#2525）
 document.getElementById('ticknow').onclick = async () => {
+  toast('tick を頼みました');
   try { await fetch('/tick', { method: 'POST' }); toast('tick を 1 回走らせました'); } catch (e) { /* refresh 側で表示 */ }
   refresh();
 };
 document.getElementById('refreshboard').onclick = async () => {
+  toast('GitHub からの読み直しを頼みました');
   try {
     const r = await fetch('/refresh', { method: 'POST' }).then((x) => x.json());
     toast(r && r.skipped ? 'API レート残量が僅少のためスキップしました（残 ' + r.minRemaining + '）' : 'GitHub から読み直しました');
@@ -2149,6 +2166,7 @@ document.getElementById('refreshboard').onclick = async () => {
   refresh();
 };
 document.getElementById('csmake').onclick = async () => {
+  toast('現在地を作るよう頼みました');
   try { await fetch('/current-status', { method: 'POST' }); toast('現在地を作り始めました'); } catch (e) { toast('現在地を作れませんでした: ' + e.message, true); }
   refresh();
 };
