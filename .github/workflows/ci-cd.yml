@@ -384,7 +384,7 @@ jobs:
         if: steps.site.outputs.enabled == 'true'
         run: |
           set -euo pipefail
-          node --test scripts/precompress-assets.test.mjs
+          node --test scripts/precompress-assets.test.mjs scripts/prune-old-assets.test.mjs
           node scripts/precompress-assets.mjs packages/scratch-gui/dist
       - name: Upload to the S3 site bucket
         if: steps.site.outputs.enabled == 'true'
@@ -392,7 +392,29 @@ jobs:
           BUCKET: ${{ vars.SITE_BUCKET_NAME }}
         run: |
           set -euo pipefail
-          # upload <src dir> <s3 prefix> <extra sync options...>
+          # prune <src dir> <key prefix> <prune-old-assets options...>
+          # Remove what the new build no longer has, but keep the files of older builds whose
+          # names change with each build (hash / Monaco version) for 14 days, since tabs opened
+          # before the deploy still load them (#2514, docs/hosting/README.md).
+          prune() {
+            local src="$1" prefix="$2" listing batches f errors
+            shift 2
+            listing="$(mktemp)"
+            batches="$(mktemp -d)"
+            aws s3api list-objects-v2 --bucket "${BUCKET}" --prefix "${prefix}" --output json \
+              --query '{Contents: Contents[].{Key: Key, LastModified: LastModified}}' > "${listing}"
+            node scripts/prune-old-assets.mjs --src "${src}" --listing "${listing}" \
+              --batch-dir "${batches}" --prefix "${prefix}" "$@"
+            for f in "${batches}"/delete-*.json; do
+              [ -e "${f}" ] || continue
+              errors="$(aws s3api delete-objects --bucket "${BUCKET}" --delete "file://${f}" \
+                --query 'Errors[].Key' --output text)"
+              if [ -n "${errors}" ] && [ "${errors}" != "None" ]; then
+                echo "::warning::could not remove: ${errors}"
+              fi
+            done
+          }
+          # upload <src dir> <key prefix> <prune-old-assets options...>
           # Same cache rules as the preview (docs/infra/smalruby-web-hosting.md): file names with a
           # hash are immutable, the rest (index.html, service-worker.js, version.json, .well-known,
           # auth-redirect.*) are re-checked on every load. Types aws s3 may guess wrong (.wasm /
@@ -419,7 +441,7 @@ jobs:
             done
           }
           upload() {
-            local src="$1" dest="$2"
+            local src="$1" prefix="$2" dest="s3://${BUCKET}/$2"
             shift 2
             local hashed plain
             hashed="$(mktemp -d)"
@@ -456,16 +478,14 @@ jobs:
                   --content-type "${type}" --cache-control "${cache}"
               done
             done
-            # Remove what the new build no longer has. Everything left was just uploaded, so
-            # --size-only keeps sync from re-uploading it (which would drop the Cache-Control).
-            # The .br / .gz are in src too, so they stay; the ones of an old gui are removed.
-            aws s3 sync "${src}" "${dest}" --delete --size-only --only-show-errors \
-              --exclude '.DS_Store' --exclude '.nojekyll' --exclude 'CNAME' "$@"
+            # The .br / .gz are in src too, so they stay; the ones of an old gui are hashed and
+            # stay for the retention like the old gui.<hash>.js.
+            prune "${src}" "${prefix}" "$@"
           }
-          # The editor at the root. admin/ is its own deploy below, so --delete must not touch it.
-          upload packages/scratch-gui/dist "s3://${BUCKET}/" --exclude 'admin/*'
-          # Admin SPA at /admin/ (--delete stays inside admin/).
-          upload packages/admin/build "s3://${BUCKET}/admin/"
+          # The editor at the root. admin/ is its own deploy below, so the prune must not touch it.
+          upload packages/scratch-gui/dist '' --exclude-prefix 'admin/'
+          # Admin SPA at /admin/ (the prune stays inside admin/).
+          upload packages/admin/build 'admin/'
       - name: Invalidate the S3 site
         if: steps.site.outputs.enabled == 'true'
         env:
@@ -618,7 +638,7 @@ jobs:
         if: steps.check.outputs.enabled == 'true'
         run: |
           set -euo pipefail
-          node --test scripts/precompress-assets.test.mjs
+          node --test scripts/precompress-assets.test.mjs scripts/prune-old-assets.test.mjs
           node scripts/precompress-assets.mjs packages/scratch-gui/build
       - name: Upload to s3://<bucket>/<slug>/
         if: steps.check.outputs.enabled == 'true'
@@ -666,11 +686,22 @@ jobs:
           done
           aws s3 sync "${plain}" "${dest}" --only-show-errors \
             --cache-control 'max-age=0, s-maxage=60'
-          # Remove what the new build no longer has. Everything left was just uploaded, so
-          # --size-only keeps sync from re-uploading it (which would drop the Cache-Control).
-          # The .br / .gz are in build too, so they stay.
-          aws s3 sync "${build}" "${dest}" --delete --size-only --only-show-errors \
-            --exclude '.DS_Store'
+          # Remove what the new build no longer has, with the same rule as production: files of
+          # older builds whose names change with each build stay for 14 days (#2514).
+          listing="$(mktemp)"
+          batches="$(mktemp -d)"
+          aws s3api list-objects-v2 --bucket "${BUCKET}" --prefix "${SLUG}/" --output json \
+            --query '{Contents: Contents[].{Key: Key, LastModified: LastModified}}' > "${listing}"
+          node scripts/prune-old-assets.mjs --src "${build}" --listing "${listing}" \
+            --batch-dir "${batches}" --prefix "${SLUG}/"
+          for f in "${batches}"/delete-*.json; do
+            [ -e "${f}" ] || continue
+            errors="$(aws s3api delete-objects --bucket "${BUCKET}" --delete "file://${f}" \
+              --query 'Errors[].Key' --output text)"
+            if [ -n "${errors}" ] && [ "${errors}" != "None" ]; then
+              echo "::warning::could not remove: ${errors}"
+            fi
+          done
       # Microsoft login returns to window.location.origin + '/auth-redirect.html', i.e. the
       # bucket root, which every preview shares. Only develop writes it, so a branch cannot
       # break the login of the other previews.
