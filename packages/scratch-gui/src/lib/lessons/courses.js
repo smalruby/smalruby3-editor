@@ -3407,7 +3407,8 @@ const lmMakeLoopCode = (stage) => lmCode((w) => `${lmMakeLoop(w, stage).join('\n
 const lmPickTestScript = (w) =>
     `when_key_pressed("c") do\n  @${w.text} = "${w.look}"\n  ${w.collect}\n` +
     `  10.times do\n    ${w.pick}\n    say(@${w.letter}, 0.5)\n  end\nend\n`;
-const lmOnlyCollect = { hat: 'event_whenkeypressed', key: 'c' };
+// 3-1・3-2 の判定は c キーのスクリプトだけを見る
+const lmKeyC = { hat: 'event_whenkeypressed', key: 'c' };
 
 const lmLesson3 = defineLesson({
     id: 'lm-l3',
@@ -3434,7 +3435,7 @@ const lmLesson3 = defineLesson({
             debug: debugTips('lm-l3-collect', 2),
             // c キーで「こうほを集める」を呼び、「こうほ」が「文」の最後の文字の次に来る文字（回数どおり）になった
             goal: [
-                { type: 'uses', trigger: lmOnlyCollect, blocks: [lmCall('collect')] },
+                { type: 'uses', trigger: lmKeyC, blocks: [lmCall('collect')] },
                 {
                     type: 'ngram',
                     check: 'candidates',
@@ -3469,7 +3470,7 @@ const lmLesson3 = defineLesson({
             goal: [
                 {
                     type: 'uses',
-                    trigger: lmOnlyCollect,
+                    trigger: lmKeyC,
                     together: true,
                     blocks: [
                         lmCall('pick', 10),
@@ -3477,7 +3478,7 @@ const lmLesson3 = defineLesson({
                         { opcode: 'looks_sayforsecs', count: 10 },
                     ],
                 },
-                { type: 'said', trigger: lmOnlyCollect, text: /^.$/u, equalsVariable: lmNames('letter') },
+                { type: 'said', trigger: lmKeyC, text: /^.$/u, equalsVariable: lmNames('letter') },
             ],
             quiz: challengeQuiz('lm-l3-pick', 1),
             code: lmProgram(lmSayScript, lmPickTestScript),

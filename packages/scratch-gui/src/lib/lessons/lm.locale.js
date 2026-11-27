@@ -178,7 +178,7 @@ export const ja = {
 
     [`${C}lm-l3-pick.name`]: '文字をえらぼう',
     [`${C}lm-l3-pick.task`]:
-        '「文字をえらぶ」の中身を作ろう。\n「こうほ」の中から 1 つを乱数でえらんで、「文字」にしよう。\n「c」キーを押すと、「こ」の次の文字を 10 回えらんで言います。どの文字がよく出るかな？',
+        '「文字をえらぶ」の中身を作ろう。\n「こうほ」の中から 1 つを乱数でえらんで、「文字」にしよう。\n「c」キーを押すと、「こ」の次の文字を 10 回えらんで言います。どの文字がよく出るかな？\n（いまロボットを押すと、文字が決まらないので「文をつくる」のくり返しが終わりません。止めるときは、赤い●の停止ボタンを押そう）',
     [`${C}lm-l3-pick.step1`]:
         '「c」キーのスクリプトは、もう入っています。「文」を「こ」にしてこうほを集め、「文字をえらぶ」と「(文字) と (0.5) 秒言う」を 10 回くり返します。いまは「文字をえらぶ」の中身が空なので、何も言いません。',
     [`${C}lm-l3-pick.step2`]:
@@ -201,7 +201,7 @@ export const ja = {
 
     [`${C}lm-l3-make.name`]: '文をつくろう',
     [`${C}lm-l3-make.task`]:
-        '「文をつくる」の中身を作り直そう。\nいまの「文をつくる」は、「。」をえらぶか、こうほが空になるまでくり返すだけです。くり返しの中で、文字をえらんで文に足し、次のこうほを集めるようにしよう。',
+        '「文をつくる」の中身を作り直そう。\nいまの「文をつくる」は、「。」をえらぶか、こうほが空になるまでくり返すだけです。くり返しの中で、文字をえらんで文に足し、次のこうほを集めるようにしよう。\n（いまロボットを押すと、くり返しが終わりません。止めるときは、赤い●の停止ボタンを押そう）',
     [`${C}lm-l3-make.step1`]:
         '「文をつくる」の定義の中の「( ) まで繰り返す」の中に、「ブロック定義」の「文字をえらぶ」を入れよう。くり返しの前の「こうほを集める」で、文の 1 文字めのこうほ（「まえ」が空の行の「つぎ」）が集まっています。',
     [`${C}lm-l3-make.step2`]:
@@ -407,7 +407,7 @@ export const jaHira = {
 
     [`${C}lm-l3-pick.name`]: 'もじを えらぼう',
     [`${C}lm-l3-pick.task`]:
-        '「もじをえらぶ」の なかみを つくろう。\n「こうほ」の なかから 1 つを らんすうで えらんで、「もじ」に しよう。\n「c」キーを おすと、「こ」の つぎの もじを 10 かい えらんで いいます。どの もじが よく でるかな？',
+        '「もじをえらぶ」の なかみを つくろう。\n「こうほ」の なかから 1 つを らんすうで えらんで、「もじ」に しよう。\n「c」キーを おすと、「こ」の つぎの もじを 10 かい えらんで いいます。どの もじが よく でるかな？\n（いま ロボットを おすと、もじが きまらないので「ぶんをつくる」の くりかえしが おわりません。とめるときは、あかい●の ていしボタンを おそう）',
     [`${C}lm-l3-pick.step1`]:
         '「c」キーの スクリプトは、もう はいっています。「ぶん」を「こ」に して こうほを あつめ、「もじをえらぶ」と「(もじ) と (0.5) びょう いう」を 10 かい くりかえします。いまは「もじをえらぶ」の なかみが からなので、なにも いいません。',
     [`${C}lm-l3-pick.step2`]:
@@ -430,7 +430,7 @@ export const jaHira = {
 
     [`${C}lm-l3-make.name`]: 'ぶんを つくろう',
     [`${C}lm-l3-make.task`]:
-        '「ぶんをつくる」の なかみを つくりなおそう。\nいまの「ぶんをつくる」は、「。」を えらぶか、こうほが からに なるまで くりかえすだけです。くりかえしの なかで、もじを えらんで ぶんに たし、つぎの こうほを あつめるように しよう。',
+        '「ぶんをつくる」の なかみを つくりなおそう。\nいまの「ぶんをつくる」は、「。」を えらぶか、こうほが からに なるまで くりかえすだけです。くりかえしの なかで、もじを えらんで ぶんに たし、つぎの こうほを あつめるように しよう。\n（いま ロボットを おすと、くりかえしが おわりません。とめるときは、あかい●の ていしボタンを おそう）',
     [`${C}lm-l3-make.step1`]:
         '「ぶんをつくる」の ていぎの なかの「( ) まで くりかえす」の なかに、「ブロックていぎ」の「もじをえらぶ」を いれよう。くりかえしの まえの「こうほをあつめる」で、ぶんの 1 もじめの こうほ（「まえ」が からの ぎょうの「つぎ」）が あつまっています。',
     [`${C}lm-l3-make.step2`]:
@@ -632,7 +632,7 @@ export const en = {
 
     [`${C}lm-l3-pick.name`]: 'Pick a letter',
     [`${C}lm-l3-pick.task`]:
-        'Make the inside of "pick_letter".\nPick one of "candidates" at random and put it in "letter".\nWhen you press the "c" key, the AI picks a letter after "v" 10 times and says it. Which letter comes often?',
+        'Make the inside of "pick_letter".\nPick one of "candidates" at random and put it in "letter".\nWhen you press the "c" key, the AI picks a letter after "v" 10 times and says it. Which letter comes often?\n(If you click the robot now, "letter" does not change, so the loop of "make_sentence" never ends. To stop, click the red ● Stop Button.)',
     [`${C}lm-l3-pick.step1`]:
         'The script of the "c" key is already there. It sets "sentence" to "v", collects the candidates, and repeats "pick_letter" and "say (letter) for (0.5) seconds" 10 times. Now the inside of "pick_letter" is empty, so the AI says nothing.',
     [`${C}lm-l3-pick.step2`]:
@@ -655,7 +655,7 @@ export const en = {
 
     [`${C}lm-l3-make.name`]: 'Make a sentence',
     [`${C}lm-l3-make.task`]:
-        'Make the inside of "make_sentence" again.\nNow "make_sentence" only repeats until it picks "." or the candidates are empty. In the loop, make it pick a letter, add it to the sentence and collect the next candidates.',
+        'Make the inside of "make_sentence" again.\nNow "make_sentence" only repeats until it picks "." or the candidates are empty. In the loop, make it pick a letter, add it to the sentence and collect the next candidates.\n(If you click the robot now, the loop never ends. To stop, click the red ● Stop Button.)',
     [`${C}lm-l3-make.step1`]:
         'In the "repeat until ( )" in the definition of "make_sentence", put "pick_letter" from My Blocks. "collect_candidates" before the loop has collected the candidates of the first letter of the sentence ("after" of the rows where "before" is empty).',
     [`${C}lm-l3-make.step2`]:
