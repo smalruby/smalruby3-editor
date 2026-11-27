@@ -9,6 +9,8 @@ const Cast = require('../../util/cast');
 const Timer = require('../../util/timer');
 const StuduinoPracticeBoard = require('./practice-board');
 const StuduinoCommandLog = require('./command-log');
+const StuduinoModePracticeBoard = require('./studuino-mode-practice');
+const studuinoBlocks = require('./studuino-blocks');
 
 /**
  * Icon png to be displayed at the left edge of each extension block, encoded as a data URI.
@@ -1194,6 +1196,14 @@ class Scratch3SmalrubotS1Blocks {
         this.practiceBoard.emitState();
 
         /**
+         * The practice board of the Studuino mode (#2355): the part blocks of the Studuino mode drive it
+         * when they run in the browser. It is separate from the practice board above (the fixed S1 layout).
+         * @type {StuduinoModePracticeBoard}
+         */
+        this.studuinoPractice = new StuduinoModePracticeBoard(this.runtime);
+        this.studuinoPractice.emitState();
+
+        /**
          * The record of the commands sent and the sensor values read, for the lessons (#2193).
          * It is written here in the block methods, so the real board and the practice board make the same entries.
          * @type {StuduinoCommandLog}
@@ -1335,6 +1345,30 @@ class Scratch3SmalrubotS1Blocks {
      */
     setPracticeSensorValue(portOrPosition, value) {
         return this.practiceBoard.setSensorValue(portOrPosition, value);
+    }
+
+    /**
+     * @returns {string} - the runtime event sent on every change of the Studuino mode's practice board.
+     */
+    static get STUDUINO_MODE_PRACTICE_STATE_EVENT() {
+        return StuduinoModePracticeBoard.STATE_EVENT;
+    }
+
+    /**
+     * @returns {object} - a copy of the Studuino mode's practice board state (for the GUI panel).
+     */
+    getStuduinoPracticeState() {
+        return this.studuinoPractice.getState();
+    }
+
+    /**
+     * Change a sensor or a button of the Studuino mode's practice board (for the GUI panel).
+     * @param {string} port - a port assigned to a sensor ('A6').
+     * @param {number|boolean} value - 0-1023 for an analog sensor, pressed or not for a touch sensor / button.
+     * @returns {boolean} - true when the port has a sensor.
+     */
+    setStuduinoPracticeInput(port, value) {
+        return this.studuinoPractice.setInput(port, value);
     }
 
     /**
@@ -1552,6 +1586,8 @@ class Scratch3SmalrubotS1Blocks {
                         },
                     },
                 },
+                // Studuino モードの部品のブロック（#2216）。通常モードのパレットには出さない
+                ...studuinoBlocks.blockInfos(formatMessage),
             ],
             menus: {
                 actions: {
@@ -1574,6 +1610,7 @@ class Scratch3SmalrubotS1Blocks {
                     acceptReporters: false,
                     items: this.MOTOR_DIRECTIONS_MENU,
                 },
+                ...studuinoBlocks.menuInfos(formatMessage),
             },
         };
     }
@@ -1820,6 +1857,7 @@ class Scratch3SmalrubotS1Blocks {
     stopAll() {
         // The practice board stops too, so a project stopped while connected does not leave it running.
         const stopped = this.practiceBoard.stopAll();
+        this.studuinoPractice.stopAll();
 
         if (this._smalrubot) {
             this._smalrubot.stopAll();
@@ -1827,5 +1865,11 @@ class Scratch3SmalrubotS1Blocks {
         return stopped;
     }
 }
+
+// Studuino モードの部品のブロックの実行と、ポートの動的メニュー（#2216）
+Object.assign(
+    Scratch3SmalrubotS1Blocks.prototype,
+    studuinoBlocks.makeMethods(() => formatMessage),
+);
 
 module.exports = Scratch3SmalrubotS1Blocks;

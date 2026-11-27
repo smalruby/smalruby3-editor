@@ -38,6 +38,9 @@ const ClassVisitor = {
     },
 
     visitClassNode(node) {
+        // `class Studuino` holds the port settings of Studuino mode, not blocks (#2218)
+        const studuinoResult = this._visitStuduinoClass(node);
+        if (studuinoResult) return studuinoResult;
         // class definitions are only supported in version 2
         if (String(this.version) === '1') {
             throw new RubyToBlocksConverterError(node, this._translator(messages.classNotSupportedInV1));

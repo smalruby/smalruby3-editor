@@ -25,6 +25,7 @@ import meshV2Reducer, { meshV2InitialState } from './mesh-v2';
 import paletteVisibilityReducer, { initialState as paletteVisibilityInitialState } from './palette-visibility';
 import rubyCodeReducer, { rubyCodeInitialState } from './ruby-code';
 import smalrubotFirmwareReducer, { smalrubotFirmwareInitialState } from './smalrubot-firmware';
+import studuinoModeReducer, { studuinoModeInitialState } from './studuino-mode';
 import tutorialOnboardingReducer, { tutorialOnboardingInitialState } from './tutorial-onboarding';
 
 /**
@@ -42,6 +43,7 @@ export const smalrubyReducers = {
     koshienMockPanel: koshienMockPanelReducer,
     rubyCode: rubyCodeReducer,
     smalrubotFirmware: smalrubotFirmwareReducer,
+    studuinoMode: studuinoModeReducer,
     cards: cardsReducer,
     tutorialOnboarding: tutorialOnboardingReducer,
     paletteVisibility: paletteVisibilityReducer,
@@ -63,6 +65,7 @@ export const smalrubyInitialState = {
     koshienMockPanel: koshienMockPanelInitialState,
     rubyCode: rubyCodeInitialState,
     smalrubotFirmware: smalrubotFirmwareInitialState,
+    studuinoMode: studuinoModeInitialState,
     cards: cardsInitialState,
     tutorialOnboarding: tutorialOnboardingInitialState,
     paletteVisibility: paletteVisibilityInitialState,

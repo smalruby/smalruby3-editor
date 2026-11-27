@@ -1,0 +1,44 @@
+@import '../../css/colors.css';
+@import '../../css/units.css';
+
+.body {
+    /* 青いオーバーレイが透けないよう、本文に不透明な背景（.claude/rules/scratch-gui/modals.md） */
+    background-color: $ui-white;
+    padding: 1.25rem 1.5rem;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: $text-primary;
+}
+
+.message {
+    margin: 0 0 1.25rem;
+}
+
+.buttons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.button {
+    padding: 0.5rem 1rem;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 0.25rem;
+    background-color: $ui-white;
+    color: $text-primary;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.danger {
+    border-color: #e60000;
+    background-color: #e60000;
+    color: $ui-white;
+}
+
+.primary {
+    border-color: $looks-secondary;
+    background-color: $looks-secondary;
+    color: $ui-white;
+}

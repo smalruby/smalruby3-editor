@@ -114,11 +114,20 @@ export default function (Generator) {
             code = `${commentCodes.join('\n')}\n${code}`;
         }
 
+        // Studuino mode (#2218): `class Studuino` at the top of the Stage. The code of the target
+        // given as it is (`targetsCode`, the edited Ruby) already has it.
+        const givenAsIs =
+            options &&
+            options.targetsCode &&
+            this.currentTarget &&
+            Object.prototype.hasOwnProperty.call(options.targetsCode, this.currentTarget.id);
+        const studuinoClass = !givenAsIs && this.studuinoClass_ ? this.studuinoClass_() : '';
+
         if (defs.length === 0 && moduleCode.length === 0 && code.length === 0) {
-            return '';
+            return studuinoClass;
         }
 
-        let s = '';
+        let s = studuinoClass.length > 0 ? `${studuinoClass}\n` : '';
         if (defs.length > 0) {
             s += `${defs.join('\n')}\n\n`;
         }

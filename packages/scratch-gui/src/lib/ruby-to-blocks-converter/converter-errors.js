@@ -203,6 +203,75 @@ const messages = defineMessages({
         description: 'Error message when a symbol is compared with non-symbol using >, <, >=, <=',
         id: 'gui.smalruby3.rubyToBlocksConverter.symbolCannotCompare',
     },
+    studuinoClassOnlyInStage: {
+        defaultMessage:
+            'class Studuino (the port settings of Studuino) can only be written in the Stage.\n' +
+            'Move it to the top of the Stage script.',
+        description: 'Error message of Studuino mode in Ruby (#2218)',
+        id: 'gui.smalruby3.rubyToBlocksConverter.studuinoClassOnlyInStage',
+    },
+    studuinoClassDuplicated: {
+        defaultMessage: 'class Studuino can be written only once.\nPut all the parts in one class Studuino.',
+        description: 'Error message of Studuino mode in Ruby (#2218)',
+        id: 'gui.smalruby3.rubyToBlocksConverter.studuinoClassDuplicated',
+    },
+    studuinoClassNotAtTop: {
+        defaultMessage:
+            'class Studuino must be written at the top of the Stage script, not inside another class or block.',
+        description: 'Error message of Studuino mode in Ruby (#2218)',
+        id: 'gui.smalruby3.rubyToBlocksConverter.studuinoClassNotAtTop',
+    },
+    studuinoWrongDeclaration: {
+        defaultMessage:
+            '"{ SOURCE }" is not a declaration of a part.\nWrite a part and its port (e.g. light_sensor :A6).',
+        description: 'Error message of Studuino mode in Ruby (#2218)',
+        id: 'gui.smalruby3.rubyToBlocksConverter.studuinoWrongDeclaration',
+    },
+    studuinoUnknownPart: {
+        defaultMessage: '"{ SOURCE }": this part is not a part of Studuino.\nUse one of: { PARTS }.',
+        description: 'Error message of Studuino mode in Ruby (#2218)',
+        id: 'gui.smalruby3.rubyToBlocksConverter.studuinoUnknownPart',
+    },
+    studuinoUnknownPort: {
+        defaultMessage: '"{ PORT }" is not a port of Studuino.\nUse D2, D4, D7-D12, M1, M2 or A0-A7.',
+        description: 'Error message of Studuino mode in Ruby (#2218)',
+        id: 'gui.smalruby3.rubyToBlocksConverter.studuinoUnknownPort',
+    },
+    studuinoPartNotForPort: {
+        defaultMessage:
+            '{ PART } cannot be connected to port { PORT }.\nChoose a port that the part can be connected to.',
+        description: 'Error message of Studuino mode in Ruby (#2218)',
+        id: 'gui.smalruby3.rubyToBlocksConverter.studuinoPartNotForPort',
+    },
+    studuinoPortDuplicated: {
+        defaultMessage: 'Port { PORT } is declared twice.\nOne port can have only one part.',
+        description: 'Error message of Studuino mode in Ruby (#2218)',
+        id: 'gui.smalruby3.rubyToBlocksConverter.studuinoPortDuplicated',
+    },
+    studuinoNoCalibration: {
+        defaultMessage: '{ PART } has no calibration.\nOnly dc_motor and servo_motor take calibration:.',
+        description: 'Error message of Studuino mode in Ruby (#2218)',
+        id: 'gui.smalruby3.rubyToBlocksConverter.studuinoNoCalibration',
+    },
+    studuinoBadCalibration: {
+        defaultMessage: 'The calibration of { PART } must be an integer from { MIN } to { MAX }.',
+        description: 'Error message of Studuino mode in Ruby (#2218)',
+        id: 'gui.smalruby3.rubyToBlocksConverter.studuinoBadCalibration',
+    },
+    studuinoPartNotDeclared: {
+        defaultMessage:
+            '"{ SOURCE }": { PART } is not connected to port { PORT }.\n' +
+            'Write { DECLARATION } in class Studuino, or set the port in the port settings.',
+        description: 'Error message of Studuino mode in Ruby (#2218)',
+        id: 'gui.smalruby3.rubyToBlocksConverter.studuinoPartNotDeclared',
+    },
+    studuinoNormalModeCall: {
+        defaultMessage:
+            '"{ SOURCE }" is a block for running while connected, so it cannot be used in Studuino mode.\n' +
+            'Use the parts declared in class Studuino (e.g. studuino.dc_motor_m1.forward).',
+        description: 'Error message of Studuino mode in Ruby (#2218)',
+        id: 'gui.smalruby3.rubyToBlocksConverter.studuinoNormalModeCall',
+    },
 });
 
 // from scratch-vm/src/serialization/sb3.js

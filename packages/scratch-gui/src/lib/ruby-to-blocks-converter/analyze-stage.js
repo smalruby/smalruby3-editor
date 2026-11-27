@@ -18,6 +18,8 @@ const AnalyzeStage = {
      */
     _analyze(root, code) {
         this._context.analysis = analyze(root, { source: code });
+        // `class Studuino` (the port settings of Studuino mode) is read before converting (#2218)
+        this._analyzeStuduino(root);
         // One `@a` used as both a variable and a list is an error (issues #1593 / #1622)
         this._rejectRubyNameOfVariableAndList();
     },

@@ -1,4 +1,5 @@
 import { fieldArg, numberArg, registerSendTable } from './send-table';
+import { registerStuduinoParts } from './studuino-mode';
 
 // Ruby is written with `studuino.` (#2190). `smalrubot_s1.` is still read so that older programs
 // and teaching materials open as blocks. Both receivers share the same table below.
@@ -59,6 +60,23 @@ const STUDUINO_SENDS = RECEIVERS.flatMap((receiver) =>
 );
 
 /**
+ * The calls of `studuino.xxx` below are the blocks of normal mode (running while connected). A
+ * program of Studuino mode cannot use them (docs/studuino-mode/README.md, #2218).
+ * @param {object} converter - The Ruby to blocks converter.
+ * @param {object} params - The params of the call.
+ * @returns {null} null (so that the next handler converts the call) when it is not a program of
+ *     Studuino mode; otherwise it throws the error of conversion.
+ */
+const rejectInStuduinoMode = (converter, params) => {
+    if (converter._isStuduinoModeCode()) {
+        throw converter._studuinoError(params.node, 'studuinoNormalModeCall', {
+            SOURCE: converter._truncateSource(converter._getSource(params.node)),
+        });
+    }
+    return null;
+};
+
+/**
  * Register the conversions for one receiver name.
  * @param {object} converter - The Ruby to blocks converter.
  * @param {string} receiverName - The receiver name (`studuino` or `smalrubot_s1`).
@@ -73,6 +91,7 @@ const registerForReceiver = (converter, receiverName) => {
 
     // `led` picks the opcode by its second argument (`true` / `false`): it stays a handler.
     converter.registerOnSend(receiverName, 'led', 2, (params) => {
+        rejectInStuduinoMode(converter, params);
         const { receiver, args } = params;
 
         if (
@@ -102,7 +121,15 @@ const SmalrubotS1Converter = {
 
     register: function (converter) {
         RECEIVERS.forEach((receiver) => registerForReceiver(converter, receiver));
+        // Registered before the table so that it is tried first (converter-registry.js).
+        STUDUINO_SENDS.forEach((row) =>
+            converter.registerOnSend(row.receiver, row.name, row.args.length, (params) =>
+                rejectInStuduinoMode(converter, params),
+            ),
+        );
         registerSendTable(converter, STUDUINO_SENDS);
+        // Studuino mode: `studuino.<part>_<port>` (#2218)
+        registerStuduinoParts(converter);
     },
 };
 

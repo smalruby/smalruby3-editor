@@ -17,6 +17,9 @@ import analytics from '../lib/analytics';
 // === Smalruby: Start of ruby to blocks before green flag ===
 import RubyToBlocksConverterHOC from '../lib/ruby-to-blocks-converter-hoc.jsx';
 // === Smalruby: End of ruby to blocks before green flag ===
+// === Smalruby: Start of studuino mode write ===
+import {abortStuduinoWrite, isStuduinoMode, openStuduinoWrite} from '../reducers/studuino-mode';
+// === Smalruby: End of studuino mode write ===
 
 class Controls extends React.Component {
     constructor (props) {
@@ -41,6 +44,13 @@ class Controls extends React.Component {
         const shiftKey = e.shiftKey;
         converter.apply()
             .then(() => {
+                // === Smalruby: Start of studuino mode write ===
+                // In the Studuino mode the program does not run in the browser: the green flag writes it (S13)
+                if (this.props.studuinoMode) {
+                    this.props.onStuduinoWrite();
+                    return;
+                }
+                // === Smalruby: End of studuino mode write ===
                 if (shiftKey) {
                     this.props.vm.setTurboMode(!this.props.turbo);
                 } else {
@@ -73,6 +83,10 @@ class Controls extends React.Component {
     }
     handleStopAllClick (e) {
         e.preventDefault();
+        // === Smalruby: Start of studuino mode write ===
+        // In the Studuino mode the stop button stops writing (S13)
+        if (this.props.studuinoMode) this.props.onStuduinoWriteAbort();
+        // === Smalruby: End of studuino mode write ===
         this.props.vm.stopAll();
     }
     render () {
@@ -82,6 +96,11 @@ class Controls extends React.Component {
             targetCodeToBlocks: _targetCodeToBlocks,
             // === Smalruby: End of ruby to blocks before green flag ===
             isStarted: _isStarted,
+            // === Smalruby: Start of studuino mode write ===
+            studuinoMode: _studuinoMode,
+            onStuduinoWrite: _onStuduinoWrite,
+            onStuduinoWriteAbort: _onStuduinoWriteAbort,
+            // === Smalruby: End of studuino mode write ===
             projectRunning,
             turbo,
             ...props
@@ -108,16 +127,29 @@ Controls.propTypes = {
     targetCodeToBlocks: PropTypes.func,
     // === Smalruby: End of ruby to blocks before green flag ===
     turbo: PropTypes.bool.isRequired,
+    // === Smalruby: Start of studuino mode write ===
+    studuinoMode: PropTypes.bool,
+    onStuduinoWrite: PropTypes.func,
+    onStuduinoWriteAbort: PropTypes.func,
+    // === Smalruby: End of studuino mode write ===
     vm: PropTypes.instanceOf(VM)
 };
 
 const mapStateToProps = state => ({
     isStarted: state.scratchGui.vmStatus.running,
     projectRunning: state.scratchGui.vmStatus.running,
-    turbo: state.scratchGui.vmStatus.turbo
+    turbo: state.scratchGui.vmStatus.turbo,
+    // === Smalruby: Start of studuino mode write ===
+    studuinoMode: isStuduinoMode(state)
+    // === Smalruby: End of studuino mode write ===
 });
 // no-op function to prevent dispatch prop being passed to component
-const mapDispatchToProps = () => ({});
+// === Smalruby: Start of studuino mode write ===
+const mapDispatchToProps = dispatch => ({
+    onStuduinoWrite: () => dispatch(openStuduinoWrite()),
+    onStuduinoWriteAbort: () => dispatch(abortStuduinoWrite())
+});
+// === Smalruby: End of studuino mode write ===
 
 // === Smalruby: Start of ruby to blocks before green flag ===
 export default RubyToBlocksConverterHOC(injectIntl(connect(

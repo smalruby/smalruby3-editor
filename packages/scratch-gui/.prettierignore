@@ -125,6 +125,12 @@ src/components/*
 !src/components/mesh-practice-partner/**
 !src/components/studuino-practice-board/
 !src/components/studuino-practice-board/**
+!src/components/studuino-port-settings-modal/
+!src/components/studuino-port-settings-modal/**
+!src/components/studuino-mode-switch-dialog/
+!src/components/studuino-mode-switch-dialog/**
+!src/components/studuino-write-modal/
+!src/components/studuino-write-modal/**
 !src/components/mobile-bottom-tabs/
 !src/components/mobile-bottom-tabs/**
 !src/components/mobile-drawer/
@@ -241,6 +247,12 @@ src/containers/*
 !src/containers/lesson-hint.jsx
 !src/containers/lesson-practice-partner.jsx
 !src/containers/studuino-practice-board.jsx
+!src/containers/studuino-mode-sync.jsx
+!src/containers/studuino-port-settings-modal.jsx
+!src/containers/studuino-mode-switch-dialog.jsx
+!src/containers/studuino-unusable-blocks.jsx
+!src/containers/studuino-unusable-blocks.css
+!src/containers/studuino-write-modal.jsx
 !src/containers/lesson-analytics.jsx
 !src/containers/lesson-progress-sync.jsx
 !src/containers/lesson-goal-watcher.jsx
@@ -272,6 +284,10 @@ src/lib/*
 !src/lib/dncl/**
 !src/lib/ruby-to-blocks-converter/
 !src/lib/ruby-to-blocks-converter/**
+!src/lib/studuino-ir/
+!src/lib/studuino-ir/**
+!src/lib/studuino-ruby/
+!src/lib/studuino-ruby/**
 !src/lib/settings/
 # Mixed directory
 !src/lib/libraries/
@@ -362,6 +378,12 @@ src/lib/*
 !src/lib/ruby-screenshot.js
 !src/lib/smalrubot-firmware-flasher.js
 !src/lib/smalrubot-firmware.hex.js
+!src/lib/studuino-mode.js
+!src/lib/studuino-port-settings.js
+!src/lib/studuino-mode-check.js
+!src/lib/studuino-block-marks.js
+!src/lib/studuino-compile.js
+!src/lib/studuino-write-steps.js
 !src/lib/stale-block-delete-guard.js
 !src/lib/storage-worker-timeout.js
 !src/lib/storage-worker-timeout-hoc.jsx
@@ -447,6 +469,7 @@ src/reducers/*
 !src/reducers/ruby-code.js
 !src/reducers/smalrubot-firmware.js
 !src/reducers/smalruby-registry.ts
+!src/reducers/studuino-mode.js
 !src/reducers/tutorial-onboarding.js
 
 # ============================================================
@@ -491,6 +514,7 @@ test/integration/*
 !test/integration/ruby-tab.test.js
 !test/integration/smalrubot-firmware.test.js
 !test/integration/smalrubot-s1-connection-flow.test.js
+!test/integration/studuino-mode.test.js
 !test/integration/smalrubot-s1-legacy-card.test.js
 !test/integration/lesson-goal.test.js
 !test/integration/smalruby-lesson1-challenges-5-8.test.js
@@ -560,6 +584,10 @@ test/unit/components/*
 !test/unit/components/lesson-hint-nudge.test.jsx
 !test/unit/containers/lesson-practice-partner.test.jsx
 !test/unit/containers/studuino-practice-board.test.jsx
+!test/unit/containers/studuino-port-settings-modal.test.jsx
+!test/unit/containers/studuino-write-modal.test.jsx
+!test/unit/containers/studuino-port-settings-modal.test.jsx
+!test/unit/containers/studuino-write-modal.test.jsx
 !test/unit/components/balloon.test.jsx
 !test/unit/components/classroom-tutorial.test.jsx
 !test/unit/components/lessons-library.test.jsx
@@ -709,6 +737,8 @@ test/unit/lib/*
 !test/unit/lib/mesh-practice/
 !test/unit/lib/mesh-practice/**
 !test/unit/lib/dncl/**
+!test/unit/lib/studuino-ir/
+!test/unit/lib/studuino-ir/**
 !test/unit/lib/ja-notation/
 !test/unit/lib/ja-notation/**
 !test/unit/lib/ruby-generator/
@@ -840,6 +870,11 @@ test/unit/lib/*
 !test/unit/lib/screen-utils.test.js
 !test/unit/lib/stale-block-delete-guard.test.js
 !test/unit/lib/smalrubot-firmware-flasher.test.js
+!test/unit/lib/studuino-mode.test.js
+!test/unit/lib/studuino-port-settings.test.js
+!test/unit/lib/studuino-mode-check.test.js
+!test/unit/lib/studuino-compile.test.js
+!test/unit/lib/studuino-write-steps.test.js
 !test/unit/lib/smalruby-original-sprites.test.js
 !test/unit/lib/setup-prism.js
 !test/unit/lib/version-checker.test.js
@@ -854,6 +889,7 @@ test/unit/reducers/*
 !test/unit/reducers/koshien-mock-panel-reducer.test.js
 !test/unit/reducers/cards_reducer.test.js
 !test/unit/reducers/dncl-mode-reducer.test.js
+!test/unit/reducers/studuino-mode-reducer.test.js
 !test/unit/reducers/lesson-mode-reducer.test.js
 !test/unit/reducers/tutorial-onboarding-reducer.test.js
 !test/unit/reducers/classroom-reducer.test.js
