@@ -497,7 +497,10 @@ merge 済みか**を GitHub に問い合わせ（`closedByPullRequestsReferences
 **Close**・AI Status をクリアし、両面の `🙋 HITL` ラベルを除去する。close リンクは PR が
 **非デフォルト base 宛て**（EPIC サブ Issue を親 epic ブランチに積む等）だと登録されないため、
 close リンクで見つからなければ head ブランチ `topic/autopilot-<N>` の merged PR も見て base 非依存に
-検知する（#831）。判定は `phases.js` の
+検知する（#831）。**同じブランチで PR を分けて出す Issue では、open の PR があればマージ済みと
+みなさない**（前の PR がマージ済みでも、いま開いている PR が本物で人間のレビュー待ち。close リンクと
+head ブランチのどちらでも同じ。head ブランチは `--state all` の 1 回で open と merged を取る・
+`phases.js` の `hasMergedHeadPr`）。判定は `phases.js` の
 `selectMergeCandidates` / `mergeProgressionIntents`（純粋関数）、問い合わせと書き込みは
 `project.hasMergedPullRequest` と daemon の `applyMergeProgression`（ラベル除去は force 同期）。
 実行中（run が所有する）item は触らない。
