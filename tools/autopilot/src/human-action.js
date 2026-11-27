@@ -19,7 +19,7 @@
  *
  * act はボタンを押して「行う」を選んだときの操作:
  * open（url を別タブで開く。リリース確認の確認ページもこれ）/ release（確認の結果を書くダイアログ）/
- * delegate（targets の 🙋 を外す）/ null（ボタンなし）。
+ * delegate（targets の 🙋 を外す）/ resolve（targets[0] の PR のコンフリクトを AI に解消してもらう）/ null（ボタンなし）。
  * @param {object} it board item（GET /board の items に humanWait の delegate を重ねたもの）
  * @param {object} [ctx] { kids: object[]（親がこの item の board item）, running: number[], questions: number[], repoUrl: string,
  *   decisions: number（この EPIC の決定待ちの件数） }
@@ -123,6 +123,13 @@ function humanAction(it, ctx) {
         }
         return phase('autonomous', r('idle', null, null,
             'AI が進めています（' + done + ' 済み・topic に自動でマージ）。人間の番は最後の確認だけ。' + handNote + decisions));
+    }
+    // PR が base とコンフリクトしていると、レビューしてもマージできない。まず AI に解消してもらう（#2524）。
+    // worker が走っていれば上で idle になっている。canResolveConflict と同じ条件を、埋め込みのためここに書く
+    if (openPr && openPr.mergeable === 'CONFLICTING' && (s === 'Review' || s === 'DoD' || it.hitl)) {
+        return r('check', 'コンフリクトを解消してもらう',
+            'AI が base を取り込んでコンフリクトを解消し、push する。🙋 と Status はそのまま（済んだらレビューへ）',
+            'PR #' + openPr.number + ' が base とコンフリクトしている', 'resolve', prUrl, [it.issue]);
     }
     if (s === 'Review' || s === 'DoD') {
         const what = s === 'Review' ? 'あなたのレビュー待ち' : '動作の確認（DoD）待ち';

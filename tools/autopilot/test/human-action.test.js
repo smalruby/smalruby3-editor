@@ -267,3 +267,41 @@ test('EPIC: 🙋 の無い子（topic への自動マージ待ちの Review な�
     assert.strictEqual(r.epicPhase, 'autonomous');
     assert.strictEqual(r.kind, 'idle');
 });
+
+test('humanAction: Review / DoD の PR がコンフリクトしていれば、先に AI に解消してもらう（#2524）', () => {
+    const a = (it, ctx) => humanAction(Object.assign({ issue: 2474, hitl: true }, it), Object.assign({ repoUrl: REPO }, ctx));
+    const conflict = [{ number: 2482, state: 'OPEN', mergeable: 'CONFLICTING' }];
+    for (const status of ['Review', 'DoD']) {
+        const r = a({ status, prs: conflict });
+        assert.deepStrictEqual([r.kind, r.button, r.act, r.targets], ['check', 'コンフリクトを解消してもらう', 'resolve', [2474]]);
+        assert.strictEqual(r.state, 'PR #2482 が base とコンフリクトしている');
+        assert.match(r.happens, /base を取り込んでコンフリクトを解消し、push する。🙋 と Status はそのまま/);
+    }
+    // 🙋 が付いていて OPEN の PR を持つほかの状態でも同じ
+    assert.strictEqual(a({ status: 'Blocked', prs: conflict }).act, 'resolve');
+    // worker が走っていればコンフリクトの扱いにしない（AI の番）
+    assert.strictEqual(a({ status: 'Review', prs: conflict }, { running: [2474] }).kind, 'idle');
+    // コンフリクトが無い・まだ分からない・閉じた PR ならいままでどおり「PR を見る」
+    for (const prs of [[{ number: 2482, state: 'OPEN', mergeable: 'MERGEABLE' }], [{ number: 2482, state: 'OPEN' }],
+        [{ number: 2482, state: 'CLOSED', mergeable: 'CONFLICTING' }]]) {
+        const r = a({ status: 'Review', prs });
+        assert.deepStrictEqual([r.button, r.act], [prs[0].state === 'OPEN' ? 'PR を見る' : 'Issue を見る', 'open']);
+    }
+});
+
+test('EPIC: 途中の相談の子の PR がコンフリクトしていれば、EPIC の行も「コンフリクトを解消してもらう」（#2524）', () => {
+    const r = humanAction(EPIC_ITEMS[EPIC_ITEMS.length - 3], {
+        kids: [{ issue: 2457, status: 'Review', hitl: true, parent: { number: 2450 },
+            prs: [{ number: 2470, state: 'OPEN', mergeable: 'CONFLICTING' }] }],
+        repoUrl: REPO,
+    });
+    assert.deepStrictEqual([r.epicPhase, r.kind, r.button, r.act, r.targets], ['consult', 'check', 'コンフリクトを解消してもらう', 'resolve', [2457]]);
+    assert.match(r.state, /#2457: PR #2470 が base とコンフリクトしている/);
+    // 子の worker が走っていれば相談にしない
+    const r2 = humanAction(EPIC_ITEMS[EPIC_ITEMS.length - 3], {
+        kids: [{ issue: 2457, status: 'Review', hitl: true, parent: { number: 2450 },
+            prs: [{ number: 2470, state: 'OPEN', mergeable: 'CONFLICTING' }] }],
+        running: [2457], repoUrl: REPO,
+    });
+    assert.notStrictEqual(r2.act, 'resolve');
+});
