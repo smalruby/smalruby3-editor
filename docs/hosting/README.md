@@ -175,10 +175,20 @@ prod ステージのリソースは、`infra/smalruby-web-hosting/lib/web-hostin
 
 ## キャッシュ
 
+本番（`build-and-deploy`）とブランチのプレビュー（`preview-deploy`）は、どちらも **`scripts/cache-policy.mjs`** でビルドを分けて置く（判定はこのファイルの 1 か所だけ。テストは `scripts/cache-policy.test.mjs`）。
+
 | ファイル | `Cache-Control` | 理由 |
 |---|---|---|
-| ファイル名にハッシュが付いたもの（`/\.[0-9a-f]{8,}\./`） | `public, max-age=31536000, immutable` | 中身が変わると名前が変わる |
-| それ以外（`index.html`、`service-worker.js`、`version.json`、`auth-redirect.*`、`.well-known/*`、`admin/index.html` など） | `max-age=0, s-maxage=60` | ブラウザは毎回確かめ直し、CloudFront には 60 秒だけ置く |
+| ファイル名にハッシュが付いたもの（`/\.[0-9a-f]{8,}\./`。`gui.<hash>.js`、`static/assets/*.<hash>.*` など） | `public, max-age=31536000, immutable` | 中身が変わると名前が変わる |
+| monaco（`static/monaco/<版>/**`） | `public, max-age=31536000, immutable` | ディレクトリに monaco-editor の版が入る（`webpack.config.js` の `MONACO_VS_DEST`）。版を上げるとパスが変わる |
+| Smalruby のコスチューム（`static/smalruby-assets/<md5>.<拡張子>`） | `public, max-age=31536000, immutable` | 名前が中身の md5（コスチュームの `md5ext`）。中身が変わると名前が変わる |
+| ブロックのアイコン（`static/blocks-media/**`） | `public, max-age=86400, stale-while-revalidate=604800` | scratch-blocks のファイルで、名前に版もハッシュも無く、scratch-blocks を上げると同じ名前のまま中身が変わりうる。1 日は確かめ直さず、そのあと 7 日は古いものを見せながら裏で確かめる |
+| それ以外（`index.html`、`service-worker.js`、`version.json`、`auth-redirect.*`、`.well-known/*`、`admin/index.html` など） | `max-age=0, s-maxage=60` | ブラウザは毎回確かめ直し、CloudFront には 60 秒だけ置く。デプロイがすぐ届く |
+
+- 長くキャッシュするのは、**中身が変わるとパスも変わるもの**だけ。名前の変わらない入口のファイルは毎回確かめ直す。
+- ブロックのアイコンをビルドでハッシュ付きの名前にしなかったのは、scratch-blocks と upstream の GUI のファイルが名前で参照しているため（変えると upstream のファイルの変更が増える）。アイコンは古くても動きが壊れないので、短めの長さで十分とした。
+- 304（ブラウザのキャッシュの確かめ直し）も CloudFront のリクエストに数える。定額プランの上限（月 1,000 万リクエスト）に先に近づくのはリクエスト数なので、確かめ直しの多い monaco・smalruby-assets・blocks-media を上のように長くした（授業の時間の 304 は全体の約半分だった）。
+- `.wasm` / `.mjs` / `.hex` は、上の長さのまま `Content-Type` を明示して置き直す。
 
 - CloudFront のキャッシュポリシーは AWS 管理の `CachingOptimized`（`Cache-Control` があれば従う・最長 1 年。クエリ文字列・ヘッダ・Cookie はキーに含めない）。定額プランはカスタムのキャッシュポリシーを使えないため。**`Cache-Control` が無いオブジェクトはエッジに 1 日残る**（プレビューの 60 秒と違う）ので、CI は上の表のとおり全ファイルに `Cache-Control` を付けて置く。
 - CI は置いたあとに `/*` を invalidation する（1 回 1 パスとして数えるので、月 1,000 パスの無料枠に十分収まる）。

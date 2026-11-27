@@ -117,8 +117,10 @@ ACM の DNS 検証は、公開 DNS から検証レコード（CNAME）が引け�
   `Last-Modified` から勝手に鮮度を見積もって古い `index.html` を使い続けることがある。
   `no-cache` だけを付けるとエッジにも残らない（MinTTL が 0 のため）。
 - ファイル名にハッシュが付いたもの（`*.<hash>.js`、`static/assets/*.<hash>.*`。
-  `/\.[0-9a-f]{8,}\./`）は
-  `Cache-Control: public, max-age=31536000, immutable` を付ける。
+  `/\.[0-9a-f]{8,}\./`）と、パスに版や中身の md5 があるもの（`static/monaco/<版>/**`、
+  `static/smalruby-assets/<md5>.*`）は `Cache-Control: public, max-age=31536000, immutable` を付ける。
+  ブロックのアイコン（`static/blocks-media/**`）は `public, max-age=86400, stale-while-revalidate=604800`。
+  判定は `scripts/cache-policy.mjs` の 1 か所（表と理由は `docs/hosting/README.md` の「キャッシュ」）。
 - 置き直したら `/<slug>/*` を invalidation する（すぐに反映させたいとき）。
 - gui の JS（プレビューは `gui.js`、本番は `gui.<hash>.js`）は、事前に圧縮した `.br`（brotli q11）と
   `.gz`（gzip -9）も隣に置く。CloudFront は 10,000,000 バイトを超えるファイルを圧縮しないため。
@@ -241,8 +243,8 @@ aws s3 rm "s3://$BUCKET/index.html"
   warning を出して飛ばす（GitHub Pages への配置は続ける）。
 - ジョブに `id-token: write` を足すため、ジョブの `permissions` で workflow の権限（`contents` / `issues` /
   `pull-requests` の write）も書き直している（ジョブに書くと workflow の分は引き継がれない）。
-- 置き方はプレビューと同じ「CI がアップロードするときの約束」: ハッシュ付きのファイルは
-  `public, max-age=31536000, immutable`、それ以外は `max-age=0, s-maxage=60`。`.wasm` / `.mjs` / `.hex` は
+- 置き方はプレビューと同じ「CI がアップロードするときの約束」（`scripts/cache-policy.mjs`）: ハッシュ・版・md5 が
+  パスにあるものは `public, max-age=31536000, immutable`、ブロックのアイコンは 1 日、それ以外は `max-age=0, s-maxage=60`。`.wasm` / `.mjs` / `.hex` は
   `Content-Type` を明示する。gui の JS の `.br` / `.gz` も置く（上の約束の最後の項目）。最後に
   `--delete --size-only` で古いファイルを消す。
 - 本体（`packages/scratch-gui/dist`）はバケットの直下、管理 SPA（`packages/admin/build`）は `admin/` に置く。
