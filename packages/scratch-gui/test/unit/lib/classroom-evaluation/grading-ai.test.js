@@ -369,20 +369,33 @@ describe('rubricStepStates (#2455 F1: the inner steps 2-1 → 2-4)', () => {
         expect(states({ hasDescription: true, repsDone: 2 })).toMatchObject({ examples: 'now', fairness: 'todo' });
     });
 
-    test('the fairness is done when every question is answered (or there is none)', () => {
+    test('the fairness is done when every question is answered', () => {
         const done = { hasDescription: true, repsDone: 3 };
-        expect(states({ ...done, fairness: { checks: [], answers: {} } })).toMatchObject({
-            fairness: 'done',
-            sentences: 'now',
-        });
         const asked = { checks: [{ question: 'q' }, { question: 'r' }], answers: { 0: 'x' } };
         expect(states({ ...done, fairness: asked }).fairness).toBe('now');
         expect(states({ ...done, fairness: { ...asked, answers: { 0: 'x', 1: 'y' } } }).fairness).toBe('done');
     });
 
+    test('with no question, 2-3 waits for the teacher’s［次へ］(#2521)', () => {
+        const done = { hasDescription: true, repsDone: 3 };
+        expect(states({ ...done, fairness: { checks: [], answers: {} } })).toMatchObject({
+            fairness: 'now',
+            sentences: 'todo',
+        });
+        expect(states({ ...done, fairness: { checks: [], answers: {}, confirmed: true } })).toMatchObject({
+            fairness: 'done',
+            sentences: 'now',
+        });
+    });
+
     test('saving the sentences finishes 2-4; a step done out of order stays done', () => {
         expect(
-            states({ hasDescription: true, repsDone: 3, fairness: { checks: [], answers: {} }, saved: true }),
+            states({
+                hasDescription: true,
+                repsDone: 3,
+                fairness: { checks: [], answers: {}, confirmed: true },
+                saved: true,
+            }),
         ).toEqual({ describe: 'done', examples: 'done', fairness: 'done', sentences: 'done' });
         // Without a description yet, the answered representatives still count as done.
         expect(states({ repsDone: 3 })).toEqual({

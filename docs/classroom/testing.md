@@ -730,8 +730,11 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `grading-rubric-propose-ai` / `grading-rubric-propose-ai-button` | div / button | 2-2 の上の「AI に相談」／［AI に代表 N 件の案を出してもらう］（代表すべてをまとめて。一度実行したら押せない） |
 | `grading-rubric-rep-<席>` / `grading-rubric-rep-body-<席>` | button / div | 代表の行（押すと開く）／開いた中身 |
 | `grading-rubric-rep-grade-<席>-<S\|A\|B\|C>` / `grading-rubric-rep-reason-<席>` / `grading-rubric-rep-open-<席>` | button / input / button | 正解・理由・［作品を開く］ |
+| `grading-rubric-proposed-notice` | p (status) | 2-2 の AI の案が出終わったときの知らせ「AI の案が出ました。正解を選んでください。」（代表すべてに正解が付くまで） |
+| `grading-rubric-rep-hint-<席>` | span (tooltip) | AI の案が出終わったとき、開いた代表の正解のボタンのそばに約 4 秒だけ出る「正解を選ぶ」 |
 | `grading-rubric-fairness` | div | 2-3 フェアの確認 |
 | `grading-rubric-fairness-ai` / `grading-rubric-fairness-ai-button` | div / button | 2-3 の「AI に相談」／［AI にフェアか確かめてもらう］（一度実行したら押せない） |
+| `grading-rubric-fairness-next` | button | 2-3 で聞くことが無い（くらべる作品が無い）ときの［次へ］。押すと 2-3 が済みになり 2-4 へ移る |
 | `grading-rubric-check-<i>` / `-option-<j>` / `-compare` | li / button / button | 質問・選択肢・［作品を並べて見る］ |
 | `grading-rubric-sentences` / `grading-rubric-level-<S\|A\|B\|C>` / `grading-rubric-save` | div / input / button | 2-4 基準の文・文の欄・［基準を保存］ |
 | `grading-rubric-draft-ai` / `grading-rubric-draft-ai-button` | div / button | 2-4 の「AI に相談」／［AI に基準の文の案を書いてもらう］（一度実行したら押せない） |

@@ -5,11 +5,13 @@
  * 段の違いを見せる。中の手順を太い枠で囲み、縦の番号つきで並べる。
  * いまの小手順だけ開き、終わった小手順は 1 行（まとめ）にたたむので、授業 PC の 600px の高さにも収まる。
  * 見出しを押すとその小手順を開く（開いているのはいつも 1 つまで）。
+ * 開いていた小手順が済んで次へ移るときは、すぐ閉じずに「済み」を見せる間を置き、ゆっくり閉じてから
+ * 次の小手順を開く（#2521。何が起きたかを先生が見て取れるように）。
  *
  * 決まりは docs/design-system/components/inner-stepper.md。
  */
 import PropTypes from 'prop-types';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
 import styles from './inner-stepper.css';
 
@@ -32,6 +34,11 @@ const messages = defineMessages({
 });
 
 const STATE_MESSAGES = { done: messages.done, now: messages.now, todo: messages.todo };
+
+/** 済んだ小手順を開いたまま見せる間（ms・#2521）。0.6〜1 秒で、済みの印が目に入る長さ。 */
+export const STEP_HOLD_MS = 800;
+/** 閉じる動きの長さ（ms・#2521）。inner-stepper.css の閉じる動きと同じ長さにする。 */
+export const STEP_CLOSE_MS = 300;
 
 /**
  * はじめに開く小手順: いまの小手順。無ければ、まだ終わっていない最初の小手順。全部済んだら開かない。
@@ -61,11 +68,48 @@ const InnerStepper = ({ openStepId, steps, testId, title, onToggleStep }) => {
     const controlled = typeof openStepId !== 'undefined';
     const autoOpenId = initialOpenStepId(steps);
     const [ownOpenId, setOwnOpenId] = useState(autoOpenId);
+    const [closingId, setClosingId] = useState(null);
+    const openRef = useRef(ownOpenId);
+    openRef.current = ownOpenId;
+    const lastAutoRef = useRef(autoOpenId);
+    const timersRef = useRef([]);
+    const frameRef = useRef(null);
+    const scrollToRef = useRef(null);
+    const clearTimers = useCallback(() => {
+        timersRef.current.forEach(clearTimeout);
+        timersRef.current = [];
+        setClosingId(null);
+    }, []);
+    useEffect(() => () => timersRef.current.forEach(clearTimeout), []);
     // 使う側が小手順の状態を進めたら（2-2 が済んで 2-3 がいまここ）、開く小手順もいまの小手順へ移す。
     // 見出しで開いた小手順は、いまの小手順が変わるまではそのまま残す。
+    // 開いていた小手順が済んだときは、済みを見せる間を置いてから閉じ、次を開く（#2521）。
     useEffect(() => {
-        setOwnOpenId(autoOpenId);
-    }, [autoOpenId]);
+        const finished = lastAutoRef.current;
+        lastAutoRef.current = autoOpenId;
+        if (finished === autoOpenId) return;
+        clearTimers();
+        if (!finished || openRef.current !== finished) {
+            setOwnOpenId(autoOpenId);
+            return;
+        }
+        timersRef.current = [
+            setTimeout(() => setClosingId(finished), STEP_HOLD_MS),
+            setTimeout(() => {
+                setClosingId(null);
+                scrollToRef.current = autoOpenId;
+                setOwnOpenId(autoOpenId);
+            }, STEP_HOLD_MS + STEP_CLOSE_MS),
+        ];
+    }, [autoOpenId, clearTimers]);
+    // The step opened by moving on may be below the fold of the pane: bring its head into view.
+    useEffect(() => {
+        const id = scrollToRef.current;
+        scrollToRef.current = null;
+        if (!id || id !== ownOpenId || !frameRef.current) return;
+        const head = frameRef.current.querySelector(`[data-step-id="${id}"]`);
+        if (head && head.scrollIntoView) head.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }, [ownOpenId]);
     const openId = controlled ? openStepId : ownOpenId;
     const tid = (part, id) => testId && `${testId}-${part}-${id}`;
 
@@ -73,13 +117,17 @@ const InnerStepper = ({ openStepId, steps, testId, title, onToggleStep }) => {
         (event) => {
             const id = event.currentTarget.dataset.stepId;
             if (onToggleStep) onToggleStep(id);
-            if (!controlled) setOwnOpenId((current) => (current === id ? null : id));
+            if (!controlled) {
+                // A press wins over the wait to move on.
+                clearTimers();
+                setOwnOpenId((current) => (current === id ? null : id));
+            }
         },
-        [controlled, onToggleStep],
+        [clearTimers, controlled, onToggleStep],
     );
 
     return (
-        <section aria-label={title} className={styles.frame} data-testid={testId}>
+        <section aria-label={title} className={styles.frame} data-testid={testId} ref={frameRef}>
             <h3 className={styles.title}>{title}</h3>
             <ol className={styles.list}>
                 {steps.map((step) => {
@@ -89,6 +137,7 @@ const InnerStepper = ({ openStepId, steps, testId, title, onToggleStep }) => {
                         <li
                             aria-current={step.state === 'now' ? 'step' : null}
                             className={styles.step}
+                            data-closing={step.id === closingId ? 'true' : null}
                             data-state={step.state}
                             data-testid={tid('step', step.id)}
                             key={step.id}

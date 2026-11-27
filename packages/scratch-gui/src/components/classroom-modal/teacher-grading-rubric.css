@@ -215,3 +215,65 @@
     flex-direction: column;
     gap: 0.2rem;
 }
+
+/* 2-2 の AI の案が出終わったときの知らせ（#2521）: 次に先生がすることを、地の注意書きより目立たせる。 */
+.notice {
+    margin: 0;
+    padding: $space-small $space-medium;
+    border-left: 0.25rem solid $color-info;
+    border-radius: $radius-medium;
+    background-color: $color-info-background;
+    color: $color-text;
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+}
+
+/* 正解のボタンのそばに数秒だけ出す「正解を選ぶ」の吹き出し（#2521）。 */
+.grade-row {
+    position: relative;
+}
+
+.hint {
+    position: relative;
+    margin-left: $space-small;
+    padding: 0.125rem $space-medium;
+    border-radius: $radius-medium;
+    background-color: $color-action-dark;
+    color: $color-surface;
+    font-size: $font-size-small;
+    animation: grading-rubric-hint 4000ms ease-in-out forwards;
+}
+
+/* 吹き出しの左の三角（ボタンを指す） */
+.hint::before {
+    position: absolute;
+    top: 50%;
+    left: -0.375rem;
+    border-width: 0.375rem 0.375rem 0.375rem 0;
+    border-style: solid;
+    border-color: transparent $color-action-dark transparent transparent;
+    content: '';
+    transform: translateY(-50%);
+}
+
+/* 出てから消えるまで（長さは teacher-grading-rubric.jsx の CHOOSE_HINT_MS と同じ） */
+@keyframes grading-rubric-hint {
+    0% {
+        opacity: 0;
+    }
+
+    8%,
+    85% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hint {
+        animation: none;
+    }
+}

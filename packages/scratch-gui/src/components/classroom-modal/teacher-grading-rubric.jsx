@@ -26,7 +26,7 @@
  */
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
 import { GRADES } from '../../lib/classroom-evaluation/gradebook.js';
 import {
@@ -182,6 +182,26 @@ const messages = defineMessages({
         defaultMessage: 'Fairness check',
         description: 'Rubric tab: heading of the fairness questions (#2425)',
         id: 'gui.classroom.gradingRubric.fairness',
+    },
+    fairnessNoWorks: {
+        defaultMessage: 'There are no works to check for fairness.',
+        description: 'Rubric tab: no group has another work to compare, so 2-3 has nothing to check (#2521)',
+        id: 'gui.classroom.gradingRubric.fairnessNoWorks',
+    },
+    fairnessNext: {
+        defaultMessage: 'Next',
+        description: 'Rubric tab: move from 2-3 to 2-4 when there is no fairness question (#2521)',
+        id: 'gui.classroom.gradingRubric.fairnessNext',
+    },
+    proposedNotice: {
+        defaultMessage: 'The AI has proposed grades. Choose the right grade for each work.',
+        description: 'Rubric tab: the AI proposals of 2-2 are ready; the teacher gives the right grades next (#2521)',
+        id: 'gui.classroom.gradingRubric.proposedNotice',
+    },
+    chooseHint: {
+        defaultMessage: 'Choose the right grade',
+        description: 'Rubric tab: a short tip next to the grade buttons of the first representative (#2521)',
+        id: 'gui.classroom.gradingRubric.chooseHint',
     },
     fairnessRun: {
         defaultMessage: 'Ask the AI to Check Fairness',
@@ -547,7 +567,18 @@ DescriptionSection.propTypes = {
 };
 
 /* 代表の作品の 1 行（押すとこの行だけ開く）。 */
-const RepresentativeRow = ({ answer, busy, classroomId, open, proposal, rep, onOpenWork, onSetAnswer, onToggle }) => {
+const RepresentativeRow = ({
+    answer,
+    busy,
+    classroomId,
+    hint,
+    open,
+    proposal,
+    rep,
+    onOpenWork,
+    onSetAnswer,
+    onToggle,
+}) => {
     const intl = useIntl();
     const seat = rep.seatNumber;
     const handleToggle = useCallback(() => onToggle(seat), [onToggle, seat]);
@@ -592,7 +623,7 @@ const RepresentativeRow = ({ answer, busy, classroomId, open, proposal, rep, onO
                             {proposal.reason}
                         </p>
                     )}
-                    <div className={styles.buttons}>
+                    <div className={classNames(styles.buttons, styles.gradeRow)}>
                         <span className={styles.meta}>{intl.formatMessage(messages.answer)}</span>
                         {GRADES.map((g) => (
                             <button
@@ -608,6 +639,15 @@ const RepresentativeRow = ({ answer, busy, classroomId, open, proposal, rep, onO
                                 {g}
                             </button>
                         ))}
+                        {hint && (
+                            <span
+                                className={styles.hint}
+                                data-testid={`grading-rubric-rep-hint-${seat}`}
+                                role="tooltip"
+                            >
+                                {intl.formatMessage(messages.chooseHint)}
+                            </span>
+                        )}
                     </div>
                     <input
                         className={styles.input}
@@ -635,6 +675,7 @@ RepresentativeRow.propTypes = {
     answer: PropTypes.object,
     busy: PropTypes.bool,
     classroomId: PropTypes.string.isRequired,
+    hint: PropTypes.bool,
     open: PropTypes.bool,
     proposal: PropTypes.object,
     rep: PropTypes.object.isRequired,
@@ -899,6 +940,8 @@ CopyDialog.propTypes = {
 // The AI calls of the inner steps: their running name in useGradingRubric.
 const AI_RUNS = ['describe', 'propose', 'fairness', 'rubric'];
 const SUMMARY_LENGTH = 40;
+/** How long the「正解を選ぶ」tip stays by the grade buttons after the AI proposals (ms, #2521). */
+const CHOOSE_HINT_MS = 4000;
 
 const TeacherGradingRubric = ({ busy: parentBusy = false, lesson, tools, onOpenWork = null }) => {
     const intl = useIntl();
@@ -928,6 +971,10 @@ const TeacherGradingRubric = ({ busy: parentBusy = false, lesson, tools, onOpenW
     const [building, setBuilding] = useState(false);
     const [openSeat, setOpenSeat] = useState(null);
     const [copying, setCopying] = useState(false);
+    // After the AI proposals of 2-2: a notice and a short tip on the first representative (#2521).
+    const [proposedNotice, setProposedNotice] = useState(false);
+    const [hintSeat, setHintSeat] = useState(null);
+    const lastRunning = useRef(running);
     useEffect(() => {
         if (loaded) loadStarter();
     }, [loaded, loadStarter, lesson.classroomId]);
@@ -935,7 +982,27 @@ const TeacherGradingRubric = ({ busy: parentBusy = false, lesson, tools, onOpenW
         setBuilding(false);
         setOpenSeat(null);
         setCopying(false);
+        setProposedNotice(false);
+        setHintSeat(null);
     }, [lesson.classroomId]);
+    useEffect(() => {
+        const finished = lastRunning.current === 'propose' && !running;
+        lastRunning.current = running;
+        if (!finished || Object.keys(proposals).length === 0) return;
+        // Open the first representative still without the right grade: that is the teacher's next move.
+        const next =
+            representatives.find((r) => !(answers[String(r.seatNumber)] && answers[String(r.seatNumber)].grade)) ||
+            representatives[0];
+        if (!next) return;
+        setProposedNotice(true);
+        setOpenSeat(next.seatNumber);
+        setHintSeat(next.seatNumber);
+    }, [running, proposals, representatives, answers]);
+    useEffect(() => {
+        if (hintSeat === null) return;
+        const timer = setTimeout(() => setHintSeat(null), CHOOSE_HINT_MS);
+        return () => clearTimeout(timer);
+    }, [hintSeat]);
     const handleToggle = useCallback((seat) => setOpenSeat((prev) => (prev === seat ? null : seat)), []);
     const handleBuild = useCallback(() => setBuilding(true), []);
     const handleCopyOpen = useCallback(() => setCopying((prev) => !prev), []);
@@ -975,7 +1042,7 @@ const TeacherGradingRubric = ({ busy: parentBusy = false, lesson, tools, onOpenW
         examples: intl.formatMessage(messages.summaryExamples, { done, total: representatives.length }),
         fairness:
             checks.length === 0
-                ? intl.formatMessage(messages.fairnessNone)
+                ? intl.formatMessage(fairness && fairness.noWorks ? messages.fairnessNoWorks : messages.fairnessNone)
                 : intl.formatMessage(messages.summaryFairness, { count: checks.length }),
         sentences: intl.formatMessage(messages.summarySentences),
     };
@@ -1018,13 +1085,20 @@ const TeacherGradingRubric = ({ busy: parentBusy = false, lesson, tools, onOpenW
                             groups: groups.length,
                         })}
                     </div>
-                    <p className={styles.note}>{intl.formatMessage(messages.repsHint)}</p>
+                    {proposedNotice && done < representatives.length ? (
+                        <p className={styles.notice} data-testid="grading-rubric-proposed-notice" role="status">
+                            {intl.formatMessage(messages.proposedNotice)}
+                        </p>
+                    ) : (
+                        <p className={styles.note}>{intl.formatMessage(messages.repsHint)}</p>
+                    )}
                     <ul className={styles.reps}>
                         {representatives.map((rep) => (
                             <RepresentativeRow
                                 answer={answers[String(rep.seatNumber)]}
                                 busy={busy}
                                 classroomId={lesson.classroomId}
+                                hint={hintSeat === rep.seatNumber}
                                 key={rep.key}
                                 open={openSeat === rep.seatNumber}
                                 proposal={proposals[String(rep.seatNumber)]}
@@ -1051,9 +1125,24 @@ const TeacherGradingRubric = ({ busy: parentBusy = false, lesson, tools, onOpenW
                 onClick={tools.handleCheckFairness}
             >
                 {fairness && checks.length === 0 && (
-                    <p className={styles.done}>{intl.formatMessage(messages.fairnessNone)}</p>
+                    <p className={styles.done} role="status">
+                        {intl.formatMessage(fairness.noWorks ? messages.fairnessNoWorks : messages.fairnessNone)}
+                    </p>
                 )}
             </AskAi>
+            {/* Nothing to check: say so and let the teacher move on, instead of skipping 2-3 unseen (#2521). */}
+            {fairness && checks.length === 0 && !fairness.confirmed && (
+                <div className={styles.buttons}>
+                    <ClassroomButton
+                        dataTestId="grading-rubric-fairness-next"
+                        disabled={busy}
+                        variant="primary"
+                        onClick={tools.handleConfirmFairness}
+                    >
+                        {intl.formatMessage(messages.fairnessNext)}
+                    </ClassroomButton>
+                </div>
+            )}
             {checks.length > 0 && (
                 <ul className={styles.checks}>
                     {checks.map((check, i) => (
@@ -1243,5 +1332,5 @@ TeacherGradingGroupPrompt.propTypes = {
     onDismiss: PropTypes.func.isRequired,
 };
 
-export { TeacherGradingGroupPrompt, messages as gradingRubricMessages };
+export { CHOOSE_HINT_MS, TeacherGradingGroupPrompt, messages as gradingRubricMessages };
 export default TeacherGradingRubric;
