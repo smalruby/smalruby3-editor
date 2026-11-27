@@ -71,6 +71,14 @@ const currentStepIds = (getByTestId) =>
     STEP_IDS.filter((id) => getByTestId(id).getAttribute('aria-current') === 'step');
 
 describe('TeacherEvaluation steps (#2424)', () => {
+    test('only the steps that call the AI carry the sparkle icon (#2518)', () => {
+        const { getByTestId } = renderEvaluation();
+        const withIcon = STEP_IDS.filter(
+            (id) => getByTestId(id).querySelector('[data-testid="classroom-button-ai-icon"]') !== null,
+        );
+        expect(withIcon).toEqual(['classroom-eval-run-grade', 'classroom-eval-run-comment']);
+    });
+
     test('the six step buttons are in the footer in order, with the load step current first', () => {
         const { getByTestId } = renderEvaluation();
         const footerButtons = [...getByTestId('classroom-eval-steps').querySelectorAll('button')].map((b) =>

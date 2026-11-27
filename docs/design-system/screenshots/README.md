@@ -32,6 +32,7 @@
 | `0507-alerts.png` | アラート（注意・成功・お知らせ。[`../components/alerts.md`](../components/alerts.md)） |
 | `0508-pager-debug.png` | デバッグのモーダルの「次へ」（モーダルの右の端から外へはみ出す。[`../components/pager.md`](../components/pager.md)） |
 | `0509-pager-tutorial.png` | チュートリアルのカードの「次へ」と、後ろののぞき札（上の緑の帯から写る。[`../components/pager.md`](../components/pager.md)） |
+| `0510-classroom-ai-buttons.png` | クラス管理の AI を使うボタン（主・副・テキスト・押せない。[`../components/buttons.md`](../components/buttons.md) の「AI を使うボタン」）。撮影スクリプトではなく、`classroom-modal.css` を postcss で変換した切り抜きの HTML を headless chromium（880×258）で撮った |
 | `0601-blocks-default.png` | ブロック: オリジナルの色のモード（カテゴリの欄とブロックパレットの切り抜き。[`../blocks.md`](../blocks.md)） |
 | `0602-blocks-high-contrast.png` | ブロック: 高コントラスト |
 | `0603-blocks-dark.png` | ブロック: ダーク（画面からは選べない。Redux で切りかえて撮った） |

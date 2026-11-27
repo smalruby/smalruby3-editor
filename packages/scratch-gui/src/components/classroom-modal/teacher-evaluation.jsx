@@ -200,8 +200,9 @@ const STRICTNESS_MESSAGES = defineMessages({
 /* One numbered step of the footer flow. */
 /* While its step runs, the button shows a spinner and short words (#2419). The step name stays
    laid under them (hidden), so the button keeps its width and the step row does not jump. */
-const StepButton = ({ children, current, dataTestId, disabled, number, running = null, onClick }) => (
+const StepButton = ({ ai = false, children, current, dataTestId, disabled, number, running = null, onClick }) => (
     <ClassroomButton
+        ai={ai}
         ariaBusy={running ? true : null}
         ariaCurrent={current ? 'step' : null}
         dataTestId={dataTestId}
@@ -227,6 +228,8 @@ const StepButton = ({ children, current, dataTestId, disabled, number, running =
 );
 
 StepButton.propTypes = {
+    /** The step calls the AI (rainbow border and sparkle, #2518). */
+    ai: PropTypes.bool,
     children: PropTypes.node.isRequired,
     current: PropTypes.bool.isRequired,
     dataTestId: PropTypes.string.isRequired,
@@ -1053,6 +1056,7 @@ const TeacherEvaluation = ({
             </StepButton>
             {arrow}
             <StepButton
+                ai
                 current={step === 'grade'}
                 dataTestId="classroom-eval-run-grade"
                 running={runningLabel('grade')}
@@ -1075,6 +1079,7 @@ const TeacherEvaluation = ({
             </StepButton>
             {arrow}
             <StepButton
+                ai
                 current={step === 'comment'}
                 dataTestId="classroom-eval-run-comment"
                 running={runningLabel('comment')}

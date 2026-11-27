@@ -61,6 +61,21 @@ const renderTab = (tools) =>
     );
 
 describe('TeacherGradingRubric (#2425)', () => {
+    test('AI を呼ぶ 4 つのボタンにキラキラのアイコン、保存のボタンには付けない (#2518)', () => {
+        renderTab(makeTools());
+        const hasIcon = (id) =>
+            screen.getByTestId(id).querySelector('[data-testid="classroom-button-ai-icon"]') !== null;
+        for (const id of [
+            'grading-rubric-describe',
+            'grading-rubric-propose',
+            'grading-rubric-fairness-run',
+            'grading-rubric-draft',
+        ]) {
+            expect(hasIcon(id)).toBe(true);
+        }
+        expect(document.querySelectorAll('[data-testid="classroom-button-ai-icon"]')).toHaveLength(4);
+    });
+
     test('説明の案に「合っていますか？」と 3 つの答え', () => {
         const tools = makeTools({ description: { status: 'proposed', text: 'サーボを動かす' } });
         renderTab(tools);

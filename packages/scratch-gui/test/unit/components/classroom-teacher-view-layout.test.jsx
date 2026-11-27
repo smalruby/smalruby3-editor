@@ -16,6 +16,7 @@ import { fireEvent, render } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import ClassroomButton, {
+    AI_BUTTON_STYLE_KEY,
     BUTTON_VARIANT_STYLE_KEYS,
 } from '../../../src/components/classroom-modal/classroom-button.jsx';
 import TeacherAssignmentBoard from '../../../src/components/classroom-modal/teacher-assignment-board.jsx';
@@ -140,6 +141,24 @@ describe('ClassroomButton (#1125)', () => {
         fireEvent.click(getByTestId('b'));
         fireEvent.click(getByTestId('b-disabled'));
         expect(onClick).toHaveBeenCalledTimes(1);
+    });
+
+    test('ai adds the rainbow-border class key and a sparkle icon before the label (#2518)', () => {
+        expect(AI_BUTTON_STYLE_KEY).toBe('aiButton');
+        const { getByTestId } = render(
+            <div>
+                <ClassroomButton ai dataTestId="ai" variant="primary">
+                    {'AI で採点'}
+                </ClassroomButton>
+                <ClassroomButton dataTestId="plain">{'やめる'}</ClassroomButton>
+            </div>,
+        );
+        const icon = getByTestId('ai').querySelector('[data-testid="classroom-button-ai-icon"]');
+        expect(icon).not.toBeNull();
+        expect(icon).toHaveAttribute('aria-hidden', 'true');
+        expect(getByTestId('ai').firstChild).toBe(icon);
+        expect(getByTestId('ai')).toHaveTextContent('AI で採点');
+        expect(getByTestId('plain').querySelector('[data-testid="classroom-button-ai-icon"]')).toBeNull();
     });
 });
 

@@ -184,6 +184,8 @@
 | `$color-seat-returned` / `$color-seat-returned-text` | `#ffe1bf` / `#7a3e00` | 座席: 返却済み（↩）。文字は地に 6.7:1 |
 | `$color-seat-not-started` / `$color-seat-not-started-text` | `#eceef3` / `$text-primary` | 座席: レッスンを始めていない。文字は地に 5.5:1 |
 | `$color-disabled` / `$color-disabled-text` | `#eceef3` / `#9ca0ad` | クラス管理の押せないボタン（主・副・テキストとも同じ）。押せない部品は WCAG 1.4.3 の対象外なので、はっきり淡くする（文字は地に 2.3:1） |
+| `$color-ai-1`〜`$color-ai-6` | `#7b6cf0` `#3fa9e6` `#3cc59a` `#e9b93c` `#ee7f8c` `#b77ad9` | クラス管理で **AI を使うボタン**の虹色の枠（`ClassroomButton` の `ai`）。autopilot のモニターの「AI に任せる」の輪（`--ap-go-1`〜`--ap-go-6` のライト）と同じ 6 色にして、AI を使うものの見た目を 1 つにする。虹色は AI を使うボタンだけに使う。枠は飾りなので文字のコントラストの対象にしない |
+| `$color-ai-wash` | `#f4f1ff` | AI を使う副ボタンにマウスを乗せたときの淡い紫の地（文字の `$color-action-dark` は地に 4.8:1） |
 | （クラスの色） | JS の `CLASS_COLORS`（`src/lib/classroom-class-color.js`） | クラス管理のクラスの色の帯。その先生のクラスの一覧から画面の側で選ぶので CSS のトークンにはしない。8 色・どれも白に 4.5:1 以上。決め方は [`../classroom/ui-ux.md`](../classroom/ui-ux.md) の「共通: クラスの色」 |
 | `$space-small` / `$space-medium` / `$space-large` | `calc($space / 2)` / `$space` / `calc($space * 2)` | 余白 0.25rem / 0.5rem / 1rem |
 | `$radius-small` | `$form-radius` | ボタン・入力欄 |
@@ -192,6 +194,7 @@
 | `$size-button-height` / `$size-button-height-small` | `2.25rem`（36px）/ `1.875rem`（30px） | クラス管理のボタンの高さ（`min-height`）。小さいほうはカードの下の文字のボタンなど |
 | `$size-tab-indicator` | `3px` | クラス管理の選ばれたタブの下の線 |
 | `$size-tab-min-width` | `5rem`（80px） | クラス管理のタブの最小の幅。「形」のような短いラベルのタブも押しやすい幅にそろえる |
+| `$size-ai-border` | `2px` | AI を使うボタンの虹色の枠の太さ（ふつうのボタンの枠は 1px。細いと虹が見えにくいので太くする） |
 | `$font-size-xsmall` | `0.625rem` | 入力欄のラベル・バッジ |
 | `$font-size-small` | `$menu-bar-standard-font-size` | メニューバー・タブ |
 | `$font-size-dialog` | `0.85rem` | ダイアログの本文・ボタン |
@@ -203,6 +206,7 @@
 | `$font-weight-bold` | `bold` | 太字 |
 | `$shadow-raised` | `0 0 0.5rem hsla(0, 0%, 0%, 0.25)` | 浮いたもの（札・吹き出し） |
 | `$transition-standard` | `all 0.25s ease` | ホバー・選択の切り替え |
+| `$motion-ai` | `5s` | AI を使うボタンの虹色が 1 周する時間。ゆっくりめぐらせて「AI がやる」ことを示し、急かさない。押せないときと `prefers-reduced-motion: reduce` では止める |
 
 重なり順は別名を作らない。独自のモーダルやメニューは上流の `$z-index-modal` などをそのまま使う。
 

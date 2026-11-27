@@ -91,6 +91,18 @@ $color-seat-not-started-text: $text-primary;
 $color-disabled: #eceef3;
 $color-disabled-text: #9ca0ad;
 
+/* AI を使うボタンの虹色の枠（クラス管理・#2518）。autopilot の「AI に任せる」の輪（--ap-go-1〜6 のライト）と
+   同じ 6 色にして、AI を使うものの見た目を 1 つにする。虹色は AI を使うボタンだけに使う。
+   枠は飾りなので文字のコントラストの対象にしない */
+$color-ai-1: #7b6cf0;
+$color-ai-2: #3fa9e6;
+$color-ai-3: #3cc59a;
+$color-ai-4: #e9b93c;
+$color-ai-5: #ee7f8c;
+$color-ai-6: #b77ad9;
+/* AI を使う副ボタンにマウスを乗せたときの淡い紫の地（文字の $color-action-dark は地に 4.8:1） */
+$color-ai-wash: #f4f1ff;
+
 /* クラスの色の帯（クラス管理のカード・クラスの見出し）は、クラスごとに画面の側で決める。
    値は JS（src/lib/classroom-class-color.js の CLASS_COLORS）が正。CSS には置かない */
 
@@ -122,6 +134,8 @@ $size-button-height-small: 1.875rem;
 $size-tab-indicator: 3px;
 /* タブの最小の幅 80px（クラス管理のタブ。「形」のような 1 文字のタブも押しやすい幅にそろえる） */
 $size-tab-min-width: 5rem;
+/* AI を使うボタンの虹色の枠の太さ（#2518） */
+$size-ai-border: 2px;
 
 /* ---- 文字 ---- */
 
@@ -161,3 +175,5 @@ $font-weight-bold: bold;
 $shadow-raised: 0 0 0.5rem hsla(0, 0%, 0%, 0.25);
 /* ふつうの動き: ホバー・選択の切り替え */
 $transition-standard: all 0.25s ease;
+/* AI を使うボタンの虹色が 1 周する時間（#2518）。動きを減らす設定と押せないときは止める */
+$motion-ai: 5s;
