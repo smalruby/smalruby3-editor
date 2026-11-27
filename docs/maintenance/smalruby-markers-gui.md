@@ -123,6 +123,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `webpack.config.js` | copy-webpack-plugin 14 (#1320) | dist の `libraries/*.json` コピーで、copy-webpack-plugin 7 で廃止された `flatten: true` の代わりに `to: 'libraries/[name][ext]'` を使う |
 | `webpack.config.js` | standard assignments | リポジトリの `assignments/`（標準課題・CC0）を `assignments/` へコピーする CopyWebpackPlugin パターン |
 | `webpack.config.js` | PWA install (#2182) | PWA としてインストールできるように Web App Manifest だけを出す `pwaManifestPlugin()`（`webpack-pwa-manifest`。name / icons 192・512 / `start_url` / `display` と iOS の apple-touch-icon）と、開発用ビルド・`dist-html` の 2 箇所の `.addPlugin(pwaManifestPlugin())`。service worker（Workbox）は出さない。以前に登録された service worker は `pages/service-worker.js`（Smalruby 固有ファイル・自分を登録解除してキャッシュを消すだけ）で外す |
+| `webpack.config.js` | standard icon paths (#2514) | ブラウザ・iPadOS が HTML と関係なく取りに来る決まった場所（`/favicon.ico`・`/apple-touch-icon.png`・`-precomposed`・`-152x152`・`-152x152-precomposed`）へ、既存の `static/favicon.ico` と `static/pwa-icon.png` をコピーする（404 を減らす）。HTML の `apple-touch-icon` の link は PWA install の `pwaManifestPlugin()` が入れる |
 | `eslint.config.mjs` | react lifecycle typo detection | `react/no-typos` を error にして getDerivedStateFromProps/Error の static 抜け等を lint で検出 |
 | `eslint.config.mjs` | prettier integration | eslintConfigPrettier を最後に置いて prettier と競合する整形ルールを無効化 |
 | `src/lib/blocks.js` | gesture recovery import | ジェスチャー復旧モジュールの import |
