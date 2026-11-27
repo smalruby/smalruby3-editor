@@ -37,7 +37,7 @@ item の状態は次の 4 要素で決まる（Project が単一の真実）:
 |---|---|
 | **A: autopilot フェーズ** | daemon が `phaseForItem` で決めて worker を dispatch（triage / discuss / decompose / implement / review / address-review） |
 | **D: daemon tick ステップ** | merge-progression / closed-reconcile / **stalled 復帰（worker 不在の in-flight 再開・#995）** / stuck 検知 / DoD 引き継ぎ / EPIC tracking / PR 投影 |
-| **H: 人間の操作** | Status 移動 / `🙋 HITL` ラベル解除 / **コメント・レビュー送信** / PR merge / Issue close |
+| **H: 人間の操作** | Status 移動 / `🙋 HITL` ラベル解除 / **モニターの「答えて先へ進める」**（daemon が答えを記録して 🙋 を外す） / **モニターの「AI に任せる」**（daemon が 🙋 を外す。まだ分解していない EPIC は Sprint Backlog へ動かしてから） / **コメント・レビュー送信** / PR merge / Issue close |
 
 > **merge-progression は PR 後の非終端 leaf を見る**（`MERGE_CHECK_STATUSES` = In Progress / Blocked /
 > Review / DoD・`selectMergeCandidates`）。merge は HITL と独立した前進シグナルなので、🙋 付きの
@@ -68,6 +68,19 @@ item の状態は次の 4 要素で決まる（Project が単一の真実）:
 > 並行上限を跨がない。人間の判断待ち HITL（Triaging / Decomposing / Discussing / Awaiting
 > Continuation / EPIC Decomposed）は実作業系 AI Status 集合に入らないため誤って再開されない。
 
+### EPIC の流れ（PR の base が `topic/...`）
+
+EPIC の sub-issue（`autopilot-base: topic/...`）では、人間は EPIC の設計を承認済みなので、途中の 🙋 は
+**3 案以上の分岐・3 回直しても残る Must・続けられないエラー**の 3 つだけにする（判断は `src/epic-flow.js`、
+実行は `src/epic-merge.js`）:
+
+- review が `mustCount` を返す。0 → Review + 🙋 なし（#23。`phaseForItem` は gate ctx の `autoMerge` で
+  address-review を起動しない）/ あり → In Progress + Addressing Comments + 🙋 なし（#24）/
+  直しが 3 回（round 4 以降）でも残る → Blocked + 🙋（#14）。
+- 自動の直しの address-review が done → In Progress + Self-Reviewing（#9）でもう一度 review。
+- checkpoint（#22）は 🙋 を付けずに続きを再開する（反復上限の Blocked は従来どおり）。
+- 結果の `decisions` と、daemon が止めた理由は、EPIC の Issue の「決定待ち」まとめコメントに daemon が書く。
+
 ### 人間ゲートの解除は 🙋 ラベルだけ
 
 Review / DoD / Blocked / Discussing などの「人間の番」は、**Issue / PR いずれかの `🙋 HITL` ラベルを
@@ -75,19 +88,48 @@ Review / DoD / Blocked / Discussing などの「人間の番」は、**Issue / P
 
 人間のコメントや Request changes だけでは解除しない。以前は「人間が最後に発言した」ことや
 「新しい Request changes がある」ことでも解除していたが、コメントするたびに worker が動き出すと
-人間が気軽にコメントできない。対応してほしいことは Request changes にまとめ、🙋 を外して渡す:
+人間が気軽にコメントできない。対応してほしいことは Request changes にまとめるか、モニターの
+「AI に直してもらう」に書いて、🙋 を外して渡す:
 
 1. PR が出て、autopilot が review フェーズで指摘をまとめる（`[M1]` / `[Q1]` / `[FYI1]` …）。
 2. 人間は自由にコメントする（ここでは何も動かない）。
 3. 直してほしいことを **Request changes** で出す。本文に「FYI1 を直して」のように ID を書くか、
    対象のコメントの URL を貼る。
-4. PR（か Issue）の 🙋 を外す → address-review が、**まだ対応していない Request changes で
-   指定されたことだけ**に対応する（`selectRequestedReviews`）。対応したレビューの ID は
-   まとめコメントのマーカー（`addressReviewMarker`）に残るので、同じレビューに二重に対応しない。
-   未対応の Request changes が無ければ何もしない。
+   - または、モニターの **「AI に直してもらう」** を押し、出てくる bot の指摘を見ながら直してほしいことを
+     書いて送る。daemon が目印付きのコメント（`<!-- autopilot-monitor-instruction -->`・Bot 名義・本文に誰の
+     指示か）を PR に残してから 🙋 を外す（4 と同じ）。Bot は自分の PR に Request changes を出せないので
+     コメントにしている。
+4. PR（か Issue）の 🙋 を外す → address-review が、**まだ対応していない Request changes と、まだ対応していない
+   モニターの指示コメントで指定されたことだけ**に対応する（`selectRequestedReviews` / `selectMonitorInstructions`）。
+   対応したレビューと指示コメントの ID はまとめコメントのマーカー（`addressReviewMarker` の `handled-reviews` /
+   `handled-instructions`）に残るので、二重に対応しない。どちらも無ければ何もしない。
+   目印の無いふつうのコメントは指示として扱わない。
+
+ゲートの解除そのもの（🙋 を外したときだけ）は変わらない。モニターの指示は「指示の入口」が増えただけで、
+状態・遷移は増えていない。
 
 ラベルで開くので、同じ解除で何度も dispatch されることも無い（worker が終わると daemon が 🙋 を
 付け直す）。発言や処理済みレビューの時刻を覚えておく watermark は要らない。
+
+### モニターの「答えて先へ進める」も 🙋 を外す合図
+
+worker が `signal=hitl` の結果に `questions`（選択肢と推奨）を書くと、モニターで選んで答えられる。
+**「答えて先へ進める」**（人間の明示操作）を押したときだけ、daemon が答えを Issue にマーカー付きで書き、
+Issue / PR の 🙋 を外す。人間が 🙋 を外したのと同じ意味なので、上の「ラベルだけ」の考えは変わらない。
+**「メモだけ保存」やコメントでは開かない。**
+
+- daemon は外した Issue を覚え（`state.monitorReleases`）、`phaseForItem` に `ctx.monitorReleased` を渡す
+  （`withMonitorReleases`）。`isGateReleased` はこれでも開く。Project の一覧の読み直しが遅れて
+  `hitlLabel` が残って見えても、すぐ先へ進めるため。
+- steady-state の面の同期（PR 投影）は、覚えている Issue の 🙋 を古い item から付け直さない
+  （`hitlLabelAction` の `monitorReleased`。人間が外した 🙋 を付け直さない force 分岐と同じ考え）。
+  worker の結果を受けた同期（force）は、これまでどおり付ける。
+- 覚えは、その Issue の worker を起こすとき（答えを渡すとき）と、一覧で 🙋 が外れて見えたときに消す
+  （`pruneMonitorReleases`）。daemon を起動し直すと消えるが、そのときは一覧の 🙋 が外れているので同じ。
+
+モニターの「**AI に任せる**」（`POST /delegate`）も同じ流れで 🙋 を外す（覚え方も同じ）。新しい状態や遷移は無く、
+人間の H の操作（🙋 を外す。まだ分解していない EPIC は Backlog → Sprint Backlog）を daemon が代わりに行うだけ。
+外しても `phaseForItem` が null になる item（トラッカー・人間がする作業など）は受けない（`planDelegate`）。
 
 ## 状態遷移表
 
@@ -111,13 +153,17 @@ Review / DoD / Blocked / Discussing などの「人間の番」は、**Issue / P
 | 13 | Review・DoD / 任意 / なし(解除済み) | 差し戻し済み | **A: address-review** | 未対応の Request changes で指定された分に対応後 Review + HITL（#12）/ 未対応の Request changes が無ければ何もせず #12 |
 | 14 | Blocked / 任意 / **あり** | run 失敗・stall・実作業系フェーズの判断待ち（hitl）の人間対処待ち | H: 解除 → **A: address-review（PR あり）/ triage（PR なし）** / H: Status 移動 / H: merge → **D: merge-progression**（#17） | 再開・再ルート / Close |
 | 15 | Blocked / 任意 / なし | ラベルだけ外された Blocked | **A: address-review / triage**（#14 と同じ） | 再開・再ルート |
-| 16 | In Progress / EPIC Decomposed / —（トラッカー） | 子の実装を追跡 | H: 子完了後に close（統合 PR の `Closes #epic` 等）→ **D: closed-reconcile** / H: Done へ移動（HITL 運用） | Close / Done |
+| 16 | In Progress / EPIC Decomposed / —（トラッカー） | 子の実装を追跡 | **D: リリース確認に入れる**（子が全部済んだ、または残りがリリース後の作業（`🚀 after-release` か、親を `autopilot-after:` で待つ子）だけ。`releaseCheckReady` → AI Status=Release Check。🙋 の有無は問わない: 🙋 なしは #16b、分解済み EPIC の決まりどおり 🙋 を付けたままなら #16c）→ #16b / #16c / H: 子完了後に close（統合 PR の `Closes #epic` 等）→ **D: closed-reconcile** / H: Done へ移動（HITL 運用） （🙋 を外しても動かない。topic → develop の PR に書かれたレビューは #16b で受ける）| #16b / #16c / Close / Done |
+| 16b | In Progress / **Release Check** / なし（🧭 トラッカー） | リリース確認の段（#2430） | **A: release-check**（観点をまとめるか結果を受けるかは、トラッカーの目印付きコメントと、topic → develop の PR の人間のまだ受けていないレビュー・コメントから決める・`releaseCheckMode` / `selectPrFeedback`） | 観点をまとめた → #16c / 全部 OK → #16c（develop へのマージは人間）/ NG・PR のレビューから sub-issue を作った → In Progress + EPIC Decomposed（#16。作った子が全部済むと次の round の #16b） |
+| 16c | In Progress / **Release Check** / **あり**（🧭 トラッカー） | 人間がプレビューで確かめる | H: 🙋 を外す（トラッカーの 🙋 だけ。topic → develop の PR にレビューを書いてから外してもよい。モニターの「確認の結果を書く」は結果のコメントを書いてから外す。観点のコメントがまだ無ければ、ダイアログの「AI に観点をまとめてもらう」で外す）→ **A: release-check** / H: topic → develop の PR をマージして close → **D: closed-reconcile** | #16b / Close |
 | 17 | PR 後の非終端（leaf・Status が In Progress / Blocked / Review / DoD）/ 任意 / 任意 | — | H: PR merge → **D: merge-progression**（🙋 の有無を問わない。🙋 は face sync が両面から外す） | Close（GitHub issue も close。**`🧱 infra` の Issue は閉じない**: prod デプロイ成功で `Deploy Infra` workflow が閉じる・`shouldCloseIssueOnMerge`） |
 | 18 | 任意の非終端 | — | H: Issue close → **D: closed-reconcile** | Close |
 | 19 | In Progress / —（AI Status 空） / 任意 | 人間が手動で置いた作業中 | H: Status 移動（autopilot は所有しない） | 人間の決定 |
 | 20 | Icebox / Close / Done | 終端・保留 | H: Status 移動（再開は人間のみ） | — |
-| 21 | 🧭 tracking ラベル付き（全状態） | トラッカー | #16〜#18 のみ（フェーズ対象外） | — |
+| 21 | 🧭 tracking ラベル付き（全状態） | トラッカー | #16〜#18 のみ（フェーズは #16b の release-check だけ） | — |
 | 22 | In Progress / **Awaiting Continuation** / **あり** | 協調的チェックポイント（EPIC #906）: soft-limit で worker が安全に中断し継続待ち | H: 解除 → **A: 元フェーズへ再 dispatch**（continuation ファイルの marker から復元。不明なら implement） | #10 の元フェーズへ戻る（実行中の run の扱いは #10 と同じ） |
+| 23 | Review / — / なし（PR の base が `topic/...`・EPIC の流れ） | review の Must が 0。topic への自動マージ待ち | **D: 自動マージ**（`applyEpicAutoMerge`。CI 通過・コンフリクト無し・まだ対応していない Request changes 無しでマージ → #17 で Close + Issue を閉じる）。コンフリクトは resolve-conflict、CI 失敗・Request changes は #24 へ | Close / #24 |
+| 24 | In Progress / **Addressing Comments** / なし | EPIC の流れの Must の直し（review が Must を残した・CI 失敗） | **A: address-review**（自動の直し）。worker 不在なら #11 の stalled 復帰も同じ | In Progress + Self-Reviewing（#9 → review）/ 3 回直しても Must が残れば Blocked + 🙋（#14・EPIC の決定待ちに載る） |
 
 ## 不変条件（テストで担保）
 
@@ -128,15 +174,20 @@ Review / DoD / Blocked / Discussing などの「人間の番」は、**Issue / P
   「どのトリガーでも遷移できない状態」はテスト失敗になる。
 - **I2（ラベルでだけ開く）**: autopilot が item を置く人間ゲート（Review / DoD / Blocked / Discussing など）は、
   Issue / PR いずれかの 🙋 を外すと**必ず解除**され、🙋 が残っている間は人間のコメントや
-  Request changes では**解除されない**（人間が気軽にコメントできるように）。
+  Request changes では**解除されない**（人間が気軽にコメントできるように）。モニターの
+  「答えて先へ進める」（daemon が 🙋 を外す・`ctx.monitorReleased`）でも必ず解除される。
 - **I3（解除後の遷移先保証）**: ゲート解除後の `phaseForItem` は必ず非 null（解除したのに何も
   起きない、を許さない）。Blocked も PR の有無に応じて address-review / triage に必ず落ちる。
 - **I4（提案で退避系へ動かさない）**: hitl 提案（signal=hitl）で Status を Icebox / Close へ
   動かさない（プロンプト規約）。提案段階で退避系へ動かすと、人間がラベルだけ外したときに
   出口の無い状態に落ちるため。Icebox への遷移は人間の確定操作のみ。
+- **Release Check の出口**: 🧭 トラッカーの Release Check は、🙋 なしなら必ず release-check に進み、🙋 ありは人間の番。
+  トラッカーでない item に Release Check が付いたときは出口が無いので、stuck 検知（`isStuckCandidate`）で Blocked へ回す。
+  リリース確認の観点・結果・結果を受けたことは、トラッカーの目印付きコメント（`autopilot-release-check` / `autopilot-release-review` /
+  `autopilot-release-result` の `round=N`）だけで管理し、NG から作る sub-issue は本文の目印（`autopilot-release-ng`）で二重に作らない（I5 と同じ考え）。
 - **I5（二重対応の防止）**: address-review は、まとめコメントのマーカー（`addressReviewMarker`）に
-  残したレビュー ID を対応済みとみなし、同じ Request changes に二重に対応しない
-  （`selectRequestedReviews`）。daemon の再起動に左右されない（状態ファイルを持たない）。
+  残したレビュー ID と指示コメントの ID を対応済みとみなし、同じ Request changes・同じモニターの指示に
+  二重に対応しない（`selectRequestedReviews` / `selectMonitorInstructions`）。daemon の再起動に左右されない（状態ファイルを持たない）。
 
 ## 状態・トリガーを変更するときのチェックリスト
 

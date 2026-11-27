@@ -2221,11 +2221,13 @@ $seat-tile-min: 36px;
     border: none;
     border-bottom: $size-tab-indicator solid transparent;
     margin-bottom: -1px;
+    min-width: $size-tab-min-width;
     padding: 0.5rem 1rem;
     font-family: inherit;
     font-size: $font-size-medium;
     font-weight: $font-weight-bold;
     color: $color-text;
+    text-align: center;
     cursor: pointer;
 }
 
@@ -2756,11 +2758,26 @@ $seat-tile-min: 36px;
     outline: 2px solid transparent;
 }
 
+.assignment-page-text-footer {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-top: 0.15rem;
+}
+
+/* The short rules of the page text formatting, under the textarea. */
+.assignment-page-format-hint {
+    color: $color-text-muted;
+    font-size: 0.75rem;
+    line-height: 1.4;
+}
+
 .assignment-page-char-count {
+    flex: 0 0 auto;
     text-align: right;
     color: #8b93a5;
     font-size: 0.75rem;
-    margin-top: 0.15rem;
 }
 
 .assignment-page-image-row {
@@ -2922,6 +2939,120 @@ $seat-tile-min: 36px;
 /* The one main button under the page (「つぎのページ」 / 「とじる」, #1793). */
 .assignment-main {
     margin-top: 0.6rem;
+}
+
+/* The teacher's page text with the light formatting (AssignmentPageText): first line = heading,
+   `*words*` = marker, `1.` / `・` / `- ` = lists, `【…】` = label, blank line = paragraph. */
+.assignment-text > :first-child {
+    margin-top: 0;
+}
+
+.assignment-text > :last-child {
+    margin-bottom: 0;
+}
+
+.assignment-text-heading {
+    margin: 0 0 0.35rem;
+    color: $color-text;
+    font-size: $font-size-heading-small;
+    font-weight: $font-weight-bold;
+    line-height: 1.4;
+}
+
+.assignment-text-paragraph {
+    margin: 0 0 0.5rem;
+}
+
+.assignment-text-list {
+    margin: 0 0 0.5rem;
+    padding-left: 1.5rem;
+}
+
+.assignment-text-highlight {
+    padding: 0 0.15rem;
+    border-radius: 0.15rem;
+    background-color: $color-highlight-background;
+    color: inherit;
+    font-weight: $font-weight-bold;
+}
+
+.assignment-text-label {
+    display: inline-block;
+    margin-right: 0.25rem;
+    padding: 0 0.45rem;
+    border-radius: $radius-small;
+    background-color: $color-seat-joined;
+    color: $color-seat-joined-text;
+    font-size: 0.85em;
+    font-weight: $font-weight-bold;
+    line-height: 1.6;
+}
+
+/* The 「ゴール」 card of a lesson assignment (StudentAssignmentGoal), above the start buttons. */
+.assignment-goal {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-top: 0.6rem;
+    padding: 0.5rem 0.75rem;
+    border: 2px solid $color-seat-submitted;
+    border-radius: $radius-medium;
+    background-color: $color-surface;
+    color: $color-text;
+}
+
+.assignment-goal-title {
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 0.1rem 0.5rem;
+    border-radius: $radius-small;
+    /* the green of 「クリア」 (white text 5.1:1; $color-success is 4.1:1) */
+    background-color: $color-seat-submitted;
+    color: $color-seat-submitted-text;
+    font-size: $font-size-base;
+    font-weight: $font-weight-bold;
+}
+
+.assignment-goal-body {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.assignment-goal-body p {
+    margin: 0;
+    line-height: 1.5;
+}
+
+.assignment-goal-count {
+    font-size: 1.05rem;
+    font-weight: $font-weight-bold;
+}
+
+.assignment-goal-lessons,
+.assignment-goal-next {
+    font-size: $font-size-medium;
+}
+
+/* One line in the assignment panel: the count and the next step side by side (wrapping when narrow). */
+.assignment-goal-compact {
+    align-items: center;
+    margin-top: 0.25rem;
+    padding: 0.2rem 0.75rem;
+}
+
+.assignment-goal-compact .assignment-goal-body p {
+    line-height: 1.4;
+}
+
+.assignment-goal-compact .assignment-goal-count {
+    font-size: 1rem;
+}
+
+.assignment-goal-compact .assignment-goal-body {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 0.75rem;
 }
 
 .assignment-pager {
@@ -3161,6 +3292,83 @@ $seat-tile-min: 36px;
     font-size: 0.9rem;
     padding: 0.4rem 0.75rem;
     margin-bottom: 0.75rem;
+}
+
+/* What is running now (#2419): a spinner before the words, and a thin bar when the count is known. */
+.eval-progress-line {
+    display: flex;
+    align-items: center;
+    gap: $space-small;
+}
+
+.eval-progress-bar {
+    height: 0.25rem;
+    margin-top: 0.35rem;
+    border-radius: 0.125rem;
+    background-color: #b5cff5;
+    overflow: hidden;
+}
+
+.eval-progress-bar-value {
+    height: 100%;
+    background-color: $color-action;
+    transition: width 0.3s ease-out;
+}
+
+/* The short result once a step ends: quiet when it went well, red only when it failed (R4). */
+.eval-result {
+    background-color: $color-surface;
+    border-color: $color-border;
+    color: $color-text;
+}
+
+.eval-result-failed {
+    background-color: #fdecea;
+    border-color: #f44336;
+    color: #5d1a1a;
+}
+
+/* The spinner of the grading screen: a little larger than `small` so it is seen on the grey of a
+   busy button, and kept from shrinking. */
+.eval-spinner,
+.eval-spinner::before,
+.eval-spinner::after {
+    width: 0.625rem;
+    height: 0.625rem;
+}
+
+.eval-spinner {
+    flex-shrink: 0;
+}
+
+/* A running button cannot be pressed, but it says what is going on, so its words stay in the
+   action color instead of the pale grey of other disabled buttons (#2419). */
+.primary-button[aria-busy='true']:disabled,
+.secondary-button[aria-busy='true']:disabled {
+    color: $color-action;
+    cursor: progress;
+}
+
+/* A running step button: the step name stays (hidden) under the running words, so the
+   button keeps its width (#2419). */
+.eval-step-label {
+    position: relative;
+    display: inline-block;
+}
+
+.eval-step-label-hidden {
+    visibility: hidden;
+}
+
+/* Laid over the hidden name, so even words a little longer than the name do not widen the button. */
+.eval-step-running {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: $space-small;
+    white-space: nowrap;
 }
 
 .eval-matrix-wrapper {
@@ -5925,6 +6133,29 @@ $seat-tile-min: 36px;
     font-variant-numeric: tabular-nums;
 }
 
+/* 席のメモ（じゅんびチェック・おさらい中・#2301）: 小さい文字で 1 行。長いと … にして title で全部読める。点数には使わない */
+.lesson-progress-table .lesson-progress-note-cell {
+    max-width: 20rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+}
+
+.lesson-progress-note {
+    font-size: 0.65rem;
+    color: #575e75;
+}
+
+.lesson-progress-note + .lesson-progress-note {
+    margin-left: 6px;
+}
+
+.lesson-progress-note-review {
+    color: #1e5fc2;
+    font-weight: bold;
+}
+
 .lesson-progress-empty {
     padding: 1rem;
     color: #8a90a6;
@@ -6207,4 +6438,375 @@ $seat-tile-min: 36px;
     flex: 0 1 14rem;
     margin-top: 0;
     white-space: normal;
+}
+
+/* ---- 採点簿と課題の採点（EPIC #2421 / #2424） ---- */
+
+/* 採点簿の上の行・課題の採点の上の行（［‹ 採点簿］・課題名・保存の状態）。 */
+.gradebook-top-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin: 0.5rem 0;
+}
+
+/* 今日の AI の残りの回数（#2448）。行の右に小さく 1 行。少ないときは確認の色（赤は使わない・R4）。 */
+.eval-ai-quota {
+    margin-left: auto;
+    padding: 0.125rem 0.5rem;
+    border-radius: $radius-medium;
+    color: #575e75;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.eval-ai-quota-low {
+    background: $color-confirm-background;
+    color: $color-confirm-text;
+    font-weight: bold;
+}
+
+/* ［採点簿］［総合評価］の切りかえ。 */
+.gradebook-switch {
+    display: inline-flex;
+    border: 1px solid $color-border;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.gradebook-switch-button {
+    border: 0;
+    padding: 0.3rem 1rem;
+    background-color: $color-surface;
+    color: $color-text-muted;
+    font: inherit;
+    font-size: $font-size-medium;
+    font-weight: $font-weight-bold;
+    cursor: pointer;
+}
+
+.gradebook-switch-button-on {
+    background-color: $color-seat-joined;
+    color: $color-action;
+}
+
+.gradebook-switch-button:focus-visible {
+    outline: 2px solid $color-action;
+    outline-offset: -2px;
+}
+
+/* 採点簿は表の枠の中だけでスクロールする（40 人 × 課題・R6）。 */
+.teacher-view.evaluation-screen > .gradebook-area {
+    flex: 1 1 auto;
+}
+
+.gradebook-area {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+    margin-bottom: 0.5rem;
+}
+
+.eval-matrix thead th.gradebook-col-head {
+    max-width: 11rem;
+    vertical-align: bottom;
+}
+
+.gradebook-col-state {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: $color-text-muted;
+    font-size: $font-size-small;
+    font-weight: normal;
+}
+
+/* 課題名を押すと、その課題の採点を開く（文字リンクの青）。 */
+.gradebook-col-name {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: $color-action;
+    font: inherit;
+    font-weight: $font-weight-bold;
+    text-decoration: underline;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.gradebook-col-name:focus-visible {
+    outline: 2px solid $color-action;
+    outline-offset: 1px;
+}
+
+.gradebook-cell {
+    padding: 0 0.4rem;
+}
+
+.gradebook-no-grade {
+    color: $color-text-muted;
+}
+
+/* いちばん上の行: S/A/B/C の人数。 */
+.gradebook-counts-row td,
+.gradebook-counts-row th {
+    background-color: $color-background;
+    color: $color-text-muted;
+    font-size: $font-size-small;
+    white-space: nowrap;
+}
+
+.gradebook-note {
+    margin: 0.75rem;
+    color: $color-text-muted;
+    font-size: $font-size-medium;
+}
+
+.gradebook-legend {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0.4rem 0 0;
+    color: $color-text-muted;
+    font-size: $font-size-small;
+}
+
+/* 先生が確定していない AI の案: 点線で薄く（凡例は採点簿の下・R5）。 */
+.eval-grade-pill-draft {
+    border: 1px dashed currentColor;
+    opacity: 0.7;
+}
+
+.eval-assignment-title {
+    margin: 0;
+    color: $color-text;
+    font-size: $font-size-heading-small;
+}
+
+.eval-save-failed {
+    color: $color-confirm-text;
+    font-weight: $font-weight-bold;
+}
+
+/* 左の席の一覧（出席番号と評価）。一覧の枠の中だけでスクロールする（R6 の例外の一覧）。 */
+.eval-seat-list-frame {
+    display: flex;
+    flex-direction: column;
+    width: 14rem;
+    flex-shrink: 0;
+    min-height: 0;
+    overflow-y: auto;
+    border: 1px solid $color-border;
+    border-radius: $radius-medium;
+    background-color: $color-surface;
+}
+
+.eval-seat-list-head {
+    padding: 0.3rem 0.75rem;
+    border-bottom: 1px solid $color-border;
+    color: $color-text-muted;
+    font-size: $font-size-small;
+    text-align: right;
+}
+
+.eval-seat-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.eval-seat-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    width: 100%;
+    min-height: 1.9rem;
+    padding: 0 0.75rem;
+    border: 0;
+    border-bottom: 1px solid $color-border;
+    background: none;
+    color: $color-text;
+    font: inherit;
+    font-size: $font-size-medium;
+    text-align: left;
+    cursor: pointer;
+}
+
+.eval-seat-row:hover {
+    background-color: $color-background;
+}
+
+.eval-seat-row:focus-visible {
+    outline: 2px solid $color-action;
+    outline-offset: -2px;
+}
+
+.eval-seat-row-selected,
+.eval-seat-row-selected:hover {
+    background-color: $color-seat-joined;
+}
+
+.eval-seat-row-number {
+    font-weight: $font-weight-bold;
+}
+
+.eval-seat-row-marks {
+    flex: 1 1 auto;
+}
+
+.eval-seat-row-lesson {
+    color: $color-text-muted;
+    font-size: $font-size-small;
+}
+
+.eval-seat-row-missing {
+    color: $color-text-muted;
+    font-size: $font-size-small;
+}
+
+/* 右: 人数と［基準］［生徒］のタブ。 */
+.eval-pane {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    padding: 0.5rem 1rem;
+    border: 1px solid $color-border;
+    border-radius: $radius-medium;
+    background-color: $color-surface;
+}
+
+.eval-counts {
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: 0.4rem;
+}
+
+.eval-count {
+    display: flex;
+    flex-direction: column;
+    padding-right: 1rem;
+    margin-right: 1rem;
+    border-right: 1px solid $color-border;
+}
+
+.eval-count:last-child {
+    border-right: 0;
+}
+
+.eval-count-value {
+    color: $color-text;
+    font-size: $font-size-heading-small;
+    line-height: 1.2;
+}
+
+.eval-count-label {
+    color: $color-text-muted;
+    font-size: $font-size-small;
+}
+
+.eval-inner-tabs {
+    display: flex;
+    gap: 0.25rem;
+    border-bottom: 1px solid $color-border;
+    margin-bottom: 0.5rem;
+}
+
+/* 採点の［基準］［形］［生徒］。クラス管理のタブと同じ最小の幅にする（1 文字の「形」も押しやすい幅）。
+   縦の余白は 1300×600 に収めるため、ほかのタブより小さいまま。 */
+.eval-inner-tab {
+    min-width: $size-tab-min-width;
+    padding: 0.3rem 1rem;
+    border: 0;
+    border-bottom: $size-tab-indicator solid transparent;
+    text-align: center;
+    background: none;
+    color: $color-text-muted;
+    font: inherit;
+    font-size: $font-size-medium;
+    font-weight: $font-weight-bold;
+    cursor: pointer;
+}
+
+.eval-inner-tab-on {
+    border-bottom-color: $color-action;
+    color: $color-action;
+}
+
+.eval-inner-tab:focus-visible {
+    outline: 2px solid $color-action;
+    outline-offset: 1px;
+}
+
+.eval-pane-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+/* ［生徒］の中の詳細は、右の枠の中に入るので枠と幅を外す。 */
+.eval-pane-scroll .eval-detail {
+    width: auto;
+    border: 0;
+    padding: 0;
+    overflow: visible;
+}
+
+.eval-pane-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.eval-pane-label {
+    color: $color-text-muted;
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+}
+
+.eval-description {
+    margin: 0 0 0.4rem;
+    color: $color-text;
+    font-size: $font-size-medium;
+    white-space: pre-wrap;
+}
+
+.eval-rubric-table {
+    border-collapse: collapse;
+    margin-bottom: 0.4rem;
+    font-size: $font-size-medium;
+}
+
+.eval-rubric-table th,
+.eval-rubric-table td {
+    padding: 0.2rem 0.5rem;
+    border-bottom: 1px solid $color-border;
+    text-align: left;
+    vertical-align: top;
+}
+
+/* ［生徒］: スターターから足した台本と、まとまり。 */
+.eval-added-code {
+    margin: 0;
+    max-height: 9rem;
+    overflow: auto;
+    padding: 0.4rem 0.6rem;
+    border-radius: $radius-small;
+    background-color: $color-background;
+    color: $color-text;
+    font-size: $font-size-small;
+    line-height: 1.45;
+    white-space: pre;
+}
+
+.eval-group-name {
+    margin-left: 0.75rem;
+    font-weight: normal;
 }

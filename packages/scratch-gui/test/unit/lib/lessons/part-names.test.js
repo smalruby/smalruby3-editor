@@ -1,8 +1,14 @@
 /**
  * 名前の札（「ガイド」）（#2133）: 部分の探し方と札の置き方（純粋関数）。
  */
-import { HINT_TARGETS } from '../../../../src/lib/lessons/hint-targets';
-import { PART_NAMES, computePartNameLayout, findPartNameRects } from '../../../../src/lib/lessons/part-names';
+import { HINT_TARGETS, findHintTargetRect } from '../../../../src/lib/lessons/hint-targets';
+import {
+    PART_NAMES,
+    clickPartNameTarget,
+    computePartNameLayout,
+    findPartNameClickTarget,
+    findPartNameRects,
+} from '../../../../src/lib/lessons/part-names';
 
 const rect = (left, top, right, bottom) => ({ left, top, right, bottom });
 const overlaps = (a, b) =>
@@ -114,7 +120,8 @@ describe('computePartNameLayout', () => {
 
     test('a small part gets its label right below it, a wide part inside its top left corner', () => {
         const at = Object.fromEntries(layout.map((l) => [l.label, l]));
-        expect(at.codeTab).toMatchObject({ left: 4, top: 124 });
+        // 小さな部分の札は、しっぽの入るすき間（10）を空ける
+        expect(at.codeTab).toMatchObject({ left: 4, top: 130 });
         expect(at.codeArea).toMatchObject({ left: 314 });
         expect(at.codeArea.top).toBeGreaterThanOrEqual(124);
     });
@@ -143,5 +150,151 @@ describe('computePartNameLayout', () => {
 
     test('labels whose size is unknown are not placed', () => {
         expect(computePartNameLayout({ parts: PARTS_1300, sizes: {}, viewport: VIEWPORT })).toEqual([]);
+    });
+
+    test('small labels are speech bubbles whose tail points at the middle of their part', () => {
+        const at = Object.fromEntries(layout.map((l) => [l.label, l]));
+        PARTS_1300.forEach((p) => {
+            const l = at[p.label];
+            if (!p.small) {
+                expect({ label: p.label, small: l.small, arrow: l.arrow }).toEqual({
+                    label: p.label,
+                    small: false,
+                    arrow: null,
+                });
+                return;
+            }
+            expect({ label: p.label, small: l.small, hasArrow: l.arrow !== null }).toEqual({
+                label: p.label,
+                small: true,
+                hasArrow: true,
+            });
+            const box = { left: l.left, top: l.top, right: l.left + l.width, bottom: l.top + l.height };
+            // しっぽの辺は札が部分のどちら側にあるかで決まる
+            const side = l.arrow.side;
+            if (side === 'top') expect(box.top).toBeGreaterThanOrEqual(p.rect.bottom);
+            if (side === 'bottom') expect(box.bottom).toBeLessThanOrEqual(p.rect.top);
+            if (side === 'left') expect(box.left).toBeGreaterThanOrEqual(p.rect.right);
+            if (side === 'right') expect(box.right).toBeLessThanOrEqual(p.rect.left);
+            // しっぽは札の辺の上（角から 10 離す）
+            const len = side === 'top' || side === 'bottom' ? l.width : l.height;
+            expect(l.arrow.offset).toBeGreaterThanOrEqual(10);
+            expect(l.arrow.offset).toBeLessThanOrEqual(len - 10);
+        });
+        // コードタブ（0〜92）の札は下に置き、しっぽはタブの真ん中（x = 46）を指す
+        expect(at.codeTab.arrow).toEqual({ side: 'top', offset: 46 - at.codeTab.left });
+    });
+
+    test('a tail follows the side the label was put on', () => {
+        const place = (sides) =>
+            computePartNameLayout({
+                parts: [{ label: 'greenFlag', rect: rect(600, 300, 632, 332), sides, small: true }],
+                sizes: { greenFlag: { width: 60, height: 22 } },
+                viewport: VIEWPORT,
+            })[0];
+        // 左に置くと、しっぽは札の右の辺から出て旗の真ん中（y = 316）を指す
+        const left = place(['left']);
+        expect(left.left + left.width).toBe(590);
+        expect(left.arrow).toEqual({ side: 'right', offset: 316 - left.top });
+        const right = place(['right']);
+        expect(right.left).toBe(642);
+        expect(right.arrow).toEqual({ side: 'left', offset: 316 - right.top });
+        const below = place(['below']);
+        expect(below.top).toBe(342);
+        expect(below.arrow).toEqual({ side: 'top', offset: 616 - below.left });
+    });
+
+    test('a small label does not cover its own part when there is room beside it', () => {
+        // 下は画面の外。札は旗にかぶせず、横に置いてしっぽで指す
+        const [placed] = computePartNameLayout({
+            parts: [{ label: 'greenFlag', rect: rect(1200, 560, 1232, 592), sides: ['below', 'left'], small: true }],
+            sizes: { greenFlag: { width: 60, height: 22 } },
+            viewport: VIEWPORT,
+        });
+        expect(overlapsRect(placed, rect(1200, 560, 1232, 592))).toBe(false);
+        expect(placed.arrow).not.toBeNull();
+    });
+
+    test('a small label that has to sit on its own part has no tail', () => {
+        const [placed] = computePartNameLayout({
+            parts: [{ label: 'stop', rect: rect(0, 0, 1300, 600), sides: ['below', 'right'], small: true }],
+            sizes: { stop: { width: 60, height: 22 } },
+            viewport: VIEWPORT,
+        });
+        expect(placed.arrow).toBeNull();
+    });
+});
+
+describe('clicking a small label', () => {
+    const addEl = (tag, attrs, r) => {
+        const el = document.createElement(tag);
+        Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
+        el.getBoundingClientRect = () => ({ ...r, width: r.right - r.left, height: r.bottom - r.top });
+        return el;
+    };
+    beforeEach(() => {
+        document.body.innerHTML = '';
+    });
+
+    test('finds the same element the hint balloon and the frame point at', () => {
+        const list = addEl('ul', { role: 'tablist' }, rect(0, 88, 372, 120));
+        ['code', 'costumes', 'sounds', 'ruby'].forEach((name, i) =>
+            list.appendChild(
+                addEl('li', { role: 'tab', class: `gui_tab_abc12 ${name}` }, rect(i * 92, 88, i * 92 + 90, 120)),
+            ),
+        );
+        document.body.appendChild(list);
+        const flagButton = addEl('button', {}, rect(830, 92, 862, 124));
+        flagButton.appendChild(addEl('img', { class: 'green-flag_green-flag_x1y2z' }, rect(830, 92, 862, 124)));
+        document.body.appendChild(flagButton);
+        const stopButton = addEl('button', {}, rect(866, 92, 898, 124));
+        stopButton.appendChild(addEl('img', { class: 'stop-all_stop-all_x1y2z' }, rect(866, 92, 898, 124)));
+        document.body.appendChild(stopButton);
+        document.body.appendChild(
+            addEl('button', { 'data-testid': 'lesson-task-bar-hint' }, rect(1040, 56, 1092, 80)),
+        );
+        const targets = Object.fromEntries(PART_NAMES.map((p) => [p.label, p.target]));
+        PART_NAMES.filter((p) => p.small).forEach(({ label }) => {
+            const el = findPartNameClickTarget(label, document);
+            expect({ label, found: el !== null }).toEqual({ label, found: true });
+            const r = el.getBoundingClientRect();
+            expect(findHintTargetRect(targets[label], document)).toEqual(rect(r.left, r.top, r.right, r.bottom));
+        });
+    });
+
+    test('the SP side rail buttons come first', () => {
+        const tab = addEl('li', { role: 'tab', class: 'gui_tab_abc12' }, rect(0, 88, 92, 120));
+        document.body.appendChild(tab);
+        const rail = addEl('button', { 'data-testid': 'mobile-side-rail-code' }, rect(0, 60, 48, 108));
+        document.body.appendChild(rail);
+        expect(findPartNameClickTarget('codeTab', document)).toBe(rail);
+    });
+
+    test('presses the button that holds the green flag picture, and the tab itself', () => {
+        const button = addEl('button', {}, rect(830, 92, 862, 124));
+        const img = addEl('img', { class: 'green-flag_green-flag_x1y2z' }, rect(830, 92, 862, 124));
+        button.appendChild(img);
+        document.body.appendChild(button);
+        const onFlag = jest.fn();
+        button.addEventListener('click', onFlag);
+        expect(clickPartNameTarget('greenFlag', document)).toBe(true);
+        expect(onFlag).toHaveBeenCalledTimes(1);
+
+        const list = addEl('ul', { role: 'tablist' }, rect(0, 88, 372, 120));
+        const tab = addEl('li', { role: 'tab', class: 'gui_tab_abc12' }, rect(0, 88, 92, 120));
+        list.appendChild(tab);
+        document.body.appendChild(list);
+        const onTab = jest.fn();
+        tab.addEventListener('click', onTab);
+        expect(clickPartNameTarget('codeTab', document)).toBe(true);
+        expect(onTab).toHaveBeenCalledTimes(1);
+    });
+
+    test('wide parts and parts that are not on the screen are not pressed', () => {
+        expect(findPartNameClickTarget('palette', document)).toBeNull();
+        expect(clickPartNameTarget('stop', document)).toBe(false);
+        // 見えない（大きさが 0 の）部品は押さない
+        document.body.appendChild(addEl('button', { 'data-testid': 'lesson-task-bar-hint' }, rect(0, 0, 0, 0)));
+        expect(clickPartNameTarget('hint', document)).toBe(false);
     });
 });

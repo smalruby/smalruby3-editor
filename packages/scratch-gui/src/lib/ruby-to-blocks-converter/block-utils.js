@@ -130,7 +130,7 @@ const BlockUtils = {
             if (!b || ids.includes(b.id)) return;
             ids.push(b.id);
             if (b.comment) {
-                delete this._context.comments[b.comment];
+                this._context.store.deleteComment(b.comment);
             }
             Object.values(b.inputs || {}).forEach((input) => {
                 collect(this._context.blocks[input.block]);
@@ -139,8 +139,7 @@ const BlockUtils = {
         };
         collect(block);
         ids.forEach((id) => {
-            delete this._context.blocks[id];
-            delete this._context.blockTypes[id];
+            this._context.store.deleteBlock(id, { withType: true });
         });
         const nodeToBlockMap = this._context.nodeToBlockMap;
         if (nodeToBlockMap) {
@@ -278,7 +277,7 @@ const BlockUtils = {
             previousBlock.next = block.next;
         }
 
-        delete this._context.blocks[block.id];
+        this._context.store.deleteBlock(block.id);
     },
 
     _removeWaitBlocks(block) {

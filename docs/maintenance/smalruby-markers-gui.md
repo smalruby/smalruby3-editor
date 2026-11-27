@@ -75,6 +75,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/connection-modal/connection-modal.jsx` | mesh header design system | メッシュの接続のモーダルだけ、ヘッダーの題を太字 1.2rem にし（`.mesh-v2-header-title`）、ヘルプをヘッダーに置かず、どの画面でも本文の下に `MeshV2HelpRow`（`mesh-v2-help-row.jsx`・`meshV2-help`）を出す。その import と `extensionId` の propType（`docs/design-system/components/modal.md` の「つなぐ画面」） |
 | `src/components/gui/gui.jsx` | lesson goal watcher | レッスンモードのあいだ VM を見張り、チャレンジの「できた」を判定して記録・「できた！」を出す常時マウントのコンテナ（`containers/lesson-goal-watcher.jsx`）の import と配置 |
 | `src/components/gui/gui.jsx` | block activity diagram | ブロックを右クリック →「アクティビティ図」の項目をブロックのメニューに足し、そのスクリプトの図をパネルに描く常時マウントのコンテナ（`containers/block-activity-diagram.jsx`）の import と配置 |
+| `src/components/gui/gui.jsx` | studuino practice board | Studuino の拡張機能を読みこんだときだけ出す練習用の基板のパネル（`containers/studuino-practice-board.jsx`。document.body への portal）の import と配置。MobileGui には置かない |
 | `src/components/gui/gui.jsx` | welcome modal | 初回訪問者向けウェルカムモーダル HOC の import と配置、`onShowWelcomeModal` prop |
 | `src/containers/gui.jsx` | welcome modal | `onShowWelcomeModal` を Redux `openWelcomeModal()` にマップ |
 | `src/components/gui/gui.jsx` | DNCL mode notice | DnclModeNotice コンポーネントの import・配置・`onRequestExitDnclMode` prop |
@@ -111,7 +112,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/menu-bar/menu-bar.jsx` | lessons button | upstream の「チュートリアル」ボタンがあった場所（区切り線の間）に「レッスン」ボタン（`menu-bar-lessons`。`lessonsIcon` = `icon--tutorials.svg`）を置く（吹き出しは出さない）。`ariaMessages.lessons`、`onOpenLessonsLibrary` / `lessonModeActive` の propTypes |
 | `src/containers/menu-bar-hoc.jsx` | lessons button | `lessonModeActive`（`isLessonMode`。レッスンモード中はウェルカムバルーンを出さない）と `onOpenLessonsLibrary`（`markTutorialSeen` + `openLessonsLibrary`）を供給 |
 | `src/components/menu-bar/settings-menu.jsx` | classroom management menu | クラス管理メニューアイテムの import、レンダリング、Redux 接続 |
-| `src/components/menu-bar/settings-menu.jsx` | v1 switch prevention | module / class（`@ruby:module_source` / `@ruby:class`）を使っているとき Ruby v1 へ切りかえさせない。注釈は `src/lib/ruby-markers.js` の `isRubyV2Comment` で読む（import とハンドラの 2 箇所） |
+| `src/components/menu-bar/settings-menu.jsx` | v1 switch prevention | module / class（`@ruby:module_source` / `@ruby:class`）を使っているとき Ruby v1 へ切りかえさせない。注釈は `src/lib/ruby-markers.js` の `isRubyV2Comment` で読む（import・ハンドラ・それが使う `vm` と `intl`（分割代入・propTypes・`mapStateToProps`）） |
 | `src/components/menu-bar/settings-menu.jsx` | display mode menu | 表示モード (自動/PC/スマホ) 切替。テーマ/Ruby と同じ `PreferenceMenu` サブメニュー形式 + 専用アイコン。`useDisplayMode` hook + `persistDisplayMode` の import、ハンドラ、Redux (open/close) 接続、レンダリング (Issue #865) |
 | `src/reducers/menus.js` | display mode menu | `PreferenceMenu` サブメニューの開閉用 Redux state (`displayModeMenu`)。定数/rootMenu への登録/initialState/open・close・selector の追加 (Issue #865) |
 | `webpack.config.js` | classroom API | CLASSROOM_API_ENDPOINT 環境変数注入 |
@@ -196,6 +197,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/lib/legacy-storage.ts` | local sprite assets | スプライトの画像アセットをローカル配信の web store から解決する追加登録 |
 | `src/lib/legacy-backpack-storage.ts` | localStorage backpack support | バックパックを localStorage に保存する対応（5 ペア） |
 | `src/lib/alerts/index.jsx` | classroom session expired alert | クラスルームのセッション失効アラートの定義 |
+| `src/lib/alerts/index.jsx` | Smalrubot S1 renamed alert | 移行期間の前の名前のカード（スモウルボットS1）を選んだときの、名前が変わったことの知らせ（`smalrubotS1Renamed`。2027-11-30 の期限のあとに消す） |
 | `src/components/alerts/alert.jsx` | classroom session expired | セッション失効アラートの表示側 |
 | `src/containers/alert.jsx` | classroom session expired | セッション失効アラートのコンテナ側（3 ペア） |
 | `src/lib/libraries/extensions/index.jsx` | TM2Scratch extension / AkaDako extension / Ruby String extension | 拡張機能ライブラリへの Smalruby 拡張エントリ（各 2 ペア。取り外し可能拡張の分離マーカーと同名系列） |
@@ -211,6 +213,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/blocks/blocks.css` | show whole block shape on flyout hover | フライアウトにマウスを乗せている間、長いブロックが右へはみ出して見えるようにする（`clip-path`・RTL 対応）。スクロールバーを左に 4px 離し、ホバー中のスクロールバーの地を不透明度 0.4 にする |
 | `src/components/blocks/blocks.css` | v2 toolbox category label selector | カテゴリ名を 0.65rem に縮める規則のクラス名を、scratch-blocks v2.1.19 が描く `.blocklyToolboxCategoryLabel` にする（上流は v1 の `.scratchCategoryMenuItemLabel` のままで効かない） |
 | `src/components/library/library.jsx` | extension library key | 拡張機能の項目のキーに `extensionId` を使う |
+| `src/containers/extension-library.jsx` | Smalrubot S1 legacy card | 移行期間（2027-11-30 まで）だけ、アーテックロボのカードの後ろに前の名前のカード「スモウルボットS1」を差しこみ、選ばれたら同じ拡張機能 `smalrubotS1` を読みこんで知らせを出す（import・`handleItemSelect`・render・propTypes・mapDispatchToProps の 5 ペア。処理は `src/lib/libraries/extensions/smalrubot-s1/legacy-card.jsx`） |
 | `src/components/library/library.jsx` | modal header actions | `headerActions` を `Modal` に渡す（prop と propType） |
 | `src/components/modal/modal.jsx` | modal header actions | ヘッダーの右のボタン置き場 `headerActions`（拡張機能のライブラリ・甲子園のテストのモーダルが使う）。描画と propType |
 | `src/components/modal/modal.css` | modal header actions | `.header-item-actions`（`headerActions` の置き場。LTR / RTL の余白） |
@@ -259,6 +262,23 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/containers/gui.jsx` | tab activation handler / onSetPlatform prop rename / set theme | タブ切りかえのハンドラー、`setPlatform` を `onSetPlatform` にした名前、テーマの設定 |
 | `src/containers/gui.jsx` | ruby tab / koshien / url loader / tips library close / welcome modal | 上の機能の import・アクション・state |
 | `src/containers/gui.jsx` | smalruby gui props / smalruby gui state / smalruby modal close actions | 上の機能が使う propTypes・`mapStateToProps`・モーダルを閉じるアクションのまとまり |
+| `src/lib/make-toolbox-xml.js` | only_blocks filtering | `only_blocks`（URL パラメーター・ステージのコメント）でツールボックスのブロックを絞る（`parseOnlyBlocks`・`filterBlocks` などの関数・引数・中身の無いカテゴリを出さない組み立て・`filterBlocks` の export）。upstream の `everything` の組み立てと拡張のカテゴリの追加を書きかえたところに注記 |
+| `src/lib/make-toolbox-xml.js` | category name message reference | 各カテゴリの名前を `%{BKY_CATEGORY_*}` で書く（upstream は `ScratchMsgs.translate`）。テンプレート文字列の中には書けないので、`return` の前に注記だけのペアを置く（`postMergeReverts` の意図的な乖離） |
+| `src/components/menu-bar/settings-menu.jsx` | ruby version menu | 設定のメニューの「Ruby のバージョン」（import・ハンドラ・`PreferenceMenu`・propTypes・Redux） |
+| `src/components/menu-bar/settings-menu.jsx` | block display menu | 設定のメニューの「ブロックの表示...」の項目と、それを開く dispatch |
+| `src/components/menu-bar/settings-menu.jsx` | smalruby settings menu items | 上の機能のアイコンの import と、分割代入・propTypes のまとまり |
+| `src/components/menu-bar/settings-menu.jsx` | settings menu test id | 設定のメニューの `data-testid="settings-menu"` |
+| `src/reducers/menus.js` | ruby version menu | 「Ruby のバージョン」のサブメニューの開閉（定数・rootMenu・initialState・open / close / selector・export） |
+| `src/reducers/menus.js` | menu toggle | メニューを押すたびに開閉する `TOGGLE_MENU`（reducer・`toggleMenu`・`toggleEditMenu` / `toggleFileMenu` / `toggleSettingsMenu`） |
+| `src/reducers/menus.js` | extension menus | 甲子園・メッシュ・スモウルボットのメニューの開閉（定数・rootMenu・initialState・open / close / selector・export） |
+| `src/reducers/modals.js` | url loader and koshien modals | URL ローダー・甲子園のテスト・甲子園の設定のモーダル（定数・初期状態・open / close・export）。upstream の `closeConnectionModal` と export の順を変えたところに注記 |
+| `src/reducers/modals.js` | welcome modal | 初めての人向けのウェルカムモーダル `welcomeModal`（定数・初期状態・open / close・export） |
+| `src/containers/extension-library.jsx` | show all extensions | 拡張機能を選ぶ画面の「すべての拡張機能を表示」（`defaultHidden` の拡張を隠す・`?showAllExtensions=`・チェックボックス・`connect` の import と Redux への接続）。upstream は `connect` しないことの注記 |
+| `src/containers/extension-library.jsx` | extension translations | 拡張機能の `setFormatMessage` と `translationMap` を constructor で読む |
+| `src/lib/libraries/extensions/index.jsx` | smalruby extensions | スモウルボット・メッシュ・micro:bit More・甲子園のアイコンの import とエントリ（Mesh v1 は終わったので載せない） |
+| `src/lib/libraries/extensions/index.jsx` | hidden by default | upstream の拡張のうち、はじめは隠すもの（`defaultHidden: true`・6 か所） |
+| `src/lib/alerts/index.jsx` | ruby alerts | Ruby からブロックに変換できない・Ruby のバージョンを変えられない・この行は実行できない、の知らせ |
+| `src/containers/controls.jsx` | ruby to blocks before green flag | 緑の旗を押したら、先に Ruby をブロックに変換してから動かす（`async` の handler・`targetCodeToBlocks`・`intl`・`RubyToBlocksConverterHOC` と `injectIntl` で包む export）。upstream の形を注記 |
 
 > 注: `src/lib/url-params.js` は Smalruby 固有ファイル（`.prettierignore` ホワイトリスト対象）の
 > ため本表の対象外（旧エントリは削除済み。固有ファイル内のマーカーは取り外し可能拡張の

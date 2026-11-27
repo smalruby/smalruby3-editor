@@ -1,20 +1,38 @@
 import RubyGenerator from '../../../../src/lib/ruby-generator';
 import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
+import BoostConverter from '../../../../src/lib/ruby-to-blocks-converter/boost';
 import ControlConverter from '../../../../src/lib/ruby-to-blocks-converter/control';
+import EV3Converter from '../../../../src/lib/ruby-to-blocks-converter/ev3';
 import EventConverter from '../../../../src/lib/ruby-to-blocks-converter/event';
+import FaceSensingConverter from '../../../../src/lib/ruby-to-blocks-converter/face_sensing';
+import G2SConverter from '../../../../src/lib/ruby-to-blocks-converter/g2s';
+import GdxForConverter from '../../../../src/lib/ruby-to-blocks-converter/gdx_for';
+import KoshienConverter from '../../../../src/lib/ruby-to-blocks-converter/koshien';
 import LooksConverter from '../../../../src/lib/ruby-to-blocks-converter/looks';
+import MakeyMakeyConverter from '../../../../src/lib/ruby-to-blocks-converter/makeymakey';
+import MeshConverter from '../../../../src/lib/ruby-to-blocks-converter/mesh';
+import MeshV2Converter from '../../../../src/lib/ruby-to-blocks-converter/mesh_v2';
+import MicroBitConverter from '../../../../src/lib/ruby-to-blocks-converter/microbit';
+import MicrobitMoreConverter from '../../../../src/lib/ruby-to-blocks-converter/microbit_more';
 import MotionConverter from '../../../../src/lib/ruby-to-blocks-converter/motion';
 import MusicConverter from '../../../../src/lib/ruby-to-blocks-converter/music';
 import OperatorsConverter from '../../../../src/lib/ruby-to-blocks-converter/operators';
 import PenConverter from '../../../../src/lib/ruby-to-blocks-converter/pen';
 import {
     menuArg,
+    menuInputArg,
     numberArg,
     onSelf,
     registerSendTable,
 } from '../../../../src/lib/ruby-to-blocks-converter/send-table';
 import SensingConverter from '../../../../src/lib/ruby-to-blocks-converter/sensing';
+import SmalrubotS1Converter from '../../../../src/lib/ruby-to-blocks-converter/smalrubot_s1';
 import SoundConverter from '../../../../src/lib/ruby-to-blocks-converter/sound';
+import Text2SpeechConverter from '../../../../src/lib/ruby-to-blocks-converter/text2speech';
+import TM2ScratchConverter from '../../../../src/lib/ruby-to-blocks-converter/tm2scratch';
+import TranslateConverter from '../../../../src/lib/ruby-to-blocks-converter/translate';
+import VideoConverter from '../../../../src/lib/ruby-to-blocks-converter/video';
+import Wedo2Converter from '../../../../src/lib/ruby-to-blocks-converter/wedo2';
 import { makeConverter, makeStageTarget } from '../../helpers/ruby-roundtrip-helper';
 
 /**
@@ -42,6 +60,23 @@ describe('RubyToBlocksConverter/send table', () => {
         operators: OperatorsConverter,
         pen: PenConverter,
         music: MusicConverter,
+        text2speech: Text2SpeechConverter,
+        translate: TranslateConverter,
+        video: VideoConverter,
+        boost: BoostConverter,
+        wedo2: Wedo2Converter,
+        faceSensing: FaceSensingConverter,
+        makeymakey: MakeyMakeyConverter,
+        microbit: MicroBitConverter,
+        ev3: EV3Converter,
+        gdxFor: GdxForConverter,
+        tm2scratch: TM2ScratchConverter,
+        koshien: KoshienConverter,
+        g2s: G2SConverter,
+        microbitMore: MicrobitMoreConverter,
+        mesh: MeshConverter,
+        meshV2: MeshV2Converter,
+        studuino: SmalrubotS1Converter,
     };
 
     test.each(Object.keys(tables))('every opcode of the %s table has a generator', (area) => {
@@ -124,6 +159,35 @@ describe('RubyToBlocksConverter/send table', () => {
         expect(await converter.targetCodeToBlocks(null, 'jump("far")')).toBe(false);
         expect(converter.errors.map((error) => error.text)).toEqual(['no such costume']);
         expect(Object.values(converter.blocks).map((block) => block.opcode)).not.toContain('looks_switchcostumeto');
+    });
+
+    test('a menu input can normalize the string and take its default from the converter', async () => {
+        const converter = new RubyToBlocksConverter(null, { version: '2' });
+        registerSendTable(converter, [
+            {
+                receiver: 'sprite',
+                name: 'jump',
+                opcode: 'looks_switchcostumeto',
+                args: [
+                    menuInputArg('COSTUME', 'looks_costume', 'COSTUME', () => 'B', {
+                        choices: ['A', 'B'],
+                        normalize: (value) => value.toUpperCase(),
+                    }),
+                ],
+            },
+        ]);
+        const menuValues = () =>
+            Object.values(converter.blocks)
+                .filter((block) => block.opcode === 'looks_costume')
+                .map((block) => block.fields.COSTUME.value);
+
+        expect(await converter.targetCodeToBlocks(null, 'jump("a")')).toBe(true);
+        expect(menuValues()).toEqual(['A']);
+
+        expect(await converter.targetCodeToBlocks(null, 'jump($v)')).toBe(true);
+        expect(menuValues()).toEqual(['B']);
+
+        expect(await converter.targetCodeToBlocks(null, 'jump("c")')).toBe(false);
     });
 
     test('a row on self takes self.xxx and xxx, not a Ruby expression of the same name', async () => {

@@ -50,6 +50,7 @@ import faceSensingIconURL from './faceSensing/faceSensing.png';
 import faceSensingInsetIconURL from './faceSensing/faceSensing-small.svg';
 
 
+// === Smalruby: Start of smalruby extensions ===
 import smalrubotS1IconURL from './smalrubot-s1/smalrubot-s1.png';
 import smalrubotS1InsetIconURL from './smalrubot-s1/smalrubot-s1-small.png';
 import smalrubotS1ConnectionIconURL from './smalrubot-s1/smalrubot-s1-illustration.png';
@@ -62,6 +63,7 @@ import meshV2ConnectionSmallIconURL from './mesh_v2/mesh-small.png';
 
 import microbitMore from './microbitMore/index.jsx';
 import koshien from './koshien/index.jsx';
+// === Smalruby: End of smalruby extensions ===
 // === Smalruby: Start of TM2Scratch extension ===
 import tm2scratch from './tm2scratch/index.jsx';
 // === Smalruby: End of TM2Scratch extension ===
@@ -211,7 +213,9 @@ export default [
             />
         ),
         featured: true,
+        // === Smalruby: Start of hidden by default ===
         defaultHidden: true
+        // === Smalruby: End of hidden by default ===
     },
     {
         name: 'micro:bit',
@@ -227,7 +231,9 @@ export default [
             />
         ),
         featured: true,
+        // === Smalruby: Start of hidden by default ===
         defaultHidden: true,
+        // === Smalruby: End of hidden by default ===
         disabled: false,
         bluetoothRequired: true,
         internetConnectionRequired: true,
@@ -258,7 +264,9 @@ export default [
         ),
         helpLink: 'https://scratch.mit.edu/microbit'
     },
+    // === Smalruby: Start of smalruby extensions ===
     microbitMore,
+    // === Smalruby: End of smalruby extensions ===
     {
         name: 'Go Direct Force & Acceleration',
         extensionId: 'gdxfor',
@@ -273,7 +281,9 @@ export default [
             />
         ),
         featured: true,
+        // === Smalruby: Start of hidden by default ===
         defaultHidden: true,
+        // === Smalruby: End of hidden by default ===
         disabled: false,
         bluetoothRequired: true,
         internetConnectionRequired: true,
@@ -318,7 +328,9 @@ export default [
             />
         ),
         featured: true,
+        // === Smalruby: Start of hidden by default ===
         defaultHidden: true,
+        // === Smalruby: End of hidden by default ===
         disabled: false,
         bluetoothRequired: true,
         internetConnectionRequired: true,
@@ -363,7 +375,9 @@ export default [
             />
         ),
         featured: true,
+        // === Smalruby: Start of hidden by default ===
         defaultHidden: true,
+        // === Smalruby: End of hidden by default ===
         disabled: false,
         bluetoothRequired: true,
         internetConnectionRequired: true,
@@ -410,7 +424,9 @@ export default [
             />
         ),
         featured: true,
+        // === Smalruby: Start of hidden by default ===
         defaultHidden: true,
+        // === Smalruby: End of hidden by default ===
         disabled: false,
         bluetoothRequired: true,
         internetConnectionRequired: true,
@@ -443,6 +459,7 @@ export default [
         ),
         helpLink: 'https://scratch.mit.edu/wedo'
     },
+    // === Smalruby: Start of smalruby extensions ===
     // Mesh v1 (Skyway-backed) reached end of service. Removed from the picker so
     // it can no longer be added to new projects. Existing v1 blocks (incl. those
     // restored from the backpack) are auto-migrated to meshV2 — see Issue #592.
@@ -483,7 +500,7 @@ export default [
     {
         name: (
             <FormattedMessage
-                defaultMessage="Smalrubot S1"
+                defaultMessage="ArtecRobo"
                 description="Name for the 'Smalrubot S1' extension"
                 id="gui.smalruby3.extension.smalrubotS1.name"
             />
@@ -493,7 +510,7 @@ export default [
         insetIconURL: smalrubotS1InsetIconURL,
         description: (
             <FormattedMessage
-                defaultMessage="Control the Smalrubot S1."
+                defaultMessage="Control the Studuino® board of ArtecRobo. ArtecRobo is a product of Artec Co., Ltd., and Studuino® is a registered trademark of Artec Co., Ltd."
                 description="Description for the 'Smalrubot S1' extension"
                 id="gui.smalruby3.extension.smalrubotS1.description"
             />
@@ -517,6 +534,7 @@ export default [
         collaborator: 'Artec Co., Ltd.'
     },
     koshien,
+    // === Smalruby: End of smalruby extensions ===
     // === Smalruby: Start of TM2Scratch extension ===
     tm2scratch,
     // === Smalruby: End of TM2Scratch extension ===

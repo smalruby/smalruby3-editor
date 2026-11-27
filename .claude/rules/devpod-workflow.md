@@ -365,6 +365,33 @@ devpod の workspace ID は **host の絶対パス** から生成されるが、
 リポジトリ (worktree 含む) が複数あると名前が衝突しうる。
 `devpod up . --id <一意な名前>` で明示すると安全。
 
+### Claude Code の画面の行頭に全角文字が消え残る
+
+`devpod ssh` + iTerm2 で、出力が流れているあいだ行頭の 2 列に前の画面の全角文字が残る。
+fullscreen の描画が差分だけを描くため。`CLAUDE_CODE_ALT_SCREEN_FULL_REPAINT=1`（毎回全画面を描き直す）で直る。
+`.devcontainer/devcontainer.json` の `containerEnv` に入れてあるので、devcontainer を作り直せば効く。
+効かないときの予備は `CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN=1` か `CLAUDE_CODE_FORCE_SYNC_OUTPUT=1`。
+
+### コンテナ内のサービス（autopilot の 8787 など）にホストのブラウザから繋がらない
+
+egress firewall は原因ではない（止めるのは外向きの通信だけ）。次の順で切り分ける。
+
+1. **まず、コンテナ側でそのサービスが動いているかを見る**（いちばん多い原因）。転送が生きていても、
+   待ち受けるものが無ければ connection refused になる。コンテナで
+   `node -e 'require("http").createServer((q,s)=>s.end("OK")).listen(8787,"0.0.0.0")' &` を立て、
+   ホストの `curl -s localhost:8787` で `OK` が返れば、転送は正常。
+2. ホストの `lsof -nP -iTCP -sTCP:LISTEN | grep -E ':(8601|8787|8788)'` に `devpod-cl` が出ていれば、
+   devpod が自動で転送している。このとき手で `ssh -L` を張ると `Address already in use` になる（失敗ではない）。
+3. 出ていないときは、image に焼き込まれた古い `forwardPorts` が勝っている。`devpod delete` → `devpod up` で
+   image を作り直すと直る。すぐ使うなら、ホストから `ssh -N -L 8787:localhost:8787 smalruby3-editor.devpod`
+   （worktree は `smalruby3-editor-<feature>.devpod`）。
+
+### apt が `Unable to connect to deb.debian.org` で失敗する
+
+Debian のリポジトリ（`deb.debian.org` / `security.debian.org`）は allowlist に無い。
+`init-firewall.sh` の `EXTRA_HOSTS`（自分だけなら `.devcontainer/firewall-allow.local`）に足して
+`init-firewall.sh` を流し直し、**すぐに** apt を流す（CDN の IP が変わるので、時間を置くとまた繋がらない）。
+
 ## 参考
 
 - 利用ポリシー: NaCl Claude Code 利用ガイドライン v0.2 §3-2

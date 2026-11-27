@@ -235,7 +235,7 @@ export default function (Generator) {
         const event = Generator.getFieldValue(block, 'EVENT', 'PULSE_LOW');
         const eventLabel = Generator.quote_(EventLabel[event]);
         const pin = Generator.quote_(`P${Generator.getFieldValue(block, 'PIN', '0')}`);
-        return `microbit.value_of(${eventLabel}, ${pin})\n`;
+        return [`microbit.value_of(${eventLabel}, ${pin})`, Generator.ORDER_FUNCTION_CALL];
     };
 
     Generator.microbitMore_whenDataReceived = function (block) {

@@ -19,6 +19,7 @@ const AlertLevels = {
 };
 
 const alerts = [
+    // === Smalruby: Start of ruby alerts ===
     {
         alertId: 'convertRubyToBlocksError',
         clearList: ['convertRubyToBlocksError'],
@@ -47,6 +48,7 @@ const alerts = [
         level: AlertLevels.WARN,
         maxDisplaySecs: 5
     },
+    // === Smalruby: End of ruby alerts ===
     {
         alertId: 'createSuccess',
         alertType: AlertTypes.STANDARD,
@@ -260,6 +262,7 @@ const alerts = [
         iconSpinner: true,
         level: AlertLevels.SUCCESS
     },
+    // === Smalruby: Start of ruby alerts ===
     {
         alertId: 'cannotExecuteLine',
         clearList: ['cannotExecuteLine'],
@@ -274,6 +277,7 @@ const alerts = [
         level: AlertLevels.WARN,
         maxDisplaySecs: 5
     },
+    // === Smalruby: End of ruby alerts ===
     {
         alertId: 'settingThumbnail',
         alertType: AlertTypes.STANDARD,
@@ -346,8 +350,26 @@ const alerts = [
         ),
         level: AlertLevels.WARN,
         showRejoin: 'teacher'
-    }
+    },
     // === Smalruby: End of classroom session expired alert ===
+    // === Smalruby: Start of Smalrubot S1 renamed alert ===
+    {
+        alertId: 'smalrubotS1Renamed',
+        clearList: ['smalrubotS1Renamed'],
+        closeButton: true,
+        content: (
+            <span data-testid="smalrubot-s1-renamed-alert">
+                <FormattedMessage
+                    defaultMessage={'Smalrubot S1 is now called "ArtecRobo". ' +
+                        'It works the same. From now on, please choose "ArtecRobo".'}
+                    description="Alert shown after choosing the old Smalrubot S1 card in the extension library"
+                    id="gui.smalruby3.alerts.smalrubotS1Renamed"
+                />
+            </span>
+        ),
+        level: AlertLevels.INFO_BLUE
+    }
+    // === Smalruby: End of Smalrubot S1 renamed alert ===
 ];
 
 export {

@@ -11,6 +11,8 @@
 //     先生が必須にしたチャレンジに ★ を付ける。「はじめる」「レッスンを続ける」で開いたとき
 //     （lessonMode.libraryAssignmentOnly）は、課題のコースの課題のチャレンジだけを出し、次にやる課題の
 //     チャレンジに「次はこれ！」。メニューの「レッスン」から開いたときはコース全体＋課題の帯
+//   - 課題だけで開いたときは、課題のチャレンジのあとに「おさらい（課題の外）」（課題のコースのじゅんびチェックと、そのおすすめ
+//     だけ・#2300）。そこから開いたチャレンジは「おさらい」（課題の数に入らない）
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useMemo } from 'react';
 import { connect } from 'react-redux';
@@ -24,6 +26,7 @@ import {
 } from '../lib/lessons/assignment-progress';
 import { COURSES, findCourse } from '../lib/lessons/courses';
 import { lessonsLibraryFocus, startLessonsFocus } from '../lib/lessons/lesson-progress';
+import { assignmentReviewChallenges, challengeOpenContext, recommendedChallengeIds } from '../lib/lessons/readiness';
 import { requestStudentSubmit, selectStudentLesson } from '../reducers/classroom';
 import { clearLessonsLibraryFocus, reloadProgress, startChallenge } from '../reducers/lesson-mode';
 import { closeLessonsLibrary } from '../reducers/modals';
@@ -39,6 +42,7 @@ const LessonsLibrary = ({
     onStartChallenge,
     onSubmitAssignment,
     progress,
+    readiness = null,
     startFocus = false,
     submitted = false,
     visible,
@@ -57,14 +61,27 @@ const LessonsLibrary = ({
     }, [restricted, lesson, focusChallengeId, startFocus, progress]);
     const status = useMemo(() => assignmentProgress(lesson, progress), [lesson, progress]);
     const courses = useMemo(() => (restricted ? [assignmentCourse] : COURSES), [restricted, assignmentCourse]);
+    // じゅんびチェックで「おすすめ」になったチャレンジ（カードに「おすすめ」の印・#2299）
+    const recommendedIds = useMemo(() => (readiness ? recommendedChallengeIds(readiness) : []), [readiness]);
+    // 課題だけのときは、課題のチャレンジのあとに「おさらい（課題の外）」（じゅんびチェックとそのおすすめだけ・#2300）
+    const reviewChallenges = useMemo(
+        () => (restricted ? assignmentReviewChallenges(lesson, readiness) : []),
+        [restricted, lesson, readiness],
+    );
 
     const handleSelectChallenge = useCallback(
         (challengeId) => {
-            // 課題のチャレンジを開いたときだけ「課題から」（GA の計測・クラスへ送る分 #1600）
-            onStartChallenge(challengeId, { fromAssignment: isAssignmentChallenge(lesson, challengeId) });
+            // 課題のチャレンジを開いたときだけ「課題から」（GA の計測・クラスへ送る分 #1600）。課題だけのレッスン表の
+            // 「おさらい」から開いたときは「おさらい」（課題の数に入らない・#2300）
+            onStartChallenge(
+                challengeId,
+                restricted
+                    ? challengeOpenContext(lesson, challengeId, true)
+                    : { fromAssignment: isAssignmentChallenge(lesson, challengeId) },
+            );
             onRequestClose();
         },
-        [lesson, onRequestClose, onStartChallenge],
+        [lesson, onRequestClose, onStartChallenge, restricted],
     );
 
     const handleSubmitAssignment = useCallback(() => {
@@ -91,7 +108,9 @@ const LessonsLibrary = ({
             colorMode={colorMode}
             courses={courses}
             progress={progress}
+            recommendedChallengeIds={recommendedIds}
             requiredChallengeIds={lesson ? lesson.requiredChallengeIds : []}
+            reviewChallenges={reviewChallenges}
             {...(focus ? { initialLanguage: focus.language } : {})}
             focusLessonId={focus ? focus.lessonId : null}
             nextChallengeId={focus ? focus.nextChallengeId : null}
@@ -123,6 +142,8 @@ LessonsLibrary.propTypes = {
     onStartChallenge: PropTypes.func.isRequired,
     onSubmitAssignment: PropTypes.func.isRequired,
     progress: PropTypes.shape({ challenges: PropTypes.object.isRequired }).isRequired,
+    // じゅんびチェックの記録（lib/lessons/readiness.js）
+    readiness: PropTypes.shape({ courses: PropTypes.object }),
     // ウェルカムの「レッスンを始める」で開いたか（記録から次にやるチャレンジを目立たせる）
     startFocus: PropTypes.bool,
     // 作品をもう提出したか（帯の提出の案内はクラスの画面と同じく、はじめて提出するまで）
@@ -138,6 +159,7 @@ const mapStateToProps = (state) => ({
     colorMode: state.scratchGui.settings.colorMode,
     focusChallengeId: state.scratchGui.lessonMode.libraryFocusChallengeId,
     progress: state.scratchGui.lessonMode.progress,
+    readiness: state.scratchGui.lessonMode.readiness || null,
     startFocus: Boolean(state.scratchGui.lessonMode.libraryStartFocus),
     visible: state.scratchGui.modals.lessonsLibrary,
 });

@@ -1,0 +1,11 @@
+{
+  "tasks": [
+    {
+      "id": "bug-report-check",
+      "title": "不具合報告の確認",
+      "enabled": false,
+      "schedule": { "type": "cron", "cron": "30 8 * * 1-5", "tz": "+09:00" },
+      "prompt": "新しく届いたプログラムの不具合報告（smalruby-bug-report）を確かめる。.claude/skills/bug-report/SKILL.md の「Phase 1: 未対応の報告を一覧する」の手順で一覧だけを取り（個人情報の取り扱いに従う）、新しいものの件数と要点を summary に書く。GitHub Issue を作る・報告者へ返信するなどの書き込みはしない。"
+    }
+  ]
+}

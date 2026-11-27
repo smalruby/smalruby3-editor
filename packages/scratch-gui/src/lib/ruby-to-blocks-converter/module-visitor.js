@@ -83,6 +83,7 @@ const ModuleVisitor = {
         // The parsed result should be: ProgramNode > StatementsNode > [ModuleNode]
         const root = parseResult.value;
         unwrapWithoutScreenRefreshDefs(root).forEach((def) => this._context.warpDefNodes.add(def));
+        this._analyzeImported(root, moduleCode);
         let moduleNode = null;
         if (root.statements && root.statements.body) {
             for (const stmt of root.statements.body) {

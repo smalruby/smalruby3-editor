@@ -86,3 +86,38 @@ test('detectToken: returns the last token seen', () => {
     assert.equal(detectToken('AUTOPILOT_DONE then AUTOPILOT_HITL'), TOKENS.HITL);
     assert.equal(detectToken('nothing here'), null);
 });
+
+// ---- モニターで答える質問（signal=hitl の questions） ----
+
+const hitlBase = { issue: 1, phase: 'triage', signal: 'hitl', summary: 's', reason: 'どちらにしますか' };
+const goodQuestions = [
+    {
+        id: 'q1', text: 'どちらの案にしますか',
+        options: [{ key: 'a', label: '案 A', desc: '速い' }, { key: 'b', label: '案 B' }],
+        recommended: 'a',
+    },
+    { id: 'q2', text: '名前は', options: [{ key: 'keep', label: 'そのまま' }] },
+];
+
+test('validateResult: hitl accepts questions with options and recommended', () => {
+    assert.deepEqual(validateResult({ ...hitlBase, questions: goodQuestions }), { ok: true, errors: [] });
+});
+
+test('validateResult: questions only with signal=hitl (no new signal)', () => {
+    const r = validateResult({ issue: 1, phase: 'triage', signal: 'done', summary: 's', hitl: true, questions: goodQuestions });
+    assert.equal(r.ok, false);
+    assert.ok(r.errors.some((e) => e.includes('only when signal=hitl')));
+});
+
+test('validateResult: questions rejects bad ids, duplicate keys, unknown recommended', () => {
+    const bad = (questions) => validateResult({ ...hitlBase, questions });
+    assert.equal(bad([]).ok, false);
+    assert.equal(bad([{ ...goodQuestions[0], id: 'q 1 -->' }]).ok, false);
+    assert.equal(bad([goodQuestions[0], { ...goodQuestions[1], id: 'q1' }]).ok, false);
+    assert.equal(bad([{ ...goodQuestions[0], options: [{ key: 'a', label: 'x' }, { key: 'a', label: 'y' }] }]).ok, false);
+    assert.equal(bad([{ ...goodQuestions[0], recommended: 'z' }]).ok, false);
+    assert.equal(bad([{ ...goodQuestions[0], options: [] }]).ok, false);
+    assert.equal(bad([{ ...goodQuestions[0], text: ' ' }]).ok, false);
+    assert.equal(bad([{ ...goodQuestions[0], options: [{ key: 'a', label: '' }] }]).ok, false);
+    assert.equal(bad([{ ...goodQuestions[0], options: [{ key: 'a', label: 'x', desc: 3 }] }]).ok, false);
+});

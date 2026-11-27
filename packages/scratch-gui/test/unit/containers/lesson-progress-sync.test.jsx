@@ -16,6 +16,7 @@ import lessonModeReducer, {
     markChallengeCompleted,
     openChallenge,
     requestProgressSend,
+    startChallenge,
 } from '../../../src/reducers/lesson-mode';
 
 jest.mock('../../../src/containers/modal.jsx', () => {
@@ -133,6 +134,36 @@ describe('LessonProgressSync', () => {
         });
         await flush();
         expect(classroomAPI.putLessonProgress).toHaveBeenCalledTimes(calls);
+    });
+
+    test('should send a review challenge as current with review: true, but never its "done" (#2300)', async () => {
+        const store = renderSync();
+        await flush();
+        act(() => {
+            store.dispatch(startChallenge(OUTSIDE, { fromReview: true }));
+            store.dispatch(openChallenge(OUTSIDE));
+        });
+        await flush();
+        expect(classroomAPI.putLessonProgress).toHaveBeenLastCalledWith('token-1', 'class-1', {
+            challenges: {},
+            current: { challengeId: OUTSIDE, openedAt: expect.any(String), review: true },
+        });
+        const calls = classroomAPI.putLessonProgress.mock.calls.length;
+        act(() => {
+            store.dispatch(markChallengeCompleted(OUTSIDE, LATER));
+        });
+        await flush();
+        expect(classroomAPI.putLessonProgress).toHaveBeenCalledTimes(calls);
+        // 課題のチャレンジにもどったら、ふつうの current
+        act(() => {
+            store.dispatch(startChallenge(B, { fromAssignment: true }));
+            store.dispatch(openChallenge(B));
+        });
+        await flush();
+        expect(classroomAPI.putLessonProgress).toHaveBeenLastCalledWith('token-1', 'class-1', {
+            challenges: {},
+            current: { challengeId: B, openedAt: expect.any(String) },
+        });
     });
 
     test('should ask once before the first send when the device has records, and send them as before', async () => {
@@ -289,5 +320,71 @@ describe('LessonProgressSync', () => {
         await flush();
         expect(classroomAPI.putLessonProgress).toHaveBeenCalledTimes(1);
         expect(store.getState().scratchGui.lessonMode.progress.challenges[A]).toBeDefined();
+    });
+});
+
+describe('LessonProgressSync readiness (#2301)', () => {
+    const BASE = ['blocks-l0-where', 'blocks-l1-ask-answer', 'blocks-l1-count', 'blocks-l1-broadcast'];
+    const chatLesson = normalizeAssignmentLesson({
+        courseId: 'chat-wo-tsukurou',
+        challengeIds: ['chat-l1-sequence'],
+    });
+
+    beforeEach(() => {
+        window.localStorage.clear();
+        classroomAPI.putLessonProgress.mockReset();
+        classroomAPI.putLessonProgress.mockResolvedValue({});
+    });
+
+    const renderWithReadiness = (answers) => {
+        const store = createStore(
+            combineReducers({
+                scratchGui: combineReducers({ classroom: classroomReducer, lessonMode: lessonModeReducer }),
+            }),
+            {
+                scratchGui: {
+                    classroom: student({ studentLesson: chatLesson }),
+                    lessonMode: {
+                        ...lessonModeInitialState,
+                        progress: loadProgress(),
+                        readiness: { version: 1, courses: { 'chat-wo-tsukurou': { answers } }, offered: {} },
+                    },
+                },
+            },
+        );
+        render(
+            <Provider store={store}>
+                <IntlProvider locale="en">
+                    <LessonProgressSync />
+                </IntlProvider>
+            </Provider>,
+        );
+        return store;
+    };
+
+    test('should send the readiness result answered after joining, and again when it changes', async () => {
+        const answers = Object.fromEntries(BASE.map((id) => [id, { correct: true, answeredAt: LATER }]));
+        answers['blocks-l1-count'] = { correct: false, answeredAt: LATER };
+        const store = renderWithReadiness(answers);
+        await flush();
+        expect(classroomAPI.putLessonProgress).toHaveBeenLastCalledWith('token-1', 'class-1', {
+            challenges: {},
+            readiness: { checkedAt: LATER, missing: ['blocks-l1-count'] },
+        });
+        act(() => {
+            store.dispatch(markChallengeCompleted('blocks-l1-count', LATER2));
+        });
+        await flush();
+        expect(classroomAPI.putLessonProgress).toHaveBeenLastCalledWith('token-1', 'class-1', {
+            challenges: {},
+            readiness: { checkedAt: LATER, missing: [] },
+        });
+    });
+
+    test('should not send a readiness result answered before the consent', async () => {
+        const answers = Object.fromEntries(BASE.map((id) => [id, { correct: true, answeredAt: T1 }]));
+        renderWithReadiness(answers);
+        await flush();
+        expect(classroomAPI.putLessonProgress).toHaveBeenLastCalledWith('token-1', 'class-1', { challenges: {} });
     });
 });

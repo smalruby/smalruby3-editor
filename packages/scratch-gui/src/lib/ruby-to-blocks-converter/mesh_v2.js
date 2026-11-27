@@ -1,12 +1,40 @@
 import { Variable } from './constants';
 import Primitive from './primitive';
+import { menuInputArg, registerSendTable } from './send-table';
 
 const MeshV2 = 'mesh';
+
+// The name of a variable shared by the mesh: any string, or any block.
+const sensorNameArg = () =>
+    menuInputArg('NAME', 'meshV2_menu_variableNames', 'variableNames', ' ', { anyBlock: true });
+
+/**
+ * The rows of `sensor_value` on a receiver (`mesh`, or the old `mesh_v1` of mesh.js).
+ * @param {string} receiver - The name of the receiver.
+ * @returns {object} The row.
+ */
+const sensorValueRow = (receiver) => ({
+    receiver,
+    changesReceiver: true,
+    name: 'sensor_value',
+    opcode: 'meshV2_getSensorValue',
+    type: 'value',
+    args: [sensorNameArg()],
+});
+
+// The calls of `mesh.xxx` that map one to one onto a block (send-table.js). `broadcast` (a message
+// of the project and a value) stays a handler.
+const MESH_V2_SENDS = [
+    sensorValueRow(MeshV2),
+    { receiver: MeshV2, changesReceiver: true, name: 'message_value', opcode: 'meshV2_messageValue', type: 'value' },
+];
 
 /**
  * MeshV2 extension converter
  */
 const MeshV2Converter = {
+    sends: MESH_V2_SENDS,
+
     register: function (converter) {
         converter.registerOnSend('self', MeshV2, 0, (params) => {
             const { node } = params;
@@ -14,15 +42,7 @@ const MeshV2Converter = {
             return converter.createRubyExpressionBlock(MeshV2, node);
         });
 
-        converter.registerOnSend(MeshV2, 'sensor_value', 1, (params) => {
-            const { receiver, args } = params;
-
-            if (!converter.isStringOrBlock(args[0])) return null;
-
-            const block = converter.changeRubyExpressionBlock(receiver, 'meshV2_getSensorValue', 'value');
-            converter.addFieldInput(block, 'NAME', 'meshV2_menu_variableNames', 'variableNames', args[0], ' ');
-            return block;
-        });
+        registerSendTable(converter, MESH_V2_SENDS);
 
         // mesh.broadcast("メッセージ1", 値) → 「(メッセージ1 ▼) といっしょに ( ) を送る」(#1843)
         converter.registerOnSend(MeshV2, 'broadcast', 2, (params) => {
@@ -56,14 +76,8 @@ const MeshV2Converter = {
             converter.addTextInput(block, 'VALUE', value, 'こんにちは');
             return block;
         });
-
-        // mesh.message_value → 「メッセージの値」(#1843)
-        converter.registerOnSend(MeshV2, 'message_value', 0, (params) => {
-            const { receiver } = params;
-
-            return converter.changeRubyExpressionBlock(receiver, 'meshV2_messageValue', 'value');
-        });
     },
 };
 
+export { sensorValueRow };
 export default MeshV2Converter;

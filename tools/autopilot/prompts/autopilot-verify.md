@@ -12,6 +12,36 @@
 > bundled chromium を headless で起動して自分で UI 確認まで完結できる（Issue #891 で実証済み）。
 > **Playwright MCP は使わない**（host Chrome 依存でコンテナ内では `Chromium distribution 'chrome' is not found` で失敗する）。
 
+
+## EPIC の流れ（`AUTOPILOT_EPIC_FLOW=1` のとき）
+
+PR の base が `topic/...`（Issue 本文の `autopilot-base:`）のとき、daemon は `AUTOPILOT_EPIC_FLOW=1` を渡す。
+この Issue は EPIC の sub-issue で、**人間は EPIC の設計を承認済み**。確認は EPIC ごとにまとめて行うので、
+途中で `🙋 HITL` を出してよいのは次の 3 つだけ（結果ファイルの `hitlKind` に書く）:
+
+| `hitlKind` | いつ |
+|---|---|
+| `diverge` | **3 案以上**に分かれる判断（実装が発散する）。その sub-issue だけ止まる |
+| `must-exhausted` | 直しを 3 回しても Must が残る（daemon が自分で判定する。worker は使わない） |
+| `environment` | エラーで続けられない（認証・使用量・壊れた環境） |
+
+それ以外の判断（仕様の小さな選択・命名・見送り）は **AI のおすすめで決めて進め**、結果ファイルの
+`decisions` に書く。daemon が EPIC の Issue の「決定待ち」まとめコメント
+（`<!-- autopilot-epic-decisions count=N -->`）に書き足す（**worker はそのコメントを書かない**）:
+
+```json
+"decisions":[{"kind":"ai-decision","ref":null,"title":"<何を決めたか>","recommendation":"<AI の案（採ったもの）>",
+  "alternatives":["<ほかの案>"],"adopted":"<入れたもの>"}]
+```
+
+`kind` は `question`（仕様の選択が要る）/ `not-adopted`（採用しなかった指摘）/ `ai-decision`（AI が決めた）/
+`two-way`（2 案。下記）/ `diverge`（3 案以上）。スキーマは `docs/autopilot/autonomous-contract.md` §2.6。
+
+このフェーズでは: DoD を満たしたら `nextStatus:"Review"`・`hitl:false` で返す（daemon が CI とコンフリクトを
+見て topic へ自動マージする）。headful でしか確かめられないもの（音など）は 🙋 にせず、`decisions` に
+`{"kind":"ai-decision","title":"headful の確認が要る: <何を>","recommendation":"EPIC の確認でまとめて見る"}` を書く。
+DoD を満たせないときは `nextStatus:"In Progress"`・`nextAiStatus:"Addressing Comments"`・`hitl:false` で直しに回す。
+
 ## 手順
 
 ### 1. 対象 PR と DoD を特定
@@ -151,7 +181,12 @@ worker の tmux を閉じても、バックグラウンドで起動した dev se
    ```
 
    まだ応答するなら、1 と同じ方法で 8601 の PID と cwd を見て、自分の worktree のものだけを止める。
-   止め忘れても daemon が run の終了時にこの worktree の dev server を止める（保険。頼らないこと）。
+5. **最後に `tools/autopilot/bin/cleanup-leftovers` を流す**（#2463）。`/proc/<pid>/cwd` が自分の worktree の
+   webpack・chromedriver・chromium・headless_shell だけを止め、止めたものを出す（`--dry-run` で一覧だけ）。
+   webpack は自分のコマンド行を `webpack` に書き換えるので、PGID で止めそこねた webpack もここで見つかる。
+   dev server を立てなかったときも、pw-check や integration テストのブラウザが残っていないかをこれで確かめる。
+   止め忘れても daemon が run の終了時にこの worktree の dev server・ブラウザを止める（保険。頼らないこと）。
+   手で確かめるときは `.claude/rules/parallel-work.md` の「後片付け」に従う（ほかの worktree のものは止めない）。
 
 `.claude/rules/scratch-gui/e2e-test.md` の URL パラメータ（`?no_beforeunload=1` 必須、`tab` / `rubyMode` 等）、
 data-testid 一覧、Monaco 操作に従う。`?tab=sounds` 直アクセスの扱いも同ドキュメントに従う。
@@ -185,6 +220,16 @@ EOF
 echo AUTOPILOT_HITL
 ```
 
+## 人間に選んでほしいことがあるとき（モニターで答える質問）
+
+- `signal:"hitl"` で人間に選んでほしいことがあるときは、結果に **`questions`** を足す（選択肢と推奨を必ず書く）:
+  `"questions":[{"id":"q1","text":"<何を選んでほしいか>","options":[{"key":"a","label":"<案>","desc":"<一行の説明>"},{"key":"b","label":"<案>"}],"recommended":"a"}]`。
+  `id` / `key` は英数字・`_`・`-` だけ。daemon が質問を Issue にマーカー付きで書き、モニターに出す（質問のコメントを自分で書かなくてよい）。
+  形は `docs/autopilot/autonomous-contract.md` §2.3。新しい signal は作らない。
+- 起動の指示に「人間がモニターで質問に答えています。先に … を Read し」とあれば、そのファイル（`AUTOPILOT_ANSWERS_FILE`）を
+  最初に読み、答え（質問 ID・選んだ選択肢・メモ）に従って続ける。同じことをもう一度質問しない。Issue の
+  `<!-- autopilot-monitor-answer ... -->` のコメントも同じ答え。
+
 ## 注意
 
 - **ブラウザは `playwright` パッケージの bundled chromium を headless で使う**（`pw-check` ヘルパー推奨）。**Playwright MCP は使わない**。
@@ -192,6 +237,7 @@ echo AUTOPILOT_HITL
 - **トークンの値を書かない**（#1393）: `DEV_BYPASS_TOKEN` など秘密の値を、PR / Issue のコメント・PR 本文・コミット（メッセージ・コード・テスト）・スクリーンショットの説明に書かない。確認手順は `?devlogin=<DEV_BYPASS_TOKEN>` / `Authorization: Bearer <DEV_BYPASS_TOKEN>` のように**キー名で**書く。テストにはダミーの値を使う。
 - dev server 起動は重い。**プレビュー URL があれば優先**し、無闇に毎回ビルドしない。
 - 起動した dev server は**結果ファイルを書く前に必ず止める**。8601 がほかの worktree のものなら使わない（3-B「dev server の起動と停止」）。
+- 結果ファイルを書く前（DONE / HITL / ERROR・checkpoint のどれでも）に **`tools/autopilot/bin/cleanup-leftovers`** を流し、自分の worktree に残った dev server・ブラウザを止める（3-B の 5）。
 - 音/autoplay の最終確認は実 Chrome（ホスト）— headless で「OK」と誤判定しない（種別 3-C）。
 - スクショは必ず `tmp/` 配下、`?tab=sounds` 直アクセス等 `.claude/rules/scratch-gui/e2e-test.md` の注意を尊重。
 - `AskUserQuestion` を使わない。Project/PR の状態反映は daemon（単一ライター）。bot 認証必須。

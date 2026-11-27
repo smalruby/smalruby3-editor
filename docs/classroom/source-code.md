@@ -29,6 +29,9 @@ smalruby3-editor/
 │   │   │   │   ├── student-screen-parts.css ← 上の 3 つの部品のスタイル
 │   │   │   │   ├── student-status-view.jsx ← おかえりなさいの画面（主ボタン「つづける」・小さなリンク・「作品を読み込み直す」・「クラスから出る」の確認）
 │   │   │   │   ├── student-start-method.jsx ← 参加したあとの始め方（主ボタン 1 つ + 「ほかの始め方」）#1793
+│   │   │   │   ├── assignment-page-text.jsx ← 課題のページの文を書式（見出し・マーカー・箇条書き・ラベル）にして React の要素で出す
+│   │   │   │   ├── student-assignment-goal.jsx ← レッスンの課題の「ゴール」のカード（チャレンジを N つクリア・★・レッスン・提出）
+│   │   │   │   ├── use-read-countdown.js ← 参加した直後の「よく読もう… 3」の秒読み（hook。unmount で止める）
 │   │   │   │   ├── teacher-class-detail.jsx ← 先生の課題詳細 (退室リクエストバッジ + 退室通知バナー)
 │   │   │   │   ├── teacher-member-detail.jsx ← メンバー詳細パネル (承認/却下ボタン)
 │   │   │   │   ├── lesson-member-detail.jsx ← 席の詳細のレッスンの部分（チャレンジごとの時刻・前・いま）
@@ -45,18 +48,22 @@ smalruby3-editor/
 │   │   │   │   ├── mesh-group-limit-field.jsx ← 「メッシュのグループの人数」の選択（作成画面と課題エディタで共用・#1257）
 │   │   │   │   ├── teacher-group-manage.jsx ← 組（グループ）管理
 │   │   │   │   ├── teacher-evaluation.jsx ← 採点（点だけの採点簿の表・手順 1〜4・書き出しメニュー）
+│   │   │   │   ├── teacher-overall-grade.jsx ← 総合評価（入れる課題と重み・点・区切り・結果の表・CSV）
+│   │   │   │   ├── teacher-grading-rubric.jsx ← 採点の［基準］のタブ（課題の説明・代表の作品・フェアの確認・基準の文・コピー）と同じまとまりの問い
+│   │   │   │   ├── teacher-grading-shapes.jsx ← 採点の［形］のタブ（形の札でまとめて評価を付ける）・席の一覧の色の点・［生徒］の形の札
 │   │   │   │   ├── teacher-evaluation-detail.jsx ← 採点の右の列（選んだ席の点・根拠・コメント・‹ ›・［作品を開く］）
 │   │   │   │   └── teacher-post-assignment.jsx ← 課題配信
 │   │   │   ├── classroom-teacher-menu/ ← メニューバーの先生メニュー「クラス管理」(表示) #1199
 │   │   │   ├── classroom-teacher-kick-toast/ ← 先生向けの退室依頼トースト / 一覧 (表示) #1200
 │   │   │   ├── classroom-teacher-panel/ ← 先生の「いまの課題の状況」フローティングパネル (表示) #1203
 │   │   │   ├── classroom-peer-panel/ ← 生徒の「みんなの作品」パネル + 画像ビューアのウィンドウ (表示・枠は teacher-panel の CSS を共用) #1210
+│   │   │   ├── carousel/              ← カルーセル（ログイン画面の紹介。デザインシステムの carousel.md）
 │   │   │   ├── classroom-teacher-modal/ ← 先生用フルスクリーンモーダル
 │   │   │   │   ├── classroom-teacher-modal.jsx ← メイン（ダッシュボード/詳細/作成等）
 │   │   │   │   ├── classroom-teacher-modal.css
 │   │   │   │   ├── teacher-login-phase.jsx ← ログイン画面（カルーセル付き）
 │   │   │   │   ├── teacher-google-courses-phase.jsx ← GC コースインポート
-│   │   │   │   └── carousel-*.png     ← カルーセル画像
+│   │   │   │   └── carousel-*.png     ← カルーセル画像（capture-classroom-login-carousel.mjs が作る）
 │   │   │   ├── classroom-tutorial/    ← チュートリアルオーバーレイ
 │   │   │   └── alerts/alert.jsx       ← セッション切れ Alert（showRejoin 対応）
 │   │   ├── containers/
@@ -70,6 +77,8 @@ smalruby3-editor/
 │   │   │   ├── use-teacher-assignment.js ← 課題コンテンツ編集フロー
 │   │   │   ├── use-teacher-groups.js ← 組（グループ）管理・複製フロー
 │   │   │   ├── use-teacher-evaluation.js ← 採点のフロー（読み込み/AIで採点/CSV/返却）
+│   │   │   ├── use-overall-grade-settings.js ← 総合評価の設定（クラスごとに localStorage）
+│   │   │   ├── use-grading-rubric.js ← 採点の［基準］のタブ（スターター・まとまりと代表・describe/fairness/rubric・基準の保存とコピー）
 │   │   │   ├── use-student-submit.js  ← 生徒提出フロー
 │   │   │   ├── use-student-assignment.js ← 課題パネル・スターター・続きに使える提出物の読み込み (#1201)
 │   │   │   ├── use-kick-request-polling.js ← 退室依頼の承認待ちポーリング（依頼中・タブ表示中・未参加のみ）
@@ -91,6 +100,9 @@ smalruby3-editor/
 │   │   │   ├── classroom-teacher-session.js ← 先生ログインの永続化（provider + 最後の課題のみ、トークン非保存）・メニュー出し分け（純粋）#1199
 │   │   │   ├── classroom-teacher-reauth.js ← 先生ログインの有効期限切れ（401 判定・クリックからの再認証、純粋）#1250
 │   │   │   ├── classroom-assignment-utils.js ← 課題エディタの純粋ヘルパー
+│   │   │   ├── classroom-assignment-text.js ← 課題のページの文の書式の解析（純粋。保存する文は変えない）
+│   │   │   ├── classroom-assignment-goal.js ← ゴールのカードの数（N・★ M・レッスン。課題の帯と同じ数え方・純粋）
+│   │   │   ├── classroom-read-wait.js ← 参加した直後に始めるボタンを待たせる秒（文字数で 2〜5 秒・純粋）
 │   │   │   ├── classroom-lesson-settings.js ← 課題のレッスンの設定の純粋ロジック（下書き ↔ API の lesson・完了の条件・採点の点）
 │   │   │   ├── classroom-lesson-progress.js ← 先生の進み具合の純粋ロジック（座席の色・表の記号・できた人・並べ方・CSV）
 │   │   │   ├── classroom-lesson-summary.js ← パネル・席の詳細・［授業］の行・採点・提出状況.csv のレッスンの要約（純粋ロジック）
@@ -99,7 +111,7 @@ smalruby3-editor/
 │   │   │   ├── classroom-stream.js ← クラスの［ストリーム］の行（作成・アーカイブ・残り 7 日以内の自動削除の予定）と保存期限のカード `retentionSummary` を組み立てる（純粋）
 │   │   │   ├── classroom-genai-settings.js ← クラスの生成AI・ルビティー設定の下書き・検証・PATCH 差分（純粋）#1277
 │   │   │   ├── classroom-google-share.js ← GC 共有の既定ブロック判定 + 解除導線の文言（純粋）#1184
-│   │   │   ├── classroom-evaluation/ ← sb3-analyzer（静的解析）+ evaluation-utils（総合評価/CSV）
+│   │   │   ├── classroom-evaluation/ ← sb3-analyzer（静的解析）+ evaluation-utils（総合評価/CSV）+ robot-humanize（ロボットのブロックを日本語に）+ starter-diff（スターターに足したスクリプト）+ grouping（まとまり分け・代表・少ないブロック）+ overall-grade（重み付きの総合評価）+ overall-view（総合評価の画面の表と書き出しの可否）+ grading-csv（採点の CSV の行）+ grading-ai（［基準］のタブの AI の依頼・保存する基準・同じまとまりの直しの計画・例の無い評価）+ grade-consistency（全員の採点の形の署名・まとまりの間の例の引き継ぎ・同じ形で評価が違う作品の照合）+ shape-tags（作品の形の札・形ごとのまとめ）
 │   │   │   ├── classroom-kick-request-storage.js ← 退室依頼の localStorage 永続化 (#692)
 │   │   │   ├── classroom-seat-selection.js ← 席選択の純粋ロジック（番号入力の検証・ポーリング判定・定数）
 │   │   │   ├── classroom-continue-options.js ← 続きに使える提出物の正規化・参加したあとの始め方を 1 つに決める decideStartMethod（純粋）#1201 #1202 #1793
@@ -175,7 +187,11 @@ CDK スタック定義。以下のリソースを作成:
 | `handleListNotifications()` | お知らせ一覧 + 未読数 (EPIC #1111) |
 | `handleMarkNotificationsRead()` | お知らせ既読化 (ids 省略で全既読) |
 | `handleCreateGroup()` / `handleListGroups()` / `handleUpdateGroup()` | 組（グループ）の作成・一覧・更新/アーカイブ |
-| `handleDuplicateClassroom()` | 課題の複製（課題コンテンツの S3 オブジェクトコピー含む） |
+| `handleDuplicateClassroom()` | 課題の複製（課題コンテンツの S3 オブジェクトコピー含む。採点は `gradingForDuplicate()` で基準だけをコピー） |
+| `handleGetGrading()` / `handleSetGrading()` | 課題の採点の読み書き（予約キー `grading#<classroomId>` の項目。PUT は送ったキーだけを SET）#2422 |
+| `validateGradingUpdate()` / `mergeGrading()` / `gradingOf()` / `gradingByteSize()` / `gradingForDuplicate()` | 採点の検証（大きさの上限）・送ったキーの重ね合わせ・読み出し・全体の大きさ・再利用でコピーする部分 #2422 |
+| `validateEvaluateRequest()` / `buildEvaluationPrompt()` / `evaluationResponseBody()` | AI 評価支援（`grade` / `comment` / `describe` / `rubric` / `fairness`）の入力検証・プロンプト・モード別の応答（`parseEvaluationResponse` / `parseDescribeResponse` / `parseRubricResponse` / `parseFairnessResponse`）#2422 |
+| `handleGetEvaluationQuota()` / `evalQuotaFromCount()` | 先生の今日の AI 評価の使用量 `{used, limit, resetsAt}`（`GET /teacher/evaluation-quota` は数を読むだけ。`POST .../evaluate` の応答の `quota` も同じ形）#2448 |
 | `handleListGoogleCourses()` | Google Classroom コース一覧 |
 | `handleGetGoogleCourseAccess()` | 押した先生が紐付け先コースの GC 教師か・連携者本人か（`linkedByMe`）の判定 |
 | `handleImportGoogleClassroom()` | Google Classroom コースインポート |
@@ -270,7 +286,7 @@ GOOGLE_ID_TOKEN=eyJ... docker compose run --rm -w /app/infra/smalruby-classroom 
 | ファイル | 責務 |
 |---------|------|
 | `classroom-teacher-modal.jsx` | 先生モーダル本体（ダッシュボード、課題詳細、作成、課題配信） |
-| `teacher-login-phase.jsx` | ログイン画面（Google / Microsoft ボタン + カルーセル） |
+| `teacher-login-phase.jsx` | ログイン画面（Google / Microsoft ボタン + カルーセル。カルーセルの部品は `src/components/carousel/carousel.jsx`、画像 `carousel-*.png` は `tools/playwright-verify/capture-classroom-login-carousel.mjs` が作る） |
 | `teacher-google-courses-phase.jsx` | Google Classroom コースインポート画面 |
 | `teacher-notifications.jsx` | お知らせセンター（🔔 + 未読バッジ + 一覧パネル、EPIC #1111） |
 

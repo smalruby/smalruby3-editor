@@ -58,7 +58,7 @@ export default function (Generator) {
 
     Generator.boost_getMotorPosition = function (block) {
         const motorreporterid = Generator.valueToCode(block, 'MOTOR_REPORTER_ID', Generator.ORDER_NONE) || null;
-        return `boost_motor_get_position(${motorreporterid})\n`;
+        return [`boost_motor_get_position(${motorreporterid})`, Generator.ORDER_ATOMIC];
     };
 
     Generator.boost_menu_COLOR = function (block) {
@@ -75,7 +75,7 @@ export default function (Generator) {
 
     Generator.boost_seeingColor = function (block) {
         const color = Generator.valueToCode(block, 'COLOR', Generator.ORDER_NONE) || null;
-        return `boost_seeing_color?(${color})\n`;
+        return [`boost_seeing_color?(${color})`, Generator.ORDER_ATOMIC];
     };
 
     Generator.boost_menu_TILT_DIRECTION_ANY = function (block) {
@@ -98,7 +98,7 @@ export default function (Generator) {
 
     Generator.boost_getTiltAngle = function (block) {
         const tiltdirection = Generator.valueToCode(block, 'TILT_DIRECTION', Generator.ORDER_NONE) || null;
-        return `boost_get_tilt_angle(${tiltdirection})\n`;
+        return [`boost_get_tilt_angle(${tiltdirection})`, Generator.ORDER_ATOMIC];
     };
 
     Generator.boost_setLightHue = function (block) {

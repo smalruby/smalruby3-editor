@@ -2,7 +2,9 @@ import bindAll from 'lodash.bindall';
 import PropTypes from 'prop-types';
 import React from 'react';
 import VM from '@smalruby/scratch-vm';
+// === Smalruby: Start of show all extensions ===
 import {connect} from 'react-redux';
+// === Smalruby: End of show all extensions ===
 import {defineMessages, injectIntl, FormattedMessage} from 'react-intl';
 import intlShape from '../lib/intlShape.js';
 
@@ -11,9 +13,20 @@ import extensionLibraryContent from '../lib/libraries/extensions/index.jsx';
 import LibraryComponent from '../components/library/library.jsx';
 import extensionIcon from '../components/action-menu/icon--sprite.svg';
 
+// === Smalruby: Start of show all extensions ===
 import {toggleShowAllExtensions} from '../reducers/extension-filter';
+// === Smalruby: End of show all extensions ===
+// === Smalruby: Start of Smalrubot S1 legacy card ===
+import {showStandardAlert} from '../reducers/alerts';
+import {
+    resolveLegacyCard,
+    withLegacyCards
+} from '../lib/libraries/extensions/smalrubot-s1/legacy-card.jsx';
+// === Smalruby: End of Smalrubot S1 legacy card ===
 
+// === Smalruby: Start of show all extensions ===
 import styles from './extension-library.css';
+// === Smalruby: End of show all extensions ===
 
 const messages = defineMessages({
     extensionTitle: {
@@ -31,6 +44,7 @@ const messages = defineMessages({
 class ExtensionLibrary extends React.PureComponent {
     constructor (props) {
         super(props);
+        // === Smalruby: Start of extension translations ===
         extensionLibraryContent.forEach(extension => {
             if (extension.setFormatMessage) {
                 extension.setFormatMessage(this.props.intl.formatMessage);
@@ -42,15 +56,28 @@ class ExtensionLibrary extends React.PureComponent {
                 );
             }
         });
+        // === Smalruby: End of extension translations ===
         bindAll(this, [
             'handleItemSelect',
+            // === Smalruby: Start of show all extensions ===
             'handleToggleShowAllExtensions'
+            // === Smalruby: End of show all extensions ===
         ]);
     }
+    // === Smalruby: Start of show all extensions ===
     handleToggleShowAllExtensions (event) {
         this.props.onToggleShowAllExtensions(event.target.checked);
     }
-    handleItemSelect (item) {
+    // === Smalruby: End of show all extensions ===
+    // === Smalruby: Start of Smalrubot S1 legacy card ===
+    // Upstream names the argument `item`. `item` is set from resolveLegacyCard below.
+    // === Smalruby: End of Smalrubot S1 legacy card ===
+    handleItemSelect (selectedItem) {
+        // === Smalruby: Start of Smalrubot S1 legacy card ===
+        // The old card loads the same extension as the current card and tells about the rename.
+        const {item, alertId} = resolveLegacyCard(selectedItem, extensionLibraryContent);
+        if (alertId && this.props.onShowAlert) this.props.onShowAlert(alertId);
+        // === Smalruby: End of Smalrubot S1 legacy card ===
         const id = item.extensionId;
         let url = item.extensionURL ? item.extensionURL : id;
         if (!item.disabled && !id) {
@@ -69,24 +96,31 @@ class ExtensionLibrary extends React.PureComponent {
         }
     }
     render () {
+        // === Smalruby: Start of show all extensions ===
         const query = new URLSearchParams(window.location.search);
         const showAllExtensionsParam = query.get('showAllExtensions');
         const showAllExtensions = showAllExtensionsParam === 'true' ? true :
             showAllExtensionsParam === 'false' ? false :
                 this.props.showAllExtensions;
+        // === Smalruby: End of show all extensions ===
 
-        const extensionLibraryThumbnailData = extensionLibraryContent
+        // === Smalruby: Start of Smalrubot S1 legacy card ===
+        const extensionLibraryThumbnailData = withLegacyCards(extensionLibraryContent, new Date())
+        // === Smalruby: End of Smalrubot S1 legacy card ===
+            // === Smalruby: Start of show all extensions ===
             .filter(extension => {
                 if (!showAllExtensions && extension.defaultHidden) {
                     return false;
                 }
                 return true;
             })
+            // === Smalruby: End of show all extensions ===
             .map(extension => ({
                 rawURL: extension.iconURL || extensionIcon,
                 ...extension
             }));
 
+        // === Smalruby: Start of show all extensions ===
         const checkboxLabel = this.props.intl.formatMessage({
             defaultMessage: 'Show all extensions',
             description: 'Checkbox label to show all extensions including hidden ones',
@@ -109,12 +143,15 @@ class ExtensionLibrary extends React.PureComponent {
                 />
             </label>
         );
+        // === Smalruby: End of show all extensions ===
 
         return (
             <LibraryComponent
                 data={extensionLibraryThumbnailData}
                 filterable={false}
+                // === Smalruby: Start of show all extensions ===
                 headerActions={headerActions}
+                // === Smalruby: End of show all extensions ===
                 id="extensionLibrary"
                 title={this.props.intl.formatMessage(messages.extensionTitle)}
                 visible={this.props.visible}
@@ -129,18 +166,33 @@ ExtensionLibrary.propTypes = {
     intl: intlShape.isRequired,
     onCategorySelected: PropTypes.func,
     onRequestClose: PropTypes.func,
+    // === Smalruby: Start of Smalrubot S1 legacy card ===
+    onShowAlert: PropTypes.func,
+    // === Smalruby: End of Smalrubot S1 legacy card ===
+    // === Smalruby: Start of show all extensions ===
     onToggleShowAllExtensions: PropTypes.func,
     showAllExtensions: PropTypes.bool,
+    // === Smalruby: End of show all extensions ===
     visible: PropTypes.bool,
     vm: PropTypes.instanceOf(VM).isRequired
 };
 
+// === Smalruby: Start of show all extensions ===
 const mapStateToProps = state => ({
     showAllExtensions: state.scratchGui.extensionFilter.showAllExtensions
 });
+// === Smalruby: End of show all extensions ===
 
+// === Smalruby: Start of show all extensions ===
+// Upstream exports injectIntl(ExtensionLibrary) without connect.
+// === Smalruby: End of show all extensions ===
 const mapDispatchToProps = dispatch => ({
+    // === Smalruby: Start of Smalrubot S1 legacy card ===
+    onShowAlert: alertId => dispatch(showStandardAlert(alertId)),
+    // === Smalruby: End of Smalrubot S1 legacy card ===
+    // === Smalruby: Start of show all extensions ===
     onToggleShowAllExtensions: showAll => dispatch(toggleShowAllExtensions(showAll))
+    // === Smalruby: End of show all extensions ===
 });
 
 export default connect(

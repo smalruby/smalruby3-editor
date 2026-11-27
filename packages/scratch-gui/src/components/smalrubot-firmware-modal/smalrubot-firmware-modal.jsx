@@ -7,7 +7,7 @@ import styles from './smalrubot-firmware-modal.css';
 
 const messages = defineMessages({
     title: {
-        defaultMessage: 'SmalrubotS1 Firmware',
+        defaultMessage: 'Studuino Firmware',
         description: 'Title for the smalrubot firmware flash modal',
         id: 'gui.smalrubotFirmware.title',
     },
@@ -89,7 +89,7 @@ const SmalrubotFirmwareModal = ({
                     <React.Fragment>
                         <div className={styles.description}>
                             <FormattedMessage
-                                defaultMessage="Write the SmalrubotS1 firmware to the Studuino board. Connect the board via USB cable, then press the button below and select your Smalrubot S1 in the serial port dialog."
+                                defaultMessage="Write the firmware to the Studuino board. Connect the board via USB cable, then press the button below and select your Studuino in the serial port dialog."
                                 description="Description for the smalrubot firmware flash modal"
                                 id="gui.smalrubotFirmware.description"
                             />

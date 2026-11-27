@@ -117,6 +117,7 @@ AssumeRole できるデプロイ用ロールを作る。信頼ポリシーは**�
 | `INFRA_STG_DOTENV_SMALRUBY_RUBYTEE_RELAY` | 同上 |
 | `INFRA_STG_DOTENV_SMALRUBY_API` | 同上 |
 | `INFRA_STG_DOTENV_SMALRUBY_WEB_HOSTING` | 同上（中身は `STAGE=stg` だけでよい） |
+| `INFRA_STG_DOTENV_SMALRUBY_STUDUINO_HEX` | 同上（秘密は無い。中身は `STAGE=stg` だけでよい） |
 
 登録していないプロジェクトは、デプロイしようとした時点で**そのプロジェクトのジョブだけ**が
 「何を登録すべきか」を示して失敗する（他のプロジェクトは進む）。
@@ -168,6 +169,7 @@ workflow は `environment: stg` を使い、**AWS 側の信頼条件も
    | `INFRA_PROD_DOTENV_SMALRUBY_RUBYTEE_RELAY` | `infra/smalruby-rubytee-relay/.env.prod` |
    | `INFRA_PROD_DOTENV_SMALRUBY_API` | prod 用の `.env`（無ければ `STAGE=prod` の 1 行） |
    | `INFRA_PROD_DOTENV_SMALRUBY_WEB_HOSTING` | `infra/smalruby-web-hosting/.env.prod`（`STAGE=prod` だけでよい） |
+   | `INFRA_PROD_DOTENV_SMALRUBY_STUDUINO_HEX` | `STAGE=prod` だけでよい（秘密は無い） |
 
    ```bash
    bin/gh-admin secret set INFRA_PROD_DOTENV_SMALRUBY_CLASSROOM --env prod < infra/smalruby-classroom/.env.prod

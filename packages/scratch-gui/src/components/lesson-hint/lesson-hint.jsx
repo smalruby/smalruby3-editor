@@ -21,7 +21,9 @@ import {
     clampHintPosition,
     computeHintPlacement,
     findHintAvoidRects,
+    findHintFocusRect,
     findHintTargetRect,
+    focusSides,
     hintViewport,
     preferredSides,
 } from '../../lib/lessons/hint-targets';
@@ -133,16 +135,20 @@ const sameRect = (a, b) =>
  * 指す場所の矩形と吹き出しの置き方を測る。指す場所はタブの切り替えなどで現れたり消えたり
  * するので、resize のほかに短い間隔でも測り直す（変わったときだけ state を更新する）。
  * @param {?string} target - 指す場所。
+ * @param {?object} focus - 場所の中の指す 1 つのもの（見つからなければ target を指す）。
+ * @param {?object} vm - VM（ステージのスプライトの位置を求める）。
  * @param {object} balloonRef - 吹き出しの ref。
  * @param {Array} deps - 測り直すきっかけ（ヒントの番号やブロックの描画）。
  * @returns {{targetRect: ?object, placement: ?object, remeasure: Function}} 測った結果。
  */
-const useHintPlacement = (target, balloonRef, deps) => {
+const useHintPlacement = (target, focus, vm, balloonRef, deps) => {
     const [state, setState] = useState({ targetRect: null, placement: null });
     const measure = useCallback(() => {
         const el = balloonRef.current;
         if (!el || typeof document === 'undefined') return;
-        const targetRect = target ? findHintTargetRect(target, document) : null;
+        // 押すもの 1 つ（focus）が見えていればそれを、無ければ場所（target）を指す
+        const focusRect = focus ? findHintFocusRect(focus, document, { vm }) : null;
+        const targetRect = focusRect || (target ? findHintTargetRect(target, document) : null);
         const size = el.getBoundingClientRect();
         // しっぽをヘッダーの帯の横・閉じるボタンの上に出さないよう、どちらの位置も吹き出しからの相対で渡す
         const header = el.querySelector('[data-testid="lesson-hint-drag-handle"]');
@@ -156,8 +162,8 @@ const useHintPlacement = (target, balloonRef, deps) => {
                 closeLeft: close ? close.getBoundingClientRect().left - size.left : null,
             },
             viewport: viewportSize(),
-            sides: preferredSides(target),
-            avoid: findHintAvoidRects(document, target),
+            sides: focusRect ? focusSides(focus) : preferredSides(target),
+            avoid: findHintAvoidRects(document, target, focusRect ? focus : null),
         });
         setState((prev) =>
             sameRect(prev.targetRect, targetRect) &&
@@ -169,7 +175,7 @@ const useHintPlacement = (target, balloonRef, deps) => {
                 ? prev
                 : { targetRect, placement },
         );
-    }, [target, balloonRef]);
+    }, [target, focus, vm, balloonRef]);
 
     useLayoutEffect(measure, [measure, ...deps]);
     useEffect(() => {
@@ -296,6 +302,7 @@ const LessonHint = ({
     colorMode,
     count,
     debug = [],
+    focus = null,
     hasCode = false,
     index,
     insertErrors = [],
@@ -312,7 +319,9 @@ const LessonHint = ({
     scratchBlocks,
     spotlight = false,
     target,
+    tip: wrongPlaceTip = null,
     title,
+    vm = null,
 }) => {
     const intl = useIntl();
     const balloonRef = useRef(null);
@@ -322,11 +331,12 @@ const LessonHint = ({
     const diagram = index === 0 && !lastResort ? activityDiagram : null;
     // 置き方の測り直しは、図が出た・消えたときだけ（図の要素は描くたびに作り直されるので、要素では見ない）
     const hasDiagram = Boolean(diagram);
-    const { targetRect, placement } = useHintPlacement(target, balloonRef, [
+    const { targetRect, placement } = useHintPlacement(target, focus, vm, balloonRef, [
         index,
         blocksXml,
         renderedTick,
         hasDiagram,
+        wrongPlaceTip,
     ]);
     const { position: dragged, onPointerDown } = useHintDrag(balloonRef, [
         index,
@@ -482,6 +492,11 @@ const LessonHint = ({
                                     {diagram}
                                 </div>
                             ) : null}
+                            {wrongPlaceTip ? (
+                                <p className={styles.tip} data-testid="lesson-hint-tip" role="alert">
+                                    {intl.formatMessage(wrongPlaceTip)}
+                                </p>
+                            ) : null}
                             {title ? (
                                 <p className={styles.title} data-testid="lesson-hint-title">
                                     <EmphasizedText text={formatRoleMessage(intl, title)} />
@@ -556,6 +571,8 @@ LessonHint.propTypes = {
     count: PropTypes.number.isRequired,
     // うまく動かないときは（message descriptor の配列）
     debug: PropTypes.arrayOf(PropTypes.object),
+    // 場所（target）の中の指す 1 つのもの（lib/lessons/hint-targets.js の HINT_FOCUS）。見つからなければ target を指す
+    focus: PropTypes.shape({ kind: PropTypes.string.isRequired }),
     hasCode: PropTypes.bool,
     index: PropTypes.number.isRequired,
     // 「プログラムを入れる」を試して失敗したときのわけ（変換のエラーの文言）
@@ -582,8 +599,12 @@ LessonHint.propTypes = {
     scratchBlocks: PropTypes.object,
     spotlight: PropTypes.bool,
     target: PropTypes.string,
+    // まちがった場所での操作にすぐ出す一言（message descriptor。チャレンジの wrongPlaceTip）
+    tip: PropTypes.object,
     // 吹き出しの文言（message descriptor）
     title: PropTypes.object,
+    // VM（ステージのスプライトを指すときに位置を求める）
+    vm: PropTypes.object,
 };
 
 export { messages as lessonHintMessages };

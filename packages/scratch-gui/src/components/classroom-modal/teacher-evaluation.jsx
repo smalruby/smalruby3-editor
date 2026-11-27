@@ -1,20 +1,19 @@
 /**
- * Term-end grading screen (teacher side, 「採点」).
+ * The grading tab of a class (teacher side, 「採点」, EPIC #2421 / #2424).
  *
- * A gradebook (#1962・#1956 Q10, after Google Classroom's): the table shows only
- * the grades of seat × assignment, so 40 seats × several assignments fit; pressing
- * a cell shows its grade, reason and comment in the right column (visible labels,
- * R1). The table scrolls inside its own frame both ways and the seat column stays
- * put, so the page and the footer stay within 1300px (#1945). The AI never
- * decides: every proposal is editable, needsReview cells are highlighted, and the
- * exported CSVs (record + engineer audit) are the teacher's artifacts.
+ * It opens on the gradebook (`TeacherGradebook`: assignments × seats). Pressing an
+ * assignment opens its own grading (this file, `view: 'assignment'`), after Google
+ * Classroom's 「生徒の提出物」: the seats and their grades on the left, the counts
+ * (not submitted, AI drafts, confirmed, returned) and two tabs on the right:
+ * ［基準］ (the description, the rubric and the grading criteria) and ［生徒］ (the
+ * chosen seat's grade, the AI's reason, the comment and［作品を開く］).
  *
- * The footer is a numbered flow (1 load → 2 AI grading → 3 comment drafts →
- * 4 return, #1304 V1). When only lesson assignments without work are
- * selected, the AI is not used and the flow is 1 load the progress → 2 check
- * the lesson points → 3 export (#1778). Only the step the teacher is on is the primary button;
- * the others stay usable (re-run, skip) but look secondary. The two CSVs are
- * rare, so they sit in an 「書き出し ▾」 menu instead of the button row (R2).
+ * The footer is a numbered flow: 1 load → 2 rubric → 3 grade everyone → 4 confirm →
+ * 5 draft comments → 6 return. A lesson assignment without work keeps its own flow
+ * (1 load the progress → 2 check the points → 3 export, #1778). Only the step the
+ * teacher is on is the primary button (R2); the others stay usable. The two CSVs of
+ * the assignment sit in an 「書き出し ▾」 menu. The AI never decides: every grade is
+ * editable, and a grade the AI proposed stays a draft until the teacher confirms.
  */
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
@@ -22,28 +21,43 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FormattedMessage, defineMessages, useIntl } from 'react-intl';
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
 import {
-    combineOverall,
+    describeEvalResult,
+    describeEvalRunning,
+    runningStepOf,
+} from '../../lib/classroom-evaluation/eval-status.js';
+import {
+    aiQuotaView,
     currentLessonOnlyStep,
-    evaluationColumns,
-    evaluationFlowMode,
     isLessonOnlyAssignment,
     lessonScoreOf,
 } from '../../lib/classroom-evaluation/evaluation-utils.js';
+import {
+    assignmentCounts,
+    currentGradingStep,
+    gradebookCell,
+    isDraftGrade,
+} from '../../lib/classroom-evaluation/gradebook.js';
 import { buildLessonPayload, lessonDraftFromSaved } from '../../lib/classroom-lesson-settings.js';
 import { findCourse } from '../../lib/lessons/courses.js';
+import Spinner from '../spinner/spinner.jsx';
 import ClassroomButton from './classroom-button.jsx';
 import styles from './classroom-modal.css';
 import LessonScoringField from './lesson-scoring-field.jsx';
 import { breadcrumbMessages } from './teacher-breadcrumbs.jsx';
-import TeacherEvaluationDetail, { detailMessages } from './teacher-evaluation-detail.jsx';
+import TeacherEvaluationDetail, { detailMessages, needsReviewText } from './teacher-evaluation-detail.jsx';
+import TeacherGradebook, { GradebookSwitch, gradebookMessages } from './teacher-gradebook.jsx';
+import TeacherGradingRubric, { TeacherGradingGroupPrompt } from './teacher-grading-rubric.jsx';
+import TeacherGradingShapes, { ShapeDots, ShapeTags, shapeMessages } from './teacher-grading-shapes.jsx';
+import TeacherLegacyImport from './teacher-legacy-import.jsx';
+import TeacherOverallGrade from './teacher-overall-grade.jsx';
 import { TeacherScreen } from './teacher-view-layout.jsx';
 
 const evalMessages = defineMessages({
     // Asking before work is lost (#1923 C4). Separate sentences: what is
     // lost (grades / comments / both), the AI still working, then the question.
     lostGrades: {
-        defaultMessage: 'Grades you have not exported will be lost.',
-        description: 'Grading screen: leave question — only grades not exported (CSV) would be lost (#1923)',
+        defaultMessage: 'Grades that could not be saved will be lost.',
+        description: 'Grading screen: leave question — only grades whose save failed would be lost (#1923, #2424)',
         id: 'gui.classroom.evaluation.lostGrades',
     },
     lostComments: {
@@ -52,9 +66,9 @@ const evalMessages = defineMessages({
         id: 'gui.classroom.evaluation.lostComments',
     },
     lostBoth: {
-        defaultMessage: 'Grades you have not exported and comments you have not returned will be lost.',
+        defaultMessage: 'Grades that could not be saved and comments you have not returned will be lost.',
         description:
-            'Grading screen: leave question — grades not exported and comments not returned would be lost (#1923)',
+            'Grading screen: leave question — grades not saved and comments not returned would be lost (#1923, #2424)',
         id: 'gui.classroom.evaluation.lostBoth',
     },
     leaveBusy: {
@@ -157,34 +171,10 @@ const evalMessages = defineMessages({
         description: 'Details of the grading screen explanation (opened with More)',
         id: 'gui.classroom.evaluation.hintDetail',
     },
-    lessonOnlyHint: {
-        defaultMessage: 'Lesson assignments are scored automatically from the progress. AI grading is not used.',
-        description:
-            'Grading screen: one-line explanation when only lesson assignments without work are selected (#1778)',
-        id: 'gui.classroom.evaluation.lessonOnlyHint',
-    },
-    mixedNote: {
-        defaultMessage: 'AI is not used for {names} (scored automatically from the progress).',
-        description:
-            'Grading screen: note when lesson assignments without work are selected with others; {names} lists them (#1778)',
-        id: 'gui.classroom.evaluation.mixedNote',
-    },
-    lessonHeadNamed: {
-        defaultMessage: '{name} (lesson, auto)',
-        description:
-            'Grading table: header of the lesson score column of an assignment without work, which has no work ' +
-            'column to tell which assignment it is (#1778)',
-        id: 'gui.classroom.evaluation.lessonHeadNamed',
-    },
     lessonScoringOf: {
         defaultMessage: 'Lesson points of {name}',
         description: 'Grading screen: label of the lesson points field of one assignment (#1778)',
         id: 'gui.classroom.evaluation.lessonScoringOf',
-    },
-    lessonHeadTitle: {
-        defaultMessage: '{name}: lesson score from the progress (out of {total})',
-        description: 'Grading table: tooltip of the lesson score column header (EPIC #1592)',
-        id: 'gui.classroom.evaluation.lessonHeadTitle',
     },
 });
 
@@ -207,26 +197,12 @@ const STRICTNESS_MESSAGES = defineMessages({
     },
 });
 
-/**
- * Which step of the grading flow the teacher is on (#1304 V1).
- * Comment drafts move on to "return" even without grades: drafting
- * comments without grading is a valid shortcut.
- * @param {object} state - what has been done so far
- * @param {boolean} state.loaded - submissions are loaded
- * @param {boolean} state.hasGrades - at least one submitted cell has a grade
- * @param {boolean} state.hasComments - at least one non-blank comment draft
- * @returns {'load'|'grade'|'comment'|'return'} the current step
- */
-export const currentEvalStep = ({ loaded, hasGrades, hasComments }) => {
-    if (!loaded) return 'load';
-    if (hasComments) return 'return';
-    if (hasGrades) return 'comment';
-    return 'grade';
-};
-
 /* One numbered step of the footer flow. */
-const StepButton = ({ children, current, dataTestId, disabled, number, onClick }) => (
+/* While its step runs, the button shows a spinner and short words (#2419). The step name stays
+   laid under them (hidden), so the button keeps its width and the step row does not jump. */
+const StepButton = ({ children, current, dataTestId, disabled, number, running = null, onClick }) => (
     <ClassroomButton
+        ariaBusy={running ? true : null}
         ariaCurrent={current ? 'step' : null}
         dataTestId={dataTestId}
         disabled={disabled}
@@ -234,7 +210,19 @@ const StepButton = ({ children, current, dataTestId, disabled, number, onClick }
         onClick={onClick}
     >
         <span className={styles.evalStepNumber}>{number}</span>
-        {children}
+        {running ? (
+            <span className={styles.evalStepLabel}>
+                <span aria-hidden="true" className={styles.evalStepLabelHidden}>
+                    {children}
+                </span>
+                <span className={styles.evalStepRunning} data-testid={`${dataTestId}-running`}>
+                    <Spinner small className={styles.evalSpinner} level="info-blue" />
+                    {running}
+                </span>
+            </span>
+        ) : (
+            children
+        )}
     </ClassroomButton>
 );
 
@@ -244,7 +232,60 @@ StepButton.propTypes = {
     dataTestId: PropTypes.string.isRequired,
     disabled: PropTypes.bool,
     number: PropTypes.number.isRequired,
+    /** The short words while this step runs (null = not running). */
+    running: PropTypes.node,
     onClick: PropTypes.func.isRequired,
+};
+
+/* What is being done now (spinner, words and a thin bar when the count is known), or the
+   short result once it ends (#2419). `role="status"` reads it out. */
+const EvalStatus = ({ evalProgress, evalResult, openingWork, savingName }) => {
+    const intl = useIntl();
+    const running = describeEvalRunning({ progress: evalProgress, openingWork, savingName });
+    if (running) {
+        const percent = running.ratio === null ? null : Math.round(running.ratio * 100);
+        return (
+            <div aria-busy="true" className={styles.evalProgress} data-testid="classroom-eval-progress" role="status">
+                <div className={styles.evalProgressLine}>
+                    <Spinner small className={styles.evalSpinner} level="info-blue" />
+                    <span data-testid="classroom-eval-progress-text">
+                        {intl.formatMessage(running.message, running.values)}
+                    </span>
+                </div>
+                {percent !== null && (
+                    <div
+                        aria-hidden="true"
+                        className={styles.evalProgressBar}
+                        data-percent={percent}
+                        data-testid="classroom-eval-progress-bar"
+                    >
+                        <div className={styles.evalProgressBarValue} style={{ width: `${percent}%` }} />
+                    </div>
+                )}
+            </div>
+        );
+    }
+    const result = describeEvalResult(evalResult);
+    if (!result) return null;
+    return (
+        <div
+            className={classNames(styles.evalProgress, styles.evalResult, {
+                [styles.evalResultFailed]: result.failed,
+            })}
+            data-failed={result.failed}
+            data-testid="classroom-eval-result"
+            role="status"
+        >
+            {intl.formatMessage(result.message, result.values)}
+        </div>
+    );
+};
+
+EvalStatus.propTypes = {
+    evalProgress: PropTypes.object,
+    evalResult: PropTypes.object,
+    openingWork: PropTypes.bool,
+    savingName: PropTypes.string,
 };
 
 /* 「書き出し ▾」: the two CSV exports. Opens upward (it lives in the footer). */
@@ -331,88 +372,6 @@ ExportMenu.propTypes = {
     onExportEvaluationCsv: PropTypes.func.isRequired,
 };
 
-/* 採点簿のセル（#1962）: 点だけを見せるボタン。押すと右の列にその席の根拠・コメントを出す。
-   要確認はオレンジの地と「!」、返却済みは「↩」、コメントがあれば「💬」を点の横に添える。 */
-const GradeCell = ({ cell, classroomId, comment, lessonName, seatNumber, selected, onSelect }) => {
-    const intl = useIntl();
-    const handleClick = useCallback(() => onSelect(seatNumber, classroomId), [onSelect, seatNumber, classroomId]);
-
-    if (!cell || !cell.submitted) {
-        return (
-            <td className={styles.evalCellEmpty} data-testid={`classroom-eval-cell-${seatNumber}-${classroomId}`}>
-                {'×'}
-            </td>
-        );
-    }
-    const grade = cell.grade || '—';
-    const hasComment = (comment || '').trim() !== '';
-    // 印（! ↩ 💬）は見た目だけなので、読み上げの名前には言葉で入れる（#1962）。
-    const states = [
-        cell.needsReview && intl.formatMessage(detailMessages.needsReview),
-        cell.returned && intl.formatMessage(detailMessages.returned),
-        hasComment && intl.formatMessage(evalMessages.commentMark),
-    ].filter(Boolean);
-    const nameValues = {
-        seat: seatNumber,
-        name: lessonName,
-        grade: cell.grade || intl.formatMessage(evalMessages.notGraded),
-    };
-    const cellName = states.length
-        ? intl.formatMessage(evalMessages.cellNameWithState, {
-              ...nameValues,
-              state: states.join(/^ja/.test(intl.locale || '') ? '・' : ', '),
-          })
-        : intl.formatMessage(evalMessages.cellName, nameValues);
-    return (
-        <td
-            className={classNames(styles.evalCell, { [styles.evalCellNeedsReview]: cell.needsReview })}
-            data-testid={`classroom-eval-cell-${seatNumber}-${classroomId}`}
-        >
-            <button
-                aria-label={cellName}
-                aria-pressed={selected}
-                className={classNames(styles.evalCellButton, { [styles.evalCellButtonSelected]: selected })}
-                data-testid={`classroom-eval-cell-button-${seatNumber}-${classroomId}`}
-                type="button"
-                onClick={handleClick}
-            >
-                <span className={classNames(styles.evalGradePill, { [styles.evalGradePillEmpty]: !cell.grade })}>
-                    {grade}
-                </span>
-                {cell.needsReview && (
-                    <span aria-hidden="true" className={styles.evalCellMark}>
-                        {'!'}
-                    </span>
-                )}
-                {cell.returned && (
-                    <span aria-hidden="true" className={styles.evalCellMark}>
-                        {'↩'}
-                    </span>
-                )}
-                {hasComment && (
-                    <span
-                        aria-hidden="true"
-                        className={styles.evalCellMark}
-                        title={intl.formatMessage(evalMessages.commentMark)}
-                    >
-                        {'💬'}
-                    </span>
-                )}
-            </button>
-        </td>
-    );
-};
-
-GradeCell.propTypes = {
-    cell: PropTypes.object,
-    classroomId: PropTypes.string.isRequired,
-    comment: PropTypes.string,
-    lessonName: PropTypes.string,
-    seatNumber: PropTypes.number.isRequired,
-    selected: PropTypes.bool,
-    onSelect: PropTypes.func.isRequired,
-};
-
 /**
  * The seat × assignment shown in the right column (#1962): the one the teacher
  * pressed if it is still in the table, otherwise the first submitted cell (row by
@@ -491,135 +450,445 @@ LessonScoringPanel.propTypes = {
     onChangeLessonScoring: PropTypes.func.isRequired,
 };
 
+const assignmentMessages = defineMessages({
+    lessonOnlyHint: {
+        defaultMessage: 'Lesson assignments are scored automatically from the progress. AI grading is not used.',
+        description:
+            'Grading screen: one-line explanation when only lesson assignments without work are selected (#1778)',
+        id: 'gui.classroom.evaluation.lessonOnlyHint',
+    },
+    backToBook: {
+        defaultMessage: '‹ Gradebook',
+        description: 'Assignment grading: button that goes back to the gradebook (#2424)',
+        id: 'gui.classroom.evaluation.backToBook',
+    },
+    countNotSubmitted: {
+        defaultMessage: 'Not submitted',
+        description: 'Assignment grading: count of seats that did not submit (#2424)',
+        id: 'gui.classroom.evaluation.countNotSubmitted',
+    },
+    countDrafts: {
+        defaultMessage: 'AI drafts',
+        description: 'Assignment grading: count of grades the AI proposed, not confirmed (#2424)',
+        id: 'gui.classroom.evaluation.countDrafts',
+    },
+    countConfirmed: {
+        defaultMessage: 'Confirmed',
+        description: 'Assignment grading: count of confirmed grades (#2424)',
+        id: 'gui.classroom.evaluation.countConfirmed',
+    },
+    countReturned: {
+        defaultMessage: 'Returned',
+        description: 'Assignment grading: count of works whose comment was returned (#2424)',
+        id: 'gui.classroom.evaluation.countReturned',
+    },
+    tabRubric: {
+        defaultMessage: 'Rubric',
+        description: 'Assignment grading: tab with the description, the rubric and the criteria (#2424)',
+        id: 'gui.classroom.evaluation.tabRubric',
+    },
+    tabShape: {
+        defaultMessage: 'Shapes',
+        description: 'Assignment grading: tab with the works grouped by their shape tags',
+        id: 'gui.classroom.evaluation.tabShape',
+    },
+    tabStudent: {
+        defaultMessage: 'Student',
+        description: "Assignment grading: tab with the chosen seat's grade, reason and comment (#2424)",
+        id: 'gui.classroom.evaluation.tabStudent',
+    },
+    description: {
+        defaultMessage: 'Assignment description',
+        description: 'Assignment grading: label of the description given to the AI (#2424)',
+        id: 'gui.classroom.evaluation.description',
+    },
+    noDescription: {
+        defaultMessage: 'No description is written. The AI grades from the name and the works.',
+        description: 'Assignment grading: the assignment has no description (#2424)',
+        id: 'gui.classroom.evaluation.noDescription',
+    },
+    rubricTitle: {
+        defaultMessage: 'Rubric',
+        description: 'Assignment grading: heading of the S/A/B/C rubric (#2424)',
+        id: 'gui.classroom.evaluation.rubricTitle',
+    },
+    noRubric: {
+        defaultMessage:
+            'This assignment has no rubric yet. Making one from a few works will come here. Until then the AI ' +
+            'grades with the grading criteria below.',
+        description: 'Assignment grading: the assignment has no rubric (the rubric maker comes in #2425)',
+        id: 'gui.classroom.evaluation.noRubric',
+    },
+    notSubmitted: {
+        defaultMessage: 'Not submitted',
+        description: 'Assignment grading: the seat list entry of a seat that did not submit (#2424)',
+        id: 'gui.classroom.evaluation.notSubmitted',
+    },
+    seatListName: {
+        defaultMessage: 'Seats',
+        description: 'Assignment grading: accessible name of the seat list (#2424)',
+        id: 'gui.classroom.evaluation.seatListName',
+    },
+    notLoaded: {
+        defaultMessage: 'Load the submissions to see the works and grade them.',
+        description: 'Assignment grading: the submissions are not loaded yet (#2424)',
+        id: 'gui.classroom.evaluation.notLoaded',
+    },
+    saving: {
+        defaultMessage: 'Saving…',
+        description: 'Assignment grading: the grades are being saved (#2424)',
+        id: 'gui.classroom.evaluation.saving',
+    },
+    saveFailedShort: {
+        defaultMessage: 'Not saved',
+        description: 'Assignment grading: saving the grades failed (#2424)',
+        id: 'gui.classroom.evaluation.saveFailedShort',
+    },
+    aiQuota: {
+        defaultMessage: "Today's AI left: {left} / {limit}",
+        description:
+            'Assignment grading: how many AI calls the teacher can still make today (#2448). ' +
+            '{left} = calls left, {limit} = calls per day',
+        id: 'gui.classroom.evaluation.aiQuota',
+    },
+    aiQuotaEmpty: {
+        defaultMessage: 'You can use it again when the date changes (midnight).',
+        description: 'Assignment grading: added after the AI calls left when none is left today (#2448)',
+        id: 'gui.classroom.evaluation.aiQuotaEmpty',
+    },
+    confirmedBadge: {
+        defaultMessage: 'Confirmed',
+        description: 'Assignment grading: the grades of this assignment are confirmed (#2424)',
+        id: 'gui.classroom.evaluation.confirmedBadge',
+    },
+    unconfirmedNote: {
+        defaultMessage: 'A grade changed, so the grades are no longer confirmed. Press [Confirm] again.',
+        description:
+            'Assignment grading: a grade was changed after confirming; the confirmation was taken back (#2424)',
+        id: 'gui.classroom.evaluation.unconfirmedNote',
+    },
+    addedScripts: {
+        defaultMessage: 'Scripts added to the starter',
+        description: 'Assignment grading: label of the scripts the student added to the starter (#2424)',
+        id: 'gui.classroom.evaluation.addedScripts',
+    },
+    noAddedScripts: {
+        defaultMessage: 'Nothing that runs was added to the starter.',
+        description: 'Assignment grading: the student added no running script to the starter (#2424)',
+        id: 'gui.classroom.evaluation.noAddedScripts',
+    },
+    groupOf: {
+        defaultMessage: 'Group: {name}',
+        description: 'Assignment grading: the group of works this seat is in (same added operations, #2424)',
+        id: 'gui.classroom.evaluation.groupOf',
+    },
+    stepRubric: {
+        defaultMessage: 'Make Rubric',
+        description: 'Step 2 of grading an assignment: look at / make the rubric (#2424)',
+        id: 'gui.classroom.evaluation.stepRubric',
+    },
+    stepGrade: {
+        defaultMessage: 'Grade Everyone',
+        description: 'Step 3 of grading an assignment: the AI grades every submission (#2424)',
+        id: 'gui.classroom.evaluation.stepGrade',
+    },
+    stepConfirm: {
+        defaultMessage: 'Confirm',
+        description: 'Step 4 of grading an assignment: the teacher confirms the grades (#2424)',
+        id: 'gui.classroom.evaluation.stepConfirm',
+    },
+    stepReturn: {
+        defaultMessage: 'Return',
+        description: 'Step 6 of grading an assignment: return the comment drafts to the students (#2424)',
+        id: 'gui.classroom.evaluation.stepReturn',
+    },
+});
+
 const EMPTY_LESSON_SCORES = {};
+const EMPTY_GRADINGS = {};
 const runAction = (action) => action();
 const NOTHING_UNSAVED = { grades: false, comments: false };
+const pad = (seat) => String(seat).padStart(2, '0');
+
+/* 左の席の一覧の 1 行: 出席番号と評価（AI の案は点線で薄く）、印（! ↩ 💬）、レッスンの点。 */
+const SeatRow = ({
+    cell,
+    classroomId,
+    comment,
+    grading,
+    isLesson = false,
+    lessonName,
+    lessonScore = null,
+    seatNumber,
+    selected,
+    onSelect,
+}) => {
+    const intl = useIntl();
+    const handleClick = useCallback(() => onSelect(seatNumber, classroomId), [onSelect, seatNumber, classroomId]);
+    // 読み込む前は、保存した評価だけを出す（作品はまだ無い）。
+    const saved = cell ? null : gradebookCell(grading, seatNumber);
+    const submitted = !!(cell && cell.submitted);
+    const grade = cell ? cell.grade : saved && saved.grade;
+    const draft = cell
+        ? !!(cell.grade && isDraftGrade(grading, { source: cell.gradeEdited ? 'teacher' : 'ai' }))
+        : !!(saved && saved.draft);
+    const hasComment = (comment || '').trim() !== '';
+    const states = [
+        cell && cell.needsReview && needsReviewText(intl, cell),
+        cell && cell.returned && intl.formatMessage(detailMessages.returned),
+        hasComment && intl.formatMessage(evalMessages.commentMark),
+        draft && intl.formatMessage(detailMessages.aiDraft),
+    ].filter(Boolean);
+    let gradeText = grade || intl.formatMessage(evalMessages.notGraded);
+    if (cell && !submitted) gradeText = intl.formatMessage(assignmentMessages.notSubmitted);
+    const nameValues = { seat: seatNumber, name: lessonName, grade: gradeText };
+    const name = states.length
+        ? intl.formatMessage(evalMessages.cellNameWithState, {
+              ...nameValues,
+              state: states.join(/^ja/.test(intl.locale || '') ? '・' : ', '),
+          })
+        : intl.formatMessage(evalMessages.cellName, nameValues);
+    return (
+        <li>
+            <button
+                aria-label={name}
+                aria-pressed={selected}
+                className={classNames(styles.evalSeatRow, {
+                    [styles.evalSeatRowSelected]: selected,
+                    [styles.evalCellNeedsReview]: cell && cell.needsReview,
+                })}
+                data-testid={`classroom-eval-cell-button-${seatNumber}-${classroomId}`}
+                type="button"
+                onClick={handleClick}
+            >
+                <span className={styles.evalSeatRowNumber}>{pad(seatNumber)}</span>
+                <span className={styles.evalSeatRowMarks} aria-hidden="true">
+                    {cell && cell.submitted && cell.shape && <ShapeDots tags={cell.shape.tags} />}
+                    {cell && cell.needsReview && <span className={styles.evalCellMark}>{'!'}</span>}
+                    {cell && cell.returned && <span className={styles.evalCellMark}>{'↩'}</span>}
+                    {hasComment && <span className={styles.evalCellMark}>{'💬'}</span>}
+                </span>
+                {isLesson && (
+                    <span className={styles.evalSeatRowLesson}>{lessonScore === null ? '—' : lessonScore}</span>
+                )}
+                {cell && !submitted ? (
+                    <span className={styles.evalSeatRowMissing}>
+                        {intl.formatMessage(assignmentMessages.notSubmitted)}
+                    </span>
+                ) : !isLesson || submitted || grade ? (
+                    <span
+                        className={classNames(styles.evalGradePill, {
+                            [styles.evalGradePillEmpty]: !grade,
+                            [styles.evalGradePillDraft]: draft,
+                        })}
+                        data-draft={draft}
+                    >
+                        {grade || '—'}
+                    </span>
+                ) : null}
+            </button>
+        </li>
+    );
+};
+
+SeatRow.propTypes = {
+    cell: PropTypes.object,
+    classroomId: PropTypes.string.isRequired,
+    comment: PropTypes.string,
+    grading: PropTypes.object,
+    /** A lesson assignment: the lesson score is shown too. */
+    isLesson: PropTypes.bool,
+    lessonName: PropTypes.string,
+    /** null = no record */
+    lessonScore: PropTypes.number,
+    seatNumber: PropTypes.number.isRequired,
+    selected: PropTypes.bool,
+    onSelect: PropTypes.func.isRequired,
+};
+
+/* 今日の AI の残りの回数（#2448）。読めないときは何も出さない。少ないときは確認の色（赤は使わない・R4）。 */
+const AiQuota = ({ quota }) => {
+    const intl = useIntl();
+    const view = aiQuotaView(quota);
+    if (!view) return null;
+    return (
+        <span
+            className={classNames(styles.evalAiQuota, { [styles.evalAiQuotaLow]: view.low })}
+            data-low={view.low ? 'true' : 'false'}
+            data-testid="classroom-eval-ai-quota"
+        >
+            {intl.formatMessage(assignmentMessages.aiQuota, { left: view.left, limit: view.limit })}
+            {view.empty && ` ${intl.formatMessage(assignmentMessages.aiQuotaEmpty)}`}
+        </span>
+    );
+};
+
+AiQuota.propTypes = {
+    quota: PropTypes.object,
+};
+
+/* 右の上の人数（Google Classroom の「生徒の提出物」）。 */
+const Counts = ({ counts }) => {
+    const intl = useIntl();
+    const items = [
+        ['notSubmitted', assignmentMessages.countNotSubmitted],
+        ['drafts', assignmentMessages.countDrafts],
+        ['confirmed', assignmentMessages.countConfirmed],
+        ['returned', assignmentMessages.countReturned],
+    ];
+    return (
+        <div className={styles.evalCounts} data-testid="classroom-eval-counts">
+            {items.map(([key, message]) => (
+                <div className={styles.evalCount} data-testid={`classroom-eval-count-${key}`} key={key}>
+                    <b className={styles.evalCountValue}>{counts[key] === null ? '—' : counts[key]}</b>
+                    <span className={styles.evalCountLabel}>{intl.formatMessage(message)}</span>
+                </div>
+            ))}
+        </div>
+    );
+};
+
+Counts.propTypes = {
+    counts: PropTypes.object.isRequired,
+};
 
 const TeacherEvaluation = ({
+    aiQuota = null,
     chosenCell: chosenCellProp = null,
     comments,
+    currentId = null,
     error,
     errorTitle,
     evalGroup,
     evalLessons,
     evalProgress,
+    evalResult = null,
     getCell,
+    gradeSaveState = null,
+    gradings = EMPTY_GRADINGS,
+    onImportGrading,
+    innerTab: innerTabProp = null,
     lessonScores = EMPTY_LESSON_SCORES,
+    loaded: loadedProp = null,
     rubricAxes,
+    rubricDone = false,
+    rubricTools = null,
     scoringChecked = false,
     scoringSavingId = null,
     seats,
-    selectedLessonIds,
     strictness,
     tabs,
     leaveRequest = null,
+    unconfirmedByEdit = false,
     unsavedWork = NOTHING_UNSAVED,
+    view = 'assignment',
     onBack,
     onShowClassList,
     onCancelLeave,
     onChangeLessonScoring,
     onChangeRubricAxis,
     onCheckScoring,
+    onConfirmGrades = null,
     onConfirmLeave,
     onExportAuditCsv,
     onExportEvaluationCsv,
     onLoadSubmissions,
     onChooseCell = null,
+    onOpenAssignment = null,
     onOpenWork = null,
     openingWork = false,
     onRequestLeave = runAction,
     onReturnComments,
     onRunAi,
     onSetCellGrade,
+    onSetSeatsGrade = null,
     onSetCellReason,
     onSetComment,
+    onSetInnerTab = null,
     onSetStrictness,
-    onToggleLesson,
+    onShowGradebook = null,
+    onShowOverall = null,
+    onVisitRubric = null,
 }) => {
     const intl = useIntl();
     const busy = !!evalProgress;
-    const selectedLessons = evalLessons.filter((l) => selectedLessonIds.includes(l.classroomId));
-    const loaded = seats.length > 0;
-    // 作品の点とレッスンの点は別の列（#1603・作品の列のすぐ横に「レッスン」）。
-    const columns = evaluationColumns(selectedLessons, lessonScores);
-    const hasGrades = seats.some((seatNumber) =>
-        selectedLessons.some((lesson) => {
-            const cell = getCell(seatNumber, lesson.classroomId);
-            return !!(cell && cell.submitted && cell.grade);
-        }),
-    );
-    // 表に出ている席 × 選んだ課題だけを数える (読み込み直しても前回の下書きは state に残るため)。
-    const hasComments = seats.some((seatNumber) =>
-        selectedLessons.some((lesson) => (comments[`${seatNumber}:${lesson.classroomId}`] || '').trim() !== ''),
-    );
-    const step = currentEvalStep({ loaded, hasGrades, hasComments });
-    // 作品を出さないレッスンの課題だけなら AI を使わない流れ（#1778）。
-    const flow = evaluationFlowMode(selectedLessons, lessonScores);
-    const lessonOnly = flow === 'lessonOnly';
+    const runningStep = runningStepOf(evalProgress);
+    const runningLabel = (stepName) =>
+        runningStep && runningStep.step === stepName ? intl.formatMessage(runningStep.label) : null;
+    const savingLesson = scoringSavingId ? evalLessons.find((l) => l.classroomId === scoringSavingId) : null;
+    const lesson = currentId ? evalLessons.find((l) => l.classroomId === currentId) || null : null;
+    const grading = currentId ? gradings[currentId] || null : null;
+    const loaded = loadedProp === null ? seats.length > 0 : loadedProp;
+    const lessonOnly = !!lesson && isLessonOnlyAssignment(lesson, lessonScores);
     const lessonStep = currentLessonOnlyStep({ loaded, checked: scoringChecked });
-    const lessonOnlyNames = selectedLessons
-        .filter((lesson) => isLessonOnlyAssignment(lesson, lessonScores))
-        .map((lesson) => lesson.assignmentName)
-        .join('、');
-    const scoringLessons = onChangeLessonScoring
-        ? selectedLessons.filter((lesson) => lesson.hasLesson && lesson.lessonSetting)
-        : [];
+    const hasGrades =
+        !!lesson &&
+        seats.some((seat) => {
+            const cell = getCell(seat, lesson.classroomId);
+            return !!(cell && cell.submitted && cell.grade);
+        });
+    const hasComments =
+        !!lesson && seats.some((seat) => (comments[`${seat}:${lesson.classroomId}`] || '').trim() !== '');
+    const confirmed = !!(grading && grading.confirmedAt);
+    const step = currentGradingStep({ loaded, rubricDone, hasGrades, confirmed, hasComments });
+    const scoringLessons =
+        onChangeLessonScoring && lesson && lesson.hasLesson && lesson.lessonSetting ? [lesson] : [];
     const scoringRef = useRef(null);
     const handleCheckScoring = useCallback(() => {
         if (onCheckScoring) onCheckScoring();
         const node = scoringRef.current;
         if (node && typeof node.scrollIntoView === 'function') node.scrollIntoView({ block: 'nearest' });
     }, [onCheckScoring]);
-    // 右の列に出す席 × 課題（#1962）。押したものが表に無くなったら、最初の提出に戻る。
-    // 選んだ席は、渡されたら container（use-teacher-evaluation）が持つ。作品を開いてクラス管理が
-    // 閉じても、戻ったときに同じ席を出すため（#1990）。渡されなければこの画面が持つ。
+    // 選んだ席は container（use-teacher-evaluation）が持つ（作品を開いて戻っても同じ席・#1990）。
     const [ownChosenCell, setOwnChosenCell] = useState(null);
     const chosenCell = onChooseCell ? chosenCellProp : ownChosenCell;
     const setChosenCell = onChooseCell || setOwnChosenCell;
-    const workLessons = columns.filter(({ kind }) => kind === 'work').map(({ lesson }) => lesson);
-    const detailCell = pickDetailCell({
-        seats,
-        workIds: workLessons.map((lesson) => lesson.classroomId),
-        getCell,
-        chosen: chosenCell,
-    });
-    const detailLesson = detailCell ? workLessons.find((l) => l.classroomId === detailCell.classroomId) : null;
+    const [ownInnerTab, setOwnInnerTab] = useState('rubric');
+    const innerTab = onSetInnerTab ? innerTabProp || 'rubric' : ownInnerTab;
+    const setInnerTab = onSetInnerTab || setOwnInnerTab;
+    const workIds = lesson && !lessonOnly ? [lesson.classroomId] : [];
+    // 押した席が一覧にあればその席（出していない席でも）、無ければ最初の提出。
+    const detailCell =
+        chosenCell && lesson && chosenCell.classroomId === lesson.classroomId && seats.includes(chosenCell.seat)
+            ? chosenCell
+            : pickDetailCell({ seats, workIds, getCell, chosen: null });
     const detailNeighbours = detailCell
         ? neighbourSeats(seats, getCell, detailCell.classroomId, detailCell.seat)
         : { prev: null, next: null };
-    const matrixRef = useRef(null);
+    const listRef = useRef(null);
     const handleSelectCell = useCallback(
-        (seat, classroomId) => setChosenCell({ seat, classroomId }),
-        [setChosenCell],
+        (seat, classroomId) => {
+            setChosenCell({ seat, classroomId });
+            setInnerTab('student');
+        },
+        [setChosenCell, setInnerTab],
     );
-    // ‹ › で選んだ席が表の枠の外なら、枠の中だけをスクロールして見せる。
+    // ‹ › で選んだ席が一覧の枠の外なら、枠の中だけをスクロールして見せる。
     const handleSelectSeat = useCallback(
         (seat, classroomId) => {
             setChosenCell({ seat, classroomId });
-            const frame = matrixRef.current;
+            const frame = listRef.current;
             const button =
                 frame && frame.querySelector(`[data-testid="classroom-eval-cell-button-${seat}-${classroomId}"]`);
-            if (button && typeof button.scrollIntoView === 'function') {
-                // 上に留まる見出しの行・左に留まる出席番号の列の下に隠れないよう、その分を空けて寄せる。
-                // 列の幅は言語（ja-Hira は長い）で変わるので、CSS の固定値にせずその場で測る。
-                const head = frame.querySelector('thead');
-                const seatHead = frame.querySelector('thead th');
-                frame.style.scrollPaddingTop = `${head ? head.offsetHeight : 0}px`;
-                frame.style.scrollPaddingLeft = `${seatHead ? seatHead.offsetWidth : 0}px`;
-                button.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-            }
+            if (button && typeof button.scrollIntoView === 'function') button.scrollIntoView({ block: 'nearest' });
         },
         [setChosenCell],
+    );
+    const handleTabRubric = useCallback(() => setInnerTab('rubric'), [setInnerTab]);
+    const handleTabStudent = useCallback(() => setInnerTab('student'), [setInnerTab]);
+    const handleTabShape = useCallback(() => setInnerTab('shape'), [setInnerTab]);
+    // A seat of the same shape (the［生徒］tab): open it there.
+    const handleSameShape = useCallback(
+        (e) => {
+            if (!lesson) return;
+            handleSelectSeat(parseInt(e.currentTarget.dataset.seat, 10), lesson.classroomId);
+        },
+        [lesson, handleSelectSeat],
     );
     const [hintOpen, setHintOpen] = useState(false);
     const handleHintToggle = useCallback(() => setHintOpen((prev) => !prev), []);
     const [settingsOpen, setSettingsOpen] = useState(false);
     const handleSettingsToggle = useCallback(() => setSettingsOpen((prev) => !prev), []);
-
-    const handleLessonToggle = useCallback(
-        (e) => onToggleLesson(e.currentTarget.dataset.classroomId),
-        [onToggleLesson],
-    );
     const handleStrictnessChange = useCallback((e) => onSetStrictness(e.target.value), [onSetStrictness]);
     const handleAxisChange = useCallback(
         (e) =>
@@ -630,8 +899,8 @@ const TeacherEvaluation = ({
             ),
         [onChangeRubricAxis],
     );
-    // Every way out asks first when grades not exported or comments not
-    // returned would be lost (#1923 C4). The container decides (requestLeave).
+    // Every way out asks first when comments not returned or grades not saved would be
+    // lost (#1923 C4). The container decides (requestLeave).
     const handleLeave = useCallback(() => onRequestLeave(onBack, 'back'), [onRequestLeave, onBack]);
     // 「クラス管理」 in the header path goes to the class cards, asking the same way.
     const handleLeaveToClassList = useCallback(
@@ -645,13 +914,18 @@ const TeacherEvaluation = ({
     );
     const handleRunGrade = useCallback(() => onRunAi('grade'), [onRunAi]);
     const handleRunComment = useCallback(() => onRunAi('comment'), [onRunAi]);
+    const handleVisitRubric = useCallback(() => {
+        if (onVisitRubric) onVisitRubric();
+        else setInnerTab('rubric');
+    }, [onVisitRubric, setInnerTab]);
+    const handleConfirm = useCallback(() => {
+        if (onConfirmGrades) onConfirmGrades();
+    }, [onConfirmGrades]);
 
     /* 離れる確認（#1923 C4）: 手順のボタンの代わりに、確認の文と［採点を続ける］［採点結果を書き出す］
-       ［戻る］を出す。採点は書き出した CSV にしか残らないので、ここでも書き出せる。
-       離れると消えて取り消せないので、確定のボタンは赤（R4）。 */
+       ［戻る］を出す。離れると消えて取り消せないので、確定のボタンは赤（R4）。 */
     const leaveKind = leaveRequest ? leaveRequest.kind : null;
-    // What is lost now (not when asked: an export or the AI may have finished since, #1923 FYI1).
-    // Loading again keeps the comment drafts.
+    // What is lost now (not when asked, #1923 FYI1). Loading again keeps the comment drafts.
     const lostGrades = unsavedWork.grades;
     const lostComments = leaveKind !== 'reload' && unsavedWork.comments;
     let lostMessage = null;
@@ -680,13 +954,15 @@ const TeacherEvaluation = ({
             >
                 {leaveSentences.map((message) => intl.formatMessage(message)).join(sentenceGap)}
             </p>
-            <ClassroomButton
-                dataTestId="classroom-eval-leave-export"
-                disabled={busy || !loaded}
-                onClick={onExportEvaluationCsv}
-            >
-                {intl.formatMessage(evalMessages.leaveExport)}
-            </ClassroomButton>
+            {lesson && (
+                <ClassroomButton
+                    dataTestId="classroom-eval-leave-export"
+                    disabled={busy || !loaded}
+                    onClick={onExportEvaluationCsv}
+                >
+                    {intl.formatMessage(evalMessages.leaveExport)}
+                </ClassroomButton>
+            )}
             <ClassroomButton dataTestId="classroom-eval-leave-confirm" variant="danger" onClick={onConfirmLeave}>
                 {intl.formatMessage(
                     {
@@ -699,240 +975,290 @@ const TeacherEvaluation = ({
         </>
     ) : null;
 
-    /* キャンセルは左端。右に「書き出し ▾」と 1〜4 の手順（いまの手順だけ主ボタン）。 */
-    const footer = leaveFooter || (
-        <>
-            <ClassroomButton
-                className={styles.evalCancel}
-                dataTestId="classroom-evaluation-cancel"
-                onClick={handleLeave}
+    const arrow = (
+        <span aria-hidden="true" className={styles.evalStepArrow}>
+            {'→'}
+        </span>
+    );
+    const assignmentFooter = lessonOnly ? (
+        <div className={styles.evalSteps} data-testid="classroom-eval-steps">
+            <StepButton
+                current={lessonStep === 'load'}
+                dataTestId="classroom-eval-load"
+                running={runningLabel('load')}
+                disabled={busy || !lesson}
+                number={1}
+                onClick={handleLoad}
             >
                 <FormattedMessage
-                    defaultMessage="Cancel"
-                    description="Cancel button of the evaluation screen (returns to the class list)"
-                    id="gui.classroom.evaluation.cancel"
+                    defaultMessage="Load Progress"
+                    description="Step 1 of grading lesson assignments without work: load the progress (#1778)"
+                    id="gui.classroom.evaluation.loadProgress"
                 />
-            </ClassroomButton>
-            {lessonOnly ? null : (
-                <ExportMenu
-                    disabled={busy || !loaded}
-                    onExportAuditCsv={onExportAuditCsv}
-                    onExportEvaluationCsv={onExportEvaluationCsv}
+            </StepButton>
+            {arrow}
+            <StepButton
+                current={lessonStep === 'check'}
+                dataTestId="classroom-eval-check-points"
+                disabled={busy || !loaded}
+                number={2}
+                onClick={handleCheckScoring}
+            >
+                <FormattedMessage
+                    defaultMessage="Check Points"
+                    description="Step 2 of grading lesson assignments without work: check the lesson points (#1778)"
+                    id="gui.classroom.evaluation.checkPoints"
                 />
-            )}
-            {lessonOnly ? (
-                <div className={styles.evalSteps} data-testid="classroom-eval-steps">
-                    <StepButton
-                        current={lessonStep === 'load'}
-                        dataTestId="classroom-eval-load"
-                        disabled={busy || selectedLessons.length === 0}
-                        number={1}
-                        onClick={handleLoad}
-                    >
-                        <FormattedMessage
-                            defaultMessage="Load Progress"
-                            description="Step 1 of grading lesson assignments without work: load the progress (#1778)"
-                            id="gui.classroom.evaluation.loadProgress"
-                        />
-                    </StepButton>
-                    <span aria-hidden="true" className={styles.evalStepArrow}>
-                        {'→'}
-                    </span>
-                    <StepButton
-                        current={lessonStep === 'check'}
-                        dataTestId="classroom-eval-check-points"
-                        disabled={busy || !loaded}
-                        number={2}
-                        onClick={handleCheckScoring}
-                    >
-                        <FormattedMessage
-                            defaultMessage="Check Points"
-                            description="Step 2 of grading lesson assignments without work: check the lesson points (#1778)"
-                            id="gui.classroom.evaluation.checkPoints"
-                        />
-                    </StepButton>
-                    <span aria-hidden="true" className={styles.evalStepArrow}>
-                        {'→'}
-                    </span>
-                    <StepButton
-                        current={lessonStep === 'export'}
-                        dataTestId="classroom-eval-export-lesson"
-                        disabled={busy || !loaded}
-                        number={3}
-                        onClick={onExportEvaluationCsv}
-                    >
-                        <FormattedMessage
-                            defaultMessage="Export"
-                            description="Step 3 of grading lesson assignments without work: export the grades CSV (#1778)"
-                            id="gui.classroom.evaluation.exportLesson"
-                        />
-                    </StepButton>
-                </div>
-            ) : (
-                <div className={styles.evalSteps} data-testid="classroom-eval-steps">
-                    <StepButton
-                        current={step === 'load'}
-                        dataTestId="classroom-eval-load"
-                        disabled={busy || selectedLessons.length === 0}
-                        number={1}
-                        onClick={handleLoad}
-                    >
-                        <FormattedMessage
-                            defaultMessage="Load Submissions"
-                            description="Step 1 of grading: load & analyze submissions"
-                            id="gui.classroom.evaluation.load"
-                        />
-                    </StepButton>
-                    <span aria-hidden="true" className={styles.evalStepArrow}>
-                        {'→'}
-                    </span>
-                    <StepButton
-                        current={step === 'grade'}
-                        dataTestId="classroom-eval-run-grade"
-                        disabled={busy || !loaded}
-                        number={2}
-                        onClick={handleRunGrade}
-                    >
-                        <FormattedMessage
-                            defaultMessage="Grade with AI"
-                            description="Step 2 of grading: run AI grade proposals"
-                            id="gui.classroom.evaluation.runGrade"
-                        />
-                    </StepButton>
-                    <span aria-hidden="true" className={styles.evalStepArrow}>
-                        {'→'}
-                    </span>
-                    <StepButton
-                        current={step === 'comment'}
-                        dataTestId="classroom-eval-run-comment"
-                        disabled={busy || !loaded}
-                        number={3}
-                        onClick={handleRunComment}
-                    >
-                        <FormattedMessage
-                            defaultMessage="Draft Comments"
-                            description="Step 3 of grading: run AI comment drafts"
-                            id="gui.classroom.evaluation.runComment"
-                        />
-                    </StepButton>
-                    <span aria-hidden="true" className={styles.evalStepArrow}>
-                        {'→'}
-                    </span>
-                    <StepButton
-                        current={step === 'return'}
-                        dataTestId="classroom-eval-return-comments"
-                        disabled={busy || !loaded}
-                        number={4}
-                        onClick={onReturnComments}
-                    >
-                        <FormattedMessage
-                            defaultMessage="Return Comments"
-                            description="Step 4 of grading: return comment drafts to students"
-                            id="gui.classroom.evaluation.returnComments"
-                        />
-                    </StepButton>
-                </div>
-            )}
-        </>
-    );
-
-    /* 説明の 1 行はタブの行の右に置き（#1962・モックの通り）、表の枠を広げる。幅が足りなければ
-       1 行で「…」にし、全文は title で見る。「詳しく」で開く残りはタブの下に出す。 */
-    const hintText = intl.formatMessage(lessonOnly ? evalMessages.lessonOnlyHint : evalMessages.hint);
-    const hintLine = lessonOnly ? (
-        <span className={styles.evalHintText} data-testid="classroom-eval-lesson-only-hint" title={hintText}>
-            {hintText}
-        </span>
+            </StepButton>
+            {arrow}
+            <StepButton
+                current={lessonStep === 'export'}
+                dataTestId="classroom-eval-export-lesson"
+                disabled={busy || !loaded}
+                number={3}
+                onClick={onExportEvaluationCsv}
+            >
+                <FormattedMessage
+                    defaultMessage="Export"
+                    description="Step 3 of grading lesson assignments without work: export the grades CSV (#1778)"
+                    id="gui.classroom.evaluation.exportLesson"
+                />
+            </StepButton>
+        </div>
     ) : (
-        <>
-            <span className={styles.evalHintText} data-testid="classroom-eval-hint-text" title={hintText}>
+        <div className={styles.evalSteps} data-testid="classroom-eval-steps">
+            <StepButton
+                current={step === 'load'}
+                dataTestId="classroom-eval-load"
+                running={runningLabel('load')}
+                disabled={busy || !lesson}
+                number={1}
+                onClick={handleLoad}
+            >
+                <FormattedMessage
+                    defaultMessage="Load Submissions"
+                    description="Step 1 of grading: load & analyze submissions"
+                    id="gui.classroom.evaluation.load"
+                />
+            </StepButton>
+            {arrow}
+            <StepButton
+                current={step === 'rubric'}
+                dataTestId="classroom-eval-rubric"
+                disabled={busy || !loaded}
+                number={2}
+                onClick={handleVisitRubric}
+            >
+                {intl.formatMessage(assignmentMessages.stepRubric)}
+            </StepButton>
+            {arrow}
+            <StepButton
+                current={step === 'grade'}
+                dataTestId="classroom-eval-run-grade"
+                running={runningLabel('grade')}
+                disabled={busy || !loaded}
+                number={3}
+                onClick={handleRunGrade}
+            >
+                {intl.formatMessage(assignmentMessages.stepGrade)}
+            </StepButton>
+            {arrow}
+            <StepButton
+                current={step === 'confirm'}
+                dataTestId="classroom-eval-confirm"
+                running={runningLabel('confirm')}
+                disabled={busy || !loaded || !hasGrades || !onConfirmGrades}
+                number={4}
+                onClick={handleConfirm}
+            >
+                {intl.formatMessage(assignmentMessages.stepConfirm)}
+            </StepButton>
+            {arrow}
+            <StepButton
+                current={step === 'comment'}
+                dataTestId="classroom-eval-run-comment"
+                running={runningLabel('comment')}
+                disabled={busy || !loaded}
+                number={5}
+                onClick={handleRunComment}
+            >
+                <FormattedMessage
+                    defaultMessage="Draft Comments"
+                    description="Step 3 of grading: run AI comment drafts"
+                    id="gui.classroom.evaluation.runComment"
+                />
+            </StepButton>
+            {arrow}
+            <StepButton
+                current={step === 'return'}
+                dataTestId="classroom-eval-return-comments"
+                running={runningLabel('return')}
+                disabled={busy || !loaded}
+                number={6}
+                onClick={onReturnComments}
+            >
+                {intl.formatMessage(assignmentMessages.stepReturn)}
+            </StepButton>
+        </div>
+    );
+    const cancelButton = (
+        <ClassroomButton className={styles.evalCancel} dataTestId="classroom-evaluation-cancel" onClick={handleLeave}>
+            <FormattedMessage
+                defaultMessage="Cancel"
+                description="Cancel button of the evaluation screen (returns to the class list)"
+                id="gui.classroom.evaluation.cancel"
+            />
+        </ClassroomButton>
+    );
+    const footer =
+        leaveFooter ||
+        (view === 'assignment' && lesson ? (
+            <>
+                {lessonOnly ? null : (
+                    <ExportMenu
+                        disabled={busy || !loaded}
+                        onExportAuditCsv={onExportAuditCsv}
+                        onExportEvaluationCsv={onExportEvaluationCsv}
+                    />
+                )}
+                {assignmentFooter}
+            </>
+        ) : (
+            cancelButton
+        ));
+
+    /* 説明の 1 行はタブの行の右に置き（#1962）、表の枠を広げる。 */
+    const hintText = intl.formatMessage(
+        view === 'assignment' && lessonOnly ? assignmentMessages.lessonOnlyHint : evalMessages.hint,
+    );
+    const hintLine =
+        view === 'assignment' && lessonOnly ? (
+            <span className={styles.evalHintText} data-testid="classroom-eval-lesson-only-hint" title={hintText}>
                 {hintText}
             </span>
-            <button
-                aria-expanded={hintOpen}
-                className={styles.evalHintToggle}
-                data-testid="classroom-eval-hint-toggle"
-                type="button"
-                onClick={handleHintToggle}
-            >
-                {intl.formatMessage(hintOpen ? evalMessages.hintLess : evalMessages.hintMore)}
-            </button>
-        </>
-    );
+        ) : (
+            <>
+                <span className={styles.evalHintText} data-testid="classroom-eval-hint-text" title={hintText}>
+                    {hintText}
+                </span>
+                <button
+                    aria-expanded={hintOpen}
+                    className={styles.evalHintToggle}
+                    data-testid="classroom-eval-hint-toggle"
+                    type="button"
+                    onClick={handleHintToggle}
+                >
+                    {intl.formatMessage(hintOpen ? evalMessages.hintLess : evalMessages.hintMore)}
+                </button>
+            </>
+        );
     const hintDetail =
-        !lessonOnly && hintOpen ? (
+        !(view === 'assignment' && lessonOnly) && hintOpen ? (
             <span className={styles.evalHintDetail} data-testid="classroom-eval-hint-detail">
                 {intl.formatMessage(evalMessages.hintDetail)}
             </span>
         ) : null;
     const tabsWithHint = React.isValidElement(tabs) ? React.cloneElement(tabs, { end: hintLine }) : tabs;
 
-    return (
-        <TeacherScreen
-            // The header path (#1956 Q2): 「クラス管理 › クラス名」. The grading screen is
-            // the class's［採点］tab, so the tab row says where in the class it is.
-            breadcrumbs={[
-                {
-                    label: <FormattedMessage {...breadcrumbMessages.top} />,
-                    onClick: handleLeaveToClassList,
-                    testId: 'classroom-breadcrumb-class-list',
-                },
-                {
-                    label: evalGroup ? (
-                        formatClassLabel(evalGroup)
-                    ) : (
-                        <FormattedMessage
-                            defaultMessage="Grading"
-                            description="Breadcrumb label of the evaluation view"
-                            id="gui.classroom.breadcrumbs.evaluation"
+    const status = (
+        <EvalStatus
+            evalProgress={evalProgress}
+            evalResult={evalResult}
+            openingWork={openingWork}
+            savingName={savingLesson ? savingLesson.assignmentName : null}
+        />
+    );
+
+    let body;
+    if (view !== 'assignment' || !lesson) {
+        body = (
+            <>
+                <div className={styles.gradebookTopRow}>
+                    {onShowGradebook && onShowOverall ? (
+                        <GradebookSwitch
+                            view={view === 'overall' ? 'overall' : 'book'}
+                            onShowGradebook={onShowGradebook}
+                            onShowOverall={onShowOverall}
                         />
-                    ),
-                },
-            ]}
-            className={`${styles.teacherView} ${styles.evaluationScreen}`}
-            error={error}
-            errorTitle={errorTitle}
-            footer={footer}
-            hint={
-                tabs ? (
-                    hintDetail
+                    ) : null}
+                    {view !== 'overall' && (
+                        <span className={styles.evalSettingsNote}>
+                            {intl.formatMessage(gradebookMessages.openHint)}
+                        </span>
+                    )}
+                </div>
+                {status}
+                {view === 'overall' ? (
+                    <TeacherOverallGrade
+                        gradings={gradings}
+                        group={evalGroup}
+                        lessons={evalLessons}
+                        onOpenAssignment={onOpenAssignment || runAction}
+                    />
                 ) : (
                     <>
-                        {hintLine}
-                        {hintDetail}
-                    </>
-                )
-            }
-            tabs={tabsWithHint}
-            testId="classroom-phase-teacher-evaluation"
-        >
-            {/* Lesson selection */}
-            <div className={styles.evalSection}>
-                <span className={styles.assignmentNameLabel}>
-                    <FormattedMessage
-                        defaultMessage="Lessons:"
-                        description="Lesson checkbox list label"
-                        id="gui.classroom.evaluation.lessons"
-                    />
-                </span>
-                {evalLessons.map((lesson) => (
-                    <label className={styles.evalLessonCheckbox} key={lesson.classroomId}>
-                        <input
-                            checked={selectedLessonIds.includes(lesson.classroomId)}
-                            data-classroom-id={lesson.classroomId}
-                            data-testid={`classroom-eval-lesson-${lesson.classroomId}`}
-                            disabled={busy}
-                            type="checkbox"
-                            onChange={handleLessonToggle}
+                        <TeacherGradebook
+                            gradings={gradings}
+                            lessons={evalLessons}
+                            onOpenAssignment={onOpenAssignment || runAction}
                         />
-                        {lesson.assignmentName}
-                    </label>
-                ))}
-            </div>
-
-            {/* 採点の設定（観点・厳しさ）。あまり変えないので、いまの値の 1 行に畳む（R3 / R6）。
-                AI を使わない流れでは出さない（#1778）。 */}
-            {lessonOnly ? null : (
+                        {onImportGrading && (
+                            <TeacherLegacyImport
+                                gradings={gradings}
+                                lessons={evalLessons}
+                                onImportGrading={onImportGrading}
+                            />
+                        )}
+                    </>
+                )}
+            </>
+        );
+    } else {
+        const counts = assignmentCounts({
+            seats,
+            getCell: (seat) => getCell(seat, lesson.classroomId),
+            grading,
+            loaded,
+        });
+        const rubricLevels = (grading && grading.rubric && grading.rubric.levels) || [];
+        const detailInfo = detailCell ? getCell(detailCell.seat, detailCell.classroomId) : null;
+        const rubricPane = (
+            <div className={styles.evalPaneBody} data-testid="classroom-eval-rubric-pane">
+                {rubricTools ? (
+                    // The［基準］tab of #2425: description, representatives, fairness, rubric.
+                    <TeacherGradingRubric busy={busy} lesson={lesson} tools={rubricTools} onOpenWork={onOpenWork} />
+                ) : (
+                    <>
+                        <div className={styles.evalPaneLabel}>
+                            {intl.formatMessage(assignmentMessages.description)}
+                        </div>
+                        <p className={styles.evalDescription} data-testid="classroom-eval-description">
+                            {lesson.assignmentText || intl.formatMessage(assignmentMessages.noDescription)}
+                        </p>
+                        <div className={styles.evalPaneLabel}>
+                            {intl.formatMessage(assignmentMessages.rubricTitle)}
+                        </div>
+                        {rubricLevels.length > 0 ? (
+                            <table className={styles.evalRubricTable} data-testid="classroom-eval-rubric-levels">
+                                <tbody>
+                                    {rubricLevels.map((level) => (
+                                        <tr key={level.grade}>
+                                            <th scope="row">
+                                                <span className={styles.evalGradePill}>{level.grade}</span>
+                                            </th>
+                                            <td>{level.text}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        ) : (
+                            <p className={styles.evalSettingsNote} data-testid="classroom-eval-no-rubric">
+                                {intl.formatMessage(assignmentMessages.noRubric)}
+                            </p>
+                        )}
+                    </>
+                )}
+                {/* 採点の観点・厳しさ（基準が無いときに AI が使う）。あまり変えないので 1 行に畳む（R3）。 */}
                 <div className={styles.evalSection} data-testid="classroom-eval-settings-summary">
                     <span className={styles.assignmentNameLabel}>
                         <FormattedMessage
@@ -981,270 +1307,419 @@ const TeacherEvaluation = ({
                             />
                         )}
                     </button>
-                    {flow === 'mixed' && (
-                        <span className={styles.evalSettingsNote} data-testid="classroom-eval-mixed-note">
-                            {intl.formatMessage(evalMessages.mixedNote, { names: lessonOnlyNames })}
-                        </span>
-                    )}
                 </div>
-            )}
-            {settingsOpen && !lessonOnly && (
-                <div className={styles.evalSection} data-testid="classroom-eval-settings">
-                    {/* R1: 名前と説明の欄が何かを、いつも見える見出しで示す。 */}
-                    <div className={classNames(styles.evalRubricRow, styles.evalRubricHeader)}>
-                        <span className={styles.evalRubricName}>
-                            <FormattedMessage
-                                defaultMessage="Criterion"
-                                description="Column header of the grading criterion name fields"
-                                id="gui.classroom.evaluation.axisNameHeader"
-                            />
-                        </span>
-                        <span className={styles.evalRubricDescription}>
-                            <FormattedMessage
-                                defaultMessage="What it looks for"
-                                description="Column header of the grading criterion description fields"
-                                id="gui.classroom.evaluation.axisDescriptionHeader"
-                            />
-                        </span>
-                    </div>
-                    {rubricAxes.map((axis, i) => (
-                        <div className={styles.evalRubricRow} key={i}>
-                            <input
-                                className={styles.evalRubricName}
-                                data-field="name"
-                                data-index={i}
-                                data-testid={`classroom-eval-axis-name-${i}`}
-                                maxLength={50}
-                                type="text"
-                                value={axis.name}
-                                onChange={handleAxisChange}
-                            />
-                            <input
-                                className={styles.evalRubricDescription}
-                                data-field="description"
-                                data-index={i}
-                                data-testid={`classroom-eval-axis-desc-${i}`}
-                                maxLength={300}
-                                type="text"
-                                value={axis.description}
-                                onChange={handleAxisChange}
-                            />
+                {settingsOpen && (
+                    <div className={styles.evalSection} data-testid="classroom-eval-settings">
+                        {/* R1: 名前と説明の欄が何かを、いつも見える見出しで示す。 */}
+                        <div className={classNames(styles.evalRubricRow, styles.evalRubricHeader)}>
+                            <span className={styles.evalRubricName}>
+                                <FormattedMessage
+                                    defaultMessage="Criterion"
+                                    description="Column header of the grading criterion name fields"
+                                    id="gui.classroom.evaluation.axisNameHeader"
+                                />
+                            </span>
+                            <span className={styles.evalRubricDescription}>
+                                <FormattedMessage
+                                    defaultMessage="What it looks for"
+                                    description="Column header of the grading criterion description fields"
+                                    id="gui.classroom.evaluation.axisDescriptionHeader"
+                                />
+                            </span>
                         </div>
-                    ))}
-                    <label className={styles.evalStrictnessRow}>
-                        <FormattedMessage
-                            defaultMessage="Strictness:"
-                            description="Strictness selector label"
-                            id="gui.classroom.evaluation.strictness"
-                        />
-                        <select
-                            className={styles.groupSelect}
-                            data-testid="classroom-eval-strictness"
-                            value={strictness}
-                            onChange={handleStrictnessChange}
-                        >
-                            {Object.keys(STRICTNESS_MESSAGES).map((value) => (
-                                <option key={value} value={value}>
-                                    {intl.formatMessage(STRICTNESS_MESSAGES[value])}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
-                </div>
-            )}
-
-            {/* レッスンの点（#1778）。変えるとすぐ保存し、表の点も変わる。 */}
-            {scoringLessons.length > 0 && (
-                <div data-testid="classroom-eval-lesson-scoring" ref={scoringRef}>
-                    {scoringLessons.map((lesson) => (
-                        <LessonScoringPanel
-                            disabled={busy}
-                            key={lesson.classroomId}
-                            lesson={lesson}
-                            saving={scoringSavingId === lesson.classroomId}
-                            onChangeLessonScoring={onChangeLessonScoring}
-                        />
-                    ))}
-                </div>
-            )}
-
-            {/* Progress */}
-            {evalProgress && (
-                <div className={styles.evalProgress} data-testid="classroom-eval-progress">
-                    {`${evalProgress.label} … (${evalProgress.done}/${evalProgress.total})`}
-                </div>
-            )}
-
-            {/* 採点簿（#1962）: 左に点だけの表、右に選んだ席の根拠・コメント。表は枠の中だけで
-                縦にも横にもスクロールし、ページと下の手順の行は 1300px に収める（#1945）。 */}
-            {loaded && (
-                <div className={styles.evalWorkspace}>
-                    <div className={styles.evalMatrixWrapper} ref={matrixRef}>
-                        <table className={styles.evalMatrix} data-testid="classroom-eval-matrix">
-                            <thead>
-                                <tr>
-                                    <th className={styles.evalSeatHead}>
-                                        <FormattedMessage
-                                            defaultMessage="Seat"
-                                            description="Seat column header"
-                                            id="gui.classroom.evaluation.seat"
-                                        />
-                                    </th>
-                                    {columns.map(({ lesson, kind }) =>
-                                        kind === 'lesson' ? (
-                                            <th
-                                                className={styles.evalLessonHead}
-                                                data-testid={`classroom-eval-lesson-head-${lesson.classroomId}`}
-                                                key={`${lesson.classroomId}:lesson`}
-                                                title={intl.formatMessage(evalMessages.lessonHeadTitle, {
-                                                    name: lesson.assignmentName,
-                                                    total:
-                                                        lessonScores[lesson.classroomId] &&
-                                                        lessonScores[lesson.classroomId].total !== null
-                                                            ? lessonScores[lesson.classroomId].total
-                                                            : '-',
-                                                })}
-                                            >
-                                                {/* 作品の列が無い課題は、どの課題の列か分かるように名前を付ける（#1778） */}
-                                                {isLessonOnlyAssignment(lesson, lessonScores)
-                                                    ? intl.formatMessage(evalMessages.lessonHeadNamed, {
-                                                          name: lesson.assignmentName,
-                                                      })
-                                                    : intl.formatMessage(evalMessages.lessonHead)}
-                                            </th>
-                                        ) : (
-                                            <th
-                                                className={styles.evalWorkHead}
-                                                key={lesson.classroomId}
-                                                title={lesson.assignmentName}
-                                            >
-                                                {lesson.assignmentName}
-                                            </th>
-                                        ),
-                                    )}
-                                    {/* 総合は作品の評価だけから出すので、AI を使わない流れでは出さない（#1778） */}
-                                    {lessonOnly ? null : (
-                                        <th>
-                                            <FormattedMessage
-                                                defaultMessage="Overall"
-                                                description="Overall grade column header"
-                                                id="gui.classroom.evaluation.overall"
-                                            />
-                                        </th>
-                                    )}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {seats.map((seatNumber) => {
-                                    const grades = selectedLessons.map(
-                                        (lesson) => getCell(seatNumber, lesson.classroomId)?.grade,
-                                    );
-                                    return (
-                                        <tr key={seatNumber}>
-                                            <th className={styles.evalSeatCell} scope="row">
-                                                {String(seatNumber).padStart(2, '0')}
-                                            </th>
-                                            {columns.map(({ lesson, kind }) =>
-                                                kind === 'lesson' ? (
-                                                    <td
-                                                        className={styles.evalLessonCell}
-                                                        data-testid={`classroom-eval-lesson-score-${seatNumber}-${lesson.classroomId}`}
-                                                        key={`${lesson.classroomId}:lesson`}
-                                                    >
-                                                        {(() => {
-                                                            const score = lessonScoreOf(
-                                                                lessonScores,
-                                                                lesson.classroomId,
-                                                                seatNumber,
-                                                            );
-                                                            return score === null ? '—' : score;
-                                                        })()}
-                                                    </td>
-                                                ) : (
-                                                    <GradeCell
-                                                        cell={getCell(seatNumber, lesson.classroomId)}
-                                                        classroomId={lesson.classroomId}
-                                                        comment={comments[`${seatNumber}:${lesson.classroomId}`]}
-                                                        key={lesson.classroomId}
-                                                        lessonName={lesson.assignmentName}
-                                                        seatNumber={seatNumber}
-                                                        selected={
-                                                            !!detailCell &&
-                                                            detailCell.seat === seatNumber &&
-                                                            detailCell.classroomId === lesson.classroomId
-                                                        }
-                                                        onSelect={handleSelectCell}
-                                                    />
-                                                ),
-                                            )}
-                                            {lessonOnly ? null : (
-                                                <td
-                                                    className={styles.evalOverallCell}
-                                                    data-testid={`classroom-eval-overall-${seatNumber}`}
-                                                >
-                                                    {combineOverall(grades) || '—'}
-                                                </td>
-                                            )}
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
+                        {rubricAxes.map((axis, i) => (
+                            <div className={styles.evalRubricRow} key={i}>
+                                <input
+                                    className={styles.evalRubricName}
+                                    data-field="name"
+                                    data-index={i}
+                                    data-testid={`classroom-eval-axis-name-${i}`}
+                                    maxLength={50}
+                                    type="text"
+                                    value={axis.name}
+                                    onChange={handleAxisChange}
+                                />
+                                <input
+                                    className={styles.evalRubricDescription}
+                                    data-field="description"
+                                    data-index={i}
+                                    data-testid={`classroom-eval-axis-desc-${i}`}
+                                    maxLength={300}
+                                    type="text"
+                                    value={axis.description}
+                                    onChange={handleAxisChange}
+                                />
+                            </div>
+                        ))}
+                        <label className={styles.evalStrictnessRow}>
+                            <FormattedMessage
+                                defaultMessage="Strictness:"
+                                description="Strictness selector label"
+                                id="gui.classroom.evaluation.strictness"
+                            />
+                            <select
+                                className={styles.groupSelect}
+                                data-testid="classroom-eval-strictness"
+                                value={strictness}
+                                onChange={handleStrictnessChange}
+                            >
+                                {Object.keys(STRICTNESS_MESSAGES).map((value) => (
+                                    <option key={value} value={value}>
+                                        {intl.formatMessage(STRICTNESS_MESSAGES[value])}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
                     </div>
-                    {/* 作品を出す課題が無い（レッスンだけ）ときは、根拠・コメントの欄が無いので出さない。 */}
-                    {workLessons.length > 0 && (
-                        <TeacherEvaluationDetail
-                            cell={detailCell ? getCell(detailCell.seat, detailCell.classroomId) : null}
-                            classroomId={detailCell ? detailCell.classroomId : null}
-                            comment={detailCell ? comments[`${detailCell.seat}:${detailCell.classroomId}`] : null}
-                            lessonName={detailLesson ? detailLesson.assignmentName : null}
-                            nextSeat={detailNeighbours.next}
-                            openingWork={openingWork}
-                            prevSeat={detailNeighbours.prev}
-                            seatNumber={detailCell ? detailCell.seat : null}
-                            onOpenWork={onOpenWork}
-                            onSelectSeat={handleSelectSeat}
-                            onSetCellGrade={onSetCellGrade}
-                            onSetCellReason={onSetCellReason}
-                            onSetComment={onSetComment}
-                        />
+                )}
+            </div>
+        );
+        const added = detailInfo && detailInfo.submitted ? detailInfo.added : null;
+        // The other works with the same shape tags (to compare their grades).
+        const sameShapeSeats =
+            detailInfo && detailInfo.shape && detailCell
+                ? seats
+                      .filter((seat) => seat !== detailCell.seat)
+                      .map((seat) => ({ seat, cell: getCell(seat, detailCell.classroomId) }))
+                      .filter(
+                          ({ cell }) =>
+                              cell && cell.submitted && cell.shape && cell.shape.key === detailInfo.shape.key,
+                      )
+                      .map(({ seat, cell }) => ({ seat, grade: cell.grade }))
+                : [];
+        const studentPane = loaded ? (
+            <>
+                {rubricTools && (
+                    <TeacherGradingGroupPrompt
+                        prompt={rubricTools.groupPrompt}
+                        onApply={rubricTools.handleApplyGroupChange}
+                        onDismiss={rubricTools.handleDismissGroupChange}
+                    />
+                )}
+                <TeacherEvaluationDetail
+                    cell={detailInfo && detailInfo.submitted ? detailInfo : null}
+                    classroomId={detailCell ? detailCell.classroomId : null}
+                    comment={detailCell ? comments[`${detailCell.seat}:${detailCell.classroomId}`] : null}
+                    lessonName={lesson.assignmentName}
+                    nextSeat={detailNeighbours.next}
+                    openingWork={openingWork}
+                    prevSeat={detailNeighbours.prev}
+                    seatNumber={detailCell ? detailCell.seat : null}
+                    onOpenWork={onOpenWork}
+                    onSelectSeat={handleSelectSeat}
+                    onSetCellGrade={onSetCellGrade}
+                    onSetCellReason={onSetCellReason}
+                    onSetComment={onSetComment}
+                />
+                {detailInfo && detailInfo.submitted && detailInfo.shape && (
+                    <div className={styles.evalPaneBody} data-testid="classroom-eval-shape-tags">
+                        <div className={styles.evalPaneLabel}>{intl.formatMessage(shapeMessages.tagsLabel)}</div>
+                        <ShapeTags tags={detailInfo.shape.tags} />
+                        {sameShapeSeats.length > 0 && (
+                            <div className={styles.evalSettingsNote} data-testid="classroom-eval-same-shape">
+                                {intl.formatMessage(shapeMessages.sameShape)}{' '}
+                                {sameShapeSeats.map(({ seat, grade }) => (
+                                    <button
+                                        className={styles.textButton}
+                                        data-seat={seat}
+                                        data-testid={`classroom-eval-same-shape-${seat}`}
+                                        key={seat}
+                                        type="button"
+                                        onClick={handleSameShape}
+                                    >
+                                        {`${pad(seat)} ${grade || '—'}`}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+                {added && (
+                    <div className={styles.evalPaneBody} data-testid="classroom-eval-added">
+                        <div className={styles.evalPaneLabel}>
+                            {intl.formatMessage(assignmentMessages.addedScripts)}
+                            {detailInfo.groupName && (
+                                <span className={styles.evalGroupName} data-testid="classroom-eval-group">
+                                    {intl.formatMessage(assignmentMessages.groupOf, { name: detailInfo.groupName })}
+                                </span>
+                            )}
+                        </div>
+                        {added.length > 0 ? (
+                            <pre className={styles.evalAddedCode}>{added.join('\n\n')}</pre>
+                        ) : (
+                            <p className={styles.evalSettingsNote}>
+                                {intl.formatMessage(assignmentMessages.noAddedScripts)}
+                            </p>
+                        )}
+                    </div>
+                )}
+            </>
+        ) : (
+            <p className={styles.evalSettingsNote} data-testid="classroom-eval-not-loaded">
+                {intl.formatMessage(assignmentMessages.notLoaded)}
+            </p>
+        );
+        body = (
+            <>
+                <div className={styles.gradebookTopRow}>
+                    {onShowGradebook && (
+                        <ClassroomButton dataTestId="classroom-eval-back-to-book" onClick={onShowGradebook}>
+                            {intl.formatMessage(assignmentMessages.backToBook)}
+                        </ClassroomButton>
                     )}
+                    <h3 className={styles.evalAssignmentTitle} data-testid="classroom-eval-assignment-title">
+                        {lesson.assignmentName}
+                    </h3>
+                    {confirmed && (
+                        <span className={styles.evalReturnedBadge} data-testid="classroom-eval-confirmed">
+                            {intl.formatMessage(assignmentMessages.confirmedBadge)}
+                        </span>
+                    )}
+                    {gradeSaveState && (
+                        <span
+                            className={classNames(styles.evalSettingsNote, {
+                                [styles.evalSaveFailed]: gradeSaveState === 'failed',
+                            })}
+                            data-state={gradeSaveState}
+                            data-testid="classroom-eval-save-state"
+                        >
+                            {intl.formatMessage(
+                                gradeSaveState === 'failed'
+                                    ? assignmentMessages.saveFailedShort
+                                    : assignmentMessages.saving,
+                            )}
+                        </span>
+                    )}
+                    {unconfirmedByEdit && !confirmed && (
+                        <span className={styles.evalSettingsNote} data-testid="classroom-eval-unconfirmed">
+                            {intl.formatMessage(assignmentMessages.unconfirmedNote)}
+                        </span>
+                    )}
+                    <AiQuota quota={aiQuota} />
                 </div>
-            )}
+                {/* レッスンの点（#1778）。変えるとすぐ保存し、表の点も変わる。 */}
+                {scoringLessons.length > 0 && (
+                    <div data-testid="classroom-eval-lesson-scoring" ref={scoringRef}>
+                        {scoringLessons.map((l) => (
+                            <LessonScoringPanel
+                                disabled={busy}
+                                key={l.classroomId}
+                                lesson={l}
+                                saving={scoringSavingId === l.classroomId}
+                                onChangeLessonScoring={onChangeLessonScoring}
+                            />
+                        ))}
+                    </div>
+                )}
+                {status}
+                <div className={styles.evalWorkspace}>
+                    <div className={styles.evalSeatListFrame} ref={listRef}>
+                        {lesson.hasLesson && (
+                            <div className={styles.evalSeatListHead}>
+                                {intl.formatMessage(evalMessages.lessonHead)}
+                            </div>
+                        )}
+                        <ul
+                            aria-label={intl.formatMessage(assignmentMessages.seatListName)}
+                            className={styles.evalSeatList}
+                            data-testid="classroom-eval-seat-list"
+                        >
+                            {seats.map((seat) => (
+                                <SeatRow
+                                    cell={loaded ? getCell(seat, lesson.classroomId) || { submitted: false } : null}
+                                    classroomId={lesson.classroomId}
+                                    comment={comments[`${seat}:${lesson.classroomId}`]}
+                                    grading={grading}
+                                    key={seat}
+                                    isLesson={!!lesson.hasLesson}
+                                    lessonName={lesson.assignmentName}
+                                    lessonScore={
+                                        lesson.hasLesson
+                                            ? lessonScoreOf(lessonScores, lesson.classroomId, seat)
+                                            : null
+                                    }
+                                    seatNumber={seat}
+                                    selected={!!detailCell && detailCell.seat === seat}
+                                    onSelect={handleSelectCell}
+                                />
+                            ))}
+                        </ul>
+                    </div>
+                    <div className={styles.evalPane}>
+                        <Counts counts={counts} />
+                        {lessonOnly ? null : (
+                            <div className={styles.evalInnerTabs} role="tablist">
+                                <button
+                                    aria-selected={innerTab === 'rubric'}
+                                    className={classNames(styles.evalInnerTab, {
+                                        [styles.evalInnerTabOn]: innerTab === 'rubric',
+                                    })}
+                                    data-testid="classroom-eval-tab-rubric"
+                                    role="tab"
+                                    type="button"
+                                    onClick={handleTabRubric}
+                                >
+                                    {intl.formatMessage(assignmentMessages.tabRubric)}
+                                </button>
+                                {onSetSeatsGrade && (
+                                    <button
+                                        aria-selected={innerTab === 'shape'}
+                                        className={classNames(styles.evalInnerTab, {
+                                            [styles.evalInnerTabOn]: innerTab === 'shape',
+                                        })}
+                                        data-testid="classroom-eval-tab-shape"
+                                        role="tab"
+                                        type="button"
+                                        onClick={handleTabShape}
+                                    >
+                                        {intl.formatMessage(assignmentMessages.tabShape)}
+                                    </button>
+                                )}
+                                <button
+                                    aria-selected={innerTab === 'student'}
+                                    className={classNames(styles.evalInnerTab, {
+                                        [styles.evalInnerTabOn]: innerTab === 'student',
+                                    })}
+                                    data-testid="classroom-eval-tab-student"
+                                    role="tab"
+                                    type="button"
+                                    onClick={handleTabStudent}
+                                >
+                                    {intl.formatMessage(assignmentMessages.tabStudent)}
+                                </button>
+                            </div>
+                        )}
+                        {lessonOnly ? null : (
+                            <div className={styles.evalPaneScroll} role="tabpanel">
+                                {innerTab === 'student' && studentPane}
+                                {innerTab === 'rubric' && rubricPane}
+                                {innerTab === 'shape' &&
+                                    (loaded && onSetSeatsGrade ? (
+                                        <TeacherGradingShapes
+                                            classroomId={lesson.classroomId}
+                                            getCell={getCell}
+                                            seats={seats}
+                                            onSelectSeat={handleSelectCell}
+                                            onSetSeatsGrade={onSetSeatsGrade}
+                                        />
+                                    ) : (
+                                        <p className={styles.evalSettingsNote}>
+                                            {intl.formatMessage(assignmentMessages.notLoaded)}
+                                        </p>
+                                    ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </>
+        );
+    }
+
+    const crumbs = [
+        {
+            label: <FormattedMessage {...breadcrumbMessages.top} />,
+            onClick: handleLeaveToClassList,
+            testId: 'classroom-breadcrumb-class-list',
+        },
+        {
+            label: evalGroup ? (
+                formatClassLabel(evalGroup)
+            ) : (
+                <FormattedMessage
+                    defaultMessage="Grading"
+                    description="Breadcrumb label of the evaluation view"
+                    id="gui.classroom.breadcrumbs.evaluation"
+                />
+            ),
+        },
+    ];
+    // In an assignment's grading, the class goes back to the gradebook.
+    if (view === 'assignment' && lesson && onShowGradebook) {
+        crumbs[1].onClick = onShowGradebook;
+        crumbs[1].testId = 'classroom-breadcrumb-gradebook';
+    }
+    if (view === 'assignment' && lesson) crumbs.push({ label: lesson.assignmentName });
+
+    return (
+        <TeacherScreen
+            breadcrumbs={crumbs}
+            className={`${styles.teacherView} ${styles.evaluationScreen}`}
+            error={error}
+            errorTitle={errorTitle}
+            footer={footer}
+            hint={
+                tabs ? (
+                    hintDetail
+                ) : (
+                    <>
+                        {hintLine}
+                        {hintDetail}
+                    </>
+                )
+            }
+            tabs={tabsWithHint}
+            testId="classroom-phase-teacher-evaluation"
+        >
+            {body}
         </TeacherScreen>
     );
 };
 
 TeacherEvaluation.propTypes = {
-    /** The seat × assignment shown in the right column, when the container keeps it (#1990). */
+    /** Today's AI calls of the teacher ({used, limit, resetsAt}, #2448); null shows nothing. */
+    aiQuota: PropTypes.object,
+    /** The seat × assignment shown in［生徒］, when the container keeps it (#1990). */
     chosenCell: PropTypes.shape({ seat: PropTypes.number, classroomId: PropTypes.string }),
     comments: PropTypes.object.isRequired,
+    /** The assignment open in view 'assignment'. */
+    currentId: PropTypes.string,
     error: PropTypes.string,
     errorTitle: PropTypes.string,
     evalGroup: PropTypes.object,
+    /** Every assignment of the class, newest first. */
     evalLessons: PropTypes.arrayOf(PropTypes.object).isRequired,
     evalProgress: PropTypes.object,
+    /** The short result of the last step (#2419). */
+    evalResult: PropTypes.object,
     getCell: PropTypes.func.isRequired,
+    /** 'pending' | 'failed' while the open assignment's grades are not saved. */
+    gradeSaveState: PropTypes.oneOf(['pending', 'failed']),
+    /** classroomId → saved grading (null = none, undefined = still reading). */
+    gradings: PropTypes.object,
+    /** (classroomId, body) → Promise: save grades imported from an old CSV (#2431) */
+    onImportGrading: PropTypes.func,
+    /** The tab of the right column, when the container keeps it: 'rubric' | 'student'. */
+    innerTab: PropTypes.oneOf(['rubric', 'student', 'shape']),
     /** A leave waiting for the teacher's answer (#1923 C4): {kind: 'back'|'leave'|'reload'}. */
     leaveRequest: PropTypes.shape({
         kind: PropTypes.oneOf(['back', 'leave', 'reload']),
     }),
     lessonScores: PropTypes.object,
+    /** The submissions of the open assignment are loaded (default: there are seats). */
+    loaded: PropTypes.bool,
     /** A work is being opened from the right column (#1980). */
     openingWork: PropTypes.bool,
     rubricAxes: PropTypes.arrayOf(PropTypes.object).isRequired,
+    /** The rubric step is done (there is a rubric, or the teacher looked at it). */
+    rubricDone: PropTypes.bool,
+    /** The［基準］tab's state and handlers (useGradingRubric, #2425). */
+    rubricTools: PropTypes.object,
     scoringChecked: PropTypes.bool,
     scoringSavingId: PropTypes.string,
+    /** The seats of the open assignment. */
     seats: PropTypes.arrayOf(PropTypes.number).isRequired,
-    selectedLessonIds: PropTypes.arrayOf(PropTypes.string).isRequired,
     strictness: PropTypes.string.isRequired,
     /** クラスの中のタブの行（［採点］が選ばれた `TeacherClassTabs`）。 */
     tabs: PropTypes.node,
+    /** A grade changed after confirming, so the confirmation was taken back. */
+    unconfirmedByEdit: PropTypes.bool,
     /** What leaving would lose now (#1923 C4): {grades, comments}. */
     unsavedWork: PropTypes.shape({
         comments: PropTypes.bool,
         grades: PropTypes.bool,
     }),
+    /** 'book' (gradebook) | 'assignment' (one assignment) | 'overall' (#2426). */
+    view: PropTypes.oneOf(['book', 'assignment', 'overall']),
     onBack: PropTypes.func.isRequired,
     /** ヘッダーの「クラス管理」。無ければ onBack。 */
     onShowClassList: PropTypes.func,
@@ -1252,12 +1727,16 @@ TeacherEvaluation.propTypes = {
     onChangeLessonScoring: PropTypes.func,
     onChangeRubricAxis: PropTypes.func.isRequired,
     onCheckScoring: PropTypes.func,
+    /** Confirm the grades of the open assignment (step 4). */
+    onConfirmGrades: PropTypes.func,
     onConfirmLeave: PropTypes.func,
     onExportAuditCsv: PropTypes.func.isRequired,
     onExportEvaluationCsv: PropTypes.func.isRequired,
     onLoadSubmissions: PropTypes.func.isRequired,
     /** ({seat, classroomId}) → choose the cell; with chosenCell, the container keeps the choice (#1990). */
     onChooseCell: PropTypes.func,
+    /** (classroomId, seat?) → open an assignment's grading from the gradebook. */
+    onOpenAssignment: PropTypes.func,
     /**
      * (seat, classroomId) → opens the work in the editor (#1980). It does not ask: the grading
      * screen stays as it was behind the editor (#1990).
@@ -1268,10 +1747,17 @@ TeacherEvaluation.propTypes = {
     onReturnComments: PropTypes.func.isRequired,
     onRunAi: PropTypes.func.isRequired,
     onSetCellGrade: PropTypes.func.isRequired,
+    /** (seats, classroomId, grade) → give one grade to several works (the［形］tab). */
+    onSetSeatsGrade: PropTypes.func,
     onSetCellReason: PropTypes.func.isRequired,
     onSetComment: PropTypes.func.isRequired,
+    /** ('rubric'|'student') → choose the right column's tab, when the container keeps it. */
+    onSetInnerTab: PropTypes.func,
     onSetStrictness: PropTypes.func.isRequired,
-    onToggleLesson: PropTypes.func.isRequired,
+    onShowGradebook: PropTypes.func,
+    onShowOverall: PropTypes.func,
+    /** Step 2: look at the rubric (#2425 makes it). */
+    onVisitRubric: PropTypes.func,
 };
 
 export default TeacherEvaluation;

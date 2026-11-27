@@ -12,7 +12,7 @@ export default function (Generator) {
 
     Generator.microbit_isButtonPressed = function (block) {
         const btn = Generator.valueToCode(block, 'BTN', Generator.ORDER_NONE) || null;
-        return `microbit_v1.button_pressed?(${btn})\n`;
+        return [`microbit_v1.button_pressed?(${btn})`, Generator.ORDER_ATOMIC];
     };
 
     Generator.microbit_whenGesture = function (block) {
