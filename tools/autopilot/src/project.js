@@ -502,8 +502,8 @@ async function postIssueComment(repo, number, body, token) {
  * これは人間の手動 merge を検知するための読み取り。
  *
  * close リンクは **非デフォルト base 宛て PR**（epic ブランチに積んだサブ Issue 等）を拾えない
- * （#829 と相互作用）。そのため close リンクで merge が見つからなければ、head ブランチ
- * `topic/autopilot-<N>` の merged PR も見る（base 非依存・#831）。「topic merge = close」運用を
+ * （#829 と相互作用）。そのため close リンクに open の PR が無ければ、head ブランチ
+ * `topic/autopilot-<N>` の PR も見る（base 非依存・#831）。「topic merge = close」運用を
  * epic ブランチへの merge でも効かせるため。同じブランチで PR を分けて出す Issue では、open の PR が
  * あればマージ済みとみなさない（判定は phases.js の {@link hasMergedHeadPr}・#2498）。
  * @param {string} repo `owner/name`
@@ -525,17 +525,18 @@ async function hasMergedPullRequest(repo, issueNumber, token, deps = {}) {
     );
     const issue = JSON.parse(out)?.data?.repository?.issue;
     const nodes = (issue && issue.closedByPullRequestsReferences && issue.closedByPullRequestsReferences.nodes) || [];
-    if (hasMergedHeadPr(nodes)) return true;
     // open の PR が close リンクにある → それが今の PR。前のマージ済み PR があってもまだ（#2498）
     if (nodes.some((n) => n && n.state === 'OPEN')) return false;
-    // close リンクに無い → head ブランチで非デフォルト base への merge を検知（#831）。
-    // 同じブランチの open の PR も見るため、全状態を 1 回で取る（#2498・read を増やさない）
+    // head ブランチで非デフォルト base への merge を検知する（#831）。close リンクにマージ済みが
+    // あっても、今の PR が close キーワード無しで同じブランチに開いていることがあるので、ここで
+    // open も見る。全状態を 1 回で取る（#2498・read を増やさない）
     const listOut = await ghFn(
         ['pr', 'list', '--repo', repo, '--head', headBranchFor(issueNumber), '--state', 'all',
             '--json', 'number,state', '--limit', '20'],
         { token },
     );
-    return hasMergedHeadPr(JSON.parse(listOut));
+    const headPrs = JSON.parse(listOut);
+    return hasMergedHeadPr([...nodes, ...(Array.isArray(headPrs) ? headPrs : [])]);
 }
 
 /**

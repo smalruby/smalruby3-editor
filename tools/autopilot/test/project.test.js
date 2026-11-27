@@ -200,17 +200,26 @@ test('hasMergedPullRequest: detects merge to non-default base via head branch (#
     assert.ok(listCall.includes('topic/autopilot-827'));
 });
 
-test('hasMergedPullRequest: close-link merged short-circuits head search', async () => {
-    let listCalled = false;
+test('hasMergedPullRequest: close-link merged counts when the head branch has no open PR', async () => {
     const fakeGh = (args) => {
         if (args.includes('graphql')) {
             return JSON.stringify({ data: { repository: { issue: { closedByPullRequestsReferences: { nodes: [{ merged: true }] } } } } });
         }
-        listCalled = true;
         return '[]';
     };
     assert.equal(await hasMergedPullRequest('o/r', 1, 'tok', { gh: fakeGh }), true);
-    assert.equal(listCalled, false);
+});
+
+// 前の PR は Closes 付きでマージ済み、今の PR は close キーワード無し（Refs など）で同じブランチに open（#2498）
+test('hasMergedPullRequest: an open head PR beats a merged close-linked one (#2498)', async () => {
+    const fakeGh = (args) => {
+        if (args.includes('graphql')) {
+            return JSON.stringify({ data: { repository: { issue: { closedByPullRequestsReferences: {
+                nodes: [{ merged: true, state: 'MERGED' }] } } } } });
+        }
+        return JSON.stringify([{ number: 2490, state: 'OPEN' }, { number: 1997, state: 'MERGED' }]);
+    };
+    assert.equal(await hasMergedPullRequest('o/r', 1934, 'tok', { gh: fakeGh }), false);
 });
 
 test('hasMergedPullRequest: an open PR on the head branch beats an earlier merged one (#2498)', async () => {
