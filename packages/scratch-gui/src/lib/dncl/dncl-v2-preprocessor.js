@@ -135,7 +135,10 @@ const stripTrailingColon = (line) => {
         'を実行する',
         'を繰り返す',
     ];
-    if (!triggers.some((t) => beforeColon.endsWith(t))) return line;
+    // The standard function opener `関数 名前(引数):` ends with its
+    // parameters, not with a keyword (docs/dncl/design.md, Issue #2058).
+    const isFunctionOpener = /^[\s｜|⎿]*関数\s+[\p{L}_][\p{L}\p{N}_]*\s*\(.*\)$/u.test(beforeColon);
+    if (!isFunctionOpener && !triggers.some((t) => beforeColon.endsWith(t))) return line;
     // Preserve any whitespace that followed the original colon.
     const trailing = line.substring(trimmed.length);
     return `${beforeColon}${trailing}`;
@@ -709,17 +712,23 @@ const dnclV2PreprocessWithLineMap = (source) => {
         lineMap.push(lineNumber);
         columnShift.push(shift);
     };
-    const emitCloser = (block, lineNumber) => emit(`${block.indent}${closerForBlockType(block.type)}`, lineNumber);
+    const emitCloser = (block, lineNumber, comment = '') =>
+        emit(`${block.indent}${closerForBlockType(block.type)}${comment}`, lineNumber);
     // Close indentation-style blocks (opener ends with `:`, body indented, no
     // `⎿` and no closer line, as in 共通テスト code typed without the `｜` /
     // `⎿` markers) once a line at the opener's indent or shallower appears.
+    // A closer line (`を実行する` etc.) may end any block of the standard
+    // form too, wherever it is indented: it closes the innermost open block
+    // (Issue #2058).
     const closeByIndent = (width, body) => {
         const explicit = EXPLICIT_CLOSERS.has(body);
         while (stack.length > 0) {
             const top = stack[stack.length - 1];
             if (top.colon && !top.hasBody) {
                 if (width > top.width) {
-                    top.hasBody = true;
+                    // An indented closer of an empty block is not its body.
+                    if (explicit) stack.pop();
+                    else top.hasBody = true;
                     return;
                 }
                 // No indented body: the block is closed some other way.
@@ -729,7 +738,10 @@ const dnclV2PreprocessWithLineMap = (source) => {
                 if (explicit) stack.pop();
                 return;
             }
-            if (width > top.width) return;
+            if (width > top.width) {
+                if (explicit) stack.pop();
+                return;
+            }
             if (width === top.width && explicit) {
                 stack.pop();
                 return;
@@ -740,6 +752,11 @@ const dnclV2PreprocessWithLineMap = (source) => {
             emitCloser(stack.pop(), lastCodeLine);
         }
     };
+    // Blocks closed by the `⎿` of the last code line, innermost first, that
+    // a closer line right after it may still name.
+    const markerClosed = [];
+    const claimMarkerClosed = (width, body) =>
+        markerClosed.findIndex((block) => block.width === width && closerForBlockType(block.type) === body);
     const logicalLines = joinContinuationLines(source);
     const separator = lineNumberSeparatorFor(logicalLines);
     for (const { line: numberedLine, extraCloseCount, lineNumber } of logicalLines) {
@@ -763,12 +780,26 @@ const dnclV2PreprocessWithLineMap = (source) => {
             // Blocks are found from the code without its trailing comment.
             const body = splitTrailingComment(marked.substring(indent.length)).code.replace(/\s+$/, '');
             const isCode = body !== '' && !body.startsWith('#');
-            if (isCode) closeByIndent(width, body);
+            const explicit = EXPLICIT_CLOSERS.has(body);
+            // A closer line next to the `⎿` that closed its block says the
+            // same end again (Issue #2058): on the `⎿` line itself
+            // (`⎿ を実行する`) it is left out, on the line after it is read
+            // as a blank line.
+            const claimed = explicit ? claimMarkerClosed(width, body) : -1;
+            const redundant = explicit && (closeCount > 0 || claimed !== -1);
+            if (claimed !== -1) markerClosed.splice(claimed, 1);
+            if (isCode && !redundant) closeByIndent(width, body);
+            // Only the closers right after the `⎿` may name its blocks again:
+            // once a code line (or a closer of another block) comes, a closer
+            // is extra again.
+            if (isCode && claimed === -1) markerClosed.length = 0;
             // The Ruby indent is made from the block depth (2 spaces a level),
             // not kept from the source, whose indent may be 3 / 4 spaces, a
             // full-width space or a tab (Issue #1718). An else / else-if line
             // stands at the depth of its `もし`.
             const rest = marked.substring(indent.length);
+            // The `# comment` of a redundant closer is kept, not dropped.
+            const closerComment = redundant ? splitTrailingComment(rest).comment : '';
             const top = stack[stack.length - 1];
             const depth = stack.length - (top && top.type === 'if' && isIfContinuation(body) ? 1 : 0);
             const depthIndent = '  '.repeat(depth);
@@ -776,7 +807,13 @@ const dnclV2PreprocessWithLineMap = (source) => {
             // where the user wrote them (a piece of a split multi-assignment
             // has no column of its own).
             const shift = pieceIdx === 0 ? codeStart - depthIndent.length : 0;
-            emit(rest === '' ? '' : `${depthIndent}${rest}`, lineNumber, shift);
+            // On the `⎿` line the closer added for the `⎿` stands for it.
+            if (!(explicit && closeCount > 0)) {
+                let text = `${depthIndent}${rest}`;
+                if (rest === '') text = '';
+                else if (redundant) text = closerComment === '' ? '' : `${depthIndent}${closerComment.trimStart()}`;
+                emit(text, lineNumber, shift);
+            }
             if (isCode) lastCodeLine = lineNumber;
             const type = detectBlockType(body);
             if (type) {
@@ -786,7 +823,9 @@ const dnclV2PreprocessWithLineMap = (source) => {
             for (let i = 0; i < closeCount; i++) {
                 const popped = stack.pop();
                 if (!popped) break;
-                emitCloser(popped, lineNumber);
+                // `⎿ を実行する # c`: the comment goes with the closer of the line.
+                emitCloser(popped, lineNumber, explicit && i === 0 ? closerComment : '');
+                if (!explicit) markerClosed.push(popped);
             }
         }
     }
