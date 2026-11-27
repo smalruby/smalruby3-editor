@@ -1590,6 +1590,8 @@ async function dispatch(item, cfg, state, log) {
             releaseCheckHttp.rememberPreview(state, item.issue, parsed.result.previewUrl);
             // 確認ページ（#2474）の URL を覚え、次の round と「あなた宛て」のボタンに使う
             releaseCheckHttp.rememberReleasePage(state, item.issue, parsed.result, cfg.now(), log);
+            // 全部 OK（#2544）なら「develop へマージする」を出す材料を覚える（ほかの結果なら消す）
+            releaseCheckHttp.rememberReleaseMerge(state, item.issue, parsed.result, log);
         }
         // signal=error は Blocked で surface する（churn を止める）。理由はサニタイズ済みの
         // 要約だけを GitHub に出し、生ログ（機密を含みうる）はローカル参照に誘導する。
@@ -2852,6 +2854,8 @@ async function refreshBoard(cfg, state, log, deps = {}) {
                 previewUrl: (state.releasePreviews && state.releasePreviews[it.issue]) || null,
                 // リリース確認の確認ページ（#2474）。worker が作った artifact の URL（状態ファイルに残す）
                 releasePageUrl: releasePageUrl(state.releasePages, it.issue),
+                // 全部 OK でマージを待っている EPIC（#2544）。「あなた宛て」の主ボタンを「develop へマージする」にする
+                releaseMerge: releaseCheckHttp.releaseMergeOf(state, it),
             });
         }
         state.board = { updatedAt: cfg.now(), items: enriched };
@@ -2914,6 +2918,10 @@ async function refreshBoardAndProjectTrackers(cfg, state, log, deps = {}) {
     if (entered.length && !state.paused && !deps.noTickAfterEntry) {
         runTickOnce(cfg, state, log).catch((e) => log(`tick after release check entry error: ${e.message}`));
     }
+    // 人間が GitHub で topic → develop の PR をマージした Release Check の EPIC を閉じる（#2544）
+    await releaseCheckHttp.applyReleaseMergedEpics(
+        state.board ? state.board.items : [], cfg, state, log, { patchBoardCache, ...(deps.releaseMerged || {}) },
+    ).catch((e) => log(`release merged epics failed: ${e.message}`));
 }
 
 /**
@@ -3482,6 +3490,7 @@ async function main(opts = {}) {
     // 現在地の artifact の URL・最終更新（#2388）は再起動をまたいで残す
     state.currentStatusState = currentStatusJob.loadCurrentStatusState(cfg);
     state.releasePages = releaseCheckHttp.loadReleasePages();
+    state.releaseMerges = releaseCheckHttp.loadReleaseMerges();
     currentStatusJob.refreshCurrentStatusView(state);
     // プロセスレベルの安全網（#949/#953）: fire-and-forget な非同期経路のエラーを捕捉し、
     // 認証系は auto-pause で耐え、未知の非認証エラーは Node 準拠で exit（supervisor が再起動）。

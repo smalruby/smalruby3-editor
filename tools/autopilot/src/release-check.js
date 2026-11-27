@@ -7,7 +7,8 @@
  * 🙋 で人間に渡す → 人間がプレビューで確かめ、モニターの「確認の結果を書く」で送る（daemon が
  * `<!-- autopilot-release-review round=N -->` を Bot で書き、🙋 を外す）→ release-check が結果を受け、
  * NG ごとに sub-issue を作る（`<!-- autopilot-release-result round=N -->`）。NG から作った sub-issue が
- * 全部済むと、次の round のリリース確認になる。develop へのマージは人間のまま。
+ * 全部済むと、次の round のリリース確認になる。全部 OK のあとの develop へのマージは人間が決める（モニターの
+ * 「develop へマージする」か GitHub。判断は release-merge.js・#2544）。
  *
  * どちらの段（観点をまとめる / 結果を受ける）かは、トラッカーの目印付きコメントだけで決める
  * （{@link releaseCheckMode}。時刻や daemon の状態ファイルを使わない・I5）。
@@ -29,7 +30,8 @@ const { previewStatusText } = require('./epic-pr');
 /** 目印の正規表現（round を捕捉する） */
 const CHECK_RE = /<!--\s*autopilot-release-check\s+round=(\d+)\s*-->/;
 const REVIEW_RE = /<!--\s*autopilot-release-review\s+round=(\d+)\s*-->/;
-const RESULT_RE = /<!--\s*autopilot-release-result\s+round=(\d+)\s*-->/;
+// 全部 OK の結果は `allOk=1 pr=P head=SHA` を足す（#2544・{@link releaseResultMarker}）。属性があっても round を読む
+const RESULT_RE = /<!--\s*autopilot-release-result\s+round=(\d+)(?:\s+[^>]*?)?\s*-->/;
 /** 結果のコメントに埋める機械向けのデータ（人間向けの本文は別に書く） */
 const REVIEW_DATA_RE = /<!--\s*autopilot-release-review-data\s+([\s\S]*?)\s*-->/;
 /** NG から作った sub-issue の本文に入れる目印（同じ round の同じ観点から二重に作らない） */
@@ -59,8 +61,38 @@ const REVIEW_SOURCES = ['monitor', 'page'];
 function releaseCheckMarker(round) { return `<!-- autopilot-release-check round=${round} -->`; }
 /** @param {number} round @returns {string} */
 function releaseReviewMarker(round) { return `<!-- autopilot-release-review round=${round} -->`; }
-/** @param {number} round @returns {string} */
-function releaseResultMarker(round) { return `<!-- autopilot-release-result round=${round} -->`; }
+/**
+ * 結果を受けたことの目印。全部 OK のときは、モニターから develop へマージするための印（#2544）を足す:
+ * `allOk=1`・topic → develop の PR の番号・そのときの topic の head の SHA（確かめた中身と同じものだけをマージする）。
+ * @param {number} round
+ * @param {{allOk?:boolean, pr?:number, head?:string}} [opts]
+ * @returns {string}
+ */
+function releaseResultMarker(round, opts = {}) {
+    if (!opts.allOk) return `<!-- autopilot-release-result round=${round} -->`;
+    const attrs = [`round=${round}`, 'allOk=1'];
+    if (Number.isInteger(opts.pr) && opts.pr > 0) attrs.push(`pr=${opts.pr}`);
+    if (typeof opts.head === 'string' && /^[0-9a-f]{7,40}$/i.test(opts.head)) attrs.push(`head=${opts.head.toLowerCase()}`);
+    return `<!-- autopilot-release-result ${attrs.join(' ')} -->`;
+}
+
+/**
+ * 結果の目印を読む（純粋関数・{@link releaseResultMarker} の逆）。目印が無ければ null。
+ * @param {string} body
+ * @returns {{round:number, allOk:boolean, pr:(number|null), head:(string|null)}|null}
+ */
+function parseReleaseResultMarker(body) {
+    const m = String(body || '').match(/<!--\s*autopilot-release-result\s+round=(\d+)((?:\s+[^>]*?)?)\s*-->/);
+    if (!m) return null;
+    const attr = (k) => { const x = m[2].match(new RegExp(`(?:^|\\s)${k}=([^\\s]+)`)); return x ? x[1] : null; };
+    const pr = attr('pr');
+    const head = attr('head');
+    return {
+        round: Number(m[1]), allOk: attr('allOk') === '1',
+        pr: pr && /^\d+$/.test(pr) ? Number(pr) : null,
+        head: head && /^[0-9a-f]{7,40}$/i.test(head) ? head.toLowerCase() : null,
+    };
+}
 
 /**
  * NG から作る sub-issue の本文に入れる目印。
@@ -106,6 +138,22 @@ function roundsOf(comments, re) {
 }
 
 function maxRound(list) { return list.reduce((a, x) => Math.max(a, x.round), 0); }
+
+/**
+ * トラッカーの観点・確認の結果・結果を受けたことの、いちばん新しい round（純粋関数・#2544）。
+ * resultComment は、いちばん新しい round の結果を受けたことのコメント（同じ round が複数あれば後のもの）。
+ * @param {Array<{body?:string, user?:object}>} comments
+ * @returns {{check:number, review:number, result:number, resultComment:(object|null)}}
+ */
+function releaseCheckRounds(comments) {
+    const results = roundsOf(comments, RESULT_RE);
+    const result = maxRound(results);
+    const last = results.filter((x) => x.round === result).pop();
+    return {
+        check: maxRound(roundsOf(comments, CHECK_RE)), review: maxRound(roundsOf(comments, REVIEW_RE)),
+        result, resultComment: last ? last.comment : null,
+    };
+}
 
 /**
  * item が「リリース後の作業」か（純粋関数）。🚀 after-release ラベルか、自分の親 EPIC を
@@ -532,6 +580,8 @@ module.exports = {
     releaseCheckMarker,
     releaseReviewMarker,
     releaseResultMarker,
+    parseReleaseResultMarker,
+    releaseCheckRounds,
     releaseNgMarker,
     releasePrMarker,
     releasePrSeenMarker,

@@ -13,16 +13,40 @@
  */
 
 /**
+ * develop へのマージの時間の決まり（純粋関数・#2544・`.claude/rules/merge-and-release.md`）。日本時間で見る。
+ * - 平日の 12:50〜13:15 は時間の中。土日も時間の中（決まりは平日だけ）
+ * - 平日の 16:15 以降は予備（人間の意向を確かめてから使う）なので、時間の外として確かめを求める
+ * - weekdayDaytime: 平日の 8:00〜19:00（授業のある日中）。メッシュに関わる変更はこの間はマージしない
+ * 祝日は見ない（平日として扱う・安全側）。モニターにも埋め込むので外を参照しない。
+ * @param {number} nowMs ms epoch
+ * @returns {{inWindow:boolean, weekdayDaytime:boolean, note:string}}
+ */
+function developMergeWindow(nowMs) {
+    if (!Number.isFinite(nowMs)) return { inWindow: true, weekdayDaytime: false, note: '' };
+    const jst = new Date(nowMs + 9 * 60 * 60 * 1000);
+    const day = jst.getUTCDay();
+    const m = jst.getUTCHours() * 60 + jst.getUTCMinutes();
+    if (day === 0 || day === 6) return { inWindow: true, weekdayDaytime: false, note: '' };
+    const weekdayDaytime = m >= 8 * 60 && m < 19 * 60;
+    if (m >= 12 * 60 + 50 && m <= 13 * 60 + 15) return { inWindow: true, weekdayDaytime, note: '' };
+    const note = m >= 16 * 60 + 15
+        ? 'いまは予備の時間（平日の 16:15 以降）です。昼（12:50〜13:15）に入りきらなかったときだけ使ってください'
+        : 'いまは平日のマージの時間の外です（12:50〜13:15。予備は 16:15 以降）';
+    return { inWindow: false, weekdayDaytime, note };
+}
+
+/**
  * 1 件の item で人間がすること（純粋関数）。kind は次のどれか:
  * check（確かめる）/ answer（答える）/ go（ゴーサイン）/ decompose（分解を始めるか決める）/
  * hand（人間の作業）/ idle（人間の番ではない）。終端（Close / Done）・Icebox は null。
  *
  * act はボタンを押して「行う」を選んだときの操作:
  * open（url を別タブで開く。リリース確認の確認ページもこれ）/ release（確認の結果を書くダイアログ）/
- * delegate（targets の 🙋 を外す）/ resolve（targets[0] の PR のコンフリクトを AI に解消してもらう）/ null（ボタンなし）。
+ * delegate（targets の 🙋 を外す）/ resolve（targets[0] の PR のコンフリクトを AI に解消してもらう）/
+ * merge-epic（リリース確認が全部 OK の EPIC の topic → develop の PR をマージして EPIC を閉じる・#2544）/ null（ボタンなし）。
  * @param {object} it board item（GET /board の items に humanWait の delegate を重ねたもの）
  * @param {object} [ctx] { kids: object[]（親がこの item の board item）, running: number[], questions: number[], repoUrl: string,
- *   decisions: number（この EPIC の決定待ちの件数） }
+ *   decisions: number（この EPIC の決定待ちの件数）, now: number（ms epoch。マージの時間の外を確かめに出す） }
  * @returns {object|null} { kind, button, happens, state, act, url, targets, epicPhase? }
  *   epicPhase は分解済み EPIC だけ: autonomous（自律で進行中・人間の番ではない）/ before-delegate（任せる前）/
  *   consult（途中の相談）/ final-check（最後の確認）
@@ -71,6 +95,17 @@ function humanAction(it, ctx) {
     // リリース確認（#2430）: topic → develop の PR とプレビューで確かめる。確認ページ（artifact）が無いあいだは確認の結果を書くダイアログ
     if (ai === 'Release Check' && it.hitl) {
         const pr = prUrl ? 'PR #' + openPr.number : 'topic → develop の PR';
+        // 全部 OK でマージを待っている（#2544）。board の releaseMerge は daemon が release-check の結果から載せる。
+        // 押すと daemon がトラッカー・PR を読み直して確かめてからマージする（ここでは出すかだけを決める）
+        const rm = it.releaseMerge;
+        if (rm && rm.pr) {
+            const w = developMergeWindow(c.now);
+            const note = c.now != null && !w.inWindow ? '。⚠️ ' + w.note : '';
+            return phase('final-check', r('check', 'develop へマージする',
+                'topic → develop の PR #' + rm.pr + ' の draft を外して develop へマージし、EPIC #' + it.issue + ' を Close にする' + note,
+                'リリース確認は全部 OK' + (rm.round ? '（round ' + rm.round + '）' : '') + '。develop へ出してよければマージしてください（確認ページは ⋯ から）',
+                'merge-epic', it.releasePageUrl || null, [it.issue]));
+        }
         // 確認ページ（#2474）があれば、プレビュー・観点・決定待ちを 1 枚で見て答えを送る
         if (it.releasePageUrl) {
             return phase('final-check', r('check', '確認ページを開く', 'プレビューと確認の観点・決定待ちを 1 枚で見て、答えを送る（別タブ）',
@@ -175,7 +210,7 @@ function humanAction(it, ctx) {
  * 人間の番ではないもの（idle）は数えず、最後にたたんで出す。EPIC の行のゴーサインにまとめた子は、
  * 子の行として重ねて出さない。モニターの「答えが要る」の欄に出している質問の Issue は出さない。
  * @param {object} board GET /board の応答（items / humanWait / running / monitorQuestions / repo）
- * @param {object} [opts] { repoUrl }
+ * @param {object} [opts] { repoUrl, now }
  * @returns {{sections: object[], idle: object[], counts: {total:number, check:number, answer:number, go:number, hand:number}}}
  */
 function forYouModel(board, opts) {
@@ -206,7 +241,7 @@ function forYouModel(board, opts) {
     for (const it of source) {
         if (asked.indexOf(it.issue) >= 0) continue;
         const a = humanAction(it, {
-            kids: kidsOf[it.issue] || [], running, questions: asked, repoUrl: o.repoUrl, decisions: decisionsOf[it.issue] || 0,
+            kids: kidsOf[it.issue] || [], running, questions: asked, repoUrl: o.repoUrl, decisions: decisionsOf[it.issue] || 0, now: o.now,
         });
         if (!a) continue;
         rows.push(Object.assign({
@@ -277,6 +312,6 @@ async function delegateTargets(targets, post) {
 }
 
 /** ブラウザへ埋め込む関数（monitor.js の SHARED_CLIENT_FNS） */
-const HUMAN_ACTION_CLIENT_FNS = [humanAction, forYouModel, linkIssueRefs, delegateTargets];
+const HUMAN_ACTION_CLIENT_FNS = [developMergeWindow, humanAction, forYouModel, linkIssueRefs, delegateTargets];
 
-module.exports = { humanAction, forYouModel, linkIssueRefs, delegateTargets, HUMAN_ACTION_CLIENT_FNS };
+module.exports = { developMergeWindow, humanAction, forYouModel, linkIssueRefs, delegateTargets, HUMAN_ACTION_CLIENT_FNS };

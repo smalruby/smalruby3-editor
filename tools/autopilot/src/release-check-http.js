@@ -10,6 +10,9 @@
  * - `POST /release-check/review`: 結果を目印付きのコメントとして Bot で書き、🙋 を外す
  *   （外す流れは「AI に任せる」と同じ monitor-answers.js の releaseHumanGate）
  *
+ * - `POST /release-check/merge?issue=N`（#2544）: 全部 OK の EPIC の topic → develop の PR を、トラッカー・PR を
+ *   読み直して確かめてから draft を外してマージし、EPIC を Close にして閉じる（{@link releaseMergeOnce}）。
+ *   人間が GitHub でマージしたときも同じ終わり方にする（{@link applyReleaseMergedEpics}）
  * - 確認ページ（artifact・#2474）: URL を EPIC ごとに状態ファイル（`$AUTOPILOT_STATE_DIR/release-check-pages.json`）に
  *   持ち、release-check の worker に `AUTOPILOT_ARTIFACT_URL` で渡す（{@link releasePageEnv}）。worker が結果の
  *   `artifactUrl` で返した URL を覚える（{@link rememberReleasePage}）。ページの答え（db）は worker が ArtifactData で読み、
@@ -21,11 +24,15 @@
 const fs = require('fs');
 const path = require('path');
 const project = require('./project');
-const { sanitizeForSurface } = require('./phases');
+const { sanitizeForSurface, HITL_LABEL } = require('./phases');
 const {
     selectReleaseCheckEntries, releaseCheckView, normalizeReleaseReviewBody, planReleaseReviewPost,
-    renderReleaseReviewComment,
+    renderReleaseReviewComment, releaseCheckRounds, parseReleaseResultMarker, handledPrFeedbackRefs, selectPrFeedback,
 } = require('./release-check');
+const {
+    releaseMergeReadiness, planReleaseMerge, releaseMergeCloseIntents, epicTopicBranch, selectReleaseCheckTrackers,
+    selectMergedReleaseEpics, releaseMergeCandidate,
+} = require('./release-merge');
 const { answerToReviewBody, planReleasePageState, releasePageUrl } = require('./release-page');
 const { stateDir } = require('./current-status-job');
 
@@ -34,6 +41,9 @@ function defaultIo() {
     return {
         botToken: project.botToken, readToken: project.readToken, applyIntents: project.applyIntents,
         listIssueComments: project.listIssueComments, postIssueComment: project.postIssueComment,
+        getEpicMergeFacts: project.getEpicMergeFacts, listPrFeedbackSources: project.listPrFeedbackSources,
+        listSubIssueBodies: project.listSubIssueBodies, markPrReady: project.markPrReady, mergePr: project.mergePr,
+        editLabels: project.editLabels, closeIssue: project.closeIssue, findMergedTopicPr: project.findMergedTopicPr,
     };
 }
 
@@ -165,6 +175,221 @@ async function releaseReviewOnce(ctx, body, deps = {}) {
     }
 }
 
+/**
+ * EPIC を終わらせる（モニターから押したとき・人間が GitHub でマージしたときの共通）。Status=Close・AI Status を空、
+ * 🙋 を外して Issue を閉じる。どれかが失敗しても残りは続け、失敗したものを返す（次の確かめで取り直せる）。
+ * @returns {Promise<string[]>} 失敗した段の理由
+ */
+async function finishEpicMerge(ctx, item, io, token) {
+    const { cfg, state, log } = ctx;
+    const failed = [];
+    const intents = releaseMergeCloseIntents();
+    const step = async (name, fn) => {
+        try { await fn(); } catch (e) { failed.push(`${name}: ${sanitizeForSurface(e.message)}`); }
+    };
+    await step('project', async () => {
+        await io.applyIntents({ projectId: cfg.projectId, fields: cfg.fields }, item.itemId, intents, token);
+        item.status = 'Close';
+        item.aiStatus = null;
+        if (io.patchBoardCache) io.patchBoardCache(state, item.issue, intents);
+    });
+    await step('hitl', async () => {
+        if (!item.hitl && !(item.labels || []).includes(HITL_LABEL)) return;
+        await io.editLabels(cfg.repo, item.issue, 'issue', { remove: [HITL_LABEL] }, token);
+        item.hitl = false;
+        if (Array.isArray(item.labels)) item.labels = item.labels.filter((l) => l !== HITL_LABEL);
+    });
+    await step('close', () => io.closeIssue(cfg.repo, item.issue, token));
+    forgetReleaseMerge(state, item.issue, io);
+    for (const f of failed) log(`#${item.issue}: EPIC close after merge: ${f}`);
+    return failed;
+}
+
+/**
+ * `POST /release-check/merge?issue=N` を 1 回受ける。押したときだけトラッカーと PR を読み直し、
+ * {@link planReleaseMerge} で確かめてから行う。書き込みは Bot。
+ * @param {object} ctx { cfg, state, log, now }
+ * @param {number|string} issueRaw
+ * @param {object} body `{confirmOffHours?: boolean}`
+ * @param {object} [deps] I/O の差し替え
+ * @returns {Promise<{status:number, body:object}>}
+ */
+async function releaseMergeOnce(ctx, issueRaw, body, deps = {}) {
+    const issue = /^\d+$/.test(String(issueRaw || '')) ? Number(issueRaw) : null;
+    if (!issue) return { status: 400, body: { error: 'issue (positive integer) required' } };
+    const { cfg, state, log } = ctx;
+    const io = { ...defaultIo(), ...deps };
+    const item = boardItem(state, issue);
+    if (!item) return { status: 404, body: { error: 'not a board item', code: 'unknown-item', issue } };
+    if (item.aiStatus !== 'Release Check' || !item.hitl) {
+        return { status: 409, body: { error: 'not waiting for a release check', code: 'not-release-check', issue } };
+    }
+    if (state.running && typeof state.running.has === 'function' && state.running.has(issue)) {
+        return { status: 409, body: { error: 'a worker is running on this EPIC', code: 'busy', issue } };
+    }
+    if (inFlight.has(issue)) return { status: 409, body: { error: 'already sending', code: 'in-flight', issue } };
+    inFlight.add(issue);
+    try {
+        let plan;
+        try {
+            const readTok = await io.readToken();
+            const comments = await io.listIssueComments(cfg.repo, issue, readTok);
+            const r = releaseCheckRounds(comments);
+            const marker = r.resultComment ? parseReleaseResultMarker(r.resultComment.body) : null;
+            let prFeedback = [];
+            let pr = null;
+            if (marker && marker.allOk && marker.pr) {
+                const src = await io.listPrFeedbackSources(cfg.repo, marker.pr, readTok);
+                const handled = handledPrFeedbackRefs({
+                    epic: issue, existingBodies: await io.listSubIssueBodies(cfg.repo, issue, readTok), comments,
+                });
+                prFeedback = selectPrFeedback({ ...src, handled });
+                pr = await io.getEpicMergeFacts(cfg.repo, marker.pr, readTok);
+            }
+            const readiness = releaseMergeReadiness({ comments, prFeedback });
+            plan = planReleaseMerge({
+                readiness, pr, nowMs: (ctx.now || Date.now)(), confirmOffHours: Boolean(body && body.confirmOffHours === true), epic: issue,
+            });
+        } catch (e) {
+            const error = sanitizeForSurface(e.message);
+            log(`#${issue}: release merge check failed: ${error}`);
+            return { status: 502, body: { error, issue } };
+        }
+        if (plan.action === 'refuse') {
+            log(`#${issue}: release merge refused (${plan.code})`);
+            return { status: 409, body: { error: plan.reason, code: plan.code, issue } };
+        }
+        if (plan.action === 'confirm') {
+            return { status: 409, body: { error: plan.reason, code: plan.code, confirm: true, issue } };
+        }
+        const token = await io.botToken();
+        try {
+            if (plan.steps.includes('ready')) await io.markPrReady(cfg.repo, plan.pr, token);
+            await io.mergePr(cfg.repo, plan.pr, token);
+        } catch (e) {
+            const error = sanitizeForSurface(e.message);
+            log(`#${issue}: release merge of PR #${plan.pr} failed: ${error}`);
+            return {
+                status: 502,
+                body: { error: `PR #${plan.pr} をマージできませんでした（${error}）。Bot の権限で通らないときは GitHub でマージしてください`, issue, pr: plan.pr },
+            };
+        }
+        log(`#${issue}: PR #${plan.pr} merged to develop from the monitor`);
+        const failed = await finishEpicMerge(ctx, item, io, token);
+        return { status: 200, body: { ok: true, issue, pr: plan.pr, closed: !failed.length, failed } };
+    } finally {
+        inFlight.delete(issue);
+    }
+}
+
+/**
+ * Release Check の EPIC の topic → develop の PR を人間が GitHub でマージしていたら、EPIC を終わらせる（#2544）。
+ * 見るのは Release Check のトラッカーだけ（ふつう 0〜1 件）で、1 件につき PR の一覧を 1 回読む。
+ * topic は子の `autopilot-base:`（dispatch の計画が既に読んだ本文のキャッシュ）か、全部 OK の結果の PR から。
+ * @param {object[]} boardItems
+ * @param {object} cfg
+ * @param {object} state
+ * @param {function} log
+ * @param {object} [deps] I/O の差し替え（patchBoardCache も）
+ * @returns {Promise<number[]>} 終わらせた EPIC
+ */
+async function applyReleaseMergedEpics(boardItems, cfg, state, log, deps = {}) {
+    const trackers = selectReleaseCheckTrackers(boardItems);
+    if (!trackers.length) return [];
+    const io = { ...defaultIo(), ...deps };
+    const directives = state && state.directives instanceof Map ? state.directives : null;
+    const baseOf = (n) => (directives && directives.get(n) ? directives.get(n).base : null);
+    const lookups = trackers.map((t) => ({
+        t, topic: epicTopicBranch(t.issue, boardItems, baseOf), cand: (state.releaseMerges && state.releaseMerges[t.issue]) || null,
+    })).filter((x) => x.topic || (x.cand && x.cand.pr));
+    if (!lookups.length) return [];
+    const readTok = await io.readToken();
+    const merged = {};
+    for (const { t, topic, cand } of lookups) {
+        try {
+            if (topic) {
+                const n = await io.findMergedTopicPr(cfg.repo, topic, 'develop', readTok);
+                if (n) merged[t.issue] = n;
+            } else {
+                const facts = await io.getEpicMergeFacts(cfg.repo, cand.pr, readTok);
+                if (facts && facts.state === 'MERGED' && facts.baseRefName === 'develop') merged[t.issue] = cand.pr;
+            }
+        } catch (e) {
+            log(`#${t.issue}: merged topic PR lookup failed: ${sanitizeForSurface(e.message)}`);
+        }
+    }
+    const targets = selectMergedReleaseEpics(boardItems, merged);
+    if (!targets.length) return [];
+    const token = await io.botToken();
+    const done = [];
+    for (const { item, pr } of targets) {
+        log(`#${item.issue}: topic → develop PR #${pr} was merged -> close the EPIC`);
+        await finishEpicMerge({ cfg, state, log }, item, io, token);
+        done.push(item.issue);
+    }
+    return done;
+}
+
+/** 全部 OK の材料の状態ファイル（daemon の再起動をまたいで「develop へマージする」を出し続ける） */
+function releaseMergesPath(env) { return path.join(stateDir(env), 'release-check-merges.json'); }
+
+/** 全部 OK の材料を読む。無い・壊れているときは空 */
+function loadReleaseMerges(deps = {}) {
+    try {
+        const v = JSON.parse((deps.readFileSync || fs.readFileSync)(releaseMergesPath(deps.env), 'utf8'));
+        return v && typeof v === 'object' && !Array.isArray(v) ? v : {};
+    } catch {
+        return {};
+    }
+}
+
+function saveReleaseMerges(merges, deps = {}) {
+    const file = releaseMergesPath(deps.env);
+    (deps.mkdirSync || fs.mkdirSync)(path.dirname(file), { recursive: true });
+    (deps.writeFileSync || fs.writeFileSync)(file, JSON.stringify(merges, null, 2));
+}
+
+/**
+ * release-check の結果から、モニターの「develop へマージする」を出す材料を覚える（全部 OK のときだけ。
+ * ほかの結果なら消す）。board のキャッシュにも載せる。押したときは daemon が改めて確かめる。
+ * @returns {boolean} 変わったか
+ */
+function rememberReleaseMerge(state, issue, result, log = () => {}, deps = {}) {
+    const cand = releaseMergeCandidate(result);
+    const cur = state.releaseMerges && state.releaseMerges[issue];
+    if (!cand && !cur) return false;
+    if (cand && cur && JSON.stringify(cand) === JSON.stringify(cur)) return false;
+    state.releaseMerges = { ...(state.releaseMerges || {}) };
+    if (cand) state.releaseMerges[issue] = cand;
+    else delete state.releaseMerges[issue];
+    const it = boardItem(state, issue);
+    if (it) it.releaseMerge = cand;
+    try { saveReleaseMerges(state.releaseMerges, deps); } catch (e) { log(`#${issue}: release merge save failed: ${e.message}`); }
+    if (cand) log(`#${issue}: release check all OK -> PR #${cand.pr} can be merged from the monitor`);
+    return true;
+}
+
+/** 材料を消す（EPIC を終わらせたあと） */
+function forgetReleaseMerge(state, issue, deps = {}) {
+    if (!state.releaseMerges || !state.releaseMerges[issue]) return;
+    state.releaseMerges = { ...state.releaseMerges };
+    delete state.releaseMerges[issue];
+    const it = boardItem(state, issue);
+    if (it) it.releaseMerge = null;
+    try { saveReleaseMerges(state.releaseMerges, deps); } catch { /* 次の結果で上書きされる */ }
+}
+
+/**
+ * board の item に載せる材料（Release Check + 🙋 のときだけ）。
+ * @param {object} state
+ * @param {{issue:number, aiStatus?:string, hitlLabel?:boolean}} it Project の item
+ * @returns {object|null}
+ */
+function releaseMergeOf(state, it) {
+    if (!it || it.aiStatus !== 'Release Check' || !it.hitlLabel) return null;
+    return (state.releaseMerges && state.releaseMerges[it.issue]) || null;
+}
+
 /** 確認ページの URL の状態ファイル（daemon の再起動をまたいで残す） */
 function releasePagesPath(env) { return path.join(stateDir(env), 'release-check-pages.json'); }
 
@@ -278,7 +503,7 @@ function readJson(req, max, cb) {
 }
 
 /**
- * daemon の HTTP に `GET /release-check` と `POST /release-check/review` を足す。扱ったら true を返す。
+ * daemon の HTTP に `GET /release-check`・`POST /release-check/review`・`POST /release-check/merge` を足す。扱ったら true を返す。
  * @param {object} req
  * @param {object} res
  * @param {URL} url
@@ -286,7 +511,8 @@ function readJson(req, max, cb) {
  * @returns {boolean}
  */
 function handleReleaseCheckHttp(req, res, url, ctx) {
-    if (!ctx || (url.pathname !== '/release-check' && url.pathname !== '/release-check/review')) return false;
+    const paths = ['/release-check', '/release-check/review', '/release-check/merge'];
+    if (!ctx || !paths.includes(url.pathname)) return false;
     const send = (code, obj) => {
         res.writeHead(code, { 'content-type': 'application/json' });
         res.end(JSON.stringify(obj));
@@ -300,7 +526,10 @@ function handleReleaseCheckHttp(req, res, url, ctx) {
     if (req.method !== 'POST') { send(405, { error: 'method not allowed' }); return true; }
     readJson(req, 64 * 1024, (err, body) => {
         if (err) return send(400, { error: `bad body: ${err.message}` });
-        releaseReviewOnce(ctx, body, ctx.deps).then((r) => send(r.status, r.body)).catch(fail);
+        const run = url.pathname === '/release-check/merge'
+            ? releaseMergeOnce(ctx, url.searchParams.get('issue'), body, ctx.deps)
+            : releaseReviewOnce(ctx, body, ctx.deps);
+        run.then((r) => send(r.status, r.body)).catch(fail);
     });
     return true;
 }
@@ -308,5 +537,6 @@ function handleReleaseCheckHttp(req, res, url, ctx) {
 module.exports = {
     applyReleaseCheckEntries, releaseCheckViewOnce, releaseReviewOnce, handleReleaseCheckHttp, rememberPreview,
     releasePagesPath, loadReleasePages, saveReleasePages, releasePageTemplateDir, releasePageEnv, rememberReleasePage,
-    postReleasePageAnswer,
+    postReleasePageAnswer, releaseMergeOnce, applyReleaseMergedEpics, finishEpicMerge, releaseMergesPath, loadReleaseMerges,
+    saveReleaseMerges, rememberReleaseMerge, forgetReleaseMerge, releaseMergeOf,
 };

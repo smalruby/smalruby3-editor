@@ -1320,7 +1320,7 @@ function renderInbox(d) {
       + '<button type="button" class="ibtn" data-drawer="tasks">中身を見る</button></span></div>').join('')
     : '';
   // 人間待ち: することごとの欄（確かめる → 答える → ゴーサイン → 分解 → 人間の作業）。中は P1 → P3（#2466・forYouModel）
-  const fy = forYouModel(Object.assign({}, d, { items }), { repoUrl });
+  const fy = forYouModel(Object.assign({}, d, { items }), { repoUrl, now: Date.now() });
   lastForYou = fy;
   const fyAll = fy.sections.reduce((a, sec) => a.concat(sec.rows), []).concat(fy.idle);
   if (fyConfirm != null && !fyAll.some((w) => w.issue === fyConfirm && w.button)) fyConfirm = null;
@@ -1616,6 +1616,8 @@ function openRowMenu(anchor, issue) {
     entries.push({ label: PR_KIND_ICON[p.kind] + ' PR#' + p.number, note: p.kind, href: repoUrl + '/pull/' + p.number });
   }
   if (running.indexOf(issue) >= 0) entries.push({ label: 'worker の log を見る', act: () => openLog(issue) });
+  // 全部 OK で「develop へマージする」が主ボタンになった EPIC でも、確認ページへ戻れるようにする（#2544）
+  if (it.releaseMerge && it.releasePageUrl) entries.push({ label: '📄 確認ページを開く', href: it.releasePageUrl });
   // 前の「AI に任せる」は、いつも使うものではないので ⋯ に残す（#2466）
   const wait = (lastInbox.waits || []).find((w) => w.issue === issue);
   // 確認ページ（#2474）で答えを送ったあと、🙋 を外して AI に読ませる。ダイアログは確認ページが開けないときの予備
@@ -1662,9 +1664,26 @@ async function doForYou(issue, btn) {
     await resolveConflict((w.targets && w.targets[0]) || issue);
     return;
   }
+  else if (w.act === 'merge-epic') { await mergeEpic(w, btn); return; }
   else if (w.act === 'delegate' && w.targets.length > 1) { await delegateMany(w, btn); return; }
   else if (w.act === 'delegate') { for (const n of w.targets) await delegateIssue(n, btn); return; }
   rerender();
+}
+// 「develop へマージする」（#2544）: daemon がトラッカー・PR を読み直して確かめてからマージし、EPIC を閉じる。
+// 時間の外は「これを行います」に出してあるので、押した人はもう確かめている（confirmOffHours）
+let mergeRequested = {};
+async function mergeEpic(w, btn) {
+  if (mergeRequested[w.issue]) return;
+  mergeRequested[w.issue] = true;
+  if (btn) btn.disabled = true;
+  try {
+    const j = await postJson('/release-check/merge?issue=' + w.issue, { confirmOffHours: true });
+    toast('EPIC #' + w.issue + ': PR #' + j.pr + ' を develop へマージし、EPIC を閉じました');
+  } catch (e) {
+    toast('EPIC #' + w.issue + ' をマージできませんでした: ' + e.message, true);
+  }
+  delete mergeRequested[w.issue];
+  await refresh();
 }
 // 「この EPIC を AI に任せる」（#2475）: 子の 🙋 を 1 件ずつ外し、結果を 1 回だけ知らせる
 async function delegateMany(w, btn) {

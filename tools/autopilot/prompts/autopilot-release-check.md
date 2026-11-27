@@ -18,7 +18,7 @@ topic → develop の PR に人間が直接書いたレビュー・コメント�
 | `AUTOPILOT_RELEASE_PAGE_TEMPLATE` | ページのテンプレート（形の正。変えない） |
 | `AUTOPILOT_RELEASE_PAGE_ANSWER` | ページで送られた答えを結果のコメントにするコマンド |
 
-- コードを変えない・コミットしない・PR をマージしない。**develop へのマージは人間**。
+- コードを変えない・コミットしない・PR をマージしない。**develop へのマージは人間**（モニターの「develop へマージする」か GitHub。#2544）。
 - Project のフィールドと 🙋 は書かない（daemon が結果を見て書く・単一ライター）。書くのはコメントと sub-issue だけ。
 - 判断の純粋関数は `tools/autopilot/src/release-check.js`。目印の形はそこに合わせる。
 
@@ -200,6 +200,11 @@ console.log(JSON.stringify({ ...rc.releaseCheckMode(comments, { pendingPrFeedbac
 4. 結果を受けたことをトラッカーに書く（`<!-- autopilot-release-result round=N -->` で始め、作った sub-issue の一覧（決定待ちから作ったものも）か
    「全部 OK」、受けた PR のレビュー・コメントの一覧）。同じ round のものがあれば PATCH する。PATCH するときは、前に
    書いた `autopilot-release-pr-seen` の行を消さずに残し、新しい ref を足す。
+   - **全部 OK のとき**は、1 行目の目印を `releaseResultMarker(round, {allOk: true, pr, head})` で作る
+     （`<!-- autopilot-release-result round=N allOk=1 pr=<PR> head=<SHA> -->`）。`head` は topic → develop の PR の
+     いまの head の SHA（`GH_TOKEN="$(bin/bot-token)" gh pr view "$PR" --repo "$REPO" --json headRefOid -q .headRefOid`）。
+     モニターの「develop へマージする」は、この SHA と PR の head が同じときだけマージする（確かめた中身と違うものをマージしない）。
+     PR が無いときは `pr` と `head` を省く（モニターからはマージできない）。
    - **`prOnly` のときは `autopilot-release-result` の目印を書かない**（書くと、その round のモニターの結果をあとで
      人間が書いても「もう受けた」と読まれて取りこぼす・`releaseCheckMode`）。新しいコメントに、1 行目に
      `releasePrSeenMarker(refs)`（直すことが無かった ref が無ければ省く）、続けて受けた PR のレビュー・コメントと
@@ -210,8 +215,11 @@ console.log(JSON.stringify({ ...rc.releaseCheckMode(comments, { pendingPrFeedbac
    - **全部 OK**（作るものが無い）→ topic → develop の PR の本文を更新する（入っている sub-issue・確認の結果・プレビュー）。
      ただし本文の 1 行目が `<!-- autopilot-epic-pr ` で始まる PR（daemon が作った PR）の本文は daemon だけが書くので、
      本文は変えず、確認の結果を PR のコメントに書く。
-     draft は外さない・マージしない。トラッカーに「develop へのマージと EPIC の Close は人間」と書いて人間に返す:
-     `{"signal":"done","hitl":true,"nextAiStatus":"Release Check", ...}`
+     draft は外さない・マージしない。トラッカーに「develop へのマージと EPIC の Close は、モニターの『develop へマージする』か
+     GitHub で人間が行う」と書いて人間に返す（どちらでも daemon が EPIC を Close にして閉じる）:
+     `{"signal":"done","hitl":true,"nextAiStatus":"Release Check","allOk":true,"pr":<PR>,"headSha":"<SHA>","round":N, ...}`
+     （`allOk` / `pr` / `headSha` は 4. の目印と同じ値。daemon がモニターの主ボタンを「develop へマージする」にする。PR が無ければ
+     `pr` と `headSha` を省く）
    - **`prOnly` で作るものが無かった**ときは「全部 OK」にしない（人間はまだその round の観点を確かめていない）。
      続けて **1. 観点をまとめる**（0. の `round`）を行い、その結果を返す。
 
