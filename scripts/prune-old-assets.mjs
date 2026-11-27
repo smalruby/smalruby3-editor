@@ -20,10 +20,10 @@
 //     --batch-dir <dir> [--prefix <key prefix>] [--exclude-prefix <relative prefix>]... [--days N]
 //   -> writes <batch-dir>/delete-<n>.json for `aws s3api delete-objects --delete file://...`
 //      and prints a summary.
-import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { parseArgs } from "node:util";
+import {mkdir, readdir, readFile, writeFile} from 'node:fs/promises';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {parseArgs} from 'node:util';
 
 /** Days a file of an old build stays after it was last uploaded. */
 export const RETENTION_DAYS = 14;
@@ -35,7 +35,7 @@ export const HASHED_PATTERN = /\.[0-9a-f]{8,}\./;
 export const VERSIONED_PATTERN = /^static\/monaco\/[^/]+\/vs\//;
 
 /** Names the deploy never uploads nor removes. */
-export const IGNORED_NAMES = new Set([".DS_Store", ".nojekyll", "CNAME"]);
+export const IGNORED_NAMES = new Set(['.DS_Store', '.nojekyll', 'CNAME']);
 
 /** delete-objects takes at most 1000 keys per call. */
 export const DELETE_BATCH_SIZE = 1000;
@@ -53,8 +53,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  * @param {string} relKey - Key relative to the deploy prefix.
  * @returns {boolean} True for names that change with every build.
  */
-export const isRetained = (relKey) =>
-    HASHED_PATTERN.test(relKey) || VERSIONED_PATTERN.test(relKey);
+export const isRetained = relKey => HASHED_PATTERN.test(relKey) || VERSIONED_PATTERN.test(relKey);
 
 /**
  * Plan which objects to remove.
@@ -71,43 +70,33 @@ export const isRetained = (relKey) =>
 export const planPrune = ({
     objects,
     localFiles,
-    prefix = "",
+    prefix = '',
     excludePrefixes = [],
     now,
     retentionDays = RETENTION_DAYS,
 }) => {
     if (!Number.isFinite(retentionDays) || retentionDays < 0) {
-        throw new Error(
-            `retentionDays must be a number of days, got ${retentionDays}`,
-        );
+        throw new Error(`retentionDays must be a number of days, got ${retentionDays}`);
     }
     const stale = [];
-    for (const { Key: key, LastModified: lastModified } of objects) {
+    for (const {Key: key, LastModified: lastModified} of objects) {
         if (!key.startsWith(prefix)) continue;
         const rel = key.slice(prefix.length);
-        if (rel === "" || rel.endsWith("/")) continue;
-        if (excludePrefixes.some((p) => rel.startsWith(p))) continue;
+        if (rel === '' || rel.endsWith('/')) continue;
+        if (excludePrefixes.some(p => rel.startsWith(p))) continue;
         if (IGNORED_NAMES.has(path.posix.basename(rel))) continue;
         if (localFiles.has(rel)) continue;
-        stale.push({
-            key,
-            retained: isRetained(rel),
-            modified: Date.parse(lastModified),
-        });
+        stale.push({key, retained: isRetained(rel), modified: Date.parse(lastModified)});
     }
     // Everything the new build has was just uploaded, so the newest of the rest is the build just
     // replaced. Its files stay even when the previous deploy was more than retentionDays ago.
     const previousBuild = stale.reduce(
-        (newest, s) =>
-            s.retained && s.modified > newest ? s.modified : newest,
+        (newest, s) => (s.retained && s.modified > newest ? s.modified : newest),
         -Infinity,
     );
-    const limit = Math.min(
-        now - retentionDays * DAY_MS,
-        previousBuild - BUILD_UPLOAD_SLACK_MS,
-    );
-    const plan = { delete: [], retained: [] };
-    for (const { key, retained, modified } of stale) {
+    const limit = Math.min(now - retentionDays * DAY_MS, previousBuild - BUILD_UPLOAD_SLACK_MS);
+    const plan = {delete: [], retained: []};
+    for (const {key, retained, modified} of stale) {
         // An unreadable date counts as new: keeping a file one more deploy is harmless.
         if (retained && (Number.isNaN(modified) || modified >= limit)) {
             plan.retained.push(key);
@@ -123,15 +112,10 @@ export const planPrune = ({
  * @param {string[]} keys - Keys to remove.
  * @returns {Array<{Objects: Array<{Key: string}>, Quiet: boolean}>} Payloads.
  */
-export const toDeleteBatches = (keys) => {
+export const toDeleteBatches = keys => {
     const batches = [];
     for (let i = 0; i < keys.length; i += DELETE_BATCH_SIZE) {
-        batches.push({
-            Objects: keys
-                .slice(i, i + DELETE_BATCH_SIZE)
-                .map((Key) => ({ Key })),
-            Quiet: true,
-        });
+        batches.push({Objects: keys.slice(i, i + DELETE_BATCH_SIZE).map(Key => ({Key})), Quiet: true});
     }
     return batches;
 };
@@ -141,21 +125,13 @@ export const toDeleteBatches = (keys) => {
  * @param {string} dir - Directory.
  * @returns {Promise<Set<string>>} Relative paths.
  */
-export const listLocalFiles = async (dir) => {
-    const entries = await readdir(dir, {
-        recursive: true,
-        withFileTypes: true,
-    });
+export const listLocalFiles = async dir => {
+    const entries = await readdir(dir, {recursive: true, withFileTypes: true});
     const files = new Set();
     for (const entry of entries) {
         if (!entry.isFile()) continue;
         const parent = entry.parentPath ?? entry.path;
-        files.add(
-            path
-                .relative(dir, path.join(parent, entry.name))
-                .split(path.sep)
-                .join("/"),
-        );
+        files.add(path.relative(dir, path.join(parent, entry.name)).split(path.sep).join('/'));
     }
     return files;
 };
@@ -167,7 +143,7 @@ export const listLocalFiles = async (dir) => {
  * @returns {Promise<string[]>} Written files.
  */
 export const writeDeleteBatches = async (keys, dir) => {
-    await mkdir(dir, { recursive: true });
+    await mkdir(dir, {recursive: true});
     const written = [];
     for (const [i, batch] of toDeleteBatches(keys).entries()) {
         const file = path.join(dir, `delete-${i}.json`);
@@ -178,39 +154,39 @@ export const writeDeleteBatches = async (keys, dir) => {
 };
 
 const main = async () => {
-    const { values } = parseArgs({
+    const {values} = parseArgs({
         options: {
-            src: { type: "string" },
-            listing: { type: "string" },
-            "batch-dir": { type: "string" },
-            prefix: { type: "string", default: "" },
-            "exclude-prefix": { type: "string", multiple: true, default: [] },
-            days: { type: "string", default: String(RETENTION_DAYS) },
+            'src': {type: 'string'},
+            'listing': {type: 'string'},
+            'batch-dir': {type: 'string'},
+            'prefix': {type: 'string', default: ''},
+            'exclude-prefix': {type: 'string', multiple: true, default: []},
+            'days': {type: 'string', default: String(RETENTION_DAYS)},
         },
     });
-    if (!values.src || !values.listing || !values["batch-dir"]) {
-        throw new Error("--src, --listing and --batch-dir are required");
+    if (!values.src || !values.listing || !values['batch-dir']) {
+        throw new Error('--src, --listing and --batch-dir are required');
     }
-    const listingText = (await readFile(values.listing, "utf8")).trim();
+    const listingText = (await readFile(values.listing, 'utf8')).trim();
     // list-objects-v2 prints nothing (or no Contents) for an empty prefix.
     const objects = listingText ? (JSON.parse(listingText).Contents ?? []) : [];
     const plan = planPrune({
         objects,
         localFiles: await listLocalFiles(values.src),
         prefix: values.prefix,
-        excludePrefixes: values["exclude-prefix"],
+        excludePrefixes: values['exclude-prefix'],
         now: Date.now(),
-        retentionDays: values.days.trim() === "" ? NaN : Number(values.days),
+        retentionDays: values.days.trim() === '' ? NaN : Number(values.days),
     });
-    await writeDeleteBatches(plan.delete, values["batch-dir"]);
+    await writeDeleteBatches(plan.delete, values['batch-dir']);
     console.log(
-        `prune ${values.prefix || "/"}: remove ${plan.delete.length}, ` +
+        `prune ${values.prefix || '/'}: remove ${plan.delete.length}, ` +
             `keep ${plan.retained.length} file(s) of older builds (up to ${values.days} days)`,
     );
 };
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-    main().catch((error) => {
+    main().catch(error => {
         console.error(error);
         process.exit(1);
     });
