@@ -81,6 +81,42 @@ test('applyMergeProgression: closes leaf with merged PR; skips not-merged/EPIC/t
     assert.equal(m['AI Status'], null);
 });
 
+// #1934 の形: 前の PR #1997 は同じ head ブランチからマージ済み、今の PR #2490 は open でレビュー待ち。
+// 本物の hasMergedPullRequest を gh の差し替えで動かし、Close に進まないことと、open が無ければ
+// これまでどおり Close に進むことを確かめる（#2498）。
+test('applyMergeProgression: 同じブランチに open の PR が残る Issue は Close に進めない（#2498）', async () => {
+    const { hasMergedPullRequest } = require('../src/project');
+    const headPrs = {
+        1934: [{ number: 2490, state: 'OPEN' }, { number: 1997, state: 'MERGED' }],
+        1935: [{ number: 1998, state: 'MERGED' }],
+    };
+    const fakeGh = (args) => {
+        if (args.includes('graphql')) {
+            return JSON.stringify({ data: { repository: { issue: { closedByPullRequestsReferences: { nodes: [] } } } } });
+        }
+        const issue = Number(args[args.indexOf('--head') + 1].replace('topic/autopilot-', ''));
+        return JSON.stringify(headPrs[issue] || []);
+    };
+    const items = [
+        { issue: 1934, itemId: 'i1934', status: 'Review', kind: 'Issue' },
+        { issue: 1935, itemId: 'i1935', status: 'Review', kind: 'Issue' },
+    ];
+    const applied = [];
+    const closed = [];
+    await applyMergeProgression(items, makeCfg(), { running: new Map() }, () => {}, {
+        token: 't',
+        cleanupWorktree: async () => {},
+        hasMergedPullRequest: (repo, issue, tok) => hasMergedPullRequest(repo, issue, tok, { gh: fakeGh }),
+        applyIntents: (ctx, itemId, intents) => { applied.push(itemId); return []; },
+        closeIssue: (repo, issue) => closed.push(issue),
+        findItemId: () => 'x',
+        syncFaces: () => {},
+    });
+    assert.deepEqual(applied, ['i1935']);
+    assert.deepEqual(closed, [1935]);
+    assert.equal(items[0].status, 'Review');
+});
+
 test('applyMergeProgression: Blocked + 🙋 の leaf も merge で Close へ進み 🙋 を外す（#1351）', async () => {
     // PR 本文に Closes が無い（GitHub が Issue を閉じない）ケース: merge-progression だけが出口
     const items = [{ issue: 1, itemId: 'i1', status: 'Blocked', kind: 'Issue', hitlLabel: true, aiStatus: 'Implementing' }];

@@ -60,6 +60,20 @@ console.log(JSON.stringify({ ...rc.releaseCheckMode(comments, { pendingPrFeedbac
    無ければプレビューの URL は「無し」と書き、観点だけをまとめる（PR を作らない）。
 2. **プレビューの URL**: PR の本文・コメントの `https://preview.smalruby.app/<slug>/`。無ければ
    `node scripts/preview-slug.mjs <topic ブランチ>` の規則で作る（スクリプトの使い方はファイルの先頭を読む）。
+   **観点を書く前に、プレビューができているかを確かめる**（#2485。競合している PR では CI が動かず、
+   プレビューが作られない）:
+
+   ```bash
+   GH_TOKEN="$(bin/bot-token)" tools/autopilot/bin/preview-status --pr "$PR" --repo "$REPO"
+   # → {"ready":true|false,"state":"conflict|no-ci|building|failed|missing|ready","text":"...","line":"...","url":"..."}
+   ```
+
+   - 観点のコメントの `**プレビュー**:` の行は、出力の `line` をそのまま使う（`release-check.js` の
+     `releasePreviewLine`）。`ready:false` なら URL を書かず `**プレビュー**: まだありません — <理由>` になる。
+     観点だけを先に出してよい。
+     **人間に開けない URL を「確かめる場所」として渡さない**。結果の `previewUrl` は null にする。
+   - `state:"conflict"` のときは、daemon が develop を topic に取り込む PR を作る（`applyEpicTopicSync`）。
+     自分で merge・push しない。
 3. **観点を集める**（読むだけ）:
    - EPIC の本文と、EPIC の「決定待ち」まとめコメント（`<!-- autopilot-epic-decisions`）の決めたこと
    - 済んだ sub-issue の DoD（本文の `## DoD`）と、その PR のレビューのまとめ（`<!-- autopilot-review-findings`）で
@@ -72,7 +86,7 @@ console.log(JSON.stringify({ ...rc.releaseCheckMode(comments, { pendingPrFeedbac
    <!-- autopilot-release-check round=N -->
    ## 🚀 リリース確認（round N）
 
-   **プレビュー**: https://preview.smalruby.app/<slug>/
+   **プレビュー**: https://preview.smalruby.app/<slug>/（まだ無ければ `まだありません — <preview-status の text>`）
    **topic → develop の PR**: #<番号>
 
    プレビューで次を確かめ、モニターの「確認の結果を書く」で観点ごとに OK / NG を送ってください。

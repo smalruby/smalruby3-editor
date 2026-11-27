@@ -1320,7 +1320,8 @@ function renderInbox(d) {
         + '<button type="button" class="vbtn a-' + w.kind + '" data-act="fy-do" data-issue="' + w.issue + '" data-testid="inbox-confirm-do">行う</button>'
         + '<button type="button" class="ibtn" data-act="fy-cancel" data-testid="inbox-confirm-cancel">やめる</button></span></div>' : '';
     // 1 行目は種類の札と題名だけにして、題名にペインの幅を使わせる（#2483）。番号・優先度・ボタンは 2 行目
-    return '<div class="fy-row" data-testid="inbox-wait" data-issue="' + w.issue + '" data-kind="' + w.kind + '">'
+    return '<div class="fy-row" data-testid="inbox-wait" data-issue="' + w.issue + '" data-kind="' + w.kind + '"'
+      + (w.epicPhase ? ' data-epic-phase="' + esc(w.epicPhase) + '"' : '') + '>'
       + '<div class="fy-title" data-testid="inbox-wait-title">' + kindChip + tipTitle('span', 'i:' + w.issue, w, shortTitle(w.title)) + '</div>'
       + '<div class="fy-meta" data-testid="inbox-wait-meta">' + ilink(w.issue, w.url)
       + (w.priority ? '<span class="gprio ' + esc(w.priority.toLowerCase()) + '">' + esc(w.priority) + '</span>' : '')
@@ -1622,9 +1623,18 @@ async function doForYou(issue, btn) {
   if (!w) { rerender(); return; }
   if (w.act === 'open' && w.url) window.open(w.url, '_blank', 'noopener');
   else if (w.act === 'release') { if (w.url) window.open(w.url, '_blank', 'noopener'); openRelease(issue); }
-  else if (w.act === 'answer') { openQuestion = issue; lastQuestionsHtml = ''; }
+  else if (w.act === 'answer') { openQuestion = (w.targets && w.targets[0]) || issue; lastQuestionsHtml = ''; }
+  else if (w.act === 'delegate' && w.targets.length > 1) { await delegateMany(w, btn); return; }
   else if (w.act === 'delegate') { for (const n of w.targets) await delegateIssue(n, btn); return; }
   rerender();
+}
+// 「この EPIC を AI に任せる」（#2475）: 子の 🙋 を 1 件ずつ外し、結果を 1 回だけ知らせる
+async function delegateMany(w, btn) {
+  if (btn) btn.disabled = true;
+  const res = await delegateTargets(w.targets, (n) => postJson('/delegate', { issue: n }));
+  if (res.failed.length) toast('#' + w.issue + ': ' + res.ok.length + ' 件を任せ、' + res.failed.map((f) => '#' + f.issue).join('・') + ' は任せられませんでした: ' + res.failed[0].error, true);
+  else toast('#' + w.issue + ' を AI に任せました（子 ' + res.ok.length + ' 件の 🙋 を外した）');
+  refresh();
 }
 // 「AI に任せる」（人間待ちの行）: daemon が 🙋 を外し、autopilot が次のフェーズを拾う（POST /delegate）
 async function delegateIssue(issue, btn) {
