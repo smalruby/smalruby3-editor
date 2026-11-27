@@ -67,8 +67,8 @@ const enabledColorModes = [DEFAULT_MODE, HIGH_CONTRAST_MODE];
 const SettingsMenu = ({
     // === Smalruby: Start of v1 switch prevention ===
     vm,
-    canChangeLanguage,
     // === Smalruby: End of v1 switch prevention ===
+    canChangeLanguage,
     canChangeColorMode,
     canChangeTheme,
     hasActiveMembership,
@@ -151,7 +151,7 @@ const SettingsMenu = ({
         // === Smalruby: Start of ruby version menu ===
         onChangeRubyVersion(rubyVersion);
     }, [intl, vm, onChangeRubyVersion]);
-        // === Smalruby: End of ruby version menu ===
+    // === Smalruby: End of ruby version menu ===
 
     return (
         <div

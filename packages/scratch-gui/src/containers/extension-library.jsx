@@ -2,7 +2,9 @@ import bindAll from 'lodash.bindall';
 import PropTypes from 'prop-types';
 import React from 'react';
 import VM from '@smalruby/scratch-vm';
+// === Smalruby: Start of show all extensions ===
 import {connect} from 'react-redux';
+// === Smalruby: End of show all extensions ===
 import {defineMessages, injectIntl, FormattedMessage} from 'react-intl';
 import intlShape from '../lib/intlShape.js';
 
