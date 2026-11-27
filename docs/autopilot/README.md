@@ -1006,6 +1006,7 @@ daemon の `GET /`（既定 `http://localhost:8787/`）は、人間と同意し�
   |---|---|---|---|
   | 🧭 EPIC で Release Check（最後の確認） | 確かめる | 確認ページを開く | プレビュー / topic → develop の PR と「確認の結果を書く」のダイアログを開く（確認ページの artifact ができるまでのあいだ） |
   | 🧭 EPIC で子が全部済んだ（Release Check の前） | 確かめる | プレビューで確かめる | プレビュー / topic → develop の PR を開く |
+  | Review / DoD（ほか 🙋 付き）で OPEN の PR が base とコンフリクト（`mergeable=CONFLICTING`・worker なし） | 確かめる | コンフリクトを解消してもらう | `POST /resolve-conflict`。AI が base を取り込んで解消し push する。🙋 と Status はそのまま（済めば daemon が `mergeable` を直し、行はもとのボタン（Review / DoD なら「PR を見る」）に戻る）。分解済み EPIC の途中の相談の子がこの状態なら、EPIC の行も同じボタン |
   | Review / DoD（PR あり） | 確かめる | PR を見る | PR を開く。OK なら 🙋 を外すと AI が先へ進む |
   | Blocked | 確かめる | Issue を見る | Issue を開く |
   | モニターの質問・相談中（Discussing / 🔬 spike） | 答える | 答える | 質問の欄を開く / Issue を開く |
@@ -1079,6 +1080,7 @@ daemon の `GET /`（既定 `http://localhost:8787/`）は、人間と同意し�
   切りかえは行の ⋯ で、**楽観的更新**（先に画面で動かし、失敗したら元に戻してトースト）。daemon も Issue ごとに
   直列化して最後の目標に畳み込む。あとでやる の中の人間待ちも「あなた宛て」に出る（💤 の印つき）。
 - **コンフリクト**（#1348）: GitHub が判定した `mergeable` で、コンフリクトしている OPEN の PR の「PR」のリンクに枠（title に理由）。
+  「あなた宛て」では、レビューより先に「コンフリクトを解消してもらう」を主ボタンにする（行の ⋯ の 🔀 も残す）。
 - **除外**: Close / Done / Icebox はボードに出さない。`--assignee` 起動時は自分が Assignees のいずれかの item に限る
   （共同担当も観察のため出る。観察中の item は `refreshBoard` の周期か「更新」でだけ最新になる）。
 - **判断の置き場**: 意味の色・あなた宛ての組み立て・状況板の行の絞り込み・答えの組み立て・数字キーは

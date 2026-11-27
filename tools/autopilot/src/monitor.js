@@ -1629,6 +1629,12 @@ async function doForYou(issue, btn) {
   if (w.act === 'open' && w.url) window.open(w.url, '_blank', 'noopener');
   else if (w.act === 'release') { if (w.url) window.open(w.url, '_blank', 'noopener'); openRelease(issue); }
   else if (w.act === 'answer') { openQuestion = (w.targets && w.targets[0]) || issue; lastQuestionsHtml = ''; }
+  else if (w.act === 'resolve') {
+    // コンフリクトの解消（#2524）。行の ⋯ の「🔀 コンフリクトを解消」と同じ POST /resolve-conflict。送っている間は押せない
+    if (btn) btn.disabled = true;
+    await resolveConflict((w.targets && w.targets[0]) || issue);
+    return;
+  }
   else if (w.act === 'delegate' && w.targets.length > 1) { await delegateMany(w, btn); return; }
   else if (w.act === 'delegate') { for (const n of w.targets) await delegateIssue(n, btn); return; }
   rerender();

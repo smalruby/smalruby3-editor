@@ -573,6 +573,38 @@ test('MONITOR_HTML: あなた宛ては動詞のボタン → 行の中の確か�
     for (const fn of ha.HUMAN_ACTION_CLIENT_FNS) assert.ok(MONITOR_HTML.includes(String(fn)), fn.name);
 });
 
+test('MONITOR_HTML: あなた宛ての主ボタンが resolve なら POST /resolve-conflict を呼び、送っている間は押せない（#2524）', async () => {
+    const vm = require('node:vm');
+    const cut = (from, to) => {
+        const i = MONITOR_HTML.indexOf(from);
+        const j = MONITOR_HTML.indexOf(to, i);
+        assert.ok(i > -1 && j > i, from);
+        return MONITOR_HTML.slice(i, j);
+    };
+    const src = cut('async function doForYou(', '\n// 「この EPIC を AI に任せる」')
+        + cut('let resolveRequested = {};', '\n// 楽観的更新');
+    const calls = [];
+    const toasts = [];
+    let refreshed = 0;
+    const ctx = vm.createContext({
+        fyConfirm: 1,
+        findForYou: (n) => (n === 2450 ? { issue: 2450, act: 'resolve', targets: [2457] } : null),
+        rerender: () => {}, toast: (m) => toasts.push(m), refresh: async () => { refreshed++; },
+        window: { open: () => {} },
+        fetch: async (url, opt) => { calls.push([url, opt && opt.method]); return { ok: true, json: async () => ({ ok: true }) }; },
+    });
+    vm.runInContext(src + '\nthis.go = (n, b) => doForYou(n, b);', ctx);
+    const btn = { disabled: false };
+    await ctx.go(2450, btn);
+    // EPIC の行（途中の相談）でも、解消するのは targets[0] の子の PR
+    assert.deepStrictEqual(calls, [['/resolve-conflict?issue=2457', 'POST']]);
+    assert.strictEqual(btn.disabled, true);
+    assert.match(toasts[0], /#2457 のコンフリクト解消を頼みました/);
+    assert.strictEqual(refreshed, 1);
+    // 行の ⋯ の「🔀 コンフリクトを解消」は残す
+    assert.ok(MONITOR_HTML.includes("label: '🔀 コンフリクトを解消'"));
+});
+
 test('MONITOR_HTML: monitor-inbox.js の純粋関数を verbatim で埋め込む（二重定義しない）', () => {
     const inbox = require('../src/monitor-inbox');
     for (const fn of inbox.INBOX_CLIENT_FNS) {

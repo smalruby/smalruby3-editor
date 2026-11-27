@@ -14,5 +14,6 @@ autopilot モニタ（`tools/autopilot/src/monitor.js` の Web UI）の動作イ
 | `monitor-fix-instruction-light.png` / `monitor-fix-instruction-dark.png` | 「AI に直してもらう」のダイアログ。PR のいちばん新しい round の bot の指摘を整形して見せ、下のコメント欄に直してほしいことを書いて送る（空では送れない）（#2415） |
 | `monitor-release-check-row-light.png` / `monitor-release-check-row-dark.png` | 「あなた宛て」のリリース確認の行。札「リリース確認」、プレビューへのリンク、「確認の結果を書く」ボタン（#2430） |
 | `monitor-release-check-dialog-light.png` / `monitor-release-check-dialog-dark.png` | 「確認の結果を書く」のダイアログ。観点（R1, R2, …）ごとに OK / NG とメモ、全体のコメントを書いて送る（#2430） |
+| `monitor-for-you-conflict-light.png` / `monitor-for-you-conflict-dark.png` | 「あなた宛て」で、Review の PR が base とコンフリクトしている行。主ボタンは「コンフリクトを解消してもらう」（`POST /resolve-conflict`）（#2524） |
 | `monitor-global-menu-closed.png` | 上の行の「⋯」から「tick を 1 回走らせる」を選んだ直後。メニューはすぐ閉じ、「tick を頼みました」のトーストが出る（#2525） |
 | `monitor-heading-icon.png` | 上の行の見出しのアイコン（虹色の ∞ + A・ダーク・3 倍に拡大）（#2413） |
