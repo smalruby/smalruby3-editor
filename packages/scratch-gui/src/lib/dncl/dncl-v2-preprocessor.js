@@ -672,6 +672,28 @@ const preprocessLine = (line) => {
 };
 
 /**
+ * Whether a code line sits inside the indentation-style block `top` but less
+ * deep than the body of that block, i.e. at a depth that matches no block
+ * (Issue #2052). Such a line is read as a line of `top` (the inner block),
+ * which may not be what the user meant: a tab is 4 columns and a full-width
+ * space 2, so tab and full-width space indents mixed easily land between two depths.
+ * The first body line of a block (or of its `そうでなければ`) sets the depth
+ * of its body. Lines with `｜` / `⎿` are left to the markers.
+ * @param {?object} top - The innermost open block after the line is read.
+ * @param {number} width - The width of the indent of the line.
+ * @param {string} line - The line (after the line number is taken off).
+ * @returns {boolean} True when the indent matches no block.
+ */
+const isIndentMismatch = (top, width, line) => {
+    if (!top || !top.colon || !top.hasBody || /^\s*[｜|⎿]/.test(line)) return false;
+    if (top.bodyWidth === null) {
+        top.bodyWidth = width;
+        return false;
+    }
+    return width > top.width && width < top.bodyWidth && top.bodyWidth < MARKER_INDENT_WIDTH;
+};
+
+/**
  * Pre-process a multi-line DNCLv2 source string into Smalruby DNCL form.
  * See file header for the complete list of normalizations.
  *
@@ -690,17 +712,21 @@ const preprocessLine = (line) => {
  *   - a closer added for an indentation-style block maps to the last code
  *     line of the block it closes
  * @param {string} source - The DNCLv2 source.
- * @returns {{source: string, lineMap: Array<number>, columnShift: Array<number>}}
+ * @returns {{source: string, lineMap: Array<number>, columnShift: Array<number>,
+ *   indentMismatches: Array<number>}}
  *   The pre-processed source, `lineMap[i]` = the 1-based source line of
- *   output line i+1, and `columnShift[i]` = what to add to a column of the
+ *   output line i+1, `columnShift[i]` = what to add to a column of the
  *   code on output line i+1 to get its column in the source (the indent is
- *   made from the block depth and the line number is taken off).
+ *   made from the block depth and the line number is taken off), and
+ *   `indentMismatches` = the 1-based source lines whose indent matches no
+ *   block (see `isIndentMismatch`).
  */
 const dnclV2PreprocessWithLineMap = (source) => {
     const stack = [];
     const out = [];
     const lineMap = [];
     const columnShift = [];
+    const indentMismatches = [];
     // Source line of the last code (non-blank, non-comment) line emitted,
     // i.e. where an indentation-style block ends.
     let lastCodeLine = 1;
@@ -720,6 +746,7 @@ const dnclV2PreprocessWithLineMap = (source) => {
             if (top.colon && !top.hasBody) {
                 if (width > top.width) {
                     top.hasBody = true;
+                    top.bodyWidth = width;
                     return;
                 }
                 // No indented body: the block is closed some other way.
@@ -735,6 +762,8 @@ const dnclV2PreprocessWithLineMap = (source) => {
                 return;
             }
             if (width === top.width && top.type === 'if' && isIfContinuation(body)) {
+                // The body of `そうでなければ` sets its own width.
+                top.bodyWidth = null;
                 return;
             }
             emitCloser(stack.pop(), lastCodeLine);
@@ -763,7 +792,12 @@ const dnclV2PreprocessWithLineMap = (source) => {
             // Blocks are found from the code without its trailing comment.
             const body = splitTrailingComment(marked.substring(indent.length)).code.replace(/\s+$/, '');
             const isCode = body !== '' && !body.startsWith('#');
-            if (isCode) closeByIndent(width, body);
+            if (isCode) {
+                closeByIndent(width, body);
+                if (pieceIdx === 0 && isIndentMismatch(stack[stack.length - 1], width, line)) {
+                    indentMismatches.push(lineNumber);
+                }
+            }
             // The Ruby indent is made from the block depth (2 spaces a level),
             // not kept from the source, whose indent may be 3 / 4 spaces, a
             // full-width space or a tab (Issue #1718). An else / else-if line
@@ -780,7 +814,7 @@ const dnclV2PreprocessWithLineMap = (source) => {
             if (isCode) lastCodeLine = lineNumber;
             const type = detectBlockType(body);
             if (type) {
-                stack.push({ type, indent: depthIndent, width, colon: colonOpener, hasBody: false });
+                stack.push({ type, indent: depthIndent, width, colon: colonOpener, hasBody: false, bodyWidth: null });
             }
             // Emit closers for each `⎿` on this line.
             for (let i = 0; i < closeCount; i++) {
@@ -796,7 +830,7 @@ const dnclV2PreprocessWithLineMap = (source) => {
         if (!top.colon || !top.hasBody) break;
         emitCloser(stack.pop(), lastCodeLine);
     }
-    return { source: out.join('\n'), lineMap, columnShift };
+    return { source: out.join('\n'), lineMap, columnShift, indentMismatches };
 };
 
 /**
@@ -807,4 +841,12 @@ const dnclV2PreprocessWithLineMap = (source) => {
  */
 const dnclV2Preprocess = (source) => dnclV2PreprocessWithLineMap(source).source;
 
-export { dnclV2Preprocess, dnclV2PreprocessWithLineMap };
+/**
+ * The source lines whose indent matches no block (see `isIndentMismatch`).
+ * The source is still read as before; the editor warns on these lines.
+ * @param {string} source - The DNCLv2 source.
+ * @returns {Array<number>} The 1-based source lines.
+ */
+const findIndentMismatchLines = (source) => dnclV2PreprocessWithLineMap(source).indentMismatches;
+
+export { dnclV2Preprocess, dnclV2PreprocessWithLineMap, findIndentMismatchLines };

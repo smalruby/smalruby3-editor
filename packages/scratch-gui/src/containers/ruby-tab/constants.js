@@ -14,6 +14,9 @@ const DNCL_UNSUPPORTED_OWNER = 'smalruby-dncl-unsupported';
 // Monaco marker owner for the warnings on a `//` that looks like a comment
 // (Issue #1711).
 const DNCL_SLASH_COMMENT_OWNER = 'smalruby-dncl-slash-comment';
+// Monaco marker owner for the warnings on an indent that matches no block
+// (Issue #2052).
+const DNCL_INDENT_HINT_OWNER = 'smalruby-dncl-indent';
 
 export {
     FONT_SIZES,
@@ -25,4 +28,5 @@ export {
     DNCL_INDEX_HINT_OWNER,
     DNCL_UNSUPPORTED_OWNER,
     DNCL_SLASH_COMMENT_OWNER,
+    DNCL_INDENT_HINT_OWNER,
 };

@@ -15,6 +15,7 @@ import collectMetadata from '../lib/collect-metadata.js';
 import { findArrayIndexHints } from '../lib/dncl/dncl-array-index-hint';
 import { slashCommentRows, tidyPastedDncl, withDoubleSlashHint } from '../lib/dncl/dncl-paste-tidy';
 import { dnclToRuby, rubyForLeavingDncl } from '../lib/dncl/dncl-to-ruby';
+import { findIndentMismatchLines } from '../lib/dncl/dncl-v2-preprocessor';
 import {
     isRubyCommandName,
     POST_TEST_LOOP_ERROR_ID,
@@ -65,6 +66,7 @@ import {
     DNCL_INDEX_HINT_OWNER,
     DNCL_UNSUPPORTED_OWNER,
     DNCL_SLASH_COMMENT_OWNER,
+    DNCL_INDENT_HINT_OWNER,
 } from './ruby-tab/constants';
 import updateDebugGlobals from './ruby-tab/debug-globals';
 import { offerDnclIndexShift } from './ruby-tab/dncl-index-shift';
@@ -1224,6 +1226,32 @@ const RubyTab = (props) => {
             indexShiftDecorationsRef.current = null;
         }
     }, [dnclMode]);
+
+    // A line indented to a depth that matches no block (a tab is 4 columns
+    // and a full-width space 2) is read as a line of the inner block without
+    // an error, so warn on it. The markers use their own owner so clearing
+    // conversion errors keeps them (Issue #2052).
+    useEffect(() => {
+        if (!editorRef.current || !monacoRef.current) return;
+        const lines = dnclMode ? dnclDisplayCode.split('\n') : [];
+        const rows = dnclMode ? findIndentMismatchLines(dnclDisplayCode) : [];
+        const message = intl.formatMessage({
+            id: 'gui.rubyTab.dnclIndentMismatchHint',
+            defaultMessage:
+                'The indent of this line matches no block, so it is read as a line of the block above it. Indent it as deep as the lines of the block it belongs to (a tab counts as 4 spaces and a full-width space as 2).',
+        });
+        const markers = rows
+            .filter((line) => line <= lines.length)
+            .map((line) => ({
+                startLineNumber: line,
+                startColumn: 1,
+                endLineNumber: line,
+                endColumn: lines[line - 1].length + 1,
+                message,
+                severity: monacoRef.current.MarkerSeverity.Warning,
+            }));
+        monacoRef.current.editor.setModelMarkers(editorRef.current.getModel(), DNCL_INDENT_HINT_OWNER, markers);
+    }, [dnclMode, dnclDisplayCode, intl]);
 
     // Smalruby DNCL arrays start at index 0. A program written with 1-based
     // indices reads past the end of an array, where the VM silently returns
