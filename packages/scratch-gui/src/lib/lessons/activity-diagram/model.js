@@ -249,6 +249,8 @@ export const partnerLane = (partner, { format, locale = null }) => {
             body: actionsOf(reply),
         })),
     ];
+    // 届いたものを見せるだけの練習相手（watch だけ・#2173）は、相手のスクリプトが無いのでレーンを描かない
+    if (scripts.length === 0) return null;
     return {
         id: 'partner',
         label: normalized.name,

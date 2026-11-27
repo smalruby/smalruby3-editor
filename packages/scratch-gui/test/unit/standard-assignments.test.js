@@ -87,18 +87,59 @@ describe('standard assignments (assignments/)', () => {
         });
     });
 
-    test('each assignment: required fields, one hour, no starter yet', () => {
+    test('each assignment: required fields, whole hours, no starter yet', () => {
         assignments.forEach((a, i) => {
             expect(a.schemaVersion).toBe(1);
             expect(a.id).toBe(assignmentIds[i]);
             expect(a.version).toMatch(VERSION_RE);
             expect(a.license).toBe('CC0-1.0');
-            expect(a.hours).toBe(1);
+            // ふつうは 1 時間 = 1 課題。問題解決のように何時間も同じものを作る課題だけ、2 時間以上にする（#2360）
+            expect({ id: a.id, hours: Number.isInteger(a.hours) && a.hours >= 1 }).toEqual({ id: a.id, hours: true });
             expect(a.starter).toBeNull();
             expect(typeof a.title).toBe('string');
             expect(typeof a.goal).toBe('string');
             expect(seriesList.some((s) => s.id === a.series && s.assignments.includes(a.id))).toBe(true);
         });
+    });
+
+    // 2 時間以上の課題は、時間ごとの流れ（`schedule`。1 時間に 1 つ）を持つ。ワークシートのページは、流れのページを順に
+    // 合わせたもの。1 時間の課題には `schedule` を書かない（#2360）
+    test('an assignment of 2 hours or more has the flow of each hour', () => {
+        assignments.forEach((a) => {
+            if (a.hours === 1) {
+                expect({ id: a.id, schedule: a.schedule }).toEqual({ id: a.id, schedule: undefined });
+                return;
+            }
+            expect({ id: a.id, length: a.schedule.length }).toEqual({ id: a.id, length: a.hours });
+            a.schedule.forEach((step) => {
+                expect(typeof step.title).toBe('string');
+                expect(typeof step.goal).toBe('string');
+                expect(step.worksheetPages.length).toBeGreaterThan(0);
+            });
+            expect([...new Set(a.schedule.flatMap((step) => step.worksheetPages))]).toEqual(a.worksheetPages);
+        });
+    });
+
+    test('a series takes as many hours as its assignments', () => {
+        seriesList
+            .filter((s) => s.hours !== undefined)
+            .forEach((s) => {
+                const sum = s.assignments.reduce((total, id) => total + readJson(id, 'assignment.json').hours, 0);
+                expect({ id: s.id, hours: sum }).toEqual({ id: s.id, hours: s.hours });
+            });
+    });
+
+    // 計測・制御の後半（ワークシート 8〜12 ページ: 課題発見 → 設計 → 制作とデバッグ → 発表 → 改修）は 1 つの課題（#2360）
+    test('the control unit does its problem solving in one assignment of 5 hours', () => {
+        const series = readJson('jhs-tech-d3-control', 'series.json');
+        expect(series.hours).toBe(10);
+        expect(series.assignments).toHaveLength(6);
+        const a = readJson('jhs-tech-d3-control-06-problem-solving', 'assignment.json');
+        expect(a.number).toBe(6);
+        expect(a.hours).toBe(5);
+        expect(a.worksheetPages).toEqual([8, 9, 10, 11, 12]);
+        expect(a.schedule.map((step) => step.worksheetPages)).toEqual([[8], [9], [10], [10], [11, 12]]);
+        expect(a.submit).toEqual({ project: '06_◯◯システム', worksheet: true });
     });
 
     test('each assignment: latest equals the newest fixed version', () => {

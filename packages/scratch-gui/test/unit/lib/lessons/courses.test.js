@@ -1053,7 +1053,13 @@ describe('lesson courses', () => {
         // 最後にする（docs/lessons/design.md の「ヒント」・#1576）。できたら吹き出しが閉じるので、そのあとの
         // ヒントは見られない。試す操作のヒントは、ステージ・キーボード・旗を指すものだけ
         test('the hint that asks to try it out is the last one', () => {
-            const tryTargets = [HINT_TARGETS.STAGE, HINT_TARGETS.KEYBOARD, HINT_TARGETS.GREEN_FLAG];
+            // 計測・制御のコースは、練習用の基板のパネルを指して試す（スライダーを動かす・#2170）
+            const tryTargets = [
+                HINT_TARGETS.STAGE,
+                HINT_TARGETS.KEYBOARD,
+                HINT_TARGETS.GREEN_FLAG,
+                HINT_TARGETS.PRACTICE_BOARD,
+            ];
             // 読んで作るチャレンジのヒントは決まった 3 ページ（どれもステージの左に出す・read-diagram.js）なので除く
             countedChallenges()
                 .filter((c) => !isReadDiagram(c))
@@ -1696,6 +1702,11 @@ describe('chat course: how to connect over the mesh, in and outside a class', ()
         ['chat-l5-auto-reply', 'pair'],
         ['chat-l5-password', 'pair'],
         ['chat-l5-stamp', 'pair'],
+        // 計測・制御のコースのレッスン 4（IoT）も同じ文を使う（#2173）
+        ['ctrl-l4-send', 'pair'],
+        ['ctrl-l4-receive-led', 'pair'],
+        ['ctrl-l4-signal-motor', 'pair'],
+        ['ctrl-l5-doorbell', 'pair'],
     ];
     const ALL_CONNECT = [...CONNECT_STEPS, ...SHARED_CONNECT.map(([id]) => [id, 2])];
 

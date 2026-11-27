@@ -71,6 +71,50 @@
                     "title": "評価・改善とまとめ"
                 }
             ]
+        },
+        {
+            "id": "jhs-tech-d3-control",
+            "version": "0.1.0",
+            "title": "計測・制御のプログラミングによる問題解決（自動でセンサーとモーターでうごかそう）",
+            "schoolType": "jhs",
+            "assignments": [
+                {
+                    "id": "jhs-tech-d3-control-01-intro",
+                    "version": "0.1.0",
+                    "number": 1,
+                    "title": "計測・制御システムとスモウルビー"
+                },
+                {
+                    "id": "jhs-tech-d3-control-02-sensor-led",
+                    "version": "0.1.0",
+                    "number": 2,
+                    "title": "機器をつなぎ、センサーと LED をためそう"
+                },
+                {
+                    "id": "jhs-tech-d3-control-03-auto-light",
+                    "version": "0.1.0",
+                    "number": 3,
+                    "title": "自動点灯 LED ライトを作ろう"
+                },
+                {
+                    "id": "jhs-tech-d3-control-04-motor",
+                    "version": "0.1.0",
+                    "number": 4,
+                    "title": "モーターでスイッチを動かそう"
+                },
+                {
+                    "id": "jhs-tech-d3-control-05-iot",
+                    "version": "0.1.0",
+                    "number": 5,
+                    "title": "はなれた場所から計測・制御しよう（IoT）"
+                },
+                {
+                    "id": "jhs-tech-d3-control-06-problem-solving",
+                    "version": "0.1.0",
+                    "number": 6,
+                    "title": "問題を解決する計測・制御システムを作ろう"
+                }
+            ]
         }
     ]
 }

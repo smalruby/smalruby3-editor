@@ -254,8 +254,14 @@ describe('partnerNames / findName', () => {
         };
         expect(normalizePartner(def, 'en').watch).toEqual(['shimaraby_mood', 'x', '3']);
         expect(partnerNames(normalizePartner(def, 'ja'))).toContain('シマラビの気分');
-        // watch だけでは練習相手にならない（ボタンも返事も無ければ null）
-        expect(normalizePartner({ watch: ['a'] }, 'ja')).toBeNull();
+        // watch だけの練習相手（届いたものを見せるだけ・計測・制御の 4-1・#2173）。watch も無ければ null
+        expect(normalizePartner({ name: 'ロボ', watch: ['a'] }, 'ja')).toEqual({
+            name: 'ロボ',
+            buttons: [],
+            replies: [],
+            watch: ['a'],
+        });
+        expect(normalizePartner({ name: 'ロボ', watch: [] }, 'ja')).toBeNull();
     });
 
     test('finds the exact name first, then without case', () => {

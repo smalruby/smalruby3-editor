@@ -125,10 +125,12 @@ export const normalizePartner = (partner, locale) => {
         .filter(isPlainObject)
         .map((reply) => ({ onBroadcast: localizeText(reply.onBroadcast, locale), ...normalizeAction(reply, locale) }))
         .filter((reply) => reply.onBroadcast !== null && (reply.set.length > 0 || reply.broadcast !== null));
-    if (buttons.length === 0 && replies.length === 0) return null;
     const watch = (Array.isArray(partner.watch) ? partner.watch : [])
         .map((name) => localizeText(name, locale))
         .filter((name) => name !== null);
+    // ボタンも返事も無くても、生徒の変数が相手に届いたことを見せる（watch）だけの練習相手にはなる（計測・制御の 4-1。
+    // 計測する側が送った明るさを「〈相手〉に届いた」に出す・#2173）
+    if (buttons.length === 0 && replies.length === 0 && watch.length === 0) return null;
     return { name: localizeText(partner.name, locale) || '', buttons, replies, watch };
 };
 

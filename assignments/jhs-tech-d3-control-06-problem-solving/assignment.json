@@ -1,0 +1,92 @@
+{
+    "schemaVersion": 1,
+    "id": "jhs-tech-d3-control-06-problem-solving",
+    "version": "0.1.0",
+    "series": "jhs-tech-d3-control",
+    "number": 6,
+    "title": "問題を解決する計測・制御システムを作ろう",
+    "goal": "身のまわりの問題を見つけて、それを解決する計測・制御システムを 5 時間かけて作る。課題発見（8 ページ）→ 設計（9 ページ）→ 制作とデバッグ（10 ページ・2 時間）→ 発表・評価（11 ページ）→ 改修とまとめ（12 ページ）の順に進め、1 つの作品をとちゅうで保存しながら仕上げて提出する。",
+    "schoolType": "jhs",
+    "subject": "技術・家庭科〈技術分野〉",
+    "curriculum": "D(3) 計測・制御のプログラミングによる問題解決",
+    "grade": 3,
+    "hours": 5,
+    "starter": null,
+    "license": "CC0-1.0",
+    "worksheetPages": [
+        8,
+        9,
+        10,
+        11,
+        12
+    ],
+    "schedule": [
+        {
+            "title": "問題を見つけて課題を決めよう",
+            "goal": "身のまわりの問題を見つけ、前半で学んだ技術で解決できる課題に決める。",
+            "worksheetPages": [
+                8
+            ]
+        },
+        {
+            "title": "システムを構想しよう",
+            "goal": "制作工程表を作り、作るものを入力・処理・出力とアクティビティ図で設計する。",
+            "worksheetPages": [
+                9
+            ]
+        },
+        {
+            "title": "作ろう（制作とデバッグ 1）",
+            "goal": "制作工程表のとおりに作り、思ったとおりに動かないところを見つけて直す（デバッグ）。次の時間にやることを書く。",
+            "worksheetPages": [
+                10
+            ]
+        },
+        {
+            "title": "作ろう（制作とデバッグ 2・発表の準備）",
+            "goal": "制作とデバッグを続けてシステムを仕上げ（とちゅうでもよい）、できたところ・できなかったところを記録して、発表の準備をする。",
+            "worksheetPages": [
+                10
+            ]
+        },
+        {
+            "title": "発表・評価・改善とまとめ",
+            "goal": "作ったシステムを動かして見せ、おたがいに評価し、評価をもとに改善して、単元をふりかえる。",
+            "worksheetPages": [
+                11,
+                12
+            ]
+        }
+    ],
+    "lessons": [
+        {
+            "course": "jidou-sensor-motor",
+            "lessons": [
+                "ctrl-l5"
+            ],
+            "challenges": [
+                "ctrl-l5-hallway",
+                "ctrl-l5-fridge",
+                "ctrl-l5-trash-can",
+                "ctrl-l5-slow-car",
+                "ctrl-l5-doorbell"
+            ]
+        }
+    ],
+    "submit": {
+        "project": "06_◯◯システム",
+        "worksheet": true
+    },
+    "files": [
+        {
+            "file": "worksheet.pdf",
+            "kind": "worksheet",
+            "audience": "student"
+        },
+        {
+            "file": "worksheet-teacher.pdf",
+            "kind": "worksheet",
+            "audience": "teacher"
+        }
+    ]
+}

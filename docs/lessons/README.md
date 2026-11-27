@@ -659,6 +659,113 @@ design.md の「中 2 のコース」。コースの ✓ もこれで数える�
 
 ![チャットをつくろう 5-5 のヒントの 1 ページ目（図と練習相手のパネル・1300×600）](screenshots/0725-chat-l5-stamp-hint1-1300x600.png)
 
+### コース「自動でセンサーとモーターでうごかそう」のチャレンジ
+
+中学 3 年の計測・制御の授業のコース（方針は [`design.md` の「中 3 のコース「自動でセンサーとモーターでうごかそう」」](design.md#中-3-のコース自動でセンサーとモーターでうごかそう)）。
+コース id は `jidou-sensor-motor`、文言は `control.locale.js`（ja / ja-Hira / en。`lessons.locale.js` に spread する）。
+チャレンジ id は `ctrl-l<n>-...`。拡張機能「アーテックロボ」（id `smalrubotS1`・Ruby は `studuino.`。
+[`docs/extension-smalrubot-s1/`](../extension-smalrubot-s1/README.md)）を使う。
+レッスン 0（じゅんびチェック）とレッスン 1〜5 が入っている。
+
+レッスン 0「始める前に」（`ctrl-l0`・`warmup`。ja-Hira「はじめる まえに」、en "Before You Start"）は、チャレンジ
+`ctrl-l0-readiness`「じゅんびチェック」1 つ（下の「じゅんびチェック」。計測と制御だけをやる学校もあるため付ける）。コースの土台
+（`baseChallenges`）は「きょうからプログラマー」の 4 つで、問いのプログラムはそのチャレンジの答えと同じネコ（ステージ）のプログラム
+（アーテックロボのブロックは使わない）。レッスン 1 の最初のチャレンジ（`ctrl-l1-measure`）をはじめて開いたときに
+「先にじゅんびチェックをする？」と聞く:
+
+| # | 土台のチャレンジ | 問いのブロック（ja） | 問い（ja） | 正解 |
+|---|----------------|--------------------|-----------|------|
+| 1 | `blocks-l0-where` どこでしょう？ | 旗が押されたとき → 10 歩動かす | このプログラムを動かすには、画面のどこを押す？ | ①緑の旗 |
+| 2 | `blocks-l1-repeat` くり返そう（1-4） | 1 のキーが押されたとき → 3 回繰り返す〔背景を Canyon にする → 1 秒待つ → 背景を Arctic にする → 1 秒待つ〕（ステージのプログラム） | ステージのプログラム。1 のキーを押すと、背景は全部で何回かわる？ | ②6 回 |
+| 3 | `blocks-l1-if` もし〜なら（2-1） | 旗が押されたとき → ずっと〔もし マウスのポインターに触れた なら「くすぐったい！」と言う でなければ「さわってみて」と言う〕 | 緑の旗を押して、マウスでネコにさわった。ネコは何と言う？ | ③「くすぐったい！」と言う |
+| 4 | `blocks-l1-count` 数えよう（3-1） | 旗で（回数）を 0 にする ／ 押されたら（回数）を 1 ずつ変えて（回数）と言う | 緑の旗を押してから、ネコを 3 回押した。ネコは何と言う？ | ①3 と言う |
+
+![自動でセンサーとモーターでうごかそう のじゅんびチェック（くり返しの問いをまちがえて、正しい答えと解説が出たところ・1300×600）](screenshots/0901-ctrl-readiness-check-wrong-1300x600.png)
+
+![じゅんびチェックの結果（くり返しと変数をまちがえて「おすすめ」が出たところ・1300×600）](screenshots/0902-ctrl-readiness-result-recommended-1300x600.png)
+
+- **始め方**: 新しい作品（ネコ）から始める。1-1 だけは生徒が拡張機能を足し（ヒントの 2 ページ目が「拡張機能を追加」を指す）、
+  ほかは `setup.extensions: ['smalrubotS1']` で読みこんでおく。
+- **練習用の基板**: 実機がつながっていなければ、拡張機能の練習用の基板で動く。センサーの値を変えて試すページは
+  `practice-board`（`HINT_TARGETS.PRACTICE_BOARD`。パネルか、たたんだときの「練習用の基板」のボタン）を指す。ヒントの吹き出しは
+  パネルにかぶせない（`hint-targets.js` の `AVOID_SELECTORS`）。
+- **判定**: 拡張機能の命令とセンサーの値の記録（`boardCommand` / `sensorRead`）と、同じスクリプトで「ずっと」「もし」と
+  センサーのブロックが動いたこと（`uses`）で見る。`whenSensor` にはセンサーの種類（`port` / `sensor`）を書かない（代わりの
+  センサーでも「できた」）。
+- **変数**: 「明るさ」（ja-Hira「あかるさ」、en `brightness`。Ruby の `$`）。判定はどの名前でも通す。
+- **アクティビティ図**: 全チャレンジ `activityDiagram: true`。ヒントの 1 ページ目は「課題の説明と、アクティビティ図を理解しよう」
+  （`withDiagramFirst`）。図の「処理」の箱は、アーテックロボのブロックを教科書の図のように書く（「LED (A0) をつける」「光センサーの値」
+  「0.5秒 DC モーター (M1) を正転させる」「1秒でアームを90度にする」「車を止める」。`activity-diagram/labels.js` と
+  `activity-diagram.locale.js` の `studuino.*`）。
+
+レッスン 1「センサーと LED をためそう」（`ctrl-l1`。ja-Hira「センサーと LED を ためそう」、en "Try the Sensors and LEDs"。ワークシート第 2 時）:
+
+| # | id | 課題 | 答え（ja） | できた の条件（`goal`） | クイズの正解 |
+|---|----|------|-----------|------------------------|-------------|
+| 1 | `ctrl-l1-measure` | 拡張機能を足し、光センサーの値を変数「明るさ」に入れて、ずっと言う | `loop do` 〔`$明るさ = studuino.sensor_value("light")` → `say($明るさ)`〕 | 拡張機能を読みこんだ ＋ 旗のスクリプトで `control_forever`・「明るさ」への `data_setvariableto`・センサーの値・`looks_say` が 2 種類の値で動いた（値が変わった）＋ センサーを読んだ | ②Studuino（インタフェース） |
+| 2 | `ctrl-l1-blink` | LED (A0) を 1 秒ごとにつけたり消したりする | `loop do` 〔`studuino.led("left", true)` → `sleep(1)` → `studuino.led("left", false)` → `sleep(1)`〕 | 旗のスクリプトの 1 回の実行で `control_forever`・`control_wait` と LED のオン・オフが 2 回ずつ動いた ＋ LED のオン・オフの命令 | ②仕事を行う部分 |
+| 3 | `ctrl-l1-touch-led` | タッチセンサー (A2) を押しているあいだだけ LED をつける | `if studuino.sensor_value("touch") == 0` 〔オン〕 `else` 〔オフ〕 | 旗のスクリプトで `control_forever`・`control_if_else`・センサーの値 ＋ センサーが 0 のときに LED オン ＋ 1 以上のときに LED オフ | ②デジタル |
+| 4 | `ctrl-l1-threshold` | 光センサーの値がさかい目 500 より小さければ「暗い」、そうでなければ「明るい」と言う | `if studuino.sensor_value("light") < 500` 〔`say("暗い")`〕 `else` 〔`say("明るい")`〕 | 旗のスクリプトで `control_forever`・`control_if_else`・センサーの値・`<` か `>` ＋ 「暗い」（ja-Hira「くらい」、en "dark"）と「明るい」（「あかるい」・"bright"）の両方を言った | ①部屋の明るさで値が変わるから |
+
+- **タッチセンサー**は押すと 0、はなすと 1（拡張機能のライブラリと同じ）。3 は「0 のときにオン・1 以上のときにオフ」で見るので、
+  タッチセンサーが無ければ、ほかのセンサー（練習用の基板ならスライダーを 0 にする）で試しても通る。
+- **さかい目の 500** は答えの値。教室の明るさで変わるので、4 の判定は値そのものを見ない（言い分けたことを見る）。
+
+レッスン 2「自動で動かそう」（`ctrl-l2`。ja-Hira「じどうで うごかそう」、en "Move It Automatically"。ワークシート第 3 時）:
+
+| # | id | 課題 | 答え（ja） | できた の条件（`goal`） | クイズの正解 |
+|---|----|------|-----------|------------------------|-------------|
+| 1 | `ctrl-l2-auto-light` | 自動点灯 LED ライト: 明るさを変数「明るさ」に入れ、500 より小さければ LED をつけ、そうでなければ消す | `loop do` 〔`$明るさ = studuino.sensor_value("light")` → `if $明るさ < 500` 〔オン〕 `else` 〔オフ〕〕 | 旗のスクリプトで `control_forever`・`control_if_else`・センサーの値・「明るさ」への `data_setvariableto` ＋ 値が 512 より小さいときに LED オン ＋ 512 以上のときに LED オフ | ①1 回はかるだけで、あとは変わらない |
+| 2 | `ctrl-l2-near-light` | 近づいたらつけよう: 赤外線センサー（フォトリフレクタ）(A4) の値が 500 より大きければ LED をつける | `if studuino.sensor_value("ir_a4") > 500` 〔オン〕 `else` 〔オフ〕 | 旗のスクリプトで `control_forever`・`control_if_else`・センサーの値 ＋ 512 以上のときにオン ＋ 512 より小さいときにオフ | ①何を計測したいか |
+| 3 | `ctrl-l2-read-diagram` | 読んで作る（夜だけ押しボタン式）: 暗い「かつ」タッチセンサーを押しているときだけ LED をつける | `if studuino.sensor_value("light") < 500 && studuino.sensor_value("touch") == 0` 〔オン〕 `else` 〔オフ〕 | 旗のスクリプトの 1 回の実行で `control_forever`・`control_if_else`・`operator_and` とセンサーの値 2 回 ＋ 512 より小さいときにオン ＋ 512 以上（明るい）のときにオフ | ①「〜かつ〜」 |
+
+- **さかい目は判定の 512 と別**。答えは 500 にしてあるが、生徒が教室で決めた値（300 など）でも、暗くしてつけ・明るくして消せば通る。
+  逆の向き（明るいときにつける）は通らない。
+- 2 は 1 とプログラムの形が同じで、センサーと判断だけが変わる（教科書の「センサーの選択」）。
+
+レッスン 3「モーターで動かそう」（`ctrl-l3`。ja-Hira「モーターで うごかそう」、en "Move It with Motors"。ワークシート第 4 時）:
+
+| # | id | 課題 | 答え（ja） | できた の条件（`goal`） | クイズの正解 |
+|---|----|------|-----------|------------------------|-------------|
+| 1 | `ctrl-l3-dc-motor` | DC モーター (M1) を 0.5 秒正転 → 1 秒待つ → 0.5 秒逆転 | `studuino.dc_motor("M1", "normal", 0.5)` → `sleep(1)` → `studuino.dc_motor("M1", "reverse", 0.5)` | 旗のスクリプトで `control_wait` ＋ モーターの正転と逆転の命令（どのモーター・どのブロックでもよい） | ①逆転させる |
+| 2 | `ctrl-l3-servo` | 1 秒でアームを 0 度 → 1 秒待つ → 1 秒で 90 度 | `studuino.bend_arm(0, 1)` → `sleep(1)` → `studuino.bend_arm(90, 1)` | 旗のスクリプトでアームが 2 回動いた ＋ 30 度までの角度 ＋ 60 度からの角度 | ①決めた角度で止まる |
+| 3 | `ctrl-l3-auto-switch` | 自動スイッチ: 暗いときはアームを 90 度、明るいときは 0 度 | `if studuino.sensor_value("light") < 500` 〔`bend_arm(90, 1)`〕 `else` 〔`bend_arm(0, 1)`〕 | `control_forever`・`control_if_else`・センサーの値・アーム ＋ 512 より小さいときに 60 度から ＋ 512 以上のときに 30 度まで | ①ギヤ比を変えて大きい歯車を回す |
+| 4 | `ctrl-l3-bumper-car` | ぶつかったら止まる車: タッチセンサーが押されたら止め、そうでなければ進める | `if studuino.sensor_value("touch") == 0` 〔`action("stop")`〕 `else` 〔`action("forward")`〕 | `control_forever`・`control_if_else`・センサーの値・`action` ＋ 1 以上のときにモーター正転 ＋ 0 のときに停止 | ①エレベーターのドア |
+
+- **サーボの角度**は、生徒がスイッチに合わせて変えるので、判定は 30 度まで／60 度からで見る（ちょうど 0 度・90 度でなくてよい）。
+- **トルク・ギヤ比・てこ**はワークシートと実物でやる（3 のクイズで少しふれるだけ）。電池ボックスのことは課題とつまずきに書く。
+
+レッスン 4「はなれた場所から計測・制御しよう（IoT）」（`ctrl-l4`。ja-Hira「はなれた ばしょから けいそく・せいぎょ しよう（IoT）」、
+en "Measure and Control from Far Away (IoT)"。ワークシート第 5 時）。どれも `setup.extensions: ['smalrubotS1', 'meshV2']` で始め、
+ヒントの 2 ページ目はチャットのコースと同じ「メッシュにつなごう」（`connectStep`）。練習相手はシマネコ。メッシュで届く名前は
+ja / ja-Hira とも「あかるさ」「うごけ」（en `brightness` / `move`）:
+
+| # | id | 課題 | 答え（ja） | 練習相手 | できた の条件（`goal`） | クイズの正解 |
+|---|----|------|-----------|---------|------------------------|-------------|
+| 1 | `ctrl-l4-send` | 計測する側: 光センサーの値を共有する変数「あかるさ」に入れ続ける | `loop do` 〔`$あかるさ = studuino.sensor_value("light")`〕 | `watch: ['あかるさ']` だけ（届いた値を見せる） | 旗のスクリプトで `control_forever`・センサーの値・「あかるさ」への `data_setvariableto` を 2 種類以上の値で ＋ ステージの変数「あかるさ」 | ①はなれた場所のようすで機器が動く |
+| 2 | `ctrl-l4-receive-led` | 仕事をする側: 届いた「あかるさ」が 500 より小さければ LED をつける | `if mesh.sensor_value("あかるさ") < 500` 〔オン〕 `else` 〔オフ〕 | 「明るくする」（あかるさ = 800）・「暗くする」（= 100） | 旗のスクリプトで `control_forever`・`control_if_else`・「あかるさ」の `meshV2_getSensorValue`・LED のオンとオフ ＋ LED のオン・オフの命令 | ①はなれた場所のようすで動かせる |
+| 3 | `ctrl-l4-signal-motor` | スペースキーで合図「うごけ」を送り、受け取ったら DC モーター (M1) を 1 秒正転 | `when_key_pressed("space")` 〔`broadcast("うごけ")`〕／`when_receive("うごけ")` 〔`studuino.dc_motor("M1", "normal", 1)`〕 | 「うごけ」ボタン（合図を送る） | スペースキーのスクリプトで「うごけ」を送った ＋ 「うごけ」を受け取ったスクリプトでモーターのブロック ＋ モーター正転の命令 | ①合図は「いま」、変数は値を伝える |
+
+- **ペアの進め方**: 1 人が 4-1、もう 1 人が 4-2 を同時にやり、終わったら交代する（課題の文に書く）。役の入れかえ（`roles`）は使わない
+  （計測する側と仕事をする側でプログラムの形がちがうため）。
+- 4-2 の「センサーの値」の ▼ は、相手のあかるさが届いてから「あかるさ」が出る。ひとりなら先に練習相手の「暗くする」を押す（ヒントに書く）。
+
+レッスン 5「計測・制御システムを作ろう」（`ctrl-l5`。ja-Hira「けいそく・せいぎょ システムを つくろう」、en "Build a Measurement and
+Control System"。ワークシート第 6〜10 時）。テーマを 1 つ以上「できた」にすればレッスンの ✓（`checkCount: 1`）。その先の工夫は
+判定せず、クラスの課題の「作品の提出もする」で提出した作品を先生が見る（チャットのコースのレッスン 5 と同じ）。教科書の例の部品は
+Studuino の部品に置きかえた（超音波センサー → 赤外線センサー）:
+
+| # | id | テーマ | 答え（ja）の要点 | 始め方 | できた の条件（`goal`） | クイズの正解 |
+|---|----|------|-----------|------|------------------------|-------------|
+| 1 | `ctrl-l5-hallway` | 読んで作る: 暗いろうかを自動で照らす（近づいた かつ 暗い → LED を 3 秒） | `if ir_a4 > 500 && light < 500` 〔オン → `sleep(3)`〕 `else` 〔オフ〕 | 拡張機能だけ | `control_forever`・`control_if_else`・`operator_and`・`control_wait`・センサーの値 2 回 ＋ LED のオンとオフ | ①つかない |
+| 2 | `ctrl-l5-fridge` | 冷蔵庫の開けっぱなしを知らせる（明るいあいだ LED を点滅） | `if light > 500` 〔オン・0.5 秒・オフ・0.5 秒〕 `else` 〔オフ〕 | 拡張機能だけ | `control_forever`・`control_if_else`・センサーの値・`control_wait`・LED オン 2 回 ＋ 512 以上でオン ＋ 512 より小さいときにオフ | ①開くと中が明るくなるから |
+| 3 | `ctrl-l5-trash-can` | 自動で開くごみ箱（近づいたらアームでふたを開けて 2 秒後に閉める） | `if ir_a4 > 500` 〔`bend_arm(90, 0.5)`・`sleep(2)`・`bend_arm(0, 0.5)`〕 | 拡張機能だけ | `control_forever`・`control_if`・センサーの値・`control_wait`・アーム 2 回 ＋ 512 以上で 60 度から ＋ 30 度まで | ①手がよごれず、衛生的 |
+| 4 | `ctrl-l5-slow-car` | ぶつかる前にゆっくり止まる車（少し近いと速さ 20、遠いと 60） | 土台の「でなければ」に `if ir_a4 > 300` 〔左右の速さ 20〕 `else` 〔60〕を足す | `setup.code` = 近づいたら止まる車（`ir_a4 > 700` で `action("stop")`） | `control_forever`・センサーの値・`setMotorSpeed`・`action` ＋ 速さ 30 までで正転 ＋ 50 からで正転 ＋ 停止 | ①赤外線センサー |
+| 5 | `ctrl-l5-doorbell` | はなれた場所に知らせる（IoT・タッチセンサーで合図「よびだし」） | 旗 → ずっと 〔`if touch == 0` 〔`broadcast("よびだし")`・`sleep(1)`〕〕 | `setup.code` = 受け取ったら LED を 3 回点滅（メッシュも読みこむ・練習相手の「よびだし」ボタン） | 旗のスクリプトで `control_forever`・センサーの値・「よびだし」を送る ＋ 受け取ったスクリプトで LED オン ＋ LED オンの命令 | ①病院のナースコール |
+
+- **土台のプログラムもヒントに描く**（4・5 の 2 ページ目・3 ページ目）。帽子のブロックをどこかのヒントに描く決まりのため。
+- 5 の合図「よびだし」は ja / ja-Hira で同じ（en `call`）。自分の合図も自分に届くので、ひとりでもできる。
+
 ## 記録の形（端末）
 
 `packages/scratch-gui/src/lib/lessons/lesson-progress.js`。localStorage の **`smalruby:lessonProgress`** に、
@@ -1070,7 +1177,8 @@ partner: {
 - `watch`（任意）は、パネルの「届いた」の行に出す**生徒の共有する変数**の名前の配列（文字列か `{ja, 'ja-Hira', en}`）。
   行に出す変数はふつう相手が使う名前だけなので、相手が読まない変数を見せたいときに書く（例: 3-3 は
   `watch: ['シマラビの気分']`。1・2 のキーで変えた自分の気分が、ひとりのときもパネルに出る）。書かなければ今までどおり。
-  ボタン・返事が無い定義は `watch` があっても練習相手にならない。図には描かない。`broadcast` / `onBroadcast` は合図の名前
+  ボタン・返事が無く `watch` だけの定義は、届いたものを見せるだけの練習相手になる（「〈相手〉から送る」の欄を出さず、図に
+  相手のレーンを描かない。計測・制御の 4-1）。`watch` も無ければ練習相手にならない。`watch` は図には描かない。`broadcast` / `onBroadcast` は合図の名前
   （大文字小文字は区別しない）。`name` / `label` / `variable` / `broadcast` / `onBroadcast` は、作品の中の名前が
   locale で変わるときは `code` と同じく `{ja, 'ja-Hira', en}` でも書ける。
 - アクティビティ図（相手のスイムレーン）も同じ定義から、動かすときと同じ読み方（`normalizePartner`。locale ごとの書き方の選び方も同じ）で描く。動かすときに使わない行（ラベルの無いボタン・名前の無い変数や `fromVariable`・何もしない返事）は図にも描かない。
@@ -2001,8 +2109,9 @@ partner: {
 ### じゅんびチェック（`readinessCheck`）
 
 コースの最初に、そのコースの土台（`baseChallenges`）ができているかを確かめるチャレンジ（方針は
-[`design.md` の「じゅんびチェック」](design.md#じゅんびチェックコースの土台を確かめる)）。いまは「チャットをつくろう」のレッスン 0 にある
-（上の「コース「チャットをつくろう」のチャレンジ」）。
+[`design.md` の「じゅんびチェック」](design.md#じゅんびチェックコースの土台を確かめる)）。いまは「チャットをつくろう」と
+「自動でセンサーとモーターでうごかそう」のレッスン 0 にある（上の「コース「チャットをつくろう」のチャレンジ」・
+「コース「自動でセンサーとモーターでうごかそう」のチャレンジ」）。
 
 - **問いのパネル**: コードエリアの上に 1 問ずつ出す（`components/lesson-readiness-check/lesson-readiness-check.jsx`・
   document.body への portal。クリックは止めない）。上に問いのブロックの絵（ヒントの吹き出しと同じ `LessonHintBlocks`。Ruby は
@@ -2018,7 +2127,7 @@ partner: {
 - **「おすすめ」の印**: レッスン表のカードの右下に「おすすめ」（「次はこれ！」もあるときはその左）。どれかのコースで
   「おすすめ」のチャレンジに付ける（`recommendedChallengeIds`）。あとでその問いに正しく答えなおすか、そのチャレンジが「できた」に
   なったら消える（`markChallengeCompleted` が記録に `clearedAt` を入れる）。チェックをやりなおすと、答えた問いから上書きする。
-- **「先にじゅんびチェックをする？」**: じゅんびチェックのあるコースのレッスン 1 の最初のチャレンジ（チャットの 1-1）を、はじめて
+- **「先にじゅんびチェックをする？」**: じゅんびチェックのあるコースのレッスン 1 の最初のチャレンジ（チャット・計測と制御の 1-1）を、はじめて
   開いたときに 1 回だけ聞く（`readinessOffer`。もう聞いた・チェックの問いに 1 つでも答えたときは聞かない）。クラスの課題から
   開いたときも聞く（じゅんびチェックは課題の「おさらい」にいつも出ていて、「課題にもどる」で 1-1 にもどれるため）。そのときは
   チェックを「おさらい」として開く（課題に入っていれば課題から）。
@@ -2329,6 +2438,7 @@ GTM・GA4 の設定（トリガー・データレイヤー変数・カスタム�
 | `packages/scratch-gui/src/lib/lessons/courses.js` | コース・レッスン・チャレンジのデータと検索。locale ごとの Ruby を選ぶ `localizeCode` / `challengeCodeFor` / `challengeCodeCandidates`。ふりかえりのクイズを作る `challengeQuiz` と形を確かめる `validateQuiz` |
 | `packages/scratch-gui/src/lib/lessons/lessons.locale.js` | 文言（en / ja / ja-Hira。`src/locales/*.js` に spread） |
 | `packages/scratch-gui/src/lib/lessons/chat.locale.js` | コース「チャットをつくろう」の文言（en / ja / ja-Hira。`lessons.locale.js` に spread） |
+| `packages/scratch-gui/src/lib/lessons/control.locale.js` | コース「自動でセンサーとモーターでうごかそう」の文言（en / ja / ja-Hira。`lessons.locale.js` に spread） |
 | `packages/scratch-gui/src/lib/lessons/readiness.js` | じゅんびチェックの記録（`smalruby:lessonReadiness`）と、結果・「おすすめ」・「先にじゅんびチェックをする？」の決め方（純粋関数） |
 | `packages/scratch-gui/src/components/lesson-readiness-check/` | じゅんびチェックの問いのパネル（`lesson-readiness-check.jsx`）と「先にじゅんびチェックをする？」（`lesson-readiness-offer.jsx`） |
 | `packages/scratch-gui/src/containers/lesson-readiness-check.jsx` | 問いのパネルのコンテナ（問いのブロックを XML にし、選ぶ・進むを dispatch） |

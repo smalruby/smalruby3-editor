@@ -38,6 +38,10 @@ const OBJECT_MESSAGES = {
 };
 
 // 記号で書く演算（どの locale でも同じ）
+// アーテックロボの LED・DC モーターの ▼（左・右）が指すポート
+const STUDUINO_LED_PORTS = Object.freeze({ left: 'A0', right: 'A1' });
+const STUDUINO_MOTOR_PORTS = Object.freeze({ left: 'M1', right: 'M2' });
+
 // opcode → [記号, 左の穴, 右の穴]
 const SYMBOL_OPERATORS = {
     operator_equals: ['=', 'OPERAND1', 'OPERAND2'],
@@ -117,6 +121,8 @@ export const createBlockLabeler = ({ format, blockName = null, blockText = null,
                 return f('random', { from: input('FROM'), to: input('TO') });
             case 'meshV2_getSensorValue':
                 return f('sensorValue', { name: input('NAME') });
+            case 'smalrubotS1_getSensorValue':
+                return f('studuino.sensor', { sensor: studuinoName('sensor', fieldValue(block, 'POSITION')) });
             case 'sensing_touchingobject':
                 return f('touching', { object: input('TOUCHINGOBJECTMENU') });
             case 'sensing_keypressed':
@@ -163,6 +169,13 @@ export const createBlockLabeler = ({ format, blockName = null, blockText = null,
             })
             .replace(/\s+/g, ' ')
             .trim();
+    };
+
+    // アーテックロボの ▼ の値の名前（知らない値はそのまま）
+    const studuinoName = (kind, raw) => {
+        const key = `${P}studuino.${kind}.${raw}`;
+        const text = format(key);
+        return text && text !== key ? text : raw;
     };
 
     const keyName = (raw) => (KEY_MESSAGES[raw] ? f(KEY_MESSAGES[raw]) : raw);
@@ -246,6 +259,36 @@ export const createBlockLabeler = ({ format, blockName = null, blockText = null,
                 return f('waitUntil', { condition: input('CONDITION') });
             case 'procedures_call':
                 return procedureText(blocks, block, 'argumentids');
+            // アーテックロボ（Studuino）のブロックは、教科書の図のように「LED をつける」と書く（#2170）
+            case 'smalrubotS1_turnLedOn':
+                return f('studuino.ledOn', { port: STUDUINO_LED_PORTS[fieldValue(block, 'POSITION')] || '?' });
+            case 'smalrubotS1_turnLedOff':
+                return f('studuino.ledOff', { port: STUDUINO_LED_PORTS[fieldValue(block, 'POSITION')] || '?' });
+            case 'smalrubotS1_controlMotor':
+                return f('studuino.motor', {
+                    motor: fieldValue(block, 'MOTOR'),
+                    direction: studuinoName('direction', fieldValue(block, 'DIRECTION')),
+                });
+            case 'smalrubotS1_controlMotorAndStopAfter':
+                return f('studuino.motorSecs', {
+                    secs: input('SECS'),
+                    motor: fieldValue(block, 'MOTOR'),
+                    direction: studuinoName('direction', fieldValue(block, 'DIRECTION')),
+                });
+            case 'smalrubotS1_setMotorSpeed':
+                return f('studuino.motorSpeed', {
+                    motor: STUDUINO_MOTOR_PORTS[fieldValue(block, 'POSITION')] || '?',
+                    speed: input('SPEED'),
+                });
+            case 'smalrubotS1_bendArm':
+                return f('studuino.arm', { secs: input('SECS'), degree: input('DEGREE') });
+            case 'smalrubotS1_action':
+                return f('studuino.action', { action: studuinoName('action', fieldValue(block, 'ACTION')) });
+            case 'smalrubotS1_actionAndStopAfter':
+                return f('studuino.actionSecs', {
+                    secs: input('SECS'),
+                    action: studuinoName('action', fieldValue(block, 'ACTION')),
+                });
             default:
                 return generic(blocks, block);
         }

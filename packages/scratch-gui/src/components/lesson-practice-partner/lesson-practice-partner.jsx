@@ -148,32 +148,35 @@ const LessonPracticePartner = ({
                 </button>
             </div>
             <div className={styles.body}>
-                <div aria-labelledby={sendHeadingId} data-testid="lesson-practice-partner-send" role="group">
-                    <h3 className={styles.heading} id={sendHeadingId}>
-                        {intl.formatMessage(messages.sendHeading, { name })}
-                    </h3>
-                    <div className={classNames(styles.group, styles.send)}>
-                        {buttons.map((button, index) => (
-                            <button
-                                className={styles.button}
-                                data-index={index}
-                                data-testid="lesson-practice-partner-button"
-                                key={index}
-                                // eslint-disable-next-line react/jsx-no-bind
-                                onClick={() => onPress(index)}
-                                type="button"
-                            >
-                                {button.label}
-                            </button>
-                        ))}
+                {/* ボタンの無い練習相手（届いたものを見せるだけ・#2173）は「〈相手〉から送る」を出さない */}
+                {buttons.length > 0 ? (
+                    <div aria-labelledby={sendHeadingId} data-testid="lesson-practice-partner-send" role="group">
+                        <h3 className={styles.heading} id={sendHeadingId}>
+                            {intl.formatMessage(messages.sendHeading, { name })}
+                        </h3>
+                        <div className={classNames(styles.group, styles.send)}>
+                            {buttons.map((button, index) => (
+                                <button
+                                    className={styles.button}
+                                    data-index={index}
+                                    data-testid="lesson-practice-partner-button"
+                                    key={index}
+                                    // eslint-disable-next-line react/jsx-no-bind
+                                    onClick={() => onPress(index)}
+                                    type="button"
+                                >
+                                    {button.label}
+                                </button>
+                            ))}
+                        </div>
+                        {/* 押したのに、相手が使う変数（4-5 の「なまえ」）がまだ空で何もしなかったとき */}
+                        {missingVariable ? (
+                            <p className={styles.note} data-testid="lesson-practice-partner-missing" role="status">
+                                {intl.formatMessage(messages.missingVariable, { name: missingVariable })}
+                            </p>
+                        ) : null}
                     </div>
-                    {/* 押したのに、相手が使う変数（4-5 の「なまえ」）がまだ空で何もしなかったとき */}
-                    {missingVariable ? (
-                        <p className={styles.note} data-testid="lesson-practice-partner-missing" role="status">
-                            {intl.formatMessage(messages.missingVariable, { name: missingVariable })}
-                        </p>
-                    ) : null}
-                </div>
+                ) : null}
                 <div
                     aria-labelledby={receivedHeadingId}
                     data-testid="lesson-practice-partner-received-group"
