@@ -37,6 +37,15 @@ export const SITE_GITHUB_PAGES_CHALLENGE_TTL_SECONDS = 3600;
 export const SITE_GITHUB_PAGES_CHALLENGE_VALUES = ['a445b86bba88094e49c43b9af4b04d'];
 
 /**
+ * n-bato（NPO 法人の事務のアプリ、smalruby/n-bato）の本番。Lightsail の静的 IP（n-bato の
+ * infra/ の CDK が作る `n-bato-prod-ip`）を向く。HTTPS の証明書は kamal-proxy が Let's Encrypt
+ * から取る（下の CAA で letsencrypt.org を許している）。
+ */
+export const SITE_N_BATO_NAME = 'n-bato';
+export const SITE_N_BATO_A_TTL_SECONDS = 300;
+export const SITE_N_BATO_A_VALUES = ['18.178.121.155'];
+
+/**
  * 証明書を発行してよい認証局。ACM（Amazon の 4 つ）と、GitHub Pages が使う Let's Encrypt。
  * ワイルドカード証明書はどこにも出させない（issuewild ";"）。
  */

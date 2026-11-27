@@ -9,6 +9,35 @@
 ゴール: **EPIC を leaf sub-issue に分解し、各 leaf に size(small/middle/large) を付ける。** 分解は
 人間の承認ゲート（HITL）を挟むため **2 フェーズ**で動く。フェーズは「自分の分解案コメントが既にあるか」で判定する（冪等）。
 
+
+## EPIC の流れ（`AUTOPILOT_EPIC_FLOW=1` のとき）
+
+PR の base が `topic/...`（Issue 本文の `autopilot-base:`）のとき、daemon は `AUTOPILOT_EPIC_FLOW=1` を渡す。
+この Issue は EPIC の sub-issue で、**人間は EPIC の設計を承認済み**。確認は EPIC ごとにまとめて行うので、
+途中で `🙋 HITL` を出してよいのは次の 3 つだけ（結果ファイルの `hitlKind` に書く）:
+
+| `hitlKind` | いつ |
+|---|---|
+| `diverge` | **3 案以上**に分かれる判断（実装が発散する）。その sub-issue だけ止まる |
+| `must-exhausted` | 直しを 3 回しても Must が残る（daemon が自分で判定する。worker は使わない） |
+| `environment` | エラーで続けられない（認証・使用量・壊れた環境） |
+
+それ以外の判断（仕様の小さな選択・命名・見送り）は **AI のおすすめで決めて進め**、結果ファイルの
+`decisions` に書く。daemon が EPIC の Issue の「決定待ち」まとめコメント
+（`<!-- autopilot-epic-decisions count=N -->`）に書き足す（**worker はそのコメントを書かない**）:
+
+```json
+"decisions":[{"kind":"ai-decision","ref":null,"title":"<何を決めたか>","recommendation":"<AI の案（採ったもの）>",
+  "alternatives":["<ほかの案>"],"adopted":"<入れたもの>"}]
+```
+
+`kind` は `question`（仕様の選択が要る）/ `not-adopted`（採用しなかった指摘）/ `ai-decision`（AI が決めた）/
+`two-way`（2 案。下記）/ `diverge`（3 案以上）。スキーマは `docs/autopilot/autonomous-contract.md` §2.6。
+
+このフェーズでは: EPIC の設計の承認（分解案の 🙋）は**最初の 1 回だけ**で、`hitlKind:"design"` を付ける。
+EPIC の子をさらに分解するとき（`AUTOPILOT_EPIC_FLOW=1`）は分解案の承認を待たず、そのまま sub-issue を作る
+（フェーズ A と B を 1 回で行う）。作る sub-issue の本文には親と同じ `autopilot-base:` を書く。
+
 ## 手順
 
 ### 0. 既存状態を確認（propose / create の判定）
@@ -157,6 +186,12 @@ Sprint Backlog にそのまま入れると autopilot が**並列着手**し、**
        「PR は develop 宛て・本文は **`Refs #<この Issue>`**（`Closes` にしない。prod デプロイの
        成功で `Deploy Infra` workflow が閉じる）」。
      - infra 以外の leaf の本文に `autopilot-after: #<infra の leaf>` を入れる。
+   - **develop に出してからする作業の leaf**（リリース後に測り直す・本番のデータで確かめる・告知するなど、
+     topic → develop のマージを待つもの）は `--label "🚀 after-release"` を付ける（`release-check.js` の
+     `AFTER_RELEASE_LABEL`）。付けないと、残りがその leaf だけになっても EPIC がリリース確認に入らない
+     （daemon は「済んだ子 + 開いている 🚀 after-release の子」が全部のときだけ入れる）。この leaf に
+     `autopilot-base:` は書かない（develop で作業する）。EPIC 自身を `autopilot-after:` で待たせるときも、ラベルは付ける
+     （本文の依存は daemon が本文を読んであるときだけ数えるので、ラベルが確かな印になる）。
    - **冪等**: 既に同名 sub-issue が存在する場合は作り直さない（`gh issue list` で確認）。
      既存 sub-issue の assignee が空なら `gh issue edit <num> --add-assignee "$assignee"` で補う。
    - 作成した leaf の **番号と、分解案で決めた size（small/middle/large）を控えておく**
@@ -215,6 +250,16 @@ Sprint Backlog にそのまま入れると autopilot が**並列着手**し、**
    EOF
    echo AUTOPILOT_DONE
    ```
+
+## 人間に選んでほしいことがあるとき（モニターで答える質問）
+
+- `signal:"hitl"` で人間に選んでほしいことがあるときは、結果に **`questions`** を足す（選択肢と推奨を必ず書く）:
+  `"questions":[{"id":"q1","text":"<何を選んでほしいか>","options":[{"key":"a","label":"<案>","desc":"<一行の説明>"},{"key":"b","label":"<案>"}],"recommended":"a"}]`。
+  `id` / `key` は英数字・`_`・`-` だけ。daemon が質問を Issue にマーカー付きで書き、モニターに出す（質問のコメントを自分で書かなくてよい）。
+  形は `docs/autopilot/autonomous-contract.md` §2.3。新しい signal は作らない。
+- 起動の指示に「人間がモニターで質問に答えています。先に … を Read し」とあれば、そのファイル（`AUTOPILOT_ANSWERS_FILE`）を
+  最初に読み、答え（質問 ID・選んだ選択肢・メモ）に従って続ける。同じことをもう一度質問しない。Issue の
+  `<!-- autopilot-monitor-answer ... -->` のコメントも同じ答え。
 
 ## 注意
 

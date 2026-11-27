@@ -41,7 +41,7 @@ const STATUSES = [
 const AI_STATUSES = [
     null, 'Triaging', 'Discussing', 'Understanding', 'Decomposing', 'EPIC Decomposed',
     'Implementing', 'Creating PR', 'Self-Reviewing', 'Addressing Comments', 'Resolving Conflicts', 'Running DoD',
-    'Awaiting Continuation',
+    'Awaiting Continuation', 'Release Check',
 ];
 
 const KINDS = ['Issue', 'EPIC'];
@@ -113,6 +113,28 @@ test('I1: 全状態に出口がある（固着状態が存在しない）', () =
         }
     }
     assert.deepEqual(stuck, [], `出口の無い状態（固着）が見つかった:\n  ${stuck.join('\n  ')}`);
+});
+
+test('I1(release-check): 🧭 トラッカーの Release Check は 🙋 を外すと release-check へ進む（#2430）', () => {
+    for (const kind of KINDS) {
+        const item = { issue: 1, status: 'In Progress', aiStatus: 'Release Check', kind, hitlLabel: true, labels: [TRACKING_LABEL] };
+        assert.equal(phaseForItem(item, {}), null, '🙋 の間は人間の番');
+        assert.equal(phaseForItem({ ...item, hitlLabel: false }, {}), 'release-check');
+        assert.equal(isStuckCandidate({ ...item, hitlLabel: false }), false);
+        // トラッカーでない item に Release Check が残ったら、stuck 検知（→ Blocked）が出口になる
+        assert.equal(isStuckCandidate({ ...item, hitlLabel: false, labels: [] }), true);
+        // ほかの Status の Release Check は従来どおり（トラッカーは closed-reconcile が出口）
+        assert.equal(phaseForItem({ ...item, status: 'Review', hitlLabel: false }, {}), null);
+    }
+});
+
+test('I2(release-check): 子が残る EPIC Decomposed のトラッカーは 🙋 を外しても動かない（PR のレビューはリリース確認で受ける・#2459）', () => {
+    // 合図はトラッカーの 🙋 だけで、Release Check に入るまでは何もしない。子が残っているあいだに人間が
+    // topic → develop の PR に書いたレビューは、目印で未対応だけを選ぶので、リリース確認の結果を受ける段で取りこぼさない
+    const item = { issue: 1, status: 'In Progress', aiStatus: 'EPIC Decomposed', kind: 'EPIC', hitlLabel: false, labels: [TRACKING_LABEL] };
+    assert.equal(phaseForItem(item, {}), null);
+    assert.equal(phaseForItem({ ...item, hitlLabel: true }, {}), null);
+    assert.equal(phaseForItem({ ...item, aiStatus: 'Release Check' }, {}), 'release-check');
 });
 
 test('I1(tracker): 🧭 tracking 付きも merge/close 整合という出口を持つ', () => {
@@ -215,6 +237,28 @@ test('isGateReleased: Issue / PR の 🙋 ラベルのどちらかを外した�
     assert.equal(isGateReleased(item, { hitlSignals: { issueLabel: false, prLabel: true } }), true);
     assert.equal(isGateReleased(item, { hitlSignals: { issueLabel: true, prLabel: true } }), false);
     assert.equal(isGateReleased(item, { humanSpokeLast: true, unhandledChangesRequested: true }), false);
+});
+
+// U1: モニターの「答えて先へ進める」（人間の明示操作）を受けて daemon が 🙋 を外したら、ラベルの
+// 読み直しが遅れていても（hitlLabel=true のまま）ゲートは開く。「メモだけ保存」は合図を立てない。
+test('I2/I3(U1): モニターの「答えて先へ進める」で daemon が 🙋 を外すと、どのゲートも解除される', () => {
+    for (const g of GATES) {
+        const ctx = { ...(g.ctx || {}), hitlSignals: { issueLabel: true, prLabel: true } };
+        assert.equal(phaseForItem(g.item, ctx), null, `${g.name}: 合図なしでは動かない`);
+        assert.equal(phaseForItem(g.item, { ...ctx, monitorReleased: true }), g.expect, `${g.name}: 答えて先へ進めると ${g.expect}`);
+    }
+    // 提案系の HITL（Status を動かさず待つ）と、一時停止の Sprint Backlog + 🙋 も同じ
+    const more = [
+        [{ status: 'In Progress', aiStatus: 'Triaging', hitlLabel: true, kind: 'Issue' }, 'triage'],
+        [{ status: 'In Progress', aiStatus: 'Decomposing', hitlLabel: true, kind: 'EPIC' }, 'decompose'],
+        [{ status: 'Sprint Backlog', hitlLabel: true, kind: 'Issue' }, 'implement'],
+    ];
+    for (const [item, expect] of more) {
+        assert.equal(phaseForItem({ issue: 1, labels: [], ...item }, {}), null);
+        assert.equal(phaseForItem({ issue: 1, labels: [], ...item }, { monitorReleased: true }), expect);
+    }
+    assert.equal(isGateReleased({ hitlLabel: true }, { monitorReleased: true }), true);
+    assert.equal(isGateReleased({ hitlLabel: true }, { monitorReleased: false }), false);
 });
 
 test('I4: hitl 提案は Status を Icebox/Close へ動かさない（プロンプト規約の静的検査）', () => {
@@ -360,5 +404,24 @@ test('#1315: 🙋 の非終端 item は必ず「何待ちか」の理由を 1 �
             const reason = humanWaitReason({ status, aiStatus, hitlLabel: true });
             assert.ok(keys.has(reason), `${status}/${aiStatus}: ${reason}`);
         }
+    }
+});
+
+// EPIC の流れ（#2385）: topic 宛ての PR の状態にも出口がある
+test('#23/#24: EPIC の流れの自動マージ待ちと Must の直しに出口がある', () => {
+    const { selectAutoMergeCandidates, markAutoMergeContexts } = require('../src/epic-flow');
+    // #23: Review + 🙋 なし + PR の base が topic → フェーズは動かず、D: 自動マージが出口
+    const waiting = { issue: 1, status: 'Review', aiStatus: null, hitlLabel: false, kind: 'Issue', labels: [] };
+    const contexts = markAutoMergeContexts({ 1: { pr: 9, prBase: 'topic/epic-1' } });
+    assert.equal(phaseForItem(waiting, contexts[1]), null);
+    assert.equal(selectAutoMergeCandidates([waiting], new Set(), contexts).length, 1);
+    // 🙋 を付けると従来の人間ゲート（外すと address-review だが autoMerge なのでマージ待ちに戻る）
+    assert.equal(phaseForItem({ ...waiting, hitlLabel: true }, contexts[1]), null);
+    // #24: In Progress + Addressing Comments + 🙋 なし → A: address-review
+    for (const hitl of [false, true]) {
+        const fixing = { issue: 2, status: 'In Progress', aiStatus: 'Addressing Comments', hitlLabel: hitl, kind: 'Issue', labels: [] };
+        if (!hitl) assert.equal(phaseForItem(fixing, {}), 'address-review');
+        // worker 不在なら stalled 復帰も同じフェーズへ
+        assert.equal(selectStalledInFlightItems([fixing], new Set()).length, 1);
     }
 });

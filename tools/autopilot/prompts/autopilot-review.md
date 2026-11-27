@@ -12,6 +12,40 @@
 分ける（#921。#893 で失われた「敵対的レビューの深さの可視性」の回復が目的）。指摘は
 **1 回のレビューにつき 1 コメント**にまとめ、`M1` / `Q1` / `FYI1` の連番で人間が返信しやすくする（#1248）。
 
+
+## EPIC の流れ（`AUTOPILOT_EPIC_FLOW=1` のとき）
+
+PR の base が `topic/...`（Issue 本文の `autopilot-base:`）のとき、daemon は `AUTOPILOT_EPIC_FLOW=1` を渡す。
+この Issue は EPIC の sub-issue で、**人間は EPIC の設計を承認済み**。確認は EPIC ごとにまとめて行うので、
+途中で `🙋 HITL` を出してよいのは次の 3 つだけ（結果ファイルの `hitlKind` に書く）:
+
+| `hitlKind` | いつ |
+|---|---|
+| `diverge` | **3 案以上**に分かれる判断（実装が発散する）。その sub-issue だけ止まる |
+| `must-exhausted` | 直しを 3 回しても Must が残る（daemon が自分で判定する。worker は使わない） |
+| `environment` | エラーで続けられない（認証・使用量・壊れた環境） |
+
+それ以外の判断（仕様の小さな選択・命名・見送り）は **AI のおすすめで決めて進め**、結果ファイルの
+`decisions` に書く。daemon が EPIC の Issue の「決定待ち」まとめコメント
+（`<!-- autopilot-epic-decisions count=N -->`）に書き足す（**worker はそのコメントを書かない**）:
+
+```json
+"decisions":[{"kind":"ai-decision","ref":null,"title":"<何を決めたか>","recommendation":"<AI の案（採ったもの）>",
+  "alternatives":["<ほかの案>"],"adopted":"<入れたもの>"}]
+```
+
+`kind` は `question`（仕様の選択が要る）/ `not-adopted`（採用しなかった指摘）/ `ai-decision`（AI が決めた）/
+`two-way`（2 案。下記）/ `diverge`（3 案以上）。スキーマは `docs/autopilot/autonomous-contract.md` §2.6。
+
+このフェーズでは（手順 7 も参照）:
+
+- 結果ファイルに **`mustCount`（このレビューで直しきれず残った Must の数）** と **`round`（手順 6 の round）** を必ず書く。
+  daemon はこれで次を決める: Must 0 → topic へ自動マージ（CI 通過・コンフリクト無し）/ Must あり → address-review が
+  直してもう一度 review / 3 回直しても残る → その sub-issue だけ止める（daemon が決定待ちに載せる）。
+- `hitl` は `false`。Question の「人間の判断に委ねる」もの、見送った Question / FYI は 🙋 にせず `decisions` に
+  書く（`question` / `not-adopted`。`ref` に `Q1` などの ID）。直したものは載せない。
+- Must 級の設計判断が 3 案以上に割れるときだけ `signal:"hitl"` + `"hitlKind":"diverge"`。
+
 ## 手順
 
 ### 1. 対象 PR を特定
@@ -43,6 +77,18 @@ done
 `env-file.md` / `supply-chain-security.md` / `github-app-bot.md` 等。`CLAUDE.md` にも要約あり）は
 touch した領域に関わらず**常に**前提として踏まえる。触った領域が `$AREAS` に無い場合（root 直下の
 スクリプトのみの変更等）はルート規約だけで十分。
+
+**人間から学んだこと**（`docs/autopilot/learned/<area>.md`。EPIC の確認で人間の答えが AI のおすすめと違ったときの
+意図と、人間との確認で分かったレビューの観点）も、触った分野のものだけ読み、観点に加える
+（`learnedRuleFilesFor`・純粋関数・`tools/autopilot/src/learnings.js`。`general.md` はいつも入る）:
+
+```bash
+node -e '
+const { learnedRuleFilesFor } = require("./tools/autopilot/src/learnings.js");
+const files = require("fs").readFileSync(0, "utf8").split("\n").filter(Boolean);
+console.log(learnedRuleFilesFor(files).join("\n"));
+' <<< "$FILES" | while read -r f; do [ -f "$f" ] && cat "$f"; done
+```
 
 ### 3. 敵対的レビューを実行（インライン・軽量）
 
@@ -128,7 +174,7 @@ GH_TOKEN="$(bin/bot-token)" gh api --method POST "repos/$REPO/issues/$AUTOPILOT_
   「PR は `Refs #<番号>`」を書く（infra-first）。
 
 - 修正は worktree 内で行い `bin/bot-git` でコミット・push（commitlint: 小文字 subject / 各行 ≤100 字）。
-- 修正 → 関連テスト（直接関係するテストファイルだけ（`CLAUDE.md` の「ローカルで流すテストの範囲」。全体実行は PR の CI で。どうしても全体の結果が要るときだけ例外で、理由を書く））/lint をローカル再実行 → push。
+- 修正 → 関連テスト（直接関係するテストファイルだけ（`CLAUDE.md` の「ローカルで流すテストの範囲」。全体実行は PR の CI で。どうしても全体の結果が要るときだけ例外で、理由を書く））/lint は **`bin/lint-changed`**（変えたファイルだけ。ルートの `npm run lint` の全体は流さない・全体は CI）をローカル再実行 → push。重い処理は `.claude/rules/parallel-work.md` の「重い処理の一覧」を読んでから流す（jest は `npm exec jest -- --runInBand <file>` でファイルを指定、dev server を 2 つ立てない、終わったらブラウザ・webpack の残りを確かめる）。
 - 判断に迷う **Must 級の重大指摘**で、修正方針そのものに人間の意見が要る場合（設計判断が割れる等）は、
   自分で直さずコメント + `AUTOPILOT_HITL` で確認する（後述）。
 
@@ -172,6 +218,8 @@ console.log(existing ? `PATCH ${existing.id}` : "POST");
 
 ### 7. 結果を返す（人間レビューへ）
 
+**先に「終わる前の後片付け」（下の節）を行う**（dev server・ブラウザを使ったとき。`tools/autopilot/bin/cleanup-leftovers`）。
+
 レビュー＋修正が済んだら、PR を **Ready + `🙋 HITL`** に上げて人間レビューへ（実際の Ready/ラベル/Status は daemon が反映）:
 
 ```bash
@@ -183,6 +231,47 @@ echo AUTOPILOT_DONE
 ```
 
 判断に迷う重大指摘（Must 級の設計判断）で人間の意見が要る場合は、コメント + `AUTOPILOT_HITL` で確認する。
+
+**EPIC の流れ（`AUTOPILOT_EPIC_FLOW=1`）**では、人間レビューへ渡さない。`mustCount` / `round` / `decisions` を書き、
+`hitl:false` で返す（Status は daemon が `mustCount` から決めるので `nextStatus` は `Review` のままでよい）:
+
+```bash
+cat > "$AUTOPILOT_RESULT_FILE" <<EOF
+{"issue":$AUTOPILOT_ISSUE,"phase":"review","signal":"done","summary":"敵対的レビュー完了(Must <a>件修正・残り <m>件/Question <b>件/FYI <c>件)。",
+"nextStatus":"Review","nextAiStatus":null,"hitl":false,"size":null,"kind":null,"createdSubIssues":[],"prUrl":"<PR URL>",
+"mustCount":<m>,"round":<N>,
+"decisions":[{"kind":"question","ref":"Q1","title":"<何を>","recommendation":"<AI の案>","alternatives":["<ほかの案>"],"adopted":"<入れたもの>"}]}
+EOF
+echo AUTOPILOT_DONE
+```
+
+## 終わる前の後片付け（dev server・ブラウザ・#2463）
+
+dev server やブラウザ（integration テストの chromedriver・chromium、pw-check の headless_shell）を使ったら、
+**結果ファイルを書く前**（`AUTOPILOT_DONE` / `AUTOPILOT_HITL` / `AUTOPILOT_ERROR`・checkpoint のどれで終わるときも）に、
+自分が起動したものを止める。残すと親を失って動き続け、コンテナのメモリと CPU を食う
+（webpack の dev server が 2.4 GB まで大きくなった・作業場が消えたあとも chromium が残った例がある）。
+
+1. dev server は `tools/autopilot/prompts/autopilot-verify.md` の「dev server の起動と停止」の形で起動・停止する
+   （起動前に 8601 の持ち主の cwd を確かめる・`setsid -f` で起動して PGID を `$WT/tmp/dev-server.pgid` に記録する・
+   `kill -- "-$PGID"` でプロセスグループごと止める）。`npx` / `npm` のラッパーだけを止めない。
+   webpack は自分のコマンド行を `webpack` に書き換えるので、`pgrep -f 'webpack serve'` では見つからない。
+2. 最後に **`tools/autopilot/bin/cleanup-leftovers`** を流す。`/proc/<pid>/cwd` が**自分の worktree** の
+   webpack・chromedriver・chromium・headless_shell だけを止め、止めたものを出す（`--dry-run` で一覧だけ）。
+   ほかの worker・人間のもの（cwd がほかの worktree や `/app`）は止めない。`pkill -f` のような広い一致を使わない。
+3. 手で確かめるときは `.claude/rules/parallel-work.md` の「後片付け」に従う。
+
+daemon も run の終了時にこの worktree に残ったものを止める（保険。頼らないこと）。
+
+## 人間に選んでほしいことがあるとき（モニターで答える質問）
+
+- `signal:"hitl"` で人間に選んでほしいことがあるときは、結果に **`questions`** を足す（選択肢と推奨を必ず書く）:
+  `"questions":[{"id":"q1","text":"<何を選んでほしいか>","options":[{"key":"a","label":"<案>","desc":"<一行の説明>"},{"key":"b","label":"<案>"}],"recommended":"a"}]`。
+  `id` / `key` は英数字・`_`・`-` だけ。daemon が質問を Issue にマーカー付きで書き、モニターに出す（質問のコメントを自分で書かなくてよい）。
+  形は `docs/autopilot/autonomous-contract.md` §2.3。新しい signal は作らない。
+- 起動の指示に「人間がモニターで質問に答えています。先に … を Read し」とあれば、そのファイル（`AUTOPILOT_ANSWERS_FILE`）を
+  最初に読み、答え（質問 ID・選んだ選択肢・メモ）に従って続ける。同じことをもう一度質問しない。Issue の
+  `<!-- autopilot-monitor-answer ... -->` のコメントも同じ答え。
 
 ## 注意
 

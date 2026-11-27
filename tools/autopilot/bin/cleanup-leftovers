@@ -1,0 +1,30 @@
+#!/usr/bin/env node
+// SPDX-License-Identifier: MIT
+'use strict';
+// worker が終わる前に、自分の worktree に残した dev server（webpack）とブラウザ（chromedriver・chromium・
+// headless_shell）を止める（#2463）。止めるのは /proc/<pid>/cwd が自分の worktree のものだけ。
+//   tools/autopilot/bin/cleanup-leftovers [--dry-run] [<worktree>]
+const path = require('path');
+const { execFileSync } = require('child_process');
+const { worktreeIssueFromCwd, selectLeftoversToStop } = require('../src/phases');
+const { listProcesses, stopWorktreeLeftovers } = require('../src/daemon');
+
+const args = process.argv.slice(2);
+const dryRun = args.includes('--dry-run');
+const wt = path.resolve(args.find((a) => !a.startsWith('--'))
+    || execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim());
+const worktreeRoot = path.dirname(wt);
+const issue = worktreeIssueFromCwd(wt, worktreeRoot);
+if (issue == null) {
+    process.stdout.write(`cleanup-leftovers: autopilot の worktree（issue-<N>）ではないので何もしない: ${wt}\n`);
+    process.exit(0);
+}
+const opts = { issues: [issue], runningIssues: [] };
+if (dryRun) {
+    const found = selectLeftoversToStop(listProcesses(), { ...opts, worktreeRoot, selfPid: process.pid });
+    for (const t of found) process.stdout.write(`${t.pid} ${t.kind} ${t.cwd}\n`);
+    process.stdout.write(`cleanup-leftovers: 残り ${found.length} 件（--dry-run なので止めていない）\n`);
+    process.exit(0);
+}
+const stopped = stopWorktreeLeftovers(opts, (m) => process.stdout.write(`${m}\n`), { worktreeRoot });
+process.stdout.write(`cleanup-leftovers: ${stopped.length} 件を止めた（残りが無ければ 0 件）\n`);

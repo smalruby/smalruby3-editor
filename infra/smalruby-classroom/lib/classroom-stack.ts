@@ -557,11 +557,11 @@ export class ClassroomStack extends cdk.Stack {
         ANTHROPIC_ORGANIZATION_ID: process.env.ANTHROPIC_ORGANIZATION_ID || '',
         ANTHROPIC_SERVICE_ACCOUNT_ID: process.env.ANTHROPIC_SERVICE_ACCOUNT_ID || '',
         ANTHROPIC_WORKSPACE_ID: process.env.ANTHROPIC_WORKSPACE_ID || '',
-        CLAUDE_MODEL: process.env.CLAUDE_MODEL || 'claude-haiku-4-5-20251001',
+        CLAUDE_MODEL: process.env.CLAUDE_MODEL || 'claude-sonnet-5-5',
         EVAL_MAX_SUBMISSIONS: process.env.EVAL_MAX_SUBMISSIONS || '10',
         EVAL_RATE_LIMIT_WINDOW_SECONDS: process.env.EVAL_RATE_LIMIT_WINDOW_SECONDS || '3600',
         EVAL_RATE_LIMIT_MAX_REQUESTS: process.env.EVAL_RATE_LIMIT_MAX_REQUESTS || '60',
-        EVAL_DAILY_LIMIT: process.env.EVAL_DAILY_LIMIT || '50',
+        EVAL_DAILY_LIMIT: process.env.EVAL_DAILY_LIMIT || '200',
         STAGE: stage,
       },
       bundling: {
@@ -849,6 +849,15 @@ export class ClassroomStack extends cdk.Stack {
       integration,
     });
 
+    // Per-assignment grading (#2422): teacher reads (GET) and saves parts of
+    // the rubric / grades / confirmation (PUT). Stored as a sibling item of
+    // the assignment in the Classrooms table, so no new table.
+    this.api.addRoutes({
+      path: '/classrooms/{classroomId}/grading',
+      methods: [apigatewayv2.HttpMethod.GET, apigatewayv2.HttpMethod.PUT],
+      integration,
+    });
+
     // Lesson progress (#1597): student upserts its seat (PUT, session token),
     // teacher lists every seat (GET, ID token).
     this.api.addRoutes({
@@ -901,6 +910,13 @@ export class ClassroomStack extends cdk.Stack {
     // marks-read for the authenticated teacher.
     this.api.addRoutes({
       path: '/notifications',
+      methods: [apigatewayv2.HttpMethod.GET],
+      integration,
+    });
+
+    // Today's AI evaluation usage of the authenticated teacher (#2448).
+    this.api.addRoutes({
+      path: '/teacher/evaluation-quota',
       methods: [apigatewayv2.HttpMethod.GET],
       integration,
     });

@@ -1,0 +1,131 @@
+/* 総合評価（EPIC #2421 / #2426）。色はデザインシステムのトークン（docs/design-system/tokens.md）。
+   左に設定、右に結果の表。表は枠の中だけでスクロールし、書き出しのボタンは上に留まる（R6）。 */
+@import '../../css/smalruby-tokens.css';
+
+.area {
+    flex: 1 1 auto;
+    gap: $space-small;
+}
+
+.actions {
+    display: flex;
+    justify-content: flex-end;
+    flex-shrink: 0;
+}
+
+.split {
+    display: grid;
+    grid-template-columns: 20rem minmax(0, 1fr);
+    gap: $space-medium;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.settings {
+    min-height: 0;
+    overflow: auto;
+    padding: $space-small $space-medium;
+    border: 1px solid $color-border;
+    border-radius: $radius-medium;
+    background-color: $color-surface;
+    color: $color-text;
+    font-size: $font-size-small;
+}
+
+.heading {
+    margin: $space-small 0 0.25rem;
+    font-size: $font-size-medium;
+    font-weight: $font-weight-bold;
+}
+
+.assignment-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.assignment-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $space-small;
+    padding: 0.25rem 0;
+    border-bottom: 1px solid $color-border;
+}
+
+.assignment-name {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.35rem;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.assignment-state {
+    display: block;
+    color: $color-text-muted;
+    font-size: $font-size-xsmall;
+}
+
+.field-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.75rem;
+}
+
+.number-field {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    white-space: nowrap;
+}
+
+.number {
+    width: 3.5rem;
+    padding: 0.15rem 0.25rem;
+    border: 1px solid $color-border;
+    border-radius: $radius-small;
+    font: inherit;
+}
+
+.note {
+    margin: $space-small 0 0;
+    color: $color-text-muted;
+    font-size: $font-size-small;
+}
+
+.text-button {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: $color-action;
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.result {
+    display: flex;
+    flex-direction: column;
+    gap: $space-small;
+    min-width: 0;
+    min-height: 0;
+}
+
+.warn {
+    margin: 0;
+    padding: $space-small $space-medium;
+    border-radius: $radius-medium;
+    background-color: $color-warning-background;
+    color: $color-text;
+    font-size: $font-size-small;
+}
+
+.col-name {
+    display: block;
+    max-width: 10rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

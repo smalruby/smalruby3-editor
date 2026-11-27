@@ -2,8 +2,10 @@ import bindAll from 'lodash.bindall';
 import PropTypes from 'prop-types';
 import React from 'react';
 import VM from '@smalruby/scratch-vm';
+// === Smalruby: Start of ruby to blocks before green flag ===
 import {injectIntl} from 'react-intl';
 import intlShape from '../lib/intlShape.js';
+// === Smalruby: End of ruby to blocks before green flag ===
 import {connect} from 'react-redux';
 
 import ControlsComponent from '../components/controls/controls.jsx';
@@ -12,7 +14,9 @@ import ControlsComponent from '../components/controls/controls.jsx';
 import analytics from '../lib/analytics';
 // === Smalruby: End of block_run analytics ===
 
+// === Smalruby: Start of ruby to blocks before green flag ===
 import RubyToBlocksConverterHOC from '../lib/ruby-to-blocks-converter-hoc.jsx';
+// === Smalruby: End of ruby to blocks before green flag ===
 // === Smalruby: Start of studuino mode write ===
 import {abortStuduinoWrite, isStuduinoMode, openStuduinoWrite} from '../reducers/studuino-mode';
 // === Smalruby: End of studuino mode write ===
@@ -25,9 +29,14 @@ class Controls extends React.Component {
             'handleStopAllClick'
         ]);
     }
+    // === Smalruby: Start of ruby to blocks before green flag ===
+    // Upstream: handleGreenFlagClick (e) is not async.
     async handleGreenFlagClick (e) {
+    // === Smalruby: End of ruby to blocks before green flag ===
         e.preventDefault();
 
+        // === Smalruby: Start of ruby to blocks before green flag ===
+        // Upstream runs the shift (turbo) / green flag branch right away, without converting Ruby.
         const converter = await this.props.targetCodeToBlocks(this.props.intl);
         if (!converter.result) {
             return;
@@ -49,6 +58,7 @@ class Controls extends React.Component {
                         this.props.vm.start();
                     }
                     this.props.vm.greenFlag();
+                    // === Smalruby: End of ruby to blocks before green flag ===
                     // === Smalruby: Start of block_run analytics ===
                     try {
                         analytics.event({
@@ -60,6 +70,7 @@ class Controls extends React.Component {
                         // Swallow analytics failures so the editor never breaks.
                     }
                     // === Smalruby: End of block_run analytics ===
+                // === Smalruby: Start of ruby to blocks before green flag ===
                 }
             })
             .catch(error => {
@@ -68,6 +79,7 @@ class Controls extends React.Component {
                 // eslint-disable-next-line no-console
                 console.error('[Controls] Ruby to blocks apply error:', error);
             });
+        // === Smalruby: End of ruby to blocks before green flag ===
     }
     handleStopAllClick (e) {
         e.preventDefault();
@@ -80,7 +92,9 @@ class Controls extends React.Component {
     render () {
         const {
             vm: _vm,
+            // === Smalruby: Start of ruby to blocks before green flag ===
             targetCodeToBlocks: _targetCodeToBlocks,
+            // === Smalruby: End of ruby to blocks before green flag ===
             isStarted: _isStarted,
             // === Smalruby: Start of studuino mode write ===
             studuinoMode: _studuinoMode,
@@ -104,10 +118,14 @@ class Controls extends React.Component {
 }
 
 Controls.propTypes = {
+    // === Smalruby: Start of ruby to blocks before green flag ===
     intl: intlShape.isRequired,
+    // === Smalruby: End of ruby to blocks before green flag ===
     isStarted: PropTypes.bool.isRequired,
     projectRunning: PropTypes.bool.isRequired,
+    // === Smalruby: Start of ruby to blocks before green flag ===
     targetCodeToBlocks: PropTypes.func,
+    // === Smalruby: End of ruby to blocks before green flag ===
     turbo: PropTypes.bool.isRequired,
     // === Smalruby: Start of studuino mode write ===
     studuinoMode: PropTypes.bool,
@@ -133,7 +151,10 @@ const mapDispatchToProps = dispatch => ({
 });
 // === Smalruby: End of studuino mode write ===
 
+// === Smalruby: Start of ruby to blocks before green flag ===
 export default RubyToBlocksConverterHOC(injectIntl(connect(
     mapStateToProps,
     mapDispatchToProps
 )(Controls)));
+// Upstream: export default connect(mapStateToProps, mapDispatchToProps)(Controls);
+// === Smalruby: End of ruby to blocks before green flag ===

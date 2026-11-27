@@ -744,13 +744,13 @@ say(mesh.message_value)
 
 **テスト**: `ruby-to-blocks-converter/mesh_v2.test.js`、`ruby-roundtrip/extension_mesh.test.js`、`furigana-annotator.test.js`。
 
-**気をつけること（見つけた不具合）**: テキストの入力に数を入れるときは、数字の文字列にしてから入れる。`_addTextInput` に数をそのまま渡すと、入力が空のままになり、数が黙って消える。いま `translate.call(1, "ja")`（翻訳の言葉が数）がこの形で、ブロックに言葉が入らない（`ruby-roundtrip/translate-table.test.js` はいまの出力を固定している。直すときはこの行を直す）。
+**気をつけること**: テキストの入力に数を入れるときは、数字の文字列にしてから入れる。`_addTextInput` に数をそのまま渡すと、入力が空のままになり、数が黙って消える。表の `textArg(..., { number: true })` は数を数字の文字列にして入れる（`translate.call(1, "ja")` の言葉は `"1"` になり、`translate.call("1", "ja")` に戻る。`ruby-roundtrip/translate-table.test.js`）。
 
-**気をつけること（見つけた不具合）**: 値のブロック（reporter）の生成器は `[コード, Generator.ORDER_xxx]` を返す（文の生成器のように `` `...\n` `` の文字列を返さない）。LEGO BOOST の `boost_getMotorPosition` / `boost_seeingColor` / `boost_getTiltAngle` と WeDo 2.0 の `wedo2_isTilted` と micro:bit の `microbit_isButtonPressed` と micro:bit More の `microbitMore_getPinEventValue`（`microbit.value_of(...)`）は文字列を返しているので、`say(...)` などの値の場所に入れると Ruby が壊れる（`say(b)`）。`ruby-roundtrip/boost-table.test.js`・`wedo2-table.test.js`・`microbit-table.test.js` は該当の行を `only: 'toBlocks'` にしている（直すときは外す）。
+**気をつけること**: 値のブロック（reporter）の生成器は `[コード, Generator.ORDER_xxx]` を返す（文の生成器のように `` `...\n` `` の文字列を返さない）。文字列を返すと、`say(...)` などの値の場所に入れたときに Ruby が壊れる（`say(b)`）。LEGO BOOST の `boost_getMotorPosition` / `boost_seeingColor` / `boost_getTiltAngle`、WeDo 2.0 の `wedo2_isTilted`、micro:bit の `microbit_isButtonPressed`、micro:bit More の `microbitMore_getPinEventValue`（`microbit.value_of(...)`）がこの形だったのを直した（`ruby-roundtrip/boost-table.test.js`・`wedo2-table.test.js`・`microbit-table.test.js`・`microbit-more-table.test.js` で往復を確かめる）。
 
-**気をつけること（見つけた不具合）**: EV3 の `ev3.when_button_pressed(...)` の変換器は、引数にブロックを受け付けるのに、そのブロックをメニューに入れず（どこにもつながらないブロックが残る）、ポートを `"-1"` にする（`toString()` で探すため）。また、変換のたびに `console.log` を出す。表には移さず、元の handler のまま残している。
+**気をつけること**: ハットのメニューの引数に値のブロックを受け付けるなら、そのブロックをメニューの入力に入れる。入れないと、どこにもつながらないブロックが残る。EV3 の `ev3.when_button_pressed(...)`（と v1 の `self.when(:ev3_button_pressed, ...)`）がこの形だったので、文字列だけを受け付ける形にした（生成器はいつも文字列を書く）。ブロックや数を書くとエラーになる（`ruby-to-blocks-converter/ev3.test.js`）。メニューに無いポートは `"-1"` になる（ほかの EV3 のポートと同じ）。
 
-**気をつけること（見つけた不具合）**: AkaDako（g2s）の数の引数（`set_pwm_duty` の値・`servo_turn` の角度と速さ・NeoPixel の位置や明るさ・`i2c_read` の長さ・`number_at` などの位置）は、引数を確かめていない。文字列（`akadako.set_pwm_duty("10", "25")`）を書くと、その入力の無いブロックになる。表では `unchecked(...)` でこの形を残している（`ruby-roundtrip/g2s-table.test.js`）。
+**気をつけること**: 数の入力の引数は確かめる（`numberArg` は数・値のブロックだけを受け付ける）。確かめないと、文字列（`akadako.set_pwm_duty("10", "25")`）がその入力の無いブロックになる。AkaDako（g2s）の数の引数（`set_pwm_duty` の値・`servo_turn` の角度と速さ・NeoPixel の長さ・位置・明るさ・ずらす数・`i2c_read` の長さ・`number_at` / `splice_numbers` の位置と数）がこの形だったので、文字列はエラーにした（`ruby-to-blocks-converter/g2s.test.js`）。`unchecked(...)` は NeoPixel の色だけに残っている。
 
 ### P20. 定義ブロックの名前と「画面を再描画せずに実行する」
 

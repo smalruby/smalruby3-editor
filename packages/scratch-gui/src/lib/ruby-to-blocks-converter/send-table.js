@@ -34,7 +34,8 @@ const numberArg = (input, defaultValue, shadow = 'math_number') => ({ kind: 'num
  * @param {string} input - The name of the input (`QUESTION`).
  * @param {string} [defaultValue] - The value of the shadow when the argument is a block.
  * @param {object} [options] - Options.
- * @param {boolean} [options.number] - Takes a number too (`translate.call(1, "ja")`).
+ * @param {boolean} [options.number] - Takes a number too (`translate.call(1, "ja")`), put in as the
+ *     string of its digits (`"1"`).
  * @returns {object} The argument of a row.
  */
 const textArg = (input, defaultValue, { number = false } = {}) => ({ kind: 'text', input, defaultValue, number });
@@ -168,9 +169,9 @@ const menuInputValueOf = (spec, arg) =>
     spec.normalize ? new Primitive('str', fieldValueOf(spec, arg), arg.node) : arg;
 
 /**
- * An argument that takes anything, not checked (some calls of AkaDako put any argument into a
- * number input or a menu as it is). Kept for the calls that already took anything; a new row
- * should check its arguments.
+ * An argument that takes anything, not checked (the color of some calls of AkaDako goes into a
+ * menu as it is). Kept for the calls that already took anything; a new row should check its
+ * arguments.
  * @param {object} spec - The argument of a row.
  * @returns {object} The argument of a row, not checked.
  */
@@ -222,7 +223,14 @@ const putArg = (converter, block, spec, arg) => {
             converter._addNumberInput(block, spec.input, spec.shadow, arg, spec.defaultValue);
             break;
         case 'text':
-            converter._addTextInput(block, spec.input, arg, spec.defaultValue);
+            // A number goes into the text input as the string of its digits (`1` → `"1"`): as it is,
+            // the input would stay empty and the number would be lost.
+            converter._addTextInput(
+                block,
+                spec.input,
+                converter._isNumber(arg) ? new Primitive('str', arg.toString(), arg.node) : arg,
+                spec.defaultValue,
+            );
             break;
         case 'menu':
             converter._addInput(

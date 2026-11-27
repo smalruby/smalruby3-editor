@@ -6,8 +6,6 @@ const AKADAKO = 'akadako';
 const g2sMenu = (input, menu, defaultValue) =>
     menuInputArg(input, `g2s_menu_${menu}`, menu, defaultValue, { stringOnly: true });
 const neoPixelConnectorArg = () => g2sMenu('CONNECTOR', 'neoPixelConnectorMenu', '10');
-// A number argument that was never checked (a string is taken, and the block gets no input).
-const anyNumberArg = (input, defaultValue) => unchecked(numberArg(input, defaultValue));
 // A color of NeoPixel: anything, as it is (a string or a block).
 const anyColorArg = (menu) => unchecked(menuInputArg('COLOR', `g2s_menu_${menu}`, menu, '0xff, 0, 0'));
 
@@ -83,17 +81,13 @@ const G2S_SENDS = [
     {
         name: 'set_pwm_duty',
         opcode: 'g2s_analogLevelSet',
-        args: [g2sMenu('CONNECTOR', 'pwmConnectorMenu', '10'), anyNumberArg('LEVEL', 0)],
+        args: [g2sMenu('CONNECTOR', 'pwmConnectorMenu', '10'), numberArg('LEVEL', 0)],
     },
     // Servo and IR
     {
         name: 'servo_turn',
         opcode: 'g2s_servoTurn',
-        args: [
-            g2sMenu('CONNECTOR', 'servoConnectorMenu', '10'),
-            anyNumberArg('ANGLE', 90),
-            anyNumberArg('SPEED', 100),
-        ],
+        args: [g2sMenu('CONNECTOR', 'servoConnectorMenu', '10'), numberArg('ANGLE', 90), numberArg('SPEED', 100)],
     },
     {
         name: 'send_ir_remote',
@@ -105,29 +99,29 @@ const G2S_SENDS = [
     {
         name: 'neopixel_config',
         opcode: 'g2s_neoPixelConfigStrip',
-        args: [neoPixelConnectorArg(), anyNumberArg('LENGTH', 3)],
+        args: [neoPixelConnectorArg(), numberArg('LENGTH', 3)],
     },
     {
         name: 'neopixel_set_color',
         opcode: 'g2s_neoPixelSetColor',
         args: [
             neoPixelConnectorArg(),
-            anyNumberArg('POSITION', 1),
+            numberArg('POSITION', 1),
             anyColorArg('neoPixelColorMenuSimple'),
-            anyNumberArg('BRIGHTNESS', 50),
+            numberArg('BRIGHTNESS', 50),
         ],
     },
     {
         name: 'neopixel_fill_color',
         opcode: 'g2s_neoPixelFillColor',
-        args: [neoPixelConnectorArg(), anyColorArg('neoPixelColorMenu'), anyNumberArg('BRIGHTNESS', 50)],
+        args: [neoPixelConnectorArg(), anyColorArg('neoPixelColorMenu'), numberArg('BRIGHTNESS', 50)],
     },
     {
         name: 'neopixel_shift_color',
         opcode: 'g2s_neoPixelShiftColor',
         args: [
             neoPixelConnectorArg(),
-            anyNumberArg('N', 1),
+            numberArg('N', 1),
             g2sMenu('LOOP_MODE', 'neoPixelShiftColorLoopModeMenu', 'true'),
         ],
     },
@@ -155,14 +149,14 @@ const G2S_SENDS = [
         name: 'i2c_read',
         opcode: 'g2s_i2cReadOnce',
         type: 'value',
-        args: [textArg('ADDRESS', '0x00'), textArg('REGISTER', '0x00'), anyNumberArg('LENGTH', 1)],
+        args: [textArg('ADDRESS', '0x00'), textArg('REGISTER', '0x00'), numberArg('LENGTH', 1)],
     },
     // Arrays and data
     {
         name: 'number_at',
         opcode: 'g2s_numberAtIndex',
         type: 'value',
-        args: [textArg('ARRAY', '1.0, 1E1, 0xFF'), anyNumberArg('INDEX', 1)],
+        args: [textArg('ARRAY', '1.0, 1E1, 0xFF'), numberArg('INDEX', 1)],
     },
     {
         name: 'splice_numbers',
@@ -170,8 +164,8 @@ const G2S_SENDS = [
         type: 'value',
         args: [
             textArg('ARRAY', '1.0, 1E1, 0xFF'),
-            anyNumberArg('INDEX', 1),
-            anyNumberArg('DELETE', 1),
+            numberArg('INDEX', 1),
+            numberArg('DELETE', 1),
             textArg('INSERT', '-1, 0'),
         ],
     },

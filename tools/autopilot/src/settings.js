@@ -18,6 +18,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { PROMPT_DIR, DEFAULT_USAGE_PAUSE_THRESHOLDS } = require('./phases');
+const { DEFAULT_SCHEDULER_LIMITS } = require('./scheduler');
 
 /**
  * 既定の worker 設定。model はフェーズの性質に合わせた推奨値
@@ -63,6 +64,9 @@ const DEFAULT_SETTINGS = {
         'address-review': { model: 'opus' },
         verify: { model: 'sonnet' },
         'resolve-conflict': { model: 'opus' },
+        'release-check': { model: 'opus' },
+        // 現在地の artifact を作る job（#2388。Issue に属さない・モニタのボタンからだけ起動）
+        'current-status': { model: 'opus' },
     },
     /**
      * 1 回の run の時間（分）。`maxMinutes` を超えると runner が worker を止め、`softMinutes` で
@@ -79,6 +83,12 @@ const DEFAULT_SETTINGS = {
         sessionPercent: DEFAULT_USAGE_PAUSE_THRESHOLDS.session,
         weeklyPercent: DEFAULT_USAGE_PAUSE_THRESHOLDS.weekly,
     },
+    /**
+     * 並列の計画（EPIC #2384）。全体・重いものの上限と、空きメモリ・CPU の閾値。
+     * 解釈と不正値の扱いは scheduler.js の resolveSchedulerLimits。部分指定は既定とマージされる。
+     * モニターから一時的に変えた値は再起動で消える（ずっと変えるならここを書く）。
+     */
+    scheduler: { ...DEFAULT_SCHEDULER_LIMITS },
 };
 
 /**
@@ -118,6 +128,9 @@ function mergeSettings(base, override) {
     }
     if (base.watchdog || (override && override.watchdog)) {
         out.watchdog = { ...(base.watchdog || {}), ...((override && override.watchdog) || {}) };
+    }
+    if (base.scheduler || (override && override.scheduler)) {
+        out.scheduler = { ...(base.scheduler || {}), ...((override && override.scheduler) || {}) };
     }
     if (base.usagePause || (override && override.usagePause)) {
         out.usagePause = { ...(base.usagePause || {}), ...((override && override.usagePause) || {}) };
@@ -236,6 +249,9 @@ function snapshotRunAssets(opts = {}) {
     if (opts.settings) {
         fs.writeFileSync(path.join(dir, 'settings.resolved.json'), JSON.stringify(opts.settings, null, 2));
     }
+    // 現在地などのテンプレート（#2388）もプロンプトと同じくブランチ切り替えから隔離する
+    const templates = path.join(repoRoot, 'tools', 'autopilot', 'templates');
+    if (fs.existsSync(templates)) fs.cpSync(templates, path.join(dir, 'templates'), { recursive: true });
     return { dir, promptDir };
 }
 

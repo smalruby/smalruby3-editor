@@ -537,6 +537,39 @@ class ClassroomAPI {
     }
 
     /**
+     * How many AI evaluations the teacher used today (#2448). Reading does not
+     * count as a use. The success of `evaluateSubmissions` carries the same `quota`.
+     * @param {string} idToken - Teacher ID token
+     * @returns {Promise<object>} {quota: {used, limit, resetsAt}}
+     */
+    async getEvaluationQuota(idToken) {
+        return this._request('GET', '/teacher/evaluation-quota', null, idToken);
+    }
+
+    /**
+     * Read the saved grading of an assignment (EPIC #2421): its rubric, the grade of
+     * each seat and whether the teacher confirmed them.
+     * @param {string} idToken - Teacher ID token
+     * @param {string} classroomId - Classroom ID
+     * @returns {Promise<object>} {grading} — grading is null when nothing is saved yet
+     */
+    async getGrading(idToken, classroomId) {
+        return this._request('GET', `/classrooms/${classroomId}/grading`, null, idToken);
+    }
+
+    /**
+     * Save part of the grading of an assignment (EPIC #2421). Only the keys given
+     * (`rubric`, `grades`, `confirmedAt`) are replaced; the others stay.
+     * @param {string} idToken - Teacher ID token
+     * @param {string} classroomId - Classroom ID
+     * @param {object} updates - any of {rubric, grades, confirmedAt}
+     * @returns {Promise<object>} {grading} — the grading after the save
+     */
+    async putGrading(idToken, classroomId, updates) {
+        return this._request('PUT', `/classrooms/${classroomId}/grading`, updates, idToken);
+    }
+
+    /**
      * Set (replace) the assignment content of a classroom (teacher only).
      * Pages carry either `newImage` (MIME type, requests a fresh upload URL)
      * or `imageKey` (keep the existing object). `newStarter` / `keepStarter`

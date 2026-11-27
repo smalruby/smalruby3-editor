@@ -33,23 +33,14 @@ const rows = [
     {
         blocks: `looks_say(MESSAGE: boost_getMotorPosition(MOTOR_REPORTER_ID: ${menu('MOTOR_REPORTER_ID', 'A')}))`,
         ruby: 'say(boost_motor_get_position("A"))',
-        // The generator writes these reporters as statements (a string, not [code, order]), so inside
-        // a value they come out broken (`say(b)`). Only the converter is fixed here.
-        only: 'toBlocks',
     },
     {
         blocks: `looks_say(MESSAGE: boost_seeingColor(COLOR: ${menu('COLOR', 'red')}))`,
         ruby: 'say(boost_seeing_color?("red"))',
-        // The generator writes these reporters as statements (a string, not [code, order]), so inside
-        // a value they come out broken (`say(b)`). Only the converter is fixed here.
-        only: 'toBlocks',
     },
     {
         blocks: `looks_say(MESSAGE: boost_getTiltAngle(TILT_DIRECTION: ${menu('TILT_DIRECTION', 'up')}))`,
         ruby: 'say(boost_get_tilt_angle("up"))',
-        // The generator writes these reporters as statements (a string, not [code, order]), so inside
-        // a value they come out broken (`say(b)`). Only the converter is fixed here.
-        only: 'toBlocks',
     },
     { blocks: 'boost_setLightHue(HUE: 50)', ruby: 'boost_set_light_color(50)' },
     { blocks: 'boost_setLightHue(HUE: $h)', ruby: 'boost_set_light_color($h)' },
