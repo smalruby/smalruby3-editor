@@ -122,8 +122,24 @@ jobs:
         uses: ./.github/actions/install-dependencies
       - name: Build dependency packages
         run: npm run build:dev --workspace=packages/scratch-svg-renderer --workspace=packages/scratch-render --workspace=packages/scratch-vm
+      # The github-actions reporter shows each failed test (with the expected / received diff) as a
+      # check-run annotation, which can be read from the container via api.github.com
+      # (.claude/rules/ci-failure-logs.md). The CLI --reporters replaces the reporters of package.json
+      # and drops their options, so default / jest-junit are listed again and the jest-junit output
+      # directory is given by JEST_JUNIT_OUTPUT_DIR.
       - name: Run scratch-gui Unit Tests
-        run: npm run test:unit --workspace=packages/scratch-gui
+        id: unit-tests
+        env:
+          JEST_JUNIT_OUTPUT_DIR: test-results
+        run: >-
+          npm run test:unit --workspace=packages/scratch-gui --
+          --reporters=default --reporters=github-actions --reporters=jest-junit
+          --json --outputFile=jest-results.json
+      # GitHub keeps 10 error annotations per step and none for a test file that fails to run,
+      # so list every failure in one annotation as well.
+      - name: List failed scratch-gui Unit Tests
+        if: failure() && steps.unit-tests.outcome == 'failure'
+        run: node scripts/jest-failures-annotation.mjs packages/scratch-gui/jest-results.json
 
   integration-test-vm:
     runs-on: ubuntu-26.04
@@ -232,10 +248,18 @@ jobs:
         run: npm run build:dev
       - name: Create test-results directories
         run: mkdir -p packages/scratch-gui/test-results
+      # Failed tests as check-run annotations: see the scratch-gui unit tests.
       - name: Run scratch-gui Integration Tests
+        id: integration-tests
         env:
           JEST_JUNIT_OUTPUT_DIR: packages/scratch-gui/test-results
-        run: npm run test:integration --workspace=packages/scratch-gui -- --shard=${{ matrix.shard }}/2
+        run: >-
+          npm run test:integration --workspace=packages/scratch-gui -- --shard=${{ matrix.shard }}/2
+          --reporters=default --reporters=github-actions --reporters=jest-junit
+          --json --outputFile=jest-results.json
+      - name: List failed scratch-gui Integration Tests
+        if: failure() && steps.integration-tests.outcome == 'failure'
+        run: node scripts/jest-failures-annotation.mjs packages/scratch-gui/jest-results.json
       - name: Store Test Results
         if: always() # Even if tests fail
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
