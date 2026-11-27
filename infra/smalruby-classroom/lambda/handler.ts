@@ -185,7 +185,8 @@ const { client: anthropicClient } = createAnthropicClient({
   timeout: EVAL_ANTHROPIC_TIMEOUT_MS,
   logLabel: 'classroom',
 });
-const CLAUDE_MODEL = process.env.CLAUDE_MODEL || 'claude-haiku-4-5-20251001';
+// Sonnet since #2422: Haiku gave same-shaped works different grades.
+const CLAUDE_MODEL = process.env.CLAUDE_MODEL || 'claude-sonnet-5-5';
 const EVAL_MAX_SUBMISSIONS = parseInt(process.env.EVAL_MAX_SUBMISSIONS || '10', 10);
 const EVAL_MAX_PSEUDOCODE_LENGTH = parseInt(process.env.EVAL_MAX_PSEUDOCODE_LENGTH || '4000', 10);
 const EVAL_RATE_LIMIT_WINDOW_SECONDS = parseInt(process.env.EVAL_RATE_LIMIT_WINDOW_SECONDS || '3600', 10);
@@ -193,9 +194,11 @@ const EVAL_RATE_LIMIT_MAX_REQUESTS = parseInt(process.env.EVAL_RATE_LIMIT_MAX_RE
 // Durable per-teacher daily cap on Claude API calls (adversarial review):
 // the in-memory hourly window resets on cold starts and is per-instance, so
 // a DynamoDB counter enforces the real budget. One 35-student class costs
-// ~4 chunked calls per run (grade or comment), so 50 calls/day ≈ 5 full
-// grade+comment runs. Env-configurable for tests and per-stage tuning.
-const EVAL_DAILY_LIMIT = parseInt(process.env.EVAL_DAILY_LIMIT || '50', 10);
+// ~4 chunked calls per run (grade or comment). 200 calls/day lets a teacher
+// with 4–6 classes grade, comment and build criteria with a few retries
+// (50 ran out within a day of real use, #2448). Env-configurable for tests
+// and per-stage tuning.
+const EVAL_DAILY_LIMIT = parseInt(process.env.EVAL_DAILY_LIMIT || '200', 10);
 const EVAL_GRADES = ['S', 'A', 'B', 'C'];
 
 // --- DynamoDB Client ---
@@ -4298,6 +4301,15 @@ async function handleDuplicateClassroom(
 
   const now = new Date().toISOString();
   const ttl = Math.floor(Date.now() / 1000) + CLASSROOM_TTL_SECONDS;
+  // Reuse carries the grading criteria along, not the grades (#2422). Written
+  // before the assignment so a new assignment never lacks its copied rubric.
+  const copiedGrading = gradingForDuplicate(gradingOf(await loadGradingItem(classroomId)), now);
+  if (copiedGrading) {
+    await docClient.send(new PutCommand({
+      TableName: CLASSROOMS_TABLE,
+      Item: { classroomId: gradingKeyOf(newClassroomId), ...copiedGrading, ttl },
+    }));
+  }
   await docClient.send(new PutCommand({
     TableName: CLASSROOMS_TABLE,
     Item: {
@@ -4974,31 +4986,197 @@ interface EvalSample {
   reason?: string;
 }
 
+/** A S/A/B/C criterion sentence written by the teacher (or proposed by the AI) (#2422). */
+interface EvalRubricLevel {
+  grade: string;
+  text: string;
+}
+
+/**
+ * A teacher-graded reference work (#2422): the grade, why, which group of
+ * same-shaped works it stands for, and the work itself as pseudocode.
+ */
+interface EvalExample {
+  seatNumber: number;
+  grade: string;
+  reason: string;
+  group: string;
+  code: string;
+}
+
+/** A group of same-shaped works for the fairness check (#2422). */
+interface EvalGroup {
+  name: string;
+  seatNumbers: number[];
+  submissions: EvalSubmission[];
+}
+
+export const EVAL_MODES = ['grade', 'comment', 'describe', 'rubric', 'fairness'] as const;
+export type EvalMode = typeof EVAL_MODES[number];
+
 interface EvaluateRequest {
-  mode: 'grade' | 'comment';
+  mode: EvalMode;
   assignmentName: string;
   assignmentText: string;
   rubricAxes: EvalRubricAxis[];
   strictness: 'lenient' | 'standard' | 'strict';
   samples: EvalSample[];
   submissions: EvalSubmission[];
+  // #2422 — all optional; empty means "not sent" (an older client).
+  starterPseudocode: string;
+  rubricLevels: EvalRubricLevel[];
+  examples: EvalExample[];
+  groups: EvalGroup[];
+}
+
+// Size caps of the rubric-aware inputs (#2422). They match the stored
+// grading (GRADING_*), so whatever the grading screen saved can be sent back.
+const EVAL_MAX_EXAMPLES = 20;
+const EVAL_MAX_REASON_LENGTH = 300;
+const EVAL_MAX_LEVEL_TEXT_LENGTH = 500;
+const EVAL_MAX_GROUP_NAME_LENGTH = 80;
+const EVAL_MAX_GROUPS = 20;
+const EVAL_MAX_GROUP_SEATS = 200;
+// The fairness check reads a few works per group; capped in total so one call
+// stays well inside the 25 s budget.
+const EVAL_MAX_FAIRNESS_SUBMISSIONS = 20;
+const EVAL_MAX_DESCRIPTION_LENGTH = 1000;
+const EVAL_MAX_CHECKS = 10;
+const EVAL_MAX_CHECK_QUESTION_LENGTH = 300;
+const EVAL_MAX_CHECK_OPTIONS = 5;
+const EVAL_MAX_CHECK_OPTION_LENGTH = 100;
+
+/** Cut a long work / starter to the pseudocode cap with a visible marker. */
+function truncatePseudocode(value: unknown): string {
+  const text = typeof value === 'string' ? value : '';
+  return text.length > EVAL_MAX_PSEUDOCODE_LENGTH
+    ? `${text.slice(0, EVAL_MAX_PSEUDOCODE_LENGTH)}\n…(以降省略)`
+    : text;
+}
+
+function validateEvalSubmissions(raw: unknown, label: string, max: number, min: number): EvalSubmission[] {
+  const list = Array.isArray(raw) ? raw : [];
+  if (list.length < min || list.length > max) {
+    throw new ValidationError(`${label} must have ${min} to ${max} entries`);
+  }
+  return list.map((submission, i) => {
+    const s = submission as Record<string, unknown>;
+    const seatNumber = typeof s?.seatNumber === 'number' ? s.seatNumber : NaN;
+    if (isNaN(seatNumber)) throw new ValidationError(`${label}[${i}].seatNumber is required`);
+    const signals =
+      s.signals && typeof s.signals === 'object' && !Array.isArray(s.signals)
+        ? (s.signals as Record<string, unknown>)
+        : {};
+    return { seatNumber, signals, pseudocode: truncatePseudocode(s.pseudocode) };
+  });
+}
+
+function validateEvalRubricLevels(raw: unknown): EvalRubricLevel[] {
+  if (raw === undefined || raw === null) return [];
+  if (!Array.isArray(raw)) throw new ValidationError('rubricLevels must be an array');
+  if (raw.length > EVAL_GRADES.length) {
+    throw new ValidationError(`rubricLevels must have at most ${EVAL_GRADES.length} entries`);
+  }
+  const seen = new Set<string>();
+  return raw.map((level, i) => {
+    const l = level as Record<string, unknown>;
+    if (typeof l?.grade !== 'string' || !EVAL_GRADES.includes(l.grade)) {
+      throw new ValidationError(`rubricLevels[${i}].grade must be one of ${EVAL_GRADES.join('/')}`);
+    }
+    if (seen.has(l.grade)) throw new ValidationError(`rubricLevels[${i}].grade is duplicated`);
+    seen.add(l.grade);
+    return {
+      grade: l.grade,
+      text: typeof l.text === 'string' ? l.text.slice(0, EVAL_MAX_LEVEL_TEXT_LENGTH) : '',
+    };
+  });
+}
+
+function validateEvalExamples(raw: unknown): EvalExample[] {
+  if (raw === undefined || raw === null) return [];
+  if (!Array.isArray(raw)) throw new ValidationError('examples must be an array');
+  if (raw.length > EVAL_MAX_EXAMPLES) {
+    throw new ValidationError(`examples must have at most ${EVAL_MAX_EXAMPLES} entries`);
+  }
+  return raw.map((example, i) => {
+    const e = example as Record<string, unknown>;
+    const seatNumber = typeof e?.seatNumber === 'number' ? e.seatNumber : NaN;
+    if (isNaN(seatNumber)) throw new ValidationError(`examples[${i}].seatNumber is required`);
+    if (typeof e.grade !== 'string' || !EVAL_GRADES.includes(e.grade)) {
+      throw new ValidationError(`examples[${i}].grade must be one of ${EVAL_GRADES.join('/')}`);
+    }
+    return {
+      seatNumber,
+      grade: e.grade,
+      reason: typeof e.reason === 'string' ? e.reason.slice(0, EVAL_MAX_REASON_LENGTH) : '',
+      group: typeof e.group === 'string' ? e.group.slice(0, EVAL_MAX_GROUP_NAME_LENGTH) : '',
+      code: truncatePseudocode(e.code),
+    };
+  });
+}
+
+function validateEvalGroups(raw: unknown): EvalGroup[] {
+  const list = Array.isArray(raw) ? raw : [];
+  if (list.length < 1 || list.length > EVAL_MAX_GROUPS) {
+    throw new ValidationError(`groups must have 1 to ${EVAL_MAX_GROUPS} entries`);
+  }
+  let total = 0;
+  const groups = list.map((group, i) => {
+    const g = group as Record<string, unknown>;
+    if (!g || typeof g !== 'object' || Array.isArray(g)) {
+      throw new ValidationError(`groups[${i}] must be an object`);
+    }
+    const rawSeats = Array.isArray(g.seatNumbers) ? g.seatNumbers : [];
+    if (rawSeats.length > EVAL_MAX_GROUP_SEATS) {
+      throw new ValidationError(`groups[${i}].seatNumbers must have at most ${EVAL_MAX_GROUP_SEATS} entries`);
+    }
+    const seatNumbers = rawSeats.filter((n): n is number => typeof n === 'number' && Number.isFinite(n));
+    const submissions = validateEvalSubmissions(
+      g.submissions, `groups[${i}].submissions`, EVAL_MAX_FAIRNESS_SUBMISSIONS, 0,
+    );
+    total += submissions.length;
+    return {
+      name: typeof g.name === 'string' ? g.name.slice(0, EVAL_MAX_GROUP_NAME_LENGTH) : '',
+      seatNumbers,
+      submissions,
+    };
+  });
+  if (total > EVAL_MAX_FAIRNESS_SUBMISSIONS) {
+    throw new ValidationError(`groups may carry at most ${EVAL_MAX_FAIRNESS_SUBMISSIONS} submissions in total`);
+  }
+  return groups;
 }
 
 /**
  * Validate + normalize an evaluate request body. Exported for unit tests.
+ *
+ * Modes (#2422 added the last three):
+ * - grade: S/A/B/C proposals. Optional starterPseudocode / rubricLevels /
+ *   examples; rubricAxes (1-6) are required unless rubricLevels are sent.
+ * - comment: positive comment drafts.
+ * - describe: a draft of the assignment description from the starter and a
+ *   few submissions.
+ * - rubric: S/A/B/C criterion sentences from teacher-graded examples.
+ * - fairness: questions about grades that look inconsistent between the
+ *   examples and the other works of each group.
  */
 export function validateEvaluateRequest(body: Record<string, unknown>): EvaluateRequest {
-  const mode = body.mode === 'comment' ? 'comment' : body.mode === 'grade' ? 'grade' : null;
-  if (!mode) throw new ValidationError('mode must be "grade" or "comment"');
+  const mode = EVAL_MODES.includes(body.mode as EvalMode) ? body.mode as EvalMode : null;
+  if (!mode) throw new ValidationError(`mode must be one of: ${EVAL_MODES.map(m => `"${m}"`).join(', ')}`);
 
   const assignmentName = typeof body.assignmentName === 'string' ? body.assignmentName.slice(0, 100) : '';
   const assignmentText = typeof body.assignmentText === 'string' ? body.assignmentText.slice(0, 3000) : '';
+  const starterPseudocode = truncatePseudocode(body.starterPseudocode);
+  const rubricLevels = validateEvalRubricLevels(body.rubricLevels);
+  const examples = validateEvalExamples(body.examples);
 
   const rawAxes = Array.isArray(body.rubricAxes) ? body.rubricAxes : [];
-  if (mode === 'grade' && (rawAxes.length < 1 || rawAxes.length > 6)) {
-    throw new ValidationError('rubricAxes must have 1 to 6 entries');
+  // With S/A/B/C criterion sentences the axes become optional (#2422).
+  const minAxes = mode === 'grade' && rubricLevels.length === 0 ? 1 : 0;
+  if (mode === 'grade' && (rawAxes.length < minAxes || rawAxes.length > 6)) {
+    throw new ValidationError(minAxes ? 'rubricAxes must have 1 to 6 entries' : 'rubricAxes must have at most 6 entries');
   }
-  const rubricAxes: EvalRubricAxis[] = rawAxes.map((axis, i) => {
+  const rubricAxes: EvalRubricAxis[] = rawAxes.slice(0, 6).map((axis, i) => {
     const a = axis as Record<string, unknown>;
     if (typeof a?.name !== 'string' || a.name.trim().length === 0) {
       throw new ValidationError(`rubricAxes[${i}].name is required`);
@@ -5028,30 +5206,81 @@ export function validateEvaluateRequest(body: Record<string, unknown>): Evaluate
     };
   });
 
-  const rawSubmissions = Array.isArray(body.submissions) ? body.submissions : [];
-  if (rawSubmissions.length < 1 || rawSubmissions.length > EVAL_MAX_SUBMISSIONS) {
-    throw new ValidationError(`submissions must have 1 to ${EVAL_MAX_SUBMISSIONS} entries`);
+  // rubric and fairness read examples instead of a submissions chunk.
+  let submissions: EvalSubmission[] = [];
+  let groups: EvalGroup[] = [];
+  if (mode === 'grade' || mode === 'comment' || mode === 'describe') {
+    submissions = validateEvalSubmissions(body.submissions, 'submissions', EVAL_MAX_SUBMISSIONS, 1);
   }
-  const submissions: EvalSubmission[] = rawSubmissions.map((submission, i) => {
-    const s = submission as Record<string, unknown>;
-    const seatNumber = typeof s?.seatNumber === 'number' ? s.seatNumber : NaN;
-    if (isNaN(seatNumber)) throw new ValidationError(`submissions[${i}].seatNumber is required`);
-    let pseudocode = typeof s.pseudocode === 'string' ? s.pseudocode : '';
-    if (pseudocode.length > EVAL_MAX_PSEUDOCODE_LENGTH) {
-      pseudocode = `${pseudocode.slice(0, EVAL_MAX_PSEUDOCODE_LENGTH)}\n…(以降省略)`;
-    }
-    const signals =
-      s.signals && typeof s.signals === 'object' && !Array.isArray(s.signals)
-        ? (s.signals as Record<string, unknown>)
-        : {};
-    return { seatNumber, signals, pseudocode };
-  });
+  if (mode === 'rubric' || mode === 'fairness') {
+    if (examples.length < 1) throw new ValidationError(`examples must have 1 to ${EVAL_MAX_EXAMPLES} entries`);
+  }
+  if (mode === 'fairness') groups = validateEvalGroups(body.groups);
 
-  return { mode, assignmentName, assignmentText, rubricAxes, strictness, samples, submissions };
+  return {
+    mode, assignmentName, assignmentText, rubricAxes, strictness, samples, submissions,
+    starterPseudocode, rubricLevels, examples, groups,
+  };
+}
+
+function gradeOrder(grade: string): number {
+  return EVAL_GRADES.indexOf(grade);
+}
+
+/** The S/A/B/C criterion lines (S first). */
+function rubricLevelLines(levels: EvalRubricLevel[]): string[] {
+  return [...levels]
+    .sort((a, b) => gradeOrder(a.grade) - gradeOrder(b.grade))
+    .map(level => `- ${level.grade}: ${level.text}`);
+}
+
+/**
+ * Teacher-graded examples with their reasons and works.
+ *
+ * Examples are numbered by their order (正解の例1, 2, …), not by seat: a
+ * rubric copied from another class carries that class's seat numbers, and
+ * the AI would otherwise cite them as if they were this class's students.
+ */
+function exampleLines(examples: EvalExample[]): string[] {
+  const lines: string[] = [];
+  for (const [index, example] of examples.entries()) {
+    lines.push(`--- 正解の例${index + 1}: ${example.grade}${example.group ? `（まとまり「${example.group}」）` : ''} ---`);
+    lines.push(`理由: ${example.reason || '(理由なし)'}`);
+    lines.push('擬似コード:');
+    lines.push(example.code || '(空)');
+    lines.push('');
+  }
+  return lines;
+}
+
+/** How the AI may refer to the examples in its reasons and questions. */
+const EXAMPLE_REFERENCE_RULE =
+  '- reason や質問の文で正解の例に触れるときは「正解の例1」のように例の番号で呼び、出席番号では呼ばないでください（例は別のクラスの作品のことがあります）。';
+
+function submissionLines(submissions: EvalSubmission[]): string[] {
+  const lines: string[] = [];
+  for (const submission of submissions) {
+    lines.push(`--- 出席番号${submission.seatNumber} ---`);
+    lines.push(`機械シグナル: ${JSON.stringify(submission.signals)}`);
+    lines.push('擬似コード:');
+    lines.push(submission.pseudocode || '(提出なし/空)');
+    lines.push('');
+  }
+  return lines;
+}
+
+function starterLines(starterPseudocode: string): string[] {
+  return starterPseudocode
+    ? ['スターター（先生が配った最初のプロジェクト）の擬似コード:', starterPseudocode, '']
+    : [];
 }
 
 /**
  * Build the Anthropic system + user prompts. Pure — exported for unit tests.
+ *
+ * Material shared by every chunk of one run (starter, criteria, examples)
+ * goes into the system prompt, which carries cache_control: the chunked
+ * calls of one class then read it from the prompt cache.
  */
 export function buildEvaluationPrompt(request: EvaluateRequest): { system: string; user: string } {
   const strictnessLabel = {
@@ -5066,26 +5295,54 @@ export function buildEvaluationPrompt(request: EvaluateRequest): { system: strin
     '◆ の付いたスクリプトはイベントに接続されていて実行されます。◇ は接続されておらず実行されません（この区別は重要です）。',
     '',
   ];
+  const starterRule = request.starterPseudocode
+    ? ['- 生徒はスターターから始めています。スターターにもともとあった部分は評価せず、生徒が足したところ・変えたところを見てください。']
+    : [];
+  const assignmentLines = [
+    `課題名: ${request.assignmentName || '(未設定)'}`,
+    request.assignmentText ? `課題の内容:\n${request.assignmentText}` : '',
+    '',
+  ];
 
   let system: string[];
+  const user: string[] = [];
   if (request.mode === 'grade') {
+    const rubricAware = request.starterPseudocode !== '' || request.rubricLevels.length > 0 || request.examples.length > 0;
     system = [
       ...commonHeader,
-      '先生が設定した評価軸に照らして、各生徒の評価案（S / A / B / C の4段階）を作ります。',
+      request.rubricLevels.length > 0
+        ? '先生が決めた S / A / B / C の基準に照らして、各生徒の評価案（S / A / B / C の4段階）を作ります。'
+        : '先生が設定した評価軸に照らして、各生徒の評価案（S / A / B / C の4段階）を作ります。',
       '',
       '原則:',
       '- 評価はあくまで「提案」です。最終判断は先生が行います。',
       '- reason は100文字以内の日本語で、必ず機械シグナルまたは擬似コードの具体的な事実を引用してください。',
       '- 判断に迷う場合、シグナルと擬似コードが矛盾する場合、作品が課題と無関係に見える場合は needsReview を true にしてください。',
+      ...starterRule,
+      ...(rubricAware
+        ? ['- 同じ形の作品（足した・変えたところが同じ作品）には同じ評価を付けてください。正解の例と同じ形なら、その例と同じ評価にしてください。']
+        : []),
+      ...(request.examples.length > 0 ? [EXAMPLE_REFERENCE_RULE] : []),
       `- 評価の厳しさ: ${strictnessLabel}`,
       '',
-      '評価軸:',
-      ...request.rubricAxes.map((axis, i) => `${i + 1}. ${axis.name}${axis.description ? ` — ${axis.description}` : ''}`),
-      '',
+    ];
+    if (request.rubricAxes.length > 0) {
+      system.push('評価軸:');
+      system.push(...request.rubricAxes.map((axis, i) => `${i + 1}. ${axis.name}${axis.description ? ` — ${axis.description}` : ''}`));
+      system.push('');
+    }
+    if (request.rubricLevels.length > 0) {
+      system.push('評価の基準:', ...rubricLevelLines(request.rubricLevels), '');
+    }
+    system.push(...starterLines(request.starterPseudocode));
+    if (request.examples.length > 0) {
+      system.push('先生が評価した正解の例（この基準と厳しさに合わせること）:', ...exampleLines(request.examples));
+    }
+    system.push(
       '出力は次の JSON のみ（説明文・コードフェンス禁止）:',
       '{"results":[{"seatNumber":1,"grade":"A","reason":"…","needsReview":false}]}',
-    ];
-  } else {
+    );
+  } else if (request.mode === 'comment') {
     system = [
       ...commonHeader,
       '各生徒に返す「ポジティブな返却コメント」の下書きを作ります。次の授業へのモチベーションにつなげるのが目的です。',
@@ -5095,34 +5352,108 @@ export function buildEvaluationPrompt(request: EvaluateRequest): { system: strin
       '- 必ずその生徒の作品の具体的な良い点（擬似コードから読み取れる工夫）を1つ挙げて褒めてください。',
       '- 次にやってみたくなる一言を添えてください。評点・順位・他の生徒との比較は書かないでください。',
       '- 作品が空・断片のみの場合も、取り組みを認めて次の一歩を示してください。',
+      ...starterRule,
       '',
+      ...starterLines(request.starterPseudocode),
       '出力は次の JSON のみ（説明文・コードフェンス禁止）:',
       '{"results":[{"seatNumber":1,"comment":"…"}]}',
     ];
+  } else if (request.mode === 'describe') {
+    system = [
+      ...commonHeader,
+      '先生が課題の説明を書いていません。スターターと、いくつかの生徒の作品から、この課題で生徒に何を作らせたのかを推測して、課題の説明の案を書きます。',
+      '',
+      '原則:',
+      '- 先生が「合っていますか？」と確かめるための案です。作品から読み取れることだけを書き、推測で細部を足さないでください。',
+      '- 生徒がスターターに足したこと・変えたことの共通点から、課題で求めたことを読み取ってください。',
+      '- 300文字以内の日本語。常体で、箇条書きでもかまいません。',
+      '',
+      '出力は次の JSON のみ（説明文・コードフェンス禁止）:',
+      '{"description":"…"}',
+    ];
+  } else if (request.mode === 'rubric') {
+    system = [
+      ...commonHeader,
+      '先生が評価した正解の例と、その理由から、この課題の S / A / B / C の基準の文を書きます。',
+      '',
+      '原則:',
+      '- 4つの評価すべての基準を書いてください。それぞれ150文字以内の日本語。',
+      '- 正解の例の理由に書かれた観点を使い、例のどれもがその基準どおりの評価になるように書いてください。',
+      '- 作品の形（スターターに足したこと・変えたこと）で判断できる、具体的な文にしてください。',
+      EXAMPLE_REFERENCE_RULE,
+      ...starterRule,
+      '',
+      '出力は次の JSON のみ（説明文・コードフェンス禁止）:',
+      '{"levels":[{"grade":"S","text":"…"},{"grade":"A","text":"…"},{"grade":"B","text":"…"},{"grade":"C","text":"…"}]}',
+    ];
+  } else {
+    system = [
+      ...commonHeader,
+      '先生が評価した正解の例と、作品の形ごとのまとまりに入ったほかの作品を比べ、評価がずれていそうなところを先生への質問にします。',
+      '',
+      '原則:',
+      '- 同じ形の作品は同じ評価になるべきです。正解の例どうし、または例とほかの作品の間で、評価や理由が食い違っていそうなところだけを質問にしてください。',
+      '- question は先生が選ぶだけで答えられる日本語の質問（150文字以内）。options は2〜4個の短い選択肢。',
+      EXAMPLE_REFERENCE_RULE,
+      '- seatNumbers には、その質問に関係する提出作品（まとまりに入った作品）の出席番号を入れてください。正解の例は入れないでください。',
+      `- 質問は多くても${EVAL_MAX_CHECKS}個。ずれが見つからなければ checks は空の配列にしてください。`,
+      ...starterRule,
+      '',
+      '出力は次の JSON のみ（説明文・コードフェンス禁止）:',
+      '{"checks":[{"question":"…","options":["…","…"],"seatNumbers":[1,2]}]}',
+    ];
   }
 
-  const user: string[] = [
-    `課題名: ${request.assignmentName || '(未設定)'}`,
-    request.assignmentText ? `課題の内容:\n${request.assignmentText}` : '',
-    '',
-  ];
-  if (request.samples.length > 0) {
+  user.push(...assignmentLines);
+  if (request.mode === 'grade' && request.samples.length > 0) {
     user.push('先生が採点した較正サンプル（この基準に厳しさを合わせること）:');
     for (const sample of request.samples) {
       user.push(`- 出席番号${sample.seatNumber}: ${sample.grade}${sample.reason ? `（${sample.reason}）` : ''}`);
     }
     user.push('');
   }
-  user.push('提出作品:');
-  for (const submission of request.submissions) {
-    user.push(`--- 出席番号${submission.seatNumber} ---`);
-    user.push(`機械シグナル: ${JSON.stringify(submission.signals)}`);
-    user.push('擬似コード:');
-    user.push(submission.pseudocode || '(提出なし/空)');
-    user.push('');
+  if (request.mode === 'grade' || request.mode === 'comment') {
+    user.push('提出作品:', ...submissionLines(request.submissions));
+  } else if (request.mode === 'describe') {
+    user.push(...starterLines(request.starterPseudocode));
+    user.push('生徒の作品:', ...submissionLines(request.submissions));
+  } else if (request.mode === 'rubric') {
+    if (request.rubricLevels.length > 0) {
+      user.push('いまの基準（直す場合の下書き）:', ...rubricLevelLines(request.rubricLevels), '');
+    }
+    user.push(...starterLines(request.starterPseudocode));
+    user.push('先生が評価した正解の例:', ...exampleLines(request.examples));
+  } else {
+    if (request.rubricLevels.length > 0) {
+      user.push('評価の基準:', ...rubricLevelLines(request.rubricLevels), '');
+    }
+    user.push(...starterLines(request.starterPseudocode));
+    user.push('先生が評価した正解の例:', ...exampleLines(request.examples));
+    user.push('作品の形ごとのまとまり:');
+    for (const group of request.groups) {
+      user.push(`=== まとまり「${group.name || '(名前なし)'}」 出席番号: ${group.seatNumbers.join(', ') || '(なし)'} ===`);
+      user.push(...submissionLines(group.submissions));
+    }
   }
 
-  return { system: system.join('\n'), user: user.filter(line => line !== null).join('\n') };
+  return { system: system.join('\n'), user: user.join('\n') };
+}
+
+/** Pull the JSON object out of a model reply (tolerates code fences / prose). */
+function extractJsonObject(text: string): Record<string, unknown> {
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start < 0 || end <= start) throw new Error('AI response contains no JSON object');
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text.slice(start, end + 1));
+  } catch {
+    throw new Error('AI response JSON is malformed');
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('AI response JSON is not an object');
+  }
+  return parsed as Record<string, unknown>;
 }
 
 /**
@@ -5134,16 +5465,7 @@ export function parseEvaluationResponse(
   mode: 'grade' | 'comment',
   expectedSeats: number[],
 ): Record<string, unknown>[] {
-  const start = text.indexOf('{');
-  const end = text.lastIndexOf('}');
-  if (start < 0 || end <= start) throw new Error('AI response contains no JSON object');
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(text.slice(start, end + 1));
-  } catch {
-    throw new Error('AI response JSON is malformed');
-  }
-  const results = (parsed as Record<string, unknown>)?.results;
+  const results = extractJsonObject(text).results;
   if (!Array.isArray(results)) throw new Error('AI response has no results array');
 
   const bySeat = new Map<number, Record<string, unknown>>();
@@ -5178,25 +5500,161 @@ export function parseEvaluationResponse(
   });
 }
 
+/** Parse the describe reply into `{ description }`. Pure — exported for unit tests. */
+export function parseDescribeResponse(text: string): { description: string } {
+  const description = extractJsonObject(text).description;
+  if (typeof description !== 'string' || description.trim().length === 0) {
+    throw new Error('AI response has no description');
+  }
+  return { description: description.trim().slice(0, EVAL_MAX_DESCRIPTION_LENGTH) };
+}
+
+/**
+ * Parse the rubric reply into `{ levels }` (S, A, B, C order; unknown or
+ * repeated grades dropped). Pure — exported for unit tests.
+ */
+export function parseRubricResponse(text: string): { levels: EvalRubricLevel[] } {
+  const raw = extractJsonObject(text).levels;
+  if (!Array.isArray(raw)) throw new Error('AI response has no levels array');
+  const byGrade = new Map<string, string>();
+  for (const level of raw) {
+    const l = level as Record<string, unknown>;
+    if (typeof l?.grade !== 'string' || !EVAL_GRADES.includes(l.grade) || byGrade.has(l.grade)) continue;
+    if (typeof l.text !== 'string' || l.text.trim().length === 0) continue;
+    byGrade.set(l.grade, l.text.trim().slice(0, EVAL_MAX_LEVEL_TEXT_LENGTH));
+  }
+  if (byGrade.size === 0) throw new Error('AI response has no valid levels');
+  return {
+    levels: EVAL_GRADES.filter(grade => byGrade.has(grade)).map(grade => ({ grade, text: byGrade.get(grade)! })),
+  };
+}
+
+/**
+ * Parse the fairness reply into `{ checks }`. Seat numbers the request did not
+ * mention are dropped (the model must not point at works it was not shown);
+ * a check without a question or with fewer than two options is dropped.
+ * Pure — exported for unit tests.
+ */
+export function parseFairnessResponse(
+  text: string, knownSeats: number[],
+): { checks: { question: string; options: string[]; seatNumbers: number[] }[] } {
+  const raw = extractJsonObject(text).checks;
+  if (!Array.isArray(raw)) throw new Error('AI response has no checks array');
+  const known = new Set(knownSeats);
+  const checks: { question: string; options: string[]; seatNumbers: number[] }[] = [];
+  for (const check of raw) {
+    if (checks.length >= EVAL_MAX_CHECKS) break;
+    const c = check as Record<string, unknown>;
+    if (typeof c?.question !== 'string' || c.question.trim().length === 0) continue;
+    const options = (Array.isArray(c.options) ? c.options : [])
+      .filter((o): o is string => typeof o === 'string' && o.trim().length > 0)
+      .slice(0, EVAL_MAX_CHECK_OPTIONS)
+      .map(o => o.trim().slice(0, EVAL_MAX_CHECK_OPTION_LENGTH));
+    if (options.length < 2) continue;
+    const seatNumbers = [...new Set(
+      (Array.isArray(c.seatNumbers) ? c.seatNumbers : [])
+        .filter((n): n is number => typeof n === 'number' && known.has(n)),
+    )];
+    checks.push({ question: c.question.trim().slice(0, EVAL_MAX_CHECK_QUESTION_LENGTH), options, seatNumbers });
+  }
+  return { checks };
+}
+
+/** Every seat a fairness request showed the model (examples + groups). */
+export function fairnessKnownSeats(request: EvaluateRequest): number[] {
+  return [...new Set([
+    ...request.examples.map(e => e.seatNumber),
+    ...request.groups.flatMap(g => [...g.seatNumbers, ...g.submissions.map(s => s.seatNumber)]),
+  ])];
+}
+
+/**
+ * Turn the model reply into the response body for the request's mode. Pure —
+ * exported for unit tests. Throws when the reply is unusable (→ 502).
+ */
+export function evaluationResponseBody(text: string, request: EvaluateRequest): Record<string, unknown> {
+  switch (request.mode) {
+  case 'grade':
+  case 'comment':
+    return {
+      mode: request.mode,
+      results: parseEvaluationResponse(text, request.mode, request.submissions.map(s => s.seatNumber)),
+    };
+  case 'describe':
+    return { mode: request.mode, ...parseDescribeResponse(text) };
+  case 'rubric':
+    return { mode: request.mode, ...parseRubricResponse(text) };
+  case 'fairness':
+    return { mode: request.mode, ...parseFairnessResponse(text, fairnessKnownSeats(request)) };
+  }
+}
+
 // Per-teacher rate limiter for the evaluation endpoint (in-memory, same
 // pattern as the join limiter — best-effort per Lambda instance).
 const evalAttempts = new Map<string, { count: number; windowStart: number }>();
 
+/** Today's AI evaluation usage as shown to the teacher (#2448). */
+export interface EvalQuota {
+  used: number;
+  limit: number;
+  /** Next midnight in Japan (ISO string) — when the counter starts over. */
+  resetsAt: string;
+}
+
 /**
- * Durable daily quota: an atomic counter item per teacher per UTC day in the
- * Classrooms table (reuses the table key space with a reserved prefix; TTL
- * cleans it up after two days). Throws when the day's budget is exhausted.
+ * The daily limits count by the Japanese date and start over at 0:00 JST
+ * (docs/adr/0004-daily-limits-reset-at-jst-midnight.ja.md). Teachers use the
+ * app on weekday daytime, and some finish their preparation early in the
+ * morning (before 8:00): a reset at midnight lets them plan the next morning,
+ * while the old UTC day reset at 9:00 JST, in the middle of that work.
  */
-async function checkEvalDailyLimit(teacherSub: string): Promise<void> {
-  const day = new Date().toISOString().slice(0, 10);
+const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+/** The Japanese date (YYYY-MM-DD) of `nowMs`. Exported for unit tests. */
+export function jstDay(nowMs: number): string {
+  return new Date(nowMs + JST_OFFSET_MS).toISOString().slice(0, 10);
+}
+
+/** The next 0:00 JST after `nowMs`, as epoch ms. Exported for unit tests. */
+export function nextJstMidnight(nowMs: number): number {
+  const jst = new Date(nowMs + JST_OFFSET_MS);
+  return Date.UTC(jst.getUTCFullYear(), jst.getUTCMonth(), jst.getUTCDate() + 1) - JST_OFFSET_MS;
+}
+
+/** Counter key of the teacher's daily quota for the Japanese date of `nowMs`. */
+function evalQuotaKey(teacherSub: string, nowMs: number): string {
+  return `eval-quota#${teacherSub}#${jstDay(nowMs)}`;
+}
+
+/**
+ * Build the quota shown to the teacher from the day's counter. `used` is
+ * capped at the limit (calls refused after the limit still bump the counter).
+ * Pure — exported for unit tests.
+ */
+export function evalQuotaFromCount(count: number, limit: number, nowMs: number): EvalQuota {
+  return {
+    used: Math.min(Math.max(0, count), limit),
+    limit,
+    resetsAt: new Date(nextJstMidnight(nowMs)).toISOString(),
+  };
+}
+
+/**
+ * Durable daily quota: an atomic counter item per teacher per Japanese date in the
+ * Classrooms table (reuses the table key space with a reserved prefix; TTL
+ * cleans it up after two days). Throws when the day's budget is exhausted;
+ * otherwise returns the quota after this call.
+ */
+async function checkEvalDailyLimit(teacherSub: string): Promise<EvalQuota> {
+  const nowMs = Date.now();
   const result = await docClient.send(new UpdateCommand({
     TableName: CLASSROOMS_TABLE,
-    Key: { classroomId: `eval-quota#${teacherSub}#${day}` },
+    Key: { classroomId: evalQuotaKey(teacherSub, nowMs) },
     UpdateExpression: 'ADD #c :one SET #ttl = if_not_exists(#ttl, :ttl)',
     ExpressionAttributeNames: { '#c': 'count', '#ttl': 'ttl' },
     ExpressionAttributeValues: {
       ':one': 1,
-      ':ttl': Math.floor(Date.now() / 1000) + 2 * 24 * 60 * 60,
+      ':ttl': Math.floor(nowMs / 1000) + 2 * 24 * 60 * 60,
     },
     ReturnValues: 'UPDATED_NEW',
   }));
@@ -5206,6 +5664,26 @@ async function checkEvalDailyLimit(teacherSub: string): Promise<void> {
       `Daily AI evaluation limit reached (${EVAL_DAILY_LIMIT} calls/day). Please continue tomorrow.`,
     );
   }
+  return evalQuotaFromCount(count, EVAL_DAILY_LIMIT, nowMs);
+}
+
+/**
+ * GET /teacher/evaluation-quota — the caller's AI evaluation usage today.
+ * Read-only: never bumps the counter (#2448).
+ */
+async function handleGetEvaluationQuota(
+  identity: TeacherIdentity,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const nowMs = Date.now();
+  const result = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId: evalQuotaKey(identity.sub, nowMs) },
+  }));
+  const count = (result.Item?.count as number) || 0;
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ quota: evalQuotaFromCount(count, EVAL_DAILY_LIMIT, nowMs) }),
+  };
 }
 
 function checkEvalRateLimit(teacherSub: string): void {
@@ -5221,6 +5699,40 @@ function checkEvalRateLimit(teacherSub: string): void {
   }
 }
 
+const evalObject = (properties: Record<string, unknown>) => ({
+  type: 'object',
+  properties,
+  required: Object.keys(properties),
+  additionalProperties: false,
+});
+const evalList = (items: Record<string, unknown>) => ({ type: 'array', items });
+const evalGradeEnum = { type: 'string', enum: EVAL_GRADES };
+
+/**
+ * JSON schema of the model's reply for each mode, sent as structured outputs
+ * (`output_config.format`) so the reply is always valid JSON of this shape
+ * (#2422: Sonnet once wrote `"…。","}` and the reply could not be parsed).
+ * The parsers still check every field. Pure — exported for unit tests.
+ */
+export function evaluationOutputSchema(mode: EvalMode): Record<string, unknown> {
+  switch (mode) {
+  case 'grade':
+    return evalObject({ results: evalList(evalObject({
+      seatNumber: { type: 'integer' }, grade: evalGradeEnum, reason: { type: 'string' }, needsReview: { type: 'boolean' },
+    })) });
+  case 'comment':
+    return evalObject({ results: evalList(evalObject({ seatNumber: { type: 'integer' }, comment: { type: 'string' } })) });
+  case 'describe':
+    return evalObject({ description: { type: 'string' } });
+  case 'rubric':
+    return evalObject({ levels: evalList(evalObject({ grade: evalGradeEnum, text: { type: 'string' } })) });
+  case 'fairness':
+    return evalObject({ checks: evalList(evalObject({
+      question: { type: 'string' }, options: evalList({ type: 'string' }), seatNumbers: evalList({ type: 'integer' }),
+    })) });
+  }
+}
+
 type EvaluationClaudeResult =
   | { ok: true; text: string; usage: Partial<Anthropic.Usage> }
   | { ok: false; statusCode: number; error: string };
@@ -5231,7 +5743,7 @@ type EvaluationClaudeResult =
  * AI_TIMEOUT). Exported for unit tests (the client is injectable).
  */
 export async function callClaudeForEvaluation(
-  system: string, user: string, client: Anthropic,
+  system: string, user: string, client: Anthropic, outputSchema?: Record<string, unknown>,
 ): Promise<EvaluationClaudeResult> {
   try {
     const message = await client.messages.create({
@@ -5239,9 +5751,13 @@ export async function callClaudeForEvaluation(
       max_tokens: 4096,
       system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
       messages: [{ role: 'user', content: user }],
+      ...(outputSchema ? { output_config: { format: { type: 'json_schema' as const, schema: outputSchema } } } : {}),
     });
-    const first = message.content[0];
-    const text = first && first.type === 'text' ? first.text : '';
+    // Read every text block: a model may put another block (e.g. thinking)
+    // first, and then content[0] holds no text (seen with Sonnet, #2422).
+    const text = (message.content || [])
+      .map(block => (block.type === 'text' ? block.text : ''))
+      .join('');
     return { ok: true, text, usage: message.usage || {} };
   } catch (err) {
     console.error('Anthropic API error:', describeAnthropicError(err));
@@ -5265,13 +5781,16 @@ async function handleEvaluateSubmissions(
   if (!classroomResult.Item || !(await canManageViaGroup(classroomResult.Item, identity))) {
     throw new AuthError('Not authorized to evaluate this classroom');
   }
-  checkEvalRateLimit(identity.sub);
-  await checkEvalDailyLimit(identity.sub);
-
+  // Validate first so a malformed request does not spend the day's budget.
   const request = validateEvaluateRequest(body);
+  // Every mode (grade / comment / describe / rubric / fairness) counts
+  // toward the same hourly window and daily limit (#2422).
+  checkEvalRateLimit(identity.sub);
+  const quota = await checkEvalDailyLimit(identity.sub);
+
   const { system, user } = buildEvaluationPrompt(request);
 
-  const claude = await callClaudeForEvaluation(system, user, anthropicClient);
+  const claude = await callClaudeForEvaluation(system, user, anthropicClient, evaluationOutputSchema(request.mode));
   if (!claude.ok) {
     return { statusCode: claude.statusCode, body: JSON.stringify({ error: claude.error }) };
   }
@@ -5280,6 +5799,8 @@ async function handleEvaluateSubmissions(
     event: 'classroom_evaluate',
     mode: request.mode,
     submissionCount: request.submissions.length,
+    exampleCount: request.examples.length,
+    groupCount: request.groups.length,
     model: CLAUDE_MODEL,
     inputTokens: usage.input_tokens,
     outputTokens: usage.output_tokens,
@@ -5287,15 +5808,324 @@ async function handleEvaluateSubmissions(
     cacheReadTokens: usage.cache_read_input_tokens,
   }));
 
-  let results: Record<string, unknown>[];
+  let responseBody: Record<string, unknown>;
   try {
-    results = parseEvaluationResponse(text, request.mode, request.submissions.map(s => s.seatNumber));
+    responseBody = evaluationResponseBody(text, request);
   } catch (err) {
     console.error('Evaluation response parse error:', err, text.slice(0, 500));
     return { statusCode: 502, body: JSON.stringify({ error: 'AI_RESPONSE_INVALID' }) };
   }
 
-  return { statusCode: 200, body: JSON.stringify({ mode: request.mode, results }) };
+  return { statusCode: 200, body: JSON.stringify({ ...responseBody, quota }) };
+}
+
+// --- Per-assignment grading (#2422) ---
+// The grading screen keeps one grading per assignment: the S/A/B/C criteria
+// with the teacher-graded examples they came from (rubric), each seat's grade
+// (AI proposal or teacher decision), and when the teacher confirmed them.
+//
+// Stored as a sibling item in the Classrooms table, keyed
+// `grading#<classroomId>` (the same reserved-prefix pattern as eval-quota),
+// rather than as an attribute of the assignment item: every GSI of the table
+// projects ALL attributes, so an attribute would be read by every class /
+// assignment list query, and it would share the assignment item's 400 KB with
+// pages and the lesson setting. The sibling has no teacherSub / joinCode /
+// groupId, so it never appears in a GSI, and it copies the assignment's ttl.
+
+const GRADING_KEY_PREFIX = 'grading#';
+const GRADING_MAX_SEATS = 200;
+const GRADING_MAX_REASON_LENGTH = 300;
+const GRADING_MAX_LEVEL_TEXT_LENGTH = 500;
+const GRADING_MAX_EXAMPLES = 20;
+const GRADING_MAX_CODE_LENGTH = 4000;
+const GRADING_MAX_GROUP_LENGTH = 80;
+// DynamoDB's item limit is 400 KB; the worst case of the caps above (Japanese
+// is 3 bytes a character) is above it, so the merged grading is also checked
+// as a whole, leaving room for the key / ttl / attribute names.
+export const GRADING_MAX_BYTES = 350 * 1024;
+const GRADING_SOURCES = ['ai', 'teacher'];
+
+export interface GradingRubric {
+  levels: { grade: string; text: string }[];
+  examples: { seatNumber: number; grade: string; reason: string; group: string; code: string }[];
+  updatedAt: string;
+}
+
+export interface GradingGrade {
+  grade: string;
+  reason: string;
+  source: string;
+  group?: string;
+  needsReview?: boolean;
+}
+
+export interface Grading {
+  rubric: GradingRubric | null;
+  grades: Record<string, GradingGrade>;
+  confirmedAt: string | null;
+  updatedAt: string;
+}
+
+/** The parts of a PUT /grading body; a missing key means "keep the stored value". */
+export interface GradingUpdate {
+  rubric?: Omit<GradingRubric, 'updatedAt'> | null;
+  grades?: Record<string, GradingGrade>;
+  confirmedAt?: string | null;
+}
+
+export function gradingKeyOf(classroomId: string): string {
+  return `${GRADING_KEY_PREFIX}${classroomId}`;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function boundedString(value: unknown, field: string, max: number, required = false): string {
+  if (value === undefined || value === null) {
+    if (required) throw new ValidationError(`${field} is required`);
+    return '';
+  }
+  if (typeof value !== 'string') throw new ValidationError(`${field} must be a string`);
+  if (value.length > max) throw new ValidationError(`${field} must be ${max} characters or less`);
+  return value;
+}
+
+function validGrade(value: unknown, field: string): string {
+  if (typeof value !== 'string' || !EVAL_GRADES.includes(value)) {
+    throw new ValidationError(`${field} must be one of ${EVAL_GRADES.join('/')}`);
+  }
+  return value;
+}
+
+function validSeatNumber(value: unknown, field: string): number {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 1 || value > 9999) {
+    throw new ValidationError(`${field} must be a positive integer`);
+  }
+  return value;
+}
+
+function validateGradingRubric(value: unknown): Omit<GradingRubric, 'updatedAt'> | null {
+  if (value === null) return null;
+  if (!isPlainObject(value)) throw new ValidationError('rubric must be an object or null');
+  const rawLevels = value.levels === undefined ? [] : value.levels;
+  if (!Array.isArray(rawLevels)) throw new ValidationError('rubric.levels must be an array');
+  if (rawLevels.length > EVAL_GRADES.length) {
+    throw new ValidationError(`rubric.levels must have at most ${EVAL_GRADES.length} entries`);
+  }
+  const seen = new Set<string>();
+  const levels = rawLevels.map((level, i) => {
+    if (!isPlainObject(level)) throw new ValidationError(`rubric.levels[${i}] must be an object`);
+    const grade = validGrade(level.grade, `rubric.levels[${i}].grade`);
+    if (seen.has(grade)) throw new ValidationError(`rubric.levels[${i}].grade is duplicated`);
+    seen.add(grade);
+    return { grade, text: boundedString(level.text, `rubric.levels[${i}].text`, GRADING_MAX_LEVEL_TEXT_LENGTH) };
+  });
+  const rawExamples = value.examples === undefined ? [] : value.examples;
+  if (!Array.isArray(rawExamples)) throw new ValidationError('rubric.examples must be an array');
+  if (rawExamples.length > GRADING_MAX_EXAMPLES) {
+    throw new ValidationError(`rubric.examples must have at most ${GRADING_MAX_EXAMPLES} entries`);
+  }
+  const examples = rawExamples.map((example, i) => {
+    if (!isPlainObject(example)) throw new ValidationError(`rubric.examples[${i}] must be an object`);
+    const f = `rubric.examples[${i}]`;
+    return {
+      seatNumber: validSeatNumber(example.seatNumber, `${f}.seatNumber`),
+      grade: validGrade(example.grade, `${f}.grade`),
+      reason: boundedString(example.reason, `${f}.reason`, GRADING_MAX_REASON_LENGTH),
+      group: boundedString(example.group, `${f}.group`, GRADING_MAX_GROUP_LENGTH),
+      code: boundedString(example.code, `${f}.code`, GRADING_MAX_CODE_LENGTH),
+    };
+  });
+  return { levels, examples };
+}
+
+function validateGradingGrades(value: unknown): Record<string, GradingGrade> {
+  if (!isPlainObject(value)) throw new ValidationError('grades must be an object keyed by seat number');
+  const entries = Object.entries(value);
+  if (entries.length > GRADING_MAX_SEATS) {
+    throw new ValidationError(`grades must have at most ${GRADING_MAX_SEATS} seats`);
+  }
+  const grades: Record<string, GradingGrade> = {};
+  for (const [seat, raw] of entries) {
+    if (!/^[1-9]\d{0,3}$/.test(seat)) throw new ValidationError(`grades key "${seat.slice(0, 20)}" must be a seat number`);
+    if (!isPlainObject(raw)) throw new ValidationError(`grades["${seat}"] must be an object`);
+    const f = `grades["${seat}"]`;
+    if (typeof raw.source !== 'string' || !GRADING_SOURCES.includes(raw.source)) {
+      throw new ValidationError(`${f}.source must be one of ${GRADING_SOURCES.join('/')}`);
+    }
+    const entry: GradingGrade = {
+      grade: validGrade(raw.grade, `${f}.grade`),
+      reason: boundedString(raw.reason, `${f}.reason`, GRADING_MAX_REASON_LENGTH),
+      source: raw.source,
+    };
+    if (raw.group !== undefined && raw.group !== null) {
+      entry.group = boundedString(raw.group, `${f}.group`, GRADING_MAX_GROUP_LENGTH);
+    }
+    if (raw.needsReview !== undefined && raw.needsReview !== null) {
+      if (typeof raw.needsReview !== 'boolean') throw new ValidationError(`${f}.needsReview must be a boolean`);
+      entry.needsReview = raw.needsReview;
+    }
+    grades[seat] = entry;
+  }
+  return grades;
+}
+
+function validateConfirmedAt(value: unknown): string | null {
+  if (value === null) return null;
+  if (typeof value !== 'string' || value.length > 40 || isNaN(Date.parse(value))) {
+    throw new ValidationError('confirmedAt must be an ISO date string or null');
+  }
+  return value;
+}
+
+/**
+ * Validate a PUT /grading body. Only the keys present are returned (and
+ * later written); at least one of rubric / grades / confirmedAt is required.
+ * Pure — exported for unit tests.
+ */
+export function validateGradingUpdate(body: Record<string, unknown>): GradingUpdate {
+  const update: GradingUpdate = {};
+  if (body.rubric !== undefined) update.rubric = validateGradingRubric(body.rubric);
+  if (body.grades !== undefined) update.grades = validateGradingGrades(body.grades);
+  if (body.confirmedAt !== undefined) update.confirmedAt = validateConfirmedAt(body.confirmedAt);
+  if (Object.keys(update).length === 0) {
+    throw new ValidationError('Send at least one of rubric, grades, confirmedAt');
+  }
+  return update;
+}
+
+/** The grading as the API returns it, from a stored item (null when none). Pure. */
+export function gradingOf(item: Record<string, unknown> | undefined): Grading | null {
+  if (!item) return null;
+  const rubric = isPlainObject(item.rubric) ? item.rubric as unknown as GradingRubric : null;
+  return {
+    rubric: rubric
+      ? {
+        levels: Array.isArray(rubric.levels) ? rubric.levels : [],
+        examples: Array.isArray(rubric.examples) ? rubric.examples : [],
+        updatedAt: typeof rubric.updatedAt === 'string' ? rubric.updatedAt : '',
+      }
+      : null,
+    grades: isPlainObject(item.grades) ? item.grades as Record<string, GradingGrade> : {},
+    confirmedAt: typeof item.confirmedAt === 'string' ? item.confirmedAt : null,
+    updatedAt: typeof item.updatedAt === 'string' ? item.updatedAt : '',
+  };
+}
+
+/**
+ * The stored grading with an update applied: provided keys replace, missing
+ * keys keep. A new rubric is stamped with `now`. Pure — exported for unit tests.
+ */
+export function mergeGrading(existing: Grading | null, update: GradingUpdate, now: string): Grading {
+  const base: Grading = existing || { rubric: null, grades: {}, confirmedAt: null, updatedAt: now };
+  return {
+    rubric: update.rubric === undefined
+      ? base.rubric
+      : update.rubric === null ? null : { ...update.rubric, updatedAt: now },
+    grades: update.grades === undefined ? base.grades : update.grades,
+    confirmedAt: update.confirmedAt === undefined ? base.confirmedAt : update.confirmedAt,
+    updatedAt: now,
+  };
+}
+
+/** UTF-8 size of a grading as JSON — close to its DynamoDB item size. Pure. */
+export function gradingByteSize(grading: Grading): number {
+  return Buffer.byteLength(JSON.stringify(grading), 'utf8');
+}
+
+/**
+ * The grading a reused (duplicated) assignment starts with: the rubric only
+ * (the criteria and their examples are about the assignment), never the
+ * grades or the confirmation (those are about this class's students). Null
+ * when the source has no rubric. Pure — exported for unit tests.
+ */
+export function gradingForDuplicate(source: Grading | null, now: string): Grading | null {
+  if (!source?.rubric) return null;
+  return { rubric: source.rubric, grades: {}, confirmedAt: null, updatedAt: now };
+}
+
+async function loadGradingItem(classroomId: string): Promise<Record<string, unknown> | undefined> {
+  const result = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId: gradingKeyOf(classroomId) },
+  }));
+  return result.Item;
+}
+
+/** An assignment the caller may grade: owner or co-teacher (same as PUT /assignment). */
+async function getGradableClassroom(
+  identity: TeacherIdentity, classroomId: string, allowArchived: boolean,
+): Promise<Record<string, unknown>> {
+  const classroomResult = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+  }));
+  const item = classroomResult.Item;
+  const visible = item && (item.status === 'active' || (allowArchived && item.status === 'archived'));
+  if (!item || !visible) throw new NotFoundError('Classroom not found');
+  if (!(await canManageViaGroup(item, identity))) {
+    throw new AuthError('Not authorized to grade this classroom');
+  }
+  return item;
+}
+
+async function handleGetGrading(
+  identity: TeacherIdentity, classroomId: string,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  // Archived assignments still show in the gradebook, so they can be read.
+  await getGradableClassroom(identity, classroomId, true);
+  return { statusCode: 200, body: JSON.stringify({ grading: gradingOf(await loadGradingItem(classroomId)) }) };
+}
+
+async function handleSetGrading(
+  identity: TeacherIdentity, classroomId: string, body: Record<string, unknown>,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const update = validateGradingUpdate(body);
+  const classroom = await getGradableClassroom(identity, classroomId, false);
+
+  const now = new Date().toISOString();
+  const merged = mergeGrading(gradingOf(await loadGradingItem(classroomId)), update, now);
+  if (gradingByteSize(merged) > GRADING_MAX_BYTES) {
+    throw new ValidationError(`grading is too large (max ${GRADING_MAX_BYTES} bytes)`);
+  }
+
+  // Write only the provided keys so two screens saving different parts
+  // (e.g. grades from one, the rubric from another) do not undo each other.
+  const names: Record<string, string> = { '#updatedAt': 'updatedAt' };
+  const values: Record<string, unknown> = { ':now': now };
+  const sets = ['#updatedAt = :now'];
+  if (update.rubric !== undefined) {
+    names['#rubric'] = 'rubric';
+    values[':rubric'] = merged.rubric;
+    sets.push('#rubric = :rubric');
+  }
+  if (update.grades !== undefined) {
+    names['#grades'] = 'grades';
+    values[':grades'] = merged.grades;
+    sets.push('#grades = :grades');
+  }
+  if (update.confirmedAt !== undefined) {
+    names['#confirmedAt'] = 'confirmedAt';
+    values[':confirmedAt'] = merged.confirmedAt;
+    sets.push('#confirmedAt = :confirmedAt');
+  }
+  // Follow the assignment's lifetime: the grading goes when the assignment does.
+  if (typeof classroom.ttl === 'number') {
+    names['#ttl'] = 'ttl';
+    values[':ttl'] = classroom.ttl;
+    sets.push('#ttl = :ttl');
+  }
+  const result = await docClient.send(new UpdateCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId: gradingKeyOf(classroomId) },
+    UpdateExpression: `SET ${sets.join(', ')}`,
+    ExpressionAttributeNames: names,
+    ExpressionAttributeValues: values,
+    ReturnValues: 'ALL_NEW',
+  }));
+
+  return { statusCode: 200, body: JSON.stringify({ grading: gradingOf(result.Attributes) }) };
 }
 
 // --- みんなの課題 (shared assignment library, EPIC #1066) ---
@@ -5548,11 +6378,11 @@ async function getSharedItemByPasscode(passcode: string): Promise<Record<string,
 
 /**
  * Durable daily quota shared by the share/report endpoints (D12): an atomic
- * counter per teacher per UTC day, stored in the Classrooms table's reserved
+ * counter per teacher per Japanese date (resets at 0:00 JST, like eval-quota), stored in the Classrooms table's reserved
  * key space (same pattern as eval-quota; TTL cleans it after two days).
  */
 async function checkSharedDailyLimit(kind: string, teacherSub: string, limit: number): Promise<void> {
-  const day = new Date().toISOString().slice(0, 10);
+  const day = jstDay(Date.now());
   const result = await docClient.send(new UpdateCommand({
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId: `${kind}-quota#${teacherSub}#${day}` },
@@ -6370,6 +7200,12 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
       const identity = await verifyTeacherIdToken(token);
       result = await handleListNotifications(identity);
 
+    // --- Today's AI evaluation usage (#2448). Read-only. ---
+    } else if (method === 'GET' && path === '/teacher/evaluation-quota') {
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      result = await handleGetEvaluationQuota(identity);
+
     // --- Pending kick requests across the teacher's assignments (#1200) ---
     } else if (method === 'GET' && path === '/kick-requests/pending') {
       const token = extractBearerToken(event.headers?.authorization);
@@ -6582,6 +7418,20 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
       const identity = await verifyTeacherIdToken(token);
       const classroomId = event.pathParameters?.classroomId || '';
       result = await handleEvaluateSubmissions(identity, classroomId, body);
+
+    } else if (method === 'GET' && /^\/classrooms\/[^/]+\/grading$/.test(path)) {
+      // Teacher (ID token): the assignment's grading (#2422).
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      const classroomId = event.pathParameters?.classroomId || '';
+      result = await handleGetGrading(identity, classroomId);
+
+    } else if (method === 'PUT' && /^\/classrooms\/[^/]+\/grading$/.test(path)) {
+      // Teacher (ID token): replace the provided parts of the grading (#2422).
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      const classroomId = event.pathParameters?.classroomId || '';
+      result = await handleSetGrading(identity, classroomId, body);
 
     } else if (method === 'PUT' && /^\/classrooms\/[^/]+\/assignment$/.test(path)) {
       const token = extractBearerToken(event.headers?.authorization);

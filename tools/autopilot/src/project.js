@@ -15,8 +15,9 @@ const { promisify } = require('util');
 const path = require('path');
 const {
     HITL_LABEL, AUTOPILOT_LABEL, selectMarkedComments, stickyUpsertPlan, STICKY_MARKERS,
-    autopilotHeadBranch, normalizeBoardEnrichment,
+    autopilotHeadBranch, normalizeBoardEnrichment, hasMergedHeadPr,
 } = require('./phases');
+const { topicSyncBranch } = require('./epic-pr');
 
 const execFileP = promisify(execFile);
 
@@ -134,6 +135,8 @@ function normalizeProjectItem(i) {
         hitlLabel: labels.includes(HITL_LABEL),
         kind: i.kind,
         size: i.size,
+        // Project の Priority（P0〜P3・EPIC #2384）。gh の item-list はフィールド名を小文字始まりで返す
+        priority: i.priority ?? i.Priority ?? null,
         assignees: Array.isArray(i.assignees) ? i.assignees : [],
     };
 }
@@ -239,15 +242,6 @@ function selectHeadPr(prs) {
     };
 }
 
-/**
- * `gh pr list --json state` の結果に merged PR が含まれるか（#831・base 非依存の merge 検知）。
- * @param {Array<{state?:string, merged?:boolean}>} prs
- * @returns {boolean}
- */
-function hasMergedHeadPr(prs) {
-    return (Array.isArray(prs) ? prs : []).some((p) => p && (p.state === 'MERGED' || p.merged === true));
-}
-
 /** autopilot の head ブランチ名（env `AUTOPILOT_BRANCH_PREFIX` があれば bash 側に合わせる）。 */
 function headBranchFor(issueNumber) {
     return autopilotHeadBranch(issueNumber, process.env.AUTOPILOT_BRANCH_PREFIX || undefined);
@@ -320,6 +314,8 @@ async function getGateContext(repo, issueNumber, token) {
             prLabel: (pr.labels || []).includes(HITL_LABEL),
         },
         pr: pr.number,
+        // EPIC の流れ（topic 宛ての PR は daemon が自動マージ・#2385）の判定に使う
+        prBase: pr.base || null,
     };
 }
 
@@ -347,7 +343,19 @@ async function getIssueMeta(repo, issueNumber, token, deps = {}) {
         body: j.body || '',
         labels: (j.labels || []).map((l) => (typeof l === 'string' ? l : l.name)),
         state: (j.state || '').toUpperCase(),
+        // 親 Issue（sub-issue の親 EPIC）。REST の parent_issue_url から番号だけ取る（追加の API なし）
+        parent: parentIssueNumber(j.parent_issue_url),
     };
+}
+
+/**
+ * REST の `parent_issue_url`（…/issues/<N>）から親 Issue の番号を取り出す（純粋）。
+ * @param {string|null|undefined} url
+ * @returns {number|null}
+ */
+function parentIssueNumber(url) {
+    const m = /\/issues\/(\d+)$/.exec(url || '');
+    return m ? Number(m[1]) : null;
 }
 
 /**
@@ -456,6 +464,27 @@ async function applyUpsertPlan(repo, number, plan, body, token) {
 }
 
 /**
+ * 1 つの Issue のコメントを 1 回だけ読み、渡された計画関数の結果（{body, action, keepId, deleteIds} の
+ * 配列）を書く。モニターで答えたときの質問ごとの答えのコメントのように、同じ Issue に複数の
+ * マーカー付きコメントを書くとき、質問の数だけコメント一覧を読み直さないため。
+ * 計画（何を書く・書かない）は呼ぶ側が phases.js の純粋関数で作る（ここは書くだけ）。
+ * @param {string} repo `owner/name`
+ * @param {number} number Issue 番号
+ * @param {function} planFn (comments) => Array<{body, action, keepId, deleteIds}>
+ * @param {string} token 書き込み（Bot）
+ * @param {object} [deps] { readToken, listIssueComments, applyUpsertPlan }（テスト用）
+ * @returns {Promise<Array<{action:string}>>} 実行した計画
+ */
+async function applyCommentPlans(repo, number, planFn, token, deps = {}) {
+    const list = deps.listIssueComments || listIssueComments;
+    const apply = deps.applyUpsertPlan || applyUpsertPlan;
+    const comments = await list(repo, number, deps.readToken || token);
+    const plans = planFn(comments) || [];
+    for (const p of plans) await apply(repo, number, p, p.body, token);
+    return plans;
+}
+
+/**
  * Issue にプレーンなコメントを投稿する（bot 名義）。
  * daemon が run 失敗で Blocked にするとき「何が起きたか・人間は何をすべきか」を残すのに使う
  * （#816。コメント無しで 🙋 だけ付くと人間が状況を把握できない）。
@@ -474,9 +503,10 @@ async function postIssueComment(repo, number, body, token) {
  * これは人間の手動 merge を検知するための読み取り。
  *
  * close リンクは **非デフォルト base 宛て PR**（epic ブランチに積んだサブ Issue 等）を拾えない
- * （#829 と相互作用）。そのため close リンクで merge が見つからなければ、head ブランチ
- * `topic/autopilot-<N>` の merged PR も見る（base 非依存・#831）。「topic merge = close」運用を
- * epic ブランチへの merge でも効かせるため。
+ * （#829 と相互作用）。そのため close リンクに open の PR が無ければ、head ブランチ
+ * `topic/autopilot-<N>` の PR も見る（base 非依存・#831）。「topic merge = close」運用を
+ * epic ブランチへの merge でも効かせるため。同じブランチで PR を分けて出す Issue では、open の PR が
+ * あればマージ済みとみなさない（判定は phases.js の {@link hasMergedHeadPr}・#2498）。
  * @param {string} repo `owner/name`
  * @param {number} issueNumber
  * @param {string} token
@@ -489,21 +519,25 @@ async function hasMergedPullRequest(repo, issueNumber, token, deps = {}) {
     const query =
         'query($owner:String!,$name:String!,$num:Int!){' +
         'repository(owner:$owner,name:$name){issue(number:$num){' +
-        'closedByPullRequestsReferences(first:20,includeClosedPrs:true){nodes{merged}}}}}';
+        'closedByPullRequestsReferences(first:20,includeClosedPrs:true){nodes{merged state}}}}}';
     const out = await ghFn(
         ['api', 'graphql', '-f', `query=${query}`, '-F', `owner=${owner}`, '-F', `name=${name}`, '-F', `num=${issueNumber}`],
         { token },
     );
     const issue = JSON.parse(out)?.data?.repository?.issue;
     const nodes = (issue && issue.closedByPullRequestsReferences && issue.closedByPullRequestsReferences.nodes) || [];
-    if (nodes.some((n) => n.merged === true)) return true;
-    // close リンクに無い → head ブランチで非デフォルト base への merge を検知（#831）
+    // open の PR が close リンクにある → それが今の PR。前のマージ済み PR があってもまだ（#2498）
+    if (nodes.some((n) => n && n.state === 'OPEN')) return false;
+    // head ブランチで非デフォルト base への merge を検知する（#831）。close リンクにマージ済みが
+    // あっても、今の PR が close キーワード無しで同じブランチに開いていることがあるので、ここで
+    // open も見る。全状態を 1 回で取る（#2498・read を増やさない）
     const listOut = await ghFn(
-        ['pr', 'list', '--repo', repo, '--head', headBranchFor(issueNumber), '--state', 'merged',
-            '--json', 'number,state', '--limit', '10'],
+        ['pr', 'list', '--repo', repo, '--head', headBranchFor(issueNumber), '--state', 'all',
+            '--json', 'number,state', '--limit', '20'],
         { token },
     );
-    return hasMergedHeadPr(JSON.parse(listOut));
+    const headPrs = JSON.parse(listOut);
+    return hasMergedHeadPr([...nodes, ...(Array.isArray(headPrs) ? headPrs : [])]);
 }
 
 /**
@@ -607,7 +641,7 @@ async function getBoardEnrichment(repo, issueNumbers, token, deps = {}) {
         const chunk = nums.slice(i, i + 50);
         const fields = chunk.map((n) =>
             `i${n}: issue(number:${n}){ number state ` +
-            'subIssuesSummary{ total completed percentCompleted } ' +
+            'subIssuesSummary{ total completed percentCompleted } parent{ number title } ' +
             'closedByPullRequestsReferences(first:10,includeClosedPrs:true){nodes{number state isDraft mergeable}} }',
         ).join(' ');
         const query = `query{repository(owner:"${owner}",name:"${name}"){ ${fields} }}`;
@@ -657,6 +691,162 @@ async function getRateLimit(token, deps = {}) {
     return { core: pick(r.core), graphql: pick(r.graphql) };
 }
 
+/**
+ * sub-issue の親 Issue の番号を返す。親が無ければ null。
+ * EPIC の「決定待ち」まとめコメントを書く先を見つけるのに使う（#2385）。
+ * @returns {Promise<number|null>}
+ */
+async function getParentIssueNumber(repo, issueNumber, token, deps = {}) {
+    // getIssueMeta が REST の parent_issue_url から取る parent を使う（#2388 と同じ 1 回の REST）
+    return (await getIssueMeta(repo, issueNumber, token, deps)).parent || null;
+}
+
+/**
+ * 自動マージの判断に要る PR の事実（1 回の `gh pr view`）。epic-flow.js の autoMergePlan に渡す。
+ * @returns {Promise<object>}
+ */
+async function getPrMergeFacts(repo, prNumber, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    const out = await ghFn(['pr', 'view', String(prNumber), '--repo', repo, '--json',
+        'number,state,isDraft,baseRefName,mergeable,reviewDecision,statusCheckRollup,updatedAt'], { token });
+    return JSON.parse(out);
+}
+
+/**
+ * PR をマージする（merge commit。squash は使えないリポジトリ）。head ブランチはリポジトリの
+ * 設定で自動で消えるので `--delete-branch` は付けない（daemon の cwd でブランチを触らない）。
+ */
+async function mergePr(repo, prNumber, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    await ghFn(['pr', 'merge', String(prNumber), '--repo', repo, '--merge'], { token });
+}
+
+/**
+ * PR のレビュー一覧（REST `pulls/<n>/reviews`）。自動マージの前に、まだ対応していない
+ * Request changes があるかを数えるのに使う（phases.js の selectRequestedReviews）。
+ * @returns {Promise<object[]>}
+ */
+async function listPrReviews(repo, prNumber, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    const out = await ghFn(['api', '--paginate', `repos/${repo}/pulls/${prNumber}/reviews`, '--jq', '.[] | @json'], { token });
+    return String(out).split('\n').filter(Boolean).map((line) => JSON.parse(line));
+}
+
+/**
+ * topic → develop の PR（#2473）を決めるのに要る事実を **GraphQL 1 回**で取る。EPIC の題・状態・sub-issue、
+ * topic ブランチがまだあるか、topic 宛ての子の PR（open / merged）、topic → base の open な PR（本文つき）。
+ * 判断は epic-pr.js の epicPrPlan。
+ * @param {string} repo `owner/name`
+ * @param {number} epic
+ * @param {string} topic topic ブランチ
+ * @param {string} base 出す先（develop）
+ * @returns {Promise<object>}
+ */
+async function getEpicPrFacts(repo, epic, topic, base, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    const [owner, name] = repo.split('/');
+    const query =
+        'query($owner:String!,$name:String!,$epic:Int!,$topic:String!,$base:String!,$ref:String!,$sync:String!){' +
+        'repository(owner:$owner,name:$name){' +
+        'issue(number:$epic){number title state subIssues(first:100){nodes{number title state}}} ' +
+        'ref(qualifiedName:$ref){name} ' +
+        'children:pullRequests(baseRefName:$topic,states:[OPEN,MERGED],first:100,' +
+        'orderBy:{field:CREATED_AT,direction:DESC}){nodes{number state headRefName}} ' +
+        'topicPrs:pullRequests(headRefName:$topic,baseRefName:$base,states:[OPEN],first:10){nodes{number body mergeable ' +
+        'commits(last:1){nodes{commit{statusCheckRollup{contexts(first:50){nodes{__typename ' +
+        '... on CheckRun{name status conclusion} ... on StatusContext{context state}}}}}}}}} ' +
+        // develop を topic に取り込む PR（#2485・epic-pr.js の topicSyncBranch）
+        'syncPrs:pullRequests(headRefName:$sync,baseRefName:$topic,states:[OPEN],first:1){nodes{number}}}}';
+    const out = await ghFn(
+        ['api', 'graphql', '-H', 'GraphQL-Features: sub_issues', '-f', `query=${query}`,
+            '-F', `owner=${owner}`, '-F', `name=${name}`, '-F', `epic=${epic}`,
+            '-f', `topic=${topic}`, '-f', `base=${base}`, '-f', `ref=refs/heads/${topic}`,
+            '-f', `sync=${topicSyncBranch(topic, base)}`],
+        { token },
+    );
+    const r = (JSON.parse(out).data || {}).repository || {};
+    const nodes = (x) => (x && Array.isArray(x.nodes) ? x.nodes.filter(Boolean) : []);
+    return {
+        epic: r.issue ? { number: r.issue.number, title: r.issue.title, state: r.issue.state } : null,
+        topic,
+        branchExists: Boolean(r.ref),
+        subIssues: r.issue ? nodes(r.issue.subIssues) : [],
+        childPrs: nodes(r.children),
+        // gh pr view --json statusCheckRollup と同じ形にそろえる（epic-pr.js の previewStatus が読む）
+        topicPrs: nodes(r.topicPrs).map((p) => {
+            const commit = nodes(p.commits)[0];
+            const rollup = commit && commit.commit && commit.commit.statusCheckRollup;
+            return { number: p.number, body: p.body, mergeable: p.mergeable || null,
+                statusCheckRollup: rollup ? nodes(rollup.contexts) : [] };
+        }),
+        syncPr: (nodes(r.syncPrs)[0] || {}).number || null,
+    };
+}
+
+/**
+ * draft の PR を作る（REST・Bot 名義）。`draft: false` なら普通の PR（daemon がマージする PR は draft だとマージできない）。
+ * @returns {Promise<number>} PR の番号
+ */
+async function createDraftPr(repo, { head, base, title, body, draft = true }, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    const out = await ghFn(['api', '--method', 'POST', `repos/${repo}/pulls`,
+        '-f', `title=${title}`, '-f', `head=${head}`, '-f', `base=${base}`, '-f', `body=${body}`,
+        '-F', `draft=${draft ? 'true' : 'false'}`, '--jq', '.number'], { token });
+    return Number(String(out).trim());
+}
+
+/**
+ * ブランチを別のブランチの先頭から作る（REST 2 回・Bot 名義）。develop を topic に取り込むブランチ（#2485）に使う。
+ * もうあれば GitHub が 422 を返す（呼び出し側が受け流す）。
+ */
+async function createBranchFrom(repo, branch, from, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    const sha = String(await ghFn(['api', `repos/${repo}/git/ref/heads/${from}`, '--jq', '.object.sha'], { token })).trim();
+    await ghFn(['api', '--method', 'POST', `repos/${repo}/git/refs`, '-f', `ref=refs/heads/${branch}`, '-f', `sha=${sha}`], { token });
+}
+
+/** PR の本文を書きかえる（REST・Bot 名義） */
+async function updatePrBody(repo, prNumber, body, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    await ghFn(['api', '--method', 'PATCH', `repos/${repo}/pulls/${prNumber}`, '-f', `body=${body}`], { token });
+}
+
+/**
+ * 最近マージされた PR（新しい順・既定 100 件）。daemon の起動時に、既に子が topic に入っている EPIC を
+ * 見つけるのに使う（起動時に 1 回だけ）。
+ * @returns {Promise<Array<{number:number, baseRefName:string, headRefName:string}>>}
+ */
+async function listRecentMergedPrs(repo, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    const out = await ghFn(['pr', 'list', '--repo', repo, '--state', 'merged', '--limit', String(deps.limit || 100),
+        '--json', 'number,baseRefName,headRefName'], { token });
+    const arr = JSON.parse(out);
+    return Array.isArray(arr) ? arr : [];
+}
+
+/**
+ * Project の Priority フィールド（EPIC #2384）。`getFields` の結果に無いとき（古い起動時の
+ * キャッシュなど）のための予備の id。Bot で作成済み（2026-11-25）。
+ */
+const PRIORITY_FIELD_FALLBACK = {
+    id: 'PVTSSF_lADOAE31pc4Bb4n_zhrOPEg',
+    type: 'ProjectV2SingleSelectField',
+    options: { P0: '8f8a727e', P1: '746cb320', P2: '52b4d141', P3: '44b155b6' },
+};
+
+/**
+ * item の Priority を設定する（null でクリア）。書き込みなので Bot トークン。
+ * @param {{projectId:string, fields:object}} ctx
+ * @param {string} itemId
+ * @param {string|null} priority 'P0'〜'P3'
+ * @param {string} [token]
+ */
+async function setPriority(ctx, itemId, priority, token) {
+    const fields = { ...(ctx.fields || {}) };
+    if (!fields.Priority) fields.Priority = PRIORITY_FIELD_FALLBACK;
+    await setField({ ...ctx, fields }, itemId, 'Priority', priority, token || await botToken());
+}
+
 /** applyResult が返す意図配列を Project に反映する */
 async function applyIntents(ctx, itemId, intents, token) {
     const applied = [];
@@ -667,12 +857,40 @@ async function applyIntents(ctx, itemId, intents, token) {
     return applied;
 }
 
+/**
+ * 学びの PR（EPIC #2384 の R1）をマージしてよいか決めるための情報を REST で取る（読み取り）。
+ * 判断は learnings.js の `canMergeLearningsPr`（純粋関数）。
+ * @returns {Promise<{state: string, merged: boolean, draft: boolean, base: string, head: string,
+ *   files: string[], checkRuns: object[]}>}
+ */
+async function getPrMergeStatus(repo, prNumber, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    const pr = JSON.parse(await ghFn(['api', `repos/${repo}/pulls/${prNumber}`], { token }));
+    const files = JSON.parse(await ghFn(['api', `repos/${repo}/pulls/${prNumber}/files?per_page=100`], { token }));
+    const runs = JSON.parse(await ghFn(['api', `repos/${repo}/commits/${pr.head.sha}/check-runs?per_page=100`], { token }));
+    return {
+        state: pr.state,
+        merged: Boolean(pr.merged),
+        draft: Boolean(pr.draft),
+        base: pr.base && pr.base.ref,
+        head: pr.head && pr.head.ref,
+        files: (files || []).map((f) => f.filename),
+        checkRuns: (runs.check_runs || []).map((r) => ({ name: r.name, status: r.status, conclusion: r.conclusion })),
+    };
+}
+
+
 module.exports = {
     botToken, readToken, boardToken, gh, getProject, getFields, listItems, normalizeProjectItem, findItemId, addIssue, setField, applyIntents,
+    setPriority, PRIORITY_FIELD_FALLBACK, parentIssueNumber,
     botLogin, findPrForIssue, selectClosingPr, selectHeadPr, hasMergedHeadPr,
     getGateContext, hasMergedPullRequest, REPO_ROOT,
     getPrInfo, getIssueLabels, getIssueBody, editLabels, setPrDraft, upsertStickyComment, upsertMarkedComment,
+    applyUpsertPlan, applyCommentPlans,
     listIssueComments,
     postIssueComment, listClosedIssueNumbers, getIssueStates, getIssueMeta, closeIssue,
     getBoardEnrichment, listHeadPrs, getRateLimit,
+    getParentIssueNumber, getPrMergeFacts, mergePr, listPrReviews,
+    getPrMergeStatus,
+    getEpicPrFacts, createDraftPr, createBranchFrom, updatePrBody, listRecentMergedPrs,
 };

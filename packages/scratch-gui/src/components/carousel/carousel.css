@@ -1,0 +1,202 @@
+/*
+ * Carousel. The look is the pager of our own screens
+ * (docs/design-system/components/pager.md); the rules for moving by itself are in
+ * docs/design-system/components/carousel.md. No new tokens.
+ */
+@import '../../css/smalruby-tokens.css';
+
+.carousel {
+    display: flex;
+    flex-direction: column;
+    gap: $space-medium;
+    width: 100%;
+    min-height: 0;
+    /* The narrow layout below is decided by the width of the carousel itself. */
+    container-type: inline-size;
+}
+
+.pager {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center; /* the round buttons sit at the middle of the slide */
+    justify-content: space-between;
+    gap: $space-large;
+    min-height: 0;
+}
+
+.content {
+    flex: 1;
+    min-width: 0;
+    /* All the slides in one cell: the height is the tallest slide's. */
+    display: grid;
+}
+
+/* Narrow (under 25rem): the slide on top at full width, the buttons under it at both ends. */
+@container (max-width: 25rem) {
+    .content {
+        flex-basis: 100%;
+        order: -1;
+    }
+}
+
+.slide {
+    grid-area: 1 / 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: $space-small;
+    text-align: center;
+}
+
+.slide.is-hidden {
+    visibility: hidden;
+}
+
+.title {
+    margin: 0;
+    font-size: $font-size-base;
+    font-weight: $font-weight-bold;
+    color: $color-text;
+}
+
+.description {
+    margin: 0;
+    font-size: $font-size-dialog;
+    line-height: 1.4;
+    color: $color-text;
+}
+
+.image-frame {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin-top: $space-small;
+}
+
+.image {
+    display: block;
+    max-width: 100%;
+    max-height: 20rem;
+    height: auto;
+    border: 1px solid $color-border;
+    border-radius: $radius-medium;
+    box-shadow: $shadow-raised;
+    background-color: $color-surface;
+    object-fit: contain;
+}
+
+/* The pager buttons (pager.md: "the form used on our own screens"). */
+.pager-button {
+    flex-shrink: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    border: none;
+    border-radius: $radius-round;
+    background-color: $color-primary;
+    box-shadow: 0 0 0 4px $color-primary-transparent;
+    cursor: pointer;
+    transition: $transition-standard;
+}
+
+.pager-button:hover:not([aria-disabled='true']) {
+    box-shadow: 0 0 0 6px $color-primary-transparent;
+    transform: scale(1.125);
+}
+
+.pager-button:active:not([aria-disabled='true']) {
+    background-color: $color-primary-dark;
+}
+
+/* Not pressable: keep it (do not lose the focus) and make it pale. */
+.pager-button[aria-disabled='true'] {
+    background-color: $color-primary-transparent;
+    box-shadow: none;
+    cursor: default;
+}
+
+.pager-button:focus-visible {
+    outline: 2px solid $color-primary;
+    outline-offset: 4px;
+}
+
+.pager-icon {
+    width: 1.75rem;
+}
+
+[dir='rtl'] .pager-icon {
+    transform: scaleX(-1);
+}
+
+.footer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: $space-large;
+}
+
+/* Where we are (2 to 8 slides). The same colors as the dots of the connection modal. */
+.dots {
+    display: flex;
+    gap: $space-small;
+}
+
+.dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: $radius-round;
+    background-color: $color-primary-transparent;
+}
+
+.dot.is-current {
+    background-color: $color-primary;
+}
+
+/* Pause / play: a light text button next to the dots (not a main action). */
+.pause-button {
+    display: inline-flex;
+    align-items: center;
+    gap: $space-small;
+    min-height: $size-button-height-small;
+    padding: 0 $space-medium;
+    border: 1px solid $color-border;
+    border-radius: $radius-small;
+    background-color: $color-surface;
+    color: $color-primary;
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+    cursor: pointer;
+}
+
+.pause-button:active {
+    background-color: $color-primary-transparent;
+}
+
+.pause-button:focus-visible {
+    outline: 2px solid $color-primary;
+    outline-offset: 2px;
+}
+
+.pause-icon {
+    width: 0.625rem;
+    height: 0.625rem;
+}
+
+@media (forced-colors: active) {
+    .pager-button {
+        forced-color-adjust: none;
+        border: 2px solid ButtonText;
+    }
+
+    .pager-button:focus-visible,
+    .pause-button:focus-visible {
+        outline-color: Highlight;
+    }
+
+    .dot {
+        forced-color-adjust: none;
+    }
+}

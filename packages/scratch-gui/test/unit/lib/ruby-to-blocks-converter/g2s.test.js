@@ -1,5 +1,9 @@
 import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
-import { convertAndExpectToEqualBlocks, expectedInfo } from '../../../helpers/expect-to-equal-blocks';
+import {
+    convertAndExpectRubyBlockError,
+    convertAndExpectToEqualBlocks,
+    expectedInfo,
+} from '../../../helpers/expect-to-equal-blocks';
 
 const makeMenuInput = (inputName, menuOpcode, fieldName, value) => ({
     name: inputName,
@@ -649,5 +653,24 @@ describe('RubyToBlocksConverter/G2S', () => {
                 ],
             },
         ]);
+    });
+
+    // The number arguments take a number or a value block: a string is an error (it was taken, and
+    // the block got no input of that number).
+    test.each([
+        'akadako.set_pwm_duty("10", "25")',
+        'akadako.servo_turn("10", "90", 100)',
+        'akadako.servo_turn("10", 90, "100")',
+        'akadako.neopixel_config("10", "3")',
+        'akadako.neopixel_set_color("10", "1", "0, 0xff, 0", 50)',
+        'akadako.neopixel_set_color("10", 1, "0, 0xff, 0", "50")',
+        'akadako.neopixel_fill_color("10", "0xff, 0, 0", "50")',
+        'akadako.neopixel_shift_color("10", "1", "false")',
+        'say(akadako.i2c_read("0x10", "0x00", "2"))',
+        'say(akadako.number_at("1, 2, 3", "2"))',
+        'say(akadako.splice_numbers("1, 2, 3", "1", 1, "-1, 0"))',
+        'say(akadako.splice_numbers("1, 2, 3", 1, "1", "-1, 0"))',
+    ])('%s is an error', async (code) => {
+        await convertAndExpectRubyBlockError(converter, target, code);
     });
 });

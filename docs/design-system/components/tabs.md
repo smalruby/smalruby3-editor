@@ -20,12 +20,12 @@
 
 ## クラス管理のタブ（`classroom-modal/classroom-tab.jsx`）
 
-スモウルビー独自。クラス管理は Google Classroom と同じ**下に線**のタブにする（上のエディターのタブの形ではない）。クラスの中の［ストリーム］［授業］、課題の［説明］［メンバー］［進み具合］、みんなの課題の［すべて］［自分の投稿］が使う。
+スモウルビー独自。クラス管理は Google Classroom と同じ**下に線**のタブにする（上のエディターのタブの形ではない）。課題の採点の右の［基準］［形］［生徒］（`.eval-inner-tab`）も同じ最小の幅にする（縦の余白だけ 1300×600 に収めるため `0.3rem` と小さい）。クラスの中の［ストリーム］［授業］、課題の［説明］［メンバー］［進み具合］、みんなの課題の［すべて］［自分の投稿］が使う。
 
 | 状態 | 値 | トークン |
 |---|---|---|
 | 並び（`.tab-list`・`role="tablist"`） | 横に並べて下にそろえる・タブの間 0.25rem・下に `1px solid $color-border` の線・下の余白 0.75rem。右端に「⋮」や［⚙ クラスの設定］などのボタンを置くときは、tablist の中に入れず、tablist と同じ行の flex に `margin-left: auto` で置く（線は行が引く。`.class-tabs-row`）。タブでないものを矢印キー・読み上げのタブの並びに混ぜないため | `$color-border` |
-| ふつう（`.tab`） | 地と枠なし・下に透明な 3px の線・余白 `0.5rem 1rem`・文字 14px の太字 `$color-text` | `$size-tab-indicator`・`$font-size-medium`・`$font-weight-bold`・`$color-text` |
+| ふつう（`.tab`） | 地と枠なし・下に透明な 3px の線・余白 `0.5rem 1rem`・最小の幅 80px（文字は中央）・文字 14px の太字 `$color-text`。ラベルの長さで幅が変わり、短いラベルのタブが押しにくくならないよう、最小の幅をそろえる | `$size-tab-indicator`・`$size-tab-min-width`・`$font-size-medium`・`$font-weight-bold`・`$color-text` |
 | ホバー | 文字 `$color-action` | `$color-action` |
 | 選ばれた（`.tab-selected`・`aria-selected="true"`） | 文字と下の 3px の線を `$color-action` に（並びの 1px の線に重ねる） | `$color-action`・`$size-tab-indicator` |
 | フォーカス | `:focus-visible` で `outline: 2px solid $color-action; outline-offset: -2px`（並びの線と重ならないよう内側） | |

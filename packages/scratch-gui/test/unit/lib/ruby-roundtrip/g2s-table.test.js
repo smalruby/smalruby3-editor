@@ -3,8 +3,8 @@
  * It fixes the output of the converter before the calls of `akadako` move into a send table
  * (issue #2090); ruby-to-blocks-converter/g2s.test.js has one test for each call.
  *
- * The menus take only a string (as it is), except the color of `neopixel_set_color`, and some
- * number arguments take anything (they are not checked): both are kept as they were.
+ * The menus take only a string (as it is), except the color of `neopixel_set_color` (kept as it
+ * was). The number arguments take a number or a value block (a string is an error: g2s.test.js).
  */
 import { defineBlockRubyTable } from '../../helpers/block-ruby-table';
 
@@ -81,12 +81,6 @@ const rows = [
     {
         blocks: `g2s_analogLevelSet(CONNECTOR: ${menu('pwmConnectorMenu', '10')}, LEVEL: $l)`,
         ruby: 'akadako.set_pwm_duty("10", $l)',
-    },
-    {
-        // The level is not checked: a string is taken, and the block gets no input of the level.
-        blocks: `g2s_analogLevelSet(CONNECTOR: ${menu('pwmConnectorMenu', '10')})`,
-        ruby: 'akadako.set_pwm_duty("10", "25")',
-        only: 'toBlocks',
     },
     {
         blocks: `g2s_servoTurn(CONNECTOR: ${menu('servoConnectorMenu', '11')}, ANGLE: 90, SPEED: 100)`,

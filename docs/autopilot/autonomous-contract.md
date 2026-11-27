@@ -86,6 +86,7 @@ Runner はこの短語を pane で検出してから `AUTOPILOT_RESULT_FILE` を
 | `createdSubIssues` | number[] | decompose で作成した sub-issue 番号 |
 | `subIssueSizes` | object \| null | decompose で作成した leaf ごとの size（`{"<issue番号>":"small"\|"middle"\|"large"}`）。daemon が `createdSubIssues` と合わせて各 sub-issue の Status=`Sprint Backlog`/Kind=`Issue`/Size を設定する（#914） |
 | `prUrl` | string \| null | implement で作成/更新した PR |
+| `previewUrl` | string \| null | 任意。release-check が見つけた topic → develop の PR のプレビューの URL。daemon が覚えてモニターの「あなた宛て」の行に出す（#2430） |
 
 `signal=hitl` のとき追加で:
 
@@ -95,6 +96,20 @@ Runner はこの短語を pane で検出してから `AUTOPILOT_RESULT_FILE` を
 | `commentUrl` | string | 投稿したコメントの URL |
 | `nextStatus` | string \| null | 提案する Status（任意。**Icebox / Close / Done は提案しない** — 提案段階で退避系へ動かすと出口の無い状態に固着する。`state-machine.md` 不変条件 I4）。実作業系フェーズ（implement / understand / review / address-review / verify）が `nextStatus` / `nextAiStatus` とも無しで終えたときは、daemon が **Blocked** にする（In Progress のままだと stalled 復帰が人間の返事を待たず起動し直すため・#1310）。それ以外のフェーズは Status を変えない |
 | `nextAiStatus` | string \| null | 提案する AI Status（任意。例: 実装前ディスカッションの `Discussing`） |
+| `questions` | object[] \| 省略 | 人間に選んでほしいこと（任意・`signal=hitl` のときだけ書ける）。daemon がモニターに出し、Issue にもマーカー付きで書く。下の表 |
+
+`questions[]` の 1 件（`contract.js` の `validateQuestions` が検証する。1 回に 10 問・1 問に 10 択まで）:
+
+| key | 型 | 説明 |
+|---|---|---|
+| `id` | string（英数字・`_`・`-`、32 字まで） | 質問 ID（例 `q1`）。同じ結果の中で重ならない |
+| `text` | string（必須） | 何を選んでほしいか |
+| `options` | object[]（1 件以上） | 選択肢 `{key, label, desc?}`。`key` は英数字・`_`・`-`（16 字まで）、`label` は短い名前、`desc` は一行の説明 |
+| `recommended` | string \| 省略 | AI の推奨（`options` の `key` のどれか） |
+
+人間がモニターの「答えて先へ進める」で答えると、daemon が答えを Issue に書き、🙋 を外し、次に worker を起こすとき
+答えのファイル（`AUTOPILOT_ANSWERS_FILE`・§6）を渡す。起動の指示にもそのパスが入る。worker はそれを最初に読み、
+同じことを質問し直さない。「メモだけ保存」では何も起きない（daemon のローカルに置くだけ）。
 
 `signal=error` のとき追加で:
 
@@ -102,6 +117,14 @@ Runner はこの短語を pane で検出してから `AUTOPILOT_RESULT_FILE` を
 |---|---|---|
 | `error` | string | エラーメッセージ |
 | `recoverable` | boolean | 再試行で回復しうるか |
+
+現在地を作る job（`phase=current-status`・`issue=0`）は `signal=done` で追加に次を書く（`validateResult` は知らない
+キーを通すので、daemon の `planCurrentStatusOutcome` が読む）:
+
+| key | 型 | 説明 |
+|---|---|---|
+| `artifactUrl` | string | publish した artifact の URL（`https://claude.ai/artifact/…`）。更新でも書く |
+| `templateNotes` | string[] | テンプレートの改善の案（無ければ空） |
 
 ### 2.4 例
 
@@ -178,6 +201,37 @@ worker（対話 Claude）の**実行上限は既定で約 60 分**（runner の 
 前回 +1 にする。連続 checkpoint が既定 3 回を超えると daemon が Blocked へエスカレーションする
 （`checkpointIterationDecision`。#912）。
 
+### 2.6 EPIC の流れの任意フィールド（topic 宛ての PR）
+
+PR の base が `topic/...` の Issue（EPIC の sub-issue）では、daemon が `AUTOPILOT_EPIC_FLOW=1` を渡す。
+人間は EPIC の設計を承認済みなので、途中で 🙋 を出すのは **3 案以上の分岐・3 回直しても残る Must・
+続けられないエラー**の 3 つだけにし、それ以外は AI のおすすめで決めて `decisions` に書く。どの signal でも
+次の任意フィールドを書ける（`contract.js` の `validateResult` が検証する）:
+
+| key | 型 | 説明 |
+|---|---|---|
+| `mustCount` | number（0 以上の整数） | **review**: このレビューで直しきれず残った Must の数。daemon が次を決める（0 → topic へ自動マージ待ち / あり → address-review が直す / 3 回直しても残る → その sub-issue だけ Blocked + 🙋） |
+| `round` | number（1 以上の整数） | **review**: まとめコメントの round。直した回数 = round − 1 |
+| `hitlKind` | `"diverge"`\|`"must-exhausted"`\|`"environment"`\|`"design"` | `signal=hitl` の理由。EPIC の子の triage / discuss / decompose / review で、これが `diverge` / `environment` 以外の 🙋 は daemon が「想定外の確認」として決定待ちに載せる（🙋 は残す）。`design` は EPIC そのものの設計の承認 |
+| `decisions` | object[] | EPIC の「決定待ち」に載せるもの。daemon が EPIC の Issue のまとめコメント（`<!-- autopilot-epic-decisions count=N -->`・1 つ）に書き足す。**worker はそのコメントを書かない** |
+
+`decisions[]` の 1 件:
+
+| key | 型 | 説明 |
+|---|---|---|
+| `kind` | `"question"`\|`"not-adopted"`\|`"ai-decision"`\|`"two-way"`\|`"diverge"` | 仕様の選択が要る / 採用しなかった指摘 / AI が決めた / 2 案（別ブランチあり）/ 3 案以上（止める）。daemon 自身は `must-exhausted` / `unexpected-hitl` も書く |
+| `title` | string（必須） | 何を |
+| `ref` | string \| null | review の指摘 ID（`Q1` など） |
+| `recommendation` | string \| null | AI の案 |
+| `alternatives` | string[] | ほかの案 |
+| `adopted` | string \| null | 入れたのはどちらか |
+| `pr` / `altPr` | number \| null | PR（省略時は daemon が補う）/ 別案の draft PR |
+| `preview` / `altPreview` | string \| null | プレビューの URL |
+
+2 案に分かれたときは、おすすめを Issue のブランチ（topic 宛ての PR）に、もう 1 案を
+`topic/<epic のブランチ>-alt-<番号>`（`epic-flow.js` の `altBranchName`）の draft PR にする。
+3 案以上のときは実装せず `signal=hitl` + `hitlKind:"diverge"` + `decisions:[{kind:"diverge"}]` で終える。
+
 ---
 
 ## 3. 状態の書き込み責務（単一ライター原則）
@@ -230,6 +284,9 @@ worker（対話 Claude）の**実行上限は既定で約 60 分**（runner の 
 | `AUTOPILOT_REPO` | `smalruby/smalruby3-editor` |
 | `AUTOPILOT_BASE_BRANCH` | PR 先・worktree 分岐元のベースブランチ（既定 `develop`）。Issue 本文の `autopilot-base:` ディレクティブや「ベースブランチ」宣言があれば daemon が渡す（EPIC サブ Issue を親 epic ブランチに積む用）。implement は `gh pr create --base` にこれを使う |
 | `AUTOPILOT_STATUS` | dispatch 時点の Project Status（例 `Review` / `DoD` / `Blocked`）。address-review が「Request changes 対応」か「Blocked からの再開」かを分けるのに使う |
+| `AUTOPILOT_AI_STATUS` | dispatch 時点の AI Status。address-review は `In Progress` + `Addressing Comments` のとき「Must の自動の直し」（EPIC の流れ） |
+| `AUTOPILOT_EPIC_FLOW` | base が `topic/...` のとき `1`（それ以外は空）。§2.6 の EPIC の流れ |
+| `AUTOPILOT_ANSWERS_FILE` | モニターで人間が答えた答えのファイル（worktree の `tmp/autopilot-answers-<issue>.md`。無ければ空）。§2.3 の `questions` の答え（質問 ID・選んだ選択肢・メモ） |
 
 ---
 
@@ -303,6 +360,7 @@ DoD の最終確認のうち **音/autoplay など実 Chrome が必須のケー�
 - [ ] 冒頭で本コントラクトに従うと宣言している
 - [ ] `AskUserQuestion` を一切使っていない
 - [ ] 判断が要るときは bot コメント + `AUTOPILOT_HITL` で終了している
+- [ ] EPIC の流れ（`AUTOPILOT_EPIC_FLOW=1`）では 🙋 を §2.6 の 3 つに限り、ほかは `decisions` に書いている
 - [ ] 終了直前に `AUTOPILOT_RESULT_FILE` へ JSON を書き、pane に signal トークンを出している
 - [ ] Project フィールドを直接書き換えていない（意図は結果ファイルで伝える）
 - [ ] 冪等（再実行で重複副作用を出さない）
