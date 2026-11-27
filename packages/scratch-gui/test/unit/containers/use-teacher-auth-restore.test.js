@@ -5,8 +5,6 @@
  */
 jest.mock('../../../src/lib/teacher-auth.js', () => ({
     cancelGoogleLogin: jest.fn(),
-    isGoogleLoginInFlight: jest.fn(() => false),
-    revealGoogleSignInButton: jest.fn(),
     loginWithGoogle: jest.fn(),
     requestMicrosoftIdToken: jest.fn(),
     isMicrosoftAuthAvailable: jest.fn(() => false),

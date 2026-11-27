@@ -158,6 +158,7 @@ const useTeacherClassroom = ({
         intl,
         setPhase,
         openSubmission: submissions.handleOpenSubmission,
+        groups: groups.groups,
     });
 
     const shared = useSharedAssignments({
@@ -278,7 +279,7 @@ const useTeacherClassroom = ({
         authProvider: auth.authProvider,
         isMicrosoftAuthAvailable: auth.isMicrosoftAuthAvailable,
         googleSignInRef: auth.googleSignInRef,
-        googleFallbackReason: auth.googleFallbackReason,
+        googleButtonShown: auth.googleButtonShown,
         handleGoogleLogin: auth.handleGoogleLogin,
         handleMicrosoftLogin: auth.handleMicrosoftLogin,
         handleTeacherLogout,

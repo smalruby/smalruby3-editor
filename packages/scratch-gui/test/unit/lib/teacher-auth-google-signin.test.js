@@ -1,9 +1,4 @@
-import {
-    cancelGoogleLogin,
-    loginWithGoogle,
-    revealGoogleSignInButton,
-    silentReauthGoogle,
-} from '../../../src/lib/teacher-auth.js';
+import { cancelGoogleLogin, loginWithGoogle, silentReauthGoogle } from '../../../src/lib/teacher-auth.js';
 
 /**
  * Regression tests for the Google sign-in fallback UI lifecycle (#1149).
@@ -31,6 +26,7 @@ let gis;
 const setupGoogleStub = () => {
     gis = {
         initializeConfig: null,
+        promptCalled: false,
         promptCallback: null,
         renderedInto: [],
         cancelCount: 0,
@@ -42,6 +38,7 @@ const setupGoogleStub = () => {
                     gis.initializeConfig = config;
                 },
                 prompt: (callback) => {
+                    gis.promptCalled = true;
                     gis.promptCallback = callback || null;
                 },
                 renderButton: (element) => {
@@ -65,8 +62,6 @@ describe('teacher-auth Google sign-in fallback UI (#1149)', () => {
 
     beforeEach(() => {
         setupGoogleStub();
-        // Default to a browser that shows the Google prompt itself.
-        global.window.IdentityCredential = function IdentityCredential() {};
         document.body.innerHTML = '';
         container = document.createElement('div');
         // The real container lives inside the modal, not directly under body.
@@ -78,7 +73,6 @@ describe('teacher-auth Google sign-in fallback UI (#1149)', () => {
     afterEach(() => {
         cancelGoogleLogin();
         delete global.google;
-        delete global.window.IdentityCredential;
     });
 
     test('renders the fallback button into the given container, not into body', async () => {
@@ -151,38 +145,20 @@ describe('teacher-auth Google sign-in fallback UI (#1149)', () => {
         expect(container.childElementCount).toBe(0);
     });
 
-    test('does not depend on FedCM-incompatible prompt moment methods', async () => {
-        const pending = loginWithGoogle({ container });
-        pending.catch(() => {});
-        await Promise.resolve();
-        await Promise.resolve();
+    test('a login that lost its container while loading never renders', async () => {
+        container.remove();
 
-        expect(gis.initializeConfig.use_fedcm_for_prompt).toBe(true);
-
-        // The moment listener may only read isDismissedMoment(): the others
-        // stop working once FedCM is mandatory.
-        const deprecated = {
-            isNotDisplayed: jest.fn(() => true),
-            isSkippedMoment: jest.fn(() => true),
-            isDisplayMoment: jest.fn(() => true),
-        };
-        gis.promptCallback({
-            ...deprecated,
-            isDismissedMoment: () => false,
-        });
-
-        expect(deprecated.isNotDisplayed).not.toHaveBeenCalled();
-        expect(deprecated.isSkippedMoment).not.toHaveBeenCalled();
-        expect(deprecated.isDisplayMoment).not.toHaveBeenCalled();
+        await expect(loginWithGoogle({ container })).rejects.toThrow();
+        expect(gis.renderedInto).toHaveLength(0);
     });
 });
 
 /**
- * There is only ever one Google entry point on screen: our own login button,
- * or Google's rendered button in its place — never both. These pin when the
- * handover happens (#1149).
+ * Google's own button is the entry point from the start. Chrome stops showing
+ * the One Tap prompt for a while after it was closed once, without telling the
+ * page, so asking for the prompt made the first press do nothing.
  */
-describe('teacher-auth Google button handover (#1149)', () => {
+describe('teacher-auth Google button entry point', () => {
     let container;
 
     beforeEach(() => {
@@ -195,100 +171,34 @@ describe('teacher-auth Google button handover (#1149)', () => {
     afterEach(() => {
         cancelGoogleLogin();
         delete global.google;
-        delete global.window.IdentityCredential;
     });
 
-    /** Pretend the browser does (not) mediate the Google prompt itself. */
-    const setBrowserPrompt = (supported) => {
-        if (supported) {
-            global.window.IdentityCredential = function IdentityCredential() {};
-        } else {
-            delete global.window.IdentityCredential;
-        }
-    };
-
-    /**
-     * Start a login and let the awaited script loader settle. The pending
-     * promise is wrapped so awaiting this helper cannot accidentally await the
-     * login itself (which only settles on success or cancellation).
-     */
-    const start = async (onFallbackVisible) => {
-        const pending = loginWithGoogle({ container, onFallbackVisible });
+    const start = async (onButtonVisible) => {
+        const pending = loginWithGoogle({ container, onButtonVisible });
         pending.catch(() => {});
         await Promise.resolve();
         await Promise.resolve();
         return { pending };
     };
 
-    test('waits for the browser prompt when the browser has one', async () => {
-        setBrowserPrompt(true);
-        const onFallbackVisible = jest.fn();
-        await start(onFallbackVisible);
+    test('never asks for the One Tap prompt', async () => {
+        await start();
 
-        expect(onFallbackVisible).not.toHaveBeenCalled();
-        expect(gis.promptCallback).toBeInstanceOf(Function);
-    });
-
-    test('hands over as soon as the user dismisses the prompt', async () => {
-        setBrowserPrompt(true);
-        const onFallbackVisible = jest.fn();
-        await start(onFallbackVisible);
-
-        gis.promptCallback({
-            isDismissedMoment: () => true,
-            getDismissedReason: () => 'cancel_called',
-        });
-
-        expect(onFallbackVisible).toHaveBeenCalledWith('dismissed');
-    });
-
-    test('does not hand over when the prompt closed because it signed the user in', async () => {
-        setBrowserPrompt(true);
-        const onFallbackVisible = jest.fn();
-        await start(onFallbackVisible);
-
-        gis.promptCallback({
-            isDismissedMoment: () => true,
-            getDismissedReason: () => 'credential_returned',
-        });
-
-        expect(onFallbackVisible).not.toHaveBeenCalled();
-    });
-
-    test('hands over immediately, without prompting, when the browser has no prompt', async () => {
-        setBrowserPrompt(false);
-        const onFallbackVisible = jest.fn();
-        await start(onFallbackVisible);
-
-        expect(onFallbackVisible).toHaveBeenCalledWith('unsupported');
-        // Asking would only have produced a prompt nobody can see.
         expect(gis.promptCallback).toBeNull();
+        expect(gis.promptCalled).toBe(false);
     });
 
-    // GIS does not always report that the prompt closed, so the user pressing
-    // our button again has to be enough to get Google's button on screen.
-    test('hands over when the login is asked for a second time', async () => {
-        setBrowserPrompt(true);
-        const onFallbackVisible = jest.fn();
-        await start(onFallbackVisible);
+    test("uses the FedCM button mode for Google's button", async () => {
+        await start();
 
-        revealGoogleSignInButton();
-
-        expect(onFallbackVisible).toHaveBeenCalledWith('retry');
+        expect(gis.initializeConfig.use_fedcm_for_button).toBe(true);
     });
 
-    test('hands over at most once', async () => {
-        setBrowserPrompt(true);
-        const onFallbackVisible = jest.fn();
-        await start(onFallbackVisible);
+    test('tells the caller once the button is on screen', async () => {
+        const onButtonVisible = jest.fn();
+        await start(onButtonVisible);
 
-        const dismissal = {
-            isDismissedMoment: () => true,
-            getDismissedReason: () => 'cancel_called',
-        };
-        gis.promptCallback(dismissal);
-        gis.promptCallback(dismissal);
-
-        expect(onFallbackVisible).toHaveBeenCalledTimes(1);
+        expect(onButtonVisible).toHaveBeenCalledTimes(1);
+        expect(container.childElementCount).toBe(1);
     });
 });

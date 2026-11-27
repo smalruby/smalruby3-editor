@@ -76,7 +76,7 @@ export default function (Generator) {
 
     Generator.wedo2_isTilted = function (block) {
         const tiltDirectionAny = Generator.valueToCode(block, 'TILT_DIRECTION_ANY', Generator.ORDER_NONE) || null;
-        return `wedo2.tilted?(${tiltDirectionAny})\n`;
+        return [`wedo2.tilted?(${tiltDirectionAny})`, Generator.ORDER_ATOMIC];
     };
 
     Generator.wedo2_menu_TILT_DIRECTION = function (block) {

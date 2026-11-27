@@ -24,11 +24,31 @@ unit テスト全体を 4 ワーカーで流し（約 4.3 GB）、同時に別�
 - **サブエージェントに頼むときは、上の 2 つ（関係するテストだけ・重いものを重ねない）を指示に書く。**
   エージェントは親の状況を知らないので、書かないと全体を流しがち。
 
+## 重い処理の一覧
+
+最近の開発で、コンテナを重くしたものと、その代わりにすること。autopilot の worker も同じ。
+
+| 重い処理 | 何が重いか | 代わりにすること |
+|---|---|---|
+| ルートの `npm run lint` | 秘密の検査・hosting のテスト・scratch-vm と scratch-gui の**全ファイル**の eslint と prettier | `bin/lint-changed`（変えたファイルだけ）。無いあいだは、変えたパッケージのディレクトリで `npx eslint --max-warnings 0 <files>` と `npx prettier --check --ignore-unknown <files>`。全体は CI |
+| jest のまとまった実行 | 4 ワーカーで約 4.3 GB。ファイルを指定しても 1 回で 1.8 GB ほど | ファイルを指定して `--runInBand`。ディレクトリ・全体は CI |
+| integration テスト（Selenium） | chromedriver と chromium。途中で止めると親を失って何日も残る | 関係するファイルだけ。終わったら下の「後片付け」で残りを確かめる |
+| webpack（dev server・`build:dev`） | 約 0.9 GB。`npx` のラッパーだけを止めると webpack の子が残る | 同時に 2 つ立てない。止めるときは webpack のプロセスそのものを止める |
+| scratch-vm の tap の全体 | 全ファイルを流すと長く重い | ファイルを指定し、`--disable-coverage` を付ける |
+| `npm install` を 2 か所で同時に | node_modules は named volume で共有しているので、壊れることがある | 同時に走らせない |
+| Playwright（headless の確認） | ブラウザ 1 つで数百 MB。止め忘れが残る | 1 つずつ。終わったら閉じる |
+
 ## 後片付け
 
 - 終わったら、自分が起動したプロセスが残っていないか確かめる
   （`ps -eo pid,rss,etime,args --sort=-rss | head`）。ブラウザは
   `pgrep -af 'chromedriver|chromium|headless_shell|webpack'`。
+- 止めるのは自分のものだけ。`/proc/<pid>/cwd` が自分の作業場（worktree）かを確かめてから PID で止める
+  （`pkill -f` のような広い一致は使わない）。autopilot の worker は `tools/autopilot/bin/cleanup-leftovers` で
+  まとめて確かめて止める。
+- webpack は自分のコマンド行を `webpack` に書き換えるので、`pgrep -f 'webpack serve'` では見つからない。
+  dev server は `setsid -f` で起動して PGID を記録し、プロセスグループごと止める
+  （手順の正は `tools/autopilot/prompts/autopilot-verify.md` の「dev server の起動と停止」）。
 - 「終わるまで待つ」ループに `pgrep -f <パターン>` を使わない。ループ自身のコマンド行に一致して
   永久に終わらないことがある。待つときは、バックグラウンド実行の通知か `gh pr checks --watch` を使う。
 

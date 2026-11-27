@@ -53,6 +53,8 @@ $color-info-background: $ui-primary;
    上流の朱色（$red-tertiary・#E64D00）は淡い地に 3.5:1 で足りないので濃くしたもの（地に 5.9:1・白に 6.5:1） */
 $color-emphasis: #a33d00;
 $color-emphasis-background: $ui-alert-orange;
+/* 文の中のマーカー（課題のページの `*ことば*`）。黄色の蛍光ペンの地。本文の文字（$color-text）は地に 5.6:1 */
+$color-highlight-background: #fff59d;
 /* 取り消せる操作の確認（「アーカイブしますか？」「退室させますか？」「採点を離れますか？」）の
    淡いオレンジの地と文字。赤は使わない（クラス管理の R4）。文字は地に 7:1 以上 */
 $color-confirm-background: hsla(35, 90%, 55%, 0.12);
@@ -118,6 +120,8 @@ $size-button-height: 2.25rem;
 $size-button-height-small: 1.875rem;
 /* 選ばれたタブの下の線の太さ（クラス管理のタブ。#1956 Q7） */
 $size-tab-indicator: 3px;
+/* タブの最小の幅 80px（クラス管理のタブ。「形」のような 1 文字のタブも押しやすい幅にそろえる） */
+$size-tab-min-width: 5rem;
 
 /* ---- 文字 ---- */
 

@@ -17,11 +17,16 @@
  * the same numbers; a server row has the same `challenges` shape as the
  * device record.
  *
+ * The readiness result (`row.readiness`) and the review challenge
+ * (`current.review`) are only shown as a small note on the seat (#2301,
+ * seatNote); they are never used for counting, completion, the score or the CSV.
+ *
  * Pure functions only: the time is passed in (`now`, ms epoch).
  */
 import { csvLines } from './classroom-download-utils.js';
 import { computeLessonScore } from './classroom-lesson-settings.js';
 import { assignmentProgress, normalizeAssignmentLesson } from './lessons/assignment-progress.js';
+import { COURSES, findChallenge } from './lessons/courses.js';
 
 /** 同じチャレンジにこの長さいると「!」（止まっている）. */
 export const STUCK_THRESHOLD_MS = 10 * 60 * 1000;
@@ -191,6 +196,65 @@ export const seatProgress = (row, ctx, now) => {
         stuck: Boolean(current && !cleared && current.elapsedMs >= STUCK_THRESHOLD_MS),
     };
 };
+
+/** How many missing challenge names the seat note shows before 「ほか N」. */
+export const READINESS_NOTE_NAMES = 2;
+
+/**
+ * The small note of a seat (#2301): the readiness check result and the review
+ * challenge the student is on. Display only.
+ *   - readiness: null when the seat sent no result; `ready` when nothing is
+ *     missing; otherwise the missing base challenges this version knows
+ *     (`missing`, in the sent order) and how many it does not know (`unknownCount`)
+ *   - review: the challenge of `current.review: true` while the seat's last send
+ *     is recent (the same rule as ▶). `challenge` is null when this version
+ *     does not know it
+ * @param {?object} row - the seat's progress row
+ * @param {number} now - current time (ms epoch)
+ * @param {Array} [courses] - courses to find challenges in (tests)
+ * @returns {{readiness: ?{ready: boolean, missing: Array<object>, unknownCount: number},
+ *   review: ?{challengeId: string, challenge: ?object}}} note
+ */
+export const seatNote = (row, now, courses = COURSES) => {
+    let readiness = null;
+    const sent = row && row.readiness;
+    if (sent && Array.isArray(sent.missing)) {
+        const ids = [...new Set(sent.missing.filter((id) => typeof id === 'string' && id))];
+        const missing = ids.map((id) => findChallenge(id, courses)).filter(Boolean);
+        readiness = {
+            ready: ids.length === 0,
+            missing: missing.map((found) => found.challenge),
+            unknownCount: ids.length - missing.length,
+        };
+    }
+    let review = null;
+    const cur = row && row.current;
+    const updatedMs = toMs(row && row.updatedAt);
+    if (
+        cur &&
+        cur.review === true &&
+        typeof cur.challengeId === 'string' &&
+        Number.isFinite(updatedMs) &&
+        now - updatedMs < CURRENT_FRESH_MS
+    ) {
+        const found = findChallenge(cur.challengeId, courses);
+        review = { challengeId: cur.challengeId, challenge: found ? found.challenge : null };
+    }
+    return { readiness, review };
+};
+
+/**
+ * The names a seat note lists: the first READINESS_NOTE_NAMES, and how many
+ * more (「ほか N」).
+ * @param {Array<string>} names - names in order
+ * @param {number} unknownCount - more ones without a name
+ * @param {number} [max] - how many names to list
+ * @returns {{names: Array<string>, more: number}} listed names and the rest count
+ */
+export const noteNames = (names, unknownCount, max = READINESS_NOTE_NAMES) => ({
+    names: names.slice(0, max),
+    more: Math.max(0, names.length - max) + unknownCount,
+});
 
 /**
  * @param {number} seatNumber - seat number (1-based)

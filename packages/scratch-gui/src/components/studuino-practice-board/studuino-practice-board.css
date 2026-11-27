@@ -1,0 +1,257 @@
+@import '../../css/smalruby-tokens.css';
+
+/*
+    Studuino の練習用の基板のパネル。コードエリアの右上（ステージの列のすぐ左。レッスンの練習相手の
+    パネルが出ているときはその左）に重ねて出す。位置はコンテナが測って style で渡す。
+    ステージの列の下（スプライトの情報）はレッスンのヒントが指すので使わない。
+*/
+.panel {
+    position: fixed;
+    z-index: $z-index-extension-button;
+    width: 14rem;
+    border: 2px solid $extensions-primary;
+    border-radius: 0.5rem;
+    background-color: $ui-white;
+    color: $color-text;
+    font-size: $font-size-xsmall;
+    box-shadow: 0 0.125rem 0.5rem $ui-black-transparent;
+    overflow: hidden;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.125rem 0.25rem 0.125rem 0.5rem;
+    background-color: $extensions-primary;
+    color: $ui-white;
+    font-size: 0.8125rem;
+    font-weight: bold;
+}
+
+/* 実機につながっているときは、練習用の基板と見分けがつくよう見出しの色を変える */
+.device .header {
+    background-color: $color-action;
+}
+
+.device {
+    border-color: $color-action;
+}
+
+.title {
+    flex: 1;
+    min-width: 0;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+}
+
+.close {
+    flex-shrink: 0;
+    width: 1.5rem;
+    height: 1.5rem;
+    border: none;
+    border-radius: 50%;
+    background-color: transparent;
+    color: $ui-white;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.close:hover,
+.close:focus-visible {
+    background-color: $ui-white-transparent;
+}
+
+/* 本文は不透明（後ろのコードエリアが透けないように。modals.md と同じ理由） */
+.body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.125rem 0.375rem 0.375rem;
+    background-color: $color-surface;
+}
+
+.note {
+    margin: 0;
+    color: $color-text-muted;
+    font-size: $font-size-xsmall;
+    line-height: 1.3;
+}
+
+.heading {
+    margin: 0;
+    color: $color-text-muted;
+    font-size: $font-size-xsmall;
+    font-weight: bold;
+    line-height: 1.3;
+}
+
+.group {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 0.125rem 0.25rem;
+    border: 1px solid $color-border;
+    border-radius: $radius-medium;
+}
+
+.sensor {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.15;
+}
+
+/* タッチセンサーは名前・ボタン・数字を 1 行に（パネルの高さを抑えて、コードエリアの右下のズームのボタンにかけない） */
+.touch-row {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    min-width: 0;
+    padding-top: 0.125rem;
+}
+
+.slider-row {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.slider {
+    flex: 1;
+    min-width: 0;
+    height: 0.875rem;
+    margin: 0;
+    accent-color: $extensions-primary;
+    cursor: pointer;
+}
+
+.number {
+    flex-shrink: 0;
+    width: 2.25rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: bold;
+    text-align: right;
+}
+
+.touch {
+    flex: 1;
+    padding: 0.125rem 0.25rem;
+    border: 1px solid $extensions-tertiary;
+    border-radius: 0.375rem;
+    background-color: $extensions-light;
+    color: $color-text;
+    font-size: $font-size-xsmall;
+    font-weight: bold;
+    line-height: 1.25;
+    cursor: pointer;
+    touch-action: none;
+    user-select: none;
+}
+
+.touch:focus-visible {
+    outline: 2px solid $extensions-primary;
+}
+
+.touch-down {
+    background-color: $extensions-primary;
+    color: $ui-white;
+}
+
+.output-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.375rem;
+    min-width: 0;
+    line-height: 1.3;
+}
+
+.output {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    min-width: 0;
+    white-space: nowrap;
+}
+
+.state {
+    font-variant-numeric: tabular-nums;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.lamp {
+    display: inline-block;
+    width: 0.625rem;
+    height: 0.625rem;
+    border: 1px solid $color-border;
+    border-radius: 50%;
+    background-color: $color-disabled;
+}
+
+.lamp-on {
+    border-color: $color-warning;
+    background-color: $color-warning;
+    box-shadow: 0 0 0.25rem $color-warning;
+}
+
+.symbol {
+    display: inline-block;
+    width: 0.875rem;
+    text-align: center;
+    font-weight: bold;
+}
+
+.motor-normal {
+    color: $color-success;
+}
+
+.motor-reverse {
+    color: $color-action;
+}
+
+.motor-stop {
+    color: $color-text-muted;
+}
+
+.needle {
+    flex-shrink: 0;
+}
+
+.needle-arc {
+    stroke: $color-border;
+    stroke-width: 1.5;
+}
+
+.needle-line {
+    stroke: $extensions-tertiary;
+    stroke-width: 2;
+    stroke-linecap: round;
+}
+
+/* たたんだときの小さなボタン（もう一度パネルを開く） */
+.open {
+    position: fixed;
+    z-index: $z-index-extension-button;
+    padding: 0.25rem 0.625rem;
+    border: 2px solid $extensions-primary;
+    border-radius: 1rem;
+    background-color: $ui-white;
+    color: $extensions-tertiary;
+    font-size: 0.75rem;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.open[data-mode='device'] {
+    border-color: $color-action;
+    color: $color-action;
+}

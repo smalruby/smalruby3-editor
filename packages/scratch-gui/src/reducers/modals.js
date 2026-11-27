@@ -11,11 +11,15 @@ const MODAL_SOUND_LIBRARY = 'soundLibrary';
 const MODAL_SPRITE_LIBRARY = 'spriteLibrary';
 const MODAL_SOUND_RECORDER = 'soundRecorder';
 const MODAL_CONNECTION = 'connectionModal';
+// === Smalruby: Start of url loader and koshien modals ===
 const MODAL_URL_LOADER = 'urlLoaderModal';
 const MODAL_KOSHIEN_TEST = 'koshienTestModal';
 const MODAL_KOSHIEN_SETTINGS = 'koshienSettingsModal';
+// === Smalruby: End of url loader and koshien modals ===
 const MODAL_TIPS_LIBRARY = 'tipsLibrary';
+// === Smalruby: Start of welcome modal ===
 const MODAL_WELCOME = 'welcomeModal';
+// === Smalruby: End of welcome modal ===
 // === Smalruby: Start of lessons library ===
 const MODAL_LESSONS_LIBRARY = 'lessonsLibrary';
 // === Smalruby: End of lessons library ===
@@ -31,11 +35,15 @@ const initialState = {
     [MODAL_SPRITE_LIBRARY]: false,
     [MODAL_SOUND_RECORDER]: false,
     [MODAL_CONNECTION]: false,
+    // === Smalruby: Start of url loader and koshien modals ===
     [MODAL_URL_LOADER]: false,
     [MODAL_KOSHIEN_TEST]: false,
     [MODAL_KOSHIEN_SETTINGS]: false,
+    // === Smalruby: End of url loader and koshien modals ===
     [MODAL_TIPS_LIBRARY]: false,
+    // === Smalruby: Start of welcome modal ===
     [MODAL_WELCOME]: false,
+    // === Smalruby: End of welcome modal ===
     // === Smalruby: Start of lessons library ===
     [MODAL_LESSONS_LIBRARY]: false
     // === Smalruby: End of lessons library ===
@@ -105,6 +113,7 @@ const openSoundRecorder = function () {
 const openConnectionModal = function () {
     return openModal(MODAL_CONNECTION);
 };
+// === Smalruby: Start of url loader and koshien modals ===
 const openUrlLoaderModal = function () {
     return openModal(MODAL_URL_LOADER);
 };
@@ -114,12 +123,15 @@ const openKoshienTestModal = function () {
 const openKoshienSettingsModal = function () {
     return openModal(MODAL_KOSHIEN_SETTINGS);
 };
+// === Smalruby: End of url loader and koshien modals ===
 const openTipsLibrary = function () {
     return openModal(MODAL_TIPS_LIBRARY);
 };
+// === Smalruby: Start of welcome modal ===
 const openWelcomeModal = function () {
     return openModal(MODAL_WELCOME);
 };
+// === Smalruby: End of welcome modal ===
 // === Smalruby: Start of lessons library ===
 const openLessonsLibrary = function () {
     return openModal(MODAL_LESSONS_LIBRARY);
@@ -155,6 +167,7 @@ const closeSoundLibrary = function () {
 const closeSoundRecorder = function () {
     return closeModal(MODAL_SOUND_RECORDER);
 };
+// === Smalruby: Start of url loader and koshien modals ===
 const closeConnectionModal = function () {
     return closeModal(MODAL_CONNECTION);
 };
@@ -167,12 +180,16 @@ const closeKoshienTestModal = function () {
 const closeKoshienSettingsModal = function () {
     return closeModal(MODAL_KOSHIEN_SETTINGS);
 };
+// Upstream defines closeConnectionModal after closeTipsLibrary.
+// === Smalruby: End of url loader and koshien modals ===
 const closeTipsLibrary = function () {
     return closeModal(MODAL_TIPS_LIBRARY);
 };
+// === Smalruby: Start of welcome modal ===
 const closeWelcomeModal = function () {
     return closeModal(MODAL_WELCOME);
 };
+// === Smalruby: End of welcome modal ===
 export {
     reducer as default,
     initialState as modalsInitialState,
@@ -186,11 +203,16 @@ export {
     openSoundRecorder,
     openTelemetryModal,
     openConnectionModal,
+    // === Smalruby: Start of url loader and koshien modals ===
     openUrlLoaderModal,
     openKoshienTestModal,
     openKoshienSettingsModal,
+    // Upstream exports openTipsLibrary before openConnectionModal.
+    // === Smalruby: End of url loader and koshien modals ===
     openTipsLibrary,
+    // === Smalruby: Start of welcome modal ===
     openWelcomeModal,
+    // === Smalruby: End of welcome modal ===
     closeBackdropLibrary,
     closeCostumeLibrary,
     closeDebugModal,
@@ -200,12 +222,17 @@ export {
     closeSoundLibrary,
     closeSoundRecorder,
     closeTelemetryModal,
+    // === Smalruby: Start of url loader and koshien modals ===
     closeConnectionModal,
     closeUrlLoaderModal,
     closeKoshienTestModal,
     closeKoshienSettingsModal,
+    // Upstream exports closeConnectionModal last.
+    // === Smalruby: End of url loader and koshien modals ===
     closeTipsLibrary,
+    // === Smalruby: Start of welcome modal ===
     closeWelcomeModal,
+    // === Smalruby: End of welcome modal ===
     // === Smalruby: Start of lessons library ===
     openLessonsLibrary,
     closeLessonsLibrary

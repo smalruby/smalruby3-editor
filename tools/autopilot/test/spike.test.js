@@ -41,6 +41,8 @@ test('isSpikeItem: triage / discuss の run 失敗（Blocked + AI Status 据え�
     assert.ok(!isSpikeItem({ status: 'Blocked', aiStatus: 'Discussing', hitlLabel: true }));
     assert.strictEqual(humanWaitReason({ status: 'Blocked', aiStatus: 'Triaging', hitlLabel: true }), 'blocked');
     assert.strictEqual(humanWaitReason({ status: 'Blocked', aiStatus: 'Discussing', hitlLabel: true }), 'blocked');
+    assert.strictEqual(humanWaitReason({ status: 'In Progress', aiStatus: 'Release Check', hitlLabel: true }), 'release');
+    assert.strictEqual(humanWaitReason({ status: 'In Progress', aiStatus: 'Release Check', hitlLabel: false }), null);
     assert.strictEqual(spikeLabelAction({ status: 'Blocked', aiStatus: 'Triaging', hitlLabel: true }, true), 'remove');
 });
 
@@ -106,6 +108,17 @@ test('humanWaitReason: 🙋 の item の理由を 1 つに決める', () => {
     assert.strictEqual(humanWaitReason({ status: 'In Progress', aiStatus: 'Decomposing', hitlLabel: true }), 'other');
 });
 
+test('humanWaitReason: 「すること」と同じ分け方で、そのほか を減らす（#2466）', () => {
+    const r = (it) => humanWaitReason(Object.assign({ hitlLabel: true }, it));
+    assert.strictEqual(r({ status: 'Sprint Backlog', labels: ['🚀 after-release'] }), 'waiting');
+    assert.strictEqual(r({ status: 'In Progress', aiStatus: 'Awaiting Continuation' }), 'continue');
+    assert.strictEqual(r({ status: 'In Progress', aiStatus: 'EPIC Decomposed', kind: 'EPIC' }), 'epic');
+    assert.strictEqual(r({ status: 'In Progress', labels: ['🧭 tracking'] }), 'epic');
+    assert.strictEqual(r({ status: 'Sprint Backlog', kind: 'Issue' }), 'go');
+    assert.strictEqual(r({ status: 'Backlog', kind: 'EPIC' }), 'decompose');
+    assert.strictEqual(r({ status: 'Backlog', kind: 'Issue' }), 'hand');
+});
+
 test('humanWaitReason: 🙋 が無ければ依存待ちだけを返し、ほかは null', () => {
     assert.strictEqual(humanWaitReason({ status: 'Sprint Backlog', hitlLabel: false, labels: [WAITING_LABEL] }), 'waiting');
     assert.strictEqual(humanWaitReason({ status: 'Backlog', aiStatus: 'Discussing', hitlLabel: false }), null);
@@ -115,7 +128,8 @@ test('humanWaitReason: 🙋 が無ければ依存待ちだけを返し、ほか�
 });
 
 test('HUMAN_WAIT_REASONS: humanWaitReason の全理由を表示順で持つ', () => {
-    assert.deepStrictEqual(HUMAN_WAIT_REASONS.map((r) => r.key), ['spike', 'review', 'dod', 'blocked', 'waiting', 'other']);
+    assert.deepStrictEqual(HUMAN_WAIT_REASONS.map((r) => r.key),
+        ['spike', 'review', 'dod', 'release', 'blocked', 'waiting', 'continue', 'epic', 'go', 'decompose', 'hand', 'other']);
     for (const r of HUMAN_WAIT_REASONS) assert.ok(r.icon && r.label && r.detail, r.key);
 });
 
@@ -179,16 +193,15 @@ test('renderHumanWaitCell: 🙋 の欄を理由つきで出す', () => {
     assert.ok(!xss.includes('<b>x</b>') && !xss.includes('"><x'));
 });
 
-test('MONITOR_HTML: 人間待ちのまとめと理由つきの 🙋 欄を描画する（埋め込み関数が自己完結）', () => {
-    assert.match(MONITOR_HTML, /id="humanwaits"/);
-    assert.match(MONITOR_HTML, /function renderHumanWaitsHtml\(items, reasons\)/);
-    assert.match(MONITOR_HTML, /renderHumanWaitsHtml\(d\.items, HUMAN_WAIT_REASONS\)/);
+test('MONITOR_HTML: 状況板の人間待ちの欄は理由つきの印（埋め込み関数が自己完結）', () => {
+    // 人間待ちのまとめは「あなた宛て」の行（monitor-inbox.js の inboxModel）に移した（#2404）
     assert.match(MONITOR_HTML, /renderHumanWaitCell\(it, HUMAN_WAIT_REASONS\)/);
+    assert.match(MONITOR_HTML, /function inboxModel\(board, learnings\)/);
     // 埋め込んだ関数だけでブラウザ側と同じ HTML が作れる（外部の定数に依存しない）
     const script = MONITOR_HTML.slice(MONITOR_HTML.indexOf('<script>') + 8, MONITOR_HTML.lastIndexOf('</script>'));
     const m = script.match(/const HUMAN_WAIT_REASONS = (.*);/);
     assert.ok(m, 'HUMAN_WAIT_REASONS が埋め込まれている');
     const ctx = vm.createContext({});
-    vm.runInContext(`${String(humanWaitGroups)}\n${String(renderHumanWaitsHtml)}\nvar out = renderHumanWaitsHtml(${JSON.stringify(BOARD_ITEMS)}, ${m[1]});`, ctx);
-    assert.strictEqual(ctx.out, renderHumanWaitsHtml(BOARD_ITEMS, HUMAN_WAIT_REASONS));
+    vm.runInContext(`${String(renderHumanWaitCell)}\nvar out = renderHumanWaitCell(${JSON.stringify(BOARD_ITEMS[0])}, ${m[1]});`, ctx);
+    assert.strictEqual(ctx.out, renderHumanWaitCell(BOARD_ITEMS[0], HUMAN_WAIT_REASONS));
 });

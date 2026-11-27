@@ -462,3 +462,67 @@ jobs:
       - name: Run npm audit
         run: npm audit --audit-level=moderate
         continue-on-error: true
+
+  # ---------------------------------------------------------------------------
+  # smalruby-studuino-hex
+  # ---------------------------------------------------------------------------
+  smalruby-studuino-hex-unit-tests:
+    name: "[studuino-hex] Unit Tests"
+    runs-on: ubuntu-26.04
+    defaults:
+      run:
+        working-directory: infra/smalruby-studuino-hex
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: infra/smalruby-studuino-hex/.node-version
+          cache: npm
+          cache-dependency-path: infra/smalruby-studuino-hex/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Run unit tests
+        run: npm test
+
+  smalruby-studuino-hex-cdk-build:
+    name: "[studuino-hex] CDK Build & Synth"
+    runs-on: ubuntu-26.04
+    defaults:
+      run:
+        working-directory: infra/smalruby-studuino-hex
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: infra/smalruby-studuino-hex/.node-version
+          cache: npm
+          cache-dependency-path: infra/smalruby-studuino-hex/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Build TypeScript
+        run: npm run build
+      # stg と prod で許可するオリジンが違う（prod にローカルのオリジンがあると synth が落ちる）ので、両方を synth する。
+      # synth はコンテナのイメージを作らない（作るのは deploy のとき）。
+      - name: Synthesize CDK stack (stg)
+        run: npx cdk synth --context stage=stg
+      - name: Synthesize CDK stack (prod)
+        run: npx cdk synth --context stage=prod
+
+  smalruby-studuino-hex-security:
+    name: "[studuino-hex] Security Audit"
+    runs-on: ubuntu-26.04
+    defaults:
+      run:
+        working-directory: infra/smalruby-studuino-hex
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: infra/smalruby-studuino-hex/.node-version
+          cache: npm
+          cache-dependency-path: infra/smalruby-studuino-hex/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Run npm audit
+        run: npm audit --audit-level=moderate
+        continue-on-error: true

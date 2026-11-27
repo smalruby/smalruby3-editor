@@ -16,6 +16,7 @@ import {
     makeConsent,
     mergeAcked,
     needsConfirmation,
+    readinessPayloadOf,
     saveConsent,
     unconsentedIds,
 } from '../../../../src/lib/lessons/lesson-progress-sync';
@@ -256,6 +257,14 @@ describe('currentChallengeOf', () => {
         expect(currentChallengeOf(null, 'b', T1)).toBeNull();
         expect(currentChallengeOf(lesson, 'b', '2001-01-01T00:00:00.000Z')).toBeNull();
     });
+
+    test('should mark a review challenge outside the assignment (#2300)', () => {
+        expect(currentChallengeOf(lesson, 'z', T1, true)).toEqual({ challengeId: 'z', openedAt: T1, review: true });
+        // 課題のチャレンジはふつうの current
+        expect(currentChallengeOf(lesson, 'b', T1, true)).toEqual({ challengeId: 'b', openedAt: T1 });
+        expect(currentChallengeOf(null, 'z', T1, true)).toBeNull();
+        expect(currentChallengeOf(lesson, 'z', '2001-01-01T00:00:00.000Z', true)).toBeNull();
+    });
 });
 
 describe('buildProgressPayload', () => {
@@ -350,5 +359,84 @@ describe('classifySendFailure', () => {
             expect(classifySendFailure({ status })).toBe(SEND_FAILURES.RETRY);
         });
         expect(classifySendFailure(null)).toBe(SEND_FAILURES.RETRY);
+    });
+});
+
+describe('readiness (#2301)', () => {
+    const chatLesson = normalizeAssignmentLesson({
+        courseId: 'chat-wo-tsukurou',
+        challengeIds: ['chat-l0-readiness'],
+        requiredChallengeIds: [],
+        completion: { type: 'all' },
+    });
+    const BASE = ['blocks-l0-where', 'blocks-l1-ask-answer', 'blocks-l1-count', 'blocks-l1-broadcast'];
+    const T3 = '2026-11-15T03:00:00.000Z';
+    const readinessOf = (answers) => ({
+        version: 1,
+        courses: { 'chat-wo-tsukurou': { answers } },
+        offered: {},
+    });
+    const allAnswered = (overrides = {}, at = T2) =>
+        readinessOf(Object.fromEntries(BASE.map((id) => [id, { correct: true, answeredAt: at, ...overrides[id] }])));
+    const consentAt = (at, beforeIds = []) => ({ answer: CONSENT_ANSWERS.NONE, beforeIds, decidedAt: at });
+
+    test('should list the base challenges answered wrong and not cleared since, in course order', () => {
+        const readiness = allAnswered({
+            'blocks-l1-count': { correct: false, answeredAt: T3 },
+            'blocks-l0-where': { correct: false },
+            'blocks-l1-broadcast': { correct: false, clearedAt: T3 },
+        });
+        expect(readinessPayloadOf(chatLesson, readiness, consentAt(T1))).toEqual({
+            checkedAt: T3,
+            missing: ['blocks-l0-where', 'blocks-l1-count'],
+        });
+    });
+
+    test('should send an empty missing list when everything is right', () => {
+        expect(readinessPayloadOf(chatLesson, allAnswered(), consentAt(T1))).toEqual({ checkedAt: T2, missing: [] });
+    });
+
+    test('should not send before every question is answered', () => {
+        const readiness = readinessOf({ 'blocks-l0-where': { correct: false, answeredAt: T2 } });
+        expect(readinessPayloadOf(chatLesson, readiness, consentAt(T1))).toBeNull();
+    });
+
+    test('should not send answers given before the consent unless the check was confirmed as mine', () => {
+        expect(readinessPayloadOf(chatLesson, allAnswered({}, T1), consentAt(T2))).toBeNull();
+        expect(readinessPayloadOf(chatLesson, allAnswered({}, T1), consentAt(T2, ['chat-l0-readiness']))).toEqual({
+            checkedAt: T1,
+            missing: [],
+        });
+    });
+
+    test('should not send without a consent, a readiness check in the course or a record', () => {
+        expect(readinessPayloadOf(chatLesson, allAnswered(), null)).toBeNull();
+        expect(readinessPayloadOf(lesson, allAnswered(), consentAt(T1))).toBeNull();
+        expect(readinessPayloadOf(chatLesson, null, consentAt(T1))).toBeNull();
+    });
+
+    test('should add readiness to the payload only when there is a result', () => {
+        const consent = consentAt(T1);
+        expect(buildProgressPayload(chatLesson, progressOf({}), consent, null, allAnswered())).toEqual({
+            challenges: {},
+            readiness: { checkedAt: T2, missing: [] },
+        });
+        expect(buildProgressPayload(chatLesson, progressOf({}), consent, null, null)).toEqual({ challenges: {} });
+    });
+
+    test('should send again when the result changes, and not when it is the same', () => {
+        const consent = consentAt(T1);
+        const first = buildProgressPayload(chatLesson, progressOf({}), consent, null, allAnswered());
+        const acked = mergeAcked(null, first);
+        expect(isCoveredBy(first, acked)).toBe(true);
+        const changed = buildProgressPayload(
+            chatLesson,
+            progressOf({}),
+            consent,
+            null,
+            allAnswered({ 'blocks-l1-count': { correct: false, answeredAt: T3 } }),
+        );
+        expect(isCoveredBy(changed, acked)).toBe(false);
+        expect(mergeAcked(acked, { challenges: {} }).readiness).toEqual(first.readiness);
     });
 });

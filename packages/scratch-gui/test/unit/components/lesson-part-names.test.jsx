@@ -100,4 +100,42 @@ describe('LessonPartNames', () => {
         fireEvent.keyDown(document, { key: 'Escape' });
         expect(onClose).not.toHaveBeenCalled();
     });
+
+    // 授業で、札「コードタブ」だけを見て札を押した子がいた。小さな部分の札は、押すと部分を押したことにする
+    test('pressing the label of a small part presses the part, and the label points at it with a tail', () => {
+        const hint = addPart('lesson-task-bar-hint', { left: 1040, top: 56, right: 1092, bottom: 80 });
+        const onHint = jest.fn();
+        hint.addEventListener('click', onHint);
+        const onClose = jest.fn();
+        const { getByTestId } = renderNames({ onClose, timed: false });
+        const label = getByTestId('lesson-part-names-label-hint');
+        expect(label).toHaveAttribute('data-part-names-small', 'true');
+        expect(getByTestId('lesson-part-names-arrow-hint')).toHaveAttribute('data-side', 'top');
+        fireEvent.pointerDown(label);
+        fireEvent.click(label);
+        expect(onHint).toHaveBeenCalledTimes(1);
+        expect(onClose).not.toHaveBeenCalled();
+    });
+
+    test('when shown by the button, pressing a small label presses the part and then closes', () => {
+        const hint = addPart('lesson-task-bar-hint', { left: 1040, top: 56, right: 1092, bottom: 80 });
+        const onHint = jest.fn();
+        hint.addEventListener('click', onHint);
+        const onClose = jest.fn();
+        const { getByTestId } = renderNames({ onClose, timed: true });
+        const label = getByTestId('lesson-part-names-label-hint');
+        // 押し始めでは消さない（消すと click が札の下の別の部品に届く）
+        fireEvent.pointerDown(label);
+        expect(onClose).not.toHaveBeenCalled();
+        fireEvent.click(label);
+        expect(onHint).toHaveBeenCalledTimes(1);
+        expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    test('labels of wide parts have no tail and do nothing when pressed', () => {
+        addPart('lesson-task-bar', { left: 0, top: 48, right: 1300, bottom: 88 });
+        const { getByTestId, queryByTestId } = renderNames();
+        expect(getByTestId('lesson-part-names-label-taskBar')).toHaveAttribute('data-part-names-small', 'false');
+        expect(queryByTestId('lesson-part-names-arrow-taskBar')).not.toBeInTheDocument();
+    });
 });

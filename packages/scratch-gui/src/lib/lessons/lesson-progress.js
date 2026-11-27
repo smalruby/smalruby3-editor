@@ -259,6 +259,45 @@ const nextIncompleteChallenge = (lesson, progress, afterId) => {
 };
 
 /**
+ * 「できた！」で「レッスン n へ進む」を出すか、出すならどこへ進むか。画面の場所の名前を答えるクイズ（「どこでしょう？」・
+ * チャレンジの `partQuiz.offerLessonSkip`）を、1 回もまちがえずに全部答えたとき、もう画面を知っている人はレッスン 0 の
+ * 残りを飛ばしてよいことにする。飛ばしたチャレンジは「できた」にしない（記録は変えない）。出さないのは:
+ *   - その「できた」で記録が増えていない（前にもできていた。はじめのときだけ聞く）・1 回でもまちがえた
+ *   - レッスンがもう全部できている（「できた！」はもう次のレッスンへ案内する・completedAction）
+ *   - 参加している課題で、先生がこのレッスンのチャレンジを必須（★）にしている（飛ばすと課題が終わらない）
+ *   - 後ろに、まだ全部はできていないレッスンが無い
+ * @param {object} args - 引数。
+ * @param {string} args.challengeId - できたチャレンジ id。
+ * @param {object} args.progress - 記録（できたチャレンジを含む）。
+ * @param {boolean} args.isNew - この「できた」で記録が増えたか。
+ * @param {boolean} args.missed - クイズで 1 回でもまちがえたか。
+ * @param {?object} [args.assignmentLesson] - 参加している課題のレッスンの設定（assignment-progress.js の
+ *   normalizeAssignmentLesson の結果）。無ければ null。
+ * @param {Array} [courses] - コース（テスト用）。
+ * @returns {?{lessonId: string, lessonNumber: number, challengeId: string}} 進む先（次のレッスンと、その
+ *   まだできていない最初のチャレンジ）。出さないときは null。
+ */
+export const lessonSkipOffer = (
+    { challengeId, progress, isNew, missed, assignmentLesson = null },
+    courses = COURSES,
+) => {
+    const found = findChallenge(challengeId, courses);
+    if (!found || !isNew || missed) return null;
+    const { course, lesson, challenge } = found;
+    if (!challenge.partQuiz || !challenge.partQuiz.offerLessonSkip) return null;
+    if (isLessonAllCompleted(lesson, progress)) return null;
+    const required =
+        assignmentLesson && Array.isArray(assignmentLesson.requiredChallengeIds)
+            ? assignmentLesson.requiredChallengeIds
+            : [];
+    if (lesson.challenges.some((c) => required.includes(c.id))) return null;
+    const nextLesson = nextLessonOf(course, lesson, progress);
+    const next = nextLesson ? nextIncompleteChallenge(nextLesson, progress, null) : null;
+    if (!next) return null;
+    return { lessonId: nextLesson.id, lessonNumber: lessonNumberOf(course, nextLesson), challengeId: next.id };
+};
+
+/**
  * 「次のチャレンジ」でレッスン表を開くとき、どのレッスンを見せて、どのチャレンジを次として
  * 目立たせるか（#1520）。「できた！」のボタン（completedAction）と食い違わないように決める:
  *   - レッスンにまだできていないチャレンジがある: いまのレッスン。次は、いまの次から並び順に

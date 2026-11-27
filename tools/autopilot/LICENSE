@@ -3,9 +3,13 @@ MIT License
 This license applies to the Smalruby autopilot tooling, specifically:
 
   - tools/autopilot/**
+  - bin/autopilot-worktree
+  - bin/autopilot-push
+  - bin/bot-token
+  - bin/bot-git
 
 These files are licensed under the MIT License below, which takes precedence
-over the repository's top-level AGPL-3.0 license (LICENSE) for this subtree.
+over the repository's top-level AGPL-3.0 license (LICENSE) for these files.
 The rest of the repository remains under AGPL-3.0.
 
 Copyright (c) 2026 Kouji Takao and Smalruby contributors

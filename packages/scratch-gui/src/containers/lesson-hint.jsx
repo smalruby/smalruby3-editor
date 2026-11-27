@@ -23,11 +23,13 @@ import LessonHintMinimized from '../components/lesson-hint/lesson-hint-minimized
 import LessonHint from '../components/lesson-hint/lesson-hint.jsx';
 import { useChallengeActivityDiagram } from '../lib/lessons/activity-diagram/use-challenge-activity-diagram';
 import { LANGUAGES, RUBY_STEP_KIND, challengeCodeCandidates, localizeCode } from '../lib/lessons/courses';
+import { EDITOR_TABS } from '../lib/lessons/goal';
 import { rubyToBlocksXml } from '../lib/lessons/hint-blocks';
 import { hintStepTitle, isSeatedStudent } from '../lib/lessons/hint-text';
 import { findSpriteByName, insertSpriteCodes, resolveCodeSprite } from '../lib/lessons/insert-sprite-code';
 import { LESSON_EVENTS, sendLessonEvent } from '../lib/lessons/lesson-analytics';
 import { roleStepNote } from '../lib/lessons/lesson-role';
+import { useHintAutoAdvance } from '../lib/lessons/use-hint-auto-advance';
 import { targetCodeToBlocks } from '../lib/ruby-to-blocks-converter';
 import { colorModeMap } from '../lib/settings/color-mode';
 import { BLOCKS_TAB_INDEX, RUBY_TAB_INDEX, activateTab } from '../reducers/editor-tab';
@@ -43,6 +45,7 @@ import {
 import { updateRubyCode, updateRubyCodeTarget } from '../reducers/ruby-code';
 
 const LessonHintContainer = ({
+    activeTabIndex = 0,
     colorMode,
     current,
     fromAssignment = false,
@@ -63,6 +66,15 @@ const LessonHintContainer = ({
     vm,
 }) => {
     const intl = useIntl();
+    // ページの操作ができたら自分で次へ（`autoAdvanceHints` のレッスン）・まちがった場所の一言（`wrongPlaceTip`）
+    const wrongPlaceTip = useHintAutoAdvance({
+        vm,
+        current,
+        hint,
+        activeTab: EDITOR_TABS[activeTabIndex] || null,
+        onNext: onNextHint,
+        onShow: onShowHint,
+    });
     // 答えのプログラムから描いたアクティビティ図。ヒントの 1 ページ目に出す（課題の全文と同じ図・変換は 1 回）
     const activityDiagram = useChallengeActivityDiagram(current ? current.challenge : null, {
         rubyVersion,
@@ -237,12 +249,17 @@ const LessonHintContainer = ({
             scratchBlocks={scratchBlocks}
             spotlight={hint.spotlight}
             target={step ? step.target : null}
+            focus={step ? step.focus || null : null}
+            tip={wrongPlaceTip}
+            vm={vm}
             title={hintStepTitle(step, { inClassroom })}
         />
     );
 };
 
 LessonHintContainer.propTypes = {
+    // いま開いているタブ（reducers/editor-tab.js の activeTabIndex。ページの `advanceOn` の `tab` が見る）
+    activeTabIndex: PropTypes.number,
     colorMode: PropTypes.string.isRequired,
     current: PropTypes.shape({
         course: PropTypes.object.isRequired,
@@ -287,6 +304,7 @@ LessonHintContainer.propTypes = {
 };
 
 const mapStateToProps = (state) => ({
+    activeTabIndex: state.scratchGui.editorTab ? state.scratchGui.editorTab.activeTabIndex : 0,
     colorMode: state.scratchGui.settings.colorMode,
     current: getCurrentChallenge(state),
     fromAssignment: Boolean(state.scratchGui.lessonMode.fromAssignment),
