@@ -334,7 +334,9 @@ ${TOKEN_META_EMPTY}
   .chip[aria-pressed="true"] { border-color: var(--ap-ink); font-weight: 600; }
   #schedule { font-size: var(--ap-font-xs); color: var(--ap-muted); padding: 4px 12px; border-bottom: 1px solid var(--ap-line-soft); }
   #schedule button { font-size: var(--ap-font-xs); padding: 0 .3rem; }
-  .tbl-wrap { overflow-x: auto; }
+  /* isolation: 表の中の重なり（固定する列・見出しの z-index）を表の中に閉じる。閉じないと、欄を縦にスクロール
+     したとき表の見出しが欄の見出し（.panel-h・z-index: 2）の上に出る（#2527） */
+  .tbl-wrap { overflow-x: auto; isolation: isolate; }
   #board { border-collapse: collapse; width: 100%; min-width: 720px; font-size: var(--ap-font-sm); }
   #board th { font-size: var(--ap-font-xs); font-weight: 600; color: var(--ap-muted); text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--ap-line);
               white-space: nowrap; background: var(--ap-surface-2); position: sticky; top: 0; z-index: 1; }
@@ -349,6 +351,21 @@ ${TOKEN_META_EMPTY}
   #board td.links .lk svg.ext { opacity: .75; }
   #board tr.kid td { background: var(--ap-surface-2); }
   #board tr.kid td.title { padding-left: 30px; }
+  /* 左の 3 列（開閉・Issue · PR・題名）は横にスクロールしても残す。優先から右だけが動く（#2527）。
+     left は列の実際の幅から JS（placeStickyCols）が --stk-l2 / --stk-l3 に入れる。固定する列には行と同じ
+     不透明な背景を付け（透けると下を通る列の文字が見える）、右端に境目の線を引く */
+  #board th:nth-child(-n+3), #board td:nth-child(-n+3) { position: sticky; z-index: 1; background-color: var(--ap-surface); }
+  #board th { z-index: 2; }
+  #board th:nth-child(-n+3) { z-index: 3; background-color: var(--ap-surface-2); }
+  #board th:nth-child(1), #board td:nth-child(1) { left: 0; }
+  #board th:nth-child(2), #board td:nth-child(2) { left: var(--stk-l2, 28px); }
+  #board th:nth-child(3), #board td:nth-child(3) { left: var(--stk-l3, 140px); box-shadow: inset -1px 0 0 var(--ap-line); }
+  #board tr:hover > td:nth-child(-n+3) { background: linear-gradient(var(--ap-tint-1), var(--ap-tint-1)) var(--ap-surface); }
+  #board tr.kid > td:nth-child(-n+3) { background: var(--ap-surface-2); }
+  /* 右の列まで広がるセル（読み込み中・sub-issue なし）には境目の線を引かない（線が表の右端に出る） */
+  #board td[colspan] { box-shadow: none; }
+  /* 狭い画面では固定する題名を短く切り、右の列が見える幅を残す */
+  @media (max-width: 599px) { #board td.title { min-width: 110px; max-width: 130px; } }
   /* 人間待ちの理由は表では印だけ（言葉は title とあなた宛てに出ている） */
   #board .hw-cell { text-decoration: none; }
   #board .hw-cell .subtext { display: none; }
@@ -1473,6 +1490,16 @@ function renderBoard(d) {
     + (solos.length ? ' · EPIC に属さない ' + soloN + ' 件' : '');
   restorePrMenu();
 }
+// 固定する左の列の left を、見出しの実際の幅から決める（Issue · PR の列は PR の数で幅が変わる・#2527）。
+// 幅は描き直し・タブの切りかえ・画面の幅・横の欄の開け閉めで変わるので、見出しの大きさを見て測り直す
+// （下の ResizeObserver）。隠れている欄（900px 未満のタブ）では幅が 0 なので測らない
+function placeStickyCols() {
+  const ths = document.querySelectorAll('#board thead th');
+  if (ths.length < 3 || !ths[0].offsetWidth) return;
+  const b = document.getElementById('board');
+  b.style.setProperty('--stk-l2', ths[0].offsetWidth + 'px');
+  b.style.setProperty('--stk-l3', (ths[0].offsetWidth + ths[1].offsetWidth) + 'px');
+}
 
 // ---- 実行履歴（横の欄） ----
 function renderHistory(d) {
@@ -2033,6 +2060,7 @@ document.addEventListener('pointerout', (e) => {
 document.addEventListener('focusin', (e) => { const t = e.target.closest && e.target.closest('[data-tip]'); if (t) titleTipEvent({ type: 'focus', key: t.dataset.tip }); });
 document.addEventListener('focusout', (e) => { const t = e.target.closest && e.target.closest('[data-tip]'); if (t) titleTipEvent({ type: 'blur', key: t.dataset.tip }); });
 window.addEventListener('resize', () => { if (tipState.open) showTitleTip(); });
+{ const ro = new ResizeObserver(() => placeStickyCols()); [...document.querySelectorAll('#board thead th')].slice(0, 2).forEach((th) => ro.observe(th)); }
 document.addEventListener('scroll', () => { if (tipState.open) showTitleTip(); }, true);
 // まとめてクリックを受ける（行は 5 秒ごとに作り直すので、要素ごとに付けない）
 document.addEventListener('click', (ev) => {

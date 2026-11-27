@@ -221,10 +221,28 @@ test('MONITOR_HTML: 上の行に Claude の使用量（名前・アイコン・�
 });
 
 test('MONITOR_HTML: 状況板の表は列の中で横にスクロールし、ページを横にはみ出さない（#936 / #2404）', () => {
-    assert.match(MONITOR_HTML, /\.tbl-wrap \{ overflow-x: auto; \}/);
+    assert.match(MONITOR_HTML, /\.tbl-wrap \{ overflow-x: auto;[^}]*\}/);
     assert.match(MONITOR_HTML, /#board \{ border-collapse: collapse; width: 100%; min-width: \d+px;/);
     // ▲▼ は行に乗せたときだけ見せる（場所は取っておき、列を動かさない・#2471）
     assert.match(MONITOR_HTML, /#board tr:hover \.prio button, #board tr:focus-within \.prio button \{ visibility: visible; \}/);
+});
+
+test('MONITOR_HTML: 横にスクロールしても左の 3 列（開閉・Issue · PR・題名）は残る（#2527）', () => {
+    assert.match(MONITOR_HTML, /#board th:nth-child\(-n\+3\), #board td:nth-child\(-n\+3\) \{ position: sticky; z-index: 1; background-color: var\(--ap-surface\); \}/);
+    // 左上の見出しは縦・横どちらにスクロールしても上に出る
+    assert.match(MONITOR_HTML, /#board th:nth-child\(-n\+3\) \{ z-index: 3;/);
+    assert.match(MONITOR_HTML, /#board th:nth-child\(2\), #board td:nth-child\(2\) \{ left: var\(--stk-l2/);
+    assert.match(MONITOR_HTML, /#board th:nth-child\(3\), #board td:nth-child\(3\) \{ left: var\(--stk-l3[^}]*box-shadow: inset -1px 0 0 var\(--ap-line\)/);
+    // 乗せたとき・子の行でも、固定した列は不透明（透けない）
+    assert.match(MONITOR_HTML, /#board tr:hover > td:nth-child\(-n\+3\) \{ background: linear-gradient\(var\(--ap-tint-1\), var\(--ap-tint-1\)\) var\(--ap-surface\); \}/);
+    assert.match(MONITOR_HTML, /#board tr\.kid > td:nth-child\(-n\+3\) \{ background: var\(--ap-surface-2\); \}/);
+    // 右の列まで広がるセルには境目の線を引かない
+    assert.match(MONITOR_HTML, /#board td\[colspan\] \{ box-shadow: none; \}/);
+    // 表の中の z-index を表の中に閉じ、縦にスクロールしても欄の見出し（.panel-h）の上に出さない
+    assert.match(MONITOR_HTML, /\.tbl-wrap \{ overflow-x: auto; isolation: isolate; \}/);
+    // left は見出しの実際の幅から決め、見出しの大きさが変わるたびに測り直す（横の欄の開け閉めも含む）
+    assert.match(MONITOR_HTML, /function placeStickyCols\(\)/);
+    assert.match(MONITOR_HTML, /new ResizeObserver\(\(\) => placeStickyCols\(\)\); \[\.\.\.document\.querySelectorAll\('#board thead th'\)\]\.slice\(0, 2\)/);
 });
 
 test('MONITOR_HTML: Sub-issues セルは件数 (.sub-count) と %（.sub-pct）を別 span に分割する（#936）', () => {
