@@ -2868,6 +2868,14 @@ describe('lm course lesson 4 "前の文字をもっと見よう" (#2111)', () =>
         expect(localizeCode(challenge('lm-l4-continue').code, 'ja')).toContain(
             'when_clicked do\n  ask("書き出しを入れてね")\n  文をつくる\n  say(@文)\nend\n',
         );
+        // 「答え」を使ったことも見る（「文をつくる」を直さずに、空から作った文が偶然書き出しで始まっても通さない）
+        const uses = challenge('lm-l4-continue').goal.find((g) => g.type === 'uses');
+        expect(uses).toEqual(
+            expect.objectContaining({
+                together: true,
+                blocks: expect.arrayContaining(['sensing_askandwait', 'sensing_answer']),
+            }),
+        );
         const said = challenge('lm-l4-continue').goal.find((g) => g.type === 'said');
         expect(said).toEqual(
             expect.objectContaining({

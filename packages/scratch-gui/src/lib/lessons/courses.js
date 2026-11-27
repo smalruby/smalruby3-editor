@@ -3691,14 +3691,15 @@ const lmLesson4 = defineLesson({
                 { target: HINT_TARGETS.GREEN_FLAG },
             ]),
             debug: debugTips('lm-l4-continue', 2),
-            // ロボットを押したスクリプトで、聞いて待ってから「文をつくる」を動かし、入力した書き出しで始まり、続きが学習した組
-            // （見る長さの組）だけでできた、文の終わりの文字で終わる文を言った
+            // ロボットを押したスクリプトで、聞いて待ってから「文をつくる」を動かし（その中で「答え」を使い）、入力した書き出しで
+            // 始まり、続きが学習した組（見る長さの組）だけでできた、文の終わりの文字で終わる文を言った。「答え」を見ないと、
+            // 「文をつくる」を直さなくても、空から作った文が偶然書き出し（「こんにちは」など）で始まれば通ってしまう
             goal: [
                 {
                     type: 'uses',
                     trigger: lmClicked,
                     together: true,
-                    blocks: ['sensing_askandwait', lmCall('make')],
+                    blocks: ['sensing_askandwait', lmCall('make'), 'sensing_answer'],
                     order: ['sensing_askandwait', 'procedures_call'],
                 },
                 {
