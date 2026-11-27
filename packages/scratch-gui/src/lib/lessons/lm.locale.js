@@ -151,6 +151,77 @@ export const ja = {
     [`${C}lm-l2-learn.quiz.choice3`]: '「まえ」に入っている、ちがう文字の数',
     [`${C}lm-l2-learn.quiz.explanation`]:
         '1 文字ごとに 1 組足すので、全部の文の文字の数を合わせた数になります。AI は数を数えずに、出てきた回数だけ組を覚えています。',
+    'gui.lessons.lesson.lm-l3.name': '次の文字を予想しよう',
+
+    [`${C}lm-l3-collect.name`]: 'こうほを集めよう',
+    [`${C}lm-l3-collect.task`]:
+        '「こうほを集める」の中身を作り直そう。\nいまの「こうほを集める」は、「まえ」の行を 1 行ずつ見るだけです。「まえ」が「文」の最後の文字と同じ行の「つぎ」を、「こうほ」に足すようにしよう。\n（「c」キーを押すと、「こ」の次のこうほを集めて見せます）',
+    [`${C}lm-l3-collect.step1`]:
+        '「こうほを集める」の定義の中の「( ) まで繰り返す」の中に、「制御」の「もし 〜 なら」を入れよう（「(何行目) を (1) ずつ変える」の上に）。穴に「演算」の「( ) = ( )」を入れ、左に「変数」の「(まえ) の (1) 番目」、右に「演算」の「(りんご) の (1) 番目の文字」を入れよう。「1」のところに「何行目」と「(文) の長さ」、「りんご」に「文」を入れると、右は文の最後の文字になります。',
+    [`${C}lm-l3-collect.step2`]:
+        '「もし」の中に「(なにか) を (こうほ) に追加する」を入れ（▼ で「こうほ」を選ぶ）、「なにか」のところに「(つぎ) の (何行目) 番目」を入れよう。「まえ」と「つぎ」の同じ行が 1 組なので、同じ「何行目」を使います。',
+    [`${C}lm-l3-collect.step3`]:
+        'Ruby で読むと、こうなります。「もし」は「if」、くらべる「=」は「==」です。文の最後の文字は「@文[@文.length - 1]」と書きます。',
+    [`${C}lm-l3-collect.step4`]:
+        '旗を押してから「c」キーを押そう。「こうほ」に、「こ」の次に来た文字が出てきた回数だけ入ります（1-3 で数えたのと同じかな？）。ロボットを押すと、また文を作れます。',
+    [`${C}lm-l3-collect.debug1`]:
+        '「(何行目) を (1) ずつ変える」が「もし」の外（下）にあるか見よう。中にあると、合わない行から先に進めず、くり返しが終わりません。',
+    [`${C}lm-l3-collect.debug2`]:
+        '「こうほ」に足しているのが「(つぎ) の (何行目) 番目」か見よう。「まえ」の方を足すと、「こうほ」が「こ」ばかりになります。',
+    [`${C}lm-l3-collect.quiz.question`]:
+        '「文」が「こんにちは」のとき、「こうほを集める」は、どの文字の次に来た文字を集める？',
+    [`${C}lm-l3-collect.quiz.choice1`]: '「こ」',
+    [`${C}lm-l3-collect.quiz.choice2`]: '「こんにちは」',
+    [`${C}lm-l3-collect.quiz.choice3`]: '「は」',
+    [`${C}lm-l3-collect.quiz.explanation`]:
+        'いまの AI は前の 1 文字だけを見るので、「文」の最後の文字「は」が「まえ」に入っている行の「つぎ」を集めます。レッスン 4 で、もっと前の文字まで見るようにします。',
+
+    [`${C}lm-l3-pick.name`]: '文字をえらぼう',
+    [`${C}lm-l3-pick.task`]:
+        '「文字をえらぶ」の中身を作ろう。\n「こうほ」の中から 1 つを乱数でえらんで、「文字」にしよう。\n「c」キーを押すと、「こ」の次の文字を 10 回えらんで言います。どの文字がよく出るかな？\n（いまロボットを押すと、文字が決まらないので「文をつくる」のくり返しが終わりません。止めるときは、赤い●の停止ボタンを押そう）',
+    [`${C}lm-l3-pick.step1`]:
+        '「c」キーのスクリプトは、もう入っています。「文」を「こ」にしてこうほを集め、「文字をえらぶ」と「(文字) と (0.5) 秒言う」を 10 回くり返します。いまは「文字をえらぶ」の中身が空なので、何も言いません。',
+    [`${C}lm-l3-pick.step2`]:
+        '「文字をえらぶ」の定義の下に「変数」の「(文字) を ( ) にする」をつなげ（▼ で「文字」を選ぶ）、「(こうほ) の (1) 番目」を入れよう。「1」のところに「演算」の「(1) から (10) までの乱数」を入れ、「10」のところに「(こうほ) の長さ」を入れよう。',
+    [`${C}lm-l3-pick.step3`]:
+        'Ruby で読むと、こうなります。「(1) から (こうほ の長さ) までの乱数」は「rand(1..@こうほ.length)」です。Ruby ではリストの番号を 0 から数えるので「- 1」が付きます。',
+    [`${C}lm-l3-pick.step4`]:
+        '旗を押してから「c」キーを押そう。10 回のうち、どの文字が多く出たかな？ 何回か押してくらべよう。',
+    [`${C}lm-l3-pick.debug1`]:
+        '乱数の右が「(こうほ) の長さ」になっているか見よう。「10」のままだと、こうほより大きい番号をえらんで、何も言わないことがあります。',
+    [`${C}lm-l3-pick.debug2`]:
+        '「( ) を ( ) にする」の ▼ が「文字」になっているか見よう。ほかの変数にすると「文字」が変わらないので、何も言いません。',
+    [`${C}lm-l3-pick.quiz.question`]:
+        '「こうほ」が「ん」「ん」「ん」「で」のとき、10 回えらぶと、「ん」はだいたい何回出る？',
+    [`${C}lm-l3-pick.quiz.choice1`]: '2〜3 回くらい',
+    [`${C}lm-l3-pick.quiz.choice2`]: '7〜8 回くらい',
+    [`${C}lm-l3-pick.quiz.choice3`]: '10 回ぜんぶ',
+    [`${C}lm-l3-pick.quiz.explanation`]:
+        '4 つのうち 3 つが「ん」なので、1 回えらぶごとに 4 回に 3 回くらい「ん」が出ます。10 回なら 7〜8 回くらいです（乱数なので、毎回少しちがいます）。数を数えなくても、たくさん入っている文字ほどよくえらばれます。',
+
+    [`${C}lm-l3-make.name`]: '文をつくろう',
+    [`${C}lm-l3-make.task`]:
+        '「文をつくる」の中身を作り直そう。\nいまの「文をつくる」は、「。」をえらぶか、こうほが空になるまでくり返すだけです。くり返しの中で、文字をえらんで文に足し、次のこうほを集めるようにしよう。\n（いまロボットを押すと、くり返しが終わりません。止めるときは、赤い●の停止ボタンを押そう）',
+    [`${C}lm-l3-make.step1`]:
+        '「文をつくる」の定義の中の「( ) まで繰り返す」の中に、「ブロック定義」の「文字をえらぶ」を入れよう。くり返しの前の「こうほを集める」で、文の 1 文字めのこうほ（「まえ」が空の行の「つぎ」）が集まっています。',
+    [`${C}lm-l3-make.step2`]:
+        'その下に「(文) を ( ) にする」をつなげ、「演算」の「(りんご) と (バナナ)」を入れよう。「りんご」に「文」、「バナナ」に「文字」を入れよう。えらんだ文字が文の最後に足されます。',
+    [`${C}lm-l3-make.step3`]:
+        'その下に「こうほを集める」をつなげよう。文の最後の文字が変わったので、次の文字のこうほを集め直します。',
+    [`${C}lm-l3-make.step4`]:
+        'Ruby で読むと、こうなります。「(文) と (文字)」は「@文 + @文字」です。「または」は「||」で、こうほが空になるか、「。」をえらんだら止まります。',
+    [`${C}lm-l3-make.step5`]:
+        '旗を押してから、ロボットを何回か押そう。AI が次の文字を 1 文字ずつ予想して、文を作ります。',
+    [`${C}lm-l3-make.debug1`]:
+        '「こうほを集める」がくり返しの中にあるか見よう。無いと、ずっと 1 文字めのこうほからえらぶので、文が終わりません。',
+    [`${C}lm-l3-make.debug2`]:
+        '「(文) と (文字)」の順を見よう。「(文字) と (文)」にすると、文の頭に足されて、おかしな文になります。',
+    [`${C}lm-l3-make.quiz.question`]: '「文をつくる」がくり返しをやめるのは、どれ？',
+    [`${C}lm-l3-make.quiz.choice1`]: '「。」を選んだときか、「こうほ」が空になったとき',
+    [`${C}lm-l3-make.quiz.choice2`]: '教科書と同じ文になったとき',
+    [`${C}lm-l3-make.quiz.choice3`]: '文が 10 文字になったとき',
+    [`${C}lm-l3-make.quiz.explanation`]:
+        'くり返しは「(こうほ の長さ) = 0」か「(文字) = 。」になるまで続きます。AI は教科書の文と同じかどうかを見ていません。学習した組だけで 1 文字ずつ予想するので、教科書に無い文もできます。',
 };
 
 export const jaHira = {
@@ -309,6 +380,77 @@ export const jaHira = {
     [`${C}lm-l2-learn.quiz.choice3`]: '「まえ」に はいっている、ちがう もじの かず',
     [`${C}lm-l2-learn.quiz.explanation`]:
         '1 もじごとに 1 くみ たすので、ぜんぶの ぶんの もじの かずを あわせた かずに なります。AI は かずを かぞえずに、でてきた かいすうだけ くみを おぼえています。',
+    'gui.lessons.lesson.lm-l3.name': 'つぎの もじを よそうしよう',
+
+    [`${C}lm-l3-collect.name`]: 'こうほを あつめよう',
+    [`${C}lm-l3-collect.task`]:
+        '「こうほをあつめる」の なかみを つくりなおそう。\nいまの「こうほをあつめる」は、「まえ」の ぎょうを 1 ぎょうずつ みるだけです。「まえ」が「ぶん」の さいごの もじと おなじ ぎょうの「つぎ」を、「こうほ」に たすように しよう。\n（「c」キーを おすと、「こ」の つぎの こうほを あつめて みせます）',
+    [`${C}lm-l3-collect.step1`]:
+        '「こうほをあつめる」の ていぎの なかの「( ) まで くりかえす」の なかに、「せいぎょ」の「もし 〜 なら」を いれよう（「(なんぎょうめ) を (1) ずつ かえる」の うえに）。あなに「えんざん」の「( ) = ( )」を いれ、ひだりに「へんすう」の「(まえ) の (1) ばんめ」、みぎに「えんざん」の「(りんご) の (1) ばんめの もじ」を いれよう。「1」の ところに「なんぎょうめ」と「(ぶん) の ながさ」、「りんご」に「ぶん」を いれると、みぎは ぶんの さいごの もじに なります。',
+    [`${C}lm-l3-collect.step2`]:
+        '「もし」の なかに「(なにか) を (こうほ) に ついかする」を いれ（▼ で「こうほ」を えらぶ）、「なにか」の ところに「(つぎ) の (なんぎょうめ) ばんめ」を いれよう。「まえ」と「つぎ」の おなじ ぎょうが 1 くみなので、おなじ「なんぎょうめ」を つかいます。',
+    [`${C}lm-l3-collect.step3`]:
+        'Ruby で よむと、こう なります。「もし」は「if」、くらべる「=」は「==」です。ぶんの さいごの もじは「@ぶん[@ぶん.length - 1]」と かきます。',
+    [`${C}lm-l3-collect.step4`]:
+        'はたを おしてから「c」キーを おそう。「こうほ」に、「こ」の つぎに きた もじが でてきた かいすうだけ はいります（1-3 で かぞえたのと おなじかな？）。ロボットを おすと、また ぶんを つくれます。',
+    [`${C}lm-l3-collect.debug1`]:
+        '「(なんぎょうめ) を (1) ずつ かえる」が「もし」の そと（した）に あるか みよう。なかに あると、あわない ぎょうから さきに すすめず、くりかえしが おわりません。',
+    [`${C}lm-l3-collect.debug2`]:
+        '「こうほ」に たしているのが「(つぎ) の (なんぎょうめ) ばんめ」か みよう。「まえ」の ほうを たすと、「こうほ」が「こ」ばかりに なります。',
+    [`${C}lm-l3-collect.quiz.question`]:
+        '「ぶん」が「こんにちは」の とき、「こうほをあつめる」は、どの もじの つぎに きた もじを あつめる？',
+    [`${C}lm-l3-collect.quiz.choice1`]: '「こ」',
+    [`${C}lm-l3-collect.quiz.choice2`]: '「こんにちは」',
+    [`${C}lm-l3-collect.quiz.choice3`]: '「は」',
+    [`${C}lm-l3-collect.quiz.explanation`]:
+        'いまの AI は まえの 1 もじだけを みるので、「ぶん」の さいごの もじ「は」が「まえ」に はいっている ぎょうの「つぎ」を あつめます。レッスン 4 で、もっと まえの もじまで みるように します。',
+
+    [`${C}lm-l3-pick.name`]: 'もじを えらぼう',
+    [`${C}lm-l3-pick.task`]:
+        '「もじをえらぶ」の なかみを つくろう。\n「こうほ」の なかから 1 つを らんすうで えらんで、「もじ」に しよう。\n「c」キーを おすと、「こ」の つぎの もじを 10 かい えらんで いいます。どの もじが よく でるかな？\n（いま ロボットを おすと、もじが きまらないので「ぶんをつくる」の くりかえしが おわりません。とめるときは、あかい●の ていしボタンを おそう）',
+    [`${C}lm-l3-pick.step1`]:
+        '「c」キーの スクリプトは、もう はいっています。「ぶん」を「こ」に して こうほを あつめ、「もじをえらぶ」と「(もじ) と (0.5) びょう いう」を 10 かい くりかえします。いまは「もじをえらぶ」の なかみが からなので、なにも いいません。',
+    [`${C}lm-l3-pick.step2`]:
+        '「もじをえらぶ」の ていぎの したに「へんすう」の「(もじ) を ( ) にする」を つなげ（▼ で「もじ」を えらぶ）、「(こうほ) の (1) ばんめ」を いれよう。「1」の ところに「えんざん」の「(1) から (10) までの らんすう」を いれ、「10」の ところに「(こうほ) の ながさ」を いれよう。',
+    [`${C}lm-l3-pick.step3`]:
+        'Ruby で よむと、こう なります。「(1) から (こうほ の ながさ) までの らんすう」は「rand(1..@こうほ.length)」です。Ruby では リストの ばんごうを 0 から かぞえるので「- 1」が つきます。',
+    [`${C}lm-l3-pick.step4`]:
+        'はたを おしてから「c」キーを おそう。10 かいの うち、どの もじが おおく でたかな？ なんかいか おして くらべよう。',
+    [`${C}lm-l3-pick.debug1`]:
+        'らんすうの みぎが「(こうほ) の ながさ」に なっているか みよう。「10」の ままだと、こうほより おおきい ばんごうを えらんで、なにも いわない ことが あります。',
+    [`${C}lm-l3-pick.debug2`]:
+        '「( ) を ( ) にする」の ▼ が「もじ」に なっているか みよう。ほかの へんすうに すると「もじ」が かわらないので、なにも いいません。',
+    [`${C}lm-l3-pick.quiz.question`]:
+        '「こうほ」が「ん」「ん」「ん」「で」の とき、10 かい えらぶと、「ん」は だいたい なんかい でる？',
+    [`${C}lm-l3-pick.quiz.choice1`]: '2〜3 かいくらい',
+    [`${C}lm-l3-pick.quiz.choice2`]: '7〜8 かいくらい',
+    [`${C}lm-l3-pick.quiz.choice3`]: '10 かい ぜんぶ',
+    [`${C}lm-l3-pick.quiz.explanation`]:
+        '4 つの うち 3 つが「ん」なので、1 かい えらぶごとに 4 かいに 3 かいくらい「ん」が でます。10 かいなら 7〜8 かいくらいです（らんすうなので、まいかい すこし ちがいます）。かずを かぞえなくても、たくさん はいっている もじほど よく えらばれます。',
+
+    [`${C}lm-l3-make.name`]: 'ぶんを つくろう',
+    [`${C}lm-l3-make.task`]:
+        '「ぶんをつくる」の なかみを つくりなおそう。\nいまの「ぶんをつくる」は、「。」を えらぶか、こうほが からに なるまで くりかえすだけです。くりかえしの なかで、もじを えらんで ぶんに たし、つぎの こうほを あつめるように しよう。\n（いま ロボットを おすと、くりかえしが おわりません。とめるときは、あかい●の ていしボタンを おそう）',
+    [`${C}lm-l3-make.step1`]:
+        '「ぶんをつくる」の ていぎの なかの「( ) まで くりかえす」の なかに、「ブロックていぎ」の「もじをえらぶ」を いれよう。くりかえしの まえの「こうほをあつめる」で、ぶんの 1 もじめの こうほ（「まえ」が からの ぎょうの「つぎ」）が あつまっています。',
+    [`${C}lm-l3-make.step2`]:
+        'その したに「(ぶん) を ( ) にする」を つなげ、「えんざん」の「(りんご) と (バナナ)」を いれよう。「りんご」に「ぶん」、「バナナ」に「もじ」を いれよう。えらんだ もじが ぶんの さいごに たされます。',
+    [`${C}lm-l3-make.step3`]:
+        'その したに「こうほをあつめる」を つなげよう。ぶんの さいごの もじが かわったので、つぎの もじの こうほを あつめなおします。',
+    [`${C}lm-l3-make.step4`]:
+        'Ruby で よむと、こう なります。「(ぶん) と (もじ)」は「@ぶん + @もじ」です。「または」は「||」で、こうほが からに なるか、「。」を えらんだら とまります。',
+    [`${C}lm-l3-make.step5`]:
+        'はたを おしてから、ロボットを なんかいか おそう。AI が つぎの もじを 1 もじずつ よそうして、ぶんを つくります。',
+    [`${C}lm-l3-make.debug1`]:
+        '「こうほをあつめる」が くりかえしの なかに あるか みよう。ないと、ずっと 1 もじめの こうほから えらぶので、ぶんが おわりません。',
+    [`${C}lm-l3-make.debug2`]:
+        '「(ぶん) と (もじ)」の じゅんを みよう。「(もじ) と (ぶん)」に すると、ぶんの あたまに たされて、おかしな ぶんに なります。',
+    [`${C}lm-l3-make.quiz.question`]: '「ぶんをつくる」が くりかえしを やめるのは、どれ？',
+    [`${C}lm-l3-make.quiz.choice1`]: '「。」を えらんだ ときか、「こうほ」が からに なった とき',
+    [`${C}lm-l3-make.quiz.choice2`]: 'きょうかしょと おなじ ぶんに なった とき',
+    [`${C}lm-l3-make.quiz.choice3`]: 'ぶんが 10 もじに なった とき',
+    [`${C}lm-l3-make.quiz.explanation`]:
+        'くりかえしは「(こうほ の ながさ) = 0」か「(もじ) = 。」に なるまで つづきます。AI は きょうかしょの ぶんと おなじか どうかを みていません。がくしゅうした くみだけで 1 もじずつ よそうするので、きょうかしょに ない ぶんも できます。',
 };
 
 export const en = {
@@ -463,4 +605,75 @@ export const en = {
     [`${C}lm-l2-learn.quiz.choice3`]: 'The number of different letters in "before"',
     [`${C}lm-l2-learn.quiz.explanation`]:
         'It adds one pair for each letter, so it is the number of all the letters of all the sentences. The AI does not count. It remembers the pairs as many times as they appear.',
+    'gui.lessons.lesson.lm-l3.name': 'Predict the next letter',
+
+    [`${C}lm-l3-collect.name`]: 'Collect the candidates',
+    [`${C}lm-l3-collect.task`]:
+        'Make the inside of "collect_candidates" again.\nNow "collect_candidates" only looks at the rows of "before" one at a time. Make it add "after" of the rows where "before" is the same as the last letter of "sentence" to "candidates".\n(When you press the "c" key, it collects the candidates after "v" and shows them.)',
+    [`${C}lm-l3-collect.step1`]:
+        'In the "repeat until ( )" in the definition of "collect_candidates", put "if then" from Control (above "change (row_no) by (1)"). Put "( ) = ( )" from Operators in the hole, with "item (1) of (before)" from Variables on the left and "letter (1) of (apple)" from Operators on the right. Put "row_no" and "length of (sentence)" in place of "1", and "sentence" in place of "apple". Then the right is the last letter of the sentence.',
+    [`${C}lm-l3-collect.step2`]:
+        'In "if", put "add (thing) to (candidates)" (choose "candidates" with ▼), and put "item (row_no) of (after)" in place of "thing". The same row of "before" and "after" is one pair, so use the same "row_no".',
+    [`${C}lm-l3-collect.step3`]:
+        'This is how it reads in Ruby. "if" is "if", and "=" to compare is "==". The last letter of the sentence is "@sentence[@sentence.length - 1]".',
+    [`${C}lm-l3-collect.step4`]:
+        'Click the green flag, and then press the "c" key. "candidates" gets the letters that came after "v", as many times as they appeared (the same as you counted in 1-3?). When you click the robot, it makes a sentence again.',
+    [`${C}lm-l3-collect.debug1`]:
+        'Check that "change (row_no) by (1)" is outside (under) "if". If it is inside, the loop cannot go past a row that does not match, and it never ends.',
+    [`${C}lm-l3-collect.debug2`]:
+        'Check that you add "item (row_no) of (after)" to "candidates". If you add the one of "before", "candidates" gets only "v".',
+    [`${C}lm-l3-collect.quiz.question`]:
+        'When "sentence" is "Hello", "collect_candidates" collects the letters that came after which?',
+    [`${C}lm-l3-collect.quiz.choice1`]: '"H"',
+    [`${C}lm-l3-collect.quiz.choice2`]: '"Hello"',
+    [`${C}lm-l3-collect.quiz.choice3`]: '"o"',
+    [`${C}lm-l3-collect.quiz.explanation`]:
+        'The AI now looks only at the letter before, so it collects "after" of the rows where "before" is "o", the last letter of "sentence". In lesson 4, you make it look at more letters before.',
+
+    [`${C}lm-l3-pick.name`]: 'Pick a letter',
+    [`${C}lm-l3-pick.task`]:
+        'Make the inside of "pick_letter".\nPick one of "candidates" at random and put it in "letter".\nWhen you press the "c" key, the AI picks a letter after "v" 10 times and says it. Which letter comes often?\n(If you click the robot now, "letter" does not change, so the loop of "make_sentence" never ends. To stop, click the red ● Stop Button.)',
+    [`${C}lm-l3-pick.step1`]:
+        'The script of the "c" key is already there. It sets "sentence" to "v", collects the candidates, and repeats "pick_letter" and "say (letter) for (0.5) seconds" 10 times. Now the inside of "pick_letter" is empty, so the AI says nothing.',
+    [`${C}lm-l3-pick.step2`]:
+        'Under the definition of "pick_letter", attach "set (letter) to ( )" from Variables (choose "letter" with ▼), and put "item (1) of (candidates)" in it. Put "pick random (1) to (10)" from Operators in place of "1", and "length of (candidates)" in place of "10".',
+    [`${C}lm-l3-pick.step3`]:
+        'This is how it reads in Ruby. "pick random (1) to (length of candidates)" is "rand(1..@candidates.length)". Ruby counts the items of a list from 0, so "- 1" is added.',
+    [`${C}lm-l3-pick.step4`]:
+        'Click the green flag, and then press the "c" key. Which letter came more often in the 10 times? Press it a few times and compare.',
+    [`${C}lm-l3-pick.debug1`]:
+        'Check that the right of the random block is "length of (candidates)". If it stays "10", it may pick a number larger than the candidates and say nothing.',
+    [`${C}lm-l3-pick.debug2`]:
+        'Check that ▼ of "set ( ) to ( )" is "letter". If it is another variable, "letter" does not change, so the AI says nothing.',
+    [`${C}lm-l3-pick.quiz.question`]:
+        'When "candidates" is "a", "a", "a" and "b", about how many times does "a" come out if you pick 10 times?',
+    [`${C}lm-l3-pick.quiz.choice1`]: 'About 2 or 3 times',
+    [`${C}lm-l3-pick.quiz.choice2`]: 'About 7 or 8 times',
+    [`${C}lm-l3-pick.quiz.choice3`]: 'All 10 times',
+    [`${C}lm-l3-pick.quiz.explanation`]:
+        '3 of the 4 are "a", so each pick gives "a" about 3 times in 4. In 10 picks it is about 7 or 8 times (it changes a little each time, because it is random). Without counting, the letters that are in the list more are picked more often.',
+
+    [`${C}lm-l3-make.name`]: 'Make a sentence',
+    [`${C}lm-l3-make.task`]:
+        'Make the inside of "make_sentence" again.\nNow "make_sentence" only repeats until it picks "." or the candidates are empty. In the loop, make it pick a letter, add it to the sentence and collect the next candidates.\n(If you click the robot now, the loop never ends. To stop, click the red ● Stop Button.)',
+    [`${C}lm-l3-make.step1`]:
+        'In the "repeat until ( )" in the definition of "make_sentence", put "pick_letter" from My Blocks. "collect_candidates" before the loop has collected the candidates of the first letter of the sentence ("after" of the rows where "before" is empty).',
+    [`${C}lm-l3-make.step2`]:
+        'Under it, attach "set (sentence) to ( )", and put "join (apple) (banana)" from Operators in it. Put "sentence" in place of "apple" and "letter" in place of "banana". The picked letter is added to the end of the sentence.',
+    [`${C}lm-l3-make.step3`]:
+        'Under it, attach "collect_candidates". The last letter of the sentence has changed, so it collects the candidates of the next letter again.',
+    [`${C}lm-l3-make.step4`]:
+        'This is how it reads in Ruby. "join (sentence) (letter)" is "@sentence + @letter". "or" is "||", so it stops when the candidates are empty or it picked ".".',
+    [`${C}lm-l3-make.step5`]:
+        'Click the green flag, and then click the robot a few times. The AI predicts the next letter one at a time and makes a sentence.',
+    [`${C}lm-l3-make.debug1`]:
+        'Check that "collect_candidates" is in the loop. Without it, the AI keeps picking from the candidates of the first letter, so the sentence never ends.',
+    [`${C}lm-l3-make.debug2`]:
+        'Check the order in "join (sentence) (letter)". With "join (letter) (sentence)", the letter goes to the head of the sentence, and it becomes a strange sentence.',
+    [`${C}lm-l3-make.quiz.question`]: 'When does "make_sentence" stop the loop?',
+    [`${C}lm-l3-make.quiz.choice1`]: 'When it picked "." or "candidates" became empty',
+    [`${C}lm-l3-make.quiz.choice2`]: 'When the sentence became the same as one in the textbook',
+    [`${C}lm-l3-make.quiz.choice3`]: 'When the sentence became 10 letters long',
+    [`${C}lm-l3-make.quiz.explanation`]:
+        'The loop goes on until "(length of candidates) = 0" or "(letter) = .". The AI does not check whether the sentence is the same as one in the textbook. It predicts one letter at a time only with the pairs it learned, so it can make sentences that are not in the textbook.',
 };

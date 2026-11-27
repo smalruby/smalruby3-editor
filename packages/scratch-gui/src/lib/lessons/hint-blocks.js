@@ -25,24 +25,28 @@ export const procedureNamesInCode = (code) =>
 // ヒントの Ruby が自分で定義していない名前だけ、空の定義を前に足す（呼び出しを定義ブロックの呼び出しとして変換するため）
 // Ruby のメソッドの名前にできるか（空白などを含む名前の定義ブロックは、名前だけで呼ぶ Ruby にならないので足さない）
 const RUBY_METHOD_NAME = /^[\p{L}_][\p{L}\p{N}_]*$/u;
-const procedureStubs = (names, code) => {
+const stubNames = (names, code) => {
     const defined = procedureNamesInCode(code);
-    return [...new Set(names)]
-        .filter((name) => RUBY_METHOD_NAME.test(name) && code.includes(name) && !defined.includes(name))
-        .map((name) => `def ${name}\nend\n`)
-        .join('\n');
+    return [...new Set(names)].filter(
+        (name) => RUBY_METHOD_NAME.test(name) && code.includes(name) && !defined.includes(name),
+    );
 };
 
-// 定義（ハット）の下にあるブロックを除く（足した空の定義は描かない）
-const withoutDefinitions = (blocks) => {
+// 足した空の定義（`names` の定義ブロック）の下にあるブロックを除く（足した空の定義は描かない）。ヒントの Ruby が
+// 自分で書いた定義は残す（3-3 の「文をつくる」の定義は、作品にある「こうほを集める」を呼ぶ・#2110）
+const withoutDefinitions = (blocks, names) => {
     const topOf = (block) => {
         let current = block;
         while (current && current.parent && blocks[current.parent]) current = blocks[current.parent];
         return current;
     };
-    return Object.fromEntries(
-        Object.entries(blocks).filter(([, block]) => topOf(block).opcode !== 'procedures_definition'),
-    );
+    const isStub = (top) => {
+        if (top.opcode !== 'procedures_definition') return false;
+        const input = top.inputs && top.inputs.custom_block;
+        const prototype = input && blocks[input.block];
+        return Boolean(prototype && prototype.mutation && names.includes(prototype.mutation.proccode));
+    };
+    return Object.fromEntries(Object.entries(blocks).filter(([, block]) => !isStub(topOf(block))));
 };
 
 /**
@@ -62,11 +66,12 @@ const withoutDefinitions = (blocks) => {
  */
 export const rubyToBlocksXml = async (vm, target, code, intl, options = { version: '2' }) => {
     const { procedures, ...converterOptions } = options;
-    const stubs = procedureStubs(procedures || targetProcedureNames(target), code);
+    const names = stubNames(procedures || targetProcedureNames(target), code);
+    const stubs = names.map((name) => `def ${name}\nend\n`).join('\n');
     const converter = new RubyToBlocksConverter(vm, { validateAssets: false, ...converterOptions });
     if (intl) converter.setTranslatorFunction(intl.formatMessage);
     const ok = await converter.targetCodeToBlocks(target, stubs ? `${stubs}\n${code}` : code);
     if (!ok) return { xml: null, errors: converter.errors };
     // 条件の穴の `false` は変換で空の穴になる（`if false` = 「もし <  > なら」）
-    return { xml: blocksToXml(stubs ? withoutDefinitions(converter.blocks) : converter.blocks), errors: [] };
+    return { xml: blocksToXml(stubs ? withoutDefinitions(converter.blocks, names) : converter.blocks), errors: [] };
 };

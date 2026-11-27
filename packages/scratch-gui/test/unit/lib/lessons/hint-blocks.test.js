@@ -57,6 +57,21 @@ describe('rubyToBlocksXml', () => {
         expect(fromTarget.xml).toContain('proccode="文をつくる"');
     });
 
+    // 3-3 の「Ruby で読む」（#2110）: 定義の中で作品にある別の定義ブロックを呼んでも、ヒントの定義そのものは描く
+    test('draws the definition of the hint even when it calls other procedures of the project', async () => {
+        const code = 'without_screen_refresh def 文をつくる\n  @文 = ""\n  こうほを集める\nend\n';
+        const { xml, errors } = await rubyToBlocksXml(null, null, code, null, {
+            version: '2',
+            procedures: ['こうほを集める', '文をつくる'],
+        });
+        expect(errors).toEqual([]);
+        expect(xml.match(/type="procedures_definition"/g)).toHaveLength(1);
+        expect(xml).toContain('proccode="文をつくる"');
+        expect(xml).toContain('type="procedures_call"');
+        expect(xml).toContain('proccode="こうほを集める"');
+        expect(xml).toContain('type="data_setvariableto"');
+    });
+
     test('a single block without a hat is also a script', async () => {
         const { xml } = await rubyToBlocksXml(null, null, 'next_costume\n');
         expect(xml).toMatch(/^<xml[^>]*><block id="[^"]+" type="looks_nextcostume"><\/block><\/xml>$/);
