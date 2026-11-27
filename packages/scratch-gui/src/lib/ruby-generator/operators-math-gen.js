@@ -45,6 +45,15 @@ export default function (Generator) {
             // `say((@a.index("x")))` (issue #1660).
             const innerId = block.inputs && block.inputs.NUM1 && block.inputs.NUM1.block;
             const inner = innerId && Generator.getBlock(innerId);
+            // "Item # of" alone is written `(@a.index(x) || -1) + 1`, so take Ruby's `index` call
+            // itself here; `@ruby:array:index:or` is `@a.index(x) || -1` (issue #2125).
+            if (inner && inner.opcode === 'data_itemnumoflist' && !Generator.getRubyMarkerText(inner)) {
+                const code = Generator.listIndexCode(inner);
+                if (Generator.hasRubyMarker(block, '@ruby:array:index:or')) {
+                    return [`${code} || -1`, Generator.ORDER_LOGICAL_OR];
+                }
+                return [code, Generator.ORDER_FUNCTION_CALL];
+            }
             const tuple = inner ? Generator.blockToCode(inner) : '';
             if (Array.isArray(tuple) && tuple[0]) {
                 return tuple;

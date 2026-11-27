@@ -70,18 +70,42 @@ describe('RubyGenerator/Operators', () => {
             RubyGenerator.cache_.comments['block-id'] = { text: '@ruby:array:index' };
             const itemNumBlock = { id: 'itemnumoflist-block-id', opcode: 'data_itemnumoflist' };
             const getBlock = jest.spyOn(RubyGenerator, 'getBlock').mockReturnValue(itemNumBlock);
-            const blockToCode = jest
-                .spyOn(RubyGenerator, 'blockToCode')
-                .mockReturnValue(['@my_list.index("thing")', RubyGenerator.ORDER_FUNCTION_CALL]);
-            // NUM1 comes back with its own order, without parentheses (issue #1660).
+            const listIndexCode = jest
+                .spyOn(RubyGenerator, 'listIndexCode')
+                .mockReturnValue('@my_list.index("thing")');
+            // Ruby's `index` call itself, without parentheses (issue #1660) and without the
+            // `|| -1) + 1` of the block alone (issue #2125).
             expect(RubyGenerator.operator_subtract(block)).toEqual([
                 '@my_list.index("thing")',
                 RubyGenerator.ORDER_FUNCTION_CALL,
             ]);
             expect(getBlock).toHaveBeenCalledWith('itemnumoflist-block-id');
-            expect(blockToCode).toHaveBeenCalledWith(itemNumBlock);
+            expect(listIndexCode).toHaveBeenCalledWith(itemNumBlock);
             getBlock.mockRestore();
-            blockToCode.mockRestore();
+            listIndexCode.mockRestore();
+        });
+
+        test('with @ruby:array:index:or writes index || -1', () => {
+            const block = {
+                id: 'block-id',
+                opcode: 'operator_subtract',
+                inputs: {
+                    NUM1: { block: 'itemnumoflist-block-id' },
+                    NUM2: {},
+                },
+            };
+            RubyGenerator.cache_.comments['block-id'] = { text: '@ruby:array:index:or' };
+            const itemNumBlock = { id: 'itemnumoflist-block-id', opcode: 'data_itemnumoflist' };
+            const getBlock = jest.spyOn(RubyGenerator, 'getBlock').mockReturnValue(itemNumBlock);
+            const listIndexCode = jest
+                .spyOn(RubyGenerator, 'listIndexCode')
+                .mockReturnValue('@my_list.index("thing")');
+            expect(RubyGenerator.operator_subtract(block)).toEqual([
+                '@my_list.index("thing") || -1',
+                RubyGenerator.ORDER_LOGICAL_OR,
+            ]);
+            getBlock.mockRestore();
+            listIndexCode.mockRestore();
         });
     });
 

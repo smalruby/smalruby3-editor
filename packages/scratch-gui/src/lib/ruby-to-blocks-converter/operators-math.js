@@ -11,6 +11,38 @@ const UNARY_MINUS_COMMENT = '@ruby:unary_minus';
 /** Marker on "pick random (0) to (n - 1)" that came from `rand(n)` (the generator writes `rand(n)` back). */
 const RAND_N_COMMENT = '@ruby:rand:n';
 
+// `@a.index(x)` is "(item # of x in a) - 1" with this mark (`variable-list-ops.js`).
+const ARRAY_INDEX_COMMENT = '@ruby:array:index';
+// `@a.index(x) || -1`: the same block, -1 when the item is not in the list (issue #2125).
+const ARRAY_INDEX_OR_COMMENT = '@ruby:array:index:or';
+
+/**
+ * Whether a converted value is the integer literal `n` (not `1.0`).
+ * @param {object} converter - The converter instance.
+ * @param {*} value - The converted value.
+ * @param {number} n - The integer.
+ * @returns {boolean} True if the value is the integer n.
+ */
+const isIntegerLiteral = function (converter, value, n) {
+    if (_.isNumber(value)) return value === n;
+    return converter._isPrimitive(value) && value.type === 'int' && Number(value.value) === n;
+};
+
+/**
+ * Whether a block is "(item # of x in list) - 1" made from `@a.index(x)` with the mark `comment`.
+ * @param {object} converter - The converter instance.
+ * @param {*} block - The converted value.
+ * @param {string} comment - The whole comment of the block.
+ * @returns {boolean} True if it is.
+ */
+const isListIndexBlock = function (converter, block, comment) {
+    if (!converter._isBlock(block) || block.opcode !== 'operator_subtract' || !block.comment) return false;
+    const text = converter._context.comments[block.comment];
+    if (!text || text.text !== comment) return false;
+    const inner = block.inputs.NUM1 && converter._context.blocks[block.inputs.NUM1.block];
+    return Boolean(inner && inner.opcode === 'data_itemnumoflist');
+};
+
 /**
  * `x.round`, `x.abs`, `x.floor` and `x.ceil` map one to one onto a block (see `send-table.js`):
  * the receiver goes into the input.
@@ -91,6 +123,15 @@ const OperatorsMath = {
             return converter._changeBlock(args[0], 'operator_random', 'value');
         });
 
+        // `@a.index(x) || -1` is "(item # of x in a) - 1": both are -1 when x is not in the list.
+        converter.registerOnOr((operands) => {
+            if (!isListIndexBlock(converter, operands[0], ARRAY_INDEX_COMMENT)) return null;
+            if (!isIntegerLiteral(converter, operands[1], -1)) return null;
+            const block = operands[0];
+            block.comment = converter._createComment(ARRAY_INDEX_OR_COMMENT, block.id);
+            return block;
+        });
+
         ['+', '-', '*', '/', '%'].forEach((operator) => {
             converter.registerOnSend(['variable', 'number', 'block'], operator, 1, (params) => {
                 const { receiver, args } = params;
@@ -117,6 +158,20 @@ const OperatorsMath = {
                 if (converter._isTrue(rh) || converter._isFalse(rh)) return null;
 
                 if (!converter._isNumberOrBlock(rh)) return null;
+
+                // `(@a.index(x) || -1) + 1` is the value of "item # of x in a" itself: the block
+                // made in the block editor is written so (issue #2125).
+                if (
+                    operator === '+' &&
+                    isListIndexBlock(converter, receiver, ARRAY_INDEX_OR_COMMENT) &&
+                    isIntegerLiteral(converter, rh, 1)
+                ) {
+                    const itemNum = converter._context.blocks[receiver.inputs.NUM1.block];
+                    delete receiver.inputs.NUM1;
+                    converter._discardBlock(receiver);
+                    itemNum.parent = null;
+                    return itemNum;
+                }
 
                 let opcode;
                 if (operator === '+') {

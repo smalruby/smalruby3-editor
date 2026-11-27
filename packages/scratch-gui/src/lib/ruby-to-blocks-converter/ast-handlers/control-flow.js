@@ -753,6 +753,9 @@ const ControlFlowHandlers = {
     },
 
     visitOrNode(node) {
+        const listIndexOr = this._visitListIndexOr(node);
+        if (listIndexOr) return listIndexOr;
+
         const preBlocks = [];
         const operands = [node.left, node.right].map((childNode) => {
             const result = this._processCondition(childNode);
@@ -767,6 +770,29 @@ const ControlFlowHandlers = {
                 return [...preBlocks, ...block];
             }
             return [...preBlocks, block];
+        }
+        return block;
+    },
+
+    /**
+     * `@a.index(x) || -1` is a value, not a condition: the `onOr` handler of `operators-math.js`
+     * makes it "(item # of x in a) - 1" (issue #2125). The block made in the block editor is
+     * written `(@a.index(x) || -1) + 1`.
+     * @param {object} node - The OrNode.
+     * @returns {?object} The block, or null when the node is another `||`.
+     */
+    _visitListIndexOr(node) {
+        const left = node.left;
+        const right = node.right;
+        if (nodeTypeName(left) !== 'CallNode' || left.name !== 'index' || !left.receiver) return null;
+        if (nodeTypeName(right) !== 'IntegerNode' || Number(right.value) !== -1) return null;
+
+        const saved = this._saveContext();
+        const operands = [this.visit(left), this.visit(right)];
+        const block = this._callConvertersHandler('onOr', operands);
+        if (!this._isBlock(block) || block.opcode === 'operator_or') {
+            this._restoreContext(saved);
+            return null;
         }
         return block;
     },
