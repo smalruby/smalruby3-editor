@@ -85,6 +85,9 @@ test('planReleaseMerge: CI・コンフリクト・SHA 違い・権限外・メ�
     assert.equal(code(prFacts({ baseRefName: 'main' })), 'not-develop');
     assert.equal(code(null), 'no-pr');
     assert.equal(code(prFacts({ files: ['.github/workflows/ci-cd.yml'] })), 'protected');
+    // ファイルの一覧が切れている（changedFiles より少ない）と、メッシュ・権限外を見落とすので断る
+    assert.equal(code(prFacts({ changedFiles: 150 })), 'files-incomplete');
+    assert.equal(code(prFacts({ changedFiles: 1 })), undefined, '全部読めていれば通る');
     const mesh = prFacts({ files: [{ path: 'packages/scratch-vm/src/extensions/scratch3_mesh_v2/index.js' }] });
     assert.equal(code(mesh), 'mesh-daytime', '平日の昼はメッシュを確かめても通さない');
     assert.equal(rm.planReleaseMerge({ readiness, pr: mesh, nowMs: jst(28, 11), epic: 1 }).action, 'merge', '土日は通る');
@@ -196,9 +199,10 @@ test('releaseMergeOnce: 確かめてから draft を外す → マージ → Clo
     const r = await releaseMergeOnce(ctx, '2438', {}, deps);
     assert.equal(r.status, 200);
     assert.deepEqual(r.body, { ok: true, issue: 2438, pr: 2479, closed: true, failed: [] });
-    assert.deepEqual(calls.map((x) => x[0]), ['ready', 'merge', 'intents', 'labels', 'close']);
-    assert.deepEqual(calls[2][2], [{ field: 'Status', value: 'Close' }, { field: 'AI Status', value: null }]);
-    assert.deepEqual(calls[3][2], { remove: [HITL_LABEL] });
+    // Issue を閉じてから Project を Close にする（閉じられないと開いた Issue が終端に残るため）
+    assert.deepEqual(calls.map((x) => x[0]), ['ready', 'merge', 'labels', 'close', 'intents']);
+    assert.deepEqual(calls[4][2], [{ field: 'Status', value: 'Close' }, { field: 'AI Status', value: null }]);
+    assert.deepEqual(calls[2][2], { remove: [HITL_LABEL] });
     assert.equal(item.status, 'Close');
     assert.equal(ctx.state.releaseMerges[2438], undefined, '材料を消す');
 });
@@ -256,7 +260,7 @@ test('applyReleaseMergedEpics: 人間が GitHub で topic → develop の PR を
     const done = await applyReleaseMergedEpics(state.board.items, cfg, state, () => {}, deps);
     assert.deepEqual(done, [2438]);
     assert.deepEqual(asked, [['topic/classroom-grading-feedback', 'develop']], 'topic が分からない EPIC は読まない');
-    assert.deepEqual(calls.map((x) => x[0]), ['intents', 'labels', 'close']);
+    assert.deepEqual(calls.map((x) => x[0]), ['labels', 'close', 'intents']);
     // merged の PR が無ければ何もしない
     const none = mergeDeps({ findMergedTopicPr: async () => null, botToken: async () => { throw new Error('no'); } });
     const tracker2 = epicItem({ itemId: 'PVTI_T' });
@@ -274,4 +278,112 @@ test('selectMergedReleaseEpics / epicTopicBranch', () => {
     const base = { 1: 'topic/a', 2: 'topic/a', 3: 'develop', 4: 'topic/b' };
     assert.equal(rm.epicTopicBranch(9, kids, (n) => base[n]), 'topic/a');
     assert.equal(rm.epicTopicBranch(10, kids, (n) => base[n]), null);
+});
+
+test('getEpicMergeFacts: ファイルは REST でページを送って全部読む（gh pr view の files は 100 件で切れる）', async () => {
+    const project = require('../src/project');
+    const calls = [];
+    const gh = async (args) => {
+        calls.push(args);
+        if (args[0] === 'pr') return JSON.stringify({ number: 7, state: 'OPEN', changedFiles: 2 });
+        return '{"filename":"a.js"}\n{"filename":"b.js"}\n';
+    };
+    const f = await project.getEpicMergeFacts('o/r', 7, 't', { gh });
+    assert.deepEqual(f.files, [{ path: 'a.js' }, { path: 'b.js' }]);
+    assert.ok(!calls[0].join(' ').includes('files'), 'gh pr view では files を取らない');
+    assert.deepEqual(calls[1].slice(0, 3), ['api', '--paginate', 'repos/o/r/pulls/7/files?per_page=100']);
+    calls.length = 0;
+    assert.equal((await project.getEpicMergeFacts('o/r', 7, 't', { gh }, { files: false })).files, undefined);
+    assert.equal(calls.length, 1, 'マージ済みかを見るだけのときは一覧を読まない');
+});
+
+test('finishEpicMerge: Issue を閉じられなければ Project は動かさず「EPIC を閉じる」の材料を残す', async () => {
+    const { finishEpicMerge } = require('../src/release-check-http');
+    const item = epicItem({ itemId: 'I' });
+    const state = { board: { items: [item] }, releaseMerges: { 2438: { pr: 2479, head: HEAD } } };
+    const { deps, calls } = mergeDeps({ closeIssue: async () => { throw new Error('boom'); } });
+    const failed = await finishEpicMerge({ cfg, state, log: () => {} }, item, deps, 'b', 2479);
+    assert.equal(failed.length, 1);
+    assert.deepEqual(calls.map((x) => x[0]), ['labels']);
+    assert.equal(item.status, 'In Progress');
+    assert.deepEqual(state.epicCloseOffers, { 2438: { pr: 2479 } });
+    assert.deepEqual(item.epicCloseOffer, { pr: 2479 });
+    assert.equal(state.releaseMerges[2438], undefined, 'PR はマージ済みなので「develop へマージする」は消す');
+});
+
+test('selectEpicCloseOffers / planEpicClose: merged なのに開いたままの EPIC は「EPIC を閉じる」で確かめてから閉じる', () => {
+    const items = [epicItem({ itemId: 'A' }), epicItem({ issue: 7, itemId: 'B', aiStatus: 'EPIC Decomposed', hitl: false }),
+        epicItem({ issue: 8, itemId: 'C', status: 'Close', aiStatus: 'EPIC Decomposed' })];
+    // Release Check のものは自動で閉じるので材料にしない。終端も出さない
+    assert.deepEqual(rm.selectEpicCloseOffers(items, { 2438: 1, 7: 2, 8: 3 }), { 7: { pr: 2 } });
+    const item = items[1];
+    assert.deepEqual(rm.planEpicClose({ item, pr: { number: 2, state: 'MERGED', baseRefName: 'develop' }, epic: 7 }),
+        { action: 'close', pr: 2, reason: 'PR #2 は develop へマージ済み。EPIC #7 を Close にして閉じる' });
+    assert.equal(rm.planEpicClose({ item, pr: { number: 2, state: 'OPEN', baseRefName: 'develop' }, epic: 7 }).code, 'pr-not-merged');
+    assert.equal(rm.planEpicClose({ item, pr: { number: 2, state: 'MERGED', baseRefName: 'main' }, epic: 7 }).code, 'not-develop');
+    assert.equal(rm.planEpicClose({ item, pr: null, epic: 7 }).code, 'no-pr');
+    assert.equal(rm.planEpicClose({ item: items[2], pr: { number: 3, state: 'MERGED' }, epic: 8 }).code, 'epic-closed');
+});
+
+test('humanAction: topic → develop の PR は merged で EPIC が開いたままなら、主ボタンが「EPIC を閉じる」（開いた子を見せる）', () => {
+    const it = epicItem({ aiStatus: 'EPIC Decomposed', hitl: false, epicCloseOffer: { pr: 2479 } });
+    const kids = [{ issue: 2441, status: 'Sprint Backlog', parent: { number: 2438 } }, { issue: 2440, status: 'Close' }];
+    const a = humanAction(it, { kids });
+    assert.equal(a.button, 'EPIC を閉じる');
+    assert.equal(a.act, 'close-epic');
+    assert.equal(a.kind, 'check');
+    assert.deepEqual(a.targets, [2438]);
+    assert.equal(a.happens, 'topic → develop の PR #2479 はマージ済み。EPIC #2438 を Close にして閉じる（🙋 も外す）。開いたままの子 1 件（#2441）は閉じずに残す');
+    assert.equal(humanAction(it, {}).happens, 'topic → develop の PR #2479 はマージ済み。EPIC #2438 を Close にして閉じる（🙋 も外す）');
+    // 材料が無ければ出ない
+    assert.notEqual(humanAction(epicItem({ aiStatus: 'EPIC Decomposed', hitl: false }), { kids }).button, 'EPIC を閉じる');
+});
+
+test('releaseCloseOnce: PR を読み直して merged なら閉じる。材料が無い・まだ merged でないときは断る', async () => {
+    const { releaseCloseOnce } = require('../src/release-check-http');
+    const mk = (offer) => {
+        const item = epicItem({ itemId: 'I', aiStatus: 'EPIC Decomposed', hitl: false, labels: [TRACKING_LABEL] });
+        return { item, ctx: { cfg, log: () => {}, state: { running: new Map(), board: { items: [item] }, epicCloseOffers: offer ? { 2438: offer } : undefined } } };
+    };
+    let { item, ctx } = mk({ pr: 2479 });
+    let m = mergeDeps({ getEpicMergeFacts: async (repo, pr, tok, d, opts) => { m.calls.push(['facts', pr, opts]); return prFacts({ state: 'MERGED' }); } });
+    let r = await releaseCloseOnce(ctx, '2438', m.deps);
+    assert.equal(r.status, 200);
+    assert.deepEqual(m.calls.map((x) => x[0]), ['facts', 'close', 'intents'], '🙋 が無ければ外さない');
+    assert.deepEqual(m.calls[0][2], { files: false });
+    assert.equal(item.status, 'Close');
+    assert.equal(ctx.state.epicCloseOffers[2438], undefined, '閉じたら材料を消す');
+    // 材料が無い
+    ({ ctx } = mk(null));
+    assert.equal((await releaseCloseOnce(ctx, 2438, mergeDeps().deps)).body.code, 'no-offer');
+    // まだ merged でない（読み直した事実で断る）
+    ({ ctx } = mk({ pr: 2479 }));
+    m = mergeDeps();
+    r = await releaseCloseOnce(ctx, 2438, m.deps);
+    assert.equal(r.status, 409);
+    assert.equal(r.body.code, 'pr-not-merged');
+    assert.deepEqual(m.calls, []);
+    // worker が走っている
+    ({ ctx } = mk({ pr: 2479 }));
+    ctx.state.running.set(2438, {});
+    assert.equal((await releaseCloseOnce(ctx, 2438, mergeDeps().deps)).body.code, 'busy');
+});
+
+test('applyReleaseMergedEpics: Release Check でない EPIC は自動で閉じず「EPIC を閉じる」の材料を置く', async () => {
+    const tracker = epicItem({ itemId: 'PVTI_T', aiStatus: 'EPIC Decomposed', hitl: false });
+    const kid = { issue: 2440, parent: { number: 2438 }, status: 'Sprint Backlog' };
+    const state = { board: { items: [tracker, kid] }, directives: new Map([[2440, { base: 'topic/x', after: [] }]]) };
+    const { deps, calls } = mergeDeps({ findMergedTopicPr: async () => 2479 });
+    assert.deepEqual(await applyReleaseMergedEpics(state.board.items, cfg, state, () => {}, deps), []);
+    assert.deepEqual(calls, [], '書き込まない');
+    assert.deepEqual(state.epicCloseOffers, { 2438: { pr: 2479 } });
+    assert.deepEqual(tracker.epicCloseOffer, { pr: 2479 });
+    // 次からは覚えた PR の状態を見る（topic の一覧を探さない）
+    const asked = [];
+    const again = mergeDeps({
+        findMergedTopicPr: async () => { asked.push('topic'); return 2479; },
+        getEpicMergeFacts: async (repo, pr) => { asked.push(pr); return prFacts({ state: 'MERGED' }); },
+    });
+    await applyReleaseMergedEpics(state.board.items, cfg, state, () => {}, again.deps);
+    assert.deepEqual(asked, [2479]);
 });

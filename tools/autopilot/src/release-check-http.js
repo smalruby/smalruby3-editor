@@ -13,6 +13,8 @@
  * - `POST /release-check/merge?issue=N`（#2544）: 全部 OK の EPIC の topic → develop の PR を、トラッカー・PR を
  *   読み直して確かめてから draft を外してマージし、EPIC を Close にして閉じる（{@link releaseMergeOnce}）。
  *   人間が GitHub でマージしたときも同じ終わり方にする（{@link applyReleaseMergedEpics}）
+ * - `POST /release-check/close?issue=N`（#2544 の予備の口）: topic → develop の PR は merged なのに EPIC が開いたままのとき、
+ *   確かめてから同じ形で閉じる（{@link releaseCloseOnce}）
  * - 確認ページ（artifact・#2474）: URL を EPIC ごとに状態ファイル（`$AUTOPILOT_STATE_DIR/release-check-pages.json`）に
  *   持ち、release-check の worker に `AUTOPILOT_ARTIFACT_URL` で渡す（{@link releasePageEnv}）。worker が結果の
  *   `artifactUrl` で返した URL を覚える（{@link rememberReleasePage}）。ページの答え（db）は worker が ArtifactData で読み、
@@ -24,14 +26,14 @@
 const fs = require('fs');
 const path = require('path');
 const project = require('./project');
-const { sanitizeForSurface, HITL_LABEL } = require('./phases');
+const { sanitizeForSurface, HITL_LABEL, TERMINAL_STATUSES } = require('./phases');
 const {
     selectReleaseCheckEntries, releaseCheckView, normalizeReleaseReviewBody, planReleaseReviewPost,
     renderReleaseReviewComment, releaseCheckRounds, parseReleaseResultMarker, handledPrFeedbackRefs, selectPrFeedback,
 } = require('./release-check');
 const {
-    releaseMergeReadiness, planReleaseMerge, releaseMergeCloseIntents, epicTopicBranch, selectReleaseCheckTrackers,
-    selectMergedReleaseEpics, releaseMergeCandidate,
+    releaseMergeReadiness, planReleaseMerge, releaseMergeCloseIntents, epicTopicBranch, selectTopicMergeTrackers,
+    selectMergedReleaseEpics, selectEpicCloseOffers, planEpicClose, EPIC_CLOSE_REFUSE_TEXT, releaseMergeCandidate,
 } = require('./release-merge');
 const { answerToReviewBody, planReleasePageState, releasePageUrl } = require('./release-page');
 const { stateDir } = require('./current-status-job');
@@ -176,33 +178,71 @@ async function releaseReviewOnce(ctx, body, deps = {}) {
 }
 
 /**
- * EPIC を終わらせる（モニターから押したとき・人間が GitHub でマージしたときの共通）。Status=Close・AI Status を空、
- * 🙋 を外して Issue を閉じる。どれかが失敗しても残りは続け、失敗したものを返す（次の確かめで取り直せる）。
+ * EPIC を終わらせる（モニターから押したとき・人間が GitHub でマージしたとき・「EPIC を閉じる」の共通）。
+ * 🙋 を外して Issue を閉じ、Status=Close・AI Status を空にする。
+ *
+ * Issue を閉じてから Project を Close にする: 閉じられなかったときに Project だけ Close になると、開いた Issue が
+ * 終端の Status に残り、どの口からも閉じられなくなる。閉じられなければ Project は動かさず、「EPIC を閉じる」の材料
+ * （PR の番号）を残す（次のボードの更新で取り直すか、人間が押す）。閉じたあとに Project が失敗しても closed-reconcile がそろえる。
+ * @param {object} ctx { cfg, state, log }
+ * @param {object} item board item
+ * @param {object} io I/O
+ * @param {string} token Bot のトークン
+ * @param {number} [pr] マージ済みの topic → develop の PR（閉じられなかったときの材料）
  * @returns {Promise<string[]>} 失敗した段の理由
  */
-async function finishEpicMerge(ctx, item, io, token) {
+async function finishEpicMerge(ctx, item, io, token, pr) {
     const { cfg, state, log } = ctx;
     const failed = [];
     const intents = releaseMergeCloseIntents();
     const step = async (name, fn) => {
-        try { await fn(); } catch (e) { failed.push(`${name}: ${sanitizeForSurface(e.message)}`); }
+        try { await fn(); return true; } catch (e) { failed.push(`${name}: ${sanitizeForSurface(e.message)}`); return false; }
     };
-    await step('project', async () => {
-        await io.applyIntents({ projectId: cfg.projectId, fields: cfg.fields }, item.itemId, intents, token);
-        item.status = 'Close';
-        item.aiStatus = null;
-        if (io.patchBoardCache) io.patchBoardCache(state, item.issue, intents);
-    });
     await step('hitl', async () => {
         if (!item.hitl && !(item.labels || []).includes(HITL_LABEL)) return;
         await io.editLabels(cfg.repo, item.issue, 'issue', { remove: [HITL_LABEL] }, token);
         item.hitl = false;
         if (Array.isArray(item.labels)) item.labels = item.labels.filter((l) => l !== HITL_LABEL);
     });
-    await step('close', () => io.closeIssue(cfg.repo, item.issue, token));
+    const closed = await step('close', () => io.closeIssue(cfg.repo, item.issue, token));
+    if (closed) {
+        await step('project', async () => {
+            await io.applyIntents({ projectId: cfg.projectId, fields: cfg.fields }, item.itemId, intents, token);
+            item.status = 'Close';
+            item.aiStatus = null;
+            if (io.patchBoardCache) io.patchBoardCache(state, item.issue, intents);
+        });
+    }
+    // PR はもうマージ済みなので「develop へマージする」の材料は消す
     forgetReleaseMerge(state, item.issue, io);
+    if (closed) setEpicCloseOffer(state, item, null);
+    else if (pr) setEpicCloseOffer(state, item, { pr });
     for (const f of failed) log(`#${item.issue}: EPIC close after merge: ${f}`);
     return failed;
+}
+
+/** 「EPIC を閉じる」の材料を置く・消す（board の item にも載せる）。daemon のメモリだけ（ボードの更新で取り直す） */
+function setEpicCloseOffer(state, item, offer) {
+    if (!state) return;
+    const issue = item.issue;
+    if (offer) state.epicCloseOffers = { ...(state.epicCloseOffers || {}), [issue]: offer };
+    else if (state.epicCloseOffers && state.epicCloseOffers[issue]) {
+        state.epicCloseOffers = { ...state.epicCloseOffers };
+        delete state.epicCloseOffers[issue];
+    }
+    const it = boardItem(state, issue);
+    for (const x of new Set([item, it].filter(Boolean))) x.epicCloseOffer = offer || null;
+}
+
+/**
+ * board の item に載せる「EPIC を閉じる」の材料（終端でないときだけ）。
+ * @param {object} state
+ * @param {{issue:number, status?:string}} it Project の item
+ * @returns {object|null}
+ */
+function epicCloseOfferOf(state, it) {
+    if (!it || TERMINAL_STATUSES.has(it.status)) return null;
+    return (state.epicCloseOffers && state.epicCloseOffers[it.issue]) || null;
 }
 
 /**
@@ -275,7 +315,7 @@ async function releaseMergeOnce(ctx, issueRaw, body, deps = {}) {
             };
         }
         log(`#${issue}: PR #${plan.pr} merged to develop from the monitor`);
-        const failed = await finishEpicMerge(ctx, item, io, token);
+        const failed = await finishEpicMerge(ctx, item, io, token, plan.pr);
         return { status: 200, body: { ok: true, issue, pr: plan.pr, closed: !failed.length, failed } };
     } finally {
         inFlight.delete(issue);
@@ -283,9 +323,57 @@ async function releaseMergeOnce(ctx, issueRaw, body, deps = {}) {
 }
 
 /**
- * Release Check の EPIC の topic → develop の PR を人間が GitHub でマージしていたら、EPIC を終わらせる（#2544）。
- * 見るのは Release Check のトラッカーだけ（ふつう 0〜1 件）で、1 件につき PR の一覧を 1 回読む。
- * topic は子の `autopilot-base:`（dispatch の計画が既に読んだ本文のキャッシュ）か、全部 OK の結果の PR から。
+ * `POST /release-check/close?issue=N` を 1 回受ける（「EPIC を閉じる」・#2544 の予備の口）。topic → develop の PR は
+ * merged なのに EPIC が開いたままのとき。押したときに PR を読み直して確かめてから、{@link finishEpicMerge} と同じ形で閉じる。
+ * 開いたままの子は閉じない（確かめの文で見せてある）。
+ * @param {object} ctx { cfg, state, log }
+ * @param {number|string} issueRaw
+ * @param {object} [deps] I/O の差し替え
+ * @returns {Promise<{status:number, body:object}>}
+ */
+async function releaseCloseOnce(ctx, issueRaw, deps = {}) {
+    const issue = /^\d+$/.test(String(issueRaw || '')) ? Number(issueRaw) : null;
+    if (!issue) return { status: 400, body: { error: 'issue (positive integer) required' } };
+    const { cfg, state, log } = ctx;
+    const io = { ...defaultIo(), ...deps };
+    const item = boardItem(state, issue);
+    if (!item) return { status: 404, body: { error: 'not a board item', code: 'unknown-item', issue } };
+    const offer = epicCloseOfferOf(state, item);
+    if (!offer || !offer.pr) return { status: 409, body: { error: EPIC_CLOSE_REFUSE_TEXT['no-offer'], code: 'no-offer', issue } };
+    if (state.running && typeof state.running.has === 'function' && state.running.has(issue)) {
+        return { status: 409, body: { error: 'a worker is running on this EPIC', code: 'busy', issue } };
+    }
+    if (inFlight.has(issue)) return { status: 409, body: { error: 'already sending', code: 'in-flight', issue } };
+    inFlight.add(issue);
+    try {
+        let plan;
+        try {
+            const facts = await io.getEpicMergeFacts(cfg.repo, offer.pr, await io.readToken(), {}, { files: false });
+            plan = planEpicClose({ item, pr: facts, epic: issue });
+        } catch (e) {
+            const error = sanitizeForSurface(e.message);
+            log(`#${issue}: epic close check failed: ${error}`);
+            return { status: 502, body: { error, issue } };
+        }
+        if (plan.action === 'refuse') {
+            log(`#${issue}: epic close refused (${plan.code})`);
+            return { status: 409, body: { error: plan.reason, code: plan.code, issue } };
+        }
+        const failed = await finishEpicMerge(ctx, item, io, await io.botToken(), plan.pr);
+        log(`#${issue}: EPIC closed from the monitor (PR #${plan.pr} was merged)`);
+        if (failed.length) return { status: 502, body: { error: `EPIC を閉じきれませんでした（${failed.join(' / ')}）`, issue, pr: plan.pr, failed } };
+        return { status: 200, body: { ok: true, issue, pr: plan.pr, closed: true, failed } };
+    } finally {
+        inFlight.delete(issue);
+    }
+}
+
+/**
+ * topic → develop の PR を人間が GitHub でマージしていたら、EPIC を終わらせる（#2544）。
+ * 見るのは終端でない 🧭 トラッカーで、1 件につき 1 回だけ読む: 覚えた PR（全部 OK の材料・「EPIC を閉じる」の材料）が
+ * あればその PR の状態、無ければ topic（子の `autopilot-base:` のキャッシュ）→ develop の merged な PR。
+ * Release Check の EPIC は自動で閉じ、ほかの EPIC（古い EPIC・途中で人間がマージしたもの）は開いたままの子が
+ * あり得るので「EPIC を閉じる」の材料を置いて人間に確かめる（{@link selectEpicCloseOffers}）。
  * @param {object[]} boardItems
  * @param {object} cfg
  * @param {object} state
@@ -294,29 +382,37 @@ async function releaseMergeOnce(ctx, issueRaw, body, deps = {}) {
  * @returns {Promise<number[]>} 終わらせた EPIC
  */
 async function applyReleaseMergedEpics(boardItems, cfg, state, log, deps = {}) {
-    const trackers = selectReleaseCheckTrackers(boardItems);
+    const trackers = selectTopicMergeTrackers(boardItems);
     if (!trackers.length) return [];
     const io = { ...defaultIo(), ...deps };
     const directives = state && state.directives instanceof Map ? state.directives : null;
     const baseOf = (n) => (directives && directives.get(n) ? directives.get(n).base : null);
-    const lookups = trackers.map((t) => ({
-        t, topic: epicTopicBranch(t.issue, boardItems, baseOf), cand: (state.releaseMerges && state.releaseMerges[t.issue]) || null,
-    })).filter((x) => x.topic || (x.cand && x.cand.pr));
+    const known = (n) => {
+        const x = (state.epicCloseOffers && state.epicCloseOffers[n]) || (state.releaseMerges && state.releaseMerges[n]);
+        return x && x.pr ? x.pr : null;
+    };
+    const lookups = trackers.map((t) => ({ t, pr: known(t.issue), topic: epicTopicBranch(t.issue, boardItems, baseOf) }))
+        .filter((x) => x.pr || x.topic);
     if (!lookups.length) return [];
     const readTok = await io.readToken();
     const merged = {};
-    for (const { t, topic, cand } of lookups) {
+    for (const { t, pr, topic } of lookups) {
         try {
-            if (topic) {
+            if (pr) {
+                const facts = await io.getEpicMergeFacts(cfg.repo, pr, readTok, {}, { files: false });
+                if (facts && facts.state === 'MERGED' && facts.baseRefName === 'develop') merged[t.issue] = pr;
+            } else {
                 const n = await io.findMergedTopicPr(cfg.repo, topic, 'develop', readTok);
                 if (n) merged[t.issue] = n;
-            } else {
-                const facts = await io.getEpicMergeFacts(cfg.repo, cand.pr, readTok);
-                if (facts && facts.state === 'MERGED' && facts.baseRefName === 'develop') merged[t.issue] = cand.pr;
             }
         } catch (e) {
             log(`#${t.issue}: merged topic PR lookup failed: ${sanitizeForSurface(e.message)}`);
         }
+    }
+    for (const [issue, offer] of Object.entries(selectEpicCloseOffers(boardItems, merged))) {
+        const item = trackers.find((t) => t.issue === Number(issue));
+        if (!(state.epicCloseOffers && state.epicCloseOffers[issue])) log(`#${issue}: topic → develop PR #${offer.pr} is merged -> offer "close the EPIC"`);
+        setEpicCloseOffer(state, item, offer);
     }
     const targets = selectMergedReleaseEpics(boardItems, merged);
     if (!targets.length) return [];
@@ -324,8 +420,8 @@ async function applyReleaseMergedEpics(boardItems, cfg, state, log, deps = {}) {
     const done = [];
     for (const { item, pr } of targets) {
         log(`#${item.issue}: topic → develop PR #${pr} was merged -> close the EPIC`);
-        await finishEpicMerge({ cfg, state, log }, item, io, token);
-        done.push(item.issue);
+        const failed = await finishEpicMerge({ cfg, state, log }, item, io, token, pr);
+        if (!failed.length) done.push(item.issue);
     }
     return done;
 }
@@ -503,7 +599,7 @@ function readJson(req, max, cb) {
 }
 
 /**
- * daemon の HTTP に `GET /release-check`・`POST /release-check/review`・`POST /release-check/merge` を足す。扱ったら true を返す。
+ * daemon の HTTP に `GET /release-check`・`POST /release-check/review`・`POST /release-check/merge`・`POST /release-check/close` を足す。扱ったら true を返す。
  * @param {object} req
  * @param {object} res
  * @param {URL} url
@@ -511,7 +607,7 @@ function readJson(req, max, cb) {
  * @returns {boolean}
  */
 function handleReleaseCheckHttp(req, res, url, ctx) {
-    const paths = ['/release-check', '/release-check/review', '/release-check/merge'];
+    const paths = ['/release-check', '/release-check/review', '/release-check/merge', '/release-check/close'];
     if (!ctx || !paths.includes(url.pathname)) return false;
     const send = (code, obj) => {
         res.writeHead(code, { 'content-type': 'application/json' });
@@ -526,9 +622,10 @@ function handleReleaseCheckHttp(req, res, url, ctx) {
     if (req.method !== 'POST') { send(405, { error: 'method not allowed' }); return true; }
     readJson(req, 64 * 1024, (err, body) => {
         if (err) return send(400, { error: `bad body: ${err.message}` });
-        const run = url.pathname === '/release-check/merge'
-            ? releaseMergeOnce(ctx, url.searchParams.get('issue'), body, ctx.deps)
-            : releaseReviewOnce(ctx, body, ctx.deps);
+        const issue = url.searchParams.get('issue');
+        const run = url.pathname === '/release-check/merge' ? releaseMergeOnce(ctx, issue, body, ctx.deps)
+            : url.pathname === '/release-check/close' ? releaseCloseOnce(ctx, issue, ctx.deps)
+                : releaseReviewOnce(ctx, body, ctx.deps);
         run.then((r) => send(r.status, r.body)).catch(fail);
     });
     return true;
@@ -538,5 +635,5 @@ module.exports = {
     applyReleaseCheckEntries, releaseCheckViewOnce, releaseReviewOnce, handleReleaseCheckHttp, rememberPreview,
     releasePagesPath, loadReleasePages, saveReleasePages, releasePageTemplateDir, releasePageEnv, rememberReleasePage,
     postReleasePageAnswer, releaseMergeOnce, applyReleaseMergedEpics, finishEpicMerge, releaseMergesPath, loadReleaseMerges,
-    saveReleaseMerges, rememberReleaseMerge, forgetReleaseMerge, releaseMergeOf,
+    saveReleaseMerges, rememberReleaseMerge, forgetReleaseMerge, releaseMergeOf, releaseCloseOnce, epicCloseOfferOf,
 };

@@ -2856,6 +2856,8 @@ async function refreshBoard(cfg, state, log, deps = {}) {
                 releasePageUrl: releasePageUrl(state.releasePages, it.issue),
                 // 全部 OK でマージを待っている EPIC（#2544）。「あなた宛て」の主ボタンを「develop へマージする」にする
                 releaseMerge: releaseCheckHttp.releaseMergeOf(state, it),
+                // topic → develop の PR は merged なのに開いたままの EPIC（#2544 の予備の口）。主ボタンを「EPIC を閉じる」にする
+                epicCloseOffer: releaseCheckHttp.epicCloseOfferOf(state, it),
             });
         }
         state.board = { updatedAt: cfg.now(), items: enriched };
@@ -2918,7 +2920,7 @@ async function refreshBoardAndProjectTrackers(cfg, state, log, deps = {}) {
     if (entered.length && !state.paused && !deps.noTickAfterEntry) {
         runTickOnce(cfg, state, log).catch((e) => log(`tick after release check entry error: ${e.message}`));
     }
-    // 人間が GitHub で topic → develop の PR をマージした Release Check の EPIC を閉じる（#2544）
+    // 人間が GitHub で topic → develop の PR をマージした Release Check の EPIC を閉じる（ほかの EPIC は「EPIC を閉じる」を出す・#2544）
     await releaseCheckHttp.applyReleaseMergedEpics(
         state.board ? state.board.items : [], cfg, state, log, { patchBoardCache, ...(deps.releaseMerged || {}) },
     ).catch((e) => log(`release merged epics failed: ${e.message}`));

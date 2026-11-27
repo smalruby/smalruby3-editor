@@ -498,7 +498,18 @@ daemon とのつなぎ・HTTP は `src/release-check-http.js`、段のプロン�
    - 二重押し・その EPIC で worker が走っているときは 409（`in-flight` / `busy`）。
    - **人間が GitHub でマージしたとき**も同じ終わり方にする: ボードを更新したあと、Release Check の EPIC ごとに
      topic（子の `autopilot-base:` のキャッシュ）→ develop の merged な PR を 1 回探し、あれば `finishEpicMerge` する
-     （`applyReleaseMergedEpics` / `selectMergedReleaseEpics`）。topic が分からないときは覚えた PR の状態を見る。
+     （`applyReleaseMergedEpics` / `selectMergedReleaseEpics`）。覚えた PR（全部 OK の材料・下の「EPIC を閉じる」の材料）が
+     あればその PR の状態を見る（1 件につき 1 回の read）。
+   - `finishEpicMerge` は Issue を閉じてから Project を Close にする。閉じられなかったときは Project を動かさず、
+     次のボードの更新で取り直す（閉じたあとに Project だけ失敗したら closed-reconcile がそろえる）。
+   - **予備の口「EPIC を閉じる」**: topic → develop の PR は merged なのに、Release Check でない EPIC が開いたまま
+     （古い EPIC・途中で人間がマージした・閉じるのに失敗した）のとき、終端でない 🧭 トラッカーについて同じ read で見つけ、
+     「あなた宛て」の主ボタンを **「EPIC を閉じる」** にする（`selectEpicCloseOffers`。材料は daemon のメモリだけ）。
+     確かめに開いたままの子の一覧を出す。押すと `POST /release-check/close?issue=N` で PR を読み直し（`planEpicClose`）、
+     同じ `finishEpicMerge` で閉じる。**開いたままの子は閉じない**（リリース後の作業は EPIC が閉じるのを待って始まるもの。
+     閉じるかは人間が決める）。Release Check でない EPIC は開いた子があり得るので、自動では閉じない。
+   - マージの前のファイルの確かめ（メッシュ・Bot の権限外）は、REST でページを送って全部のファイルを読む
+     （`gh pr view --json files` は 100 件で切れる）。`changedFiles` より少なければ `files-incomplete` で断る。
 
 ![全部 OK の EPIC の「develop へマージする」](screenshots/monitor-release-merge-row-light.png)
 
@@ -1601,6 +1612,7 @@ HTTP API（curl からも操作可能。POST は上の合言葉のヘッダを�
 | `POST /delegate` | body `{issue, instruction?}`。`instruction` があれば、目印付きのコメントとして Bot で PR に残してから 🙋 を外す（address-review の段だけ。空は 400・ほかの段は 409 `no-instruction-phase`・PR が無いと 409 `no-pr`）。モニターの「AI に任せる」（「モニターの『AI に任せる』」の節）。🙋 を外して（まだ分解していない EPIC は Sprint Backlog へ動かしてから）autopilot に渡し、pause 中でなければ 1 tick 回す。`{ok:true, issue, action:'release'\|'decompose', nextPhase}`。入力が違うと 400、Project に無いと 404、🙋 が無い・worker が実行中・答え待ちの質問がある・トラッカー・人間がする作業などは 409 `{error, code, issue}`、GitHub に書けないと 502 |
 | `GET /release-check` | `?issue=N`。「確認の結果を書く」のダイアログで見せる、トラッカーのいちばん新しい round の観点（`{issue, check:{round, id, body, points:[{id,title,body}], previewUrl}\|null, reviewed}`）。押したときだけ REST を 1 回。Project に無いと 404 |
 | `POST /release-check/merge` | `?issue=N`・body `{confirmOffHours?: boolean}`。全部 OK の EPIC の topic → develop の PR を確かめてから draft を外して develop へマージし、EPIC を Close にして閉じる（#2544）。確かめで断ると 409（`code` は `src/release-merge.js` の `REFUSE_TEXT` のキー。時間の外は `off-hours` + `confirm: true`）、マージの失敗は 502。Project に無いと 404 |
+| `POST /release-check/close` | `?issue=N`。topic → develop の PR は merged なのに開いたままの EPIC を、PR を読み直して確かめてから Close にして閉じる（「EPIC を閉じる」・#2544）。材料が無いと 409 `no-offer`、PR がまだ merged でないと 409 `pr-not-merged`、worker の実行中・二重押しは 409、閉じきれないと 502 |
 | `POST /release-check/review` | body `{issue, round, results:[{id:"R1", verdict:"ok"\|"ng", note?}], comment?}`。結果を目印付きのコメントとして Bot でトラッカーに書いてから 🙋 を外す（リリース確認の節）。Release Check の 🙋 待ちでないと 409 `not-release-check`、round が最新の観点と違うと 409 `stale-round`、入力が違うと 400 |
 | `POST /tick` | interval を待たず 1 サイクル即実行。`{ran, paused, picked:[...], running:[...]}` を返す。実行中は `409 {busy:true}`、pause 中は `{ran:true, paused:true, picked:[]}` の no-op |
 | `POST /pause` | 新規ディスパッチを止める（実行中はそのまま）。再起動をまたいで残す（`~/.config/autopilot/human-pause-<port>.json`） |

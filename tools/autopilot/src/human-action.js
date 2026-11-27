@@ -43,7 +43,8 @@ function developMergeWindow(nowMs) {
  * act はボタンを押して「行う」を選んだときの操作:
  * open（url を別タブで開く。リリース確認の確認ページもこれ）/ release（確認の結果を書くダイアログ）/
  * delegate（targets の 🙋 を外す）/ resolve（targets[0] の PR のコンフリクトを AI に解消してもらう）/
- * merge-epic（リリース確認が全部 OK の EPIC の topic → develop の PR をマージして EPIC を閉じる・#2544）/ null（ボタンなし）。
+ * merge-epic（リリース確認が全部 OK の EPIC の topic → develop の PR をマージして EPIC を閉じる・#2544）/
+ * close-epic（topic → develop の PR はマージ済みなのに開いたままの EPIC を閉じる・#2544）/ null（ボタンなし）。
  * @param {object} it board item（GET /board の items に humanWait の delegate を重ねたもの）
  * @param {object} [ctx] { kids: object[]（親がこの item の board item）, running: number[], questions: number[], repoUrl: string,
  *   decisions: number（この EPIC の決定待ちの件数）, now: number（ms epoch。マージの時間の外を確かめに出す） }
@@ -92,6 +93,16 @@ function humanAction(it, ctx) {
     }
     // EPIC の「いま」（#2475）: 最後の確認 / 途中の相談 / 任せる前 / 自律で進行中 のどれか 1 つ。行に epicPhase を付ける
     const phase = (p, row) => Object.assign(row, { epicPhase: p });
+    // topic → develop の PR は merged なのに EPIC が開いたまま（#2544 の予備の口）。開いたままの子は閉じずに残すので、確かめに一覧を出す
+    const offer = it.epicCloseOffer;
+    if (offer && offer.pr) {
+        const openKids = kids.map((k) => '#' + k.issue);
+        const kidNote = openKids.length ? '。開いたままの子 ' + openKids.length + ' 件（' + openKids.join('・') + '）は閉じずに残す' : '';
+        return phase('final-check', r('check', 'EPIC を閉じる',
+            'topic → develop の PR #' + offer.pr + ' はマージ済み。EPIC #' + it.issue + ' を Close にして閉じる（🙋 も外す）' + kidNote,
+            'topic → develop の PR #' + offer.pr + ' はマージ済みなのに、EPIC が開いたまま', 'close-epic',
+            repo + '/pull/' + offer.pr, [it.issue]));
+    }
     // リリース確認（#2430）: topic → develop の PR とプレビューで確かめる。確認ページ（artifact）が無いあいだは確認の結果を書くダイアログ
     if (ai === 'Release Check' && it.hitl) {
         const pr = prUrl ? 'PR #' + openPr.number : 'topic → develop の PR';

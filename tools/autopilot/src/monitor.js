@@ -1665,6 +1665,7 @@ async function doForYou(issue, btn) {
     return;
   }
   else if (w.act === 'merge-epic') { await mergeEpic(w, btn); return; }
+  else if (w.act === 'close-epic') { await closeEpic(w, btn); return; }
   else if (w.act === 'delegate' && w.targets.length > 1) { await delegateMany(w, btn); return; }
   else if (w.act === 'delegate') { for (const n of w.targets) await delegateIssue(n, btn); return; }
   rerender();
@@ -1678,9 +1679,24 @@ async function mergeEpic(w, btn) {
   if (btn) btn.disabled = true;
   try {
     const j = await postJson('/release-check/merge?issue=' + w.issue, { confirmOffHours: true });
-    toast('EPIC #' + w.issue + ': PR #' + j.pr + ' を develop へマージし、EPIC を閉じました');
+    if (j.closed) toast('EPIC #' + w.issue + ': PR #' + j.pr + ' を develop へマージし、EPIC を閉じました');
+    else toast('EPIC #' + w.issue + ': PR #' + j.pr + ' はマージしましたが、EPIC を閉じきれませんでした（「EPIC を閉じる」でやり直せます）: ' + (j.failed || []).join(' / '), true);
   } catch (e) {
     toast('EPIC #' + w.issue + ' をマージできませんでした: ' + e.message, true);
+  }
+  delete mergeRequested[w.issue];
+  await refresh();
+}
+// 「EPIC を閉じる」（#2544 の予備の口）: topic → develop の PR はマージ済みなのに開いたままの EPIC。daemon が PR を読み直してから閉じる
+async function closeEpic(w, btn) {
+  if (mergeRequested[w.issue]) return;
+  mergeRequested[w.issue] = true;
+  if (btn) btn.disabled = true;
+  try {
+    await postJson('/release-check/close?issue=' + w.issue, {});
+    toast('EPIC #' + w.issue + ' を閉じました');
+  } catch (e) {
+    toast('EPIC #' + w.issue + ' を閉じられませんでした: ' + e.message, true);
   }
   delete mergeRequested[w.issue];
   await refresh();

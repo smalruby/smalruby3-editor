@@ -47,6 +47,7 @@ const REFUSE_TEXT = {
     'ci-pending': 'PR の CI がまだ終わっていません',
     'no-ci': 'PR の CI がまだ動いていません',
     'head-changed': '全部 OK のあとに topic が変わりました（確かめた中身と違います）。もう一度リリース確認をしてください',
+    'files-incomplete': 'PR のファイルの一覧を全部読めませんでした（多すぎる）。GitHub でマージしてください',
     protected: 'Bot の権限で通らないファイル（.github/workflows など）を含みます。GitHub でマージしてください',
     'mesh-daytime': 'メッシュに関わる変更は、平日の日中は develop へマージしません（土日か夜に）',
 };
@@ -83,8 +84,8 @@ function touchesMesh(files) {
  * 押すのは人間の判断で、授業中に画面が変わる心配は人間が一番よく分かるから。メッシュに関わる変更は
  * 平日の日中は断る（確かめても通さない）。メッシュは授業で使う最も大事な機能だから。
  * @param {{readiness:object, pr:(object|null), nowMs:number, confirmOffHours?:boolean, epic:number}} p
- *   pr は `gh pr view --json number,state,isDraft,baseRefName,headRefOid,mergeable,statusCheckRollup,files` の形
- *   （files は `[{path}]` か文字列の配列）
+ *   pr は project.js の getEpicMergeFacts の形（`gh pr view` の項目 + changedFiles + files は `[{path}]` か文字列の配列。
+ *   files が changedFiles より少なければ一覧が切れているので断る）
  * @returns {{action:'refuse'|'confirm'|'merge', code?:string, reason:string, steps?:string[], pr?:number}}
  */
 function planReleaseMerge({ readiness, pr, nowMs, confirmOffHours, epic }) {
@@ -102,6 +103,8 @@ function planReleaseMerge({ readiness, pr, nowMs, confirmOffHours, epic }) {
     if (ci === 'none') return refuse('no-ci');
     if (!pr.headRefOid || pr.headRefOid !== readiness.head) return refuse('head-changed');
     const files = (pr.files || []).map((f) => (typeof f === 'string' ? f : f && f.path)).filter(Boolean);
+    // 一覧が切れていると、メッシュ・Bot の権限外のファイルを見落とす
+    if (Number.isInteger(pr.changedFiles) && files.length < pr.changedFiles) return refuse('files-incomplete');
     if (protectedPaths(files).length) return refuse('protected');
     const w = developMergeWindow(nowMs);
     if (w.weekdayDaytime && touchesMesh(files)) return refuse('mesh-daytime');
@@ -153,6 +156,56 @@ function selectReleaseCheckTrackers(boardItems) {
 }
 
 /**
+ * topic → develop の PR のマージを見るトラッカー（純粋関数）。🧭・終端でないもの（Release Check でなくても）。
+ * Release Check のものは自動で閉じ（{@link selectMergedReleaseEpics}）、ほかは「EPIC を閉じる」を出す（{@link selectEpicCloseOffers}）。
+ * @param {object[]} boardItems
+ * @returns {object[]}
+ */
+function selectTopicMergeTrackers(boardItems) {
+    return (boardItems || []).filter((it) => it && it.itemId && it.tracker && !TERMINAL_STATUSES.has(it.status));
+}
+
+/**
+ * topic → develop の PR は merged なのに、Release Check でないまま開いている EPIC（古い EPIC・途中で人間がマージした など）に
+ * 「EPIC を閉じる」を出す材料（純粋関数・#2544 の予備の口）。開いたままの子があり得るので、自動では閉じず人間に確かめる。
+ * @param {object[]} boardItems
+ * @param {object} mergedByIssue `{ [epic]: prNumber }`
+ * @returns {Object<number, {pr:number}>}
+ */
+function selectEpicCloseOffers(boardItems, mergedByIssue) {
+    const m = mergedByIssue || {};
+    const out = {};
+    for (const it of selectTopicMergeTrackers(boardItems)) {
+        if (m[it.issue] && it.aiStatus !== RELEASE_CHECK_AI_STATUS) out[it.issue] = { pr: m[it.issue] };
+    }
+    return out;
+}
+
+/**
+ * 「EPIC を閉じる」を押したときの計画（純粋関数）。PR が develop へマージ済みであることを読み直した事実で確かめる。
+ * 開いたままの子は閉じない（リリース後の作業は、EPIC が閉じるのを待って始まる・閉じるかは人間が決める）。
+ * @param {{item:(object|null), pr:(object|null), epic:number}} p pr は getEpicMergeFacts の形
+ * @returns {{action:'refuse'|'close', code?:string, reason:string, pr?:number}}
+ */
+function planEpicClose({ item, pr, epic }) {
+    const refuse = (code) => ({ action: 'refuse', code, reason: EPIC_CLOSE_REFUSE_TEXT[code] || code });
+    if (!item || TERMINAL_STATUSES.has(item.status)) return refuse('epic-closed');
+    if (!pr) return refuse('no-pr');
+    if (pr.state !== 'MERGED') return refuse('pr-not-merged');
+    if (pr.baseRefName && pr.baseRefName !== 'develop') return refuse('not-develop');
+    return { action: 'close', pr: pr.number, reason: `PR #${pr.number} は develop へマージ済み。EPIC #${epic} を Close にして閉じる` };
+}
+
+/** 「EPIC を閉じる」で断る理由の一文 */
+const EPIC_CLOSE_REFUSE_TEXT = {
+    'epic-closed': 'EPIC はもう Close です',
+    'no-offer': 'topic → develop のマージ済みの PR が見つかっていません',
+    'no-pr': 'topic → develop の PR が見つかりません',
+    'pr-not-merged': 'topic → develop の PR がまだマージされていません',
+    'not-develop': 'PR の base が develop ではありません',
+};
+
+/**
  * topic → develop の PR が merged になった Release Check の EPIC を選び、終わらせる意図を添える（純粋関数）。
  * 人間が GitHub でマージしたときも、モニターから押したときと同じ終わり方にする。
  * @param {object[]} boardItems
@@ -189,6 +242,10 @@ module.exports = {
     releaseMergeCloseIntents,
     epicTopicBranch,
     selectReleaseCheckTrackers,
+    selectTopicMergeTrackers,
+    selectEpicCloseOffers,
+    planEpicClose,
+    EPIC_CLOSE_REFUSE_TEXT,
     selectMergedReleaseEpics,
     releaseMergeCandidate,
 };

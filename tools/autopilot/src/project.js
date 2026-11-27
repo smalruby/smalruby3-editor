@@ -887,15 +887,22 @@ async function paginateJson(ghFn, path, token) {
 }
 
 /**
- * topic → develop の PR をモニターからマージする前に確かめる事実（#2544・`gh pr view` 1 回）。
- * 判断は release-merge.js の planReleaseMerge。
- * @returns {Promise<object>} `{number, state, isDraft, baseRefName, headRefName, headRefOid, mergeable, statusCheckRollup, files}`
+ * topic → develop の PR をモニターからマージする前に確かめる事実（#2544・`gh pr view` 1 回 + ファイルの一覧）。
+ * 判断は release-merge.js の planReleaseMerge。ファイルは REST でページを送って全部取る
+ * （`gh pr view --json files` は 100 件で切れ、大きな topic の PR でメッシュ・Bot の権限外のファイルを見落とすため）。
+ * REST も 3000 件までなので、`changedFiles` と比べて足りなければ planReleaseMerge が断る。
+ * @param {object} [opts] `{files: false}` でファイルの一覧を読まない（マージ済みかを見るだけのとき）
+ * @returns {Promise<object>} `{number, state, isDraft, baseRefName, headRefName, headRefOid, mergeable, statusCheckRollup,
+ *   changedFiles, files:[{path}]}`
  */
-async function getEpicMergeFacts(repo, prNumber, token, deps = {}) {
+async function getEpicMergeFacts(repo, prNumber, token, deps = {}, opts = {}) {
     const ghFn = deps.gh || gh;
     const out = await ghFn(['pr', 'view', String(prNumber), '--repo', repo, '--json',
-        'number,state,isDraft,baseRefName,headRefName,headRefOid,mergeable,statusCheckRollup,files'], { token });
-    return JSON.parse(out);
+        'number,state,isDraft,baseRefName,headRefName,headRefOid,mergeable,statusCheckRollup,changedFiles'], { token });
+    const facts = JSON.parse(out);
+    if (opts.files === false) return facts;
+    const files = await paginateJson(ghFn, `repos/${repo}/pulls/${prNumber}/files?per_page=100`, token);
+    return { ...facts, files: files.map((f) => ({ path: String((f && f.filename) || '') })).filter((f) => f.path) };
 }
 
 /**
