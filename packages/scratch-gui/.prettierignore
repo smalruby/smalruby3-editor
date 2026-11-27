@@ -57,6 +57,8 @@ src/components/*
 !src/components/classroom-modal/**
 !src/components/classroom-teacher-modal/
 !src/components/classroom-teacher-modal/**
+!src/components/carousel/
+!src/components/carousel/**
 !src/components/classroom-teacher-menu/
 !src/components/classroom-teacher-menu/**
 !src/components/classroom-teacher-kick-toast/
@@ -235,6 +237,8 @@ src/containers/*
 !src/containers/use-teacher-classrooms.js
 !src/containers/use-shared-assignments.js
 !src/containers/use-teacher-evaluation.js
+!src/containers/use-overall-grade-settings.js
+!src/containers/use-grading-rubric.js
 !src/containers/use-teacher-groups.js
 !src/containers/use-teacher-notifications.js
 !src/containers/use-teacher-submissions.js
@@ -304,6 +308,7 @@ src/lib/*
 !src/lib/classroom-evaluation/
 !src/lib/classroom-evaluation/**
 !src/lib/classroom-download-utils.js
+!src/lib/classroom-error-messages.js
 !src/lib/classroom-google-share.js
 !src/lib/classroom-class-color.js
 !src/lib/classroom-class-list-summary.js
@@ -546,6 +551,7 @@ test/unit/*
 # Level 3: test/unit/components/*
 test/unit/components/*
 !test/unit/components/action-menu.test.jsx
+!test/unit/components/carousel.test.jsx
 !test/unit/components/teacher-member-detail.test.jsx
 !test/unit/components/class-ai-settings.test.jsx
 !test/unit/components/image-viewer.test.jsx
@@ -607,6 +613,8 @@ test/unit/components/*
 !test/unit/components/classroom-tab.test.jsx
 !test/unit/components/classroom-teacher-view-layout.test.jsx
 !test/unit/components/classroom-teacher-evaluation.test.jsx
+!test/unit/components/classroom-teacher-overall-grade.test.jsx
+!test/unit/components/classroom-teacher-grading-rubric.test.jsx
 !test/unit/components/classroom-teacher-menu.test.jsx
 !test/unit/components/menu-bar-classroom.test.jsx
 !test/unit/components/menu-bar-help-menu.test.jsx
@@ -687,7 +695,9 @@ test/unit/containers/*
 !test/unit/containers/use-teacher-groups-update.test.js
 !test/unit/containers/use-teacher-notifications.test.js
 !test/unit/containers/use-teacher-evaluation-leave.test.js
+!test/unit/containers/use-grading-rubric.test.js
 !test/unit/containers/use-teacher-evaluation-stale-runs.test.js
+!test/unit/containers/use-teacher-evaluation-status.test.js
 !test/unit/containers/use-teacher-evaluation-open-work.test.js
 !test/unit/containers/use-teacher-evaluation-token-refresh.test.js
 !test/unit/containers/use-teacher-submissions-open.test.js
@@ -708,6 +718,8 @@ test/unit/containers/*
 # Level 3: test/unit/lib/*
 test/unit/lib/*
 # Smalruby-only directories
+!test/unit/lib/classroom-evaluation/
+!test/unit/lib/classroom-evaluation/**
 !test/unit/lib/dncl/
 !test/unit/lib/lessons/
 !test/unit/lib/lessons/**
@@ -739,6 +751,7 @@ test/unit/lib/*
 !test/unit/lib/scratch-blocks-ime-patch.test.js
 !test/unit/lib/avatar-initials.test.js
 !test/unit/lib/classroom-api.test.js
+!test/unit/lib/classroom-error-messages.test.js
 !test/unit/lib/classroom-student-steps.test.js
 !test/unit/lib/classroom-student-analytics.test.js
 !test/unit/lib/classroom-menu-submit.test.js
@@ -771,6 +784,7 @@ test/unit/lib/*
 !test/unit/lib/shared-author-profile.test.js
 !test/unit/lib/teacher-auth-google-signin.test.js
 !test/unit/lib/evaluation-utils.test.js
+!test/unit/lib/classroom-eval-status.test.js
 !test/unit/lib/sb3-analyzer.test.js
 !test/unit/lib/classroom-kick-request-storage.test.js
 !test/unit/lib/classroom-last-seats-storage.test.js

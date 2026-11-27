@@ -12,6 +12,7 @@
  * Pure module: no VM, no DOM, no I/O. The caller is responsible for
  * unzipping the .sb3 and parsing project.json.
  */
+import { humanizeRobotBlock } from './robot-humanize.js';
 
 /**
  * Hat detection: event hats, extension hats (…_when…), custom block defs.
@@ -222,7 +223,11 @@ const renderBlockLabel = (blocks, blockId) => {
         const argNames = [...Object.keys(block.fields || {}), ...Object.keys(block.inputs || {})].filter(
             (n) => n !== 'SUBSTACK' && n !== 'SUBSTACK2',
         );
-        const args = argNames.map((n) => `${n}=${resolveArg(blocks, block, n, renderReporter)}`).join(', ');
+        const resolved = Object.fromEntries(argNames.map((n) => [n, resolveArg(blocks, block, n, renderReporter)]));
+        // Robot blocks read as Japanese phrases for the grader (#2423).
+        const phrase = humanizeRobotBlock(block.opcode, resolved);
+        if (phrase !== null) return phrase;
+        const args = argNames.map((n) => `${n}=${resolved[n]}`).join(', ');
         return args ? `[${block.opcode}] ${args}` : `[${block.opcode}]`;
     }
     return template.replace(/\{(\w+)\}/g, (_, name) => resolveArg(blocks, block, name, renderReporter));
@@ -371,4 +376,4 @@ const analyzeProject = (projectJson) => {
     };
 };
 
-export { analyzeProject, isHatOpcode, renderBlockLabel, collectReachable };
+export { analyzeProject, isHatOpcode, renderBlockLabel, collectReachable, OPCODE_LABELS };

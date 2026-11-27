@@ -1351,6 +1351,41 @@
             "title": "`を追加する` with no spaces around the value in brackets",
             "ja": "A に (3) を追加する",
             "as": "A に 3 を追加する"
+        },
+        {
+            "title": "a closing line indented like the body closes its block opened with `:` (Issue #2058)",
+            "ja": "もし a > 0 ならば:\n    b = 1\n    を実行する\nc = 2",
+            "as": "もし a > 0 ならば:\n    b = 1\nc = 2"
+        },
+        {
+            "title": "a closing line deeper than the body closes the innermost block (Issue #2058)",
+            "ja": "もし a > 0 ならば:\n    b = 1\n        を実行する\nc = 2",
+            "as": "もし a > 0 ならば:\n    b = 1\nc = 2"
+        },
+        {
+            "title": "an empty block opened with `:` closed by an indented closing line (Issue #2058)",
+            "ja": "もし a > 0 ならば:\n    を実行する\nc = 2",
+            "as": "もし a > 0 ならば\nを実行する\nc = 2"
+        },
+        {
+            "title": "a closing line right after the `⎿` that closed its block says the same end (Issue #2058)",
+            "ja": "もし a > 0 ならば:\n｜ b = 1\n⎿ c = 1\nを実行する",
+            "as": "もし a > 0 ならば:\n｜ b = 1\n⎿ c = 1"
+        },
+        {
+            "title": "a closing line on the `⎿` line says the same end (Issue #2058)",
+            "ja": "もし a > 0 ならば:\n｜ b = 1\n｜ c = 1\n⎿ を実行する\nd = 2",
+            "as": "もし a > 0 ならば:\n｜ b = 1\n⎿ c = 1\nd = 2"
+        },
+        {
+            "title": "the comment of a closing line after the `⎿` stays after the block (Issue #2058)",
+            "ja": "もし a > 0 ならば:\n⎿ b = 1\nを実行する # おわり\nc = 2",
+            "as": "もし a > 0 ならば:\n⎿ b = 1\n# おわり\nc = 2"
+        },
+        {
+            "title": "the comment of a closing line on the `⎿` line goes with the end (Issue #2058)",
+            "ja": "もし a > 0 ならば:\n｜ b = 1\n⎿ を実行する # おわり\nc = 2",
+            "as": "もし a > 0 ならば\n｜ b = 1\nを実行する # おわり\nc = 2"
         }
     ],
     "errors": [
@@ -1364,20 +1399,6 @@
                     "line": 1,
                     "column": 0,
                     "block": "stray-closer",
-                    "word": "を実行する"
-                }
-            ]
-        },
-        {
-            "title": "a closing line deeper than its block",
-            "ja": "もし a > 0 ならば:\n    b = 1\n        を実行する",
-            "errors": [
-                {
-                    "code": "syntax",
-                    "message": "「を実行する」の字下げが合いません",
-                    "line": 3,
-                    "column": 8,
-                    "block": "closer-indent",
                     "word": "を実行する"
                 }
             ]
@@ -1680,6 +1701,34 @@
                     "block": "stray-branch",
                     "branch": "elsif",
                     "colon": true
+                }
+            ]
+        },
+        {
+            "title": "a second closing line after the `⎿` is extra (Issue #2058)",
+            "ja": "もし a > 0 ならば:\n｜ b = 1\n⎿ c = 1\nを実行する\nを実行する",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「を実行する」で閉じるブロックがありません",
+                    "line": 5,
+                    "column": 0,
+                    "block": "stray-closer",
+                    "word": "を実行する"
+                }
+            ]
+        },
+        {
+            "title": "a closing line too many for the blocks opened with `:` is extra (Issue #2058)",
+            "ja": "もし a > 0 ならば:\n    b = 1\nを実行する\nを実行する",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「を実行する」で閉じるブロックがありません",
+                    "line": 4,
+                    "column": 0,
+                    "block": "stray-closer",
+                    "word": "を実行する"
                 }
             ]
         }

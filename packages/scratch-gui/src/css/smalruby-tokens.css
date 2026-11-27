@@ -128,6 +128,8 @@ $size-button-height: 2.25rem;
 $size-button-height-small: 1.875rem;
 /* 選ばれたタブの下の線の太さ（クラス管理のタブ。#1956 Q7） */
 $size-tab-indicator: 3px;
+/* タブの最小の幅 80px（クラス管理のタブ。「形」のような 1 文字のタブも押しやすい幅にそろえる） */
+$size-tab-min-width: 5rem;
 
 /* ---- 文字 ---- */
 

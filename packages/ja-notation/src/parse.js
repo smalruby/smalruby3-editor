@@ -1054,6 +1054,19 @@ const parse = (source) => {
             ),
         );
 
+    // A closing line ends the block `⎿` marks closed just before it said again
+    // (Issue #2058): the blocks closed by the `⎿` of the last code line.
+    let markClosed = [];
+    // Close blocks by the `⎿` marks of a line.
+    const closeByMarks = (entry, count) => {
+        for (let i = 0; i < count && stack.length > 0; i++) {
+            const top = stack.pop();
+            if (!top.hasBody && top.body.length === 0) emptyBlock(top);
+            close(top, entry.line, entry.line);
+            markClosed.push(top);
+        }
+    };
+
     lines.forEach((entry) => {
         if (entry.blank) return;
         if (entry.tokens.length === 0) {
@@ -1078,11 +1091,30 @@ const parse = (source) => {
         }
         const continuesIf = block && (block.kind === 'elsif' || block.kind === 'else');
         const closes = block && block.kind === 'close';
+        const closed = markClosed;
+        markClosed = [];
+        // A closing line right after the `⎿` that closed its block, at the
+        // indent of that block, says the same end: it is read as nothing (its
+        // comment stays, after the block).
+        if (closes && entry.closeCount === 0) {
+            const index = closed.findIndex(
+                (done) => done.width === entry.width && closerOf(done.node) === block.word,
+            );
+            if (index >= 0) {
+                markClosed = closed.filter((_done, i) => i !== index);
+                if (entry.comment !== null) {
+                    currentBody().push({ type: 'Comment', text: entry.comment, line: entry.line, column: 0 });
+                }
+                return;
+            }
+        }
         // Blocks written with indentation end at the first line that is not deeper.
         while (stack.length > 0) {
             const top = stack[stack.length - 1];
             if (top.mode === 'closer') break;
             if (!top.hasBody) {
+                // A deeper closing line of an empty block closes it (Issue #2058).
+                if (entry.width > top.width && closes) break;
                 if (entry.width > top.width) {
                     top.hasBody = true;
                     break;
@@ -1109,7 +1141,10 @@ const parse = (source) => {
                 );
                 return;
             }
-            if (top.mode === 'indent' && (entry.width > top.width || block.word === END_WORD)) {
+            // A closing word may end a block opened with `:` too, at any indent
+            // deeper than it: it closes the innermost block (Issue #2058). Only
+            // `end` must be in a block opened without `:`.
+            if (top.mode === 'indent' && block.word === END_WORD) {
                 errors.push(
                     makeError('syntax', `「${block.word}」の字下げが合いません`, entry.line, column, {
                         block: 'closer-indent',
@@ -1150,6 +1185,9 @@ const parse = (source) => {
             top.node.closeOwnLine = true;
             if (entry.comment !== null) top.node.closeComment = entry.comment;
             lastCodeLine = entry.line;
+            // On a `⎿` line (`⎿ を実行する`) the closing word is the end of the
+            // first `⎿`; the other marks close the blocks around it.
+            closeByMarks(entry, entry.closeCount - 1);
             return;
         }
         if (continuesIf) {
@@ -1197,11 +1235,7 @@ const parse = (source) => {
             currentBody().push(...statements);
         }
         lastCodeLine = entry.line;
-        for (let i = 0; i < entry.closeCount && stack.length > 0; i++) {
-            const top = stack.pop();
-            if (!top.hasBody && top.body.length === 0) emptyBlock(top);
-            close(top, entry.line, entry.line);
-        }
+        closeByMarks(entry, entry.closeCount);
     });
     while (stack.length > 0) {
         const top = stack.pop();

@@ -38,7 +38,6 @@ const {
     statusRank,
     orderItemsLikeBoard,
     selectActionable,
-    shouldResend,
     evaluate,
     sanitizeForSurface,
     isAuthError,
@@ -109,16 +108,6 @@ const {
     addressReviewPolicyFor,
 } = require('../src/phases');
 const { PROMPT_RE } = require('../src/runner');
-
-test('shouldResend: resend after accept window if attempts remain', () => {
-    const cfg = { maxAttempts: 4, acceptWindowMs: 8000 };
-    // まだ猶予内 -> 再送しない
-    assert.equal(shouldResend({ sinceSendMs: 5000, attempts: 1, ...cfg }), false);
-    // 猶予超過 & 上限内 -> 再送
-    assert.equal(shouldResend({ sinceSendMs: 9000, attempts: 1, ...cfg }), true);
-    // 上限到達 -> 再送しない
-    assert.equal(shouldResend({ sinceSendMs: 9000, attempts: 4, ...cfg }), false);
-});
 
 test('phaseForItem: New Item -> triage', () => {
     assert.equal(phaseForItem({ status: 'New Item' }), 'triage');
@@ -2136,4 +2125,57 @@ test('authNoticeKind: 起動中・起動待ち（SSO / SSO 以外）・稼働中
     assert.equal(authNoticeKind({ booting: true, authError: 'x', bootSsoDone: true }), 'boot-not-sso');
     assert.equal(authNoticeKind({ authError: 'x' }), 'auth');
     assert.equal(authNoticeKind({}), null);
+});
+
+// === 人間の pause の引き継ぎと、起動時のレート制限待ち（#2384） ===
+
+test('isRateLimitError: GraphQL の一次・二次レート制限を拾い、ほかは拾わない', () => {
+    const { isRateLimitError } = require('../src/phases');
+    assert.equal(isRateLimitError(new Error('GraphQL: API rate limit exceeded for installation ID 123')), true);
+    assert.equal(isRateLimitError({ message: 'gh failed', stderr: 'You have exceeded a secondary rate limit' }), true);
+    assert.equal(isRateLimitError('API rate limit exceeded for user'), true);
+    assert.equal(isRateLimitError(new Error('getaddrinfo ENOTFOUND api.github.com')), false);
+    assert.equal(isRateLimitError(null), false);
+});
+
+test('bootRateLimitWait: 残量 0 の資源のリセットの少し後まで待ち、1 回は 10 分で区切る', () => {
+    const { bootRateLimitWait } = require('../src/phases');
+    const now = 1_000_000_000_000;
+    const resetSec = (now + 120_000) / 1000;
+    const r = bootRateLimitWait({ core: { remaining: 4000, reset: 1 }, graphql: { remaining: 0, reset: resetSec } }, now, 0);
+    assert.equal(r.resetAt, now + 120_000);
+    assert.equal(r.waitMs, 130_000);
+    const far = bootRateLimitWait({ graphql: { remaining: 0, reset: (now + 3_600_000) / 1000 } }, now, 0);
+    assert.equal(far.waitMs, 600_000);
+    const soon = bootRateLimitWait({ graphql: { remaining: 0, reset: (now + 1000) / 1000 } }, now, 0);
+    assert.equal(soon.waitMs, 30_000);
+});
+
+test('bootRateLimitWait: リセットが分からなければ 30 秒から倍々（最長 10 分）', () => {
+    const { bootRateLimitWait } = require('../src/phases');
+    assert.deepStrictEqual(bootRateLimitWait(null, 0, 0), { waitMs: 30_000, resetAt: null });
+    assert.equal(bootRateLimitWait(null, 0, 2).waitMs, 120_000);
+    assert.equal(bootRateLimitWait({ graphql: { remaining: 10, reset: 999 } }, 0, 1).waitMs, 60_000);
+    assert.equal(bootRateLimitWait(null, 0, 50).waitMs, 600_000);
+    // リセット時刻が過去（もう戻っているはず）なら倍々に落とす
+    assert.equal(bootRateLimitWait({ graphql: { remaining: 0, reset: 1 } }, 10_000_000, 0).resetAt, null);
+});
+
+test('restoredHumanPause / humanPauseFileAction: 人間の pause だけを残して戻す', () => {
+    const { restoredHumanPause, humanPauseFileAction } = require('../src/phases');
+    assert.deepStrictEqual(restoredHumanPause({ pausedBy: 'human', pausedAt: '2026-11-25T00:00:00.000Z' }),
+        { paused: true, pausedBy: 'human', pausedAt: '2026-11-25T00:00:00.000Z' });
+    assert.equal(restoredHumanPause({ pausedBy: 'auth' }), null);
+    assert.equal(restoredHumanPause(null), null);
+    assert.equal(restoredHumanPause('x'), null);
+    assert.equal(humanPauseFileAction({ paused: true, pausedBy: 'human' }), 'write');
+    assert.equal(humanPauseFileAction({ paused: true, pausedBy: 'auth' }), 'remove');
+    assert.equal(humanPauseFileAction({ paused: true, pausedBy: 'usage' }), 'remove');
+    assert.equal(humanPauseFileAction({ paused: false, pausedBy: null }), 'remove');
+});
+
+test('authNoticeKind: 起動待ちのレート制限は boot-rate-limit（#2384）', () => {
+    const { authNoticeKind } = require('../src/phases');
+    assert.equal(authNoticeKind({ booting: true, bootWait: { reason: 'rate-limit' } }), 'boot-rate-limit');
+    assert.equal(authNoticeKind({ booting: false, bootWait: { reason: 'rate-limit' } }), null);
 });

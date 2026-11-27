@@ -95,11 +95,11 @@ const MyBlocksConverter = {
 
             args.forEach((arg, i) => {
                 const argumentId = procedure.argumentIds[i];
-                if (converter._isFalseOrBooleanBlock(arg)) {
-                    if (procedure.argumentVariables[i].isBoolean) {
-                        converter._addBooleanInput(block, argumentId, arg);
-                        return;
-                    }
+                // Checked only for a boolean argument: `_isFalseOrBooleanBlock` makes an argument of the caller
+                // a boolean argument, so passing it on to a number or string argument was an error (issue #2126).
+                if (procedure.argumentVariables[i].isBoolean && converter._isFalseOrBooleanBlock(arg)) {
+                    converter._addBooleanInput(block, argumentId, arg);
+                    return;
                 }
                 if (
                     !procedure.argumentVariables[i].isBoolean &&

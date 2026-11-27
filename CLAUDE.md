@@ -211,8 +211,15 @@ docker compose run --rm app bash -c "cd packages/scratch-gui && npm exec jest te
 ### Linting
 
 ```bash
+# 手元では、変えたファイルだけを検査する（全体は CI が流す）
+bin/lint-changed
+
+# 全体（重い。CI と同じものを手元で確かめたいときだけ）
 docker compose run --rm app npm run lint
 ```
+
+ルートの `npm run lint` は、全パッケージの全ファイルに eslint と prettier をかけるので重い。
+手元では `bin/lint-changed` を使う（重い処理の一覧は `.claude/rules/parallel-work.md`）。
 
 **IMPORTANT**: Lint must pass with **zero errors AND zero warnings**. The `scratch-gui` package uses `--max-warnings 0` to enforce this. Fix all warnings (including JSDoc issues) before committing.
 
@@ -371,7 +378,7 @@ Follow TDD (Test-Driven Development) approach:
 
 - UI behavior and features that involve browser interaction should use **integration tests**, not unit tests.
 - **Local testing**: Run only the **directly affected test files** and **lint** before committing and pushing. Full test suites (unit + integration) are run by CI.
-  - Run lint: `docker compose run --rm app npm run lint`
+  - Run lint on the changed files only: `bin/lint-changed` (the full `npm run lint` runs in CI)
   - Run specific tests: `docker compose run --rm app bash -c "cd packages/scratch-gui && npm exec jest test/unit/lib/your-test.test.js"`
 - **CI testing**: The full test suite runs automatically on push. Do not wait for full local test runs before committing — trust CI for comprehensive regression detection.
 
@@ -382,7 +389,7 @@ Follow TDD (Test-Driven Development) approach:
 - **修正したあとにローカルで流すテストは、その修正に関係するものだけに絞る。** 次のテストファイルを 1 つずつ指定して流す。
   - 足したテストファイル、変えたテストファイル。
   - 変えたソースのテストファイル。
-  - 加えて lint を通す。
+  - 加えて lint を通す。lint は変えたファイルだけ（`bin/lint-changed`）。ルートの `npm run lint`（全体）は流さない。
 - **テストの全体実行は、PR を作って CI で行う。** ローカルで直接関係するテストと lint が通ったら、早めに push して PR を作る。広い範囲の退行は CI の結果で確かめる。
 - **ディレクトリ全体をまとめて流さない。** 例: `test/unit/lib/ruby-to-blocks-converter/`、`test/unit/lib/ruby-roundtrip/`。`npm test`、`npm run test:unit`、`npm run test:integration` もローカルでは流さない。
 - **例外**: 全体を流してその結果を得なければ先へ進めないときだけ、ローカルで全体を流してよい。そのときは、なぜ全体が必要かを PR 本文か報告に書く。

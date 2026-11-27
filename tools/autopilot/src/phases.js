@@ -33,6 +33,23 @@ function autopilotHeadBranch(issueNumber, prefix = AUTOPILOT_BRANCH_PREFIX) {
 }
 
 /**
+ * Issue にひも付く PR の一覧から「マージ済み」とみなすか（純粋関数・#831 / #2498）。
+ *
+ * マージ済みの PR が 1 つでもあれば true。ただし **open の PR が 1 つでもあれば false**。
+ * 同じ head ブランチ（`topic/autopilot-<N>`）で PR を分けて出す Issue では、前の PR がマージ済みでも
+ * いま開いている PR が本物で、人間のレビュー待ち。前の PR を見て Close へ進めると Issue を
+ * 早く閉じてしまう（#1934 で起きた）。CLOSED（マージせずに閉じた）PR は判断に使わない。
+ * 入力は `gh pr list --json state` の `{state}` でも、GraphQL の `{merged, state}` でもよい。
+ * @param {Array<{state?:string, merged?:boolean}>} prs
+ * @returns {boolean}
+ */
+function hasMergedHeadPr(prs) {
+    const list = (Array.isArray(prs) ? prs : []).filter(Boolean);
+    if (list.some((p) => p.state === 'OPEN')) return false;
+    return list.some((p) => p.state === 'MERGED' || p.merged === true);
+}
+
+/**
  * 宣言 base を「追従に使う ref（`origin/<branch>`）」へ正規化する（純粋関数・#950）。
  *
  * autopilot の worktree ブランチは作成時点の base から分岐するが、その後 base が前進しても
@@ -308,15 +325,50 @@ function shouldCleanupWorktree(facts = {}) {
  * worker が UI 確認で起動した dev server は tmux を閉じても残り、8601 をふさいだり古いコードの UI を
  * 返したりする。止める対象を広げすぎないよう、`webpack serve` / `webpack-dev-server` / `npm [run] start`
  * だけを拾う（`webpack --mode production` のようなビルドや jest は含めない）。
+ *
+ * webpack-cli は `process.title = "webpack"` で自分のコマンドラインを `webpack` だけに書き換える。
+ * `webpack serve` だけを探すと npm と sh だけが止まり、webpack のプロセスそのものは親を失って残る
+ * （2.4 GB まで大きくなった・#2463）。だから引数の無い `webpack` も拾う。書き換えたあとはビルドと
+ * 見分けられないが、止めるのは終わった worker の worktree に残ったものだけなので、ビルドでも残りとして止めてよい。
  * @param {string} cmd 引数を空白でつないだコマンドライン（`/proc/<pid>/cmdline` 相当）
  * @returns {boolean}
  */
 function isDevServerCommand(cmd) {
     if (!cmd) return false;
     const s = String(cmd);
-    return /\bwebpack(?:\.js)?\s+serve\b/.test(s)
+    return /^\s*webpack\s*$/.test(s)
+        || /\bwebpack(?:\.js)?\s+serve\b/.test(s)
         || /\bwebpack-dev-server\b/.test(s)
         || /(?:^|[\s/])npm(?:-cli\.js)?\s+(?:run\s+)?start\b/.test(s);
+}
+
+/** worker が残すブラウザの実行ファイル名（Selenium の chromedriver・chromium、Playwright の headless_shell・#2463） */
+const BROWSER_EXECUTABLES = new Set(['chromedriver', 'chromium', 'chromium-browser', 'headless_shell', 'chrome']);
+
+/**
+ * プロセスのコマンドラインがブラウザ（chromedriver・chromium・headless_shell）かを判定する（純粋関数・#2463）。
+ *
+ * integration テストや pw-check を途中で止めると、ブラウザが親を失って残り、作業場が消えたあとも
+ * 動き続ける。実行ファイル（先頭の語）の名前だけで見て、引数にブラウザの名前が出るだけのもの
+ * （`pgrep -af chromium` や jest）は含めない。
+ * @param {string} cmd 引数を空白でつないだコマンドライン
+ * @returns {boolean}
+ */
+function isBrowserCommand(cmd) {
+    if (!cmd) return false;
+    const exe = String(cmd).trim().split(/\s+/)[0] || '';
+    return BROWSER_EXECUTABLES.has(exe.split('/').pop());
+}
+
+/**
+ * worker が残しうるプロセスの種類を返す（純粋関数・#2463）。
+ * @param {string} cmd
+ * @returns {'dev-server'|'browser'|null}
+ */
+function leftoverKind(cmd) {
+    if (isDevServerCommand(cmd)) return 'dev-server';
+    if (isBrowserCommand(cmd)) return 'browser';
+    return null;
 }
 
 /**
@@ -339,12 +391,13 @@ function worktreeIssueFromCwd(cwd, worktreeRoot) {
 }
 
 /**
- * 止める dev server を選ぶ（純粋関数・#1381）。プロセスの列挙と停止は daemon 側。
+ * worker が残した dev server とブラウザから止めるものを選ぶ（純粋関数・#1381・#2463）。
+ * プロセスの列挙と停止は daemon 側。種類は {@link leftoverKind}。
  *
  * - `issues` を渡したとき（run の終了・worktree の削除）: その Issue の worktree のものだけ（reason=`target`）。
  * - `issues` が無いとき（tick の掃除）: cwd が消えた worktree のもの（`cwd-deleted`）と、終端 Issue の
  *   worktree のもの（`terminal-issue`）。
- * どちらの場合も、autopilot の worktree 外・dev server でないもの・実行中の Issue・自分自身は止めない。
+ * どちらの場合も、autopilot の worktree 外・dev server でもブラウザでもないもの・実行中の Issue・自分自身は止めない。
  * @param {Array<{pid: number, cwd: string, cwdDeleted?: boolean, cmd: string}>} procs
  * @param {object} opts
  * @param {string} opts.worktreeRoot
@@ -352,23 +405,25 @@ function worktreeIssueFromCwd(cwd, worktreeRoot) {
  * @param {Iterable<number>} [opts.terminalIssues] Status が終端（Close / Done）の Issue
  * @param {Iterable<number>} [opts.runningIssues] worker が実行中の Issue
  * @param {number} [opts.selfPid]
- * @returns {Array<{pid: number, issue: number, cwd: string, reason: 'target'|'cwd-deleted'|'terminal-issue'}>}
+ * @returns {Array<{pid: number, issue: number, cwd: string, kind: 'dev-server'|'browser',
+ *   reason: 'target'|'cwd-deleted'|'terminal-issue'}>}
  */
-function selectDevServersToStop(procs, opts = {}) {
+function selectLeftoversToStop(procs, opts = {}) {
     if (!Array.isArray(procs) || !opts.worktreeRoot) return [];
     const targets = Array.isArray(opts.issues) ? new Set(opts.issues) : null;
     const terminal = new Set(opts.terminalIssues || []);
     const running = new Set(opts.runningIssues || []);
     const out = [];
     for (const p of procs) {
-        if (!p || p.pid === opts.selfPid || !isDevServerCommand(p.cmd)) continue;
+        const kind = p && p.pid !== opts.selfPid ? leftoverKind(p.cmd) : null;
+        if (!kind) continue;
         const issue = worktreeIssueFromCwd(p.cwd, opts.worktreeRoot);
         if (issue == null || running.has(issue)) continue;
         let reason = null;
         if (targets) reason = targets.has(issue) ? 'target' : null;
         else if (p.cwdDeleted) reason = 'cwd-deleted';
         else if (terminal.has(issue)) reason = 'terminal-issue';
-        if (reason) out.push({ pid: p.pid, issue, cwd: p.cwd, reason });
+        if (reason) out.push({ pid: p.pid, issue, cwd: p.cwd, kind, reason });
     }
     return out;
 }
@@ -432,6 +487,9 @@ const PHASE_BY_COMMAND = {
     // モニタのボタン（POST /resolve-conflict）か、着手時の base 追従のコンフリクトから起動する。
     // AI Status は実行中だけこの値にし、終わったら元に戻す（daemon の dispatchResolveConflict）。
     'resolve-conflict': { skill: 'autopilot-resolve-conflict', aiStatus: 'Resolving Conflicts' },
+    // 分解済み EPIC（🧭 トラッカー）のリリース確認（#2430）。子が全部済んだら daemon が AI Status を
+    // Release Check にし、このフェーズが確認の観点をまとめる / 人間の確認の結果を受ける（release-check.js）。
+    'release-check': { skill: 'autopilot-release-check', aiStatus: 'Release Check' },
 };
 
 /**
@@ -488,9 +546,13 @@ const PROMPT_DIR = 'tools/autopilot/prompts';
  *   絶対パスを渡す（checkout のブランチ切り替えに非依存）。省略時は worktree 内の相対パス。
  * @returns {string} 送信メッセージ
  */
-function phasePromptCommand(skill, issue, promptDir = PROMPT_DIR) {
-    return `${promptDir}/${skill}.md を Read して、その手順に厳密に従ってください。` +
+function phasePromptCommand(skill, issue, promptDir = PROMPT_DIR, opts = {}) {
+    const base = `${promptDir}/${skill}.md を Read して、その手順に厳密に従ってください。` +
         `対象 Issue は AUTOPILOT_ISSUE=${issue} です。`;
+    // モニターで人間が答えた質問があれば、その答えのファイル（AUTOPILOT_ANSWERS_FILE）を先に読ませる。
+    // 1 行で送る（send-keys で改行すると途中で送信されるため、答えの本文はファイルに置く）。
+    if (!opts.answersFile) return base;
+    return `${base}人間がモニターで質問に答えています。先に ${opts.answersFile} を Read し、その答えに従ってください。`;
 }
 
 /**
@@ -609,16 +671,42 @@ function toMs(t) {
  * いないか」を address-review 自身が判定する。時刻の watermark ではなくレビュー ID を残す
  * ので、daemon の再起動やコメントの前後関係に左右されず、同じレビューに二重対応しない。
  */
-const ADDRESS_REVIEW_MARKER_RE = /<!--\s*autopilot-address-review\s+handled-reviews=([\d,\s]*)-->/g;
+// ID の一覧の空白は以前の形でも受けていたので、いまも受ける（`1, 2` と書かれたマーカーを無視しない）
+const ADDRESS_REVIEW_MARKER_RE =
+    /<!--\s*autopilot-address-review\s+handled-reviews=([\d,\s]*?)(?:\s*handled-instructions=([\d,\s]*?))?\s*-->/g;
+
+/** ID の配列を「正の整数・重複なし」にそろえる（内部用） */
+function uniquePositiveIds(ids) {
+    return [...new Set((ids || []).map(Number).filter((n) => Number.isInteger(n) && n > 0))];
+}
 
 /**
- * 対応した Request changes レビューの ID からマーカーを作る（純粋関数）。
+ * 対応した Request changes レビューの ID（と、対応したモニターの指示コメントの ID・#2415）から
+ * マーカーを作る（純粋関数）。指示コメントが無ければ従来の形のまま（後方互換）。
  * @param {Array<number|string>} reviewIds
+ * @param {Array<number|string>} [instructionIds] {@link selectMonitorInstructions} で選んだコメントの ID
  * @returns {string}
  */
-function addressReviewMarker(reviewIds) {
-    const ids = [...new Set((reviewIds || []).map(Number).filter((n) => Number.isInteger(n) && n > 0))];
-    return `<!-- autopilot-address-review handled-reviews=${ids.join(',')} -->`;
+function addressReviewMarker(reviewIds, instructionIds) {
+    const ids = uniquePositiveIds(reviewIds);
+    const ins = uniquePositiveIds(instructionIds);
+    const tail = ins.length ? ` handled-instructions=${ins.join(',')}` : '';
+    return `<!-- autopilot-address-review handled-reviews=${ids.join(',')}${tail} -->`;
+}
+
+/** マーカーの n 番目の捕捉（1 = レビュー、2 = 指示コメント）の ID を集める（内部用） */
+function collectHandledIds(comments, group) {
+    const out = new Set();
+    for (const c of comments || []) {
+        const body = (c && c.body) || '';
+        for (const m of body.matchAll(ADDRESS_REVIEW_MARKER_RE)) {
+            for (const id of String(m[group] || '').split(',')) {
+                const n = Number(id.trim());
+                if (Number.isInteger(n) && n > 0) out.add(n);
+            }
+        }
+    }
+    return out;
 }
 
 /**
@@ -627,17 +715,121 @@ function addressReviewMarker(reviewIds) {
  * @returns {Set<number>}
  */
 function handledReviewIds(comments) {
-    const out = new Set();
-    for (const c of comments || []) {
-        const body = (c && c.body) || '';
-        for (const m of body.matchAll(ADDRESS_REVIEW_MARKER_RE)) {
-            for (const id of m[1].split(',')) {
-                const n = Number(id.trim());
-                if (Number.isInteger(n) && n > 0) out.add(n);
-            }
-        }
-    }
-    return out;
+    return collectHandledIds(comments, 1);
+}
+
+/**
+ * PR のコメント群から、対応済みのモニターの指示コメントの ID を集める（純粋関数・#2415）。
+ * @param {Array<{body?: string}>} comments
+ * @returns {Set<number>}
+ */
+function handledInstructionIds(comments) {
+    return collectHandledIds(comments, 2);
+}
+
+/**
+ * モニターの「AI に直してもらう」で人間が書いた指示を、daemon が Bot で PR に残すコメントの目印（#2415）。
+ * Bot は自分の PR に Request changes を出せないので、レビューではなく目印付きのコメントにする。
+ * 人間がふつうに書いたコメントは指示として扱わない（目印付き・Bot 名義だけ）。
+ */
+const MONITOR_INSTRUCTION_MARKER = '<!-- autopilot-monitor-instruction -->';
+
+/** 指示の文の上限（GitHub のコメントの上限よりずっと小さく。長い指示は Request changes で） */
+const MAX_MONITOR_INSTRUCTION = 4000;
+
+/**
+ * コメントがモニターの指示コメントか（純粋関数・#2415）。目印があり、書いたのが Bot であること
+ * （user が無い形 = daemon の listIssueComments のときは目印だけで見る）。
+ * @param {{body?:string, user?:object}} comment
+ * @returns {boolean}
+ */
+function isMonitorInstructionComment(comment) {
+    if (!comment || !String(comment.body || '').includes(MONITOR_INSTRUCTION_MARKER)) return false;
+    return comment.user === undefined || isBotUser(comment.user);
+}
+
+/**
+ * 指示コメントの本文から、人間が書いた指示の文だけを取り出す（純粋関数・#2415）。
+ * {@link renderMonitorInstructionComment} の逆。
+ * @param {string} body
+ * @returns {string}
+ */
+function monitorInstructionText(body) {
+    const s = String(body || '');
+    const i = s.indexOf(MONITOR_INSTRUCTION_MARKER);
+    if (i < 0) return '';
+    const rest = s.slice(i + MONITOR_INSTRUCTION_MARKER.length).replace(/^\s*\n/, '');
+    // 2 行目は「モニターから <login> の指示」の見出し、その下の空行のあとが本文
+    return rest.replace(/^[^\n]*\n\n?/, '').trim();
+}
+
+/**
+ * モニターの指示コメントの本文（純粋関数・#2415）。Bot 名義なので、誰の指示かを本文に書く。
+ * @param {{text:string, login?:(string|null)}} p
+ * @returns {string}
+ */
+function renderMonitorInstructionComment({ text, login }) {
+    const who = login ? `@${String(login).replace(/^@/, '')}` : '人間';
+    return [
+        MONITOR_INSTRUCTION_MARKER,
+        // `@` は通知が飛ぶのでコードにする
+        `🖥️ モニターから ${login ? '`' + who + '`' : who} の指示（autopilot が代わりに投稿しています）`,
+        '',
+        String(text || '').trim(),
+    ].join('\n');
+}
+
+/**
+ * address-review が対応するモニターの指示コメントを選ぶ（純粋関数・#2415）。
+ * {@link selectRequestedReviews} と同じく、対応済みかはまとめコメントのマーカー
+ * （{@link addressReviewMarker} の handled-instructions）で見る（時刻や daemon の状態ファイルは使わない・I5）。
+ * @param {Array<{id:(number|string), body?:string, user?:object, created_at?:string}>} comments PR の会話コメント
+ * @returns {Array<object>} created_at の古い順（無ければ渡された順）
+ */
+function selectMonitorInstructions(comments) {
+    const handled = handledInstructionIds(comments);
+    return (comments || [])
+        .map((c, i) => ({ c, i }))
+        .filter(({ c }) => isMonitorInstructionComment(c) && !handled.has(Number(c.id)))
+        .sort((a, b) => (toMs(a.c.created_at) - toMs(b.c.created_at)) || (a.i - b.i))
+        .map(({ c }) => c);
+}
+
+/**
+ * `POST /delegate` の指示つきの body を検証する（純粋関数・#2415）。`instruction` が無ければ従来の
+ * 「AI に任せる」（null）。あれば空白だけ・長すぎるものを断る。
+ * @param {object} body
+ * @returns {{ok:boolean, error?:string, instruction?:(string|null)}}
+ */
+function normalizeDelegateInstruction(body) {
+    if (!body || body.instruction === undefined || body.instruction === null) return { ok: true, instruction: null };
+    if (typeof body.instruction !== 'string') return { ok: false, error: 'instruction must be a string' };
+    const text = body.instruction.replace(/\r\n?/g, '\n').trim();
+    if (!text) return { ok: false, error: 'instruction is empty' };
+    if (text.length > MAX_MONITOR_INSTRUCTION) return { ok: false, error: `instruction is too long (max ${MAX_MONITOR_INSTRUCTION})` };
+    return { ok: true, instruction: text };
+}
+
+/**
+ * 指示コメントを投稿するか（純粋関数・#2415）。押し直し（🙋 を外すのに失敗したなど）で同じ指示を
+ * 二重に書かないよう、まだ対応していない指示コメントに同じ文があれば書かない。
+ * @param {Array<object>} comments PR の会話コメント
+ * @param {string} text 指示の文（{@link normalizeDelegateInstruction} 済み）
+ * @returns {{action:'post'|'skip', existingId?:(number|string)}}
+ */
+function planMonitorInstructionPost(comments, text) {
+    const same = selectMonitorInstructions(comments).find((c) => monitorInstructionText(c.body) === String(text || '').trim());
+    return same ? { action: 'skip', existingId: same.id } : { action: 'post' };
+}
+
+/**
+ * board item の PR から、指摘と指示を扱う PR（開いているもの）を選ぶ（純粋関数・#2415）。
+ * @param {Array<{number:number, state?:string}>} prs
+ * @returns {number|null}
+ */
+function openPrNumber(prs) {
+    const p = (prs || []).find((x) => x && x.state !== 'MERGED' && x.state !== 'CLOSED');
+    return p ? p.number : null;
 }
 
 /** REST のユーザーが bot か（GitHub App / `[bot]` 接尾辞） */
@@ -702,11 +894,16 @@ function extractCommentRefs(text) {
  * コメントで worker が動き出すと、人間が気軽にコメントできないため。対応してほしいことは
  * Request changes にまとめ、🙋 を外して渡す（address-review が対応するのはその Request changes
  * だけ・{@link selectRequestedReviews}）。
+ * もう 1 つの合図は、モニターの「答えて先へ進める」（人間の明示操作）を受けて daemon が 🙋 を外したこと
+ * （`ctx.monitorReleased`・{@link withMonitorReleases}）。daemon はラベルを外してから立てるので
+ * 「🙋 を外したら開く」と同じ意味で、ラベルの読み直しが遅れても開くようにするためのもの。
+ * 「メモだけ保存」やコメントでは立たない。
  * @param {object} item { hitlLabel }
- * @param {object} ctx { hitlSignals }
+ * @param {object} ctx { hitlSignals, monitorReleased }
  * @returns {boolean}
  */
 function isGateReleased(item, ctx = {}) {
+    if (ctx.monitorReleased) return true;
     return ctx.hitlSignals ? isHitlReleased(ctx.hitlSignals) : !(item && item.hitlLabel);
 }
 
@@ -811,6 +1008,14 @@ const HUMAN_GATE_STATUSES = new Set(['Review', 'DoD']);
 const AWAITING_CONTINUATION_STATUS = 'Awaiting Continuation';
 
 /**
+ * 分解済み EPIC（🧭 トラッカー）のリリース確認の AI Status（#2430）。Status は In Progress のまま。
+ * 子が全部済んだ（または残りが 🚀 after-release だけ）とき daemon が EPIC Decomposed からこの値にする
+ * （release-check.js の `releaseCheckEntryIntents`）。🙋 なしなら release-check フェーズが走り、
+ * 🙋 ありは人間の番（プレビューで確かめ、モニターの「確認の結果を書く」で結果を送ると 🙋 が外れる）。
+ */
+const RELEASE_CHECK_AI_STATUS = 'Release Check';
+
+/**
  * Project item から「次に autopilot が自律実行すべきフェーズ」を決める（純粋関数）。
  * 人間駆動の状態（Close/Backlog/Icebox/Paused）や 🙋 ラベルあり（人間の番）では null（何もしない）。
  *
@@ -824,6 +1029,12 @@ const AWAITING_CONTINUATION_STATUS = 'Awaiting Continuation';
  */
 function phaseForItem(item, ctx = {}) {
     if (!item) return null;
+    // リリース確認（#2430）: 分解済み EPIC で唯一の AI の段。🙋 を外したときだけ進む（I2〜I3）。
+    // 観点をまとめるか、結果を受けるかは、プロンプトがトラッカーの目印付きコメントから決める
+    // （release-check.js の releaseCheckMode）。
+    if (hasTrackingLabel(item) && item.status === 'In Progress' && item.aiStatus === RELEASE_CHECK_AI_STATUS) {
+        return isGateReleased(item, ctx) ? 'release-check' : null;
+    }
     // 🧭 tracking ラベル付き = 分解済みの親トラッカー。作業 item ではないので何もしない
     // （完了は closed-reconcile が拾う）。Kind=EPIC でも未分解なら decompose 対象なので
     // ここではラベルだけを見る。
@@ -834,7 +1045,12 @@ function phaseForItem(item, ctx = {}) {
         // 開いたら必ず address-review へ渡す（#815/#821）。address-review は、まだ対応していない
         // Request changes のレビュー（selectRequestedReviews）で指定されたことだけに対応する。
         // 無ければ何もせず人間の merge を待つ。指定の意図の解釈はスキル側に置く（daemon は dispatch のみ）。
-        return isGateReleased(item, ctx) ? 'address-review' : null;
+        if (!isGateReleased(item, ctx)) return null;
+        // EPIC の流れ（PR の base が topic・#2385）: Review + 🙋 なしは「Must 0 で自動マージ待ち」。
+        // 出口は daemon の自動マージ（epic-merge.js の applyEpicAutoMerge）。ctx.autoMerge は
+        // epic-flow.js の markAutoMergeContexts が gate ctx の prBase から立てる。
+        if (status === 'Review' && ctx.autoMerge) return null;
+        return 'address-review';
     }
     // Blocked も人間ゲート: run 失敗・stall 時に autopilot が入れる状態で、Blocked コメントは
     // 「🙋 を外すと再開」と案内する。解除されたら PR があれば address-review（スレッドを読んで
@@ -874,7 +1090,8 @@ function phaseForItem(item, ctx = {}) {
     if (status === 'In Progress' && item.aiStatus === 'Triaging') {
         return isGateReleased(item, ctx) ? 'triage' : null;
     }
-    if (item.hitlLabel) return null; // 人間の番（🙋 ラベルあり）
+    // 人間の番（🙋 ラベルあり）。モニターの「答えて先へ進める」で daemon が外したものは外れた扱い
+    if (item.hitlLabel && !ctx.monitorReleased) return null;
     if (status === 'New Item') return 'triage';
     if (status === 'Sprint Backlog') {
         return item.kind === 'EPIC' ? 'decompose' : 'implement';
@@ -883,6 +1100,9 @@ function phaseForItem(item, ctx = {}) {
     // daemon が autopilot-review（敵対的レビュー）を自動ディスパッチして人間レビュー待ちまで進める。
     // それ以外の In Progress は実行中の run が所有する。DoD/Close 等は人間駆動。
     if (status === 'In Progress' && item.aiStatus === 'Self-Reviewing') return 'review';
+    // EPIC の流れの Must の直し（#2385）: review が Must を残したとき daemon は
+    // In Progress + Addressing Comments（🙋 なし）にする。address-review が直して review へ戻す。
+    if (status === 'In Progress' && item.aiStatus === 'Addressing Comments') return 'address-review';
     return null;
 }
 
@@ -920,6 +1140,9 @@ const STUCK_EXEMPT_AI_STATUSES = new Set(['Self-Reviewing', 'EPIC Decomposed', A
 function isStuckCandidate(item) {
     if (!item || item.status !== 'In Progress') return false;
     if (!item.aiStatus || STUCK_EXEMPT_AI_STATUSES.has(item.aiStatus)) return false;
+    // Release Check（#2430）の 🧭 トラッカーは、🙋 なしなら次の tick で release-check を出すので対象外。
+    // トラッカーでない item の Release Check は出口が無いので stuck として Blocked へ回す
+    if (item.aiStatus === RELEASE_CHECK_AI_STATUS && hasTrackingLabel(item)) return false;
     if (item.hitlLabel) return false;
     return true;
 }
@@ -1103,6 +1326,13 @@ const HUMAN_REVIEW_LABEL = '👥 human-review-required';
  */
 const WAITING_LABEL = '⏳ waiting';
 /**
+ * 「リリース後の作業」の sub-issue に人間（または decompose）が付けるラベル。これだけが残っていれば、
+ * 子が全部済んだとみなしてリリース確認に入る（release-check.js）。本文のディレクティブにしなかったのは、
+ * ボードが既に持っているラベルで判定でき、sub-issue の本文を読みに行かなくて済むから（API 予算・github-api.md）。
+ * 人間待ちの理由（{@link humanWaitReason}）でも使うので、ラベルの定数をまとめる phases.js に置く。
+ */
+const AFTER_RELEASE_LABEL = '🚀 after-release';
+/**
  * 要件の相談・調査中（Spike）を示すラベル（#1315）。技術調査に加え、要件が決まっていないときに
  * 人間と決めきる行動も Spike とみなす。GitHub のラベル絞り込みで「相談中」を探せるようにする。
  * ⏳ waiting と同じく daemon が**状態から毎 tick 導出**して付け外しする（{@link isSpikeItem}）。
@@ -1266,14 +1496,22 @@ const HUMAN_WAIT_REASONS = [
     { key: 'spike', icon: '🔬', label: 'Spike・回答待ち', detail: '要件の相談中。あなたの回答を待っています' },
     { key: 'review', icon: '👀', label: 'レビュー待ち', detail: 'あなたのレビューを待っています' },
     { key: 'dod', icon: '✅', label: 'DoD の確認待ち', detail: '動作確認（DoD）を待っています' },
+    { key: 'release', icon: '🚀', label: 'リリース確認待ち', detail: 'EPIC のプレビューでの確認を待っています' },
     { key: 'blocked', icon: '🧱', label: 'Blocked（障害）', detail: '障害の対処を待っています' },
-    { key: 'waiting', icon: '⏳', label: '依存待ち', detail: '先行 Issue（autopilot-after）の完了を待っています' },
+    { key: 'waiting', icon: '⏳', label: '依存待ち', detail: '先に済ませるもの（autopilot-after・リリース）を待っています' },
+    { key: 'continue', icon: '⏯', label: '続きの確認', detail: '時間切れで区切った作業を続けてよいかを待っています' },
+    { key: 'epic', icon: '🧭', label: 'EPIC の見守り', detail: '分解済みの EPIC。子が全部済んだら確かめて閉じます' },
+    { key: 'go', icon: '▶', label: 'ゴーサイン待ち', detail: '実装を始めてよいかのゴーサインを待っています' },
+    { key: 'decompose', icon: '✂', label: '分解待ち', detail: 'まだ分解していない EPIC。分解を始めるかを待っています' },
+    { key: 'hand', icon: '✋', label: '人間の作業', detail: 'AI にはできない作業。済んだら閉じます' },
     { key: 'other', icon: '🙋', label: 'そのほか', detail: 'あなたの対応を待っています' },
 ];
 
 /**
  * 人間が「何待ちで止まっているか」を 1 つに決める（純粋関数・#1315）。
- * 🙋 の item は Spike → Review → DoD → Blocked → 依存待ち → そのほか の順で最初に当たる理由。
+ * 🙋 の item は Spike → Review → DoD → リリース確認 → Blocked → 依存待ち（⏳・🚀 after-release）→ 続きの確認 →
+ * EPIC の見守り → ゴーサイン → 分解 → 人間の作業 → そのほか の順で最初に当たる理由。
+ * 「あなた宛て」の「すること」（human-action.js の humanAction）と同じ分け方にそろえ、そのほか を減らす（#2466）。
  * 🙋 が無い item は依存待ち（⏳ waiting）だけを返し、ほかは null（人間待ちではない）。
  * @param {object} item { status, aiStatus, hitlLabel, labels }
  * @returns {string|null} {@link HUMAN_WAIT_REASONS} の key または null
@@ -1287,8 +1525,14 @@ function humanWaitReason(item) {
     if (isSpikeItem(item)) return 'spike';
     if (status === 'Review') return 'review';
     if (status === 'DoD') return 'dod';
+    if (status === 'In Progress' && item.aiStatus === RELEASE_CHECK_AI_STATUS) return 'release';
     if (status === 'Blocked') return 'blocked';
-    if (waiting) return 'waiting';
+    // 🚀 after-release はリリースを待っているだけで、人間の番ではない（依存待ちと同じ扱い）
+    if (waiting || (Array.isArray(item.labels) && item.labels.includes(AFTER_RELEASE_LABEL))) return 'waiting';
+    if (item.aiStatus === AWAITING_CONTINUATION_STATUS) return 'continue';
+    if (hasTrackingLabel(item) || item.aiStatus === 'EPIC Decomposed') return 'epic';
+    if (status === 'Sprint Backlog') return 'go';
+    if (status === 'Backlog') return item.kind === 'EPIC' ? 'decompose' : 'hand';
     return 'other';
 }
 
@@ -1574,13 +1818,17 @@ function isSteadyStateHitlGate(item) {
  * （force でない per-tick 同期）では人間が外したラベルを**再付与しない**（= 解除シグナルを潰さ
  * ない・#821 で DoD も対象）。Review/DoD/Awaiting Continuation へ渡す権威的な遷移・merge 後の
  * 解除は force=true で明示する。
+ *
+ * monitorReleased=true（モニターの「答えて先へ進める」で daemon が 🙋 を外した・まだ worker を
+ * 起こしていない）の steady-state 同期は、古い item（hitlLabel=true のまま）から付け直さない。
+ * force の権威的な遷移（worker の結果を受けた同期）はこれまでどおり付ける。
  * @param {object} item { status, aiStatus, hitlLabel }
  * @param {boolean} present 現在その面にラベルが付いているか
- * @param {object} [opts] { force }
+ * @param {object} [opts] { force, monitorReleased }
  * @returns {'add'|'remove'|null}
  */
 function hitlLabelAction(item, present, opts = {}) {
-    const want = Boolean(item && item.hitlLabel);
+    const want = Boolean(item && item.hitlLabel) && !(opts.monitorReleased && !opts.force);
     if (isSteadyStateHitlGate(item) && !opts.force) {
         // steady-state: No への正規化（除去）だけ許可。Yes の再付与はしない。
         return !want && present ? 'remove' : null;
@@ -1778,6 +2026,9 @@ function normalizeBoardEnrichment(node) {
     const nodes = (node && node.closedByPullRequestsReferences && node.closedByPullRequestsReferences.nodes) || [];
     return {
         issueState: (node && node.state) || null,
+        // 親の EPIC（#2388。EPIC ごとにまとめるため。無ければ null）
+        parent: node && node.parent && Number.isInteger(node.parent.number)
+            ? { number: node.parent.number, title: node.parent.title || '' } : null,
         subIssues: {
             total: summary.total || 0,
             completed: summary.completed || 0,
@@ -1883,9 +2134,11 @@ function renderTrackerSticky(item) {
     const lines = [TRACKER_STICKY_MARKER, ''];
     if (allDone) {
         lines.push(
-            `✅ **全 sub-issue が完了しました（${completed}/${total}）** — **この EPIC を Close してください**`,
-            '（または Project の Status を Close/Done に変更）。Close すると closed-reconcile が'
-                + ' Project を Close に整合します。autopilot は EPIC を自動 Close しません。',
+            `✅ **全 sub-issue が完了しました（${completed}/${total}）** — **リリース確認に進みます**`,
+            'autopilot がプレビューで確かめる観点をこの Issue にまとめます（#2430。🙋 が付いているときは、モニターの'
+                + '「確認の結果を書く」から AI に頼んでください）。確かめて OK なら、'
+                + 'topic → develop の PR をマージして**この EPIC を Close してください**'
+                + '（closed-reconcile が Project を Close に整合します）。autopilot は develop へマージせず、EPIC も自動 Close しません。',
         );
     } else {
         lines.push(
@@ -2515,6 +2768,23 @@ function findReviewFindingsComment(comments, round) {
 }
 
 /**
+ * モニターの「AI に直してもらう」で見せる bot の指摘（純粋関数・#2415）。いちばん新しい round の
+ * まとめコメントの本文と件数。件数は全 round を合わせたもの（{@link countReviewFindings}）ではなく、
+ * 見せる round のものにする（見ている本文と数がずれないように）。まとめコメントが無ければ null。
+ * まだ対応していないモニターの指示（{@link selectMonitorInstructions}）も添える（送ったのに
+ * address-review がまだ走っていない、を見て分かるように）。
+ * @param {Array<{id:(number|string), body?:string}>} comments PR の会話コメント
+ * @returns {{findings:({round:number, id:(number|string|null), body:string,
+ *   counts:{Must:number, Question:number, FYI:number}}|null), pendingInstructions:string[]}}
+ */
+function reviewFindingsView(comments) {
+    const round = nextReviewFindingsRound(comments) - 1;
+    const c = round > 0 ? findReviewFindingsComment(comments, round) : null;
+    const findings = c ? { round, id: c.id == null ? null : c.id, body: String(c.body || ''), counts: countReviewFindings([c]) } : null;
+    return { findings, pendingInstructions: selectMonitorInstructions(comments).map((x) => monitorInstructionText(x.body)) };
+}
+
+/**
  * ID 文字列（`Q1` / `q1` / `Question1` / `Must2` / `F3` / 全角数字）を正規化する（純粋関数）。
  * @param {string} token
  * @returns {{id: string, category: string, number: number}|null}
@@ -2651,8 +2921,8 @@ function renderReviewFindingsComment({ round, findings, start }) {
     if (assigned.length > 0) {
         lines.push(
             '',
-            '直してほしい指摘は **Request changes** で ID を指定してから `🙋 HITL` を外してください'
-                + '（例: `Q1はOK, FYI1は修正して`）。コメントだけでは autopilot は動きません。',
+            '直してほしい指摘は、モニターの「AI に直してもらう」で指示を書くか、**Request changes** で ID を指定してから'
+                + ' `🙋 HITL` を外してください（例: `Q1はOK, FYI1は修正して`）。ふつうのコメントだけでは autopilot は動きません。',
         );
     }
     return lines.join('\n');
@@ -2862,17 +3132,18 @@ function authRecoveryPatch(state) {
 /**
  * モニタ・/status に出す認証まわりの案内の種類を決める（純粋関数・#1510）。
  * - `starting`: 起動中で Project 情報を取っている（認証エラーは無い）
+ * - `boot-rate-limit`: 起動待ちで、GitHub のレート制限が戻るのを待っている（#2384）
  * - `boot-sso`: 起動待ちで SSO ログインが要る
  * - `boot-not-sso`: 起動待ちで、SSO ログインは通ったのに bot トークンが取れない（鍵・App の設定など）
  * - `auth`: 稼働中の認証失効（従来の auto-pause）
  * - null: 案内なし
  * @param {{booting?: boolean, authError?: (string|null), bootSsoDone?: boolean}} state
- * @returns {('starting'|'boot-sso'|'boot-not-sso'|'auth'|null)}
+ * @returns {('starting'|'boot-rate-limit'|'boot-sso'|'boot-not-sso'|'auth'|null)}
  */
 function authNoticeKind(state) {
     const s = state || {};
     if (s.booting) {
-        if (!s.authError) return 'starting';
+        if (!s.authError) return s.bootWait && s.bootWait.reason === 'rate-limit' ? 'boot-rate-limit' : 'starting';
         return s.bootSsoDone ? 'boot-not-sso' : 'boot-sso';
     }
     return s.authError ? 'auth' : null;
@@ -2928,6 +3199,75 @@ function rateLimitPlan(limitsByToken, thresholds = {}) {
         warn: minRemaining < t.warn,
         skipLowPriority: minRemaining < t.skip,
     };
+}
+
+/**
+ * GitHub のレート制限（一次・二次）で失敗したかを判定する純粋関数（#2384）。
+ * 起動時の `gh project field-list` が `GraphQL: API rate limit exceeded for installation ID ...`
+ * で落ちると、以前は daemon が exit 1 → supervisor が再起動 → また落ちる、を繰り返していた。
+ * この判定で拾ったものは exit せず、HTTP を立てたまま起動を待つ（{@link bootRateLimitWait}）。
+ * @param {Error|string|null|undefined} err
+ * @returns {boolean}
+ */
+function isRateLimitError(err) {
+    if (!err) return false;
+    const text = typeof err === 'string' ? err : `${err.message || ''}\n${err.stderr || ''}`;
+    return /rate limit exceeded|secondary rate limit|API rate limit/i.test(text);
+}
+
+/** 起動時のレート制限待ち: 1 回に待つ最短・最長（ms）。最長を過ぎたら残量を見直す */
+const BOOT_RATE_LIMIT_MIN_WAIT_MS = 30_000;
+const BOOT_RATE_LIMIT_MAX_WAIT_MS = 10 * 60_000;
+/** リセット時刻ちょうどではなく少し後に取り直す（時計のずれ） */
+const BOOT_RATE_LIMIT_RESET_SLACK_MS = 10_000;
+
+/**
+ * 起動時にレート制限で失敗したとき、次に取り直すまで待つ時間を決める（純粋関数・#2384）。
+ * `gh api rate_limit` の結果（残量 0 の資源の `reset`・epoch 秒）が分かればリセットの少し後まで待つ。
+ * 分からない（二次レート制限・rate_limit の取得失敗）ときは 30 秒から倍々で待つ。
+ * どちらも 1 回は最長 10 分で区切り、その時点で残量を見直す。
+ * @param {object|null} limits project.getRateLimit の結果 { core:{remaining,reset}, graphql:{...} }
+ * @param {number} nowMs いまの時刻（ms epoch）
+ * @param {number} attempt これまでに待った回数（0 始まり）
+ * @returns {{waitMs:number, resetAt:(number|null)}} resetAt はリセット時刻（ms epoch・分からなければ null）
+ */
+function bootRateLimitWait(limits, nowMs, attempt = 0) {
+    let resetAt = null;
+    for (const r of Object.values(limits || {})) {
+        if (!r || typeof r.remaining !== 'number' || r.remaining > 0) continue;
+        if (typeof r.reset !== 'number' || !Number.isFinite(r.reset)) continue;
+        const ms = r.reset < 1e12 ? r.reset * 1000 : r.reset;
+        if (resetAt === null || ms > resetAt) resetAt = ms;
+    }
+    const clamp = (ms) => Math.min(BOOT_RATE_LIMIT_MAX_WAIT_MS, Math.max(BOOT_RATE_LIMIT_MIN_WAIT_MS, ms));
+    if (resetAt !== null && resetAt > nowMs) {
+        return { waitMs: clamp(resetAt - nowMs + BOOT_RATE_LIMIT_RESET_SLACK_MS), resetAt };
+    }
+    const n = Math.max(0, Math.min(20, Math.floor(attempt) || 0));
+    return { waitMs: clamp(BOOT_RATE_LIMIT_MIN_WAIT_MS * 2 ** n), resetAt: null };
+}
+
+/**
+ * 人間の pause を残すファイルの中身から、起動時に当てる state の差分を作る（純粋関数・#2384）。
+ * 人間が止めた daemon が crash → supervisor の再起動で止まっていない状態から始まり、
+ * 人間の知らないうちに tick を回したため、人間の pause だけはファイルに残して起動時に戻す。
+ * auth / usage の auto-pause は残さない（起動時に改めて判定するので、残すと解けなくなる）。
+ * @param {object|null} saved ファイルの JSON（無い・壊れていれば null）
+ * @returns {{paused:true, pausedBy:'human', pausedAt:(string|null)}|null}
+ */
+function restoredHumanPause(saved) {
+    if (!saved || typeof saved !== 'object' || saved.pausedBy !== 'human') return null;
+    return { paused: true, pausedBy: 'human', pausedAt: typeof saved.pausedAt === 'string' ? saved.pausedAt : null };
+}
+
+/**
+ * いまの state で人間の pause のファイルをどうするか（純粋関数・#2384）。
+ * 人間の pause 中なら残す、それ以外（再開・auth / usage の pause）なら消す。
+ * @param {{paused?:boolean, pausedBy?:(string|null)}} state
+ * @returns {'write'|'remove'}
+ */
+function humanPauseFileAction(state) {
+    return state && state.paused && state.pausedBy === 'human' ? 'write' : 'remove';
 }
 
 /**
@@ -3142,19 +3482,85 @@ function evaluate(state, cfg) {
     return { action: 'wait', reason: 'in progress' };
 }
 
+// 入力欄の行の印（Claude Code の入力は `❯ ` で始まる。古い版は `│ > `）
+const INPUT_MARKER_RE = /^[\s│]*[❯>](\s|$)/;
+// 比べるときに落とす文字（空白・折り返し・枠線）
+const COMPACT_RE = /[\s│╭╮╰╯─━┃]/g;
+// 入力欄に残っているかを見る、送った文の頭の長さ（折り返しで切れても一致する長さ）
+const INPUT_PROBE_LEN = 24;
+
 /**
- * スラッシュコマンド送信後に「受理されたか」を判定し、未達なら再送すべきかを返す（純粋関数）。
- * claude TUI は起動直後に入力受付前のことがあり、最初の send-keys が捨てられる（課題1）。
- * 受理確認（busy 表示 or 結果ファイル）が取れないまま acceptWindow を超えたら、上限まで再送する。
- * @param {object} s
- * @param {number} s.sinceSendMs 直近送信からの経過
- * @param {number} s.attempts これまでの送信回数
- * @param {number} s.maxAttempts 送信上限
- * @param {number} s.acceptWindowMs 受理待ちの猶予
+ * 送った指示の文が、まだ入力欄に残っているか（純粋関数・#2504）。
+ * 重いときに Enter だけが捨てられると、文が入力欄に残る。そこへ文と Enter を送り直すと
+ * 文がつながるだけで送信されないので、残っていれば Enter だけを送る。
+ * 入力欄 = 画面の最後の `❯` / `>` の行から下（無ければ下の 12 行）。空白と枠線を落として比べる。
+ * @param {string} screen いま見えている画面の文字
+ * @param {string} text 送った文
  * @returns {boolean}
  */
-function shouldResend(s) {
-    return s.sinceSendMs > s.acceptWindowMs && s.attempts < s.maxAttempts;
+function promptStillInInput(screen, text) {
+    const probe = String(text || '').replace(COMPACT_RE, '').slice(0, INPUT_PROBE_LEN);
+    if (!probe) return false;
+    const lines = String(screen || '').split('\n');
+    let start = -1;
+    for (let i = lines.length - 1; i >= 0; i--) {
+        if (INPUT_MARKER_RE.test(lines[i])) { start = i; break; }
+    }
+    const region = lines.slice(start >= 0 ? start : Math.max(0, lines.length - 12)).join('');
+    return region.replace(COMPACT_RE, '').includes(probe);
+}
+
+/** 受理を待つ時間を延ばす上限の倍率 */
+const ACCEPT_WINDOW_MAX_FACTOR = 4;
+
+/**
+ * 受理を待つ時間を、マシンの重さに合わせて延ばす（純粋関数・#2504）。
+ * 1 CPU あたりの loadavg が 1 を超えたら、その倍率で延ばす（上限 4 倍）。値が取れなければそのまま。
+ * 負荷の値は daemon が読んで渡す（scheduler と同じ `readResources` の値）。
+ * @param {number} baseMs 既定の待ち時間（`acceptWindowMs`）
+ * @param {{load1:(number|null), cpus:(number|null)}} [resources]
+ * @returns {number}
+ */
+function acceptWindowFor(baseMs, resources = {}) {
+    const { load1, cpus } = resources || {};
+    if (typeof load1 !== 'number' || !cpus) return baseMs;
+    const factor = Math.min(ACCEPT_WINDOW_MAX_FACTOR, Math.max(1, load1 / cpus));
+    return Math.round(baseMs * factor);
+}
+
+/**
+ * 送った指示が受理されないときに、次に何をするかを決める（純粋関数・#2504）。
+ * - 猶予（acceptWindowMs）のうち → `wait`
+ * - 送り直しの回数が残っている → 入力欄に文が残っていれば `enter`（Enter だけ）、無ければ `line`（文と Enter）
+ * - 使い切ってさらに猶予を過ぎ、画面も猶予のあいだ変わっていない → 黙って待たず `restart`
+ *   （再起動の上限なら `fail`）。画面が動いているなら、busy の見落としで実は動いている
+ *   かもしれないので殺さずに待つ（そのあとは `evaluate` の `tIdleMs` が見る）
+ * 人間を待っているあいだは呼ばない（runner が paused のときは見ない）。
+ * @param {object} s
+ * @param {number} s.sinceSendMs 直近の送信からの経過
+ * @param {number} s.attempts これまでの送信回数
+ * @param {number} s.maxAttempts 送信の上限
+ * @param {number} s.acceptWindowMs 受理を待つ猶予
+ * @param {number} [s.idleMs] 画面が最後に変わってからの経過（無ければ sinceSendMs とみなす）
+ * @param {string} s.screen いまの画面
+ * @param {string} s.text 送った文
+ * @param {number} [s.restarts] これまでの再起動の回数
+ * @param {number} [s.maxRestarts] 再起動の上限
+ * @returns {{action:('wait'|'enter'|'line'|'restart'|'fail'), reason:string}}
+ */
+function planResend(s) {
+    if (s.sinceSendMs <= s.acceptWindowMs) return { action: 'wait', reason: 'within accept window' };
+    if (s.attempts < s.maxAttempts) {
+        return promptStillInInput(s.screen, s.text)
+            ? { action: 'enter', reason: 'prompt is still in the input' }
+            : { action: 'line', reason: 'input is empty' };
+    }
+    const idleMs = typeof s.idleMs === 'number' ? s.idleMs : s.sinceSendMs;
+    if (idleMs <= s.acceptWindowMs) return { action: 'wait', reason: 'screen is still changing' };
+    const reason = `command not accepted after ${s.attempts} sends`;
+    return (s.restarts || 0) < (s.maxRestarts || 0)
+        ? { action: 'restart', reason }
+        : { action: 'fail', reason: `${reason}; restart limit reached` };
 }
 
 const DEFAULT_WATCHDOG = {
@@ -3381,7 +3787,392 @@ function laterPendingReducer(pending, action) {
     return cur;
 }
 
+// ---- モニターで答える（ui-policy §8 の U1・U2）----
+//
+// worker は signal=hitl の結果に `questions` を書ける（contract.js の validateQuestions）。daemon は
+// 質問を Issue にマーカー付きで書き、モニターに出す。人間がモニターで「答えて先へ進める」を押すと、
+// daemon が答えを Issue にマーカー付きで書き、🙋 を外し、次に worker を起こすときに答えを渡す。
+// 「メモだけ保存」は daemon のローカルに置くだけ（GitHub に書かない・🙋 も外さない）。
+// ここは判定と本文の組み立てだけ（I/O は project.js と monitor-answers.js）。
+
+/** 人間がモニターで書くメモの上限（GitHub に書くときもこの長さまで） */
+const MAX_MONITOR_NOTE = 2000;
+
+/**
+ * 質問のまとめコメントのマーカー。round は同じ Issue で何回目の質問か（1 から）。
+ * @param {number} issue
+ * @param {number} round
+ * @returns {string}
+ */
+function monitorQuestionsMarker(issue, round) {
+    return `<!-- autopilot-monitor-questions issue=${issue} round=${round} -->`;
+}
+
+/**
+ * 答えのコメントのマーカー（質問 1 つに 1 コメント）。round を入れるのは、次の回の質問が同じ ID
+ * （q1 など）を使っても前の答えのコメントを上書きしないため。
+ * @param {number} issue
+ * @param {number} round
+ * @param {string} q 質問 ID
+ * @returns {string}
+ */
+function monitorAnswerMarker(issue, round, q) {
+    return `<!-- autopilot-monitor-answer issue=${issue} round=${round} q=${q} -->`;
+}
+
+/**
+ * コメント一覧から、その Issue の質問のまとめコメントを round の昇順で返す（純粋関数）。
+ * @param {Array<{id:*, body:string}>} comments
+ * @param {number} issue
+ * @returns {Array<{id:*, body:string, round:number}>}
+ */
+function findMonitorQuestionsComments(comments, issue) {
+    const re = new RegExp(`<!-- autopilot-monitor-questions issue=${Number(issue)} round=(\\d+) -->`);
+    const out = [];
+    for (const c of comments || []) {
+        const m = c && typeof c.body === 'string' && c.body.match(re);
+        if (m) out.push({ ...c, round: Number(m[1]) });
+    }
+    return out.sort((a, b) => a.round - b.round);
+}
+
+/**
+ * 質問のまとめコメントの本文（純粋関数）。worker が書いた文字列は GitHub に出す前に
+ * {@link sanitizeForSurface} を通す。
+ * @param {number} issue
+ * @param {number} round
+ * @param {object[]} questions 検証済みの questions
+ * @param {object} [opts] { phase, reason }
+ * @returns {string}
+ */
+function renderMonitorQuestionsComment(issue, round, questions, opts = {}) {
+    const qs = questions || [];
+    const lines = [
+        monitorQuestionsMarker(issue, round),
+        `**🙋 autopilot からの質問**（${sanitizeForSurface(opts.phase || '', 40) || '-'}・${qs.length} 問）`,
+        '',
+        'モニターの「答える」で選んで答えられます。GitHub で答えるときは、コメントを書いてから 🙋 を外してください。',
+    ];
+    if (opts.reason) lines.push('', `理由: ${sanitizeForSurface(opts.reason)}`);
+    for (const q of qs) {
+        lines.push('', `### ${q.id}. ${sanitizeForSurface(q.text)}`);
+        for (const o of q.options || []) {
+            const desc = o.desc ? ` — ${sanitizeForSurface(o.desc, 300)}` : '';
+            const rec = q.recommended === o.key ? ' **（おすすめ）**' : '';
+            lines.push(`- \`${o.key}\` ${sanitizeForSurface(o.label, 200)}${desc}${rec}`);
+        }
+    }
+    return lines.join('\n');
+}
+
+/**
+ * 質問を Issue に書く計画（純粋関数・冪等）。いちばん新しい質問のコメントと同じ内容なら書かない
+ * （同じ結果を 2 回処理しても重複しない）。違えば round を 1 つ進めて新しく書く。
+ * @param {Array<{id:*, body:string}>} comments その Issue のコメント一覧
+ * @param {number} issue
+ * @param {object[]} questions
+ * @param {object} [opts] { phase, reason }
+ * @returns {{action:'post'|'skip', round:number, body:string}}
+ */
+function planMonitorQuestionsComment(comments, issue, questions, opts = {}) {
+    const found = findMonitorQuestionsComments(comments, issue);
+    const last = found.length ? found[found.length - 1] : null;
+    if (last) {
+        const same = renderMonitorQuestionsComment(issue, last.round, questions, opts);
+        if (last.body === same) return { action: 'skip', round: last.round, body: same };
+    }
+    const round = last ? last.round + 1 : 1;
+    return { action: 'post', round, body: renderMonitorQuestionsComment(issue, round, questions, opts) };
+}
+
+/**
+ * `POST /answer` の body を検証して形をそろえる（純粋関数）。
+ * body: `{issue, answers:[{q, key, note?}], proceed}`。key は選択肢の key。選択肢で答えず
+ * メモだけで答えるときは key を省いて note を書く。
+ * @param {object} body
+ * @returns {{ok:boolean, error?:string, issue?:number, answers?:object[], proceed?:boolean}}
+ */
+function normalizeMonitorAnswerBody(body) {
+    if (!body || typeof body !== 'object') return { ok: false, error: 'body must be an object' };
+    const issue = Number(body.issue);
+    if (!Number.isInteger(issue) || issue <= 0) return { ok: false, error: 'issue (positive integer) required' };
+    if (typeof body.proceed !== 'boolean') return { ok: false, error: 'proceed (boolean) required' };
+    const raw = body.answers == null ? [] : body.answers;
+    if (!Array.isArray(raw)) return { ok: false, error: 'answers must be an array' };
+    const answers = [];
+    for (const [i, a] of raw.entries()) {
+        if (!a || typeof a !== 'object' || typeof a.q !== 'string' || !a.q) {
+            return { ok: false, error: `answers[${i}].q (string) required` };
+        }
+        const key = a.key == null || a.key === '' ? null : a.key;
+        if (key !== null && typeof key !== 'string') return { ok: false, error: `answers[${i}].key must be a string` };
+        if (a.note != null && typeof a.note !== 'string') return { ok: false, error: `answers[${i}].note must be a string` };
+        const note = a.note ? a.note.trim() : '';
+        if (note.length > MAX_MONITOR_NOTE) return { ok: false, error: `answers[${i}].note is too long (max ${MAX_MONITOR_NOTE})` };
+        if (key === null && !note) return { ok: false, error: `answers[${i}]: key or note required` };
+        answers.push({ q: a.q, key, note: note || null });
+    }
+    return { ok: true, issue, answers, proceed: body.proceed };
+}
+
+/**
+ * 人間の答えを、いま出ている質問に当てる（純粋関数）。前に「メモだけ保存」した答え（drafts）に
+ * 今回の答えを重ねる。proceed=true は全部の質問に答えがあるときだけ通す（「答えて先へ進める」で
+ * 答えの抜けた質問を残さない）。
+ * @param {object|null} entry 質問の置き場の 1 件 { questions, drafts, status }
+ * @param {{answers:object[], proceed:boolean}} input {@link normalizeMonitorAnswerBody} の結果
+ * @param {number} nowMs 答えた時刻
+ * @returns {{ok:boolean, status:number, error?:string, drafts?:object, records?:object[]}}
+ */
+function planMonitorAnswer(entry, input, nowMs) {
+    if (!entry || !Array.isArray(entry.questions)) return { ok: false, status: 404, error: 'no questions for this issue' };
+    if (entry.status === 'answered') return { ok: false, status: 409, error: 'already answered' };
+    const byId = new Map(entry.questions.map((q) => [q.id, q]));
+    const drafts = { ...(entry.drafts || {}) };
+    for (const a of input.answers || []) {
+        const q = byId.get(a.q);
+        if (!q) return { ok: false, status: 400, error: `unknown question: ${a.q}` };
+        if (a.key !== null && !(q.options || []).some((o) => o.key === a.key)) {
+            return { ok: false, status: 400, error: `unknown option for ${a.q}: ${a.key}` };
+        }
+        drafts[a.q] = { key: a.key, note: a.note || null, at: nowMs };
+    }
+    const records = entry.questions.filter((q) => drafts[q.id]).map((q) => {
+        const d = drafts[q.id];
+        const opt = d.key === null ? null : (q.options || []).find((o) => o.key === d.key);
+        return { q: q.id, key: d.key, label: opt ? opt.label : null, note: d.note || null, at: d.at };
+    });
+    if (input.proceed) {
+        const missing = entry.questions.filter((q) => !drafts[q.id]).map((q) => q.id);
+        if (missing.length) return { ok: false, status: 400, error: `unanswered: ${missing.join(', ')}` };
+    }
+    return { ok: true, status: 200, drafts, records };
+}
+
+/**
+ * 答えのコメントの本文（純粋関数）。人間のメモも GitHub に出すので {@link sanitizeForSurface} を通す。
+ * 時刻は入れない（同じ答えなら同じ本文 = 書き直さない。時刻はコメント自体に残る）。
+ * @param {number} issue
+ * @param {number} round
+ * @param {object} question { id, text }
+ * @param {object} record { key, label, note }
+ * @returns {string}
+ */
+function renderMonitorAnswerComment(issue, round, question, record) {
+    const chosen = record.key === null
+        ? '（選択肢からは選ばず、メモで答えた）'
+        : `\`${record.key}\` ${sanitizeForSurface(record.label || '', 200)}`;
+    const lines = [
+        monitorAnswerMarker(issue, round, question.id),
+        `**🙋 モニターでの答え**（質問 \`${question.id}\`）`,
+        '',
+        `> ${sanitizeForSurface(question.text).replace(/\n/g, '\n> ')}`,
+        '',
+        `- 選んだもの: ${chosen}`,
+    ];
+    if (record.note) lines.push(`- メモ: ${sanitizeForSurface(record.note, MAX_MONITOR_NOTE).replace(/\n/g, '\n  ')}`);
+    return lines.join('\n');
+}
+
+/**
+ * 答えのコメントを書く計画（純粋関数・冪等）。質問ごとに、同じマーカーのコメントがあって同じ本文なら
+ * 書かない（skip）、違えば書き直す（patch）、無ければ書く（post）。同じ答えを二重に書かない。
+ * @param {Array<{id:*, body:string}>} comments その Issue のコメント一覧
+ * @param {number} issue
+ * @param {object} entry { round, questions }
+ * @param {object[]} records {@link planMonitorAnswer} の records
+ * @returns {Array<{q:string, body:string, action:'post'|'patch'|'skip', keepId:*, deleteIds:Array<*>}>}
+ */
+function planMonitorAnswerComments(comments, issue, entry, records) {
+    const byId = new Map((entry.questions || []).map((q) => [q.id, q]));
+    return (records || []).filter((r) => byId.has(r.q)).map((r) => {
+        const body = renderMonitorAnswerComment(issue, entry.round, byId.get(r.q), r);
+        const plan = stickyUpsertPlan(selectMarkedComments(comments, [monitorAnswerMarker(issue, entry.round, r.q)]), body);
+        return { q: r.q, body, ...plan };
+    });
+}
+
+/**
+ * 次に worker を起こすときに渡す答え（AUTOPILOT_ANSWERS_FILE の中身・純粋関数）。
+ * 質問 ID・選んだ選択肢・メモを書く。worker が読む前提のローカルのファイルなので、メモは切り詰めない。
+ * @param {number} issue
+ * @param {object} entry { round, phase, questions, records }
+ * @returns {string}
+ */
+function renderMonitorAnswersForPrompt(issue, entry) {
+    const byId = new Map((entry.questions || []).map((q) => [q.id, q]));
+    const lines = [
+        `<!-- autopilot-monitor-answers issue=${issue} round=${entry.round} -->`,
+        `# 人間の答え（#${issue}・${entry.phase || '-'} の質問・round ${entry.round}）`,
+        '',
+        '人間がモニターの「答えて先へ進める」で答えました（Issue にも同じ答えのコメントがあります）。',
+        'この答えに従って続けてください。もう一度同じことを質問しないでください。',
+    ];
+    for (const r of entry.records || []) {
+        const q = byId.get(r.q) || { text: '' };
+        lines.push('', `## ${r.q}. ${q.text}`);
+        lines.push(r.key === null ? '- 選んだもの: （選択肢からは選ばず、メモで答えた）' : `- 選んだもの: \`${r.key}\` ${r.label || ''}`);
+        if (r.note) lines.push(`- メモ: ${r.note.replace(/\n/g, '\n  ')}`);
+    }
+    return `${lines.join('\n')}\n`;
+}
+
+/**
+ * モニター（GET /board・/status）に出す「各 Issue の質問」（純粋関数）。答え待ち（open）と、
+ * 答えたがまだ worker を起こしていないもの（answered）を出す。古い順。
+ * @param {object} entries issue 番号 → 質問の置き場の 1 件
+ * @returns {object[]}
+ */
+function monitorQuestionsView(entries) {
+    return Object.values(entries || {}).filter((e) => e && Array.isArray(e.questions)).map((e) => {
+        const answers = e.status === 'answered' ? (e.records || []) : Object.entries(e.drafts || {}).map(([q, d]) => ({ q, ...d }));
+        return {
+            issue: e.issue, phase: e.phase || null, round: e.round, reason: e.reason || null,
+            askedAt: e.askedAt || null, status: e.status || 'open', answeredAt: e.answeredAt || null,
+            questions: e.questions, answers,
+            answered: answers.length, total: e.questions.length,
+        };
+    }).sort((a, b) => toMs(a.askedAt) - toMs(b.askedAt));
+}
+
+/**
+ * モニターで外した 🙋 の覚え（issue 番号 → 外した時刻）を、新しい Project の一覧に合わせて減らす
+ * （純粋関数）。一覧で 🙋 が外れて見えている・一覧に無いものは、もう覚えておかなくてよい。
+ * @param {object} releases issue 番号 → ms
+ * @param {object[]} items listItems の結果
+ * @returns {object}
+ */
+function pruneMonitorReleases(releases, items) {
+    const byIssue = new Map((items || []).map((it) => [it.issue, it]));
+    const out = {};
+    for (const [k, at] of Object.entries(releases || {})) {
+        const it = byIssue.get(Number(k));
+        if (it && it.hitlLabel) out[k] = at;
+    }
+    return out;
+}
+
+/**
+ * phaseForItem に渡す ctx に「モニターで 🙋 を外した」を足す（純粋関数・{@link isGateReleased}）。
+ * @param {object} contexts issue 番号 → ctx
+ * @param {object} releases issue 番号 → ms
+ * @returns {object} 新しい contexts
+ */
+function withMonitorReleases(contexts, releases) {
+    const out = { ...(contexts || {}) };
+    for (const k of Object.keys(releases || {})) out[k] = { ...(out[k] || {}), monitorReleased: true };
+    return out;
+}
+
+/**
+ * `POST /delegate`（モニターの「AI に任せる」・#2404）の body を検証する（純粋関数）。body: `{issue}`。
+ * @param {object} body
+ * @returns {{ok:boolean, error?:string, issue?:number}}
+ */
+function normalizeDelegateBody(body) {
+    if (!body || typeof body !== 'object') return { ok: false, error: 'body must be an object' };
+    const issue = typeof body.issue === 'string' && /^\d+$/.test(body.issue) ? Number(body.issue) : body.issue;
+    if (!Number.isInteger(issue) || issue <= 0) return { ok: false, error: 'issue (positive integer) required' };
+    return { ok: true, issue };
+}
+
+/**
+ * item に 🙋 が付いているか。listItems の item は `hitlLabel`、俯瞰ボード（`GET /board`）の item は `hitl` で持つので、
+ * どちらの形でも読めるようにする（#2404）。
+ * @param {object|null} item
+ * @returns {boolean}
+ */
+function itemHasHitl(item) {
+    if (!item) return false;
+    return Boolean(item.hitlLabel !== undefined ? item.hitlLabel : item.hitl);
+}
+
+/**
+ * 「AI に任せる」で何をするかを決める（純粋関数・#2404）。人間が押すので、人間が GitHub で 🙋 を外す /
+ * Status を動かすのと同じ意味の操作だけを選ぶ（`.claude/rules/human-wait.md` の表）。
+ *
+ * - 🙋 が無い・Project に無い・worker が実行中・答え待ちの質問がある → 受けない（4xx）
+ * - 分解済みの EPIC（🧭 tracking・In Progress / EPIC Decomposed）→ 受けない。出口は「子が全部済んだら人間が閉じる」
+ * - まだ分解していない EPIC（Backlog・Kind=EPIC）→ Status を Sprint Backlog にして 🙋 を外す（decompose へ）
+ * - 人間がする作業（Backlog・Kind=Issue。Discussing でない）→ 受けない（AI がしてよいかは人間が決める）
+ * - それ以外 → 🙋 を外すだけ。ただし外しても autopilot が進める段が無い（`phaseForItem` が null）なら受けない
+ *   （例: セッションの作業の In Progress・AI Status 空）。外したのに何も起きない、を作らない（I3 と同じ考え）
+ *
+ * @param {object|null} item Project の item { issue, status, aiStatus, kind, hitlLabel, labels }
+ * @param {object} [opts] { running:boolean, openQuestions:boolean, pr:boolean }
+ * @returns {{ok:boolean, status:number, code?:string, error?:string, action?:'release'|'decompose',
+ *   intents?:Array<{field:string, value:(string|null)}>, nextPhase?:string}}
+ */
+function planDelegate(item, opts = {}) {
+    const no = (status, code, error) => ({ ok: false, status, code, error });
+    if (!item) return no(404, 'unknown-item', 'not a board item');
+    if (!itemHasHitl(item)) return no(409, 'not-human-wait', 'no 🙋 HITL label');
+    if (opts.running) return no(409, 'running', 'worker is running');
+    if (opts.openQuestions) return no(409, 'open-questions', 'has questions to answer: use POST /answer');
+    const status = item.status || 'New Item';
+    if (TERMINAL_STATUSES.has(status) || status === 'Icebox') return no(409, 'resting', `status is ${status}`);
+    // リリース確認（#2430）の 🙋 を外すと、release-check が結果を受ける（結果が無ければ観点をまとめ直す）
+    if (hasTrackingLabel(item) && status === 'In Progress' && item.aiStatus === RELEASE_CHECK_AI_STATUS) {
+        return { ok: true, status: 200, action: 'release', intents: [], nextPhase: 'release-check' };
+    }
+    if (hasTrackingLabel(item) || (status === 'In Progress' && item.aiStatus === 'EPIC Decomposed')) {
+        return no(409, 'tracker', 'decomposed EPIC: close it when all sub-issues are done');
+    }
+    let action = 'release';
+    let intents = [];
+    if (status === 'Backlog' && item.aiStatus !== 'Discussing') {
+        if (item.kind !== 'EPIC') return no(409, 'human-work', 'Backlog Issue is human work: move it to Sprint Backlog to hand it over');
+        action = 'decompose';
+        intents = [{ field: 'Status', value: 'Sprint Backlog' }];
+    }
+    const projected = {
+        ...item, status: action === 'decompose' ? 'Sprint Backlog' : status, hitlLabel: false, hitl: false,
+    };
+    const nextPhase = phaseForItem(projected, { monitorReleased: true, pr: Boolean(opts.pr) });
+    if (!nextPhase) return no(409, 'no-ai-phase', 'autopilot has nothing to do after releasing 🙋');
+    return { ok: true, status: 200, action, intents, nextPhase };
+}
+
+/**
+ * モニターの「あなた宛て」の人間待ち（🙋 HITL）の行（純粋関数・#2404）。各行に「AI に任せる」が押せるか
+ * （{@link planDelegate}）を付ける。終端の item は出さない。Board 順のまま。
+ * @param {object[]} items board の items
+ * @param {object} [opts] { running:Iterable<number>, questionIssues:Iterable<number> }
+ * @returns {Array<{issue:number, title:(string|null), status:string, aiStatus:(string|null), kind:(string|null),
+ *   delegate:{ok:boolean, action?:string, nextPhase?:string, code?:string, error?:string}}>}
+ */
+function humanWaitRows(items, opts = {}) {
+    const running = new Set(opts.running || []);
+    const questions = new Set(opts.questionIssues || []);
+    return (items || []).filter((it) => itemHasHitl(it) && !TERMINAL_STATUSES.has(it.status)).map((it) => {
+        const p = planDelegate(it, { running: running.has(it.issue), openQuestions: questions.has(it.issue), pr: Boolean(it.prs && it.prs.length) });
+        const delegate = p.ok ? { ok: true, action: p.action, nextPhase: p.nextPhase } : { ok: false, code: p.code, error: p.error };
+        return {
+            issue: it.issue, title: it.title || null, status: it.status || 'New Item', aiStatus: it.aiStatus || null,
+            kind: it.kind || null, delegate,
+        };
+    });
+}
+
 module.exports = {
+    MAX_MONITOR_NOTE,
+    monitorQuestionsMarker,
+    monitorAnswerMarker,
+    findMonitorQuestionsComments,
+    renderMonitorQuestionsComment,
+    planMonitorQuestionsComment,
+    normalizeMonitorAnswerBody,
+    planMonitorAnswer,
+    renderMonitorAnswerComment,
+    planMonitorAnswerComments,
+    renderMonitorAnswersForPrompt,
+    monitorQuestionsView,
+    pruneMonitorReleases,
+    withMonitorReleases,
+    normalizeDelegateBody,
+    itemHasHitl,
+    planDelegate,
+    humanWaitRows,
     PHASE_BY_COMMAND,
     PHASE_BY_AI_STATUS,
     IN_FLIGHT_WORK_PHASE_BY_AI_STATUS,
@@ -3403,11 +4194,14 @@ module.exports = {
     resolveOwner,
     AUTOPILOT_BRANCH_PREFIX,
     autopilotHeadBranch,
+    hasMergedHeadPr,
     resolveBaseRef,
     shouldCleanupWorktree,
     isDevServerCommand,
+    isBrowserCommand,
+    leftoverKind,
     worktreeIssueFromCwd,
-    selectDevServersToStop,
+    selectLeftoversToStop,
     baseFollowConflictBody,
     resolveConflictFailureBody,
     prConflictState,
@@ -3419,6 +4213,17 @@ module.exports = {
     isHitlReleased,
     isGateReleased,
     addressReviewMarker,
+    handledInstructionIds,
+    MONITOR_INSTRUCTION_MARKER,
+    MAX_MONITOR_INSTRUCTION,
+    isMonitorInstructionComment,
+    monitorInstructionText,
+    renderMonitorInstructionComment,
+    selectMonitorInstructions,
+    normalizeDelegateInstruction,
+    planMonitorInstructionPost,
+    openPrNumber,
+    reviewFindingsView,
     handledReviewIds,
     selectRequestedReviews,
     extractCommentRefs,
@@ -3438,7 +4243,9 @@ module.exports = {
     statusRank,
     orderItemsLikeBoard,
     selectActionable,
-    shouldResend,
+    promptStillInInput,
+    acceptWindowFor,
+    planResend,
     evaluate,
     sanitizeForSurface,
     isAuthError,
@@ -3454,6 +4261,7 @@ module.exports = {
     touchedRuleAreas,
     TRACKING_LABEL,
     WAITING_LABEL,
+    AFTER_RELEASE_LABEL,
     SPIKE_LABEL,
     isSpikeItem,
     spikeLabelAction,
@@ -3486,6 +4294,7 @@ module.exports = {
     selectMarkedComments,
     stickyUpsertPlan,
     rateLimitPlan,
+    isRateLimitError, bootRateLimitWait, restoredHumanPause, humanPauseFileAction,
     DEFAULT_USAGE_PAUSE_THRESHOLDS,
     USAGE_WINDOW_FALLBACK_MS,
     usageResetMs,
@@ -3497,6 +4306,7 @@ module.exports = {
     needsPrLinkSticky,
     renderPrLinkSticky,
     HUMAN_GATE_STATUSES,
+    RELEASE_CHECK_AI_STATUS,
     isGateItem,
     dodHandoffMarker,
     isDodHandoffComment,
