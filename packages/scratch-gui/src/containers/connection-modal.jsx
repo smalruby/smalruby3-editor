@@ -547,31 +547,23 @@ ConnectionModal.propTypes = {
 // === Smalruby: Start of meshV2 initial step feature ===
 // Upstream: const mapStateToProps = state => ({extensionId: state.scratchGui.connectionModal.extensionId});
 const mapStateToProps = state => {
-// === Smalruby: End of meshV2 initial step feature ===
-    // === Smalruby: Start of meshV2 initial step feature ===
     const classroom = state.scratchGui.classroom;
     const meshV2DomainReadOnly = !!(
         (classroom && classroom.role === 'student' && classroom.joinCode) ||
         (classroom && classroom.teacherSelection && classroom.teacherSelection.joinCode)
     );
-    // === Smalruby: End of meshV2 initial step feature ===
-    // === Smalruby: Start of meshV2 initial step feature ===
     return {
-    // === Smalruby: End of meshV2 initial step feature ===
         extensionId: state.scratchGui.connectionModal.extensionId,
-        // === Smalruby: Start of meshV2 initial step feature ===
         meshV2Domain: state.scratchGui.meshV2.domain,
         meshV2DomainReadOnly,
         meshV2Seat: computeBoundSeat(classroom),
-        // === Smalruby: End of meshV2 initial step feature ===
         // === Smalruby: Start of meshV2 seat connect feature ===
         classroomJoinCode: classroom && classroom.role === 'student' ? classroom.joinCode : null,
         classroomName: classroom && classroom.role === 'student' ? classroom.className : null
         // === Smalruby: End of meshV2 seat connect feature ===
-    // === Smalruby: Start of meshV2 initial step feature ===
     };
 };
-    // === Smalruby: End of meshV2 initial step feature ===
+// === Smalruby: End of meshV2 initial step feature ===
 
 const mapDispatchToProps = dispatch => ({
     onCancel: () => {

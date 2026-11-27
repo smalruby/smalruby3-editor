@@ -14,7 +14,6 @@ const buildInterpolationArgs = function (blockInfo) {
     let argCount = 0;
     const scratchBlocksStyleText = blockInfo.text.replace(/\[(.+?)]/g, (match, argName) => {
         const arg = blockInfo.arguments[argName];
-// === Smalruby: End of build interpolation args ===
         // === Smalruby: Start of menu field support ===
         if (arg.menu && blockInfo.menuItems && blockInfo.menuItems[arg.menu]) {
             args.push({
@@ -25,7 +24,6 @@ const buildInterpolationArgs = function (blockInfo) {
             return `%${++argCount}`;
         }
         // === Smalruby: End of menu field support ===
-        // === Smalruby: Start of build interpolation args ===
         switch (arg.type) {
         case ArgumentType.STRING:
             args.push({type: 'input_value', name: argName});
@@ -38,7 +36,7 @@ const buildInterpolationArgs = function (blockInfo) {
     });
     return {scratchBlocksStyleText, args};
 };
-        // === Smalruby: End of build interpolation args ===
+// === Smalruby: End of build interpolation args ===
 
 // === Smalruby: Start of argumentsByMethod support ===
 
