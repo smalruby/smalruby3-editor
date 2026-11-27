@@ -70,7 +70,7 @@ gh-admin: repo 設定だけを admin トークンで操作するラッパ
 
 許可されるのは Actions の Variables / Secrets と Environments の操作だけです。
 それ以外（merge / branch protection / リポジトリ削除など）は通しません。
-通常の操作は bot トークンを使ってください: GH_TOKEN="$(bin/bot-token)" gh ...
+通常の操作は bot トークンを使ってください: bin/bot-gh ...
 EOS
     exit 2
 }
@@ -185,7 +185,7 @@ case "$1" in
         [[ -n "${path}" ]] || die "API パスを指定してください"
         allow_api_path "${path}" || die "このパスは gh-admin では実行できません: ${path}
   許可: repos/<owner>/<repo>/actions/{variables,secrets}...、repos/<owner>/<repo>/environments...
-  それ以外は bot トークンで実行してください: GH_TOKEN=\"\$(bin/bot-token)\" gh api ..."
+  それ以外は bot トークンで実行してください: bin/bot-gh api ..."
         exec env GH_TOKEN="${TOKEN}" gh api "$@"
         ;;
     *)

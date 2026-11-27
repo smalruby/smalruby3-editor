@@ -51,7 +51,7 @@ PR の base が `topic/...`（Issue 本文の `autopilot-base:`）のとき、da
 ### 1. 対象 PR を特定
 
 ```bash
-PR=$(GH_TOKEN="$(bin/bot-token)" gh pr list --repo "${AUTOPILOT_REPO:-smalruby/smalruby3-editor}" \
+PR=$(bin/bot-gh pr list --repo "${AUTOPILOT_REPO:-smalruby/smalruby3-editor}" \
   --search "Closes #$AUTOPILOT_ISSUE in:body" --state open --json number -q '.[0].number')
 ```
 
@@ -61,7 +61,7 @@ PR=$(GH_TOKEN="$(bin/bot-token)" gh pr list --repo "${AUTOPILOT_REPO:-smalruby/s
 （`touchedRuleAreas`・純粋関数・`tools/autopilot/src/phases.js`）:
 
 ```bash
-FILES=$(GH_TOKEN="$(bin/bot-token)" gh pr diff "$PR" --repo "${AUTOPILOT_REPO:-smalruby/smalruby3-editor}" --name-only)
+FILES=$(bin/bot-gh pr diff "$PR" --repo "${AUTOPILOT_REPO:-smalruby/smalruby3-editor}" --name-only)
 AREAS=$(node -e '
 const { touchedRuleAreas } = require("./tools/autopilot/src/phases.js");
 const files = require("fs").readFileSync(0, "utf8").split("\n").filter(Boolean);
@@ -100,7 +100,7 @@ console.log(learnedRuleFilesFor(files).join("\n"));
 > Skill/Workflow の許可プロンプトを避ける。**レビューは以下の観点を自分の目で確認する**
 > （どうしても機械的チェックを併用する場合でも、単発の観点チェックに留め、動的 workflow は使わない）。
 
-`GH_TOKEN="$(bin/bot-token)" gh pr diff "$PR" --repo "${AUTOPILOT_REPO:-smalruby/smalruby3-editor}"` で差分を読み、次の観点で確認する:
+`bin/bot-gh pr diff "$PR" --repo "${AUTOPILOT_REPO:-smalruby/smalruby3-editor}"` で差分を読み、次の観点で確認する:
 
 - **`.claude/rules/<area>/`（ステップ 2 で読んだもの）からの逸脱** — 実装規約違反、現行実装からの
   逸脱、マーカー漏れ（Smalruby marker comments）、独自実装の不変条件違反（例: autopilot の
@@ -160,12 +160,12 @@ console.log(learnedRuleFilesFor(files).join("\n"));
 ```bash
 REPO="${AUTOPILOT_REPO:-smalruby/smalruby3-editor}"
 # 冪等: 同じ内容の follow-up が既にあれば作り直さない
-GH_TOKEN="$(bin/bot-token)" gh issue list --repo "$REPO" --state open --search "<要点> in:title" --json number,title
-url=$(GH_TOKEN="$(bin/bot-token)" gh issue create --repo "$REPO" --title "<conventional な title>" \
+bin/bot-gh issue list --repo "$REPO" --state open --search "<要点> in:title" --json number,title
+url=$(bin/bot-gh issue create --repo "$REPO" --title "<conventional な title>" \
   --body "<何が問題か・どう直すか・なぜこの PR で見送ったか>"$'\n\n'"Follow-up of #$AUTOPILOT_ISSUE (PR #$PR のレビュー指摘)")
 num=$(basename "$url")
-dbid=$(GH_TOKEN="$(bin/bot-token)" gh api "repos/$REPO/issues/$num" --jq .id)
-GH_TOKEN="$(bin/bot-token)" gh api --method POST "repos/$REPO/issues/$AUTOPILOT_ISSUE/sub_issues" -F sub_issue_id="$dbid"
+dbid=$(bin/bot-gh api "repos/$REPO/issues/$num" --jq .id)
+bin/bot-gh api --method POST "repos/$REPO/issues/$AUTOPILOT_ISSUE/sub_issues" -F sub_issue_id="$dbid"
 ```
 
 - **assignee と `🤖 autopilot` ラベルは付けない**（autopilot に乗せるかは人間が決める）。Project にも
@@ -192,7 +192,7 @@ GH_TOKEN="$(bin/bot-token)" gh api --method POST "repos/$REPO/issues/$AUTOPILOT_
 
 ```bash
 REPO="${AUTOPILOT_REPO:-smalruby/smalruby3-editor}"
-GH_TOKEN="$(bin/bot-token)" gh api "repos/$REPO/issues/$PR/comments" --paginate \
+bin/bot-gh api "repos/$REPO/issues/$PR/comments" --paginate \
   | jq -s 'add' > tmp/review-comments-$AUTOPILOT_ISSUE.json
 # tmp/review-findings-$AUTOPILOT_ISSUE.json に手順 4 のメモの配列（JSON）を書いてから:
 node -e '
@@ -210,8 +210,8 @@ console.log(existing ? `PATCH ${existing.id}` : "POST");
 ' tmp/review-comments-$AUTOPILOT_ISSUE.json tmp/review-findings-$AUTOPILOT_ISSUE.json
 ```
 
-- 出力が `POST` → `GH_TOKEN="$(bin/bot-token)" gh pr comment "$PR" --repo "$REPO" --body-file tmp/review-findings-body.md`
-- 出力が `PATCH <id>` → `GH_TOKEN="$(bin/bot-token)" gh api -X PATCH "repos/$REPO/issues/comments/<id>" -F body=@tmp/review-findings-body.md`
+- 出力が `POST` → `bin/bot-gh pr comment "$PR" --repo "$REPO" --body-file tmp/review-findings-body.md`
+- 出力が `PATCH <id>` → `bin/bot-gh api -X PATCH "repos/$REPO/issues/comments/<id>" -F body=@tmp/review-findings-body.md`
 - **冪等**: このレビューのまとめコメントを既に投稿済みで（途中で中断した再実行など）、その後に
   人間のコメントが無いなら、新しい round を作らず **その round を `REVIEW_ROUND=<N>` で指定して編集**する
   （二重投稿しない）。

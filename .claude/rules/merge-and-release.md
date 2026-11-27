@@ -52,7 +52,7 @@ autopilot（`tools/autopilot/`）の改良は、速いサイクルで回した�
      - テストと docs の更新。
   4. 人間の判断が要る点が残っていない。仕様の選択・人間が未回答の質問・未対応の Request changes がある場合は、マージしない。
 - **満たさないとき**は、理由を PR にコメントして人間のレビューに残す。直せば済むものは、address-review に回してよい。
-- マージは `GH_TOKEN="$(bin/bot-token)" gh pr merge <n> --merge --delete-branch`。Issue は daemon がマージを見て閉じる。
+- マージは `bin/bot-gh pr merge <n> --merge --delete-branch`。Issue は daemon がマージを見て閉じる。
 - **マージのあとは daemon を再起動する**。そうしないと変更が効かない（`.claude/rules/autopilot/development.md`）。
   - worker が走っていなければ、すぐ再起動する。
   - 走っていれば、終わるのを待つ。または、中断してよいかを人間に聞く。

@@ -13,7 +13,7 @@
 ### 1. Issue を取得して理解する
 
 ```bash
-GH_TOKEN="$(bin/bot-token)" gh issue view "$AUTOPILOT_ISSUE" --repo "${AUTOPILOT_REPO:-smalruby/smalruby3-editor}" \
+bin/bot-gh issue view "$AUTOPILOT_ISSUE" --repo "${AUTOPILOT_REPO:-smalruby/smalruby3-editor}" \
   --json title,body,comments,labels
 ```
 
@@ -44,7 +44,7 @@ echo AUTOPILOT_DONE
 **対話で聞かず**、確認したい点を箇条書きで bot コメントに投稿してから HITL で終了する:
 
 ```bash
-GH_TOKEN="$(bin/bot-token)" gh issue comment "$AUTOPILOT_ISSUE" --repo "$AUTOPILOT_REPO" --body-file <(cat <<'EOF'
+bin/bot-gh issue comment "$AUTOPILOT_ISSUE" --repo "$AUTOPILOT_REPO" --body-file <(cat <<'EOF'
 🤖 autopilot understand — 確認したい点
 - <質問1>
 - <質問2>
@@ -72,7 +72,7 @@ echo AUTOPILOT_HITL
 
 - `AskUserQuestion` を使わない。確認は番兵 + コメントで。
 - 冪等: 既に同じ確認コメントを出していれば二重投稿しない。
-- `gh` は `GH_TOKEN="$(bin/bot-token)"`、コミットは `bin/bot-git`。Project は直接書かない。
+- `gh` は `bin/bot-gh`、コミットは `bin/bot-git`。Project は直接書かない。
 
 ---
 

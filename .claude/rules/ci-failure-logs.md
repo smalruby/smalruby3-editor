@@ -7,7 +7,7 @@ CI（GitHub Actions）のジョブが落ちて原因を調べるとき、**コ�
 
 - 公開リポジトリの GitHub Actions は無料。**費用を気にせず流し直してよい**（人間・AI・autopilot の worker 共通）。
 - Bot は落ちたジョブを流し直せる（GitHub App の Actions は Read and write）:
-  `GH_TOKEN="$(bin/bot-token)" gh run rerun <run> --failed --repo smalruby/smalruby3-editor`。
+  `bin/bot-gh run rerun <run> --failed --repo smalruby/smalruby3-editor`。
 - 流し直してよい場面: 一時的な失敗が疑わしいとき、権限や設定を確かめたいとき、最新の結果が欲しいとき。
   「古い run を流すのは無駄」と避けたり、安い run を選んだりしなくてよい。
 - ローカルで重いテスト全体を流す前に、まず CI の流し直しと、落ちた段の名前・注釈を見る
@@ -32,10 +32,10 @@ check-run の注釈（annotation）に出している（`.github/workflows/ci-cd
 
 ```bash
 # 1. 落ちたジョブ（= check-run）の id
-GH_TOKEN="$(bin/bot-token)" gh run view <run> --repo smalruby/smalruby3-editor --json jobs \
+bin/bot-gh run view <run> --repo smalruby/smalruby3-editor --json jobs \
   -q '.jobs[]|select(.conclusion=="failure")|"\(.databaseId) \(.name)"'
 # 2. そのジョブの注釈（テストの名前・ファイルと行・期待値と実際の値の差）
-GH_TOKEN="$(bin/bot-token)" gh api repos/smalruby/smalruby3-editor/check-runs/<job id>/annotations \
+bin/bot-gh api repos/smalruby/smalruby3-editor/check-runs/<job id>/annotations \
   -q '.[]|"\(.path):\(.start_line) \(.title)\n\(.message)\n"'
 ```
 

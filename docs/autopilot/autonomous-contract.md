@@ -32,7 +32,7 @@ autopilot のプロンプトは、**人間が enter を押すのと同じ形で 
 
 判断・確認・追加情報が必要になったら、**人間に聞くのではなく**:
 
-1. 対象 Issue / PR に **bot 名義でコメント**を投稿し（`GH_TOKEN="$(bin/bot-token)" gh ...`）、
+1. 対象 Issue / PR に **bot 名義でコメント**を投稿し（`bin/bot-gh ...`）、
    何を判断してほしいかを具体的に書く。
 2. **HITL シグナル**（`AUTOPILOT_HITL`）を出して**終了**する。
 
@@ -267,7 +267,7 @@ PR の base が `topic/...` の Issue（EPIC の sub-issue）では、daemon が
   含まれると個人クレデンシャルの push に自動で切り替わる（`route=personal`）。その場合
   PR 作成も plain `gh`（個人トークン）で行い、`👥 human-review-required` ラベルを付けて
   本人以外のレビューを必須にする。
-- gh / GraphQL は **`GH_TOKEN="$(bin/bot-token)" gh ...`**（`bin/bot-token` は5分前自動リフレッシュ）。
+- gh / GraphQL は **`bin/bot-gh ...`**（`bin/bot-token` は5分前自動リフレッシュ）。
 - 作業は**割り当てられた worktree（cwd）の中だけ**で行う。
 - 対象は**割り当てられた 1 つの Issue / PR のみ**。他の Issue を勝手に触らない。
 

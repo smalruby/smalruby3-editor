@@ -1697,7 +1697,7 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 ## 認証
 
 コミット/PR/Project 操作は GitHub App bot **`smalruby3-editor-bot`** 名義で行う
-（`bin/bot-git` / `GH_TOKEN="$(bin/bot-token)" gh ...`）。詳細は
+（`bin/bot-git` / `bin/bot-gh ...`）。詳細は
 [`docs/github-app-bot/README.md`](../github-app-bot/README.md)。
 
 ---

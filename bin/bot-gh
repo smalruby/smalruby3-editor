@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: MIT (see tools/autopilot/LICENSE)
+# bot-gh — run gh AS the GitHub App bot (smalruby3-editor-bot[bot]).
+#
+#   bin/bot-gh pr create --repo smalruby/smalruby3-editor --base develop ...
+#   bin/bot-gh api graphql -f query='...'
+#
+# `GH_TOKEN="$(bin/bot-token)" gh ...` の代わりに使う。あの書き方は bin/bot-token が
+# 失敗すると GH_TOKEN が空になり、gh が黙って別の認証（コンテナの個人トークン）を使って
+# 人間の名義で書き込んでしまう（#2534）。このラッパは、Bot のトークンが取れないときは
+# gh を呼ばずに非 0 で終わる。
+set -euo pipefail
+
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# bin/bot-token の失敗時の番兵（bin/bot-token の UNAVAILABLE_SENTINEL と同じ値）。
+sentinel="BOT_TOKEN_UNAVAILABLE"
+
+if ! token="$("${here}/bot-token")" || [[ -z "${token}" || "${token}" == "${sentinel}" ]]; then
+  cat >&2 <<'EOF'
+bot-gh: Bot のトークンが取れないので gh を実行しません（個人の名義で動かさないため）。
+  直し方: aws sso login --sso-session smalruby --use-device-code
+  確認:   bin/bot-token --whoami
+EOF
+  exit 1
+fi
+
+GH_TOKEN="${token}" exec gh "$@"

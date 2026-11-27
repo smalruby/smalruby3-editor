@@ -162,7 +162,7 @@ Issue 本文のディレクティブは **行頭のみ**で発火する（`phase
 worker は **`cdk deploy` を実行しない**（stg / prod とも）。stg は共有資源で、複数の worker が
 同時に撃つと CloudFormation の更新が中断する。stg に自分の変更を載せたいときは:
 
-1. PR に **`deploy-stg` ラベル**を付ける（`GH_TOKEN="$(bin/bot-token)" gh pr edit <n> --add-label "deploy-stg"`）
+1. PR に **`deploy-stg` ラベル**を付ける（`bin/bot-gh pr edit <n> --add-label "deploy-stg"`）
 2. `.github/workflows/deploy-infra-stg.yml` の完了を待つ（`gh run watch` / `gh pr checks`）
 3. workflow が PR に残すコメントで「いまの stg が自分の SHA か」を確認してから DoD を行う
 
