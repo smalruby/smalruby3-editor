@@ -17,9 +17,11 @@ const DYNAMIC_OPCODES = new Set([
     ...PROCEDURE_OPCODES.filter((opcode) => opcode !== 'procedures_prototype'),
 ]);
 
-const makeTarget = () => ({
+// `variables` は作品に最初からある変数・リスト（{name, type}。setup.code から作る）。変換はスプライトにある変数を
+// 見て「@文[i]」を文字（「の (i) 番目の文字」）かリストの (i) 番目かを決めるので、アプリと同じに持たせる
+const makeTarget = (variables = []) => ({
     isStage: false,
-    variables: {},
+    variables: Object.fromEntries(variables.map((v, i) => [`given-${i}`, { id: `given-${i}`, ...v }])),
     comments: {},
     getCostumes: () => [{ name: 'costume1' }],
     getSounds: () => [],
@@ -28,23 +30,36 @@ const makeTarget = () => ({
     },
 });
 
-const convertedOpcodes = async (code) => {
+const convert = async (code, variables = []) => {
     const converter = new RubyToBlocksConverter(null, { version: 2, validateAssets: false });
-    const res = await converter.targetCodeToBlocks(makeTarget(), code);
+    const res = await converter.targetCodeToBlocks(makeTarget(variables), code);
     if (!res) throw new Error(`Conversion failed: ${JSON.stringify(converter.errors)}\n${code}`);
-    return Object.values(converter._context.blocks).map((block) => block.opcode);
+    return converter._context;
+};
+const convertedOpcodes = async (code, variables) =>
+    Object.values((await convert(code, variables)).blocks).map((block) => block.opcode);
+
+// setup.code が作る、スプライトの変数・リスト（`@` の名前。`$` はステージのものなので持たせない）
+const givenVariables = async (setupCode) => {
+    if (!setupCode || !setupCode.trim()) return [];
+    const context = await convert(setupCode);
+    const spriteOnes = (store, type) =>
+        Object.values(store || {})
+            .filter((v) => v.scope === 'instance')
+            .map((v) => ({ name: v.name, type }));
+    return [...spriteOnes(context.variables, ''), ...spriteOnes(context.lists, 'list')];
 };
 
 // `procedures` は作品に最初からある定義ブロックの名前（ヒントの Ruby は名前だけで呼ぶ）。空の定義を足して変換し、
 // 足した定義の分のブロックは数えない
-const usedDynamicOpcodes = async (code, procedures = []) => {
+const usedDynamicOpcodes = async (code, procedures = [], variables = []) => {
     const defined = procedureNamesInCode(code);
     const stubs = procedures
         .filter((name) => !defined.includes(name))
         .map((name) => `def ${name}\nend\n`)
         .join('\n');
-    const opcodes = await convertedOpcodes(stubs ? `${stubs}\n${code}` : code);
-    const stubOpcodes = stubs ? new Set(await convertedOpcodes(stubs)) : new Set();
+    const opcodes = await convertedOpcodes(stubs ? `${stubs}\n${code}` : code, variables);
+    const stubOpcodes = stubs ? new Set(await convertedOpcodes(stubs, variables)) : new Set();
     return [...new Set(opcodes.filter((opcode) => DYNAMIC_OPCODES.has(opcode) && !stubOpcodes.has(opcode)))].sort();
 };
 
@@ -74,14 +89,20 @@ const codesOf = (item) => {
     const setupCode = item.setup && item.setup.code;
     const proceduresOf = (locale) => procedureNamesInCode(localeCode(setupCode, locale));
     rubyByLocale(item.code).forEach(([locale, code]) =>
-        codes.push({ code: withoutGiven(code, localeCode(setupCode, locale)), procedures: proceduresOf(locale) }),
+        codes.push({
+            code: withoutGiven(code, localeCode(setupCode, locale)),
+            procedures: proceduresOf(locale),
+            setupCode: localeCode(setupCode, locale),
+        }),
     );
     (item.spriteCodes || []).forEach((sc) => rubyByLocale(sc.code).forEach(([, code]) => codes.push({ code })));
     (item.steps || []).forEach((step) => {
         // codeType: 'blocks' 以外（Ruby タブで写すコードなど）も、コードタブに切り替えたら同じブロックになる
         if (typeof step.code === 'string') codes.push({ code: step.code });
         // チャレンジのヒントの吹き出しに描くブロック（パレットから探すブロック）
-        rubyByLocale(step.blocks).forEach(([locale, code]) => codes.push({ code, procedures: proceduresOf(locale) }));
+        rubyByLocale(step.blocks).forEach(([locale, code]) =>
+            codes.push({ code, procedures: proceduresOf(locale), setupCode: localeCode(setupCode, locale) }),
+        );
     });
     return codes.filter(({ code }) => code.trim() !== '');
 };
@@ -94,8 +115,8 @@ const codesOf = (item) => {
 const missingDynamicOpcodes = async (item) => {
     const allowed = allowedBlocksToIds(item.allowedBlocks);
     const missing = new Set();
-    for (const { code, procedures } of codesOf(item)) {
-        (await usedDynamicOpcodes(code, procedures)).forEach((opcode) => {
+    for (const { code, procedures, setupCode } of codesOf(item)) {
+        (await usedDynamicOpcodes(code, procedures, await givenVariables(setupCode))).forEach((opcode) => {
             if (!allowed.includes(opcode)) missing.add(opcode);
         });
     }

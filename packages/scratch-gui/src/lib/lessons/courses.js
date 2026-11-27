@@ -2954,29 +2954,58 @@ const lmNames = (key) => [...new Set(Object.values(LM_WORDS).map((w) => w[key]))
 const lmNameMatcher = (key) => new RegExp(`^(${lmNames(key).join('|')})$`, 'i');
 const lmLocalized = (key) => Object.fromEntries(Object.entries(LM_WORDS).map(([locale, w]) => [locale, w[key]]));
 
+// 「学習する」の中身の段（レッスン 2 で作り直す）: 'empty' = 教科書の 1 文めを 1 文字ずつ読むだけ（2-2 の始め）、
+// 'sentence' = 1 文めの組を「まえ」「つぎ」に足す（2-2 の答え・2-3 の始め）、'all' = 教科書の全部の文（できあがり）
+
+/**
+ * 定義ブロック「学習する」（レッスン 1〜3 の形・文脈は前の 1 文字）。
+ * @param {object} w - locale の名前（`LM_WORDS` の 1 つ）。
+ * @param {string} [stage] - 中身の段（'empty' / 'sentence' / 'all'）。
+ * @param {boolean} [step] - 'all' で「何文目」を 1 ずつ変えるか（2-3 のヒントの途中の絵は false）。
+ * @returns {string} Ruby。
+ */
+const lmLearnDef = (w, stage = 'all', step = true) => {
+    const indent = (lines) => lines.map((line) => `  ${line}`);
+    const pairs =
+        stage === 'empty'
+            ? []
+            : [
+                  `@${w.before}.push(@${w.prev})`,
+                  `@${w.after}.push(@${w.text}[@${w.letterNo} - 1])`,
+                  `@${w.prev} = @${w.text}[@${w.letterNo} - 1]`,
+              ];
+    const sentence = [
+        `@${w.text} = @${w.textbook}[@${w.sentenceNo} - 1]`,
+        `@${w.prev} = ""`,
+        `@${w.letterNo} = 1`,
+        `until @${w.letterNo} > @${w.text}.length`,
+        ...indent([...pairs, `@${w.letterNo} += 1`]),
+        'end',
+    ];
+    const body =
+        stage === 'all'
+            ? [
+                  `until @${w.sentenceNo} > @${w.textbook}.length`,
+                  ...indent([...sentence, ...(step ? [`@${w.sentenceNo} += 1`] : [])]),
+                  'end',
+              ]
+            : sentence;
+    return [
+        `without_screen_refresh def ${w.learn}`,
+        ...indent([`@${w.before}.clear`, `@${w.after}.clear`, `@${w.sentenceNo} = 1`, ...body]),
+        'end',
+        '',
+    ].join('\n');
+};
+
 /**
  * できあがりの AI の 4 つの定義ブロックと旗のスクリプト（レッスン 1〜3 の形・文脈は前の 1 文字）。
  * @param {object} w - locale の名前（`LM_WORDS` の 1 つ）。
+ * @param {string} [learn] - 「学習する」の中身の段（`lmLearnDef` の `stage`）。
  * @returns {string} Ruby。
  */
-const lmAiCode = (w) =>
-    `without_screen_refresh def ${w.learn}\n` +
-    `  @${w.before}.clear\n` +
-    `  @${w.after}.clear\n` +
-    `  @${w.sentenceNo} = 1\n` +
-    `  until @${w.sentenceNo} > @${w.textbook}.length\n` +
-    `    @${w.text} = @${w.textbook}[@${w.sentenceNo} - 1]\n` +
-    `    @${w.prev} = ""\n` +
-    `    @${w.letterNo} = 1\n` +
-    `    until @${w.letterNo} > @${w.text}.length\n` +
-    `      @${w.before}.push(@${w.prev})\n` +
-    `      @${w.after}.push(@${w.text}[@${w.letterNo} - 1])\n` +
-    `      @${w.prev} = @${w.text}[@${w.letterNo} - 1]\n` +
-    `      @${w.letterNo} += 1\n` +
-    `    end\n` +
-    `    @${w.sentenceNo} += 1\n` +
-    `  end\n` +
-    `end\n\n` +
+const lmAiCode = (w, learn = 'all') =>
+    `${lmLearnDef(w, learn)}\n` +
     `without_screen_refresh def ${w.collect}\n` +
     `  @${w.candidates}.clear\n` +
     `  @${w.rowNo} = 1\n` +
@@ -3008,14 +3037,21 @@ const lmTeachScript = (w) =>
 const lmLookScript = (w) =>
     `when_key_pressed("c") do\n  @${w.text} = "${w.look}"\n  ${w.collect}\n  show_list("@${w.candidates}")\nend\n`;
 const lmRepeatScript = (w) => `when_clicked do\n  5.times do\n    ${w.make}\n    say(@${w.text}, 2)\n  end\nend\n`;
-const lmProgram = (...scripts) => lmCode((w) => [lmAiCode(w), ...scripts.map((s) => s(w))].join('\n'));
+// 2-1 の答え（ロボットを押したら文を作って、1 文字ずつ言う）
+const lmSpellScript = (w) =>
+    `when_clicked do\n  ${w.make}\n  @${w.letterNo} = 1\n  until @${w.letterNo} > @${w.text}.length\n` +
+    `    say(@${w.text}[@${w.letterNo} - 1], 0.5)\n    @${w.letterNo} += 1\n  end\nend\n`;
+// `learn` は「学習する」の中身の段（レッスン 2 で作り直す）
+const lmProgramWith = (learn, ...scripts) =>
+    lmCode((w) => [lmAiCode(w, learn), ...scripts.map((s) => s(w))].join('\n'));
+const lmProgram = (...scripts) => lmProgramWith('all', ...scripts);
 
 // 始めるとき: ネコを Retro Robot にし、AI と教科書を入れる。`monitors` はモニターを出すリスト（ステージが狭いので
-// 1-2 の教科書と 1-3 の「まえ」「つぎ」だけ）
+// 1-2 の教科書と、1-3・2-2 の「まえ」「つぎ」だけ）。`learn` は「学習する」の中身の段
 const LM_LIST_KEYS = ['textbook', 'before', 'after', 'candidates'];
-const lmSetup = (scripts, monitors = []) => ({
+const lmSetup = (scripts, monitors = [], learn = 'all') => ({
     sprites: ['Retro Robot'],
-    code: lmProgram(...scripts),
+    code: lmProgramWith(learn, ...scripts),
     lists: LM_LIST_KEYS.map((key) => ({
         name: lmLocalized(key),
         items: key === 'textbook' ? LM_TEXTBOOK : [],
@@ -3188,6 +3224,168 @@ const lmLesson1 = defineLesson({
     ],
 });
 
+// レッスン 2「ことばを文字に分けよう」（#2109）: 文を 1 文字ずつ扱い（2-1）、その形で「学習する」を作り直す
+// （2-2 で 1 文の組、2-3 で教科書の全部の文）。2-2・2-3 は「学習する」の中身を途中まで入れて始める
+// （1 チャレンジで足すのを 3〜5 ブロックにするため。ほかの定義ブロックは中身があるので、外側はいつも動く）
+const lmLearnCode = (stage, step = true) => lmCode((w) => lmLearnDef(w, stage, step));
+// 2-2 のヒントの絵: 1 文字ずつ読むくり返しに、組を足すブロックを 1 つずつ入れる
+const lmPairLoop = (count) =>
+    lmCode((w) =>
+        [
+            `until @${w.letterNo} > @${w.text}.length`,
+            ...[
+                `@${w.before}.push(@${w.prev})`,
+                `@${w.after}.push(@${w.text}[@${w.letterNo} - 1])`,
+                `@${w.prev} = @${w.text}[@${w.letterNo} - 1]`,
+            ]
+                .slice(0, count)
+                .map((line) => `  ${line}`),
+            `  @${w.letterNo} += 1`,
+            'end',
+            '',
+        ].join('\n'),
+    );
+// 「学習する」の中で使う変数・リストのブロック（2-2・2-3 は中身を作り直すので、パレットに出す）
+const LM_LEARN_DATA = [
+    'data_variable',
+    'data_setvariableto',
+    'data_changevariableby',
+    'data_addtolist',
+    'data_deletealloflist',
+    'data_itemoflist',
+    'data_lengthoflist',
+];
+
+const lmLesson2 = defineLesson({
+    id: 'lm-l2',
+    challenges: [
+        // 2-1 1 文字ずつ言おう: AI が作った文を「(何文字目) 番目の文字」で 1 文字ずつ言う（「の長さ」まで）
+        {
+            id: 'lm-l2-letters',
+            card: { category: CATEGORIES.VARIABLES, main: CATEGORIES.OPERATORS },
+            task: challengeMessage('lm-l2-letters', 'task'),
+            setup: lmSetup([lmSayScript]),
+            allowedBlocks: {
+                control: ['control_repeat_until'],
+                operators: ['operator_gt', 'operator_letter_of', 'operator_length'],
+                looks: [{ opcode: 'looks_sayforsecs', inputs: { SECS: 0.5 } }],
+                ...LM_PALETTE_CALL,
+                data: [
+                    'data_variable',
+                    { opcode: 'data_setvariableto', inputs: { VALUE: 1 } },
+                    'data_changevariableby',
+                ],
+            },
+            steps: withTitles('lm-l2-letters', [
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: lmCode((w) => `when_clicked do\n  ${w.make}\n  @${w.letterNo} = 1\nend\n`),
+                },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: lmCode(
+                        (w) =>
+                            `when_clicked do\n  ${w.make}\n  @${w.letterNo} = 1\n` +
+                            `  until @${w.letterNo} > @${w.text}.length\n  end\nend\n`,
+                    ),
+                },
+                { target: HINT_TARGETS.PALETTE, blocks: lmCode(lmSpellScript) },
+                { kind: RUBY_STEP_KIND, target: HINT_TARGETS.RUBY_TAB, blocks: lmCode(lmSpellScript) },
+                { target: HINT_TARGETS.GREEN_FLAG },
+            ]),
+            debug: debugTips('lm-l2-letters', 2),
+            // 押したスクリプトで、文を作ってから、くり返しの中で「(i) 番目の文字」「の長さ」を使って 2 回以上言い、
+            // 1 文字を 3 つ以上（ちがう文字）言った
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenthisspriteclicked' },
+                    together: true,
+                    blocks: [
+                        lmCall('make'),
+                        'control_repeat_until',
+                        'operator_letter_of',
+                        'operator_length',
+                        { opcode: 'looks_sayforsecs', count: 2 },
+                    ],
+                },
+                {
+                    type: 'said',
+                    trigger: { hat: 'event_whenthisspriteclicked' },
+                    text: /^.$/u,
+                    distinct: { gte: 3 },
+                },
+            ],
+            quiz: challengeQuiz('lm-l2-letters', 1),
+            code: lmProgram(lmSpellScript),
+        },
+        // 2-2 1 つの文の組を作ろう: 「学習する」は教科書の 1 文めを 1 文字ずつ読むだけになっている。読みながら
+        // （前の文字 → いまの文字）を「まえ」「つぎ」に足し、いまの文字を「前の文字」にする（モニターで組を見る）
+        {
+            id: 'lm-l2-pairs',
+            card: { category: CATEGORIES.VARIABLES, main: CATEGORIES.LISTS },
+            task: challengeMessage('lm-l2-pairs', 'task'),
+            setup: lmSetup([lmSayScript], ['before', 'after'], 'empty'),
+            allowedBlocks: {
+                control: ['control_repeat_until'],
+                operators: ['operator_gt', 'operator_letter_of', 'operator_length'],
+                ...LM_PALETTE_CALL,
+                data: LM_LEARN_DATA,
+            },
+            steps: withTitles('lm-l2-pairs', [
+                { target: HINT_TARGETS.PALETTE, blocks: lmPairLoop(1) },
+                { target: HINT_TARGETS.PALETTE, blocks: lmPairLoop(2) },
+                { target: HINT_TARGETS.PALETTE, blocks: lmPairLoop(3) },
+                { kind: RUBY_STEP_KIND, target: HINT_TARGETS.RUBY_TAB, blocks: lmLearnCode('sentence') },
+                { target: HINT_TARGETS.GREEN_FLAG },
+            ]),
+            debug: debugTips('lm-l2-pairs', 2),
+            // 「まえ」「つぎ」が、教科書のどれか 1 つの文の組と同じ（順番は問わない）
+            goal: [
+                {
+                    type: 'ngram',
+                    check: 'learned',
+                    scope: 'sentence',
+                    textbook: lmNames('textbook'),
+                    ...LM_LISTS,
+                },
+            ],
+            quiz: challengeQuiz('lm-l2-pairs', 1),
+            code: lmProgramWith('sentence', lmSayScript),
+        },
+        // 2-3 教科書を全部学習しよう: 1 文の分を「何文目」のくり返しで包み、教科書の全部の文を学習する
+        {
+            id: 'lm-l2-learn',
+            card: { category: CATEGORIES.VARIABLES, main: CATEGORIES.CONTROL },
+            task: challengeMessage('lm-l2-learn', 'task'),
+            setup: lmSetup([lmSayScript], [], 'sentence'),
+            allowedBlocks: {
+                control: ['control_repeat_until'],
+                operators: ['operator_gt', 'operator_letter_of', 'operator_length'],
+                ...LM_PALETTE_CALL,
+                data: LM_LEARN_DATA,
+            },
+            steps: withTitles('lm-l2-learn', [
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: lmCode(
+                        (w) => `@${w.sentenceNo} = 1\nuntil @${w.sentenceNo} > @${w.textbook}.length\nend\n`,
+                    ),
+                },
+                { target: HINT_TARGETS.CODE_AREA, blocks: lmLearnCode('all', false) },
+                { target: HINT_TARGETS.PALETTE, blocks: lmLearnCode('all') },
+                { kind: RUBY_STEP_KIND, target: HINT_TARGETS.RUBY_TAB, blocks: lmLearnCode('all') },
+                { target: HINT_TARGETS.GREEN_FLAG },
+            ]),
+            debug: debugTips('lm-l2-learn', 2),
+            // 「まえ」「つぎ」が、いまの教科書の全部の文の組と同じ（順番は問わない）
+            goal: [{ type: 'ngram', check: 'learned', textbook: lmNames('textbook'), ...LM_LISTS }],
+            quiz: challengeQuiz('lm-l2-learn', 1),
+            code: lmProgram(lmSayScript),
+        },
+    ],
+});
+
 export const COURSES = [
     defineCourse({
         id: 'kyou-kara-programmer',
@@ -3203,7 +3401,7 @@ export const COURSES = [
     defineCourse({
         id: 'kotoba-yosou-ai',
         language: LANGUAGES.BLOCKS,
-        lessons: [lmLesson1],
+        lessons: [lmLesson1, lmLesson2],
     }),
 ];
 
