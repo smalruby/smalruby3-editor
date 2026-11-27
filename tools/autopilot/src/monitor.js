@@ -2047,8 +2047,9 @@ document.addEventListener('click', (ev) => {
     return;
   }
   // 上の ⋯ の項目（更新・tick・現在地）は data-mi を持たないので、ここで閉じて ⋯ へフォーカスを戻す（#2525）。
-  // 押せない（disabled）項目は click 自体が来ないので開いたまま。処理はそれぞれの onclick が先に始めている
+  // 押せない（disabled）項目は開いたまま（中の .note の click が届くブラウザでも閉じない）。処理はそれぞれの onclick が先に始めている
   if (inMenu && inMenu.id === 'globalmenu') {
+    if (t.disabled) return;
     closeMenus();
     document.getElementById('globalmenubtn').focus({ preventScroll: true });
     return;

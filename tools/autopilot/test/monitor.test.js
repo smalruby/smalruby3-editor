@@ -86,7 +86,7 @@ test('MONITOR_HTML: 上の 1 行 — 更新・tick・現在地を作るは ⋯ �
 
 test('MONITOR_HTML: 上の ⋯ の項目を選ぶとすぐ閉じ、⋯ へフォーカスを戻して「頼みました」を出す（#2525）', () => {
     // まとめてクリックを受ける所で、#globalmenu の中の button / a（更新・tick・現在地を作る・現在地を開く）なら閉じる
-    assert.match(MONITOR_HTML, /if \(inMenu && inMenu\.id === 'globalmenu'\) \{\s*closeMenus\(\);\s*document\.getElementById\('globalmenubtn'\)\.focus\(\{ preventScroll: true \}\);\s*return;/);
+    assert.match(MONITOR_HTML, /if \(inMenu && inMenu\.id === 'globalmenu'\) \{\s*if \(t\.disabled\) return;\s*closeMenus\(\);\s*document\.getElementById\('globalmenubtn'\)\.focus\(\{ preventScroll: true \}\);\s*return;/);
     // 行の ⋯（data-mi）は従来どおり先に処理する（上の ⋯ の分岐より前）
     const iMi = MONITOR_HTML.indexOf('if (t.dataset.mi != null)');
     const iGlobal = MONITOR_HTML.indexOf("if (inMenu && inMenu.id === 'globalmenu')");
