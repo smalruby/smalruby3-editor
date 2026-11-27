@@ -151,10 +151,14 @@ Issue 本文のディレクティブは **行頭のみ**で発火する（`phase
   develop より古いことがあり、古い依存でテストが走る（lock に足された依存が `Cannot find module`）
   のを防ぐため。比較は `tools/autopilot/src/lockfile.js`（版の集合で見る。ファイルの完全一致に
   しない）。worker が infra の `node_modules` を手で main へ symlink しない。`--full` は対象外。
+- **Bot 名義のコマンドのうちブランチにまだ無いもの（`bin/bot-gh`）** は、`--full` でも main へ
+  **symlink** する（#2534）。プロンプトは daemon の checkout（main）のものなので `bin/bot-gh` を使うが、
+  develop を取り込んでいない topic ブランチの worktree には無く、worker の gh がすべて失敗するため。
+  ブランチが追跡しているときは触らない。追跡されたファイルが merge で来ると、無視している symlink は上書きされる。
 - 既存 PR ブランチでの作業（review / address-review）は `--pr <number>`（daemon の
   `ensureWorktree` が使う経路）。
-- worktree 内では node_modules（`infra/*/node_modules` を含む）/ prepare 生成物 / `.husky/_` symlink の
-  誤ステージ防止を `git-common-dir` の `info/exclude` で担保している（Issue #801 / #1001 / #1137 / #1454）。
+- worktree 内では node_modules（`infra/*/node_modules` を含む）/ prepare 生成物 / `.husky/_` / `bin/bot-gh` symlink の
+  誤ステージ防止を `git-common-dir` の `info/exclude` で担保している（Issue #801 / #1001 / #1137 / #1454 / #2534）。
   この保険を外さない。
 
 ## infra のデプロイは worker が行わない
