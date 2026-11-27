@@ -678,7 +678,9 @@ const preprocessLine = (line) => {
  * which may not be what the user meant: a tab is 4 columns and a full-width
  * space 2, so tab and full-width space indents mixed easily land between two depths.
  * The first body line of a block (or of its `そうでなければ`) sets the depth
- * of its body. Lines with `｜` / `⎿` are left to the markers.
+ * of its body, so this records it on `top`; the `そうでなければ` line itself
+ * stands at the depth of its `もし` and does not. Lines with `｜` / `⎿` are
+ * left to the markers.
  * @param {?object} top - The innermost open block after the line is read.
  * @param {number} width - The width of the indent of the line.
  * @param {string} line - The line (after the line number is taken off).
@@ -687,7 +689,7 @@ const preprocessLine = (line) => {
 const isIndentMismatch = (top, width, line) => {
     if (!top || !top.colon || !top.hasBody || /^\s*[｜|⎿]/.test(line)) return false;
     if (top.bodyWidth === null) {
-        top.bodyWidth = width;
+        if (width > top.width) top.bodyWidth = width;
         return false;
     }
     return width > top.width && width < top.bodyWidth && top.bodyWidth < MARKER_INDENT_WIDTH;

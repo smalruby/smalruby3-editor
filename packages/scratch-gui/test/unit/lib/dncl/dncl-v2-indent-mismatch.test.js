@@ -42,6 +42,28 @@ describe('DNCL indentation that matches no block (Issue #2052)', () => {
         expect(mismatches(['もし a ならば:', '    x = 1', 'そうでなければ:', '  x = 2', 'y = 1'])).toEqual([]);
     });
 
+    test('a line between the head and the body of そうでなければ is found', () => {
+        expect(
+            mismatches(['もし a ならば:', '    x = 1', 'そうでなければ:', '    x = 2', '  y = 3', 'z = 1']),
+        ).toEqual([5]);
+        expect(
+            mismatches(['もし a ならば:', '    x = 1', 'そうでなくもし b ならば:', '    x = 2', '  y = 3', 'z = 1']),
+        ).toEqual([5]);
+    });
+
+    test('a tab and full-width spaces mixed in a nested そうでなければ', () => {
+        const lines = [
+            'もし a ならば:',
+            '\tもし b ならば:',
+            '\t\tx = 1',
+            '\tそうでなければ:',
+            '\t\tx = 2',
+            '　　　z = 2',
+            'y = 1',
+        ];
+        expect(mismatches(lines)).toEqual([6]);
+    });
+
     test('blank and comment lines are not found', () => {
         expect(mismatches(['もし a ならば:', '    x = 1', '  ', '  # c', '    y = 2'])).toEqual([]);
     });
