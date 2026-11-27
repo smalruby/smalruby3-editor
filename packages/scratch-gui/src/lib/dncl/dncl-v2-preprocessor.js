@@ -712,7 +712,8 @@ const dnclV2PreprocessWithLineMap = (source) => {
         lineMap.push(lineNumber);
         columnShift.push(shift);
     };
-    const emitCloser = (block, lineNumber) => emit(`${block.indent}${closerForBlockType(block.type)}`, lineNumber);
+    const emitCloser = (block, lineNumber, comment = '') =>
+        emit(`${block.indent}${closerForBlockType(block.type)}${comment}`, lineNumber);
     // Close indentation-style blocks (opener ends with `:`, body indented, no
     // `⎿` and no closer line, as in 共通テスト code typed without the `｜` /
     // `⎿` markers) once a line at the opener's indent or shallower appears.
@@ -788,12 +789,17 @@ const dnclV2PreprocessWithLineMap = (source) => {
             const redundant = explicit && (closeCount > 0 || claimed !== -1);
             if (claimed !== -1) markerClosed.splice(claimed, 1);
             if (isCode && !redundant) closeByIndent(width, body);
-            if (isCode && !explicit) markerClosed.length = 0;
+            // Only the closers right after the `⎿` may name its blocks again:
+            // once a code line (or a closer of another block) comes, a closer
+            // is extra again.
+            if (isCode && claimed === -1) markerClosed.length = 0;
             // The Ruby indent is made from the block depth (2 spaces a level),
             // not kept from the source, whose indent may be 3 / 4 spaces, a
             // full-width space or a tab (Issue #1718). An else / else-if line
             // stands at the depth of its `もし`.
             const rest = marked.substring(indent.length);
+            // The `# comment` of a redundant closer is kept, not dropped.
+            const closerComment = redundant ? splitTrailingComment(rest).comment : '';
             const top = stack[stack.length - 1];
             const depth = stack.length - (top && top.type === 'if' && isIfContinuation(body) ? 1 : 0);
             const depthIndent = '  '.repeat(depth);
@@ -803,7 +809,10 @@ const dnclV2PreprocessWithLineMap = (source) => {
             const shift = pieceIdx === 0 ? codeStart - depthIndent.length : 0;
             // On the `⎿` line the closer added for the `⎿` stands for it.
             if (!(explicit && closeCount > 0)) {
-                emit(rest === '' || redundant ? '' : `${depthIndent}${rest}`, lineNumber, shift);
+                let text = `${depthIndent}${rest}`;
+                if (rest === '') text = '';
+                else if (redundant) text = closerComment === '' ? '' : `${depthIndent}${closerComment.trimStart()}`;
+                emit(text, lineNumber, shift);
             }
             if (isCode) lastCodeLine = lineNumber;
             const type = detectBlockType(body);
@@ -814,7 +823,8 @@ const dnclV2PreprocessWithLineMap = (source) => {
             for (let i = 0; i < closeCount; i++) {
                 const popped = stack.pop();
                 if (!popped) break;
-                emitCloser(popped, lineNumber);
+                // `⎿ を実行する # c`: the comment goes with the closer of the line.
+                emitCloser(popped, lineNumber, explicit && i === 0 ? closerComment : '');
                 if (!explicit) markerClosed.push(popped);
             }
         }

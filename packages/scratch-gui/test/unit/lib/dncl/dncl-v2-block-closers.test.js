@@ -180,5 +180,29 @@ describe('closer lines in the standard form (Issue #2058)', () => {
             expect(result.blockErrors).toHaveLength(1);
             expect(result.blockErrors[0].line).toBe(5);
         });
+
+        test('a closer after another block was closed is extra again', () => {
+            const result = convert([
+                'もし a ならば:',
+                '｜ もし b ならば:',
+                '｜ ⎿ x = 1',
+                'を実行する',
+                '｜ を実行する',
+            ]);
+            expect(result.blockErrors).toHaveLength(1);
+            expect(result.blockErrors[0].line).toBe(5);
+        });
+
+        test('the comment of a closer after `⎿` is kept', () => {
+            expect(ruby(['もし x > 0 ならば:', '⎿ y = 1', 'を実行する # おわり', 'z = 2'])).toBe(
+                'if @x > 0\n  @y = 1\nend\n# おわり\n@z = 2',
+            );
+        });
+
+        test('the comment of a closer on the `⎿` line goes with the end', () => {
+            expect(ruby(['もし x > 0 ならば:', '｜ y = 1', '⎿ を実行する # おわり', 'z = 2'])).toBe(
+                'if @x > 0\n  @y = 1\nend # おわり\n@z = 2',
+            );
+        });
     });
 });
