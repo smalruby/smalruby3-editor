@@ -97,7 +97,7 @@ export const ja = {
     [`${C}lm-l2-letters.debug1`]:
         '「(何文字目) を (1) ずつ変える」がくり返しの中にあるか見よう。無いと、ずっと 1 文字めを言います。',
     [`${C}lm-l2-letters.debug2`]:
-        '「(何文字目) を (1) にする」がくり返しの前にあるか見よう。無いと、2 回めに押したとき、前の続きから数えます。',
+        '「(何文字目) を (1) にする」がくり返しの前にあるか見よう。無いと、前に使った番号の続きから数えるので、何も言わなかったり、文の途中から言ったりします。',
     [`${C}lm-l2-letters.quiz.question`]: '「文」が「こんにちは。」のとき、「(文) の (3) 番目の文字」は、どれ？',
     [`${C}lm-l2-letters.quiz.choice1`]: '「ん」',
     [`${C}lm-l2-letters.quiz.choice2`]: '「に」',
@@ -134,7 +134,7 @@ export const ja = {
     [`${C}lm-l2-learn.step1`]:
         '「学習する」の定義の中の「(何文目) を (1) にする」の下に、「制御」の「( ) まで繰り返す」を置こう。穴に「演算」の「( ) > ( )」を入れ、左に「何文目」、右に「変数」の「(教科書) の長さ」を入れよう。',
     [`${C}lm-l2-learn.step2`]:
-        '「(文) を (教科書 の (何文目) 番目) にする」から、1 文字ずつ読むくり返しの終わりまでをドラッグして、新しいくり返しの中に入れよう。',
+        '「(文) を (教科書 の (何文目) 番目) にする」から、1 文字ずつ読むくり返しの終わりまでが、新しいくり返しの中に入っているか見よう。くり返しを置くと、下のブロックが中に入ります。入っていなければ、ドラッグして入れよう。',
     [`${C}lm-l2-learn.step3`]:
         '新しいくり返しの中の最後（1 文字ずつ読むくり返しの下）に、「(何文目) を (1) ずつ変える」を入れよう。',
     [`${C}lm-l2-learn.step4`]:
@@ -251,7 +251,7 @@ export const jaHira = {
     [`${C}lm-l2-letters.debug1`]:
         '「(なんもじめ) を (1) ずつ かえる」が くりかえしの なかに あるか みよう。ないと、ずっと 1 もじめを いいます。',
     [`${C}lm-l2-letters.debug2`]:
-        '「(なんもじめ) を (1) にする」が くりかえしの まえに あるか みよう。ないと、2 かいめに おしたとき、まえの つづきから かぞえます。',
+        '「(なんもじめ) を (1) にする」が くりかえしの まえに あるか みよう。ないと、まえに つかった ばんごうの つづきから かぞえるので、なにも いわなかったり、ぶんの とちゅうから いったりします。',
     [`${C}lm-l2-letters.quiz.question`]:
         '「ぶん」が「こんにちは。」の とき、「(ぶん) の (3) ばんめの もじ」は、どれ？',
     [`${C}lm-l2-letters.quiz.choice1`]: '「ん」',
@@ -291,7 +291,7 @@ export const jaHira = {
     [`${C}lm-l2-learn.step1`]:
         '「がくしゅうする」の ていぎの なかの「(なんぶんめ) を (1) にする」の したに、「せいぎょ」の「( ) まで くりかえす」を おこう。あなに「えんざん」の「( ) > ( )」を いれ、ひだりに「なんぶんめ」、みぎに「へんすう」の「(きょうかしょ) の ながさ」を いれよう。',
     [`${C}lm-l2-learn.step2`]:
-        '「(ぶん) を (きょうかしょ の (なんぶんめ) ばんめ) にする」から、1 もじずつ よむ くりかえしの おわりまでを ドラッグして、あたらしい くりかえしの なかに いれよう。',
+        '「(ぶん) を (きょうかしょ の (なんぶんめ) ばんめ) にする」から、1 もじずつ よむ くりかえしの おわりまでが、あたらしい くりかえしの なかに はいっているか みよう。くりかえしを おくと、したの ブロックが なかに はいります。はいっていなければ、ドラッグして いれよう。',
     [`${C}lm-l2-learn.step3`]:
         'あたらしい くりかえしの なかの さいご（1 もじずつ よむ くりかえしの した）に、「(なんぶんめ) を (1) ずつ かえる」を いれよう。',
     [`${C}lm-l2-learn.step4`]:
@@ -406,7 +406,7 @@ export const en = {
     [`${C}lm-l2-letters.debug1`]:
         'Check that "change (letter_no) by (1)" is in the loop. Without it, the AI keeps saying the first letter.',
     [`${C}lm-l2-letters.debug2`]:
-        'Check that "set (letter_no) to (1)" is before the loop. Without it, the second click counts on from where it stopped.',
+        'Check that "set (letter_no) to (1)" is before the loop. Without it, it counts on from the number used before, so the AI says nothing or starts in the middle of the sentence.',
     [`${C}lm-l2-letters.quiz.question`]: 'When "sentence" is "Hello.", what is "letter (3) of (sentence)"?',
     [`${C}lm-l2-letters.quiz.choice1`]: '"e"',
     [`${C}lm-l2-letters.quiz.choice2`]: '"l"',
@@ -445,7 +445,7 @@ export const en = {
     [`${C}lm-l2-learn.step1`]:
         'In the definition of "learn", put "repeat until ( )" from Control under "set (sentence_no) to (1)". Put "( ) > ( )" from Operators in the hole, with "sentence_no" on the left and "length of (textbook)" from Variables on the right.',
     [`${C}lm-l2-learn.step2`]:
-        'Drag the blocks from "set (sentence) to (item (sentence_no) of (textbook))" to the end of the loop that reads one letter at a time, and put them in the new loop.',
+        'Check that the blocks from "set (sentence) to (item (sentence_no) of (textbook))" to the end of the loop that reads one letter at a time are in the new loop. When you put the loop, the blocks under it go into it. If they are not, drag them into it.',
     [`${C}lm-l2-learn.step3`]:
         'At the end of the new loop (under the loop that reads one letter at a time), put "change (sentence_no) by (1)".',
     [`${C}lm-l2-learn.step4`]:
