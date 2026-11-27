@@ -12,12 +12,15 @@
  * - 説明があっても、AI に作り直してもらえる（一度だけ・#2456）。
  * - 1 件を直したあとの「同じまとまりも直すか」の問い。
  * - 正解の例が無い段には「正解の例が無い（AI の推測）」、S の例が無ければ注意の文。
+ * - 2-2 の AI の案が出終わったら、知らせを出し、最初の代表の行を開き、「正解を選ぶ」の吹き出しを短く出す（#2521）。
+ * - 2-3 で聞くことが無いときは、そのことを見せて先生の［次へ］で 2-4 へ移る（#2521）。
  */
 import '@testing-library/jest-dom';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import TeacherGradingRubric, {
+    CHOOSE_HINT_MS,
     TeacherGradingGroupPrompt,
 } from '../../../src/components/classroom-modal/teacher-grading-rubric.jsx';
 
@@ -49,6 +52,7 @@ const makeTools = (overrides = {}) => ({
     handlePropose: jest.fn(),
     handleCheckFairness: jest.fn(),
     handleAnswerFairness: jest.fn(),
+    handleConfirmFairness: jest.fn(),
     handleDraftRubric: jest.fn(),
     handleSetLevel: jest.fn(),
     handleSaveRubric: jest.fn(() => Promise.resolve(true)),
@@ -291,6 +295,82 @@ describe('TeacherGradingRubric の縦のステッパーと「AI に相談」(#24
     });
 });
 
+describe('TeacherGradingRubric: 小手順の移り方と AI が終わったときの知らせ (#2521)', () => {
+    const tabWith = (tools) => (
+        <IntlProvider locale="en" messages={{}}>
+            <TeacherGradingRubric lesson={described} tools={tools} onOpenWork={jest.fn()} />
+        </IntlProvider>
+    );
+
+    beforeEach(() => jest.useFakeTimers());
+    afterEach(() => jest.useRealTimers());
+
+    test('AI の案が出終わると、知らせを出して最初の代表の行を開き、「正解を選ぶ」を短く出す', () => {
+        const { rerender } = render(tabWith(makeTools({ proposals: {}, running: 'propose' })));
+        expect(screen.queryByTestId('grading-rubric-proposed-notice')).toBeNull();
+        rerender(tabWith(makeTools({ proposals: { 1: { grade: 'A' }, 4: { grade: 'B' } } })));
+        expect(screen.getByTestId('grading-rubric-proposed-notice')).toHaveTextContent('Choose the right grade');
+        expect(screen.getByTestId('grading-rubric-rep-1')).toHaveAttribute('aria-expanded', 'true');
+        expect(screen.getByTestId('grading-rubric-rep-hint-1')).toHaveTextContent('Choose the right grade');
+        act(() => jest.advanceTimersByTime(CHOOSE_HINT_MS));
+        expect(screen.queryByTestId('grading-rubric-rep-hint-1')).toBeNull();
+        // The notice stays until every representative has the right grade.
+        expect(screen.getByTestId('grading-rubric-proposed-notice')).toBeInTheDocument();
+    });
+
+    test('正解がもう付いている代表は飛ばし、まだの最初の代表を開く', () => {
+        const { rerender } = render(tabWith(makeTools({ proposals: {}, running: 'propose' })));
+        rerender(tabWith(makeTools({ answers: { 1: { grade: 'A' } }, proposals: { 1: { grade: 'A' } } })));
+        expect(screen.getByTestId('grading-rubric-rep-4')).toHaveAttribute('aria-expanded', 'true');
+        expect(screen.getByTestId('grading-rubric-rep-1')).toHaveAttribute('aria-expanded', 'false');
+    });
+
+    test('AI が考えている途中でほかの課題へ移っても、移った先に知らせを出さない', () => {
+        const { rerender } = render(tabWith(makeTools({ proposals: {}, running: 'propose' })));
+        rerender(
+            <IntlProvider locale="en" messages={{}}>
+                <TeacherGradingRubric
+                    lesson={{ ...described, classroomId: 'other-lesson' }}
+                    tools={makeTools({ proposals: { 1: { grade: 'A' } } })}
+                    onOpenWork={jest.fn()}
+                />
+            </IntlProvider>,
+        );
+        expect(screen.queryByTestId('grading-rubric-proposed-notice')).toBeNull();
+        expect(screen.queryByTestId('grading-rubric-rep-hint-1')).toBeNull();
+    });
+
+    test('AI の案がもうある画面を開いただけでは知らせを出さない', () => {
+        render(tabWith(makeTools()));
+        expect(screen.queryByTestId('grading-rubric-proposed-notice')).toBeNull();
+    });
+
+    const allGraded = { answers: { 1: { grade: 'A' }, 4: { grade: 'B' } } };
+
+    test('2-3 で聞くことが無いときは、そのことを見せて［次へ］で 2-4 へ移る', () => {
+        const tools = makeTools({ ...allGraded, fairness: { checks: [], answers: {} } });
+        render(tabWith(tools));
+        expect(stepState('fairness')).toBe('now');
+        expect(screen.getByTestId('grading-rubric-fairness')).toHaveTextContent('Nothing to ask');
+        fireEvent.click(screen.getByTestId('grading-rubric-fairness-next'));
+        expect(tools.handleConfirmFairness).toHaveBeenCalledTimes(1);
+    });
+
+    test('くらべる作品が無いときは「フェアの確認をする作品はありません」', () => {
+        render(tabWith(makeTools({ ...allGraded, fairness: { checks: [], answers: {}, noWorks: true } })));
+        expect(screen.getByTestId('grading-rubric-fairness')).toHaveTextContent('There are no works to check');
+        expect(screen.getByTestId('grading-rubric-fairness-next')).toBeInTheDocument();
+    });
+
+    test('［次へ］を押したあとは 2-3 が済みになり、ボタンは出さない', () => {
+        render(tabWith(makeTools({ ...allGraded, fairness: { checks: [], answers: {}, confirmed: true } })));
+        expect(stepState('fairness')).toBe('done');
+        expect(stepState('sentences')).toBe('now');
+        fireEvent.click(screen.getByTestId('grading-rubric-steps-head-fairness'));
+        expect(screen.queryByTestId('grading-rubric-fairness-next')).toBeNull();
+    });
+});
+
 describe('TeacherGradingRubric: S の正解の例が無いときの注意', () => {
     test('保存された基準: 例の無い段に印、S の例が無ければ注意', () => {
         const levels = ['S', 'A', 'B', 'C'].map((grade) => ({ grade, text: `${grade} の文` }));
@@ -360,5 +440,41 @@ describe('TeacherGradingGroupPrompt (#2425)', () => {
         expect(screen.getByTestId('grading-group-prompt')).toHaveTextContent('サーボだけ');
         fireEvent.click(screen.getByTestId('grading-group-prompt-yes'));
         expect(onApply).toHaveBeenCalled();
+    });
+});
+
+describe('基準を保存したあと (#2522)', () => {
+    test('保存できたら onSaved を呼ぶ', async () => {
+        const tools = makeTools({ levels: [{ grade: 'B', text: 'サーボを動かす' }] });
+        const onSaved = jest.fn();
+        render(
+            <IntlProvider locale="en" messages={{}}>
+                <TeacherGradingRubric lesson={described} tools={tools} onSaved={onSaved} />
+            </IntlProvider>,
+        );
+        fireEvent.click(screen.getByTestId('grading-rubric-steps-head-sentences'));
+        await act(async () => {
+            fireEvent.click(screen.getByTestId('grading-rubric-save'));
+        });
+        expect(tools.handleSaveRubric).toHaveBeenCalled();
+        expect(onSaved).toHaveBeenCalledTimes(1);
+    });
+
+    test('保存に失敗したら onSaved を呼ばない', async () => {
+        const tools = makeTools({
+            levels: [{ grade: 'B', text: 'サーボを動かす' }],
+            handleSaveRubric: jest.fn(() => Promise.resolve(false)),
+        });
+        const onSaved = jest.fn();
+        render(
+            <IntlProvider locale="en" messages={{}}>
+                <TeacherGradingRubric lesson={described} tools={tools} onSaved={onSaved} />
+            </IntlProvider>,
+        );
+        fireEvent.click(screen.getByTestId('grading-rubric-steps-head-sentences'));
+        await act(async () => {
+            fireEvent.click(screen.getByTestId('grading-rubric-save'));
+        });
+        expect(onSaved).not.toHaveBeenCalled();
     });
 });

@@ -9,7 +9,7 @@
  * - V2: 冒頭の説明は 1 行にし、残りは「詳しく」で開く。
  */
 import '@testing-library/jest-dom';
-import { fireEvent, render } from '@testing-library/react';
+import { act, fireEvent, render } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import TeacherClassTabs from '../../../src/components/classroom-modal/teacher-class-tabs.jsx';
@@ -1038,5 +1038,111 @@ describe('今日の AI の残り (#2448)', () => {
         expect(getByTestId('classroom-eval-ai-quota')).toHaveTextContent(
             "Today's AI left: 0 / 200 You can use it again when the date changes (midnight).",
         );
+    });
+});
+
+describe('［形］のタブを基準づくりの流れに組み込む (#2522)', () => {
+    const shapedCell = { submitted: true, grade: 'A', shape: { key: 'k1', tags: ['サーボ'] } };
+    const rubricTools = {
+        answers: {},
+        copyClasses: [],
+        description: null,
+        examples: [],
+        fairness: null,
+        groups: [],
+        levels: [{ grade: 'B', text: 'サーボを動かす' }],
+        loaded: true,
+        proposals: {},
+        representatives: [],
+        running: null,
+        savedAt: null,
+        savedRubric: null,
+        starter: { status: 'ready' },
+        works: [],
+        loadStarter: jest.fn(),
+        handleSaveRubric: jest.fn(() => Promise.resolve(true)),
+        handleSetLevel: jest.fn(),
+    };
+    const LESSON = [{ classroomId: 'c1', assignmentName: '迷路', assignmentText: 'サーボを動かす' }];
+    const saveRubric = async (getByTestId) => {
+        fireEvent.click(getByTestId('grading-rubric-steps-head-sentences'));
+        await act(async () => {
+            fireEvent.click(getByTestId('grading-rubric-save'));
+        });
+    };
+
+    test('［形］のタブの冒頭に、できることと先生がやるとよいことの説明がある', () => {
+        const { getByTestId } = renderEvaluation({
+            seats: [1],
+            loaded: true,
+            getCell: () => shapedCell,
+            onSetSeatsGrade: jest.fn(),
+        });
+        fireEvent.click(getByTestId('classroom-eval-tab-shape'));
+        expect(getByTestId('classroom-eval-shapes-lead')).toHaveTextContent('grouped by their shape');
+        expect(getByTestId('classroom-eval-shapes-todo')).toHaveTextContent('check');
+    });
+
+    test('基準を保存したら［形］のタブへ移り、移った理由の一言を出す', async () => {
+        const { getByTestId, queryByTestId } = renderEvaluation({
+            evalLessons: LESSON,
+            seats: [1],
+            loaded: true,
+            getCell: () => shapedCell,
+            rubricTools,
+            onSetSeatsGrade: jest.fn(),
+        });
+        await saveRubric(getByTestId);
+        expect(getByTestId('classroom-eval-tab-shape')).toHaveAttribute('aria-selected', 'true');
+        expect(getByTestId('classroom-eval-shapes-arrived')).toHaveTextContent('rubric is ready');
+        // ほかのタブへ移ると一言は消える（戻っても出ない）
+        fireEvent.click(getByTestId('classroom-eval-tab-student'));
+        fireEvent.click(getByTestId('classroom-eval-tab-shape'));
+        expect(queryByTestId('classroom-eval-shapes-arrived')).toBeNull();
+    });
+
+    test('まだ採点していないときの一言は、［全員を採点］のあとに確かめるよう伝える', async () => {
+        const { getByTestId } = renderEvaluation({
+            evalLessons: LESSON,
+            seats: [1],
+            loaded: true,
+            getCell: () => ({ ...shapedCell, grade: null }),
+            rubricTools,
+            onSetSeatsGrade: jest.fn(),
+        });
+        await saveRubric(getByTestId);
+        expect(getByTestId('classroom-eval-shapes-arrived')).toHaveTextContent('After [Grade Everyone]');
+    });
+
+    test('ほかの課題へ移って戻ると、一言は出ない', async () => {
+        const lessons = [...LESSON, { classroomId: 'c2', assignmentName: '信号', assignmentText: 'LED を光らせる' }];
+        const props = {
+            evalLessons: lessons,
+            seats: [1],
+            loaded: true,
+            getCell: () => shapedCell,
+            rubricTools,
+            onSetSeatsGrade: jest.fn(),
+        };
+        const { getByTestId, queryByTestId, rerender } = renderEvaluation(props);
+        await saveRubric(getByTestId);
+        expect(getByTestId('classroom-eval-shapes-arrived')).toBeInTheDocument();
+        rerender(evaluationElement({ ...props, currentId: 'c2' }));
+        expect(queryByTestId('classroom-eval-shapes-arrived')).toBeNull();
+        rerender(evaluationElement({ ...props, currentId: 'c1' }));
+        expect(queryByTestId('classroom-eval-shapes-arrived')).toBeNull();
+    });
+
+    test('形の札のある作品が無いときは［基準］のまま', async () => {
+        const { getByTestId } = renderEvaluation({
+            evalLessons: LESSON,
+            seats: [1],
+            loaded: true,
+            getCell: () => ({ submitted: true, grade: 'A' }),
+            rubricTools,
+            onSetSeatsGrade: jest.fn(),
+        });
+        await saveRubric(getByTestId);
+        expect(getByTestId('classroom-eval-tab-rubric')).toHaveAttribute('aria-selected', 'true');
     });
 });

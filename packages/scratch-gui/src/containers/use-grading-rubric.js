@@ -362,7 +362,8 @@ const useGradingRubric = ({
             works,
         });
         if (!payload) {
-            update(classroomId, { fairness: { checks: [], answers: {} } });
+            // Nothing to compare (no group has another work): 2-3 says so and waits for［次へ］(#2521).
+            update(classroomId, { fairness: { checks: [], answers: {}, noWorks: true } });
             return;
         }
         update(classroomId, { running: 'fairness' });
@@ -374,6 +375,14 @@ const useGradingRubric = ({
             fail(err);
         }
     }, [lesson, starterPseudocode, levels, representatives, answers, groups, works, update, evaluate, fail]);
+
+    /** 3. With no fairness question, the teacher moves on to 2-4 by［次へ］(#2521). */
+    const handleConfirmFairness = useCallback(() => {
+        if (!id) return;
+        update(id, (before) => ({
+            fairness: { ...(before.fairness || { checks: [], answers: {} }), confirmed: true },
+        }));
+    }, [id, update]);
 
     /**
      * 3. The teacher answers a fairness question.
@@ -635,6 +644,7 @@ const useGradingRubric = ({
         handlePropose,
         handleCheckFairness,
         handleAnswerFairness,
+        handleConfirmFairness,
         handleDraftRubric,
         handleSetLevel,
         handleSaveRubric,

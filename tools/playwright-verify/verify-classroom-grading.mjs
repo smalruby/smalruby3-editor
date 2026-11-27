@@ -21,7 +21,7 @@
  *
  *   node verify-classroom-grading.mjs                    # コンテナ内 (headless)
  *   BASE=http://localhost:8624 node verify-classroom-grading.mjs
- *   DOCS_SHOTS=1 node verify-classroom-grading.mjs       # docs/classroom/screenshots の 0350〜0352・0358〜0362・0364・0365 も撮り直す
+ *   DOCS_SHOTS=1 node verify-classroom-grading.mjs       # docs/classroom/screenshots の 0350〜0352・0358〜0362・0364〜0366 も撮り直す
  *   LOCALE=ja-Hira node verify-classroom-grading.mjs     # ひらがなで測る (DOCS_SHOTS は ja のときだけ)
  */
 import { readFile } from "node:fs/promises";
@@ -57,6 +57,7 @@ const DOC_SHOT_NAMES = {
         "0362-teacher-grading-rubric-copied-description.png",
     "rubric-saved": "0364-teacher-grading-rubric-no-s-example.png",
     "grade-inconsistent": "0365-teacher-grading-inconsistent-result.png",
+    "shapes-arrived": "0366-teacher-grading-shapes-arrived.png",
 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const tid = (id) => `[data-testid="${id}"]`;
@@ -896,13 +897,38 @@ record({
         (await page.isDisabled(tid("grading-rubric-propose-ai-button"))),
     detail: "",
 });
+const rep = reps[0];
+// #2521: when the AI is done, a notice tells the next move, the first representative opens,
+// and a short「正解を選ぶ」tip sits by its grade buttons.
+const afterPropose = await page.evaluate(
+    (seat) => ({
+        notice:
+            document.querySelector(
+                '[data-testid="grading-rubric-proposed-notice"]',
+            )?.textContent || "",
+        open:
+            document
+                .querySelector(`[data-testid="grading-rubric-rep-${seat}"]`)
+                ?.getAttribute("aria-expanded") === "true",
+        hint: !!document.querySelector(
+            `[data-testid="grading-rubric-rep-hint-${seat}"]`,
+        ),
+    }),
+    rep,
+);
+record({
+    name: "propose done: the notice, the first representative open, the「正解を選ぶ」tip (#2521)",
+    ok:
+        /正解を選んで|せいかいをえらんで/.test(afterPropose.notice) &&
+        afterPropose.open &&
+        afterPropose.hint,
+    detail: JSON.stringify(afterPropose),
+});
 await judge(page, {
     name: "B rubric 2-2 with the AI proposals",
     expected: "classroom-eval-run-grade",
     shot: "rubric-proposed",
 });
-const rep = reps[0];
-await page.click(tid(`grading-rubric-rep-${rep}`));
 await page.waitForSelector(tid(`grading-rubric-rep-grade-${rep}-A`));
 await page.click(tid(`grading-rubric-rep-grade-${rep}-A`));
 await page.fill(
@@ -980,6 +1006,29 @@ await judge(page, {
 });
 await page.fill(tid("grading-rubric-level-C"), "旗で動く台本を足していない");
 await page.click(tid("grading-rubric-save"));
+// 2-4 を保存すると［形］のタブへ移り、移った理由の一言を出す（#2522。形の札のある作品が無ければ［基準］のまま）
+await page.waitForSelector(
+    `${tid("classroom-eval-shapes-arrived")}, ${tid("grading-rubric-saved")}`,
+);
+const arrivedText = await text(page, "classroom-eval-shapes-arrived");
+const shapeTabSelected = await page
+    .locator(tid("classroom-eval-tab-shape"))
+    .getAttribute("aria-selected");
+record({
+    name: "save: the grading moves to the［形］tab with why, and the tab says what to do there (#2522)",
+    ok:
+        shapeTabSelected === "true" &&
+        !!arrivedText &&
+        !!(await text(page, "classroom-eval-shapes-lead")) &&
+        !!(await text(page, "classroom-eval-shapes-todo")),
+    detail: `selected=${shapeTabSelected} arrived=${arrivedText}`,
+});
+await judge(page, {
+    name: "B rubric saved, moved to the shapes tab",
+    expected: "classroom-eval-run-grade",
+    shot: "shapes-arrived",
+});
+await page.click(tid("classroom-eval-tab-rubric"));
 await page.waitForSelector(tid("grading-rubric-saved"));
 const savePut = puts.filter((p) => p.id === "c2" && p.updates.rubric).at(-1);
 record({

@@ -28,6 +28,26 @@ const messages = defineMessages({
         description: 'Shape tab: what the tab does (shape tags)',
         id: 'gui.classroom.gradingShapes.lead',
     },
+    todo: {
+        defaultMessage:
+            'After the rubric is ready, first check that the works of each shape have the same grade. Look at the shapes marked "different grades" first.',
+        description: 'Shape tab: what the teacher should do here, under the lead (#2522)',
+        id: 'gui.classroom.gradingShapes.todo',
+    },
+    arrived: {
+        defaultMessage: "The rubric is ready, so let's check the grades shape by shape.",
+        description:
+            'Shape tab: shown once when the grading moved here by itself after the rubric was saved and ' +
+            'the works have grades already (#2522)',
+        id: 'gui.classroom.gradingShapes.arrived',
+    },
+    arrivedUngraded: {
+        defaultMessage: 'The rubric is ready. After [Grade Everyone], check here that each shape has the same grade.',
+        description:
+            'Shape tab: shown once when the grading moved here by itself after the rubric was saved and ' +
+            'the works have no grades yet (#2522)',
+        id: 'gui.classroom.gradingShapes.arrivedUngraded',
+    },
     count: {
         defaultMessage: '{count} works ({seats})',
         description: 'Shape tab: how many works have this shape, and their seat numbers',
@@ -270,7 +290,31 @@ const shapedCells = (seats, getCell, classroomId) => {
     return cells;
 };
 
-const TeacherGradingShapes = ({ classroomId, getCell, seats, onSelectSeat, onSetSeatsGrade }) => {
+/* The top of the tab: why it moved here (once), what it does and what to do here (#2522). */
+const ShapesIntro = ({ arrived }) => {
+    const intl = useIntl();
+    return (
+        <>
+            {arrived && (
+                <p className={styles.arrived} data-testid="classroom-eval-shapes-arrived" role="status">
+                    {intl.formatMessage(arrived === 'graded' ? messages.arrived : messages.arrivedUngraded)}
+                </p>
+            )}
+            <p className={styles.lead} data-testid="classroom-eval-shapes-lead">
+                {intl.formatMessage(messages.lead)}
+            </p>
+            <p className={styles.lead} data-testid="classroom-eval-shapes-todo">
+                {intl.formatMessage(messages.todo)}
+            </p>
+        </>
+    );
+};
+
+ShapesIntro.propTypes = {
+    arrived: PropTypes.oneOf(['graded', 'ungraded']),
+};
+
+const TeacherGradingShapes = ({ arrived = null, classroomId, getCell, seats, onSelectSeat, onSetSeatsGrade }) => {
     const intl = useIntl();
     const cells = shapedCells(seats, getCell, classroomId);
     const groups = groupByShape(
@@ -281,11 +325,16 @@ const TeacherGradingShapes = ({ classroomId, getCell, seats, onSelectSeat, onSet
         })),
     );
     if (groups.length === 0) {
-        return <p className={modalStyles.evalSettingsNote}>{intl.formatMessage(messages.empty)}</p>;
+        return (
+            <div className={styles.shapes}>
+                <ShapesIntro arrived={arrived} />
+                <p className={modalStyles.evalSettingsNote}>{intl.formatMessage(messages.empty)}</p>
+            </div>
+        );
     }
     return (
         <div className={styles.shapes} data-testid="classroom-eval-shapes">
-            <p className={styles.lead}>{intl.formatMessage(messages.lead)}</p>
+            <ShapesIntro arrived={arrived} />
             <ul className={styles.groups}>
                 {groups.map((group, index) => (
                     <ShapeGroup
@@ -305,6 +354,11 @@ const TeacherGradingShapes = ({ classroomId, getCell, seats, onSelectSeat, onSet
 };
 
 TeacherGradingShapes.propTypes = {
+    /**
+     * The grading moved here by itself after the rubric was saved: say why (#2522).
+     * 'graded' = the works have grades already, 'ungraded' = not graded yet.
+     */
+    arrived: PropTypes.oneOf(['graded', 'ungraded']),
     classroomId: PropTypes.string.isRequired,
     getCell: PropTypes.func.isRequired,
     seats: PropTypes.arrayOf(PropTypes.number).isRequired,
@@ -312,5 +366,5 @@ TeacherGradingShapes.propTypes = {
     onSetSeatsGrade: PropTypes.func.isRequired,
 };
 
-export { ShapeDots, ShapeTags, messages as shapeMessages };
+export { ShapeDots, ShapeTags, messages as shapeMessages, shapedCells };
 export default TeacherGradingShapes;

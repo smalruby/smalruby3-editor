@@ -906,6 +906,11 @@ export default {
     'gui.classroom.evaluation.tabShape': 'Shapes',
     'gui.classroom.gradingShapes.lead':
         'Works are grouped by their shape. Choose a grade for a shape and give it to all of its works at once. Open the works to change one of them.',
+    'gui.classroom.gradingShapes.todo':
+        'After the rubric is ready, first check that the works of each shape have the same grade. Look at the shapes marked "different grades" first.',
+    'gui.classroom.gradingShapes.arrived': "The rubric is ready, so let's check the grades shape by shape.",
+    'gui.classroom.gradingShapes.arrivedUngraded':
+        'The rubric is ready. After [Grade Everyone], check here that each shape has the same grade.',
     'gui.classroom.gradingShapes.count': '{count} works ({seats})',
     'gui.classroom.gradingShapes.now': 'Now: {grades}',
     'gui.classroom.gradingShapes.mixed': 'Same shape, different grades',
@@ -2071,6 +2076,10 @@ export default {
         '{count} examples (the right grades) are saved with it and given to the AI when grading.',
     'gui.classroom.gradingRubric.fairness': 'Fairness check',
     'gui.classroom.gradingRubric.fairnessNone': 'Nothing to ask: similar works get the same grade.',
+    'gui.classroom.gradingRubric.fairnessNoWorks': 'There are no works to check for fairness.',
+    'gui.classroom.gradingRubric.fairnessNext': 'Next',
+    'gui.classroom.gradingRubric.proposedNotice': 'The AI has proposed grades. Choose the right grade for each work.',
+    'gui.classroom.gradingRubric.chooseHint': 'Choose the right grade',
     'gui.classroom.gradingRubric.fairnessRun': 'Ask the AI to Check Fairness',
     'gui.classroom.gradingRubric.groupAsk': 'Change the other {count} works of the group “{group}” to {grade} too?',
     'gui.classroom.gradingRubric.groupNo': 'Only This One',

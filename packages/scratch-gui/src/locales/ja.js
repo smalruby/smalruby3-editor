@@ -991,6 +991,11 @@ export default {
     'gui.classroom.evaluation.tabShape': '形',
     'gui.classroom.gradingShapes.lead':
         '作品を形の札でまとめました。形ごとに評価を選んで、まとめて付けられます。ちがう作品は、開いて 1 人ずつ直します。',
+    'gui.classroom.gradingShapes.todo':
+        '基準ができたら、まず形ごとに評価がそろっているかを見てください。「評価が分かれています」の形から見ると早く済みます。',
+    'gui.classroom.gradingShapes.arrived': '基準ができたので、形ごとの評価を確かめましょう。',
+    'gui.classroom.gradingShapes.arrivedUngraded':
+        '基準ができました。［全員を採点］のあと、ここで形ごとに評価がそろっているかを確かめましょう。',
     'gui.classroom.gradingShapes.count': '{count} 人（{seats}）',
     'gui.classroom.gradingShapes.now': 'いま: {grades}',
     'gui.classroom.gradingShapes.mixed': '同じ形なのに評価が分かれています',
@@ -2444,6 +2449,10 @@ export default {
         '正解の例 {count} 件も一緒に保存し、全員の採点のときに AI に渡します。',
     'gui.classroom.gradingRubric.fairness': 'フェアの確認',
     'gui.classroom.gradingRubric.fairnessNone': '聞くことはありません。似た作品は同じ評価になっています。',
+    'gui.classroom.gradingRubric.fairnessNoWorks': 'フェアの確認をする作品はありません。',
+    'gui.classroom.gradingRubric.fairnessNext': '次へ',
+    'gui.classroom.gradingRubric.proposedNotice': 'AI の案が出ました。正解を選んでください。',
+    'gui.classroom.gradingRubric.chooseHint': '正解を選ぶ',
     'gui.classroom.gradingRubric.fairnessRun': 'AI にフェアか確かめてもらう',
     'gui.classroom.gradingRubric.groupAsk': '「{group}」のまとまりのほかの {count} 件も {grade} にしますか？',
     'gui.classroom.gradingRubric.groupNo': 'この 1 件だけ',

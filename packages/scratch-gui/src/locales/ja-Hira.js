@@ -1020,6 +1020,11 @@ export default {
     'gui.classroom.evaluation.tabShape': 'かたち',
     'gui.classroom.gradingShapes.lead':
         'さくひんを かたちの ふだで まとめました。かたちごとに ひょうかを えらんで、まとめて つけられます。ちがう さくひんは、ひらいて 1 にんずつ なおします。',
+    'gui.classroom.gradingShapes.todo':
+        'きじゅんが できたら、まず かたちごとに ひょうかが そろって いるかを みて ください。「ひょうかが わかれて います」の かたちから みると はやく すみます。',
+    'gui.classroom.gradingShapes.arrived': 'きじゅんが できたので、かたちごとの ひょうかを たしかめましょう。',
+    'gui.classroom.gradingShapes.arrivedUngraded':
+        'きじゅんが できました。［ぜんいんをさいてん］の あと、ここで かたちごとに ひょうかが そろって いるかを たしかめましょう。',
     'gui.classroom.gradingShapes.count': '{count} にん（{seats}）',
     'gui.classroom.gradingShapes.now': 'いま: {grades}',
     'gui.classroom.gradingShapes.mixed': 'おなじ かたちなのに ひょうかが わかれています',
@@ -2502,6 +2507,10 @@ export default {
         'せいかいのれい {count} けんもいっしょにほぞんし、ぜんいんのさいてんのときに AI にわたします。',
     'gui.classroom.gradingRubric.fairness': 'フェアのかくにん',
     'gui.classroom.gradingRubric.fairnessNone': 'きくことはありません。にたさくひんはおなじひょうかになっています。',
+    'gui.classroom.gradingRubric.fairnessNoWorks': 'フェアのかくにんをするさくひんはありません。',
+    'gui.classroom.gradingRubric.fairnessNext': 'つぎへ',
+    'gui.classroom.gradingRubric.proposedNotice': 'AI のあんがでました。せいかいをえらんでください。',
+    'gui.classroom.gradingRubric.chooseHint': 'せいかいをえらぶ',
     'gui.classroom.gradingRubric.fairnessRun': 'AI にフェアかたしかめてもらう',
     'gui.classroom.gradingRubric.groupAsk': '「{group}」のまとまりのほかの {count} けんも {grade} にしますか？',
     'gui.classroom.gradingRubric.groupNo': 'この 1 けんだけ',
