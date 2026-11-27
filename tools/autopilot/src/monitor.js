@@ -334,7 +334,9 @@ ${TOKEN_META_EMPTY}
   .chip[aria-pressed="true"] { border-color: var(--ap-ink); font-weight: 600; }
   #schedule { font-size: var(--ap-font-xs); color: var(--ap-muted); padding: 4px 12px; border-bottom: 1px solid var(--ap-line-soft); }
   #schedule button { font-size: var(--ap-font-xs); padding: 0 .3rem; }
-  .tbl-wrap { overflow-x: auto; }
+  /* isolation: 表の中の重なり（固定する列・見出しの z-index）を表の中に閉じる。閉じないと、欄を縦にスクロール
+     したとき表の見出しが欄の見出し（.panel-h・z-index: 2）の上に出る（#2527） */
+  .tbl-wrap { overflow-x: auto; isolation: isolate; }
   #board { border-collapse: collapse; width: 100%; min-width: 720px; font-size: var(--ap-font-sm); }
   #board th { font-size: var(--ap-font-xs); font-weight: 600; color: var(--ap-muted); text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--ap-line);
               white-space: nowrap; background: var(--ap-surface-2); position: sticky; top: 0; z-index: 1; }
@@ -360,6 +362,8 @@ ${TOKEN_META_EMPTY}
   #board th:nth-child(3), #board td:nth-child(3) { left: var(--stk-l3, 140px); box-shadow: inset -1px 0 0 var(--ap-line); }
   #board tr:hover > td:nth-child(-n+3) { background: linear-gradient(var(--ap-tint-1), var(--ap-tint-1)) var(--ap-surface); }
   #board tr.kid > td:nth-child(-n+3) { background: var(--ap-surface-2); }
+  /* 右の列まで広がるセル（読み込み中・sub-issue なし）には境目の線を引かない（線が表の右端に出る） */
+  #board td[colspan] { box-shadow: none; }
   /* 狭い画面では固定する題名を短く切り、右の列が見える幅を残す */
   @media (max-width: 599px) { #board td.title { min-width: 110px; max-width: 130px; } }
   /* 人間待ちの理由は表では印だけ（言葉は title とあなた宛てに出ている） */
@@ -1485,10 +1489,10 @@ function renderBoard(d) {
   document.getElementById('boardcount').textContent = 'EPIC ' + groups.filter((g) => !g.solo).length + ' 件'
     + (solos.length ? ' · EPIC に属さない ' + soloN + ' 件' : '');
   restorePrMenu();
-  placeStickyCols();
 }
 // 固定する左の列の left を、見出しの実際の幅から決める（Issue · PR の列は PR の数で幅が変わる・#2527）。
-// 隠れている欄（900px 未満のタブ）では幅が 0 なので、見えたときに測り直す
+// 幅は描き直し・タブの切りかえ・画面の幅・横の欄の開け閉めで変わるので、見出しの大きさを見て測り直す
+// （下の ResizeObserver）。隠れている欄（900px 未満のタブ）では幅が 0 なので測らない
 function placeStickyCols() {
   const ths = document.querySelectorAll('#board thead th');
   if (ths.length < 3 || !ths[0].offsetWidth) return;
@@ -1548,7 +1552,6 @@ function renderTabs() {
     + ' aria-selected="' + (view === id) + '">' + label + '<span class="cnt' + (id === 'inbox' && counts[id] ? ' hum' : (id === 'tasks' && counts[id] ? ' has' : '')) + '">'
     + counts[id] + '</span><kbd>' + (i + 1) + '</kbd></button>').join('');
   document.querySelectorAll('.stage > section').forEach((s) => s.classList.toggle('on', s.dataset.sec === view));
-  placeStickyCols();
 }
 // 欄へ移る（数字キー・タブ）。実行履歴と学び・タスクは横の欄を開く
 function goTo(target) {
@@ -2050,7 +2053,8 @@ document.addEventListener('pointerout', (e) => {
 });
 document.addEventListener('focusin', (e) => { const t = e.target.closest && e.target.closest('[data-tip]'); if (t) titleTipEvent({ type: 'focus', key: t.dataset.tip }); });
 document.addEventListener('focusout', (e) => { const t = e.target.closest && e.target.closest('[data-tip]'); if (t) titleTipEvent({ type: 'blur', key: t.dataset.tip }); });
-window.addEventListener('resize', () => { if (tipState.open) showTitleTip(); placeStickyCols(); });
+window.addEventListener('resize', () => { if (tipState.open) showTitleTip(); });
+{ const ro = new ResizeObserver(() => placeStickyCols()); [...document.querySelectorAll('#board thead th')].slice(0, 2).forEach((th) => ro.observe(th)); }
 document.addEventListener('scroll', () => { if (tipState.open) showTitleTip(); }, true);
 // まとめてクリックを受ける（行は 5 秒ごとに作り直すので、要素ごとに付けない）
 document.addEventListener('click', (ev) => {
