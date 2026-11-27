@@ -1667,26 +1667,12 @@
         {
             "title": "a comma after ならば is read only at the end of the line",
             "ja": "もし m > 0 ならば，s = 1",
-            "errors": [
-                {
-                    "code": "syntax",
-                    "message": "「もし」の後に「ならば」が要ります",
-                    "line": 1,
-                    "column": 0
-                }
-            ]
+            "errors": [{ "code": "syntax", "message": "「もし」の後に「ならば」が要ります", "line": 1, "column": 0 }]
         },
         {
             "title": "a comma before の間 is not a reading comma of the loop",
             "ja": "n < 5，の間繰り返す:\n    n = n + 2",
-            "errors": [
-                {
-                    "code": "syntax",
-                    "message": "「，」が読めません",
-                    "line": 1,
-                    "column": 5
-                }
-            ]
+            "errors": [{ "code": "syntax", "message": "「，」が読めません", "line": 1, "column": 5 }]
         },
         {
             "title": "an else deeper than its if (Issue #2030)",
