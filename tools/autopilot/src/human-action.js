@@ -127,8 +127,9 @@ function humanAction(it, ctx) {
     // PR が base とコンフリクトしていると、レビューしてもマージできない。まず AI に解消してもらう（#2524）。
     // worker が走っていれば上で idle になっている。canResolveConflict と同じ条件を、埋め込みのためここに書く
     if (openPr && openPr.mergeable === 'CONFLICTING' && (s === 'Review' || s === 'DoD' || it.hitl)) {
+        const back = s === 'Review' ? 'レビュー' : s === 'DoD' ? '動作の確認（DoD）' : 'いまの作業';
         return r('check', 'コンフリクトを解消してもらう',
-            'AI が base を取り込んでコンフリクトを解消し、push する。🙋 と Status はそのまま（済んだらレビューへ）',
+            'AI が base を取り込んでコンフリクトを解消し、push する。🙋 と Status はそのまま（済んだら' + back + 'へ）',
             'PR #' + openPr.number + ' が base とコンフリクトしている', 'resolve', prUrl, [it.issue]);
     }
     if (s === 'Review' || s === 'DoD') {

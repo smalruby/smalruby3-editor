@@ -276,9 +276,12 @@ test('humanAction: Review / DoD の PR がコンフリクトしていれば、�
         assert.deepStrictEqual([r.kind, r.button, r.act, r.targets], ['check', 'コンフリクトを解消してもらう', 'resolve', [2474]]);
         assert.strictEqual(r.state, 'PR #2482 が base とコンフリクトしている');
         assert.match(r.happens, /base を取り込んでコンフリクトを解消し、push する。🙋 と Status はそのまま/);
+        assert.match(r.happens, status === 'Review' ? /済んだらレビューへ/ : /済んだら動作の確認（DoD）へ/);
     }
     // 🙋 が付いていて OPEN の PR を持つほかの状態でも同じ
-    assert.strictEqual(a({ status: 'Blocked', prs: conflict }).act, 'resolve');
+    const blocked = a({ status: 'Blocked', prs: conflict });
+    assert.strictEqual(blocked.act, 'resolve');
+    assert.match(blocked.happens, /済んだらいまの作業へ/);
     // worker が走っていればコンフリクトの扱いにしない（AI の番）
     assert.strictEqual(a({ status: 'Review', prs: conflict }, { running: [2474] }).kind, 'idle');
     // コンフリクトが無い・まだ分からない・閉じた PR ならいままでどおり「PR を見る」
