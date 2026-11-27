@@ -6668,18 +6668,74 @@ $seat-tile-min: 36px;
 
 /* 課題ごとの評価の分布（#2457）: 人数の下の 1 行。目安を外れた % は注意の色（赤は使わない・R4）。 */
 .eval-dist {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: minmax(0, 18rem) minmax(0, 1fr);
     align-items: center;
-    gap: 0.25rem 0.75rem;
+    gap: 0.25rem 1rem;
     margin-bottom: 0.4rem;
     color: $color-text;
     font-size: $font-size-small;
 }
 
-.eval-dist-grades {
+/* S/A/B/C の横棒（#2523）。色は総合評価のグラフと同じ評価のトークン。 */
+.eval-dist-bars {
     display: flex;
-    gap: 0.6rem;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.eval-dist-bar-row {
+    display: grid;
+    grid-template-columns: 1rem minmax(0, 1fr) 2rem;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.eval-dist-bar-grade {
+    font-weight: $font-weight-bold;
+    text-align: center;
+}
+
+.eval-dist-bar-track {
+    display: block;
+    height: 0.8rem;
+    overflow: hidden;
+    border: 1px solid $color-border;
+    border-radius: $radius-small;
+    background-color: $color-background;
+}
+
+.eval-dist-bar {
+    display: block;
+    height: 100%;
+    transition: $transition-standard;
+}
+
+.eval-dist-bar-s {
+    background-color: $color-grade-s;
+}
+
+.eval-dist-bar-a {
+    background-color: $color-grade-a;
+}
+
+.eval-dist-bar-b {
+    background-color: $color-grade-b;
+}
+
+.eval-dist-bar-c {
+    background-color: $color-grade-c;
+}
+
+.eval-dist-bar-count {
+    text-align: right;
+}
+
+.eval-dist-shares {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
 }
 
 .eval-dist-share {

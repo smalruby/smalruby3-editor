@@ -901,6 +901,33 @@ describe('採点簿 (#2424)', () => {
         expect(getByTestId('classroom-eval-dist-s')).toHaveAttribute('data-ok', 'true');
         expect(getByTestId('classroom-eval-dist-base')).toHaveTextContent('Of 4 graded');
     });
+
+    test('評価の分布のグラフ (#2523): S/A/B/C の横棒の長さは評価のついた人の割合で、評価を変えるとすぐ変わる', () => {
+        const cells = {
+            '1:c1': { submitted: true, grade: 'A' },
+            '2:c1': { submitted: true, grade: 'B' },
+        };
+        const { getByTestId, rerender } = renderEvaluation({
+            seats: [1, 2, 3],
+            loaded: true,
+            getCell: (seat, id) => cells[`${seat}:${id}`] || null,
+        });
+        expect(getByTestId('classroom-eval-dist-bars')).toBeInTheDocument();
+        expect(getByTestId('classroom-eval-dist-bar-A')).toHaveStyle({ width: '50%' });
+        expect(getByTestId('classroom-eval-dist-bar-A')).toHaveAttribute('data-count', '1');
+        expect(getByTestId('classroom-eval-dist-bar-B')).toHaveStyle({ width: '50%' });
+        expect(getByTestId('classroom-eval-dist-bar-S')).toHaveStyle({ width: '0%' });
+        expect(getByTestId('classroom-eval-dist-bar-C')).toHaveAttribute('data-count', '0');
+        cells['2:c1'] = { submitted: true, grade: 'A' };
+        cells['3:c1'] = { submitted: true, grade: 'A' };
+        cells['4:c1'] = { submitted: true, grade: 'S' };
+        rerender(
+            evaluationElement({ seats: [1, 2, 3, 4], loaded: true, getCell: (seat, id) => cells[`${seat}:${id}`] }),
+        );
+        expect(getByTestId('classroom-eval-dist-bar-A')).toHaveStyle({ width: '75%' });
+        expect(getByTestId('classroom-eval-dist-bar-S')).toHaveStyle({ width: '25%' });
+        expect(getByTestId('classroom-eval-dist-bar-B')).toHaveStyle({ width: '0%' });
+    });
 });
 
 describe('［生徒］のスターターから足した台本 (#2424)', () => {
