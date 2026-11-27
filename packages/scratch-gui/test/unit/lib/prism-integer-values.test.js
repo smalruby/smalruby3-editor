@@ -5,6 +5,7 @@
  */
 import { integerValueOfText } from '../../../src/lib/prism-integer-values';
 import { loadPrism } from '../../../src/lib/prism-parser';
+import { forEachNode } from '../../../src/lib/ruby-to-blocks-converter/node-walk';
 import {
     makeConverter,
     makeSpriteTarget,
@@ -15,12 +16,11 @@ import {
 const integerValues = async (code) => {
     const prism = await loadPrism();
     const values = [];
-    const walk = (node) => {
-        if (!node || typeof node.childNodes !== 'function') return;
-        if (node.constructor.name === 'IntegerNode') values.push(node.value);
-        node.childNodes().forEach(walk);
-    };
-    walk(prism.parse(code).value);
+    forEachNode(prism.parse(code).value, {
+        enter(node, type) {
+            if (type === 'IntegerNode') values.push(node.value);
+        },
+    });
     return values;
 };
 
