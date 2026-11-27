@@ -9,15 +9,41 @@ CI（GitHub Actions）のジョブが落ちて原因を調べるとき、**コ�
   （`productionresultssa<N>.blob.core.windows.net`。`<N>` は毎回変わる）へ転送される。
   この置き場は devcontainer の egress firewall の allowlist に無いので、つながらない
   （`Failed to connect to productionresultssa30.blob.core.windows.net`）。
-- `gh api .../check-runs/<id>/annotations` は `Process completed with exit code 1.` しか返さない。
+- `gh api .../check-runs/<id>/annotations` は、注釈を出すようにした段（下の scratch-gui の jest）のほかは
+  `Process completed with exit code 1.` しか返さない。
 - 読めるのは、ジョブ・段（step）の名前と成否まで:
   `gh run view <run> --json jobs -q '.jobs[]|.name+" "+(.conclusion//"")+" "+([.steps[]|select(.conclusion=="failure")|.name]|join(","))'`
 - Bot はジョブの再実行もできない（`Resource not accessible by integration`）。流し直すときは
   develop を merge して push するか、PR を閉じて開き直す。
 
+## まず check-run の注釈を読む（scratch-gui の jest）
+
+scratch-gui の unit / integration テストは、jest の `github-actions` reporter で、落ちたテストを
+check-run の注釈（annotation）に出している（`.github/workflows/ci-cd.yml`）。注釈は api.github.com から
+読めるので、**ログを人間に頼む前に注釈を読む**。
+
+```bash
+# 1. 落ちたジョブ（= check-run）の id
+GH_TOKEN="$(bin/bot-token)" gh run view <run> --repo smalruby/smalruby3-editor --json jobs \
+  -q '.jobs[]|select(.conclusion=="failure")|"\(.databaseId) \(.name)"'
+# 2. そのジョブの注釈（テストの名前・ファイルと行・期待値と実際の値の差）
+GH_TOKEN="$(bin/bot-token)" gh api repos/smalruby/smalruby3-editor/check-runs/<job id>/annotations \
+  -q '.[]|"\(.path):\(.start_line) \(.title)\n\(.message)\n"'
+```
+
+- 落ちたテスト 1 件ごとに、`title` にテストの名前（`describe › test`）、`message` に失敗の中身
+  （`expect` の差・スタック）が入る。
+- GitHub は 1 つの段で error の注釈を 10 件まで（1 つのジョブで 50 件まで）しか残さず、読み込みで
+  落ちたテストファイル（構文の誤り・モジュールが無い）には注釈が付かない。そのため、続く段
+  「List failed scratch-gui ... Tests」が、落ちたテストとテストファイルを全部並べた注釈を 1 件足す
+  （`title` が `jest: N failed (jest-results.json)`。`scripts/jest-failures-annotation.mjs`）。
+  11 件目からは名前だけが分かる。
+- 注釈が `Process completed with exit code 1.` だけのときは、jest より前の段で落ちているか、
+  jest 以外のジョブ（scratch-vm の tap・lint・ビルド）。そのときは下の手順でログを頼む。
+
 ## 人間に頼むこと（この順で）
 
-まず段の名前まで自分で絞り、**どのジョブのどの段のログが要るか**を書いて頼む。
+注釈で分からないときだけ頼む。まず段の名前まで自分で絞り、**どのジョブのどの段のログが要るか**を書いて頼む。
 
 ### A（既定）: ブラウザでログを取ってファイルで渡してもらう
 
