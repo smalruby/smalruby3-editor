@@ -5,7 +5,7 @@ const assert = require('node:assert');
 // このテストの置き場は使い捨ての tmpdir にする。
 process.env.AUTOPILOT_STATE_DIR = require('fs').mkdtempSync(require('path').join(require('os').tmpdir(), 'ap-daemon-test-'));
 const {
-    applyMergeProgression, applyClosedReconcile, applyPrProjection, applyDodHandoffs, runTickOnce,
+    applyMergeProgression, applyClosedReconcile, isIssueClosedAfterRun, applyPrProjection, applyDodHandoffs, runTickOnce,
     detectStuck, recoverOrphanedWorkers, recoverStalledInFlightWorkers, markBlocked, getDirectives, populateAssigneeDirectives,
     applyLabelHealing, applyAfterWaitLabels, collectGateContexts,
     applyDecomposeSubIssueSetup,
@@ -209,6 +209,25 @@ test('applyMergeProgression: a failing gh close does not abort the loop (#843)',
         syncFaces: () => {},
     });
     assert.deepEqual(applied, ['i1', 'i2']);
+});
+
+test('isIssueClosedAfterRun: done run on a closed issue -> true; open / non-done / failure -> false (#2540)', async () => {
+    const cfg = { repo: 'o/r' };
+    const calls = [];
+    const deps = (states) => ({
+        getIssueStates: async (repo, nums) => { calls.push([repo, nums]); return states; },
+        readToken: async () => 'r',
+    });
+    assert.equal(await isIssueClosedAfterRun({ issue: 1916 }, { signal: 'done' }, cfg, () => {}, deps({ 1916: 'CLOSED' })), true);
+    assert.deepEqual(calls[0], ['o/r', [1916]]);
+    assert.equal(await isIssueClosedAfterRun({ issue: 1916 }, { signal: 'done' }, cfg, () => {}, deps({ 1916: 'OPEN' })), false);
+    // hitl / error は確かめない（GitHub を読まない）
+    calls.length = 0;
+    assert.equal(await isIssueClosedAfterRun({ issue: 1916 }, { signal: 'hitl' }, cfg, () => {}, deps({ 1916: 'CLOSED' })), false);
+    assert.equal(calls.length, 0);
+    // 確かめられないときは false（従来どおり反映する）
+    const failing = { getIssueStates: async () => { throw new Error('boom'); }, readToken: async () => 'r' };
+    assert.equal(await isIssueClosedAfterRun({ issue: 1 }, { signal: 'done' }, cfg, () => {}, failing), false);
 });
 
 test('applyClosedReconcile: closed non-terminal items -> Status=Close + clear AI Status (incl. EPIC)', async () => {

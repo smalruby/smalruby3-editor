@@ -556,6 +556,18 @@ close した leaf、(B) 統合 PR の `Closes #<epic>` で閉じた EPIC、(C) �
 判定は `phases.js` の `selectClosedToReconcile`（純粋関数・終端は `TERMINAL_STATUSES`）。実行中
 （run が所有する）item は触らない。冪等。
 
+閉じた Issue の Status が空（New Item）や In Progress のままだと、拾う判定が reconcile より先に worker を
+起こし、running に入った item を reconcile が飛ばしてしまう（triage が閉じた Issue を、また triage する
+くり返し）。そのため daemon は次の 2 つを行う。
+
+- **拾う前に外す**: tick は closed 状態の確認を拾う判定より先に行い、閉じた Issue を stalled 復帰と
+  `selectActionable` に渡さない（`excludeClosedItems`）。Close へそろえるのは同じ tick の reconcile。
+- **フェーズが閉じたら Close**: run が done で終わったとき、その Issue が GitHub で閉じていれば、
+  結果の `nextStatus` を問わず Status=Close・AI Status 空にし、🙋 を付けない（`closedRunIntents` /
+  `isIssueClosedAfterRun`。1 件のバッチ GraphQL）。プロンプトは `nextStatus` に Close を書かない
+  （I4 の静的検査が `"nextStatus":"Close"` を禁じている）。hitl / error で終えたときは書きかえず、
+  次の tick の reconcile が Close にする。
+
 ---
 
 ## implement→review の自動ディスパッチ（自己レビュー）

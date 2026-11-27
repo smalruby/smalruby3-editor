@@ -157,7 +157,7 @@ Issue / PR の 🙋 を外す。人間が 🙋 を外したのと同じ意味な
 | 16b | In Progress / **Release Check** / なし（🧭 トラッカー） | リリース確認の段（#2430） | **A: release-check**（観点をまとめるか結果を受けるかは、トラッカーの目印付きコメントと、topic → develop の PR の人間のまだ受けていないレビュー・コメントから決める・`releaseCheckMode` / `selectPrFeedback`） | 観点をまとめた → #16c / 全部 OK → #16c（develop へのマージは人間）/ NG・PR のレビューから sub-issue を作った → In Progress + EPIC Decomposed（#16。作った子が全部済むと次の round の #16b） |
 | 16c | In Progress / **Release Check** / **あり**（🧭 トラッカー） | 人間がプレビューで確かめる | H: 🙋 を外す（トラッカーの 🙋 だけ。topic → develop の PR にレビューを書いてから外してもよい。モニターの「確認の結果を書く」は結果のコメントを書いてから外す。観点のコメントがまだ無ければ、ダイアログの「AI に観点をまとめてもらう」で外す）→ **A: release-check** / H: topic → develop の PR をマージして close → **D: closed-reconcile** | #16b / Close |
 | 17 | PR 後の非終端（leaf・Status が In Progress / Blocked / Review / DoD）/ 任意 / 任意 | — | H: PR merge → **D: merge-progression**（🙋 の有無を問わない。🙋 は face sync が両面から外す） | Close（GitHub issue も close。**`🧱 infra` の Issue は閉じない**: prod デプロイ成功で `Deploy Infra` workflow が閉じる・`shouldCloseIssueOnMerge`） |
-| 18 | 任意の非終端 | — | H: Issue close → **D: closed-reconcile** | Close |
+| 18 | 任意の非終端 | — | H: Issue close → **D: closed-reconcile**。GitHub で閉じた Issue は、拾う判定（`selectActionable`・stalled 復帰）の前に外す（`excludeClosedItems`）。フェーズが Issue を閉じて done で終えたときは、daemon が GitHub の状態を見て Status=Close・AI Status 空にする（`closedRunIntents`。`nextStatus` が空でも New Item に戻らない） | Close |
 | 19 | In Progress / —（AI Status 空） / 任意 | 人間が手動で置いた作業中 | H: Status 移動（autopilot は所有しない） | 人間の決定 |
 | 20 | Icebox / Close / Done | 終端・保留 | H: Status 移動（再開は人間のみ） | — |
 | 21 | 🧭 tracking ラベル付き（全状態） | トラッカー | #16〜#18 のみ（フェーズは #16b の release-check だけ） | — |

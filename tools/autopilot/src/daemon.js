@@ -47,6 +47,8 @@ const {
     selectMergeCandidates,
     mergeProgressionIntents,
     selectClosedToReconcile,
+    excludeClosedItems,
+    closedRunIntents,
     selectPrSyncCandidates,
     ownsItem,
     itemOwner,
@@ -1573,7 +1575,11 @@ async function dispatch(item, cfg, state, log) {
         const outcome = resolveRunOutcome(parsed.result, {
             epicFlow: isEpicFlowBase(baseBranch, DEFAULT_BASE_BRANCH), priorStatus: item.status, priorAiStatus: item.aiStatus,
         });
-        const intents = outcome.intents;
+        // フェーズが Issue を閉じていたら Close にそろえる（#2540。Status が空に戻ると New Item として
+        // また triage が走る）。プロンプトの nextStatus に頼らず、GitHub の状態を見て決める
+        const closedByRun = await isIssueClosedAfterRun(item, parsed.result, cfg, log);
+        const intents = closedRunIntents(outcome.intents, { signal: parsed.result.signal, closed: closedByRun });
+        if (closedByRun) log(`#${item.issue}: ${phase} が Issue を閉じた → Status=Close`);
         const applied = await project.applyIntents(ctx, itemId, intents, await project.botToken());
         // ローカルで把握した状態変化を board キャッシュにも反映（#888）。GraphQL は増やさない。
         // implement 完了→ AI Status=Self-Reviewing 等が refreshBoard を待たず monitor に live 反映される。
@@ -1600,7 +1606,8 @@ async function dispatch(item, cfg, state, log) {
         }
         // 権威的な面同期（contract §7）: 🙋/🤖 ラベル・Draft・sticky を Project 状態 + HITL 希望へ合わせる。
         // HITL は Project フィールドではなくラベルなので、結果から導いた希望を hitlLabel として渡す（#813）。
-        const wantHitl = outcome.hitl;
+        // 閉じた Issue は終端なので、人間の番にしない（🙋 を付けない）
+        const wantHitl = closedByRun ? false : outcome.hitl;
         await syncFacesAfterIntents({ ...item, hitlLabel: wantHitl }, intents, cfg, log);
         // hitl の質問（questions）をモニターに出し、Issue にもマーカー付きで書く（U2）
         if (state.answerStore) {
@@ -2046,6 +2053,30 @@ async function applyMergeProgression(items, cfg, state, log, deps = {}) {
 }
 
 /**
+ * run が done で終わったとき、その Issue が GitHub で閉じているかを確かめる（#2540）。
+ * done 以外は確かめない（hitl / error は人間に渡す意図のまま。閉じていれば次の tick の reconcile が
+ * Close にする）。1 件だけのバッチ GraphQL なので軽い。確かめられなければ false（従来どおり反映する）。
+ * @param {object} item 対象 item
+ * @param {object} result 検証済みの結果
+ * @param {object} cfg daemon 設定
+ * @param {function} log ログ関数
+ * @param {object} [deps] { getIssueStates, readToken }（テスト用）
+ * @returns {Promise<boolean>} 閉じていれば true
+ */
+async function isIssueClosedAfterRun(item, result, cfg, log, deps = {}) {
+    if (!result || result.signal !== 'done') return false;
+    const getStates = deps.getIssueStates || project.getIssueStates;
+    const readToken = deps.readToken || project.readToken;
+    try {
+        const states = await getStates(cfg.repo, [item.issue], await readToken());
+        return (states || {})[item.issue] === 'CLOSED';
+    } catch (e) {
+        log(`#${item.issue}: closed state check after run failed: ${e.message}`);
+        return false;
+    }
+}
+
+/**
  * Fix B（#843）: 「GitHub issue が closed ⇄ Project Status=Close」の整合パス。
  * merge-progression は leaf の連携 PR merge しか見ないため、(A) 非デフォルト base 宛て PR で手動 close
  * した leaf、(B) 統合 PR の `Closes #<epic>` で閉じた EPIC、(C) 人手で閉じた issue が取り残される。
@@ -2410,11 +2441,28 @@ async function tick(cfg, state, log) {
     // autopilot-assignee ディレクティブ（#938）: itemOwner/ownsItem が使う前に解決しておく
     // （2人以上 assign の item のみ本文 fetch）。
     items = await populateAssigneeDirectives(items, cfg, state, log);
+    // closed 状態の確認は **対象限定のバッチ GraphQL**（非終端 + 🤖 ラベルの item だけ）。
+    // 旧実装のリポジトリ全体 closed 一覧（最大 1000 件 × 毎 tick）は使わない。
+    // 拾う判定より先に確かめる（#2540）: 閉じた Issue を stalled 復帰・selectActionable に渡すと、
+    // reconcile より先に worker が起き、running に入った item を reconcile が飛ばしてしまう。
+    const closedSet = new Set();
+    const mergeStates = (states) => {
+        for (const [n, s] of Object.entries(states)) if (s === 'CLOSED') closedSet.add(Number(n));
+    };
+    try {
+        mergeStates(await project.getIssueStates(
+            cfg.repo, selectClosedCheckIssues(items), await project.readToken(),
+        ));
+    } catch (e) {
+        log(`closed state check failed: ${e.message}`);
+    }
+    // 拾う判定に使う item（閉じた Issue を除く）。Close へそろえるのは下の applyClosedReconcile
+    const openItems = excludeClosedItems(items, closedSet);
     // ストール復帰（#995）: In Progress + 実作業系 AI Status のまま worker が不在の item を
     // 対応フェーズへ再ディスパッチする（#972 のデッドエンド解消）。dispatch は running を
     // 同期的に set するので、直後の running スナップショットに含まれ selectActionable /
     // detectStuck と二重ディスパッチせず、Blocked より再開を優先できる。
-    await recoverStalledInFlightWorkers(items, cfg, state, log)
+    await recoverStalledInFlightWorkers(openItems, cfg, state, log)
         .catch((e) => log(`stalled recovery error: ${e.message}`));
     const running = new Set(state.running.keys());
     // モニターの「答えて先へ進める」で daemon が外した 🙋 は、一覧の読み直しが遅れても外れた扱いにする（U1）
@@ -2430,7 +2478,7 @@ async function tick(cfg, state, log) {
     Object.assign(contexts, await collectContinuationContexts(items, running, log));
     // 候補は上限なしで Board 順に列挙し、autopilot-after の未完了依存を持つ item を
     // スキップしながら空き容量まで拾う（依存でブロックされた分は次点候補が繰り上がる）
-    const candidates = selectActionable(items, {
+    const candidates = selectActionable(openItems, {
         paused: state.paused,
         running,
         limit: Infinity,
@@ -2438,19 +2486,6 @@ async function tick(cfg, state, log) {
         assignee: cfg.assignee,
         statusOrder: cfg.statusOrder,
     });
-    // closed 状態の確認は **対象限定のバッチ GraphQL**（非終端 + 🤖 ラベルの item だけ）。
-    // 旧実装のリポジトリ全体 closed 一覧（最大 1000 件 × 毎 tick）は使わない。
-    const closedSet = new Set();
-    const mergeStates = (states) => {
-        for (const [n, s] of Object.entries(states)) if (s === 'CLOSED') closedSet.add(Number(n));
-    };
-    try {
-        mergeStates(await project.getIssueStates(
-            cfg.repo, selectClosedCheckIssues(items), await project.readToken(),
-        ));
-    } catch (e) {
-        log(`closed state check failed: ${e.message}`);
-    }
     const statusByIssue = Object.fromEntries(items.map((it) => [it.issue, it.status]));
     // 🧱 infra の依存は GitHub で closed のときだけ完了（prod デプロイ成功で workflow が閉じる）。
     // merge で Project は Close（終端）になるので selectClosedCheckIssues の定常確認からは外れる →
@@ -3556,7 +3591,7 @@ async function main(opts = {}) {
 
 module.exports = {
     currentSchedulerLimits, readResources, planDispatch, setItemPriority, setSchedulerOverrides,
-    main, tick, runTickOnce, dispatch, applyMergeProgression, applyClosedReconcile, applyPrProjection,
+    main, tick, runTickOnce, dispatch, applyMergeProgression, applyClosedReconcile, isIssueClosedAfterRun, applyPrProjection,
     cleanupIssueWorktree,
     listProcesses, stopWorktreeLeftovers, applyLeftoverSweep,
     applyDodHandoffs, detectStuck, recoverOrphanedWorkers, recoverStalledInFlightWorkers,

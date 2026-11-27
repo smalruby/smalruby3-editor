@@ -18,6 +18,9 @@ const {
     applyIntentsToItem,
     hitlDesireFromResult,
     selectClosedToReconcile,
+    excludeClosedItems,
+    closedRunIntents,
+    selectActionable,
     selectMergeCandidates,
     mergeProgressionIntents,
     TERMINAL_STATUSES,
@@ -273,6 +276,39 @@ test('I4: hitl 提案は Status を Icebox/Close へ動かさない（プロン�
             !/"nextStatus"\s*:\s*"(Icebox|Close|Done)"/.test(body),
             `${f}: hitl 提案で Status を退避系（Icebox/Close/Done）へ動かす例が残っている`,
         );
+    }
+});
+
+test('#2540: GitHub で閉じた非終端 item は、どの状態でも dispatch されず closed 整合で Close へ進む', () => {
+    for (const status of STATUSES) {
+        if (TERMINAL_STATUSES.has(status)) continue;
+        for (const aiStatus of AI_STATUSES) {
+            for (const hitlLabel of [false, true]) {
+                for (const kind of KINDS) {
+                    const item = {
+                        issue: 1, status: status === 'New Item' ? null : status, aiStatus, hitlLabel, kind,
+                        assignees: ['me'], labels: [],
+                    };
+                    const closed = new Set([1]);
+                    const open = excludeClosedItems([item], closed);
+                    const label = `${status}/${aiStatus}/${hitlLabel}/${kind}`;
+                    assert.deepEqual(selectActionable(open, { limit: Infinity, assignee: 'me' }), [], label);
+                    assert.deepEqual(selectStalledInFlightItems(open, new Set()), [], label);
+                    assert.equal(selectClosedToReconcile([item], closed).length, 1, label);
+                }
+            }
+        }
+    }
+});
+
+test('#2540: フェーズが Issue を閉じて done で終えたら、nextStatus を問わず Status=Close・AI Status 空', () => {
+    for (const nextStatus of [undefined, null, 'Backlog', 'In Progress']) {
+        const result = { issue: 1, phase: 'triage', signal: 'done', summary: 's', nextStatus, nextAiStatus: null };
+        const after = applyIntentsToItem({ issue: 1, status: null, aiStatus: 'Triaging' },
+            closedRunIntents(applyResult(result), { signal: 'done', closed: true }));
+        assert.equal(after.status, 'Close', String(nextStatus));
+        assert.equal(after.aiStatus, null, String(nextStatus));
+        assert.equal(phaseForItem(after), null, String(nextStatus));
     }
 });
 
