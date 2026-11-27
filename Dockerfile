@@ -66,6 +66,24 @@ RUN \
   && rm -rf /tmp/aws /tmp/awscliv2.zip \
   && aws --version
 
+# herdr — the terminal the autopilot daemon and its workers run in (tools/autopilot).
+# It shows whether a claude worker is working or stopped at a prompt, which tmux cannot.
+# Pinned to a release with a checked sha256 per architecture (supply-chain rule: the
+# release must be 3+ days old). To update, take the digests from the GitHub release.
+ARG HERDR_VERSION=0.9.5
+RUN \
+  set -eux \
+  && arch="$(uname -m)" \
+  && case "$arch" in \
+       x86_64) sha=14d9e8bc8b4a9e0118d77c32266f76d461f09b40342eb23752960bd89f59929d ;; \
+       aarch64) sha=17d7536f2da50859523680ef279dffcac8e4a235f4e46fe8da6c2ec44141897c ;; \
+       *) echo "herdr: unsupported architecture $arch" >&2; exit 1 ;; \
+     esac \
+  && curl -fsSL "https://github.com/herdrdev/herdr/releases/download/v${HERDR_VERSION}/herdr-linux-${arch}" -o /usr/local/bin/herdr \
+  && echo "${sha}  /usr/local/bin/herdr" | sha256sum -c - \
+  && chmod +x /usr/local/bin/herdr \
+  && herdr --version
+
 # Install Playwright and its dependencies
 RUN npx playwright install chromium --with-deps
 

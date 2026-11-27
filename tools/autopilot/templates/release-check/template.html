@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>リリース確認</title>
+<style>
+/* SPDX-License-Identifier: MIT — autopilot のリリース確認ページ（tools/autopilot/templates/release-check・#2474）。
+   並び: EPIC の題とリンク → 確認の観点（OK / NG・メモ）→ 決定待ち（推奨でよい / 別の案 / コメント）→ 全体のコメント → 答えを送る。
+   色・文字・間隔はモニターのデザインシステム（docs/autopilot/design-system.md）のトークンと同じ値。新しい色を足さない。 */
+:root {
+  --ap-bg: #f4f6f7; --ap-surface: #ffffff; --ap-ink: #17202a; --ap-muted: #5a6672; --ap-faint: #8a949e; --ap-line: #d9dfe4;
+  --ap-human: #5a44b4; --ap-human-wash: #ebe7fa; --ap-done: #2e7553; --ap-done-wash: #e0f0e7;
+  --ap-stop: #8a3b5c; --ap-stop-wash: #f4e4ea; --ap-idle: #6b7785; --ap-idle-wash: #eceff2; --ap-on-solid: #ffffff;
+  --ap-primary: var(--ap-done); --ap-primary-wash: var(--ap-done-wash);
+  --ap-font-ui: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  --ap-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --ap-font-xs: 12px; --ap-font-sm: 13px; --ap-font-md: 14px; --ap-font-lg: 16px; --ap-font-xl: 20px;
+  --ap-human-font: 15px; --ap-human-gap: 16px; --ap-row-comfy: 40px;
+  --ap-space-1: 2px; --ap-space-2: 4px; --ap-space-3: 8px; --ap-space-4: 12px; --ap-space-5: 16px; --ap-space-6: 24px;
+  --ap-radius-sm: 4px; --ap-radius-md: 6px; --ap-radius-pill: 999px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --ap-bg: #0f1418; --ap-surface: #161d23; --ap-ink: #e3e8ec; --ap-muted: #9aa6b1; --ap-faint: #6f7b86; --ap-line: #2a353e;
+  --ap-human: #b3a0f2; --ap-human-wash: #2a2543; --ap-done: #7cc79e; --ap-done-wash: #173025;
+  --ap-stop: #e39ab6; --ap-stop-wash: #3a2230; --ap-idle: #9aa6b1; --ap-idle-wash: #222b33; --ap-on-solid: #15121f;
+  color-scheme: dark } }
+:root[data-theme="dark"] {
+  --ap-bg: #0f1418; --ap-surface: #161d23; --ap-ink: #e3e8ec; --ap-muted: #9aa6b1; --ap-faint: #6f7b86; --ap-line: #2a353e;
+  --ap-human: #b3a0f2; --ap-human-wash: #2a2543; --ap-done: #7cc79e; --ap-done-wash: #173025;
+  --ap-stop: #e39ab6; --ap-stop-wash: #3a2230; --ap-idle: #9aa6b1; --ap-idle-wash: #222b33; --ap-on-solid: #15121f;
+  color-scheme: dark }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--ap-bg); color: var(--ap-ink); font-family: var(--ap-font-ui); font-size: var(--ap-human-font); line-height: 1.7; }
+.wrap { max-width: 860px; margin: 0 auto; padding: var(--ap-space-6) 16px 80px; display: grid; gap: var(--ap-space-6); }
+h1 { font-size: var(--ap-font-xl); margin: 0; line-height: 1.4; }
+h2 { font-size: var(--ap-font-lg); margin: 0; }
+h3 { font-size: var(--ap-font-lg); margin: 0; line-height: 1.5; }
+p { margin: 0; }
+a { color: var(--ap-human); overflow-wrap: anywhere; }
+.muted { color: var(--ap-muted); }
+.small { font-size: var(--ap-font-sm); }
+.mono { font-family: var(--ap-font-mono); font-variant-numeric: tabular-nums; }
+.section { display: grid; gap: var(--ap-space-4); }
+.links { display: flex; flex-wrap: wrap; gap: var(--ap-space-3) var(--ap-space-5); font-size: var(--ap-font-md); }
+.card { background: var(--ap-surface); border: 1px solid var(--ap-line); border-radius: var(--ap-radius-sm); padding: var(--ap-space-5); display: grid; gap: var(--ap-space-4); min-width: 0; }
+.head { display: flex; gap: var(--ap-space-3); align-items: baseline; flex-wrap: wrap; }
+.id { font-family: var(--ap-font-mono); font-weight: 700; color: var(--ap-human); }
+.chip { font-size: var(--ap-font-xs); font-weight: 700; padding: 0 var(--ap-space-3); border-radius: var(--ap-radius-pill); background: var(--ap-idle-wash); color: var(--ap-idle); white-space: nowrap; }
+dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: var(--ap-space-2) var(--ap-space-4); font-size: var(--ap-font-md); }
+dt { color: var(--ap-muted); }
+dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.rest { white-space: pre-wrap; font-size: var(--ap-font-md); color: var(--ap-muted); }
+.seg { display: flex; flex-wrap: wrap; gap: var(--ap-space-3); }
+.seg button { min-height: var(--ap-row-comfy); padding: 0 var(--ap-space-5); border-radius: var(--ap-radius-md); border: 1px solid var(--ap-line); background: var(--ap-surface); color: var(--ap-ink); font: inherit; font-size: var(--ap-font-md); cursor: pointer; }
+.seg button[aria-pressed="true"].ok { background: var(--ap-primary-wash); border-color: var(--ap-primary); color: var(--ap-primary); font-weight: 700; }
+.seg button[aria-pressed="true"].ng { background: var(--ap-stop-wash); border-color: var(--ap-stop); color: var(--ap-stop); font-weight: 700; }
+.seg button[aria-pressed="true"].pick { background: var(--ap-human-wash); border-color: var(--ap-human); color: var(--ap-human); font-weight: 700; }
+.seg button:disabled { cursor: default; opacity: .8; }
+textarea, input[type="text"], select { width: 100%; font: inherit; font-size: var(--ap-font-md); color: var(--ap-ink); background: var(--ap-bg); border: 1px solid var(--ap-line); border-radius: var(--ap-radius-sm); padding: var(--ap-space-3); }
+textarea { min-height: 64px; resize: vertical; }
+.rec { border-left: 3px solid var(--ap-human); padding-left: var(--ap-space-4); }
+.send { background: var(--ap-surface); border: 1px solid var(--ap-human); border-radius: var(--ap-radius-sm); padding: var(--ap-space-5); display: grid; gap: var(--ap-space-4); }
+.acts { display: flex; flex-wrap: wrap; gap: var(--ap-space-3); align-items: center; }
+.go { min-height: var(--ap-row-comfy); padding: 0 var(--ap-space-6); border-radius: var(--ap-radius-md); border: 1px solid var(--ap-human); background: var(--ap-human); color: var(--ap-on-solid); font: inherit; font-weight: 700; cursor: pointer; }
+.go:disabled { opacity: .5; cursor: default; }
+.plain { min-height: var(--ap-row-comfy); padding: 0 var(--ap-space-5); border-radius: var(--ap-radius-md); border: 1px solid var(--ap-line); background: var(--ap-surface); color: var(--ap-ink); font: inherit; cursor: pointer; }
+.status { font-size: var(--ap-font-sm); color: var(--ap-muted); }
+.status.done { color: var(--ap-done); font-weight: 700; }
+.status.stop { color: var(--ap-stop); }
+footer { font-size: var(--ap-font-xs); color: var(--ap-muted); border-top: 1px solid var(--ap-line); padding-top: var(--ap-space-4); }
+@media (max-width: 520px) { dl { grid-template-columns: 1fr; } dt { margin-top: var(--ap-space-2); } }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><p class="muted">読み込み中…</p></div>
+<script>
+const DATA = /*__RELEASE_CHECK_DATA__*/null;
+// 答え（下書きと送ったもの）。db に入れる形: {schema, round, status:'draft'|'submitted', results, decisions, comment, updatedAt, submittedAt}
+const ans = { results: {}, decisions: {}, comment: '' };
+let db = null; let ref = null; let submitted = null; let dbState = 'loading'; let saveTimer = null; let saving = false; let dirty = false; let confirming = false;
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+function safeUrl(u) { return typeof u === 'string' && /^https:\/\//.test(u) ? u : null; }
+function link(href, text) { const u = safeUrl(href); if (!u) return el('span', null, text); const a = el('a', null, text); a.href = u; a.target = '_blank'; a.rel = 'noopener'; return a; }
+function when(v) { if (!v) return ''; const d = new Date(v); if (isNaN(d)) return String(v); const p = (n) => String(n).padStart(2, '0'); return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()); }
+function locked() { return Boolean(submitted) || !db; }
+function payload(status) {
+  const d = DATA || {};
+  const results = (d.points || []).filter((p) => ans.results[p.id] && ans.results[p.id].verdict)
+    .map((p) => ({ id: p.id, verdict: ans.results[p.id].verdict, note: ans.results[p.id].note || '' }));
+  const decisions = (d.decisions || []).filter((x) => ans.decisions[x.id] && ans.decisions[x.id].choice)
+    .map((x) => { const a = ans.decisions[x.id]; return { id: x.id, title: x.title || '', choice: a.choice, alternative: a.choice === 'alternative' ? (a.alternative || '') : '', note: a.note || '' }; });
+  return { schema: 1, round: d.round, status, results, decisions, comment: ans.comment || '', updatedAt: Date.now() };
+}
+// 送れるか: 何か 1 つは答えてあり、別の案は案かメモ・コメントはメモがある
+function problems() {
+  const d = DATA || {}; const out = [];
+  for (const x of d.decisions || []) {
+    const a = ans.decisions[x.id];
+    if (!a || !a.choice) continue;
+    if (a.choice === 'alternative' && !(a.alternative || '').trim() && !(a.note || '').trim()) out.push(x.id + ' の別の案を書いてください');
+    if (a.choice === 'comment' && !(a.note || '').trim()) out.push(x.id + ' のコメントを書いてください');
+  }
+  const p = payload('submitted');
+  if (!p.results.length && !p.decisions.length && !p.comment.trim()) out.push('観点・決定待ちのどれかに答えるか、全体のコメントを書いてください');
+  return out;
+}
+function scheduleSave() {
+  if (locked()) return;
+  dirty = true; clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveDraft, 1200);
+  updateSend();
+}
+async function saveDraft() {
+  if (!ref || submitted || saving || !dirty) return;
+  saving = true; dirty = false;
+  try { await ref.set(payload('draft')); setStatus('下書きを保存しました（' + when(Date.now()) + '）', ''); }
+  catch (e) { setStatus('下書きを保存できませんでした（' + ((e && e.code) || 'error') + '）', 'stop'); }
+  finally { saving = false; if (dirty) scheduleSave(); }
+}
+async function submit() {
+  if (!ref || submitted || problems().length) return;
+  clearTimeout(saveTimer);
+  const p = payload('submitted'); p.submittedAt = Date.now();
+  const btn = document.getElementById('send'); if (btn) btn.disabled = true;
+  try { await ref.set(p); submitted = p; confirming = false; render(); }
+  catch (e) { setStatus('送れませんでした（' + ((e && e.code) || 'error') + '）。もう一度押してください', 'stop'); if (btn) btn.disabled = false; }
+}
+function setStatus(text, cls) { const s = document.getElementById('status'); if (s) { s.textContent = text; s.className = 'status' + (cls ? ' ' + cls : ''); } }
+function updateSend() {
+  const btn = document.getElementById('send'); const why = document.getElementById('why');
+  if (!btn) return;
+  const pr = problems(); btn.disabled = locked() || pr.length > 0;
+  if (why) why.textContent = pr.length ? pr[0] : '';
+}
+function segButton(label, cls, pressed, onClick) {
+  const b = el('button', cls, label); b.type = 'button'; b.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+  b.disabled = locked(); b.onclick = onClick; return b;
+}
+function noteBox(value, placeholder, onInput) {
+  const t = el('textarea'); t.value = value || ''; t.placeholder = placeholder; t.disabled = locked();
+  t.oninput = () => { onInput(t.value); scheduleSave(); }; return t;
+}
+function renderPoint(p) {
+  const c = el('div', 'card'); c.dataset.testid = 'release-page-point';
+  const h = el('div', 'head'); h.append(el('span', 'id', p.id), el('h3', null, p.title || '')); c.append(h);
+  const dl = el('dl');
+  for (const [k, label] of [['open', '開く'], ['do', 'する'], ['ok', 'OK'], ['source', '出どころ']]) {
+    if (!p[k]) continue; dl.append(el('dt', null, label), el('dd', null, p[k]));
+  }
+  if (dl.childNodes.length) c.append(dl);
+  if (p.rest) c.append(el('div', 'rest', p.rest));
+  const a = ans.results[p.id] || {};
+  const set = (v) => { ans.results[p.id] = Object.assign({}, ans.results[p.id], { verdict: a.verdict === v ? null : v }); scheduleSave(); render(); };
+  const seg = el('div', 'seg');
+  seg.append(segButton('✅ OK', 'ok', a.verdict === 'ok', () => set('ok')), segButton('❌ NG', 'ng', a.verdict === 'ng', () => set('ng')));
+  c.append(seg, noteBox(a.note, 'メモ（NG なら、どうなったか）', (v) => { ans.results[p.id] = Object.assign({}, ans.results[p.id], { note: v }); }));
+  return c;
+}
+function renderDecision(x) {
+  const c = el('div', 'card'); c.dataset.testid = 'release-page-decision';
+  const h = el('div', 'head'); h.append(el('span', 'id', x.id), el('h3', null, x.title || ''));
+  if (x.kindLabel) h.append(el('span', 'chip', x.kindLabel));
+  c.append(h);
+  const refs = el('div', 'links small');
+  if (x.issue) refs.append(link(x.issueUrl, '#' + x.issue));
+  if (x.pr) refs.append(link(x.prUrl, 'PR #' + x.pr));
+  if (refs.childNodes.length) c.append(refs);
+  if (x.recommendation) { const r = el('div', 'rec'); r.append(el('div', 'small muted', 'AI の推奨'), el('p', null, x.recommendation)); c.append(r); }
+  if (x.adopted && x.adopted !== x.recommendation) c.append(el('p', 'small muted', '入れたもの: ' + x.adopted));
+  if ((x.alternatives || []).length) c.append(el('p', 'small muted', 'ほかの案: ' + x.alternatives.join(' / ')));
+  const a = ans.decisions[x.id] || {};
+  const pick = (v) => { ans.decisions[x.id] = Object.assign({}, ans.decisions[x.id], { choice: a.choice === v ? null : v }); scheduleSave(); render(); };
+  const seg = el('div', 'seg');
+  seg.append(segButton('👍 推奨でよい', 'pick', a.choice === 'recommended', () => pick('recommended')),
+    segButton('🔀 別の案', 'pick', a.choice === 'alternative', () => pick('alternative')),
+    segButton('💬 コメント', 'pick', a.choice === 'comment', () => pick('comment')));
+  c.append(seg);
+  if (a.choice === 'alternative') {
+    const setAlt = (v) => { ans.decisions[x.id] = Object.assign({}, ans.decisions[x.id], { alternative: v }); };
+    if ((x.alternatives || []).length) {
+      const s = el('select'); s.disabled = locked();
+      s.append(el('option', null, '（案を選ぶか、下に書く）'));
+      s.firstChild.value = '';
+      for (const alt of x.alternatives) { const o = el('option', null, alt); o.value = alt; if (a.alternative === alt) o.selected = true; s.append(o); }
+      s.onchange = () => { setAlt(s.value); scheduleSave(); }; c.append(s);
+    } else {
+      const i = el('input'); i.type = 'text'; i.value = a.alternative || ''; i.placeholder = 'どの案にするか'; i.disabled = locked();
+      i.oninput = () => { setAlt(i.value); scheduleSave(); }; c.append(i);
+    }
+  }
+  if (a.choice && a.choice !== 'recommended') {
+    c.append(noteBox(a.note, a.choice === 'comment' ? 'コメント（必須）' : 'メモ（なぜその案か）', (v) => { ans.decisions[x.id] = Object.assign({}, ans.decisions[x.id], { note: v }); }));
+  }
+  return c;
+}
+function render() {
+  const app = document.getElementById('app'); app.textContent = '';
+  const d = DATA;
+  if (!d) { app.append(el('p', 'muted', 'データがありません。')); return; }
+  document.title = 'リリース確認' + (d.epic ? ' #' + d.epic : '');
+  const head = el('header', 'section');
+  head.append(el('p', 'small muted', '🚀 リリース確認' + (d.round ? '（round ' + d.round + '）' : '') + (d.generatedAt ? '・' + when(d.generatedAt) + ' に作成' : '')));
+  head.append(el('h1', null, (d.epic ? '#' + d.epic + ' ' : '') + (d.title || '')));
+  const links = el('div', 'links');
+  if (d.previewUrl) links.append(link(d.previewUrl, '▶ プレビューを開く'));
+  if (d.prNumber || d.prUrl) links.append(link(d.prUrl, 'topic → develop の PR' + (d.prNumber ? ' #' + d.prNumber : '')));
+  if (d.trackerUrl) links.append(link(d.checkUrl || d.trackerUrl, 'トラッカー #' + d.epic));
+  head.append(links);
+  head.append(el('p', null, d.lead || 'プレビューを開いて、観点ごとに OK / NG を選び、決定待ちに答えてから「答えを送る」を押してください。送るまでは下書きです。'));
+  app.append(head);
+
+  const pts = el('section', 'section'); pts.append(el('h2', null, '確認の観点'));
+  if (!(d.points || []).length) pts.append(el('p', 'muted', '観点はありません。'));
+  for (const p of d.points || []) pts.append(renderPoint(p));
+  app.append(pts);
+
+  const dec = el('section', 'section'); dec.append(el('h2', null, '決定待ち'));
+  if (!(d.decisions || []).length) dec.append(el('p', 'muted', '決定待ちはありません。'));
+  for (const x of d.decisions || []) dec.append(renderDecision(x));
+  app.append(dec);
+
+  const all = el('section', 'section'); all.append(el('h2', null, '全体のコメント'));
+  all.append(noteBox(ans.comment, '観点に入らない気づき（直してほしいことは sub-issue になります）', (v) => { ans.comment = v; }));
+  app.append(all);
+
+  const send = el('section', 'send'); send.dataset.testid = 'release-page-send';
+  if (submitted) {
+    send.append(el('h2', null, '送りました'));
+    send.append(el('p', 'status done', when(submitted.submittedAt) + ' に送りました。送った答えは変えられません。'));
+    send.append(el('p', null, 'モニターの「あなた宛て」で、この EPIC の行の ⋯ から「確認ページの答えを AI に渡す」を押してください（トラッカーの 🙋 を外しても同じです）。AI が答えを読み、NG と直しが要るものごとに sub-issue を作ります。'));
+  } else {
+    send.append(el('h2', null, '答えを送る'));
+    send.append(el('p', 'small muted', '押すまでは下書きとしてこのページに保存します。送ったあとは変えられません。'));
+    const acts = el('div', 'acts');
+    if (confirming) {
+      const yes = el('button', 'go', '送る（あとで変えられません）'); yes.type = 'button'; yes.id = 'send'; yes.onclick = submit;
+      const no = el('button', 'plain', 'やめる'); no.type = 'button'; no.onclick = () => { confirming = false; render(); };
+      acts.append(yes, no);
+    } else {
+      const b = el('button', 'go', '答えを送る'); b.type = 'button'; b.id = 'send'; b.onclick = () => { confirming = true; render(); };
+      acts.append(b);
+    }
+    send.append(acts, el('p', 'small muted'), el('p'));
+    send.childNodes[send.childNodes.length - 2].id = 'why';
+    send.lastChild.id = 'status'; send.lastChild.className = 'status';
+  }
+  app.append(send);
+  app.append(el('footer', null, 'このページは autopilot が作りました。答えは autopilot が読み、トラッカーに Bot のコメントとして残します。'));
+  if (!submitted) {
+    updateSend();
+    if (dbState === 'loading') setStatus('保存先を読み込んでいます…', '');
+    else if (dbState === 'none') setStatus('このページでは答えを保存できません。モニターの「確認の結果を書く」で送ってください。', 'stop');
+    else if (dbState === 'slow') setStatus('保存先に届きません。少し待ってから開き直してください。', 'stop');
+  }
+}
+function applyDoc(v) {
+  if (!v || Number(v.round) !== (DATA && DATA.round)) return;
+  if (v.status === 'submitted') submitted = v;
+  // 下書きは、開いたときだけ読み込む（打っている最中の文字を上書きしない）
+  if (!dirty) {
+    ans.results = {}; for (const r of v.results || []) if (r && r.id) ans.results[r.id] = { verdict: r.verdict, note: r.note || '' };
+    ans.decisions = {}; for (const x of v.decisions || []) if (x && x.id) ans.decisions[x.id] = { choice: x.choice, alternative: x.alternative || '', note: x.note || '' };
+    ans.comment = typeof v.comment === 'string' ? v.comment : '';
+  }
+}
+render();
+(async () => {
+  if (!window.claude || typeof window.claude.use !== 'function' || !DATA || !DATA.answerDoc) { dbState = 'none'; render(); return; }
+  try { db = await window.claude.use('db'); } catch (e) { db = null; }
+  if (!db) { dbState = 'none'; render(); return; }
+  try { ref = db.doc(DATA.answerDoc); } catch (e) { db = null; dbState = 'none'; render(); return; }
+  let first = true;
+  const slow = setTimeout(() => { if (first) { dbState = 'slow'; render(); } }, 10000);
+  ref.onSnapshot((snap) => {
+    if (snap.metadata && snap.metadata.hasPendingWrites) return;
+    const wasFirst = first;
+    if (!snap.metadata || !snap.metadata.fromCache) { first = false; clearTimeout(slow); dbState = 'ready'; }
+    const before = Boolean(submitted);
+    if (snap.exists) applyDoc(snap.data());
+    if (wasFirst || submitted !== null && !before) render();
+  }, (e) => { clearTimeout(slow); first = false; dbState = 'none'; db = null; render(); });
+})();
+</script>
+</body>
+</html>

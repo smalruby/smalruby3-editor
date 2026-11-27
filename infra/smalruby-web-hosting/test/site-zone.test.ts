@@ -34,6 +34,7 @@ const EXPECTED = [
     'api.smalruby.app. NS 900 ns-1861.awsdns-40.co.uk.',
     'api.smalruby.app. NS 900 ns-457.awsdns-57.com.',
     'api.smalruby.app. NS 900 ns-703.awsdns-23.net.',
+    'n-bato.smalruby.app. A 300 18.178.121.155',
     'preview.smalruby.app. NS 900 ns-1447.awsdns-52.org.',
     'preview.smalruby.app. NS 900 ns-1984.awsdns-56.co.uk.',
     'preview.smalruby.app. NS 900 ns-233.awsdns-29.com.',

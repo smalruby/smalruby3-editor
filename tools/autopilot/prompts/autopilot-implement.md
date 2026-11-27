@@ -8,6 +8,45 @@
 
 ゴール: **Issue を TDD で実装し、Draft PR を作成する。** 実装が終わったら自己（敵対的）レビュー（`autopilot-review`）に渡す。
 
+
+## EPIC の流れ（`AUTOPILOT_EPIC_FLOW=1` のとき）
+
+PR の base が `topic/...`（Issue 本文の `autopilot-base:`）のとき、daemon は `AUTOPILOT_EPIC_FLOW=1` を渡す。
+この Issue は EPIC の sub-issue で、**人間は EPIC の設計を承認済み**。確認は EPIC ごとにまとめて行うので、
+途中で `🙋 HITL` を出してよいのは次の 3 つだけ（結果ファイルの `hitlKind` に書く）:
+
+| `hitlKind` | いつ |
+|---|---|
+| `diverge` | **3 案以上**に分かれる判断（実装が発散する）。その sub-issue だけ止まる |
+| `must-exhausted` | 直しを 3 回しても Must が残る（daemon が自分で判定する。worker は使わない） |
+| `environment` | エラーで続けられない（認証・使用量・壊れた環境） |
+
+それ以外の判断（仕様の小さな選択・命名・見送り）は **AI のおすすめで決めて進め**、結果ファイルの
+`decisions` に書く。daemon が EPIC の Issue の「決定待ち」まとめコメント
+（`<!-- autopilot-epic-decisions count=N -->`）に書き足す（**worker はそのコメントを書かない**）:
+
+```json
+"decisions":[{"kind":"ai-decision","ref":null,"title":"<何を決めたか>","recommendation":"<AI の案（採ったもの）>",
+  "alternatives":["<ほかの案>"],"adopted":"<入れたもの>"}]
+```
+
+`kind` は `question`（仕様の選択が要る）/ `not-adopted`（採用しなかった指摘）/ `ai-decision`（AI が決めた）/
+`two-way`（2 案。下記）/ `diverge`（3 案以上）。スキーマは `docs/autopilot/autonomous-contract.md` §2.6。
+
+このフェーズでは:
+
+- **2 案に分かれる重要な分岐**: おすすめの案をこの Issue のブランチ（`topic/autopilot-<N>`）で実装して
+  topic 宛ての PR にする。もう 1 案は `topic/<epic のブランチ>-alt-<N>`（`epic-flow.js` の `altBranchName`。
+  例 `topic/autopilot-redesign-2384-alt-2385`）に別に作り、**topic 宛ての draft PR** にする（本文に
+  `Closes` を書かない・`Refs #<N>` と「別案」と書く。daemon はこの PR をマージしない）。結果の `decisions` に
+  `{"kind":"two-way","title":...,"recommendation":"<おすすめ>","alternatives":["<別案>"],"adopted":"<おすすめ>",
+  "altPr":<別案の PR 番号>,"preview":"<おすすめのプレビュー URL>","altPreview":"<別案のプレビュー URL>"}` を書く
+  （プレビューが無いものは省く）。
+- **3 案以上**: 実装に踏み込まず、案を整理したコメントを Issue に書き、`signal:"hitl"` +
+  `"hitlKind":"diverge"` + `decisions:[{"kind":"diverge",...}]` で終える（その sub-issue と、それを
+  `autopilot-after` で待つものだけが止まる）。
+- 仕様が割れる小さな判断は 🙋 にせず、おすすめで決めて `decisions`（`ai-decision`）に書く。
+
 ## 手順
 
 ### 1. Issue を把握し、TDD で実装
@@ -16,8 +55,11 @@
 GH_TOKEN="$(bin/bot-token)" gh issue view "$AUTOPILOT_ISSUE" --repo "${AUTOPILOT_REPO:-smalruby/smalruby3-editor}" --json title,body,comments
 ```
 
+- 変える分野の「人間から学んだこと」（`docs/autopilot/learned/<area>.md`。`learnedRuleFilesFor`・
+  `tools/autopilot/src/learnings.js`。`general.md` はいつも）があれば先に読み、そこに書かれた意図に沿って決める。
 - プロジェクト規約（`CLAUDE.md` / `.claude/rules`）に従う。**[RED] テストを先に書き失敗を確認 → [GREEN] 実装 → [PASS]**。
-- ローカルで流すのは**関連する直接のテストファイルだけ** + lint。ディレクトリ全体や `npm test` は流さない（`CLAUDE.md` の「ローカルで流すテストの範囲」。全体実行は PR の CI で。どうしても全体の結果が要るときだけ例外で、理由を書く）。
+- ローカルで流すのは**関連する直接のテストファイルだけ** + lint（**`bin/lint-changed`** で変えたファイルだけ。ルートの `npm run lint` の全体は流さない・全体は CI）。ディレクトリ全体や `npm test` は流さない（`CLAUDE.md` の「ローカルで流すテストの範囲」。全体実行は PR の CI で。どうしても全体の結果が要るときだけ例外で、理由を書く）。
+- 重い処理は `.claude/rules/parallel-work.md` の「重い処理の一覧」を読んでから流す（jest は `npm exec jest -- --runInBand <file>` でファイルを指定、dev server を 2 つ立てない、終わったらブラウザ・webpack の残りを確かめる）。
 - **翻訳キーを足したら `en.js` / `ja.js` / `ja-Hira.js` の 3 ファイルすべてに入れる**
   （`packages/scratch-gui/src/locales/`。`en.js` も省略しない・`.claude/rules/scratch-gui/development.md`
   の i18n 節）。コミット前に `git diff -U0 -- packages/scratch-gui/src/locales/` で同じキーが
@@ -111,6 +153,8 @@ GH_TOKEN="$(bin/bot-token)" gh pr create --repo "$AUTOPILOT_REPO" --draft --base
 
 ### 4. 結果を返す（自己レビューへ）
 
+**先に「終わる前の後片付け」（下の節）を行う**（dev server・ブラウザを使ったとき。`tools/autopilot/bin/cleanup-leftovers`）。
+
 ```bash
 cat > "$AUTOPILOT_RESULT_FILE" <<EOF
 {"issue":$AUTOPILOT_ISSUE,"phase":"implement","signal":"done","summary":"実装+Draft PR 作成。",
@@ -128,6 +172,34 @@ cat > "$AUTOPILOT_RESULT_FILE" <<EOF
 EOF
 echo AUTOPILOT_ERROR
 ```
+
+## 終わる前の後片付け（dev server・ブラウザ・#2463）
+
+dev server やブラウザ（integration テストの chromedriver・chromium、pw-check の headless_shell）を使ったら、
+**結果ファイルを書く前**（`AUTOPILOT_DONE` / `AUTOPILOT_HITL` / `AUTOPILOT_ERROR`・checkpoint のどれで終わるときも）に、
+自分が起動したものを止める。残すと親を失って動き続け、コンテナのメモリと CPU を食う
+（webpack の dev server が 2.4 GB まで大きくなった・作業場が消えたあとも chromium が残った例がある）。
+
+1. dev server は `tools/autopilot/prompts/autopilot-verify.md` の「dev server の起動と停止」の形で起動・停止する
+   （起動前に 8601 の持ち主の cwd を確かめる・`setsid -f` で起動して PGID を `$WT/tmp/dev-server.pgid` に記録する・
+   `kill -- "-$PGID"` でプロセスグループごと止める）。`npx` / `npm` のラッパーだけを止めない。
+   webpack は自分のコマンド行を `webpack` に書き換えるので、`pgrep -f 'webpack serve'` では見つからない。
+2. 最後に **`tools/autopilot/bin/cleanup-leftovers`** を流す。`/proc/<pid>/cwd` が**自分の worktree** の
+   webpack・chromedriver・chromium・headless_shell だけを止め、止めたものを出す（`--dry-run` で一覧だけ）。
+   ほかの worker・人間のもの（cwd がほかの worktree や `/app`）は止めない。`pkill -f` のような広い一致を使わない。
+3. 手で確かめるときは `.claude/rules/parallel-work.md` の「後片付け」に従う。
+
+daemon も run の終了時にこの worktree に残ったものを止める（保険。頼らないこと）。
+
+## 人間に選んでほしいことがあるとき（モニターで答える質問）
+
+- `signal:"hitl"` で人間に選んでほしいことがあるときは、結果に **`questions`** を足す（選択肢と推奨を必ず書く）:
+  `"questions":[{"id":"q1","text":"<何を選んでほしいか>","options":[{"key":"a","label":"<案>","desc":"<一行の説明>"},{"key":"b","label":"<案>"}],"recommended":"a"}]`。
+  `id` / `key` は英数字・`_`・`-` だけ。daemon が質問を Issue にマーカー付きで書き、モニターに出す（質問のコメントを自分で書かなくてよい）。
+  形は `docs/autopilot/autonomous-contract.md` §2.3。新しい signal は作らない。
+- 起動の指示に「人間がモニターで質問に答えています。先に … を Read し」とあれば、そのファイル（`AUTOPILOT_ANSWERS_FILE`）を
+  最初に読み、答え（質問 ID・選んだ選択肢・メモ）に従って続ける。同じことをもう一度質問しない。Issue の
+  `<!-- autopilot-monitor-answer ... -->` のコメントも同じ答え。
 
 ## 注意
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SPDX-License-Identifier: MIT (see tools/autopilot/LICENSE)
 /* eslint-disable */
 /**
  * bot-token — Mint (and cache) a GitHub App installation access token, and

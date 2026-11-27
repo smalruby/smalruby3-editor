@@ -1,6 +1,8 @@
 import * as ScratchBlocks from 'scratch-blocks';
 import {defaultColors} from './settings/color-mode';
+// === Smalruby: Start of only_blocks filtering ===
 import {parseHexFormatToSelectedBlocks} from './block-utils';
+// === Smalruby: End of only_blocks filtering ===
 // === Smalruby: Start of lesson dynamic category filtering ===
 import {isDynamicCategoryAllowed} from './lesson-dynamic-categories';
 // === Smalruby: End of lesson dynamic category filtering ===
@@ -16,6 +18,9 @@ const motion = function (isInitialSetup, isStage, targetId, colors) {
         'Stage selected: no motion blocks'
     );
     // Note: the category's secondaryColour matches up with the blocks' tertiary color, both used for border color.
+    // === Smalruby: Start of category name message reference ===
+    // The <category name> below is %{BKY_CATEGORY_MOTION}. Upstream uses ScratchMsgs.translate('CATEGORY_MOTION', ...).
+    // === Smalruby: End of category name message reference ===
     return `
     <category name="%{BKY_CATEGORY_MOTION}" toolboxitemid="motion" colour="${colors.colourPrimary}" secondaryColour="${colors.colourTertiary}">
         ${isStage ? `
@@ -161,6 +166,9 @@ const looks = function (isInitialSetup, isStage, targetId, costumeName, backdrop
     const hello = ScratchBlocks.ScratchMsgs.translate('LOOKS_HELLO', 'Hello!');
     const hmm = ScratchBlocks.ScratchMsgs.translate('LOOKS_HMM', 'Hmm...');
     // Note: the category's secondaryColour matches up with the blocks' tertiary color, both used for border color.
+    // === Smalruby: Start of category name message reference ===
+    // The <category name> below is %{BKY_CATEGORY_LOOKS}. Upstream uses ScratchMsgs.translate('CATEGORY_LOOKS', ...).
+    // === Smalruby: End of category name message reference ===
     return `
     <category name="%{BKY_CATEGORY_LOOKS}" toolboxitemid="looks" colour="${colors.colourPrimary}" secondaryColour="${colors.colourTertiary}">
         ${isStage ? '' : `
@@ -297,6 +305,9 @@ const looks = function (isInitialSetup, isStage, targetId, costumeName, backdrop
 
 const sound = function (isInitialSetup, isStage, targetId, soundName, colors) {
     // Note: the category's secondaryColour matches up with the blocks' tertiary color, both used for border color.
+    // === Smalruby: Start of category name message reference ===
+    // The <category name> below is %{BKY_CATEGORY_SOUND}. Upstream uses ScratchMsgs.translate('CATEGORY_SOUND', ...).
+    // === Smalruby: End of category name message reference ===
     return `
     <category name="%{BKY_CATEGORY_SOUND}" toolboxitemid="sound" colour="${colors.colourPrimary}" secondaryColour="${colors.colourTertiary}">
         <block id="${targetId}_sound_playuntildone" type="sound_playuntildone">
@@ -353,6 +364,9 @@ const sound = function (isInitialSetup, isStage, targetId, soundName, colors) {
 
 const events = function (isInitialSetup, isStage, targetId, colors) {
     // Note: the category's secondaryColour matches up with the blocks' tertiary color, both used for border color.
+    // === Smalruby: Start of category name message reference ===
+    // The <category name> below is %{BKY_CATEGORY_EVENTS}. Upstream uses ScratchMsgs.translate('CATEGORY_EVENTS', ...).
+    // === Smalruby: End of category name message reference ===
     return `
     <category name="%{BKY_CATEGORY_EVENTS}" toolboxitemid="events" colour="${colors.colourPrimary}" secondaryColour="${colors.colourTertiary}">
         <block type="event_whenflagclicked"/>
@@ -393,6 +407,9 @@ const events = function (isInitialSetup, isStage, targetId, colors) {
 
 const control = function (isInitialSetup, isStage, targetId, colors) {
     // Note: the category's secondaryColour matches up with the blocks' tertiary color, both used for border color.
+    // === Smalruby: Start of category name message reference ===
+    // The <category name> below is %{BKY_CATEGORY_CONTROL}. Upstream uses ScratchMsgs.translate('CATEGORY_CONTROL', ...).
+    // === Smalruby: End of category name message reference ===
     return `
     <category
         name="%{BKY_CATEGORY_CONTROL}" toolboxitemid="control"
@@ -445,6 +462,9 @@ const control = function (isInitialSetup, isStage, targetId, colors) {
 const sensing = function (isInitialSetup, isStage, targetId, colors) {
     const name = ScratchBlocks.ScratchMsgs.translate('SENSING_ASK_TEXT', 'What\'s your name?');
     // Note: the category's secondaryColour matches up with the blocks' tertiary color, both used for border color.
+    // === Smalruby: Start of category name message reference ===
+    // The <category name> below is %{BKY_CATEGORY_SENSING}. Upstream uses ScratchMsgs.translate('CATEGORY_SENSING', ...).
+    // === Smalruby: End of category name message reference ===
     return `
     <category
         name="%{BKY_CATEGORY_SENSING}" toolboxitemid="sensing"
@@ -527,6 +547,9 @@ const operators = function (isInitialSetup, isStage, targetId, colors) {
     const banana = ScratchBlocks.ScratchMsgs.translate('OPERATORS_JOIN_BANANA', 'banana');
     const letter = ScratchBlocks.ScratchMsgs.translate('OPERATORS_LETTEROF_APPLE', 'a');
     // Note: the category's secondaryColour matches up with the blocks' tertiary color, both used for border color.
+    // === Smalruby: Start of category name message reference ===
+    // The <category name> below is %{BKY_CATEGORY_OPERATORS}. Upstream uses ScratchMsgs.translate('CATEGORY_OPERATORS', ...).
+    // === Smalruby: End of category name message reference ===
     return `
     <category
         name="%{BKY_CATEGORY_OPERATORS}" toolboxitemid="operators"
@@ -715,6 +738,9 @@ const operators = function (isInitialSetup, isStage, targetId, colors) {
 
 const variables = function (isInitialSetup, isStage, targetId, colors) {
     // Note: the category's secondaryColour matches up with the blocks' tertiary color, both used for border color.
+    // === Smalruby: Start of category name message reference ===
+    // The <category name> below is %{BKY_CATEGORY_VARIABLES}. Upstream uses ScratchMsgs.translate('CATEGORY_VARIABLES', ...).
+    // === Smalruby: End of category name message reference ===
     return `
     <category
         name="%{BKY_CATEGORY_VARIABLES}" toolboxitemid="variables"
@@ -727,6 +753,9 @@ const variables = function (isInitialSetup, isStage, targetId, colors) {
 
 const myBlocks = function (isInitialSetup, isStage, targetId, colors) {
     // Note: the category's secondaryColour matches up with the blocks' tertiary color, both used for border color.
+    // === Smalruby: Start of category name message reference ===
+    // The <category name> below is %{BKY_CATEGORY_MYBLOCKS}. Upstream uses ScratchMsgs.translate('CATEGORY_MYBLOCKS', ...).
+    // === Smalruby: End of category name message reference ===
     return `
     <category
         name="%{BKY_CATEGORY_MYBLOCKS}" toolboxitemid="myBlocks"
@@ -741,6 +770,7 @@ const myBlocks = function (isInitialSetup, isStage, targetId, colors) {
 const xmlOpen = '<xml style="display: none">';
 const xmlClose = '</xml>';
 
+// === Smalruby: Start of only_blocks filtering ===
 /**
  * Parses the only_blocks parameter and returns allowed block patterns
  * @param {?string} onlyBlocks - The only_blocks URL parameter value
@@ -873,6 +903,7 @@ const filterBlocks = function (categoryXML, allowedPatterns) {
 
     return `${categoryHeader}\n        ${blockContent}${categorySeparatorLine}\n    ${categoryFooter}`;
 };
+// === Smalruby: End of only_blocks filtering ===
 
 /**
  * @param {!boolean} isInitialSetup - Whether the toolbox is for initial setup. If the mode is "initial setup",
@@ -898,7 +929,9 @@ const filterBlocks = function (categoryXML, allowedPatterns) {
 const makeToolboxXML = function (
     isInitialSetup, isStage = true, targetId, categoriesXML = [],
     costumeName = '', backdropName = '', soundName = '', colors = defaultColors,
+    // === Smalruby: Start of only_blocks filtering ===
     onlyBlocks = null, isOnlyBlocksSpecified = false,
+    // === Smalruby: End of only_blocks filtering ===
     dnclMode = false, // === Smalruby: hide extensions in DNCL mode ===
     dynamicCategoryIds = null // === Smalruby: lesson dynamic category filtering ===
 ) {
@@ -909,8 +942,10 @@ const makeToolboxXML = function (
     backdropName = xmlEscape(backdropName);
     soundName = xmlEscape(soundName);
 
+    // === Smalruby: Start of only_blocks filtering ===
     // Parse only_blocks parameter
     const allowedPatterns = parseOnlyBlocks(onlyBlocks);
+    // === Smalruby: End of only_blocks filtering ===
 
     categoriesXML = categoriesXML.slice();
     const moveCategory = categoryId => {
@@ -923,6 +958,8 @@ const makeToolboxXML = function (
         // return `undefined`
     };
 
+    // === Smalruby: Start of only_blocks filtering ===
+    // Upstream declares these with const and builds `everything` from all of them directly.
     // Generate categories and apply filtering (except for variables, myBlocks, and extensions)
     let motionXML = moveCategory('motion') || motion(isInitialSetup, isStage, targetId, colors.motion);
     let looksXML = moveCategory('looks') ||
@@ -936,6 +973,7 @@ const makeToolboxXML = function (
     // Variables and myBlocks are always included (exception categories)
     let variablesXML = moveCategory('data') || variables(isInitialSetup, isStage, targetId, colors.data);
     let myBlocksXML = moveCategory('procedures') || myBlocks(isInitialSetup, isStage, targetId, colors.more);
+    // === Smalruby: End of only_blocks filtering ===
 
     // === Smalruby: Start of lesson dynamic category filtering ===
     // Lessons / tutorials hide the Variables and My Blocks categories unless allowedBlocks has one of their
@@ -944,6 +982,7 @@ const makeToolboxXML = function (
     if (!isDynamicCategoryAllowed('myBlocks', dynamicCategoryIds)) myBlocksXML = '';
     // === Smalruby: End of lesson dynamic category filtering ===
 
+    // === Smalruby: Start of only_blocks filtering ===
     // Apply filtering to core categories if only_blocks parameter is provided
     if (isOnlyBlocksSpecified) {
         // Special case: when allowedPatterns is empty, hide all blocks
@@ -990,6 +1029,8 @@ const makeToolboxXML = function (
     addCategoryIfNotEmpty(myBlocksXML);
 
     // Extension categories: included unless in DNCL mode
+    // Upstream pushes every extension category with a gap before it here.
+    // === Smalruby: End of only_blocks filtering ===
     // === Smalruby: Start of DNCL hide extensions ===
     // The Japanese mode keeps only the console (表示する / 入力する, docs/dncl/design.md, chapter 5).
     for (const extensionCategory of categoriesXML) {
@@ -999,14 +1040,18 @@ const makeToolboxXML = function (
     }
     // === Smalruby: End of DNCL hide extensions ===
 
+    // === Smalruby: Start of only_blocks filtering ===
     // Remove the last gap if it exists
     if (everything.length > 1 && everything[everything.length - 1] === gap[0]) {
         everything.pop();
     }
+    // === Smalruby: End of only_blocks filtering ===
 
     everything.push(xmlClose);
     return everything.join('\n');
 };
 
 export default makeToolboxXML;
+// === Smalruby: Start of only_blocks filtering ===
 export {filterBlocks};
+// === Smalruby: End of only_blocks filtering ===

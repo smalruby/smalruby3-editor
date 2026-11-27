@@ -260,7 +260,27 @@ const DEFAULT_RUBRIC_AXES = [
     { name: '工夫', description: '課題の要件を超えた自分なりの工夫・追加がある' },
 ];
 
+/** Few AI calls left today (#2448): the count gets the warning color (not red, R4). */
+const AI_QUOTA_LOW = 20;
+
+/**
+ * Today's AI calls of the teacher as shown on the grading screen (#2448).
+ * Anything that is not a {used, limit} of numbers (an older API, a failed read)
+ * gives null, and the screen shows nothing.
+ * @param {?object} quota - `quota` of `GET /teacher/evaluation-quota` or of an evaluate answer
+ * @returns {?{left: number, limit: number, low: boolean, empty: boolean}} what to show, or null
+ */
+const aiQuotaView = (quota) => {
+    if (!quota || typeof quota !== 'object') return null;
+    const { used, limit } = quota;
+    if (!Number.isFinite(used) || !Number.isFinite(limit) || limit <= 0) return null;
+    const left = Math.max(0, Math.min(limit, limit - used));
+    return { left, limit, low: left <= AI_QUOTA_LOW, empty: left === 0 };
+};
+
 export {
+    AI_QUOTA_LOW,
+    aiQuotaView,
     GRADE_ORDER,
     combineOverall,
     buildEvaluationCsv,

@@ -125,6 +125,75 @@ describe('RubyToBlocksConverter/My Blocks', () => {
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
 
+    // An argument passed on to another My Block keeps its type: it became a boolean argument even when
+    // the other My Block takes a number or a string, so a call with a number was an error (issue #2126).
+    describe('argument passed on to another My Block', () => {
+        const proccodes = (blocks) =>
+            Object.values(blocks)
+                .filter((b) => b.opcode === 'procedures_prototype')
+                .map((b) => b.mutation.proccode);
+
+        test('to a method that returns a value, as a value', async () => {
+            const code = `
+                def foo(n)
+                  return n * 2
+                end
+
+                def bar(n)
+                  say(foo(n))
+                end
+
+                bar(3)
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toEqual([]);
+            expect(res).toBeTruthy();
+            expect(proccodes(converter.blocks)).toEqual(['foo %s', 'bar %s']);
+        });
+
+        test('to a method, as a statement', async () => {
+            const code = `
+                def foo(n)
+                  say(n)
+                end
+
+                def bar(n)
+                  foo(n)
+                end
+
+                bar(3)
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toEqual([]);
+            expect(res).toBeTruthy();
+            expect(proccodes(converter.blocks)).toEqual(['foo %s', 'bar %s']);
+            const argumentOpcodes = Object.values(converter.blocks)
+                .filter((b) => /^argument_reporter_/.test(b.opcode))
+                .map((b) => b.opcode);
+            expect(argumentOpcodes).not.toContain('argument_reporter_boolean');
+        });
+
+        test('to a boolean argument, it becomes a boolean argument', async () => {
+            const code = `
+                def foo(b)
+                  if b
+                    say(1)
+                  end
+                end
+
+                def bar(n)
+                  foo(n)
+                end
+
+                bar(true)
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toEqual([]);
+            expect(res).toBeTruthy();
+            expect(proccodes(converter.blocks)).toEqual(['foo %b', 'bar %b']);
+        });
+    });
+
     describe('error if argument type miss match', () => {
         test('defined string_number, call boolean', async () => {
             const code = `

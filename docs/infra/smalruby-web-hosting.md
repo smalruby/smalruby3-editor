@@ -117,8 +117,10 @@ ACM の DNS 検証は、公開 DNS から検証レコード（CNAME）が引け�
   `Last-Modified` から勝手に鮮度を見積もって古い `index.html` を使い続けることがある。
   `no-cache` だけを付けるとエッジにも残らない（MinTTL が 0 のため）。
 - ファイル名にハッシュが付いたもの（`*.<hash>.js`、`static/assets/*.<hash>.*`。
-  `/\.[0-9a-f]{8,}\./`）は
-  `Cache-Control: public, max-age=31536000, immutable` を付ける。
+  `/\.[0-9a-f]{8,}\./`）と、パスに版や `assetId`（md5）があるもの（`static/monaco/<版>/**`、
+  `static/smalruby-assets/<md5>.*`）は `Cache-Control: public, max-age=31536000, immutable` を付ける。
+  ブロックのアイコン（`static/blocks-media/**`）は `public, max-age=86400, stale-while-revalidate=604800`。
+  判定は `scripts/cache-policy.mjs` の 1 か所（表と理由は `docs/hosting/README.md` の「キャッシュ」）。
 - 置き直したら `/<slug>/*` を invalidation する（すぐに反映させたいとき）。
 - gui の JS（プレビューは `gui.js`、本番は `gui.<hash>.js`）は、事前に圧縮した `.br`（brotli q11）と
   `.gz`（gzip -9）も隣に置く。CloudFront は 10,000,000 バイトを超えるファイルを圧縮しないため。
@@ -241,12 +243,13 @@ aws s3 rm "s3://$BUCKET/index.html"
   warning を出して飛ばす（GitHub Pages への配置は続ける）。
 - ジョブに `id-token: write` を足すため、ジョブの `permissions` で workflow の権限（`contents` / `issues` /
   `pull-requests` の write）も書き直している（ジョブに書くと workflow の分は引き継がれない）。
-- 置き方はプレビューと同じ「CI がアップロードするときの約束」: ハッシュ付きのファイルは
-  `public, max-age=31536000, immutable`、それ以外は `max-age=0, s-maxage=60`。`.wasm` / `.mjs` / `.hex` は
+- 置き方はプレビューと同じ「CI がアップロードするときの約束」（`scripts/cache-policy.mjs`）: ハッシュ・版・md5 が
+  パスにあるものは `public, max-age=31536000, immutable`、ブロックのアイコンは 1 日、それ以外は `max-age=0, s-maxage=60`。`.wasm` / `.mjs` / `.hex` は
   `Content-Type` を明示する。gui の JS の `.br` / `.gz` も置く（上の約束の最後の項目）。最後に
-  `--delete --size-only` で古いファイルを消す。
+  新しいビルドに無いものを片付ける（ハッシュ付きと版付きの Monaco は最後に置いてから 14 日残す。
+  `scripts/prune-old-assets.mjs`・`docs/hosting/README.md` の「前のビルドのファイルを残す」）。
 - 本体（`packages/scratch-gui/dist`）はバケットの直下、管理 SPA（`packages/admin/build`）は `admin/` に置く。
-  本体の `--delete` は `admin/*` を除き、管理 SPA の `--delete` は `admin/` の中だけに効く。
+  本体の片付けは `admin/` を除き、管理 SPA の片付けは `admin/` の中だけに効く。
   `.well-known/` などドットで始まるものも置く。GitHub Pages 用の `.nojekyll` と `CNAME` は置かない。
 - 置いたあとに `/*` を invalidation する。
 
@@ -340,7 +343,7 @@ aws route53 list-hosted-zones-by-name --dns-name smalruby.app \
 5. GitHub OIDC で `PreviewDeployRoleArn` を AssumeRole し、`s3://<bucket>/<slug>/` に置く。上の
    「CI がアップロードするときの約束」どおり、ハッシュ付きのファイルとそれ以外で `Cache-Control` を
    分けて 2 回 sync し（その間に `gui.js.br` / `gui.js.gz` を `aws s3 cp` で置く）、最後に
-   `--delete --size-only` で新しいビルドに無いものを消す。その前に `postbuild.mjs` のあとで
+   本番と同じ決まり（`scripts/prune-old-assets.mjs`）で新しいビルドに無いものを片付ける。その前に `postbuild.mjs` のあとで
    `scripts/precompress-assets.mjs packages/scratch-gui/build` が `.br` / `.gz` を作る。
 6. **develop のときだけ**、バケットのルートに `auth-redirect.html` / `auth-redirect.js` を置く
    （全プレビューが共有するので、ブランチからは上書きしない）。

@@ -1,0 +1,33 @@
+#!/usr/bin/env node
+// SPDX-License-Identifier: MIT (see tools/autopilot/LICENSE)
+'use strict';
+/**
+ * autopilot-learn — 学びを 1 件ためる（daemon が動いていなくても使える）。
+ *
+ *   tools/autopilot/bin/autopilot-learn --kind intent --areas autopilot,scratch-gui \
+ *     --text "<次から守る決まり>" --reason "<人間の理由>" \
+ *     [--epic 2384] [--question "<問い>"] [--recommendation "<AI のおすすめ>"] [--answer "<人間の答え>"] \
+ *     [--root <repo>]
+ *
+ * 置き場は `<repo>/tmp/autopilot-learnings/`（gitignore 済み）。daemon と同じ checkout（既定 /app）を指す。
+ */
+const path = require('path');
+const { addLearning } = require('../src/learn-tasks');
+
+const argv = process.argv.slice(2);
+const o = { source: {} };
+for (let i = 0; i < argv.length; i++) {
+    const k = argv[i].replace(/^--/, '');
+    const v = argv[++i];
+    if (['epic', 'issue'].includes(k)) o.source[k] = Number(v);
+    else if (['question', 'recommendation', 'answer'].includes(k)) o.source[k] = v;
+    else o[k] = v;
+}
+if (!o.text) {
+    process.stderr.write('usage: autopilot-learn --kind intent|review --areas <a,b> --text <rule> [--reason ...]\n');
+    process.exit(2);
+}
+const root = o.root ? path.resolve(o.root) : path.resolve(__dirname, '..', '..', '..');
+const r = addLearning(root, { kind: o.kind, areas: o.areas, text: o.text, reason: o.reason, source: o.source }, Date.now());
+if (!r.ok) { process.stderr.write(`autopilot-learn: ${r.errors.join('; ')}\n`); process.exit(1); }
+process.stdout.write(`${path.join(root, 'tmp', 'autopilot-learnings', `${r.entry.id}.json`)}\n`);

@@ -12,12 +12,54 @@
 
 | `AUTOPILOT_STATUS` | モード | 対応する範囲 |
 |---|---|---|
-| `Review` / `DoD`（`In Progress` など中断からの再開も） | **Request changes 対応** | **まだ対応していない Request changes のレビューで指定されたことだけ**（手順 2） |
+| `Review` / `DoD`（`In Progress` など中断からの再開も） | **Request changes 対応** | **まだ対応していない Request changes のレビューと、まだ対応していないモニターの指示コメントで指定されたことだけ**（手順 2） |
 | `Blocked` | **再開** | Blocked の理由と PR のスレッドを読み、止まった作業を続ける（手順 2B） |
 
 Request changes 対応モードでは、人間のコメント・approve・Comment だけのレビュー・bot の
 指摘のうち言及の無いものには**対応しない**（人間が気軽にコメントできるように、対応してほしいことは
-Request changes にまとめてもらう運用）。
+Request changes か、モニターの「AI に直してもらう」に書いてもらう運用）。
+
+**モニターの指示コメント**: モニターの「AI に直してもらう」で人間が書いた指示は、daemon が Bot で PR に
+目印付きのコメントとして残す（先頭が `<!-- autopilot-monitor-instruction -->`・本文に「モニターから <login> の指示」）。
+Bot は自分の PR に Request changes を出せないので、レビューではなくコメントになっている。これは
+**人間の Request changes と同じ「指示」**として扱う。目印の無いふつうのコメントは、これまでどおり指示ではない。
+
+
+## EPIC の流れ（`AUTOPILOT_EPIC_FLOW=1` のとき）
+
+PR の base が `topic/...`（Issue 本文の `autopilot-base:`）のとき、daemon は `AUTOPILOT_EPIC_FLOW=1` を渡す。
+この Issue は EPIC の sub-issue で、**人間は EPIC の設計を承認済み**。確認は EPIC ごとにまとめて行うので、
+途中で `🙋 HITL` を出してよいのは次の 3 つだけ（結果ファイルの `hitlKind` に書く）:
+
+| `hitlKind` | いつ |
+|---|---|
+| `diverge` | **3 案以上**に分かれる判断（実装が発散する）。その sub-issue だけ止まる |
+| `must-exhausted` | 直しを 3 回しても Must が残る（daemon が自分で判定する。worker は使わない） |
+| `environment` | エラーで続けられない（認証・使用量・壊れた環境） |
+
+それ以外の判断（仕様の小さな選択・命名・見送り）は **AI のおすすめで決めて進め**、結果ファイルの
+`decisions` に書く。daemon が EPIC の Issue の「決定待ち」まとめコメント
+（`<!-- autopilot-epic-decisions count=N -->`）に書き足す（**worker はそのコメントを書かない**）:
+
+```json
+"decisions":[{"kind":"ai-decision","ref":null,"title":"<何を決めたか>","recommendation":"<AI の案（採ったもの）>",
+  "alternatives":["<ほかの案>"],"adopted":"<入れたもの>"}]
+```
+
+`kind` は `question`（仕様の選択が要る）/ `not-adopted`（採用しなかった指摘）/ `ai-decision`（AI が決めた）/
+`two-way`（2 案。下記）/ `diverge`（3 案以上）。スキーマは `docs/autopilot/autonomous-contract.md` §2.6。
+
+このフェーズでは、`AUTOPILOT_STATUS=In Progress` かつ `AUTOPILOT_AI_STATUS=Addressing Comments` なら
+**Must の自動の直し**（review が Must を残した・CI が落ちた・まだ対応していない Request changes がある）:
+
+1. 最新の review のまとめコメントで、`handling` が `修正済み` でない Must をすべて直す。
+   CI が落ちていればその原因も直す（ログが取れないときは `.claude/rules/ci-failure-logs.md`。直せなければ
+   `signal:"hitl"` + `"hitlKind":"environment"`）。まだ対応していない Request changes があれば手順 2 と同じく対応する。
+2. まとめコメントを 1 件残す（手順 3 と同じ形）。
+3. `{"signal":"done","nextStatus":"In Progress","nextAiStatus":"Self-Reviewing","hitl":false}` で返す
+   （daemon がもう一度 review を起動する。直した回数は review の round で数える）。
+
+人間ゲート（Review / DoD / Blocked）から来たときは従来どおり。どちらでも、見送ったものは 🙋 にせず `decisions` に書く。
 
 ## 前提: 既存 PR ブランチで作業する
 
@@ -58,11 +100,17 @@ console.log(touchedRuleAreas(files).join("\n"));
 done
 ```
 
-### 2. 対応する Request changes を決める（`AUTOPILOT_STATUS` が Blocked 以外）
+### 2. 対応する指示を決める（`AUTOPILOT_STATUS` が Blocked 以外）
 
-まだ対応していない Request changes のレビューを `selectRequestedReviews`（純粋関数・テスト済み）で選ぶ。
+指示は 2 つの入口から来る。どちらも**まだ対応していないものだけ**を選ぶ:
+
+- まだ対応していない Request changes のレビュー: `selectRequestedReviews`（純粋関数・テスト済み）
+- まだ対応していないモニターの指示コメント: `selectMonitorInstructions`（純粋関数・テスト済み）。
+  指示の文は `monitorInstructionText(body)` で取り出す。
+
 対応済みかどうかは、以前の address-review がまとめコメントの先頭に残したマーカー
-`<!-- autopilot-address-review handled-reviews=<id,id> -->` で判定する（`addressReviewMarker`）:
+`<!-- autopilot-address-review handled-reviews=<id,id> handled-instructions=<id,id> -->` で判定する
+（`addressReviewMarker(reviewIds, instructionIds)`。時刻や daemon の状態では判定しない）:
 
 ```bash
 GH_TOKEN="$(bin/bot-token)" gh api "repos/$AUTOPILOT_REPO/pulls/$PR/reviews" --paginate \
@@ -71,21 +119,25 @@ GH_TOKEN="$(bin/bot-token)" gh api "repos/$AUTOPILOT_REPO/issues/$PR/comments" -
   | jq -s 'add' > tmp/pr-comments-$AUTOPILOT_ISSUE.json
 node -e '
 const fs = require("fs");
-const { selectRequestedReviews } = require("./tools/autopilot/src/phases.js");
+const { selectRequestedReviews, selectMonitorInstructions, monitorInstructionText } = require("./tools/autopilot/src/phases.js");
 const reviews = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
 const comments = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
-console.log(JSON.stringify(selectRequestedReviews(reviews, comments).map((r) => ({ id: r.id, body: r.body })), null, 2));
+console.log(JSON.stringify({
+  reviews: selectRequestedReviews(reviews, comments).map((r) => ({ id: r.id, body: r.body })),
+  instructions: selectMonitorInstructions(comments).map((c) => ({ id: c.id, text: monitorInstructionText(c.body) })),
+}, null, 2));
 ' tmp/pr-reviews-$AUTOPILOT_ISSUE.json tmp/pr-comments-$AUTOPILOT_ISSUE.json
 ```
 
-**1 件も無ければ何もしない**: 「🙋 が外れましたが、まだ対応していない Request changes が無いので何もしていません。
-直してほしいことは Request changes で指定してから 🙋 を外してください」と PR に 1 行コメントして、
-出口 (b) で終える（マーカーは付けない・コードに触らない）。
+**どちらも 1 件も無ければ何もしない**: 「🙋 が外れましたが、まだ対応していない Request changes もモニターの指示も
+無いので何もしていません。直してほしいことはモニターの「AI に直してもらう」に書くか、Request changes で指定してから
+🙋 を外してください」と PR に 1 行コメントして、出口 (b) で終える（マーカーは付けない・コードに触らない）。
 
-選んだレビューごとに、**指示**と**指示の対象**を集める:
+選んだレビューと指示コメントごとに、**指示**と**指示の対象**を集める:
 
 - **指示** = レビュー本文 + そのレビューの行コメント
   （`gh api repos/$AUTOPILOT_REPO/pulls/$PR/reviews/<id>/comments`）。
+  モニターの指示コメントは `monitorInstructionText` で取り出した文（行コメントは無い）。
 - **指示の対象** = 指示の中に貼られたコメント URL。`extractCommentRefs` で拾い、それぞれ取得する:
   `issue-comment` → `repos/$AUTOPILOT_REPO/issues/comments/<id>`、
   `review-comment` → `repos/$AUTOPILOT_REPO/pulls/comments/<id>`、
@@ -139,12 +191,14 @@ ID の表記ゆれ（`Q1` / `q1` / `Question1`、`M1` / `Must1`、`FYI1` / `F1`�
 ### 2B. 止まった作業を再開する（`AUTOPILOT_STATUS` が Blocked）
 
 Issue と PR の Blocked コメント（理由）と、その後の人間のコメントを読み、原因が取り除かれていれば
-止まった作業を続ける。Request changes が出ていればそれも手順 2 と同じ方法で対応する。原因が残っていれば
+止まった作業を続ける。まだ対応していない Request changes やモニターの指示コメントがあれば、それも手順 2 と同じ方法で
+選んで対応し、まとめコメントのマーカーにその ID を残す（Blocked の行でもモニターの「AI に直してもらう」から
+指示が来るため）。原因が残っていれば
 何が要るかをコメントして出口 (c) で人間に返す。
 
 ### 3. 対応する
 
-- **Must / 改善依頼 / `action:"fix"`**: worktree 内で修正 → 関連テスト（直接関係するテストファイルだけ（`CLAUDE.md` の「ローカルで流すテストの範囲」。全体実行は PR の CI で。どうしても全体の結果が要るときだけ例外で、理由を書く））/lint → `bin/bot-git` でコミット・push。
+- **Must / 改善依頼 / `action:"fix"`**: worktree 内で修正 → 関連テスト（直接関係するテストファイルだけ（`CLAUDE.md` の「ローカルで流すテストの範囲」。全体実行は PR の CI で。どうしても全体の結果が要るときだけ例外で、理由を書く））/lint は **`bin/lint-changed`**（変えたファイルだけ。ルートの `npm run lint` の全体は流さない・全体は CI） → `bin/bot-git` でコミット・push。重い処理は `.claude/rules/parallel-work.md` の「重い処理の一覧」を読んでから流す（jest は `npm exec jest -- --runInBand <file>` でファイルを指定、dev server を 2 つ立てない、終わったらブラウザ・webpack の残りを確かめる）。
 - **質問 / `action:"reply"`**: PR に bot で返信。コード変更を伴うならあわせて push。
 - **`action:"no-change"`**: 何もしない（既存のコメントを消さない）。
 - **人間が「直して」と言った指摘を、よほど大変・効果が小さいなどの理由でこの PR では直せないとき**は、
@@ -152,9 +206,9 @@ Issue と PR の Blocked コメント（理由）と、その後の人間のコ�
   「follow-up の sub-issue の作り方」）で follow-up の sub-issue を作り、まとめコメントにその番号を書く。
   人間の指示に反するので、出口は (c)（人間に確認）にする。
 - 対応の有無が辿れるよう、**まとめコメントを 1 件**残す（「指摘 N 件: 対応 a 件 / 返信 b 件 / 対応不要 c 件」）。
-  **先頭に、手順 2 で選んだレビューの ID を `addressReviewMarker` で埋める**
-  （例 `<!-- autopilot-address-review handled-reviews=3409123456 -->`）。次に 🙋 が外れたとき、
-  このレビューには二重に対応しない。出口 (a)(c) のどちらでも付ける（checkpoint で中断したときは付けない —
+  **先頭に、手順 2 で選んだレビューの ID と指示コメントの ID を `addressReviewMarker(reviewIds, instructionIds)` で埋める**
+  （例 `<!-- autopilot-address-review handled-reviews=3409123456 handled-instructions=3612345678 -->`）。
+  次に 🙋 が外れたとき、このレビューと指示には二重に対応しない。出口 (a)(c) のどちらでも付ける（checkpoint で中断したときは付けない —
   再開時にもう一度同じレビューを選ぶため）。ID 付き指摘は **ID で 1 行ずつ**書く
   （例: `Q1: 変更なし（人間 OK） / FYI1: 修正済み（<sha>） / M2: 修正済み（<sha>）`）。
 - 指定がすべて「そのままで」など、コードに触る必要が無ければコミットしない（冪等・無駄 push をしない）。
@@ -179,6 +233,8 @@ Issue と PR の Blocked コメント（理由）と、その後の人間のコ�
 
 ### 4. 終了する（3 つの出口）
 
+**先に「終わる前の後片付け」（下の節）を行う**（dev server・ブラウザを使ったとき。`tools/autopilot/bin/cleanup-leftovers`）。
+
 **(a) 質問・改善依頼に対応した → 再び人間レビューへ**（再レビュー/マージ判断を仰ぐ）:
 
 ```bash
@@ -189,7 +245,7 @@ EOF
 echo AUTOPILOT_DONE
 ```
 
-**(b) 対応することが無い → 人間のマージ待ち**（未対応の Request changes が無い・指定がすべて「そのままで」など。
+**(b) 対応することが無い → 人間のマージ待ち**（未対応の Request changes もモニターの指示も無い・指定がすべて「そのままで」など。
 こちらからは何もしない。Review のまま人間に戻す）:
 
 ```bash
@@ -213,7 +269,36 @@ echo AUTOPILOT_HITL
 ```
 
 > (a)(b) はどちらも `hitl:true` で人間の番に戻す。違いは「コードを変えたか」だけ。
-> 人間は新しい Request changes を出して再び 🙋 を外せば、また本スキルが起動してその分に対応する。
+> 人間は新しい Request changes を出して再び 🙋 を外すか、モニターの「AI に直してもらう」に書いて送れば、
+> また本スキルが起動してその分に対応する。
+
+## 終わる前の後片付け（dev server・ブラウザ・#2463）
+
+dev server やブラウザ（integration テストの chromedriver・chromium、pw-check の headless_shell）を使ったら、
+**結果ファイルを書く前**（`AUTOPILOT_DONE` / `AUTOPILOT_HITL` / `AUTOPILOT_ERROR`・checkpoint のどれで終わるときも）に、
+自分が起動したものを止める。残すと親を失って動き続け、コンテナのメモリと CPU を食う
+（webpack の dev server が 2.4 GB まで大きくなった・作業場が消えたあとも chromium が残った例がある）。
+
+1. dev server は `tools/autopilot/prompts/autopilot-verify.md` の「dev server の起動と停止」の形で起動・停止する
+   （起動前に 8601 の持ち主の cwd を確かめる・`setsid -f` で起動して PGID を `$WT/tmp/dev-server.pgid` に記録する・
+   `kill -- "-$PGID"` でプロセスグループごと止める）。`npx` / `npm` のラッパーだけを止めない。
+   webpack は自分のコマンド行を `webpack` に書き換えるので、`pgrep -f 'webpack serve'` では見つからない。
+2. 最後に **`tools/autopilot/bin/cleanup-leftovers`** を流す。`/proc/<pid>/cwd` が**自分の worktree** の
+   webpack・chromedriver・chromium・headless_shell だけを止め、止めたものを出す（`--dry-run` で一覧だけ）。
+   ほかの worker・人間のもの（cwd がほかの worktree や `/app`）は止めない。`pkill -f` のような広い一致を使わない。
+3. 手で確かめるときは `.claude/rules/parallel-work.md` の「後片付け」に従う。
+
+daemon も run の終了時にこの worktree に残ったものを止める（保険。頼らないこと）。
+
+## 人間に選んでほしいことがあるとき（モニターで答える質問）
+
+- `signal:"hitl"` で人間に選んでほしいことがあるときは、結果に **`questions`** を足す（選択肢と推奨を必ず書く）:
+  `"questions":[{"id":"q1","text":"<何を選んでほしいか>","options":[{"key":"a","label":"<案>","desc":"<一行の説明>"},{"key":"b","label":"<案>"}],"recommended":"a"}]`。
+  `id` / `key` は英数字・`_`・`-` だけ。daemon が質問を Issue にマーカー付きで書き、モニターに出す（質問のコメントを自分で書かなくてよい）。
+  形は `docs/autopilot/autonomous-contract.md` §2.3。新しい signal は作らない。
+- 起動の指示に「人間がモニターで質問に答えています。先に … を Read し」とあれば、そのファイル（`AUTOPILOT_ANSWERS_FILE`）を
+  最初に読み、答え（質問 ID・選んだ選択肢・メモ）に従って続ける。同じことをもう一度質問しない。Issue の
+  `<!-- autopilot-monitor-answer ... -->` のコメントも同じ答え。
 
 ## 注意
 
