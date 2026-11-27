@@ -2998,38 +2998,50 @@ const lmLearnDef = (w, stage = 'all', step = true) => {
     ].join('\n');
 };
 
+// 「こうほを集める」の中身の段（3-1 で作り直す）: 'loop' = 「まえ」の行を 1 行ずつ見るくり返しだけ（3-1 の始め）、
+// 'if' = くり返しの中で「まえ」と文の最後の文字を比べるだけ（3-1 のヒントの途中の絵）、'all' = できあがり
+const lmCollectLoop = (w, stage = 'all') => {
+    const match = [`if @${w.before}[@${w.rowNo} - 1] == @${w.text}[@${w.text}.length - 1]`, 'end'];
+    const inner = {
+        loop: [],
+        if: match,
+        all: [match[0], `  @${w.candidates}.push(@${w.after}[@${w.rowNo} - 1])`, 'end'],
+    }[stage];
+    return [`until @${w.rowNo} > @${w.before}.length`, ...[...inner, `@${w.rowNo} += 1`].map((l) => `  ${l}`), 'end'];
+};
+// 「文をつくる」の中身の段（3-3 で作り直す）: 'loop' = 「。」までのくり返しだけ（3-3 の始め）、'pick' = くり返しの中で
+// 文字をえらぶだけ・'join' = 文に足すまで（3-3 のヒントの途中の絵）、'all' = できあがり
+const lmMakeLoop = (w, stage = 'all') => {
+    const inner = [w.pick, `@${w.text} = @${w.text} + @${w.letter}`, w.collect].slice(
+        0,
+        { loop: 0, pick: 1, join: 2, all: 3 }[stage],
+    );
+    return [`until @${w.candidates}.length == 0 || @${w.letter} == "${w.end}"`, ...inner.map((l) => `  ${l}`), 'end'];
+};
+const lmDef = (name, lines) =>
+    [`without_screen_refresh def ${name}`, ...lines.map((l) => `  ${l}`), 'end', ''].join('\n');
+const lmCollectDef = (w, stage = 'all') =>
+    lmDef(w.collect, [`@${w.candidates}.clear`, `@${w.rowNo} = 1`, ...lmCollectLoop(w, stage)]);
+// 'empty' = 中身が空（3-2 の始め）
+const lmPickDef = (w, stage = 'all') =>
+    lmDef(w.pick, stage === 'empty' ? [] : [`@${w.letter} = @${w.candidates}[rand(1..@${w.candidates}.length) - 1]`]);
+const lmMakeDef = (w, stage = 'all') =>
+    lmDef(w.make, [`@${w.text} = ""`, `@${w.letter} = ""`, w.collect, ...lmMakeLoop(w, stage)]);
+
 /**
  * できあがりの AI の 4 つの定義ブロックと旗のスクリプト（レッスン 1〜3 の形・文脈は前の 1 文字）。
  * @param {object} w - locale の名前（`LM_WORDS` の 1 つ）。
- * @param {string} [learn] - 「学習する」の中身の段（`lmLearnDef` の `stage`）。
+ * @param {object} [stages] - 定義ブロックごとの中身の段（`learn` / `collect` / `pick` / `make`。省くと 'all'）。
  * @returns {string} Ruby。
  */
-const lmAiCode = (w, learn = 'all') =>
-    `${lmLearnDef(w, learn)}\n` +
-    `without_screen_refresh def ${w.collect}\n` +
-    `  @${w.candidates}.clear\n` +
-    `  @${w.rowNo} = 1\n` +
-    `  until @${w.rowNo} > @${w.before}.length\n` +
-    `    if @${w.before}[@${w.rowNo} - 1] == @${w.text}[@${w.text}.length - 1]\n` +
-    `      @${w.candidates}.push(@${w.after}[@${w.rowNo} - 1])\n` +
-    `    end\n` +
-    `    @${w.rowNo} += 1\n` +
-    `  end\n` +
-    `end\n\n` +
-    `without_screen_refresh def ${w.pick}\n` +
-    `  @${w.letter} = @${w.candidates}[rand(1..@${w.candidates}.length) - 1]\n` +
-    `end\n\n` +
-    `without_screen_refresh def ${w.make}\n` +
-    `  @${w.text} = ""\n` +
-    `  @${w.letter} = ""\n` +
-    `  ${w.collect}\n` +
-    `  until @${w.candidates}.length == 0 || @${w.letter} == "${w.end}"\n` +
-    `    ${w.pick}\n` +
-    `    @${w.text} = @${w.text} + @${w.letter}\n` +
-    `    ${w.collect}\n` +
-    `  end\n` +
-    `end\n\n` +
-    `when_flag_clicked do\n  ${w.learn}\nend\n`;
+const lmAiCode = (w, stages = {}) =>
+    [
+        lmLearnDef(w, stages.learn),
+        lmCollectDef(w, stages.collect),
+        lmPickDef(w, stages.pick),
+        lmMakeDef(w, stages.make),
+        `when_flag_clicked do\n  ${w.learn}\nend\n`,
+    ].join('\n');
 // 1-1 の答え（ロボットを押したら文を作って言う）。1-2 から最初から入っている
 const lmSayScript = (w) => `when_clicked do\n  ${w.make}\n  say(@${w.text})\nend\n`;
 const lmTeachScript = (w) =>
@@ -3041,17 +3053,17 @@ const lmRepeatScript = (w) => `when_clicked do\n  5.times do\n    ${w.make}\n   
 const lmSpellScript = (w) =>
     `when_clicked do\n  ${w.make}\n  @${w.letterNo} = 1\n  until @${w.letterNo} > @${w.text}.length\n` +
     `    say(@${w.text}[@${w.letterNo} - 1], 0.5)\n    @${w.letterNo} += 1\n  end\nend\n`;
-// `learn` は「学習する」の中身の段（レッスン 2 で作り直す）
-const lmProgramWith = (learn, ...scripts) =>
-    lmCode((w) => [lmAiCode(w, learn), ...scripts.map((s) => s(w))].join('\n'));
-const lmProgram = (...scripts) => lmProgramWith('all', ...scripts);
+// `stages` は定義ブロックごとの中身の段（レッスン 2・3 で作り直す。`lmAiCode` の `stages`）
+const lmProgramWith = (stages, ...scripts) =>
+    lmCode((w) => [lmAiCode(w, stages), ...scripts.map((s) => s(w))].join('\n'));
+const lmProgram = (...scripts) => lmProgramWith({}, ...scripts);
 
 // 始めるとき: ネコを Retro Robot にし、AI と教科書を入れる。`monitors` はモニターを出すリスト（ステージが狭いので
-// 1-2 の教科書と、1-3・2-2 の「まえ」「つぎ」だけ）。`learn` は「学習する」の中身の段
+// 1-2 の教科書と、1-3・2-2 の「まえ」「つぎ」だけ）。`stages` は定義ブロックごとの中身の段
 const LM_LIST_KEYS = ['textbook', 'before', 'after', 'candidates'];
-const lmSetup = (scripts, monitors = [], learn = 'all') => ({
+const lmSetup = (scripts, monitors = [], stages = {}) => ({
     sprites: ['Retro Robot'],
-    code: lmProgramWith(learn, ...scripts),
+    code: lmProgramWith(stages, ...scripts),
     lists: LM_LIST_KEYS.map((key) => ({
         name: lmLocalized(key),
         items: key === 'textbook' ? LM_TEXTBOOK : [],
@@ -3325,7 +3337,7 @@ const lmLesson2 = defineLesson({
             id: 'lm-l2-pairs',
             card: { category: CATEGORIES.VARIABLES, main: CATEGORIES.LISTS },
             task: challengeMessage('lm-l2-pairs', 'task'),
-            setup: lmSetup([lmSayScript], ['before', 'after'], 'empty'),
+            setup: lmSetup([lmSayScript], ['before', 'after'], { learn: 'empty' }),
             allowedBlocks: {
                 control: ['control_repeat_until'],
                 operators: ['operator_gt', 'operator_letter_of', 'operator_length'],
@@ -3351,14 +3363,14 @@ const lmLesson2 = defineLesson({
                 },
             ],
             quiz: challengeQuiz('lm-l2-pairs', 1),
-            code: lmProgramWith('sentence', lmSayScript),
+            code: lmProgramWith({ learn: 'sentence' }, lmSayScript),
         },
         // 2-3 教科書を全部学習しよう: 1 文の分を「何文目」のくり返しで包み、教科書の全部の文を学習する
         {
             id: 'lm-l2-learn',
             card: { category: CATEGORIES.VARIABLES, main: CATEGORIES.CONTROL },
             task: challengeMessage('lm-l2-learn', 'task'),
-            setup: lmSetup([lmSayScript], [], 'sentence'),
+            setup: lmSetup([lmSayScript], [], { learn: 'sentence' }),
             allowedBlocks: {
                 control: ['control_repeat_until'],
                 operators: ['operator_gt', 'operator_letter_of', 'operator_length'],
@@ -3386,6 +3398,126 @@ const lmLesson2 = defineLesson({
     ],
 });
 
+// レッスン 3「次の文字を予想しよう」（#2110）: 予想の 3 つの定義ブロックを 1 つずつ作り直す（3-1 こうほを集める・
+// 3-2 文字をえらぶ・3-3 文をつくる）。作り直すもの以外は中身があるので、外側はいつも動く。3-1・3-3 はくり返しだけを
+// 入れて始める（1 チャレンジで足すのを 3〜5 ブロックにするため）
+const lmCollectLoopCode = (stage) => lmCode((w) => `${lmCollectLoop(w, stage).join('\n')}\n`);
+const lmMakeLoopCode = (stage) => lmCode((w) => `${lmMakeLoop(w, stage).join('\n')}\n`);
+// 3-2 で入れておくスクリプト: c キーで「こ」の次のこうほを集め、10 回えらんで 1 つずつ言う
+const lmPickTestScript = (w) =>
+    `when_key_pressed("c") do\n  @${w.text} = "${w.look}"\n  ${w.collect}\n` +
+    `  10.times do\n    ${w.pick}\n    say(@${w.letter}, 0.5)\n  end\nend\n`;
+const lmOnlyCollect = { hat: 'event_whenkeypressed', key: 'c' };
+
+const lmLesson3 = defineLesson({
+    id: 'lm-l3',
+    challenges: [
+        // 3-1 こうほを集めよう: 「こうほを集める」は「まえ」の行を 1 行ずつ見るくり返しだけになっている。「まえ」が文の
+        // 最後の文字と同じ行の「つぎ」を「こうほ」に足す（1-3 の c キーで確かめる）
+        {
+            id: 'lm-l3-collect',
+            card: { category: CATEGORIES.VARIABLES, main: CATEGORIES.LISTS },
+            task: challengeMessage('lm-l3-collect', 'task'),
+            setup: lmSetup([lmSayScript, lmLookScript], [], { collect: 'loop' }),
+            allowedBlocks: {
+                control: ['control_if'],
+                operators: ['operator_equals', 'operator_letter_of', 'operator_length'],
+                ...LM_PALETTE_CALL,
+                data: LM_LEARN_DATA,
+            },
+            steps: withTitles('lm-l3-collect', [
+                { target: HINT_TARGETS.PALETTE, blocks: lmCollectLoopCode('if') },
+                { target: HINT_TARGETS.PALETTE, blocks: lmCollectLoopCode('all') },
+                { kind: RUBY_STEP_KIND, target: HINT_TARGETS.RUBY_TAB, blocks: lmCode((w) => lmCollectDef(w)) },
+                { target: HINT_TARGETS.KEYBOARD },
+            ]),
+            debug: debugTips('lm-l3-collect', 2),
+            // c キーで「こうほを集める」を呼び、「こうほ」が「文」の最後の文字の次に来る文字（回数どおり）になった
+            goal: [
+                { type: 'uses', trigger: lmOnlyCollect, blocks: [lmCall('collect')] },
+                {
+                    type: 'ngram',
+                    check: 'candidates',
+                    candidates: lmNames('candidates'),
+                    text: lmNames('text'),
+                    ...LM_LISTS,
+                },
+            ],
+            quiz: challengeQuiz('lm-l3-collect', 2),
+            code: lmProgram(lmSayScript, lmLookScript),
+        },
+        // 3-2 文字をえらぼう: 「文字をえらぶ」は中身が空。「こうほ」の (1 から こうほの長さまでの乱数) 番目を「文字」に
+        // する。c キーで 10 回えらんで言い、多い文字がよく出るのを確かめる
+        {
+            id: 'lm-l3-pick',
+            card: { category: CATEGORIES.VARIABLES, main: CATEGORIES.OPERATORS },
+            task: challengeMessage('lm-l3-pick', 'task'),
+            setup: lmSetup([lmSayScript, lmPickTestScript], [], { pick: 'empty' }),
+            allowedBlocks: {
+                operators: ['operator_random'],
+                ...LM_PALETTE_CALL,
+                data: ['data_variable', 'data_setvariableto', 'data_itemoflist', 'data_lengthoflist'],
+            },
+            steps: withTitles('lm-l3-pick', [
+                { target: HINT_TARGETS.CODE_AREA, blocks: lmCode(lmPickTestScript) },
+                { target: HINT_TARGETS.PALETTE, blocks: lmCode((w) => lmPickDef(w)) },
+                { kind: RUBY_STEP_KIND, target: HINT_TARGETS.RUBY_TAB, blocks: lmCode((w) => lmPickDef(w)) },
+                { target: HINT_TARGETS.KEYBOARD },
+            ]),
+            debug: debugTips('lm-l3-pick', 2),
+            // c キーのスクリプトで、乱数で 10 回えらび（「文字をえらぶ」の中で）、えらんだ 1 文字（変数「文字」）を言った
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: lmOnlyCollect,
+                    together: true,
+                    blocks: [
+                        lmCall('pick', 10),
+                        { opcode: 'operator_random', count: 10 },
+                        { opcode: 'looks_sayforsecs', count: 10 },
+                    ],
+                },
+                { type: 'said', trigger: lmOnlyCollect, text: /^.$/u, equalsVariable: lmNames('letter') },
+            ],
+            quiz: challengeQuiz('lm-l3-pick', 1),
+            code: lmProgram(lmSayScript, lmPickTestScript),
+        },
+        // 3-3 文をつくろう: 「文をつくる」は「。」かこうほが空になるまでのくり返しだけになっている。くり返しの中で
+        // 文字をえらび、文に足し、次のこうほを集める
+        {
+            id: 'lm-l3-make',
+            card: { category: CATEGORIES.VARIABLES, main: CATEGORIES.CONTROL },
+            task: challengeMessage('lm-l3-make', 'task'),
+            setup: lmSetup([lmSayScript], [], { make: 'loop' }),
+            allowedBlocks: {
+                operators: ['operator_join'],
+                ...LM_PALETTE_CALL,
+                data: ['data_variable', 'data_setvariableto', 'data_lengthoflist'],
+            },
+            steps: withTitles('lm-l3-make', [
+                { target: HINT_TARGETS.PALETTE, blocks: lmMakeLoopCode('pick') },
+                { target: HINT_TARGETS.PALETTE, blocks: lmMakeLoopCode('join') },
+                { target: HINT_TARGETS.PALETTE, blocks: lmMakeLoopCode('all') },
+                { kind: RUBY_STEP_KIND, target: HINT_TARGETS.RUBY_TAB, blocks: lmCode((w) => lmMakeDef(w)) },
+                { target: HINT_TARGETS.GREEN_FLAG },
+            ]),
+            debug: debugTips('lm-l3-make', 2),
+            // ロボットを押したスクリプトで、文をつくる（の中で文字をえらび、文に足した）、「。」で終わる学習した組だけの文を言った
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenthisspriteclicked' },
+                    together: true,
+                    blocks: [lmCall('make'), lmCall('pick'), 'operator_join'],
+                },
+                { ...LM_SAID_SENTENCE, trigger: { hat: 'event_whenthisspriteclicked' } },
+            ],
+            quiz: challengeQuiz('lm-l3-make', 0),
+            code: lmProgram(lmSayScript),
+        },
+    ],
+});
+
 export const COURSES = [
     defineCourse({
         id: 'kyou-kara-programmer',
@@ -3401,7 +3533,7 @@ export const COURSES = [
     defineCourse({
         id: 'kotoba-yosou-ai',
         language: LANGUAGES.BLOCKS,
-        lessons: [lmLesson1, lmLesson2],
+        lessons: [lmLesson1, lmLesson2, lmLesson3],
     }),
 ];
 
