@@ -145,6 +145,39 @@ describe('InnerStepper', () => {
             expect(screen.getByTestId('stepper-summary-examples')).toHaveTextContent('正解を付けた');
         });
 
+        test('moves at once when the open step goes back instead of being done', () => {
+            const back = steps.map((step) => {
+                if (step.id === 'describe') return { ...step, state: 'now', summary: null };
+                if (step.id === 'examples') return { ...step, state: 'todo' };
+                return step;
+            });
+            const { rerender } = renderStepper();
+            rerender(
+                <IntlProvider locale="en">
+                    <InnerStepper steps={back} testId="stepper" title="手順 2 基準をつくる" />
+                </IntlProvider>,
+            );
+            expect(screen.getByText('c1')).toBeInTheDocument();
+            expect(screen.queryByText('c2')).not.toBeInTheDocument();
+        });
+
+        test('does not close a step the user of the stepper keeps open (openStepId)', () => {
+            const { rerender } = renderStepper({ openStepId: 'examples' });
+            rerender(
+                <IntlProvider locale="en">
+                    <InnerStepper
+                        openStepId="examples"
+                        steps={advanced}
+                        testId="stepper"
+                        title="手順 2 基準をつくる"
+                    />
+                </IntlProvider>,
+            );
+            act(() => jest.advanceTimersByTime(STEP_HOLD_MS));
+            expect(screen.getByTestId('stepper-step-examples')).not.toHaveAttribute('data-closing');
+            expect(screen.getByText('c2')).toBeInTheDocument();
+        });
+
         test('a head pressed while waiting opens that step at once', () => {
             const { rerender } = renderStepper();
             rerenderAdvanced(rerender);

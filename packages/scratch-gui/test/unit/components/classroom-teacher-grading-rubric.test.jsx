@@ -325,6 +325,21 @@ describe('TeacherGradingRubric: 小手順の移り方と AI が終わったと�
         expect(screen.getByTestId('grading-rubric-rep-1')).toHaveAttribute('aria-expanded', 'false');
     });
 
+    test('AI が考えている途中でほかの課題へ移っても、移った先に知らせを出さない', () => {
+        const { rerender } = render(tabWith(makeTools({ proposals: {}, running: 'propose' })));
+        rerender(
+            <IntlProvider locale="en" messages={{}}>
+                <TeacherGradingRubric
+                    lesson={{ ...described, classroomId: 'other-lesson' }}
+                    tools={makeTools({ proposals: { 1: { grade: 'A' } } })}
+                    onOpenWork={jest.fn()}
+                />
+            </IntlProvider>,
+        );
+        expect(screen.queryByTestId('grading-rubric-proposed-notice')).toBeNull();
+        expect(screen.queryByTestId('grading-rubric-rep-hint-1')).toBeNull();
+    });
+
     test('AI の案がもうある画面を開いただけでは知らせを出さない', () => {
         render(tabWith(makeTools()));
         expect(screen.queryByTestId('grading-rubric-proposed-notice')).toBeNull();

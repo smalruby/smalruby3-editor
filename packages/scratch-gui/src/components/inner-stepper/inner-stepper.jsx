@@ -71,6 +71,8 @@ const InnerStepper = ({ openStepId, steps, testId, title, onToggleStep }) => {
     const [closingId, setClosingId] = useState(null);
     const openRef = useRef(ownOpenId);
     openRef.current = ownOpenId;
+    const stepsRef = useRef(steps);
+    stepsRef.current = steps;
     const lastAutoRef = useRef(autoOpenId);
     const timersRef = useRef([]);
     const frameRef = useRef(null);
@@ -89,7 +91,10 @@ const InnerStepper = ({ openStepId, steps, testId, title, onToggleStep }) => {
         lastAutoRef.current = autoOpenId;
         if (finished === autoOpenId) return;
         clearTimers();
-        if (!finished || openRef.current !== finished) {
+        // Wait only when the open step really became done: not when the steps go back, nor when
+        // the user of the stepper decides the open step (openStepId).
+        const wasDone = stepsRef.current.some((s) => s.id === finished && s.state === 'done');
+        if (controlled || !wasDone || openRef.current !== finished) {
             setOwnOpenId(autoOpenId);
             return;
         }
@@ -101,14 +106,16 @@ const InnerStepper = ({ openStepId, steps, testId, title, onToggleStep }) => {
                 setOwnOpenId(autoOpenId);
             }, STEP_HOLD_MS + STEP_CLOSE_MS),
         ];
-    }, [autoOpenId, clearTimers]);
+    }, [autoOpenId, clearTimers, controlled]);
     // The step opened by moving on may be below the fold of the pane: bring its head into view.
     useEffect(() => {
         const id = scrollToRef.current;
         scrollToRef.current = null;
         if (!id || id !== ownOpenId || !frameRef.current) return;
         const head = frameRef.current.querySelector(`[data-step-id="${id}"]`);
-        if (head && head.scrollIntoView) head.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        if (!head || !head.scrollIntoView) return;
+        const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        head.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' });
     }, [ownOpenId]);
     const openId = controlled ? openStepId : ownOpenId;
     const tid = (part, id) => testId && `${testId}-${part}-${id}`;

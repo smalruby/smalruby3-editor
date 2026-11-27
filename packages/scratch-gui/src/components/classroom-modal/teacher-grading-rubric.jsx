@@ -623,7 +623,7 @@ const RepresentativeRow = ({
                             {proposal.reason}
                         </p>
                     )}
-                    <div className={classNames(styles.buttons, styles.gradeRow)}>
+                    <div className={styles.buttons}>
                         <span className={styles.meta}>{intl.formatMessage(messages.answer)}</span>
                         {GRADES.map((g) => (
                             <button
@@ -984,6 +984,8 @@ const TeacherGradingRubric = ({ busy: parentBusy = false, lesson, tools, onOpenW
         setCopying(false);
         setProposedNotice(false);
         setHintSeat(null);
+        // An AI run of the lesson left behind is not the end of this lesson's run.
+        lastRunning.current = null;
     }, [lesson.classroomId]);
     useEffect(() => {
         const finished = lastRunning.current === 'propose' && !running;
@@ -1253,6 +1255,8 @@ const TeacherGradingRubric = ({ busy: parentBusy = false, lesson, tools, onOpenW
             )}
             {showBuilder && (
                 <InnerStepper
+                    // Another lesson starts its own steps (no wait carried over from the lesson left behind).
+                    key={lesson.classroomId}
                     steps={[
                         step('describe', '2-1', messages.stepDescribe, describeStep),
                         step('examples', '2-2', messages.stepExamples, examplesStep),

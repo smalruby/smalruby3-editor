@@ -229,10 +229,6 @@
 }
 
 /* 正解のボタンのそばに数秒だけ出す「正解を選ぶ」の吹き出し（#2521）。 */
-.grade-row {
-    position: relative;
-}
-
 .hint {
     position: relative;
     margin-left: $space-small;
