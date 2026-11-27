@@ -28,6 +28,7 @@
 | `src/settings.js` | worker 起動設定のロード・マージ・コマンド組み立て・run 資産スナップショット | — |
 | `src/monitor.js` | Web モニタ（**自己完結 HTML**。外部 CDN / 外部リソース参照は devpod の egress allowlist で死ぬので不可） | — |
 | `src/epic-summary.js` / `src/current-status.js` | EPIC ごとのまとめ・見込み・現在地の材料とテンプレートの描画の**純粋関数**。`renderEpicGroupsHtml` はモニタへ `fn.toString()` で埋め込むので**モジュールの外を参照しない** | I/O・`Date.now()` を持ち込まない（`now` を引数で受ける） |
+| `src/release-page.js` | リリース確認の確認ページ（artifact）のデータの下書き・描画・答えの読み取り・URL の状態の**純粋関数** | I/O・`Date.now()` を持ち込まない（URL の状態ファイルと答えの書き込みは `release-check-http.js`） |
 | `src/current-status-job.js` | 現在地の job の I/O（worker の起動・状態ファイル・改善メモ）。daemon から呼ぶ割り込み型の job | 判断を書かない（`planCurrentStatusOutcome` を呼ぶ） |
 | `src/usage.js` / `src/version.js` / `src/pw-check.js` | usage ファイル読取 / 稼働バージョン・更新検知 / headless UI 確認ヘルパー | — |
 | `src/learnings.js` / `src/tasks.js` | 学び（M6/R1）・タスク（E1）の判断の**純粋関数** | phases.js と同じ（I/O・時計・乱数なし） |
