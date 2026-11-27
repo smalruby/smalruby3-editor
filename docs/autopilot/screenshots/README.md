@@ -14,4 +14,6 @@ autopilot モニタ（`tools/autopilot/src/monitor.js` の Web UI）の動作イ
 | `monitor-fix-instruction-light.png` / `monitor-fix-instruction-dark.png` | 「AI に直してもらう」のダイアログ。PR のいちばん新しい round の bot の指摘を整形して見せ、下のコメント欄に直してほしいことを書いて送る（空では送れない）（#2415） |
 | `monitor-release-check-row-light.png` / `monitor-release-check-row-dark.png` | 「あなた宛て」のリリース確認の行。札「リリース確認」、プレビューへのリンク、「確認の結果を書く」ボタン（#2430） |
 | `monitor-release-check-dialog-light.png` / `monitor-release-check-dialog-dark.png` | 「確認の結果を書く」のダイアログ。観点（R1, R2, …）ごとに OK / NG とメモ、全体のコメントを書いて送る（#2430） |
+| `monitor-board-sticky-before.png` / `monitor-board-sticky-after.png` | 状況板を横にスクロールする前と、右端までスクロールして行の ⋯ を開いたところ。開閉・Issue · PR・題名の 3 列は左に残る（#2527） |
+| `monitor-board-sticky-after-dark.png` / `monitor-board-sticky-phone-dark.png` | 同じくダーク（1280px）と、幅 400px で右端までスクロールしたところ（#2527） |
 | `monitor-heading-icon.png` | 上の行の見出しのアイコン（虹色の ∞ + A・ダーク・3 倍に拡大）（#2413） |
