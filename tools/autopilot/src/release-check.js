@@ -24,6 +24,7 @@
 const {
     TRACKING_LABEL, TERMINAL_STATUSES, RELEASE_CHECK_AI_STATUS, AFTER_RELEASE_LABEL, extractPreviewUrl,
 } = require('./phases');
+const { previewStatusText } = require('./epic-pr');
 
 /** 目印の正規表現（round を捕捉する） */
 const CHECK_RE = /<!--\s*autopilot-release-check\s+round=(\d+)\s*-->/;
@@ -210,9 +211,25 @@ function parseReleaseCheckPoints(body) {
  * @returns {string|null}
  */
 function releasePreviewUrl(body) {
-    const m = String(body || '').match(/\*\*プレビュー\*\*\s*[:：]\s*<?(https?:\/\/[^\s<>)]+)/);
+    const text = String(body || '');
+    const m = text.match(/\*\*プレビュー\*\*\s*[:：]\s*<?(https?:\/\/[^\s<>)]+)/);
     if (m) return m[1];
-    return extractPreviewUrl([{ body: String(body || '') }]);
+    // 「**プレビュー**: まだありません / 無し」と書いた観点（#2485）では、本文のほかの URL を拾わない
+    if (/\*\*プレビュー\*\*\s*[:：]\s*(?:まだ|無し|なし)/.test(text)) return null;
+    return extractPreviewUrl([{ body: text }]);
+}
+
+/**
+ * 観点のコメントの `**プレビュー**:` の行（純粋関数・#2485）。プレビューができていなければ URL を書かず、
+ * 理由を書く（人間に開けない URL を「確かめる場所」として渡さない）。
+ * @param {{ready:boolean, state:string}|null} status epic-pr.js の previewStatus の結果
+ * @param {string|null} url
+ * @param {string} [base]
+ * @returns {string}
+ */
+function releasePreviewLine(status, url, base = 'develop') {
+    if (status && status.ready && url) return `**プレビュー**: ${url}`;
+    return `**プレビュー**: まだありません — ${previewStatusText(status || { state: 'no-pr' }, base)}`;
 }
 
 /**
@@ -427,6 +444,7 @@ function selectPrFeedback({ reviews, reviewComments, issueComments, handled }) {
 }
 
 module.exports = {
+    releasePreviewLine,
     AFTER_RELEASE_LABEL,
     MAX_RELEASE_NOTE,
     MAX_RELEASE_COMMENT,

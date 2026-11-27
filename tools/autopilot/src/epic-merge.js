@@ -13,6 +13,8 @@
  *   マージする（Close と Issue を閉じるのは同じ tick の merge-progression）
  * - {@link applyEpicTopicPrs}: 子を topic にマージしたあと、topic → develop の draft PR を作る・本文を直す
  *   （人間が作った PR なら進み具合のコメントを書く・#2473）。起動時は {@link bootEpicTopicPrs}
+ * - {@link applyEpicTopicSync}: topic → develop の PR が develop と競合していたら、develop を topic に取り込む
+ *   PR を作り（{@link runTopicSync}）、CI のあと topic にマージする（#2485）
  */
 
 const project = require('./project');
@@ -22,7 +24,9 @@ const {
 } = require('./epic-flow');
 const { nextReviewFindingsRound, sanitizeForSurface, selectRequestedReviews } = require('./phases');
 const { countEpicDecisions } = require('./epic-summary');
-const { EPIC_PR_STATUS_MARKER, epicPrPlan, topicMergeTargets } = require('./epic-pr');
+const {
+    EPIC_PR_STATUS_MARKER, epicPrPlan, topicMergeTargets, topicSyncBranch, renderTopicSyncBody, topicSyncPlan,
+} = require('./epic-pr');
 
 /**
  * EPIC の「決定待ち」まとめコメントに決定待ちを書き足す（書くのは daemon だけ）。
@@ -167,7 +171,7 @@ async function applyEpicAutoMerge(items, contexts, cfg, state, log, deps = {}) {
  * @returns {Promise<Array<{epic:number, action:string, pr:(number|null)}>>}
  */
 async function applyEpicTopicPrs(targets, cfg, log, deps = {}) {
-    const list = (targets || []).filter((t) => t && t.issue && t.base);
+    const list = (targets || []).filter((t) => t && (t.issue || t.epic) && t.base);
     if (!list.length) return [];
     const base = deps.defaultBase || 'develop';
     const readTok = deps.readToken || await project.readToken();
@@ -180,10 +184,14 @@ async function applyEpicTopicPrs(targets, cfg, log, deps = {}) {
     const done = [];
     for (const t of list) {
         try {
-            const epic = await getParent(cfg.repo, t.issue, readTok);
+            // t.epic があれば親を読まない（develop を取り込んだあとに本文を直すとき・#2485）
+            const epic = t.epic || await getParent(cfg.repo, t.issue, readTok);
             if (!epic || seen.has(epic)) continue;
             seen.add(epic);
-            const plan = epicPrPlan(await getFacts(cfg.repo, epic, t.base, base, readTok), { base, statuses: deps.statuses });
+            const facts = await getFacts(cfg.repo, epic, t.base, base, readTok);
+            const plan = epicPrPlan(facts, { base, statuses: deps.statuses });
+            // 競合の確かめ（applyEpicTopicSync）へ、読んだ事実をそのまま渡す（read を増やさない）
+            if (deps.onFacts) deps.onFacts({ epic, topic: t.base, base, facts, plan });
             if (plan.action === 'skip') {
                 done.push({ epic, action: 'skip', pr: plan.pr || null });
                 continue;
@@ -221,4 +229,172 @@ async function bootEpicTopicPrs(cfg, log, deps = {}) {
     return applyEpicTopicPrs(targets, cfg, log, { ...deps, readToken: readTok });
 }
 
-module.exports = { appendEpicDecisions, applyEpicRunSideEffects, applyEpicAutoMerge, applyEpicTopicPrs, bootEpicTopicPrs };
+/**
+ * applyEpicTopicPrs が読んだ事実から、develop との追従を見る対象を作る（#2485）。
+ * topic → develop の PR（目印付きを先に）と、develop を取り込む open な PR の番号。
+ * @param {{epic:number, topic:string, base:string, facts:object, plan:object}} f
+ * @returns {{epic:number, topic:string, base:string, topicPr:(object|null), syncPr:(number|null)}}
+ */
+function topicSyncTarget({ epic, topic, base, facts, plan }) {
+    const prs = (facts && facts.topicPrs) || [];
+    const number = plan && plan.pr;
+    const topicPr = (number && prs.find((p) => p && p.number === number)) || null;
+    return { epic, topic, base, topicPr: topicPr ? { number: topicPr.number, mergeable: topicPr.mergeable || null } : null,
+        syncPr: (facts && facts.syncPr) || null };
+}
+
+/**
+ * topic → develop の PR が develop と競合していたら、develop を topic に取り込む（#2485）。
+ * GitHub は競合している PR では `pull_request` の workflow を動かさないので、そのままではプレビューが作られない。
+ * 判断は epic-pr.js の topicSyncPlan。見る対象は、子を topic にマージした直後の EPIC（targets）と、
+ * まだ片付いていない取り込み（`state.topicSyncs`）だけ（read は PR の数だけ・github-api.md）。
+ * - resolve: {@link runTopicSync} を走らせる（空きがあるとき・fire-and-forget）
+ * - merge: 取り込む PR を topic にマージし、topic → develop の PR の本文を直す
+ * - hitl: EPIC に理由を 1 回だけ書き、人間に任せる（追跡はやめる）
+ * - wait: 次の tick でもう一度見る
+ * @param {object[]} targets {@link topicSyncTarget} の結果
+ * @param {object} deps { startSync(target), hasCapacity(), isRunning(epic), getPrMergeFacts, mergePr, postIssueComment,
+ *   refreshTopicPr(epic, topic), token, readToken }
+ * @returns {Promise<Array<{epic:number, action:string, reason:string}>>}
+ */
+async function applyEpicTopicSync(targets, cfg, state, log, deps = {}) {
+    if (!state.topicSyncs) state.topicSyncs = {};
+    const byEpic = new Map();
+    for (const [k, v] of Object.entries(state.topicSyncs)) byEpic.set(Number(k), { ...v, epic: Number(k) });
+    for (const t of targets || []) if (t && t.epic && t.topic) byEpic.set(t.epic, { ...(byEpic.get(t.epic) || {}), ...t });
+    if (!byEpic.size) return [];
+    const getFacts = deps.getPrMergeFacts || project.getPrMergeFacts;
+    const merge = deps.mergePr || project.mergePr;
+    const post = deps.postIssueComment || project.postIssueComment;
+    const now = (cfg.now || Date.now)();
+    const done = [];
+    for (const t of byEpic.values()) {
+        // 同じ tick の前の項目や起動時の確認が始めたものも見る（取り込みを二重に走らせない）
+        const live = state.topicSyncs[t.epic];
+        if (t.running || (live && live.running)) continue;
+        try {
+            const readTok = deps.readToken || await project.readToken();
+            let syncPr = null;
+            if (t.syncPr) syncPr = await getFacts(cfg.repo, t.syncPr, readTok);
+            let topicPr = t.topicPr || null;
+            // 前の tick で mergeable が計算中だったものは、topic → develop の PR だけ読み直す
+            if (!syncPr && topicPr && topicPr.mergeable !== 'CONFLICTING' && topicPr.mergeable !== 'MERGEABLE' && t.polled) {
+                const f = await getFacts(cfg.repo, topicPr.number, readTok);
+                topicPr = { number: topicPr.number, mergeable: (f && f.mergeable) || null };
+            }
+            const plan = topicSyncPlan({ topicPr, syncPr, nowMs: now });
+            const keep = { topic: t.topic, base: t.base, topicPr, syncPr: t.syncPr || null };
+            if (plan.action === 'none') {
+                delete state.topicSyncs[t.epic];
+            } else if (plan.action === 'wait') {
+                state.topicSyncs[t.epic] = { ...keep, polled: true };
+            } else if (plan.action === 'resolve') {
+                // EPIC の worker（release-check など）が動いているあいだは始めない（state.running を同じ番号で使うため）
+                const busy = deps.isRunning && deps.isRunning(t.epic);
+                if (deps.startSync && !busy && (!deps.hasCapacity || deps.hasCapacity())) {
+                    state.topicSyncs[t.epic] = { ...keep, running: true };
+                    log(`EPIC #${t.epic}: topic → ${t.base} の PR #${topicPr.number} が競合 → ${t.base} を ${t.topic} に取り込む`);
+                    deps.startSync({ epic: t.epic, topic: t.topic, base: t.base, topicPr: topicPr.number });
+                } else {
+                    state.topicSyncs[t.epic] = { ...keep, polled: true };
+                }
+            } else if (plan.action === 'merge') {
+                await merge(cfg.repo, t.syncPr, deps.token || await project.botToken());
+                delete state.topicSyncs[t.epic];
+                log(`EPIC #${t.epic}: ${t.base} を取り込む PR #${t.syncPr} を ${t.topic} へマージ（${plan.reason}）`);
+                if (deps.refreshTopicPr) await deps.refreshTopicPr(t.epic, t.topic);
+            } else if (plan.action === 'hitl') {
+                delete state.topicSyncs[t.epic];
+                await post(cfg.repo, t.epic, topicSyncHitlBody(t, plan.reason), deps.token || await project.botToken());
+                log(`EPIC #${t.epic}: ${t.base} の取り込みを人間に渡す（${plan.reason}）`);
+            }
+            done.push({ epic: t.epic, action: plan.action, reason: plan.reason });
+        } catch (e) {
+            log(`EPIC #${t.epic}: ${t.base || 'develop'} への追従の確認に失敗: ${sanitizeForSurface(e.message || '')}`);
+        }
+    }
+    return done;
+}
+
+/** 取り込みを人間に渡すときのコメント（EPIC の Issue に書く） */
+function topicSyncHitlBody(t, reason) {
+    const pr = t.syncPr ? `取り込む PR #${t.syncPr}` : `topic → ${t.base} の PR${t.topicPr ? ` #${t.topicPr.number}` : ''}`;
+    return [
+        `🙋 \`${t.base}\` を topic ブランチ \`${t.topic}\` に取り込めませんでした（${sanitizeForSurface(reason || '', 300)}）。`,
+        '',
+        `${pr} を見て、競合を解いてください。競合しているあいだは CI が動かず、プレビューが作られません。`,
+    ].join('\n');
+}
+
+/**
+ * develop を topic に取り込む PR を作る（#2485・I/O）。`autopilot-resolve-conflict` と同じやり方（merge で解く・
+ * rebase しない）。取り込むブランチ（{@link topicSyncBranch}）を topic から作り、専用の worktree で develop を merge し、
+ * 競合したら resolve-conflict の worker に解かせ、push して topic 宛ての PR（draft にしない）を作る。
+ * 失敗したら EPIC に理由を書いて人間に渡す。
+ * @param {{epic:number, topic:string, base:string, topicPr:(number|null)}} t
+ * @param {object} deps { execFileP, followBaseBranch, runConflictResolver, createBranch, createDraftPr,
+ *   postIssueComment, worktreeBin, botGitBin, token, readToken, stopLeftovers }
+ * @returns {Promise<{ok:boolean, pr?:number, reason?:string}>}
+ */
+async function runTopicSync(t, cfg, state, log, deps = {}) {
+    const exec = deps.execFileP;
+    const sync = topicSyncBranch(t.topic, t.base);
+    const key = `sync-${t.epic}`;
+    const botTok = deps.token || await project.botToken();
+    const createBranch = deps.createBranch || project.createBranchFrom;
+    const create = deps.createDraftPr || project.createDraftPr;
+    const post = deps.postIssueComment || project.postIssueComment;
+    const opts = { maxBuffer: 16 * 1024 * 1024 };
+    if (!state.topicSyncs) state.topicSyncs = {};
+    if (state.running) state.running.set(t.epic, { phase: 'resolve-conflict', session: `autopilot-resolve-conflict-${t.epic}`, since: (cfg.now || Date.now)() });
+    const finish = (res) => {
+        if (res.ok && res.pr) state.topicSyncs[t.epic] = { topic: t.topic, base: t.base, topicPr: null, syncPr: res.pr };
+        else delete state.topicSyncs[t.epic];
+        return res;
+    };
+    const fail = async (reason) => {
+        log(`EPIC #${t.epic}: ${t.base} の取り込みに失敗: ${sanitizeForSurface(reason)}`);
+        try {
+            await post(cfg.repo, t.epic, topicSyncHitlBody({ ...t, topicPr: t.topicPr ? { number: t.topicPr } : null }, reason), botTok);
+        } catch (e) { log(`EPIC #${t.epic}: comment failed: ${sanitizeForSurface(e.message || '')}`); }
+        return finish({ ok: false, reason });
+    };
+    try {
+        // 取り込むブランチを topic の先頭から作る（もうあれば、下で topic を merge して追いつかせる）
+        await createBranch(cfg.repo, sync, t.topic, botTok).catch((e) => log(`EPIC #${t.epic}: ${sync} はもうあります（${sanitizeForSurface(e.message || '', 120)}）`));
+        await exec(deps.worktreeBin, ['create', key, '--branch', sync], opts);
+        const cwd = String((await exec(deps.worktreeBin, ['path', key], { encoding: 'utf8' })).stdout).trim();
+        const say = (m) => log(`EPIC #${t.epic}: ${m}`);
+        const up = await deps.followBaseBranch(cwd, t.topic, say);
+        if (up.status === 'conflict' || up.status === 'skipped-dirty') return await fail(`${sync} を ${t.topic} に追いつかせられません（${up.status}）`);
+        const follow = await deps.followBaseBranch(cwd, t.base, say, { keepConflict: true });
+        if (follow.status === 'skipped-dirty') return await fail('取り込む worktree に未コミットの変更があります');
+        if (follow.status === 'current' && up.status === 'current') return finish({ ok: true, reason: `${t.topic} は ${t.base} を取り込み済み` });
+        let summary = '';
+        if (follow.status === 'conflict') {
+            const r = await deps.runConflictResolver({
+                issue: t.epic, cwd, baseBranch: t.base, baseRef: follow.baseRef, files: follow.files, pr: null, cfg, log,
+            });
+            if (!r.ok) return await fail(r.reason || '競合を解けませんでした');
+            summary = r.summary || '';
+        }
+        await exec(deps.botGitBin, ['push', 'origin', `HEAD:refs/heads/${sync}`], { ...opts, cwd });
+        const pr = await create(cfg.repo, {
+            head: sync, base: t.topic, draft: false,
+            title: `chore: merge ${t.base} into ${t.topic}`,
+            body: renderTopicSyncBody({ epic: t.epic, topic: t.topic, base: t.base, topicPr: t.topicPr, summary }),
+        }, botTok);
+        log(`EPIC #${t.epic}: ${t.base} を取り込む PR #${pr} を ${t.topic} 宛てに作りました`);
+        return finish({ ok: true, pr });
+    } catch (e) {
+        return await fail(e.message || String(e));
+    } finally {
+        if (state.running) state.running.delete(t.epic);
+        if (deps.stopLeftovers) deps.stopLeftovers();
+    }
+}
+
+module.exports = {
+    appendEpicDecisions, applyEpicRunSideEffects, applyEpicAutoMerge, applyEpicTopicPrs, bootEpicTopicPrs,
+    topicSyncTarget, applyEpicTopicSync, runTopicSync,
+};
