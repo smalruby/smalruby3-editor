@@ -150,6 +150,7 @@ describe('Japanese mode: only a bare rand becomes 乱数() (issue #2049)', () =>
         ['表示する("rand")', 'puts("rand")'],
         ['表示する(brand)', 'puts(brand)'],
         ['表示する(rand_x)', 'puts(rand_x)'],
+        ['x = { rand: 1 }', 'x = { rand: 1 }'],
     ])('%s stays', (dncl, ruby) => {
         expect(rubyToDncl(ruby).dncl).toBe(dncl);
     });

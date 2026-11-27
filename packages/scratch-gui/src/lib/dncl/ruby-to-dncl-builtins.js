@@ -419,7 +419,9 @@ const replacePostfixMethods = (text) => {
 /**
  * Replace `rand` written without arguments (the generator writes `rand()` as `rand`) with
  * `乱数()`. Skips strings, a name that only contains `rand` (`brand`, `rand_x`), a method
- * (`@a.rand`), a variable (`@rand`, `$rand`, `:rand`) and an assignment to a local `rand`.
+ * (`a.rand`), a global or a symbol (`$rand`, `:rand`), a hash key (`{ rand: 1 }`) and an
+ * assignment to a local `rand`. An instance variable `@rand` has already lost its `@` here (it is
+ * the DNCL name `rand`), so it is written as `乱数()` like the `rand` it comes back as.
  * @param {string} line - A line of code.
  * @returns {string} Line with `乱数()`.
  */
@@ -436,7 +438,7 @@ const replaceBareRand = (line) => {
         }
         if (isWholeWordAt(line, i, 'rand') && !/[.@$:]/.test(line[i - 1] || '')) {
             const rest = line.substring(i + 4);
-            if (!/^(?:\(|[?!]|\s*=(?!=))/.test(rest)) {
+            if (!/^(?:\(|[?!]|:(?!:)|\s*=(?!=))/.test(rest)) {
                 result += '乱数()';
                 i += 4;
                 continue;
