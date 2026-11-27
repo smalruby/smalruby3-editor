@@ -654,6 +654,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-eval-steps` | div | フッターの手順（1〜6 のボタンと矢印。作品を出さないレッスンの課題のときは 1〜3） |
 | `classroom-eval-rubric` | button | 手順 2「基準をつくる」（いまは［基準］のタブを開くだけ。押すと手順 3 へ進む） |
 | `classroom-eval-run-grade` | button | 手順 3「全員を採点」（AI） |
+| `classroom-button-ai-icon` | svg | AI を使うボタン（`ClassroomButton` の `ai`）の文字の左のキラキラのアイコン。採点の手順 3・5 と［基準］タブの AI のボタンの中に出る |
 | `classroom-eval-confirm` | button | 手順 4「確定」（評価が 1 つも無いときは押せない） |
 | `classroom-eval-run-comment` | button | 手順 5「コメントを下書き」 |
 | `classroom-eval-return-comments` | button | 手順 6「返却」 |

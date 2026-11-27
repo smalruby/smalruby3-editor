@@ -322,6 +322,7 @@ const DescriptionSection = ({ busy, description, lesson, loaded, onDescribe, onU
             {!lesson.assignmentText && status !== 'proposed' && (
                 <div className={styles.buttons}>
                     <ClassroomButton
+                        ai
                         dataTestId="grading-rubric-describe"
                         disabled={busy || !loaded}
                         onClick={onDescribe}
@@ -816,6 +817,7 @@ const TeacherGradingRubric = ({ busy: parentBusy = false, lesson, tools, onOpenW
                                 <p className={styles.note}>{intl.formatMessage(messages.repsHint)}</p>
                                 <div className={styles.buttons}>
                                     <ClassroomButton
+                                        ai
                                         dataTestId="grading-rubric-propose"
                                         disabled={busy}
                                         onClick={tools.handlePropose}
@@ -847,6 +849,7 @@ const TeacherGradingRubric = ({ busy: parentBusy = false, lesson, tools, onOpenW
                             <div className={modalStyles.evalPaneLabel}>{intl.formatMessage(messages.fairness)}</div>
                             <div className={styles.buttons}>
                                 <ClassroomButton
+                                    ai
                                     dataTestId="grading-rubric-fairness-run"
                                     disabled={busy || done === 0}
                                     onClick={tools.handleCheckFairness}
@@ -881,6 +884,7 @@ const TeacherGradingRubric = ({ busy: parentBusy = false, lesson, tools, onOpenW
                         )}
                         <div className={styles.buttons}>
                             <ClassroomButton
+                                ai
                                 dataTestId="grading-rubric-draft"
                                 disabled={busy || examples.length === 0}
                                 onClick={tools.handleDraftRubric}

@@ -350,6 +350,7 @@ stateDiagram-v2
 |---|---|---|
 | 主の色 | Scratch の濃い青 `#3373CC`（`$color-action`）。紫（`$color-primary`）はモーダルのヘッダーだけ | — |
 | ボタン | Scratch の形（角丸 4px・太字・14px）で高さ 36px。主（青の塗り）・副（白地に枠・青の文字）・テキスト（地も枠も無い青の文字）の 3 種。主ボタンは 1 画面に 1 つ（R2） | `ClassroomButton` の `variant="primary" / "secondary" / "text"`（[`../design-system/components/buttons.md`](../design-system/components/buttons.md) の「クラス管理のボタン」） |
+| AI を使うボタン | 押すと AI を呼ぶボタンは、枠が虹色でゆっくりめぐり、文字の左にキラキラのアイコンが付く（テキストボタンはアイコンだけ）。押せないときと動きを減らす設定では止まる。虹色は AI を使うボタンだけ | `ClassroomButton` の `ai`（[`../design-system/components/buttons.md`](../design-system/components/buttons.md) の「AI を使うボタン」） |
 | タブ | 下に線。選ばれたタブは主の色の文字と 3px の線 | `ClassroomTab` を `styles.tabList`（`role="tablist"`）で包む（[`../design-system/components/tabs.md`](../design-system/components/tabs.md) の「クラス管理のタブ」） |
 | 文字の大きさ | ふだんは小さめ: 本文 14px（`$font-size-medium`）・ラベル 12px（`$font-size-small`）・見出し 17 / 20 / 22px（`$font-size-heading-small` / `-medium` / `-large`） | — |
 | 「映す」画面の文字 | プロジェクターに映す画面だけ大きくする: 見出し 32px・本文（座席の番号・数）24px・参加コード 160px（`$font-size-projection-heading` / `-body` / `-code`。参加コードは `min(15vw, …)` と組み合わせる） | — |

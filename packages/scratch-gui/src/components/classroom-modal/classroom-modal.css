@@ -266,6 +266,100 @@ $teacher-screen-padding-top: $space-small;
     cursor: not-allowed;
 }
 
+/* AI を使うボタン（ClassroomButton の ai・#2518）: 枠を虹色にし、色がゆっくりめぐる。
+   決まりは docs/design-system/components/buttons.md の「AI を使うボタン」。
+   枠は conic-gradient の border-box、地は padding-box の単色で塗り、角度を @property で回す
+   （autopilot のモニターの .go と同じ作り）。 */
+@property --ai-angle {
+    syntax: '<angle>';
+    initial-value: 0deg;
+    inherits: false;
+}
+
+.ai-button {
+    --ai-ring: conic-gradient(
+        from var(--ai-angle),
+        $color-ai-1,
+        $color-ai-2,
+        $color-ai-3,
+        $color-ai-4,
+        $color-ai-5,
+        $color-ai-6,
+        $color-ai-1
+    );
+    border: $size-ai-border solid transparent;
+    animation: ai-button-spin $motion-ai linear infinite;
+}
+
+/* 主ボタン: 中は青のまま、文字は白（案 A） */
+.primary-button.ai-button {
+    background:
+        linear-gradient($color-action, $color-action) padding-box,
+        var(--ai-ring) border-box;
+}
+
+.primary-button.ai-button:hover,
+.primary-button.ai-button:active {
+    background:
+        linear-gradient($color-action-dark, $color-action-dark) padding-box,
+        var(--ai-ring) border-box;
+}
+
+/* 副ボタン: 白地に虹の枠・文字は青。乗せたときは淡い紫の地 */
+.secondary-button.ai-button {
+    background:
+        linear-gradient($color-surface, $color-surface) padding-box,
+        var(--ai-ring) border-box;
+}
+
+.secondary-button.ai-button:hover,
+.secondary-button.ai-button:active {
+    background:
+        linear-gradient($color-ai-wash, $color-ai-wash) padding-box,
+        var(--ai-ring) border-box;
+}
+
+/* テキストボタン: 枠は付けず、キラキラのアイコンだけ（案 X）。地も枠も今のテキストボタンのまま */
+.text-button.ai-button {
+    border-width: 1px;
+    border-color: transparent;
+    animation: none;
+}
+
+/* 押せないとき: 虹を消し、いまの押せないボタンの灰色にそろえる。めぐりも止める */
+.primary-button.ai-button:disabled,
+.secondary-button.ai-button:disabled {
+    background: $color-disabled;
+    border-color: transparent;
+    animation: none;
+}
+
+.text-button.ai-button:disabled {
+    background: transparent;
+}
+
+.ai-button:disabled {
+    animation: none;
+}
+
+.ai-button-icon {
+    flex: none;
+    width: 1rem;
+    height: 1rem;
+}
+
+@keyframes ai-button-spin {
+    to {
+        --ai-angle: 360deg;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ai-button {
+        animation: none;
+    }
+}
+
 /* 取り消せない操作の確認（採点を離れる）。色は画面ごとの Issue で R4 に合わせて見直す */
 .danger-button {
     background-color: white;

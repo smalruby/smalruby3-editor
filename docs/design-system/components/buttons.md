@@ -95,6 +95,26 @@
 - `variant="danger"`（採点を離れる確認の［戻る］だけ）は形だけ同じにしてあり、色は画面ごとの Issue で R4 に合わせて見直す。
 - 並べ方（副が左・主が右）は `TeacherScreen` / `TeacherSubView` の `footer` が持つ（[`../../classroom/source-code.md`](../../classroom/source-code.md)）。
 
+### AI を使うボタン（`ai`）
+
+見本: [`0510-classroom-ai-buttons.png`](../screenshots/0510-classroom-ai-buttons.png)（上から主・副・テキスト・押せない。右はくらべる用の AI を使わないボタン）。
+
+押すと AI を呼ぶボタン（採点の［基準］タブの「AI に説明の案を出してもらう」「AI の案を出す」「フェアか確かめる」「AI に基準の文を書いてもらう」、採点の手順の「全員を採点」「コメントを下書き」）は、`<ClassroomButton ai variant="…">` で書く。キラキラのアイコン（3 つの星）は部品が文字の左に出すので、呼ぶ側で SVG を書かない。
+
+- **規則**: クラス管理で AI を使うボタンは枠を虹色にし、色がゆっくりめぐる（5 秒で 1 周）。キラキラのアイコンを付ける。主ボタンは中を青のまま、副ボタンは白地、テキストボタンは枠を付けずアイコンだけ。押せないときと動きを減らす設定（`prefers-reduced-motion: reduce`）のときは止める（押せないときは虹も消す）。
+- **規則**: 虹色は AI を使うボタンだけに使う。ほかのボタン・札・飾りに使わない。AI の結果を保存する・見るだけのボタンや、外の AI へ渡すもの（「学校の生成AI に相談」）には付けない。
+- **理由**: 「AI がやる」と一目で分かる形をそろえる。autopilot と同じ色にして、AI を使うものの見た目を 1 つにする。
+
+| 状態 | 主（`variant="primary"`） | 副（`variant="secondary"`） | テキスト（`variant="text"`） | トークン |
+|---|---|---|---|---|
+| ふつう | 枠 `2px` の虹色・中 `$color-action`・文字 白 | 枠 `2px` の虹色・地 白・文字 `$color-action` | 枠なし・アイコンだけ（地と文字はふつうのテキストボタン） | `$color-ai-1`〜`$color-ai-6`・`$size-ai-border` |
+| 動き | 虹の角度を `@property --ai-angle` で回す（`$motion-ai` で 1 周） | 主と同じ | 動かない | `$motion-ai` |
+| ホバー・押した | 中 `$color-action-dark` | 地 `$color-ai-wash`・文字 `$color-action-dark` | ふつうのテキストボタンと同じ | `$color-ai-wash` |
+| 押せない | 虹を消し、ふつうの押せないボタンと同じ灰色。めぐりも止める | 主と同じ | ふつうの押せないテキストボタンと同じ | `$color-disabled`・`$color-disabled-text` |
+
+- 作り: 地を `padding-box` の単色、枠を `conic-gradient` の `border-box` で塗る（autopilot のモニターの `.go` と同じ作り）。CSS は `classroom-modal.css` の `.ai-button`。
+- コントラスト: 主ボタンの白い文字と青の地は、ふつうの主ボタンと同じ。虹は飾りの枠なので文字のコントラストの対象にしない。
+
 ## 外部アカウントでログインするボタン（`sign-in-button/sign-in-button.jsx`）
 
 スモウルビー独自。Google・Microsoft などのアカウントでログインするボタン。クラス管理（先生）のログインと、不具合の報告のログインが使う。見本: [`../../classroom/screenshots/0201-teacher-login.png`](../../classroom/screenshots/0201-teacher-login.png)（Google のスクリプトが読めないときの形。読めたときは上の Google のボタンが Google の描くボタンに入れかわる）。

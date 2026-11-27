@@ -9,6 +9,9 @@
  * `variant="text"` を使えば自動的にスタイルがそろう（形は Scratch のボタン・高さ 36px・#1956 Q6。
  * 決まりは docs/design-system/components/buttons.md の「クラス管理のボタン」）。並び (セカンダリ左・プライマリ右) は
  * `TeacherScreen` / `TeacherSubView` の footer スロットが担当する。
+ *
+ * AI を使うボタン（押すと AI を呼ぶ）は `ai` を付ける (#2518)。枠が虹色になってゆっくりめぐり、
+ * 文字の左にキラキラのアイコンが付く。アイコンはこの部品が出すので、呼ぶ側で SVG を書かない。
  */
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
@@ -26,7 +29,27 @@ export const BUTTON_VARIANT_STYLE_KEYS = {
     text: 'textButton',
 };
 
+/** `ai` のときに variant のクラスへ足す classroom-modal.css のクラスキー (#2518)。 */
+export const AI_BUTTON_STYLE_KEY = 'aiButton';
+
+/* 3 つの星のキラキラ（同意したモックアップの形）。色は文字の色（currentColor）に合わせる */
+const AiSparkleIcon = () => (
+    <svg
+        aria-hidden="true"
+        className={styles.aiButtonIcon}
+        data-testid="classroom-button-ai-icon"
+        focusable="false"
+        viewBox="0 0 24 24"
+    >
+        <path
+            d="M12 2l1.8 5.2L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.8zM19 14l.9 2.6 2.6.9-2.6.9L19 21l-.9-2.6-2.6-.9 2.6-.9zM5 15l.7 1.8 1.8.7-1.8.7L5 20l-.7-1.8L2.5 17.5l1.8-.7z"
+            fill="currentColor"
+        />
+    </svg>
+);
+
 const ClassroomButton = ({
+    ai = false,
     ariaBusy,
     ariaCurrent,
     ariaExpanded,
@@ -49,18 +72,25 @@ const ClassroomButton = ({
         aria-haspopup={ariaHasPopup}
         aria-label={ariaLabel}
         autoFocus={autoFocus}
-        className={classNames(styles[BUTTON_VARIANT_STYLE_KEYS[variant]], className)}
+        className={classNames(
+            styles[BUTTON_VARIANT_STYLE_KEYS[variant]],
+            ai && styles[AI_BUTTON_STYLE_KEY],
+            className,
+        )}
         data-testid={dataTestId}
         disabled={disabled}
         title={title}
         type={type}
         onClick={onClick}
     >
+        {ai && <AiSparkleIcon />}
         {children}
     </button>
 );
 
 ClassroomButton.propTypes = {
+    /** 押すと AI を呼ぶボタン。虹色の枠とキラキラのアイコンを付ける (#2518)。 */
+    ai: PropTypes.bool,
     /** 押したあと、応答を待っている (採点の手順のボタン #2419)。 */
     ariaBusy: PropTypes.bool,
     /** 手順のうち、いまの手順 (`"step"`) を示す (採点の画面 #1304)。 */
