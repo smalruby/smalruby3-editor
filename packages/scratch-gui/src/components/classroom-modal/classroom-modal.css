@@ -326,16 +326,12 @@ $teacher-screen-padding-top: $space-small;
     animation: none;
 }
 
-/* 押せないとき: 虹を消し、いまの押せないボタンの灰色にそろえる。めぐりも止める */
+/* 押せないとき: 虹を消し、いまの押せないボタンの灰色にそろえる。めぐりも止める
+   （テキストボタンはふつうの .text-button:disabled のまま） */
 .primary-button.ai-button:disabled,
 .secondary-button.ai-button:disabled {
     background: $color-disabled;
     border-color: transparent;
-    animation: none;
-}
-
-.text-button.ai-button:disabled {
-    background: transparent;
 }
 
 .ai-button:disabled {
