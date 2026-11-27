@@ -3497,6 +3497,82 @@ function shouldResend(s) {
     return s.sinceSendMs > s.acceptWindowMs && s.attempts < s.maxAttempts;
 }
 
+// 入力欄の行の印（Claude Code の入力は `❯ ` で始まる。古い版は `│ > `）
+const INPUT_MARKER_RE = /^[\s│]*[❯>](\s|$)/;
+// 比べるときに落とす文字（空白・折り返し・枠線）
+const COMPACT_RE = /[\s│╭╮╰╯─━┃]/g;
+// 入力欄に残っているかを見る、送った文の頭の長さ（折り返しで切れても一致する長さ）
+const INPUT_PROBE_LEN = 24;
+
+/**
+ * 送った指示の文が、まだ入力欄に残っているか（純粋関数・#2504）。
+ * 重いときに Enter だけが捨てられると、文が入力欄に残る。そこへ文と Enter を送り直すと
+ * 文がつながるだけで送信されないので、残っていれば Enter だけを送る。
+ * 入力欄 = 画面の最後の `❯` / `>` の行から下（無ければ下の 12 行）。空白と枠線を落として比べる。
+ * @param {string} screen いま見えている画面の文字
+ * @param {string} text 送った文
+ * @returns {boolean}
+ */
+function promptStillInInput(screen, text) {
+    const probe = String(text || '').replace(COMPACT_RE, '').slice(0, INPUT_PROBE_LEN);
+    if (!probe) return false;
+    const lines = String(screen || '').split('\n');
+    let start = -1;
+    for (let i = lines.length - 1; i >= 0; i--) {
+        if (INPUT_MARKER_RE.test(lines[i])) { start = i; break; }
+    }
+    const region = lines.slice(start >= 0 ? start : Math.max(0, lines.length - 12)).join('');
+    return region.replace(COMPACT_RE, '').includes(probe);
+}
+
+/** 受理を待つ時間を延ばす上限の倍率 */
+const ACCEPT_WINDOW_MAX_FACTOR = 4;
+
+/**
+ * 受理を待つ時間を、マシンの重さに合わせて延ばす（純粋関数・#2504）。
+ * 1 CPU あたりの loadavg が 1 を超えたら、その倍率で延ばす（上限 4 倍）。値が取れなければそのまま。
+ * 負荷の値は daemon が読んで渡す（scheduler と同じ `readResources` の値）。
+ * @param {number} baseMs 既定の待ち時間（`acceptWindowMs`）
+ * @param {{load1:(number|null), cpus:(number|null)}} [resources]
+ * @returns {number}
+ */
+function acceptWindowFor(baseMs, resources = {}) {
+    const { load1, cpus } = resources || {};
+    if (typeof load1 !== 'number' || !cpus) return baseMs;
+    const factor = Math.min(ACCEPT_WINDOW_MAX_FACTOR, Math.max(1, load1 / cpus));
+    return Math.round(baseMs * factor);
+}
+
+/**
+ * 送った指示が受理されないときに、次に何をするかを決める（純粋関数・#2504）。
+ * - 猶予（acceptWindowMs）のうち → `wait`
+ * - 送り直しの回数が残っている → 入力欄に文が残っていれば `enter`（Enter だけ）、無ければ `line`（文と Enter）
+ * - 使い切ってさらに猶予を過ぎた → 黙って待たず `restart`（再起動の上限なら `fail`）
+ * 人間を待っているあいだは呼ばない（runner が paused のときは見ない）。
+ * @param {object} s
+ * @param {number} s.sinceSendMs 直近の送信からの経過
+ * @param {number} s.attempts これまでの送信回数
+ * @param {number} s.maxAttempts 送信の上限
+ * @param {number} s.acceptWindowMs 受理を待つ猶予
+ * @param {string} s.screen いまの画面
+ * @param {string} s.text 送った文
+ * @param {number} [s.restarts] これまでの再起動の回数
+ * @param {number} [s.maxRestarts] 再起動の上限
+ * @returns {{action:('wait'|'enter'|'line'|'restart'|'fail'), reason:string}}
+ */
+function planResend(s) {
+    if (s.sinceSendMs <= s.acceptWindowMs) return { action: 'wait', reason: 'within accept window' };
+    if (s.attempts < s.maxAttempts) {
+        return promptStillInInput(s.screen, s.text)
+            ? { action: 'enter', reason: 'prompt is still in the input' }
+            : { action: 'line', reason: 'input is empty' };
+    }
+    const reason = `command not accepted after ${s.attempts} sends`;
+    return (s.restarts || 0) < (s.maxRestarts || 0)
+        ? { action: 'restart', reason }
+        : { action: 'fail', reason: `${reason}; restart limit reached` };
+}
+
 const DEFAULT_WATCHDOG = {
     // worker（claude TUI）の起動は環境負荷が高いと 60s を超えることがあるため 150s。
     // 起動失敗の検知が遅れるコストより、生きている起動を誤 kill するコストの方が高い。
@@ -4178,6 +4254,9 @@ module.exports = {
     orderItemsLikeBoard,
     selectActionable,
     shouldResend,
+    promptStillInInput,
+    acceptWindowFor,
+    planResend,
     evaluate,
     sanitizeForSurface,
     isAuthError,

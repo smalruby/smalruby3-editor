@@ -11,7 +11,7 @@
 const { setTimeout: sleep } = require('timers/promises');
 const fs = require('fs');
 const {
-    evaluate, shouldResend, DEFAULT_WATCHDOG, DEFAULT_CLAUDE_COMMAND, phasePromptCommand,
+    evaluate, planResend, acceptWindowFor, DEFAULT_WATCHDOG, DEFAULT_CLAUDE_COMMAND, phasePromptCommand,
     shouldSignalCheckpoint, checkpointSignalMessage,
 } = require('./phases');
 
@@ -86,6 +86,8 @@ const sendLine = (session, text) => getTerminal().sendLine(session, text);
  * @param {function} [opts.judge] blocked の AI 判定（テスト用。既定 `claude -p`）
  * @param {function} [opts.now] 時計（テスト用）
  * @param {string} [opts.answersFile] モニターで人間が答えた答えのファイル（あれば起動の指示で先に読ませる）
+ * @param {function} [opts.readLoad] マシンの負荷 `{load1, cpus}` を返す（daemon の readResources。
+ *   受理を待つ時間を重さに合わせて延ばす・#2504）
  * @returns {Promise<{ok:boolean, action:string, reason:string}>}
  */
 async function runPhase(opts) {
@@ -98,6 +100,9 @@ async function runPhase(opts) {
     // handle = blocked を読んで答える / 人間を待つ（#2387）。hitl = 従来どおり打ち切って HITL。
     const handleBlocked = tset.blockedMode === 'handle';
     const now = opts.now || (() => Date.now());
+    const readLoad = () => {
+        try { return opts.readLoad ? opts.readLoad() : {}; } catch { return {}; }
+    };
 
     // 前回の結果ファイルが残っていると誤検出するので消す
     try { fs.rmSync(opts.resultFile, { force: true }); } catch { /* noop */ }
@@ -182,15 +187,24 @@ async function runPhase(opts) {
                 if (busy || resultPresent || blockedNow) {
                     accepted = true;
                     log(`command accepted (#${opts.issue}, attempt ${sendAttempts})`);
-                } else if (shouldResend({
-                    sinceSendMs: t - sentAt, attempts: sendAttempts,
-                    maxAttempts: cfg.maxSendAttempts, acceptWindowMs: cfg.acceptWindowMs,
-                })) {
-                    term.sendLine(opts.session, slash);
-                    sendAttempts += 1;
-                    sentAt = t;
-                    lastChangeAt = t;
-                    log(`resend ${slash} (#${opts.issue}, attempt ${sendAttempts})`);
+                } else {
+                    // 入力欄に文が残っていれば Enter だけ、使い切ったら黙って待たずに再起動（#2504）
+                    const plan = planResend({
+                        sinceSendMs: t - sentAt, attempts: sendAttempts, maxAttempts: cfg.maxSendAttempts,
+                        acceptWindowMs: acceptWindowFor(cfg.acceptWindowMs, readLoad()),
+                        screen: pane, text: slash, restarts, maxRestarts: cfg.maxRestarts,
+                    });
+                    if (plan.action === 'enter' || plan.action === 'line') {
+                        if (plan.action === 'enter') term.sendKeys(opts.session, ['enter']);
+                        else term.sendLine(opts.session, slash);
+                        sendAttempts += 1;
+                        sentAt = t;
+                        lastChangeAt = t;
+                        log(`resend (${plan.action}: ${plan.reason}) ${slash} (#${opts.issue}, attempt ${sendAttempts})`);
+                    } else if (plan.action !== 'wait') {
+                        outcome = plan;
+                        break;
+                    }
                 }
             }
 
