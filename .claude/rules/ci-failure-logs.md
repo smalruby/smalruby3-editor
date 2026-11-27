@@ -3,6 +3,16 @@
 CI（GitHub Actions）のジョブが落ちて原因を調べるとき、**コンテナからはジョブのログ本文を取れない**。
 推測で直さず、下の手順でログを手に入れてから原因を決める。
 
+## CI は気軽に流し直す
+
+- 公開リポジトリの GitHub Actions は無料。**費用を気にせず流し直してよい**（人間・AI・autopilot の worker 共通）。
+- Bot は落ちたジョブを流し直せる（GitHub App の Actions は Read and write）:
+  `GH_TOKEN="$(bin/bot-token)" gh run rerun <run> --failed --repo smalruby/smalruby3-editor`。
+- 流し直してよい場面: 一時的な失敗が疑わしいとき、権限や設定を確かめたいとき、最新の結果が欲しいとき。
+  「古い run を流すのは無駄」と避けたり、安い run を選んだりしなくてよい。
+- ローカルで重いテスト全体を流す前に、まず CI の流し直しと、落ちた段の名前・注釈を見る
+  （ローカルの全体実行はコンテナを重くする。`.claude/rules/parallel-work.md`）。
+
 ## なぜコンテナから取れないか
 
 - `gh run view --log-failed` / `gh api repos/{owner}/{repo}/actions/jobs/<id>/logs` は、ログの置き場
@@ -13,8 +23,6 @@ CI（GitHub Actions）のジョブが落ちて原因を調べるとき、**コ�
   `Process completed with exit code 1.` しか返さない。
 - 読めるのは、ジョブ・段（step）の名前と成否まで:
   `gh run view <run> --json jobs -q '.jobs[]|.name+" "+(.conclusion//"")+" "+([.steps[]|select(.conclusion=="failure")|.name]|join(","))'`
-- Bot はジョブの再実行もできない（`Resource not accessible by integration`）。流し直すときは
-  develop を merge して push するか、PR を閉じて開き直す。
 
 ## まず check-run の注釈を読む（scratch-gui の jest）
 
