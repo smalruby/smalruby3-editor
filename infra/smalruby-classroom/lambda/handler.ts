@@ -5212,8 +5212,9 @@ export function validateEvaluateRequest(body: Record<string, unknown>): Evaluate
   let groups: EvalGroup[] = [];
   if (mode === 'grade' || mode === 'comment' || mode === 'describe') {
     // describe may come from the assignment's 説明 tab before any work is
-    // submitted: the starter alone is then enough (#2515).
-    const minSubmissions = mode === 'describe' && starterPseudocode !== '' ? 0 : 1;
+    // submitted: the starter alone is then enough (#2515). A blank starter
+    // gives the model nothing to read, so it counts as no starter.
+    const minSubmissions = mode === 'describe' && starterPseudocode.trim() !== '' ? 0 : 1;
     submissions = validateEvalSubmissions(body.submissions, 'submissions', EVAL_MAX_SUBMISSIONS, minSubmissions);
   }
   if (mode === 'rubric' || mode === 'fairness') {

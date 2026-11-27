@@ -240,6 +240,8 @@ describe('evaluate: rubric-aware grade and the new modes (#2422)', () => {
     expect(() => validateEvaluateRequest({ mode: 'describe' })).toThrow('submissions');
     expect(() => validateEvaluateRequest({ mode: 'describe', starterPseudocode: '', submissions: [] }))
       .toThrow('submissions');
+    expect(() => validateEvaluateRequest({ mode: 'describe', starterPseudocode: ' \n ', submissions: [] }))
+      .toThrow('submissions');
     const many = Array.from({ length: 11 }, (_, i) => ({ seatNumber: i + 1 }));
     expect(() => validateEvaluateRequest({ mode: 'describe', starterPseudocode: '◆ 旗', submissions: many }))
       .toThrow('submissions');
