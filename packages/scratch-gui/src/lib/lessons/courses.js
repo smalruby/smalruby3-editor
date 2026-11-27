@@ -3607,7 +3607,14 @@ const lmLesson4 = defineLesson({
                 control: ['control_if'],
                 operators: ['operator_gt', 'operator_join', 'operator_letter_of'],
                 ...LM_PALETTE_CALL,
-                data: ['data_variable', 'data_setvariableto'],
+                // ヒントで見せる「学習する」（コードエリアにあるもの）のブロックも、パレットから消さない
+                data: [
+                    'data_variable',
+                    'data_setvariableto',
+                    'data_changevariableby',
+                    'data_addtolist',
+                    'data_deletealloflist',
+                ],
             },
             steps: withTitles('lm-l4-two', [
                 { target: HINT_TARGETS.CODE_AREA, blocks: lmCode((w) => lmLearnDef(w, 'all', true, 2)) },
@@ -3639,7 +3646,11 @@ const lmLesson4 = defineLesson({
             setup: lmSetup([lmSayScript], [], { ...LM_L4, span: 2 }),
             allowedBlocks: {
                 ...LM_PALETTE_CALL,
-                data: ['data_variable', { opcode: 'data_setvariableto', inputs: { VALUE: 3 } }],
+                data: [
+                    'data_variable',
+                    { opcode: 'data_setvariableto', inputs: { VALUE: 3 } },
+                    'data_changevariableby',
+                ],
             },
             steps: withTitles('lm-l4-span', [
                 { target: HINT_TARGETS.PALETTE, blocks: lmCode((w) => lmContextDef(w, 'span')) },
@@ -3679,6 +3690,8 @@ const lmLesson4 = defineLesson({
                     'sensing_answer',
                 ],
                 ...LM_PALETTE_CALL,
+                // ヒントで見せる「文をつくる」の中のブロック（3-3 と同じ）
+                data: ['data_variable', 'data_setvariableto', 'data_lengthoflist'],
             },
             steps: withTitles('lm-l4-continue', [
                 { target: HINT_TARGETS.PALETTE, blocks: lmCode(lmContinueScript) },
