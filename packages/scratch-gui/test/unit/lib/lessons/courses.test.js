@@ -33,7 +33,7 @@ import { rubyToBlocksXml } from '../../../../src/lib/lessons/hint-blocks';
 import { HINT_TARGETS } from '../../../../src/lib/lessons/hint-targets';
 import { ROLE_STEP_KIND } from '../../../../src/lib/lessons/lesson-role';
 import { candidatesFor, pairsOf } from '../../../../src/lib/lessons/lm-ngram';
-import { LM_TEXTBOOK } from '../../../../src/lib/lessons/lm-textbook';
+import { LM_PROMPTS, LM_PROMPTS_CONTINUED, LM_TEXTBOOK } from '../../../../src/lib/lessons/lm-textbook';
 import { validatePartQuiz } from '../../../../src/lib/lessons/part-quiz';
 import { normalizePartner } from '../../../../src/lib/lessons/practice-partner';
 import { hasAnswerProgram, isReadDiagram } from '../../../../src/lib/lessons/read-diagram';
@@ -2409,7 +2409,7 @@ describe('lm course lesson 1 "AI と話してみよう" (#2108)', () => {
         const course = findCourse('kotoba-yosou-ai');
         expect(course.language).toBe(LANGUAGES.BLOCKS);
         expect(ja[course.name.id]).toBe('ことばを予想する AI をつくろう');
-        expect(course.lessons.map((l) => l.id)).toEqual(['lm-l1', 'lm-l2', 'lm-l3', 'lm-l4']);
+        expect(course.lessons.map((l) => l.id)).toEqual(['lm-l1', 'lm-l2', 'lm-l3', 'lm-l4', 'lm-l5']);
         expect(ja[findLesson('lm-l1').name.id]).toBe('AI と話してみよう');
         expect(findLesson('lm-l1').challenges.map((c) => c.id)).toEqual(LM_L1);
     });
@@ -2665,7 +2665,13 @@ describe('lm course lesson 3 "次の文字を予想しよう" (#2110)', () => {
     const REBUILT = { 'lm-l3-collect': 'こうほを集める', 'lm-l3-pick': '文字をえらぶ', 'lm-l3-make': '文をつくる' };
 
     test('lesson 3 has the 3 challenges in order', () => {
-        expect(findCourse('kotoba-yosou-ai').lessons.map((l) => l.id)).toEqual(['lm-l1', 'lm-l2', 'lm-l3', 'lm-l4']);
+        expect(findCourse('kotoba-yosou-ai').lessons.map((l) => l.id)).toEqual([
+            'lm-l1',
+            'lm-l2',
+            'lm-l3',
+            'lm-l4',
+            'lm-l5',
+        ]);
         expect(ja[findLesson('lm-l3').name.id]).toBe('次の文字を予想しよう');
         expect(findLesson('lm-l3').challenges.map((c) => c.id)).toEqual(LM_L3);
     });
@@ -2789,7 +2795,13 @@ describe('lm course lesson 4 "前の文字をもっと見よう" (#2111)', () =>
     };
 
     test('lesson 4 has the 3 challenges in order', () => {
-        expect(findCourse('kotoba-yosou-ai').lessons.map((l) => l.id)).toEqual(['lm-l1', 'lm-l2', 'lm-l3', 'lm-l4']);
+        expect(findCourse('kotoba-yosou-ai').lessons.map((l) => l.id)).toEqual([
+            'lm-l1',
+            'lm-l2',
+            'lm-l3',
+            'lm-l4',
+            'lm-l5',
+        ]);
         expect(ja[findLesson('lm-l4').name.id]).toBe('前の文字をもっと見よう');
         expect(findLesson('lm-l4').challenges.map((c) => c.id)).toEqual(LM_L4);
     });
@@ -2938,6 +2950,193 @@ describe('lm course lesson 4 "前の文字をもっと見よう" (#2111)', () =>
             expect({ id, text: jaHira[id] }).not.toEqual({ id, text: expect.stringMatching(/\p{Script=Han}/u) });
         });
         LM_L4.forEach((id) => {
+            expect(localizeCode(challenge(id).code, 'ja-Hira')).not.toMatch(/\p{Script=Han}/u);
+            expect(localizeCode(challenge(id).setup.code, 'ja-Hira')).not.toMatch(/\p{Script=Han}/u);
+        });
+    });
+});
+
+// コース「ことばを予想する AI をつくろう」のレッスン 5「学習してかしこくしよう」（#2112）
+describe('lm course lesson 5 "学習してかしこくしよう" (#2112)', () => {
+    const LM_L5 = ['lm-l5-measure', 'lm-l5-reply', 'lm-l5-mine', 'lm-l5-review'];
+    const challenge = (id) => findChallenge(id).challenge;
+    const LOCALE_KEYS = ['ja', 'ja-Hira', 'en'];
+    const def = (code, name) =>
+        code.split(/\n\s*\n/).find((chunk) => chunk.startsWith(`without_screen_refresh def ${name}\n`));
+    const script = (code, hat) => {
+        const at = code.indexOf(hat);
+        return at < 0 ? null : code.slice(at, code.indexOf('\nend\n', at) + 5);
+    };
+    const startCode = (id) => localizeCode(challenge(id).setup.code, 'ja');
+    const answerCode = (id) => localizeCode(challenge(id).code, 'ja');
+
+    test('lesson 5 has the 4 challenges in order', () => {
+        expect(ja[findLesson('lm-l5').name.id]).toBe('学習してかしこくしよう');
+        expect(findLesson('lm-l5').challenges.map((c) => c.id)).toEqual(LM_L5);
+    });
+
+    test('every challenge starts with the finished AI of lesson 4 that continues the variable 書き出し', () => {
+        LM_L5.map(challenge).forEach((c) => {
+            expect(c.setup.sprites).toEqual(['Retro Robot']);
+            LOCALE_KEYS.forEach((locale) => {
+                const code = localizeCode(c.setup.code, locale);
+                expect((code.match(/^without_screen_refresh def /gm) || []).length).toBe(5);
+            });
+            const code = localizeCode(c.setup.code, 'ja');
+            expect(def(code, '文をつくる')).toContain('@文 = @書き出し\n');
+            expect(def(code, '文脈を作る')).toContain('@見る長さ.times do');
+            expect(script(code, 'when_flag_clicked do')).toBe(
+                'when_flag_clicked do\n  @見る長さ = 2\n  学習する\nend\n',
+            );
+            expect(script(code, 'when_clicked do')).toBe(
+                'when_clicked do\n  ask("書き出しを入れてね")\n  @書き出し = answer\n  文をつくる\n  say(@文)\nend\n',
+            );
+            expect(c.setup.warpProcedures).toEqual(expect.arrayContaining(['文脈を作る', 'make_context', 'learn']));
+            expect(c.setup.lists.find((l) => l.name.ja === '教科書').items).toBe(LM_TEXTBOOK);
+            expect(c.setup.lists.find((l) => l.name.ja === 'テスト').items).toBe(LM_PROMPTS);
+            expect(c.setup.lists.filter((l) => l.monitor)).toEqual([]);
+        });
+        // レッスン 4 は「答え」から作るまま（変数「書き出し」はレッスン 5 から）
+        expect(def(localizeCode(challenge('lm-l4-continue').code, 'ja'), '文をつくる')).toContain('@文 = answer\n');
+        expect(challenge('lm-l4-continue').setup.lists.map((l) => l.name.ja)).not.toContain('テスト');
+    });
+
+    test('5-1 starts with the t key script without the count and the answer counts the sentences that end', () => {
+        expect(script(startCode('lm-l5-measure'), 'when_key_pressed("t") do')).toBe(
+            'when_key_pressed("t") do\n  @続いた数 = 0\n  @何問目 = 1\n  until @何問目 > @テスト.length\n' +
+                '    @書き出し = @テスト[@何問目 - 1]\n    文をつくる\n    @何問目 += 1\n  end\n  say(@続いた数)\nend\n',
+        );
+        expect(script(answerCode('lm-l5-measure'), 'when_key_pressed("t") do')).toContain(
+            '    文をつくる\n    if @文字 == "。"\n      @続いた数 += 1\n    end\n    @何問目 += 1\n',
+        );
+        expect(script(localizeCode(challenge('lm-l5-measure').code, 'en'), 'when_key_pressed("t") do')).toContain(
+            'if @letter == "."',
+        );
+        // a キー（教科書に足して学習し直す）もある
+        expect(startCode('lm-l5-measure')).toContain('when_key_pressed("a") do');
+    });
+
+    test('5-1 passes only when the count went up from the first textbook after adding a sentence', () => {
+        const [uses, list, variable] = challenge('lm-l5-measure').goal;
+        expect(uses).toEqual(expect.objectContaining({ trigger: { hat: 'event_whenkeypressed', key: 't' } }));
+        expect(list.length).toEqual({ gte: LM_TEXTBOOK.ja.length + 1 });
+        expect(variable.name).toEqual(['続いた数', 'つづいたかず', 'finished']);
+        expect(variable.value).toEqual({ gt: LM_PROMPTS_CONTINUED, lte: 10 });
+    });
+
+    test('5-2 joins the question and the reply into 1 sentence and the robot replies to the taught question', () => {
+        const start = script(startCode('lm-l5-reply'), 'when_key_pressed("b") do');
+        expect(start).toBe(
+            'when_key_pressed("b") do\n  ask("質問を入れてね")\n  @質問 = answer\n  ask("返事を入れてね")\nend\n',
+        );
+        expect(script(answerCode('lm-l5-reply'), 'when_key_pressed("b") do')).toBe(
+            'when_key_pressed("b") do\n  ask("質問を入れてね")\n  @質問 = answer\n  ask("返事を入れてね")\n' +
+                '  @教科書.push(@質問 + answer)\n  学習する\nend\n',
+        );
+        const said = challenge('lm-l5-reply').goal.find((g) => g.type === 'said');
+        expect(said).toEqual(
+            expect.objectContaining({
+                startsWithAnswer: true,
+                variable: { name: ['質問', 'しつもん', 'question'], equalsAnswer: true },
+                learned: expect.objectContaining({ length: { variable: ['見る長さ', 'みるながさ', 'look_length'] } }),
+            }),
+        );
+    });
+
+    // 5-2 のクイズ: 「好きな食べ物は？カレーです。」だけを教えると、「好きな色は？」の続きも「カレーです。」になる
+    test.each([
+        ['ja', '好きな食べ物は？カレーです。', '好きな色は？'],
+        ['ja-Hira', 'すきなたべものは？カレーです。', 'すきないろは？'],
+        ['en', 'Your food?Curry.', 'Your mood?'],
+    ])('the quiz of 5-2 (%s): the reply to another question can be the taught one', (locale, taught, asked) => {
+        const pairs = pairsOf([...LM_TEXTBOOK[locale], taught], 2);
+        const candidates = candidatesFor(
+            pairs.map(([b]) => b),
+            pairs.map(([, a]) => a),
+            asked,
+            2,
+        );
+        expect(candidates).toEqual([taught[taught.search(/[?？]/) + 1]]);
+        const quiz = challenge('lm-l5-reply').quiz;
+        expect(LOCALES[locale][quiz.question.id]).toContain(asked);
+    });
+
+    test('5-3 is the own work: all the scripts are in, the palette is not limited and the goal is small', () => {
+        const c = challenge('lm-l5-mine');
+        expect(c.allowedBlocks).toBeNull();
+        ['when_key_pressed("a") do', 'when_key_pressed("b") do', 'when_key_pressed("t") do'].forEach((hat) =>
+            expect(startCode('lm-l5-mine')).toContain(hat),
+        );
+        expect(c.goal.map((g) => g.type)).toEqual(['list', 'uses', 'uses']);
+    });
+
+    test('5-4 has no blocks to make and passes when the robot continued a start', () => {
+        const c = challenge('lm-l5-review');
+        expect(startCode('lm-l5-review')).toBe(answerCode('lm-l5-review'));
+        expect(c.goal).toEqual([expect.objectContaining({ type: 'said', startsWithAnswer: true })]);
+    });
+
+    test('the hint pages: the Ruby page comes right before the page to try it and is part of the answer', () => {
+        LM_L5.map(challenge).forEach((c) => {
+            const kinds = c.steps.map((s) => s.kind || null);
+            expect({ id: c.id, ruby: kinds.indexOf(RUBY_STEP_KIND) }).toEqual({ id: c.id, ruby: c.steps.length - 2 });
+            const rubyStep = c.steps[c.steps.length - 2];
+            expect(rubyStep.target).toBe(HINT_TARGETS.RUBY_TAB);
+            LOCALE_KEYS.forEach((locale) =>
+                expect(localizeCode(c.code, locale)).toContain(localizeCode(rubyStep.blocks, locale)),
+            );
+        });
+    });
+
+    test('the goals pass validateGoal and every challenge has a quiz', () => {
+        LM_L5.map(challenge).forEach((c) => {
+            expect({ id: c.id, errors: validateGoal(c.goal) }).toEqual({ id: c.id, errors: [] });
+            expect({ id: c.id, errors: validateQuiz(c.quiz) }).toEqual({ id: c.id, errors: [] });
+        });
+    });
+
+    test('the right answers of the quizzes', () => {
+        const quizAnswer = (id) => {
+            const quiz = challenge(id).quiz;
+            return ja[quiz.choices[quiz.answer].id];
+        };
+        expect(quizAnswer('lm-l5-measure')).toBe('増えるか、同じまま（減らない）');
+        expect(quizAnswer('lm-l5-reply')).toContain('それらしいけれどまちがった返事');
+        expect(quizAnswer('lm-l5-mine')).toContain('重み');
+        expect(quizAnswer('lm-l5-review')).toContain('トークン');
+    });
+
+    test('the debug tips name the starts that do not continue with the first textbook', () => {
+        const stuck = (locale) =>
+            LM_PROMPTS[locale].filter((prompt) => {
+                const pairs = pairsOf(LM_TEXTBOOK[locale], 2);
+                return (
+                    candidatesFor(
+                        pairs.map(([b]) => b),
+                        pairs.map(([, a]) => a),
+                        prompt,
+                        2,
+                    ).length === 0
+                );
+            });
+        LOCALE_KEYS.forEach((locale) => {
+            const tip = LOCALES[locale]['gui.lessons.challenge.lm-l5-measure.debug2'];
+            stuck(locale).forEach((prompt) =>
+                expect({ locale, tip }).toEqual({ locale, tip: expect.stringContaining(prompt) }),
+            );
+            expect(LM_PROMPTS[locale].length - stuck(locale).length).toBe(LM_PROMPTS_CONTINUED);
+        });
+    });
+
+    test('every string of lesson 5 is in the 3 locales and ja-Hira has no kanji', () => {
+        const ids = Object.keys(ja).filter((id) => /^gui\.lessons\.(lesson\.lm-l5|challenge\.lm-l5-)/.test(id));
+        expect(ids.length).toBeGreaterThan(50);
+        ids.forEach((id) => {
+            expect({ id, en: typeof en[id] }).toEqual({ id, en: 'string' });
+            expect({ id, jaHira: typeof jaHira[id] }).toEqual({ id, jaHira: 'string' });
+            expect({ id, text: jaHira[id] }).not.toEqual({ id, text: expect.stringMatching(/\p{Script=Han}/u) });
+        });
+        LM_L5.forEach((id) => {
             expect(localizeCode(challenge(id).code, 'ja-Hira')).not.toMatch(/\p{Script=Han}/u);
             expect(localizeCode(challenge(id).setup.code, 'ja-Hira')).not.toMatch(/\p{Script=Han}/u);
         });

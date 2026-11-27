@@ -114,10 +114,11 @@ export const LM_TEXTBOOK = Object.freeze({
 /**
  * 5-1 で測る、決まった 10 の書き出し（locale ごと）。最初の教科書では、見る長さ 2 で文を続けられる（書き出しの
  * 最後の文脈を学習している）ものと、続けられないものが混ざるようにしてある。続けられないものは、生徒が文を足すと
- * 続けられるようになる（データを増やすとかしこくなる、を数で確かめる）。
+ * 続けられるようになる（データを増やすとかしこくなる、を数で確かめる）。続けられる数は 3 つの locale で同じ
+ * （`LM_PROMPTS_CONTINUED`。5-1 の判定は「それより増えた」を見るため）。
  */
 export const LM_PROMPTS = Object.freeze({
-    ja: Object.freeze(['こんに', 'おは', '今日は', 'ありが', 'また', '好きな', 'ぼくは', '明日は', 'ねこが', '雨の']),
+    ja: Object.freeze(['こんに', 'おは', '今日は', 'ありが', 'また', '好きな', 'ぼくは', '明日も', 'ねこが', '雨の']),
     'ja-Hira': Object.freeze([
         'こんに',
         'おは',
@@ -126,9 +127,12 @@ export const LM_PROMPTS = Object.freeze({
         'また',
         'すきな',
         'ぼくは',
-        'あしたは',
+        'あしたも',
         'ねこが',
         'あめの',
     ]),
     en: Object.freeze(['Hel', 'Good m', 'Today', 'Thank', 'See', 'My fav', 'Pizza', 'Tomor', 'The fox', 'Jazz']),
 });
+
+/** 最初の教科書で、見る長さ 2 で続けられる書き出しの数（どの locale も同じ。5-1 の判定はこれより増えたかを見る）。 */
+export const LM_PROMPTS_CONTINUED = 7;

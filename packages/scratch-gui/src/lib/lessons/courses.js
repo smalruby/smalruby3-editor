@@ -5,7 +5,7 @@ import { HINT_TARGETS } from './hint-targets';
 import arrowKeysImage from './images/arrow-keys.svg';
 import { ROLE_STEP_KIND } from './lesson-role';
 import { ja } from './lessons.locale';
-import { LM_TEXTBOOK } from './lm-textbook';
+import { LM_PROMPTS, LM_PROMPTS_CONTINUED, LM_TEXTBOOK } from './lm-textbook';
 import { applyChallengeMode } from './read-diagram';
 
 /** コースの言語。言語の中にコースが並ぶ。 */
@@ -2912,6 +2912,13 @@ const LM_WORDS = {
         span: '見る長さ',
         makeContext: '文脈を作る',
         start: '書き出しを入れてね',
+        opening: '書き出し',
+        tests: 'テスト',
+        testNo: '何問目',
+        finished: '続いた数',
+        question: '質問',
+        askQuestion: '質問を入れてね',
+        askReply: '返事を入れてね',
     },
     'ja-Hira': {
         textbook: 'きょうかしょ',
@@ -2936,6 +2943,13 @@ const LM_WORDS = {
         span: 'みるながさ',
         makeContext: 'ぶんみゃくをつくる',
         start: 'かきだしを いれてね',
+        opening: 'かきだし',
+        tests: 'テスト',
+        testNo: 'なんもんめ',
+        finished: 'つづいたかず',
+        question: 'しつもん',
+        askQuestion: 'しつもんを いれてね',
+        askReply: 'へんじを いれてね',
     },
     en: {
         textbook: 'textbook',
@@ -2961,6 +2975,13 @@ const LM_WORDS = {
         span: 'look_length',
         makeContext: 'make_context',
         start: 'Enter the start of a sentence',
+        opening: 'opening',
+        tests: 'tests',
+        testNo: 'test_no',
+        finished: 'finished',
+        question: 'question',
+        askQuestion: 'Enter a question',
+        askReply: 'Enter the reply',
     },
 };
 const lmCode = (make) => Object.fromEntries(Object.entries(LM_WORDS).map(([locale, w]) => [locale, make(w)]));
@@ -3054,10 +3075,12 @@ const lmCollectDef = (w, stage = 'all', look = null) =>
 // 'empty' = 中身が空（3-2 の始め）
 const lmPickDef = (w, stage = 'all') =>
     lmDef(w.pick, stage === 'empty' ? [] : [`@${w.letter} = @${w.candidates}[rand(1..@${w.candidates}.length) - 1]`]);
-// `from` = 'answer' なら、入力した答え（書き出し）の続きを作る（4-3 から）
+// `from` = 'answer' なら、入力した答え（書き出し）の続きを作る（4-3）。'opening' なら変数「書き出し」の続きを作る
+// （レッスン 5。答えのほかに、決まった書き出しのリスト「テスト」からも続きを作って測るため）
+const LM_MAKE_FROM = { answer: () => 'answer', opening: (w) => `@${w.opening}` };
 const lmMakeDef = (w, stage = 'all', from = null) =>
     lmDef(w.make, [
-        `@${w.text} = ${from === 'answer' ? 'answer' : '""'}`,
+        `@${w.text} = ${from ? LM_MAKE_FROM[from](w) : '""'}`,
         `@${w.letter} = ""`,
         w.collect,
         ...lmMakeLoop(w, stage),
@@ -3087,7 +3110,8 @@ const lmContextDef = (w, look, stage = 'all') =>
  * @param {object} w - locale の名前（`LM_WORDS` の 1 つ）。
  * @param {object} [stages] - 定義ブロックごとの中身の段（`learn` / `collect` / `pick` / `make` / `context`。省くと
  *     'all'）と、レッスン 4 の形（`look` = 文脈の長さ（数か 'span' = 変数「見る長さ」。省くとレッスン 1〜3 の形）、
- *     `span` = 旗で「見る長さ」にする数（省くと旗で決めない）、`from` = 'answer' なら入力した書き出しの続きを作る）。
+ *     `span` = 旗で「見る長さ」にする数（省くと旗で決めない）、`from` = 'answer' / 'opening' なら入力した書き出し・
+ *     変数「書き出し」の続きを作る（`lmMakeDef`）、`tests` = リスト「テスト」（5-1 の決まった書き出し）を入れる）。
  * @returns {string} Ruby。
  */
 const lmAiCode = (w, stages = {}) => {
@@ -3122,12 +3146,13 @@ const lmProgram = (...scripts) => lmProgramWith({}, ...scripts);
 // 始めるとき: ネコを Retro Robot にし、AI と教科書を入れる。`monitors` はモニターを出すリスト（ステージが狭いので
 // 1-2 の教科書と、1-3・2-2 の「まえ」「つぎ」だけ）。`stages` は定義ブロックごとの中身の段とレッスン 4 の形（`lmAiCode`）
 const LM_LIST_KEYS = ['textbook', 'before', 'after', 'candidates'];
+const LM_LIST_ITEMS = { textbook: LM_TEXTBOOK, tests: LM_PROMPTS };
 const lmSetup = (scripts, monitors = [], stages = {}) => ({
     sprites: ['Retro Robot'],
     code: lmProgramWith(stages, ...scripts),
-    lists: LM_LIST_KEYS.map((key) => ({
+    lists: [...LM_LIST_KEYS, ...(stages.tests ? ['tests'] : [])].map((key) => ({
         name: lmLocalized(key),
-        items: key === 'textbook' ? LM_TEXTBOOK : [],
+        items: LM_LIST_ITEMS[key] || [],
         monitor: monitors.includes(key),
     })),
     warpProcedures: ['learn', 'collect', 'pick', 'make', ...(stages.look ? ['makeContext'] : [])].flatMap(lmNames),
@@ -3729,6 +3754,195 @@ const lmLesson4 = defineLesson({
     ],
 });
 
+// レッスン 5「学習してかしこくしよう」（#2112）: データを増やすとかしこくなることを確かめる。どのチャレンジも、できあがりの
+// AI（5 つの定義ブロック・見る長さ 2）で始め、「文をつくる」は変数「書き出し」の続きを作る（ロボットを押すと書き出しを聞いて
+// 「書き出し」に入れる。5-1 は決まった書き出しのリスト「テスト」からも作るため、答えではなく変数から始める）。
+// 5-1 は「テスト」の 10 の書き出しのうち文の終わりまで続いた数を測り、文を足して測り直す。5-2 は質問と返事を 1 文にして
+// 教え、質問すると返事を続ける。5-3 は自分の AI（作品）、5-4 はふりかえり（クイズ）
+const LM_L5 = { look: 'span', span: 2, from: 'opening', tests: true };
+// ロボットを押したら書き出しを聞き、その続きを作って言う（4-3 の答えを、変数「書き出し」から作る形にしたもの）
+const lmOpeningScript = (w) =>
+    `when_clicked do\n  ask("${w.start}")\n  @${w.opening} = answer\n  ${w.make}\n  say(@${w.text})\nend\n`;
+// 5-1: t キーで「テスト」の書き出しを 1 つずつ「書き出し」にして文を作り、文の終わりの文字まで行った数を数えて言う。
+// `count` = false なら数えるところ（「もし 文字 = 。 なら 続いた数を 1 ずつ変える」）が無い（5-1 の始め）
+const lmMeasureScript =
+    (count = true) =>
+    (w) =>
+        [
+            'when_key_pressed("t") do',
+            `  @${w.finished} = 0`,
+            `  @${w.testNo} = 1`,
+            `  until @${w.testNo} > @${w.tests}.length`,
+            `    @${w.opening} = @${w.tests}[@${w.testNo} - 1]`,
+            `    ${w.make}`,
+            ...(count ? [`    if @${w.letter} == "${w.end}"`, `      @${w.finished} += 1`, '    end'] : []),
+            `    @${w.testNo} += 1`,
+            '  end',
+            `  say(@${w.finished})`,
+            'end',
+            '',
+        ].join('\n');
+// 5-1 のヒントの絵（くり返しの中の数えるところ）
+const lmCountIf = (w) => `if @${w.letter} == "${w.end}"\n  @${w.finished} += 1\nend\n`;
+// 5-2: b キーで質問と返事を聞き、つなげて 1 文にして教科書に足し、学習し直す。`teach` = false なら足すところが無い（5-2 の始め）
+const lmQuestionScript =
+    (teach = true) =>
+    (w) =>
+        [
+            'when_key_pressed("b") do',
+            `  ask("${w.askQuestion}")`,
+            `  @${w.question} = answer`,
+            `  ask("${w.askReply}")`,
+            ...(teach ? [`  @${w.textbook}.push(@${w.question} + answer)`, `  ${w.learn}`] : []),
+            'end',
+            '',
+        ].join('\n');
+const lmKeyT = { hat: 'event_whenkeypressed', key: 't' };
+const lmKeyB = { hat: 'event_whenkeypressed', key: 'b' };
+// レッスン 5 のヒントで見せる「文をつくる」「学習する」の中のブロックも、パレットから消さない
+const LM_L5_DATA = ['data_variable', 'data_setvariableto', 'data_changevariableby', 'data_lengthoflist'];
+// 5-3・5-4 の始め: 5-1・5-2 の答えのスクリプトが全部ある
+const LM_L5_ALL_SCRIPTS = [lmOpeningScript, lmTeachScript, lmMeasureScript(), lmQuestionScript()];
+
+const lmLesson5 = defineLesson({
+    id: 'lm-l5',
+    challenges: [
+        // 5-1 AI のかしこさを測ろう: t キーで 10 の書き出しから文を作るスクリプトはある。文の終わりの文字まで行った数を
+        // 「続いた数」で数え、続かなかった書き出しで始まる文を教科書に足して（a キー）、測り直すと数が増えるのを確かめる
+        {
+            id: 'lm-l5-measure',
+            card: { category: CATEGORIES.VARIABLES, main: CATEGORIES.VARIABLES },
+            task: challengeMessage('lm-l5-measure', 'task'),
+            setup: lmSetup([lmOpeningScript, lmTeachScript, lmMeasureScript(false)], [], LM_L5),
+            allowedBlocks: {
+                control: ['control_if'],
+                operators: [{ opcode: 'operator_equals', inputs: { OPERAND2: lmLocalized('end') } }],
+                ...LM_PALETTE_CALL,
+                data: LM_L5_DATA,
+            },
+            steps: withTitles('lm-l5-measure', [
+                { target: HINT_TARGETS.CODE_AREA, blocks: lmCode(lmMeasureScript(false)) },
+                { target: HINT_TARGETS.PALETTE, blocks: lmCode(lmCountIf) },
+                { kind: RUBY_STEP_KIND, target: HINT_TARGETS.RUBY_TAB, blocks: lmCode(lmMeasureScript()) },
+                { target: HINT_TARGETS.KEYBOARD },
+            ]),
+            debug: debugTips('lm-l5-measure', 2),
+            // t キーのスクリプトで 10 の書き出しから文を作って数え、教科書を足して学習し直したあと、続いた数が最初の教科書
+            // （どの locale も 7）より増えた（文を足さずに測っただけでは通さない）。「もし」の数は見ない（「こうほを集める」の
+            // 「もし」が同じスレッドで動くので、生徒の「もし」が無くても数が足りてしまう。数えたかは「続いた数」の値で見る）
+            goal: [
+                { type: 'uses', trigger: lmKeyT, together: true, blocks: [lmCall('make', LM_PROMPTS.ja.length)] },
+                { type: 'list', name: lmNames('textbook'), length: { gte: LM_TEXTBOOK.ja.length + 1 } },
+                {
+                    type: 'variable',
+                    name: lmNames('finished'),
+                    value: { gt: LM_PROMPTS_CONTINUED, lte: LM_PROMPTS.ja.length },
+                },
+            ],
+            quiz: challengeQuiz('lm-l5-measure', 0),
+            code: lmProgramWith(LM_L5, lmOpeningScript, lmTeachScript, lmMeasureScript()),
+        },
+        // 5-2 質問に返事をしよう: b キーで質問と返事を聞くスクリプトはある。質問と返事をつなげて 1 文にして教科書に足し、
+        // 学習し直す。ロボットに同じ質問をすると、AI が続き（返事）を作る
+        {
+            id: 'lm-l5-reply',
+            card: { category: CATEGORIES.VARIABLES, main: CATEGORIES.LISTS },
+            task: challengeMessage('lm-l5-reply', 'task'),
+            setup: lmSetup([lmOpeningScript, lmQuestionScript(false)], [], LM_L5),
+            allowedBlocks: {
+                operators: ['operator_join'],
+                sensing: ['sensing_answer'],
+                ...LM_PALETTE_CALL,
+                data: [...LM_L5_DATA, 'data_addtolist'],
+            },
+            steps: withTitles('lm-l5-reply', [
+                { target: HINT_TARGETS.CODE_AREA, blocks: lmCode(lmQuestionScript(false)) },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: lmCode((w) => `@${w.textbook}.push(@${w.question} + answer)\n${w.learn}\n`),
+                },
+                { kind: RUBY_STEP_KIND, target: HINT_TARGETS.RUBY_TAB, blocks: lmCode(lmQuestionScript()) },
+                { target: HINT_TARGETS.STAGE },
+            ]),
+            debug: debugTips('lm-l5-reply', 2),
+            // b キーで質問と返事をつなげて教科書に足してから学習し直し、ロボットに教えた質問（最後に教えたもの）をすると、
+            // 質問で始まり、続き（返事）が学習した組だけでできた文を言った
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: lmKeyB,
+                    together: true,
+                    blocks: ['data_addtolist', 'operator_join', lmCall('learn')],
+                    order: ['data_addtolist', 'procedures_call'],
+                },
+                { type: 'list', name: lmNames('textbook'), length: { gte: LM_TEXTBOOK.ja.length + 1 } },
+                {
+                    type: 'said',
+                    trigger: lmClicked,
+                    startsWithAnswer: true,
+                    variable: { name: lmNames('question'), equalsAnswer: true },
+                    learned: { ...LM_LISTS, length: LM_SPAN_LENGTH },
+                },
+            ],
+            quiz: challengeQuiz('lm-l5-reply', 1),
+            code: lmProgramWith(LM_L5, lmOpeningScript, lmQuestionScript()),
+        },
+        // 5-3 自分の AI をつくろう（作品）: 教科書に自分の文を足し、見る長さや話し方を工夫する。判定は最低限（自分の文を
+        // 足して学習し直し、ロボットが文を作った）。提出は段 2 の「作品の提出もする」課題の仕組みで出す。パレットはしぼらない
+        {
+            id: 'lm-l5-mine',
+            card: { category: CATEGORIES.VARIABLES, main: CATEGORIES.VARIABLES },
+            task: challengeMessage('lm-l5-mine', 'task'),
+            setup: lmSetup(LM_L5_ALL_SCRIPTS, [], LM_L5),
+            steps: withTitles('lm-l5-mine', [
+                { target: HINT_TARGETS.CODE_AREA },
+                { target: HINT_TARGETS.CODE_AREA, blocks: lmSpanFlagScript(3) },
+                { kind: RUBY_STEP_KIND, target: HINT_TARGETS.RUBY_TAB, blocks: lmCode(lmOpeningScript) },
+                { target: HINT_TARGETS.STAGE },
+            ]),
+            debug: debugTips('lm-l5-mine', 2),
+            goal: [
+                { type: 'list', name: lmNames('textbook'), length: { gte: LM_TEXTBOOK.ja.length + 1 } },
+                { type: 'uses', blocks: [lmCall('learn')] },
+                { type: 'uses', trigger: lmClicked, together: true, blocks: [lmCall('make'), 'looks_say'] },
+            ],
+            quiz: challengeQuiz('lm-l5-mine', 2),
+            code: lmProgramWith(LM_L5, ...LM_L5_ALL_SCRIPTS),
+        },
+        // 5-4 ふりかえろう: ブロックは作らない。ヒントで、この AI と生成 AI のちがい（トークン・重み・データの量・それらしい
+        // まちがい）を読み、ロボットに文を作らせてからクイズに答える（「できた」の判定が無いと、レッスンの ✓ が付かないため、
+        // 文を作って言ったことだけを見る）
+        {
+            id: 'lm-l5-review',
+            card: { category: CATEGORIES.VARIABLES, main: CATEGORIES.VARIABLES },
+            task: challengeMessage('lm-l5-review', 'task'),
+            setup: lmSetup(LM_L5_ALL_SCRIPTS, [], LM_L5),
+            // ヒントで見せるロボットのスクリプトのブロック（「書き出し」を答えにする）も、パレットから消さない
+            allowedBlocks: { ...LM_PALETTE_CALL, data: ['data_variable', 'data_setvariableto'] },
+            // 読むだけの 3 ページは課題バーを指す（生成 AI とくらべる、という課題の話）
+            steps: withTitles('lm-l5-review', [
+                { target: HINT_TARGETS.TASK_BAR },
+                { target: HINT_TARGETS.TASK_BAR },
+                { target: HINT_TARGETS.TASK_BAR },
+                { kind: RUBY_STEP_KIND, target: HINT_TARGETS.RUBY_TAB, blocks: lmCode(lmOpeningScript) },
+                { target: HINT_TARGETS.STAGE },
+            ]),
+            debug: debugTips('lm-l5-review', 1),
+            // ロボットを押して、書き出しの続き（学習した組だけ）を文の終わりの文字まで作って言った
+            goal: [
+                {
+                    ...LM_SAID_SENTENCE,
+                    trigger: lmClicked,
+                    startsWithAnswer: true,
+                    learned: { ...LM_LISTS, length: LM_SPAN_LENGTH },
+                },
+            ],
+            quiz: challengeQuiz('lm-l5-review', 1),
+            code: lmProgramWith(LM_L5, ...LM_L5_ALL_SCRIPTS),
+        },
+    ],
+});
+
 export const COURSES = [
     defineCourse({
         id: 'kyou-kara-programmer',
@@ -3744,7 +3958,7 @@ export const COURSES = [
     defineCourse({
         id: 'kotoba-yosou-ai',
         language: LANGUAGES.BLOCKS,
-        lessons: [lmLesson1, lmLesson2, lmLesson3, lmLesson4],
+        lessons: [lmLesson1, lmLesson2, lmLesson3, lmLesson4, lmLesson5],
     }),
 ];
 
