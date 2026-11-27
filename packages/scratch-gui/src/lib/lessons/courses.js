@@ -3828,17 +3828,10 @@ const lmLesson5 = defineLesson({
             ]),
             debug: debugTips('lm-l5-measure', 2),
             // t キーのスクリプトで 10 の書き出しから文を作って数え、教科書を足して学習し直したあと、続いた数が最初の教科書
-            // （どの locale も 7）より増えた（文を足さずに測っただけでは通さない）
+            // （どの locale も 7）より増えた（文を足さずに測っただけでは通さない）。「もし」の数は見ない（「こうほを集める」の
+            // 「もし」が同じスレッドで動くので、生徒の「もし」が無くても数が足りてしまう。数えたかは「続いた数」の値で見る）
             goal: [
-                {
-                    type: 'uses',
-                    trigger: lmKeyT,
-                    together: true,
-                    blocks: [
-                        lmCall('make', LM_PROMPTS.ja.length),
-                        { opcode: 'control_if', count: LM_PROMPTS.ja.length },
-                    ],
-                },
+                { type: 'uses', trigger: lmKeyT, together: true, blocks: [lmCall('make', LM_PROMPTS.ja.length)] },
                 { type: 'list', name: lmNames('textbook'), length: { gte: LM_TEXTBOOK.ja.length + 1 } },
                 {
                     type: 'variable',
