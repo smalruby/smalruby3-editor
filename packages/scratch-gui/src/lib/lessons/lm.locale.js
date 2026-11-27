@@ -290,6 +290,94 @@ export const ja = {
     [`${C}lm-l4-continue.quiz.choice3`]: '書き出しのまま（続きを作れない）',
     [`${C}lm-l4-continue.quiz.explanation`]:
         '書き出しの最後の文脈が「まえ」に無いので、「こうほ」が空になり、くり返しがすぐ終わります。AI は学習した組の続きしか作れません。データを増やすと、続けられる書き出しが増えます（レッスン 5）。',
+    'gui.lessons.lesson.lm-l5.name': '学習してかしこくしよう',
+
+    [`${C}lm-l5-measure.name`]: 'AI のかしこさを測ろう',
+    [`${C}lm-l5-measure.task`]:
+        'AI のかしこさを数で測ろう。\n「t」キーを押すと、リスト「テスト」の 10 の書き出しの続きを 1 つずつ作ります。文の終わりの「。」まで続いた数を、変数「続いた数」で数えよう。\nそのあと、続かなかった書き出し（「ぼくは」など）で始まる文を「a」キーで教科書に足して、もう一度測ろう。数は増えるかな？',
+    [`${C}lm-l5-measure.step1`]:
+        '「t」キーのスクリプトは、もう入っています。「テスト」の書き出しを 1 つずつ「書き出し」にして「文をつくる」を呼び、最後に「続いた数」を言います。いまは数えるところが無いので、いつも 0 を言います。',
+    [`${C}lm-l5-measure.step2`]:
+        '「文をつくる」の下（「(何問目) を (1) ずつ変える」の上）に、「制御」の「もし 〜 なら」を入れよう。穴に「演算」の「( ) = (。)」を入れ、左に「変数」の「文字」を入れよう。「もし」の中に「(続いた数) を (1) ずつ変える」を入れよう。最後にえらんだ文字が「。」なら、文の終わりまで続いたということです。',
+    [`${C}lm-l5-measure.step3`]:
+        'Ruby で読むと、こうなります。「もし (文字) = (。) なら」は「if @文字 == "。"」、「(続いた数) を (1) ずつ変える」は「@続いた数 += 1」です。',
+    [`${C}lm-l5-measure.step4`]:
+        '旗を押してから「t」キーを押そう。10 のうちいくつ続いたかな？ 次に「a」キーを押して「ぼくは」で始まる文（「ぼくはカレーが好きです。」など）を足し、もう一度「t」キーを押そう。',
+    [`${C}lm-l5-measure.debug1`]:
+        '「もし」が「文をつくる」の下にあるか見よう。上にあると、前の書き出しで作った文の文字を見てしまいます。',
+    [`${C}lm-l5-measure.debug2`]:
+        '数が増えないときは、足した文が続かなかった書き出し（「ぼくは」「ねこが」「雨の」）で始まっているか見よう。ほかの文を足しても、その書き出しの続きは学習しません。',
+    [`${C}lm-l5-measure.quiz.question`]: '教科書に文を足して学習し直すと、「続いた数」はどうなる？',
+    [`${C}lm-l5-measure.quiz.choice1`]: '増えるか、同じまま（減らない）',
+    [`${C}lm-l5-measure.quiz.choice2`]: '減る',
+    [`${C}lm-l5-measure.quiz.choice3`]: '毎回ばらばらに変わる',
+    [`${C}lm-l5-measure.quiz.explanation`]:
+        '文を足すと、学習した組が増えるだけで、前の組は消えません。だから、続けられた書き出しはそのまま続けられ、新しい書き出しも続けられるようになります。生成 AI も、とてもたくさんの文（データ）で学習するほど、いろいろな続きを作れるようになります。',
+
+    [`${C}lm-l5-reply.name`]: '質問に返事をしよう',
+    [`${C}lm-l5-reply.task`]:
+        '質問すると返事をする AI にしよう。\n「b」キーを押すと、質問と返事を聞きます。2 つをつなげて 1 つの文にして教科書に足し、学習し直そう。\nそのあとロボットを押して、同じ質問を入れると、AI が返事を続けるかな？',
+    [`${C}lm-l5-reply.step1`]:
+        '「b」キーのスクリプトは、質問を聞いて「質問」に入れ、返事を聞くところまで入っています。質問は「好きな食べ物は？」のように「？」で終え、返事は「カレーです。」のように「。」で終えよう。',
+    [`${C}lm-l5-reply.step2`]:
+        '「(返事を入れてね) と聞いて待つ」の下に、「変数」の「(なにか) を (教科書) に追加する」をつなげ、「なにか」に「演算」の「(りんご) と (バナナ)」を入れよう。「りんご」に「質問」、「バナナ」に「調べる」の「答え」を入れよう。その下に「学習する」をつなげよう。',
+    [`${C}lm-l5-reply.step3`]:
+        'Ruby で読むと、こうなります。質問と返事は「@質問 + answer」で 1 つの文になり、教科書の最後に足されます。',
+    [`${C}lm-l5-reply.step4`]:
+        '旗を押してから「b」キーを押して、質問と返事を教えよう。次にロボットを押して、同じ質問（「好きな食べ物は？」）を入れよう。AI が質問の続きに返事を作ります。',
+    [`${C}lm-l5-reply.debug1`]:
+        'ロボットに入れた質問が、「b」キーで教えた質問と同じか見よう。ちがう質問だと、教えた返事を続けるとはかぎりません。',
+    [`${C}lm-l5-reply.debug2`]:
+        '「学習する」が「追加する」の下にあるか見よう。学習し直さないと、AI は足した文を知りません。',
+    [`${C}lm-l5-reply.quiz.question`]:
+        '「好きな食べ物は？カレーです。」だけを教えて、「好きな色は？」と質問すると、AI はどうなることがある？',
+    [`${C}lm-l5-reply.quiz.choice1`]: '「わかりません」と言う',
+    [`${C}lm-l5-reply.quiz.choice2`]: '「好きな色は？カレーです。」のように、それらしいけれどまちがった返事をする',
+    [`${C}lm-l5-reply.quiz.choice3`]: '何も言わない',
+    [`${C}lm-l5-reply.quiz.explanation`]:
+        '「は？」の次は「カ」と学習したので、質問の意味がちがっても「カレーです。」と続けます。AI は意味を考えずに、学習した組から次の文字を予想するだけなので、正しそうに見えてまちがった答えを作ることがあります。生成 AI にも同じことが起きるので、答えが正しいか自分で確かめよう。',
+
+    [`${C}lm-l5-mine.name`]: '自分の AI をつくろう',
+    [`${C}lm-l5-mine.task`]:
+        '自分だけの AI をつくろう。\n教科書に自分の文や質問と返事を足して学習し直し、ロボットに話しかけてみよう。見る長さを変えたり、ブロックを足したりして工夫しよう。\nできたら作品を保存しよう（クラスの課題なら提出しよう）。',
+    [`${C}lm-l5-mine.step1`]:
+        '「a」キーで自分の文を、「b」キーで質問と返事を、教科書に足そう。たとえば、自分の好きなことや、よく言うあいさつです。',
+    [`${C}lm-l5-mine.step2`]:
+        '旗のスクリプトの「見る長さ」を 1・2・3 に変えて、どの長さが自分の AI に合うかくらべよう。',
+    [`${C}lm-l5-mine.step3`]:
+        'Ruby で読むと、ロボットのスクリプトはこうなります。書き出しを聞いて「書き出し」に入れ、その続きを作って言います。',
+    [`${C}lm-l5-mine.step4`]: '旗を押してから、ロボットを押して話しかけよう。思ったとおりに続けるかな？',
+    [`${C}lm-l5-mine.debug1`]:
+        '文を足したら、旗を押すか「学習する」を呼んで、学習し直そう。学習し直さないと、AI は足した文を知りません。',
+    [`${C}lm-l5-mine.debug2`]: '続きが作れないときは、書き出しの最後の文字の組を教科書に足そう。',
+    [`${C}lm-l5-mine.quiz.question`]: '生成 AI は、この AI のように組を 1 行ずつ全部覚えるかわりに、どうしている？',
+    [`${C}lm-l5-mine.quiz.choice1`]: '教科書の文を全部そのまま覚えている',
+    [`${C}lm-l5-mine.quiz.choice2`]: '毎回、インターネットで同じ文を探している',
+    [`${C}lm-l5-mine.quiz.choice3`]: 'どの次が来やすいかを、たくさんの数（重み）にして覚えている',
+    [`${C}lm-l5-mine.quiz.explanation`]:
+        'この AI は、出てきた回数だけ組を 1 行ずつ足して、多い組をえらびやすくしています。生成 AI は、組を全部並べるかわりに、どれが来やすいかを「重み」というたくさんの数にして覚えています（ニューラルネットワーク）。そのため、教科書に無い文脈からでも続きを予想できます。',
+
+    [`${C}lm-l5-review.name`]: 'ふりかえろう',
+    [`${C}lm-l5-review.task`]:
+        'このコースで作った AI と、生成 AI をくらべよう。\nヒントを読んでから、ロボットを押して書き出しを入れ、AI に文を作らせよう。そのあとクイズに答えよう。',
+    [`${C}lm-l5-review.step1`]:
+        'データの量: この AI は 30 くらいの文で学習しました。文を足すと、続けられる書き出しが増えました（5-1）。生成 AI は、とてもたくさんの文で学習しています。',
+    [`${C}lm-l5-review.step2`]:
+        'それらしいまちがい: AI は意味を考えずに、学習した組から次を予想します。だから、正しそうに見えてまちがった文を作ることがあります（5-2）。',
+    [`${C}lm-l5-review.step3`]:
+        '重みとトークン: 生成 AI は、どれが来やすいかを「重み」という数にして覚え、1 文字ではなく言葉やその一部（トークン）ごとに次を予想します。でも、「前を見て次を予想し、それをくり返す」しくみは、この AI と同じです。',
+    [`${C}lm-l5-review.step4`]:
+        'Ruby で読むと、ロボットのスクリプトはこうなります。書き出しの続きを「文をつくる」で 1 文字ずつ予想して言います。',
+    [`${C}lm-l5-review.step5`]:
+        '旗を押してから、ロボットを押して書き出しを入れよう。AI が続きを作ったら、クイズに答えよう。',
+    [`${C}lm-l5-review.debug1`]:
+        'ロボットを押したら、何か書き出しを入れよう（「こんにちは」など）。空のままだと、判定に使う書き出しがありません。',
+    [`${C}lm-l5-review.quiz.question`]: '生成 AI が 1 回に予想する「次の 1 つ」は、どれに近い？',
+    [`${C}lm-l5-review.quiz.choice1`]: 'いつも 1 文字',
+    [`${C}lm-l5-review.quiz.choice2`]: '言葉やその一部（トークン）',
+    [`${C}lm-l5-review.quiz.choice3`]: 'いつも文 1 つぶん',
+    [`${C}lm-l5-review.quiz.explanation`]:
+        '生成 AI は、文を「トークン」という言葉やその一部のまとまりに分け、次のトークンを予想してつなげます。単位が 1 文字より大きいだけで、「前を見て次を予想する」のは、このコースで作った AI と同じです。',
 };
 
 export const jaHira = {
@@ -590,6 +678,98 @@ export const jaHira = {
     [`${C}lm-l4-continue.quiz.choice3`]: 'かきだしの まま（つづきを つくれない）',
     [`${C}lm-l4-continue.quiz.explanation`]:
         'かきだしの さいごの ぶんみゃくが「まえ」に ないので、「こうほ」が からに なり、くりかえしが すぐ おわります。AI は がくしゅうした くみの つづきしか つくれません。データを ふやすと、つづけられる かきだしが ふえます（レッスン 5）。',
+    'gui.lessons.lesson.lm-l5.name': 'がくしゅうして かしこく しよう',
+
+    [`${C}lm-l5-measure.name`]: 'AI の かしこさを はかろう',
+    [`${C}lm-l5-measure.task`]:
+        'AI の かしこさを かずで はかろう。\n「t」キーを おすと、リスト「テスト」の 10 の かきだしの つづきを 1 つずつ つくります。ぶんの おわりの「。」まで つづいた かずを、へんすう「つづいたかず」で かぞえよう。\nそのあと、つづかなかった かきだし（「ぼくは」など）で はじまる ぶんを「a」キーで きょうかしょに たして、もう いちど はかろう。かずは ふえるかな？',
+    [`${C}lm-l5-measure.step1`]:
+        '「t」キーの スクリプトは、もう はいって います。「テスト」の かきだしを 1 つずつ「かきだし」に して「ぶんをつくる」を よび、さいごに「つづいたかず」を いいます。いまは かぞえる ところが ないので、いつも 0 を いいます。',
+    [`${C}lm-l5-measure.step2`]:
+        '「ぶんをつくる」の した（「(なんもんめ) を (1) ずつ かえる」の うえ）に、「せいぎょ」の「もし 〜 なら」を いれよう。あなに「えんざん」の「( ) = (。)」を いれ、ひだりに「へんすう」の「もじ」を いれよう。「もし」の なかに「(つづいたかず) を (1) ずつ かえる」を いれよう。さいごに えらんだ もじが「。」なら、ぶんの おわりまで つづいた と いう ことです。',
+    [`${C}lm-l5-measure.step3`]:
+        'Ruby で よむと、こう なります。「もし (もじ) = (。) なら」は「if @もじ == "。"」、「(つづいたかず) を (1) ずつ かえる」は「@つづいたかず += 1」です。',
+    [`${C}lm-l5-measure.step4`]:
+        'はたを おしてから「t」キーを おそう。10 の うち いくつ つづいたかな？ つぎに「a」キーを おして「ぼくは」で はじまる ぶん（「ぼくはカレーがすきです。」など）を たし、もう いちど「t」キーを おそう。',
+    [`${C}lm-l5-measure.debug1`]:
+        '「もし」が「ぶんをつくる」の したに あるか みよう。うえに あると、まえの かきだしで つくった ぶんの もじを みて しまいます。',
+    [`${C}lm-l5-measure.debug2`]:
+        'かずが ふえない ときは、たした ぶんが つづかなかった かきだし（「ぼくは」「ねこが」「あめの」）で はじまって いるか みよう。ほかの ぶんを たしても、その かきだしの つづきは がくしゅうしません。',
+    [`${C}lm-l5-measure.quiz.question`]:
+        'きょうかしょに ぶんを たして がくしゅうしなおすと、「つづいたかず」は どう なる？',
+    [`${C}lm-l5-measure.quiz.choice1`]: 'ふえるか、おなじ まま（へらない）',
+    [`${C}lm-l5-measure.quiz.choice2`]: 'へる',
+    [`${C}lm-l5-measure.quiz.choice3`]: 'まいかい ばらばらに かわる',
+    [`${C}lm-l5-measure.quiz.explanation`]:
+        'ぶんを たすと、がくしゅうした くみが ふえる だけで、まえの くみは きえません。だから、つづけられた かきだしは そのまま つづけられ、あたらしい かきだしも つづけられるように なります。せいせい AI も、とても たくさんの ぶん（データ）で がくしゅうするほど、いろいろな つづきを つくれるように なります。',
+
+    [`${C}lm-l5-reply.name`]: 'しつもんに へんじを しよう',
+    [`${C}lm-l5-reply.task`]:
+        'しつもんすると へんじを する AI に しよう。\n「b」キーを おすと、しつもんと へんじを ききます。2 つを つなげて 1 つの ぶんに して きょうかしょに たし、がくしゅうしなおそう。\nそのあと ロボットを おして、おなじ しつもんを いれると、AI が へんじを つづけるかな？',
+    [`${C}lm-l5-reply.step1`]:
+        '「b」キーの スクリプトは、しつもんを きいて「しつもん」に いれ、へんじを きく ところまで はいって います。しつもんは「すきなたべものは？」のように「？」で おえ、へんじは「カレーです。」のように「。」で おえよう。',
+    [`${C}lm-l5-reply.step2`]:
+        '「(へんじを いれてね) と きいて まつ」の したに、「へんすう」の「(なにか) を (きょうかしょ) に ついかする」を つなげ、「なにか」に「えんざん」の「(りんご) と (バナナ)」を いれよう。「りんご」に「しつもん」、「バナナ」に「しらべる」の「こたえ」を いれよう。その したに「がくしゅうする」を つなげよう。',
+    [`${C}lm-l5-reply.step3`]:
+        'Ruby で よむと、こう なります。しつもんと へんじは「@しつもん + answer」で 1 つの ぶんに なり、きょうかしょの さいごに たされます。',
+    [`${C}lm-l5-reply.step4`]:
+        'はたを おしてから「b」キーを おして、しつもんと へんじを おしえよう。つぎに ロボットを おして、おなじ しつもん（「すきなたべものは？」）を いれよう。AI が しつもんの つづきに へんじを つくります。',
+    [`${C}lm-l5-reply.debug1`]:
+        'ロボットに いれた しつもんが、「b」キーで おしえた しつもんと おなじか みよう。ちがう しつもんだと、おしえた へんじを つづけるとは かぎりません。',
+    [`${C}lm-l5-reply.debug2`]:
+        '「がくしゅうする」が「ついかする」の したに あるか みよう。がくしゅうしなおさないと、AI は たした ぶんを しりません。',
+    [`${C}lm-l5-reply.quiz.question`]:
+        '「すきなたべものは？カレーです。」だけを おしえて、「すきないろは？」と しつもんすると、AI は どう なる ことが ある？',
+    [`${C}lm-l5-reply.quiz.choice1`]: '「わかりません」と いう',
+    [`${C}lm-l5-reply.quiz.choice2`]:
+        '「すきないろは？カレーです。」のように、それらしいけれど まちがった へんじを する',
+    [`${C}lm-l5-reply.quiz.choice3`]: 'なにも いわない',
+    [`${C}lm-l5-reply.quiz.explanation`]:
+        '「は？」の つぎは「カ」と がくしゅうしたので、しつもんの いみが ちがっても「カレーです。」と つづけます。AI は いみを かんがえずに、がくしゅうした くみから つぎの もじを よそうする だけなので、ただしそうに みえて まちがった こたえを つくる ことが あります。せいせい AI にも おなじ ことが おきるので、こたえが ただしいか じぶんで たしかめよう。',
+
+    [`${C}lm-l5-mine.name`]: 'じぶんの AI を つくろう',
+    [`${C}lm-l5-mine.task`]:
+        'じぶんだけの AI を つくろう。\nきょうかしょに じぶんの ぶんや しつもんと へんじを たして がくしゅうしなおし、ロボットに はなしかけて みよう。みるながさを かえたり、ブロックを たしたり して くふうしよう。\nできたら さくひんを ほぞんしよう（クラスの かだいなら ていしゅつしよう）。',
+    [`${C}lm-l5-mine.step1`]:
+        '「a」キーで じぶんの ぶんを、「b」キーで しつもんと へんじを、きょうかしょに たそう。たとえば、じぶんの すきな ことや、よく いう あいさつです。',
+    [`${C}lm-l5-mine.step2`]:
+        'はたの スクリプトの「みるながさ」を 1・2・3 に かえて、どの ながさが じぶんの AI に あうか くらべよう。',
+    [`${C}lm-l5-mine.step3`]:
+        'Ruby で よむと、ロボットの スクリプトは こう なります。かきだしを きいて「かきだし」に いれ、その つづきを つくって いいます。',
+    [`${C}lm-l5-mine.step4`]: 'はたを おしてから、ロボットを おして はなしかけよう。おもった とおりに つづけるかな？',
+    [`${C}lm-l5-mine.debug1`]:
+        'ぶんを たしたら、はたを おすか「がくしゅうする」を よんで、がくしゅうしなおそう。がくしゅうしなおさないと、AI は たした ぶんを しりません。',
+    [`${C}lm-l5-mine.debug2`]:
+        'つづきが つくれない ときは、かきだしの さいごの もじの くみを きょうかしょに たそう。',
+    [`${C}lm-l5-mine.quiz.question`]:
+        'せいせい AI は、この AI のように くみを 1 ぎょうずつ ぜんぶ おぼえる かわりに、どう して いる？',
+    [`${C}lm-l5-mine.quiz.choice1`]: 'きょうかしょの ぶんを ぜんぶ そのまま おぼえて いる',
+    [`${C}lm-l5-mine.quiz.choice2`]: 'まいかい、インターネットで おなじ ぶんを さがして いる',
+    [`${C}lm-l5-mine.quiz.choice3`]: 'どの つぎが きやすいかを、たくさんの かず（おもみ）に して おぼえて いる',
+    [`${C}lm-l5-mine.quiz.explanation`]:
+        'この AI は、でてきた かいすう だけ くみを 1 ぎょうずつ たして、おおい くみを えらびやすく して います。せいせい AI は、くみを ぜんぶ ならべる かわりに、どれが きやすいかを「おもみ」と いう たくさんの かずに して おぼえて います（ニューラルネットワーク）。そのため、きょうかしょに ない ぶんみゃくからでも つづきを よそうできます。',
+
+    [`${C}lm-l5-review.name`]: 'ふりかえろう',
+    [`${C}lm-l5-review.task`]:
+        'この コースで つくった AI と、せいせい AI を くらべよう。\nヒントを よんでから、ロボットを おして かきだしを いれ、AI に ぶんを つくらせよう。そのあと クイズに こたえよう。',
+    [`${C}lm-l5-review.step1`]:
+        'データの りょう: この AI は 30 くらいの ぶんで がくしゅうしました。ぶんを たすと、つづけられる かきだしが ふえました（5-1）。せいせい AI は、とても たくさんの ぶんで がくしゅうして います。',
+    [`${C}lm-l5-review.step2`]:
+        'それらしい まちがい: AI は いみを かんがえずに、がくしゅうした くみから つぎを よそうします。だから、ただしそうに みえて まちがった ぶんを つくる ことが あります（5-2）。',
+    [`${C}lm-l5-review.step3`]:
+        'おもみと トークン: せいせい AI は、どれが きやすいかを「おもみ」と いう かずに して おぼえ、1 もじではなく ことばや その いちぶ（トークン）ごとに つぎを よそうします。でも、「まえを みて つぎを よそうし、それを くりかえす」 しくみは、この AI と おなじです。',
+    [`${C}lm-l5-review.step4`]:
+        'Ruby で よむと、ロボットの スクリプトは こう なります。かきだしの つづきを「ぶんをつくる」で 1 もじずつ よそうして いいます。',
+    [`${C}lm-l5-review.step5`]:
+        'はたを おしてから、ロボットを おして かきだしを いれよう。AI が つづきを つくったら、クイズに こたえよう。',
+    [`${C}lm-l5-review.debug1`]:
+        'ロボットを おしたら、なにか かきだしを いれよう（「こんにちは」など）。からの ままだと、はんていに つかう かきだしが ありません。',
+    [`${C}lm-l5-review.quiz.question`]: 'せいせい AI が 1 かいに よそうする「つぎの 1 つ」は、どれに ちかい？',
+    [`${C}lm-l5-review.quiz.choice1`]: 'いつも 1 もじ',
+    [`${C}lm-l5-review.quiz.choice2`]: 'ことばや その いちぶ（トークン）',
+    [`${C}lm-l5-review.quiz.choice3`]: 'いつも ぶん 1 つぶん',
+    [`${C}lm-l5-review.quiz.explanation`]:
+        'せいせい AI は、ぶんを「トークン」と いう ことばや その いちぶの まとまりに わけ、つぎの トークンを よそうして つなげます。たんいが 1 もじより おおきい だけで、「まえを みて つぎを よそうする」のは、この コースで つくった AI と おなじです。',
 };
 
 export const en = {
@@ -885,4 +1065,95 @@ export const en = {
     [`${C}lm-l4-continue.quiz.choice3`]: 'Just the start (it cannot continue)',
     [`${C}lm-l4-continue.quiz.explanation`]:
         'The last context of the start is not in "before", so "candidates" becomes empty and the loop ends at once. The AI can only continue with the pairs it learned. With more data, more starts can be continued (lesson 5).',
+    'gui.lessons.lesson.lm-l5.name': 'Learn more to be smarter',
+
+    [`${C}lm-l5-measure.name`]: 'Measure how smart the AI is',
+    [`${C}lm-l5-measure.task`]:
+        'Measure how smart the AI is with a number.\nWhen you press the "t" key, it continues the 10 starts in the list "tests" one by one. Count with the variable "finished" how many of them went on to the "." at the end of a sentence.\nThen add a sentence that starts with a start that did not continue (like "Pizza") to the textbook with the "a" key, and measure again. Does the number go up?',
+    [`${C}lm-l5-measure.step1`]:
+        'The script of the "t" key is already there. It makes each start of "tests" the "opening", calls "make_sentence", and says "finished" at the end. Now it has no part that counts, so it always says 0.',
+    [`${C}lm-l5-measure.step2`]:
+        'Below "make_sentence" (above "change (test_no) by (1)"), put "if 〜 then" from Control. Put "( ) = (.)" from Operators in the hole, and put "letter" from Variables on the left. Put "change (finished) by (1)" in the "if". If the last letter picked is ".", the sentence went on to the end.',
+    [`${C}lm-l5-measure.step3`]:
+        'In Ruby, it reads like this. "if (letter) = (.) then" is "if @letter == "."" and "change (finished) by (1)" is "@finished += 1".',
+    [`${C}lm-l5-measure.step4`]:
+        'Click the green flag and press the "t" key. How many of the 10 went on? Next, press the "a" key and add a sentence that starts with "Pizza" (like "Pizza is my favorite food."), then press the "t" key again.',
+    [`${C}lm-l5-measure.debug1`]:
+        'Check that "if" is below "make_sentence". If it is above, it looks at a letter of the sentence made from the start before.',
+    [`${C}lm-l5-measure.debug2`]:
+        'If the number does not go up, check that the sentence you added starts with a start that did not continue ("Pizza", "The fox", "Jazz"). Other sentences do not teach how to continue those starts.',
+    [`${C}lm-l5-measure.quiz.question`]:
+        'When you add sentences to the textbook and learn again, what happens to "finished"?',
+    [`${C}lm-l5-measure.quiz.choice1`]: 'It goes up or stays the same (it does not go down)',
+    [`${C}lm-l5-measure.quiz.choice2`]: 'It goes down',
+    [`${C}lm-l5-measure.quiz.choice3`]: 'It changes at random each time',
+    [`${C}lm-l5-measure.quiz.explanation`]:
+        'Adding sentences only adds learned pairs; the pairs from before stay. So the starts that continued still continue, and new starts can continue too. Generative AI also learns from a great many sentences (data), and the more it learns, the more kinds of sentences it can continue.',
+
+    [`${C}lm-l5-reply.name`]: 'Reply to a question',
+    [`${C}lm-l5-reply.task`]:
+        'Make an AI that replies when you ask a question.\nWhen you press the "b" key, it asks for a question and a reply. Join the 2 into 1 sentence, add it to the textbook, and learn again.\nThen click the robot and enter the same question. Does the AI continue with the reply?',
+    [`${C}lm-l5-reply.step1`]:
+        'The script of the "b" key already asks for a question, puts it in "question", and asks for the reply. End the question with "?" (like "Your food?") and end the reply with "." (like "Curry.").',
+    [`${C}lm-l5-reply.step2`]:
+        'Below "ask (Enter the reply) and wait", attach "add (thing) to (textbook)" from Variables, and put "join (apple) (banana)" from Operators in "thing". Put "question" in "apple" and "answer" from Sensing in "banana". Below it, attach "learn".',
+    [`${C}lm-l5-reply.step3`]:
+        'In Ruby, it reads like this. "@question + answer" joins the question and the reply into 1 sentence, and it is added at the end of the textbook.',
+    [`${C}lm-l5-reply.step4`]:
+        'Click the green flag, press the "b" key, and teach a question and a reply. Next, click the robot and enter the same question ("Your food?"). The AI makes a reply after the question.',
+    [`${C}lm-l5-reply.debug1`]:
+        'Check that the question you entered for the robot is the same as the one you taught with the "b" key. With another question, it may not continue with the reply you taught.',
+    [`${C}lm-l5-reply.debug2`]:
+        'Check that "learn" is below "add". If it does not learn again, the AI does not know the sentence you added.',
+    [`${C}lm-l5-reply.quiz.question`]: 'You teach only "Your food?Curry." and ask "Your mood?". What can the AI do?',
+    [`${C}lm-l5-reply.quiz.choice1`]: 'Say "I do not know"',
+    [`${C}lm-l5-reply.quiz.choice2`]: 'Give a reply that sounds right but is wrong, like "Your mood?Curry."',
+    [`${C}lm-l5-reply.quiz.choice3`]: 'Say nothing',
+    [`${C}lm-l5-reply.quiz.explanation`]:
+        'It learned that "C" comes after "d?", so it goes on with "Curry." even if the question means something else. The AI does not think about the meaning; it only predicts the next letter from the pairs it learned, so it can make answers that look right but are wrong. Generative AI can do the same, so check yourself whether an answer is right.',
+
+    [`${C}lm-l5-mine.name`]: 'Make your own AI',
+    [`${C}lm-l5-mine.task`]:
+        'Make an AI of your own.\nAdd your own sentences, questions and replies to the textbook, learn again, and talk to the robot. Change the look length or add blocks to make it better.\nWhen it is done, save the project (submit it if it is a class assignment).',
+    [`${C}lm-l5-mine.step1`]:
+        'Add your own sentences with the "a" key, and questions and replies with the "b" key, to the textbook. For example, things you like or greetings you often say.',
+    [`${C}lm-l5-mine.step2`]:
+        'Change "look_length" in the script of the green flag to 1, 2 or 3, and compare which length suits your AI.',
+    [`${C}lm-l5-mine.step3`]:
+        'In Ruby, the script of the robot reads like this. It asks for a start, puts it in "opening", and says the sentence it continues from it.',
+    [`${C}lm-l5-mine.step4`]:
+        'Click the green flag, then click the robot and talk to it. Does it continue as you thought?',
+    [`${C}lm-l5-mine.debug1`]:
+        'After adding sentences, click the green flag or call "learn" to learn again. If it does not learn again, the AI does not know the sentences you added.',
+    [`${C}lm-l5-mine.debug2`]:
+        'If it cannot continue, add to the textbook a sentence with the pair of the last letters of the start.',
+    [`${C}lm-l5-mine.quiz.question`]:
+        'Instead of keeping every pair line by line like this AI, what does generative AI do?',
+    [`${C}lm-l5-mine.quiz.choice1`]: 'It keeps every sentence of the textbook as it is',
+    [`${C}lm-l5-mine.quiz.choice2`]: 'It looks for the same sentence on the internet every time',
+    [`${C}lm-l5-mine.quiz.choice3`]: 'It keeps how likely each next one is as many numbers (weights)',
+    [`${C}lm-l5-mine.quiz.explanation`]:
+        'This AI adds a pair line by line each time it appears, so pairs that appear more are picked more often. Instead of listing every pair, generative AI keeps how likely each next one is as many numbers called "weights" (a neural network). So it can predict the next one even after a context that is not in its textbook.',
+
+    [`${C}lm-l5-review.name`]: 'Look back',
+    [`${C}lm-l5-review.task`]:
+        'Compare the AI you made in this course with generative AI.\nRead the hints, then click the robot, enter a start, and let the AI make a sentence. Then answer the quiz.',
+    [`${C}lm-l5-review.step1`]:
+        'The amount of data: this AI learned from about 30 sentences. Adding sentences made more starts continue (5-1). Generative AI learns from a great many sentences.',
+    [`${C}lm-l5-review.step2`]:
+        'Mistakes that sound right: the AI does not think about the meaning; it predicts the next one from the pairs it learned. So it can make sentences that look right but are wrong (5-2).',
+    [`${C}lm-l5-review.step3`]:
+        'Weights and tokens: generative AI keeps how likely each next one is as numbers called "weights", and predicts the next word or part of a word (a token) instead of 1 letter. But the idea, "look at what comes before, predict the next one, and repeat", is the same as this AI.',
+    [`${C}lm-l5-review.step4`]:
+        'In Ruby, the script of the robot reads like this. It predicts the rest of the start letter by letter with "make_sentence" and says it.',
+    [`${C}lm-l5-review.step5`]:
+        'Click the green flag, then click the robot and enter a start. When the AI has made the rest, answer the quiz.',
+    [`${C}lm-l5-review.debug1`]:
+        'When you click the robot, enter some start (like "Hello"). If it is empty, there is no start to check.',
+    [`${C}lm-l5-review.quiz.question`]: 'What is the "next one" that generative AI predicts each time closest to?',
+    [`${C}lm-l5-review.quiz.choice1`]: 'Always 1 letter',
+    [`${C}lm-l5-review.quiz.choice2`]: 'A word or a part of a word (a token)',
+    [`${C}lm-l5-review.quiz.choice3`]: 'Always 1 whole sentence',
+    [`${C}lm-l5-review.quiz.explanation`]:
+        'Generative AI splits sentences into "tokens" (words or parts of words), predicts the next token, and joins them. The unit is just bigger than 1 letter; "looking at what comes before and predicting the next one" is the same as the AI you made in this course.',
 };

@@ -3,7 +3,7 @@
  * the rules of docs/lessons/design.md 「教科書の文」 and that the lessons 4-3 / 5-1 work with it.
  */
 import { contextBefore, isLearnedText, pairsOf } from '../../../../src/lib/lessons/lm-ngram';
-import { LM_END_CHAR, LM_PROMPTS, LM_TEXTBOOK } from '../../../../src/lib/lessons/lm-textbook';
+import { LM_END_CHAR, LM_PROMPTS, LM_PROMPTS_CONTINUED, LM_TEXTBOOK } from '../../../../src/lib/lessons/lm-textbook';
 
 const LOCALES = ['ja', 'ja-Hira', 'en'];
 
@@ -68,6 +68,8 @@ describe('LM_PROMPTS (5-1)', () => {
             const count = LM_PROMPTS[locale].filter((prompt) => canContinue(LM_TEXTBOOK[locale], prompt, 2)).length;
             expect(count).toBeGreaterThanOrEqual(5);
             expect(count).toBeLessThanOrEqual(8);
+            // the same number in every locale (the goal of 5-1 is "more than this")
+            expect(count).toBe(LM_PROMPTS_CONTINUED);
             // a sentence the student adds makes a prompt continue
             const stuck = LM_PROMPTS[locale].find((prompt) => !canContinue(LM_TEXTBOOK[locale], prompt, 2));
             const added = [...LM_TEXTBOOK[locale], `${stuck}${LM_END_CHAR[locale]}`];
