@@ -222,6 +222,74 @@ export const ja = {
     [`${C}lm-l3-make.quiz.choice3`]: '文が 10 文字になったとき',
     [`${C}lm-l3-make.quiz.explanation`]:
         'くり返しは「(こうほ の長さ) = 0」か「(文字) = 。」になるまで続きます。AI は教科書の文と同じかどうかを見ていません。学習した組だけで 1 文字ずつ予想するので、教科書に無い文もできます。',
+    'gui.lessons.lesson.lm-l4.name': '前の文字をもっと見よう',
+
+    [`${C}lm-l4-two.name`]: '文脈を 2 文字にしよう',
+    [`${C}lm-l4-two.task`]:
+        '「文脈を作る」の中身を作ろう。\nAI が前の 2 文字を見て次の文字を予想するように、文の「何文字目」の前の 2 文字を「文脈」にしよう。\n（「学習する」と「こうほを集める」は、もう「文脈を作る」を使う形になっています）',
+    [`${C}lm-l4-two.step1`]:
+        '「学習する」は、もう 5 つめの定義ブロック「文脈を作る」を呼んで、「まえ」に「文脈」を足す形になっています（「こうほを集める」も「文脈」とくらべます）。いまの「文脈を作る」は、「何番目」を「(何文字目) - (2)」から 1 ずつ進めて 2 回くり返すだけなので、「文脈」がいつも空です。',
+    [`${C}lm-l4-two.step2`]:
+        '「文脈を作る」の定義の中の「(2) 回繰り返す」の中に、「制御」の「もし 〜 なら」を入れよう（「(何番目) を (1) ずつ変える」の上に）。穴に「演算」の「( ) > ( )」を入れて「(何番目) > (0)」にしよう。文の頭より前の文字は足しません。',
+    [`${C}lm-l4-two.step3`]:
+        '「もし」の中に「(文脈) を ( ) にする」を入れ、「演算」の「(りんご) と (バナナ)」を入れよう。「りんご」に「文脈」、「バナナ」に「(りんご) の (1) 番目の文字」を入れ、「りんご」に「文」、「1」に「何番目」を入れよう。「何番目」の文字が「文脈」の後ろに足されます。',
+    [`${C}lm-l4-two.step4`]:
+        'Ruby で読むと、こうなります。「(2) 回繰り返す」は「2.times do」です。「何番目」が 0 より大きいときだけ、「@文[@何番目 - 1]」を「文脈」の後ろに足します。',
+    [`${C}lm-l4-two.step5`]:
+        '旗を押して学習し直してから、ロボットを何回か押そう。前の 2 文字を見るので、レッスン 3 より教科書に近い文ができるかな？',
+    [`${C}lm-l4-two.debug1`]:
+        '「(何番目) を (1) ずつ変える」が「もし」の外（下）にあるか見よう。中にあると、文の頭で「何番目」が進まず、文脈がずれます。',
+    [`${C}lm-l4-two.debug2`]:
+        '「(りんご) と (バナナ)」の順を見よう。「文脈」が左、「何番目」の文字が右です。逆にすると、文脈の文字の順が逆になります。',
+    [`${C}lm-l4-two.quiz.question`]:
+        '文が「こんにちは」のとき、「は」を学習する組の「まえ」（前の 2 文字の文脈）は、どれ？',
+    [`${C}lm-l4-two.quiz.choice1`]: '「ち」',
+    [`${C}lm-l4-two.quiz.choice2`]: '「にち」',
+    [`${C}lm-l4-two.quiz.choice3`]: '「んにち」',
+    [`${C}lm-l4-two.quiz.explanation`]:
+        '「は」の前の 2 文字は「に」と「ち」なので、「まえ」は「にち」、「つぎ」は「は」です。文の 1 文字めの「こ」の「まえ」は空、2 文字めの「ん」の「まえ」は「こ」の 1 文字です。',
+
+    [`${C}lm-l4-span.name`]: '見る長さを変えよう',
+    [`${C}lm-l4-span.task`]:
+        '前の何文字を見るかを、変数「見る長さ」で変えられるようにしよう。\n「文脈を作る」の「2」を「見る長さ」にし、旗のスクリプトで「見る長さ」を 1 か 3 にして、作る文がどう変わるかくらべよう。',
+    [`${C}lm-l4-span.step1`]:
+        '「文脈を作る」の定義の中の 2 つの「2」（「(何文字目) - (2)」と「(2) 回繰り返す」）に、「変数」の「見る長さ」を入れよう。',
+    [`${C}lm-l4-span.step2`]: '旗のスクリプトの「(見る長さ) を (2) にする」の「2」を、「3」（か「1」）にしよう。',
+    [`${C}lm-l4-span.step3`]: 'Ruby で読むと、こうなります。「(見る長さ) 回繰り返す」は「@見る長さ.times do」です。',
+    [`${C}lm-l4-span.step4`]:
+        '旗を押して学習し直してから、ロボットを何回か押そう。「見る長さ」を 1・2・3 にかえて、作る文をくらべよう。',
+    [`${C}lm-l4-span.debug1`]:
+        '「文脈を作る」の中の 2 つの「2」を、両方とも「見る長さ」にしたか見よう。片方だけだと、文脈の長さがずれます。',
+    [`${C}lm-l4-span.debug2`]:
+        '「見る長さ」を変えたら、旗を押して学習し直そう。学習し直さないと、「まえ」は前の長さの組のままです。',
+    [`${C}lm-l4-span.quiz.question`]: '「見る長さ」を 3 にすると、AI の作る文はどうなることが多い？',
+    [`${C}lm-l4-span.quiz.choice1`]: '教科書の文とそっくりな文が多くなる',
+    [`${C}lm-l4-span.quiz.choice2`]: '教科書に無い、おかしな文が多くなる',
+    [`${C}lm-l4-span.quiz.choice3`]: '文が作れなくなる',
+    [`${C}lm-l4-span.quiz.explanation`]:
+        '前の 3 文字が同じ組は少ないので、こうほがほとんど 1 つになり、教科書の文をそのまま言いやすくなります（丸暗記に近い）。見る長さが短いほど、新しい・おかしな文ができます。',
+
+    [`${C}lm-l4-continue.name`]: '書き出しの続きを作ろう',
+    [`${C}lm-l4-continue.task`]:
+        '話しかけた書き出しの続きを、AI に作らせよう。\nロボットを押したら書き出しを聞いて、「文をつくる」がその答えから文を作り始めるようにしよう。\n（「こんにちは」と入れると、「こんにちは、今日はよろしく。」のように続けるかな？）',
+    [`${C}lm-l4-continue.step1`]:
+        '「このスプライトが押されたとき」の「文をつくる」の上に、「調べる」の「(書き出しを入れてね) と聞いて待つ」を入れよう。',
+    [`${C}lm-l4-continue.step2`]:
+        '「文をつくる」の定義のはじめの「(文) を ( ) にする」に、「調べる」の「答え」を入れよう。空の文ではなく、入力した書き出しから文を作り始めます。',
+    [`${C}lm-l4-continue.step3`]:
+        'Ruby で読むと、こうなります。「答え」は「answer」です。「@文 = answer」から始めると、「こうほを集める」は書き出しの最後の文脈の次の文字を集めます。',
+    [`${C}lm-l4-continue.step4`]:
+        '旗を押してから、ロボットを押して「こんにちは」と入れよう。AI が続きを作って言います。ほかの書き出しも試そう。',
+    [`${C}lm-l4-continue.debug1`]:
+        '「聞いて待つ」が「文をつくる」の上（前）にあるか見よう。後にあると、前に入れた答えから文を作ります。',
+    [`${C}lm-l4-continue.debug2`]:
+        '書き出しのまま何も足されないときは、書き出しの最後の文字の組を、AI が学習していないのかもしれません。教科書にある言葉（「こんにちは」など）で始めてみよう。',
+    [`${C}lm-l4-continue.quiz.question`]: '書き出しの最後の 2 文字が、教科書のどこにも無い組だと、AI は何を言う？',
+    [`${C}lm-l4-continue.quiz.choice1`]: '教科書の文を 1 つ',
+    [`${C}lm-l4-continue.quiz.choice2`]: '「。」だけ',
+    [`${C}lm-l4-continue.quiz.choice3`]: '書き出しのまま（続きを作れない）',
+    [`${C}lm-l4-continue.quiz.explanation`]:
+        '書き出しの最後の文脈が「まえ」に無いので、「こうほ」が空になり、くり返しがすぐ終わります。AI は学習した組の続きしか作れません。データを増やすと、続けられる書き出しが増えます（レッスン 5）。',
 };
 
 export const jaHira = {
@@ -451,6 +519,77 @@ export const jaHira = {
     [`${C}lm-l3-make.quiz.choice3`]: 'ぶんが 10 もじに なった とき',
     [`${C}lm-l3-make.quiz.explanation`]:
         'くりかえしは「(こうほ の ながさ) = 0」か「(もじ) = 。」に なるまで つづきます。AI は きょうかしょの ぶんと おなじか どうかを みていません。がくしゅうした くみだけで 1 もじずつ よそうするので、きょうかしょに ない ぶんも できます。',
+    'gui.lessons.lesson.lm-l4.name': 'まえの もじを もっと みよう',
+
+    [`${C}lm-l4-two.name`]: 'ぶんみゃくを 2 もじに しよう',
+    [`${C}lm-l4-two.task`]:
+        '「ぶんみゃくをつくる」の なかみを つくろう。\nAI が まえの 2 もじを みて つぎの もじを よそうするように、ぶんの「なんもじめ」の まえの 2 もじを「ぶんみゃく」に しよう。\n（「がくしゅうする」と「こうほをあつめる」は、もう「ぶんみゃくをつくる」を つかう かたちに なっています）',
+    [`${C}lm-l4-two.step1`]:
+        '「がくしゅうする」は、もう 5 つめの ていぎブロック「ぶんみゃくをつくる」を よんで、「まえ」に「ぶんみゃく」を たす かたちに なっています（「こうほをあつめる」も「ぶんみゃく」と くらべます）。いまの「ぶんみゃくをつくる」は、「なんばんめ」を「(なんもじめ) - (2)」から 1 ずつ すすめて 2 かい くりかえすだけなので、「ぶんみゃく」が いつも からです。',
+    [`${C}lm-l4-two.step2`]:
+        '「ぶんみゃくをつくる」の ていぎの なかの「(2) かい くりかえす」の なかに、「せいぎょ」の「もし 〜 なら」を いれよう（「(なんばんめ) を (1) ずつ かえる」の うえに）。あなに「えんざん」の「( ) > ( )」を いれて「(なんばんめ) > (0)」に しよう。ぶんの あたまより まえの もじは たしません。',
+    [`${C}lm-l4-two.step3`]:
+        '「もし」の なかに「(ぶんみゃく) を ( ) にする」を いれ、「えんざん」の「(りんご) と (バナナ)」を いれよう。「りんご」に「ぶんみゃく」、「バナナ」に「(りんご) の (1) ばんめの もじ」を いれ、「りんご」に「ぶん」、「1」に「なんばんめ」を いれよう。「なんばんめ」の もじが「ぶんみゃく」の うしろに たされます。',
+    [`${C}lm-l4-two.step4`]:
+        'Ruby で よむと、こう なります。「(2) かい くりかえす」は「2.times do」です。「なんばんめ」が 0 より おおきい ときだけ、「@ぶん[@なんばんめ - 1]」を「ぶんみゃく」の うしろに たします。',
+    [`${C}lm-l4-two.step5`]:
+        'はたを おして がくしゅうしなおしてから、ロボットを なんかいか おそう。まえの 2 もじを みるので、レッスン 3 より きょうかしょに ちかい ぶんが できるかな？',
+    [`${C}lm-l4-two.debug1`]:
+        '「(なんばんめ) を (1) ずつ かえる」が「もし」の そと（した）に あるか みよう。なかに あると、ぶんの あたまで「なんばんめ」が すすまず、ぶんみゃくが ずれます。',
+    [`${C}lm-l4-two.debug2`]:
+        '「(りんご) と (バナナ)」の じゅんを みよう。「ぶんみゃく」が ひだり、「なんばんめ」の もじが みぎです。ぎゃくに すると、ぶんみゃくの もじの じゅんが ぎゃくに なります。',
+    [`${C}lm-l4-two.quiz.question`]:
+        'ぶんが「こんにちは」の とき、「は」を がくしゅうする くみの「まえ」（まえの 2 もじの ぶんみゃく）は、どれ？',
+    [`${C}lm-l4-two.quiz.choice1`]: '「ち」',
+    [`${C}lm-l4-two.quiz.choice2`]: '「にち」',
+    [`${C}lm-l4-two.quiz.choice3`]: '「んにち」',
+    [`${C}lm-l4-two.quiz.explanation`]:
+        '「は」の まえの 2 もじは「に」と「ち」なので、「まえ」は「にち」、「つぎ」は「は」です。ぶんの 1 もじめの「こ」の「まえ」は から、2 もじめの「ん」の「まえ」は「こ」の 1 もじです。',
+
+    [`${C}lm-l4-span.name`]: 'みる ながさを かえよう',
+    [`${C}lm-l4-span.task`]:
+        'まえの なんもじを みるかを、へんすう「みるながさ」で かえられるように しよう。\n「ぶんみゃくをつくる」の「2」を「みるながさ」に し、はたの スクリプトで「みるながさ」を 1 か 3 に して、つくる ぶんが どう かわるか くらべよう。',
+    [`${C}lm-l4-span.step1`]:
+        '「ぶんみゃくをつくる」の ていぎの なかの 2 つの「2」（「(なんもじめ) - (2)」と「(2) かい くりかえす」）に、「へんすう」の「みるながさ」を いれよう。',
+    [`${C}lm-l4-span.step2`]:
+        'はたの スクリプトの「(みるながさ) を (2) にする」の「2」を、「3」（か「1」）に しよう。',
+    [`${C}lm-l4-span.step3`]:
+        'Ruby で よむと、こう なります。「(みるながさ) かい くりかえす」は「@みるながさ.times do」です。',
+    [`${C}lm-l4-span.step4`]:
+        'はたを おして がくしゅうしなおしてから、ロボットを なんかいか おそう。「みるながさ」を 1・2・3 に かえて、つくる ぶんを くらべよう。',
+    [`${C}lm-l4-span.debug1`]:
+        '「ぶんみゃくをつくる」の なかの 2 つの「2」を、りょうほうとも「みるながさ」に したか みよう。かたほうだけだと、ぶんみゃくの ながさが ずれます。',
+    [`${C}lm-l4-span.debug2`]:
+        '「みるながさ」を かえたら、はたを おして がくしゅうしなおそう。がくしゅうしなおさないと、「まえ」は まえの ながさの くみの ままです。',
+    [`${C}lm-l4-span.quiz.question`]: '「みるながさ」を 3 に すると、AI の つくる ぶんは どう なる ことが おおい？',
+    [`${C}lm-l4-span.quiz.choice1`]: 'きょうかしょの ぶんと そっくりな ぶんが おおく なる',
+    [`${C}lm-l4-span.quiz.choice2`]: 'きょうかしょに ない、おかしな ぶんが おおく なる',
+    [`${C}lm-l4-span.quiz.choice3`]: 'ぶんが つくれなく なる',
+    [`${C}lm-l4-span.quiz.explanation`]:
+        'まえの 3 もじが おなじ くみは すくないので、こうほが ほとんど 1 つに なり、きょうかしょの ぶんを そのまま いいやすく なります（まるあんきに ちかい）。みる ながさが みじかいほど、あたらしい・おかしな ぶんが できます。',
+
+    [`${C}lm-l4-continue.name`]: 'かきだしの つづきを つくろう',
+    [`${C}lm-l4-continue.task`]:
+        'はなしかけた かきだしの つづきを、AI に つくらせよう。\nロボットを おしたら かきだしを きいて、「ぶんをつくる」が その こたえから ぶんを つくりはじめるように しよう。\n（「こんにちは」と いれると、「こんにちは、きょうはよろしく。」のように つづけるかな？）',
+    [`${C}lm-l4-continue.step1`]:
+        '「このスプライトが おされたとき」の「ぶんをつくる」の うえに、「しらべる」の「(かきだしを いれてね) と きいて まつ」を いれよう。',
+    [`${C}lm-l4-continue.step2`]:
+        '「ぶんをつくる」の ていぎの はじめの「(ぶん) を ( ) にする」に、「しらべる」の「こたえ」を いれよう。からの ぶんでは なく、いれた かきだしから ぶんを つくりはじめます。',
+    [`${C}lm-l4-continue.step3`]:
+        'Ruby で よむと、こう なります。「こたえ」は「answer」です。「@ぶん = answer」から はじめると、「こうほをあつめる」は かきだしの さいごの ぶんみゃくの つぎの もじを あつめます。',
+    [`${C}lm-l4-continue.step4`]:
+        'はたを おしてから、ロボットを おして「こんにちは」と いれよう。AI が つづきを つくって いいます。ほかの かきだしも ためそう。',
+    [`${C}lm-l4-continue.debug1`]:
+        '「きいて まつ」が「ぶんをつくる」の うえ（まえ）に あるか みよう。あとに あると、まえに いれた こたえから ぶんを つくります。',
+    [`${C}lm-l4-continue.debug2`]:
+        'かきだしの まま なにも たされない ときは、かきだしの さいごの もじの くみを、AI が がくしゅうしていないのかも しれません。きょうかしょに ある ことば（「こんにちは」など）で はじめて みよう。',
+    [`${C}lm-l4-continue.quiz.question`]:
+        'かきだしの さいごの 2 もじが、きょうかしょの どこにも ない くみだと、AI は なにを いう？',
+    [`${C}lm-l4-continue.quiz.choice1`]: 'きょうかしょの ぶんを 1 つ',
+    [`${C}lm-l4-continue.quiz.choice2`]: '「。」だけ',
+    [`${C}lm-l4-continue.quiz.choice3`]: 'かきだしの まま（つづきを つくれない）',
+    [`${C}lm-l4-continue.quiz.explanation`]:
+        'かきだしの さいごの ぶんみゃくが「まえ」に ないので、「こうほ」が からに なり、くりかえしが すぐ おわります。AI は がくしゅうした くみの つづきしか つくれません。データを ふやすと、つづけられる かきだしが ふえます（レッスン 5）。',
 };
 
 export const en = {
@@ -676,4 +815,74 @@ export const en = {
     [`${C}lm-l3-make.quiz.choice3`]: 'When the sentence became 10 letters long',
     [`${C}lm-l3-make.quiz.explanation`]:
         'The loop goes on until "(length of candidates) = 0" or "(letter) = .". The AI does not check whether the sentence is the same as one in the textbook. It predicts one letter at a time only with the pairs it learned, so it can make sentences that are not in the textbook.',
+    'gui.lessons.lesson.lm-l4.name': 'Look at more letters before',
+
+    [`${C}lm-l4-two.name`]: 'Make the context 2 letters',
+    [`${C}lm-l4-two.task`]:
+        'Make the inside of "make_context".\nSo that the AI looks at the 2 letters before to predict the next letter, put the 2 letters before the "letter_no"th letter of the sentence in "context".\n("learn" and "collect_candidates" already use "make_context".)',
+    [`${C}lm-l4-two.step1`]:
+        '"learn" already calls the 5th defined block "make_context" and adds "context" to "before" ("collect_candidates" also compares with "context"). Now "make_context" only moves "pos_no" by 1 from "(letter_no) - (2)" and repeats 2 times, so "context" is always empty.',
+    [`${C}lm-l4-two.step2`]:
+        'In the "repeat (2)" in the definition of "make_context", put "if < > then" from Control (above "change (pos_no) by (1)"). Put "( ) > ( )" from Operators in the hole and make it "(pos_no) > (0)". Letters before the head of the sentence are not added.',
+    [`${C}lm-l4-two.step3`]:
+        'In "if", put "set (context) to ( )", and put "join (apple) (banana)" from Operators in it. Put "context" in place of "apple" and "letter (1) of (apple)" in place of "banana", then "sentence" in place of "apple" and "pos_no" in place of "1". The "pos_no"th letter is added to the end of "context".',
+    [`${C}lm-l4-two.step4`]:
+        'This is how it reads in Ruby. "repeat (2)" is "2.times do". Only when "pos_no" is larger than 0, it adds "@sentence[@pos_no - 1]" to the end of "context".',
+    [`${C}lm-l4-two.step5`]:
+        'Click the green flag to learn again, and then click the robot a few times. It looks at the 2 letters before, so does it make sentences closer to the textbook than in lesson 3?',
+    [`${C}lm-l4-two.debug1`]:
+        'Check that "change (pos_no) by (1)" is outside (under) "if". If it is inside, "pos_no" does not move at the head of the sentence, and the context goes wrong.',
+    [`${C}lm-l4-two.debug2`]:
+        'Check the order in "join (apple) (banana)". "context" is on the left and the "pos_no"th letter is on the right. The other way around, the letters of the context are in reverse order.',
+    [`${C}lm-l4-two.quiz.question`]:
+        'When the sentence is "Hello", what is "before" (the context of the 2 letters before) of the pair that learns "o"?',
+    [`${C}lm-l4-two.quiz.choice1`]: '"l"',
+    [`${C}lm-l4-two.quiz.choice2`]: '"ll"',
+    [`${C}lm-l4-two.quiz.choice3`]: '"ell"',
+    [`${C}lm-l4-two.quiz.explanation`]:
+        'The 2 letters before "o" are "l" and "l", so "before" is "ll" and "after" is "o". "before" of the first letter "H" is empty, and "before" of the second letter "e" is the 1 letter "H".',
+
+    [`${C}lm-l4-span.name`]: 'Change the look length',
+    [`${C}lm-l4-span.task`]:
+        'Change how many letters before the AI looks at, with the variable "look_length".\nPut "look_length" in place of "2" in "make_context", set "look_length" to 1 or 3 in the script of the green flag, and compare how the sentences change.',
+    [`${C}lm-l4-span.step1`]:
+        'Put "look_length" from Variables in place of the 2 "2"s in the definition of "make_context" ("(letter_no) - (2)" and "repeat (2)").',
+    [`${C}lm-l4-span.step2`]:
+        'In the script of the green flag, change "2" of "set (look_length) to (2)" to "3" (or "1").',
+    [`${C}lm-l4-span.step3`]: 'This is how it reads in Ruby. "repeat (look_length)" is "@look_length.times do".',
+    [`${C}lm-l4-span.step4`]:
+        'Click the green flag to learn again, and then click the robot a few times. Change "look_length" to 1, 2 and 3 and compare the sentences.',
+    [`${C}lm-l4-span.debug1`]:
+        'Check that both "2"s in "make_context" are "look_length". With only one of them, the length of the context goes wrong.',
+    [`${C}lm-l4-span.debug2`]:
+        'After you change "look_length", click the green flag to learn again. Without learning again, "before" keeps the pairs of the old length.',
+    [`${C}lm-l4-span.quiz.question`]: 'When "look_length" is 3, what often happens to the sentences the AI makes?',
+    [`${C}lm-l4-span.quiz.choice1`]: 'More sentences are just like the ones in the textbook',
+    [`${C}lm-l4-span.quiz.choice2`]: 'More strange sentences that are not in the textbook',
+    [`${C}lm-l4-span.quiz.choice3`]: 'It cannot make sentences any more',
+    [`${C}lm-l4-span.quiz.explanation`]:
+        'Few pairs have the same 3 letters before, so there is mostly only 1 candidate, and the AI easily says a sentence of the textbook as it is (close to learning by heart). The shorter the look length, the more new and strange sentences it makes.',
+
+    [`${C}lm-l4-continue.name`]: 'Continue the start of a sentence',
+    [`${C}lm-l4-continue.task`]:
+        'Make the AI continue the start of a sentence you give.\nWhen you click the robot, ask for the start of a sentence, and make "make_sentence" start from the answer.\n(If you enter "Hello", does it continue like "Hello, nice to meet you."?)',
+    [`${C}lm-l4-continue.step1`]:
+        'Above "make_sentence" in "when this sprite clicked", put "ask (Enter the start of a sentence) and wait" from Sensing.',
+    [`${C}lm-l4-continue.step2`]:
+        'In "set (sentence) to ( )" at the beginning of the definition of "make_sentence", put "answer" from Sensing. The AI starts the sentence from the start you entered, not from an empty sentence.',
+    [`${C}lm-l4-continue.step3`]:
+        'This is how it reads in Ruby. "answer" is "answer". When it starts from "@sentence = answer", "collect_candidates" collects the letters after the last context of the start.',
+    [`${C}lm-l4-continue.step4`]:
+        'Click the green flag, then click the robot and enter "Hello". The AI makes the rest and says it. Try other starts too.',
+    [`${C}lm-l4-continue.debug1`]:
+        'Check that "ask and wait" is above (before) "make_sentence". If it is after, the AI makes the sentence from the answer you entered before.',
+    [`${C}lm-l4-continue.debug2`]:
+        'If nothing is added to the start, the AI may not have learned the pair of the last letters of the start. Try a start with words in the textbook (like "Hello").',
+    [`${C}lm-l4-continue.quiz.question`]:
+        'If the last 2 letters of the start are a pair that is nowhere in the textbook, what does the AI say?',
+    [`${C}lm-l4-continue.quiz.choice1`]: 'One sentence of the textbook',
+    [`${C}lm-l4-continue.quiz.choice2`]: 'Only "."',
+    [`${C}lm-l4-continue.quiz.choice3`]: 'Just the start (it cannot continue)',
+    [`${C}lm-l4-continue.quiz.explanation`]:
+        'The last context of the start is not in "before", so "candidates" becomes empty and the loop ends at once. The AI can only continue with the pairs it learned. With more data, more starts can be continued (lesson 5).',
 };

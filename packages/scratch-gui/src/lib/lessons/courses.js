@@ -2907,6 +2907,11 @@ const LM_WORDS = {
         end: '。',
         teach: '教える文を入れてね',
         look: 'こ',
+        context: '文脈',
+        posNo: '何番目',
+        span: '見る長さ',
+        makeContext: '文脈を作る',
+        start: '書き出しを入れてね',
     },
     'ja-Hira': {
         textbook: 'きょうかしょ',
@@ -2926,6 +2931,11 @@ const LM_WORDS = {
         end: '。',
         teach: 'おしえる ぶんを いれてね',
         look: 'こ',
+        context: 'ぶんみゃく',
+        posNo: 'なんばんめ',
+        span: 'みるながさ',
+        makeContext: 'ぶんみゃくをつくる',
+        start: 'かきだしを いれてね',
     },
     en: {
         textbook: 'textbook',
@@ -2946,6 +2956,11 @@ const LM_WORDS = {
         teach: 'Enter a sentence to teach',
         // en の教科書で、次に来る文字が少なく数えやすい文字（「v」の次は「e」2 回・「o」2 回）
         look: 'v',
+        context: 'context',
+        posNo: 'pos_no',
+        span: 'look_length',
+        makeContext: 'make_context',
+        start: 'Enter the start of a sentence',
     },
 };
 const lmCode = (make) => Object.fromEntries(Object.entries(LM_WORDS).map(([locale, w]) => [locale, make(w)]));
@@ -2958,25 +2973,30 @@ const lmLocalized = (key) => Object.fromEntries(Object.entries(LM_WORDS).map(([l
 // 'sentence' = 1 文めの組を「まえ」「つぎ」に足す（2-2 の答え・2-3 の始め）、'all' = 教科書の全部の文（できあがり）
 
 /**
- * 定義ブロック「学習する」（レッスン 1〜3 の形・文脈は前の 1 文字）。
+ * 定義ブロック「学習する」。
  * @param {object} w - locale の名前（`LM_WORDS` の 1 つ）。
  * @param {string} [stage] - 中身の段（'empty' / 'sentence' / 'all'）。
  * @param {boolean} [step] - 'all' で「何文目」を 1 ずつ変えるか（2-3 のヒントの途中の絵は false）。
+ * @param {?(number|string)} [look] - 文脈の長さ（null = 前の 1 文字（レッスン 1〜3）。数・'span' = 「文脈を作る」で
+ *     作る（レッスン 4 から。`lmContextDef`））。
  * @returns {string} Ruby。
  */
-const lmLearnDef = (w, stage = 'all', step = true) => {
+const lmLearnDef = (w, stage = 'all', step = true, look = null) => {
     const indent = (lines) => lines.map((line) => `  ${line}`);
-    const pairs =
-        stage === 'empty'
-            ? []
-            : [
-                  `@${w.before}.push(@${w.prev})`,
-                  `@${w.after}.push(@${w.text}[@${w.letterNo} - 1])`,
-                  `@${w.prev} = @${w.text}[@${w.letterNo} - 1]`,
-              ];
+    const prevPairs = [
+        `@${w.before}.push(@${w.prev})`,
+        `@${w.after}.push(@${w.text}[@${w.letterNo} - 1])`,
+        `@${w.prev} = @${w.text}[@${w.letterNo} - 1]`,
+    ];
+    const contextPairs = [
+        w.makeContext,
+        `@${w.before}.push(@${w.context})`,
+        `@${w.after}.push(@${w.text}[@${w.letterNo} - 1])`,
+    ];
+    const pairs = stage === 'empty' ? [] : look === null ? prevPairs : contextPairs;
     const sentence = [
         `@${w.text} = @${w.textbook}[@${w.sentenceNo} - 1]`,
-        `@${w.prev} = ""`,
+        ...(look === null ? [`@${w.prev} = ""`] : []),
         `@${w.letterNo} = 1`,
         `until @${w.letterNo} > @${w.text}.length`,
         ...indent([...pairs, `@${w.letterNo} += 1`]),
@@ -3000,8 +3020,10 @@ const lmLearnDef = (w, stage = 'all', step = true) => {
 
 // 「こうほを集める」の中身の段（3-1 で作り直す）: 'loop' = 「まえ」の行を 1 行ずつ見るくり返しだけ（3-1 の始め）、
 // 'if' = くり返しの中で「まえ」と文の最後の文字を比べるだけ（3-1 のヒントの途中の絵）、'all' = できあがり
-const lmCollectLoop = (w, stage = 'all') => {
-    const match = [`if @${w.before}[@${w.rowNo} - 1] == @${w.text}[@${w.text}.length - 1]`, 'end'];
+// `look` は「学習する」と同じ（レッスン 4 からは、文の最後の文字ではなく変数「文脈」と比べる）
+const lmCollectLoop = (w, stage = 'all', look = null) => {
+    const context = look === null ? `@${w.text}[@${w.text}.length - 1]` : `@${w.context}`;
+    const match = [`if @${w.before}[@${w.rowNo} - 1] == ${context}`, 'end'];
     const inner = {
         loop: [],
         if: match,
@@ -3020,28 +3042,67 @@ const lmMakeLoop = (w, stage = 'all') => {
 };
 const lmDef = (name, lines) =>
     [`without_screen_refresh def ${name}`, ...lines.map((l) => `  ${l}`), 'end', ''].join('\n');
-const lmCollectDef = (w, stage = 'all') =>
-    lmDef(w.collect, [`@${w.candidates}.clear`, `@${w.rowNo} = 1`, ...lmCollectLoop(w, stage)]);
+// レッスン 4 からは、文の最後の文脈を「文脈を作る」で作ってから比べる（「何文字目」を文の長さ + 1 にすると、
+// 「文脈を作る」は文の最後の「見る長さ」文字を文脈にする）
+const lmCollectDef = (w, stage = 'all', look = null) =>
+    lmDef(w.collect, [
+        `@${w.candidates}.clear`,
+        ...(look === null ? [] : [`@${w.letterNo} = @${w.text}.length + 1`, w.makeContext]),
+        `@${w.rowNo} = 1`,
+        ...lmCollectLoop(w, stage, look),
+    ]);
 // 'empty' = 中身が空（3-2 の始め）
 const lmPickDef = (w, stage = 'all') =>
     lmDef(w.pick, stage === 'empty' ? [] : [`@${w.letter} = @${w.candidates}[rand(1..@${w.candidates}.length) - 1]`]);
-const lmMakeDef = (w, stage = 'all') =>
-    lmDef(w.make, [`@${w.text} = ""`, `@${w.letter} = ""`, w.collect, ...lmMakeLoop(w, stage)]);
+// `from` = 'answer' なら、入力した答え（書き出し）の続きを作る（4-3 から）
+const lmMakeDef = (w, stage = 'all', from = null) =>
+    lmDef(w.make, [
+        `@${w.text} = ${from === 'answer' ? 'answer' : '""'}`,
+        `@${w.letter} = ""`,
+        w.collect,
+        ...lmMakeLoop(w, stage),
+    ]);
+
+// 「文脈を作る」（レッスン 4 から・#2111）: 文の「何文字目」の文字の前の、最後の「見る長さ」文字を「文脈」にする
+// （文の頭では短く、いちばん頭では空。lm-ngram.js の `contextBefore` と同じ決まり）。「何番目」を「何文字目 - 見る長さ」
+// から 1 ずつ進め、0 番目より前の文字は足さない（0 番目の文字はブロックでは空・Ruby では最後の文字になるため）。
+// 中身の段（4-1 で作り直す）: 'loop' = 「何番目」を進めるくり返しだけ（4-1 の始め）、'if' = 「もし 何番目 > 0」まで
+// （4-1 のヒントの途中の絵）、'all' = できあがり
+const lmContextLoop = (w, look, stage = 'all') => {
+    const add = [`if @${w.posNo} > 0`, `  @${w.context} = @${w.context} + @${w.text}[@${w.posNo} - 1]`, 'end'];
+    const inner = { loop: [], if: [add[0], add[2]], all: add }[stage];
+    const length = look === 'span' ? `@${w.span}` : look;
+    return [`${length}.times do`, ...[...inner, `@${w.posNo} += 1`].map((l) => `  ${l}`), 'end'];
+};
+const lmContextDef = (w, look, stage = 'all') =>
+    lmDef(w.makeContext, [
+        `@${w.context} = ""`,
+        `@${w.posNo} = @${w.letterNo} - ${look === 'span' ? `@${w.span}` : look}`,
+        ...lmContextLoop(w, look, stage),
+    ]);
 
 /**
- * できあがりの AI の 4 つの定義ブロックと旗のスクリプト（レッスン 1〜3 の形・文脈は前の 1 文字）。
+ * できあがりの AI の定義ブロックと旗のスクリプト。レッスン 1〜3 は 4 つ（文脈は前の 1 文字）、レッスン 4 からは
+ * 「文脈を作る」を足した 5 つ。
  * @param {object} w - locale の名前（`LM_WORDS` の 1 つ）。
- * @param {object} [stages] - 定義ブロックごとの中身の段（`learn` / `collect` / `pick` / `make`。省くと 'all'）。
+ * @param {object} [stages] - 定義ブロックごとの中身の段（`learn` / `collect` / `pick` / `make` / `context`。省くと
+ *     'all'）と、レッスン 4 の形（`look` = 文脈の長さ（数か 'span' = 変数「見る長さ」。省くとレッスン 1〜3 の形）、
+ *     `span` = 旗で「見る長さ」にする数（省くと旗で決めない）、`from` = 'answer' なら入力した書き出しの続きを作る）。
  * @returns {string} Ruby。
  */
-const lmAiCode = (w, stages = {}) =>
-    [
-        lmLearnDef(w, stages.learn),
-        lmCollectDef(w, stages.collect),
+const lmAiCode = (w, stages = {}) => {
+    const look = stages.look || null;
+    const flag = [...(stages.span ? [`@${w.span} = ${stages.span}`] : []), w.learn].map((l) => `  ${l}`);
+    return [
+        // 呼ぶ定義より先に書く（Ruby は def の前で呼べない）
+        ...(look === null ? [] : [lmContextDef(w, look, stages.context)]),
+        lmLearnDef(w, stages.learn, true, look),
+        lmCollectDef(w, stages.collect, look),
         lmPickDef(w, stages.pick),
-        lmMakeDef(w, stages.make),
-        `when_flag_clicked do\n  ${w.learn}\nend\n`,
+        lmMakeDef(w, stages.make, stages.from),
+        `when_flag_clicked do\n${flag.join('\n')}\nend\n`,
     ].join('\n');
+};
 // 1-1 の答え（ロボットを押したら文を作って言う）。1-2 から最初から入っている
 const lmSayScript = (w) => `when_clicked do\n  ${w.make}\n  say(@${w.text})\nend\n`;
 const lmTeachScript = (w) =>
@@ -3059,7 +3120,7 @@ const lmProgramWith = (stages, ...scripts) =>
 const lmProgram = (...scripts) => lmProgramWith({}, ...scripts);
 
 // 始めるとき: ネコを Retro Robot にし、AI と教科書を入れる。`monitors` はモニターを出すリスト（ステージが狭いので
-// 1-2 の教科書と、1-3・2-2 の「まえ」「つぎ」だけ）。`stages` は定義ブロックごとの中身の段
+// 1-2 の教科書と、1-3・2-2 の「まえ」「つぎ」だけ）。`stages` は定義ブロックごとの中身の段とレッスン 4 の形（`lmAiCode`）
 const LM_LIST_KEYS = ['textbook', 'before', 'after', 'candidates'];
 const lmSetup = (scripts, monitors = [], stages = {}) => ({
     sprites: ['Retro Robot'],
@@ -3069,7 +3130,7 @@ const lmSetup = (scripts, monitors = [], stages = {}) => ({
         items: key === 'textbook' ? LM_TEXTBOOK : [],
         monitor: monitors.includes(key),
     })),
-    warpProcedures: ['learn', 'collect', 'pick', 'make'].flatMap(lmNames),
+    warpProcedures: ['learn', 'collect', 'pick', 'make', ...(stages.look ? ['makeContext'] : [])].flatMap(lmNames),
 });
 const LM_LISTS = { before: lmNames('before'), after: lmNames('after') };
 // 文の終わり（ja / ja-Hira は「。」、en は「.」）で終わる、学習した組だけでできた文
@@ -3519,6 +3580,155 @@ const lmLesson3 = defineLesson({
     ],
 });
 
+// レッスン 4「前の文字をもっと見よう」（#2111）: 5 つめの定義ブロック「文脈を作る」で、文脈を 2 文字にし（4-1）、
+// 変数「見る長さ」で 1〜3 にし（4-2）、入力した書き出しの続きを作る（4-3）。「学習する」と「こうほを集める」は、もう
+// 「文脈を作る」を呼ぶ形で入れて始める（2 つを同時に直さないと、学習と予想の文脈がずれて文が作れないため。生徒が作るのは
+// 「文脈を作る」の中身・見る長さ・書き出しだけ）
+const LM_L4 = { look: 2 };
+const LM_L4_SPAN = { look: 'span', span: 2 };
+const lmContextLoopCode = (look, stage) => lmCode((w) => `${lmContextLoop(w, look, stage).join('\n')}\n`);
+// 4-3 の答え（ロボットを押したら、書き出しを聞いて、その続きを作って言う）
+const lmContinueScript = (w) => `when_clicked do\n  ask("${w.start}")\n  ${w.make}\n  say(@${w.text})\nend\n`;
+const lmSpanFlagScript = (span) => lmCode((w) => `when_flag_clicked do\n  @${w.span} = ${span}\n  ${w.learn}\nend\n`);
+const LM_SPAN_LENGTH = { variable: lmNames('span') };
+const lmClicked = { hat: 'event_whenthisspriteclicked' };
+
+const lmLesson4 = defineLesson({
+    id: 'lm-l4',
+    challenges: [
+        // 4-1 文脈を 2 文字にしよう: 「文脈を作る」は「何番目」を進める 2 回のくり返しだけになっている。0 番目より後の
+        // 文字を「文脈」に足し、学習する組の「まえ」を前の 2 文字にする
+        {
+            id: 'lm-l4-two',
+            card: { category: CATEGORIES.VARIABLES, main: CATEGORIES.OPERATORS },
+            task: challengeMessage('lm-l4-two', 'task'),
+            setup: lmSetup([lmSayScript], [], { ...LM_L4, context: 'loop' }),
+            allowedBlocks: {
+                control: ['control_if'],
+                operators: ['operator_gt', 'operator_join', 'operator_letter_of'],
+                ...LM_PALETTE_CALL,
+                // ヒントで見せる「学習する」（コードエリアにあるもの）のブロックも、パレットから消さない
+                data: [
+                    'data_variable',
+                    'data_setvariableto',
+                    'data_changevariableby',
+                    'data_addtolist',
+                    'data_deletealloflist',
+                ],
+            },
+            steps: withTitles('lm-l4-two', [
+                { target: HINT_TARGETS.CODE_AREA, blocks: lmCode((w) => lmLearnDef(w, 'all', true, 2)) },
+                { target: HINT_TARGETS.PALETTE, blocks: lmContextLoopCode(2, 'if') },
+                { target: HINT_TARGETS.PALETTE, blocks: lmContextLoopCode(2, 'all') },
+                { kind: RUBY_STEP_KIND, target: HINT_TARGETS.RUBY_TAB, blocks: lmCode((w) => lmContextDef(w, 2)) },
+                { target: HINT_TARGETS.GREEN_FLAG },
+            ]),
+            debug: debugTips('lm-l4-two', 2),
+            // 旗で「学習する」（の中で「文脈を作る」）を動かし、「まえ」「つぎ」が教科書の全部の文の、前の 2 文字の組になった
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenflagclicked' },
+                    together: true,
+                    blocks: [lmCall('learn'), lmCall('makeContext')],
+                },
+                { type: 'ngram', check: 'learned', textbook: lmNames('textbook'), ...LM_LISTS, length: 2 },
+            ],
+            quiz: challengeQuiz('lm-l4-two', 1),
+            code: lmProgramWith(LM_L4, lmSayScript),
+        },
+        // 4-2 見る長さを変えよう: 旗で変数「見る長さ」を 2 にしてある。「文脈を作る」の 2 を「見る長さ」にし、1 か 3 に
+        // して学習し直し、作る文がどう変わるかをくらべる
+        {
+            id: 'lm-l4-span',
+            card: { category: CATEGORIES.VARIABLES, main: CATEGORIES.VARIABLES },
+            task: challengeMessage('lm-l4-span', 'task'),
+            setup: lmSetup([lmSayScript], [], { ...LM_L4, span: 2 }),
+            allowedBlocks: {
+                ...LM_PALETTE_CALL,
+                data: [
+                    'data_variable',
+                    { opcode: 'data_setvariableto', inputs: { VALUE: 3 } },
+                    'data_changevariableby',
+                ],
+            },
+            steps: withTitles('lm-l4-span', [
+                { target: HINT_TARGETS.PALETTE, blocks: lmCode((w) => lmContextDef(w, 'span')) },
+                { target: HINT_TARGETS.CODE_AREA, blocks: lmSpanFlagScript(3) },
+                {
+                    kind: RUBY_STEP_KIND,
+                    target: HINT_TARGETS.RUBY_TAB,
+                    blocks: lmCode((w) => lmContextDef(w, 'span')),
+                },
+                { target: HINT_TARGETS.GREEN_FLAG },
+            ]),
+            debug: debugTips('lm-l4-span', 2),
+            // 「見る長さ」を 2 から変え（1 か 3）、「まえ」「つぎ」がその長さの組になった（「文脈を作る」が 2 のままなら合わない）
+            goal: [
+                { type: 'variable', name: lmNames('span'), value: /^[13]$/ },
+                {
+                    type: 'ngram',
+                    check: 'learned',
+                    textbook: lmNames('textbook'),
+                    ...LM_LISTS,
+                    length: LM_SPAN_LENGTH,
+                },
+            ],
+            quiz: challengeQuiz('lm-l4-span', 0),
+            code: lmProgramWith({ ...LM_L4_SPAN, span: 3 }, lmSayScript),
+        },
+        // 4-3 書き出しの続きを作ろう: ロボットを押したら書き出しを聞き、「文をつくる」を空の文ではなく答えから始める
+        // （「こんにちは」→「こんにちは、今日はよろしく。」）
+        {
+            id: 'lm-l4-continue',
+            card: { category: CATEGORIES.VARIABLES, main: CATEGORIES.SENSING },
+            task: challengeMessage('lm-l4-continue', 'task'),
+            setup: lmSetup([lmSayScript], [], LM_L4_SPAN),
+            allowedBlocks: {
+                sensing: [
+                    { opcode: 'sensing_askandwait', inputs: { QUESTION: lmLocalized('start') } },
+                    'sensing_answer',
+                ],
+                ...LM_PALETTE_CALL,
+                // ヒントで見せる「文をつくる」の中のブロック（3-3 と同じ）
+                data: ['data_variable', 'data_setvariableto', 'data_lengthoflist'],
+            },
+            steps: withTitles('lm-l4-continue', [
+                { target: HINT_TARGETS.PALETTE, blocks: lmCode(lmContinueScript) },
+                { target: HINT_TARGETS.PALETTE, blocks: lmCode((w) => lmMakeDef(w, 'all', 'answer')) },
+                {
+                    kind: RUBY_STEP_KIND,
+                    target: HINT_TARGETS.RUBY_TAB,
+                    blocks: lmCode((w) => lmMakeDef(w, 'all', 'answer')),
+                },
+                { target: HINT_TARGETS.GREEN_FLAG },
+            ]),
+            debug: debugTips('lm-l4-continue', 2),
+            // ロボットを押したスクリプトで、聞いて待ってから「文をつくる」を動かし（その中で「答え」を使い）、入力した書き出しで
+            // 始まり、続きが学習した組（見る長さの組）だけでできた、文の終わりの文字で終わる文を言った。「答え」を見ないと、
+            // 「文をつくる」を直さなくても、空から作った文が偶然書き出し（「こんにちは」など）で始まれば通ってしまう
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: lmClicked,
+                    together: true,
+                    blocks: ['sensing_askandwait', lmCall('make'), 'sensing_answer'],
+                    order: ['sensing_askandwait', 'procedures_call'],
+                },
+                {
+                    type: 'said',
+                    trigger: lmClicked,
+                    text: /[。.]$/,
+                    startsWithAnswer: true,
+                    learned: { ...LM_LISTS, length: LM_SPAN_LENGTH },
+                },
+            ],
+            quiz: challengeQuiz('lm-l4-continue', 2),
+            code: lmProgramWith({ ...LM_L4_SPAN, from: 'answer' }, lmContinueScript),
+        },
+    ],
+});
+
 export const COURSES = [
     defineCourse({
         id: 'kyou-kara-programmer',
@@ -3534,7 +3744,7 @@ export const COURSES = [
     defineCourse({
         id: 'kotoba-yosou-ai',
         language: LANGUAGES.BLOCKS,
-        lessons: [lmLesson1, lmLesson2, lmLesson3],
+        lessons: [lmLesson1, lmLesson2, lmLesson3, lmLesson4],
     }),
 ];
 
