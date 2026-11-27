@@ -244,9 +244,10 @@ aws s3 rm "s3://$BUCKET/index.html"
 - 置き方はプレビューと同じ「CI がアップロードするときの約束」: ハッシュ付きのファイルは
   `public, max-age=31536000, immutable`、それ以外は `max-age=0, s-maxage=60`。`.wasm` / `.mjs` / `.hex` は
   `Content-Type` を明示する。gui の JS の `.br` / `.gz` も置く（上の約束の最後の項目）。最後に
-  `--delete --size-only` で古いファイルを消す。
+  新しいビルドに無いものを片付ける（ハッシュ付きと版付きの Monaco は最後に置いてから 14 日残す。
+  `scripts/prune-old-assets.mjs`・`docs/hosting/README.md` の「前のビルドのファイルを残す」）。
 - 本体（`packages/scratch-gui/dist`）はバケットの直下、管理 SPA（`packages/admin/build`）は `admin/` に置く。
-  本体の `--delete` は `admin/*` を除き、管理 SPA の `--delete` は `admin/` の中だけに効く。
+  本体の片付けは `admin/` を除き、管理 SPA の片付けは `admin/` の中だけに効く。
   `.well-known/` などドットで始まるものも置く。GitHub Pages 用の `.nojekyll` と `CNAME` は置かない。
 - 置いたあとに `/*` を invalidation する。
 
@@ -340,7 +341,7 @@ aws route53 list-hosted-zones-by-name --dns-name smalruby.app \
 5. GitHub OIDC で `PreviewDeployRoleArn` を AssumeRole し、`s3://<bucket>/<slug>/` に置く。上の
    「CI がアップロードするときの約束」どおり、ハッシュ付きのファイルとそれ以外で `Cache-Control` を
    分けて 2 回 sync し（その間に `gui.js.br` / `gui.js.gz` を `aws s3 cp` で置く）、最後に
-   `--delete --size-only` で新しいビルドに無いものを消す。その前に `postbuild.mjs` のあとで
+   本番と同じ決まり（`scripts/prune-old-assets.mjs`）で新しいビルドに無いものを片付ける。その前に `postbuild.mjs` のあとで
    `scripts/precompress-assets.mjs packages/scratch-gui/build` が `.br` / `.gz` を作る。
 6. **develop のときだけ**、バケットのルートに `auth-redirect.html` / `auth-redirect.js` を置く
    （全プレビューが共有するので、ブランチからは上書きしない）。

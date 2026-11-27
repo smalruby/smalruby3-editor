@@ -73,7 +73,7 @@ prod ステージのリソースは、`infra/smalruby-web-hosting/lib/web-hostin
 | もの | どうするか |
 |---|---|
 | `index.html` やハッシュ付きのアセット | CI が `dist` をそのまま S3 に置く（GitHub Pages と同じ中身） |
-| `/admin/`（管理 SPA） | CI が `admin/` に置く。本体の `--delete` で消えないよう、本体の同期では `admin/` を除く |
+| `/admin/`（管理 SPA） | CI が `admin/` に置く。本体の片付け（下の「前のビルドのファイルを残す」）で消えないよう、本体の片付けでは `admin/` を除く |
 | `/.well-known/microsoft-identity-association.json` | `packages/scratch-gui/legal/.well-known/` からビルドに入る。ドットで始まるディレクトリも同期の対象にする（Microsoft のパブリッシャー検証に要る） |
 | `/auth-redirect.html`（Microsoft ログインの戻り先） | ビルドに入っている。オリジンが同じなので Microsoft / Google の設定は変えない |
 | `/about.html` などの静的ページ | ビルドに入っている。拡張子付きの URL はそのまま返す。`/about` のように拡張子を省いた URL は開けない（`/about/` へ 301 したあと 404 ページになる。下の「拡張子の無い URL」） |
@@ -97,7 +97,7 @@ prod ステージのリソースは、`infra/smalruby-web-hosting/lib/web-hostin
 
 ### 存在しないファイル
 
-存在しないファイルは S3 が 403 を返す（OAC では一覧を見せないため。GitHub Pages は GitHub の 404 ページを返す）。これを 404 にするため、ビルドに 404 ページ `404.html` を入れてある（`packages/scratch-gui/pages/404.html`。ほかのページと同じく `pages/` からトップレベルにコピーされ、CI がハッシュ無しの規則で `Cache-Control: max-age=0, s-maxage=60` を付けて S3 に置く）。CDK からは置かない（CI の同期は `--delete` なので、ビルドに無いものは消える）。配信には CloudFront のカスタムエラー応答で、オリジンの 403 / 404 を応答コード 404・ページ `/404.html` にする。エラー応答のページが 403 にならないよう、**404 ページが本番に出てから（`https://smalruby.app/404.html` が 200 になってから）エラー応答を足す**。404 ページはどの階層の URL（`/a/b/c` など）にも返るので、中のアセットとリンクは `/` から始まる絶対パスで書く（相対パスにしない）。検索に載らないよう `noindex` を付けている。SPA は `/` の `index.html` だけでパスのルーティングを持たず、管理 SPA はハッシュのルーティングなので、403 を 404 に変えても壊れない。
+存在しないファイルは S3 が 403 を返す（OAC では一覧を見せないため。GitHub Pages は GitHub の 404 ページを返す）。これを 404 にするため、ビルドに 404 ページ `404.html` を入れてある（`packages/scratch-gui/pages/404.html`。ほかのページと同じく `pages/` からトップレベルにコピーされ、CI がハッシュ無しの規則で `Cache-Control: max-age=0, s-maxage=60` を付けて S3 に置く）。CDK からは置かない（CI の片付けで、ビルドに無いハッシュの無いファイルは消える）。配信には CloudFront のカスタムエラー応答で、オリジンの 403 / 404 を応答コード 404・ページ `/404.html` にする。エラー応答のページが 403 にならないよう、**404 ページが本番に出てから（`https://smalruby.app/404.html` が 200 になってから）エラー応答を足す**。404 ページはどの階層の URL（`/a/b/c` など）にも返るので、中のアセットとリンクは `/` から始まる絶対パスで書く（相対パスにしない）。検索に載らないよう `noindex` を付けている。SPA は `/` の `index.html` だけでパスのルーティングを持たず、管理 SPA はハッシュのルーティングなので、403 を 404 に変えても壊れない。
 
 ## 進める順番
 
@@ -183,6 +183,42 @@ prod ステージのリソースは、`infra/smalruby-web-hosting/lib/web-hostin
 - CloudFront のキャッシュポリシーは AWS 管理の `CachingOptimized`（`Cache-Control` があれば従う・最長 1 年。クエリ文字列・ヘッダ・Cookie はキーに含めない）。定額プランはカスタムのキャッシュポリシーを使えないため。**`Cache-Control` が無いオブジェクトはエッジに 1 日残る**（プレビューの 60 秒と違う）ので、CI は上の表のとおり全ファイルに `Cache-Control` を付けて置く。
 - CI は置いたあとに `/*` を invalidation する（1 回 1 パスとして数えるので、月 1,000 パスの無料枠に十分収まる）。
 
+### 前のビルドのファイルを残す
+
+デプロイの前から開いていたタブ、ホーム画面に置いた iPad、キャッシュに残った古い `index.html` は、**前のビルドの名前で**
+部品（chunk・manifest・画像など）を後から読みに来る。新しいビルドに無いファイルをデプロイですぐ消すと、これが 404 になり、
+授業の途中で機能を初めて開いたときに動かない（平日のデプロイは授業の時間に重なる）。そのため CI は、置いたあとの片付けで
+次のように消す（`scripts/prune-old-assets.mjs`。本番の本体・管理 SPA・プレビューで同じ決まり）:
+
+| ファイル | 新しいビルドに無いとき |
+|---|---|
+| 新しいビルドにあるもの | 消さない（いま置いたもの） |
+| 名前にハッシュがあるもの（`/\.[0-9a-f]{8,}\./`。キャッシュの決まりと同じ）、版付きの Monaco（`static/monaco/<版>/vs/...`） | **最後に置いてから 14 日**を過ぎたら消す。それまでは残す |
+| それ以外（`index.html`・ハッシュの無い名前） | すぐ消す（これまでどおり） |
+
+- 14 日にしたのは、iPad のホーム画面や開きっぱなしのタブが前のビルドを読みに来るのは長くても数日で、授業の週をまたいでも
+  足りる長さだから。ハッシュ付きのファイルは中身が変わると名前が変わるので、残しても新しいビルドと混ざらない。
+- 「最後に置いてから」は S3 のオブジェクトの更新日時（`LastModified`）で数える。新しいビルドにもあるファイルは毎回置き直すので、
+  使っているあいだは日付が進む。
+- ただし、**いま置きかえたビルド（直前のビルド）のファイルは、日数に関係なく次のデプロイまで残す**。長い休みのあいだ
+  デプロイが無く、直前のデプロイから 14 日を過ぎていても、休み明けのデプロイで前のビルドがすぐ消えないようにするため。
+  直前のビルドは、新しいビルドに無いハッシュ付きのファイルのうち、いちばん新しい更新日時から 1 時間以内のもの
+  （1 回のデプロイは数分で置き終わる）。
+- 片付けは `aws s3api list-objects-v2` で一覧を取り、スクリプトが消すものを決め、`aws s3api delete-objects` で消す
+  （`aws s3 sync --delete` は日付を見られないので使わない）。デプロイのロールの権限は `sync --delete` のときと同じ（一覧と削除）。
+- 版の入らない前の Monaco のパス（`/static/monaco/vs/loader.js` など。Monaco を版付きのパスに移す前のビルド）は、
+  もう S3 に無く、置き直すには前の Monaco を別に持つ必要があるので、扱わない（4 日で 183 件。版付きに移ってからのビルドが
+  広まれば減る）。
+- テストは `scripts/prune-old-assets.test.mjs`（CI の事前圧縮の段で一緒に流す）。
+
+### 決まった場所のアイコン
+
+ブラウザと iPadOS は HTML と関係なく `/favicon.ico` と `/apple-touch-icon*.png` を取りに来るので、ビルドの直下に置く
+（`webpack.config.js` のコピー。新しく描かず、既存の `static/favicon.ico` と `static/pwa-icon.png` を使う）:
+`favicon.ico`・`apple-touch-icon.png`・`apple-touch-icon-precomposed.png`・`apple-touch-icon-152x152.png`・
+`apple-touch-icon-152x152-precomposed.png`。HTML の `<link rel="apple-touch-icon">` は PWA の manifest のプラグインが入れる
+（180×180）。名前にハッシュが無いので `max-age=0, s-maxage=60` で置かれる。
+
 ### 事前圧縮した gui の JS
 
 CloudFront は **1,000〜10,000,000 バイトのファイルしか自動で圧縮しない**（[Serving compressed files](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/ServingCompressedFiles.html)）。エディタ本体の `gui.<hash>.js` は約 25 MB あるので、そのままでは無圧縮で送られる（GitHub Pages は gzip で約 7.7 MB）。また CloudFront がその場でかける br は brotli の q1〜q2 程度と弱い。設計の出発点は #2198。
@@ -197,7 +233,7 @@ CloudFront は **1,000〜10,000,000 バイトのファイルしか自動で圧�
 - 圧縮は `scripts/precompress-assets.mjs`（node の `zlib` だけ。依存なし）。解いて元と同じになることを確かめてから書く。テストは `scripts/precompress-assets.test.mjs`（CI の同じ段で流す）。
 - 対象は**トップレベルの `gui.js` / `gui.<hash>.js` だけ**。ほかのファイルは 10 MB 未満で CloudFront が圧縮するので、手間（br q11 は 25 MB で約 30 秒）をかけない。ほかに 10,000,000 バイトを超えるファイル（`.map` を除く。ソースマップは DevTools しか読まない）が出てきたら、CI が `::warning::` を出す。そのときは対象に足すか、ビルドで分ける。
 - `aws s3 sync` は拡張子からヘッダを推測するので、`.br` / `.gz` は `aws s3 cp` でヘッダを明示して置く。置く順番は「ハッシュ付きのファイル → `.br` / `.gz` → `index.html` などハッシュの無いもの」。
-- 圧縮版はビルドの出力（本番は `dist`、プレビューは `build`）の中に作る。本番では GitHub Pages へ出したあとに作るので、GitHub Pages には載らない。最後の `--delete --size-only` は、出力にある圧縮版を消さず（大きさが同じなので置き直しもしない）、古い gui の圧縮版は消す。
+- 圧縮版はビルドの出力（本番は `dist`、プレビューは `build`）の中に作る。本番では GitHub Pages へ出したあとに作るので、GitHub Pages には載らない。最後の片付けは、出力にある圧縮版を消さず、古い gui の圧縮版は古い `gui.<hash>.js` と同じく 14 日残してから消す（下の「前のビルドのファイルを残す」）。
 - 圧縮版を `Accept-Encoding` に応じて返すのは viewer-request の CloudFront Function（URI を `.br` / `.gz` に書きかえる）。オリジンの応答に `Content-Encoding` があれば CloudFront は圧縮し直さないので、置いたものがそのまま返る。
 
 #### URI の書きかえと `Vary`
@@ -320,5 +356,6 @@ curl -s --resolve smalruby.app:443:$IP -H 'Accept-Encoding: identity' "https://s
 | `infra/smalruby-web-hosting/test/web-hosting.test.ts` | スタックのテスト |
 | `.github/workflows/ci-cd.yml`（`build-and-deploy`） | 本番のビルドと配置 |
 | `scripts/precompress-assets.mjs` | gui の JS の `.br` / `.gz` を作る（「事前圧縮した gui の JS」）。テストは `scripts/precompress-assets.test.mjs` |
+| `scripts/prune-old-assets.mjs` | デプロイの片付けで消すものを決める（「前のビルドのファイルを残す」）。テストは `scripts/prune-old-assets.test.mjs` |
 | `docs/infra/smalruby-web-hosting.md` | 配信基盤の CDK の詳細と運用 |
 | `docs/security/github-pages-subdomain-takeover.md` | GitHub Pages のサブドメイン乗っ取り対策（検証用 TXT は残す） |
