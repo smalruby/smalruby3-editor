@@ -92,7 +92,7 @@ test('releaseCheckView: いちばん新しい round と、結果を送ったか'
 
 test('normalizeReleaseReviewBody: 形を検証する', () => {
     const ok = rc.normalizeReleaseReviewBody({ issue: '10', round: 2, results: [{ id: 'R1', verdict: 'ng', note: ' 崩れる \r\n' }], comment: '' });
-    assert.deepEqual(ok, { ok: true, issue: 10, round: 2, results: [{ id: 'R1', verdict: 'ng', note: '崩れる' }], comment: '' });
+    assert.deepEqual(ok, { ok: true, issue: 10, round: 2, results: [{ id: 'R1', verdict: 'ng', note: '崩れる' }], comment: '', decisions: [], source: 'monitor' });
     assert.equal(rc.normalizeReleaseReviewBody({ issue: 10, round: 1 }).ok, false, '結果もコメントも無い');
     assert.equal(rc.normalizeReleaseReviewBody({ issue: 10, round: 1, comment: '全体に良い' }).ok, true);
     assert.equal(rc.normalizeReleaseReviewBody({ issue: 10, round: 1, results: [{ id: 'X1', verdict: 'ok' }] }).ok, false);
@@ -243,4 +243,62 @@ test('planReleaseResult: PR のレビューも直してほしいことの候補�
     const none = rc.planReleaseResult({ epic: 10, round: 1, review: { results: [{ id: 'R1', verdict: 'ok' }], comment: '' }, prFeedback: [] });
     assert.equal(none.allOk, true);
     assert.deepEqual(none.prFeedback, []);
+});
+
+test('normalizeReleaseReviewBody: 決定待ちの答えと出どころ（確認ページ・#2474）', () => {
+    const ok = rc.normalizeReleaseReviewBody({
+        issue: 10, round: 1, source: 'page', decisions: [
+            { id: 'D1', title: ' 行番号の形 ', choice: 'recommended' },
+            { id: 'D2', choice: 'alternative', alternative: '案 B', note: '' },
+            { id: 'D3', choice: 'comment', note: 'あとで決めたい' },
+        ],
+    });
+    assert.equal(ok.ok, true, '決定待ちの答えだけでも送れる');
+    assert.equal(ok.source, 'page');
+    assert.deepEqual(ok.decisions, [
+        { id: 'D1', title: '行番号の形', choice: 'recommended', alternative: '', note: '' },
+        { id: 'D2', title: '', choice: 'alternative', alternative: '案 B', note: '' },
+        { id: 'D3', title: '', choice: 'comment', alternative: '', note: 'あとで決めたい' },
+    ]);
+    const bad = (decisions, extra = {}) => rc.normalizeReleaseReviewBody({ issue: 10, round: 1, decisions, ...extra }).ok;
+    assert.equal(bad([{ id: 'X1', choice: 'recommended' }]), false);
+    assert.equal(bad([{ id: 'D1', choice: 'maybe' }]), false);
+    assert.equal(bad([{ id: 'D1', choice: 'recommended' }, { id: 'D1', choice: 'comment', note: 'x' }]), false);
+    assert.equal(bad([{ id: 'D1', choice: 'alternative' }]), false, '別の案は案かメモが要る');
+    assert.equal(bad([{ id: 'D1', choice: 'comment' }]), false, 'コメントはメモが要る');
+    assert.equal(bad([{ id: 'D1', choice: 'comment', note: 3 }]), false);
+    assert.equal(bad('D1'), false);
+    assert.equal(bad([{ id: 'D1', choice: 'recommended' }], { source: 'mail' }), false);
+});
+
+test('renderReleaseReviewComment ↔ parseReleaseReview: 確認ページの答え（決定待ちを含む・#2474）', () => {
+    const decisions = [
+        { id: 'D1', title: '行番号', choice: 'recommended', alternative: '', note: '' },
+        { id: 'D2', title: '罫線 --> の文字', choice: 'alternative', alternative: '案 B', note: '見やすい' },
+    ];
+    const body = rc.renderReleaseReviewComment({ round: 1, results: [], comment: '', decisions, source: 'page' });
+    assert.match(body, /📄 確認ページから 人間 の/);
+    assert.match(body, /- \*\*D2\*\* 罫線 --> の文字: 🔀 別の案/);
+    assert.match(body, /  > 案: 案 B/);
+    const data = body.split('\n')[1];
+    assert.equal(data.indexOf('-->'), data.length - 3);
+    assert.deepEqual(rc.parseReleaseReview(body), { round: 1, results: [], comment: '', decisions });
+    // 決定待ちが無いときは今までと同じ形
+    assert.doesNotMatch(rc.renderReleaseReviewComment({ round: 1, results: [], comment: 'x' }), /決定待ち/);
+});
+
+test('planReleaseResult: 推奨でよい以外の決定待ちは直しの候補（作ってあれば made）', () => {
+    const review = {
+        results: [{ id: 'R1', verdict: 'ok' }], comment: '', decisions: [
+            { id: 'D1', title: 'a', choice: 'recommended' },
+            { id: 'D2', title: 'b', choice: 'alternative', alternative: '案 B', note: '' },
+            { id: 'D3', title: 'c', choice: 'comment', alternative: '', note: '気になる' },
+        ],
+    };
+    const plan = rc.planReleaseResult({ epic: 10, round: 1, review, existingBodies: [rc.releaseNgMarker({ epic: 10, round: 1, point: 'D3' })] });
+    assert.equal(plan.allOk, false);
+    assert.deepEqual(plan.decisions.map((d) => [d.point, d.choice, d.made]), [['D2', 'alternative', false], ['D3', 'comment', true]]);
+    assert.equal(plan.decisions[0].marker, '<!-- autopilot-release-ng epic=10 round=1 point=D2 -->');
+    const allRec = rc.planReleaseResult({ epic: 10, round: 1, review: { results: [], comment: '', decisions: [review.decisions[0]] } });
+    assert.equal(allRec.allOk, true, '全部 推奨でよい なら全部 OK');
 });

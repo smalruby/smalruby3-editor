@@ -119,11 +119,22 @@ function draftDataFromMaterial(m) {
  * @returns {string} HTML
  */
 function renderCurrentStatusHtml(template, data) {
+    return embedTemplateData(template, TEMPLATE_DATA_TOKEN, data);
+}
+
+/**
+ * テンプレートの印をデータの JSON に置きかえる（現在地・リリース確認のページで共通・#2474）。
+ * @param {string} template
+ * @param {string} token テンプレートの中の印
+ * @param {object} data
+ * @returns {string}
+ */
+function embedTemplateData(template, token, data) {
     const t = String(template || '');
-    if (!t.includes(TEMPLATE_DATA_TOKEN)) throw new Error('template has no data token');
+    if (!t.includes(token)) throw new Error('template has no data token');
     const json = JSON.stringify(data == null ? null : data)
         .replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
-    return t.split(TEMPLATE_DATA_TOKEN).join(json);
+    return t.split(token).join(json);
 }
 
 module.exports = {
@@ -136,4 +147,5 @@ module.exports = {
     currentStatusView,
     draftDataFromMaterial,
     renderCurrentStatusHtml,
+    embedTemplateData,
 };

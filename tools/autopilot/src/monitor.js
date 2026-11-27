@@ -432,27 +432,26 @@ ${TOKEN_META_EMPTY}
   .fy-sec-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; padding: 8px 16px 4px; }
   .fy-sec-h .verb { font-weight: 700; color: var(--c); }
   .fy-sec-h .why { flex-basis: 100%; font-size: var(--ap-font-xs); color: var(--ap-muted); }
-  .fy-row { display: grid; grid-template-columns: 2.2em minmax(0, 1fr) auto; gap: 2px 10px; align-items: start; padding: 8px 16px;
+  /* 行は 2 行（#2483）: 1 行目は種類の札と題名だけ（題名を読ませる）、2 行目に番号・優先度・ボタン */
+  .fy-row { display: flex; flex-direction: column; gap: 2px; padding: 8px 16px; min-width: 0;
             border-top: 1px solid var(--ap-line-soft); }
   .fy-sec-h + .fy-row { border-top: 0; }
-  .fy-body { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
   .fy-title { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
   .fy-title .tt { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .fy-title .ilink, .fy-title .small { flex: none; }
+  .fy-title .epicchip { flex: none; margin-right: 0; }
+  .fy-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-width: 0; }
+  .fy-meta .ilink, .fy-meta .small, .fy-meta .gprio { flex: none; white-space: nowrap; }
+  .fy-meta .epicchip { margin-right: 0; }
   .fy-state { font-size: var(--ap-font-sm); color: var(--ap-ink-2); overflow-wrap: anywhere; }
   .fy-happens { font-size: var(--ap-font-xs); color: var(--ap-muted); overflow-wrap: anywhere; }
   .fy-state .ilink, .fy-happens .ilink, .fy-confirm .ilink { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
   .epicchip { font-size: 11px; color: var(--ap-muted); border: 1px solid var(--ap-line); border-radius: var(--ap-radius-sm); padding: 0 4px; margin-right: 4px; }
   .vbtn { font-size: var(--ap-font-xs); font-weight: 700; border-radius: var(--ap-radius-md); padding: 3px 10px; white-space: nowrap;
           background: var(--w); color: var(--c); border: 1px solid var(--c); }
-  .fy-confirm { grid-column: 2 / -1; background: var(--ap-surface-2); border: 1px solid var(--ap-line); border-radius: var(--ap-radius-md);
+  .fy-confirm { margin-top: 4px; background: var(--ap-surface-2); border: 1px solid var(--ap-line); border-radius: var(--ap-radius-md);
                 padding: 8px 10px; font-size: var(--ap-font-sm); display: flex; flex-direction: column; gap: 6px; }
   .fy-confirm .cbtns { display: flex; flex-wrap: wrap; gap: 6px; }
   .fy-fold > summary { cursor: pointer; padding: 8px 16px; font-size: var(--ap-font-sm); color: var(--ap-muted); }
-  @media (max-width: 560px) {
-    .fy-row { grid-template-columns: 2.2em minmax(0, 1fr); }
-    .fy-row > .acts-r { grid-column: 2; margin-left: 0; }
-  }
   /* ---- 「あなた宛て」の開け閉め（幅の広い画面だけ） ---- */
   .paneltoggle { display: none; padding: 2px 5px; margin-left: -4px; color: var(--ap-muted); }
   .paneltoggle svg.i { width: 16px; height: 16px; }
@@ -1310,7 +1309,9 @@ function renderInbox(d) {
   if (fyConfirm != null && !fyAll.some((w) => w.issue === fyConfirm && w.button)) fyConfirm = null;
   const lr = (t) => linkIssueRefs(t, repoUrl);
   const fyRow = (w) => {
-    const ep = w.parent != null ? '<span class="epicchip">EPIC ' + ilink(w.parent) + '</span>' : (w.isEpic ? '<span class="epicchip">EPIC</span>' : '');
+    // EPIC そのものの札は題名の前（種類の札）、子の行の親 EPIC はリンクなので 2 行目に置く
+    const kindChip = w.isEpic && w.parent == null ? '<span class="epicchip">EPIC</span>' : '';
+    const parentChip = w.parent != null ? '<span class="epicchip">EPIC ' + ilink(w.parent) + '</span>' : '';
     const btn = w.button ? '<button type="button" class="vbtn a-' + w.kind + '" data-act="fy-ask" data-issue="' + w.issue + '" data-testid="inbox-action"'
       + ' title="押すと: ' + esc(w.happens) + '">' + esc(w.button) + '</button>' : '';
     // 押すとすぐ行わず、行の中で「これを行います」と確かめる
@@ -1318,14 +1319,16 @@ function renderInbox(d) {
       ? '<div class="fy-confirm" role="status" data-testid="inbox-confirm"><span>これを行います: ' + lr(w.happens) + '</span><span class="cbtns">'
         + '<button type="button" class="vbtn a-' + w.kind + '" data-act="fy-do" data-issue="' + w.issue + '" data-testid="inbox-confirm-do">行う</button>'
         + '<button type="button" class="ibtn" data-act="fy-cancel" data-testid="inbox-confirm-cancel">やめる</button></span></div>' : '';
+    // 1 行目は種類の札と題名だけにして、題名にペインの幅を使わせる（#2483）。番号・優先度・ボタンは 2 行目
     return '<div class="fy-row" data-testid="inbox-wait" data-issue="' + w.issue + '" data-kind="' + w.kind + '"'
       + (w.epicPhase ? ' data-epic-phase="' + esc(w.epicPhase) + '"' : '') + '>'
-      + (w.priority ? '<span class="gprio ' + esc(w.priority.toLowerCase()) + '">' + esc(w.priority) + '</span>' : '<span></span>')
-      + '<div class="fy-body"><div class="fy-title">' + tipTitle('span', 'i:' + w.issue, w, shortTitle(w.title)) + ilink(w.issue, w.url)
-      + (w.later ? '<span class="small">💤 あとで</span>' : '') + '</div>'
-      + (w.state ? '<div class="fy-state">' + ep + lr(w.state) + '</div>' : '')
-      + (w.happens ? '<div class="fy-happens"><b>押すと:</b> ' + lr(w.happens) + '</div>' : '') + '</div>'
-      + '<span class="acts-r">' + btn + moreBtn(w.issue) + '</span>' + confirm + '</div>';
+      + '<div class="fy-title" data-testid="inbox-wait-title">' + kindChip + tipTitle('span', 'i:' + w.issue, w, shortTitle(w.title)) + '</div>'
+      + '<div class="fy-meta" data-testid="inbox-wait-meta">' + ilink(w.issue, w.url)
+      + (w.priority ? '<span class="gprio ' + esc(w.priority.toLowerCase()) + '">' + esc(w.priority) + '</span>' : '')
+      + parentChip + (w.later ? '<span class="small">💤 あとで</span>' : '')
+      + '<span class="acts-r">' + btn + moreBtn(w.issue) + '</span></div>'
+      + (w.state ? '<div class="fy-state">' + lr(w.state) + '</div>' : '')
+      + (w.happens ? '<div class="fy-happens"><b>押すと:</b> ' + lr(w.happens) + '</div>' : '') + confirm + '</div>';
   };
   const c = fy.counts;
   const sum = [['確かめる', c.check], ['答える', c.answer], ['ゴーサイン', c.go], ['人間の作業', c.hand]]
@@ -1588,6 +1591,11 @@ function openRowMenu(anchor, issue) {
   if (running.indexOf(issue) >= 0) entries.push({ label: 'worker の log を見る', act: () => openLog(issue) });
   // 前の「AI に任せる」は、いつも使うものではないので ⋯ に残す（#2466）
   const wait = (lastInbox.waits || []).find((w) => w.issue === issue);
+  // 確認ページ（#2474）で答えを送ったあと、🙋 を外して AI に読ませる。ダイアログは確認ページが開けないときの予備
+  if (wait && wait.release && it.releasePageUrl) {
+    entries.push({ label: '📄 確認ページを開く', href: it.releasePageUrl });
+    entries.push({ label: '✨ 確認ページの答えを AI に渡す', note: '🙋 を外す', act: () => delegateIssue(issue) });
+  }
   if (wait && wait.goLabel) {
     entries.push({ label: '✨ ' + wait.goLabel, act: () => (wait.release ? openRelease(issue) : wait.fix ? openFix(issue) : delegateIssue(issue)) });
   }

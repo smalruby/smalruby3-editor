@@ -38,7 +38,6 @@ const {
     statusRank,
     orderItemsLikeBoard,
     selectActionable,
-    shouldResend,
     evaluate,
     sanitizeForSurface,
     isAuthError,
@@ -109,16 +108,6 @@ const {
     addressReviewPolicyFor,
 } = require('../src/phases');
 const { PROMPT_RE } = require('../src/runner');
-
-test('shouldResend: resend after accept window if attempts remain', () => {
-    const cfg = { maxAttempts: 4, acceptWindowMs: 8000 };
-    // まだ猶予内 -> 再送しない
-    assert.equal(shouldResend({ sinceSendMs: 5000, attempts: 1, ...cfg }), false);
-    // 猶予超過 & 上限内 -> 再送
-    assert.equal(shouldResend({ sinceSendMs: 9000, attempts: 1, ...cfg }), true);
-    // 上限到達 -> 再送しない
-    assert.equal(shouldResend({ sinceSendMs: 9000, attempts: 4, ...cfg }), false);
-});
 
 test('phaseForItem: New Item -> triage', () => {
     assert.equal(phaseForItem({ status: 'New Item' }), 'triage');

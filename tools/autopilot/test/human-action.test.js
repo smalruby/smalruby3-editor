@@ -83,6 +83,11 @@ test('humanAction: 状態ごとの すること・ボタン・押すと', () => 
     // リリース確認は確認の結果を書くダイアログ
     r = a({ status: 'In Progress', aiStatus: 'Release Check', tracker: true, subIssues: { total: 2, completed: 2 } });
     assert.deepStrictEqual([r.kind, r.act], ['check', 'release']);
+    // 確認ページ（#2474）があれば、そのページを別タブで開く
+    r = a({ status: 'In Progress', aiStatus: 'Release Check', tracker: true, subIssues: { total: 2, completed: 2 },
+        releasePageUrl: 'https://claude.ai/artifact/p1' });
+    assert.deepStrictEqual([r.kind, r.button, r.act, r.url], ['check', '確認ページを開く', 'open', 'https://claude.ai/artifact/p1']);
+    assert.match(r.happens, /1 枚で見て、答えを送る/);
     // Sprint Backlog の EPIC の子は topic 宛て、属さないものは develop 宛て
     assert.match(a({ status: 'Sprint Backlog', parent: { number: 5 } }).happens, /topic 宛て/);
     assert.match(a({ status: 'Sprint Backlog' }).happens, /develop 宛て/);
