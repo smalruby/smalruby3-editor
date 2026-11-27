@@ -190,7 +190,8 @@ async function runPhase(opts) {
                 } else {
                     // 入力欄に文が残っていれば Enter だけ、使い切ったら黙って待たずに再起動（#2504）
                     const plan = planResend({
-                        sinceSendMs: t - sentAt, attempts: sendAttempts, maxAttempts: cfg.maxSendAttempts,
+                        sinceSendMs: t - sentAt, idleMs: t - lastChangeAt, attempts: sendAttempts,
+                        maxAttempts: cfg.maxSendAttempts,
                         acceptWindowMs: acceptWindowFor(cfg.acceptWindowMs, readLoad()),
                         screen: pane, text: slash, restarts, maxRestarts: cfg.maxRestarts,
                     });

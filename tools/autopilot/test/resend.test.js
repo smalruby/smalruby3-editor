@@ -75,6 +75,12 @@ test('planResend: 使い切って猶予を過ぎたら再起動、再起動の�
     assert.strictEqual(planResend({ ...base, sinceSendMs: 9000, attempts: 4, screen: STUCK, restarts: 2 }).action, 'fail');
 });
 
+test('planResend: 使い切っても画面が動いているあいだは殺さずに待つ（busy の見落としに備える）', () => {
+    const s = { ...base, sinceSendMs: 9000, attempts: 4, screen: EMPTY };
+    assert.strictEqual(planResend({ ...s, idleMs: 2000 }).action, 'wait');
+    assert.strictEqual(planResend({ ...s, idleMs: 9000 }).action, 'restart');
+});
+
 /** 見回りのたびに画面を返す fake の端末。sent に送ったものを残す */
 function fakeTerm(screenFor) {
     const sent = [];
