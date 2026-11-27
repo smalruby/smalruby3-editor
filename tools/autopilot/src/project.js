@@ -15,7 +15,7 @@ const { promisify } = require('util');
 const path = require('path');
 const {
     HITL_LABEL, AUTOPILOT_LABEL, selectMarkedComments, stickyUpsertPlan, STICKY_MARKERS,
-    autopilotHeadBranch, normalizeBoardEnrichment,
+    autopilotHeadBranch, normalizeBoardEnrichment, hasMergedHeadPr,
 } = require('./phases');
 
 const execFileP = promisify(execFile);
@@ -239,15 +239,6 @@ function selectHeadPr(prs) {
         branch: pr.headRefName,
         base: pr.baseRefName,
     };
-}
-
-/**
- * `gh pr list --json state` の結果に merged PR が含まれるか（#831・base 非依存の merge 検知）。
- * @param {Array<{state?:string, merged?:boolean}>} prs
- * @returns {boolean}
- */
-function hasMergedHeadPr(prs) {
-    return (Array.isArray(prs) ? prs : []).some((p) => p && (p.state === 'MERGED' || p.merged === true));
 }
 
 /** autopilot の head ブランチ名（env `AUTOPILOT_BRANCH_PREFIX` があれば bash 側に合わせる）。 */
@@ -513,7 +504,8 @@ async function postIssueComment(repo, number, body, token) {
  * close リンクは **非デフォルト base 宛て PR**（epic ブランチに積んだサブ Issue 等）を拾えない
  * （#829 と相互作用）。そのため close リンクで merge が見つからなければ、head ブランチ
  * `topic/autopilot-<N>` の merged PR も見る（base 非依存・#831）。「topic merge = close」運用を
- * epic ブランチへの merge でも効かせるため。
+ * epic ブランチへの merge でも効かせるため。同じブランチで PR を分けて出す Issue では、open の PR が
+ * あればマージ済みとみなさない（判定は phases.js の {@link hasMergedHeadPr}・#2498）。
  * @param {string} repo `owner/name`
  * @param {number} issueNumber
  * @param {string} token
@@ -526,18 +518,21 @@ async function hasMergedPullRequest(repo, issueNumber, token, deps = {}) {
     const query =
         'query($owner:String!,$name:String!,$num:Int!){' +
         'repository(owner:$owner,name:$name){issue(number:$num){' +
-        'closedByPullRequestsReferences(first:20,includeClosedPrs:true){nodes{merged}}}}}';
+        'closedByPullRequestsReferences(first:20,includeClosedPrs:true){nodes{merged state}}}}}';
     const out = await ghFn(
         ['api', 'graphql', '-f', `query=${query}`, '-F', `owner=${owner}`, '-F', `name=${name}`, '-F', `num=${issueNumber}`],
         { token },
     );
     const issue = JSON.parse(out)?.data?.repository?.issue;
     const nodes = (issue && issue.closedByPullRequestsReferences && issue.closedByPullRequestsReferences.nodes) || [];
-    if (nodes.some((n) => n.merged === true)) return true;
-    // close リンクに無い → head ブランチで非デフォルト base への merge を検知（#831）
+    if (hasMergedHeadPr(nodes)) return true;
+    // open の PR が close リンクにある → それが今の PR。前のマージ済み PR があってもまだ（#2498）
+    if (nodes.some((n) => n && n.state === 'OPEN')) return false;
+    // close リンクに無い → head ブランチで非デフォルト base への merge を検知（#831）。
+    // 同じブランチの open の PR も見るため、全状態を 1 回で取る（#2498・read を増やさない）
     const listOut = await ghFn(
-        ['pr', 'list', '--repo', repo, '--head', headBranchFor(issueNumber), '--state', 'merged',
-            '--json', 'number,state', '--limit', '10'],
+        ['pr', 'list', '--repo', repo, '--head', headBranchFor(issueNumber), '--state', 'all',
+            '--json', 'number,state', '--limit', '20'],
         { token },
     );
     return hasMergedHeadPr(JSON.parse(listOut));

@@ -144,6 +144,13 @@ test('hasMergedHeadPr: true iff a merged PR is present', async () => {
     assert.equal(hasMergedHeadPr(null), false);
 });
 
+// 同じブランチで PR を分けて出す Issue（#1934 の形）: 前の PR がマージ済みでも、open の PR が
+// あればそれが今の PR なのでマージ済みとみなさない（#2498）。
+test('hasMergedHeadPr: false when an open PR remains on the same head branch (#2498)', async () => {
+    assert.equal(hasMergedHeadPr([{ number: 2490, state: 'OPEN' }, { number: 1997, state: 'MERGED' }]), false);
+    assert.equal(hasMergedHeadPr([{ number: 1997, state: 'MERGED' }, { number: 2000, state: 'CLOSED' }]), true);
+});
+
 // findPrForIssue: close リンク優先 → 無ければ head ブランチ検索（base 非依存）。
 test('findPrForIssue: falls back to head search when close link is empty (#831)', async () => {
     const calls = [];
@@ -204,6 +211,36 @@ test('hasMergedPullRequest: close-link merged short-circuits head search', async
     };
     assert.equal(await hasMergedPullRequest('o/r', 1, 'tok', { gh: fakeGh }), true);
     assert.equal(listCalled, false);
+});
+
+test('hasMergedPullRequest: an open PR on the head branch beats an earlier merged one (#2498)', async () => {
+    const calls = [];
+    const fakeGh = (args) => {
+        calls.push(args);
+        if (args.includes('graphql')) {
+            return JSON.stringify({ data: { repository: { issue: { closedByPullRequestsReferences: { nodes: [] } } } } });
+        }
+        return JSON.stringify([{ number: 2490, state: 'OPEN' }, { number: 1997, state: 'MERGED' }]);
+    };
+    assert.equal(await hasMergedPullRequest('o/r', 1934, 'tok', { gh: fakeGh }), false);
+    const listCall = calls.find((a) => a.includes('list'));
+    // open と merged を 1 回の問い合わせで取る（read を増やさない）
+    assert.equal(listCall[listCall.indexOf('--state') + 1], 'all');
+    assert.equal(calls.length, 2);
+});
+
+test('hasMergedPullRequest: an open close-linked PR beats an earlier merged one (#2498)', async () => {
+    let listCalled = false;
+    const fakeGh = (args) => {
+        if (args.includes('graphql')) {
+            return JSON.stringify({ data: { repository: { issue: { closedByPullRequestsReferences: {
+                nodes: [{ merged: true, state: 'MERGED' }, { merged: false, state: 'OPEN' }] } } } } });
+        }
+        listCalled = true;
+        return '[]';
+    };
+    assert.equal(await hasMergedPullRequest('o/r', 1934, 'tok', { gh: fakeGh }), false);
+    assert.equal(listCalled, false, 'open が close リンクにあれば head の問い合わせは要らない');
 });
 
 test('hasMergedPullRequest: false when neither close link nor head branch is merged', async () => {

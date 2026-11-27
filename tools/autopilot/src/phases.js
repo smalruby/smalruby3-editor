@@ -33,6 +33,23 @@ function autopilotHeadBranch(issueNumber, prefix = AUTOPILOT_BRANCH_PREFIX) {
 }
 
 /**
+ * Issue にひも付く PR の一覧から「マージ済み」とみなすか（純粋関数・#831 / #2498）。
+ *
+ * マージ済みの PR が 1 つでもあれば true。ただし **open の PR が 1 つでもあれば false**。
+ * 同じ head ブランチ（`topic/autopilot-<N>`）で PR を分けて出す Issue では、前の PR がマージ済みでも
+ * いま開いている PR が本物で、人間のレビュー待ち。前の PR を見て Close へ進めると Issue を
+ * 早く閉じてしまう（#1934 で起きた）。CLOSED（マージせずに閉じた）PR は判断に使わない。
+ * 入力は `gh pr list --json state` の `{state}` でも、GraphQL の `{merged, state}` でもよい。
+ * @param {Array<{state?:string, merged?:boolean}>} prs
+ * @returns {boolean}
+ */
+function hasMergedHeadPr(prs) {
+    const list = (Array.isArray(prs) ? prs : []).filter(Boolean);
+    if (list.some((p) => p.state === 'OPEN')) return false;
+    return list.some((p) => p.state === 'MERGED' || p.merged === true);
+}
+
+/**
  * 宣言 base を「追従に使う ref（`origin/<branch>`）」へ正規化する（純粋関数・#950）。
  *
  * autopilot の worktree ブランチは作成時点の base から分岐するが、その後 base が前進しても
@@ -4111,6 +4128,7 @@ module.exports = {
     resolveOwner,
     AUTOPILOT_BRANCH_PREFIX,
     autopilotHeadBranch,
+    hasMergedHeadPr,
     resolveBaseRef,
     shouldCleanupWorktree,
     isDevServerCommand,
