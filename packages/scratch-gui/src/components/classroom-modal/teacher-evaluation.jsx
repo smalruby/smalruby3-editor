@@ -38,6 +38,7 @@ import {
     gradebookCell,
     isDraftGrade,
 } from '../../lib/classroom-evaluation/gradebook.js';
+import { stackedSegments } from '../../lib/classroom-evaluation/overall-chart.js';
 import { buildLessonPayload, lessonDraftFromSaved } from '../../lib/classroom-lesson-settings.js';
 import { findCourse } from '../../lib/lessons/courses.js';
 import Spinner from '../spinner/spinner.jsx';
@@ -769,13 +770,23 @@ Counts.propTypes = {
     counts: PropTypes.object.isRequired,
 };
 
+/* 評価の分布の横棒の色（評価ごと） */
+const GRADE_BAR_CLASS = {
+    S: styles.evalDistBarS,
+    A: styles.evalDistBarA,
+    B: styles.evalDistBarB,
+    C: styles.evalDistBarC,
+};
+
 /*
  * 人数の下の評価の分布（#2457・F5 / F6）: S/A/B/C の人数、S+A と S の人数と %。
  * % の分母は評価のついた人で、未提出は数えない。目安を外れたら注意の色と「!」（色だけに頼らない）。
+ * S/A/B/C は評価ごとの横棒にして目立たせる（#2523）。棒の長さは評価のついた人の割合で、
+ * 色は総合評価のグラフ（#2458）と同じ評価の色。文字の大きさはトークンのまま。
  */
 const Distribution = ({ distribution }) => {
     const intl = useIntl();
-    const { counts, graded, notSubmitted, sa, s } = distribution;
+    const { graded, notSubmitted, sa, s } = distribution;
     const percent = (value) => (value === null ? '—' : `${value}%`);
     const share = (key, ok, label, target) => (
         <span
@@ -791,39 +802,58 @@ const Distribution = ({ distribution }) => {
     );
     return (
         <div className={styles.evalDist} data-testid="classroom-eval-distribution">
-            <span className={styles.evalDistGrades}>
-                {['S', 'A', 'B', 'C'].map((grade) => (
-                    <span data-testid={`classroom-eval-dist-grade-${grade}`} key={grade}>
-                        {grade} <b>{counts[grade]}</b>
-                    </span>
+            <div className={styles.evalDistBars} data-testid="classroom-eval-dist-bars">
+                {stackedSegments(distribution).map((segment) => (
+                    <div className={styles.evalDistBarRow} key={segment.grade}>
+                        <span className={styles.evalDistBarGrade}>{segment.grade}</span>
+                        <span className={styles.evalDistBarTrack}>
+                            <span
+                                className={classNames(styles.evalDistBar, GRADE_BAR_CLASS[segment.grade])}
+                                data-count={segment.count}
+                                data-testid={`classroom-eval-dist-bar-${segment.grade}`}
+                                style={{ width: `${segment.share}%` }}
+                            />
+                        </span>
+                        <span
+                            className={styles.evalDistBarCount}
+                            data-testid={`classroom-eval-dist-grade-${segment.grade}`}
+                        >
+                            <b>{segment.count}</b>
+                        </span>
+                    </div>
                 ))}
-            </span>
-            {share(
-                'sa',
-                sa.ok,
-                intl.formatMessage(assignmentMessages.distributionSa, {
-                    count: sa.count,
-                    percent: percent(sa.percent),
-                }),
-                intl.formatMessage(assignmentMessages.distributionSaTarget, { min: GRADE_TARGETS.saMin }),
-            )}
-            {share(
-                's',
-                s.ok,
-                intl.formatMessage(assignmentMessages.distributionS, {
-                    count: s.count,
-                    percent: percent(s.percent),
-                }),
-                intl.formatMessage(assignmentMessages.distributionSTarget, {
-                    min: GRADE_TARGETS.sMin,
-                    max: GRADE_TARGETS.sMax,
-                }),
-            )}
-            <span className={styles.evalDistBase} data-testid="classroom-eval-dist-base">
-                {notSubmitted
-                    ? intl.formatMessage(assignmentMessages.distributionGradedNotSubmitted, { graded, notSubmitted })
-                    : intl.formatMessage(assignmentMessages.distributionGraded, { graded })}
-            </span>
+            </div>
+            <div className={styles.evalDistShares}>
+                {share(
+                    'sa',
+                    sa.ok,
+                    intl.formatMessage(assignmentMessages.distributionSa, {
+                        count: sa.count,
+                        percent: percent(sa.percent),
+                    }),
+                    intl.formatMessage(assignmentMessages.distributionSaTarget, { min: GRADE_TARGETS.saMin }),
+                )}
+                {share(
+                    's',
+                    s.ok,
+                    intl.formatMessage(assignmentMessages.distributionS, {
+                        count: s.count,
+                        percent: percent(s.percent),
+                    }),
+                    intl.formatMessage(assignmentMessages.distributionSTarget, {
+                        min: GRADE_TARGETS.sMin,
+                        max: GRADE_TARGETS.sMax,
+                    }),
+                )}
+                <span className={styles.evalDistBase} data-testid="classroom-eval-dist-base">
+                    {notSubmitted
+                        ? intl.formatMessage(assignmentMessages.distributionGradedNotSubmitted, {
+                              graded,
+                              notSubmitted,
+                          })
+                        : intl.formatMessage(assignmentMessages.distributionGraded, { graded })}
+                </span>
+            </div>
         </div>
     );
 };
