@@ -48,7 +48,7 @@ import { breadcrumbMessages } from './teacher-breadcrumbs.jsx';
 import TeacherEvaluationDetail, { detailMessages, needsReviewText } from './teacher-evaluation-detail.jsx';
 import TeacherGradebook, { GradebookSwitch, gradebookMessages } from './teacher-gradebook.jsx';
 import TeacherGradingRubric, { TeacherGradingGroupPrompt } from './teacher-grading-rubric.jsx';
-import TeacherGradingShapes, { ShapeDots, ShapeTags, shapeMessages } from './teacher-grading-shapes.jsx';
+import TeacherGradingShapes, { ShapeDots, ShapeTags, shapeMessages, shapedCells } from './teacher-grading-shapes.jsx';
 import TeacherLegacyImport from './teacher-legacy-import.jsx';
 import TeacherOverallGrade from './teacher-overall-grade.jsx';
 import { TeacherScreen } from './teacher-view-layout.jsx';
@@ -950,9 +950,41 @@ const TeacherEvaluation = ({
         },
         [setChosenCell],
     );
-    const handleTabRubric = useCallback(() => setInnerTab('rubric'), [setInnerTab]);
-    const handleTabStudent = useCallback(() => setInnerTab('student'), [setInnerTab]);
-    const handleTabShape = useCallback(() => setInnerTab('shape'), [setInnerTab]);
+    // The rubric was just saved and the grading moved to the［形］tab: the tab says why (#2522).
+    // Choosing a tab (or another assignment) drops the note.
+    // {classroomId, kind}: kind = 'graded' when some shaped work has a grade already, else
+    // 'ungraded' (the note differs).
+    const [shapeArrival, setShapeArrival] = useState(null);
+    const lessonId = lesson ? lesson.classroomId : null;
+    useEffect(() => {
+        setShapeArrival((prev) => (prev && prev.classroomId !== lessonId ? null : prev));
+    }, [lessonId]);
+    // Checked here too: the effect runs after the render of the other assignment.
+    const shapeArrived = shapeArrival && shapeArrival.classroomId === lessonId ? shapeArrival.kind : null;
+    const handleTabRubric = useCallback(() => {
+        setShapeArrival(null);
+        setInnerTab('rubric');
+    }, [setInnerTab]);
+    const handleTabStudent = useCallback(() => {
+        setShapeArrival(null);
+        setInnerTab('student');
+    }, [setInnerTab]);
+    const handleTabShape = useCallback(() => {
+        setShapeArrival(null);
+        setInnerTab('shape');
+    }, [setInnerTab]);
+    // After the rubric (2-4) is saved, the AI's grades are checked shape by shape: that is
+    // where the［形］tab helps most (#2522). Without works that have shape tags it stays.
+    const handleRubricSaved = useCallback(() => {
+        if (!lesson || !loaded || !onSetSeatsGrade) return;
+        const shaped = Object.values(shapedCells(seats, getCell, lesson.classroomId));
+        if (shaped.length === 0) return;
+        setShapeArrival({
+            classroomId: lesson.classroomId,
+            kind: shaped.some((cell) => !!cell.grade) ? 'graded' : 'ungraded',
+        });
+        setInnerTab('shape');
+    }, [lesson, loaded, onSetSeatsGrade, seats, getCell, setInnerTab]);
     // A seat of the same shape (the［生徒］tab): open it there.
     const handleSameShape = useCallback(
         (e) => {
@@ -1296,7 +1328,13 @@ const TeacherEvaluation = ({
             <div className={styles.evalPaneBody} data-testid="classroom-eval-rubric-pane">
                 {rubricTools ? (
                     // The［基準］tab of #2425: description, representatives, fairness, rubric.
-                    <TeacherGradingRubric busy={busy} lesson={lesson} tools={rubricTools} onOpenWork={onOpenWork} />
+                    <TeacherGradingRubric
+                        busy={busy}
+                        lesson={lesson}
+                        tools={rubricTools}
+                        onOpenWork={onOpenWork}
+                        onSaved={handleRubricSaved}
+                    />
                 ) : (
                     <>
                         <div className={styles.evalPaneLabel}>
@@ -1547,12 +1585,15 @@ const TeacherEvaluation = ({
                             </div>
                         )}
                         {lessonOnly ? null : (
-                            <div className={styles.evalPaneScroll} role="tabpanel">
+                            // Keyed by the tab: a tab opens at its top, not at the last tab's scroll
+                            // (the note of #2522 is at the top of the［形］tab).
+                            <div className={styles.evalPaneScroll} key={innerTab} role="tabpanel">
                                 {innerTab === 'student' && studentPane}
                                 {innerTab === 'rubric' && rubricPane}
                                 {innerTab === 'shape' &&
                                     (loaded && onSetSeatsGrade ? (
                                         <TeacherGradingShapes
+                                            arrived={shapeArrived}
                                             classroomId={lesson.classroomId}
                                             getCell={getCell}
                                             seats={seats}

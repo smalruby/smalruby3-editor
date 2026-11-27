@@ -943,7 +943,7 @@ const SUMMARY_LENGTH = 40;
 /** How long the「正解を選ぶ」tip stays by the grade buttons after the AI proposals (ms, #2521). */
 const CHOOSE_HINT_MS = 4000;
 
-const TeacherGradingRubric = ({ busy: parentBusy = false, lesson, tools, onOpenWork = null }) => {
+const TeacherGradingRubric = ({ busy: parentBusy = false, lesson, tools, onOpenWork = null, onSaved = null }) => {
     const intl = useIntl();
     const {
         answers,
@@ -1014,8 +1014,10 @@ const TeacherGradingRubric = ({ busy: parentBusy = false, lesson, tools, onOpenW
         [tools],
     );
     const handleSave = useCallback(async () => {
-        if (await tools.handleSaveRubric()) setBuilding(false);
-    }, [tools]);
+        if (!(await tools.handleSaveRubric())) return;
+        setBuilding(false);
+        if (onSaved) onSaved();
+    }, [tools, onSaved]);
 
     const hasRubric = hasRubricLevels(savedRubric);
     const showBuilder = !hasRubric || building;
@@ -1299,6 +1301,8 @@ TeacherGradingRubric.propTypes = {
     tools: PropTypes.object.isRequired,
     /** (seat, classroomId) → open the work in the editor. */
     onOpenWork: PropTypes.func,
+    /** () → the rubric (2-4) was saved: the grading moves on to the［形］tab (#2522). */
+    onSaved: PropTypes.func,
 };
 
 /* 全員の採点のあとに 1 件を直したとき、同じまとまりも直すかを聞く（［生徒］のタブ）。 */
