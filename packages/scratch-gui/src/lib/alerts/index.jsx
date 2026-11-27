@@ -19,6 +19,7 @@ const AlertLevels = {
 };
 
 const alerts = [
+    // === Smalruby: Start of ruby alerts ===
     {
         alertId: 'convertRubyToBlocksError',
         clearList: ['convertRubyToBlocksError'],
@@ -47,6 +48,7 @@ const alerts = [
         level: AlertLevels.WARN,
         maxDisplaySecs: 5
     },
+    // === Smalruby: End of ruby alerts ===
     {
         alertId: 'createSuccess',
         alertType: AlertTypes.STANDARD,
@@ -260,6 +262,7 @@ const alerts = [
         iconSpinner: true,
         level: AlertLevels.SUCCESS
     },
+    // === Smalruby: Start of ruby alerts ===
     {
         alertId: 'cannotExecuteLine',
         clearList: ['cannotExecuteLine'],
@@ -274,6 +277,7 @@ const alerts = [
         level: AlertLevels.WARN,
         maxDisplaySecs: 5
     },
+    // === Smalruby: End of ruby alerts ===
     {
         alertId: 'settingThumbnail',
         alertType: AlertTypes.STANDARD,
