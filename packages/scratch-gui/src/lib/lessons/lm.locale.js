@@ -78,6 +78,79 @@ export const ja = {
     [`${C}lm-l1-random.quiz.choice3`]: '次の文字を「こうほ」から乱数で選んでいるから',
     [`${C}lm-l1-random.quiz.explanation`]:
         '「文字をえらぶ」が、こうほの中から乱数で 1 つ選んでいます。こうほにたくさん入っている文字ほど選ばれやすいので、それらしい文になりやすくなります。',
+
+    'gui.lessons.lesson.lm-l2.name': 'ことばを文字に分けよう',
+
+    [`${C}lm-l2-letters.name`]: '1 文字ずつ言おう',
+    [`${C}lm-l2-letters.task`]:
+        'AI は文を 1 文字ずつ扱っています。\nロボットを押したら、AI が文を作って、その文を 1 文字ずつ 0.5 秒言うようにしよう。',
+    [`${C}lm-l2-letters.step1`]:
+        '「このスプライトが押されたとき」のスクリプトの「(文) と言う」を外して消そう。「文をつくる」の下に「変数」の「(何文字目) を (1) にする」をつなげよう（▼ で「何文字目」を選ぶ）。「何文字目」は、いま何文字めを言うかの番号です。',
+    [`${C}lm-l2-letters.step2`]:
+        'その下に「制御」の「( ) まで繰り返す」をつなげ、穴に「演算」の「( ) > ( )」を入れよう。左に「何文字目」、右に「演算」の「(りんご) の長さ」を入れ、「りんご」のところに「文」を入れよう。何文字目が文の長さより大きくなったら止まります。',
+    [`${C}lm-l2-letters.step3`]:
+        'くり返しの中に「見た目」の「(こんにちは！) と (0.5) 秒言う」と「変数」の「(何文字目) を (1) ずつ変える」を入れよう。「こんにちは！」のところに「演算」の「(りんご) の (1) 番目の文字」を入れ、「りんご」に「文」、「1」に「何文字目」を入れよう。',
+    [`${C}lm-l2-letters.step4`]:
+        'Ruby で読むと、こうなります。Ruby では文字の番号を 0 から数えるので、ブロックの「(文) の (何文字目) 番目の文字」は「@文[@何文字目 - 1]」と書きます。「の長さ」は「.length」、「まで繰り返す」は「until」です。',
+    [`${C}lm-l2-letters.step5`]:
+        '旗を押してから、ロボットを押そう。AI が作った文を、1 文字ずつ言います。「、」や「。」も 1 文字です。',
+    [`${C}lm-l2-letters.debug1`]:
+        '「(何文字目) を (1) ずつ変える」がくり返しの中にあるか見よう。無いと、ずっと 1 文字めを言います。',
+    [`${C}lm-l2-letters.debug2`]:
+        '「(何文字目) を (1) にする」がくり返しの前にあるか見よう。無いと、前に使った番号の続きから数えるので、何も言わなかったり、文の途中から言ったりします。',
+    [`${C}lm-l2-letters.quiz.question`]: '「文」が「こんにちは。」のとき、「(文) の (3) 番目の文字」は、どれ？',
+    [`${C}lm-l2-letters.quiz.choice1`]: '「ん」',
+    [`${C}lm-l2-letters.quiz.choice2`]: '「に」',
+    [`${C}lm-l2-letters.quiz.choice3`]: '「ち」',
+    [`${C}lm-l2-letters.quiz.explanation`]:
+        '1 番目が「こ」、2 番目が「ん」、3 番目が「に」です。ブロックでは 1 から数えます（Ruby では 0 から数えるので「@文[2]」です）。',
+
+    [`${C}lm-l2-pairs.name`]: '1 つの文の組を作ろう',
+    [`${C}lm-l2-pairs.task`]:
+        '「学習する」の中身を作り直そう。\nいまの「学習する」は、教科書の 1 文めを 1 文字ずつ読むだけです。読みながら、「前の文字」と「いまの文字」の組を「まえ」「つぎ」に足すようにしよう。',
+    [`${C}lm-l2-pairs.step1`]:
+        '「学習する」の定義の中の「( ) まで繰り返す」の中に、「変数」の「(なにか) を (まえ) に追加する」を入れよう（「(何文字目) を (1) ずつ変える」の上に。▼ で「まえ」を選ぶ）。「なにか」のところに「前の文字」を入れよう。',
+    [`${C}lm-l2-pairs.step2`]:
+        'その下に「(なにか) を (つぎ) に追加する」をつなげ、「なにか」のところに「演算」の「(文) の (何文字目) 番目の文字」（いまの文字）を入れよう。「まえ」と「つぎ」の同じ行が 1 組になります。',
+    [`${C}lm-l2-pairs.step3`]:
+        'その下に「(前の文字) を ( ) にする」をつなげ、「(文) の (何文字目) 番目の文字」を入れよう。次の文字から見ると、いまの文字が「前の文字」になります。',
+    [`${C}lm-l2-pairs.step4`]:
+        'Ruby で読むと、こうなります。リストに足すのは「@まえ.push(@前の文字)」、いまの文字は「@文[@何文字目 - 1]」です。',
+    [`${C}lm-l2-pairs.step5`]:
+        '旗を押して、ステージの「まえ」「つぎ」を見よう。1 行めの「まえ」は空で、「つぎ」は文の 1 文字めです。ロボットを押すと、AI はこの 1 文しか知らないので、ほとんど同じ文を言います。',
+    [`${C}lm-l2-pairs.debug1`]:
+        '「(前の文字) を ( ) にする」が 2 つの「追加する」の下にあるか見よう。上にあると、「まえ」にもいまの文字が入ります。',
+    [`${C}lm-l2-pairs.debug2`]: '3 つのブロックが「学習する」の中の、1 文字ずつ読むくり返しの中にあるか見よう。',
+    [`${C}lm-l2-pairs.quiz.question`]: '「ねこです。」という 1 つの文を学習すると、「まえ」と「つぎ」に何組入る？',
+    [`${C}lm-l2-pairs.quiz.choice1`]: '4 組',
+    [`${C}lm-l2-pairs.quiz.choice2`]: '5 組',
+    [`${C}lm-l2-pairs.quiz.choice3`]: '6 組',
+    [`${C}lm-l2-pairs.quiz.explanation`]:
+        '（空 → ね）（ね → こ）（こ → で）（で → す）（す → 。）の 5 組です。文の文字の数と同じだけ組ができます。1 つめの組の「まえ」が空なので、AI は何も言われなくても文を始められます。',
+
+    [`${C}lm-l2-learn.name`]: '教科書を全部学習しよう',
+    [`${C}lm-l2-learn.task`]:
+        'いまの「学習する」は、教科書の 1 文めだけを学習します。\n「何文目」を 1 から教科書の長さまで変えながらくり返して、教科書の全部の文を学習するようにしよう。',
+    [`${C}lm-l2-learn.step1`]:
+        '「学習する」の定義の中の「(何文目) を (1) にする」の下に、「制御」の「( ) まで繰り返す」を置こう。穴に「演算」の「( ) > ( )」を入れ、左に「何文目」、右に「変数」の「(教科書) の長さ」を入れよう。',
+    [`${C}lm-l2-learn.step2`]:
+        '「(文) を (教科書 の (何文目) 番目) にする」から、1 文字ずつ読むくり返しの終わりまでが、新しいくり返しの中に入っているか見よう。くり返しを置くと、下のブロックが中に入ります。入っていなければ、ドラッグして入れよう。',
+    [`${C}lm-l2-learn.step3`]:
+        '新しいくり返しの中の最後（1 文字ずつ読むくり返しの下）に、「(何文目) を (1) ずつ変える」を入れよう。',
+    [`${C}lm-l2-learn.step4`]:
+        'Ruby で読むと、こうなります。「until」の中に「until」が入っています。外のくり返しが文を 1 つずつ、中のくり返しが文字を 1 つずつ進めます。',
+    [`${C}lm-l2-learn.step5`]:
+        '旗を押してから、ロボットを何回か押そう。教科書の全部の文を学習したので、いろいろな文を作ります。',
+    [`${C}lm-l2-learn.debug1`]:
+        '「(何文目) を (1) ずつ変える」が外のくり返しの中にあるか見よう。無いと、ずっと 1 文めを学習し続けます。',
+    [`${C}lm-l2-learn.debug2`]:
+        '「(前の文字) を () にする」と「(何文字目) を (1) にする」が外のくり返しの中にあるか見よう。外にあると、2 文めからが正しく読めません。',
+    [`${C}lm-l2-learn.quiz.question`]: '教科書の全部の文を学習したとき、「まえ」の行の数は、どれと同じ？',
+    [`${C}lm-l2-learn.quiz.choice1`]: '教科書の文の数',
+    [`${C}lm-l2-learn.quiz.choice2`]: '教科書の全部の文の文字の数を合わせた数',
+    [`${C}lm-l2-learn.quiz.choice3`]: '「まえ」に入っている、ちがう文字の数',
+    [`${C}lm-l2-learn.quiz.explanation`]:
+        '1 文字ごとに 1 組足すので、全部の文の文字の数を合わせた数になります。AI は数を数えずに、出てきた回数だけ組を覚えています。',
 };
 
 export const jaHira = {
@@ -159,6 +232,83 @@ export const jaHira = {
     [`${C}lm-l1-random.quiz.choice3`]: 'つぎの もじを「こうほ」から らんすうで えらんでいるから',
     [`${C}lm-l1-random.quiz.explanation`]:
         '「もじをえらぶ」が、こうほの なかから らんすうで 1 つ えらんでいます。こうほに たくさん はいっている もじほど えらばれやすいので、それらしい ぶんに なりやすく なります。',
+
+    'gui.lessons.lesson.lm-l2.name': 'ことばを もじに わけよう',
+
+    [`${C}lm-l2-letters.name`]: '1 もじずつ いおう',
+    [`${C}lm-l2-letters.task`]:
+        'AI は ぶんを 1 もじずつ あつかっています。\nロボットを おしたら、AI が ぶんを つくって、その ぶんを 1 もじずつ 0.5 びょう いうように しよう。',
+    [`${C}lm-l2-letters.step1`]:
+        '「このスプライトが おされたとき」の スクリプトの「(ぶん) と いう」を はずして けそう。「ぶんをつくる」の したに「へんすう」の「(なんもじめ) を (1) にする」を つなげよう（▼ で「なんもじめ」を えらぶ）。「なんもじめ」は、いま なんもじめを いうかの ばんごうです。',
+    [`${C}lm-l2-letters.step2`]:
+        'その したに「せいぎょ」の「( ) まで くりかえす」を つなげ、あなに「えんざん」の「( ) > ( )」を いれよう。ひだりに「なんもじめ」、みぎに「えんざん」の「(りんご) の ながさ」を いれ、「りんご」の ところに「ぶん」を いれよう。なんもじめが ぶんの ながさより おおきく なったら とまります。',
+    [`${C}lm-l2-letters.step3`]:
+        'くりかえしの なかに「みため」の「(こんにちは！) と (0.5) びょう いう」と「へんすう」の「(なんもじめ) を (1) ずつ かえる」を いれよう。「こんにちは！」の ところに「えんざん」の「(りんご) の (1) ばんめの もじ」を いれ、「りんご」に「ぶん」、「1」に「なんもじめ」を いれよう。',
+    [`${C}lm-l2-letters.step4`]:
+        'Ruby で よむと、こう なります。Ruby では もじの ばんごうを 0 から かぞえるので、ブロックの「(ぶん) の (なんもじめ) ばんめの もじ」は「@ぶん[@なんもじめ - 1]」と かきます。「の ながさ」は「.length」、「まで くりかえす」は「until」です。',
+    [`${C}lm-l2-letters.step5`]:
+        'はたを おしてから、ロボットを おそう。AI が つくった ぶんを、1 もじずつ いいます。「、」や「。」も 1 もじです。',
+    [`${C}lm-l2-letters.debug1`]:
+        '「(なんもじめ) を (1) ずつ かえる」が くりかえしの なかに あるか みよう。ないと、ずっと 1 もじめを いいます。',
+    [`${C}lm-l2-letters.debug2`]:
+        '「(なんもじめ) を (1) にする」が くりかえしの まえに あるか みよう。ないと、まえに つかった ばんごうの つづきから かぞえるので、なにも いわなかったり、ぶんの とちゅうから いったりします。',
+    [`${C}lm-l2-letters.quiz.question`]:
+        '「ぶん」が「こんにちは。」の とき、「(ぶん) の (3) ばんめの もじ」は、どれ？',
+    [`${C}lm-l2-letters.quiz.choice1`]: '「ん」',
+    [`${C}lm-l2-letters.quiz.choice2`]: '「に」',
+    [`${C}lm-l2-letters.quiz.choice3`]: '「ち」',
+    [`${C}lm-l2-letters.quiz.explanation`]:
+        '1 ばんめが「こ」、2 ばんめが「ん」、3 ばんめが「に」です。ブロックでは 1 から かぞえます（Ruby では 0 から かぞえるので「@ぶん[2]」です）。',
+
+    [`${C}lm-l2-pairs.name`]: '1 つの ぶんの くみを つくろう',
+    [`${C}lm-l2-pairs.task`]:
+        '「がくしゅうする」の なかみを つくりなおそう。\nいまの「がくしゅうする」は、きょうかしょの 1 ぶんめを 1 もじずつ よむだけです。よみながら、「まえのもじ」と「いまの もじ」の くみを「まえ」「つぎ」に たすように しよう。',
+    [`${C}lm-l2-pairs.step1`]:
+        '「がくしゅうする」の ていぎの なかの「( ) まで くりかえす」の なかに、「へんすう」の「(なにか) を (まえ) に ついかする」を いれよう（「(なんもじめ) を (1) ずつ かえる」の うえに。▼ で「まえ」を えらぶ）。「なにか」の ところに「まえのもじ」を いれよう。',
+    [`${C}lm-l2-pairs.step2`]:
+        'その したに「(なにか) を (つぎ) に ついかする」を つなげ、「なにか」の ところに「えんざん」の「(ぶん) の (なんもじめ) ばんめの もじ」（いまの もじ）を いれよう。「まえ」と「つぎ」の おなじ ぎょうが 1 くみに なります。',
+    [`${C}lm-l2-pairs.step3`]:
+        'その したに「(まえのもじ) を ( ) にする」を つなげ、「(ぶん) の (なんもじめ) ばんめの もじ」を いれよう。つぎの もじから みると、いまの もじが「まえのもじ」に なります。',
+    [`${C}lm-l2-pairs.step4`]:
+        'Ruby で よむと、こう なります。リストに たすのは「@まえ.push(@まえのもじ)」、いまの もじは「@ぶん[@なんもじめ - 1]」です。',
+    [`${C}lm-l2-pairs.step5`]:
+        'はたを おして、ステージの「まえ」「つぎ」を みよう。1 ぎょうめの「まえ」は からで、「つぎ」は ぶんの 1 もじめです。ロボットを おすと、AI は この 1 ぶんしか しらないので、ほとんど おなじ ぶんを いいます。',
+    [`${C}lm-l2-pairs.debug1`]:
+        '「(まえのもじ) を ( ) にする」が 2 つの「ついかする」の したに あるか みよう。うえに あると、「まえ」にも いまの もじが はいります。',
+    [`${C}lm-l2-pairs.debug2`]:
+        '3 つの ブロックが「がくしゅうする」の なかの、1 もじずつ よむ くりかえしの なかに あるか みよう。',
+    [`${C}lm-l2-pairs.quiz.question`]:
+        '「ねこです。」と いう 1 つの ぶんを がくしゅうすると、「まえ」と「つぎ」に なんくみ はいる？',
+    [`${C}lm-l2-pairs.quiz.choice1`]: '4 くみ',
+    [`${C}lm-l2-pairs.quiz.choice2`]: '5 くみ',
+    [`${C}lm-l2-pairs.quiz.choice3`]: '6 くみ',
+    [`${C}lm-l2-pairs.quiz.explanation`]:
+        '（から → ね）（ね → こ）（こ → で）（で → す）（す → 。）の 5 くみです。ぶんの もじの かずと おなじだけ くみが できます。1 つめの くみの「まえ」が からなので、AI は なにも いわれなくても ぶんを はじめられます。',
+
+    [`${C}lm-l2-learn.name`]: 'きょうかしょを ぜんぶ がくしゅうしよう',
+    [`${C}lm-l2-learn.task`]:
+        'いまの「がくしゅうする」は、きょうかしょの 1 ぶんめだけを がくしゅうします。\n「なんぶんめ」を 1 から きょうかしょの ながさまで かえながら くりかえして、きょうかしょの ぜんぶの ぶんを がくしゅうするように しよう。',
+    [`${C}lm-l2-learn.step1`]:
+        '「がくしゅうする」の ていぎの なかの「(なんぶんめ) を (1) にする」の したに、「せいぎょ」の「( ) まで くりかえす」を おこう。あなに「えんざん」の「( ) > ( )」を いれ、ひだりに「なんぶんめ」、みぎに「へんすう」の「(きょうかしょ) の ながさ」を いれよう。',
+    [`${C}lm-l2-learn.step2`]:
+        '「(ぶん) を (きょうかしょ の (なんぶんめ) ばんめ) にする」から、1 もじずつ よむ くりかえしの おわりまでが、あたらしい くりかえしの なかに はいっているか みよう。くりかえしを おくと、したの ブロックが なかに はいります。はいっていなければ、ドラッグして いれよう。',
+    [`${C}lm-l2-learn.step3`]:
+        'あたらしい くりかえしの なかの さいご（1 もじずつ よむ くりかえしの した）に、「(なんぶんめ) を (1) ずつ かえる」を いれよう。',
+    [`${C}lm-l2-learn.step4`]:
+        'Ruby で よむと、こう なります。「until」の なかに「until」が はいっています。そとの くりかえしが ぶんを 1 つずつ、なかの くりかえしが もじを 1 つずつ すすめます。',
+    [`${C}lm-l2-learn.step5`]:
+        'はたを おしてから、ロボットを なんかいか おそう。きょうかしょの ぜんぶの ぶんを がくしゅうしたので、いろいろな ぶんを つくります。',
+    [`${C}lm-l2-learn.debug1`]:
+        '「(なんぶんめ) を (1) ずつ かえる」が そとの くりかえしの なかに あるか みよう。ないと、ずっと 1 ぶんめを がくしゅうしつづけます。',
+    [`${C}lm-l2-learn.debug2`]:
+        '「(まえのもじ) を () にする」と「(なんもじめ) を (1) にする」が そとの くりかえしの なかに あるか みよう。そとに あると、2 ぶんめからが ただしく よめません。',
+    [`${C}lm-l2-learn.quiz.question`]:
+        'きょうかしょの ぜんぶの ぶんを がくしゅうした とき、「まえ」の ぎょうの かずは、どれと おなじ？',
+    [`${C}lm-l2-learn.quiz.choice1`]: 'きょうかしょの ぶんの かず',
+    [`${C}lm-l2-learn.quiz.choice2`]: 'きょうかしょの ぜんぶの ぶんの もじの かずを あわせた かず',
+    [`${C}lm-l2-learn.quiz.choice3`]: '「まえ」に はいっている、ちがう もじの かず',
+    [`${C}lm-l2-learn.quiz.explanation`]:
+        '1 もじごとに 1 くみ たすので、ぜんぶの ぶんの もじの かずを あわせた かずに なります。AI は かずを かぞえずに、でてきた かいすうだけ くみを おぼえています。',
 };
 
 export const en = {
@@ -237,4 +387,80 @@ export const en = {
     [`${C}lm-l1-random.quiz.choice3`]: 'Because it picks the next letter from "candidates" with a random number',
     [`${C}lm-l1-random.quiz.explanation`]:
         '"pick_letter" picks one of the candidates with a random number. A letter that is in the candidates many times is picked more often, so the sentence tends to look natural.',
+
+    'gui.lessons.lesson.lm-l2.name': 'Split words into letters',
+
+    [`${C}lm-l2-letters.name`]: 'Say it letter by letter',
+    [`${C}lm-l2-letters.task`]:
+        'The AI handles a sentence one letter at a time.\nWhen you click the robot, make the AI make a sentence and say it one letter at a time for 0.5 seconds each.',
+    [`${C}lm-l2-letters.step1`]:
+        'In the script of "when this sprite clicked", take out "say (sentence)" and delete it. Under "make_sentence", attach "set (letter_no) to (1)" from Variables (choose "letter_no" with ▼). "letter_no" is the number of the letter to say now.',
+    [`${C}lm-l2-letters.step2`]:
+        'Under it, attach "repeat until ( )" from Control, and put "( ) > ( )" from Operators in the hole. Put "letter_no" on the left and "length of (apple)" from Operators on the right, and put "sentence" in place of "apple". It stops when letter_no is larger than the length of the sentence.',
+    [`${C}lm-l2-letters.step3`]:
+        'In the loop, put "say (Hello!) for (0.5) seconds" from Looks and "change (letter_no) by (1)" from Variables. Put "letter (1) of (apple)" from Operators in place of "Hello!", and put "letter_no" in place of "1" and "sentence" in place of "apple".',
+    [`${C}lm-l2-letters.step4`]:
+        'This is how it reads in Ruby. Ruby counts the letters from 0, so the block "letter (letter_no) of (sentence)" is "@sentence[@letter_no - 1]". "length of" is ".length" and "repeat until" is "until".',
+    [`${C}lm-l2-letters.step5`]:
+        'Click the green flag, and then click the robot. The AI says the sentence it made one letter at a time. A space and "." are letters too.',
+    [`${C}lm-l2-letters.debug1`]:
+        'Check that "change (letter_no) by (1)" is in the loop. Without it, the AI keeps saying the first letter.',
+    [`${C}lm-l2-letters.debug2`]:
+        'Check that "set (letter_no) to (1)" is before the loop. Without it, it counts on from the number used before, so the AI says nothing or starts in the middle of the sentence.',
+    [`${C}lm-l2-letters.quiz.question`]: 'When "sentence" is "Hello.", what is "letter (3) of (sentence)"?',
+    [`${C}lm-l2-letters.quiz.choice1`]: '"e"',
+    [`${C}lm-l2-letters.quiz.choice2`]: '"l"',
+    [`${C}lm-l2-letters.quiz.choice3`]: '"o"',
+    [`${C}lm-l2-letters.quiz.explanation`]:
+        'Letter 1 is "H", letter 2 is "e" and letter 3 is "l". Blocks count from 1 (Ruby counts from 0, so it is "@sentence[2]").',
+
+    [`${C}lm-l2-pairs.name`]: 'Make the pairs of one sentence',
+    [`${C}lm-l2-pairs.task`]:
+        'Make the inside of "learn" again.\nNow "learn" only reads the first sentence of the textbook one letter at a time. While it reads, make it add the pair of "prev_letter" and the letter now to "before" and "after".',
+    [`${C}lm-l2-pairs.step1`]:
+        'In the "repeat until ( )" in the definition of "learn", put "add (thing) to (before)" from Variables (above "change (letter_no) by (1)". Choose "before" with ▼). Put "prev_letter" in place of "thing".',
+    [`${C}lm-l2-pairs.step2`]:
+        'Under it, attach "add (thing) to (after)", and put "letter (letter_no) of (sentence)" from Operators (the letter now) in place of "thing". The same row of "before" and "after" is one pair.',
+    [`${C}lm-l2-pairs.step3`]:
+        'Under it, attach "set (prev_letter) to ( )" and put "letter (letter_no) of (sentence)" in it. For the next letter, the letter now is the "prev_letter".',
+    [`${C}lm-l2-pairs.step4`]:
+        'This is how it reads in Ruby. Adding to a list is "@before.push(@prev_letter)", and the letter now is "@sentence[@letter_no - 1]".',
+    [`${C}lm-l2-pairs.step5`]:
+        'Click the green flag and look at "before" and "after" on the stage. "before" of the first row is empty, and "after" is the first letter of the sentence. When you click the robot, the AI knows only this sentence, so it says almost the same sentence.',
+    [`${C}lm-l2-pairs.debug1`]:
+        'Check that "set (prev_letter) to ( )" is under the 2 "add" blocks. If it is above them, "before" also gets the letter now.',
+    [`${C}lm-l2-pairs.debug2`]:
+        'Check that the 3 blocks are in the loop that reads one letter at a time, in the definition of "learn".',
+    [`${C}lm-l2-pairs.quiz.question`]:
+        'When the AI learns only the sentence "Good.", how many pairs go into "before" and "after"?',
+    [`${C}lm-l2-pairs.quiz.choice1`]: '4 pairs',
+    [`${C}lm-l2-pairs.quiz.choice2`]: '5 pairs',
+    [`${C}lm-l2-pairs.quiz.choice3`]: '6 pairs',
+    [`${C}lm-l2-pairs.quiz.explanation`]:
+        '(empty → G) (G → o) (o → o) (o → d) (d → .) are the 5 pairs. There are as many pairs as letters in the sentence. "before" of the first pair is empty, so the AI can start a sentence even when nobody says anything.',
+
+    [`${C}lm-l2-learn.name`]: 'Learn the whole textbook',
+    [`${C}lm-l2-learn.task`]:
+        'Now "learn" learns only the first sentence of the textbook.\nRepeat while changing "sentence_no" from 1 to the length of the textbook, so that it learns all the sentences of the textbook.',
+    [`${C}lm-l2-learn.step1`]:
+        'In the definition of "learn", put "repeat until ( )" from Control under "set (sentence_no) to (1)". Put "( ) > ( )" from Operators in the hole, with "sentence_no" on the left and "length of (textbook)" from Variables on the right.',
+    [`${C}lm-l2-learn.step2`]:
+        'Check that the blocks from "set (sentence) to (item (sentence_no) of (textbook))" to the end of the loop that reads one letter at a time are in the new loop. When you put the loop, the blocks under it go into it. If they are not, drag them into it.',
+    [`${C}lm-l2-learn.step3`]:
+        'At the end of the new loop (under the loop that reads one letter at a time), put "change (sentence_no) by (1)".',
+    [`${C}lm-l2-learn.step4`]:
+        'This is how it reads in Ruby. There is an "until" in an "until". The outer loop moves one sentence at a time, and the inner loop moves one letter at a time.',
+    [`${C}lm-l2-learn.step5`]:
+        'Click the green flag, and then click the robot a few times. The AI learned all the sentences of the textbook, so it makes many kinds of sentences.',
+    [`${C}lm-l2-learn.debug1`]:
+        'Check that "change (sentence_no) by (1)" is in the outer loop. Without it, the AI keeps learning the first sentence.',
+    [`${C}lm-l2-learn.debug2`]:
+        'Check that "set (prev_letter) to ()" and "set (letter_no) to (1)" are in the outer loop. If they are outside, the sentences from the second one are not read right.',
+    [`${C}lm-l2-learn.quiz.question`]:
+        'When the AI has learned all the sentences of the textbook, the number of rows of "before" is the same as which?',
+    [`${C}lm-l2-learn.quiz.choice1`]: 'The number of the sentences in the textbook',
+    [`${C}lm-l2-learn.quiz.choice2`]: 'The number of all the letters of all the sentences in the textbook',
+    [`${C}lm-l2-learn.quiz.choice3`]: 'The number of different letters in "before"',
+    [`${C}lm-l2-learn.quiz.explanation`]:
+        'It adds one pair for each letter, so it is the number of all the letters of all the sentences. The AI does not count. It remembers the pairs as many times as they appear.',
 };
