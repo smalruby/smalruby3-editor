@@ -142,4 +142,42 @@
     flex-direction: column;
     gap: $space-medium;
     margin-top: $space-small;
+    animation: inner-stepper-open 400ms ease-out;
+}
+
+/* 済んだ小手順を閉じるとき（#2521）: 少し見せてから、ゆっくり薄くして閉じる。
+   長さは inner-stepper.jsx の STEP_CLOSE_MS と同じ。 */
+.step[data-closing='true'] .content {
+    animation: inner-stepper-close 300ms ease-in forwards;
+}
+
+@keyframes inner-stepper-open {
+    from {
+        opacity: 0;
+        transform: translateY(-0.25rem);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes inner-stepper-close {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+        transform: translateY(-0.25rem);
+    }
+}
+
+/* 動きを減らす設定では動きを省く（間は残す。何が起きたかを見せるため）。 */
+@media (prefers-reduced-motion: reduce) {
+    .content,
+    .step[data-closing='true'] .content {
+        animation: none;
+    }
 }

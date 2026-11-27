@@ -494,7 +494,8 @@ const RUBRIC_STEP_IDS = ['describe', 'examples', 'fairness', 'sentences'];
  *   from another assignment, or proposed by the AI): 2-1 is not done until it is saved or used (#2456)
  * @param {number} args.repsTotal - representatives
  * @param {number} args.repsDone - representatives with the teacher's grade
- * @param {?object} args.fairness - {checks, answers} after the fairness check (null = not run)
+ * @param {?object} args.fairness - {checks, answers, confirmed?} after the fairness check (null = not run;
+ *   `confirmed` = the teacher pressed［次へ］when there was no question)
  * @param {boolean} args.saved - the sentences were saved
  * @returns {{describe: string, examples: string, fairness: string, sentences: string}} 'done' | 'now' | 'todo'
  */
@@ -503,7 +504,10 @@ const rubricStepStates = ({ hasDescription, descriptionDraft = false, repsTotal,
     const done = {
         describe: !!hasDescription && !descriptionDraft,
         examples: repsTotal > 0 && repsDone >= repsTotal,
-        fairness: !!fairness && checks.every((_, i) => !!(fairness.answers || {})[i]),
+        // With no question, 2-3 waits for the teacher's［次へ］so the step does not vanish unseen (#2521).
+        fairness:
+            !!fairness &&
+            (checks.length > 0 ? checks.every((_, i) => !!(fairness.answers || {})[i]) : !!fairness.confirmed),
         sentences: !!saved,
     };
     const now = RUBRIC_STEP_IDS.find((id) => !done[id]);

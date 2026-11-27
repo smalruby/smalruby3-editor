@@ -896,13 +896,38 @@ record({
         (await page.isDisabled(tid("grading-rubric-propose-ai-button"))),
     detail: "",
 });
+const rep = reps[0];
+// #2521: when the AI is done, a notice tells the next move, the first representative opens,
+// and a short「正解を選ぶ」tip sits by its grade buttons.
+const afterPropose = await page.evaluate(
+    (seat) => ({
+        notice:
+            document.querySelector(
+                '[data-testid="grading-rubric-proposed-notice"]',
+            )?.textContent || "",
+        open:
+            document
+                .querySelector(`[data-testid="grading-rubric-rep-${seat}"]`)
+                ?.getAttribute("aria-expanded") === "true",
+        hint: !!document.querySelector(
+            `[data-testid="grading-rubric-rep-hint-${seat}"]`,
+        ),
+    }),
+    rep,
+);
+record({
+    name: "propose done: the notice, the first representative open, the「正解を選ぶ」tip (#2521)",
+    ok:
+        /正解を選んで|せいかいをえらんで/.test(afterPropose.notice) &&
+        afterPropose.open &&
+        afterPropose.hint,
+    detail: JSON.stringify(afterPropose),
+});
 await judge(page, {
     name: "B rubric 2-2 with the AI proposals",
     expected: "classroom-eval-run-grade",
     shot: "rubric-proposed",
 });
-const rep = reps[0];
-await page.click(tid(`grading-rubric-rep-${rep}`));
 await page.waitForSelector(tid(`grading-rubric-rep-grade-${rep}-A`));
 await page.click(tid(`grading-rubric-rep-grade-${rep}-A`));
 await page.fill(

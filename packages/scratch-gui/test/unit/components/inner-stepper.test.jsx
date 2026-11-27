@@ -6,12 +6,17 @@
  * - いまの小手順だけ開き、終わった小手順は 1 行（まとめ）にたたむ。
  * - 見出しを押すと開く・閉じる。開いているのは 1 つだけ。
  * - 状態（済み・いまここ・まだ）は色だけでなく文字でも伝える。
+ * - 小手順が済んで次へ移るときは、済んだ小手順を少し開いたまま見せてから閉じ、次の小手順を開く（#2521）。
  */
 import '@testing-library/jest-dom';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
-import InnerStepper, { initialOpenStepId } from '../../../src/components/inner-stepper/inner-stepper.jsx';
+import InnerStepper, {
+    STEP_CLOSE_MS,
+    STEP_HOLD_MS,
+    initialOpenStepId,
+} from '../../../src/components/inner-stepper/inner-stepper.jsx';
 
 const steps = [
     {
@@ -95,23 +100,93 @@ describe('InnerStepper', () => {
         expect(screen.queryByText('c2')).not.toBeInTheDocument();
     });
 
-    test('moves the open step to the new current step when the steps advance', () => {
-        const { rerender } = renderStepper();
-        fireEvent.click(screen.getByTestId('stepper-head-describe'));
-        expect(screen.getByText('c1')).toBeInTheDocument();
-        const advanced = steps.map((step) => {
-            if (step.id === 'examples') return { ...step, state: 'done', summary: '正解を付けた' };
-            if (step.id === 'fairness') return { ...step, state: 'now' };
-            return step;
-        });
+    const advanced = steps.map((step) => {
+        if (step.id === 'examples') return { ...step, state: 'done', summary: '正解を付けた' };
+        if (step.id === 'fairness') return { ...step, state: 'now' };
+        return step;
+    });
+    const rerenderAdvanced = (rerender) =>
         rerender(
             <IntlProvider locale="en">
                 <InnerStepper steps={advanced} testId="stepper" title="手順 2 基準をつくる" />
             </IntlProvider>,
         );
-        expect(screen.getByText('c3')).toBeInTheDocument();
-        expect(screen.queryByText('c1')).not.toBeInTheDocument();
-        expect(screen.getByTestId('stepper-summary-examples')).toHaveTextContent('正解を付けた');
+
+    describe('when the steps advance', () => {
+        beforeEach(() => jest.useFakeTimers());
+        afterEach(() => jest.useRealTimers());
+
+        test('moves the open step to the new current step', () => {
+            const { rerender } = renderStepper();
+            fireEvent.click(screen.getByTestId('stepper-head-describe'));
+            expect(screen.getByText('c1')).toBeInTheDocument();
+            rerenderAdvanced(rerender);
+            expect(screen.getByText('c3')).toBeInTheDocument();
+            expect(screen.queryByText('c1')).not.toBeInTheDocument();
+            expect(screen.getByTestId('stepper-summary-examples')).toHaveTextContent('正解を付けた');
+        });
+
+        test('keeps the step just done open for a moment, then closes it slowly and opens the next (#2521)', () => {
+            const { rerender } = renderStepper();
+            expect(screen.getByText('c2')).toBeInTheDocument();
+            rerenderAdvanced(rerender);
+            // The finished step stays open with its「済み」so the teacher sees what happened.
+            expect(screen.getByText('c2')).toBeInTheDocument();
+            expect(screen.getByTestId('stepper-head-examples')).toHaveTextContent('Done');
+            expect(screen.queryByText('c3')).not.toBeInTheDocument();
+            act(() => jest.advanceTimersByTime(STEP_HOLD_MS));
+            // Then it closes (the closing motion), still before the next step opens.
+            expect(screen.getByTestId('stepper-step-examples')).toHaveAttribute('data-closing', 'true');
+            expect(screen.queryByText('c3')).not.toBeInTheDocument();
+            act(() => jest.advanceTimersByTime(STEP_CLOSE_MS));
+            expect(screen.queryByText('c2')).not.toBeInTheDocument();
+            expect(screen.getByText('c3')).toBeInTheDocument();
+            expect(screen.getByTestId('stepper-head-fairness')).toHaveAttribute('aria-expanded', 'true');
+            expect(screen.getByTestId('stepper-summary-examples')).toHaveTextContent('正解を付けた');
+        });
+
+        test('moves at once when the open step goes back instead of being done', () => {
+            const back = steps.map((step) => {
+                if (step.id === 'describe') return { ...step, state: 'now', summary: null };
+                if (step.id === 'examples') return { ...step, state: 'todo' };
+                return step;
+            });
+            const { rerender } = renderStepper();
+            rerender(
+                <IntlProvider locale="en">
+                    <InnerStepper steps={back} testId="stepper" title="手順 2 基準をつくる" />
+                </IntlProvider>,
+            );
+            expect(screen.getByText('c1')).toBeInTheDocument();
+            expect(screen.queryByText('c2')).not.toBeInTheDocument();
+        });
+
+        test('does not close a step the user of the stepper keeps open (openStepId)', () => {
+            const { rerender } = renderStepper({ openStepId: 'examples' });
+            rerender(
+                <IntlProvider locale="en">
+                    <InnerStepper
+                        openStepId="examples"
+                        steps={advanced}
+                        testId="stepper"
+                        title="手順 2 基準をつくる"
+                    />
+                </IntlProvider>,
+            );
+            act(() => jest.advanceTimersByTime(STEP_HOLD_MS));
+            expect(screen.getByTestId('stepper-step-examples')).not.toHaveAttribute('data-closing');
+            expect(screen.getByText('c2')).toBeInTheDocument();
+        });
+
+        test('a head pressed while waiting opens that step at once', () => {
+            const { rerender } = renderStepper();
+            rerenderAdvanced(rerender);
+            fireEvent.click(screen.getByTestId('stepper-head-describe'));
+            expect(screen.getByText('c1')).toBeInTheDocument();
+            act(() => jest.advanceTimersByTime(STEP_HOLD_MS + STEP_CLOSE_MS));
+            expect(screen.getByText('c1')).toBeInTheDocument();
+            expect(screen.queryByText('c3')).not.toBeInTheDocument();
+        });
     });
 
     test('keeps a step opened by its head while the current step stays the same', () => {
