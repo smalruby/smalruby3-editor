@@ -651,10 +651,11 @@ erDiagram
   |---|---|---|---|
   | `grade` | `submissions`（1〜10）、`rubricAxes`（1〜6。`rubricLevels` があれば 0〜6） | `assignmentName` / `assignmentText` / `strictness` / `samples` / `starterPseudocode` / `rubricLevels` / `examples` | `{mode, results: [{seatNumber, grade, reason, needsReview}]}` |
   | `comment` | `submissions`（1〜10） | `assignmentName` / `assignmentText` / `starterPseudocode` | `{mode, results: [{seatNumber, comment}]}` |
-  | `describe` | `submissions`（1〜10。いくつかの作品） | `starterPseudocode` / `assignmentName` / `assignmentText` | `{mode, description}`（1000字まで） |
+  | `describe` | `submissions`（1〜10。いくつかの作品）。`starterPseudocode` があるときは `submissions` は 0〜10 でよい | `starterPseudocode` / `assignmentName` / `assignmentText` | `{mode, description}`（1000字まで） |
   | `rubric` | `examples`（1〜20・理由つき） | `assignmentName` / `assignmentText` / `starterPseudocode` / `rubricLevels`（いまの基準） | `{mode, levels: [{grade, text}]}`（S→C の順。AI が書かなかった評価は入らない） |
   | `fairness` | `examples`（1〜20）、`groups`（1〜20 個の `{name, seatNumbers, submissions}`。`seatNumbers` は 200 まで、`submissions` は全体で 20 まで） | `assignmentName` / `assignmentText` / `starterPseudocode` / `rubricLevels` | `{mode, checks: [{question, options, seatNumbers}]}`（最大10。`seatNumbers` は送った例・まとまりに出てくる席だけ。選択肢が 2 つ未満の質問は落とす） |
 
+- `describe` は作品の有無でプロンプトを変える。作品があるときは、スターターに足したこと・変えたことの共通点から読み取り、先生が「合っていますか？」と確かめるための案（常体）を書く（採点の［基準］タブ）。作品が 0 件のとき（課題の［説明］タブで、まだ提出が無いとき）は、スターターから生徒に何を作らせるのかを読み取り、**生徒に見せる課題の説明**の案を書く（中学生向けの「〜しよう」の呼びかけ・300字以内・1 行目は 40 字以内の見出し）。使ってよい書式は、生徒の画面でそのまま出せる「・」「1.」の箇条書き・`*ことば*`・空行だけ（[課題のページの書き方](ui-ux.md#課題のページの書き方)）。スターターも作品も無いときは 400
 - 応答はモードごとの JSON スキーマ（`evaluationOutputSchema`）を structured outputs（`output_config.format`）で指定して受け取り、さらにサーバーで各項目を検査する。テキストはすべての text ブロックをつなげて読む（モデルが thinking ブロックを先に返すことがあるため）。応答が読めないときは 502 `AI_RESPONSE_INVALID`。入力の検査は回数を数える前に行う（不正な本文で 1 日の回数を減らさない）
 - モデル: `CLAUDE_MODEL`（既定 `claude-sonnet-5-5`。Haiku では同じ形の作品に違う評価が付いたため）。システムプロンプトに prompt caching（ephemeral）を適用し、同一課題のチャンク分割呼び出しでキャッシュを共有（スターター・基準・正解の例はシステムプロンプトに入れる）
 - Claude は Anthropic の TypeScript SDK（`@anthropic-ai/sdk`）で呼ぶ。`ANTHROPIC_FEDERATION_RULE_ID` / `ANTHROPIC_ORGANIZATION_ID` / `ANTHROPIC_SERVICE_ACCOUNT_ID`（+ 任意の `ANTHROPIC_WORKSPACE_ID`）がそろえば Workload Identity Federation（Lambda の実行ロールの JWT を AWS STS `GetWebIdentityToken` で取り、短期トークンに交換）で呼ぶ。静的な API キーの経路は無い。値がそろわないステージではエンドポイントは 503（機能無効）。設定は `docs/infra/claude-api-wif.md`

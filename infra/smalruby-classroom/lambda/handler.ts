@@ -5155,7 +5155,8 @@ function validateEvalGroups(raw: unknown): EvalGroup[] {
  *   examples; rubricAxes (1-6) are required unless rubricLevels are sent.
  * - comment: positive comment drafts.
  * - describe: a draft of the assignment description from the starter and a
- *   few submissions.
+ *   few submissions. With a starter, the submissions may be empty (#2515):
+ *   the draft is then the student-facing text of the assignment page.
  * - rubric: S/A/B/C criterion sentences from teacher-graded examples.
  * - fairness: questions about grades that look inconsistent between the
  *   examples and the other works of each group.
@@ -5210,7 +5211,10 @@ export function validateEvaluateRequest(body: Record<string, unknown>): Evaluate
   let submissions: EvalSubmission[] = [];
   let groups: EvalGroup[] = [];
   if (mode === 'grade' || mode === 'comment' || mode === 'describe') {
-    submissions = validateEvalSubmissions(body.submissions, 'submissions', EVAL_MAX_SUBMISSIONS, 1);
+    // describe may come from the assignment's 説明 tab before any work is
+    // submitted: the starter alone is then enough (#2515).
+    const minSubmissions = mode === 'describe' && starterPseudocode !== '' ? 0 : 1;
+    submissions = validateEvalSubmissions(body.submissions, 'submissions', EVAL_MAX_SUBMISSIONS, minSubmissions);
   }
   if (mode === 'rubric' || mode === 'fairness') {
     if (examples.length < 1) throw new ValidationError(`examples must have 1 to ${EVAL_MAX_EXAMPLES} entries`);
@@ -5358,6 +5362,23 @@ export function buildEvaluationPrompt(request: EvaluateRequest): { system: strin
       '出力は次の JSON のみ（説明文・コードフェンス禁止）:',
       '{"results":[{"seatNumber":1,"comment":"…"}]}',
     ];
+  } else if (request.mode === 'describe' && request.submissions.length === 0) {
+    // From the assignment's 説明 tab before any work exists (#2515): the
+    // draft is what the students read, so it follows the page's marks
+    // (docs/classroom/ui-ux.md 「課題のページの書き方」).
+    system = [
+      ...commonHeader,
+      'これから生徒に配る課題の説明を書きます。まだ作品はありません。スターター（先生が配る最初のプロジェクト）から、この課題で生徒に何を作らせるのかを読み取り、生徒に見せる課題の説明の案を書きます。',
+      '',
+      '原則:',
+      '- 読み手は中学生です。やさしい言葉で、「〜しよう」のような呼びかけの形で書いてください。',
+      '- スターターから読み取れることだけを書き、推測で細部を足さないでください。スターターにすでにある部分は「作ること」にしないでください。',
+      '- 300文字以内の日本語。1行目は短い見出し（40文字以内）にしてください。',
+      '- 書式は次のしるしだけを使えます: 行頭の「・」か「1.」で箇条書き、*ことば* で大事なところを目立たせる、空行で段落を分ける。ほかの記号（# や HTML など）は使わないでください。',
+      '',
+      '出力は次の JSON のみ（説明文・コードフェンス禁止）:',
+      '{"description":"…"}',
+    ];
   } else if (request.mode === 'describe') {
     system = [
       ...commonHeader,
@@ -5416,7 +5437,9 @@ export function buildEvaluationPrompt(request: EvaluateRequest): { system: strin
     user.push('提出作品:', ...submissionLines(request.submissions));
   } else if (request.mode === 'describe') {
     user.push(...starterLines(request.starterPseudocode));
-    user.push('生徒の作品:', ...submissionLines(request.submissions));
+    if (request.submissions.length > 0) {
+      user.push('生徒の作品:', ...submissionLines(request.submissions));
+    }
   } else if (request.mode === 'rubric') {
     if (request.rubricLevels.length > 0) {
       user.push('いまの基準（直す場合の下書き）:', ...rubricLevelLines(request.rubricLevels), '');
