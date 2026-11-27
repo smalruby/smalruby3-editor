@@ -181,7 +181,7 @@ prod ステージのリソースは、`infra/smalruby-web-hosting/lib/web-hostin
 |---|---|---|
 | ファイル名にハッシュが付いたもの（`/\.[0-9a-f]{8,}\./`。`gui.<hash>.js`、`static/assets/*.<hash>.*` など） | `public, max-age=31536000, immutable` | 中身が変わると名前が変わる |
 | monaco（`static/monaco/<版>/**`） | `public, max-age=31536000, immutable` | ディレクトリに monaco-editor の版が入る（`webpack.config.js` の `MONACO_VS_DEST`）。版を上げるとパスが変わる |
-| Smalruby のコスチューム（`static/smalruby-assets/<md5>.<拡張子>`） | `public, max-age=31536000, immutable` | 名前が中身の md5（コスチュームの `md5ext`）。中身が変わると名前が変わる |
+| Smalruby のコスチューム（`static/smalruby-assets/<md5>.<拡張子>`） | `public, max-age=31536000, immutable` | 名前がコスチュームの `assetId`（`md5ext`）。`assetId` は Scratch の CDN にある同じ絵の md5 で、手元のファイルの md5 と違うものもある。**絵を変えるときは、ファイルを置きかえずに新しい `assetId`（名前）にする**（同じ名前のまま中身を変えると、ブラウザに 1 年残る） |
 | ブロックのアイコン（`static/blocks-media/**`） | `public, max-age=86400, stale-while-revalidate=604800` | scratch-blocks のファイルで、名前に版もハッシュも無く、scratch-blocks を上げると同じ名前のまま中身が変わりうる。1 日は確かめ直さず、そのあと 7 日は古いものを見せながら裏で確かめる |
 | それ以外（`index.html`、`service-worker.js`、`version.json`、`auth-redirect.*`、`.well-known/*`、`admin/index.html` など） | `max-age=0, s-maxage=60` | ブラウザは毎回確かめ直し、CloudFront には 60 秒だけ置く。デプロイがすぐ届く |
 

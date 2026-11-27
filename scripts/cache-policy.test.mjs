@@ -57,6 +57,10 @@ test('CACHE_CONTROL has a header for every class', () => {
     assert.equal(CACHE_CONTROL.revalidate, 'max-age=0, s-maxage=60');
 });
 
+test('CACHE_CONTROL lists revalidate last (ci-cd.yml uploads the classes in this order)', () => {
+    assert.deepEqual(Object.keys(CACHE_CONTROL), ['immutable', 'short', 'revalidate']);
+});
+
 test('isExcluded skips files that are not uploaded by the split', () => {
     assert.equal(isExcluded('.DS_Store'), true);
     assert.equal(isExcluded('static/.DS_Store'), true);

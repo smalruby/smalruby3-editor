@@ -117,7 +117,7 @@ ACM の DNS 検証は、公開 DNS から検証レコード（CNAME）が引け�
   `Last-Modified` から勝手に鮮度を見積もって古い `index.html` を使い続けることがある。
   `no-cache` だけを付けるとエッジにも残らない（MinTTL が 0 のため）。
 - ファイル名にハッシュが付いたもの（`*.<hash>.js`、`static/assets/*.<hash>.*`。
-  `/\.[0-9a-f]{8,}\./`）と、パスに版や中身の md5 があるもの（`static/monaco/<版>/**`、
+  `/\.[0-9a-f]{8,}\./`）と、パスに版や `assetId`（md5）があるもの（`static/monaco/<版>/**`、
   `static/smalruby-assets/<md5>.*`）は `Cache-Control: public, max-age=31536000, immutable` を付ける。
   ブロックのアイコン（`static/blocks-media/**`）は `public, max-age=86400, stale-while-revalidate=604800`。
   判定は `scripts/cache-policy.mjs` の 1 か所（表と理由は `docs/hosting/README.md` の「キャッシュ」）。

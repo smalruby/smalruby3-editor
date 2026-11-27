@@ -6,7 +6,9 @@
 // - immutable:  the path changes when the content changes. A hex hash in the file name
 //               (`gui.<hash>.js`, `static/assets/<name>.<hash>.png`), the monaco-editor version in
 //               the directory (`static/monaco/<version>/`, webpack.config.js MONACO_VS_DEST) and the
-//               content md5 as the name (`static/smalruby-assets/<md5>.<ext>`).
+//               costume assetId as the name (`static/smalruby-assets/<md5>.<ext>`). The assetId is the
+//               md5 of the Scratch CDN copy, which can differ from the local file, so a new image must
+//               get a new assetId (name) rather than replace the file in place.
 // - short:      scratch-blocks icons (`static/blocks-media/`). The names have no version or hash and
 //               the content can change with scratch-blocks, so a day plus stale-while-revalidate.
 //               Renaming them at build time would mean changing upstream files that reference them.
@@ -23,7 +25,13 @@ import {copyFile, mkdir, readdir, stat, utimes} from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
-/** Cache-Control per class. */
+import {GUI_JS_PATTERN} from './precompress-assets.mjs';
+
+/**
+ * Cache-Control per class. The key order is the upload order of ci-cd.yml: long-lived first and
+ * `revalidate` (index.html and the other entries) last, so an entry never points at a file that
+ * is not uploaded yet.
+ */
 export const CACHE_CONTROL = {
     immutable: 'public, max-age=31536000, immutable',
     short: 'public, max-age=86400, stale-while-revalidate=604800',
@@ -36,14 +44,14 @@ const HASHED_NAME = /\.[0-9a-f]{8,}\./;
 /** monaco-editor copied under its version (`static/monaco/0.57.0/vs/...`). */
 const MONACO_VERSIONED = /^static\/monaco\/\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?\//;
 
-/** Smalruby costume / sprite assets named by the md5 of their content. */
+/** Smalruby costume / sprite assets named by their assetId (an md5). */
 const SMALRUBY_ASSET = /^static\/smalruby-assets\/[0-9a-f]{32}\.[0-9A-Za-z]+$/;
 
 /** scratch-blocks media (default and high-contrast). */
 const BLOCKS_MEDIA = /^static\/blocks-media\//;
 
-/** The pre-compressed gui JS, uploaded separately with Content-Encoding. */
-const PRECOMPRESSED_GUI = /^gui(?:\.[0-9a-f]{8,})?\.js\.(?:br|gz)$/;
+/** Suffixes of the pre-compressed gui JS (precompress-assets.mjs), uploaded with Content-Encoding. */
+const PRECOMPRESSED_SUFFIX = /\.(?:br|gz)$/;
 
 /** Files that are never uploaded by the split. */
 const EXCLUDED_NAMES = new Set(['.DS_Store', '.nojekyll', 'CNAME']);
@@ -66,7 +74,8 @@ export const cacheClassFor = rel => {
  * @param {string} rel - Path relative to the build directory, `/`-separated.
  * @returns {boolean} True when the file is not copied.
  */
-export const isExcluded = rel => EXCLUDED_NAMES.has(path.posix.basename(rel)) || PRECOMPRESSED_GUI.test(rel);
+export const isExcluded = rel => EXCLUDED_NAMES.has(path.posix.basename(rel)) ||
+    (PRECOMPRESSED_SUFFIX.test(rel) && GUI_JS_PATTERN.test(rel.replace(PRECOMPRESSED_SUFFIX, '')));
 
 /**
  * List every file under a directory, dot files included.

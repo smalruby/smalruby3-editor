@@ -403,7 +403,7 @@ jobs:
           # with the Cache-Control of the original, Content-Type text/javascript and
           # Content-Encoding br / gzip (aws s3 sync would guess the headers from the extension).
           upload_precompressed() {
-            local src="$1" dest="$2" f name enc
+            local src="$1" dest="$2" f name enc cache
             for f in "${src}"/gui*.js.br "${src}"/gui*.js.gz; do
               [ -e "${f}" ] || continue
               name="$(basename "${f}")"
@@ -411,9 +411,10 @@ jobs:
                 *.br) enc=br ;;
                 *) enc=gzip ;;
               esac
+              # An assignment, so set -e stops here if the script fails (not an empty header).
+              cache="$(node scripts/cache-policy.mjs header "${name}")"
               aws s3 cp "${f}" "${dest}${name}" --only-show-errors \
-                --content-type 'text/javascript' --content-encoding "${enc}" \
-                --cache-control "$(node scripts/cache-policy.mjs header "${name}")"
+                --content-type 'text/javascript' --content-encoding "${enc}" --cache-control "${cache}"
             done
           }
           upload() {
@@ -635,9 +636,10 @@ jobs:
                   *.br) enc=br ;;
                   *) enc=gzip ;;
                 esac
+                # An assignment, so set -e stops here if the script fails (not an empty header).
+                gui_cache="$(node scripts/cache-policy.mjs header "${name}")"
                 aws s3 cp "${f}" "${dest}${name}" --only-show-errors \
-                  --content-type 'text/javascript' --content-encoding "${enc}" \
-                  --cache-control "$(node scripts/cache-policy.mjs header "${name}")"
+                  --content-type 'text/javascript' --content-encoding "${enc}" --cache-control "${gui_cache}"
               done
             fi
             aws s3 sync "${split}/${cls}" "${dest}" --only-show-errors --cache-control "${cache}"
