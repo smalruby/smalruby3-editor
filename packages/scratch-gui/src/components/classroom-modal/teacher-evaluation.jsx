@@ -770,12 +770,7 @@ Counts.propTypes = {
     counts: PropTypes.object.isRequired,
 };
 
-/*
- * 人数の下の評価の分布（#2457・F5 / F6）: S/A/B/C の人数、S+A と S の人数と %。
- * % の分母は評価のついた人で、未提出は数えない。目安を外れたら注意の色と「!」（色だけに頼らない）。
- * S/A/B/C は評価ごとの横棒にして目立たせる（#2523）。棒の長さは評価のついた人の割合で、
- * 色は総合評価のグラフ（#2458）と同じ評価の色。文字の大きさはトークンのまま。
- */
+/* 評価の分布の横棒の色（評価ごと） */
 const GRADE_BAR_CLASS = {
     S: styles.evalDistBarS,
     A: styles.evalDistBarA,
@@ -783,6 +778,12 @@ const GRADE_BAR_CLASS = {
     C: styles.evalDistBarC,
 };
 
+/*
+ * 人数の下の評価の分布（#2457・F5 / F6）: S/A/B/C の人数、S+A と S の人数と %。
+ * % の分母は評価のついた人で、未提出は数えない。目安を外れたら注意の色と「!」（色だけに頼らない）。
+ * S/A/B/C は評価ごとの横棒にして目立たせる（#2523）。棒の長さは評価のついた人の割合で、
+ * 色は総合評価のグラフ（#2458）と同じ評価の色。文字の大きさはトークンのまま。
+ */
 const Distribution = ({ distribution }) => {
     const intl = useIntl();
     const { graded, notSubmitted, sa, s } = distribution;

@@ -6666,7 +6666,8 @@ $seat-tile-min: 36px;
     font-size: $font-size-small;
 }
 
-/* 課題ごとの評価の分布（#2457）: 人数の下の 1 行。目安を外れた % は注意の色（赤は使わない・R4）。 */
+/* 課題ごとの評価の分布（#2457）: 人数の下。左に S/A/B/C の横棒、右に S+A・S の %。
+   目安を外れた % は注意の色（赤は使わない・R4）。 */
 .eval-dist {
     display: grid;
     grid-template-columns: minmax(0, 18rem) minmax(0, 1fr);
@@ -6702,12 +6703,14 @@ $seat-tile-min: 36px;
     overflow: hidden;
     border: 1px solid $color-border;
     border-radius: $radius-small;
-    background-color: $color-background;
+    background-color: $color-surface;
 }
 
+/* C の色（$color-grade-c）は淡い青なので、地は白にし、棒にも枠線の色の縁を付けて見分けられるようにする */
 .eval-dist-bar {
     display: block;
     height: 100%;
+    box-shadow: inset 0 0 0 1px $color-border;
     transition: $transition-standard;
 }
 
