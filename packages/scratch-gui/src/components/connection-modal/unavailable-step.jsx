@@ -7,7 +7,9 @@ import Box from '../box/box.jsx';
 import Dots from './dots.jsx';
 import helpIcon from './icons/help.svg';
 import backIcon from './icons/back.svg';
+// === Smalruby: Start of update peripheral button ===
 import enterUpdateIcon from './icons/enter-update.svg';
+// === Smalruby: End of update peripheral button ===
 import bluetoothIcon from './icons/bluetooth.svg';
 import scratchLinkIcon from './icons/scratchlink.svg';
 
@@ -61,6 +63,7 @@ const UnavailableStep = props => (
                 className={styles.bottomAreaItem}
                 total={3}
             />
+            {/* === Smalruby: Start of update peripheral button === */}
             {props.onUpdatePeripheral && (
                 <div className={classNames(styles.bottomAreaItem, styles.instructions)}>
                     <FormattedMessage
@@ -70,6 +73,7 @@ const UnavailableStep = props => (
                     />
                 </div>
             )}
+            {/* === Smalruby: End of update peripheral button === */}
             <Box className={classNames(styles.bottomAreaItem, styles.buttonRow)}>
                 <button
                     className={styles.connectionButton}
@@ -99,6 +103,7 @@ const UnavailableStep = props => (
                         id="gui.connection.unavailable.helpbutton"
                     />
                 </button>
+                {/* === Smalruby: Start of update peripheral button === */}
                 {props.onUpdatePeripheral && (
                     <button
                         className={styles.connectionButton}
@@ -115,6 +120,7 @@ const UnavailableStep = props => (
                         />
                     </button>
                 )}
+                {/* === Smalruby: End of update peripheral button === */}
             </Box>
         </Box>
     </Box>
@@ -123,7 +129,9 @@ const UnavailableStep = props => (
 UnavailableStep.propTypes = {
     onHelp: PropTypes.func,
     onScanning: PropTypes.func,
+    // === Smalruby: Start of update peripheral button ===
     onUpdatePeripheral: PropTypes.func
+    // === Smalruby: End of update peripheral button ===
 };
 
 export default UnavailableStep;

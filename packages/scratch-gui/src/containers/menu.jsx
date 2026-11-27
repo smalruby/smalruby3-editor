@@ -33,6 +33,8 @@ class Menu extends React.Component {
         document.removeEventListener('pointerup', this.handleClick);
     }
     handleClick (e) {
+        // === Smalruby: Start of menu item close on click ===
+        // Upstream: if (this.props.open && !this.menu.contains(e.target)) this.props.onRequestClose();
         if (!this.props.open) return;
 
         // Check if clicked element is a menu item (li element within menu)
@@ -75,6 +77,7 @@ class Menu extends React.Component {
                 this.props.onRequestClose();
             }, 0);
         }
+        // === Smalruby: End of menu item close on click ===
     }
     ref (c) {
         this.menu = c;

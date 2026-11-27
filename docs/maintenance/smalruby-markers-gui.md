@@ -280,6 +280,26 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/lib/libraries/extensions/index.jsx` | hidden by default | upstream の拡張のうち、はじめは隠すもの（`defaultHidden: true`・6 か所） |
 | `src/lib/alerts/index.jsx` | ruby alerts | Ruby からブロックに変換できない・Ruby のバージョンを変えられない・この行は実行できない、の知らせ |
 | `src/containers/controls.jsx` | ruby to blocks before green flag | 緑の旗を押したら、先に Ruby をブロックに変換してから動かす（`async` の handler・`targetCodeToBlocks`・`intl`・`RubyToBlocksConverterHOC` と `injectIntl` で包む export）。upstream の形を注記 |
+| `src/lib/backpack-api.js` | localStorage backpack | サーバーの代わりにブラウザの localStorage にバックパックを置く（読み書き・消す・アセットの URL・各 payload の import と export） |
+| `src/containers/backpack.jsx` | localStorage backpack | `host === 'localStorage'` のときはアセットサーバーへの事前保存をしない・token と username の既定値（upstream は null）を注記 |
+| `src/components/connection-modal/error-step.jsx` | update peripheral button | 接続のエラー画面にも「デバイスを更新」の案内とボタンを出す（import・案内・ボタン・propType） |
+| `src/components/connection-modal/error-step.jsx` | smalrubot firmware flash | `onFlashFirmware` の propType（単一行のインラインからペアに直した） |
+| `src/components/connection-modal/unavailable-step.jsx` | update peripheral button | 接続できない画面にも「デバイスを更新」の案内とボタンを出す（import・案内・ボタン・propType） |
+| `src/containers/connection-modal.jsx` | microbitMore update | micro:bit More のファームウェア更新（import・`handleSendUpdate` の振り分け・`canUpdatePeripheral`）。upstream の形を注記 |
+| `src/containers/connection-modal.jsx` | connection modal initial phase | 拡張ごとに最初の画面を決める `initialPhase`。upstream の三項演算子を注記 |
+| `src/containers/connection-modal.jsx` | network filter detection feature | `handleError(event)` の引数と、Mesh v2 のネットワークフィルター（503）を見分けて専用の画面にする処理 |
+| `src/containers/connection-modal.jsx` | meshV2 initial step feature | `userChangedDomain`・`mapStateToProps` を関数の本体にした形（upstream の形を注記） |
+| `src/containers/menu.jsx` | menu item close on click | メニューの項目のクリックで閉じる（`data-close-on-click="false"` なら閉じない）・外のクリックは React の onClick のあとに閉じる。upstream の形を注記。中に `iPad menu item click fix` のペアがある |
+| `src/containers/sb3-downloader.jsx` | ruby to blocks before download | 保存の前に Ruby をブロックに変換する（import・`async downloadProject`・`intl` と `targetCodeToBlocks` の propType・export）。upstream の形を注記 |
+| `src/lib/define-dynamic-block.js` | build interpolation args | 引数の組み立てを関数 `buildInterpolationArgs` に切り出した（中に `menu field support` のペア） |
+| `src/lib/define-dynamic-block.js` | blockinfo attribute case | mutation の `blockinfo` 属性を XML の要素で書き、読むときは小文字にも対応する。upstream の形を注記 |
+| `src/lib/project-saver-hoc.jsx` | react 18 lifecycle rename | `componentWillMount` → `UNSAFE_componentWillMount` |
+| `src/lib/project-saver-hoc.jsx` | reject with error | アセットの保存の失敗を `new Error(response.code)` で reject する（upstream は文字列） |
+| `src/lib/sb-file-uploader-hoc.jsx` | load project with checks | 読み込みを `loadProjectWithChecks`（`project-loader-utils`）に通す（import・呼び出し・`hasMeshV1Project` の propType）。upstream の形を注記 |
+| `src/lib/sb-file-uploader-hoc.jsx` | skip file dialog in test mode | テストのときはファイルの選択画面を開かない（`isTest` の分岐・propType・mapStateToProps） |
+| `src/lib/sb-file-uploader-hoc.jsx` | clear Google Drive state on file upload | `clearGoogleDriveFile` の分割代入と propType（既存のペアに足した） |
+| `src/components/extension-button/extension-button.jsx` | DNCL extension confirm | 日本語モードのときの `dnclMode` / `onRequestExitDnclMode`（分割代入・useCallback の依存・押せない見た目のクラス・propType）。upstream の形を注記 |
+| `src/components/extension-button/extension-button.jsx` | extension button test id | `data-testid="extension-button"` |
 
 > 注: `src/lib/url-params.js` は Smalruby 固有ファイル（`.prettierignore` ホワイトリスト対象）の
 > ため本表の対象外（旧エントリは削除済み。固有ファイル内のマーカーは取り外し可能拡張の

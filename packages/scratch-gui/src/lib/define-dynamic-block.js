@@ -2,6 +2,7 @@
 // Should we move these into a new extension support module or something?
 import {ArgumentType, BlockType} from '@smalruby/scratch-vm';
 
+// === Smalruby: Start of build interpolation args ===
 /**
  * Build the scratch-blocks argument list from blockInfo text and arguments.
  * Handles input_value (STRING, BOOLEAN) and field_dropdown (menu with menuItems).
@@ -13,6 +14,7 @@ const buildInterpolationArgs = function (blockInfo) {
     let argCount = 0;
     const scratchBlocksStyleText = blockInfo.text.replace(/\[(.+?)]/g, (match, argName) => {
         const arg = blockInfo.arguments[argName];
+// === Smalruby: End of build interpolation args ===
         // === Smalruby: Start of menu field support ===
         if (arg.menu && blockInfo.menuItems && blockInfo.menuItems[arg.menu]) {
             args.push({
@@ -23,6 +25,7 @@ const buildInterpolationArgs = function (blockInfo) {
             return `%${++argCount}`;
         }
         // === Smalruby: End of menu field support ===
+        // === Smalruby: Start of build interpolation args ===
         switch (arg.type) {
         case ArgumentType.STRING:
             args.push({type: 'input_value', name: argName});
@@ -35,6 +38,7 @@ const buildInterpolationArgs = function (blockInfo) {
     });
     return {scratchBlocksStyleText, args};
 };
+        // === Smalruby: End of build interpolation args ===
 
 // === Smalruby: Start of argumentsByMethod support ===
 
@@ -420,6 +424,8 @@ const defineDynamicBlock = (ScratchBlocks, categoryInfo, staticBlockInfo, extend
         this.needsBlockInfoUpdate = true;
     },
     mutationToDom: function () {
+        // === Smalruby: Start of blockinfo attribute case ===
+        // Upstream: document.createElement('mutation') + setAttribute('blockInfo', ...)
         // `document.createElement('mutation')` creates an HTMLUnknownElement,
         // which lowercases attribute names. After XMLSerializer round-trip
         // (used by Blockly v2's JSON serialization for `extraState`), the
@@ -434,11 +440,15 @@ const defineDynamicBlock = (ScratchBlocks, categoryInfo, staticBlockInfo, extend
             xmlUtils.createElement('mutation') :
             document.createElement('mutation');
         container.setAttribute('blockinfo', this.blockInfoText);
+        // === Smalruby: End of blockinfo attribute case ===
         return container;
     },
     domToMutation: function (xmlElement) {
+        // === Smalruby: Start of blockinfo attribute case ===
+        // Upstream: const blockInfoText = xmlElement.getAttribute('blockInfo');
         const blockInfoText =
             xmlElement.getAttribute('blockinfo') || xmlElement.getAttribute('blockInfo');
+        // === Smalruby: End of blockinfo attribute case ===
         if (!blockInfoText) return;
 
         // === Smalruby: Start of argumentsByMethod support ===

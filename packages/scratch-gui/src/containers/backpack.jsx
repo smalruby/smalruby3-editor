@@ -140,6 +140,7 @@ class Backpack extends React.Component {
             let backpackMightHaveChanged = false;
             payloader(dragInfo.payload, this.props.vm)
                 .then(payload => {
+                    // === Smalruby: Start of localStorage backpack ===
                     if (this.props.host === 'localStorage') {
                         // For localStorage, no asset server presave is needed
                         if (presaveAsset) {
@@ -147,6 +148,7 @@ class Backpack extends React.Component {
                         }
                         return payload;
                     }
+                    // === Smalruby: End of localStorage backpack ===
                     // Force the asset to save to the asset server before storing in backpack
                     // Ensures any asset present in the backpack is also on the asset server
                     if (presaveAsset && !presaveAsset.clean) {
@@ -308,8 +310,11 @@ const getTokenAndUsername = state => {
     const tokenMatches = window.location.href.match(/[?&]token=([^&]*)&?/);
     const usernameMatches = window.location.href.match(/[?&]username=([^&]*)&?/);
     return {
+        // === Smalruby: Start of localStorage backpack ===
+        // Upstream: token and username fall back to null.
         token: tokenMatches ? tokenMatches[1] : 'localToken',
         username: usernameMatches ? usernameMatches[1] : 'localUser'
+        // === Smalruby: End of localStorage backpack ===
     };
 };
 
