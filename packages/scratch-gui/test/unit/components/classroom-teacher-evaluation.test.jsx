@@ -1087,6 +1087,25 @@ describe('［形］のタブを基準づくりの流れに組み込む (#2522)',
         expect(getByTestId('classroom-eval-shapes-arrived')).toHaveTextContent('After [Grade Everyone]');
     });
 
+    test('ほかの課題へ移って戻ると、一言は出ない', async () => {
+        const lessons = [...LESSON, { classroomId: 'c2', assignmentName: '信号', assignmentText: 'LED を光らせる' }];
+        const props = {
+            evalLessons: lessons,
+            seats: [1],
+            loaded: true,
+            getCell: () => shapedCell,
+            rubricTools,
+            onSetSeatsGrade: jest.fn(),
+        };
+        const { getByTestId, queryByTestId, rerender } = renderEvaluation(props);
+        await saveRubric(getByTestId);
+        expect(getByTestId('classroom-eval-shapes-arrived')).toBeInTheDocument();
+        rerender(evaluationElement({ ...props, currentId: 'c2' }));
+        expect(queryByTestId('classroom-eval-shapes-arrived')).toBeNull();
+        rerender(evaluationElement({ ...props, currentId: 'c1' }));
+        expect(queryByTestId('classroom-eval-shapes-arrived')).toBeNull();
+    });
+
     test('形の札のある作品が無いときは［基準］のまま', async () => {
         const { getByTestId } = renderEvaluation({
             evalLessons: LESSON,

@@ -48,7 +48,7 @@ import { breadcrumbMessages } from './teacher-breadcrumbs.jsx';
 import TeacherEvaluationDetail, { detailMessages, needsReviewText } from './teacher-evaluation-detail.jsx';
 import TeacherGradebook, { GradebookSwitch, gradebookMessages } from './teacher-gradebook.jsx';
 import TeacherGradingRubric, { TeacherGradingGroupPrompt } from './teacher-grading-rubric.jsx';
-import TeacherGradingShapes, { ShapeDots, ShapeTags, shapeMessages } from './teacher-grading-shapes.jsx';
+import TeacherGradingShapes, { ShapeDots, ShapeTags, shapeMessages, shapedCells } from './teacher-grading-shapes.jsx';
 import TeacherLegacyImport from './teacher-legacy-import.jsx';
 import TeacherOverallGrade from './teacher-overall-grade.jsx';
 import { TeacherScreen } from './teacher-view-layout.jsx';
@@ -952,8 +952,15 @@ const TeacherEvaluation = ({
     );
     // The rubric was just saved and the grading moved to the［形］tab: the tab says why (#2522).
     // Choosing a tab (or another assignment) drops the note.
-    // {classroomId, graded}: graded = some shaped work has a grade already (the note differs).
+    // {classroomId, kind}: kind = 'graded' when some shaped work has a grade already, else
+    // 'ungraded' (the note differs).
     const [shapeArrival, setShapeArrival] = useState(null);
+    const lessonId = lesson ? lesson.classroomId : null;
+    useEffect(() => {
+        setShapeArrival((prev) => (prev && prev.classroomId !== lessonId ? null : prev));
+    }, [lessonId]);
+    // Checked here too: the effect runs after the render of the other assignment.
+    const shapeArrived = shapeArrival && shapeArrival.classroomId === lessonId ? shapeArrival.kind : null;
     const handleTabRubric = useCallback(() => {
         setShapeArrival(null);
         setInnerTab('rubric');
@@ -970,11 +977,12 @@ const TeacherEvaluation = ({
     // where the［形］tab helps most (#2522). Without works that have shape tags it stays.
     const handleRubricSaved = useCallback(() => {
         if (!lesson || !loaded || !onSetSeatsGrade) return;
-        const shaped = seats
-            .map((seat) => getCell(seat, lesson.classroomId))
-            .filter((cell) => cell && cell.submitted && cell.shape);
+        const shaped = Object.values(shapedCells(seats, getCell, lesson.classroomId));
         if (shaped.length === 0) return;
-        setShapeArrival({ classroomId: lesson.classroomId, graded: shaped.some((cell) => !!cell.grade) });
+        setShapeArrival({
+            classroomId: lesson.classroomId,
+            kind: shaped.some((cell) => !!cell.grade) ? 'graded' : 'ungraded',
+        });
         setInnerTab('shape');
     }, [lesson, loaded, onSetSeatsGrade, seats, getCell, setInnerTab]);
     // A seat of the same shape (the［生徒］tab): open it there.
@@ -1585,13 +1593,7 @@ const TeacherEvaluation = ({
                                 {innerTab === 'shape' &&
                                     (loaded && onSetSeatsGrade ? (
                                         <TeacherGradingShapes
-                                            arrived={
-                                                shapeArrival && shapeArrival.classroomId === lesson.classroomId
-                                                    ? shapeArrival.graded
-                                                        ? 'graded'
-                                                        : 'ungraded'
-                                                    : null
-                                            }
+                                            arrived={shapeArrived}
                                             classroomId={lesson.classroomId}
                                             getCell={getCell}
                                             seats={seats}

@@ -366,5 +366,5 @@ TeacherGradingShapes.propTypes = {
     onSetSeatsGrade: PropTypes.func.isRequired,
 };
 
-export { ShapeDots, ShapeTags, messages as shapeMessages };
+export { ShapeDots, ShapeTags, messages as shapeMessages, shapedCells };
 export default TeacherGradingShapes;

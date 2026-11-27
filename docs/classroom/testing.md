@@ -641,7 +641,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-eval-shapes` | div | ［形］の一覧 |
 | `classroom-eval-shapes-lead` | p | ［形］の冒頭の説明（このタブでできること） |
 | `classroom-eval-shapes-todo` | p | ［形］の冒頭の説明（先生がここでやるとよいこと） |
-| `classroom-eval-shapes-arrived` | p (status) | 基準（2-4）を保存して［形］へ移ったときだけ出る、移った理由の一言。タブを選び直すと消える |
+| `classroom-eval-shapes-arrived` | p (status) | 基準（2-4）を保存して［形］へ移ったときだけ出る、移った理由の一言。タブを選び直すか、ほかの課題へ移ると消える |
 | `classroom-eval-shape-<i>` | li | 形（人数の多い順に 0 から）。札・人数・いまの評価 |
 | `classroom-eval-shape-mixed-<i>` | span | 「同じ形なのに評価が分かれています」 |
 | `classroom-eval-shape-grade-<i>` / `classroom-eval-shape-apply-<i>` | select / button | 「この形は」の評価と［{n} 人にまとめて付ける］ |
