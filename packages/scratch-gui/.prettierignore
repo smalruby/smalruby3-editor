@@ -45,6 +45,8 @@ src/css/*
 # ============================================================
 src/components/*
 # Smalruby-only directories (all contents included)
+!src/components/ask-ai/
+!src/components/ask-ai/**
 !src/components/auto-correct-modal/
 !src/components/auto-correct-modal/**
 !src/components/block-display-modal/
@@ -70,6 +72,8 @@ src/components/*
 !src/components/classroom-peer-panel/
 !src/components/classroom-peer-panel/**
 !src/components/classroom-tutorial/
+!src/components/inner-stepper/
+!src/components/inner-stepper/**
 !src/components/balloon/
 !src/components/balloon/**
 !src/components/classroom-tutorial/**
@@ -537,6 +541,8 @@ test/unit/*
 # Level 3: test/unit/components/*
 test/unit/components/*
 !test/unit/components/action-menu.test.jsx
+!test/unit/components/ask-ai.test.jsx
+!test/unit/components/inner-stepper.test.jsx
 !test/unit/components/carousel.test.jsx
 !test/unit/components/teacher-member-detail.test.jsx
 !test/unit/components/class-ai-settings.test.jsx

@@ -632,9 +632,18 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-eval-cell-button-{seat}-{classroomId}` | button | 席の一覧の 1 行（出席番号と評価。未提出は「未提出」、評価が無ければ —、確定していない AI の案は `data-draft="true"` で点線。要確認は「!」、返却済みは「↩」、コメントがあれば「💬」。レッスンの課題はレッスンの点も出す。押すと［生徒］に出す・`aria-pressed`）。`aria-label` は「出席番号 N・{課題名}: {点}」で、点が無いときは「未採点」、未提出は「未提出」、印があれば「（要確認・返却済み・コメントあり・AI の下書き）」を足す（要確認は理由つき: 「要確認: AI が迷った」など） |
 | `classroom-eval-counts` | div | 右の上の人数 |
 | `classroom-eval-count-notSubmitted` / `-drafts` / `-confirmed` / `-returned` | div | 未提出・AI の案・確定・返却済みの数（読み込む前の未提出は「—」） |
+| `classroom-eval-distribution` | div | 人数の下の評価の分布（#2457。左に横棒のグラフ、右に S+A・S の %） |
+| `classroom-eval-dist-grade-S` / `-A` / `-B` / `-C` | span | S/A/B/C の人数（数は中の `b`） |
+| `classroom-eval-dist-bars` | div | S/A/B/C の横棒のグラフ（#2523） |
+| `classroom-eval-dist-bar-S` / `-A` / `-B` / `-C` | span | 評価ごとの棒。`style.width` が評価のついた人のうちの割合、`data-count` が人数 |
+| `classroom-eval-dist-sa` / `classroom-eval-dist-s` | span | S+A・S の人数と %、目標・目安。`data-ok="false"` で目安から外れている（注意の色と「!」） |
+| `classroom-eval-dist-base` | span | % の分母（評価のついた人数）と、数えない未提出の人数 |
 | `classroom-eval-tab-rubric` / `classroom-eval-tab-student` | button (tab) | 右の［基準］［生徒］（`aria-selected`。作品を出さないレッスンの課題では出さない） |
 | `classroom-eval-tab-shape` | button (tab) | 右の［形］（形の札でまとめて採点。`aria-selected`） |
 | `classroom-eval-shapes` | div | ［形］の一覧 |
+| `classroom-eval-shapes-lead` | p | ［形］の冒頭の説明（このタブでできること） |
+| `classroom-eval-shapes-todo` | p | ［形］の冒頭の説明（先生がここでやるとよいこと） |
+| `classroom-eval-shapes-arrived` | p (status) | 基準（2-4）を保存して［形］へ移ったときだけ出る、移った理由の一言。タブを選び直すか、ほかの課題へ移ると消える |
 | `classroom-eval-shape-<i>` | li | 形（人数の多い順に 0 から）。札・人数・いまの評価 |
 | `classroom-eval-shape-mixed-<i>` | span | 「同じ形なのに評価が分かれています」 |
 | `classroom-eval-shape-grade-<i>` / `classroom-eval-shape-apply-<i>` | select / button | 「この形は」の評価と［{n} 人にまとめて付ける］ |
@@ -642,7 +651,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-eval-shape-work-<seat>` | button | 形の中の作品（押すと［生徒］で開く） |
 | `classroom-eval-shape-tags` | div | ［生徒］の形の札 |
 | `classroom-eval-same-shape-<seat>` | button | ［生徒］の「同じ形の作品」の席 |
-| `classroom-eval-rubric-pane` | div | ［基準］の中身（課題の説明・基準・採点の観点と厳しさ） |
+| `classroom-eval-rubric-pane` | div | ［基準］の中身（課題の説明・基準） |
 | `classroom-eval-description` | p | 課題の説明（AI に渡す。無ければその旨） |
 | `classroom-eval-rubric-levels` | table | 課題の基準（S/A/B/C の文） |
 | `classroom-eval-rubric-levels-no-example-<S\|A\|B\|C>` | span | 保存した基準で、正解の例に無い段の「正解の例が無い（AI の推測）」 |
@@ -667,11 +676,6 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-eval-lesson-only-hint` | span | 作品を出さないレッスンの課題だけのときの説明（タブの行の右・「…自動で採点します。AI の採点は使いません」） |
 | `classroom-eval-lesson-scoring` | div | 採点の画面の「レッスンの点」の欄のまとまり（設定を読めたレッスンの課題だけ） |
 | `classroom-eval-lesson-scoring-{classroomId}` | div | 課題ごとのレッスンの点の欄（課題名 + `classroom-lesson-scoring`。変えるとすぐ保存） |
-| `classroom-eval-settings-summary` | div | 採点の設定の 1 行（観点の名前・採点の厳しさ・［変える］） |
-| `classroom-eval-settings-toggle` | button | 採点の設定の「変える / 閉じる」（`aria-expanded`） |
-| `classroom-eval-settings` | div | 開いた採点の設定（観点の欄・厳しさ） |
-| `classroom-eval-axis-name-{i}` / `classroom-eval-axis-desc-{i}` | input | 観点の名前 / どこを見るか（設定を開いたときだけ） |
-| `classroom-eval-strictness` | select | 採点の厳しさ（やや甘め/標準/やや厳しめ・設定を開いたときだけ） |
 | `classroom-eval-progress` | div | 処理中の表示（スピナー + 何をしているかの文・`role="status"`・`aria-busy`） |
 | `classroom-eval-progress-text` | span | 処理中の文（「02_LED の提出を読み込んでいます（3/28）」など） |
 | `classroom-eval-progress-bar` | div | 件数が分かるときの細い進み具合のバー（`data-percent`） |
@@ -691,6 +695,11 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-overall-open-{classroomId}` | button | 確定していない課題へのリンク（その課題の採点を開く） |
 | `classroom-overall-loading` / `classroom-overall-no-columns` / `classroom-overall-no-seats` | p | 読み込み中 / 課題が入っていない / 採点した席が無い |
 | `classroom-overall-table` | table | 結果の表（`classroom-overall-row-{seat}`・`classroom-overall-average-{seat}`・`classroom-overall-grade-{seat}`） |
+| `classroom-overall-chart` | div | 表の上の分布のグラフ（#2458） |
+| `classroom-overall-chart-sab` | span | S+A+B の人数と %（`data-ok`。75% 未満で `false`） |
+| `classroom-overall-chart-band` / `classroom-overall-chart-band-before` | div | 100% の積み上げ帯（いま / 開いたときの薄い帯）。中の `-{S\|A\|B\|C}` が評価ごとの部分（`data-count`・人数 0 の評価は出さない） |
+| `classroom-overall-chart-dots` / `classroom-overall-chart-dot-{seat}` | div / span | 平均の点の分布の枠 / 席ごとの点 |
+| `classroom-overall-chart-cut-{S\|A\|B}` | div | 区切りの線（`role="slider"`・ドラッグか矢印のキーで動かす） |
 | `classroom-eval-detail-title` | h3 | 右の列の見出し「出席番号 NN」 |
 | `classroom-eval-detail-lesson` | span | 右の列の課題名 |
 | `classroom-eval-detail-open-work` | button | 右の列の課題名の右の［作品を開く］。選んだ席の作品をエディタで開き、クラス管理を閉じる（課題の詳細の［スモウルビーで開く］と同じ処理）。採点の下書きについては確かめずに開く（採点の画面は隠して残る・下の戻る帯）。エディタに保存していない変更があれば `classroom-teacher-open-work-confirm-box` を先に出す。開いている間は押せず「開いています…」と出す |
@@ -713,22 +722,30 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-eval-leave-cancel` | button | 離れる確認の［採点を続ける］ |
 | `classroom-eval-leave-confirm` | button | 離れる確認の確定（［戻る］／［離れる］／［読み込み直す］・赤） |
 | `grading-rubric` | div | ［基準］のタブの中身（#2425） |
-| `grading-rubric-description` / `grading-rubric-description-text` | div / p | 課題の説明 |
-| `grading-rubric-describe` | button | ［AI に説明の案を出してもらう］ |
-| `grading-rubric-describe-proposal` / `grading-rubric-describe-text` | div / textarea | AI の説明の案（直せる） |
+| `grading-rubric-steps` | section | 基準づくりの縦のステッパー（手順 2 の中の 2-1〜2-4・#2455）。小手順は `grading-rubric-steps-step-<describe\|examples\|fairness\|sentences>`（`data-state` = `done` / `now` / `todo`）、見出しは `grading-rubric-steps-head-<id>`（押すと開く）、たたんだ 1 行は `grading-rubric-steps-summary-<id>` |
+| `grading-rubric-description` / `grading-rubric-description-text` | div / p | 2-1 課題の説明 |
+| `grading-rubric-describe-ai` / `grading-rubric-describe-ai-button` | div / button | 2-1 の「AI に相談」／［AI に説明の案を書いてもらう］（説明があるときは［AI に説明を作り直してもらう］。一度実行したら押せない） |
+| `grading-rubric-describe-proposal` / `grading-rubric-describe-text` | div / textarea | AI の説明の案（直せる）／下書きの文（AI の案・コピーした説明） |
+| `grading-rubric-describe-copied` | div | ほかの課題からコピーした説明の下書き（答えのボタンは AI の案と同じ `grading-rubric-describe-ok` など） |
 | `grading-rubric-describe-ok` / `-fix` / `-only-here` | button | ［合っている（課題に保存）］／［直して保存］／［保存せず、この採点だけで使う］ |
-| `grading-rubric-running` | p | AI が動いている間の表示 |
+| `grading-rubric-running` | p | 保存・コピー・スターターの読み込みの間の表示（AI が動いている間は、その「AI に相談」のボタンが `aria-busy="true"`） |
 | `grading-rubric-saved` / `grading-rubric-edit` | div / button | 保存した基準／［基準をつくり直す］ |
 | `grading-rubric-no-s-example` / `grading-rubric-draft-no-s-example` / `grading-rubric-copy-no-s-example` | p | S の正解の例が無いときの注意（保存した基準／基準づくりの途中／コピーで選んだ基準） |
-| `grading-rubric-reps` / `grading-rubric-propose` | div / button | 代表の作品の一覧／［AI の案を出す］ |
+| `grading-rubric-reps` | div | 2-2 代表の作品の一覧 |
+| `grading-rubric-propose-ai` / `grading-rubric-propose-ai-button` | div / button | 2-2 の上の「AI に相談」／［AI に代表 N 件の案を出してもらう］（代表すべてをまとめて。一度実行したら押せない） |
 | `grading-rubric-rep-<席>` / `grading-rubric-rep-body-<席>` | button / div | 代表の行（押すと開く）／開いた中身 |
-| `grading-rubric-rep-grade-<席>-<S\|A\|B\|C>` / `grading-rubric-rep-reason-<席>` / `grading-rubric-rep-open-<席>` | button / input / button | 正解（選んだものは `aria-pressed="true"`）・理由・［作品を開く］ |
-| `grading-rubric-fairness` / `grading-rubric-fairness-run` | div / button | フェアの確認／［フェアか確かめる］ |
-| `grading-rubric-check-<i>` / `-option-<j>` / `-compare` | li / button / button | 質問・選択肢（選んだものは `aria-pressed="true"`、ほかは `"false"`）・［作品を並べて見る］ |
-| `grading-rubric-sentences` / `grading-rubric-draft` / `grading-rubric-level-<S\|A\|B\|C>` / `grading-rubric-save` | div / button / input / button | 基準の文・［AI に基準の文を書いてもらう］・文の欄・［基準を保存］ |
-| `grading-rubric-copy` / `grading-rubric-copy-dialog` | button / div | ［ほかの課題から基準をコピー…］／コピーの小さな画面 |
+| `grading-rubric-rep-grade-<席>-<S\|A\|B\|C>` / `grading-rubric-rep-reason-<席>` / `grading-rubric-rep-open-<席>` | button / input / button | 正解・理由・［作品を開く］ |
+| `grading-rubric-proposed-notice` | p (status) | 2-2 の AI の案が出終わったときの知らせ「AI の案が出ました。正解を選んでください。」（代表すべてに正解が付くまで） |
+| `grading-rubric-rep-hint-<席>` | span (tooltip) | AI の案が出終わったとき、開いた代表の正解のボタンのそばに約 4 秒だけ出る「正解を選ぶ」 |
+| `grading-rubric-fairness` | div | 2-3 フェアの確認 |
+| `grading-rubric-fairness-ai` / `grading-rubric-fairness-ai-button` | div / button | 2-3 の「AI に相談」／［AI にフェアか確かめてもらう］（一度実行したら押せない） |
+| `grading-rubric-fairness-next` | button | 2-3 で聞くことが無い（くらべる作品が無い）ときの［次へ］。押すと 2-3 が済みになり 2-4 へ移る |
+| `grading-rubric-check-<i>` / `-option-<j>` / `-compare` | li / button / button | 質問・選択肢・［作品を並べて見る］ |
+| `grading-rubric-sentences` / `grading-rubric-level-<S\|A\|B\|C>` / `grading-rubric-save` | div / input / button | 2-4 基準の文・文の欄・［基準を保存］ |
+| `grading-rubric-draft-ai` / `grading-rubric-draft-ai-button` | div / button | 2-4 の「AI に相談」／［AI に基準の文の案を書いてもらう］（一度実行したら押せない） |
+| `grading-rubric-copy` / `grading-rubric-copy-dialog` | button / div | ［説明と基準をコピー…］／コピーの小さな画面 |
 | `grading-rubric-copy-class` / `grading-rubric-copy-assignment` | select | コピー元のクラス・課題 |
-| `grading-rubric-copy-preview` / `grading-rubric-copy-levels` / `grading-rubric-copy-none` | div / table / p | コピー元の基準の中身／基準が無い |
+| `grading-rubric-copy-preview` / `grading-rubric-copy-description` / `grading-rubric-copy-levels` / `grading-rubric-copy-none` | div / p / table / p | コピー元の中身／その説明／その基準／説明も基準も無い |
 | `grading-rubric-copy-levels-no-example-<S\|A\|B\|C>` | span | コピー元の基準で、正解の例に無い段の「正解の例が無い（AI の推測）」 |
 | `grading-rubric-copy-do` / `grading-rubric-copy-cancel` | button | ［コピーする］／［やめる］ |
 | `grading-group-prompt` / `-yes` / `-no` | div / button / button | 1 件を直したあとの「同じまとまりも変えますか？」と［{n} 件も変える］［この 1 件だけ］（［生徒］のタブ） |

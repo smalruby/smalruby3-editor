@@ -386,13 +386,11 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         lessonScores={evaluation.lessonScores}
                         loaded={evaluation.loaded}
                         openingWork={evaluation.openingWork}
-                        rubricAxes={evaluation.rubricAxes}
                         rubricDone={evaluation.rubricDone}
                         rubricTools={evaluation.rubricTools}
                         scoringChecked={evaluation.scoringChecked}
                         scoringSavingId={evaluation.scoringSavingId}
                         seats={evaluation.seats}
-                        strictness={evaluation.strictness}
                         tabs={
                             evaluation.evalGroup ? (
                                 <TeacherClassTabs selected="grading" onSelect={handleEvaluationTab} />
@@ -408,7 +406,6 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         onConfirmLeave={evaluation.handleConfirmLeave}
                         onRequestLeave={evaluation.handleRequestLeave}
                         onChangeLessonScoring={evaluation.handleChangeLessonScoring}
-                        onChangeRubricAxis={evaluation.handleChangeRubricAxis}
                         onCheckScoring={evaluation.handleCheckScoring}
                         onChooseCell={evaluation.handleChooseCell}
                         onExportAuditCsv={evaluation.handleExportAuditCsv}
@@ -423,7 +420,6 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         onSetCellReason={evaluation.handleSetCellReason}
                         onSetComment={evaluation.handleSetComment}
                         onSetInnerTab={evaluation.handleSetInnerTab}
-                        onSetStrictness={evaluation.handleSetStrictness}
                         onShowGradebook={evaluation.handleShowGradebook}
                         onShowOverall={evaluation.handleShowOverall}
                         onVisitRubric={evaluation.handleVisitRubric}

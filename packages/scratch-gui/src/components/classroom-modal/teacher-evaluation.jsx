@@ -5,7 +5,7 @@
  * assignment opens its own grading (this file, `view: 'assignment'`), after Google
  * Classroom's 「生徒の提出物」: the seats and their grades on the left, the counts
  * (not submitted, AI drafts, confirmed, returned) and two tabs on the right:
- * ［基準］ (the description, the rubric and the grading criteria) and ［生徒］ (the
+ * ［基準］ (the description and the rubric) and ［生徒］ (the
  * chosen seat's grade, the AI's reason, the comment and［作品を開く］).
  *
  * The footer is a numbered flow: 1 load → 2 rubric → 3 grade everyone → 4 confirm →
@@ -31,12 +31,14 @@ import {
     isLessonOnlyAssignment,
     lessonScoreOf,
 } from '../../lib/classroom-evaluation/evaluation-utils.js';
+import { GRADE_TARGETS, assignmentDistribution } from '../../lib/classroom-evaluation/grade-distribution.js';
 import {
     assignmentCounts,
     currentGradingStep,
     gradebookCell,
     isDraftGrade,
 } from '../../lib/classroom-evaluation/gradebook.js';
+import { stackedSegments } from '../../lib/classroom-evaluation/overall-chart.js';
 import { buildLessonPayload, lessonDraftFromSaved } from '../../lib/classroom-lesson-settings.js';
 import { findCourse } from '../../lib/lessons/courses.js';
 import Spinner from '../spinner/spinner.jsx';
@@ -47,7 +49,7 @@ import { breadcrumbMessages } from './teacher-breadcrumbs.jsx';
 import TeacherEvaluationDetail, { detailMessages, needsReviewText } from './teacher-evaluation-detail.jsx';
 import TeacherGradebook, { GradebookSwitch, gradebookMessages } from './teacher-gradebook.jsx';
 import TeacherGradingRubric, { TeacherGradingGroupPrompt } from './teacher-grading-rubric.jsx';
-import TeacherGradingShapes, { ShapeDots, ShapeTags, shapeMessages } from './teacher-grading-shapes.jsx';
+import TeacherGradingShapes, { ShapeDots, ShapeTags, shapeMessages, shapedCells } from './teacher-grading-shapes.jsx';
 import TeacherLegacyImport from './teacher-legacy-import.jsx';
 import TeacherOverallGrade from './teacher-overall-grade.jsx';
 import { TeacherScreen } from './teacher-view-layout.jsx';
@@ -175,25 +177,6 @@ const evalMessages = defineMessages({
         defaultMessage: 'Lesson points of {name}',
         description: 'Grading screen: label of the lesson points field of one assignment (#1778)',
         id: 'gui.classroom.evaluation.lessonScoringOf',
-    },
-});
-
-/* 厳しさの選択肢。閉じた設定の 1 行でも、いまの値として同じ言葉を出す。 */
-const STRICTNESS_MESSAGES = defineMessages({
-    lenient: {
-        defaultMessage: 'Lenient',
-        description: 'Strictness option',
-        id: 'gui.classroom.evaluation.strictnessLenient',
-    },
-    standard: {
-        defaultMessage: 'Standard',
-        description: 'Strictness option',
-        id: 'gui.classroom.evaluation.strictnessStandard',
-    },
-    strict: {
-        defaultMessage: 'Strict',
-        description: 'Strictness option',
-        id: 'gui.classroom.evaluation.strictnessStrict',
     },
 });
 
@@ -482,9 +465,44 @@ const assignmentMessages = defineMessages({
         description: 'Assignment grading: count of works whose comment was returned (#2424)',
         id: 'gui.classroom.evaluation.countReturned',
     },
+    distributionGraded: {
+        defaultMessage: 'Of {graded} graded',
+        description: 'Assignment grading: the base of the shares in the grade distribution (#2457)',
+        id: 'gui.classroom.evaluation.distributionGraded',
+    },
+    distributionGradedNotSubmitted: {
+        defaultMessage: 'Of {graded} graded ({notSubmitted} not submitted are not counted)',
+        description: 'Assignment grading: the base of the shares, and the seats that did not submit apart (#2457)',
+        id: 'gui.classroom.evaluation.distributionGradedNotSubmitted',
+    },
+    distributionSa: {
+        defaultMessage: 'S+A {count} ({percent})',
+        description: 'Assignment grading: seats with S or A and their share (#2457)',
+        id: 'gui.classroom.evaluation.distributionSa',
+    },
+    distributionSaTarget: {
+        defaultMessage: 'target {min}% or more',
+        description: 'Assignment grading: the target of the S+A share (#2457)',
+        id: 'gui.classroom.evaluation.distributionSaTarget',
+    },
+    distributionS: {
+        defaultMessage: 'S {count} ({percent})',
+        description: 'Assignment grading: seats with S and their share (#2457)',
+        id: 'gui.classroom.evaluation.distributionS',
+    },
+    distributionSTarget: {
+        defaultMessage: 'aim {min}–{max}%',
+        description: 'Assignment grading: the aimed range of the S share (#2457)',
+        id: 'gui.classroom.evaluation.distributionSTarget',
+    },
+    distributionOff: {
+        defaultMessage: 'Off the target',
+        description: 'Assignment grading: tooltip of a share out of its target (#2457)',
+        id: 'gui.classroom.evaluation.distributionOff',
+    },
     tabRubric: {
         defaultMessage: 'Rubric',
-        description: 'Assignment grading: tab with the description, the rubric and the criteria (#2424)',
+        description: 'Assignment grading: tab with the description and the rubric (#2424)',
         id: 'gui.classroom.evaluation.tabRubric',
     },
     tabShape: {
@@ -514,8 +532,8 @@ const assignmentMessages = defineMessages({
     },
     noRubric: {
         defaultMessage:
-            'This assignment has no rubric yet. Making one from a few works will come here. Until then the AI ' +
-            'grades with the grading criteria below.',
+            'This assignment has no rubric yet. Without one, the AI grades on whether it runs, the ' +
+            'assignment\u2019s requirements and extra ideas.',
         description: 'Assignment grading: the assignment has no rubric (the rubric maker comes in #2425)',
         id: 'gui.classroom.evaluation.noRubric',
     },
@@ -752,6 +770,98 @@ Counts.propTypes = {
     counts: PropTypes.object.isRequired,
 };
 
+/* 評価の分布の横棒の色（評価ごと） */
+const GRADE_BAR_CLASS = {
+    S: styles.evalDistBarS,
+    A: styles.evalDistBarA,
+    B: styles.evalDistBarB,
+    C: styles.evalDistBarC,
+};
+
+/*
+ * 人数の下の評価の分布（#2457・F5 / F6）: S/A/B/C の人数、S+A と S の人数と %。
+ * % の分母は評価のついた人で、未提出は数えない。目安を外れたら注意の色と「!」（色だけに頼らない）。
+ * S/A/B/C は評価ごとの横棒にして目立たせる（#2523）。棒の長さは評価のついた人の割合で、
+ * 色は総合評価のグラフ（#2458）と同じ評価の色。文字の大きさはトークンのまま。
+ */
+const Distribution = ({ distribution }) => {
+    const intl = useIntl();
+    const { graded, notSubmitted, sa, s } = distribution;
+    const percent = (value) => (value === null ? '—' : `${value}%`);
+    const share = (key, ok, label, target) => (
+        <span
+            className={classNames(styles.evalDistShare, { [styles.evalDistShareOff]: !ok })}
+            data-ok={ok}
+            data-testid={`classroom-eval-dist-${key}`}
+            title={ok ? null : intl.formatMessage(assignmentMessages.distributionOff)}
+        >
+            {ok ? null : <b className={styles.evalDistMark}>{'!'}</b>}
+            <b>{label}</b>
+            <span className={styles.evalDistTarget}>{target}</span>
+        </span>
+    );
+    return (
+        <div className={styles.evalDist} data-testid="classroom-eval-distribution">
+            <div className={styles.evalDistBars} data-testid="classroom-eval-dist-bars">
+                {stackedSegments(distribution).map((segment) => (
+                    <div className={styles.evalDistBarRow} key={segment.grade}>
+                        <span className={styles.evalDistBarGrade}>{segment.grade}</span>
+                        <span className={styles.evalDistBarTrack}>
+                            <span
+                                className={classNames(styles.evalDistBar, GRADE_BAR_CLASS[segment.grade])}
+                                data-count={segment.count}
+                                data-testid={`classroom-eval-dist-bar-${segment.grade}`}
+                                style={{ width: `${segment.share}%` }}
+                            />
+                        </span>
+                        <span
+                            className={styles.evalDistBarCount}
+                            data-testid={`classroom-eval-dist-grade-${segment.grade}`}
+                        >
+                            <b>{segment.count}</b>
+                        </span>
+                    </div>
+                ))}
+            </div>
+            <div className={styles.evalDistShares}>
+                {share(
+                    'sa',
+                    sa.ok,
+                    intl.formatMessage(assignmentMessages.distributionSa, {
+                        count: sa.count,
+                        percent: percent(sa.percent),
+                    }),
+                    intl.formatMessage(assignmentMessages.distributionSaTarget, { min: GRADE_TARGETS.saMin }),
+                )}
+                {share(
+                    's',
+                    s.ok,
+                    intl.formatMessage(assignmentMessages.distributionS, {
+                        count: s.count,
+                        percent: percent(s.percent),
+                    }),
+                    intl.formatMessage(assignmentMessages.distributionSTarget, {
+                        min: GRADE_TARGETS.sMin,
+                        max: GRADE_TARGETS.sMax,
+                    }),
+                )}
+                <span className={styles.evalDistBase} data-testid="classroom-eval-dist-base">
+                    {notSubmitted
+                        ? intl.formatMessage(assignmentMessages.distributionGradedNotSubmitted, {
+                              graded,
+                              notSubmitted,
+                          })
+                        : intl.formatMessage(assignmentMessages.distributionGraded, { graded })}
+                </span>
+            </div>
+        </div>
+    );
+};
+
+Distribution.propTypes = {
+    distribution: PropTypes.object.isRequired,
+};
+
 const TeacherEvaluation = ({
     aiQuota = null,
     chosenCell: chosenCellProp = null,
@@ -770,13 +880,11 @@ const TeacherEvaluation = ({
     innerTab: innerTabProp = null,
     lessonScores = EMPTY_LESSON_SCORES,
     loaded: loadedProp = null,
-    rubricAxes,
     rubricDone = false,
     rubricTools = null,
     scoringChecked = false,
     scoringSavingId = null,
     seats,
-    strictness,
     tabs,
     leaveRequest = null,
     unconfirmedByEdit = false,
@@ -786,7 +894,6 @@ const TeacherEvaluation = ({
     onShowClassList,
     onCancelLeave,
     onChangeLessonScoring,
-    onChangeRubricAxis,
     onCheckScoring,
     onConfirmGrades = null,
     onConfirmLeave,
@@ -805,7 +912,6 @@ const TeacherEvaluation = ({
     onSetCellReason,
     onSetComment,
     onSetInnerTab = null,
-    onSetStrictness,
     onShowGradebook = null,
     onShowOverall = null,
     onVisitRubric = null,
@@ -874,9 +980,41 @@ const TeacherEvaluation = ({
         },
         [setChosenCell],
     );
-    const handleTabRubric = useCallback(() => setInnerTab('rubric'), [setInnerTab]);
-    const handleTabStudent = useCallback(() => setInnerTab('student'), [setInnerTab]);
-    const handleTabShape = useCallback(() => setInnerTab('shape'), [setInnerTab]);
+    // The rubric was just saved and the grading moved to the［形］tab: the tab says why (#2522).
+    // Choosing a tab (or another assignment) drops the note.
+    // {classroomId, kind}: kind = 'graded' when some shaped work has a grade already, else
+    // 'ungraded' (the note differs).
+    const [shapeArrival, setShapeArrival] = useState(null);
+    const lessonId = lesson ? lesson.classroomId : null;
+    useEffect(() => {
+        setShapeArrival((prev) => (prev && prev.classroomId !== lessonId ? null : prev));
+    }, [lessonId]);
+    // Checked here too: the effect runs after the render of the other assignment.
+    const shapeArrived = shapeArrival && shapeArrival.classroomId === lessonId ? shapeArrival.kind : null;
+    const handleTabRubric = useCallback(() => {
+        setShapeArrival(null);
+        setInnerTab('rubric');
+    }, [setInnerTab]);
+    const handleTabStudent = useCallback(() => {
+        setShapeArrival(null);
+        setInnerTab('student');
+    }, [setInnerTab]);
+    const handleTabShape = useCallback(() => {
+        setShapeArrival(null);
+        setInnerTab('shape');
+    }, [setInnerTab]);
+    // After the rubric (2-4) is saved, the AI's grades are checked shape by shape: that is
+    // where the［形］tab helps most (#2522). Without works that have shape tags it stays.
+    const handleRubricSaved = useCallback(() => {
+        if (!lesson || !loaded || !onSetSeatsGrade) return;
+        const shaped = Object.values(shapedCells(seats, getCell, lesson.classroomId));
+        if (shaped.length === 0) return;
+        setShapeArrival({
+            classroomId: lesson.classroomId,
+            kind: shaped.some((cell) => !!cell.grade) ? 'graded' : 'ungraded',
+        });
+        setInnerTab('shape');
+    }, [lesson, loaded, onSetSeatsGrade, seats, getCell, setInnerTab]);
     // A seat of the same shape (the［生徒］tab): open it there.
     const handleSameShape = useCallback(
         (e) => {
@@ -887,18 +1025,6 @@ const TeacherEvaluation = ({
     );
     const [hintOpen, setHintOpen] = useState(false);
     const handleHintToggle = useCallback(() => setHintOpen((prev) => !prev), []);
-    const [settingsOpen, setSettingsOpen] = useState(false);
-    const handleSettingsToggle = useCallback(() => setSettingsOpen((prev) => !prev), []);
-    const handleStrictnessChange = useCallback((e) => onSetStrictness(e.target.value), [onSetStrictness]);
-    const handleAxisChange = useCallback(
-        (e) =>
-            onChangeRubricAxis(
-                parseInt(e.currentTarget.dataset.index, 10),
-                e.currentTarget.dataset.field,
-                e.target.value,
-            ),
-        [onChangeRubricAxis],
-    );
     // Every way out asks first when comments not returned or grades not saved would be
     // lost (#1923 C4). The container decides (requestLeave).
     const handleLeave = useCallback(() => onRequestLeave(onBack, 'back'), [onRequestLeave, onBack]);
@@ -1220,13 +1346,25 @@ const TeacherEvaluation = ({
             grading,
             loaded,
         });
+        const distribution = assignmentDistribution({
+            seats,
+            getCell: (seat) => getCell(seat, lesson.classroomId),
+            grading,
+            loaded,
+        });
         const rubricLevels = (grading && grading.rubric && grading.rubric.levels) || [];
         const detailInfo = detailCell ? getCell(detailCell.seat, detailCell.classroomId) : null;
         const rubricPane = (
             <div className={styles.evalPaneBody} data-testid="classroom-eval-rubric-pane">
                 {rubricTools ? (
                     // The［基準］tab of #2425: description, representatives, fairness, rubric.
-                    <TeacherGradingRubric busy={busy} lesson={lesson} tools={rubricTools} onOpenWork={onOpenWork} />
+                    <TeacherGradingRubric
+                        busy={busy}
+                        lesson={lesson}
+                        tools={rubricTools}
+                        onOpenWork={onOpenWork}
+                        onSaved={handleRubricSaved}
+                    />
                 ) : (
                     <>
                         <div className={styles.evalPaneLabel}>
@@ -1257,120 +1395,6 @@ const TeacherEvaluation = ({
                             </p>
                         )}
                     </>
-                )}
-                {/* 採点の観点・厳しさ（基準が無いときに AI が使う）。あまり変えないので 1 行に畳む（R3）。 */}
-                <div className={styles.evalSection} data-testid="classroom-eval-settings-summary">
-                    <span className={styles.assignmentNameLabel}>
-                        <FormattedMessage
-                            defaultMessage="Grading criteria:"
-                            description="Label of the rubric axes (what the AI grades on)"
-                            id="gui.classroom.evaluation.rubric"
-                        />
-                    </span>
-                    <span className={styles.evalSettingsValue}>
-                        {rubricAxes
-                            .map((axis) => axis.name)
-                            .filter((name) => name)
-                            .join('・')}
-                    </span>
-                    <span className={styles.assignmentNameLabel}>
-                        <FormattedMessage
-                            defaultMessage="Strictness:"
-                            description="Strictness selector label"
-                            id="gui.classroom.evaluation.strictness"
-                        />
-                    </span>
-                    <span className={styles.evalSettingsValue}>
-                        {STRICTNESS_MESSAGES[strictness]
-                            ? intl.formatMessage(STRICTNESS_MESSAGES[strictness])
-                            : strictness}
-                    </span>
-                    <button
-                        aria-expanded={settingsOpen}
-                        className={styles.evalHintToggle}
-                        data-testid="classroom-eval-settings-toggle"
-                        disabled={busy}
-                        type="button"
-                        onClick={handleSettingsToggle}
-                    >
-                        {settingsOpen ? (
-                            <FormattedMessage
-                                defaultMessage="Done"
-                                description="Close the grading settings (criteria and strictness)"
-                                id="gui.classroom.evaluation.settingsDone"
-                            />
-                        ) : (
-                            <FormattedMessage
-                                defaultMessage="Change"
-                                description="Open the grading settings (criteria and strictness)"
-                                id="gui.classroom.evaluation.settingsChange"
-                            />
-                        )}
-                    </button>
-                </div>
-                {settingsOpen && (
-                    <div className={styles.evalSection} data-testid="classroom-eval-settings">
-                        {/* R1: 名前と説明の欄が何かを、いつも見える見出しで示す。 */}
-                        <div className={classNames(styles.evalRubricRow, styles.evalRubricHeader)}>
-                            <span className={styles.evalRubricName}>
-                                <FormattedMessage
-                                    defaultMessage="Criterion"
-                                    description="Column header of the grading criterion name fields"
-                                    id="gui.classroom.evaluation.axisNameHeader"
-                                />
-                            </span>
-                            <span className={styles.evalRubricDescription}>
-                                <FormattedMessage
-                                    defaultMessage="What it looks for"
-                                    description="Column header of the grading criterion description fields"
-                                    id="gui.classroom.evaluation.axisDescriptionHeader"
-                                />
-                            </span>
-                        </div>
-                        {rubricAxes.map((axis, i) => (
-                            <div className={styles.evalRubricRow} key={i}>
-                                <input
-                                    className={styles.evalRubricName}
-                                    data-field="name"
-                                    data-index={i}
-                                    data-testid={`classroom-eval-axis-name-${i}`}
-                                    maxLength={50}
-                                    type="text"
-                                    value={axis.name}
-                                    onChange={handleAxisChange}
-                                />
-                                <input
-                                    className={styles.evalRubricDescription}
-                                    data-field="description"
-                                    data-index={i}
-                                    data-testid={`classroom-eval-axis-desc-${i}`}
-                                    maxLength={300}
-                                    type="text"
-                                    value={axis.description}
-                                    onChange={handleAxisChange}
-                                />
-                            </div>
-                        ))}
-                        <label className={styles.evalStrictnessRow}>
-                            <FormattedMessage
-                                defaultMessage="Strictness:"
-                                description="Strictness selector label"
-                                id="gui.classroom.evaluation.strictness"
-                            />
-                            <select
-                                className={styles.groupSelect}
-                                data-testid="classroom-eval-strictness"
-                                value={strictness}
-                                onChange={handleStrictnessChange}
-                            >
-                                {Object.keys(STRICTNESS_MESSAGES).map((value) => (
-                                    <option key={value} value={value}>
-                                        {intl.formatMessage(STRICTNESS_MESSAGES[value])}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-                    </div>
                 )}
             </div>
         );
@@ -1547,6 +1571,7 @@ const TeacherEvaluation = ({
                     </div>
                     <div className={styles.evalPane}>
                         <Counts counts={counts} />
+                        {lessonOnly ? null : <Distribution distribution={distribution} />}
                         {lessonOnly ? null : (
                             <div className={styles.evalInnerTabs} role="tablist">
                                 <button
@@ -1590,12 +1615,15 @@ const TeacherEvaluation = ({
                             </div>
                         )}
                         {lessonOnly ? null : (
-                            <div className={styles.evalPaneScroll} role="tabpanel">
+                            // Keyed by the tab: a tab opens at its top, not at the last tab's scroll
+                            // (the note of #2522 is at the top of the［形］tab).
+                            <div className={styles.evalPaneScroll} key={innerTab} role="tabpanel">
                                 {innerTab === 'student' && studentPane}
                                 {innerTab === 'rubric' && rubricPane}
                                 {innerTab === 'shape' &&
                                     (loaded && onSetSeatsGrade ? (
                                         <TeacherGradingShapes
+                                            arrived={shapeArrived}
                                             classroomId={lesson.classroomId}
                                             getCell={getCell}
                                             seats={seats}
@@ -1699,7 +1727,6 @@ TeacherEvaluation.propTypes = {
     loaded: PropTypes.bool,
     /** A work is being opened from the right column (#1980). */
     openingWork: PropTypes.bool,
-    rubricAxes: PropTypes.arrayOf(PropTypes.object).isRequired,
     /** The rubric step is done (there is a rubric, or the teacher looked at it). */
     rubricDone: PropTypes.bool,
     /** The［基準］tab's state and handlers (useGradingRubric, #2425). */
@@ -1708,7 +1735,6 @@ TeacherEvaluation.propTypes = {
     scoringSavingId: PropTypes.string,
     /** The seats of the open assignment. */
     seats: PropTypes.arrayOf(PropTypes.number).isRequired,
-    strictness: PropTypes.string.isRequired,
     /** クラスの中のタブの行（［採点］が選ばれた `TeacherClassTabs`）。 */
     tabs: PropTypes.node,
     /** A grade changed after confirming, so the confirmation was taken back. */
@@ -1725,7 +1751,6 @@ TeacherEvaluation.propTypes = {
     onShowClassList: PropTypes.func,
     onCancelLeave: PropTypes.func,
     onChangeLessonScoring: PropTypes.func,
-    onChangeRubricAxis: PropTypes.func.isRequired,
     onCheckScoring: PropTypes.func,
     /** Confirm the grades of the open assignment (step 4). */
     onConfirmGrades: PropTypes.func,
@@ -1753,7 +1778,6 @@ TeacherEvaluation.propTypes = {
     onSetComment: PropTypes.func.isRequired,
     /** ('rubric'|'student') → choose the right column's tab, when the container keeps it. */
     onSetInnerTab: PropTypes.func,
-    onSetStrictness: PropTypes.func.isRequired,
     onShowGradebook: PropTypes.func,
     onShowOverall: PropTypes.func,
     /** Step 2: look at the rubric (#2425 makes it). */

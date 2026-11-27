@@ -41,3 +41,14 @@ describe('smalruby-tokens.css', () => {
         });
     });
 });
+
+// The design-system parts (#2454) use only tokens: a typo would otherwise show up only in a build.
+describe('design-system parts', () => {
+    test.each(['inner-stepper/inner-stepper.css', 'ask-ai/ask-ai.css'])('%s compiles with no unknown variable', async (file) => {
+        const partPath = path.resolve(__dirname, '../../../src/components', file);
+        const result = await postcss([postcssImport, postcssSimpleVars]).process(fs.readFileSync(partPath, 'utf8'), {
+            from: partPath,
+        });
+        expect(result.css.replace(/\/\*[\s\S]*?\*\//g, '')).not.toMatch(/\$[\w-]/);
+    });
+});

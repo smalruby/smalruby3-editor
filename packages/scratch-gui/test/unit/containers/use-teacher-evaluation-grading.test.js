@@ -148,6 +148,20 @@ describe('useTeacherEvaluation — 課題の採点の保存 (#2424)', () => {
         expect(mockEvaluateSubmissions.mock.calls[0][2].rubricLevels).toBeUndefined();
     });
 
+    test('基準が無いときは決まった観点（動くこと・課題の要件・工夫）を標準の厳しさで送る (#2455 F2)', async () => {
+        const { hook } = await setup();
+        await open(hook, 'new');
+        await load(hook);
+        await act(async () => {
+            await hook.result.current.handleRunAi('grade');
+        });
+        const payload = mockEvaluateSubmissions.mock.calls[0][2];
+        expect(payload.rubricAxes.map((axis) => axis.name)).toEqual(['動くこと', '課題の要件', '工夫']);
+        expect(payload.strictness).toBe('standard');
+        expect(hook.result.current).not.toHaveProperty('rubricAxes');
+        expect(hook.result.current).not.toHaveProperty('handleSetStrictness');
+    });
+
     test('基準があれば基準と正解の例も渡す', async () => {
         const rubric = { levels: [{ grade: 'S', text: '両方' }], examples: [{ seat: 1, grade: 'A' }] };
         mockGetGrading.mockResolvedValue({ grading: { rubric, grades: {}, confirmedAt: null } });
@@ -161,6 +175,8 @@ describe('useTeacherEvaluation — 課題の採点の保存 (#2424)', () => {
         expect(mockEvaluateSubmissions.mock.calls[0][2]).toMatchObject({
             rubricLevels: rubric.levels,
             examples: rubric.examples,
+            // The sentences grade: no criteria are sent (#2455 F2).
+            rubricAxes: [],
         });
     });
 

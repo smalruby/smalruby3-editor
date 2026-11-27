@@ -46,10 +46,10 @@ const DOC_SHOT_NAMES = {
     confirmed: "0355-teacher-grading-confirmed.png",
     "gradebook-after-confirm": "0356-teacher-gradebook-confirmed.png",
     overall: "0357-teacher-grading-overall.png",
+    "overall-dragged": "0363-teacher-grading-overall-dragged.png",
     loading: "0348-teacher-grading-loading.png",
     "ai-grading": "0349-teacher-grading-ai-grading.png",
     "hint-open": "0237-teacher-grading-hint-detail.png",
-    "settings-open": "0238-teacher-grading-settings.png",
     "export-menu": "0236-teacher-grading-export-menu.png",
     "leave-confirm": "0259-teacher-grading-leave-confirm.png",
 };
@@ -187,7 +187,10 @@ const record = (row) => {
 const measure = (page) =>
     page.evaluate((root) => {
         const el = document.querySelector(root);
-        const current = document.querySelector('[aria-current="step"]');
+        // The footer's steps only: the inner stepper of the［基準］tab has its own current step (#2455).
+        const current = document.querySelector(
+            '[data-testid="classroom-eval-steps"] [aria-current="step"]',
+        );
         const primary =
             current ||
             document.querySelector(
@@ -448,16 +451,79 @@ await judge(page, { name: "0 gradebook", expected: null, shot: "gradebook" });
 
 await page.click('[data-testid="classroom-gradebook-switch-overall"]');
 await page.waitForSelector('[data-testid="classroom-gradebook-overall"]');
-await shoot(page, "overall");
+// #2458 (F7 / F8): the S+A+B share, the stacked bands and the dots with the cut lines.
+await page.waitForSelector('[data-testid="classroom-overall-chart"]');
+const chartState = () =>
+    page.evaluate(() => {
+        const q = (id) => document.querySelector(`[data-testid="${id}"]`);
+        const band = (id) =>
+            Object.fromEntries(
+                ["S", "A", "B", "C"].map((g) => [
+                    g,
+                    Number(q(`${id}-${g}`)?.getAttribute("data-count") || 0),
+                ]),
+            );
+        return {
+            sab: q("classroom-overall-chart-sab")?.textContent,
+            sabOk: q("classroom-overall-chart-sab")?.getAttribute("data-ok"),
+            now: band("classroom-overall-chart-band"),
+            before: band("classroom-overall-chart-band-before"),
+            dots: document.querySelectorAll(
+                '[data-testid^="classroom-overall-chart-dot-"]',
+            ).length,
+            cutB: q("classroom-overall-cut-B")?.value,
+        };
+    });
+const chart1 = await chartState();
+record({
+    name: "overall: S+A+B share, stacked band = before band, a dot per graded seat",
+    ok:
+        /S\+A\+B \d+/.test(chart1.sab || "") &&
+        JSON.stringify(chart1.now) === JSON.stringify(chart1.before) &&
+        chart1.dots === submittedSeats.length,
+    detail: JSON.stringify(chart1),
+});
+await judge(page, {
+    name: "0 overall with charts",
+    expected: null,
+    shot: "overall",
+});
+// Drag the B line to the right of the A cut: it stops at the A cut, and the bands follow.
+const line = await page
+    .locator('[data-testid="classroom-overall-chart-cut-B"]')
+    .boundingBox();
+const track = await page
+    .locator('[data-testid="classroom-overall-chart-dots"]')
+    .boundingBox();
+await page.mouse.move(line.x + line.width / 2, line.y + line.height / 2);
+await page.mouse.down();
+await page.mouse.move(track.x + track.width * 0.7, line.y + line.height / 2, {
+    steps: 8,
+});
+await page.mouse.up();
+await page.waitForTimeout(200);
+const chart2 = await chartState();
+record({
+    name: "overall: dragging the B cut line moves the cut field and changes the band at once",
+    ok:
+        chart2.cutB === "2.5" &&
+        JSON.stringify(chart2.now) !== JSON.stringify(chart1.now) &&
+        JSON.stringify(chart2.before) === JSON.stringify(chart1.before),
+    detail: JSON.stringify(chart2),
+});
+await shoot(page, "overall-dragged");
+await page.click('[data-testid="classroom-overall-reset"]');
 await page.click('[data-testid="classroom-gradebook-switch-book"]');
 
 // 2 列の見出しで課題の採点を開く
 await page.click('[data-testid="classroom-gradebook-open-c2"]');
 await page.waitForSelector('[data-testid="classroom-eval-steps"]');
 await page.waitForTimeout(500);
-// The ［基準］ tab of #2425 shows the description in grading-rubric-description.
+// The ［基準］ tab of #2425 shows the description in grading-rubric-description; with a description,
+// inner step 2-1 is done and folded into its one line (#2455).
 const desc = await page.textContent(
-    '[data-testid="classroom-eval-description"], [data-testid="grading-rubric-description"]',
+    '[data-testid="classroom-eval-description"], [data-testid="grading-rubric-description"], ' +
+        '[data-testid="grading-rubric-steps-summary-describe"]',
 );
 record({
     name: "assignment: the description is shown",
@@ -505,14 +571,17 @@ await judge(page, {
     shot: "hint-open",
 });
 await page.click('[data-testid="classroom-eval-hint-toggle"]');
-await page.click('[data-testid="classroom-eval-settings-toggle"]');
-await page.waitForTimeout(200);
-await judge(page, {
-    name: "2 grading settings opened",
-    expected: "classroom-eval-run-grade",
-    shot: "settings-open",
+// #2455 F2: the criteria and the strictness are not on the screen any more.
+record({
+    name: "2 no grading criteria / strictness on the screen",
+    ok: await page.evaluate(
+        () =>
+            !document.querySelector(
+                '[data-testid="classroom-eval-settings-summary"], [data-testid="classroom-eval-strictness"]',
+            ),
+    ),
+    detail: "",
 });
-await page.click('[data-testid="classroom-eval-settings-toggle"]');
 
 await page.click('[data-testid="classroom-eval-run-grade"]');
 await page.waitForSelector('[data-testid="classroom-eval-run-grade-running"]');
@@ -531,6 +600,16 @@ record({
                 ),
         ),
     detail: `assignmentText=${JSON.stringify(NEW.lastEvaluate?.assignmentText)} puts=${puts.length}`,
+});
+// No rubric yet: the screen sends the fixed criteria with the standard strictness (#2455 F2).
+record({
+    name: "grade: without a rubric, the fixed criteria are sent",
+    ok:
+        JSON.stringify(
+            (NEW.lastEvaluate?.rubricAxes || []).map((a) => a.name),
+        ) === JSON.stringify(["動くこと", "課題の要件", "工夫"]) &&
+        NEW.lastEvaluate?.strictness === "standard",
+    detail: JSON.stringify(NEW.lastEvaluate?.rubricAxes?.map((a) => a.name)),
 });
 // AI のスタブは同じ形の作品に違う評価を返す: 照合で要確認になり、結果がそれを知らせて残る
 const gradedResult = await page.evaluate(
