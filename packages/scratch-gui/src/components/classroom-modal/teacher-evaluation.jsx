@@ -1577,7 +1577,9 @@ const TeacherEvaluation = ({
                             </div>
                         )}
                         {lessonOnly ? null : (
-                            <div className={styles.evalPaneScroll} role="tabpanel">
+                            // Keyed by the tab: a tab opens at its top, not at the last tab's scroll
+                            // (the note of #2522 is at the top of the［形］tab).
+                            <div className={styles.evalPaneScroll} key={innerTab} role="tabpanel">
                                 {innerTab === 'student' && studentPane}
                                 {innerTab === 'rubric' && rubricPane}
                                 {innerTab === 'shape' &&
