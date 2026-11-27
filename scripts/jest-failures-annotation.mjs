@@ -11,7 +11,7 @@
 //   Prints nothing when every test passed.
 import fs from 'node:fs';
 import path from 'node:path';
-import {fileURLToPath} from 'node:url';
+import { fileURLToPath } from 'node:url';
 
 export const MAX_LISTED = 100;
 
@@ -19,9 +19,13 @@ export const MAX_LISTED = 100;
 const escapeData = s => s.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A');
 const escapeProperty = s => escapeData(s).replace(/:/g, '%3A').replace(/,/g, '%2C');
 
+// jest colours `message` when the terminal supports it (GitHub Actions does).
+const ANSI_RE = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, 'g');
+
 // The first line that says why, skipping jest's `● Test suite failed to run` heading.
 const firstLine = s =>
     String(s || '')
+        .replace(ANSI_RE, '')
         .split('\n')
         .map(line => line.trim())
         .find(line => line !== '' && !line.startsWith('●')) || '';
