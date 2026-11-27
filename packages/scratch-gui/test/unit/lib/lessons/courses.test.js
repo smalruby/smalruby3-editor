@@ -2607,6 +2607,8 @@ describe('lm course lesson 2 "ことばを文字に分けよう" (#2109)', () =>
         const said = challenge('lm-l2-letters').goal[1];
         ['こ', '。', ' ', 'H'].forEach((text) => expect(said.text.test(text)).toBe(true));
         ['こん', '', 'Hello.'].forEach((text) => expect(said.text.test(text)).toBe(false));
+        // 作る文はいちばん短いと 2 文字（「よ。」）なので、ちがう文字は 2 つで通す
+        expect(said.distinct).toEqual({ gte: 2 });
         const make = challenge('lm-l2-letters').goal[0].blocks[0].args.mutation;
         ['文をつくる', 'ぶんをつくる', 'make_sentence'].forEach((name) => expect(make.test(name)).toBe(true));
     });

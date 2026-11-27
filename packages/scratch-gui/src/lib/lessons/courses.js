@@ -3295,7 +3295,7 @@ const lmLesson2 = defineLesson({
             ]),
             debug: debugTips('lm-l2-letters', 2),
             // 押したスクリプトで、文を作ってから、くり返しの中で「(i) 番目の文字」「の長さ」を使って 2 回以上言い、
-            // 1 文字を 3 つ以上（ちがう文字）言った
+            // ちがう 1 文字を 2 つ以上言った（作る文はいちばん短いと「よ。」のような 2 文字なので、3 にしない）
             goal: [
                 {
                     type: 'uses',
@@ -3313,7 +3313,7 @@ const lmLesson2 = defineLesson({
                     type: 'said',
                     trigger: { hat: 'event_whenthisspriteclicked' },
                     text: /^.$/u,
-                    distinct: { gte: 3 },
+                    distinct: { gte: 2 },
                 },
             ],
             quiz: challengeQuiz('lm-l2-letters', 1),
