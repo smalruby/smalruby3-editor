@@ -1537,6 +1537,8 @@ async function dispatch(item, cfg, state, log) {
         const res = await runPhase({
             session, cwd, env, command, promptDir, skill: meta.skill, issue: item.issue, resultFile, log, answersFile,
             watchdog: cfg.watchdog,
+            // 重いときは指示の受理を長めに待つ（scheduler と同じ負荷の値・#2504）
+            readLoad: () => readResources(),
             // blocked で人間を待つときの口（モニターの「止まっている worker」・#2387）
             blocked: state.blockedHub ? state.blockedHub.channel(item.issue, phase, session) : undefined,
         });

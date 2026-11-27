@@ -1192,10 +1192,26 @@ pane の中の Claude Code の状態（`idle` / `working` / `blocked` / `done`�
 - 起こし方: `workspace create --cwd <worktree> --label <name> --env K=V ...` → `pane run <pane> "exec claude ..."`。
   `exec` なので claude が終わると pane と workspace も閉じる（tmux の session が消えるのと同じに扱える）。
 - 指示は `pane send-text` → `pane send-keys Enter` で送る（`agent prompt` は Enter が効かないことがある）。
-  届いたかどうかは従来の再送の仕組み（`shouldResend`）が見る。
+  届いたかどうかは下の「送り直しの決まり」で見る。
 - **autopilot が止まるときは全部一緒に止める**: daemon の `exit` で `herdr session stop autopilot`
   （中の worker ごと止まる・ゾンビを残さない）。tmux のときは、その daemon が起こした worker だけを止める。
 - 端末の I/O は `terminal.js` にまとめ、runner と daemon は tmux / herdr のコマンドを直接書かない。
+
+### 送り直しの決まり
+
+指示を送ったあと、受理（busy・結果ファイル・blocked）が見えないときの扱い（`phases.js` の
+`planResend` / `promptStillInInput` / `acceptWindowFor`・純粋関数）:
+
+- **受理を待つ時間**は `watchdog.acceptWindowMs`（既定 8 秒）。マシンが重いときは、1 CPU あたりの
+  loadavg（1 分）の倍率で延ばす（上限 4 倍。値は scheduler と同じ daemon の `readResources`）。
+- 待っても受理が見えなければ、送り直す前に画面を読む。**入力欄（最後の `❯` / `>` の行から下）に
+  指示の文がまだ残っていれば、文を送らずに Enter だけを送る**。重いときに Enter だけが捨てられると
+  文が入力欄に残るので、文と Enter を送り直すと文がつながるだけで送信されないため。残っていなければ、
+  今までどおり文と Enter を送る。
+- 送り直しを `watchdog.maxSendAttempts`（既定 4 回）まで使い切ってさらに待っても受理が見えず、画面も
+  そのあいだ変わっていなければ、黙って `tIdleMs`（10 分）まで待たずに **worker を起こし直す**（`maxRestarts` を
+  使い切っていれば失敗として Blocked）。画面が動いているときは、busy の見落としで実は動いているかもしれないので
+  殺さずに待つ（そのあとは `tIdleMs` が見る）。人間を待っているあいだ（blocked で一時停止中）は、送り直しも時計も進めない。
 
 ### blocked のとき（止めずに続ける）
 
