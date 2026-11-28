@@ -2,6 +2,27 @@
     "about": "rubyToJa(ruby, {parse, ...table}): the Japanese in the standard form (written also when there are errors) and the errors (on Ruby lines). The Ruby is parsed with prism. \"none\" is no table of a Ruby system.",
     "cases": [
         {
+            "title": "the quotient of a negative number keeps the sign on its left",
+            "table": "none",
+            "ruby": "b = (-7 / 2).to_i",
+            "ja": "b = -7 ÷ 2",
+            "errors": []
+        },
+        {
+            "title": "the quotient of a negated name is written with parentheses",
+            "table": "none",
+            "ruby": "a = 7\nb = (-a / 2).to_i",
+            "ja": "a = 7\nb = (-a) ÷ 2",
+            "errors": []
+        },
+        {
+            "title": "a sign before the quotient keeps the quotient in parentheses",
+            "table": "none",
+            "ruby": "a = 7\nb = -(a / 2).to_i",
+            "ja": "a = 7\nb = -(a ÷ 2)",
+            "errors": []
+        },
+        {
             "title": "local variables, blocks and operators are written in the standard form",
             "table": "none",
             "ruby": "x = 1\nwhile x < 10 && !(x == 5)\n  x += 2\nend",
