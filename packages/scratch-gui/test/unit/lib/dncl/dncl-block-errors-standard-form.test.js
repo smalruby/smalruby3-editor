@@ -138,4 +138,22 @@ describe('a block whose indented line cannot be read is not told to indent it (B
             message: '「もし〜ならば:」の中の行を字下げしてください',
         });
     });
+
+    // The indent is read as ja-notation reads it, so a longer line number is not an indent (Issue #2587).
+    const numbered = (...ls) => ls.map((l, i) => `(${i + 1})${l}`).join('\n');
+    const eight = Array.from({ length: 8 }, (_, i) => ` a = ${i}`);
+
+    test('a line not indented after a longer line number is still told to indent it', () => {
+        expect(blockErrorsOf(numbered(...eight, ' もし 1 > 0 ならば:', ' 表示する(1'))).toContainEqual({
+            line: 9,
+            message: '「もし〜ならば:」の中の行を字下げしてください',
+        });
+    });
+
+    test('a line indented after the line numbers aligned is told alone', () => {
+        const aligned = eight.map((l) => ` ${l}`);
+        expect(blockErrorsOf(numbered(...aligned, '  もし 1 > 0 ならば:', '     表示する(1'))).toEqual([
+            { line: 10, message: '「)」が要ります' },
+        ]);
+    });
 });

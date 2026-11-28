@@ -1081,6 +1081,25 @@ const parse = (source) => {
             ),
         );
 
+    // A line that cannot be read, deeper than a block opened with `:` that has
+    // no line yet, is a line of the block: the block is not told to be empty,
+    // only the line is told (B20 of #1731). Its indent is read as every line's
+    // is, so it is the same at a change of the width of the line numbers
+    // (Issue #2587).
+    // A line that cannot be read and ends with `:` (`もし (1 > 0 ならば:`)
+    // opens a block: the lines deeper than it are its lines, not told as at
+    // another indent, as the lines of a misplaced `そうでなければ:` are not.
+    const takeUnreadLine = (entry, tokens) => {
+        const top = stack[stack.length - 1];
+        if (top && top.mode === 'indent' && !top.hasBody && entry.width > top.width) {
+            top.hasBody = true;
+            top.bodyWidth = entry.width;
+        }
+        if (strayWidth !== null && entry.width <= strayWidth) strayWidth = null;
+        const last = tokens[tokens.length - 1];
+        if (strayWidth === null && last.type === 'op' && last.value === ':') strayWidth = entry.width;
+    };
+
     // A closing line ends the block `⎿` marks closed just before it said again
     // (Issue #2058): the blocks closed by the `⎿` of the last code line.
     let markClosed = [];
@@ -1106,6 +1125,7 @@ const parse = (source) => {
         const bad = tokenError(tokens);
         if (bad) {
             errors.push(bad);
+            takeUnreadLine(entry, tokens);
             return;
         }
         let block;
@@ -1116,6 +1136,7 @@ const parse = (source) => {
         } catch (e) {
             if (!(e instanceof LineError)) throw e;
             errors.push(e.error);
+            takeUnreadLine(entry, tokens);
             return;
         }
         const continuesIf = block && (block.kind === 'elsif' || block.kind === 'else');
