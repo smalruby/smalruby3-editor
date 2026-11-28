@@ -265,6 +265,9 @@ function forYouModel(board, opts) {
             parent: it.parent && it.parent.number != null ? it.parent.number : null,
             isEpic: it.kind === 'EPIC' || Boolean(it.tracker), later: Boolean(it.later),
             delegate: it.delegate || null, previewUrl: it.previewUrl || null,
+            // PR の番号も行に出し、探す欄で PR の番号から引けるようにする
+            prs: (it.prs || []).filter((p) => p && p.number != null && p.state !== 'CLOSED')
+                .map((p) => ({ number: p.number, state: p.state || null, branch: p.branch || p.headRefName || null })),
         }, a));
     }
     // EPIC の行にまとめた子（任せる前のゴーサイン・途中の相談）は、子の行として重ねない

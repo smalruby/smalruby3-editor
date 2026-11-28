@@ -5,7 +5,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 const {
-    itemSem, epicSem, inboxModel, isInboxToggleKey, boardRows, recommendedAnswers, chosenAnswers, digitTarget,
+    itemSem, epicSem, inboxModel, isInboxToggleKey, matchesQuery, boardRows, recommendedAnswers, chosenAnswers, digitTarget,
     agoLabel, shortTitle, titleTipNext, titleTipPlace, titleTipInfo, renderMiniMarkdown,
     INBOX_CLIENT_FNS,
 } = require('../src/monitor-inbox');
@@ -365,4 +365,23 @@ test('inboxModel: Release Check のトラッカーは「リリース確認」の
     assert.equal(w.release, true);
     assert.equal(w.fix, false);
     assert.equal(w.previewUrl, 'https://preview.smalruby.app/topic-x/');
+});
+
+test('matchesQuery: Issue の番号・PR の番号・ブランチ・題名で当たる（#2601）', () => {
+    const it = { issue: 2512, title: 'fix(hosting): redirect /ja.html to /', prs: [{ number: 2513, branch: 'topic/autopilot-2512' }] };
+    assert.strictEqual(matchesQuery(it, '#2513'), true);
+    assert.strictEqual(matchesQuery(it, '2512'), true);
+    assert.strictEqual(matchesQuery(it, 'REDIRECT'), true);
+    assert.strictEqual(matchesQuery(it, 'autopilot-2512'), true);
+    assert.strictEqual(matchesQuery(it, '2519'), false);
+    assert.strictEqual(matchesQuery(it, ''), true);
+    assert.strictEqual(matchesQuery({ issue: 1, title: 'a', prs: [{ number: 9, headRefName: 'feat/x' }] }, 'feat/x'), true);
+    assert.strictEqual(matchesQuery(null, 'x'), false);
+});
+
+test('boardRows: PR の番号で探すと、その Issue の行を開いて見せる（#2601）', () => {
+    const items = ITEMS.map((it) => (it.issue === 14 ? Object.assign({}, it, { prs: [{ number: 2513 }] }) : it));
+    const rows = boardRows(GROUPS, items, { query: '#2513' });
+    assert.deepStrictEqual(rows.map((r) => r.type + (r.item ? r.item.issue : '')), ['epic', 'kid14']);
+    assert.strictEqual(rows[0].open, true);
 });

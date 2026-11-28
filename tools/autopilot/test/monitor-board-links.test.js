@@ -39,18 +39,19 @@ test('外部リンクのアイコンは自己完結のインライン SVG（curr
     assert.doesNotMatch(svg, /https?:/);
 });
 
-test('boardLinks: Issue と PR を短い文字で出し、番号は title と aria-label に渡す', () => {
+test('boardLinks: Issue と PR を番号で出す（#2455 · PR #2465・#2601）', () => {
     const boardLinks = pickFn('boardLinks', 'it');
     const h = boardLinks({ issue: 2455, url: 'https://github.com/smalruby/smalruby3-editor/issues/2455',
         prs: [{ number: 2465, state: 'OPEN', isDraft: true }] });
     assert.match(h, /href="https:\/\/github\.com\/smalruby\/smalruby3-editor\/issues\/2455"/);
     assert.match(h, /aria-label="Issue #2455 を GitHub で開く"/);
     assert.match(h, /title="#2455"/);
-    assert.match(h, />Issue<svg class="ext">/);
+    assert.match(h, />#2455<\/a>/);
     assert.match(h, /href="https:\/\/github\.com\/smalruby\/smalruby3-editor\/pull\/2465"/);
     assert.match(h, /aria-label="PR #2465 を GitHub で開く"/);
     assert.match(h, /title="#2465/);
-    assert.match(h, />PR<svg class="ext">/);
+    assert.match(h, />PR #2465<\/a>/);
+    assert.doesNotMatch(h, /svg class="ext"/);
     assert.strictEqual((h.match(/target="_blank" rel="noopener"/g) || []).length, 2);
     assert.doesNotMatch(h, /prmenu-btn/);
 });
@@ -59,7 +60,7 @@ test('boardLinks: PR が無ければ Issue だけ・番号の無い行は空', (
     const boardLinks = pickFn('boardLinks', 'it');
     const h = boardLinks({ issue: 7, prs: [] });
     assert.match(h, /issues\/7"/);
-    assert.doesNotMatch(h, />PR</);
+    assert.doesNotMatch(h, />PR /);
     assert.strictEqual(boardLinks(null), '');
     assert.strictEqual(boardLinks({}), '');
 });
@@ -82,4 +83,21 @@ test('linkNums: 次の動きの #番号を別のタブで開くリンクにす�
     const h = linkNums('#2455 review・<b>');
     assert.match(h, /<a class="ilink" href="https:\/\/github\.com\/smalruby\/smalruby3-editor\/issues\/2455" target="_blank" rel="noopener">#2455<\/a>/);
     assert.match(h, /&lt;b&gt;/);
+});
+
+test('探す欄: 上の行に置き、状況板の中の絞り込み欄は無い（#2601）', () => {
+    const top = MONITOR_HTML.match(/<header class="panel topline"[\s\S]*?<\/header>/)[0];
+    assert.match(top, /<input id="q" type="search"[^>]*data-testid="monitor-find"/);
+    assert.match(top, /placeholder="#番号・PR・題名で探す"/);
+    assert.doesNotMatch(MONITOR_HTML, /data-testid="board-filter"/);
+    // `/` で欄へ・URL の #番号 で開く
+    assert.match(script, /e\.key === '\/' && !inInput/);
+    assert.match(script, /addEventListener\('hashchange', findFromHash\)/);
+});
+
+test('markHit: 当たった文字に印を付け、ほかはエスケープする（#2601）', () => {
+    const markHit = pickFn('markHit', 'text, q');
+    assert.strictEqual(markHit('fix <b> rainbow', 'rain'), 'fix &lt;b&gt; <mark class="hit">rain</mark>bow');
+    assert.strictEqual(markHit('abc', ''), 'abc');
+    assert.strictEqual(markHit('abc', 'zz'), 'abc');
 });
