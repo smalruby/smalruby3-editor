@@ -101,6 +101,7 @@ import {
 } from './ruby-tab/constants';
 import updateDebugGlobals from './ruby-tab/debug-globals';
 import { createDnclAutoOutdent } from './ruby-tab/dncl-auto-outdent';
+import { japaneseScriptsToStart, shouldRunJapaneseOnGreenFlag } from './ruby-tab/dncl-green-flag';
 import { offerDnclIndexSetting, replaceEditorText } from './ruby-tab/dncl-index-setting';
 import {
     createProblemFormView,
@@ -1235,9 +1236,16 @@ const RubyTab = (props) => {
         }
     };
 
+    // Counts the green flags: a run of the Japanese program that a newer green flag has started
+    // over gives way, or the two runs would replace the blocks under each other (Issue #2552).
+    const greenFlagRunRef = useRef(0);
     const handleExecuteLine = useCallback(
-        async (lineNumber) => {
-            if (runningBlockIdRef.current) {
+        // The green flag runs the Japanese program too (Issue #2552): it has stopped everything and
+        // started the hat scripts already, so the scripts are started, not toggled.
+        async (lineNumber, { greenFlag = false } = {}) => {
+            const greenFlagRun = greenFlagRunRef.current;
+            const isStartedOver = () => greenFlag && greenFlagRunRef.current !== greenFlagRun;
+            if (!greenFlag && runningBlockIdRef.current) {
                 vm.runtime.toggleScript(runningBlockIdRef.current, {
                     target: vm.editingTarget,
                     stackClick: true,
@@ -1264,6 +1272,7 @@ const RubyTab = (props) => {
             }
 
             const converter = await targetCodeToBlocks(vm, rubyCode.target, code, intl, { version: rubyVersion });
+            if (isStartedOver()) return;
 
             if (!converter.result) {
                 onShowAlert('convertRubyToBlocksError');
@@ -1275,6 +1284,7 @@ const RubyTab = (props) => {
             converter
                 .apply()
                 .then(() => {
+                    if (isStartedOver()) return;
                     // Regenerate Ruby code from blocks so that auto-imported
                     // modules are reflected in the editor immediately.
                     // Using direct editor setValue because Redux prop-driven
@@ -1321,9 +1331,11 @@ const RubyTab = (props) => {
                     if (isDncl) {
                         // Execute all top-level scripts sequentially
                         const blocks = vm.editingTarget.blocks;
-                        const allTopBlocks = blocks.getScripts();
+                        const allTopBlocks = greenFlag
+                            ? japaneseScriptsToStart(blocks, vm.runtime)
+                            : blocks.getScripts();
                         if (allTopBlocks.length === 0) {
-                            onShowAlert('cannotExecuteLine');
+                            if (!greenFlag) onShowAlert('cannotExecuteLine');
                             return;
                         }
 
@@ -1333,7 +1345,7 @@ const RubyTab = (props) => {
 
                         // Running the whole program starts it over, as the green flag
                         // does: the lines of the last run are cleared (Issue #2557, B17-4).
-                        vm.runtime.emit(CLEAR_CONSOLE_EVENT);
+                        if (!greenFlag) vm.runtime.emit(CLEAR_CONSOLE_EVENT);
 
                         // Execute each top-level script
                         for (const topBlockId of allTopBlocks) {
@@ -1384,6 +1396,8 @@ const RubyTab = (props) => {
         },
         [vm, rubyCode, intl, rubyVersion, onShowAlert, updateRubyCodeErrorsState, onDismissAlert],
     );
+    const handleExecuteLineRef = useRef(handleExecuteLine);
+    handleExecuteLineRef.current = handleExecuteLine;
 
     const renderDownloaderChildren = useCallback((_, downloadProjectCallback) => {
         downloadCallbackRef.current = downloadProjectCallback;
@@ -1549,8 +1563,15 @@ const RubyTab = (props) => {
     }, [dnclMode]);
 
     // The green flag shows the read mode too, as the run button of the toolbar does (Issue #2380).
+    // On the Japanese tab it runs the Japanese program as well (Issue #2552).
     useEffect(() => {
         const handleProjectStart = () => {
+            greenFlagRunRef.current += 1;
+            const state = { dnclMode: dnclModeRef.current, activeTabIndex: activeTabIndexRef.current };
+            if (shouldRunJapaneseOnGreenFlag(state)) {
+                handleExecuteLineRef.current(1, { greenFlag: true });
+                return;
+            }
             if (dnclModeRef.current && problemFormViewRef.current) problemFormViewRef.current.showReadMode();
         };
         vm.addListener('PROJECT_START', handleProjectStart);
