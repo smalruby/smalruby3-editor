@@ -23,6 +23,12 @@ import {
 } from './dncl-validator';
 
 /**
+ * The id of the error for Ruby that prism cannot read, so it has no Japanese.
+ * Its words are in Japanese: the Japanese tab is offered only in the Japanese locales.
+ */
+const RUBY_SYNTAX_ERROR_ID = 'rubySyntax';
+
+/**
  * How the errors name each block: in the DNCL-like form (closed by a line of
  * its own) and in the standard form (opened with `:`), and its closing line.
  */
@@ -283,13 +289,18 @@ const jaNotationErrors = (source, errors) => {
  * @param {Array<object>} errors - The errors of `rubyToJa`.
  * @returns {Array<object>} `{line, column, message}` (and `id` / `name`), sorted.
  */
-const rubyErrorWords = (errors) =>
-    errors
+const rubyErrorWords = (errors) => {
+    // Ruby that prism cannot read (Japanese typed in the Ruby tab) is told by its syntax errors
+    // only: the names of its words would each be told as a command or function of the Japanese
+    // mode, which the Ruby tab does not have (Issue #2547).
+    const syntax = errors.filter((error) => error.code === 'ruby-syntax');
+    return (syntax.length > 0 ? syntax : errors)
         .map((error) => {
             if (error.code === 'ruby-syntax') {
                 return {
                     line: error.line,
                     column: error.column + 1,
+                    id: RUBY_SYNTAX_ERROR_ID,
                     message: `Ruby のプログラムに誤りがあるので、日本語にできません（${error.message}）`,
                 };
             }
@@ -297,5 +308,6 @@ const rubyErrorWords = (errors) =>
         })
         .filter(Boolean)
         .sort((a, b) => a.line - b.line || a.column - b.column);
+};
 
-export { jaNotationErrors, rubyErrorWords };
+export { jaNotationErrors, RUBY_SYNTAX_ERROR_ID, rubyErrorWords };

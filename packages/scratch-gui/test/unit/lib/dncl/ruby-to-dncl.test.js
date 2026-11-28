@@ -378,4 +378,22 @@ describe('rubyToDncl', () => {
             expect(convert('@a = 1\n\n@b = 2')).toBe('a = 1\n\nb = 2');
         });
     });
+
+    // Japanese typed in the Ruby tab is not Ruby: it is told by its syntax errors only, not by
+    // an error of the Japanese mode for each of its words (Issue #2547).
+    describe('Ruby that prism cannot read', () => {
+        test('tells only the syntax errors', () => {
+            const { errors } = rubyToDncl('a = 1\nもし a > 1 ならば:\n    表示する(a)\nf(1)\n');
+            expect(errors.length).toBeGreaterThan(0);
+            errors.forEach((error) => {
+                expect(error.id).toBe('rubySyntax');
+                expect(error.message).toMatch(/^Ruby のプログラムに誤りがあるので、日本語にできません/);
+            });
+        });
+
+        test('readable Ruby still tells the words with no Japanese form', () => {
+            const { errors } = rubyToDncl('move(10)\n');
+            expect(errors).toEqual([expect.objectContaining({ id: 'unsupportedCommand', name: 'move' })]);
+        });
+    });
 });
