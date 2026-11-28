@@ -159,7 +159,7 @@
 | `dncl-problem-form.js` | **読むモードの配置**（`layoutProblemForm`: 行ごとの行番号 `(01)` と罫線の位置・種類、`problemFormText`: 行番号と罫線を文字で付けた形）。エディタの描画（`dncl-problem-form-view.js`）と「行番号と罫線つきでコピー」が使う |
 | `dncl-line-number.js` | **行番号と本文の間の区切り**（`lineNumberSeparator`）。行番号の後ろの空白のうち、どこまでが区切りでどこからが字下げかを決める。`dncl-paste-tidy.js` が使う |
 | `dncl-paste-tidy.js` | **貼り付け時の整形**（日本語モードのエディタに貼り付けた行番号付きのテキストの行番号を消し、`//` コメントを `#` に直す。下の「貼り付け時の整形」）と、`//` のある行の変換エラーに「`//` はコメントではない」と添える `withDoubleSlashHint` |
-| `dncl-block-check.js` | **ブロックにできない日本語の確かめ**（`japaneseBlockErrors`）。日本語 → Ruby → ブロックを試しに変換し（ブロックは作品に入れない）、変換器のエラーを日本語の行に移す。文字列と数のリテラルの `+`（`joinsStringAndNumber`）には id `stringPlusNumber` を付ける。下の「ブロックにできない日本語」 |
+| `dncl-block-check.js` | **ブロックにできない日本語の確かめ**（`japaneseBlockErrors`）。日本語 → Ruby → ブロックを試しに変換し（ブロックは作品に入れない）、変換器のエラーを日本語の行に移す。文字列と数のリテラルの `+`（`joinsStringAndNumber`）には id `stringPlusNumber` を付ける（`withStringPlusNumberIds`。コードタブへ行くときの変換のエラーにも使う）。下の「ブロックにできない日本語」 |
 | `dncl-string-arithmetic-hint.js` | **文字列と `-` `*` `/` の警告**（`stringArithmeticRows`）。文字列を `+` でつないだ後の `-` や、文字列に `-` `*` `/` を使う行を見つける。`ruby-tab.jsx` が警告マーカー（`gui.rubyTab.dnclStringArithmeticHint`）にして、数の計算をかっこで囲むよう表示する。下の「文字列と数の計算」 |
 | `dncl-array-index-hint.js` | **範囲外の添字の警告**（`findArrayIndexHints`）。1 から始まる添字で書いたときのように配列の範囲外を読む `X[i]` / `X[3]` を見つける。ja-notation の `parse` で読んだ構文木を見る（読めないプログラムには出さない）。`ruby-tab.jsx` が警告マーカー（`gui.rubyTab.dnclArrayIndexHint`）にして、添字が 0 から始まることと直し方を表示する。下の「配列の添字は 0 から」 |
 | `dncl-index-note.js` | **貼り付けたテキストの「添字は 1 から始まる」の注釈を見つける**（`hasOneBasedIndexNote`）。コメントだけを見る。下の「貼り付け時の添字の設定」 |
@@ -285,7 +285,7 @@ DNCL モードでは、DNCL を Ruby に変換してからブロックに変換�
 
 ja-notation が読めて Ruby になっても、その Ruby がブロックにならないことがある（値が数・文字列だけでない多重代入 `a, b = b, a`、関数の引数への代入、文字列と数のリテラルの `+` の `"残り" + 3`）。コードタブへ行くときの変換で初めて分かるので、日本語タブでは次の 2 か所で同じ確かめ（`dncl-block-check.js` の `japaneseBlockErrors`。ブロックは作品に入れない）をする。
 
-- **書いているあいだ**: 最後のキーから 500 ms 後（`ruby-tab.jsx` の `JAPANESE_BLOCKS_CHECK_DELAY_MS`）に確かめ、エラーを日本語の行全体に出す。マーカーの owner は `smalruby-dncl-blocks`（`ruby-tab/constants.js` の `DNCL_BLOCKS_OWNER`）。コードタブへ行くときの変換のエラー（`smalruby`）を出したときは、同じエラーが 2 つ並ばないようにこちらを消す。
+- **書いているあいだ**: 最後のキーから 500 ms 後（`ruby-tab.jsx` の `JAPANESE_BLOCKS_CHECK_DELAY_MS`）に確かめ、エラーを日本語の行全体に出す。マーカーの owner は `smalruby-dncl-blocks`（`ruby-tab/constants.js` の `DNCL_BLOCKS_OWNER`）。コードタブへ行くときの変換のエラー（`smalruby`）を出したときは、同じエラーが 2 つ並ばないようにこちらを消し、そのあと書きかえても `smalruby` のエラーが残る行には出さない。文言の付け方（文字列と数の `+`・`//` の添え書き）は、コードタブへ行くときの変換のエラーと同じ（`ruby-tab.jsx` の `withJapaneseErrorWords`）。
 - **ルビータブへ移るとき**（`leaveJapaneseTab`）: エラーがあれば日本語タブに戻し、最初のエラーの行へ移る。ルビータブで Ruby にすると、日本語タブへ戻るときの確かめ（Ruby → 日本語 → Ruby → ブロック）で止まり、日本語タブに戻れなくなるため。コードタブへ行くときに止まるのと同じ扱いにする。
 
 文言は変換器のもの（日本語の行を引用する。上の段落）。引数への代入は spec の 7 章の「「a」は引数なので、値を変えられません」。文字列と数のリテラルの `+` は、Ruby でも文字列と数を足せない誤りなので、読めるようにはせず、直し方を言う文言（`gui.rubyTab.dnclStringPlusNumberError`。`"残り" + 文字列(3)` か `"残り3"`）にする。変数とつなぐ `"残り" + a` はこれまでどおりつなぐ。

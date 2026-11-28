@@ -15,7 +15,11 @@ import analytics from '../lib/analytics';
 import { autoCorrect, defaultSettings as defaultAutoCorrectSettings } from '../lib/auto-correct';
 import collectMetadata from '../lib/collect-metadata.js';
 import { findArrayIndexHints } from '../lib/dncl/dncl-array-index-hint';
-import { japaneseBlockErrors, STRING_PLUS_NUMBER_ERROR_ID } from '../lib/dncl/dncl-block-check';
+import {
+    japaneseBlockErrors,
+    STRING_PLUS_NUMBER_ERROR_ID,
+    withStringPlusNumberIds,
+} from '../lib/dncl/dncl-block-check';
 import { dnclTextBlob, dnclTextFilename } from '../lib/dncl/dncl-download';
 import { slashCommentRows, tidyPastedDncl, withDoubleSlashHint } from '../lib/dncl/dncl-paste-tidy';
 import { problemFormText } from '../lib/dncl/dncl-problem-form';
@@ -351,6 +355,27 @@ const RubyTab = (props) => {
         onDismissAlert('rubyVersionChangeFailed');
     };
 
+    // The words of the errors on the Japanese lines. A `+` of a string and a number literal says
+    // how to write it (Issue #2547) and a line with `//` tells to use `#` (Issue #1192); the
+    // others keep the words of the converter. The conversion of the Code tab and the check of the
+    // blocks while writing both use it, so they say the same words.
+    const withJapaneseErrorWords = (errors) => {
+        const lines = editorRef.current.getModel().getLinesContent();
+        const stringPlusNumber = intlRef.current.formatMessage({
+            id: 'gui.rubyTab.dnclStringPlusNumberError',
+            defaultMessage:
+                'To join a string and a number with "+", make the number a string like "文字列(3)" (e.g. "残り" + 文字列(3)). You may also write the number in the string, like "残り3".',
+        });
+        const hint = intlRef.current.formatMessage({
+            id: 'gui.rubyTab.dnclDoubleSlashHint',
+            defaultMessage: 'In Smalruby, // is not a comment (it is integer division). Use # for comments.',
+        });
+        const worded = withStringPlusNumberIds(errors, lines).map((err) =>
+            err.id === STRING_PLUS_NUMBER_ERROR_ID ? { ...err, text: stringPlusNumber } : err,
+        );
+        return withDoubleSlashHint(worded, lines, hint);
+    };
+
     const showErrors = (rawErrors) => {
         if (editorRef.current && monacoRef.current) {
             // Conversion errors point at Ruby lines. In DNCL mode the editor
@@ -366,11 +391,7 @@ const RubyTab = (props) => {
                 // `//` is integer division in Smalruby DNCL, never a comment,
                 // so a 共通テスト style `//` comment fails to convert. Tell
                 // the user to use `#` on such lines (Issue #1192).
-                const hint = intlRef.current.formatMessage({
-                    id: 'gui.rubyTab.dnclDoubleSlashHint',
-                    defaultMessage: 'In Smalruby, // is not a comment (it is integer division). Use # for comments.',
-                });
-                errors = withDoubleSlashHint(errors, editorRef.current.getModel().getLinesContent(), hint);
+                errors = withJapaneseErrorWords(errors);
             }
             const markers = errors.map((err) => ({
                 startLineNumber: err.row + 1,
@@ -1028,25 +1049,31 @@ const RubyTab = (props) => {
     }, []);
 
     // Show the errors of `checkJapaneseBlocks` on their Japanese lines (and go to the first one).
+    // A line that still has an error of the conversion of the Code tab (`smalruby`) keeps that
+    // one: the same error is shown once, also after the student edits other lines.
     const showJapaneseBlockErrors = useCallback((errors, { focus = false } = {}) => {
         if (!editorRef.current || !monacoRef.current) return;
-        const stringPlusNumber = intlRef.current.formatMessage({
-            id: 'gui.rubyTab.dnclStringPlusNumberError',
-            defaultMessage:
-                'To join a string and a number with "+", make the number a string like "文字列(3)" (e.g. "残り" + 文字列(3)). You may also write the number in the string, like "残り3".',
-        });
-        const markers = errors.map((err) => ({
-            startLineNumber: err.row + 1,
-            startColumn: 1,
-            endLineNumber: err.row + 1,
-            endColumn: 1000,
-            message: err.id === STRING_PLUS_NUMBER_ERROR_ID ? stringPlusNumber : err.text,
-            severity: monacoRef.current.MarkerSeverity.Error,
-        }));
-        monacoRef.current.editor.setModelMarkers(editorRef.current.getModel(), DNCL_BLOCKS_OWNER, markers);
-        if (focus && markers.length > 0) {
-            editorRef.current.setPosition({ lineNumber: markers[0].startLineNumber, column: 1 });
-            editorRef.current.revealLineInCenter(markers[0].startLineNumber);
+        const model = editorRef.current.getModel();
+        const shownRows = new Set(
+            monacoRef.current.editor
+                .getModelMarkers({ owner: 'smalruby', resource: model.uri })
+                .map((marker) => marker.startLineNumber - 1),
+        );
+        const markers = withJapaneseErrorWords(errors)
+            .filter((err) => !shownRows.has(err.row))
+            .map((err) => ({
+                startLineNumber: err.row + 1,
+                startColumn: 1,
+                endLineNumber: err.row + 1,
+                endColumn: 1000,
+                message: err.text,
+                severity: monacoRef.current.MarkerSeverity.Error,
+            }));
+        monacoRef.current.editor.setModelMarkers(model, DNCL_BLOCKS_OWNER, markers);
+        if (focus && errors.length > 0) {
+            const lineNumber = errors[0].row + 1;
+            editorRef.current.setPosition({ lineNumber, column: 1 });
+            editorRef.current.revealLineInCenter(lineNumber);
             editorRef.current.focus();
         }
     }, []);

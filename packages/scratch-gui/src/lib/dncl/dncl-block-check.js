@@ -76,6 +76,20 @@ const joinsStringAndNumber = (line) => {
 };
 
 /**
+ * Give the id `stringPlusNumber` to the errors on a line that joins a string
+ * literal and a number literal with `+`, so the editor says how to write it.
+ * Both the check while writing and the conversion of the Code tab use it, so
+ * they say the same words.
+ * @param {Array<object>} errors - Errors with `row` from 0 on the Japanese lines.
+ * @param {Array<string>} lines - The lines of the Japanese.
+ * @returns {Array<object>} The errors, with the id on such lines.
+ */
+const withStringPlusNumberIds = (errors, lines) =>
+    errors.map((err) =>
+        joinsStringAndNumber(lines[err.row] || '') ? { ...err, id: STRING_PLUS_NUMBER_ERROR_ID } : err,
+    );
+
+/**
  * The errors of the blocks of the Japanese, on its lines.
  *
  * The Japanese is made into Ruby and the Ruby is converted by `convert` (a dry
@@ -95,12 +109,7 @@ const japaneseBlockErrors = async (dncl, convert) => {
     if (ruby === null) return null;
     const { result, errors } = await convert(ruby);
     if (result) return [];
-    const lines = dncl.split('\n');
-    return sourceMap
-        .rubyErrorsToDncl(errors)
-        .map((err) =>
-            joinsStringAndNumber(lines[err.row] || '') ? { ...err, id: STRING_PLUS_NUMBER_ERROR_ID } : err,
-        );
+    return withStringPlusNumberIds(sourceMap.rubyErrorsToDncl(errors), dncl.split('\n'));
 };
 
-export { japaneseBlockErrors, joinsStringAndNumber, STRING_PLUS_NUMBER_ERROR_ID };
+export { japaneseBlockErrors, joinsStringAndNumber, STRING_PLUS_NUMBER_ERROR_ID, withStringPlusNumberIds };

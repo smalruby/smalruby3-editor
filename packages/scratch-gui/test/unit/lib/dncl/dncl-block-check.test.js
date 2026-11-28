@@ -8,6 +8,7 @@ import {
     japaneseBlockErrors,
     joinsStringAndNumber,
     STRING_PLUS_NUMBER_ERROR_ID,
+    withStringPlusNumberIds,
 } from '../../../../src/lib/dncl/dncl-block-check';
 import { loadPrism } from '../../../../src/lib/prism-parser';
 import ja from '../../../../src/locales/ja';
@@ -100,5 +101,20 @@ describe('joinsStringAndNumber', () => {
         '表示する("1 + "a"")',
     ])('does not take %s', (line) => {
         expect(joinsStringAndNumber(line)).toBe(false);
+    });
+});
+
+// The conversion of the Code tab gives its errors the same id, so it says the same words.
+describe('withStringPlusNumberIds', () => {
+    test('gives the id only to the errors on a line with such a +', () => {
+        const lines = ['a = 1', '表示する("残り" + 3)'];
+        const errors = [
+            { row: 0, column: 0, text: 'x' },
+            { row: 1, column: 0, text: 'y' },
+        ];
+        expect(withStringPlusNumberIds(errors, lines)).toEqual([
+            { row: 0, column: 0, text: 'x' },
+            { row: 1, column: 0, text: 'y', id: STRING_PLUS_NUMBER_ERROR_ID },
+        ]);
     });
 });
