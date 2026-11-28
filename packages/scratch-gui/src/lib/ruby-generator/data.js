@@ -42,6 +42,19 @@ export default function (Generator) {
             }
         }
 
+        // === Smalruby: Start of local variable read without its marker ===
+        // A saved project keeps a variable read inside an input as a primitive, so the read loses
+        // its `@ruby:lvar:<name>:<N>` comment when the project is opened again. The assignment is a
+        // statement and keeps its comment: take the local by the variable's name `_<name>_<N>_`
+        // when a block of the target keeps `@ruby:lvar:<name>:<N>` (issue #2592).
+        if (!comment) {
+            const localName = Generator.localVariableNameOf(Generator.getFieldValue(block, 'VARIABLE'));
+            if (localName !== null) {
+                return [localName, Generator.ORDER_ATOMIC];
+            }
+        }
+        // === Smalruby: End of local variable read without its marker ===
+
         // === Smalruby: Start of return variable read without its marker ===
         // A saved project keeps a variable read inside an input as a primitive, so the read loses
         // its `@ruby:return:<name>` comment when the project is opened again. The call before the
