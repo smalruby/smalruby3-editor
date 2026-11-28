@@ -2475,7 +2475,7 @@ async function tick(cfg, state, log) {
     // autopilot-assignee ディレクティブ（#938）: itemOwner/ownsItem が使う前に解決しておく
     // （2人以上 assign の item のみ本文 fetch）。
     items = await populateAssigneeDirectives(items, cfg, state, log);
-    // closed 状態の確認は **対象限定のバッチ GraphQL**（非終端 + 🤖 ラベルの item だけ）。
+    // closed 状態の確認は **対象限定のバッチ GraphQL**（非終端 + 🤖 ラベルの item と、担当の New Item）。
     // 旧実装のリポジトリ全体 closed 一覧（最大 1000 件 × 毎 tick）は使わない。
     // 拾う判定より先に確かめる（#2540）: 閉じた Issue を stalled 復帰・selectActionable に渡すと、
     // reconcile より先に worker が起き、running に入った item を reconcile が飛ばしてしまう。
@@ -2485,7 +2485,7 @@ async function tick(cfg, state, log) {
     };
     try {
         mergeStates(await project.getIssueStates(
-            cfg.repo, selectClosedCheckIssues(items), await project.readToken(),
+            cfg.repo, selectClosedCheckIssues(items, { assignee: cfg.assignee }), await project.readToken(),
         ));
     } catch (e) {
         log(`closed state check failed: ${e.message}`);

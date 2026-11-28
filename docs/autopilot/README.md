@@ -618,6 +618,10 @@ close した leaf、(B) 統合 PR の `Closes #<epic>` で閉じた EPIC、(C) �
 
 - **拾う前に外す**: tick は closed 状態の確認を拾う判定より先に行い、閉じた Issue を stalled 復帰と
   `selectActionable` に渡さない（`excludeClosedItems`）。Close へそろえるのは同じ tick の reconcile。
+  確認する対象（`selectClosedCheckIssues`）は、非終端で `🤖 autopilot` ラベルの付いた item に加えて、
+  **ラベルが付く前の New Item（Status が空）で daemon が担当するもの**。Project に入れたときに Status 無しで
+  入った閉じた sub-issue を、triage に拾わせないため。担当の item に限るので、reconcile が担当でない item の
+  Status を書くことは無い。
 - **フェーズが閉じたら Close**: run が done で終わったとき、その Issue が GitHub で閉じていれば、
   結果の `nextStatus` を問わず Status=Close・AI Status 空にし、🙋 を付けない（`closedRunIntents` /
   `isIssueClosedAfterRun`。1 件のバッチ GraphQL）。プロンプトは `nextStatus` に Close を書かない

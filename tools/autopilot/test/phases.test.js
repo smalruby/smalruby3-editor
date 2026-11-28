@@ -628,6 +628,22 @@ test('selectClosedCheckIssues: 非終端 + 🤖 ラベル付きだけを closed 
     assert.deepEqual(selectClosedCheckIssues([]), []);
 });
 
+test('selectClosedCheckIssues: ラベルの無い New Item でも daemon が担当するものは確認する (#2543)', () => {
+    // Project に入れたときに Status 無しで入った閉じた sub-issue は、🤖 ラベルが付く前に triage へ拾われる
+    const items = [
+        { issue: 10, status: null, assignees: ['me'], labels: [] }, // 対象（担当・Status 無し）
+        { issue: 11, status: 'New Item', assignees: ['me'], labels: [] }, // 対象
+        { issue: 12, status: null, assignees: ['other'], labels: [] }, // 担当でない → 除外
+        { issue: 13, status: null, assignees: [], labels: [] }, // 未 assign → 除外
+        { issue: 14, status: 'Backlog', assignees: ['me'], labels: [] }, // New Item でない → 除外
+        { issue: 15, status: 'Review', assignees: ['other'], labels: [AUTOPILOT_LABEL] }, // ラベル付き → 従来どおり対象
+    ];
+    assert.deepEqual(selectClosedCheckIssues(items, { assignee: 'me' }), [10, 11, 15]);
+    // 拾われない item は closedSet に入らないので、reconcile が他人の item の Status を書くことも無い
+    const closedSet = new Set(selectClosedCheckIssues(items, { assignee: 'me' }));
+    assert.equal(closedSet.has(12), false);
+});
+
 test('selectBoardItems: assignee 指定でボード表示は「自分が Assignees のいずれか」に限定（#938）', () => {
     const items = [
         { issue: 1, status: 'Review', assignees: ['me'] },

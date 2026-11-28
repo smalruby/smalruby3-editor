@@ -3517,14 +3517,21 @@ function usagePauseAction(current, plan) {
  * - **ステータス限定**: 終端（Close/Done）は除外（既に整合済み。定常問い合わせしない）
  * - **ラベル限定**: `🤖 autopilot` ラベル付き = autopilot 管理対象だけを見る
  *   （ラベルは label healing が非終端 item に毎 tick 担保するので、初回 tick 以降は全対象が持つ）
+ * - **例外: ラベルが付く前の New Item（Status が空）で、daemon が担当するもの**も見る（#2543）。
+ *   Project に入れたときに Status 無しで入った閉じた sub-issue は、ラベルが付く前に triage へ拾われるため。
+ *   担当（{@link ownsItem}）に限るので数は少なく、ここで拾った閉じた item は triage へ回る item と同じ集合。
+ *   reconcile（{@link selectClosedToReconcile}）は担当を見ないが、closedSet には担当の item しか増えないので、
+ *   daemon の担当でない item の Status を Close に書くことは無い。
  * 旧実装の「リポジトリ全体の closed 一覧（最大 1000 件）を毎 tick 取得」を置き換える。
  * @param {object[]} items Project items
+ * @param {{assignee?: string|null}} [opts] daemon の担当（--assignee）
  * @returns {number[]} state を確認すべき issue 番号
  */
-function selectClosedCheckIssues(items) {
+function selectClosedCheckIssues(items, opts = {}) {
+    const labeled = (it) => Array.isArray(it.labels) && it.labels.includes(AUTOPILOT_LABEL);
+    const ownedNewItem = (it) => (it.status || 'New Item') === 'New Item' && ownsItem(it, opts.assignee);
     return (items || [])
-        .filter((it) => it && !TERMINAL_STATUSES.has(it.status)
-            && Array.isArray(it.labels) && it.labels.includes(AUTOPILOT_LABEL))
+        .filter((it) => it && !TERMINAL_STATUSES.has(it.status) && (labeled(it) || ownedNewItem(it)))
         .map((it) => it.issue);
 }
 
