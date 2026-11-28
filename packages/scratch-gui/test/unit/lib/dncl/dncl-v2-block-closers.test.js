@@ -4,6 +4,8 @@
 // DNCL-like form (`を実行する` / `を繰り返す` / `と定義する`) may be written at
 // the end of any block too. With or without it, the Ruby must be the same.
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
+import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { loadPrism } from '../../../../src/lib/prism-parser';
 
 const convert = (lines) => dnclToRuby(lines.join('\n'));
 const ruby = (lines) => convert(lines).ruby;
@@ -194,9 +196,9 @@ describe('closer lines in the standard form (Issue #2058)', () => {
             expect(result.errors[0].line).toBe(5);
         });
 
-        test('the comment of a closer after `⎿` is kept', () => {
+        test('the comment of a closer after `⎿` goes with the end, as when the closer closes the block', () => {
             expect(ruby(['もし x > 0 ならば:', '⎿ y = 1', 'を実行する # おわり', 'z = 2'])).toBe(
-                'if @x > 0\n  @y = 1\nend\n# おわり\n@z = 2',
+                'if @x > 0\n  @y = 1\nend # おわり\n@z = 2',
             );
         });
 
@@ -205,5 +207,53 @@ describe('closer lines in the standard form (Issue #2058)', () => {
                 'if @x > 0\n  @y = 1\nend # おわり\n@z = 2',
             );
         });
+    });
+});
+
+// The end of a block after `⎿` and the comments after a block (Issue #2556).
+describe('the end after `⎿` and the comments after a block (Issue #2556)', () => {
+    beforeAll(() => loadPrism());
+
+    const japanese = (source) => rubyToDncl(source).dncl;
+
+    test('a closer after the `⎿` that closed its block leaves no blank line', () => {
+        const lines = ['もし x > 0 ならば:', '⎿ 表示する(2)', 'を実行する', '表示する(3)'];
+        const result = convert(lines);
+        expect(result.errors).toEqual([]);
+        expect(result.ruby).toBe('if @x > 0\n  console.puts(2)\nend\nconsole.puts(3)');
+        expect(result.ruby).toBe(ruby(['もし x > 0 ならば:', '    表示する(2)', 'を実行する', '表示する(3)']));
+        // Back in Japanese, no blank line is added.
+        const back = japanese(result.ruby);
+        expect(back).toBe('もし x > 0 ならば:\n    表示する(2)\n表示する(3)');
+        expect(dnclToRuby(back).ruby).toBe(result.ruby);
+    });
+
+    test('a comment not indented after an if / else is after its end', () => {
+        const lines = ['もし x > 0 ならば:', '    y = 1', 'そうでなければ:', '    y = 2', '# C'];
+        const result = convert(lines);
+        expect(result.errors).toEqual([]);
+        expect(result.ruby).toBe('if @x > 0\n  @y = 1\nelse\n  @y = 2\nend\n# C');
+        // Back in Japanese, the comment stays not indented, after the block.
+        const back = japanese(result.ruby);
+        expect(back).toBe('もし x > 0 ならば:\n    y = 1\nそうでなければ:\n    y = 2\nを実行する\n# C');
+        expect(dnclToRuby(back).ruby).toBe(result.ruby);
+    });
+
+    test('a comment not indented after an if is after its end, before the next line', () => {
+        expect(ruby(['もし x > 0 ならば:', '    y = 1', '# C', 'z = 2'])).toBe(
+            'if @x > 0\n  @y = 1\nend\n# C\n@z = 2',
+        );
+    });
+
+    test('an indented comment at the end of an if stays in it', () => {
+        expect(ruby(['もし x > 0 ならば:', '    y = 1', '    # C', 'z = 2'])).toBe(
+            'if @x > 0\n  @y = 1\n  # C\nend\n@z = 2',
+        );
+    });
+
+    test('a comment not indented in the middle of an if stays in it when the if goes on', () => {
+        expect(ruby(['もし x > 0 ならば:', '    y = 1', '# C', '    z = 2'])).toBe(
+            'if @x > 0\n  @y = 1\n  # C\n  @z = 2\nend',
+        );
     });
 });

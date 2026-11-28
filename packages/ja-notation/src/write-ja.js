@@ -13,8 +13,8 @@
 // - the block, or any branch of it, has no line (`もし a ならば:` and nothing
 //   under it): the next branch or line would be read as its body;
 // - the closing line has a comment, so the comment keeps its place;
-// - a comment line follows it: a comment at a shallower indent would be read
-//   as a line of the block.
+// - a comment line follows it: the reader puts a comment not deeper than the
+//   block after it (Issue #2556), but the closing line shows the end plainly.
 //
 // The comments are written with the comment mark of the settings (`//` or `#`).
 import { each, run } from './run.js';

@@ -1378,14 +1378,29 @@
             "as": "もし a > 0 ならば:\n｜ b = 1\n⎿ c = 1\nd = 2"
         },
         {
-            "title": "the comment of a closing line after the `⎿` stays after the block (Issue #2058)",
+            "title": "the comment of a closing line after the `⎿` goes with the end, as when the line closes the block (Issue #2556)",
             "ja": "もし a > 0 ならば:\n⎿ b = 1\nを実行する # おわり\nc = 2",
-            "as": "もし a > 0 ならば:\n⎿ b = 1\n# おわり\nc = 2"
+            "as": "もし a > 0 ならば\n  b = 1\nを実行する # おわり\nc = 2"
         },
         {
             "title": "the comment of a closing line on the `⎿` line goes with the end (Issue #2058)",
             "ja": "もし a > 0 ならば:\n｜ b = 1\n⎿ を実行する # おわり\nc = 2",
             "as": "もし a > 0 ならば\n｜ b = 1\nを実行する # おわり\nc = 2"
+        },
+        {
+            "title": "a comment not deeper than an if / else written with indentation is after it (Issue #2556)",
+            "ja": "もし a > 0 ならば:\n    b = 1\nそうでなければ:\n    b = 2\n# C\nc = 3",
+            "as": "もし a > 0 ならば\n  b = 1\nそうでなければ\n  b = 2\nを実行する\n# C\nc = 3"
+        },
+        {
+            "title": "a comment not deeper than the blocks at the end of the program is after them (Issue #2556)",
+            "ja": "もし a > 0 ならば:\n    もし b > 0 ならば:\n        c = 1\n    # D\n# C",
+            "as": "もし a > 0 ならば\n  もし b > 0 ならば\n    c = 1\n  を実行する\n  # D\nを実行する\n# C"
+        },
+        {
+            "title": "a comment in a block written with indentation stays in it when the block goes on (Issue #2556)",
+            "ja": "もし a > 0 ならば:\n    b = 1\n# C\n    c = 2",
+            "as": "もし a > 0 ならば\n  b = 1\n  # C\n  c = 2\nを実行する"
         }
     ],
     "errors": [
