@@ -38,8 +38,9 @@ autopilot（`tools/autopilot/`）の改良は、速いサイクルで回した�
   - `docs/autopilot/**`
   - `.claude/rules/autopilot/**`
   - `.claude/skills/autopilot/**`・`.claude/skills/check-autopilot/**`
+  - autopilot のために変えた `bin/bot-*`（Bot のトークン・コミットの道具）と、`.claude/` のほかの決まり（`.claude/` だけの変更は、もともと CI が通れば AI がマージしてよい）
 - **対象外**（これまでどおり人間がレビューする）:
-  - ほかのパスが 1 つでも入っている PR。`.github/**`・`bin/bot-*`・`packages/**`・`infra/**` など。
+  - ほかのパスが 1 つでも入っている PR。`.github/**`・`packages/**`・`infra/**` など。
   - `👥 human-review-required` の付いた PR。
   - topic 宛ての PR。topic の決まりに従う（`.claude/rules/topic-branches.md`）。
 - **マージしてよいのは、次を全部満たすとき**:
@@ -50,13 +51,17 @@ autopilot（`tools/autopilot/`）の改良は、速いサイクルで回した�
      - 正確性。
      - `.claude/rules/autopilot/` への準拠。レイヤリング・単一ライター・状態を変えたときの 3 点セット・依存を足さないこと。
      - テストと docs の更新。
-  4. 人間の判断が要る点が残っていない。仕様の選択・人間が未回答の質問・未対応の Request changes がある場合は、マージしない。
+  4. 人間の判断に委ねられた点（レビューの「人間の判断に委ねる」・仕様の選択）は、**AI のおすすめを採ってマージしてよい**。
+     どれを採ったかを PR にコメントで残す。人間は、入ったものを実際に触って評価し、問題があれば改めて Issue にする。
+     ただし、人間が未回答の質問・人間の未対応の Request changes が残っているときは、マージしない（人間がすでに口を出しているため）。
+- **なぜ**: autopilot の改良は、人間がレビューで止めるより、入れて触って評価するほうが速く良くなる（人間の方針）。
+  本番の smalruby.app には出ないので、まちがっても直す Issue を作れば済む。
 - **満たさないとき**は、理由を PR にコメントして人間のレビューに残す。直せば済むものは、address-review に回してよい。
 - マージは `bin/bot-gh pr merge <n> --merge --delete-branch`。Issue は daemon がマージを見て閉じる。
 - **マージのあとは daemon を再起動する**。そうしないと変更が効かない（`.claude/rules/autopilot/development.md`）。
   - worker が走っていなければ、すぐ再起動する。
   - 走っていれば、終わるのを待つ。または、中断してよいかを人間に聞く。
-- 人間への報告には、マージした PR と、評価の要点（Must の数と直したこと、見送ったもの）を書く。
+- 人間への報告には、マージした PR と、評価の要点（Must の数と直したこと、見送ったもの、AI のおすすめで決めたこと）を書く。
 
 ## マージのあと
 
