@@ -49,7 +49,7 @@ const files = (obj) => ({ readFile: () => JSON.stringify(obj) });
 const ARGS = { issue: 2552, file: 'q.json', repo: 'o/r', port: 8787 };
 
 test('parseAskArgs: issue と JSON ファイル。--repo / --port、#N も受ける', () => {
-    assert.deepStrictEqual(parseAskArgs(['#2552', 'q.json'], {}), { ok: true, issue: 2552, file: 'q.json', repo: 'smalruby/smalruby3-editor', port: 8787 });
+    assert.deepStrictEqual(parseAskArgs(['#2552', 'q.json'], {}), { ok: true, issue: 2552, file: 'q.json', repo: 'smalruby/smalruby3-editor', port: 8787, replace: false });
     assert.deepStrictEqual(parseAskArgs(['5', 'q.json', '--repo', 'a/b', '--port', '9000'], {}).port, 9000);
     assert.strictEqual(parseAskArgs(['5', 'q.json'], { AUTOPILOT_PORT: '8788' }).port, 8788);
     assert.strictEqual(parseAskArgs(['q.json'], {}).ok, false);
@@ -156,6 +156,40 @@ test('registerQuestionsOnce: 答え済みでまだ worker に渡していない�
     assert.strictEqual(registerQuestionsOnce({ store, state }, { ...body, round: 2 }).body.action, 'set');
     assert.strictEqual(planQuestionsRegistration({ status: 'answered', round: 1, questions: QUESTIONS },
         { round: 2, questions: QUESTIONS }).status, 409);
+});
+
+test('--replace: 答え済みで worker に渡していない質問も、明示したときだけ置き換える（#2603）', async () => {
+    assert.strictEqual(parseAskArgs(['5', 'q.json'], {}).replace, false);
+    assert.strictEqual(parseAskArgs(['5', 'q.json', '--replace'], {}).replace, true);
+    assert.strictEqual(parseAskArgs(['5', '--replace', 'q.json'], {}).file, 'q.json');
+
+    const store = createAnswerStore({ now: () => 0 });
+    const state = { running: new Map() };
+    const body = { issue: 2552, round: 1, questions: QUESTIONS, phase: 'session' };
+    registerQuestionsOnce({ store, state }, body);
+    store.markAnswered(2552, {}, []);
+    assert.strictEqual(registerQuestionsOnce({ store, state }, { ...body, round: 2 }).status, 409);
+    // replace は true だけを受ける（文字列などは既定の 409 のまま）
+    assert.strictEqual(registerQuestionsOnce({ store, state }, { ...body, round: 2, replace: 'yes' }).status, 409);
+    const r = registerQuestionsOnce({ store, state }, { ...body, round: 2, replace: true });
+    assert.deepStrictEqual([r.status, r.body.action], [200, 'set']);
+    assert.strictEqual(store.get(2552).round, 2);
+    assert.strictEqual(store.get(2552).status, 'open');
+    // worker が動いている Issue は --replace でも受けない
+    state.running.set(2552, {});
+    assert.strictEqual(registerQuestionsOnce({ store, state }, { ...body, round: 3, replace: true }).status, 409);
+
+    // 道具は --replace のときだけ replace:true を送る。409 のときは --replace を案内する
+    const gh = fakeGitHub();
+    const posted = [];
+    const deps = { ...gh, ...files({ questions: QUESTIONS }),
+        postToDaemon: async (port, b) => { posted.push(b); return { status: 409, body: { error: 'answers not yet delivered' } }; } };
+    const refused = await ask(ARGS, deps);
+    assert.strictEqual(refused.code, 2);
+    assert.strictEqual('replace' in posted[0], false);
+    assert.ok(refused.lines.some((l) => l.includes('--replace')), refused.lines.join('\n'));
+    await ask({ ...ARGS, replace: true }, deps);
+    assert.strictEqual(posted[1].replace, true);
 });
 
 test('合言葉のファイルの置き場は daemon と同じ（二重定義がずれると daemon に届かない）', () => {

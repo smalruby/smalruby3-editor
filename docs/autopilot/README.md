@@ -341,7 +341,7 @@ worker が人間に選んでほしいことがあるとき、`signal=hitl` の�
 なってしまう。押すと答えないまま 🙋 が外れて実装が始まる）。代わりに質問を JSON に書いて道具で出す:
 
 ```bash
-bin/autopilot-ask <issue> tmp/questions-<issue>.json   # --repo owner/name / --port 8787（env AUTOPILOT_PORT）
+bin/autopilot-ask <issue> tmp/questions-<issue>.json   # --repo owner/name / --port 8787（env AUTOPILOT_PORT）/ --replace
 ```
 
 - 中身の形は worker の結果の `questions` と同じ（`autonomous-contract.md` §2.3 の「worker 以外が質問を出す」）。検証も同じ
@@ -351,6 +351,9 @@ bin/autopilot-ask <issue> tmp/questions-<issue>.json   # --repo owner/name / --p
 - 書いたあと、daemon の `POST /questions`（合言葉 `X-Autopilot-Token` が要る。`ask.js` が合言葉のファイルを読む）で置き場に載せる。
   同じ round の同じ質問は置き直さない（モニターで書いた「メモだけ保存」を消さない）。worker が動いている Issue は受けない（409）。
   答えたがまだ worker に渡していない質問も置き換えない（409 `answers not yet delivered`）。worker が答えを受け取ったあとに流し直す。
+  答えのあとに worker が来ない Issue（セッションが進めている In Progress・AI Status 空、人間の作業の Backlog、答えのあとに閉じた Issue）では
+  409 がずっと続くので、そう分かっているときだけ **`--replace`** を付けて流す（`POST /questions` の body に `replace: true`）。
+  答え済みの項目を新しい質問で置き換える（前の答えは Issue の答えのコメントに残る）。worker が動いている Issue は `--replace` でも受けない（409）。
   daemon に届かないときはコメントだけ書いて終了コード 2 で終わる。daemon を起こしてからもう一度流せば、コメントは書き直さずに載る。
 - 載った質問は、Status（Sprint Backlog・Backlog・Blocked など）・⏳ 待ちによらず「答える」になる（`humanAction`）。
   ゴーサインにはしない。EPIC の子でも隠さない: 子は「答えが要る」の欄に出て、EPIC の行は段階によらずそれを指す

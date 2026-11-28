@@ -4,7 +4,10 @@
 # autopilot のモニターの「答える」に出す（#2565）。
 #
 # Usage:
-#   bin/autopilot-ask <issue> <questions.json> [--repo owner/name] [--port 8787]
+#   bin/autopilot-ask <issue> <questions.json> [--repo owner/name] [--port 8787] [--replace]
+#
+# --replace: 答え済みでまだ worker に渡していない質問も置き換える（#2603）。既定は置き換えず daemon が 409 を返す。
+#            その Issue に worker が来ない（セッションが進めている・人間の作業・閉じた）と分かっているときだけ使う。
 #
 # questions.json の形は worker の結果の questions と同じ（docs/autopilot/autonomous-contract.md §2.3）:
 #   {"questions":[{"id":"q1","text":"…","options":[{"key":"a","label":"…","desc":"…"}],"recommended":"a"}],
