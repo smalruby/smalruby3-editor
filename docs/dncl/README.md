@@ -84,7 +84,7 @@
 
 - **読むモードになるとき**（スイッチを押さなくても切りかわる）:
   - 書いている途中で **5 秒、入力が無い**とき（`dncl-problem-form-view.js` の `READ_MODE_IDLE_MS`。考えるために手を止めたくらいでは切りかわらず、手を離したらすぐ罫線が見える長さ）。キーを押す・クリックするたびに数え直す。
-  - **実行したとき**（緑の旗、ルビーツールバーの実行ボタン）。行番号を見ながら動きを追えるように。
+  - **実行したとき**（緑の旗、ルビーツールバーの実行ボタン）。行番号を見ながら動きを追えるように。読み込み直した直後の 1 回目の実行でも同じ。実行ボタンはエディタにフォーカスを戻さない（ルビータブの実行ボタンは、前の誤りの表示を消すときにエディタへフォーカスを戻す）。
   - **貼り付けた直後**（貼り付けた問題を、罫線で確かめられるように）。
   - エディタの**フォーカスが外れたとき**（検索などでフォーカスが外れたときも）。
 - **書くモードにもどるとき**: エディタを**クリックしたとき**・エディタに**フォーカスが移ったとき**・読むモードのまま**文字を打ったとき**（打った文字はそのまま入る）。ブロックや別のスプライトからテキストが変わったときは、モードはそのままで罫線を描き直す。
@@ -633,7 +633,7 @@ Smalruby は **共通テスト用プログラム表記の形のプログラム�
   - `dncl-unsupported-command.test.js` — 日本語モードに無い命令（引数あり・なし・変数と同じ名前・式や条件の中・`xxx do` と `|x|`）がその行のエラーで止まり、定義した関数の呼び出しや組み込み関数は往復できること（DNCL → Ruby と Ruby → DNCL の両方）
   - `dncl-do-block.test.js` — 日本語にしない `xxx do ... end` が `を実行する` で閉じ、外側の `〜の間` / `もし` / `関数` の閉じのことばがずれないこと（入れ子・`until x do`・後判定の中・文字列やコメントの中の `do`）
   - `dncl-roundtrip.test.js` — DNCL ↔ Ruby round-trip 安定性
-- エディタ側の単体テスト: `packages/scratch-gui/test/unit/containers/ruby-tab/dncl-index-setting.test.js`（注釈なし・設定済みでは聞かない・「いいえ」で何も変えない・「はい」で冒頭に 1 回の編集、違うところだけの書きかえ）、`test/unit/components/ruby-toolbar-settings-pattern.test.jsx`（メニューのパターン・✓・選んだときの呼び出し）、`dncl-problem-form-view.test.js`（罫線のデコレーションの位置・タブの字下げ・空の行の縦線・行番号の桁と欄の幅・読むモードと書くモードの切りかえ: フォーカス・クリック・入力・5 秒の待ち・貼り付け・ボタン・日本語モードの出入り）、`test/unit/components/ruby-toolbar-rules-switch.test.jsx`（日本語タブにスプライトを選ぶ部品が無い・スイッチは日本語タブだけ・`role="switch"` と `aria-checked`・フォーカスを動かさない・その他メニューの項目と並び・.txt の保存）、`test/unit/lib/dncl/dncl-download.test.js`（.txt のファイル名と UTF-8）。統合テスト `test/integration/dncl-problem-form.test.js`（スイッチ・入力・5 秒の待ち・クリック・貼り付け・緑の旗での切りかえ、Ruby に戻すと行番号と空白の点が戻ること）
+- エディタ側の単体テスト: `packages/scratch-gui/test/unit/containers/ruby-tab/dncl-index-setting.test.js`（注釈なし・設定済みでは聞かない・「いいえ」で何も変えない・「はい」で冒頭に 1 回の編集、違うところだけの書きかえ）、`test/unit/components/ruby-toolbar-settings-pattern.test.jsx`（メニューのパターン・✓・選んだときの呼び出し）、`dncl-problem-form-view.test.js`（罫線のデコレーションの位置・タブの字下げ・空の行の縦線・行番号の桁と欄の幅・読むモードと書くモードの切りかえ: フォーカス・クリック・入力・5 秒の待ち・貼り付け・ボタン・日本語モードの出入り）、`test/unit/components/ruby-toolbar-rules-switch.test.jsx`（日本語タブにスプライトを選ぶ部品が無い・スイッチは日本語タブだけ・`role="switch"` と `aria-checked`・フォーカスを動かさない・その他メニューの項目と並び・.txt の保存）、`test/unit/lib/dncl/dncl-download.test.js`（.txt のファイル名と UTF-8）。`marker-navigation.test.js`（誤りの表示を閉じるときにフォーカスを動かさない）。統合テスト `test/integration/dncl-problem-form.test.js`（スイッチ・入力・5 秒の待ち・クリック・貼り付け・緑の旗での切りかえ、読み込み直した直後の 1 回目の実行ボタン、Ruby に戻すと行番号と空白の点が戻ること）
 - 補完と色分けの単体テスト: `packages/scratch-gui/test/unit/containers/ruby-tab/dncl-snippets.test.js`（スニペットが標準の形（`:` と字下げ 4 つ・閉じのことばの行なし・`繰り返す:`）で、場所を埋めて入れたものがそのまま Ruby とブロックになり、Ruby から同じ日本語に戻ること）、`dncl-mode.test.js`（開始の行の後の字下げ・`and` / `or` / `not`・`繰り返す` の付いたことば・`を返す`・全角の `％` の色分け）
 - Round-trip テスト (左結合演算子の括弧除去): `packages/scratch-gui/test/unit/lib/ruby-roundtrip-puts-concat.test.js`
 - ブロック制限 UX の単体テスト:

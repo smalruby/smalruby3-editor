@@ -136,4 +136,35 @@ describe('Japanese mode: the problem form', () => {
 
         expect(await getLogs()).toEqual([]);
     });
+
+    test('shows the read mode on the first run after loading, right after typing', async () => {
+        // The first run writes the program back (setValue); the focus must not
+        // come back to the editor before it, or the write mode comes back (Issue #2553).
+        await loadUri(`${uri}?locale=ja&tab=japanese`);
+        await waitFor(
+            driver,
+            () =>
+                driver.executeScript(
+                    'return !!window.monacoEditor && window.monacoEditor.getModel().getLanguageId() === "dncl"',
+                ),
+            'The Japanese mode did not start',
+        );
+        await driver.findElement(By.css('.monaco-editor .view-lines')).click();
+        await waitFor(driver, async () => (await rulesSwitchOn(driver)) === 'false', 'Not in the write mode');
+        await driver.executeScript("window.monacoEditor.trigger('keyboard', 'type', { text: 'a = 1' });");
+        await driver.sleep(300);
+
+        await driver.findElement(By.css('[data-testid="ruby-toolbar-execute"]')).click();
+        await waitFor(
+            driver,
+            async () => (await rulesSwitchOn(driver)) === 'true',
+            'The run did not show the read mode',
+        );
+        // It stays after the run has written the program back.
+        await driver.sleep(1000);
+        expect(await rulesSwitchOn(driver)).toBe('true');
+        expect(await driver.executeScript('return window.monacoEditor.hasTextFocus()')).toBe(false);
+
+        expect(await getLogs()).toEqual([]);
+    });
 });
