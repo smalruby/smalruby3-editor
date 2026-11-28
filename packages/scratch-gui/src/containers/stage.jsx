@@ -16,6 +16,10 @@ import {
     activateColorPicker,
     deactivateColorPicker
 } from '../reducers/color-picker';
+// === Smalruby: Start of console ===
+import {JAPANESE_TAB_INDEX} from '../reducers/editor-tab';
+import {stageCanvasSize} from '../lib/smalruby-console.js';
+// === Smalruby: End of console ===
 
 const colorPickerRadius = 20;
 const dragThreshold = 3; // Same as the block drag threshold
@@ -83,6 +87,11 @@ class Stage extends React.Component {
             this.props.isFullScreen !== nextProps.isFullScreen ||
             this.state.question !== nextState.question ||
             this.props.micIndicator !== nextProps.micIndicator ||
+            // === Smalruby: Start of console ===
+            // the console moves into the right column and hides the stage on the Japanese tab
+            this.props.consoleInColumn !== nextProps.consoleInColumn ||
+            this.props.consoleVisible !== nextProps.consoleVisible ||
+            // === Smalruby: End of console ===
             this.props.isStarted !== nextProps.isStarted;
     }
     componentDidUpdate (prevProps) {
@@ -92,7 +101,11 @@ class Stage extends React.Component {
             this.stopColorPickingLoop();
         }
         this.updateRect();
-        this.renderer.resize(this.rect.width, this.rect.height);
+        // === Smalruby: Start of console ===
+        // the stage hidden behind the console of the Japanese tab measures 0×0: keep the size of the stage
+        const canvasSize = stageCanvasSize(this.rect, this.props.stageSize);
+        this.renderer.resize(canvasSize.width, canvasSize.height);
+        // === Smalruby: End of console ===
     }
     componentWillUnmount () {
         this.detachMouseEvents(this.canvas);
@@ -442,6 +455,10 @@ class Stage extends React.Component {
 }
 
 Stage.propTypes = {
+    // === Smalruby: Start of console ===
+    consoleInColumn: PropTypes.bool,
+    consoleVisible: PropTypes.bool,
+    // === Smalruby: End of console ===
     isColorPicking: PropTypes.bool,
     isFullScreen: PropTypes.bool.isRequired,
     isStarted: PropTypes.bool,
@@ -464,6 +481,10 @@ const mapStateToProps = state => ({
     micIndicator: state.scratchGui.micIndicator,
     // === Smalruby: Start of console ===
     consoleVisible: state.scratchGui.smalrubyConsole.visible,
+    // the Japanese tab shows the console in the right column, in place of the stage
+    // (the player has no right column, so the console stays on the stage there)
+    consoleInColumn: state.scratchGui.editorTab.activeTabIndex === JAPANESE_TAB_INDEX &&
+        !state.scratchGui.mode.isFullScreen && !state.scratchGui.mode.isPlayerOnly,
     // === Smalruby: End of console ===
     // Do not use editor drag style in fullscreen or player mode.
     useEditorDragStyle: !(state.scratchGui.mode.isFullScreen || state.scratchGui.mode.isPlayerOnly)

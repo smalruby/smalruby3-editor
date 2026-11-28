@@ -166,6 +166,51 @@ describe('the Japanese tab (DNCL) and the check on switching to it', () => {
         await waitForTestIdPresence(driver, 'smalruby-console', false);
     });
 
+    test('the console fills the right column, and the button keeps it hidden across the tabs', async () => {
+        const isInSlot = () =>
+            driver.executeScript(
+                'return document.querySelector(\'[data-testid="smalruby-console-slot"] [data-testid="smalruby-console"]\') !== null',
+            );
+        const isVisibleByTestId = (testId) =>
+            driver.executeScript(
+                `const e = document.querySelector('[data-testid="${testId}"]'); return e !== null && !e.hidden`,
+            );
+        await loadInRubyMode(driver);
+        await fillInRubyProgram('@x = 10\n');
+        await waitForEditorValue(driver, '@x = 10');
+
+        await clickJapaneseTab(driver);
+        await waitForMonacoLanguage(driver, 'dncl');
+        await waitForTestIdPresence(driver, 'smalruby-console', true);
+        expect(await isInSlot()).toBe(true);
+        // The sprites and backdrops wait behind the strip
+        expect(await isVisibleByTestId('japanese-right-column-strip')).toBe(true);
+        expect(await isVisibleByTestId('japanese-right-column-targets')).toBe(false);
+        await clickByTestId(driver, 'japanese-right-column-show-targets');
+        expect(await isVisibleByTestId('japanese-right-column-targets')).toBe(true);
+
+        // A program that prints nothing: the button is there, and hides and shows (B07)
+        await clickByTestId(driver, 'smalruby-console-button');
+        await waitForTestIdPresence(driver, 'smalruby-console', false);
+        expect(await existsByTestId(driver, 'smalruby-console-button')).toBe(true);
+
+        // It stays hidden after the Code tab (B08)
+        await clickCodeTab(driver);
+        await clickJapaneseTab(driver);
+        await waitForMonacoLanguage(driver, 'dncl');
+        await driver.sleep(500);
+        expect(await existsByTestId(driver, 'smalruby-console')).toBe(false);
+
+        await clickByTestId(driver, 'smalruby-console-button');
+        await waitForTestIdPresence(driver, 'smalruby-console', true);
+
+        // The Ruby tab gives the stage and the sprites back
+        await clickRubyTab(driver);
+        await waitForTestIdPresence(driver, 'smalruby-console', false);
+        await waitForTestIdPresence(driver, 'japanese-right-column-strip', false);
+        expect(await isVisibleByTestId('japanese-right-column-targets')).toBe(true);
+    });
+
     test('the console extension is added only when the program prints', async () => {
         const isConsoleExtensionLoaded = () =>
             driver.executeScript("return window.smalruby.vm.extensionManager.isExtensionLoaded('smalrubyConsole')");
