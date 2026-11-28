@@ -93,13 +93,15 @@ const measureEditorArea = (root) => {
  *     editor (the Ruby tab's rubyCode.target)
  * @param {function(function()): function()} params.onEditorTargetChange - listens to the
  *     editor showing another sprite, told once the editor has its code; returns the unlisten
- * @param {object} [params.deps] - replacements for tests: toCode(target), toBlocks(target, code)
+ * @param {object} [params.deps] - replacements for tests: toCode(target, options), toBlocks(target, code)
  * @returns {function(object): object} createAdapter({vm, intl, rubyVersion, scratchBlocks})
  */
 export const makeRubyTabAdapterFactory =
     ({ getEditor, getMonaco, getMode, getEditorTarget, onEditorTargetChange, deps = {} }) =>
     ({ vm, intl, rubyVersion }) => {
-        const toCode = deps.toCode || ((target) => RubyGenerator.targetToCode(target, { version: rubyVersion }));
+        const toCode =
+            deps.toCode ||
+            ((target, options) => RubyGenerator.targetToCode(target, { version: rubyVersion, ...options }));
         const toBlocks =
             deps.toBlocks || ((target, code) => targetCodeToBlocks(vm, target, code, intl, { version: rubyVersion }));
         const originals = () => vm.runtime.targets.filter((t) => t.isOriginal);
@@ -263,10 +265,11 @@ export const makeRubyTabAdapterFactory =
 
         // A sprite not in the editor is read from and put into its blocks, in the language of
         // its versions (DNCL ones go through Ruby).
-        const blocksCode = (snap) => {
-            const ruby = toCode(snap.target);
-            return snap.dncl ? rubyToDncl(ruby).dncl : ruby;
-        };
+        // The Japanese tab keeps the scripts in the written order (issue #2550), as the editor does.
+        const blocksCode = (snap) =>
+            snap.dncl
+                ? rubyToDncl(toCode(snap.target, { keepScriptOrder: true }), snap.target).dncl
+                : toCode(snap.target);
         const toBlocksFrom = (snap, code) => {
             if (!snap.dncl) return toBlocks(snap.target, code);
             const { ruby } = dnclToRuby(code);

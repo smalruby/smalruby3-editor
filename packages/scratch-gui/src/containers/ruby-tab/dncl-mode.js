@@ -15,8 +15,10 @@ const JA = '\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF';
 export const dnclLanguageConfiguration = {
     wordPattern: new RegExp(`(-?\\d*\\.\\d\\w*)|([a-zA-Z_${JA}][\\w${JA}]*)`),
     indentationRules: {
+        // The standard form ends an opener with `:` (and a loop with `繰り返す:`);
+        // the DNCL 風の形 has no `:` (Issue #1754).
         increaseIndentPattern: new RegExp(
-            `^\\s*(?:もし\\s.+\\s(?:なら|ならば)|そうでなくもし\\s.+\\s(?:なら|ならば)|そうでなければ|.+\\sの間|.+\\sずつ(?:増やし|減らし)ながら|関数\\s.+)$`,
+            `^\\s*(?:もし\\s.+\\s(?:なら|ならば)|そうでなくもし\\s.+\\s(?:なら|ならば)|そうでなければ|.+\\sの間|.+\\sずつ(?:増やし|減らし)ながら|関数\\s.+)(?:繰り返す)?\\s*[:：]?(?:\\s*#.*)?$`,
         ),
         decreaseIndentPattern: new RegExp(
             `^\\s*(?:${DECREASE_INDENT_KEYWORDS.map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')}|そうでなくもし\\s).*$`,
@@ -70,12 +72,20 @@ export const dnclLanguage = {
         'を繰り返す',
         'ずつ増やしながら',
         'ずつ減らしながら',
+        // The standard form joins 繰り返す to the loop words and writes `値 を返す` (Issue #2035).
+        'の間繰り返す',
+        'ずつ増やしながら繰り返す',
+        'ずつ減らしながら繰り返す',
         'から',
         'まで',
         'を',
         '関数',
         '返す',
+        'を返す',
         'と定義する',
+        // `A に 値 を追加する` (Issue #1759).
+        'に',
+        'を追加する',
     ],
 
     builtinFunctions: [
@@ -92,11 +102,23 @@ export const dnclLanguage = {
         '平方根',
     ],
 
-    operators: ['かつ', 'または', 'でない'],
+    // `and` / `or` / `not` of the standard form, `かつ` … of the DNCL 風の形.
+    operators: ['and', 'or', 'not', 'かつ', 'または', 'でない'],
 
     booleans: ['真', '偽'],
 
-    symbols: /[=><!~?:&|+\-*/^%÷≦≧←]+/,
+    symbols: /[=><!~?:&|+\-*/^%％÷≦≧←]+/,
+
+    // The tokenizer returns `@brackets` for these, so Monarch must know each pair.
+    // Without 「」 and 【】 here, a stray `【` throws
+    // "@brackets token returned but no bracket defined" (Issue #2255).
+    brackets: [
+        { open: '{', close: '}', token: 'delimiter.curly' },
+        { open: '[', close: ']', token: 'delimiter.square' },
+        { open: '(', close: ')', token: 'delimiter.parenthesis' },
+        { open: '「', close: '」', token: 'delimiter.bracket' },
+        { open: '【', close: '】', token: 'delimiter.bracket' },
+    ],
 
     tokenizer: {
         root: [

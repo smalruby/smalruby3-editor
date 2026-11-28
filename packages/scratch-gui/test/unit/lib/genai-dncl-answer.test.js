@@ -27,23 +27,23 @@ describe('checkDnclAnswer', () => {
 
     test('an answer in the DNCLv2 form (line numbers, ｜ ⎿, colons) is ✔', async () => {
         const code = [
-            '(1) Data = [3, 18, 29, 33, 48, 52, 62, 77, 89, 97]',
-            '(2) kazu = 要素数(Data)',
-            '(3) 表示する("0～99:")',
-            '(4) atai = 【外部からの入力】',
-            '(5) hidari = 0 , migi = kazu - 1',
-            '(6) owari = 0',
-            '(7) hidari <= migi and owari == 0 の間繰り返す:',
-            '(8) ｜ aida = (hidari + migi) ÷ 2',
-            '(9) ｜ もし Data[aida] == atai ならば:',
-            '(10)｜ ｜ 表示する(atai, "は", aida, "番目にありました")',
-            '(11)｜ ｜ owari = 1',
-            '(12)｜ そうでなくもし Data[aida] < atai ならば:',
-            '(13)｜ ｜ hidari = aida + 1',
+            '(1) Shincho = [128, 135, 141, 146, 150, 157, 163, 170]',
+            '(2) ninzu = 要素数(Shincho)',
+            '(3) 表示する("身長:")',
+            '(4) sagasu = 【外部からの入力】',
+            '(5) sita = 0 , ue = ninzu - 1',
+            '(6) mitsuketa = 0',
+            '(7) sita <= ue and mitsuketa == 0 の間繰り返す:',
+            '(8) ｜ naka = (sita + ue) ÷ 2',
+            '(9) ｜ もし Shincho[naka] == sagasu ならば:',
+            '(10)｜ ｜ 表示する(sagasu, "cmは", naka, "番の人です")',
+            '(11)｜ ｜ mitsuketa = 1',
+            '(12)｜ そうでなくもし Shincho[naka] < sagasu ならば:',
+            '(13)｜ ｜ sita = naka + 1',
             '(14)｜ そうでなければ:',
-            '(15)⎿ ⎿ migi = aida - 1',
-            '(16) もし owari == 0 ならば:',
-            '(17)⎿ 表示する(atai, "は見つかりませんでした")',
+            '(15)⎿ ⎿ ue = naka - 1',
+            '(16) もし mitsuketa == 0 ならば:',
+            '(17)⎿ 表示する(sagasu, "cmの人はいませんでした")',
         ].join('\n');
         const result = await check(code);
         expect(result.problems).toEqual([]);
@@ -73,7 +73,7 @@ describe('checkDnclAnswer', () => {
         const result = await check('a = 1\n@b = 2');
         expect(result.ok).toBe(false);
         expect(result.problems).toEqual([
-            { type: 'error', sprite: null, row: 1, text: '日本語モードでは変数に「@」は使えません' },
+            { type: 'error', sprite: null, row: 1, text: '日本語タブでは変数に「@」は使えません' },
         ]);
     });
 

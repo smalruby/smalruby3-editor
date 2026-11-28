@@ -1,0 +1,487 @@
+{
+    "about": "writeJa(program): the Japanese in the standard form of a JaAST.",
+    "cases": [
+        {
+            "title": "a negated name before a quotient is written in parentheses, as the Japanese reads it",
+            "program": {
+                "body": [
+                    {
+                        "type": "Assign",
+                        "target": {
+                            "type": "Name",
+                            "name": "x",
+                            "line": 0,
+                            "column": 0
+                        },
+                        "value": {
+                            "type": "Binary",
+                            "operator": "÷",
+                            "left": {
+                                "type": "Unary",
+                                "operator": "-",
+                                "operand": {
+                                    "type": "Name",
+                                    "name": "a",
+                                    "line": 0,
+                                    "column": 0
+                                },
+                                "line": 0,
+                                "column": 0
+                            },
+                            "right": {
+                                "type": "Number",
+                                "value": "2",
+                                "line": 0,
+                                "column": 0
+                            },
+                            "line": 0,
+                            "column": 0
+                        },
+                        "line": 0,
+                        "column": 0
+                    }
+                ]
+            },
+            "ja": "x = (-a) ÷ 2"
+        },
+        {
+            "title": "a sum under a quotient keeps its parentheses",
+            "program": {
+                "body": [
+                    {
+                        "type": "Assign",
+                        "target": {
+                            "type": "Name",
+                            "name": "x",
+                            "line": 0,
+                            "column": 0
+                        },
+                        "value": {
+                            "type": "Binary",
+                            "operator": "÷",
+                            "left": {
+                                "type": "Binary",
+                                "operator": "+",
+                                "left": {
+                                    "type": "Name",
+                                    "name": "a",
+                                    "line": 0,
+                                    "column": 0
+                                },
+                                "right": {
+                                    "type": "Name",
+                                    "name": "b",
+                                    "line": 0,
+                                    "column": 0
+                                },
+                                "line": 0,
+                                "column": 0
+                            },
+                            "right": {
+                                "type": "Number",
+                                "value": "2",
+                                "line": 0,
+                                "column": 0
+                            },
+                            "line": 0,
+                            "column": 0
+                        },
+                        "line": 0,
+                        "column": 0
+                    }
+                ]
+            },
+            "ja": "x = (a + b) ÷ 2"
+        },
+        {
+            "title": "the right side of the same operator keeps its parentheses",
+            "program": {
+                "body": [
+                    {
+                        "type": "Assign",
+                        "target": {
+                            "type": "Name",
+                            "name": "x",
+                            "line": 0,
+                            "column": 0
+                        },
+                        "value": {
+                            "type": "Binary",
+                            "operator": "-",
+                            "left": {
+                                "type": "Name",
+                                "name": "a",
+                                "line": 0,
+                                "column": 0
+                            },
+                            "right": {
+                                "type": "Binary",
+                                "operator": "-",
+                                "left": {
+                                    "type": "Name",
+                                    "name": "b",
+                                    "line": 0,
+                                    "column": 0
+                                },
+                                "right": {
+                                    "type": "Name",
+                                    "name": "c",
+                                    "line": 0,
+                                    "column": 0
+                                },
+                                "line": 0,
+                                "column": 0
+                            },
+                            "line": 0,
+                            "column": 0
+                        },
+                        "line": 0,
+                        "column": 0
+                    }
+                ]
+            },
+            "ja": "x = a - (b - c)"
+        },
+        {
+            "title": "the left side of the same operator needs none",
+            "program": {
+                "body": [
+                    {
+                        "type": "Assign",
+                        "target": {
+                            "type": "Name",
+                            "name": "x",
+                            "line": 0,
+                            "column": 0
+                        },
+                        "value": {
+                            "type": "Binary",
+                            "operator": "-",
+                            "left": {
+                                "type": "Binary",
+                                "operator": "-",
+                                "left": {
+                                    "type": "Name",
+                                    "name": "a",
+                                    "line": 0,
+                                    "column": 0
+                                },
+                                "right": {
+                                    "type": "Name",
+                                    "name": "b",
+                                    "line": 0,
+                                    "column": 0
+                                },
+                                "line": 0,
+                                "column": 0
+                            },
+                            "right": {
+                                "type": "Name",
+                                "name": "c",
+                                "line": 0,
+                                "column": 0
+                            },
+                            "line": 0,
+                            "column": 0
+                        },
+                        "line": 0,
+                        "column": 0
+                    }
+                ]
+            },
+            "ja": "x = a - b - c"
+        },
+        {
+            "title": "the remainder is ％",
+            "program": {
+                "body": [
+                    {
+                        "type": "Assign",
+                        "target": {
+                            "type": "Name",
+                            "name": "x",
+                            "line": 0,
+                            "column": 0
+                        },
+                        "value": {
+                            "type": "Binary",
+                            "operator": "%",
+                            "left": {
+                                "type": "Name",
+                                "name": "a",
+                                "line": 0,
+                                "column": 0
+                            },
+                            "right": {
+                                "type": "Number",
+                                "value": "3",
+                                "line": 0,
+                                "column": 0
+                            },
+                            "line": 0,
+                            "column": 0
+                        },
+                        "line": 0,
+                        "column": 0
+                    }
+                ]
+            },
+            "ja": "x = a ％ 3"
+        },
+        {
+            "title": "not before a comparison inside a comparison",
+            "program": {
+                "body": [
+                    {
+                        "type": "Assign",
+                        "target": {
+                            "type": "Name",
+                            "name": "x",
+                            "line": 0,
+                            "column": 0
+                        },
+                        "value": {
+                            "type": "Binary",
+                            "operator": "==",
+                            "left": {
+                                "type": "Unary",
+                                "operator": "not",
+                                "operand": {
+                                    "type": "Name",
+                                    "name": "a",
+                                    "line": 0,
+                                    "column": 0
+                                },
+                                "line": 0,
+                                "column": 0
+                            },
+                            "right": {
+                                "type": "Name",
+                                "name": "b",
+                                "line": 0,
+                                "column": 0
+                            },
+                            "line": 0,
+                            "column": 0
+                        },
+                        "line": 0,
+                        "column": 0
+                    }
+                ]
+            },
+            "ja": "x = (not a) == b"
+        },
+        {
+            "title": "and is tighter than or",
+            "program": {
+                "body": [
+                    {
+                        "type": "Assign",
+                        "target": {
+                            "type": "Name",
+                            "name": "x",
+                            "line": 0,
+                            "column": 0
+                        },
+                        "value": {
+                            "type": "Binary",
+                            "operator": "or",
+                            "left": {
+                                "type": "Name",
+                                "name": "a",
+                                "line": 0,
+                                "column": 0
+                            },
+                            "right": {
+                                "type": "Binary",
+                                "operator": "and",
+                                "left": {
+                                    "type": "Name",
+                                    "name": "b",
+                                    "line": 0,
+                                    "column": 0
+                                },
+                                "right": {
+                                    "type": "Name",
+                                    "name": "c",
+                                    "line": 0,
+                                    "column": 0
+                                },
+                                "line": 0,
+                                "column": 0
+                            },
+                            "line": 0,
+                            "column": 0
+                        },
+                        "line": 0,
+                        "column": 0
+                    }
+                ]
+            },
+            "ja": "x = a or b and c"
+        },
+        {
+            "title": "or under and keeps its parentheses",
+            "program": {
+                "body": [
+                    {
+                        "type": "Assign",
+                        "target": {
+                            "type": "Name",
+                            "name": "x",
+                            "line": 0,
+                            "column": 0
+                        },
+                        "value": {
+                            "type": "Binary",
+                            "operator": "and",
+                            "left": {
+                                "type": "Binary",
+                                "operator": "or",
+                                "left": {
+                                    "type": "Name",
+                                    "name": "a",
+                                    "line": 0,
+                                    "column": 0
+                                },
+                                "right": {
+                                    "type": "Name",
+                                    "name": "b",
+                                    "line": 0,
+                                    "column": 0
+                                },
+                                "line": 0,
+                                "column": 0
+                            },
+                            "right": {
+                                "type": "Name",
+                                "name": "c",
+                                "line": 0,
+                                "column": 0
+                            },
+                            "line": 0,
+                            "column": 0
+                        },
+                        "line": 0,
+                        "column": 0
+                    }
+                ]
+            },
+            "ja": "x = (a or b) and c"
+        },
+        {
+            "title": "a range has no spaces",
+            "program": {
+                "body": [
+                    {
+                        "type": "Assign",
+                        "target": {
+                            "type": "Name",
+                            "name": "x",
+                            "line": 0,
+                            "column": 0
+                        },
+                        "value": {
+                            "type": "Call",
+                            "name": "乱数",
+                            "args": [
+                                {
+                                    "type": "Binary",
+                                    "operator": "..",
+                                    "left": {
+                                        "type": "Number",
+                                        "value": "1",
+                                        "line": 0,
+                                        "column": 0
+                                    },
+                                    "right": {
+                                        "type": "Number",
+                                        "value": "6",
+                                        "line": 0,
+                                        "column": 0
+                                    },
+                                    "line": 0,
+                                    "column": 0
+                                }
+                            ],
+                            "line": 0,
+                            "column": 0
+                        },
+                        "line": 0,
+                        "column": 0
+                    }
+                ]
+            },
+            "ja": "x = 乱数(1..6)"
+        },
+        {
+            "title": "a minus of a minus is in parentheses",
+            "program": {
+                "body": [
+                    {
+                        "type": "Assign",
+                        "target": {
+                            "type": "Name",
+                            "name": "x",
+                            "line": 0,
+                            "column": 0
+                        },
+                        "value": {
+                            "type": "Unary",
+                            "operator": "-",
+                            "operand": {
+                                "type": "Unary",
+                                "operator": "-",
+                                "operand": {
+                                    "type": "Number",
+                                    "value": "1",
+                                    "line": 0,
+                                    "column": 0
+                                },
+                                "line": 0,
+                                "column": 0
+                            },
+                            "line": 0,
+                            "column": 0
+                        },
+                        "line": 0,
+                        "column": 0
+                    }
+                ]
+            },
+            "ja": "x = -(-1)"
+        },
+        {
+            "title": "the operand of not kept in its parentheses",
+            "program": {
+                "body": [
+                    {
+                        "type": "Assign",
+                        "target": {
+                            "type": "Name",
+                            "name": "x",
+                            "line": 0,
+                            "column": 0
+                        },
+                        "value": {
+                            "type": "Unary",
+                            "operator": "not",
+                            "operand": {
+                                "type": "Name",
+                                "name": "a",
+                                "line": 0,
+                                "column": 0
+                            },
+                            "line": 0,
+                            "column": 0,
+                            "parens": true
+                        },
+                        "line": 0,
+                        "column": 0
+                    }
+                ]
+            },
+            "ja": "x = not a"
+        }
+    ]
+}

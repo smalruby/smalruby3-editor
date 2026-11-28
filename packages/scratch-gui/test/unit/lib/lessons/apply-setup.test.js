@@ -9,6 +9,7 @@ const BLOCKS_TAB_INDEX = 0;
 const COSTUMES_TAB_INDEX = 1;
 const SOUNDS_TAB_INDEX = 2;
 const RUBY_TAB_INDEX = 3;
+const JAPANESE_TAB_INDEX = 4;
 
 const FURIGANA_KEY = 'smalruby:furiganaEnabled';
 
@@ -53,6 +54,7 @@ describe('applySetup', () => {
             ['costumes', COSTUMES_TAB_INDEX],
             ['sounds', SOUNDS_TAB_INDEX],
             ['ruby', RUBY_TAB_INDEX],
+            ['japanese', JAPANESE_TAB_INDEX],
         ];
         for (const [tab, expectedIndex] of cases) {
             const dispatch = makeDispatch();
@@ -71,14 +73,15 @@ describe('applySetup', () => {
     });
 
     test('rubyMode dispatches setDnclMode and updates furigana localStorage', async () => {
-        // dncl: SET_DNCL_MODE true, furigana=false
+        // dncl: SET_DNCL_MODE true, the furigana of the Ruby tab is left as it is
         let dispatch = makeDispatch();
+        window.localStorage.setItem(FURIGANA_KEY, 'true');
         await applySetup({ rubyMode: 'dncl' }, dispatch, makeVM());
         expect(dispatch.calls).toContainEqual({
             type: SET_DNCL_MODE,
             dnclMode: true,
         });
-        expect(window.localStorage.getItem(FURIGANA_KEY)).toBe('false');
+        expect(window.localStorage.getItem(FURIGANA_KEY)).toBe('true');
 
         // furigana: SET_DNCL_MODE false, furigana=true
         dispatch = makeDispatch();
@@ -183,15 +186,15 @@ describe('applySetup', () => {
             dispatch,
             vm,
         );
+        // A setup made before the Japanese tab: Japanese is written in the Japanese tab
         expect(dispatch.calls).toContainEqual({
             type: ACTIVATE_TAB,
-            activeTabIndex: RUBY_TAB_INDEX,
+            activeTabIndex: JAPANESE_TAB_INDEX,
         });
         expect(dispatch.calls).toContainEqual({
             type: SET_DNCL_MODE,
             dnclMode: true,
         });
-        expect(window.localStorage.getItem(FURIGANA_KEY)).toBe('false');
         expect(vm.extensionManager.loadExtensionURL).toHaveBeenCalledWith('pen');
     });
 

@@ -24,7 +24,15 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
             NUM1: operator_multiply(NUM1: @x, NUM2: 2), NUM2: 1))`,
     },
     {
+        name: 'the remainder is written ％ (full-width) in the standard form',
+        ja: 'x = 7 ％ 2',
+        ruby: '@x = 7 % 2',
+        blocks: 'data_setvariableto(VARIABLE = @x, VALUE: operator_mod(NUM1: 7, NUM2: 2))',
+    },
+    {
+        name: 'the half-width % is read',
         ja: 'x = 7 % 2',
+        jaOnly: 'jaToBlocks',
         ruby: '@x = 7 % 2',
         blocks: 'data_setvariableto(VARIABLE = @x, VALUE: operator_mod(NUM1: 7, NUM2: 2))',
     },
@@ -34,6 +42,29 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
         ruby: '@x = (7 / 2).to_i',
         blocks: `data_setvariableto(VARIABLE = @x, VALUE: operator_mathop(OPERATOR = "floor",
             NUM: operator_divide(NUM1: 7, NUM2: 2)) #"@ruby:method:to_i")`,
+    },
+    {
+        name: 'a negative number before ÷ is its left side, so -7 ÷ 2 is floor(-3.5) = -4 (#2548)',
+        ja: 'x = -7 ÷ 2',
+        ruby: '@x = (-7 / 2).to_i',
+        blocks: `data_setvariableto(VARIABLE = @x, VALUE: operator_mathop(OPERATOR = "floor",
+            NUM: operator_divide(NUM1: -7, NUM2: 2)) #"@ruby:method:to_i")`,
+    },
+    {
+        name: 'a sign before ÷ binds tighter, and comes back in parentheses (#2548)',
+        ja: 'x = (-a) ÷ 2',
+        ruby: '@x = (-@a / 2).to_i',
+        blocks: `data_setvariableto(VARIABLE = @x, VALUE: operator_mathop(OPERATOR = "floor",
+            NUM: operator_divide(NUM1: operator_subtract(NUM1: 0, NUM2: @a) #"@ruby:unary_minus",
+            NUM2: 2)) #"@ruby:method:to_i")`,
+    },
+    {
+        name: 'a sign before a quotient in parentheses is the sign of the quotient (#2548)',
+        ja: 'x = -(a ÷ 2)',
+        ruby: '@x = -(@a / 2).to_i',
+        blocks: `data_setvariableto(VARIABLE = @x, VALUE: operator_subtract(NUM1: 0,
+            NUM2: operator_mathop(OPERATOR = "floor", NUM: operator_divide(NUM1: @a,
+            NUM2: 2)) #"@ruby:method:to_i") #"@ruby:unary_minus")`,
     },
     {
         name: 'a name that starts with a capital letter',
@@ -76,6 +107,26 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
         blocks: 'data_setvariableto(VARIABLE = @x, VALUE: data_lengthoflist(LIST = @_array_Data_))',
     },
     {
+        name: 'an element added at the end of an array is the block that adds to the list (#1759)',
+        ja: 'Data に 3 を追加する',
+        ruby: '@_array_Data_.push(3)',
+        blocks: 'data_addtolist(LIST = @_array_Data_, ITEM: "3")',
+    },
+    {
+        name: 'the value added can be an expression',
+        ja: 'Data に x + 1 を追加する',
+        ruby: '@_array_Data_.push(@x + 1)',
+        blocks: 'data_addtolist(LIST = @_array_Data_, ITEM: operator_add(NUM1: @x, NUM2: 1))',
+    },
+    {
+        name: '<< of Ruby is the same block, and is written as を追加する',
+        ja: 'Data に 3 を追加する',
+        jaOnly: 'toJa',
+        ruby: '@_array_Data_ << 3',
+        blocks: 'data_addtolist(LIST = @_array_Data_, ITEM: "3")',
+        only: 'toBlocks',
+    },
+    {
         ja: 'x = 整数(y)',
         ruby: '@x = @y.to_i',
         blocks: 'data_setvariableto(VARIABLE = @x, VALUE: operator_mathop(OPERATOR = "floor", NUM: @y) #"@ruby:method:to_i")',
@@ -99,17 +150,44 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
             data_setvariableto(VARIABLE = @b, VALUE: "2")
         `,
     },
-    { ja: '表示する(x)', ruby: 'puts(@x)', blocks: `looks_sayforsecs(MESSAGE: @x, SECS: 1) ${PUTS}` },
+    { ja: '表示する(x)', ruby: 'console.puts(@x)', blocks: `smalrubyConsole_print(TEXT: @x)` },
     {
         name: '表示する with two values',
         ja: '表示する("合計", x)',
-        ruby: 'puts("合計" + @x.to_s)',
-        blocks: `looks_sayforsecs(MESSAGE: operator_join(STRING1: "合計",
-            STRING2: operator_join(STRING1: @x, STRING2: "") #"@ruby:method:to_s"), SECS: 1) ${PUTS}`,
+        ruby: 'console.puts("合計" + @x.to_s)',
+        blocks: `smalrubyConsole_print(TEXT: operator_join(STRING1: "合計",
+            STRING2: operator_join(STRING1: @x, STRING2: "") #"@ruby:method:to_s"))`,
+    },
+    {
+        name: 'a name joined with a string that has 「」 in it (issue #2168)',
+        ja: '表示する(namae + "には「く」がある")',
+        ruby: 'console.puts(@namae + "には「く」がある")',
+        blocks: `smalrubyConsole_print(TEXT: operator_join(STRING1: @namae, STRING2: "には「く」がある"))`,
     },
     {
         name: 'an input',
         ja: 'x = 【外部からの入力】',
+        ruby: '@x = console.gets',
+        blocks: 'data_setvariableto(VARIABLE = @x, VALUE: smalrubyConsole_input)',
+    },
+    {
+        name: 'an input of an integer (#1758)',
+        ja: 'x = 【整数を入力】',
+        ruby: '@x = console.gets.to_i',
+        blocks: `data_setvariableto(VARIABLE = @x, VALUE: operator_mathop(OPERATOR = "floor",
+            NUM: smalrubyConsole_input) #"@ruby:method:to_i")`,
+    },
+    {
+        name: 'an input in an element of an array',
+        ja: 'Data[0] = 【外部からの入力】',
+        ruby: '@_array_Data_[0] = console.gets',
+        blocks: `data_replaceitemoflist(LIST = @_array_Data_,
+            INDEX: operator_add(NUM1: 0, NUM2: 1) #"@ruby:array:index", ITEM: smalrubyConsole_input)`,
+    },
+    {
+        name: 'the input of a program before the console (ask and answer) is read as an input',
+        ja: 'x = 【外部からの入力】',
+        jaOnly: 'toJa',
         ruby: `
             ask("")
             @x = answer
@@ -120,6 +198,35 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
         `,
     },
     {
+        name: 'the say of a program before the console (and of puts) is read as 表示する',
+        ja: '表示する(x)',
+        jaOnly: 'toJa',
+        ruby: 'puts(@x)',
+        blocks: `looks_sayforsecs(MESSAGE: @x, SECS: 1) ${PUTS}`,
+    },
+    {
+        name: '表示する of a number prints the number',
+        ja: '表示する(3)',
+        ruby: 'console.puts(3)',
+        blocks: 'smalrubyConsole_print(TEXT: "3") #"@ruby:argument:1:type:Integer"',
+    },
+    {
+        ja: `
+            もし x > 0 ならば:
+                表示する(x)
+        `,
+        ruby: `
+            if @x > 0
+              console.puts(@x)
+            end
+        `,
+        blocks: `control_if(CONDITION: operator_gt(OPERAND1: @x, OPERAND2: "0")) {
+            smalrubyConsole_print(TEXT: @x)
+        }`,
+    },
+    {
+        name: 'もし (DNCL 風の形, read)',
+        jaOnly: 'jaToBlocks',
         ja: `
             もし x > 0 ならば
               表示する(x)
@@ -127,11 +234,11 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
         `,
         ruby: `
             if @x > 0
-              puts(@x)
+              console.puts(@x)
             end
         `,
         blocks: `control_if(CONDITION: operator_gt(OPERAND1: @x, OPERAND2: "0")) {
-            looks_sayforsecs(MESSAGE: @x, SECS: 1) ${PUTS}
+            smalrubyConsole_print(TEXT: @x)
         }`,
     },
     {
@@ -143,14 +250,36 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
         jaOnly: 'jaToBlocks',
         ruby: `
             if @x > 0
-              puts(@x)
+              console.puts(@x)
             end
         `,
         blocks: `control_if(CONDITION: operator_gt(OPERAND1: @x, OPERAND2: "0")) {
-            looks_sayforsecs(MESSAGE: @x, SECS: 1) ${PUTS}
+            smalrubyConsole_print(TEXT: @x)
         }`,
     },
     {
+        ja: `
+            もし x > 0 ならば:
+                表示する(x)
+            そうでなければ:
+                表示する(y)
+        `,
+        ruby: `
+            if @x > 0
+              console.puts(@x)
+            else
+              console.puts(@y)
+            end
+        `,
+        blocks: `control_if_else(CONDITION: operator_gt(OPERAND1: @x, OPERAND2: "0")) {
+            smalrubyConsole_print(TEXT: @x)
+        } {
+            smalrubyConsole_print(TEXT: @y)
+        }`,
+    },
+    {
+        name: 'もし … そうでなければ (DNCL 風の形, read)',
+        jaOnly: 'jaToBlocks',
         ja: `
             もし x > 0 ならば
               表示する(x)
@@ -160,19 +289,36 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
         `,
         ruby: `
             if @x > 0
-              puts(@x)
+              console.puts(@x)
             else
-              puts(@y)
+              console.puts(@y)
             end
         `,
         blocks: `control_if_else(CONDITION: operator_gt(OPERAND1: @x, OPERAND2: "0")) {
-            looks_sayforsecs(MESSAGE: @x, SECS: 1) ${PUTS}
+            smalrubyConsole_print(TEXT: @x)
         } {
-            looks_sayforsecs(MESSAGE: @y, SECS: 1) ${PUTS}
+            smalrubyConsole_print(TEXT: @y)
         }`,
     },
     {
-        name: 'かつ',
+        name: 'and',
+        ja: `
+            もし x > 0 and x < 9 ならば:
+                表示する(x)
+        `,
+        ruby: `
+            if @x > 0 && @x < 9
+              console.puts(@x)
+            end
+        `,
+        blocks: `control_if(CONDITION: operator_and(OPERAND1: operator_gt(OPERAND1: @x, OPERAND2: "0"),
+            OPERAND2: operator_lt(OPERAND1: @x, OPERAND2: "9"))) {
+            smalrubyConsole_print(TEXT: @x)
+        }`,
+    },
+    {
+        name: 'かつ (DNCL 風の形, read)',
+        jaOnly: 'jaToBlocks',
         ja: `
             もし x > 0 かつ x < 9 ならば
               表示する(x)
@@ -180,16 +326,32 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
         `,
         ruby: `
             if @x > 0 && @x < 9
-              puts(@x)
+              console.puts(@x)
             end
         `,
         blocks: `control_if(CONDITION: operator_and(OPERAND1: operator_gt(OPERAND1: @x, OPERAND2: "0"),
             OPERAND2: operator_lt(OPERAND1: @x, OPERAND2: "9"))) {
-            looks_sayforsecs(MESSAGE: @x, SECS: 1) ${PUTS}
+            smalrubyConsole_print(TEXT: @x)
         }`,
     },
     {
-        name: 'の間 を繰り返す',
+        name: 'の間繰り返す',
+        ja: `
+            x < 3 の間繰り返す:
+                x = x + 1
+        `,
+        ruby: `
+            while @x < 3
+              @x = @x + 1
+            end
+        `,
+        blocks: `control_repeat_until(CONDITION: operator_not(OPERAND: operator_lt(OPERAND1: @x, OPERAND2: "3"))) {
+            data_setvariableto(VARIABLE = @x, VALUE: operator_add(NUM1: @x, NUM2: 1))
+        } #"@ruby:syntax:while"`,
+    },
+    {
+        name: 'の間 を繰り返す (DNCL 風の形, read)',
+        jaOnly: 'jaToBlocks',
         ja: `
             x < 3 の間
               x = x + 1
@@ -207,14 +369,13 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
     {
         name: 'a counting loop',
         ja: `
-            i を 1 から 3 まで 1 ずつ増やしながら
-              表示する(i)
-            を繰り返す
+            i を 1 から 3 まで 1 ずつ増やしながら繰り返す:
+                表示する(i)
         `,
         ruby: `
             @i = 1
             while @i <= 3
-              puts(@i)
+              console.puts(@i)
               @i += 1
             end
         `,
@@ -224,7 +385,33 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
                 OPERAND1: operator_lt(OPERAND1: @i, OPERAND2: "3") #"@ruby:operator:<=:1",
                 OPERAND2: operator_equals(OPERAND1: @i, OPERAND2: "3") #"@ruby:operator:<=:1"
             ) #"@ruby:operator:<=:1")) {
-              looks_sayforsecs(MESSAGE: @i, SECS: 1) ${PUTS}
+              smalrubyConsole_print(TEXT: @i)
+              data_changevariableby(VARIABLE = @i, VALUE: 1)
+            } #"@ruby:syntax:while"
+        `,
+    },
+    {
+        name: 'a counting loop (DNCL 風の形, read)',
+        jaOnly: 'jaToBlocks',
+        ja: `
+            i を 1 から 3 まで 1 ずつ増やしながら
+              表示する(i)
+            を繰り返す
+        `,
+        ruby: `
+            @i = 1
+            while @i <= 3
+              console.puts(@i)
+              @i += 1
+            end
+        `,
+        blocks: `
+            data_setvariableto(VARIABLE = @i, VALUE: "1")
+            control_repeat_until(CONDITION: operator_not(OPERAND: operator_or(
+                OPERAND1: operator_lt(OPERAND1: @i, OPERAND2: "3") #"@ruby:operator:<=:1",
+                OPERAND2: operator_equals(OPERAND1: @i, OPERAND2: "3") #"@ruby:operator:<=:1"
+            ) #"@ruby:operator:<=:1")) {
+              smalrubyConsole_print(TEXT: @i)
               data_changevariableby(VARIABLE = @i, VALUE: 1)
             } #"@ruby:syntax:while"
         `,
@@ -232,14 +419,13 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
     {
         name: 'a counting loop down',
         ja: `
-            i を 3 から 1 まで 1 ずつ減らしながら
-              表示する(i)
-            を繰り返す
+            i を 3 から 1 まで 1 ずつ減らしながら繰り返す:
+                表示する(i)
         `,
         ruby: `
             @i = 3
             while @i >= 1
-              puts(@i)
+              console.puts(@i)
               @i += -1
             end
         `,
@@ -249,7 +435,33 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
                 OPERAND1: operator_gt(OPERAND1: @i, OPERAND2: "1") #"@ruby:operator:>=:1",
                 OPERAND2: operator_equals(OPERAND1: @i, OPERAND2: "1") #"@ruby:operator:>=:1"
             ) #"@ruby:operator:>=:1")) {
-              looks_sayforsecs(MESSAGE: @i, SECS: 1) ${PUTS}
+              smalrubyConsole_print(TEXT: @i)
+              data_changevariableby(VARIABLE = @i, VALUE: -1)
+            } #"@ruby:syntax:while"
+        `,
+    },
+    {
+        name: 'a counting loop down (DNCL 風の形, read)',
+        jaOnly: 'jaToBlocks',
+        ja: `
+            i を 3 から 1 まで 1 ずつ減らしながら
+              表示する(i)
+            を繰り返す
+        `,
+        ruby: `
+            @i = 3
+            while @i >= 1
+              console.puts(@i)
+              @i += -1
+            end
+        `,
+        blocks: `
+            data_setvariableto(VARIABLE = @i, VALUE: "3")
+            control_repeat_until(CONDITION: operator_not(OPERAND: operator_or(
+                OPERAND1: operator_gt(OPERAND1: @i, OPERAND2: "1") #"@ruby:operator:>=:1",
+                OPERAND2: operator_equals(OPERAND1: @i, OPERAND2: "1") #"@ruby:operator:>=:1"
+            ) #"@ruby:operator:>=:1")) {
+              smalrubyConsole_print(TEXT: @i)
               data_changevariableby(VARIABLE = @i, VALUE: -1)
             } #"@ruby:syntax:while"
         `,
@@ -263,11 +475,33 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
         jaOnly: 'jaToBlocks',
         ruby: `
             @x = 1
-            puts(@x)
+            console.puts(@x)
         `,
         blocks: `
             data_setvariableto(VARIABLE = @x, VALUE: "1")
-            looks_sayforsecs(MESSAGE: @x, SECS: 1) ${PUTS}
+            smalrubyConsole_print(TEXT: @x)
         `,
+    },
+    {
+        name: 'a name with 々 is one variable (issue #1714)',
+        ja: `
+            佐々木 = 7
+            表示する(佐々木)
+        `,
+        ruby: `
+            @佐々木 = 7
+            console.puts(@佐々木)
+        `,
+        blocks: `
+            data_setvariableto(VARIABLE = @佐々木, VALUE: "7")
+            smalrubyConsole_print(TEXT: @佐々木)
+        `,
+    },
+    {
+        name: 'a kanji of the CJK extension A and a Greek letter are names (issue #1714)',
+        ja: 'α = 㐀 ＋ 1',
+        jaOnly: 'jaToBlocks',
+        ruby: '@α = @㐀 + 1',
+        blocks: 'data_setvariableto(VARIABLE = @α, VALUE: operator_add(NUM1: @㐀, NUM2: 1))',
     },
 ]);

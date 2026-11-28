@@ -111,12 +111,34 @@ import costumesIcon from './icon--costumes.svg';
 import soundsIcon from './icon--sounds.svg';
 // === Smalruby: Start of ruby tab ===
 import rubyIcon from './icon--ruby.svg';
+import japaneseIcon from './icon--japanese.svg';
+import languageTabStyles from './language-tabs.css';
+import {JAPANESE_TAB_INDEX, RUBY_TAB_INDEX} from '../../reducers/editor-tab';
 // === Smalruby: End of ruby tab ===
 import DebugModal from '../debug-modal/debug-modal.jsx';
 import {setPlatform} from '../../reducers/platform.js';
 import {setTheme} from '../../reducers/settings.js';
 import {PLATFORM} from '../../lib/platform.js';
 import {ModalFocusProvider} from '../../contexts/modal-focus-context.jsx';
+
+// === Smalruby: Start of Japanese right column ===
+import JapaneseRightColumn from '../japanese-right-column/japanese-right-column.jsx';
+// === Smalruby: End of Japanese right column ===
+
+// === Smalruby: Start of Japanese tab ===
+const japaneseTabMessages = defineMessages({
+    title: {
+        id: 'gui.smalruby3.gui.japaneseTabTitle',
+        description: 'Tooltip of the Japanese tab',
+        defaultMessage: 'Write the program in Japanese (the notation of the common test)'
+    },
+    lockedInLesson: {
+        id: 'gui.smalruby3.gui.japaneseTabLockedInLesson',
+        description: 'Tooltip of the Japanese tab when the lesson does not allow Japanese',
+        defaultMessage: 'You cannot use the Japanese tab in this lesson'
+    }
+});
+// === Smalruby: End of Japanese tab ===
 
 // === Smalruby: Start of about menu ===
 const aboutMenuMessages = defineMessages({
@@ -337,6 +359,9 @@ const GUIComponent = props => {
         // === Smalruby: End of Redux action props prevention ===
         // === Smalruby: Start of ruby tab ===
         rubyTabVisible,
+        japaneseTabActive,
+        japaneseTabAvailable,
+        japaneseTabLocked,
         // === Smalruby: End of ruby tab ===
         showComingSoon,
         showNewFeatureCallouts,
@@ -788,7 +813,11 @@ const GUIComponent = props => {
                                         </Tab>
                                         {/* === Smalruby: Start of ruby tab === */}
                                         <Tab
-                                            className={tabClassNames.tab}
+                                            className={classNames(tabClassNames.tab, {
+                                                [languageTabStyles.rubyTabSelected]:
+                                                    activeTabIndex === RUBY_TAB_INDEX
+                                            })}
+                                            data-testid="gui-tab-ruby"
                                             onClick={onActivateRubyTab}
                                             role="tab"
                                             tabIndex="0"
@@ -801,6 +830,33 @@ const GUIComponent = props => {
                                                 defaultMessage="Ruby"
                                                 description="Button to get to the Ruby panel"
                                                 id="gui.smalruby3.gui.rubyTab"
+                                            />
+                                        </Tab>
+                                        {/* The Japanese tab writes the program in Japanese, in the same
+                                            editor as the Ruby tab (docs/dncl/design.md 1 章). Japanese
+                                            locales only; a lesson that does not allow it locks it */}
+                                        <Tab
+                                            className={classNames(tabClassNames.tab, {
+                                                [languageTabStyles.japaneseTabSelected]: japaneseTabActive,
+                                                [languageTabStyles.japaneseTabHidden]: !japaneseTabAvailable,
+                                                [languageTabStyles.japaneseTabLocked]: japaneseTabLocked
+                                            })}
+                                            data-testid="gui-tab-japanese"
+                                            disabled={!japaneseTabAvailable || japaneseTabLocked}
+                                            role="tab"
+                                            tabIndex="0"
+                                            title={japaneseTabLocked ?
+                                                intl.formatMessage(japaneseTabMessages.lockedInLesson) :
+                                                intl.formatMessage(japaneseTabMessages.title)}
+                                        >
+                                            <img
+                                                draggable={false}
+                                                src={japaneseIcon}
+                                            />
+                                            <FormattedMessage
+                                                defaultMessage="Japanese"
+                                                description="Button to get to the Japanese (共通テスト用プログラム表記) panel"
+                                                id="gui.smalruby3.gui.japaneseTab"
                                             />
                                         </Tab>
                                         {/* === Smalruby: End of ruby tab === */}
@@ -925,8 +981,12 @@ const GUIComponent = props => {
                                         /> : null}
                                 </TabPanel>
                                 {/* === Smalruby: Start of ruby tab === */}
+                                {/* The Japanese tab shows this panel too: RubyTab writes the program in
+                                    Japanese while the Japanese tab is active */}
                                 <TabPanel
-                                    className={tabClassNames.tabPanel}
+                                    className={classNames(tabClassNames.tabPanel, {
+                                        [tabClassNames.tabPanelSelected]: japaneseTabActive
+                                    })}
                                     role="tabpanel"
                                 >
                                     <RubyTab
@@ -935,6 +995,10 @@ const GUIComponent = props => {
                                         onProjectTelemetryEvent={onProjectTelemetryEvent}
                                     />
                                 </TabPanel>
+                                <TabPanel
+                                    className={classNames(tabClassNames.tabPanel, languageTabStyles.japaneseTabPanel)}
+                                    role="tabpanel"
+                                />
                                 {/* === Smalruby: End of ruby tab === */}
                             </Tabs>
                             {backpackVisible && backpackConfigured ? (
@@ -970,19 +1034,28 @@ const GUIComponent = props => {
                                 username={username}
                                 onUpdateProjectThumbnail={onUpdateProjectThumbnail}
                             />
-                            <Box
-                                className={styles.targetWrapper}
-                                role="region"
-                                aria-label={intl.formatMessage(ariaMessages.targetPane)}
-                                element="section"
+                            {/* === Smalruby: Start of Japanese right column === */}
+                            <JapaneseRightColumn
+                                active={activeTabIndex === JAPANESE_TAB_INDEX}
+                                stageSize={stageSize}
                             >
-                                <TargetPane
-                                    stageSize={stageSize}
-                                    vm={vm}
-                                    onNewSpriteClick={onNewSpriteClick}
-                                    onNewBackdropClick={onNewLibraryBackdropClick}
-                                />
-                            </Box>
+                                {/* === Smalruby: End of Japanese right column === */}
+                                <Box
+                                    className={styles.targetWrapper}
+                                    role="region"
+                                    aria-label={intl.formatMessage(ariaMessages.targetPane)}
+                                    element="section"
+                                >
+                                    <TargetPane
+                                        stageSize={stageSize}
+                                        vm={vm}
+                                        onNewSpriteClick={onNewSpriteClick}
+                                        onNewBackdropClick={onNewLibraryBackdropClick}
+                                    />
+                                </Box>
+                                {/* === Smalruby: Start of Japanese right column === */}
+                            </JapaneseRightColumn>
+                            {/* === Smalruby: End of Japanese right column === */}
                         </Box>
                     </Box>
                     <DragLayer />
@@ -1113,6 +1186,9 @@ GUIComponent.propTypes = {
     renderLogin: PropTypes.func,
     // === Smalruby: Start of ruby tab ===
     rubyTabVisible: PropTypes.bool,
+    japaneseTabActive: PropTypes.bool,
+    japaneseTabAvailable: PropTypes.bool,
+    japaneseTabLocked: PropTypes.bool,
     // === Smalruby: End of ruby tab ===
     setTheme: PropTypes.func.isRequired,
     showComingSoon: PropTypes.bool,

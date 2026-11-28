@@ -30,7 +30,8 @@ ruby-toolbar 上部のセグメントで切替：
 |---|---|---|
 | **ふりがな** | `ruby-toolbar-mode-furigana` | Ruby + ふりがな（日本語ロケール時のみ）|
 | **Ruby** | `ruby-toolbar-mode-ruby` | プレーン Ruby |
-| **日本語 (DNCL)** | `ruby-toolbar-mode-dncl` | DNCL モード（日本語プログラミング）|
+
+日本語（DNCL）はルビータブのモードではなく、ルビータブの右の **日本語タブ**（`gui-tab-japanese`）で書く。2 つのタブは同じエディタを使い、日本語タブを開くと Ruby を日本語にして見せ、ルビータブを開くと Ruby に戻す。ルビータブと日本語タブのあいだを移ると GA の `mode_switch`（`label` は `dncl` / `furigana` / `ruby`）を送る（`containers/ruby-tab.jsx`）。ルビータブのふりがな・Ruby のボタンも `mode_switch` を送る（`ruby-toolbar.jsx`）。
 
 ふりがな・DNCL は独立した機能として個別ドキュメントあり（[`docs/furigana/`](../furigana/), [`docs/dncl/`](../dncl/)）。
 
@@ -56,7 +57,7 @@ ruby-toolbar 上部のセグメントで切替：
 | 元に戻す/やり直す | Monaco の undo/redo |
 | 検索 | Monaco の find |
 | キーボード (`ruby-toolbar-keyboard`) | ソフトウェアキーボードの表示/非表示（タッチデバイスのみ表示）。Monaco 組み込みの iPad キーボードウィジェットは zoom ボタンと重なるため CSS で非表示にしており、その代替 |
-| 自動置換 (`ruby-toolbar-auto-correct`) | 自動置換のオン/オフ |
+| 自動置換 (`ruby-toolbar-auto-correct`) | 自動置換のオン/オフ。全角の数字・英字・記号・空白を半角にする。コメント（`#` の後ろ。日本語タブでは設定で `//` をコメントにしたときの `//` の後ろも）の中は変えない（`＃` は `#` になる） |
 | その他メニュー (`ruby-toolbar-more-menu`) | Ruby スクリプト保存、クラス挿入、プレビュー、自動置換設定 |
 | スプライト切替 | エディタ対象スプライトの prev/next |
 

@@ -70,6 +70,11 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/gui/gui.jsx` | meshV2 classroom binding | クラス状態に応じて Mesh v2 ドメインを参加コードに固定する常時マウントの binding |
 | `src/components/gui/gui.jsx` | mesh status popup | メッシュの「状態と履歴」ウィンドウ（`containers/mesh-status-popup.jsx`）の import と、エディターとプレイヤーのツリー（`StageWrapper` 内）への常時マウント（`docs/mesh-v2/README.md`） |
 | `src/components/stage-header/stage-header.jsx` | mesh status button | 緑の旗・停止（`Controls`）とメッシュのボタン（`MeshStatusButton`）を 1 つのまとまり（`controlsGroup`）に入れる。通常表示と全画面の 2 か所 + import |
+| `src/components/stage-header/stage-header.jsx` | console button | コンソールのボタン（`SmalrubyConsoleButton`）をメッシュのボタンの後ろに置く。通常表示と全画面の 2 か所 + import |
+| `src/components/stage/stage.jsx` | console | ステージの上にコンソール（`SmalrubyConsole`）を重ね、質問と答えの口を渡す。コンソールの表示中はステージの質問の欄を出さない（`consoleVisible`）。日本語タブでは、コンソールを右の列に描き（`inColumn`）、その表示中はステージを隠す（`consoleInColumn` → `.hidden-for-console`）。import・分割代入・propTypes |
+| `src/components/stage/stage.css` | console | 日本語タブでコンソールを出しているあいだ、ステージを隠す（`.stage-wrapper.hidden-for-console`） |
+| `src/containers/stage.jsx` | console | `vm` をステージのコンポーネントへ渡す・`consoleVisible` を `state.scratchGui.smalrubyConsole.visible` にマップ・`consoleInColumn`（日本語タブで全画面でもプレイヤーだけでもないとき）をマップ・`shouldComponentUpdate` で `consoleInColumn` / `consoleVisible` の変化を描き直しに入れる（propTypes も）・`componentDidUpdate` で、隠れて 0×0 のステージの canvas をステージの大きさのままにする（`stageCanvasSize`。0×0 だと提出・保存のサムネイルが空になる）・`JAPANESE_TAB_INDEX` と `stageCanvasSize` の import |
+| `src/components/gui/gui.jsx` | Japanese right column | スプライトと背景の一覧（`.target-wrapper`）を `JapaneseRightColumn` で包む（日本語タブのあいだは、コンソールの置き場・札を足し、一覧を隠す）。import |
 | `src/components/menu-bar/menu-bar.jsx` | mesh status popup | メッシュのメニューの「状態と履歴を見る」（`menu-bar-mesh-status`）と、`openMeshV2StatusPopup` の import・`onOpenMeshV2StatusPopup` の dispatch と propType |
 | `src/components/connection-modal/connected-step.jsx` | mesh status popup | メッシュの接続済み画面の［状態と履歴］ボタン（`mesh-v2-open-status`）の import と配置 |
 | `src/components/connection-modal/connection-modal.jsx` | mesh header design system | メッシュの接続のモーダルだけ、ヘッダーの題を太字 1.2rem にし（`.mesh-v2-header-title`）、ヘルプをヘッダーに置かず、どの画面でも本文の下に `MeshV2HelpRow`（`mesh-v2-help-row.jsx`・`meshV2-help`）を出す。その import と `extensionId` の propType（`docs/design-system/components/modal.md` の「つなぐ画面」） |
@@ -167,6 +172,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/lib/project-fetcher-hoc.jsx` | URL params for Playwright | URL パラメーター import |
 | `src/lib/project-fetcher-hoc.jsx` | initial tab from URL param | 初期タブ URL パラメーター |
 | `src/reducers/editor-tab.js` | initial tab from URL param | 初期タブ URL パラメーター |
+| `src/reducers/editor-tab.js` | Japanese tab | 日本語タブ `JAPANESE_TAB_INDEX`（4）と、Ruby タブか日本語タブかを見る `isTextTabIndex`（`docs/dncl/README.md`） |
 | `src/reducers/project-state.js` | restore project state after URL load failure (#972) | Scratch URL 読み込み失敗時に、直前プロジェクトの id + 表示状態へアトミックに復帰する `RESTORE_PROJECT_STATE` アクション/reducer case/`restoreProjectState` action creator（VM 復元内容と redux の projectId 不整合・ERROR 化を防ぐ。4 ペア） |
 | `src/reducers/settings.js` | URL params for Playwright | URL パラメーター import |
 | `src/reducers/settings.js` | ruby_version URL param | Ruby バージョン URL パラメーター |
@@ -192,7 +198,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/lib/vm-manager-hoc.jsx` | koshien mock config wiring | VM 初期化時に `wireKoshienMockConfig(vm)` を呼び、甲子園拡張機能が練習ゲーム設定（マップ/自機サイド/相手AI）を読めるよう runtime に getter を差し込む (import + componentDidMount) |
 | `src/lib/define-dynamic-block.js` | argumentsByMethod support / argumentsByMethod layout / menu field support | 拡張ブロックの `argumentsByMethod`（メソッドごとの引数定義）と menu フィールドのサポート。undo/redo・プロジェクトロードのため複数回の `domToMutation` を許容 |
 | `src/lib/sb-file-uploader-hoc.jsx` | clear Google Drive state on file upload | ローカル sb3 ファイルのアップロード時に Google Drive のロード状態をクリア（3 ペア） |
-| `src/lib/make-toolbox-xml.js` | DNCL hide extensions | DNCL（日本語）モード時にツールボックスから拡張機能カテゴリを隠す |
+| `src/lib/make-toolbox-xml.js` | DNCL hide extensions | DNCL（日本語）モード時にツールボックスから拡張機能カテゴリを隠す（コンソール `smalrubyConsole` だけは残す） |
 | `src/lib/make-toolbox-xml.js` | lesson dynamic category filtering | `isDynamicCategoryAllowed` の import と、引数 `dynamicCategoryIds`（レッスン・チュートリアルの `allowedBlocks`）に変数・ブロック定義の opcode が無ければ「変数」「ブロック定義」のカテゴリを出さない |
 | `src/lib/locale-utils.js` | Japanese locale check | 日本語ロケール（ja / ja-Hira）判定ヘルパー |
 | `src/lib/legacy-storage.ts` | local sprite assets | スプライトの画像アセットをローカル配信の web store から解決する追加登録 |
@@ -201,7 +207,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/lib/alerts/index.jsx` | Smalrubot S1 renamed alert | 移行期間の前の名前のカード（スモウルボットS1）を選んだときの、名前が変わったことの知らせ（`smalrubotS1Renamed`。2027-11-30 の期限のあとに消す） |
 | `src/components/alerts/alert.jsx` | classroom session expired | セッション失効アラートの表示側 |
 | `src/containers/alert.jsx` | classroom session expired | セッション失効アラートのコンテナ側（3 ペア） |
-| `src/lib/libraries/extensions/index.jsx` | TM2Scratch extension / AkaDako extension / Ruby String extension | 拡張機能ライブラリへの Smalruby 拡張エントリ（各 2 ペア。取り外し可能拡張の分離マーカーと同名系列） |
+| `src/lib/libraries/extensions/index.jsx` | TM2Scratch extension / AkaDako extension / Ruby String extension / Console extension | 拡張機能ライブラリへの Smalruby 拡張エントリ（各 2 ペア。取り外し可能拡張の分離マーカーと同名系列） |
 | `src/components/connection-modal/connection-modal.css` | meshV2 name search / network filter detection feature | mesh v2 グループ名検索 UI とネットワークフィルター検出表示のスタイル |
 | `src/components/connection-modal/connection-modal.css` | mesh header design system | メッシュの接続のモーダルの題（太字 1.2rem。本文のヘルプの CSS は独自ファイル `mesh-v2-help-row.css`） |
 | `src/components/menu-bar/menu-bar.css` | mesh menu icon design system | メッシュのメニューのアイコンの余白を上流の `.help-icon` とそろえる（右から左の言葉も） |
@@ -251,17 +257,19 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/containers/blocks.jsx` | only blocks filter / toolbox filters | ツールボックスのブロックを絞る（`only_blocks` のステージのコメント・URL パラメーター・ブロック表示の設定・チュートリアル）と、変わったときの再描画 |
 | `src/containers/blocks.jsx` | palette toggle / toolbox filters and palette toggle | ブロックパレットの表示・非表示（ボタン・位置・切りかえ・Redux） |
 | `src/containers/blocks.jsx` | blocks screenshot | スクリプトを画像で保存するボタン |
-| `src/containers/blocks.jsx` | block display modal / ruby tab | ScratchBlocks を Redux に渡す、Ruby タブのときはコードタブで値を表示しない |
+| `src/containers/blocks.jsx` | block display modal / ruby tab | ScratchBlocks を Redux に渡す、Ruby タブ・日本語タブのときはコードタブで値を表示しない（`isTextTabIndex`） |
 | `src/containers/blocks.jsx` | Ruby-converted block positioning | Ruby から変換したブロックを並べたあとの中央へのスクロール（コードタブが隠れていたときは後で） |
 | `src/containers/blocks.jsx` | scratch-blocks v2 variable prompt / scratch-blocks v2 toolbox / VMScratchBlocks without useCatBlocks / toolbox selection null guard / scratch-blocks v2 my blocks toolbox refresh / toolbox refresh on tab show / toolbox refresh after backpack drop | scratch-blocks v2 に合わせた呼び出し・null の確認・ツールボックスの作りなおし |
 | `src/containers/blocks.jsx` | scratch-blocks v2 unmount focus guard | `componentWillUnmount` のフォーカスの確認（scratch-blocks#3460。`postMergeReverts` の意図的な乖離） |
 | `src/containers/blocks.jsx` | sensing_online Japanese translation / messages prop type | 「オンライン?」の日本語訳、`messages` の prop type に object を足す |
-| `src/components/gui/gui.jsx` | url loader / koshien / ruby tab / block display modal / tips library close | URL ローダー・甲子園のモーダルとパネル・Ruby タブ・ブロック表示のモーダル・チュートリアルを閉じるアクション（import・props・propTypes・JSX） |
+| `src/components/gui/gui.jsx` | url loader / koshien / ruby tab / block display modal / tips library close | URL ローダー・甲子園のモーダルとパネル・Ruby タブ・ブロック表示のモーダル・チュートリアルを閉じるアクション（import・props・propTypes・JSX）。ruby tab には日本語タブ（`gui-tab-japanese`。Ruby タブのパネルを共有し、日本語タブのパネルは空で隠す）と、言葉の色（`language-tabs.css`）も入る |
+| `src/components/gui/gui.jsx` | Japanese tab | 日本語タブのツールチップの文言（`japaneseTabMessages`） |
 | `src/components/gui/gui.jsx` | legal links / feedback link confirm | 画面の下のプライバシーポリシー・フィードバックのリンクと、フィードバックの前の確認 |
 | `src/components/gui/gui.jsx` | iPad portrait narrow desktop stage size | `STAGE_DISPLAY_SIZES` の import と、内側の `MediaQuery` を閉じるところ |
 | `src/components/gui/gui.jsx` | tab list container style / new feature callouts removal | タブの並びの `className`、upstream の `showNewFeatureCallouts` を消したところの注記 |
 | `src/containers/gui.jsx` | tab activation handler / onSetPlatform prop rename / set theme | タブ切りかえのハンドラー、`setPlatform` を `onSetPlatform` にした名前、テーマの設定 |
-| `src/containers/gui.jsx` | ruby tab / koshien / url loader / tips library close / welcome modal | 上の機能の import・アクション・state |
+| `src/containers/gui.jsx` | ruby tab / koshien / url loader / tips library close / welcome modal | 上の機能の import・アクション・state。ruby tab は Ruby タブ・日本語タブのどちらでもエディタを出す `rubyTabVisible` と、日本語タブの `japaneseTabActive` / `japaneseTabAvailable`（日本語の表示のとき）/ `japaneseTabLocked`（日本語を使わないレッスン） |
+| `src/containers/gui.jsx` | Japanese tab | `isJapaneseLocale` と `getLessonDnclModeAllowed` の import |
 | `src/containers/gui.jsx` | smalruby gui props / smalruby gui state / smalruby modal close actions | 上の機能が使う propTypes・`mapStateToProps`・モーダルを閉じるアクションのまとまり |
 | `src/lib/make-toolbox-xml.js` | only_blocks filtering | `only_blocks`（URL パラメーター・ステージのコメント）でツールボックスのブロックを絞る（`parseOnlyBlocks`・`filterBlocks` などの関数・引数・中身の無いカテゴリを出さない組み立て・`filterBlocks` の export）。upstream の `everything` の組み立てと拡張のカテゴリの追加を書きかえたところに注記 |
 | `src/lib/make-toolbox-xml.js` | category name message reference | 各カテゴリの名前を `%{BKY_CATEGORY_*}` で書く（upstream は `ScratchMsgs.translate`）。テンプレート文字列の中には書けないので、`return` の前に注記だけのペアを置く（`postMergeReverts` の意図的な乖離） |

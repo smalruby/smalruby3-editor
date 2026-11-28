@@ -19,7 +19,7 @@ const messages = defineMessages({
     dnclExtensionConfirm: {
         id: 'gui.extensionButton.dnclExtensionConfirm',
         description: 'Confirm dialog when extension button is clicked in DNCL mode',
-        defaultMessage: 'Extensions are not available in Japanese mode.\nReturn to Ruby furigana mode to enable extensions.\nSwitch now?'
+        defaultMessage: 'While you write in the Japanese tab, extensions and some blocks are not available.\nUse all blocks and extensions?\n(They are restricted again when you go back to the Japanese tab.)'
     }
     // === Smalruby: End of DNCL extension confirm ===
 });

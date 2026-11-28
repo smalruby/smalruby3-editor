@@ -229,11 +229,6 @@
     background-color: $looks-transparent;
 }
 
-.modeToggleItemDisabled {
-    opacity: 0.4;
-    cursor: default;
-}
-
 .modeToggleFuriganaLabel {
     display: flex;
     flex-direction: column;
@@ -371,4 +366,103 @@
 .moreMenuIconImg {
     width: 20px;
     height: 20px;
+}
+
+.moreMenuSeparator {
+    height: 1px;
+    margin: calc($space / 2) 0;
+    background-color: $ui-black-transparent;
+}
+
+.moreMenuHeading {
+    padding: calc($space / 2) 0.75rem 0;
+    font-size: 0.75rem;
+    font-weight: bold;
+    color: $text-primary-transparent;
+    white-space: nowrap;
+}
+
+/*
+ * スイッチ（Issue #2453）: 1 つのものを表示する / しないを、押すたびに入れ替える。
+ * 形と使い分けは docs/design-system/components/buttons.md の「スイッチ」（VS Code の設定のトグルが手本）。
+ */
+.switch {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    height: 2rem; /* 32px: ツールバーのアイコンボタンと同じ高さ */
+    padding: 0 0.375rem;
+    border: none;
+    border-radius: $form-radius;
+    background-color: transparent;
+    cursor: pointer;
+    user-select: none;
+    font-family: inherit;
+    transition: background-color 0.2s;
+}
+
+.switch:hover {
+    background-color: hsla(0, 0%, 0%, 0.05);
+}
+
+.switch:focus {
+    outline: none;
+}
+
+.switch:focus-visible {
+    outline: 2px solid $looks-secondary;
+    outline-offset: 2px;
+}
+
+.switchTrack {
+    position: relative;
+    flex: none;
+    width: 1.75rem; /* 28px */
+    height: 1rem; /* 16px */
+    border-radius: 0.5rem;
+    background-color: $ui-white;
+    border: 1px solid $text-primary-transparent;
+    box-sizing: border-box;
+    transition:
+        background-color 0.2s,
+        border-color 0.2s;
+}
+
+.switchThumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: $text-primary-transparent;
+    transition:
+        transform 0.2s,
+        background-color 0.2s;
+}
+
+.switch[aria-checked='true'] .switchTrack {
+    background-color: $looks-secondary;
+    border-color: $looks-secondary;
+}
+
+.switch[aria-checked='true'] .switchThumb {
+    background-color: $ui-white;
+    transform: translateX(12px);
+}
+
+[dir='rtl'] .switchThumb {
+    left: auto;
+    right: 2px;
+}
+
+[dir='rtl'] .switch[aria-checked='true'] .switchThumb {
+    transform: translateX(-12px);
+}
+
+.switchLabel {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: $text-primary;
+    white-space: nowrap;
 }

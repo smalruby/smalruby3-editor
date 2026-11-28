@@ -1,0 +1,14 @@
+{
+    "ja": {
+        "smalrubyConsole.entry.name": "コンソール",
+        "smalrubyConsole.entry.description": "文字を表示したり、入力を受け取ったりする。"
+    },
+    "ja-Hira": {
+        "smalrubyConsole.entry.name": "コンソール",
+        "smalrubyConsole.entry.description": "もじをひょうじしたり、にゅうりょくをうけとったりする。"
+    },
+    "en": {
+        "smalrubyConsole.entry.name": "Console",
+        "smalrubyConsole.entry.description": "Print text and take input."
+    }
+}

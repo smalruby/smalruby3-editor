@@ -9,6 +9,9 @@
  */
 import { UNSUPPORTED_COMMAND_ERROR_ID } from '../../../../src/lib/dncl/dncl-validator';
 import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { loadPrism } from '../../../../src/lib/prism-parser';
+
+beforeAll(() => loadPrism());
 
 const lines = (...ls) => ls.join('\n');
 
@@ -43,10 +46,10 @@ describe('Ruby → DNCL: a method without parentheses in an expression (issue #1
         ]);
     });
 
-    test('the error message points to the Ruby mode', () => {
+    test('the error message points to the Ruby tab', () => {
         const [err] = rubyToDncl('@a = x_position').errors;
         expect(err.message).toContain('x_position');
-        expect(err.message).toContain('Ruby モード');
+        expect(err.message).toContain('ルビータブ');
     });
 
     test('a name alone on a line is told once', () => {

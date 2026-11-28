@@ -36,6 +36,9 @@ const EXTRA_SYMBOL_MAP = {
     '\u2212': '-', // − minus sign
 };
 
+// The remainder operator as the Japanese tab writes it.
+const JAPANESE_REMAINDER = '\uFF05';
+
 /**
  * Build a regex that matches fullwidth characters according to the given settings.
  * @param {object} settings - The auto-correct settings.
@@ -115,46 +118,85 @@ const replaceChar = (ch, settings) => {
 };
 
 /**
- * Find string literal regions in Ruby source code using a simple state machine.
- * Returns an array of [start, end] pairs (inclusive of quote delimiters).
- * Handles double-quoted and single-quoted strings with escape sequences.
- * @param {string} code - Ruby source code.
- * @returns {Array<[number, number]>} Array of [start, end] index pairs.
+ * Whether `ch` is a `/`, half-width or full-width.
+ * @param {string} ch - A character.
+ * @returns {boolean} True for `/` and `／`.
  */
-const findStringRegions = (code) => {
-    const regions = [];
+const isSlash = (ch) => ch === '/' || ch === '\uFF0F';
+
+/**
+ * Find the string literals and the comments of the source with a simple state
+ * machine. A string region is `[start, end]` (the indexes of its quotes); a
+ * comment region is `[start, end]` from the first character after its mark to
+ * the end of its line, so the mark itself can still be made half-width
+ * (`＃` → `#`) but what is written after it stays as it is: a comment is
+ * a sentence, and its `，` and `（` are meant (Issue #1731, S10).
+ *
+ * A comment starts with `#` (or `＃`). With `slashComments`, `//` (or `／／`)
+ * starts one too (the Japanese tab, when its settings say so). With
+ * `japanese`, `「…」` is a string as well and a string ends at the end of its
+ * line, as the Japanese tab reads it.
+ * @param {string} code - The source code.
+ * @param {object} [options] - How the source is read.
+ * @param {boolean} [options.japanese] - Whether it is the Japanese tab's code.
+ * @param {boolean} [options.slashComments] - Whether `//` starts a comment.
+ * @returns {{strings: Array<[number, number]>, comments: Array<[number, number]>}} The regions.
+ */
+const findRegions = (code, options = {}) => {
+    const strings = [];
+    const comments = [];
+    const closeOf = (ch) => {
+        if (ch === '"' || ch === "'") return ch;
+        if (ch === '\u201C') return '\u201D';
+        if (ch === '\u2018') return '\u2019';
+        if (options.japanese && ch === '\u300C') return '\u300D';
+        return null;
+    };
     let i = 0;
     while (i < code.length) {
         const ch = code[i];
-        if (ch === '"' || ch === "'" || ch === '\u201C' || ch === '\u2018') {
-            // Map opening smart quotes to their closing counterpart
-            const closeQuote = ch === '\u201C' ? '\u201D' : ch === '\u2018' ? '\u2019' : ch;
+        const closeQuote = closeOf(ch);
+        if (closeQuote) {
             const start = i;
             i++; // skip opening quote
             while (i < code.length) {
-                if (code[i] === '\\') {
+                // A `\` in a 「…」 is text (the Japanese tab takes it as it is).
+                if (code[i] === '\\' && closeQuote !== '\u300D') {
                     i += 2; // skip escaped character
                     continue;
                 }
                 if (code[i] === closeQuote) {
                     break;
                 }
+                if (options.japanese && code[i] === '\n') {
+                    break;
+                }
                 i++;
             }
             // i is now at closing quote or end of string
-            regions.push([start, i]);
+            strings.push([start, i]);
             i++; // skip closing quote (or move past end)
-        } else if (ch === '#') {
-            // Skip comment to end of line
+        } else if (ch === '#' || ch === '\uFF03' || (options.slashComments && isSlash(ch) && isSlash(code[i + 1]))) {
+            const start = i + (ch === '#' || ch === '\uFF03' ? 1 : 2);
+            i = start;
             while (i < code.length && code[i] !== '\n') {
                 i++;
             }
+            comments.push([start, i]);
         } else {
             i++;
         }
     }
-    return regions;
+    return { strings, comments };
 };
+
+/**
+ * Check if a given index falls inside any comment region.
+ * @param {number} index - Character index in the source.
+ * @param {Array<[number, number]>} regions - Comment regions.
+ * @returns {boolean} True if inside a comment.
+ */
+const isInComment = (index, regions) => regions.some(([start, end]) => index >= start && index < end);
 
 /**
  * Check if a given index falls inside any string region.
@@ -189,23 +231,35 @@ const isEscaped = (code, index) => {
 };
 
 /**
- * Apply fullwidth-to-halfwidth auto-correction to Ruby source code.
+ * Apply fullwidth-to-halfwidth auto-correction to Ruby source code (or the
+ * Japanese tab's code). What is written in a comment stays as it is, and so
+ * does the `％` of the Japanese tab.
  * @param {string} code - The Ruby source code.
  * @param {object} settings - The auto-correct settings.
+ * @param {object} [options] - How the source is read (see `findRegions`).
  * @returns {string} The corrected source code.
  */
-const autoCorrect = (code, settings) => {
+const autoCorrect = (code, settings, options = {}) => {
     if (!code) return code;
 
     const pattern = buildPattern(settings);
     if (!pattern) return code;
 
-    // Pre-compute string regions if we need to skip strings
-    const stringRegions = settings.replaceInStrings ? null : findStringRegions(code);
+    const regions = findRegions(code, options);
 
     const result = code.replace(pattern, (match, offset) => {
+        if (isInComment(offset, regions.comments)) {
+            return match;
+        }
+
+        // The Japanese tab writes the remainder as `％` (docs/smalruby-dncl-spec.ja.md),
+        // so it stays as it is, not to go back and forth (Issue #2557, B17-1).
+        if (options.japanese && match === JAPANESE_REMAINDER) {
+            return match;
+        }
+
         // If replaceInStrings is off, skip characters inside string literals
-        if (stringRegions && isInString(offset, stringRegions)) {
+        if (!settings.replaceInStrings && isInString(offset, regions.strings)) {
             return match;
         }
 

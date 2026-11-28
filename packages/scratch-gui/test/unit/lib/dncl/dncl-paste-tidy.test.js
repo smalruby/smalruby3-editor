@@ -5,6 +5,7 @@ import {
     tidyPastedDncl,
     withDoubleSlashHint,
 } from '../../../../src/lib/dncl/dncl-paste-tidy';
+import { problemFormText } from '../../../../src/lib/dncl/dncl-problem-form';
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
 
 describe('tidyPastedDncl', () => {
@@ -107,7 +108,7 @@ describe('tidyPastedDncl', () => {
         expect(tidyPastedDncl('(01) a = 1 // 説明\r\n(02) b = 2')).toBe('a = 1 # 説明\r\nb = 2');
     });
 
-    test('joins a statement wrapped onto unnumbered lines and keeps its `⎿`', () => {
+    test('joins a statement wrapped onto unnumbered lines and closes the block at its `⎿`', () => {
         expect(
             tidyPastedDncl(
                 [
@@ -120,7 +121,7 @@ describe('tidyPastedDncl', () => {
         ).toBe(
             [
                 'i を 1 から 3 まで 1 ずつ増やしながら繰り返す:',
-                '⎿ 表示する(i, "人目：", i * 2, "分間")',
+                '    表示する(i, "人目：", i * 2, "分間")',
                 '表示する("おわり")',
             ].join('\n'),
         );
@@ -128,7 +129,7 @@ describe('tidyPastedDncl', () => {
 
     test('joins a statement wrapped onto unnumbered lines with `1:` line numbers', () => {
         expect(tidyPastedDncl('1: もし x > 1 ならば:\n2:  ｜ 表示する(x,\n   ⎿   "です")\n3: 表示する(x)')).toBe(
-            'もし x > 1 ならば:\n⎿ 表示する(x, "です")\n表示する(x)',
+            'もし x > 1 ならば:\n    表示する(x, "です")\n表示する(x)',
         );
     });
 
@@ -223,5 +224,139 @@ describe('tidyPastedDncl and 「...」', () => {
     test('a # comment on a wrapped statement moves to the end of the joined line (Issue #1710)', () => {
         expect(tidyPastedDncl('(00) x = f(1, # c\n      2)\n(01) 表示する(x)')).toBe('x = f(1, 2) # c\n表示する(x)');
         expect(tidyPastedDncl('(00) 表示する(a,\n      # メモ\n      b)')).toBe('表示する(a, b) # メモ');
+    });
+});
+
+// The ways other texts (a PDF, a web page, a textbook) write the line numbers and the marks
+// differ only in how they look, so a paste takes them all (Issue #1756).
+describe('tidyPastedDncl: the line numbers and the marks of other texts (Issue #1756)', () => {
+    test('removes line numbers with spaces in the parentheses (`( 1 )`)', () => {
+        expect(tidyPastedDncl('( 1 ) a = 1\n( 2 ) ｜ b = 2\n( 10 ) c = 3')).toBe('a = 1\n｜ b = 2\nc = 3');
+    });
+
+    test('removes bare line numbers (`01`, `1`) when every line has one', () => {
+        expect(tidyPastedDncl('01 a = 1\n02 もし a > 0 ならば:\n03     b = 2')).toBe(
+            'a = 1\nもし a > 0 ならば:\n    b = 2',
+        );
+        expect(tidyPastedDncl('1 a = 1\n2\n3 表示する(a,\n     2)')).toBe('a = 1\n\n表示する(a, 2)');
+    });
+
+    test('keeps a line that starts with a number when not every line has one', () => {
+        expect(tidyPastedDncl('a = 1\n10 回')).toBe('a = 1\n10 回');
+        expect(tidyPastedDncl('1 + 2')).toBe('1 + 2');
+    });
+
+    test('reads `L` as the L shape where it closes a block, never a variable `L`', () => {
+        expect(tidyPastedDncl('(1) もし x > 0 ならば:\n(2) | y = 1\n(3) L z = 2')).toBe(
+            'もし x > 0 ならば:\n    y = 1\n    z = 2',
+        );
+        expect(tidyPastedDncl('もし x > 0 ならば:\nL y = 1')).toBe('もし x > 0 ならば:\n⎿ y = 1');
+        expect(tidyPastedDncl('もし x > 0 ならば:\n｜ もし y > 0 ならば:\n｜ L y = 1\nL z = 2')).toBe(
+            'もし x > 0 ならば:\n｜ もし y > 0 ならば:\n｜ ⎿ y = 1\n⎿ z = 2',
+        );
+        expect(tidyPastedDncl('L = 1\nL を 1 から 3 まで 1 ずつ増やしながら繰り返す:\n    表示する(L)')).toBe(
+            'L = 1\nL を 1 から 3 まで 1 ずつ増やしながら繰り返す:\n    表示する(L)',
+        );
+    });
+
+    test.each([
+        ['( 1 ) もし x > 0 ならば:\n( 2 ) │ y = 1\n( 3 ) └ z = 2'],
+        ['01 もし x > 0 ならば:\n02 | y = 1\n03 L z = 2'],
+        ['(01) もし x > 0 ならば:\n(02) ｜ y = 1\n(03) ⎿ z = 2'],
+        ['もし x ＞ ０ ならば：\n　　y ＝ １\n　　z ＝ ２'],
+    ])('the pasted program reads as the same Ruby: %s', (pasted) => {
+        const { ruby, errors } = dnclToRuby(tidyPastedDncl(pasted));
+        expect(errors).toEqual([]);
+        expect(ruby).toBe('if @x > 0\n  @y = 1\n  @z = 2\nend');
+    });
+});
+
+// The copy with line numbers and rules (`problemFormText`) pasted back into the editor comes back
+// as the text it was copied from: the rules become the indent again (Issue #2549). The programs
+// are written for these tests; no question of the test is used (docs/dncl/policy.md).
+describe('tidyPastedDncl: the rules become the indent (Issue #2549)', () => {
+    test.each([
+        [
+            'nested blocks, full-width rules',
+            [
+                '(01) s = 0',
+                '(02) i を 1 から 3 まで 1 ずつ増やしながら繰り返す:',
+                '(03) ｜ もし i % 2 == 0 ならば:',
+                '(04) ｜ ｜ s = s + i',
+                '(05) ⎿ ⎿ 表示する(s)',
+                '(06) 表示する("おわり")',
+            ],
+            [
+                's = 0',
+                'i を 1 から 3 まで 1 ずつ増やしながら繰り返す:',
+                '    もし i % 2 == 0 ならば:',
+                '        s = s + i',
+                '        表示する(s)',
+                '表示する("おわり")',
+            ],
+        ],
+        [
+            'half-width rules (`｜` turned into `|` by the auto-correct, `└`)',
+            ['(1) もし a > 0 ならば:', '(2) | b = 1', '(3) | # メモ', '(4) └ c = 2'],
+            ['もし a > 0 ならば:', '    b = 1', '    # メモ', '    c = 2'],
+        ],
+        [
+            'if / else: the L only on the last branch',
+            [
+                '(01) もし x > 0 ならば:',
+                '(02) ｜ 表示する("正")',
+                '(03) そうでなければ:',
+                '(04) ⎿ 表示する("0 か負")',
+            ],
+            ['もし x > 0 ならば:', '    表示する("正")', 'そうでなければ:', '    表示する("0 か負")'],
+        ],
+        [
+            'a blank line with bars',
+            ['(01) もし a ならば:', '(02) ｜ x = 1', '(03) ｜', '(04) ⎿ y = 1'],
+            ['もし a ならば:', '    x = 1', '', '    y = 1'],
+        ],
+        [
+            'the DNCL-like form closed by its word',
+            ['(01) もし a ならば', '(02) ｜ x = 1', '(03) を実行する', '(04) y = 2'],
+            ['もし a ならば', '    x = 1', 'を実行する', 'y = 2'],
+        ],
+    ])('%s', (name, pasted, text) => {
+        expect(tidyPastedDncl(pasted.join('\n'))).toBe(text.join('\n'));
+    });
+
+    test.each([
+        [
+            's = 0',
+            'i を 1 から 3 まで 1 ずつ増やしながら繰り返す:',
+            '    もし i % 2 == 0 ならば:',
+            '        s = s + i',
+            '    そうでなくもし i == 3 ならば:',
+            '        表示する(「| は罫線ではない」)',
+            '    そうでなければ:',
+            '        表示する(s)',
+            '表示する(s)',
+        ],
+        ['もし a ならば:', '    x = 1', '', '    # コメント', '    y = 1', 'z = 2'],
+    ])('the copy pasted back is the text it was copied from', (...code) => {
+        const text = code.join('\n');
+        expect(tidyPastedDncl(problemFormText(text))).toBe(text);
+    });
+
+    test('keeps the rules of a DNCL-like block closed by a `⎿` (the indent would not close it)', () => {
+        const pasted = '(01) もし a ならば\n(02) ⎿ x = 1\n(03) y = 2';
+        expect(tidyPastedDncl(pasted)).toBe('もし a ならば\n⎿ x = 1\ny = 2');
+        expect(dnclToRuby(tidyPastedDncl(pasted)).ruby).toBe('if @a\n  @x = 1\nend\n@y = 2');
+    });
+
+    test('keeps the rules of a DNCL-like block inside a branch whose bar stops (no word closes it)', () => {
+        const pasted = '(1) もし a ならば:\n(2) ｜ もし b ならば\n(3) ｜ ｜ x = 1\n(4) そうでなければ:\n(5) ⎿ y = 1';
+        expect(tidyPastedDncl(pasted)).toBe(
+            'もし a ならば:\n｜ もし b ならば\n｜ ｜ x = 1\nそうでなければ:\n⎿ y = 1',
+        );
+        expect(dnclToRuby(tidyPastedDncl(pasted)).errors).toEqual([]);
+    });
+
+    test('keeps the rules that do not draw blocks', () => {
+        expect(tidyPastedDncl('(01) a = 1\n(02) ｜ b = 2')).toBe('a = 1\n｜ b = 2');
     });
 });

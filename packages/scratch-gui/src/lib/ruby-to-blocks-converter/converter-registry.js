@@ -110,6 +110,60 @@ const ConverterRegistry = {
     },
 
     callMethod(receiver, name, args, rubyBlockArgs, rubyBlock, node) {
+        const block = this._callRegisteredMethod(receiver, name, args, rubyBlockArgs, rubyBlock, node);
+        if (block) return block;
+        return this._callProcedureDefinedLater(receiver, name, args, rubyBlockArgs, rubyBlock, node);
+    },
+
+    /**
+     * Make the block of a call of a My Block with the handlers of the receiver.
+     * @param {object} procedure - The procedure (`_context.procedures`).
+     * @param {object} params - The receiver, the name, the arguments and the node of the call.
+     * @returns {?object} The block, or null when no handler makes one.
+     */
+    _callMyBlock(procedure, params) {
+        const previousNode = this._context.currentNode;
+        this._context.currentNode = params.node;
+        try {
+            for (const handler of this._receiverToMyBlocks[params.receiverName]) {
+                const block = handler.apply(this, [{ ...params, procedure }]);
+                if (block) return block;
+            }
+            return null;
+        } finally {
+            this._context.currentNode = previousNode;
+        }
+    },
+
+    /**
+     * A call of a method that a `def` later in the code makes (issue #2167): the converter has not
+     * seen the `def` yet, so it declares the procedure from the analysis (`procedures.definitions`)
+     * and makes the call. Only a call that no other block takes comes here, so a call that was
+     * converted before stays the same block.
+     * @param {*} receiver - The value of the receiver.
+     * @param {string} name - The name of the method.
+     * @param {Array} args - The arguments.
+     * @param {?Array} rubyBlockArgs - The arguments of the Ruby block.
+     * @param {?object} rubyBlock - The Ruby block.
+     * @param {object} node - The node of the call.
+     * @returns {?object} The block, or null.
+     */
+    _callProcedureDefinedLater(receiver, name, args, rubyBlockArgs, rubyBlock, node) {
+        const receiverName = this._getReceiverName(receiver);
+        if (!receiverName || !this._receiverToMyBlocks[receiverName] || this._lookupProcedure(name)) return null;
+        const procedure = this._declareProcedureDefinedLater(name, args.length);
+        if (!procedure) return null;
+        const params = { receiver, receiverName, name, args, rubyBlockArgs, rubyBlock, node };
+        const block = this._callMyBlock(procedure, params);
+        if (block) {
+            procedure.callNodesBeforeDefinition.push(node);
+        } else {
+            this._context.store.deleteProcedure(procedure.name);
+        }
+        return block;
+    },
+
+    _callRegisteredMethod(receiver, name, args, rubyBlockArgs, rubyBlock, node) {
         const receiverName = this._getReceiverName(receiver);
         if (!receiverName) return null;
 
@@ -117,29 +171,9 @@ const ConverterRegistry = {
         if (this._receiverToMyBlocks[receiverName]) {
             const procedure = this._lookupProcedure(name);
             if (procedure) {
-                const params = {
-                    receiver: receiver,
-                    receiverName: receiverName,
-                    name: name,
-                    args: args,
-                    rubyBlockArgs: rubyBlockArgs,
-                    rubyBlock: rubyBlock,
-                    node: node,
-                    procedure: procedure,
-                };
-
-                const previousNode = this._context.currentNode;
-                this._context.currentNode = node;
-
-                for (const handler of this._receiverToMyBlocks[receiverName]) {
-                    const block = handler.apply(this, [params]);
-                    if (block) {
-                        this._context.currentNode = previousNode;
-                        return block;
-                    }
-                }
-
-                this._context.currentNode = previousNode;
+                const params = { receiver, receiverName, name, args, rubyBlockArgs, rubyBlock, node };
+                const block = this._callMyBlock(procedure, params);
+                if (block) return block;
             }
         }
 

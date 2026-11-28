@@ -15,6 +15,7 @@ This project uses npm workspaces with the following packages:
 - **`packages/scratch-render`**: WebGL-based rendering engine for sprites and backdrops
 - **`packages/scratch-svg-renderer`**: SVG processing for vector images
 - **`packages/task-herder`**: Asynchronous task queue with throttling and concurrency control
+- **`packages/ja-notation`**: Japanese program notation (日本語モード) ⇔ Ruby through syntax trees (MIT, no dependency, ESM source; tests are `node --test` on JSON data)
 
 The `infra/` directory contains AWS CDK infrastructure projects (independent from npm workspaces):
 

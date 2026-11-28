@@ -1,5 +1,8 @@
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
 import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { loadPrism } from '../../../../src/lib/prism-parser';
+
+beforeAll(() => loadPrism());
 
 /**
  * Division as in 共通テスト用プログラム表記: `/` is the ordinary division
@@ -107,7 +110,7 @@ describe('DNCL / and ÷ (Issue #1701)', () => {
             ['@b = ((@a / 2).to_i / 3).to_i', 'b = a ÷ 2 ÷ 3'],
             ['@b = (@a * 3 / 2).to_i', 'b = a * 3 ÷ 2'],
             ['@b = (@a / 2 / 3).to_i', 'b = a / 2 ÷ 3'],
-            ['@b = ((@a / 2) / 3).to_i', 'b = (a / 2) ÷ 3'],
+            ['@b = ((@a / 2) / 3).to_i', 'b = a / 2 ÷ 3'],
             ['@b = (@a / (@a / 2).to_i).to_i', 'b = a ÷ (a ÷ 2)'],
             ['@b = @a * (@a / 2).to_i', 'b = a * (a ÷ 2)'],
             ['@b = (@a / 2).to_i * 3', 'b = a ÷ 2 * 3'],
@@ -115,7 +118,7 @@ describe('DNCL / and ÷ (Issue #1701)', () => {
             // Not one quotient: 整数(式), with the ordinary `/` in it.
             ['@b = (@a / 2 * 3).to_i', 'b = 整数(a / 2 * 3)'],
             ['@b = (@a / 2 + 1).to_i', 'b = 整数(a / 2 + 1)'],
-            ['@b = ((@a / 2) * 3).to_i', 'b = 整数((a / 2) * 3)'],
+            ['@b = ((@a / 2) * 3).to_i', 'b = 整数(a / 2 * 3)'],
             ['@b = ((@a / 2).to_i * 3).to_i', 'b = 整数(a ÷ 2 * 3)'],
             ['@b = (@a / 2 * 3).to_i.to_s', 'b = 文字列(整数(a / 2 * 3))'],
         ])('%s → %s', (ruby, dncl) => {
@@ -143,7 +146,7 @@ describe('DNCL / and ÷ (Issue #1701)', () => {
             ['b = a + c ÷ 2', '@b = @a + (@c / 2).to_i'],
             ['b = a ÷ 2 ÷ 3', '@b = ((@a / 2).to_i / 3).to_i'],
             ['b = (a + c) ÷ 2', '@b = ((@a + @c) / 2).to_i'],
-            ['b = a ÷ (a ÷ 2)', '@b = (@a / ((@a / 2).to_i)).to_i'],
+            ['b = a ÷ (a ÷ 2)', '@b = (@a / (@a / 2).to_i).to_i'],
             ['b = 整数(a / 2 * 3)', '@b = (@a / 2 * 3).to_i'],
             ['b = 整数(a ÷ 2)', '@b = (@a / 2).to_i'],
             ['b = Data[i ÷ 2]', '@b = @_array_Data_[(@i / 2).to_i]'],
@@ -164,7 +167,7 @@ describe('DNCL / and ÷ (Issue #1701)', () => {
             'b = a ÷ (a ÷ 2)',
             'b = a * (a ÷ 2)',
             'b = (a + c) ÷ 2',
-            'b = (a ÷ 2) * 3',
+            'b = a ÷ 2 * 3',
             'b = 整数(a / 2 * 3)',
             'b = 整数(a ÷ 2 * 3)',
             'b = 文字列(a ÷ 2)',
@@ -212,7 +215,7 @@ describe('DNCL / and ÷ (Issue #1701)', () => {
             ['b = 合計 * 2 ÷ 個数', '@b = (@合計 * 2 / @個数).to_i'],
             ['b = 合計 + 点数 ÷ 個数', '@b = @合計 + (@点数 / @個数).to_i'],
             ['b = 合計 ÷ 個数 ÷ 2', '@b = ((@合計 / @個数).to_i / 2).to_i'],
-            ['b = 合計 ÷ (点数 ÷ 個数)', '@b = (@合計 / ((@点数 / @個数).to_i)).to_i'],
+            ['b = 合計 ÷ (点数 ÷ 個数)', '@b = (@合計 / (@点数 / @個数).to_i).to_i'],
             ['b = 整数(合計 ÷ 個数)', '@b = (@合計 / @個数).to_i'],
             ['b = 整数(合計 / 個数)', '@b = (@合計 / @個数).to_i'],
             ['b = 得点[i] ÷ 人数', '@b = (@得点[@i] / @人数).to_i'],
@@ -220,7 +223,7 @@ describe('DNCL / and ÷ (Issue #1701)', () => {
             ['b = Data[合計 ÷ 個数]', '@b = @_array_Data_[(@合計 / @個数).to_i]'],
             ['b = 要素数(Data) // (n + 1)', '@b = (@_array_Data_.length / (@n + 1)).to_i'],
             ['b = 要素数(Data) ÷ 個数', '@b = (@_array_Data_.length / @個数).to_i'],
-            ['表示する(合計 ÷ 個数)', 'puts((@合計 / @個数).to_i)'],
+            ['表示する(合計 ÷ 個数)', 'console.puts((@合計 / @個数).to_i)'],
         ])('%s → %s', (dncl, ruby) => {
             expect(toRuby(dncl)).toBe(ruby);
         });

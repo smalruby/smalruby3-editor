@@ -1,0 +1,345 @@
+{
+    "about": "rubyToJa(ruby, {parse, ...table}): the Japanese in the standard form (written also when there are errors) and the errors (on Ruby lines). The Ruby is parsed with prism. \"none\" is no table of a Ruby system.",
+    "cases": [
+        {
+            "title": "the quotient of a negative number keeps the sign on its left",
+            "table": "none",
+            "ruby": "b = (-7 / 2).to_i",
+            "ja": "b = -7 ÷ 2",
+            "errors": []
+        },
+        {
+            "title": "the quotient of a negated name is written with parentheses",
+            "table": "none",
+            "ruby": "a = 7\nb = (-a / 2).to_i",
+            "ja": "a = 7\nb = (-a) ÷ 2",
+            "errors": []
+        },
+        {
+            "title": "a negated name before a product and a quotient is written with parentheses",
+            "table": "none",
+            "ruby": "a = 7\nb = (-a * 3 / 2).to_i",
+            "ja": "a = 7\nb = (-a) * 3 ÷ 2",
+            "errors": []
+        },
+        {
+            "title": "a negated name before a product without a quotient keeps no parentheses",
+            "table": "none",
+            "ruby": "a = 7\nb = -a * 3 + (a / 2).to_i",
+            "ja": "a = 7\nb = -a * 3 + a ÷ 2",
+            "errors": []
+        },
+        {
+            "title": "a sign before the quotient keeps the quotient in parentheses",
+            "table": "none",
+            "ruby": "a = 7\nb = -(a / 2).to_i",
+            "ja": "a = 7\nb = -(a ÷ 2)",
+            "errors": []
+        },
+        {
+            "title": "local variables, blocks and operators are written in the standard form",
+            "table": "none",
+            "ruby": "x = 1\nwhile x < 10 && !(x == 5)\n  x += 2\nend",
+            "ja": "x = 1\nx < 10 and not (x == 5) の間繰り返す:\n    x += 2",
+            "errors": []
+        },
+        {
+            "title": "a call the table does not have is told as an error at its name",
+            "table": "none",
+            "ruby": "move(10)",
+            "ja": "move(10)",
+            "errors": [
+                {
+                    "code": "unknown-command",
+                    "message": "「move」は日本語では書けない命令です",
+                    "line": 1,
+                    "column": 0,
+                    "name": "move"
+                }
+            ]
+        },
+        {
+            "title": "the post-test loop is told on its begin and while lines",
+            "table": "none",
+            "ruby": "begin\n  x = 1\nend while x < 3",
+            "ja": "begin\n  x = 1\nend while x < 3",
+            "errors": [
+                {
+                    "code": "post-test-loop",
+                    "message": "後判定の繰り返しは日本語では書けません",
+                    "line": 1,
+                    "column": 0
+                },
+                {
+                    "code": "post-test-loop",
+                    "message": "後判定の繰り返しは日本語では書けません",
+                    "line": 3,
+                    "column": 4
+                }
+            ]
+        },
+        {
+            "title": "blank lines and comments are kept",
+            "table": "none",
+            "ruby": "# はじめ\nx = 1\n\nif x > 0 # x が正\n  x = 2\nend",
+            "ja": "# はじめ\nx = 1\n\nもし x > 0 ならば: # x が正\n    x = 2",
+            "errors": []
+        },
+        {
+            "title": "a name with 々, 〆 or a kanji of the CJK extensions is written as it is, and is read back as one name (Issue #1714)",
+            "table": "none",
+            "ruby": "佐々木 = 7\n㐀〆 = 佐々木 + 2\nα = 佐々木",
+            "ja": "佐々木 = 7\n㐀〆 = 佐々木 + 2\nα = 佐々木",
+            "errors": []
+        },
+        {
+            "title": "case / when has no Japanese form: it is kept as it is and told at case (Issue #1740)",
+            "table": "none",
+            "ruby": "x = 1\ncase x\nwhen 1\n  y = 2\nend",
+            "ja": "x = 1\ncase x\nwhen 1\n  y = 2\nend",
+            "errors": [
+                {
+                    "code": "no-ja-form",
+                    "message": "「case」は日本語では書けません",
+                    "line": 2,
+                    "column": 0,
+                    "name": "case"
+                }
+            ]
+        },
+        {
+            "title": "a hash and a symbol are told where they are",
+            "table": "none",
+            "ruby": "h = {}\ny = h[:a]",
+            "ja": "h = {}\ny = h[:a]",
+            "errors": [
+                {
+                    "code": "no-ja-form",
+                    "message": "「{}」は日本語では書けません",
+                    "line": 1,
+                    "column": 4,
+                    "name": "{}"
+                },
+                {
+                    "code": "no-ja-form",
+                    "message": "「:a」は日本語では書けません",
+                    "line": 2,
+                    "column": 6,
+                    "name": ":a"
+                }
+            ]
+        },
+        {
+            "title": "a modifier unless is told at unless, and the Ruby inside it is not told again",
+            "table": "none",
+            "ruby": "x = 1\ny = 2 unless x == 1",
+            "ja": "x = 1\ny = 2 unless x == 1",
+            "errors": [
+                {
+                    "code": "no-ja-form",
+                    "message": "「unless」は日本語では書けません",
+                    "line": 2,
+                    "column": 6,
+                    "name": "unless"
+                }
+            ]
+        },
+        {
+            "title": "Ruby with no keyword is named by its text, cut at 20 characters",
+            "table": "none",
+            "ruby": "x = 1\ny = x == 1 ? 1234567890 : 2",
+            "ja": "x = 1\ny = x == 1 ? 1234567890 : 2",
+            "errors": [
+                {
+                    "code": "no-ja-form",
+                    "message": "「x == 1 ? 1234567890 …」は日本語では書けません",
+                    "line": 2,
+                    "column": 4,
+                    "name": "x == 1 ? 1234567890 …"
+                }
+            ]
+        },
+        {
+            "title": "a call the Japanese does not have is told once, as a command",
+            "table": "none",
+            "ruby": "x = [1]\nx.each { |v| v }",
+            "ja": "x = [1]\nx.each { |v| v }",
+            "errors": [
+                {
+                    "code": "unknown-command",
+                    "message": "「each」は日本語では書けない命令です",
+                    "line": 2,
+                    "column": 2,
+                    "name": "each"
+                }
+            ]
+        },
+        {
+            "title": "with no table, a name in capitals (a constant in Ruby) is a name",
+            "table": "none",
+            "ruby": "A = 3\nx = A + 1",
+            "ja": "A = 3\nx = A + 1",
+            "errors": []
+        },
+        {
+            "title": "a multiple assignment to elements of an array is read as one (Issue #2237)",
+            "table": "none",
+            "ruby": "a = [1, 2]\na[0], a[1] = a[1], a[0]",
+            "ja": "a = [1, 2]\na[0], a[1] = a[1], a[0]",
+            "errors": []
+        },
+        {
+            "title": "an element with more than one index in a multiple assignment has no Japanese form",
+            "table": "none",
+            "ruby": "a = [1]\na[0, 1], b = 1, 2",
+            "ja": "a = [1]\na[0, 1], b = 1, 2",
+            "errors": [
+                {
+                    "code": "no-ja-form",
+                    "message": "「a[0, 1], b = 1, 2」は日本語では書けません",
+                    "line": 2,
+                    "column": 0,
+                    "name": "a[0, 1], b = 1, 2"
+                }
+            ]
+        },
+        {
+            "title": "push and << of an array are `を追加する`",
+            "table": "none",
+            "ruby": "a = []\na.push(3)\na << 4 + 1",
+            "ja": "a = []\na に 3 を追加する\na に 4 + 1 を追加する",
+            "errors": []
+        },
+        {
+            "title": "an assignment of an input by itself is an input",
+            "table": "gets",
+            "ruby": "x = gets\nA[0] = gets.to_i",
+            "ja": "x = 【外部からの入力】\nA[0] = 【整数を入力】",
+            "errors": []
+        },
+        {
+            "title": "a variable of the stage ($) is told where it is, as the Japanese has no stage (Issue #1706)",
+            "table": "none",
+            "ruby": "$a = 1\nx = $a + 1",
+            "ja": "$a = 1\nx = $a + 1",
+            "errors": [
+                {
+                    "code": "stage-variable",
+                    "message": "ステージの変数（$a）は日本語では書けません",
+                    "line": 1,
+                    "column": 0,
+                    "name": "$a"
+                },
+                {
+                    "code": "stage-variable",
+                    "message": "ステージの変数（$a）は日本語では書けません",
+                    "line": 2,
+                    "column": 4,
+                    "name": "$a"
+                }
+            ]
+        },
+        {
+            "title": "a list of the stage is told once, not as a command it calls (Issue #1706)",
+            "table": "none",
+            "ruby": "$a = []\n$a.push(1)",
+            "ja": "$a = []\n$a.push(1)",
+            "errors": [
+                {
+                    "code": "stage-variable",
+                    "message": "ステージの変数（$a）は日本語では書けません",
+                    "line": 1,
+                    "column": 0,
+                    "name": "$a"
+                },
+                {
+                    "code": "stage-variable",
+                    "message": "ステージの変数（$a）は日本語では書けません",
+                    "line": 2,
+                    "column": 0,
+                    "name": "$a"
+                }
+            ]
+        },
+        {
+            "title": "a variable of the stage changed by an operator is told at its name (Issue #1706)",
+            "table": "none",
+            "ruby": "$a += 1",
+            "ja": "$a += 1",
+            "errors": [
+                {
+                    "code": "stage-variable",
+                    "message": "ステージの変数（$a）は日本語では書けません",
+                    "line": 1,
+                    "column": 0,
+                    "name": "$a"
+                }
+            ]
+        },
+        {
+            "title": "a variable of the stage among the targets of a multiple assignment is told (Issue #1706)",
+            "table": "none",
+            "ruby": "x, $b = 1, 2",
+            "ja": "x, $b = 1, 2",
+            "errors": [
+                {
+                    "code": "stage-variable",
+                    "message": "ステージの変数（$b）は日本語では書けません",
+                    "line": 1,
+                    "column": 3,
+                    "name": "$b"
+                }
+            ]
+        },
+        {
+            "title": "an element of a list of the stage is told at the list (Issue #1706)",
+            "table": "none",
+            "ruby": "$a[0] = 1\nx = $a[1]",
+            "ja": "$a[0] = 1\nx = $a[1]",
+            "errors": [
+                {
+                    "code": "stage-variable",
+                    "message": "ステージの変数（$a）は日本語では書けません",
+                    "line": 1,
+                    "column": 0,
+                    "name": "$a"
+                },
+                {
+                    "code": "stage-variable",
+                    "message": "ステージの変数（$a）は日本語では書けません",
+                    "line": 2,
+                    "column": 4,
+                    "name": "$a"
+                }
+            ]
+        },
+        {
+            "title": "the counting loop of n.times is counted with i, a name the students can read",
+            "table": "none",
+            "ruby": "10.times do\n  a = 1\nend",
+            "ja": "i を 1 から 10 まで 1 ずつ増やしながら繰り返す:\n    a = 1",
+            "errors": []
+        },
+        {
+            "title": "the counter of n.times is a name the program does not use",
+            "table": "none",
+            "ruby": "i = 0\nj = 0\n3.times do\n  i = i + 1\nend",
+            "ja": "i = 0\nj = 0\nk を 1 から 3 まで 1 ずつ増やしながら繰り返す:\n    i = i + 1",
+            "errors": []
+        },
+        {
+            "title": "the counter of n.times in another n.times is not the counter of the outer one",
+            "table": "none",
+            "ruby": "2.times do\n  3.times do\n    a = 1\n  end\nend\n4.times do\n  a = 2\nend",
+            "ja": "i を 1 から 2 まで 1 ずつ増やしながら繰り返す:\n    j を 1 から 3 まで 1 ずつ増やしながら繰り返す:\n        a = 1\ni を 1 から 4 まで 1 ずつ増やしながら繰り返す:\n    a = 2",
+            "errors": []
+        },
+        {
+            "title": "the counter of n.times is not a name of a later line or a parameter",
+            "table": "none",
+            "ruby": "def f(i)\n  2.times do\n    a = i\n  end\nend\nj = 1\nk = 2",
+            "ja": "関数 f(i):\n    i2 を 1 から 2 まで 1 ずつ増やしながら繰り返す:\n        a = i\nj = 1\nk = 2",
+            "errors": []
+        }
+    ]
+}

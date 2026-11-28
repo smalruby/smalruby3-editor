@@ -30,9 +30,12 @@ import RubyBlocks from './ruby.js';
 import ScrubHandler from './scrub.js';
 import SensingBlocks from './sensing.js';
 import SmalrubotS1Blocks from './smalrubot_s1.js';
+// === Smalruby: Start of Console extension ===
+import SmalrubyConsoleBlocks from './smalruby-console.js';
 // === Smalruby: End of AkaDako extension ===
 // === Smalruby: Start of Ruby String extension ===
 import SmalrubyRubyBlocks from './smalruby-ruby.js';
+// === Smalruby: End of Console extension ===
 import SoundBlocks from './sound.js';
 import SpriteNewGenerator from './sprite-new.js';
 import Text2SpeechBlocks from './text2speech.js';
@@ -138,6 +141,9 @@ RubyGenerator.init = function (options) {
     this.regexNotMatchCallCache_ = {};
     this._moduleMethodCodes = {};
     this.version = options && options.version ? String(options.version) : '1';
+    // The Japanese tab keeps the scripts in the order they were written: a function may be
+    // defined after the main program that calls it (issue #2550).
+    this.keepScriptOrder_ = Boolean(options && options.keepScriptOrder);
     if (this.variableDB_) {
         this.variableDB_.reset();
     } else {
@@ -172,7 +178,10 @@ RubyGenerator.spriteName = function () {
 };
 
 RubyGenerator.getScripts = function () {
-    return Generator.prototype.getScripts.call(this).sort((a, b) => {
+    const scripts = Generator.prototype.getScripts.call(this);
+    if (this.keepScriptOrder_) return scripts;
+    // Ruby calls a method only after it is defined, so the definitions come first.
+    return scripts.sort((a, b) => {
         const aValue = this.getBlock(a).opcode === 'procedures_definition' ? 1 : -1;
         const bValue = this.getBlock(b).opcode === 'procedures_definition' ? 1 : -1;
         return bValue - aValue;
@@ -223,5 +232,8 @@ G2SBlocks(RubyGenerator);
 // === Smalruby: Start of Ruby String extension ===
 SmalrubyRubyBlocks(RubyGenerator);
 // === Smalruby: End of Ruby String extension ===
+// === Smalruby: Start of Console extension ===
+SmalrubyConsoleBlocks(RubyGenerator);
+// === Smalruby: End of Console extension ===
 
 export default RubyGenerator;

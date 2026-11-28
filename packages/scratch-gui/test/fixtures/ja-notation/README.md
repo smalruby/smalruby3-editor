@@ -14,7 +14,7 @@
 
 | 項目 | 中身 |
 |---|---|
-| `ruby` / `errors` / `blockErrors` | `dnclToRuby` の結果（誤りの文と、日本語の行・列） |
+| `ruby` / `errors` | `dnclToRuby` の結果（誤りの文と、日本語の行・列。ブロックの閉じ忘れなどの誤りもここに入る） |
 | `rubyLines` | Ruby の行ごとの、日本語の行（行の対応） |
 | `converterErrors` | その Ruby をブロックにしたときの誤り。日本語モードが見せるとおり、日本語の行に直したもの |
 | `blocks` | ブロック（短い記法。`test/unit/helpers/block-notation.js`。カスタムブロックの引数の ID は `arg1`・`arg2` …） |
@@ -30,6 +30,10 @@
   `UPDATE_JA_GOLDEN=1 npx jest test/unit/lib/ja-notation/golden.test.js`
 - 不具合を直したら、その例をテスト（と `test/unit/lib/ruby-roundtrip/japanese-table.test.js` の表）に足し、
   コーパスを集め直す（新しい変換が同じ不具合を持たないように）。
+
+新しい変換（`packages/ja-notation/`）は `test/unit/lib/ja-notation/corpus.test.js` がこのゴールデンと比べる:
+標準の形と DNCL 風の形のすべてのプログラムで、Ruby が prism の構文木で同じで（空白・括弧の違いは許す）、行の対応も同じであること。
+いまの変換が変換できないものは、新しい変換も変換できず、最初の誤りが同じ行にあること。
 
 ## コーパスの集め方
 
@@ -51,6 +55,7 @@ UPDATE_JA_GOLDEN=1 npx jest test/unit/lib/ja-notation/golden.test.js
 ## 守ること
 
 - データは **自作のプログラムだけ**。**大学入試センターの問題は入れない**（`docs/dncl/policy.md`）。
-  外の例題のページをもとにしたテスト（`collect-corpus.mjs` の `EXCLUDED_TESTS`）は集めない。
-- ライブラリ（`ja-notation`）は MIT で出す予定で、このデータもあとで Node と Ruby の実装が同じものを流す（J6）。
+  テストのプログラムも、記法をまねて自分で作ったものにする。外の例題のページのプログラムをそのまま写したテストを足すときは、
+  `collect-corpus.mjs` の `EXCLUDED_TESTS` に入れて集めない（いまは無い）。
+- ライブラリ（`packages/ja-notation/`）は MIT。このコーパスとゴールデンはスモウルビーの表（ブロック・生成器）を通した記録なので scratch-gui に置く。ライブラリだけのテストのデータ（JSON）は `packages/ja-notation/test/data/`。
   ほかから写したプログラムを入れない。

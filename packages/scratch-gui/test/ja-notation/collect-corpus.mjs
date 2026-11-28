@@ -14,9 +14,9 @@
  * - the examples in test/fixtures/dncl/ as they are written (the tests tidy them first),
  * - the code blocks of docs/smalruby-dncl-spec.ja.md that are programs (not templates).
  *
- * Only programs written for Smalruby go in: the tests built on samples from outside
- * (`EXCLUDED_TESTS`) are not run. Programs of the 大学入試センター must not be added
- * (docs/dncl/policy.md).
+ * Only programs written for Smalruby go in: a test that copies the samples from outside
+ * goes in `EXCLUDED_TESTS` and is not run (there is none now). Programs of the
+ * 大学入試センター must not be added (docs/dncl/policy.md).
  *
  * Without `--fresh`, programs already in the corpus stay even when no test uses them any
  * more, so the golden keeps them. Make the golden after collecting:
@@ -46,8 +46,8 @@ const RECORDED_TESTS = [
 ];
 
 // Tests whose programs come from sample pages outside Smalruby (they may hold programs of the
-// 大学入試センター): not recorded.
-const EXCLUDED_TESTS = ['dncl-v2-example.test.js', 'dncl-v2-ictl-samples.test.js', 'dncl-v2-preprocessor.test.js'];
+// 大学入試センター): not recorded. None now: the tests use programs of our own.
+const EXCLUDED_TESTS = [];
 
 const DOCS = ['docs/smalruby-dncl-spec.ja.md'];
 const JA_KEYWORD = /←|ならば|を実行する|を繰り返す|の間|ずつ(増|減)やしながら|表示する\(|と定義する|【/;

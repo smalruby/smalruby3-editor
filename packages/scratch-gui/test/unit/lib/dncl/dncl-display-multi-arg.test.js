@@ -1,7 +1,7 @@
-// === Smalruby: Tests for `表示する` multi-arg → `puts(... + ...)` mapping ===
+// === Smalruby: Tests for `表示する` multi-arg → `console.puts(... + ...)` mapping ===
 //
 // DNCLv2 allows `表示する(a, "は", b)` to mean "print all of these as one
-// message". We convert this to `puts(a.to_s + "は" + b.to_s)` so that the
+// message". We convert this to `console.puts(a.to_s + "は" + b.to_s)` so that the
 // resulting Scratch block is a single `looks_sayforsecs` whose MESSAGE
 // input is an `operator_join` chain, producing one bubble.
 //
@@ -12,95 +12,98 @@
 // See Issue #640.
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
 import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { loadPrism } from '../../../../src/lib/prism-parser';
+
+beforeAll(() => loadPrism());
 
 const dToR = (src) => dnclToRuby(src).ruby;
 const rToD = (src) => rubyToDncl(src).dncl;
 
 describe('表示する → puts (single arg)', () => {
-    test('表示する(a) → puts(@a)', () => {
-        expect(dToR('表示する(a)')).toBe('puts(@a)');
+    test('表示する(a) → console.puts(@a)', () => {
+        expect(dToR('表示する(a)')).toBe('console.puts(@a)');
     });
 
-    test('表示する("hello") → puts("hello")', () => {
-        expect(dToR('表示する("hello")')).toBe('puts("hello")');
+    test('表示する("hello") → console.puts("hello")', () => {
+        expect(dToR('表示する("hello")')).toBe('console.puts("hello")');
     });
 
-    test('表示する(整数(x)) → puts(@x.to_i)', () => {
-        expect(dToR('表示する(整数(x))')).toBe('puts(@x.to_i)');
+    test('表示する(整数(x)) → console.puts(@x.to_i)', () => {
+        expect(dToR('表示する(整数(x))')).toBe('console.puts(@x.to_i)');
     });
 
-    test('表示する(乱数(1..10)) → puts(rand(1..10))', () => {
-        expect(dToR('表示する(乱数(1..10))')).toBe('puts(rand(1..10))');
+    test('表示する(乱数(1..10)) → console.puts(rand(1..10))', () => {
+        expect(dToR('表示する(乱数(1..10))')).toBe('console.puts(rand(1..10))');
     });
 
-    test('表示する(要素数(Kouka)) → puts(@_array_Kouka_.length)', () => {
+    test('表示する(要素数(Kouka)) → console.puts(@_array_Kouka_.length)', () => {
         const src = 'Kouka = [1, 2]\n表示する(要素数(Kouka))';
         const out = dToR(src);
-        expect(out).toContain('puts(@_array_Kouka_.length)');
+        expect(out).toContain('console.puts(@_array_Kouka_.length)');
     });
 });
 
-describe('表示する → puts(... + ...) (multi arg)', () => {
-    test('表示する("a", "b") → puts("a" + "b")', () => {
-        expect(dToR('表示する("a", "b")')).toBe('puts("a" + "b")');
+describe('表示する → console.puts(... + ...) (multi arg)', () => {
+    test('表示する("a", "b") → console.puts("a" + "b")', () => {
+        expect(dToR('表示する("a", "b")')).toBe('console.puts("a" + "b")');
     });
 
-    test('表示する("添字", " ", "要素") → puts("添字" + " " + "要素")', () => {
-        expect(dToR('表示する("添字", " ", "要素")')).toBe('puts("添字" + " " + "要素")');
+    test('表示する("添字", " ", "要素") → console.puts("添字" + " " + "要素")', () => {
+        expect(dToR('表示する("添字", " ", "要素")')).toBe('console.puts("添字" + " " + "要素")');
     });
 
-    test('表示する(a, "は", b) → puts(@a.to_s + "は" + @b.to_s)', () => {
-        expect(dToR('表示する(a, "は", b)')).toBe('puts(@a.to_s + "は" + @b.to_s)');
+    test('表示する(a, "は", b) → console.puts(@a.to_s + "は" + @b.to_s)', () => {
+        expect(dToR('表示する(a, "は", b)')).toBe('console.puts(@a.to_s + "は" + @b.to_s)');
     });
 
     test('表示する(atai, "は", aida, "番目にありました") → puts with all strings/.to_s', () => {
         expect(dToR('表示する(atai, "は", aida, "番目にありました")')).toBe(
-            'puts(@atai.to_s + "は" + @aida.to_s + "番目にありました")',
+            'console.puts(@atai.to_s + "は" + @aida.to_s + "番目にありました")',
         );
     });
 
-    test('表示する(乱数(1..10), "個") → puts(rand(1..10).to_s + "個")', () => {
-        expect(dToR('表示する(乱数(1..10), "個")')).toBe('puts(rand(1..10).to_s + "個")');
+    test('表示する(乱数(1..10), "個") → console.puts(rand(1..10).to_s + "個")', () => {
+        expect(dToR('表示する(乱数(1..10), "個")')).toBe('console.puts(rand(1..10).to_s + "個")');
     });
 
     test('表示する with 整数() → wraps with .to_s', () => {
-        expect(dToR('表示する(整数(x), "回")')).toBe('puts(@x.to_i.to_s + "回")');
+        expect(dToR('表示する(整数(x), "回")')).toBe('console.puts(@x.to_i.to_s + "回")');
     });
 });
 
-describe('Ruby → DNCL: puts(...) flatten + .to_s unwrap', () => {
-    test('puts(@a) → 表示する(a)', () => {
-        expect(rToD('puts(@a)')).toBe('表示する(a)');
+describe('Ruby → DNCL: console.puts(...) flatten + .to_s unwrap', () => {
+    test('console.puts(@a) → 表示する(a)', () => {
+        expect(rToD('console.puts(@a)')).toBe('表示する(a)');
     });
 
-    test('puts("a" + "b" + "c") → 表示する("a", "b", "c")', () => {
-        expect(rToD('puts("a" + "b" + "c")')).toBe('表示する("a", "b", "c")');
+    test('console.puts("a" + "b" + "c") → 表示する("a", "b", "c")', () => {
+        expect(rToD('console.puts("a" + "b" + "c")')).toBe('表示する("a", "b", "c")');
     });
 
-    test('puts("添字" + " " + "要素") → 表示する("添字", " ", "要素")', () => {
-        expect(rToD('puts("添字" + " " + "要素")')).toBe('表示する("添字", " ", "要素")');
+    test('console.puts("添字" + " " + "要素") → 表示する("添字", " ", "要素")', () => {
+        expect(rToD('console.puts("添字" + " " + "要素")')).toBe('表示する("添字", " ", "要素")');
     });
 
-    test('puts(@a.to_s + "は" + @b.to_s) → 表示する(a, "は", b)', () => {
-        expect(rToD('puts(@a.to_s + "は" + @b.to_s)')).toBe('表示する(a, "は", b)');
+    test('console.puts(@a.to_s + "は" + @b.to_s) → 表示する(a, "は", b)', () => {
+        expect(rToD('console.puts(@a.to_s + "は" + @b.to_s)')).toBe('表示する(a, "は", b)');
     });
 
-    test('puts((@a.to_s + "は") + @b.to_s) → 表示する(a, "は", b) (parens flattened)', () => {
-        expect(rToD('puts((@a.to_s + "は") + @b.to_s)')).toBe('表示する(a, "は", b)');
+    test('console.puts((@a.to_s + "は") + @b.to_s) → 表示する(a, "は", b) (parens flattened)', () => {
+        expect(rToD('console.puts((@a.to_s + "は") + @b.to_s)')).toBe('表示する(a, "は", b)');
     });
 
-    test('puts(((1.to_s + "は") + 2.to_s) + "番目") → 表示する(1, "は", 2, "番目")', () => {
-        expect(rToD('puts(((1.to_s + "は") + 2.to_s) + "番目")')).toBe('表示する(1, "は", 2, "番目")');
+    test('console.puts(((1.to_s + "は") + 2.to_s) + "番目") → 表示する(1, "は", 2, "番目")', () => {
+        expect(rToD('console.puts(((1.to_s + "は") + 2.to_s) + "番目")')).toBe('表示する(1, "は", 2, "番目")');
     });
 
-    test('puts(@a + @b) — no .to_s, no string literal → NOT flattened', () => {
+    test('console.puts(@a + @b) — no .to_s, no string literal → NOT flattened', () => {
         // Without `.to_s` markers, we cannot distinguish a multi-arg display
         // from a single arithmetic expression. Default to single-arg form.
-        expect(rToD('puts(@a + @b)')).toBe('表示する(a + b)');
+        expect(rToD('console.puts(@a + @b)')).toBe('表示する(a + b)');
     });
 
-    test('puts(@x + 1) → 表示する(x + 1) (numeric arithmetic stays as one arg)', () => {
-        expect(rToD('puts(@x + 1)')).toBe('表示する(x + 1)');
+    test('console.puts(@x + 1) → 表示する(x + 1) (numeric arithmetic stays as one arg)', () => {
+        expect(rToD('console.puts(@x + 1)')).toBe('表示する(x + 1)');
     });
 });
 
@@ -123,70 +126,70 @@ describe('Ruby → DNCL: say(...) flatten too (for backward compat)', () => {
 // `.to_s` applies to the whole argument, not only its last term. `でない` is
 // converted first (it negates the argument it ends). (Issue #1672)
 describe('表示する multi arg: expressions are wrapped before .to_s (#1672)', () => {
-    test('表示する(a + 1, b) → puts((@a + 1).to_s + @b.to_s)', () => {
-        expect(dToR('表示する(a + 1, b)')).toBe('puts((@a + 1).to_s + @b.to_s)');
+    test('表示する(a + 1, b) → console.puts((@a + 1).to_s + @b.to_s)', () => {
+        expect(dToR('表示する(a + 1, b)')).toBe('console.puts((@a + 1).to_s + @b.to_s)');
     });
 
-    test('表示する(x でない, y) → puts((!@x).to_s + @y.to_s)', () => {
-        expect(dToR('表示する(x でない, y)')).toBe('puts((!@x).to_s + @y.to_s)');
+    test('表示する(x でない, y) → console.puts((!@x).to_s + @y.to_s)', () => {
+        expect(dToR('表示する(x でない, y)')).toBe('console.puts((!@x).to_s + @y.to_s)');
     });
 
-    test('表示する("答え", a > 1 でない) → puts("答え" + (!(@a > 1)).to_s)', () => {
-        expect(dToR('表示する("答え", a > 1 でない)')).toBe('puts("答え" + (!(@a > 1)).to_s)');
+    test('表示する("答え", a > 1 でない) → console.puts("答え" + (!(@a > 1)).to_s)', () => {
+        expect(dToR('表示する("答え", a > 1 でない)')).toBe('console.puts("答え" + (!(@a > 1)).to_s)');
     });
 
-    test('表示する("合計", a * 2) → puts("合計" + (@a * 2).to_s)', () => {
-        expect(dToR('表示する("合計", a * 2)')).toBe('puts("合計" + (@a * 2).to_s)');
+    test('表示する("合計", a * 2) → console.puts("合計" + (@a * 2).to_s)', () => {
+        expect(dToR('表示する("合計", a * 2)')).toBe('console.puts("合計" + (@a * 2).to_s)');
     });
 
-    test('表示する(x かつ y, "!") → puts((@x && @y).to_s + "!")', () => {
-        expect(dToR('表示する(x かつ y, "!")')).toBe('puts((@x && @y).to_s + "!")');
+    test('表示する(x かつ y, "!") → console.puts((@x && @y).to_s + "!")', () => {
+        expect(dToR('表示する(x かつ y, "!")')).toBe('console.puts((@x && @y).to_s + "!")');
     });
 
     test('表示する(A[i], B[i]) keeps a single operand without parentheses', () => {
         expect(dToR('A = [1]\nB = [2]\n表示する(A[i], B[i])')).toContain(
-            'puts(@_array_A_[@i].to_s + @_array_B_[@i].to_s)',
+            'console.puts(@_array_A_[@i].to_s + @_array_B_[@i].to_s)',
         );
     });
 
     test('表示する((a + 1), "個") keeps an argument already in parentheses as is', () => {
-        expect(dToR('表示する((a + 1), "個")')).toBe('puts((@a + 1).to_s + "個")');
+        expect(dToR('表示する((a + 1), "個")')).toBe('console.puts((@a + 1).to_s + "個")');
     });
 
     test('表示する(-1, "個") keeps a negative number without parentheses', () => {
-        expect(dToR('表示する(-1, "個")')).toBe('puts(-1.to_s + "個")');
+        expect(dToR('表示する(-1, "個")')).toBe('console.puts(-1.to_s + "個")');
     });
 
     test('表示する(-a, "個") puts a negated variable in parentheses', () => {
-        expect(dToR('表示する(-a, "個")')).toBe('puts((-@a).to_s + "個")');
+        expect(dToR('表示する(-a, "個")')).toBe('console.puts((-@a).to_s + "個")');
     });
 
     test('表示する(a ÷ b, "x") converts the whole quotient to a string', () => {
-        expect(dToR('表示する(a ÷ b, "x")')).toBe('puts(((@a / @b).to_i).to_s + "x")');
+        expect(dToR('表示する(a ÷ b, "x")')).toBe('console.puts((@a / @b).to_i.to_s + "x")');
     });
 
     test('表示する("平均", goukei / 要素数(Tensu)) (sum-average fixture) joins the quotient', () => {
         expect(dToR('Tensu = [1]\n表示する("平均", goukei / 要素数(Tensu))')).toContain(
-            'puts("平均" + (@goukei / @_array_Tensu_.length).to_s)',
+            'console.puts("平均" + (@goukei / @_array_Tensu_.length).to_s)',
         );
     });
 
     test('表示する(a + 1) (one argument) is unchanged', () => {
-        expect(dToR('表示する(a + 1)')).toBe('puts(@a + 1)');
+        expect(dToR('表示する(a + 1)')).toBe('console.puts(@a + 1)');
     });
 
     test('表示する(x でない) (one argument) is unchanged', () => {
-        expect(dToR('表示する(x でない)')).toBe('puts(!@x)');
+        expect(dToR('表示する(x でない)')).toBe('console.puts(!@x)');
     });
 
     test('Ruby → DNCL drops the parentheses of (expr).to_s', () => {
-        expect(rToD('puts((@a + 1).to_s + @b.to_s)')).toBe('表示する(a + 1, b)');
-        expect(rToD('puts("合計" + (@a * 2).to_s)')).toBe('表示する("合計", a * 2)');
+        expect(rToD('console.puts((@a + 1).to_s + @b.to_s)')).toBe('表示する(a + 1, b)');
+        expect(rToD('console.puts("合計" + (@a * 2).to_s)')).toBe('表示する("合計", a * 2)');
     });
 
     test('DNCL → Ruby → DNCL → Ruby keeps the Ruby', () => {
-        const ruby = 'puts(@a.to_s + (@b + 1).to_s)';
+        const ruby = 'console.puts(@a.to_s + (@b + 1).to_s)';
         expect(dToR(rToD(ruby))).toBe(ruby);
-        expect(dToR(rToD('puts((!@x).to_s + @y.to_s)'))).toBe('puts((!@x).to_s + @y.to_s)');
+        expect(dToR(rToD('console.puts((!@x).to_s + @y.to_s)'))).toBe('console.puts((!@x).to_s + @y.to_s)');
     });
 });

@@ -1032,8 +1032,9 @@ const makeToolboxXML = function (
     // Upstream pushes every extension category with a gap before it here.
     // === Smalruby: End of only_blocks filtering ===
     // === Smalruby: Start of DNCL hide extensions ===
-    if (!dnclMode) {
-        for (const extensionCategory of categoriesXML) {
+    // The Japanese mode keeps only the console (表示する / 入力する, docs/dncl/design.md, chapter 5).
+    for (const extensionCategory of categoriesXML) {
+        if (!dnclMode || extensionCategory.id === 'smalrubyConsole') {
             addCategoryIfNotEmpty(extensionCategory.xml);
         }
     }

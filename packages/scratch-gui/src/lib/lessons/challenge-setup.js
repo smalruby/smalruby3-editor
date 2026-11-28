@@ -2,11 +2,11 @@
 // コースの言語からタブと Ruby モードの既定を決め、チャレンジの setup で上書きする。
 import { LANGUAGES } from './courses';
 
-// 言語ごとの既定。ブロックのコースはコードタブ、Ruby / DNCL のコースは Ruby タブで始める
+// 言語ごとの既定。ブロックのコースはコードタブ、Ruby のコースはルビータブ、DNCL のコースは日本語タブで始める
 const DEFAULT_SETUP_BY_LANGUAGE = {
     [LANGUAGES.BLOCKS]: { tab: 'code' },
     [LANGUAGES.RUBY]: { tab: 'ruby', rubyMode: 'ruby' },
-    [LANGUAGES.DNCL]: { tab: 'ruby', rubyMode: 'dncl' },
+    [LANGUAGES.DNCL]: { tab: 'japanese', rubyMode: 'dncl' },
 };
 
 /**

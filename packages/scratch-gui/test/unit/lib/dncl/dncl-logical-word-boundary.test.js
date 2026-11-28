@@ -2,15 +2,17 @@
 // 「名前の一部かどうか」で決める (Issue #1697)。名前の文字は DNCLv2 の
 // 前処理の `isIdentChar` と同じ (`\p{L}` / `\p{N}` / `_`)。数値の直後は演算子。
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
-import { dnclV2Preprocess } from '../../../../src/lib/dncl/dncl-v2-preprocessor';
 import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { loadPrism } from '../../../../src/lib/prism-parser';
+
+beforeAll(() => loadPrism());
 
 const toRuby = (dncl) => dnclToRuby(dncl).ruby;
 
 describe('かつ / または without spaces around them (Issue #1697)', () => {
     describe('the examples of the issue', () => {
         test('(a > 0)かつ(b > 0)', () => {
-            expect(toRuby('x = (a > 0)かつ(b > 0)')).toBe('@x = (@a > 0) && (@b > 0)');
+            expect(toRuby('x = (a > 0)かつ(b > 0)')).toBe('@x = @a > 0 && @b > 0');
         });
 
         test('a[1]かつ b', () => {
@@ -23,16 +25,16 @@ describe('かつ / または without spaces around them (Issue #1697)', () => {
 
         test('(a > 0)または(b > 0) in an if condition', () => {
             expect(toRuby('もし (a > 0)または(b > 0) ならば\n  a = 1\nを実行する')).toBe(
-                'if (@a > 0) || (@b > 0)\n  @a = 1\nend',
+                'if @a > 0 || @b > 0\n  @a = 1\nend',
             );
         });
 
         test('DNCLv2 (a > 0)and(b > 0)', () => {
-            expect(toRuby(dnclV2Preprocess('x = (a > 0)and(b > 0)'))).toBe('@x = (@a > 0) && (@b > 0)');
+            expect(toRuby('x = (a > 0)and(b > 0)')).toBe('@x = @a > 0 && @b > 0');
         });
 
         test('DNCLv2 (a > 0)or(b > 0)', () => {
-            expect(toRuby(dnclV2Preprocess('x = (a > 0)or(b > 0)'))).toBe('@x = (@a > 0) || (@b > 0)');
+            expect(toRuby('x = (a > 0)or(b > 0)')).toBe('@x = @a > 0 || @b > 0');
         });
     });
 
@@ -108,7 +110,7 @@ describe('かつ / または without spaces around them (Issue #1697)', () => {
         });
 
         test('(a > 0) かつ (b > 0)', () => {
-            expect(toRuby('x = (a > 0) かつ (b > 0)')).toBe('@x = (@a > 0) && (@b > 0)');
+            expect(toRuby('x = (a > 0) かつ (b > 0)')).toBe('@x = @a > 0 && @b > 0');
         });
 
         test('x でない かつ y', () => {
@@ -134,7 +136,7 @@ describe('かつ / または without spaces around them (Issue #1697)', () => {
         // `not` negates only its own operand, up to the `and` / `or` even
         // without spaces, not the operand after it.
         test('not (a > 0)and(b > 0)', () => {
-            expect(toRuby('x = not (a > 0)and(b > 0)')).toBe('@x = !(@a > 0) && (@b > 0)');
+            expect(toRuby('x = not (a > 0)and(b > 0)')).toBe('@x = !(@a > 0) && @b > 0');
         });
 
         test('not a[1]and b', () => {
@@ -142,12 +144,12 @@ describe('かつ / または without spaces around them (Issue #1697)', () => {
         });
 
         test('not a or(b)', () => {
-            expect(toRuby('x = not a or(b)')).toBe('@x = !@a || (@b)');
+            expect(toRuby('x = not a or(b)')).toBe('@x = !@a || @b');
         });
 
         test('in an if condition', () => {
             expect(toRuby('もし not (a > 0)and(b > 0) ならば:\n    x = 1')).toBe(
-                'if !(@a > 0) && (@b > 0)\n  @x = 1\nend',
+                'if !(@a > 0) && @b > 0\n  @x = 1\nend',
             );
         });
 
@@ -160,7 +162,7 @@ describe('かつ / または without spaces around them (Issue #1697)', () => {
         const roundtrip = (ruby) => toRuby(rubyToDncl(ruby).dncl);
 
         test('&& between parentheses', () => {
-            expect(roundtrip('@x = (@a > 0) && (@b > 0)')).toBe('@x = (@a > 0) && (@b > 0)');
+            expect(roundtrip('@x = (@a > 0) && (@b > 0)')).toBe('@x = @a > 0 && @b > 0');
         });
 
         test('|| between array elements', () => {

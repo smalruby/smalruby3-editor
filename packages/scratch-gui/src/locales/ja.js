@@ -1270,6 +1270,10 @@ export default {
         '申し訳ありません。スモウルビーがクラッシュしたようです。このバグは自動的にスモウルビーチームに報告されました。ページを再読み込みしてください。',
     'gui.smalruby3.gui.defaultProjectTitle': 'スモウルビーのプロジェクト',
     'gui.smalruby3.gui.rubyTab': 'ルビー',
+    'gui.smalruby3.gui.japaneseTab': '日本語',
+    'gui.smalruby3.gui.japaneseTabTitle': 'プログラムを日本語（共通テスト用プログラム表記）で書く',
+    'gui.smalruby3.gui.japaneseTabLockedInLesson': 'このレッスンでは日本語タブを使えません',
+    'gui.rubyTab.japaneseLanguageBand': '日本語（共通テスト用プログラム表記）',
     'gui.smalruby3.SpriteInfo.sizeIcon': '大きさ（%）',
     'gui.smalruby3.SpriteInfo.directionIcon': '向き（度）',
     'gui.smalruby3.previewInfo.betawelcome': 'スモウルビー3.0 ベータ版にようこそ!',
@@ -1288,6 +1292,8 @@ export default {
         '残念ながら、ブラウザーやコンピューターが{webGlLink}ようです。この技術はスモウルビー3.0の実行に必須です。',
     'gui.smalruby3.alerts.convertRubyToBlocksError':
         'ルビーからコードに変換できませんでした。ルビーを修正してください！',
+    'gui.smalruby3.alerts.convertJapaneseError':
+        '日本語のプログラムに読めない行があります。印のある行を直してください！',
     'gui.alerts.cannotExecuteLine': 'この行は実行できません。',
     'gui.smalruby3.telemetryOptIn.label': 'スモウルビーを改善するための利用状況の報告',
     'gui.smalruby3.telemetryOptIn.body1':
@@ -1881,13 +1887,10 @@ export default {
     // Ruby Toolbar messages
     'gui.rubyToolbar.executeLine': 'カーソル行を実行',
     'gui.rubyToolbar.executeAll': 'すべて実行',
-    'gui.rubyToolbar.dnclLabel': '日本語',
     'gui.rubyToolbar.modeFurigana': 'Rubyふりがなモード',
     'gui.rubyToolbar.modeFuriganaLine1': 'ルビー',
     'gui.rubyToolbar.modeFuriganaLine2': 'Ruby',
     'gui.rubyToolbar.modeRuby': 'Rubyモード',
-    'gui.rubyToolbar.modeDncl': '日本語モード',
-    'gui.rubyToolbar.modeDnclLockedInLesson': 'このレッスンでは日本語モードに切りかえられません',
     'gui.rubyToolbar.stopExecution': '実行を停止',
     'gui.rubyToolbar.search': '検索',
     'gui.rubyToolbar.keyboardShow': 'キーボードを表示',
@@ -2077,43 +2080,44 @@ export default {
     'gui.welcomeTooltip.label': 'スモウルビーへようこそ',
     'gui.aria.clearButton': 'クリア',
     'gui.extensionButton.dnclExtensionConfirm':
-        '日本語モードでは拡張機能は使えません。\nRubyふりがなモードに戻すと拡張機能が使えるようになります。\n戻しますか？',
-    'gui.dnclModeNotice.message': '日本語モード：ブロックが制限されています',
-    'gui.dnclModeNotice.exitButton': 'Rubyふりがなモードに戻す',
+        '日本語タブで書いているあいだは、拡張機能と一部のブロックは使えません。\nすべてのブロックと拡張機能を使えるようにしますか？\n（日本語タブに戻ると、また制限されます）',
+    'gui.dnclModeNotice.message': '日本語タブで書いています：ブロックが制限されています',
+    'gui.dnclModeNotice.exitButton': 'すべてのブロックを使う',
     'gui.rubyTab.dnclDoubleSlashHint':
         'スモウルビーでは // はコメントではありません（整数の割り算です）。コメントには # をつかってください。',
+    'gui.rubyTab.dnclStringArithmeticHint':
+        '文字列と - * / を使うと、左から順に計算されます。"a" + x - 1 は、文字列 "a" + x から 1 を引きます。数の計算は "a" + (x - 1) のようにかっこで囲んでください。',
     'gui.rubyTab.dnclArrayIndexHint':
-        '{access} は配列の範囲外になります。スモウルビーの日本語では、配列の添字は 0 から始まります（最初の要素は {array}[0]、最後の要素は {array}[{last}]）。問題文で添字が 1 から始まるときは、{fixed} のように添字を 1 ずらして書いてください。',
-    'gui.rubyTab.dnclIndexShiftConfirm':
-        'スモウルビーの日本語では、配列の添字は 0 から始まります。貼り付けたプログラムの配列の添字を 1 ずつ減らしますか？',
-    'gui.rubyTab.dnclIndexShiftDone':
-        '{count} か所の配列の添字を 1 ずつ減らしました（緑の印）。\n繰り返しの範囲（「i を 1 から n まで」など）は書き換えていません。0 始まりに合わせて、必要なら自分で直してください。',
-    'gui.rubyTab.dnclIndexShiftChangedHeading': '書き換えた箇所:',
-    'gui.rubyTab.dnclIndexShiftChangedItem': '{line} 行目: {before} → {after}',
-    'gui.rubyTab.dnclIndexShiftSuspectsHeading': 'もしかしたらここも直す必要があるかもしれません（黄色の印）:',
-    'gui.rubyTab.dnclIndexShiftSuspectItem': '{line} 行目: {text}（{reason}）',
-    'gui.rubyTab.dnclIndexShiftMore': '…ほか {count} か所',
-    'gui.rubyTab.dnclIndexShiftChangedHover': '添字を 1 減らしました: {before} → {after}',
-    'gui.rubyTab.dnclIndexShiftReasonAssignOne':
-        '変数に 1 を入れています。添字に使うなら 0 にする必要があるかもしれません',
-    'gui.rubyTab.dnclIndexShiftReasonLoopFromOne': '1 から始まる繰り返しです。0 から始める必要があるかもしれません',
-    'gui.rubyTab.dnclIndexShiftReasonLoopFromN':
-        '先頭の要素を飛ばす繰り返しです。始まりを 1 小さくする必要があるかもしれません',
-    'gui.rubyTab.dnclIndexShiftReasonLoopToLength': '要素数まで繰り返しています。0 始まりでは 要素数(X) - 1 までです',
-    'gui.rubyTab.dnclIndexShiftReasonLessEqual':
-        '添字に使う変数を <= で比べています。0 始まりでは < にする必要があるかもしれません',
-    'gui.rubyTab.dnclIndexShiftReasonNegativeIndex':
-        '添字が -1 になりました。ここはもともと 0 始まりだったかもしれないので、確かめてください',
+        '{access} は配列の範囲外になります。スモウルビーの日本語では、配列の添字は 0 から始まります（最初の要素は {array}[0]、最後の要素は {array}[{last}]）。問題文で添字が 1 から始まるときは、{fixed} のように添字を 1 ずらして書くか、プログラムの冒頭に「すべての配列の添字は 1 から始まる。」と書いてください（メニューの「添字が 1 から始まる問題」で書けます）。',
+    'gui.rubyToolbar.copyProblemForm': '行番号と罫線つきでコピー',
+    'gui.rubyToolbar.rulesSwitch': '行番号と罫線',
+    'gui.rubyToolbar.rulesSwitchTitle': '行番号と罫線を表示して、問題と同じ形で読む',
+    'gui.rubyToolbar.problemSettingsHeading': '問題の約束',
+    'gui.rubyToolbar.previewRubyOfJapanese': 'ルビーに直したものを確認',
+    'gui.rubyToolbar.saveJapaneseProgram': '日本語のプログラムを保存（.txt）',
+    'gui.rubyTab.dnclIndexSettingConfirm':
+        '貼り付けたプログラムには、配列の添字は 1 から始まると書いてあります。プログラムの冒頭に「すべての配列の添字は 1 から始まる。」と書いて、添字が 1 から始まる設定にしますか？',
+    'gui.rubyToolbar.settingsPatternExample': '例示の形（添字は 0 から）',
+    'gui.rubyToolbar.settingsPatternIndexFromOne': '添字が 1 から始まる問題',
+    'gui.rubyTab.dnclForbiddenPrefixError': '日本語タブでは変数に「{name}」は使えません',
     'gui.rubyTab.dnclPostTestLoopError':
-        '後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。',
+        '後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。ルビータブでは書けます。',
+    'gui.rubyTab.dnclStageVariableError':
+        'ステージの変数（{name}）は日本語タブでは書けません。ルビータブでは書けます。',
     'gui.rubyTab.dnclUndefinedFunctionError':
-        '「{name}」は定義されていない関数です。「関数 {name}(…)」で定義してください。',
-    'gui.rubyTab.dnclUnsupportedCommandError':
-        '「{name}」は日本語モードでは書けない命令です。Ruby モードでは書けます。',
+        '「{name}」は定義されていない関数です。「関数 {name}(…):」で定義してください。',
+    'gui.rubyTab.dnclStringPlusNumberError':
+        '文字列と数を「+」でつなぐときは、数を「文字列({number})」のように文字列にしてください（例: {fixed}）。数を「{inline}」のように文字列の中に書いてもかまいません。',
+    'gui.rubyTab.dnclMultipleAssignmentError':
+        '「,」で区切って、いくつかの変数にまとめて代入することはできません。1 つずつ代入してください（例: {example}）。',
+    'gui.rubyTab.dnclMultipleAssignmentErrorNoExample':
+        '「,」で区切って、いくつかの変数にまとめて代入することはできません。1 つずつ代入してください。',
+    'gui.rubyTab.dnclUnsupportedCommandError': '「{name}」は日本語タブでは書けない命令です。ルビータブでは書けます。',
+    'gui.rubyTab.dnclUnsupportedNotationError': '「{name}」は日本語タブでは書けません。ルビータブでは書けます。',
     'gui.rubyTab.dnclUnsupportedNumberError':
-        '「{name}」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。',
+        '「{name}」は日本語タブでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。ルビータブでは書けます。',
     'gui.rubyTab.dnclValidationError':
-        '日本語モードでは対応していない記述です。\n対応している命令のみにしてから、モード切り替えを行ってください。',
+        '日本語タブでは対応していない記述です。\n対応している命令のみにしてから、日本語タブを開いてください。',
     'gui.mobile.drawer.title': 'メニュー',
     'gui.mobile.sideRail.backpack': 'バックパック',
     'gui.mobile.drawer.section.file': 'ファイル',
@@ -2228,7 +2232,7 @@ export default {
     'gui.genaiConcierge.indexHintsTitle':
         '注意: 添字が 1 から始まっているかもしれません。スモウルビーの日本語では、配列の添字は 0 から始まります。',
     'gui.genaiConcierge.indexHint':
-        '{access} は配列の範囲外になります（最後の要素は {array}[{last}]）。問題文で添字が 1 から始まるときは、{fixed} のように添字を 1 ずらして書いてください。',
+        '{access} は配列の範囲外になります（最後の要素は {array}[{last}]）。問題文で添字が 1 から始まるときは、{fixed} のように添字を 1 ずらして書くか、プログラムの冒頭に「すべての配列の添字は 1 から始まる。」と書いてください（メニューの「添字が 1 から始まる問題」で書けます）。',
     'gui.genaiConcierge.lineOf': '{line} 行目',
     'gui.genaiConcierge.spriteLineOf': '「{sprite}」の {line} 行目',
     'gui.genaiConcierge.spriteOf': '「{sprite}」',
@@ -2362,6 +2366,17 @@ export default {
     'gui.meshStatus.practicingShort': '練習中',
     'gui.meshPractice.blocked': 'レッスンの練習相手が動いているので、この練習相手は休みます。',
     'gui.meshPractice.activeLabel': '練習中',
+    'gui.smalrubyConsole.title': 'コンソール',
+    'gui.smalrubyConsole.clear': '消す',
+    'gui.smalrubyConsole.close': 'ステージにもどる',
+    'gui.smalrubyConsole.inputLabel': '答えを入力して Enter キーを押す',
+    'gui.smalrubyConsole.empty': 'プログラムが表示したものが、ここに出ます。',
+    'gui.smalrubyConsole.showButton': 'コンソールを出す',
+    'gui.smalrubyConsole.hideButton': 'コンソールを隠す',
+    'gui.japaneseRightColumn.program': '{name} のプログラム',
+    'gui.japaneseRightColumn.stage': 'ステージ',
+    'gui.japaneseRightColumn.showTargets': 'スプライトと背景を見る',
+    'gui.japaneseRightColumn.hideTargets': 'スプライトと背景を隠す',
     'gui.meshStatus.button': 'メッシュの状態と履歴',
     'gui.menuBar.meshV2Status': '状態と履歴を見る',
     'gui.connection.meshV2.openStatus': '状態と履歴',

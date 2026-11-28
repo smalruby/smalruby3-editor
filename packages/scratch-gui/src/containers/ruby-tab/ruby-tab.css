@@ -1,6 +1,4 @@
-@import '../../css/colors.css';
-@import '../../css/units.css';
-@import '../../css/z-index.css';
+@import '../../css/smalruby-tokens.css';
 
 .zoomControlsWrapper {
     position: absolute;
@@ -93,6 +91,32 @@ $arrow-rounding: 0.125rem;
     bottom: 0;
 }
 
+/* The Japanese tab (docs/dncl/design.md 1 章): the name of the language in a green band over
+   the editor, and the editor moves down by the band. */
+$language-band-height: 1.75rem;
+
+.languageBand {
+    position: absolute;
+    top: 3rem; /* under the toolbar */
+    left: 0;
+    right: 0;
+    height: $language-band-height;
+    display: flex;
+    align-items: center;
+    padding: 0 $space;
+    background-color: $color-language-japanese;
+    color: $ui-white;
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.editorWrapperWithBand {
+    top: calc(3rem + $language-band-height);
+}
+
 /* Override Monaco Editor find widget position */
 .editorWrapper :global(.monaco-editor .find-widget) {
     right: 48px !important;
@@ -110,15 +134,49 @@ $arrow-rounding: 0.125rem;
     background-color: rgba(133, 92, 214, 0.2) !important;
 }
 
-/* Array indexes shifted at paste time, and lines that may still assume 1-based indexes (Issue #1366) */
-.editorWrapper :global(.dncl-index-shifted) {
-    background-color: rgba(15, 189, 140, 0.3);
-    border-bottom: 2px solid #0fbd8c;
+/* The problem form of the Japanese mode (Issue #1755): the rules of the blocks are drawn over
+   one space of the indent, so the text does not move. A bar runs the full height of the line so
+   the bars of the lines join; an L ends at the middle of its line. */
+.editorWrapper :global(.dncl-rule-bar),
+.editorWrapper :global(.dncl-rule-end) {
+    position: relative;
 }
 
-.editorWrapper :global(.dncl-index-suspect) {
-    background-color: rgba(255, 191, 0, 0.3);
-    border-bottom: 2px dotted #ffab19;
+.editorWrapper :global(.dncl-rule-bar)::before,
+.editorWrapper :global(.dncl-rule-end)::before {
+    content: '';
+    position: absolute;
+    left: 0.3em;
+    border-left: 2px solid $text-primary;
+    pointer-events: none;
+}
+
+.editorWrapper :global(.dncl-rule-bar)::before {
+    top: -0.35em;
+    bottom: -0.35em;
+}
+
+.editorWrapper :global(.dncl-rule-end)::before {
+    top: -0.35em;
+    height: 0.95em;
+    width: 0.9em;
+    border-bottom: 2px solid $text-primary;
+}
+
+/* A blank line has no indent under the bars: they are drawn on spaces shown in front of the line
+   (not in the text), on the last of them. */
+.editorWrapper :global(.dncl-rule-bar-gap) {
+    position: relative;
+}
+
+.editorWrapper :global(.dncl-rule-bar-gap)::before {
+    content: '';
+    position: absolute;
+    top: -0.35em;
+    bottom: -0.35em;
+    left: calc(100% - 1ch + 0.3em);
+    border-left: 2px solid $text-primary;
+    pointer-events: none;
 }
 
 /* Value report bubble */

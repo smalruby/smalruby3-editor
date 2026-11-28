@@ -17,6 +17,10 @@ export default {
         'We are so sorry, but it looks like Smalruby has crashed. This bug has been automatically reported to the Smalruby Team. Please refresh your page to try again.',
     'gui.smalruby3.gui.defaultProjectTitle': 'Smalruby Project',
     'gui.smalruby3.gui.rubyTab': 'Ruby',
+    'gui.smalruby3.gui.japaneseTab': 'Japanese',
+    'gui.smalruby3.gui.japaneseTabTitle': 'Write the program in Japanese (the notation of the common test)',
+    'gui.smalruby3.gui.japaneseTabLockedInLesson': 'You cannot use the Japanese tab in this lesson',
+    'gui.rubyTab.japaneseLanguageBand': 'Japanese (the program notation of the common test)',
     'gui.smalruby3.SpriteInfo.sizeIcon': 'Size (%)',
     'gui.smalruby3.SpriteInfo.directionIcon': 'Direction (degrees)',
     'gui.rubyTab.paste': 'Paste',
@@ -1048,6 +1052,8 @@ export default {
     'gui.smalruby3.webglModal.description':
         'Unfortunately it looks like your browser or computer {webGlLink}. This technology is needed for Smalruby 3.0 to run.',
     'gui.smalruby3.alerts.convertRubyToBlocksError': 'Could not convert Ruby to Code. Please fix Ruby!',
+    'gui.smalruby3.alerts.convertJapaneseError':
+        'The Japanese program has lines that cannot be read. Please fix the marked lines!',
     'gui.alerts.cannotExecuteLine': 'This line cannot be executed.',
     'gui.smalruby3.telemetryOptIn.label': 'Report statistics to improve Smalruby',
     'gui.smalruby3.telemetryOptIn.body1':
@@ -1058,10 +1064,12 @@ export default {
     'gui.extensionLibrary.showAllExtensions': 'Show all extensions',
     'gui.smalruby3.rubyToBlocksConverter.cannotChangeArgument':
         '"{NAME}" is an argument, so it cannot be changed.\nCopy it to another variable and change that one (e.g. x = {NAME}).',
-    'gui.smalruby3.rubyToBlocksConverter.couldNotConvertPrimitive': '"{ SOURCE }" could not be converted the block.',
+    'gui.smalruby3.rubyToBlocksConverter.couldNotConvertPrimitive':
+        '"{ SOURCE }" could not be converted to a block.\nCheck the spelling or use a supported value.',
     'gui.smalruby3.rubyToBlocksConverter.variableAndListSameName':
         '"{NAME}" is used as a list on line {LIST_LINE} and as a variable on line {VARIABLE_LINE}.\nIn Ruby, one name cannot be both a variable and a list. Rename one of them.',
-    'gui.smalruby3.rubyToBlocksConverter.wrongInstruction': '"{ SOURCE }" is the wrong instruction.',
+    'gui.smalruby3.rubyToBlocksConverter.wrongInstruction':
+        '"{ SOURCE }" is the wrong instruction.\nCheck the spelling or use a supported block.',
     'gui.smalruby3.rubyToBlocksConverter.withScreenRefreshOutsideLoop':
         'with_screen_refresh do ... end can only be the only command in the body of until or while.\nPut it in a loop (until ... / while ...) with nothing else, or use 10.times.with_screen_refresh do / loop.with_screen_refresh do.',
     'gui.smalruby3.rubyToBlocksConverter.arrayLiteralReceiver':
@@ -1577,7 +1585,6 @@ export default {
     'gui.rubyToolbar.search': 'Search',
     'gui.rubyToolbar.keyboardShow': 'Show keyboard',
     'gui.rubyToolbar.keyboardHide': 'Hide keyboard',
-    'gui.rubyToolbar.modeDnclLockedInLesson': 'You cannot switch to the Japanese mode in this lesson',
     'gui.rubyToolbar.prevSprite': 'Previous sprite',
     'gui.rubyToolbar.nextSprite': 'Next sprite',
     'gui.rubyToolbar.undo': 'Undo',
@@ -1743,44 +1750,46 @@ export default {
     'gui.welcomeTooltip.label': 'Welcome to Smalruby',
     'gui.aria.clearButton': 'Clear',
     'gui.extensionButton.dnclExtensionConfirm':
-        'Extensions are not available in Japanese mode.\nReturn to Ruby furigana mode to enable extensions.\nSwitch now?',
-    'gui.dnclModeNotice.message': 'Japanese mode: blocks are restricted.',
-    'gui.dnclModeNotice.exitButton': 'Return to Ruby furigana mode',
+        'While you write in the Japanese tab, extensions and some blocks are not available.\nUse all blocks and extensions?\n(They are restricted again when you go back to the Japanese tab.)',
+    'gui.dnclModeNotice.message': 'Writing in the Japanese tab: blocks are restricted.',
+    'gui.dnclModeNotice.exitButton': 'Use all blocks',
     'gui.rubyTab.dnclDoubleSlashHint':
         'In Smalruby, // is not a comment (it is integer division). Use # for comments.',
+    'gui.rubyTab.dnclStringArithmeticHint':
+        'With a string, - * / are worked out from the left, so "a" + x - 1 subtracts from the string "a" + x. Put the number part in parentheses, like "a" + (x - 1).',
     'gui.rubyTab.dnclArrayIndexHint':
-        '{access} reads past the end of the array. In Smalruby Japanese mode, array indices start at 0 (the first element is {array}[0] and the last is {array}[{last}]). If the problem counts from 1, shift the index by 1, like {fixed}.',
-    'gui.rubyTab.dnclIndexShiftConfirm':
-        'In Smalruby Japanese mode, array indices start at 0. Shift the array indices of the pasted program down by 1?',
-    'gui.rubyTab.dnclIndexShiftDone':
-        'Shifted {count} array indices down by 1 (marked in green).\nLoop ranges (such as "i を 1 から n まで") were not changed. Fix them yourself if they should start at 0.',
-    'gui.rubyTab.dnclIndexShiftChangedHeading': 'Changed:',
-    'gui.rubyTab.dnclIndexShiftChangedItem': 'Line {line}: {before} → {after}',
-    'gui.rubyTab.dnclIndexShiftSuspectsHeading': 'These may also need fixing (marked in yellow):',
-    'gui.rubyTab.dnclIndexShiftSuspectItem': 'Line {line}: {text} ({reason})',
-    'gui.rubyTab.dnclIndexShiftMore': '…and {count} more',
-    'gui.rubyTab.dnclIndexShiftChangedHover': 'Index shifted down by 1: {before} → {after}',
-    'gui.rubyTab.dnclIndexShiftReasonAssignOne':
-        'sets a variable to 1; if it is used as an index, it may need to be 0',
-    'gui.rubyTab.dnclIndexShiftReasonLoopFromOne': 'the loop starts at 1; it may need to start at 0',
-    'gui.rubyTab.dnclIndexShiftReasonLoopFromN':
-        'the loop skips the first elements; its start may need to be 1 smaller',
-    'gui.rubyTab.dnclIndexShiftReasonLoopToLength':
-        'the loop runs up to the number of elements; with 0-based indices it ends at 要素数(X) - 1',
-    'gui.rubyTab.dnclIndexShiftReasonLessEqual':
-        'compares an index with <=; with 0-based indices it may need to be <',
-    'gui.rubyTab.dnclIndexShiftReasonNegativeIndex':
-        'the index became -1; this part was probably 0-based already, so check it',
+        '{access} reads past the end of the array. In the Japanese tab of Smalruby, array indices start at 0 (the first element is {array}[0] and the last is {array}[{last}]). If the problem counts from 1, shift the index by 1, like {fixed}, or write "すべての配列の添字は 1 から始まる。" at the top of the program (the menu "A problem whose indices start at 1" writes it).',
+    'gui.rubyToolbar.copyProblemForm': 'Copy with line numbers and rules',
+    'gui.rubyToolbar.rulesSwitch': 'Line numbers and rules',
+    'gui.rubyToolbar.rulesSwitchTitle': 'Show the line numbers and the rules, in the form of the test questions',
+    'gui.rubyToolbar.problemSettingsHeading': 'Rules of the problem',
+    'gui.rubyToolbar.previewRubyOfJapanese': 'Preview the program in Ruby',
+    'gui.rubyToolbar.saveJapaneseProgram': 'Save the Japanese program (.txt)',
+    'gui.rubyTab.dnclIndexSettingConfirm':
+        'The pasted program says that its array indices start at 1. Write "すべての配列の添字は 1 から始まる。" at the top of the program, so that the indices start at 1?',
+    'gui.rubyToolbar.settingsPatternExample': 'The form of the examples (indices from 0)',
+    'gui.rubyToolbar.settingsPatternIndexFromOne': 'A problem whose indices start at 1',
+    'gui.rubyTab.dnclForbiddenPrefixError': '"{name}" cannot be used in a variable in the Japanese tab.',
     'gui.rubyTab.dnclPostTestLoopError':
-        'A post-test loop (a loop that runs once before it checks the condition) cannot be written in Japanese. Write the first run before the loop, then make it a "〜の間繰り返す" loop. You can write it in Ruby mode.',
+        'A post-test loop (a loop that runs once before it checks the condition) cannot be written in Japanese. Write the first run before the loop, then make it a "〜の間繰り返す" loop. You can write it in the Ruby tab.',
+    'gui.rubyTab.dnclStageVariableError':
+        'A variable of the stage ({name}) cannot be written in the Japanese tab. You can write it in the Ruby tab.',
     'gui.rubyTab.dnclUndefinedFunctionError':
-        '"{name}" is a function that is not defined. Define it with "関数 {name}(…)".',
+        '"{name}" is a function that is not defined. Define it with "関数 {name}(…):".',
+    'gui.rubyTab.dnclStringPlusNumberError':
+        'To join a string and a number with "+", make the number a string like "文字列({number})" (e.g. {fixed}). You may also write the number in the string, like {inline}.',
+    'gui.rubyTab.dnclMultipleAssignmentError':
+        'Several variables cannot be assigned at once with ",". Assign them one by one (e.g. {example}).',
+    'gui.rubyTab.dnclMultipleAssignmentErrorNoExample':
+        'Several variables cannot be assigned at once with ",". Assign them one by one.',
     'gui.rubyTab.dnclUnsupportedCommandError':
-        '"{name}" is a command that cannot be written in Japanese mode. You can write it in Ruby mode.',
+        '"{name}" is a command that cannot be written in the Japanese tab. You can write it in the Ruby tab.',
+    'gui.rubyTab.dnclUnsupportedNotationError':
+        '"{name}" cannot be written in the Japanese tab. You can write it in the Ruby tab.',
     'gui.rubyTab.dnclUnsupportedNumberError':
-        '"{name}" is a way of writing a number that cannot be used in Japanese mode (a hex number, _ between digits, an exponent and so on). Write it like "1000" or "0.5". You can write it in Ruby mode.',
+        '"{name}" is a way of writing a number that cannot be used in the Japanese tab (a hex number, _ between digits, an exponent and so on). Write it like "1000" or "0.5". You can write it in the Ruby tab.',
     'gui.rubyTab.dnclValidationError':
-        'This code contains constructs not supported in Japanese mode.\nPlease use only supported instructions before switching modes.',
+        'This code contains constructs not supported in the Japanese tab.\nPlease use only supported instructions before opening the Japanese tab.',
     'gui.mobile.drawer.title': 'Menu',
     'gui.mobile.drawer.section.file': 'File',
     'gui.mobile.drawer.section.language': 'Language',
@@ -1853,9 +1862,9 @@ export default {
     'gui.genaiConcierge.convertNgCode': 'This program has a problem',
     'gui.genaiConcierge.fixesTitle': 'What Smalruby fixed:',
     'gui.genaiConcierge.indexHintsTitle':
-        'Note: the indexes may start at 1. In Smalruby Japanese mode, array indices start at 0.',
+        'Note: the indexes may start at 1. In the Japanese tab of Smalruby, array indices start at 0.',
     'gui.genaiConcierge.indexHint':
-        '{access} reads past the end of the array (the last element is {array}[{last}]). If the problem counts from 1, shift the index by 1, like {fixed}.',
+        '{access} reads past the end of the array (the last element is {array}[{last}]). If the problem counts from 1, shift the index by 1, like {fixed}, or write "すべての配列の添字は 1 から始まる。" at the top of the program (the menu "A problem whose indices start at 1" writes it).',
     'gui.genaiConcierge.lineOf': 'Line {line}',
     'gui.genaiConcierge.spriteLineOf': '"{sprite}" line {line}',
     'gui.genaiConcierge.spriteOf': '"{sprite}"',
@@ -1987,6 +1996,17 @@ export default {
     'gui.meshStatus.practicingShort': 'practicing',
     'gui.meshPractice.blocked': 'The lesson practice partner is working now, so this practice partner rests.',
     'gui.meshPractice.activeLabel': 'Practicing',
+    'gui.smalrubyConsole.title': 'Console',
+    'gui.smalrubyConsole.clear': 'Clear',
+    'gui.smalrubyConsole.close': 'Back to the stage',
+    'gui.smalrubyConsole.inputLabel': 'Type the answer and press Enter',
+    'gui.smalrubyConsole.empty': 'What the program prints appears here.',
+    'gui.smalrubyConsole.showButton': 'Show the console',
+    'gui.smalrubyConsole.hideButton': 'Hide the console',
+    'gui.japaneseRightColumn.program': 'Program of {name}',
+    'gui.japaneseRightColumn.stage': 'the stage',
+    'gui.japaneseRightColumn.showTargets': 'See the sprites and backdrops',
+    'gui.japaneseRightColumn.hideTargets': 'Hide the sprites and backdrops',
     'gui.meshStatus.button': 'Mesh status and history',
     'gui.menuBar.meshV2Status': 'Show status and history',
     'gui.connection.meshV2.openStatus': 'Status and history',

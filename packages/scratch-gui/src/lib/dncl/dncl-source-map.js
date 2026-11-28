@@ -1,13 +1,33 @@
 // === Smalruby: This file is Smalruby-specific (DNCL ↔ Ruby source map) ===
+import { codeOfLine } from './dncl-trailing-comment';
+
+/** The length the converter cuts a quoted line to (`_truncateSource`). */
+const QUOTE_LENGTH = 40;
+
+/**
+ * A line as the converter quotes it: the first line only, then cut, with `...` for what is left.
+ * @param {string} text - The text.
+ * @returns {string} The quoted text.
+ */
+const cut = (text) => (text.length > QUOTE_LENGTH ? `${text.slice(0, QUOTE_LENGTH)}...` : text);
+
+/**
+ * The code of a Japanese line, as the student reads it: without the line number (`(01)`), the
+ * marks of the blocks on its left (`｜` `⎿`) and the comment at its end.
+ * @param {string} line - The Japanese line.
+ * @returns {string} The code.
+ */
+const jaCodeOfLine = (line) =>
+    codeOfLine(line.replace(/^\s*\(\s*\d+(?:-\d+)*\s*\)/, '').replace(/^[\s｜|│⎿└]*/, '')).trim();
 
 /**
  * Source map for DNCL ↔ Ruby line position mapping.
  *
- * DNCL and Ruby lines do not correspond 1:1: the DNCLv2 pre-processor joins
- * continuation lines, splits multi-assignments and adds block closers, and
- * the line converter expands input lines and counting loops into 2 Ruby
- * lines. The map is therefore built from the per-line correspondence that
- * `dnclToRuby` records while converting (use `dnclToRuby(dncl).sourceMap`).
+ * DNCL and Ruby lines do not correspond 1:1: continuation lines are one
+ * statement, a multi-assignment is several, a block of the standard form has
+ * no closing line, and an input or a counting loop is 2 Ruby lines. The map
+ * is therefore built from the Japanese line of each Ruby line that
+ * ja-notation writes (use `dnclToRuby(dncl).sourceMap`).
  */
 class DnclSourceMap {
     /**
@@ -15,8 +35,11 @@ class DnclSourceMap {
      * @param {Array<number>} rubyToDncl - `rubyToDncl[i]` is the 1-based DNCL
      *   line of Ruby line i+1.
      * @param {number} dnclLineCount - Number of lines in the DNCL source.
+     * @param {object} [texts] - The sources (`ja`, `ruby`), so errors can quote the Japanese.
      */
-    constructor(rubyToDncl, dnclLineCount) {
+    constructor(rubyToDncl, dnclLineCount, texts = {}) {
+        this._jaLines = typeof texts.ja === 'string' ? texts.ja.split('\n') : null;
+        this._rubyLines = typeof texts.ruby === 'string' ? texts.ruby.split('\n') : null;
         // rubyToDncl[i] = the DNCL line number (1-based) corresponding to
         // Ruby line i+1 (1-based)
         this._rubyToDncl = rubyToDncl.slice();
@@ -74,21 +97,54 @@ class DnclSourceMap {
     }
 
     /**
+     * The words of a conversion error with the Ruby it quotes (`"…" is the wrong instruction.`,
+     * `「…」は…`) replaced by the Japanese line it was made from, as the student wrote it
+     * (issue #1822): the Ruby has `@` and names the student did not write.
+     * Only a quote that is the Ruby of the error (its statement, its line, or either cut as the
+     * converter cuts them) is replaced; other quotes (the examples of a hint) are kept.
+     * @param {object} err - The error, on its Ruby `row`.
+     * @param {number} dnclRow - The 0-based DNCL row of the error.
+     * @returns {string} The words.
+     */
+    _quoteJapanese(err, dnclRow) {
+        const { text } = err;
+        if (typeof text !== 'string' || !this._jaLines || !this._rubyLines) return text;
+        const rubyLine = (this._rubyLines[err.row] || '').trim();
+        const jaLine = this._jaLines[dnclRow];
+        if (!rubyLine || typeof jaLine !== 'string') return text;
+        const ja = jaCodeOfLine(jaLine);
+        if (!ja) return text;
+        const quoted = new Set([rubyLine, cut(rubyLine), `${rubyLine}...`, cut(`${rubyLine}...`)]);
+        if (err.source) quoted.add(err.source);
+        let words = text;
+        [...quoted]
+            .filter((ruby) => ruby !== ja)
+            .sort((a, b) => b.length - a.length)
+            .forEach((ruby) => {
+                words = words
+                    .split(`"${ruby}"`)
+                    .join(`"${cut(ja)}"`)
+                    .split(`「${ruby}」`)
+                    .join(`「${cut(ja)}」`);
+            });
+        return words;
+    }
+
+    /**
      * Move conversion errors from their Ruby lines to the matching DNCL lines.
      *
      * Ruby columns have no DNCL counterpart, so each error is set to cover the
-     * whole DNCL line (`column: 0`, `source: null`).
+     * whole DNCL line (`column: 0`, `source: null`), and the Ruby the words
+     * quote is replaced by the Japanese line.
      * @param {Array<object>} errors - Errors with a 0-based Ruby `row`.
      * @returns {Array<object>} Copies of the errors with a 0-based DNCL `row`.
      */
     rubyErrorsToDncl(errors) {
-        return errors.map((err) => ({
-            ...err,
-            row: this.rubyLineToDnclLine(err.row + 1) - 1,
-            column: 0,
-            source: null,
-        }));
+        return errors.map((err) => {
+            const row = this.rubyLineToDnclLine(err.row + 1) - 1;
+            return { ...err, row, column: 0, source: null, text: this._quoteJapanese(err, row) };
+        });
     }
 }
 
-export { DnclSourceMap };
+export { DnclSourceMap, jaCodeOfLine };

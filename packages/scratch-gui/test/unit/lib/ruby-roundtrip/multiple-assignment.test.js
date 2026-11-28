@@ -8,6 +8,7 @@
  */
 import dedent from 'dedent';
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
+import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
 import {
     makeSpriteTarget,
     makeConverter,
@@ -119,8 +120,8 @@ describe('Ruby to blocks: multiple assignment (issue #1814)', () => {
     describe('DNCL', () => {
         test('`i, j = 5, 0` becomes blocks', async () => {
             const ruby = dnclToRuby('i, j = 5, 0\n表示する(i + j)').ruby;
-            expect(ruby).toBe('@i, @j = 5, 0\nputs(@i + @j)');
-            await expectRoundTrip(converter, target, ruby, '@i = 5\n@j = 0\nputs(@i + @j)');
+            expect(ruby).toBe('@i, @j = 5, 0\nconsole.puts(@i + @j)');
+            await expectRoundTrip(converter, target, ruby, '@i = 5\n@j = 0\nconsole.puts(@i + @j)');
         });
 
         test('the swap `a, b = b, a` is the error of a wrong instruction', async () => {
@@ -128,6 +129,20 @@ describe('Ruby to blocks: multiple assignment (issue #1814)', () => {
             const result = await converter.targetCodeToBlocks(target, ruby);
             expect(result).toBe(false);
             expect(converter.errors.map((e) => e.text)).toEqual([wrongInstruction('@a, @b = @b, @a')]);
+        });
+
+        test('the swap of elements `A[0], A[1] = A[1], A[0]` is Ruby, and the error of a wrong instruction (issue #2237)', async () => {
+            const ja = 'A = [1, 2]\nA[0], A[1] = A[1], A[0]';
+            const { ruby, errors } = dnclToRuby(ja);
+            expect(errors).toEqual([]);
+            const swap = '@_array_A_[0], @_array_A_[1] = @_array_A_[1], @_array_A_[0]';
+            expect(ruby).toBe(`@_array_A_ = [1, 2]\n${swap}`);
+            expect(rubyToDncl(ruby)).toEqual({ dncl: ja, errors: [] });
+            const result = await converter.targetCodeToBlocks(target, ruby);
+            expect(result).toBe(false);
+            expect(converter.errors.map((e) => e.text)).toEqual([
+                wrongInstruction('@_array_A_[0], @_array_A_[1] = @_array_A...'),
+            ]);
         });
     });
 });

@@ -55,7 +55,7 @@ describe('CJK function names: call site', () => {
 
     test('CJK function call inside 表示する argument', () => {
         const dncl = ['関数 にばい(x)', '  返す x * 2', 'と定義する', '表示する(にばい(5))'].join('\n');
-        const ruby = ['def にばい(x)', '  return x * 2', 'end', 'puts(にばい(5))'].join('\n');
+        const ruby = ['def にばい(x)', '  return x * 2', 'end', 'console.puts(にばい(5))'].join('\n');
         expect(dToR(dncl)).toBe(ruby);
     });
 });

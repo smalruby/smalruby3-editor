@@ -672,7 +672,7 @@ const getLessonAllowedBlocks = (state) => {
 };
 
 /**
- * Ruby タブを日本語モードに切りかえてよいか。レッスンモードでなければ切りかえてよい。レッスンモードの
+ * 日本語タブを使ってよいか（日本語で書いてよいか）。レッスンモードでなければ使ってよい。レッスンモードの
  * あいだは、いまのレッスンの `allowDnclMode`（書いていなければ不可・#1741）。
  * @param {object} state - Redux の state。
  * @returns {boolean} 切りかえてよいとき true。

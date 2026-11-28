@@ -120,6 +120,7 @@ Scratch の変数・リストの名前で、Ruby の情報を持たせている�
 - **メソッドの引数**: 番号を付けない。値は引数のブロック（`argument_reporter_string_number`）で読む。
 - **変換のたびに作り直す**: スプライトにある `_x_1_` の形の変数は、変換の前に消してから作り直す（`target-applier.js`）。
 - **生成器が名前だけで判断しない理由**: `_x_1_` は利用者が作った `@_x_1_` かもしれない。フィールドに名前しか残らないブロック（`reverse!` の受け手など）では、ほかのブロックに同じ `@ruby:lvar:x:1` があるときだけローカル変数とみなす（`variables.js` の `hasLocalVariableComment`）。
+- **保存すると値の場所の注釈は外れる**: sb3 は入力の中の変数ブロック（`data_variable`）を値（primitive）として保存し、読み込むときに別の ID のブロックを作り直すので、`move(a)` の `a` に付けた `@ruby:lvar:a:1` は読み込み直すと無くなる（代入 `a = 1` は文のブロックなので注釈が残る）。生成器は、注釈の無い変数ブロックでも、名前が `_a_1_` で、ほかのブロックに `@ruby:lvar:a:1` があれば `a` を書く（`variables.js` の `localVariableNameOf`。フィールドに名前しか残らないブロックと同じ見方）。リストのブロック（`data_listcontents`。`say(a)` / `a.sort` / `a.each` の受け手）も値として保存されるので同じ見方をし、ローカルのハッシュ `h` のリスト `__hash_h_keys__1_` / `__hash_h_values__1_` は、`@ruby:lvar:h:1` があれば `h` を書く（`data-list.js` の `hashVariableOfListBlock`）。
 
 **名前と注釈**: `LOCAL_VARIABLE_PATTERN = /^_(?![A-Z])[\p{L}_][\p{L}\p{N}_]*_\d+_$/u`（変換器 `constants.js` と生成器 `variables.js` の 2 か所）、`@ruby:lvar:<名前>:<番号>`、`+=` などは `@ruby:lvar:a:1,@ruby:syntax:+=`。
 
@@ -153,6 +154,7 @@ end
 - **呼び出し側**: 値として使う呼び出しは、呼び出しのブロック（`procedures_call`）を文の前に置き、値の場所では変数 `_return_foo_` を読む。両方に `@ruby:return:foo` を付ける。
 - **同じ行で 2 回以上呼ぶとき**（`foo(1) + foo(2)`）: 先の呼び出しの値はあとの呼び出しで上書きされるので、`_return_foo_1_ = _return_foo_` のブロックで控えておき、控えを読む。最後の 1 回より前の呼び出しは `@ruby:return:foo:<番号>` になる。
 - **呼び出しのキャッシュ（生成器）**: 生成器は `@ruby:return:foo` の `procedures_call` を書くとき、出力せずに `Generator.returnCallCache_['foo']` へ `foo(3)` を入れる。あとで同じ注釈の変数ブロック（`data_variable`）を書くときにキャッシュから取り出し、変数の代わりに `foo(3)` を書く（`procedure.js` / `data.js`）。控えのブロック（`@ruby:return:foo:1`）と初期化のブロック（`:initialize`）は何も書かない。
+- **保存すると変数ブロックの注釈は外れる**: sb3 は入力の中の変数ブロック（`data_variable`）をブロックにせず値（primitive）として保存し、読み込むときに別の ID のブロックを作り直す。そのため、値の場所の `_return_foo_` に付けた `@ruby:return:foo` は読み込み直すと無くなる（呼び出しのブロックの注釈は残る）。生成器は、注釈の無い変数ブロックでも、名前が `_return_foo_` ならキャッシュの `foo` を、`_return_foo_1_` なら `foo:1` を取り出して呼び出しを書く（`data.js` の `returnCallKeyOfVariable`）。名前は Ruby の名前ではなく変数そのものの名前で見る（Ruby の名前は、ステージでは `$_return_foo_`、`even?` のような `?` / `!` は `_` に置きかわって `@_return_even__` になり、キャッシュの名前と合わない）。値の場所の変数ブロックの注釈だけに頼る橋渡しは、保存と読み込みで壊れる。
 - **`return` があるか**: 定義の中に `return` が 1 つでもあるか（値の無い `return`、`do ... end` や `if` の中の `return` も数える）は、変換の前に分析の段（`procedures.definitions` の `hasReturn`）で `def` ごとに決める。変換の途中に、それまでに作ったブロックの注釈を文字列で探して決めてはいけない（`@ruby:return:foo` を部分一致で探すと、`return` のある `foo_bar` の後に書いた `foo` まで値を返すメソッドになり、初期化のブロックと変数 `_return_foo_` が増えていた）。
 - **`nil` / シンボル / 引数なしの `return` / かっこ**: ブロックに無い値は文字列（入力の文字そのもの。文字列のブロックを別に作らない）にして、`,@ruby:nil` / `,@ruby:symbol:a` / `,@ruby:return-bare` / `,@ruby:return-paren` を `@ruby:return` に足す。
 
@@ -169,6 +171,7 @@ end
 ```
 
 - ブロック: 定義に `_return_foo_ = ""`（`:initialize`）・`_return_foo_ = n + 1`・止める。呼び出し側は `foo(1)`（`@ruby:return:foo:1`）→ `_return_foo_1_ = _return_foo_`（控え）→ `foo(2)`（`@ruby:return:foo`）→ `say(_return_foo_1_ + _return_foo_)`。Ruby に戻すと同じコードになる。
+- **`def` より前の呼び出し**（`@a = foo(3)` のあとに `def foo(n)`）: 分析の段が `def` を先に集める（`procedures.definitions`）。ほかのブロックにならない呼び出しで、同じ名前の `def` が 1 つだけ・引数が必須だけで数が合い・`super` を使わず・module の中でないとき、変換器はその表から手続きを先に用意して、呼び出しを My Block の呼び出しにする（`_declareProcedureDefinedLater`）。値として使ったときは値を返すものとして変換し、`def` まで来て値を返さないとわかったら、`def` が先のときと同じ「命令がまちがっています」にする。引数が真偽値かどうかも `def` で決まり、それより前の呼び出しを直す（自分を呼ぶ呼び出しと同じ）。Ruby に戻すと、生成器は `def` を先に書く。`move(10)` のように、ほかのブロックになる呼び出しは今までどおり（`def` のあとに書いた `move(10)` だけが My Block の呼び出し）。
 
 **できないこと**（エラーになる形）:
 
@@ -176,7 +179,7 @@ end
 - 同じ行で値を控えたあとに、メソッドがそのメソッド自身を呼ぶ形（`return fib(n - 1) + fib(n - 2)`）。中の呼び出しが控えを上書きするので、Ruby と同じ値にならない。
 - 1 行の中で値として使う `super` が 2 つ以上ある形。
 
-**テスト**: `ruby-to-blocks-converter/method-return/method-return1.test.js`〜`method-return5.test.js`、`ruby-generator/method-return.test.js`、`ruby-roundtrip/my_blocks.test.js`、`ruby-roundtrip/method-return-value-shapes.test.js`、`ruby-roundtrip/return-literal-no-orphan.test.js`、`ruby-roundtrip/return-value-used-twice.test.js`、`ruby-roundtrip/return-call-paren-list-and-self-line.test.js`、`ruby-roundtrip/method-return-from-analysis.test.js`。
+**テスト**: `ruby-to-blocks-converter/method-return/method-return1.test.js`〜`method-return5.test.js`、`ruby-generator/method-return.test.js`、`ruby-roundtrip/my_blocks.test.js`、`ruby-roundtrip/method-return-value-shapes.test.js`、`ruby-roundtrip/return-literal-no-orphan.test.js`、`ruby-roundtrip/return-value-used-twice.test.js`、`ruby-roundtrip/return-call-paren-list-and-self-line.test.js`、`ruby-roundtrip/call-before-def.test.js`、`ruby-roundtrip/method-return-from-analysis.test.js`。
 
 ### P3. メソッドブロックの戻り値（文字列・配列・ハッシュのメソッド）
 
@@ -632,6 +635,7 @@ move(30) # うしろ
 - 変数の注釈は `@ruby:lvar` だけ（`@ruby:variable` という注釈は無い）。変数の名前と置き場所（スプライトかステージか）で種類がわかるので、インスタンス変数とグローバル変数には注釈を付けない。
 - 変換器は、コードがその名前をどう使っているか（`@a = []` や `push` ならリスト、`@a = 0` や `+= 1` なら変数）を変換の前に調べておく（分析の段 `analysis.js` の `variables.uses`）。
 - 1 つのスプライトのコードで同じ名前を `@a` と `$a` の両方に使うことはできない。
+- 右が文字列のリテラルの `+`（`@a + "さん"`）は、コードがその名前に数・リスト・ハッシュを入れていなければ「（ ）と（ ）」（`operator_join`）にする。Ruby では左が文字列のときだけ動く（数なら TypeError）ので、ほかのブロックにはならない。一度も代入しない名前（日本語モードの `表示する(namae + "…")`）もこれで変換できる（`variable-utils.js` の `_isJoinedWithStringLiteral`）。右が数や変数の `@a + 1`・`@a + @b` は今までどおりで、`gets` で入れた名前どうしは足し算のまま（`_isStringOperand`）。
 
 **往復の例**:
 
@@ -649,7 +653,7 @@ $a += 1
 
 **できないこと**（エラーになる形）: 同じ名前の変数の種類を変える（`@a = 1` と `$a = 2`、`cannotChangeVariableScope`）、定数への代入（`FOO = 1`）。
 
-**テスト**: `ruby-to-blocks-converter/variables/variables-instance1.test.js`、`variables-instance2.test.js`、`variables-global1.test.js`、`variables-global2.test.js`、`variables-scope.test.js`、`variables-data-type.test.js`、`ruby-roundtrip/variables.test.js`、`ruby-roundtrip/variable-or-list-kind.test.js`、`ruby-generator/variables.test.js`。
+**テスト**: `ruby-to-blocks-converter/variables/variables-instance1.test.js`、`variables-instance2.test.js`、`variables-global1.test.js`、`variables-global2.test.js`、`variables-scope.test.js`、`variables-data-type.test.js`、`ruby-roundtrip/variables.test.js`、`ruby-roundtrip/variable-or-list-kind.test.js`、`ruby-roundtrip/string-plus-evidence.test.js`、`ruby-generator/variables.test.js`。
 
 ### P16. 多重代入
 
@@ -866,11 +870,11 @@ defineBlockRubyTable('Motion blocks ⇔ Ruby', [
 
 | 日本語モード | Ruby | 決めているところ |
 |---|---|---|
-| 小文字で始まる名前 `x` | `@x` | `src/lib/dncl/dncl-state.js` の `mapVarName` |
+| 小文字で始まる名前 `x` | `@x` | `src/lib/dncl/ja-notation-table.js` の `variable` |
 | 大文字で始まり、配列として使う名前 `Data` | `@_array_Data_` | 同上 |
 | 大文字で始まる、それ以外の名前 `Kosu` | `@_var_Kosu_` | 同上 |
 
-Ruby から日本語モードに戻すときは `src/lib/dncl/ruby-to-dncl-identifier.js` が元の名前に戻す。
+Ruby から日本語モードに戻すときは `src/lib/dncl/ja-notation-table.js` の逆向きの表（`SMALRUBY_RUBY_TO_JA` の `variable`）が元の名前に戻す。
 
 日本語モードの変換を作り直す（`ja-notation`。[`converter-roadmap.md`](converter-roadmap.md) の 2 章・4 章）ための安全網は 2 つある。
 

@@ -1,4 +1,7 @@
 import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { loadPrism } from '../../../../src/lib/prism-parser';
+
+beforeAll(() => loadPrism());
 
 describe('rubyToDncl', () => {
     const convert = (code) => rubyToDncl(code).dncl;
@@ -23,15 +26,15 @@ describe('rubyToDncl', () => {
 
     describe('operators', () => {
         test('logical &&', () => {
-            expect(convert('@a = @x && @y')).toBe('a = x かつ y');
+            expect(convert('@a = @x && @y')).toBe('a = x and y');
         });
 
         test('logical ||', () => {
-            expect(convert('@a = @x || @y')).toBe('a = x または y');
+            expect(convert('@a = @x || @y')).toBe('a = x or y');
         });
 
         test('logical !', () => {
-            expect(convert('@a = !@x')).toBe('a = x でない');
+            expect(convert('@a = !@x')).toBe('a = not x');
         });
 
         test('boolean true', () => {
@@ -50,6 +53,20 @@ describe('rubyToDncl', () => {
 
         test('say with multiple args', () => {
             expect(convert('say(@a, @b, @c, 1)')).toBe('表示する(a, b, c)');
+        });
+
+        test('console.puts (the console block) → 表示する (#1758)', () => {
+            expect(convert('console.puts(@a)')).toBe('表示する(a)');
+            expect(convert('console.puts(@a.to_s + "は" + @b.to_s)')).toBe('表示する(a, "は", b)');
+        });
+
+        test('console.gets (the console block) → 入力 (#1758)', () => {
+            expect(convert('@a = console.gets')).toBe('a = 【外部からの入力】');
+            expect(convert('@n = console.gets.to_i')).toBe('n = 【整数を入力】');
+        });
+
+        test('console.gets that is not the value of an assignment has no Japanese form', () => {
+            expect(rubyToDncl('console.puts(console.gets)').errors).not.toEqual([]);
         });
 
         test('ask + answer → 入力', () => {
@@ -140,7 +157,7 @@ describe('rubyToDncl', () => {
 
         test('p does not match part of map(', () => {
             // The standalone check ensures map( does not become 表示する(ap(...))
-            expect(convert('@a = @arr.map(&:to_s)')).toBe('a = arr.map(&:to_s)');
+            expect(convert('@a = @arr.map(&:to_s)')).toBe('a = @arr.map(&:to_s)');
         });
     });
 
@@ -159,39 +176,39 @@ describe('rubyToDncl', () => {
     });
 
     describe('control flow: until', () => {
-        test('until loop converts to でない の間', () => {
-            expect(convert('until @a > 10\n  @a = @a + 1\nend')).toBe('a > 10 でない の間\n  a = a + 1\nを繰り返す');
+        test('until loop converts to not ... の間繰り返す', () => {
+            expect(convert('until @a > 10\n  @a = @a + 1\nend')).toBe('not a > 10 の間繰り返す:\n    a = a + 1');
         });
 
         // The generator writes an empty "repeat until" as `until x do` / `end` (issue #1655).
         test('the do of an empty until / while is dropped', () => {
-            expect(convert('until @a > 10 do\nend')).toBe('a > 10 でない の間\nを繰り返す');
-            expect(convert('while @a > 10 do\nend')).toBe('a > 10 の間\nを繰り返す');
+            expect(convert('until @a > 10 do\nend')).toBe('not a > 10 の間繰り返す:\nを繰り返す');
+            expect(convert('while @a > 10 do\nend')).toBe('a > 10 の間繰り返す:\nを繰り返す');
         });
     });
 
     describe('control flow: N.times', () => {
         test('N.times converts to for loop', () => {
             expect(convert('10.times do\n  @a = @a + 1\nend')).toBe(
-                '_ を 1 から 10 まで 1 ずつ増やしながら\n  a = a + 1\nを繰り返す',
+                'i を 1 から 10 まで 1 ずつ増やしながら繰り返す:\n    a = a + 1',
             );
         });
     });
 
     describe('control flow: if', () => {
         test('simple if', () => {
-            expect(convert('if @a > 0\n  @a = 1\nend')).toBe('もし a > 0 ならば\n  a = 1\nを実行する');
+            expect(convert('if @a > 0\n  @a = 1\nend')).toBe('もし a > 0 ならば:\n    a = 1');
         });
 
         test('if-else', () => {
             expect(convert('if @a > 0\n  @a = 1\nelse\n  @a = 2\nend')).toBe(
-                'もし a > 0 ならば\n  a = 1\nそうでなければ\n  a = 2\nを実行する',
+                'もし a > 0 ならば:\n    a = 1\nそうでなければ:\n    a = 2',
             );
         });
 
         test('if-elsif-else', () => {
             expect(convert('if @a > 0\n  @a = 1\nelsif @a > 5\n  @a = 2\nelse\n  @a = 3\nend')).toBe(
-                'もし a > 0 ならば\n  a = 1\nそうでなくもし a > 5 ならば\n  a = 2\nそうでなければ\n  a = 3\nを実行する',
+                'もし a > 0 ならば:\n    a = 1\nそうでなくもし a > 5 ならば:\n    a = 2\nそうでなければ:\n    a = 3',
             );
         });
     });
@@ -199,13 +216,13 @@ describe('rubyToDncl', () => {
     describe('control flow: for loop (step syntax)', () => {
         test('ascending step for loop', () => {
             expect(convert('(1..10).step(1) do |i|\n  say(@i, 1)\nend')).toBe(
-                'i を 1 から 10 まで 1 ずつ増やしながら\n  表示する(i)\nを繰り返す',
+                'i を 1 から 10 まで 1 ずつ増やしながら繰り返す:\n    表示する(i)',
             );
         });
 
         test('descending step for loop', () => {
             expect(convert('10.step(0, -1) do |i|\n  say(@i, 1)\nend')).toBe(
-                'i を 10 から 0 まで 1 ずつ減らしながら\n  表示する(i)\nを繰り返す',
+                'i を 10 から 0 まで 1 ずつ減らしながら繰り返す:\n    表示する(i)',
             );
         });
     });
@@ -213,17 +230,17 @@ describe('rubyToDncl', () => {
     describe('control flow: for loop (while pattern)', () => {
         test('ascending while-based for loop', () => {
             const ruby = '@i = 1\nwhile @i <= 10\n  say(@i, 1)\n  @i += 1\nend';
-            expect(convert(ruby)).toBe('i を 1 から 10 まで 1 ずつ増やしながら\n  表示する(i)\nを繰り返す');
+            expect(convert(ruby)).toBe('i を 1 から 10 まで 1 ずつ増やしながら繰り返す:\n    表示する(i)');
         });
 
         test('descending while-based for loop', () => {
             const ruby = '@i = 10\nwhile @i >= 0\n  say(@i, 1)\n  @i += -1\nend';
-            expect(convert(ruby)).toBe('i を 10 から 0 まで 1 ずつ減らしながら\n  表示する(i)\nを繰り返す');
+            expect(convert(ruby)).toBe('i を 10 から 0 まで 1 ずつ減らしながら繰り返す:\n    表示する(i)');
         });
 
         test('ascending while-based for loop with step 2', () => {
             const ruby = '@i = 0\nwhile @i <= @n\n  say(@i, 1)\n  @i += 2\nend';
-            expect(convert(ruby)).toBe('i を 0 から n まで 2 ずつ増やしながら\n  表示する(i)\nを繰り返す');
+            expect(convert(ruby)).toBe('i を 0 から n まで 2 ずつ増やしながら繰り返す:\n    表示する(i)');
         });
 
         test('nested while-based for loops', () => {
@@ -239,11 +256,9 @@ describe('rubyToDncl', () => {
                 'end',
             ].join('\n');
             const dncl = [
-                'i を 1 から 3 まで 1 ずつ増やしながら',
-                '  j を 1 から 3 まで 1 ずつ増やしながら',
-                '    表示する(i)',
-                '  を繰り返す',
-                'を繰り返す',
+                'i を 1 から 3 まで 1 ずつ増やしながら繰り返す:',
+                '    j を 1 から 3 まで 1 ずつ増やしながら繰り返す:',
+                '        表示する(i)',
             ].join('\n');
             expect(convert(ruby)).toBe(dncl);
         });
@@ -251,13 +266,13 @@ describe('rubyToDncl', () => {
 
     describe('control flow: while loop', () => {
         test('while loop', () => {
-            expect(convert('while @a > 0\n  @a = @a - 1\nend')).toBe('a > 0 の間\n  a = a - 1\nを繰り返す');
+            expect(convert('while @a > 0\n  @a = @a - 1\nend')).toBe('a > 0 の間繰り返す:\n    a = a - 1');
         });
     });
 
     describe('control flow: function', () => {
         test('function definition', () => {
-            expect(convert('def f(x)\n  return @x * 2\nend')).toBe('関数 f(x)\n  返す x * 2\nと定義する');
+            expect(convert('def f(x)\n  return @x * 2\nend')).toBe('関数 f(x):\n    x * 2 を返す');
         });
     });
 
@@ -279,7 +294,7 @@ describe('rubyToDncl', () => {
         });
 
         test('negation of CJK variable', () => {
-            expect(convert('if !@合計\n  @a = 1\nend')).toBe('もし 合計 でない ならば\n  a = 1\nを実行する');
+            expect(convert('if !@合計\n  @a = 1\nend')).toBe('もし not 合計 ならば:\n    a = 1');
         });
 
         test('CJK uppercase scalar variable', () => {
@@ -294,15 +309,13 @@ describe('rubyToDncl', () => {
     describe('CJK for-loop (while pattern)', () => {
         test('for-loop with CJK body variable', () => {
             const ruby = ['@合計 = 0', '@i = 1', 'while @i <= 10', '  @合計 += @i', '  @i += 1', 'end'].join('\n');
-            const dncl = ['合計 = 0', 'i を 1 から 10 まで 1 ずつ増やしながら', '  合計 += i', 'を繰り返す'].join(
-                '\n',
-            );
+            const dncl = ['合計 = 0', 'i を 1 から 10 まで 1 ずつ増やしながら繰り返す:', '    合計 += i'].join('\n');
             expect(convert(ruby)).toBe(dncl);
         });
 
         test('for-loop with CJK loop variable', () => {
             const ruby = ['@回数 = 1', 'while @回数 <= 5', '  say(@回数, 1)', '  @回数 += 1', 'end'].join('\n');
-            const dncl = ['回数 を 1 から 5 まで 1 ずつ増やしながら', '  表示する(回数)', 'を繰り返す'].join('\n');
+            const dncl = ['回数 を 1 から 5 まで 1 ずつ増やしながら繰り返す:', '    表示する(回数)'].join('\n');
             expect(convert(ruby)).toBe(dncl);
         });
     });
@@ -346,9 +359,8 @@ describe('rubyToDncl', () => {
             ].join('\n');
             const expectedDncl = [
                 '合計 = 0',
-                'i を 1 から 10 まで 1 ずつ増やしながら',
-                '  合計 += i',
-                'を繰り返す',
+                'i を 1 から 10 まで 1 ずつ増やしながら繰り返す:',
+                '    合計 += i',
                 '表示する(合計)',
             ].join('\n');
             expect(convert(ruby)).toBe(expectedDncl);
@@ -364,6 +376,24 @@ describe('rubyToDncl', () => {
     describe('multiline', () => {
         test('preserves blank lines', () => {
             expect(convert('@a = 1\n\n@b = 2')).toBe('a = 1\n\nb = 2');
+        });
+    });
+
+    // Japanese typed in the Ruby tab is not Ruby: it is told by its syntax errors only, not by
+    // an error of the Japanese mode for each of its words (Issue #2547).
+    describe('Ruby that prism cannot read', () => {
+        test('tells only the syntax errors', () => {
+            const { errors } = rubyToDncl('a = 1\nもし a > 1 ならば:\n    表示する(a)\nf(1)\n');
+            expect(errors.length).toBeGreaterThan(0);
+            errors.forEach((error) => {
+                expect(error.id).toBe('rubySyntax');
+                expect(error.message).toMatch(/^Ruby のプログラムに誤りがあるので、日本語にできません/);
+            });
+        });
+
+        test('readable Ruby still tells the words with no Japanese form', () => {
+            const { errors } = rubyToDncl('move(10)\n');
+            expect(errors).toEqual([expect.objectContaining({ id: 'unsupportedCommand', name: 'move' })]);
         });
     });
 });

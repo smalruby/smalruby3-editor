@@ -47,10 +47,18 @@ const MyBlocksConverter = {
                 },
             });
 
+            // A call before the `def` (issue #2167) used as a value: the `def` must return a value,
+            // which it checks when the converter comes to it.
+            const returnsValue =
+                converter.isValueContext() && (procedure.hasReturnValue || procedure.declaredBeforeDefinition);
+            if (returnsValue && procedure.declaredBeforeDefinition) {
+                procedure.valueCallNodesBeforeDefinition.push(converter._context.currentNode);
+            }
+
             let callIndex;
             let callCount;
             // Add comment if procedure has return value and used as value
-            if (procedure.hasReturnValue && converter.isValueContext()) {
+            if (returnsValue) {
                 // The return value of an earlier call in this line is saved in a variable of the sprite.
                 // A call of the method itself would run this line again inside and overwrite it, so
                 // `return fib(n - 1) + fib(n - 2)` would not give the value of Ruby.
@@ -108,7 +116,7 @@ const MyBlocksConverter = {
 
             // If procedure has return value and used in value context,
             // return [procedures_call, evacuation_block, data_variable] for the converter
-            if (procedure.hasReturnValue && converter.isValueContext()) {
+            if (returnsValue) {
                 const commentText = converter._context.comments[block.comment].text;
                 const resultBlocks = [block];
 
@@ -244,7 +252,10 @@ const MyBlocksConverter = {
                 procedure.argumentVariables.push(variable);
                 procedure.procCode.push('%s');
                 procedure.argumentDefaults.push('');
-                const inputId = Blockly.utils.idGenerator.genUid();
+                // A procedure declared for a call before the `def` keeps the IDs the call has (issue #2167).
+                const reserved = procedure.reservedArgumentIds;
+                const inputId =
+                    (reserved && reserved[procedure.argumentIds.length]) || Blockly.utils.idGenerator.genUid();
                 procedure.argumentIds.push(inputId);
                 const inputBlock = converter._createBlock('argument_reporter_string_number', 'value', {
                     fields: {
@@ -466,6 +477,14 @@ const MyBlocksConverter = {
             if (body.length > 0 && converter._isBlock(body[0])) {
                 block.next = body[0].id;
                 body[0].parent = block.id;
+            }
+
+            delete procedure.reservedArgumentIds;
+            // A call before the `def` used as a value, of a method that returns nothing: the same error
+            // as when the `def` comes first (issue #2167).
+            const valueCallsBefore = procedure.valueCallNodesBeforeDefinition;
+            if (!procedure.hasReturnValue && valueCallsBefore && valueCallsBefore.length > 0) {
+                throw converter._wrongInstructionError(valueCallsBefore[0]);
             }
 
             const booleanIndexes = [];

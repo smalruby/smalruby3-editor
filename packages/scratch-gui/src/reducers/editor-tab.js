@@ -5,6 +5,11 @@ const BLOCKS_TAB_INDEX = 0;
 const COSTUMES_TAB_INDEX = 1;
 const SOUNDS_TAB_INDEX = 2;
 const RUBY_TAB_INDEX = 3;
+// === Smalruby: Start of Japanese tab ===
+// The Japanese tab shares the Ruby tab's editor (docs/dncl/design.md 1 章).
+const JAPANESE_TAB_INDEX = 4;
+const isTextTabIndex = index => index === RUBY_TAB_INDEX || index === JAPANESE_TAB_INDEX;
+// === Smalruby: End of Japanese tab ===
 
 // === Smalruby: Start of initial tab from URL param ===
 import {getUrlParams} from '../lib/url-params';
@@ -46,5 +51,9 @@ export {
     BLOCKS_TAB_INDEX,
     COSTUMES_TAB_INDEX,
     SOUNDS_TAB_INDEX,
-    RUBY_TAB_INDEX
+    RUBY_TAB_INDEX,
+    // === Smalruby: Start of Japanese tab ===
+    JAPANESE_TAB_INDEX,
+    isTextTabIndex
+    // === Smalruby: End of Japanese tab ===
 };

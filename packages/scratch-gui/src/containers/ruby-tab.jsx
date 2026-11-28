@@ -1,27 +1,48 @@
 // === Smalruby: This file is Smalruby-specific (Ruby tab with Monaco Editor, DNCL mode, furigana) ===
 import Editor from '@monaco-editor/react';
+import { settingsOfSource } from '@smalruby/ja-notation';
 import VM from '@smalruby/scratch-vm';
+import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { injectIntl } from 'react-intl';
+import { defineMessages, injectIntl } from 'react-intl';
 import { connect } from 'react-redux';
 import AutoCorrectModal from '../components/auto-correct-modal/auto-correct-modal.jsx';
 import cameraIcon from '../components/blocks-screenshot-button/icon--camera.svg';
 import RubyScriptPreview from '../components/ruby-script-preview/ruby-script-preview.jsx';
+import rubyToolbarMessages from '../components/ruby-toolbar/messages.js';
 import RubyToolbar from '../components/ruby-toolbar/ruby-toolbar.jsx';
+import { CLEAR_EVENT as CLEAR_CONSOLE_EVENT } from '../components/smalruby-console/smalruby-console.jsx';
 import analytics from '../lib/analytics';
 import { autoCorrect, defaultSettings as defaultAutoCorrectSettings } from '../lib/auto-correct';
 import collectMetadata from '../lib/collect-metadata.js';
 import { findArrayIndexHints } from '../lib/dncl/dncl-array-index-hint';
+import {
+    japaneseBlockErrors,
+    MULTIPLE_ASSIGNMENT_ERROR_ID,
+    STRING_PLUS_NUMBER_ERROR_ID,
+    withJapaneseErrorIds,
+} from '../lib/dncl/dncl-block-check';
+import { japaneseTextForRuby } from '../lib/dncl/dncl-display-sync';
+import { dnclTextBlob, dnclTextFilename } from '../lib/dncl/dncl-download';
 import { slashCommentRows, tidyPastedDncl, withDoubleSlashHint } from '../lib/dncl/dncl-paste-tidy';
+import { problemFormText } from '../lib/dncl/dncl-problem-form';
+import { rubyInScriptOrder } from '../lib/dncl/dncl-script-order';
+import { dnclWithSettingsPattern } from '../lib/dncl/dncl-settings';
+import { stringArithmeticRows } from '../lib/dncl/dncl-string-arithmetic-hint';
 import { dnclToRuby, rubyForLeavingDncl } from '../lib/dncl/dncl-to-ruby';
 import {
+    FORBIDDEN_PREFIX_ERROR_ID,
     isRubyCommandName,
     POST_TEST_LOOP_ERROR_ID,
+    STAGE_VARIABLE_ERROR_ID,
     UNSUPPORTED_COMMAND_ERROR_ID,
+    UNSUPPORTED_NOTATION_ERROR_ID,
     UNSUPPORTED_NUMBER_ERROR_ID,
 } from '../lib/dncl/dncl-validator';
+import { RUBY_SYNTAX_ERROR_ID } from '../lib/dncl/ja-notation-errors';
 import { rubyToDncl } from '../lib/dncl/ruby-to-dncl';
+import downloadBlob from '../lib/download-blob';
 import FuriganaAnnotator from '../lib/furigana-annotator';
 import { makeRubyTabAdapterFactory } from '../lib/genai-ruby-adapter.js';
 import { wrapCurrentCodeWithClass } from '../lib/insert-class';
@@ -36,10 +57,22 @@ import { generatePreviewCode } from '../lib/ruby-script-preview';
 import { targetCodeToBlocks } from '../lib/ruby-to-blocks-converter';
 import RubyToBlocksConverterHOC from '../lib/ruby-to-blocks-converter-hoc.jsx';
 import { containsV1Code } from '../lib/ruby-to-blocks-converter/v1-detection';
+import { hideSmalrubyConsole, showSmalrubyConsole } from '../lib/smalruby-console.js';
 import { getUrlParams } from '../lib/url-params';
 import { showAlertWithTimeout, closeAlertWithId } from '../reducers/alerts';
-import { setDnclMode as setDnclModeAction, clearExternalExitDnclModeRequest } from '../reducers/dncl-mode';
-import { BLOCKS_TAB_INDEX, RUBY_TAB_INDEX, activateTab } from '../reducers/editor-tab';
+import {
+    setDnclMode as setDnclModeAction,
+    clearExternalExitDnclModeRequest,
+    setJapaneseEditError,
+    getInitialDnclMode,
+} from '../reducers/dncl-mode';
+import {
+    BLOCKS_TAB_INDEX,
+    JAPANESE_TAB_INDEX,
+    RUBY_TAB_INDEX,
+    activateTab,
+    isTextTabIndex,
+} from '../reducers/editor-tab';
 import { setAiSaveStatus, clearAiSaveStatus } from '../reducers/koshien-file';
 import { getLessonDnclModeAllowed } from '../reducers/lesson-mode';
 import { closeFileMenu } from '../reducers/menus.js';
@@ -55,6 +88,7 @@ import { setRubyVersion, dismissV1Prompt } from '../reducers/settings';
 import { markRubyTabUsed } from '../reducers/tutorial-onboarding';
 import GenaiConcierge from './genai-concierge.jsx';
 import RubyDownloader from './ruby-downloader.jsx';
+import { applyAutoCorrection } from './ruby-tab/auto-correct-apply';
 import {
     FONT_SIZES,
     DEFAULT_FONT_SIZE,
@@ -65,15 +99,25 @@ import {
     DNCL_INDEX_HINT_OWNER,
     DNCL_UNSUPPORTED_OWNER,
     DNCL_SLASH_COMMENT_OWNER,
+    DNCL_STRING_ARITHMETIC_OWNER,
+    DNCL_BLOCKS_OWNER,
 } from './ruby-tab/constants';
 import updateDebugGlobals from './ruby-tab/debug-globals';
-import { offerDnclIndexShift } from './ruby-tab/dncl-index-shift';
+import { createDnclAutoOutdent } from './ruby-tab/dncl-auto-outdent';
+import { japaneseScriptsToStart, shouldRunJapaneseOnGreenFlag } from './ruby-tab/dncl-green-flag';
+import { offerDnclIndexSetting, replaceEditorText } from './ruby-tab/dncl-index-setting';
+import {
+    createProblemFormView,
+    problemFormLineNumbers,
+    problemFormLineNumbersMinChars,
+} from './ruby-tab/dncl-problem-form-view';
 import {
     registerCustomPasteAction,
     setupPasteTransform,
     setupPasteDuplicateHider,
     registerLanguageAndProviders,
 } from './ruby-tab/editor-setup';
+import { JAPANESE_PAPER_THEME, defineEditorThemes } from './ruby-tab/editor-themes';
 import {
     clearDecoration,
     highlightLine,
@@ -81,9 +125,18 @@ import {
     findExecutableLine,
 } from './ruby-tab/execution-highlighter';
 import FuriganaRenderer from './ruby-tab/furigana-renderer';
+import { closeMarkerNavigation } from './ruby-tab/marker-navigation';
 import QuickFixProvider from './ruby-tab/quick-fix-provider';
 import styles from './ruby-tab/ruby-tab.css';
 import { showBubble, dismissBubble, removeBubble } from './ruby-tab/visual-report-bubble';
+
+const languageBandMessages = defineMessages({
+    japanese: {
+        id: 'gui.rubyTab.japaneseLanguageBand',
+        defaultMessage: 'Japanese (the program notation of the common test)',
+        description: 'The name of the language shown over the editor of the Japanese tab',
+    },
+});
 
 // === Initialization helpers ===
 
@@ -107,6 +160,21 @@ const loadAutoCorrectSettings = () => {
 };
 
 // === Component ===
+
+// How long the Japanese tab waits after the last key before it checks that the program can become
+// blocks (Issue #2547): the check converts the whole program, so it is not done on every key.
+const JAPANESE_BLOCKS_CHECK_DELAY_MS = 500;
+
+/**
+ * How the auto-correct reads the code: in the Japanese tab, `「…」` is a string
+ * and, when the settings at its top say so, `//` starts a comment. What is
+ * written in a comment is kept as it is (Issue #1731, S10).
+ * @param {string} code - The code in the editor.
+ * @param {boolean} dncl - Whether it is the Japanese tab's code.
+ * @returns {object} The options of `autoCorrect`.
+ */
+const autoCorrectOptionsOf = (code, dncl) =>
+    dncl ? { japanese: true, slashComments: settingsOfSource(code).commentMarker === '//' } : {};
 
 const RubyTab = (props) => {
     const {
@@ -135,10 +203,13 @@ const RubyTab = (props) => {
         v1PromptDismissed,
         onDismissV1Prompt,
         onSetDnclMode,
+        onSetJapaneseEditError,
         exitDnclModeExternallyRequested,
         dnclModeLocked,
         onClearExitDnclModeRequest,
         onActivateTab,
+        onShowSmalrubyConsole,
+        onHideSmalrubyConsole,
     } = props;
 
     // --- State ---
@@ -151,16 +222,9 @@ const RubyTab = (props) => {
         if (!isJapaneseLocale(locale)) return false;
         const urlRubyMode = getUrlParams().rubyMode;
         if (urlRubyMode === 'furigana') return true;
-        if (urlRubyMode === 'ruby' || urlRubyMode === 'dncl') return false;
-        // DNCL mode shows Japanese pseudo-code, not Ruby — furigana annotations
-        // are meaningless and visually distracting in that view. Force off.
-        if (
-            typeof window !== 'undefined' &&
-            window.localStorage &&
-            window.localStorage.getItem(DNCL_MODE_KEY) === 'true'
-        ) {
-            return false;
-        }
+        if (urlRubyMode === 'ruby') return false;
+        // Furigana is a setting of the Ruby tab: the Japanese tab never draws it, and keeps it
+        // for the Ruby tab (docs/dncl/design.md 1 章).
         return loadBool(FURIGANA_ENABLED_KEY, true);
     });
     const [autoCorrectEnabled, setAutoCorrectEnabled] = useState(() => loadBool(AUTO_CORRECT_ENABLED_KEY, true));
@@ -169,20 +233,47 @@ const RubyTab = (props) => {
     const [showScriptPreview, setShowScriptPreview] = useState(false);
     const [previewCode, setPreviewCode] = useState('');
     const [dnclValidating, setDnclValidating] = useState(false);
-    const [dnclMode, setDnclMode] = useState(() => {
-        if (!isJapaneseLocale(locale)) return false;
-        const urlRubyMode = getUrlParams().rubyMode;
-        if (urlRubyMode === 'dncl') return true;
-        if (urlRubyMode === 'furigana' || urlRubyMode === 'ruby') return false;
-        // loadBool treats missing keys as true; DNCL defaults to off
-        if (typeof window !== 'undefined' && window.localStorage) {
-            return window.localStorage.getItem(DNCL_MODE_KEY) === 'true';
-        }
-        return false;
-    });
+    // Whether the editor holds the program in Japanese. It follows the tab: true in the
+    // Japanese tab, false in the Ruby tab (docs/dncl/design.md 1 章). On the other tabs it keeps
+    // the language of the last text tab, and the Code tab narrows the blocks while it is true.
+    const [dnclMode, setDnclMode] = useState(() => isJapaneseLocale(locale) && getInitialDnclMode());
     // Separate DNCL display code to prevent editor from showing Ruby
     const [dnclDisplayCode, setDnclDisplayCode] = useState('');
+    // Ruby → Japanese parses the Ruby with prism (ja-notation), so the Japanese is
+    // shown once prism is loaded.
+    const [prismReady, setPrismReady] = useState(() => Boolean(getPrism()));
+    useEffect(() => {
+        if (prismReady) return;
+        let alive = true;
+        loadPrism().then(() => {
+            if (alive) setPrismReady(true);
+        });
+        return () => {
+            alive = false;
+        };
+    }, []);
+    // Whether the editor shows the read mode (line numbers and rules as in the
+    // questions) of the Japanese mode (Issue #1755, #2380).
+    const [problemFormShown, setProblemFormShown] = useState(false);
+    const problemFormViewRef = useRef(null);
+    const dnclAutoOutdentRef = useRef(null);
+    // Room in the line number column for the labels `(01)` / `(100)` / `(1000)`.
+    const [lineNumbersMinChars, setLineNumbersMinChars] = useState(5);
     const dnclSourceMapRef = useRef(null);
+    // Whether the Japanese text the student typed makes no Ruby. Such text is kept only in
+    // the editor (dispatchCode does not send it), so it must not be left behind (Issue #2546).
+    const dnclEditErrorRef = useRef(false);
+    // The HOC reads it from Redux to stop saving, submitting and running too (Issue #2560).
+    const onSetJapaneseEditErrorRef = useRef(onSetJapaneseEditError);
+    onSetJapaneseEditErrorRef.current = onSetJapaneseEditError;
+    const setDnclEditError = useCallback((error) => {
+        const value = Boolean(error);
+        if (dnclEditErrorRef.current === value) return;
+        dnclEditErrorRef.current = value;
+        if (onSetJapaneseEditErrorRef.current) onSetJapaneseEditErrorRef.current(value);
+    }, []);
+    // Set when the Japanese tab gives way from outside the editor: that switch is not stopped.
+    const externalDnclExitRef = useRef(false);
     const dnclModeRef = useRef(dnclMode);
     dnclModeRef.current = dnclMode;
     // The toggle reads it through a ref so that a stale callback (requestAnimationFrame) sees the latest lock
@@ -203,7 +294,6 @@ const RubyTab = (props) => {
     const pasteMutationObserverRef = useRef(null);
     const removePasteTransformRef = useRef(null);
     const pasteListenerRef = useRef(null);
-    const indexShiftDecorationsRef = useRef(null);
     const bodyMutationObserverRef = useRef(null);
     const bubbleElRef = useRef(null);
     const quickFixProviderRef = useRef(null);
@@ -236,6 +326,8 @@ const RubyTab = (props) => {
     intlRef.current = intl;
     const vmRef = useRef(vm);
     vmRef.current = vm;
+    const rubyVersionRef = useRef(rubyVersion);
+    rubyVersionRef.current = rubyVersion;
     // "生成AI に相談" in the Ruby, furigana (#1398) and Japanese (DNCL, #1402) modes. The
     // adapter reads the editor and the mode when it needs them, so this function stays the
     // same between renders. The sprite in the editor is rubyCode.target, not
@@ -280,13 +372,59 @@ const RubyTab = (props) => {
     const clearErrors = () => {
         if (editorRef.current && monacoRef.current) {
             monacoRef.current.editor.setModelMarkers(editorRef.current.getModel(), 'smalruby', []);
-            editorRef.current.trigger('source', 'closeMarkersNavigation');
+            // The Japanese mode keeps the focus where it is, so the run button shows the read mode (Issue #2553).
+            closeMarkerNavigation(editorRef.current, { focusEditor: !dnclModeRef.current });
         }
         if (rubyCode.errors.length > 0) {
             updateRubyCodeErrorsState([]);
         }
         onDismissAlert('convertRubyToBlocksError');
         onDismissAlert('rubyVersionChangeFailed');
+    };
+
+    // The words of the errors on the Japanese lines. A `+` of a string and a number literal
+    // (Issue #2547) and several variables assigned at once (B21 of #1731) say how to write them,
+    // and a line with `//` tells to use `#` (Issue #1192); the others keep the words of the
+    // converter. The conversion of the Code tab and the check of the blocks while writing both
+    // use it, so they say the same words.
+    const withJapaneseErrorWords = (errors) => {
+        const lines = editorRef.current.getModel().getLinesContent();
+        // The example is the expression the student wrote (B21 of #1731).
+        const stringPlusNumber = (example) =>
+            intlRef.current.formatMessage(
+                {
+                    id: 'gui.rubyTab.dnclStringPlusNumberError',
+                    defaultMessage:
+                        'To join a string and a number with "+", make the number a string like "文字列({number})" (e.g. {fixed}). You may also write the number in the string, like {inline}.',
+                },
+                example,
+            );
+        // `a, b = b, a` is told to assign one by one, not in the words of the blocks.
+        const multipleAssignment = (example) =>
+            example
+                ? intlRef.current.formatMessage(
+                      {
+                          id: 'gui.rubyTab.dnclMultipleAssignmentError',
+                          defaultMessage:
+                              'Several variables cannot be assigned at once with ",". Assign them one by one (e.g. {example}).',
+                      },
+                      { example },
+                  )
+                : intlRef.current.formatMessage({
+                      id: 'gui.rubyTab.dnclMultipleAssignmentErrorNoExample',
+                      defaultMessage:
+                          'Several variables cannot be assigned at once with ",". Assign them one by one.',
+                  });
+        const hint = intlRef.current.formatMessage({
+            id: 'gui.rubyTab.dnclDoubleSlashHint',
+            defaultMessage: 'In Smalruby, // is not a comment (it is integer division). Use # for comments.',
+        });
+        const worded = withJapaneseErrorIds(errors, lines).map((err) => {
+            if (err.id === STRING_PLUS_NUMBER_ERROR_ID) return { ...err, text: stringPlusNumber(err.example) };
+            if (err.id === MULTIPLE_ASSIGNMENT_ERROR_ID) return { ...err, text: multipleAssignment(err.example) };
+            return err;
+        });
+        return withDoubleSlashHint(worded, lines, hint);
     };
 
     const showErrors = (rawErrors) => {
@@ -296,28 +434,15 @@ const RubyTab = (props) => {
             // each error to its DNCL line. Ruby columns have no DNCL
             // counterpart, so the whole DNCL line is marked.
             const sourceMap = dnclModeRef.current ? dnclSourceMapRef.current : null;
+            // A missing or extra closer of DNCL makes no Ruby, so it is told
+            // on its DNCL line by the DNCL error markers below, never as a
+            // missing `end` of the converter (Issue #1419).
             let errors = sourceMap ? sourceMap.rubyErrorsToDncl(rawErrors) : rawErrors;
-            if (dnclModeRef.current && errors.length > 0) {
-                // A missing or extra closer makes the converter say a missing
-                // `end`; say it in the words of DNCL instead (Issue #1419).
-                const { blockErrors } = dnclToRuby(editorRef.current.getValue());
-                if (blockErrors.length > 0) {
-                    errors = blockErrors.map((err) => ({
-                        row: err.line - 1,
-                        column: err.column - 1,
-                        text: err.message,
-                    }));
-                }
-            }
             if (dnclModeRef.current) {
                 // `//` is integer division in Smalruby DNCL, never a comment,
                 // so a 共通テスト style `//` comment fails to convert. Tell
                 // the user to use `#` on such lines (Issue #1192).
-                const hint = intlRef.current.formatMessage({
-                    id: 'gui.rubyTab.dnclDoubleSlashHint',
-                    defaultMessage: 'In Smalruby, // is not a comment (it is integer division). Use # for comments.',
-                });
-                errors = withDoubleSlashHint(errors, editorRef.current.getModel().getLinesContent(), hint);
+                errors = withJapaneseErrorWords(errors);
             }
             const markers = errors.map((err) => ({
                 startLineNumber: err.row + 1,
@@ -328,6 +453,10 @@ const RubyTab = (props) => {
                 severity: monacoRef.current.MarkerSeverity.Error,
             }));
             monacoRef.current.editor.setModelMarkers(editorRef.current.getModel(), 'smalruby', markers);
+            // The same errors as the check of the blocks while writing (Issue #2547): show them once.
+            if (dnclModeRef.current) {
+                monacoRef.current.editor.setModelMarkers(editorRef.current.getModel(), DNCL_BLOCKS_OWNER, []);
+            }
             if (markers.length > 0) {
                 const error = errors[0];
                 editorRef.current.setPosition({
@@ -430,7 +559,7 @@ const RubyTab = (props) => {
     }, []);
 
     const handleVisualReport = useCallback((data) => {
-        if (activeTabIndexRef.current !== RUBY_TAB_INDEX) return;
+        if (!isTextTabIndex(activeTabIndexRef.current)) return;
         bubbleElRef.current = showBubble(bubbleElRef.current, data.value);
     }, []);
 
@@ -444,9 +573,15 @@ const RubyTab = (props) => {
         if (dnclModeRef.current) {
             setDnclDisplayCode(code);
             const result = dnclToRuby(code);
-            if (result.errors && result.errors.length > 0) {
-                // Show DNCL validation errors but don't dispatch invalid code
+            setDnclEditError(Boolean(result.errors && result.errors.length > 0));
+            if (dnclEditErrorRef.current) {
+                // Don't dispatch code that makes no Ruby: its errors are shown
+                // on their DNCL lines by the DNCL error markers, so the markers
+                // of the last conversion of the blocks are taken off.
                 dnclSourceMapRef.current = null;
+                if (editorRef.current && monacoRef.current) {
+                    monacoRef.current.editor.setModelMarkers(editorRef.current.getModel(), 'smalruby', []);
+                }
                 return;
             }
             dnclSourceMapRef.current = result.sourceMap;
@@ -468,18 +603,18 @@ const RubyTab = (props) => {
                 return;
             }
             if (autoCorrectEnabledRef.current && editorRef.current) {
-                const corrected = autoCorrect(value, autoCorrectSettingsRef.current);
+                const options = autoCorrectOptionsOf(value, dnclModeRef.current);
+                const corrected = autoCorrect(value, autoCorrectSettingsRef.current, options);
                 if (corrected !== value) {
-                    isAutoCorrectUpdateRef.current = true;
-                    const position = editorRef.current.getPosition();
-                    const model = editorRef.current.getModel();
-                    const beforeCursor = value.substring(0, model.getOffsetAt(position));
-                    const correctedBeforeCursor = autoCorrect(beforeCursor, autoCorrectSettingsRef.current);
-                    const offsetDiff = beforeCursor.length - correctedBeforeCursor.length;
-                    model.setValue(corrected);
-                    const newOffset = model.getOffsetAt(position) - offsetDiff;
-                    const newPosition = model.getPositionAt(Math.max(0, newOffset));
-                    editorRef.current.setPosition(newPosition);
+                    applyAutoCorrection(
+                        editorRef.current,
+                        value,
+                        corrected,
+                        (text) => autoCorrect(text, autoCorrectSettingsRef.current, options),
+                        () => {
+                            isAutoCorrectUpdateRef.current = true;
+                        },
+                    );
                     return;
                 }
             }
@@ -503,22 +638,19 @@ const RubyTab = (props) => {
         const transformPastedText = (text) => (dnclModeRef.current ? tidyPastedDncl(text, editor.getValue()) : text);
         registerCustomPasteAction(editor, pasteLabel, transformPastedText);
         removePasteTransformRef.current = setupPasteTransform(editor, transformPastedText);
-        // Japanese (DNCL) mode offers to shift the array indexes of pasted
-        // code whose comments say indexes start at 1 (Issue #1366). The
-        // dialog waits until Monaco has finished handling the paste.
+        // Japanese (DNCL) mode offers to take a note of pasted code that the
+        // indexes start at 1 as the setting of the program (the sentence at its
+        // top; docs/dncl/design.md 4 章). The dialog waits until Monaco has
+        // finished handling the paste.
         pasteListenerRef.current = editor.onDidPaste((event) => {
             if (!dnclModeRef.current) return;
             setTimeout(() => {
                 if (!dnclModeRef.current || editorRef.current !== editor) return;
-                const decorations = offerDnclIndexShift({
+                offerDnclIndexSetting({
                     editor,
-                    monaco,
                     range: event.range,
                     formatMessage: (descriptor, values) => intlRef.current.formatMessage(descriptor, values),
                 });
-                if (!decorations) return;
-                if (indexShiftDecorationsRef.current) indexShiftDecorationsRef.current.clear();
-                indexShiftDecorationsRef.current = decorations;
             }, 0);
         });
         const observers = setupPasteDuplicateHider();
@@ -540,8 +672,23 @@ const RubyTab = (props) => {
             resizeObserverRef.current.observe(containerRef.current);
         }
 
+        // The view switches between the read mode and the write mode with the
+        // focus, the input and the paste itself (Issue #2380).
+        problemFormViewRef.current = createProblemFormView(
+            editor,
+            monaco,
+            () => dnclModeRef.current,
+            setProblemFormShown,
+        );
+        setLineNumbersMinChars(problemFormLineNumbersMinChars(editor.getValue()));
+        // An else or a closing line typed in the Japanese mode goes back to the
+        // depth of its block (Issue #2554).
+        dnclAutoOutdentRef.current = createDnclAutoOutdent(editor, () => dnclModeRef.current);
+
         contentChangeListenerRef.current = editor.onDidChangeModelContent(() => {
             updateUndoRedoState();
+            problemFormViewRef.current.textChanged();
+            setLineNumbersMinChars(problemFormLineNumbersMinChars(editor.getValue()));
             if (furiganaEnabledRef.current) {
                 scheduleFuriganaUpdate();
             }
@@ -568,6 +715,11 @@ const RubyTab = (props) => {
         });
 
         updateUndoRedoState();
+        // A new editor (reload in the Japanese mode, another language) starts
+        // without the problem form: make React and the view agree, then show
+        // it if the mode asks for it.
+        setProblemFormShown(false);
+        problemFormViewRef.current.sync();
     }, []);
 
     // --- UI event handlers (useCallback for react/jsx-no-bind) ---
@@ -625,6 +777,49 @@ const RubyTab = (props) => {
         }
     }, [getSaveToComputerHandler]);
 
+    // Save the Japanese program as it is in the editor, as a text file in
+    // UTF-8 (Issue #2453).
+    const handleDownloadJapanese = useCallback(() => {
+        if (!editorRef.current) return;
+        const target = vm.editingTarget;
+        const spriteName = target ? target.sprite.name : 'sprite';
+        downloadBlob(dnclTextFilename(props.projectTitle, spriteName), dnclTextBlob(editorRef.current.getValue()));
+    }, [vm, props.projectTitle]);
+
+    // The toggle of the toolbar: the read mode, or back to the write mode
+    // (Issue #2380).
+    const handleToggleReadMode = useCallback(() => {
+        if (problemFormViewRef.current) problemFormViewRef.current.toggle();
+    }, []);
+
+    const problemFormLineNumberLabels = useCallback(
+        (lineNumber) => problemFormLineNumbers(editorRef.current)(lineNumber),
+        [],
+    );
+
+    // Copy the program as the questions show it: line numbers and rules as
+    // characters (Issue #1755). The usual copy keeps the text.
+    const handleCopyProblemForm = useCallback(async () => {
+        if (!editorRef.current) return;
+        try {
+            await navigator.clipboard.writeText(problemFormText(editorRef.current.getValue()));
+        } catch (error) {
+            console.error('Failed to copy the problem form:', error); // eslint-disable-line no-console
+        }
+    }, []);
+
+    // A pattern of settings picked from the menu (docs/dncl/design.md 4 章):
+    // the sentences at the top are written for it, and the program again by
+    // them, so it means the same. One undo step takes it back.
+    const handleSelectSettingsPattern = useCallback((patternId) => {
+        if (!editorRef.current || !getPrism()) return;
+        replaceEditorText(
+            editorRef.current,
+            dnclWithSettingsPattern(editorRef.current.getValue(), patternId, rubyCodeTargetRef.current),
+            'smalruby.dnclSettingsPattern',
+        );
+    }, []);
+
     const handleInsertClass = useCallback(() => {
         if (!editorRef.current) return;
         const code = editorRef.current.getValue() || '';
@@ -665,26 +860,29 @@ const RubyTab = (props) => {
     const dnclValidationErrorMessage = intl.formatMessage({
         id: 'gui.rubyTab.dnclValidationError',
         defaultMessage:
-            'This code contains constructs not supported in Japanese mode.\nPlease use only supported instructions before switching modes.',
+            'This code contains constructs not supported in the Japanese tab.\nPlease use only supported instructions before opening the Japanese tab.',
     });
 
     const dnclPostTestLoopErrorMessage = intl.formatMessage({
         id: 'gui.rubyTab.dnclPostTestLoopError',
         defaultMessage:
-            'A post-test loop (a loop that runs once before it checks the condition) cannot be written in Japanese. Write the first run before the loop, then make it a "〜の間繰り返す" loop. You can write it in Ruby mode.',
+            'A post-test loop (a loop that runs once before it checks the condition) cannot be written in Japanese. Write the first run before the loop, then make it a "〜の間繰り返す" loop. You can write it in the Ruby tab.',
     });
 
     // The message of a DNCL conversion error, by its id.
     const dnclErrorText = useCallback(
         (err) => {
             if (err.id === POST_TEST_LOOP_ERROR_ID) return dnclPostTestLoopErrorMessage;
+            // Ruby prism cannot read (Japanese typed in the Ruby tab): its words are Japanese, as
+            // the Japanese tab is only in the Japanese locales (Issue #2547).
+            if (err.id === RUBY_SYNTAX_ERROR_ID) return err.message;
             if (err.id === UNSUPPORTED_COMMAND_ERROR_ID && !isRubyCommandName(err.name)) {
                 // A Japanese name is a function to define, not a Ruby command.
                 return intl.formatMessage(
                     {
                         id: 'gui.rubyTab.dnclUndefinedFunctionError',
                         defaultMessage:
-                            '"{name}" is a function that is not defined. Define it with "関数 {name}(…)".',
+                            '"{name}" is a function that is not defined. Define it with "関数 {name}(…):".',
                     },
                     { name: err.name },
                 );
@@ -694,7 +892,36 @@ const RubyTab = (props) => {
                     {
                         id: 'gui.rubyTab.dnclUnsupportedNumberError',
                         defaultMessage:
-                            '"{name}" is a way of writing a number that cannot be used in Japanese mode (a hex number, _ between digits, an exponent and so on). Write it like "1000" or "0.5". You can write it in Ruby mode.',
+                            '"{name}" is a way of writing a number that cannot be used in the Japanese tab (a hex number, _ between digits, an exponent and so on). Write it like "1000" or "0.5". You can write it in the Ruby tab.',
+                    },
+                    { name: err.name },
+                );
+            }
+            if (err.id === FORBIDDEN_PREFIX_ERROR_ID) {
+                return intl.formatMessage(
+                    {
+                        id: 'gui.rubyTab.dnclForbiddenPrefixError',
+                        defaultMessage: '"{name}" cannot be used in a variable in the Japanese tab.',
+                    },
+                    { name: err.name },
+                );
+            }
+            if (err.id === STAGE_VARIABLE_ERROR_ID) {
+                return intl.formatMessage(
+                    {
+                        id: 'gui.rubyTab.dnclStageVariableError',
+                        defaultMessage:
+                            'A variable of the stage ({name}) cannot be written in the Japanese tab. You can write it in the Ruby tab.',
+                    },
+                    { name: err.name },
+                );
+            }
+            if (err.id === UNSUPPORTED_NOTATION_ERROR_ID) {
+                return intl.formatMessage(
+                    {
+                        id: 'gui.rubyTab.dnclUnsupportedNotationError',
+                        defaultMessage:
+                            '"{name}" cannot be written in the Japanese tab. You can write it in the Ruby tab.',
                     },
                     { name: err.name },
                 );
@@ -704,7 +931,7 @@ const RubyTab = (props) => {
                     {
                         id: 'gui.rubyTab.dnclUnsupportedCommandError',
                         defaultMessage:
-                            '"{name}" is a command that cannot be written in Japanese mode. You can write it in Ruby mode.',
+                            '"{name}" is a command that cannot be written in the Japanese tab. You can write it in the Ruby tab.',
                     },
                     { name: err.name },
                 );
@@ -714,126 +941,231 @@ const RubyTab = (props) => {
         [intl, dnclPostTestLoopErrorMessage, dnclValidationErrorMessage],
     );
 
-    const handleToggleDnclMode = useCallback(async () => {
-        const enabling = !dnclModeRef.current;
-        // A lesson that does not allow the Japanese mode (#1741): never enter it (leaving it is always fine).
-        // Covers the toolbar button and the re-entry when coming back to the Ruby tab
-        if (enabling && dnclModeLockedRef.current) return;
+    // Write the program in Japanese (enabling) or in Ruby. The tab decides it: the Japanese tab
+    // calls it with true, the Ruby tab with false (docs/dncl/design.md 1 章). Resolves to whether
+    // the editor is now in the asked language: false when the Ruby cannot be written in
+    // Japanese (the errors are shown on the Ruby lines) or the lesson does not allow Japanese.
+    // `ruby` is the Ruby to write in Japanese when the editor may not show it yet: coming back
+    // from the Code tab, the editor can still hold the Japanese of before (issue #2577).
+    const switchLanguage = useCallback(
+        async (enabling, { ruby: givenRuby = null } = {}) => {
+            if (enabling === dnclModeRef.current) return true;
+            // A lesson that does not allow the Japanese mode (#1741): never enter it (leaving it is always fine).
+            if (enabling && dnclModeLockedRef.current) return false;
 
-        // Clear any existing errors before mode switch attempt.
-        clearErrors();
+            // Clear any existing errors before mode switch attempt.
+            clearErrors();
+            // Ruby → Japanese parses the Ruby with prism.
+            if (enabling) await loadPrism();
 
-        // Validate before switching TO DNCL mode:
-        // Dry-run Ruby → DNCL → Ruby → Blocks to check for unsupported code.
-        // The conversions are kept so the switch below can reuse them.
-        let dryRun = null;
-        if (enabling && editorRef.current && monacoRef.current) {
-            setDnclValidating(true);
-            try {
-                const currentRuby = editorRef.current.getModel().getValue();
-                const dnclResult = rubyToDncl(currentRuby);
+            // Validate before switching TO DNCL mode:
+            // Dry-run Ruby → DNCL → Ruby → Blocks to check for unsupported code.
+            // The conversions are kept so the switch below can reuse them.
+            let dryRun = null;
+            if (enabling && editorRef.current && monacoRef.current) {
+                setDnclValidating(true);
+                try {
+                    const currentRuby = givenRuby === null ? editorRef.current.getModel().getValue() : givenRuby;
+                    // The Japanese keeps the scripts in the order they were written (issue #2550).
+                    const orderedRuby = rubyInScriptOrder(rubyCodeTargetRef.current, currentRuby, rubyVersion);
+                    const dnclResult = rubyToDncl(orderedRuby, rubyCodeTargetRef.current);
 
-                // Code that has no DNCL form, such as the post-test loop
-                // `begin ... end while` (Issue #1626), on its Ruby lines.
-                if (dnclResult.errors.length > 0) {
-                    showErrors(
-                        dnclResult.errors.map((err) => ({
+                    // Code that has no DNCL form, such as the post-test loop
+                    // `begin ... end while` (Issue #1626), on its Ruby lines. The lines are
+                    // those of the Ruby the editor shows, not of the Ruby in the script order.
+                    if (dnclResult.errors.length > 0) {
+                        const lineErrors =
+                            orderedRuby === currentRuby
+                                ? dnclResult.errors
+                                : rubyToDncl(currentRuby, rubyCodeTargetRef.current).errors;
+                        showErrors(
+                            lineErrors.map((err) => ({
+                                row: err.line - 1,
+                                column: err.column - 1,
+                                text: dnclErrorText(err),
+                                type: 'error',
+                            })),
+                        );
+                        return false;
+                    }
+
+                    const rubyResult = dnclToRuby(dnclResult.dncl);
+
+                    // Check DNCL → Ruby conversion errors (e.g. @ or $ in DNCL)
+                    if (rubyResult.errors && rubyResult.errors.length > 0) {
+                        const errors = rubyResult.errors.map((err) => ({
                             row: err.line - 1,
                             column: err.column - 1,
                             text: dnclErrorText(err),
                             type: 'error',
-                        })),
-                    );
-                    return;
-                }
+                        }));
+                        showErrors(errors);
+                        return false;
+                    }
 
-                const rubyResult = dnclToRuby(dnclResult.dncl);
-
-                // Check DNCL → Ruby conversion errors (e.g. @ or $ in DNCL)
-                if (rubyResult.errors && rubyResult.errors.length > 0) {
-                    const errors = rubyResult.errors.map((err) => ({
-                        row: err.line - 1,
-                        column: err.column - 1,
-                        text: dnclErrorText(err),
-                        type: 'error',
-                    }));
-                    showErrors(errors);
-                    return;
+                    // Dry-run blocks conversion (no apply — no side effects)
+                    const converter = await targetCodeToBlocks(vm, rubyCode.target, rubyResult.ruby, intl, {
+                        version: rubyVersion,
+                    });
+                    if (!converter.result) {
+                        const errors = converter.errors.map((err) => ({
+                            ...err,
+                            text: dnclValidationErrorMessage,
+                        }));
+                        showErrors(errors);
+                        return false;
+                    }
+                    dryRun = { ruby: currentRuby, dncl: dnclResult.dncl, sourceMap: rubyResult.sourceMap };
+                } finally {
+                    setDnclValidating(false);
                 }
-
-                // Dry-run blocks conversion (no apply — no side effects)
-                const converter = await targetCodeToBlocks(vm, rubyCode.target, rubyResult.ruby, intl, {
-                    version: rubyVersion,
-                });
-                if (!converter.result) {
-                    const errors = converter.errors.map((err) => ({
-                        ...err,
-                        text: dnclValidationErrorMessage,
-                    }));
-                    showErrors(errors);
-                    return;
-                }
-                dryRun = { ruby: currentRuby, dncl: dnclResult.dncl, sourceMap: rubyResult.sourceMap };
-            } finally {
-                setDnclValidating(false);
             }
-        }
+            // The tab was changed while the program was being checked: stay in Ruby.
+            if (enabling && activeTabIndexRef.current !== JAPANESE_TAB_INDEX) return false;
 
-        // Suppress handleEditorChange during mode switch to prevent a
-        // re-render race: model.setValue triggers onChange synchronously,
-        // which dispatches to Redux, causing a re-render where dnclMode
-        // state hasn't committed yet — overwriting the editor content.
-        isModeSwitchRef.current = true;
+            // Suppress handleEditorChange during mode switch to prevent a
+            // re-render race: model.setValue triggers onChange synchronously,
+            // which dispatches to Redux, causing a re-render where dnclMode
+            // state hasn't committed yet — overwriting the editor content.
+            isModeSwitchRef.current = true;
 
-        dnclModeRef.current = enabling; // eslint-disable-line require-atomic-updates
+            dnclModeRef.current = enabling; // eslint-disable-line require-atomic-updates
 
-        if (typeof window !== 'undefined' && window.localStorage) {
-            window.localStorage.setItem(DNCL_MODE_KEY, enabling);
-        }
+            if (typeof window !== 'undefined' && window.localStorage) {
+                window.localStorage.setItem(DNCL_MODE_KEY, enabling);
+            }
 
-        if (editorRef.current && monacoRef.current) {
-            const model = editorRef.current.getModel();
-            if (enabling) {
-                // Switching to DNCL: convert Ruby → DNCL
-                const currentRuby = model.getValue();
-                // Reuse the dry-run conversions unless the code was edited
-                // while the blocks conversion was being checked.
-                let dncl;
-                if (dryRun && dryRun.ruby === currentRuby) {
-                    dncl = dryRun.dncl;
-                    dnclSourceMapRef.current = dryRun.sourceMap;
+            if (editorRef.current && monacoRef.current) {
+                const model = editorRef.current.getModel();
+                if (enabling) {
+                    // Switching to DNCL: convert Ruby → DNCL
+                    const currentRuby = givenRuby === null ? model.getValue() : givenRuby;
+                    // Reuse the dry-run conversions unless the code was edited
+                    // while the blocks conversion was being checked.
+                    let dncl;
+                    if (dryRun && dryRun.ruby === currentRuby) {
+                        dncl = dryRun.dncl;
+                        dnclSourceMapRef.current = dryRun.sourceMap;
+                    } else {
+                        dncl = rubyToDncl(
+                            rubyInScriptOrder(rubyCodeTargetRef.current, currentRuby, rubyVersion),
+                            rubyCodeTargetRef.current,
+                        ).dncl;
+                        dnclSourceMapRef.current = dnclToRuby(dncl).sourceMap;
+                    }
+                    monacoRef.current.editor.setModelLanguage(model, 'dncl');
+                    model.setValue(dncl);
+                    setDnclEditError(false);
+                    setDnclDisplayCode(dncl);
                 } else {
-                    dncl = rubyToDncl(currentRuby).dncl;
-                    dnclSourceMapRef.current = dnclToRuby(dncl).sourceMap;
+                    // Switching to Ruby: convert DNCL → Ruby
+                    const currentDncl = model.getValue();
+                    const ruby = rubyForLeavingDncl(currentDncl, rubyCodeCodeRef.current);
+                    dnclSourceMapRef.current = null;
+                    monacoRef.current.editor.setModelLanguage(model, 'smalruby');
+                    model.setValue(ruby);
+                    setDnclEditError(false);
+                    setDnclDisplayCode('');
+                    onChangeRef.current(ruby);
                 }
-                monacoRef.current.editor.setModelLanguage(model, 'dncl');
-                model.setValue(dncl);
-                setDnclDisplayCode(dncl);
-            } else {
-                // Switching to Ruby: convert DNCL → Ruby
-                const currentDncl = model.getValue();
-                const ruby = rubyForLeavingDncl(currentDncl, rubyCodeCodeRef.current);
-                dnclSourceMapRef.current = null;
-                monacoRef.current.editor.setModelLanguage(model, 'smalruby');
-                model.setValue(ruby);
-                setDnclDisplayCode('');
-                onChangeRef.current(ruby);
+            }
+
+            isModeSwitchRef.current = false;
+            setDnclMode(enabling);
+            onSetDnclMode(enabling);
+
+            // Furigana is meaningless in DNCL view (Japanese pseudo-code, not Ruby).
+            // Clear annotations on enable; restore them on disable when the user
+            // had furigana on.
+            if (enabling) {
+                furiganaRendererRef.current?.clear(editorRef.current);
+            } else if (furiganaEnabledRef.current) {
+                renderFurigana();
+            }
+            return true;
+        },
+        [vm, rubyCode.target, intl, rubyVersion, dnclValidationErrorMessage, dnclErrorText, onSetDnclMode],
+    );
+
+    // The Japanese tab was chosen: write the program in Japanese. When it cannot be written in
+    // Japanese, go to the Ruby tab, where the errors are shown on the Ruby lines.
+    const enterJapaneseTab = useCallback(
+        async (options) => {
+            if (activeTabIndexRef.current !== JAPANESE_TAB_INDEX) return;
+            const switched = await switchLanguage(true, options);
+            if (!switched && activeTabIndexRef.current === JAPANESE_TAB_INDEX) onActivateTab(RUBY_TAB_INDEX);
+        },
+        [switchLanguage, onActivateTab],
+    );
+
+    // The errors of the blocks of the Japanese on its lines (a dry run of the conversion, the
+    // same check as going to the Code tab; Issue #2547), or null when it makes no Ruby.
+    const checkJapaneseBlocks = useCallback(async (dncl) => {
+        await loadPrism();
+        try {
+            return await japaneseBlockErrors(dncl, async (ruby) => {
+                const converter = await targetCodeToBlocks(
+                    vmRef.current,
+                    rubyCodeTargetRef.current,
+                    ruby,
+                    intlRef.current,
+                    { version: rubyVersionRef.current },
+                );
+                return { result: converter.result, errors: converter.errors };
+            });
+        } catch (e) {
+            // The check only tells; it must never stop the editor.
+            console.warn('Failed to check the blocks of the Japanese:', e); // eslint-disable-line no-console
+            return null;
+        }
+    }, []);
+
+    // Show the errors of `checkJapaneseBlocks` on their Japanese lines (and go to the first one).
+    // A line that still has an error of the conversion of the Code tab (`smalruby`) keeps that
+    // one: the same error is shown once, also after the student edits other lines.
+    const showJapaneseBlockErrors = useCallback((errors, { focus = false } = {}) => {
+        if (!editorRef.current || !monacoRef.current) return;
+        const model = editorRef.current.getModel();
+        const shownRows = new Set(
+            monacoRef.current.editor
+                .getModelMarkers({ owner: 'smalruby', resource: model.uri })
+                .map((marker) => marker.startLineNumber - 1),
+        );
+        const markers = withJapaneseErrorWords(errors)
+            .filter((err) => !shownRows.has(err.row))
+            .map((err) => ({
+                startLineNumber: err.row + 1,
+                startColumn: 1,
+                endLineNumber: err.row + 1,
+                endColumn: 1000,
+                message: err.text,
+                severity: monacoRef.current.MarkerSeverity.Error,
+            }));
+        monacoRef.current.editor.setModelMarkers(model, DNCL_BLOCKS_OWNER, markers);
+        if (focus && errors.length > 0) {
+            const lineNumber = errors[0].row + 1;
+            editorRef.current.setPosition({ lineNumber, column: 1 });
+            editorRef.current.revealLineInCenter(lineNumber);
+            editorRef.current.focus();
+        }
+    }, []);
+
+    // The Ruby tab was chosen from the Japanese tab: write the program in Ruby. Japanese that makes
+    // Ruby with no blocks stays in the Japanese tab with its errors on its lines, as going to the
+    // Code tab does: in the Ruby tab it could not come back to the Japanese tab (Issue #2547).
+    const leaveJapaneseTab = useCallback(async () => {
+        if (dnclModeRef.current && editorRef.current) {
+            const errors = await checkJapaneseBlocks(editorRef.current.getModel().getValue());
+            if (errors && errors.length > 0) {
+                if (activeTabIndexRef.current === RUBY_TAB_INDEX) onActivateTab(JAPANESE_TAB_INDEX);
+                showJapaneseBlockErrors(errors, { focus: true });
+                return;
             }
         }
-
-        isModeSwitchRef.current = false;
-        setDnclMode(enabling);
-        onSetDnclMode(enabling);
-
-        // Furigana is meaningless in DNCL view (Japanese pseudo-code, not Ruby).
-        // Clear annotations on enable; restore them on disable when the user
-        // had furigana on.
-        if (enabling) {
-            furiganaRendererRef.current?.clear(editorRef.current);
-        } else if (furiganaEnabledRef.current) {
-            renderFurigana();
-        }
-    }, [vm, rubyCode.target, intl, rubyVersion, dnclValidationErrorMessage, dnclErrorText, onSetDnclMode]);
+        // The Japanese tab was chosen again while the program was being checked.
+        if (activeTabIndexRef.current === JAPANESE_TAB_INDEX) return;
+        switchLanguage(false);
+    }, [checkJapaneseBlocks, showJapaneseBlockErrors, switchLanguage, onActivateTab]);
 
     const handleToggleFurigana = useCallback(() => {
         setFuriganaEnabled((prev) => {
@@ -854,7 +1186,11 @@ const RubyTab = (props) => {
             if (enabled && editorRef.current) {
                 const value = editorRef.current.getValue();
                 if (value) {
-                    const corrected = autoCorrect(value, autoCorrectSettingsRef.current);
+                    const corrected = autoCorrect(
+                        value,
+                        autoCorrectSettingsRef.current,
+                        autoCorrectOptionsOf(value, dnclModeRef.current),
+                    );
                     if (corrected !== value) {
                         isAutoCorrectUpdateRef.current = true;
                         const model = editorRef.current.getModel();
@@ -917,6 +1253,14 @@ const RubyTab = (props) => {
 
     const handleRubyVersionChange = async (oldVersion, newVersion) => {
         lastProcessedVersionRef.current = newVersion;
+        // The program is written again from the blocks after the switch, which lack the
+        // Japanese lines with an error: keep the version and show the lines (Issue #2560).
+        if (dnclEditErrorRef.current && dnclModeRef.current) {
+            lastProcessedVersionRef.current = oldVersion;
+            onRevertRubyVersion(oldVersion);
+            onShowAlert('convertJapaneseError');
+            return;
+        }
         if (rubyCode.modified) {
             const converter = await targetCodeToBlocksHOC(intl);
             if (converter.result) {
@@ -953,9 +1297,16 @@ const RubyTab = (props) => {
         }
     };
 
+    // Counts the green flags: a run of the Japanese program that a newer green flag has started
+    // over gives way, or the two runs would replace the blocks under each other (Issue #2552).
+    const greenFlagRunRef = useRef(0);
     const handleExecuteLine = useCallback(
-        async (lineNumber) => {
-            if (runningBlockIdRef.current) {
+        // The green flag runs the Japanese program too (Issue #2552): it has stopped everything and
+        // started the hat scripts already, so the scripts are started, not toggled.
+        async (lineNumber, { greenFlag = false } = {}) => {
+            const greenFlagRun = greenFlagRunRef.current;
+            const isStartedOver = () => greenFlag && greenFlagRunRef.current !== greenFlagRun;
+            if (!greenFlag && runningBlockIdRef.current) {
                 vm.runtime.toggleScript(runningBlockIdRef.current, {
                     target: vm.editingTarget,
                     stackClick: true,
@@ -970,6 +1321,13 @@ const RubyTab = (props) => {
             // In DNCL mode, execute all top-level scripts from top to bottom
             // instead of just the cursor line.
             const isDncl = dnclModeRef.current;
+            // The Ruby lacks the Japanese lines with an error: stop as the green flag does (Issue #2560).
+            if (isDncl && dnclEditErrorRef.current) {
+                onShowAlert('convertJapaneseError');
+                return;
+            }
+            // Running shows the read mode, to follow the program by the line numbers (Issue #2380).
+            if (isDncl && problemFormViewRef.current) problemFormViewRef.current.showReadMode();
             const targetLine = isDncl ? 1 : findExecutableLine(code, lineNumber);
 
             if (!targetLine) {
@@ -980,6 +1338,7 @@ const RubyTab = (props) => {
             }
 
             const converter = await targetCodeToBlocks(vm, rubyCode.target, code, intl, { version: rubyVersion });
+            if (isStartedOver()) return;
 
             if (!converter.result) {
                 onShowAlert('convertRubyToBlocksError');
@@ -991,12 +1350,17 @@ const RubyTab = (props) => {
             converter
                 .apply()
                 .then(() => {
+                    if (isStartedOver()) return;
                     // Regenerate Ruby code from blocks so that auto-imported
                     // modules are reflected in the editor immediately.
                     // Using direct editor setValue because Redux prop-driven
                     // updates via @monaco-editor/react may not take effect
                     // reliably within the same callback.
-                    const regenerated = RubyGenerator.targetToCode(vm.editingTarget, { version: rubyVersion });
+                    // The Japanese tab keeps the scripts in the written order (issue #2550).
+                    const regenerated = RubyGenerator.targetToCode(vm.editingTarget, {
+                        version: rubyVersion,
+                        keepScriptOrder: dnclModeRef.current,
+                    });
                     if (editorRef.current && regenerated !== code) {
                         // Remember cursor content to restore position after setValue
                         const cursorLine = editorRef.current.getPosition().lineNumber;
@@ -1004,7 +1368,8 @@ const RubyTab = (props) => {
 
                         if (dnclModeRef.current) {
                             // Convert regenerated Ruby back to DNCL for display
-                            const dnclResult = rubyToDncl(regenerated);
+                            const dnclResult = rubyToDncl(regenerated, rubyCodeTargetRef.current);
+                            setDnclEditError(false);
                             setDnclDisplayCode(dnclResult.dncl);
                             editorRef.current.setValue(dnclResult.dncl);
                         } else {
@@ -1032,15 +1397,21 @@ const RubyTab = (props) => {
                     if (isDncl) {
                         // Execute all top-level scripts sequentially
                         const blocks = vm.editingTarget.blocks;
-                        const allTopBlocks = blocks.getScripts();
+                        const allTopBlocks = greenFlag
+                            ? japaneseScriptsToStart(blocks, vm.runtime)
+                            : blocks.getScripts();
                         if (allTopBlocks.length === 0) {
-                            onShowAlert('cannotExecuteLine');
+                            if (!greenFlag) onShowAlert('cannotExecuteLine');
                             return;
                         }
 
                         // Highlight all lines
                         const totalLines = code.split('\n').length;
                         doHighlightLineRange(1, totalLines);
+
+                        // Running the whole program starts it over, as the green flag
+                        // does: the lines of the last run are cleared (Issue #2557, B17-4).
+                        if (!greenFlag) vm.runtime.emit(CLEAR_CONSOLE_EVENT);
 
                         // Execute each top-level script
                         for (const topBlockId of allTopBlocks) {
@@ -1091,6 +1462,8 @@ const RubyTab = (props) => {
         },
         [vm, rubyCode, intl, rubyVersion, onShowAlert, updateRubyCodeErrorsState, onDismissAlert],
     );
+    const handleExecuteLineRef = useRef(handleExecuteLine);
+    handleExecuteLineRef.current = handleExecuteLine;
 
     const renderDownloaderChildren = useCallback((_, downloadProjectCallback) => {
         downloadCallbackRef.current = downloadProjectCallback;
@@ -1129,6 +1502,14 @@ const RubyTab = (props) => {
             if (contentChangeListenerRef.current) {
                 contentChangeListenerRef.current.dispose();
                 contentChangeListenerRef.current = null;
+            }
+            if (problemFormViewRef.current) {
+                problemFormViewRef.current.dispose();
+                problemFormViewRef.current = null;
+            }
+            if (dnclAutoOutdentRef.current) {
+                dnclAutoOutdentRef.current.dispose();
+                dnclAutoOutdentRef.current = null;
             }
             if (configChangeListenerRef.current) {
                 configChangeListenerRef.current.dispose();
@@ -1171,26 +1552,49 @@ const RubyTab = (props) => {
             return;
         }
         if (isJapaneseLocale(locale)) {
-            // Restore saved preferences when switching back to Japanese
+            // Restore saved preferences when switching back to Japanese. The language follows
+            // the tab, so the Japanese tab is chosen again by the user.
             setFuriganaEnabled(loadBool(FURIGANA_ENABLED_KEY, true));
-            if (typeof window !== 'undefined' && window.localStorage) {
-                const savedDncl = window.localStorage.getItem(DNCL_MODE_KEY) === 'true';
-                // Do not restore the Japanese mode during a lesson that does not allow it (#1741)
-                if (savedDncl !== dnclMode && !(savedDncl && dnclModeLocked)) {
-                    setDnclMode(savedDncl);
-                    onSetDnclMode(savedDncl);
-                }
-            }
         } else {
-            // Non-Japanese locale: force Ruby mode without updating localStorage
+            // Non-Japanese locale: force Ruby without updating the furigana setting. The
+            // Japanese tab is hidden in these locales, so leave it for the Ruby tab.
             if (furiganaEnabled) {
                 setFuriganaEnabled(false);
             }
-            if (dnclMode) {
-                handleToggleDnclMode();
+            if (activeTabIndexRef.current === JAPANESE_TAB_INDEX) {
+                onActivateTab(RUBY_TAB_INDEX);
+            } else if (dnclModeRef.current) {
+                switchLanguage(false);
             }
         }
     }, [locale]);
+
+    // Leaving Japanese from outside the editor (the notice of the Code tab, the extension
+    // button, a lesson that does not allow Japanese): the Japanese tab gives way to the
+    // Ruby tab. On the other tabs the editor follows when a text tab is opened next.
+    // The Japanese tab is not offered in the other locales either.
+    useEffect(() => {
+        const japaneseUnavailable = dnclModeLocked || !isJapaneseLocale(locale);
+        if (!exitDnclModeExternallyRequested && !japaneseUnavailable) return;
+        if (activeTabIndex === JAPANESE_TAB_INDEX) {
+            externalDnclExitRef.current = true;
+            onActivateTab(RUBY_TAB_INDEX);
+        }
+        if (exitDnclModeExternallyRequested) onClearExitDnclModeRequest?.();
+    }, [exitDnclModeExternallyRequested, dnclModeLocked, locale, activeTabIndex]);
+
+    // The console is the stage of the Japanese tab (docs/dncl/design.md 5 章): it is shown while the
+    // Japanese tab shows the program in Japanese, and the Ruby tab gives the stage back. Only the
+    // screen is shown: the console extension is added by the conversion when the program prints
+    // or reads (`表示する` / `入力する`). The editing target is a dependency so that the console
+    // comes back after a project is loaded.
+    const japaneseTabActive = activeTabIndex === JAPANESE_TAB_INDEX;
+    useEffect(() => {
+        if (dnclMode && japaneseTabActive) onShowSmalrubyConsole?.();
+    }, [dnclMode, japaneseTabActive, editingTarget]);
+    useEffect(() => {
+        if (activeTabIndex === RUBY_TAB_INDEX) onHideSmalrubyConsole?.();
+    }, [activeTabIndex]);
 
     // Furigana toggle effect
     useEffect(() => {
@@ -1204,26 +1608,55 @@ const RubyTab = (props) => {
 
     // When code changes from blocks tab (Ruby → DNCL display), sync DNCL display
     const rubyCodeStr = rubyCode.code;
+    const rubyCodeTargetId = rubyCode.target ? rubyCode.target.id : null;
+    // The target the Japanese tab last showed, so that a target without a program empties it (Issue #2576).
+    const dnclShownTargetIdRef = useRef(rubyCodeTargetId);
+    const dnclShownRubyRef = useRef(rubyCodeStr);
     useEffect(() => {
-        if (!dnclMode) return;
+        if (!dnclMode || !prismReady) return;
         if (!editorRef.current || !monacoRef.current) return;
+        const targetChanged = dnclShownTargetIdRef.current !== rubyCodeTargetId;
+        const rubyChanged = dnclShownRubyRef.current !== rubyCodeStr;
+        dnclShownTargetIdRef.current = rubyCodeTargetId;
+        dnclShownRubyRef.current = rubyCodeStr;
+        // A switch of the Ruby version that was stopped changes nothing: keep the lines with an error (Issue #2560).
+        if (dnclEditErrorRef.current && !targetChanged && !rubyChanged) return;
         // Only sync when the Ruby code changed externally (e.g., from blocks)
         // not from our own editor change (which already sets dnclDisplayCode)
-        const currentEditorValue = editorRef.current.getValue();
-        const currentRubyFromDncl = dnclToRuby(currentEditorValue).ruby;
-        if (currentRubyFromDncl !== rubyCodeStr && rubyCodeStr) {
-            const result = rubyToDncl(rubyCodeStr);
-            setDnclDisplayCode(result.dncl);
+        const text = japaneseTextForRuby({
+            editorRuby: dnclToRuby(editorRef.current.getValue()).ruby,
+            ruby: rubyCodeStr,
+            targetChanged,
+            toJapanese: (code) =>
+                rubyToDncl(rubyInScriptOrder(rubyCodeTargetRef.current, code, rubyVersion), rubyCodeTargetRef.current)
+                    .dncl,
+        });
+        if (text !== null) {
+            setDnclEditError(false);
+            setDnclDisplayCode(text);
         }
-    }, [rubyCodeStr, dnclMode]);
+    }, [rubyCodeStr, rubyCodeTargetId, dnclMode, prismReady, rubyVersion]);
 
-    // The marks left by the paste-time index shift belong to the DNCL text.
+    // The read mode is drawn only in the Japanese mode.
     useEffect(() => {
-        if (!dnclMode && indexShiftDecorationsRef.current) {
-            indexShiftDecorationsRef.current.clear();
-            indexShiftDecorationsRef.current = null;
-        }
+        if (problemFormViewRef.current) problemFormViewRef.current.sync();
     }, [dnclMode]);
+
+    // The green flag shows the read mode too, as the run button of the toolbar does (Issue #2380).
+    // On the Japanese tab it runs the Japanese program as well (Issue #2552).
+    useEffect(() => {
+        const handleProjectStart = () => {
+            greenFlagRunRef.current += 1;
+            const state = { dnclMode: dnclModeRef.current, activeTabIndex: activeTabIndexRef.current };
+            if (shouldRunJapaneseOnGreenFlag(state)) {
+                handleExecuteLineRef.current(1, { greenFlag: true });
+                return;
+            }
+            if (dnclModeRef.current && problemFormViewRef.current) problemFormViewRef.current.showReadMode();
+        };
+        vm.addListener('PROJECT_START', handleProjectStart);
+        return () => vm.removeListener('PROJECT_START', handleProjectStart);
+    }, [vm]);
 
     // Smalruby DNCL arrays start at index 0. A program written with 1-based
     // indices reads past the end of an array, where the VM silently returns
@@ -1247,7 +1680,7 @@ const RubyTab = (props) => {
                         {
                             id: 'gui.rubyTab.dnclArrayIndexHint',
                             defaultMessage:
-                                '{access} reads past the end of the array. In Smalruby Japanese mode, array indices start at 0 (the first element is {array}[0] and the last is {array}[{last}]). If the problem counts from 1, shift the index by 1, like {fixed}.',
+                                '{access} reads past the end of the array. In the Japanese tab of Smalruby, array indices start at 0 (the first element is {array}[0] and the last is {array}[{last}]). If the problem counts from 1, shift the index by 1, like {fixed}, or write "すべての配列の添字は 1 から始まる。" at the top of the program (the menu "A problem whose indices start at 1" writes it).',
                         },
                         hint,
                     ),
@@ -1281,40 +1714,93 @@ const RubyTab = (props) => {
         monacoRef.current.editor.setModelMarkers(editorRef.current.getModel(), DNCL_SLASH_COMMENT_OWNER, markers);
     }, [dnclMode, dnclDisplayCode, intl]);
 
-    // The post-test loop (Issue #1626) and the Ruby commands (Issue #1679)
-    // cannot be written in DNCL. Such DNCL is not converted to Ruby (it would
-    // become `@begin` / `@move(2)`), so tell it on its lines whether it was
-    // typed or shown from blocks. The markers use their own owner so clearing
-    // conversion errors keeps them.
+    // `+` with a string and `-` / `*` / `/` are worked out from the left, so in
+    // `"残り" + a - 1` the `- 1` is taken from a string and only a number is shown.
+    // The order is kept (Ruby reads it the same way); warn on such lines so that
+    // the number part is put in parentheses (see `stringArithmeticRows`). The
+    // markers use their own owner so clearing conversion errors keeps them
+    // (Issue #1465).
     useEffect(() => {
         if (!editorRef.current || !monacoRef.current) return;
-        const errors = dnclMode
-            ? dnclToRuby(dnclDisplayCode).errors.filter(
-                  (err) =>
-                      err.id === POST_TEST_LOOP_ERROR_ID ||
-                      err.id === UNSUPPORTED_COMMAND_ERROR_ID ||
-                      err.id === UNSUPPORTED_NUMBER_ERROR_ID,
-              )
-            : [];
+        const lines = dnclMode ? dnclDisplayCode.split('\n') : [];
+        const rows = dnclMode ? stringArithmeticRows(lines) : [];
+        const message = intl.formatMessage({
+            id: 'gui.rubyTab.dnclStringArithmeticHint',
+            defaultMessage:
+                'With a string, - * / are worked out from the left, so "a" + x - 1 subtracts from the string "a" + x. Put the number part in parentheses, like "a" + (x - 1).',
+        });
+        const markers = rows.map((row) => ({
+            startLineNumber: row + 1,
+            startColumn: 1,
+            endLineNumber: row + 1,
+            endColumn: lines[row].length + 1,
+            message,
+            severity: monacoRef.current.MarkerSeverity.Warning,
+        }));
+        monacoRef.current.editor.setModelMarkers(editorRef.current.getModel(), DNCL_STRING_ARITHMETIC_OWNER, markers);
+    }, [dnclMode, dnclDisplayCode, intl]);
+
+    // DNCL that makes no Ruby is told on its lines, whether it was typed or
+    // shown from blocks: the post-test loop (Issue #1626), the Ruby commands
+    // (Issue #1679), the numbers of Ruby, a missing or extra closer (Issue
+    // #1419) and a line that cannot be read. The markers use their own owner
+    // so clearing conversion errors keeps them.
+    useEffect(() => {
+        if (!editorRef.current || !monacoRef.current) return;
+        const errors = dnclMode ? dnclToRuby(dnclDisplayCode).errors : [];
         const lines = dnclDisplayCode.split('\n');
+        const translated = (err) =>
+            err.id === POST_TEST_LOOP_ERROR_ID ||
+            err.id === UNSUPPORTED_COMMAND_ERROR_ID ||
+            err.id === UNSUPPORTED_NUMBER_ERROR_ID ||
+            err.id === FORBIDDEN_PREFIX_ERROR_ID;
+        // `//` is integer division in Smalruby DNCL, never a comment (Issue #1192).
+        const doubleSlashHint = intl.formatMessage({
+            id: 'gui.rubyTab.dnclDoubleSlashHint',
+            defaultMessage: 'In Smalruby, // is not a comment (it is integer division). Use # for comments.',
+        });
         const markers = errors
             .filter((err) => err.line <= lines.length)
             .map((err) => {
                 const lineEnd = lines[err.line - 1].length + 1;
+                // A command, a number and `@` / `$` (issue #1674) are marked where they are written.
                 const command =
-                    (err.id === UNSUPPORTED_COMMAND_ERROR_ID || err.id === UNSUPPORTED_NUMBER_ERROR_ID) &&
+                    (err.id === UNSUPPORTED_COMMAND_ERROR_ID ||
+                        err.id === UNSUPPORTED_NUMBER_ERROR_ID ||
+                        err.id === FORBIDDEN_PREFIX_ERROR_ID) &&
                     err.column + err.name.length <= lineEnd;
+                const [hinted] = translated(err)
+                    ? [{ text: dnclErrorText(err) }]
+                    : withDoubleSlashHint([{ row: err.line - 1, text: err.message }], lines, doubleSlashHint);
                 return {
                     startLineNumber: err.line,
                     startColumn: command ? err.column : 1,
                     endLineNumber: err.line,
                     endColumn: command ? err.column + err.name.length : lineEnd,
-                    message: dnclErrorText(err),
+                    message: hinted.text,
                     severity: monacoRef.current.MarkerSeverity.Error,
                 };
             });
         monacoRef.current.editor.setModelMarkers(editorRef.current.getModel(), DNCL_UNSUPPORTED_OWNER, markers);
-    }, [dnclMode, dnclDisplayCode, dnclErrorText]);
+    }, [dnclMode, dnclDisplayCode, dnclErrorText, intl]);
+
+    // Japanese that makes Ruby with no blocks (`a, b = b, a`, `"a" + 1`, a change of an argument)
+    // is told on its lines while the student writes, a moment after the last key (Issue #2547).
+    // A later check wins over one still running.
+    const japaneseBlocksCheckRef = useRef(0);
+    useEffect(() => {
+        const check = ++japaneseBlocksCheckRef.current;
+        if (!dnclMode) {
+            showJapaneseBlockErrors([]);
+            return;
+        }
+        const timer = setTimeout(async () => {
+            const errors = await checkJapaneseBlocks(dnclDisplayCode);
+            if (check !== japaneseBlocksCheckRef.current || !dnclModeRef.current) return;
+            showJapaneseBlockErrors(errors || []);
+        }, JAPANESE_BLOCKS_CHECK_DELAY_MS);
+        return () => clearTimeout(timer);
+    }, [dnclMode, dnclDisplayCode, rubyCode.target, rubyVersion]);
 
     // componentDidUpdate equivalent
     const prevPropsRef = useRef(null);
@@ -1351,13 +1837,35 @@ const RubyTab = (props) => {
             return;
         }
 
-        // Snapshot the current Ruby tab mode before any wasDncl reset path
-        // mutates dnclModeRef.current later in this effect. This is used
-        // for the `ruby_tab/open` GA event so it observes the user-intended
-        // mode rather than the transient ruby state during DNCL re-application.
+        // Japanese text that makes no Ruby is only in the editor: leaving the Japanese tab or
+        // the sprite would write the program again from the blocks, and the lines the student
+        // typed would be lost without a word (Issue #2546). Stay, as the Ruby tab stays when
+        // its Ruby cannot be converted, and keep prev so that coming back is no change at all.
+        // A switch asked from outside the editor (a lesson, the notice of the Code tab) is not stopped.
+        if (dnclEditErrorRef.current && dnclModeRef.current) {
+            const leavingTab = prev.activeTabIndex === JAPANESE_TAB_INDEX && activeTabIndex !== JAPANESE_TAB_INDEX;
+            const heldTarget = rubyCode.target ? vm.runtime.getTargetById(rubyCode.target.id) : null;
+            const leavingTarget =
+                editingTarget !== prev.editingTarget && heldTarget && vm.editingTarget !== heldTarget;
+            if (leavingTab && externalDnclExitRef.current) {
+                setDnclEditError(false);
+            } else if (leavingTab || leavingTarget) {
+                if (leavingTarget) vm.setEditingTarget(heldTarget.id);
+                if (leavingTab) onActivateTab(JAPANESE_TAB_INDEX);
+                onShowAlert('convertJapaneseError');
+                return;
+            }
+            // The sprite the text was written for is gone (a project was loaded): nothing to keep.
+            if (editingTarget !== prev.editingTarget && !heldTarget) setDnclEditError(false);
+        }
+        if (activeTabIndex !== JAPANESE_TAB_INDEX) externalDnclExitRef.current = false;
+
+        // The label of the `ruby_tab/open` GA event: the language of the tab that was
+        // opened (the Japanese tab is 'dncl'), not the transient state of the editor
+        // while it is switched.
         const rubyTabOpenLabel =
             isVisible && !prev.isVisible
-                ? dnclModeRef.current
+                ? activeTabIndex === JAPANESE_TAB_INDEX
                     ? 'dncl'
                     : furiganaEnabledRef.current
                       ? 'furigana'
@@ -1373,19 +1881,42 @@ const RubyTab = (props) => {
             handleRubyVersionChange(prev.rubyVersion, rubyVersion);
         }
 
+        const wasTextTab = isTextTabIndex(prev.activeTabIndex);
+        const isTextTab = isTextTabIndex(activeTabIndex);
+
         // Tab switch away → dismiss bubble
-        if (prev.activeTabIndex === RUBY_TAB_INDEX && activeTabIndex !== RUBY_TAB_INDEX) {
+        if (wasTextTab && activeTabIndex !== prev.activeTabIndex) {
             handleDismissBubbleStable();
         }
 
-        // Leaving the Ruby tab with modified code: remember the destination
-        // tab and immediately bounce back to the Ruby tab while the
+        // Between the Ruby tab and the Japanese tab: the same editor shows the
+        // program in the language of the tab (docs/dncl/design.md 1 章).
+        if (wasTextTab && isTextTab && activeTabIndex !== prev.activeTabIndex) {
+            const toJapanese = activeTabIndex === JAPANESE_TAB_INDEX;
+            if (toJapanese) {
+                enterJapaneseTab();
+            } else {
+                leaveJapaneseTab();
+            }
+            try {
+                analytics.event({
+                    category: 'mode_switch',
+                    action: 'change',
+                    label: toJapanese ? 'dncl' : furiganaEnabledRef.current ? 'furigana' : 'ruby',
+                });
+            } catch (_e) {
+                // Swallow analytics failures so the editor never breaks.
+            }
+        }
+
+        // Leaving the Ruby tab (or the Japanese tab) with modified code: remember
+        // the destination tab and immediately bounce back to that tab while the
         // conversion runs. The conversion itself is started by the
         // `modified` block below, and the destination is activated once the
         // blocks were applied successfully.
-        if (prev.activeTabIndex === RUBY_TAB_INDEX && activeTabIndex !== RUBY_TAB_INDEX && rubyCode.modified) {
+        if (wasTextTab && !isTextTab && rubyCode.modified) {
             pendingDestinationTabRef.current = activeTabIndex;
-            onActivateTab(RUBY_TAB_INDEX);
+            onActivateTab(prev.activeTabIndex);
         }
 
         // Visibility off → clear errors
@@ -1489,37 +2020,37 @@ const RubyTab = (props) => {
         if (!modified) {
             const etChanged = editingTarget && editingTarget !== prev.editingTarget;
             if ((isVisible && !prev.isVisible) || etChanged) {
-                // When switching to Ruby tab in DNCL mode, temporarily fall
-                // back to furigana mode so blocks→Ruby generation works.
-                // After the code is ready, attempt DNCL switch automatically.
-                const wasDncl = isVisible && !prev.isVisible && dnclModeRef.current;
+                // Coming to the Ruby tab or the Japanese tab with the program in
+                // Japanese: fall back to Ruby so blocks→Ruby generation works. In the
+                // Ruby tab this is the end; in the Japanese tab the program is written
+                // in Japanese again once the Ruby is ready (docs/dncl/design.md 1 章).
+                const becameVisible = isVisible && !prev.isVisible;
+                const wasDncl = becameVisible && dnclModeRef.current;
+                const wantJapanese = becameVisible && activeTabIndex === JAPANESE_TAB_INDEX;
                 if (wasDncl) {
                     dnclModeRef.current = false;
                     setDnclMode(false);
                     onSetDnclMode(false);
-                    setFuriganaEnabled(true);
+                    setFuriganaEnabled(isJapaneseLocale(locale) && loadBool(FURIGANA_ENABLED_KEY, true));
                     if (typeof window !== 'undefined' && window.localStorage) {
                         window.localStorage.setItem(DNCL_MODE_KEY, 'false');
-                        window.localStorage.setItem(FURIGANA_ENABLED_KEY, 'true');
                     }
                     if (editorRef.current && monacoRef.current) {
                         monacoRef.current.editor.setModelLanguage(editorRef.current.getModel(), 'smalruby');
                     }
                 }
                 updateRubyCodeTargetState(vm.editingTarget, rubyVersion);
-                // Schedule DNCL switch after React re-renders with the new
-                // Ruby code and the Monaco editor value prop is committed.
-                // Skip if an external exit was requested (e.g. from extension button).
-                if (wasDncl) {
-                    if (exitDnclModeExternallyRequested) {
-                        onClearExitDnclModeRequest?.();
-                    } else {
-                        requestAnimationFrame(() => {
-                            setTimeout(() => {
-                                handleToggleDnclMode();
-                            }, 0);
-                        });
-                    }
+                // Write the program in Japanese after React re-renders with the new
+                // Ruby code. The Ruby is given, not read from the editor: the editor
+                // may still hold the Japanese of before, which would be read as wrong
+                // Ruby and send the student to the Ruby tab (issue #2577).
+                if (wantJapanese) {
+                    const ruby = RubyGenerator.targetToCode(vm.editingTarget, { version: rubyVersion });
+                    requestAnimationFrame(() => {
+                        setTimeout(() => {
+                            enterJapaneseTab({ ruby });
+                        }, 0);
+                    });
                 }
             }
         }
@@ -1561,6 +2092,7 @@ const RubyTab = (props) => {
                     editorRef={editorRef.current}
                     onSelectTarget={handleSelectTarget}
                     onDownload={handleDownload}
+                    onDownloadJapanese={handleDownloadJapanese}
                     onInsertClass={handleInsertClass}
                     onExecuteLine={handleExecuteLine}
                     onDismissBubble={handleDismissBubbleStable}
@@ -1575,24 +2107,46 @@ const RubyTab = (props) => {
                     onPreviewRubyScript={handlePreviewRubyScript}
                     dnclMode={dnclMode}
                     dnclValidating={dnclValidating}
-                    dnclModeLocked={dnclModeLocked}
-                    onToggleDnclMode={handleToggleDnclMode}
+                    onCopyProblemForm={handleCopyProblemForm}
+                    readMode={problemFormShown}
+                    onToggleReadMode={handleToggleReadMode}
+                    onSelectSettingsPattern={handleSelectSettingsPattern}
                     locale={locale}
                 />
-                <div className={styles.editorWrapper}>
+                {/* The name of the language over the editor of the Japanese tab
+                    (docs/dncl/design.md 1 章) */}
+                {(dnclMode || dnclValidating) && (
+                    <div className={styles.languageBand} data-testid="ruby-tab-language-band">
+                        {intl.formatMessage(languageBandMessages.japanese)}
+                    </div>
+                )}
+                <div
+                    className={classNames(styles.editorWrapper, {
+                        [styles.editorWrapperWithBand]: dnclMode || dnclValidating,
+                    })}
+                >
                     <Editor
                         key={locale}
                         height="100%"
                         language={dnclMode ? 'dncl' : 'smalruby'}
+                        beforeMount={defineEditorThemes}
                         onMount={handleEditorDidMount}
                         onChange={handleEditorChange}
                         options={{
                             fontSize: fontSize || DEFAULT_FONT_SIZE,
                             fontFamily: 'Monaco, Menlo, Consolas, "source-code-pro", monospace',
                             minimap: { enabled: false },
-                            renderWhitespace: 'all',
+                            // The problem form of the Japanese mode shows no dots for the
+                            // spaces and no indent guides, and the line numbers as (01).
+                            renderWhitespace: problemFormShown ? 'none' : 'all',
+                            guides: { indentation: !problemFormShown },
+                            lineNumbers: dnclMode ? problemFormLineNumberLabels : 'on',
+                            lineNumbersMinChars: dnclMode ? lineNumbersMinChars : 5,
                             scrollBeyondLastLine: true,
-                            tabSize: 2,
+                            // The Japanese tab writes the standard form indented 4 spaces (as
+                            // ja-notation and the snippets write it), so Enter after `:` and Tab
+                            // indent by 4 there too.
+                            tabSize: dnclMode ? 4 : 2,
                             fixedOverflowWidgets: true,
                             wordBasedSuggestions: 'off',
                             autoIndent: 'full',
@@ -1602,7 +2156,7 @@ const RubyTab = (props) => {
                             // キーボードに隠れた領域に caret が残って入力できない。
                             automaticLayout: true,
                         }}
-                        theme="vs"
+                        theme={dnclMode ? JAPANESE_PAPER_THEME : 'vs'}
                         value={dnclMode ? dnclDisplayCode : code}
                         width="100%"
                     />
@@ -1656,7 +2210,13 @@ const RubyTab = (props) => {
                     onRequestClose={handleCloseAutoCorrectSettings}
                 />
             )}
-            {showScriptPreview && <RubyScriptPreview code={previewCode} onClose={handleCloseScriptPreview} />}
+            {showScriptPreview && (
+                <RubyScriptPreview
+                    code={previewCode}
+                    title={dnclMode ? intl.formatMessage(rubyToolbarMessages.previewRubyOfJapanese) : null}
+                    onClose={handleCloseScriptPreview}
+                />
+            )}
         </>
     );
 };
@@ -1688,10 +2248,13 @@ RubyTab.propTypes = {
     v1PromptDismissed: PropTypes.bool,
     onDismissV1Prompt: PropTypes.func,
     onSetDnclMode: PropTypes.func,
+    onSetJapaneseEditError: PropTypes.func,
     exitDnclModeExternallyRequested: PropTypes.bool,
     dnclModeLocked: PropTypes.bool,
     onClearExitDnclModeRequest: PropTypes.func,
     onActivateTab: PropTypes.func,
+    onShowSmalrubyConsole: PropTypes.func,
+    onHideSmalrubyConsole: PropTypes.func,
 };
 
 const mapStateToProps = (state) => ({
@@ -1726,8 +2289,11 @@ const mapDispatchToProps = (dispatch) => ({
     onMarkRubyTabUsed: () => dispatch(markRubyTabUsed()),
     onDismissV1Prompt: () => dispatch(dismissV1Prompt()),
     onSetDnclMode: (dnclMode) => dispatch(setDnclModeAction(dnclMode)),
+    onSetJapaneseEditError: (error) => dispatch(setJapaneseEditError(error)),
     onClearExitDnclModeRequest: () => dispatch(clearExternalExitDnclModeRequest()),
     onActivateTab: (tab) => dispatch(activateTab(tab)),
+    onShowSmalrubyConsole: () => showSmalrubyConsole(dispatch),
+    onHideSmalrubyConsole: () => hideSmalrubyConsole(dispatch),
 });
 
 const ConnectedRubyTab = RubyToBlocksConverterHOC(injectIntl(connect(mapStateToProps, mapDispatchToProps)(RubyTab)));

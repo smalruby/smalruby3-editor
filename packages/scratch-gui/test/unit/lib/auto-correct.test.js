@@ -65,7 +65,8 @@ describe('autoCorrect', () => {
         });
 
         test('should convert fullwidth miscellaneous symbols', () => {
-            expect(autoCorrect('！＠＃＄％＾＆＿～｜', allOn)).toBe('!@#$%^&_~|');
+            // `＃` starts a comment, so it is the last (see "comments" below).
+            expect(autoCorrect('！＠＄％＾＆＿～｜＃', allOn)).toBe('!@$%^&_~|#');
         });
 
         test('should convert fullwidth dot, comma, colon, semicolon', () => {
@@ -207,9 +208,68 @@ describe('autoCorrect', () => {
         test('should handle mixed fullwidth and halfwidth', () => {
             expect(autoCorrect('x = １0 + ２0', allOn)).toBe('x = 10 + 20');
         });
+    });
 
-        test('should handle comment lines (treat as code, replace normally)', () => {
-            expect(autoCorrect('# ＡＢＣ１２３', allOn)).toBe('# ABC123');
+    describe('comments (kept as they are written)', () => {
+        test('should keep what is written in a Ruby comment', () => {
+            expect(autoCorrect('# ＡＢＣ１２３，（注）', allOn)).toBe('# ＡＢＣ１２３，（注）');
+        });
+
+        test('should correct the code before a comment on the same line', () => {
+            expect(autoCorrect('x = １　# 値は１，２', allOn)).toBe('x = 1 # 値は１，２');
+        });
+
+        test('should make the full-width mark of a comment half-width and keep the rest', () => {
+            expect(autoCorrect('＃ 説明，です', allOn)).toBe('# 説明，です');
+        });
+
+        test('should correct the next line after a comment', () => {
+            expect(autoCorrect('# 説明，です\nx（１）', allOn)).toBe('# 説明，です\nx(1)');
+        });
+
+        test('should not take a # in a string as a comment', () => {
+            expect(autoCorrect('puts("#１")　＋ １', allOn)).toBe('puts("#1") + 1');
+        });
+
+        test('should keep comments also when replaceInStrings is off', () => {
+            const settings = { ...allOn, replaceInStrings: false };
+            expect(autoCorrect('"ＡＢ" ＋ １ # ，', settings)).toBe('"ＡＢ" + 1 # ，');
+        });
+
+        test('should not take // as a comment in Ruby', () => {
+            expect(autoCorrect('x = 7 // ２', allOn)).toBe('x = 7 // 2');
+        });
+
+        test('should keep the sentences at the top of the Japanese tab', () => {
+            const code = ['# 「and」は「かつ」を意味する論理演算子であり，', '表示する（Ａ［１］）'].join('\n');
+            expect(autoCorrect(code, allOn, { japanese: true })).toBe(
+                ['# 「and」は「かつ」を意味する論理演算子であり，', '表示する(A[1])'].join('\n'),
+            );
+        });
+
+        test('should keep a // comment of the Japanese tab when its settings say so', () => {
+            const options = { japanese: true, slashComments: true };
+            expect(autoCorrect('x ＝ １ // 値，１', allOn, options)).toBe('x = 1 // 値，１');
+            expect(autoCorrect('x ＝ １ ／／ 値，１', allOn, options)).toBe('x = 1 // 値，１');
+        });
+
+        test('should not take a # in a 「…」 of the Japanese tab as a comment', () => {
+            expect(autoCorrect('表示する（「#１」）', allOn, { japanese: true })).toBe('表示する(「#1」)');
+        });
+
+        test('should keep ％ in the Japanese tab, as the Japanese tab writes it (B17-1)', () => {
+            expect(autoCorrect('a ← ｂ ％ ２', allOn, { japanese: true })).toBe('a ← b ％ 2');
+            expect(autoCorrect('a ← b % 2', allOn, { japanese: true })).toBe('a ← b % 2');
+        });
+
+        test('should make ％ half-width in Ruby', () => {
+            expect(autoCorrect('a = b ％ 2', allOn)).toBe('a = b % 2');
+        });
+
+        test('should end a string of the Japanese tab at the end of its line', () => {
+            expect(autoCorrect('表示する（「あ\n# 説明，', allOn, { japanese: true })).toBe(
+                '表示する(「あ\n# 説明，',
+            );
         });
     });
 

@@ -7,12 +7,11 @@
  * go back and forth.
  */
 import { dnclToRuby, rubyForLeavingDncl } from '../../../../src/lib/dncl/dncl-to-ruby';
-import {
-    isRubyCommandName,
-    UNSUPPORTED_COMMAND_ERROR_ID,
-    validateDncl,
-} from '../../../../src/lib/dncl/dncl-validator';
+import { isRubyCommandName, UNSUPPORTED_COMMAND_ERROR_ID } from '../../../../src/lib/dncl/dncl-validator';
 import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { loadPrism } from '../../../../src/lib/prism-parser';
+
+beforeAll(() => loadPrism());
 
 const lines = (...ls) => ls.join('\n');
 
@@ -29,19 +28,19 @@ const commandErrors = (dncl) =>
 
 describe('DNCL → Ruby → DNCL: calls the Japanese mode has (issue #1679)', () => {
     test('a call of a defined function with arguments', () => {
-        const dncl = lines('関数 足す1(a)', '  返す a + 1', 'と定義する', 'b = 足す1(2)');
+        const dncl = lines('関数 足す1(a):', '    a + 1 を返す', 'b = 足す1(2)');
         expect(roundtrip(dncl)).toBe(dncl);
         expect(dnclToRuby(dncl).ruby).toContain('@b = 足す1(2)');
     });
 
     test('a call of a defined function without arguments', () => {
-        const dncl = lines('関数 あいさつ()', '  表示する("こんにちは")', 'と定義する', 'あいさつ()');
+        const dncl = lines('関数 あいさつ():', '    表示する("こんにちは")', 'あいさつ()');
         expect(roundtrip(dncl)).toBe(dncl);
         expect(dnclToRuby(dncl).ruby.split('\n')[3]).toBe('あいさつ()');
     });
 
     test('a call of a defined function without parentheses', () => {
-        const dncl = lines('関数 greet()', '  表示する("hi")', 'と定義する', 'greet');
+        const dncl = lines('関数 greet():', '    表示する("hi")', 'greet');
         expect(roundtrip(dncl)).toBe(dncl);
         expect(dnclToRuby(dncl).ruby.split('\n')[3]).toBe('greet');
     });
@@ -49,11 +48,11 @@ describe('DNCL → Ruby → DNCL: calls the Japanese mode has (issue #1679)', ()
     test('a variable with the name of a command', () => {
         const dncl = lines('move = 1', '表示する(move)');
         expect(roundtrip(dncl)).toBe(dncl);
-        expect(dnclToRuby(dncl).ruby).toBe(lines('@move = 1', 'puts(@move)'));
+        expect(dnclToRuby(dncl).ruby).toBe(lines('@move = 1', 'console.puts(@move)'));
     });
 
     test('calls in an expression', () => {
-        const dncl = lines('関数 f(a)', '  返す a * 2', 'と定義する', 'b = 1 + f(2) * 要素数(Kazu) + 整数(x)');
+        const dncl = lines('関数 f(a):', '    a * 2 を返す', 'b = 1 + f(2) * 要素数(Kazu) + 整数(x)');
         expect(roundtrip(dncl)).toBe(dncl);
         expect(commandErrors(dncl)).toEqual([]);
     });
@@ -127,7 +126,7 @@ describe('DNCL → Ruby: a command the Japanese mode does not have stops with an
 
     test('a Ruby name points to the Ruby mode', () => {
         expect(dnclToRuby('move(2)').errors[0].message).toBe(
-            '「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。',
+            '「move」は日本語タブでは書けない命令です。ルビータブでは書けます。',
         );
     });
 
@@ -136,7 +135,7 @@ describe('DNCL → Ruby: a command the Japanese mode does not have stops with an
         expect(result.ruby).toBeNull();
         expect(result.errors[0]).toMatchObject({ id: UNSUPPORTED_COMMAND_ERROR_ID, name: '差分' });
         expect(result.errors[0].message).toBe(
-            '「差分」は定義されていない関数です。「関数 差分(…)」で定義してください。',
+            '「差分」は定義されていない関数です。「関数 差分(…):」で定義してください。',
         );
     });
 
@@ -145,8 +144,8 @@ describe('DNCL → Ruby: a command the Japanese mode does not have stops with an
         expect(['差分', 'あいさつ', 'カウント'].map(isRubyCommandName)).toEqual([false, false, false]);
     });
 
-    test('validateDncl tells it too', () => {
-        expect(validateDncl('move(2)').map((err) => err.id)).toEqual([UNSUPPORTED_COMMAND_ERROR_ID]);
+    test('it is the only error of the program', () => {
+        expect(dnclToRuby('move(2)').errors.map((err) => err.id)).toEqual([UNSUPPORTED_COMMAND_ERROR_ID]);
     });
 
     test('leaving the Japanese mode keeps the last Ruby', () => {
@@ -185,13 +184,13 @@ describe('Ruby → DNCL: a command the Japanese mode does not have is told on it
     });
 
     test('a predicate method is told on its column', () => {
-        expect(rubyErrors(lines('if key_pressed?("space")', '  puts(1)', 'end'))).toEqual([
+        expect(rubyErrors(lines('if key_pressed?("space")', '  console.puts(1)', 'end'))).toEqual([
             { line: 1, column: 4, name: 'key_pressed?' },
         ]);
     });
 
     test('code the Japanese mode has has no error', () => {
-        expect(rubyToDncl(lines('@x = 10', 'say("hello", 1)', 'puts(rand(1..6))')).errors).toEqual([]);
+        expect(rubyToDncl(lines('@x = 10', 'say("hello", 1)', 'console.puts(rand(1..6))')).errors).toEqual([]);
     });
 });
 

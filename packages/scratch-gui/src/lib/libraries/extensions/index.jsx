@@ -73,6 +73,9 @@ import g2s from './g2s/index.jsx';
 // === Smalruby: Start of Ruby String extension ===
 import ruby from './smalruby-ruby/index.jsx';
 // === Smalruby: End of Ruby String extension ===
+// === Smalruby: Start of Console extension ===
+import smalrubyConsole from './smalruby-console/index.jsx';
+// === Smalruby: End of Console extension ===
 
 export default [
     {
@@ -542,6 +545,9 @@ export default [
     g2s,
     // === Smalruby: End of AkaDako extension ===
     // === Smalruby: Start of Ruby String extension ===
-    ruby
+    ruby,
     // === Smalruby: End of Ruby String extension ===
+    // === Smalruby: Start of Console extension ===
+    smalrubyConsole
+    // === Smalruby: End of Console extension ===
 ];

@@ -112,6 +112,20 @@
     display: none !important;
 }
 
+/*
+ * 日本語タブの右の列の札（スプライトと背景を見る）も、MobileSpritePanel が同じ役割を担うので隠す。
+ * 編集中は、幅 0 の右ペインからはみ出して画面の外に描かれていた（#1731 の B23）。
+ * ステージの上の `>_` のボタンも、編集中は画面の外にあるので隠す。再生の画面（全画面）では
+ * ステージの上に並ぶので残す。
+ */
+:global(body.smalruby-mobile-mode [class*='japanese-right-column_strip_']) {
+    display: none !important;
+}
+
+:global(body.smalruby-mobile-mode:not(.smalruby-mobile-fullscreen) [class*='smalruby-console-button_button_']) {
+    display: none !important;
+}
+
 /* ------------------------------------------------------------ */
 /* 3b. upstream の <MenuBar> も非表示                              */
 /* MobileTopBar (☰ + プロジェクトタイトル + ▶) が同等の役割を果たす。 */

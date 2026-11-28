@@ -4,6 +4,7 @@
 import dedent from 'dedent';
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
 import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { loadPrism } from '../../../../src/lib/prism-parser';
 import {
     makeConverter,
     makeSpriteTarget,
@@ -11,36 +12,43 @@ import {
     setupRubyGenerator,
 } from '../../helpers/ruby-roundtrip-helper';
 
+beforeAll(() => loadPrism());
+
+// Ruby → Japanese → Ruby gives the same Ruby.
+const expectRubyBack = (ruby, expected) => {
+    expect(dnclToRuby(rubyToDncl(ruby).dncl).ruby).toBe(expected);
+};
+
 const toRuby = (dncl) => dnclToRuby(dncl).ruby;
 const toDncl = (ruby) => rubyToDncl(ruby).dncl;
 
 describe('Ruby → DNCL: until / !', () => {
     test('until @a > 10', () => {
-        expect(toDncl('until @a > 10\n  @a += 1\nend')).toBe('a > 10 でない の間\n  a += 1\nを繰り返す');
+        expect(toDncl('until @a > 10\n  @a += 1\nend')).toBe('not a > 10 の間繰り返す:\n    a += 1');
     });
 
     test('until @a > 10 && @b puts the whole condition in parentheses', () => {
-        expect(toDncl('until @a > 10 && @b\nend')).toBe('(a > 10 かつ b) でない の間\nを繰り返す');
+        expect(toDncl('until @a > 10 && @b\nend')).toBe('not (a > 10 and b) の間繰り返す:\nを繰り返す');
     });
 
     test('until @x', () => {
-        expect(toDncl('until @x\nend')).toBe('x でない の間\nを繰り返す');
+        expect(toDncl('until @x\nend')).toBe('not x の間繰り返す:\nを繰り返す');
     });
 
     test('while !(@a > 10)', () => {
-        expect(toDncl('while !(@a > 10)\nend')).toBe('(a > 10) でない の間\nを繰り返す');
+        expect(toDncl('while !(@a > 10)\nend')).toBe('not (a > 10) の間繰り返す:\nを繰り返す');
     });
 
     test('!f(@x) keeps the call together', () => {
-        expect(toDncl('@a = !f(@x)')).toBe('a = f(x) でない');
+        expect(toDncl('@a = !f(@x)')).toBe('a = not f(x)');
     });
 
     test('!= is not a negation', () => {
-        expect(toDncl('if @a != 1\nend')).toBe('もし a != 1 ならば\nを実行する');
+        expect(toDncl('if @a != 1\nend')).toBe('もし a != 1 ならば:\nを実行する');
     });
 
     test('wait until @a > 10 becomes an empty loop', () => {
-        expect(toDncl('wait until @a > 10')).toBe('a > 10 でない の間\nを繰り返す');
+        expect(toDncl('wait until @a > 10')).toBe('not a > 10 の間繰り返す:\nを繰り返す');
     });
 });
 
@@ -50,11 +58,11 @@ describe('DNCL → Ruby: でない negates the condition before it', () => {
     });
 
     test('(a > 10 かつ b) でない の間 → until @a > 10 && @b', () => {
-        expect(toRuby('(a > 10 かつ b) でない の間\nを繰り返す')).toBe('until @a > 10 && @b\nend');
+        expect(toRuby('not (a > 10 and b) の間繰り返す:\nを繰り返す')).toBe('until @a > 10 && @b\nend');
     });
 
     test('x でない の間 → until @x', () => {
-        expect(toRuby('x でない の間\nを繰り返す')).toBe('until @x\nend');
+        expect(toRuby('not x の間繰り返す:\nを繰り返す')).toBe('until @x\nend');
     });
 
     test('x でない (assignment) stays !@x', () => {
@@ -73,7 +81,7 @@ describe('DNCL → Ruby: でない negates the condition before it', () => {
 
     test('a negation inside parentheses or a call stays inside', () => {
         expect(toRuby('もし (a > 1) でない ならば\nを実行する')).toBe('if !(@a > 1)\nend');
-        expect(toRuby('表示する(a でない)')).toBe('puts(!@a)');
+        expect(toRuby('表示する(a でない)')).toBe('console.puts(!@a)');
     });
 
     test('a group in parentheses is negated as a whole', () => {
@@ -102,21 +110,21 @@ describe('DNCL round trip: until', () => {
         'until @a > 10\n  until @b\n    @b = true\n  end\nend',
     ];
     test.each(cases)('Ruby → DNCL → Ruby: %s', (ruby) => {
-        expect(toRuby(toDncl(ruby))).toBe(ruby);
+        expectRubyBack(ruby, ruby);
     });
 
     test('while !(@a > 10) becomes until @a > 10', () => {
-        expect(toRuby(toDncl('while !(@a > 10)\nend'))).toBe('until @a > 10\nend');
+        expectRubyBack('while !(@a > 10)\nend', 'until @a > 10\nend');
     });
 
     // `!` that negates only the right-hand side of a comparison must not grow
     // into the whole comparison on the way back (`でない` negates everything
     // before it up to かつ / または).
     describe.each([
-        ['@c = @a == !@b', 'c = a == (b でない)', '@c = @a == (!@b)'],
-        ['@c = @a > 1 && @b == !@d', 'c = a > 1 かつ b == (d でない)', '@c = @a > 1 && @b == (!@d)'],
-        ['if @a == !@b\nend', 'もし a == (b でない) ならば\nを実行する', 'if @a == (!@b)\nend'],
-        ['until @a == !@b\nend', 'a == (b でない) でない の間\nを繰り返す', 'until @a == (!@b)\nend'],
+        ['@c = @a == !@b', 'c = a == (not b)', '@c = @a == !@b'],
+        ['@c = @a > 1 && @b == !@d', 'c = a > 1 and b == (not d)', '@c = @a > 1 && @b == !@d'],
+        ['if @a == !@b\nend', 'もし a == (not b) ならば:\nを実行する', 'if @a == !@b\nend'],
+        ['until @a == !@b\nend', 'not a == (not b) の間繰り返す:\nを繰り返す', 'until @a == !@b\nend'],
     ])('a ! on the right of a comparison: %s', (ruby, dncl, back) => {
         test('Ruby → DNCL puts the negation in parentheses', () => {
             expect(toDncl(ruby)).toBe(dncl);
@@ -126,7 +134,7 @@ describe('DNCL round trip: until', () => {
         });
     });
 
-    test.each(['@b = !@x', '@b = !@x && @y', '@b = @x || !@y', '@c = !@a == @b'])(
+    test.each(['@b = !@x', '@b = !@x && @y', '@b = @x || !@y'])(
         'a ! that starts its term needs no parentheses: %s',
         (ruby) => {
             expect(toDncl(ruby)).not.toContain('(');
@@ -134,8 +142,16 @@ describe('DNCL round trip: until', () => {
         },
     );
 
+    // The standard form's `not` negates up to the next and / or, so a `!` with
+    // more of its term after it is put in parentheses (Issue #1754).
+    test('standard form: !@a == @b keeps its meaning with parentheses', () => {
+        const standard = rubyToDncl('@c = !@a == @b').dncl;
+        expect(standard).toBe('c = (not a) == b');
+        expect(toRuby(standard)).toBe('@c = !@a == @b');
+    });
+
     test('wait until @a > 10 keeps the same meaning', () => {
-        expect(toRuby(toDncl('wait until @a > 10'))).toBe('until @a > 10\nend');
+        expectRubyBack('wait until @a > 10', 'until @a > 10\nend');
     });
 });
 
@@ -151,9 +167,8 @@ describe('DNCL → Ruby → blocks → Ruby → DNCL: until', () => {
     test('a > 10 でない の間 stays a "repeat until" block', async () => {
         const dncl = dedent`
             a = 0
-            a > 10 でない の間
-              a = a + 1
-            を繰り返す
+            not a > 10 の間繰り返す:
+                a = a + 1
         `;
         const ruby = toRuby(dncl);
         const ruby2 = await rubyToBlocksToRuby(converter, target, ruby);
@@ -168,9 +183,8 @@ describe('DNCL → Ruby → blocks → Ruby → DNCL: until', () => {
         const dncl = dedent`
             a = 0
             b = 偽
-            (a > 10 かつ b) でない の間
-              a = a + 1
-            を繰り返す
+            not (a > 10 and b) の間繰り返す:
+                a = a + 1
         `;
         const ruby2 = await rubyToBlocksToRuby(converter, target, toRuby(dncl));
         expect(ruby2).toContain('until @a > 10 && @b');

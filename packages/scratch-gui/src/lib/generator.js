@@ -154,19 +154,24 @@ class Generator {
                     }
                 }
                 if (line) {
-                    if (block.opcode === 'procedures_definition') {
+                    if (this.keepScriptOrder_) {
+                        codes.push(line);
+                    } else if (block.opcode === 'procedures_definition') {
                         proceduresCodes.push(line);
                     } else {
                         codes.push(line);
                     }
                 }
             });
+            // The Japanese tab keeps the written order and no blank line between the scripts: the
+            // blocks split a program only where a function is defined (issue #2550).
+            const separator = this.keepScriptOrder_ ? '' : '\n';
             // Blank line between each section.
             code = proceduresCodes.join('\n');
             if (proceduresCodes.length > 0) {
                 code += '\n';
             }
-            code += codes.join('\n');
+            code += codes.join(separator);
         }
 
         code = this.finish(code, options);

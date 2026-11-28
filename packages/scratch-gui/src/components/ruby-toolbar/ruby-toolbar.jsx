@@ -3,9 +3,9 @@ import PropTypes from 'prop-types';
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useIntl } from 'react-intl';
 import analytics from '../../lib/analytics';
+import { dnclSettingsPatternId } from '../../lib/dncl/dncl-settings';
 import { isJapaneseLocale } from '../../lib/locale-utils.js';
 import { isTouchDevice } from '../../lib/touch-device.js';
-import Spinner from '../spinner/spinner.jsx';
 import iconAutoCorrect from './icon--auto-correct.svg';
 import iconDownload from './icon--download.svg';
 import iconKeyboard from './icon--keyboard.svg';
@@ -110,6 +110,12 @@ const RubyToolbar = (props) => {
         if (props.onDownload) props.onDownload();
     }, [props]);
 
+    const handleDownloadJapanese = useCallback(() => {
+        setShowMoreMenu(false);
+        if (props.onDismissBubble) props.onDismissBubble();
+        if (props.onDownloadJapanese) props.onDownloadJapanese();
+    }, [props]);
+
     const trackFuriganaToggle = useCallback((next) => {
         try {
             analytics.event({
@@ -146,8 +152,7 @@ const RubyToolbar = (props) => {
     const handleSelectFuriganaMode = useCallback(() => {
         if (props.onDismissBubble) props.onDismissBubble();
         trackModeSwitch('furigana');
-        // Switch to Ruby mode with furigana ON
-        if (props.dnclMode && props.onToggleDnclMode) props.onToggleDnclMode();
+        // Furigana ON. Japanese is the Japanese tab, not a mode of this toolbar (docs/dncl/design.md 1 章)
         if (!props.furiganaEnabled && props.onToggleFurigana) {
             trackFuriganaToggle(true);
             props.onToggleFurigana();
@@ -157,26 +162,13 @@ const RubyToolbar = (props) => {
     const handleSelectRubyMode = useCallback(() => {
         if (props.onDismissBubble) props.onDismissBubble();
         trackModeSwitch('ruby');
-        // Switch to Ruby mode with furigana OFF
-        if (props.dnclMode && props.onToggleDnclMode) props.onToggleDnclMode();
+        // Furigana OFF
         if (props.furiganaEnabled && props.onToggleFurigana) {
             trackFuriganaToggle(false);
             props.onToggleFurigana();
         }
     }, [props, trackModeSwitch, trackFuriganaToggle]);
 
-    const handleSelectDnclMode = useCallback(() => {
-        if (props.onDismissBubble) props.onDismissBubble();
-        // The lesson does not allow the Japanese mode (#1741): the button is disabled, this is a guard
-        if (props.dnclModeLocked) return;
-        trackModeSwitch('dncl');
-        // Switch to DNCL mode (disable furigana since DNCL is already in Japanese)
-        if (!props.dnclMode && props.onToggleDnclMode) props.onToggleDnclMode();
-        if (props.furiganaEnabled && props.onToggleFurigana) {
-            trackFuriganaToggle(false);
-            props.onToggleFurigana();
-        }
-    }, [props, trackModeSwitch, trackFuriganaToggle]);
     // === Smalruby: End of mode selection handlers ===
 
     const handleToggleAutoCorrect = useCallback(() => {
@@ -199,6 +191,34 @@ const RubyToolbar = (props) => {
         if (props.onOpenAutoCorrectSettings) props.onOpenAutoCorrectSettings();
     }, [props]);
 
+    const handleCopyProblemForm = useCallback(() => {
+        setShowMoreMenu(false);
+        if (props.onCopyProblemForm) props.onCopyProblemForm();
+    }, [props]);
+
+    // === Smalruby: Start of settings patterns of the Japanese mode ===
+    const handleSelectSettingsPattern = useCallback(
+        (patternId) => {
+            setShowMoreMenu(false);
+            if (props.onDismissBubble) props.onDismissBubble();
+            if (props.onSelectSettingsPattern) props.onSelectSettingsPattern(patternId);
+        },
+        [props],
+    );
+    const handleSelectExamplePattern = useCallback(
+        () => handleSelectSettingsPattern('example'),
+        [handleSelectSettingsPattern],
+    );
+    const handleSelectIndexFromOnePattern = useCallback(
+        () => handleSelectSettingsPattern('indexFromOne'),
+        [handleSelectSettingsPattern],
+    );
+    // The pattern the program is written by, read from its sentences when the menu is shown.
+    const currentPatternId =
+        showMoreMenu && props.dnclMode && props.editorRef && typeof props.editorRef.getValue === 'function'
+            ? dnclSettingsPatternId(props.editorRef.getValue())
+            : null;
+    // === Smalruby: End of settings patterns of the Japanese mode ===
     const handlePreviewRubyScript = useCallback(() => {
         setShowMoreMenu(false);
         if (props.onDismissBubble) props.onDismissBubble();
@@ -211,6 +231,16 @@ const RubyToolbar = (props) => {
         if (props.onExecuteLine) props.onExecuteLine(position.lineNumber);
     }, [props]);
 
+    const handleToggleReadMode = useCallback(() => {
+        if (props.onToggleReadMode) props.onToggleReadMode();
+    }, [props]);
+
+    // Keep the focus where it is: a press that blurred the editor would show
+    // the read mode before the click toggles it away again.
+    const handleReadModeMouseDown = useCallback((e) => {
+        e.preventDefault();
+    }, []);
+
     // === Smalruby: Start of DNCL execute button label ===
     const executeMessage = props.isRunning
         ? messages.stopExecution
@@ -218,6 +248,17 @@ const RubyToolbar = (props) => {
           ? messages.executeAll
           : messages.executeLine;
     // === Smalruby: End of DNCL execute button label ===
+
+    const autoCorrectSettingsItem = (
+        <div
+            className={styles.moreMenuItem}
+            data-testid="ruby-toolbar-menu-auto-correct-settings"
+            onClick={handleOpenAutoCorrectSettings}
+        >
+            <img className={styles.moreMenuIconImg} src={iconAutoCorrect} alt="" />
+            {intl.formatMessage(messages.autoCorrectSettings)}
+        </div>
+    );
 
     return (
         <div className={styles.toolbar}>
@@ -307,23 +348,26 @@ const RubyToolbar = (props) => {
                 </button>
             </div>
 
-            {/* Center: Navigation */}
+            {/* Center: Navigation. The Japanese tab has no sprite selector (Issue #2453) */}
             <div className={`${styles.toolbarPart} ${styles.modDashedBorder} ${styles.modCenter}`}>
-                <TargetSelector
-                    editingTarget={props.editingTarget}
-                    vm={props.vm}
-                    onSelectTarget={props.onSelectTarget}
-                    onDismissBubble={props.onDismissBubble}
-                />
+                {!props.dnclMode && (
+                    <TargetSelector
+                        editingTarget={props.editingTarget}
+                        vm={props.vm}
+                        onSelectTarget={props.onSelectTarget}
+                        onDismissBubble={props.onDismissBubble}
+                    />
+                )}
             </div>
 
             {/* === Smalruby: Start of mode toggle group === */}
-            {isJapaneseLocale(props.locale) && (
+            {/* Furigana / Ruby: the two ways the Ruby tab shows Ruby. Not shown in the Japanese tab */}
+            {isJapaneseLocale(props.locale) && !props.dnclMode && (
                 <div className={`${styles.toolbarPart} ${styles.modDashedBorder}`}>
                     <div className={styles.modeToggleGroup}>
                         <button
                             className={`${styles.modeToggleItem} ${
-                                !props.dnclMode && props.furiganaEnabled ? styles.modeToggleItemActive : ''
+                                props.furiganaEnabled ? styles.modeToggleItemActive : ''
                             }`}
                             data-testid="ruby-toolbar-mode-furigana"
                             disabled={props.dnclValidating}
@@ -341,7 +385,7 @@ const RubyToolbar = (props) => {
                         </button>
                         <button
                             className={`${styles.modeToggleItem} ${
-                                !props.dnclMode && !props.furiganaEnabled ? styles.modeToggleItemActive : ''
+                                props.furiganaEnabled ? '' : styles.modeToggleItemActive
                             }`}
                             data-testid="ruby-toolbar-mode-ruby"
                             disabled={props.dnclValidating}
@@ -350,26 +394,28 @@ const RubyToolbar = (props) => {
                         >
                             {'Ruby'}
                         </button>
-                        {/* A lesson that does not allow the Japanese mode locks this button (#1741):
-                            its palette filter would hide the blocks of the challenge */}
-                        <button
-                            className={`${styles.modeToggleItem} ${
-                                props.dnclMode ? styles.modeToggleItemActive : ''
-                            } ${props.dnclModeLocked ? styles.modeToggleItemDisabled : ''}`}
-                            data-testid="ruby-toolbar-mode-dncl"
-                            disabled={props.dnclValidating || props.dnclModeLocked}
-                            onClick={handleSelectDnclMode}
-                            title={intl.formatMessage(
-                                props.dnclModeLocked ? messages.modeDnclLockedInLesson : messages.modeDncl,
-                            )}
-                        >
-                            {props.dnclValidating ? (
-                                <Spinner small level="info" />
-                            ) : (
-                                intl.formatMessage(messages.dnclLabel)
-                            )}
-                        </button>
                     </div>
+                </div>
+            )}
+            {/* The switch of the line numbers and the rules: the read mode / the write mode of
+                the Japanese tab (Issue #2380, #2453. docs/design-system/components/buttons.md の「スイッチ」) */}
+            {props.dnclMode && (
+                <div className={`${styles.toolbarPart} ${styles.modDashedBorder}`}>
+                    <button
+                        className={styles.switch}
+                        data-testid="ruby-toolbar-rules"
+                        type="button"
+                        role="switch"
+                        aria-checked={!!props.readMode}
+                        onClick={handleToggleReadMode}
+                        onMouseDown={handleReadModeMouseDown}
+                        title={intl.formatMessage(messages.rulesSwitchTitle)}
+                    >
+                        <span className={styles.switchTrack} aria-hidden="true">
+                            <span className={styles.switchThumb} />
+                        </span>
+                        <span className={styles.switchLabel}>{intl.formatMessage(messages.rulesSwitch)}</span>
+                    </button>
                 </div>
             )}
             {/* === Smalruby: End of mode toggle group === */}
@@ -386,7 +432,7 @@ const RubyToolbar = (props) => {
                     >
                         <span className={styles.moreIcon}>{'⋯'}</span>
                     </button>
-                    {showMoreMenu && (
+                    {showMoreMenu && !props.dnclMode && (
                         <div className={styles.moreMenu}>
                             <div
                                 className={styles.moreMenuItem}
@@ -412,14 +458,66 @@ const RubyToolbar = (props) => {
                                 <span className={styles.moreMenuIcon}>{'</>'}</span>
                                 {intl.formatMessage(messages.previewRubyScript)}
                             </div>
+                            {autoCorrectSettingsItem}
+                        </div>
+                    )}
+                    {/* The menu of the Japanese tab: the items for the Japanese program only (Issue #2453) */}
+                    {showMoreMenu && props.dnclMode && (
+                        <div className={styles.moreMenu}>
                             <div
                                 className={styles.moreMenuItem}
-                                data-testid="ruby-toolbar-menu-auto-correct-settings"
-                                onClick={handleOpenAutoCorrectSettings}
+                                data-testid="ruby-toolbar-menu-copy-problem-form"
+                                onClick={handleCopyProblemForm}
                             >
-                                <img className={styles.moreMenuIconImg} src={iconAutoCorrect} alt="" />
-                                {intl.formatMessage(messages.autoCorrectSettings)}
+                                <span className={styles.moreMenuIcon}>{'(01)'}</span>
+                                {intl.formatMessage(messages.copyProblemForm)}
                             </div>
+                            <div
+                                className={styles.moreMenuItem}
+                                data-testid="ruby-toolbar-menu-preview"
+                                onClick={handlePreviewRubyScript}
+                            >
+                                <span className={styles.moreMenuIcon}>{'</>'}</span>
+                                {intl.formatMessage(messages.previewRubyOfJapanese)}
+                            </div>
+                            <div
+                                className={styles.moreMenuItem}
+                                data-testid="ruby-toolbar-menu-download-japanese"
+                                onClick={handleDownloadJapanese}
+                            >
+                                <img className={styles.moreMenuIconImg} src={iconDownload} alt="" />
+                                {intl.formatMessage(messages.saveJapaneseProgram)}
+                            </div>
+                            <div className={styles.moreMenuSeparator} role="separator" />
+                            <div className={styles.moreMenuHeading} data-testid="ruby-toolbar-menu-settings-heading">
+                                {intl.formatMessage(messages.problemSettingsHeading)}
+                            </div>
+                            <div
+                                className={styles.moreMenuItem}
+                                data-testid="ruby-toolbar-menu-settings-pattern-example"
+                                aria-checked={currentPatternId === 'example'}
+                                role="menuitemradio"
+                                onClick={handleSelectExamplePattern}
+                            >
+                                <span className={styles.moreMenuIcon}>
+                                    {currentPatternId === 'example' ? '✓' : ''}
+                                </span>
+                                {intl.formatMessage(messages.settingsPatternExample)}
+                            </div>
+                            <div
+                                className={styles.moreMenuItem}
+                                data-testid="ruby-toolbar-menu-settings-pattern-index-from-one"
+                                aria-checked={currentPatternId === 'indexFromOne'}
+                                role="menuitemradio"
+                                onClick={handleSelectIndexFromOnePattern}
+                            >
+                                <span className={styles.moreMenuIcon}>
+                                    {currentPatternId === 'indexFromOne' ? '✓' : ''}
+                                </span>
+                                {intl.formatMessage(messages.settingsPatternIndexFromOne)}
+                            </div>
+                            <div className={styles.moreMenuSeparator} role="separator" />
+                            {autoCorrectSettingsItem}
                         </div>
                     )}
                 </div>
@@ -434,6 +532,7 @@ RubyToolbar.propTypes = {
     editorRef: PropTypes.object,
     onSelectTarget: PropTypes.func.isRequired,
     onDownload: PropTypes.func,
+    onDownloadJapanese: PropTypes.func,
     onInsertClass: PropTypes.func,
     onExecuteLine: PropTypes.func,
     onDismissBubble: PropTypes.func,
@@ -442,14 +541,16 @@ RubyToolbar.propTypes = {
     canRedo: PropTypes.bool,
     dnclMode: PropTypes.bool,
     dnclValidating: PropTypes.bool,
-    dnclModeLocked: PropTypes.bool,
-    onToggleDnclMode: PropTypes.func,
     furiganaEnabled: PropTypes.bool,
     onToggleFurigana: PropTypes.func,
     autoCorrectEnabled: PropTypes.bool,
     onToggleAutoCorrect: PropTypes.func,
     onOpenAutoCorrectSettings: PropTypes.func,
     onPreviewRubyScript: PropTypes.func,
+    onCopyProblemForm: PropTypes.func,
+    readMode: PropTypes.bool,
+    onToggleReadMode: PropTypes.func,
+    onSelectSettingsPattern: PropTypes.func,
     locale: PropTypes.string,
 };
 

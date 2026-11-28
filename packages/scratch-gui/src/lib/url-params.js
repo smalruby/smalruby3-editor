@@ -4,7 +4,10 @@ import { VERSION_1, VERSION_2 } from './settings/ruby-version';
 
 // Inline tab index constants to avoid circular dependency with editor-tab reducer.
 // These must match the values in ../reducers/editor-tab.js.
-const TAB_INDICES = { code: 0, blocks: 0, costumes: 1, sounds: 2, ruby: 3 };
+// `japanese` (aliases `ja` / `dncl`) is the Japanese tab (docs/dncl/design.md 1 章).
+const TAB_INDICES = { code: 0, blocks: 0, costumes: 1, sounds: 2, ruby: 3, japanese: 4, ja: 4, dncl: 4 };
+const RUBY_TAB = TAB_INDICES.ruby;
+const JAPANESE_TAB = TAB_INDICES.japanese;
 
 const VALID_RUBY_VERSIONS = [VERSION_1, VERSION_2];
 
@@ -19,9 +22,11 @@ const RUBY_ALIASES = ['ruby'];
  * Parse Smalruby-specific URL parameters for testing convenience.
  * Supported parameters:
  * - no_beforeunload=1  — disable the beforeunload confirmation dialog
- * - tab=ruby           — activate a specific tab on startup (code/blocks/costumes/sounds/ruby)
+ * - tab=ruby           — activate a specific tab on startup (code/blocks/costumes/sounds/ruby/japanese)
  * - ruby_version=2     — set the Ruby version (1 or 2); invalid values are ignored
- * - rubyMode=dncl      — activate DNCL mode (aliases: dnclv2, case-insensitive)
+ * - rubyMode=dncl      — write in Japanese (aliases: dnclv2, ja, japanese, case-insensitive).
+ *                        With tab=ruby the Japanese tab opens instead (the links made before
+ *                        the Japanese tab was split from the Ruby tab keep working)
  * - rubyMode=rubi      — activate furigana mode (aliases: furigana, case-insensitive)
  * - welcome=1          — auto-open the welcome modal on load
  * - genai_idle=10      — idle seconds before the genai concierge nudges (testing)
@@ -83,6 +88,13 @@ const parseUrlParams = () => {
     }
     // === Smalruby: End of rubyMode URL param ===
 
+    // The Japanese tab took over the Japanese mode of the Ruby tab: an old link
+    // `?tab=ruby&rubyMode=dncl` opens the Japanese tab, and `?tab=japanese` means
+    // writing in Japanese even without rubyMode.
+    let initialTabIndex = initialTab;
+    if (rubyMode === 'dncl' && initialTabIndex === RUBY_TAB) initialTabIndex = JAPANESE_TAB;
+    if (initialTabIndex === JAPANESE_TAB && rubyMode === null) rubyMode = 'dncl';
+
     // features: comma-separated feature flags (e.g., ?features=classroom,experiment)
     const featuresParam = params.get('features') || '';
     const features = featuresParam
@@ -111,7 +123,7 @@ const parseUrlParams = () => {
 
     return {
         noBeforeUnload,
-        initialTab,
+        initialTab: initialTabIndex,
         rubyVersion,
         rubyMode,
         features,

@@ -10,6 +10,9 @@
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
 import { UNSUPPORTED_COMMAND_ERROR_ID } from '../../../../src/lib/dncl/dncl-validator';
 import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { loadPrism } from '../../../../src/lib/prism-parser';
+
+beforeAll(() => loadPrism());
 
 const lines = (...ls) => ls.join('\n');
 
@@ -30,7 +33,9 @@ describe('Ruby → DNCL: break / next in a loop is told on its Ruby line (issue 
 
     test('next with unless in a while loop', () => {
         expect(
-            rubyErrors(lines('@i = 0', 'while @i < 10', '  @i += 1', '  next unless @i > 5', '  puts(@i)', 'end')),
+            rubyErrors(
+                lines('@i = 0', 'while @i < 10', '  @i += 1', '  next unless @i > 5', '  console.puts(@i)', 'end'),
+            ),
         ).toEqual([{ line: 4, column: 3, name: 'next' }]);
     });
 
@@ -45,13 +50,19 @@ describe('Ruby → DNCL: break / next in a loop is told on its Ruby line (issue 
         ]);
     });
 
-    test('redo and retry', () => {
-        expect(
-            rubyErrors(lines('@i = 0', 'while @i < 10', '  redo if @i == 3', '  retry if @i == 4', 'end')),
-        ).toEqual([
+    test('redo', () => {
+        expect(rubyErrors(lines('@i = 0', 'while @i < 10', '  redo if @i == 3', '  @i += 1', 'end'))).toEqual([
             { line: 3, column: 3, name: 'redo' },
-            { line: 4, column: 3, name: 'retry' },
         ]);
+    });
+
+    // `retry` outside `rescue` is not Ruby, so prism cannot read it: it is told by the syntax
+    // error on its line only, like Japanese typed in the Ruby tab (Issue #2547).
+    test('retry outside rescue is told by the syntax error on its line', () => {
+        const { errors } = rubyToDncl(
+            lines('@i = 0', 'while @i < 10', '  redo if @i == 3', '  retry if @i == 4', 'end'),
+        );
+        expect(errors.map(({ line, id }) => ({ line, id }))).toEqual([{ line: 4, id: 'rubySyntax' }]);
     });
 });
 
@@ -88,7 +99,7 @@ describe('a variable named like the keyword (issue #1716)', () => {
             'end',
             '@break = 1',
             'while @break <= 3',
-            '  puts(@break)',
+            '  console.puts(@break)',
             '  @break += 1',
             'end',
             '@next == 1',

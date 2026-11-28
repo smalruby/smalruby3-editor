@@ -1,42 +1,47 @@
 import { findArrayIndexHints } from '../../../../src/lib/dncl/dncl-array-index-hint';
 
-// The 2025 共通テスト「情報I」第3問 program as typed with 1-based indices
-// (Issue #1357).
-const KOUGEIHIN = [
-    'Nissu = [4, 1, 3, 1, 3, 4, 2, 4, 3]',
-    'kougeihinsu = 9',
-    'Akibi = [1, 1, 1]',
-    'buinsu = 3',
-    'kougeihin を 1 から kougeihinsu まで 1 ずつ増やしながら',
-    '  tantou = 1',
-    '  buin を 2 から buinsu まで 1 ずつ増やしながら',
-    '    もし Akibi[buin] < Akibi[tantou] ならば',
-    '      tantou = buin',
+// A program typed with 1-based indices (Issue #1357): the loops run the index up
+// to the array length, as in a problem that says the indexes start at 1. It is our
+// own program, not a problem of the 大学入試センター (docs/dncl/policy.md).
+const ONE_BASED = [
+    'Ten = [7, 3, 9, 5, 6, 2]',
+    'kazu = 6',
+    'Kiroku = [0, 0, 0]',
+    'kaisu = 3',
+    'i を 1 から kazu まで 1 ずつ増やしながら',
+    '  saikou = 0',
+    '  j を 2 から kaisu まで 1 ずつ増やしながら',
+    '    もし Kiroku[j] > Kiroku[saikou] ならば',
+    '      saikou = j',
     '    を実行する',
     '  を繰り返す',
-    '  表示する("工芸品" + 文字列(kougeihin) + "日目~" + 文字列(Nissu[kougeihin]))',
-    '  Akibi[tantou] = Akibi[tantou] + Nissu[kougeihin]',
+    '  表示する("番号" + 文字列(i) + "の点数は" + 文字列(Ten[i]))',
+    '  Kiroku[saikou] = Kiroku[saikou] + Ten[i]',
     'を繰り返す',
 ].join('\n');
 
 describe('findArrayIndexHints', () => {
     test('warns about loops that run the index up to the array length', () => {
-        expect(findArrayIndexHints(KOUGEIHIN)).toEqual([
+        expect(findArrayIndexHints(ONE_BASED)).toEqual([
             {
                 line: 8,
-                access: 'Akibi[buin]',
-                array: 'Akibi',
+                access: 'Kiroku[j]',
+                array: 'Kiroku',
                 last: 2,
-                fixed: 'Akibi[buin - 1]',
+                fixed: 'Kiroku[j - 1]',
             },
             {
                 line: 12,
-                access: 'Nissu[kougeihin]',
-                array: 'Nissu',
-                last: 8,
-                fixed: 'Nissu[kougeihin - 1]',
+                access: 'Ten[i]',
+                array: 'Ten',
+                last: 5,
+                fixed: 'Ten[i - 1]',
             },
         ]);
+    });
+
+    test('says nothing when the sentence at the top says the indexes start at 1', () => {
+        expect(findArrayIndexHints(`# すべての配列の添字は 1 から始まる。\n${ONE_BASED}`)).toEqual([]);
     });
 
     test('accepts a 0-based loop', () => {
@@ -119,6 +124,11 @@ describe('findArrayIndexHints', () => {
 
     test('ignores accesses inside strings and comments', () => {
         const src = ['Kouka = [1, 5, 10]', '表示する("Kouka[3]") # Kouka[3]'].join('\n');
+        expect(findArrayIndexHints(src)).toEqual([]);
+    });
+
+    test('does not guess the length of an array an element is added to (#1759)', () => {
+        const src = ['Kouka = [1, 5, 10]', 'Kouka に 20 を追加する', '表示する(Kouka[3])'].join('\n');
         expect(findArrayIndexHints(src)).toEqual([]);
     });
 

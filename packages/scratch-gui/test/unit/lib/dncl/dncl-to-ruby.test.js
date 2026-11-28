@@ -84,33 +84,33 @@ describe('dnclToRuby', () => {
 
     describe('表示する (display)', () => {
         test('single argument', () => {
-            expect(convert('表示する(a)')).toBe('puts(@a)');
+            expect(convert('表示する(a)')).toBe('console.puts(@a)');
         });
 
         test('multiple arguments concatenate with `+` and wrap non-strings with `.to_s`', () => {
-            expect(convert('表示する(a, b, c)')).toBe('puts(@a.to_s + @b.to_s + @c.to_s)');
+            expect(convert('表示する(a, b, c)')).toBe('console.puts(@a.to_s + @b.to_s + @c.to_s)');
         });
 
         test('string argument', () => {
-            expect(convert('表示する("hello")')).toBe('puts("hello")');
+            expect(convert('表示する("hello")')).toBe('console.puts("hello")');
         });
 
         test('expression argument', () => {
-            expect(convert('表示する(a + 1)')).toBe('puts(@a + 1)');
+            expect(convert('表示する(a + 1)')).toBe('console.puts(@a + 1)');
         });
 
         test('multi-arg with mixed strings and variables', () => {
-            expect(convert('表示する(a, "は", b, "番目")')).toBe('puts(@a.to_s + "は" + @b.to_s + "番目")');
+            expect(convert('表示する(a, "は", b, "番目")')).toBe('console.puts(@a.to_s + "は" + @b.to_s + "番目")');
         });
     });
 
     describe('入力 (input)', () => {
         test('input assigned to lowercase variable', () => {
-            expect(convert('a = 【外部からの入力】')).toBe('ask("")\n@a = answer');
+            expect(convert('a = 【外部からの入力】')).toBe('@a = console.gets');
         });
 
         test('input assigned to uppercase variable', () => {
-            expect(convert('A = 【外部からの入力】')).toBe('ask("")\n@_var_A_ = answer');
+            expect(convert('A = 【外部からの入力】')).toBe('@_var_A_ = console.gets');
         });
     });
 
@@ -178,37 +178,37 @@ describe('dnclToRuby', () => {
 
     describe('nested function calls', () => {
         test('表示する(乱数(1..10)) keeps closing parens balanced', () => {
-            expect(convert('表示する(乱数(1..10))')).toBe('puts(rand(1..10))');
+            expect(convert('表示する(乱数(1..10))')).toBe('console.puts(rand(1..10))');
         });
 
         test('表示する(整数(x)) places .to_i inside puts argument', () => {
-            expect(convert('表示する(整数(x))')).toBe('puts(@x.to_i)');
+            expect(convert('表示する(整数(x))')).toBe('console.puts(@x.to_i)');
         });
 
         test('表示する(絶対値(x)) places .abs inside puts argument', () => {
-            expect(convert('表示する(絶対値(x))')).toBe('puts(@x.abs)');
+            expect(convert('表示する(絶対値(x))')).toBe('console.puts(@x.abs)');
         });
 
         test('表示する(要素数(A)) keeps array conversion inside puts', () => {
-            expect(convert('表示する(要素数(Kouka))')).toBe('puts(@_array_Kouka_.length)');
+            expect(convert('表示する(要素数(Kouka))')).toBe('console.puts(@_array_Kouka_.length)');
         });
 
         test('表示する with expression containing 乱数', () => {
-            expect(convert('表示する(乱数(1..10) + 5)')).toBe('puts(rand(1..10) + 5)');
+            expect(convert('表示する(乱数(1..10) + 5)')).toBe('console.puts(rand(1..10) + 5)');
         });
 
         test('含む with 乱数 as second argument', () => {
             expect(convert('a = 含む(s, 乱数(1..10))')).toBe('@a = @s.include?(rand(1..10))');
         });
 
-        test('含む with 3 args is left unchanged (only 2-arg form is valid)', () => {
-            // Identifier conversion still runs (a → @a, b → @b, s → @s),
-            // but 含む itself stays as-is to avoid generating malformed Ruby.
-            expect(convert('含む(s, a, b)')).toBe('含む(@s, @a, @b)');
+        test('含む with 3 args is an error (only the 2-arg form is valid)', () => {
+            const { ruby, errors } = dnclToRuby('含む(s, a, b)');
+            expect(ruby).toBeNull();
+            expect(errors).toEqual([{ line: 1, column: 1, message: '「含む」の引数の数が違います' }]);
         });
 
         test('same-name nesting: 表示する(乱数(乱数(1..10)))', () => {
-            expect(convert('表示する(乱数(乱数(1..10)))')).toBe('puts(rand(rand(1..10)))');
+            expect(convert('表示する(乱数(乱数(1..10)))')).toBe('console.puts(rand(rand(1..10)))');
         });
 
         test('same-name nesting: 含む(s, 含む(a, b))', () => {
@@ -231,7 +231,7 @@ describe('dnclToRuby', () => {
 
         test('function call inside 表示する', () => {
             expect(convert('関数 myfunc(x)\n  返す 5\nと定義する\n表示する(myfunc(3))')).toBe(
-                'def myfunc(x)\n  return 5\nend\nputs(myfunc(3))',
+                'def myfunc(x)\n  return 5\nend\nconsole.puts(myfunc(3))',
             );
         });
 
@@ -322,19 +322,19 @@ describe('dnclToRuby', () => {
     describe('control flow: for loop', () => {
         test('ascending for loop', () => {
             expect(convert('i を 1 から 10 まで 1 ずつ増やしながら\n  表示する(i)\nを繰り返す')).toBe(
-                '@i = 1\nwhile @i <= 10\n  puts(@i)\n  @i += 1\nend',
+                '@i = 1\nwhile @i <= 10\n  console.puts(@i)\n  @i += 1\nend',
             );
         });
 
         test('descending for loop', () => {
             expect(convert('i を 10 から 0 まで 1 ずつ減らしながら\n  表示する(i)\nを繰り返す')).toBe(
-                '@i = 10\nwhile @i >= 0\n  puts(@i)\n  @i += -1\nend',
+                '@i = 10\nwhile @i >= 0\n  console.puts(@i)\n  @i += -1\nend',
             );
         });
 
         test('for loop with expression bounds', () => {
             expect(convert('i を 0 から n まで 2 ずつ増やしながら\n  表示する(i)\nを繰り返す')).toBe(
-                '@i = 0\nwhile @i <= @n\n  puts(@i)\n  @i += 2\nend',
+                '@i = 0\nwhile @i <= @n\n  console.puts(@i)\n  @i += 2\nend',
             );
         });
 
@@ -351,7 +351,7 @@ describe('dnclToRuby', () => {
                 'while @i <= 3',
                 '  @j = 1',
                 '  while @j <= 3',
-                '    puts(@i)',
+                '    console.puts(@i)',
                 '    @j += 1',
                 '  end',
                 '  @i += 1',

@@ -1,6 +1,10 @@
 import { EventEmitter } from 'events';
+import { rubyToDncl } from '../../../src/lib/dncl/ruby-to-dncl';
 import { editorErrors, lineDecorations, makeRubyTabAdapterFactory } from '../../../src/lib/genai-ruby-adapter.js';
 import { runTakeover } from '../../../src/lib/genai-takeover.js';
+import { loadPrism } from '../../../src/lib/prism-parser';
+
+beforeAll(() => loadPrism());
 
 const makeTarget = ({ id, name, isStage = false, code = '', sounds = [], costumes = [] }) => ({
     id,
@@ -110,7 +114,11 @@ const setup = ({ mode = 'ruby', editorValue = 'move(1)\n', markers = [] } = {}) 
             shownListeners.add(listener);
             return () => shownListeners.delete(listener);
         },
-        deps: { toCode: (t) => t.code, toBlocks: fakeToBlocks },
+        // The Japanese tab asks for the scripts in the written order (orderedCode, issue #2550).
+        deps: {
+            toCode: (t, options) => (options && options.keepScriptOrder && t.orderedCode) || t.code,
+            toBlocks: fakeToBlocks,
+        },
     });
     return {
         adapter: createAdapter({ vm, intl: null, rubyVersion: '2', scratchBlocks: null }),
@@ -566,9 +574,11 @@ describe('the Ruby tab adapter in the Japanese (DNCL) mode (#1402)', () => {
         expect(prompt).not.toContain('"Pop"');
     });
 
-    test('asks the rewrite in DNCL, and in Ruby in the other modes', () => {
+    test('asks the rewrite in the standard form, and in Ruby in the other modes', () => {
         const params = { code: 'x ← 1\n', problems: ['p'] };
-        expect(setup({ mode: 'dncl' }).adapter.rewritePrompt(params)).toContain('DNCL の書き方で');
+        expect(setup({ mode: 'dncl' }).adapter.rewritePrompt(params)).toContain(
+            '共通テスト用プログラム表記の書き方で',
+        );
         expect(setup().adapter.rewritePrompt(params)).toContain('```ruby');
         expect(setup().adapter.language).toBe('ruby');
     });
@@ -591,6 +601,16 @@ describe('the Ruby tab adapter in the Japanese (DNCL) mode (#1402)', () => {
         const result = await adapter.check(wrapDncl('NG\n'));
         expect(result.ok).toBe(false);
         expect(result.problems).toEqual([{ type: 'error', sprite: null, row: 0, text: 'NG' }]);
+    });
+
+    test('reads a sprite no longer in the editor in the order its scripts were written', async () => {
+        const { adapter, vm, dee } = setup({ mode: 'dncl', editorValue: dncl });
+        const abby = vm.editingTarget;
+        abby.code = 'console.puts(1)\n';
+        abby.orderedCode = 'console.puts(2)\n';
+        vm.switchTo(dee);
+        const result = await adapter.check(wrapDncl('x ← 2\n表示する(x)\n'), { target: abby });
+        expect(result.parts[0].before).toBe(rubyToDncl('console.puts(2)\n').dncl);
     });
 
     test('switches a sprite no longer in the editor through Ruby', async () => {

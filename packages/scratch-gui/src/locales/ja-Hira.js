@@ -1305,6 +1305,10 @@ export default {
         'もうしわけありません。スモウルビーがクラッシュしたようです。このバグはじどうてきにスモウルビーチームにほうこくされました。ページをさいよみこみしてください。',
     'gui.smalruby3.gui.defaultProjectTitle': 'スモウルビーのプロジェクト',
     'gui.smalruby3.gui.rubyTab': 'ルビー',
+    'gui.smalruby3.gui.japaneseTab': 'にほんご',
+    'gui.smalruby3.gui.japaneseTabTitle': 'プログラムを にほんご（きょうつうテストようプログラムひょうき）で かく',
+    'gui.smalruby3.gui.japaneseTabLockedInLesson': 'このレッスンでは にほんごタブを つかえません',
+    'gui.rubyTab.japaneseLanguageBand': 'にほんご（きょうつうテストようプログラムひょうき）',
     'gui.smalruby3.SpriteInfo.sizeIcon': 'おおきさ（%）',
     'gui.smalruby3.SpriteInfo.directionIcon': 'むき（ど）',
     'gui.smalruby3.previewInfo.betawelcome': 'スモウルビー3.0 ベータばんにようこそ!',
@@ -1324,6 +1328,8 @@ export default {
         'ざんねんながら、ブラウザーやコンピューターが{webGlLink}ようです。このぎじゅつはスモウルビー3.0のじっこうにひっすです。',
     'gui.smalruby3.alerts.convertRubyToBlocksError':
         'ルビーからコードにへんかんできませんでした。ルビーをなおしてください！',
+    'gui.smalruby3.alerts.convertJapaneseError':
+        'にほんごのプログラムによめないぎょうがあります。しるしのあるぎょうをなおしてください！',
     'gui.alerts.cannotExecuteLine': 'このぎょうはじっこうできません。',
     'gui.smalruby3.telemetryOptIn.label': 'スモウルビーをかいぜんするためのりようじょうきょうのほうこく',
     'gui.smalruby3.telemetryOptIn.body1':
@@ -1936,13 +1942,10 @@ export default {
     // Ruby Toolbar messages
     'gui.rubyToolbar.executeLine': 'カーソルぎょうをじっこう',
     'gui.rubyToolbar.executeAll': 'すべてじっこう',
-    'gui.rubyToolbar.dnclLabel': 'にほんご',
     'gui.rubyToolbar.modeFurigana': 'Rubyふりがなモード',
     'gui.rubyToolbar.modeFuriganaLine1': 'ルビー',
     'gui.rubyToolbar.modeFuriganaLine2': 'Ruby',
     'gui.rubyToolbar.modeRuby': 'Rubyモード',
-    'gui.rubyToolbar.modeDncl': 'にほんごモード',
-    'gui.rubyToolbar.modeDnclLockedInLesson': 'このレッスンでは にほんごモードに きりかえられません',
     'gui.rubyToolbar.stopExecution': 'じっこうをていし',
     'gui.rubyToolbar.search': 'けんさく',
     'gui.rubyToolbar.keyboardShow': 'キーボードをひょうじ',
@@ -2128,46 +2131,45 @@ export default {
     'gui.welcomeTooltip.label': 'スモウルビーへようこそ',
     'gui.aria.clearButton': 'クリア',
     'gui.extensionButton.dnclExtensionConfirm':
-        'にほんごモードではかくちょうきのうはつかえません。\nRubyふりがなモードにもどすとかくちょうきのうがつかえるようになります。\nもどしますか？',
-    'gui.dnclModeNotice.message': 'にほんごモード：ブロックがせいげんされています',
-    'gui.dnclModeNotice.exitButton': 'Rubyふりがなモードにもどす',
+        'にほんごタブでかいているあいだは、かくちょうきのうといちぶのブロックはつかえません。\nすべてのブロックとかくちょうきのうをつかえるようにしますか？\n（にほんごタブにもどると、またせいげんされます）',
+    'gui.dnclModeNotice.message': 'にほんごタブでかいています：ブロックがせいげんされています',
+    'gui.dnclModeNotice.exitButton': 'すべてのブロックをつかう',
     'gui.rubyTab.dnclDoubleSlashHint':
         'スモウルビーでは // はコメントではありません（せいすうのわりざんです）。コメントには # をつかってください。',
+    'gui.rubyTab.dnclStringArithmeticHint':
+        'もじれつと - * / をつかうと、ひだりからじゅんにけいさんされます。"a" + x - 1 は、もじれつ "a" + x から 1 をひきます。かずのけいさんは "a" + (x - 1) のようにかっこでかこんでください。',
     'gui.rubyTab.dnclArrayIndexHint':
-        '{access} ははいれつのはんいがいになります。スモウルビーのにほんごでは、はいれつのそえじは 0 からはじまります（さいしょのようそは {array}[0]、さいごのようそは {array}[{last}]）。もんだいぶんでそえじが 1 からはじまるときは、{fixed} のようにそえじを 1 ずらしてかいてください。',
-    'gui.rubyTab.dnclIndexShiftConfirm':
-        'スモウルビーのにほんごでは、はいれつのそえじは 0 からはじまります。はりつけたプログラムのはいれつのそえじを 1 ずつへらしますか？',
-    'gui.rubyTab.dnclIndexShiftDone':
-        '{count} かしょのはいれつのそえじを 1 ずつへらしました（みどりのしるし）。\nくりかえしのはんい（「i を 1 から n まで」など）はかきかえていません。0 はじまりにあわせて、ひつようならじぶんでなおしてください。',
-    'gui.rubyTab.dnclIndexShiftChangedHeading': 'かきかえたかしょ:',
-    'gui.rubyTab.dnclIndexShiftChangedItem': '{line} ぎょうめ: {before} → {after}',
-    'gui.rubyTab.dnclIndexShiftSuspectsHeading':
-        'もしかしたらここもなおすひつようがあるかもしれません（きいろのしるし）:',
-    'gui.rubyTab.dnclIndexShiftSuspectItem': '{line} ぎょうめ: {text}（{reason}）',
-    'gui.rubyTab.dnclIndexShiftMore': '…ほか {count} かしょ',
-    'gui.rubyTab.dnclIndexShiftChangedHover': 'そえじを 1 へらしました: {before} → {after}',
-    'gui.rubyTab.dnclIndexShiftReasonAssignOne':
-        'へんすうに 1 をいれています。そえじにつかうなら 0 にするひつようがあるかもしれません',
-    'gui.rubyTab.dnclIndexShiftReasonLoopFromOne':
-        '1 からはじまるくりかえしです。0 からはじめるひつようがあるかもしれません',
-    'gui.rubyTab.dnclIndexShiftReasonLoopFromN':
-        'せんとうのようそをとばすくりかえしです。はじまりを 1 ちいさくするひつようがあるかもしれません',
-    'gui.rubyTab.dnclIndexShiftReasonLoopToLength':
-        'ようそすうまでくりかえしています。0 はじまりでは 要素数(X) - 1 までです',
-    'gui.rubyTab.dnclIndexShiftReasonLessEqual':
-        'そえじにつかうへんすうを <= でくらべています。0 はじまりでは < にするひつようがあるかもしれません',
-    'gui.rubyTab.dnclIndexShiftReasonNegativeIndex':
-        'そえじが -1 になりました。ここはもともと 0 はじまりだったかもしれないので、たしかめてください',
+        '{access} ははいれつのはんいがいになります。スモウルビーのにほんごでは、はいれつのそえじは 0 からはじまります（さいしょのようそは {array}[0]、さいごのようそは {array}[{last}]）。もんだいぶんでそえじが 1 からはじまるときは、{fixed} のようにそえじを 1 ずらしてかくか、プログラムのはじめに「すべての配列の添字は 1 から始まる。」とかいてください（メニューの「そえじが 1 からはじまるもんだい」でかけます）。',
+    'gui.rubyToolbar.copyProblemForm': 'ぎょうばんごうとけいせんつきでコピー',
+    'gui.rubyToolbar.rulesSwitch': 'ぎょうばんごうとけいせん',
+    'gui.rubyToolbar.rulesSwitchTitle': 'ぎょうばんごうとけいせんをひょうじして、もんだいとおなじかたちでよむ',
+    'gui.rubyToolbar.problemSettingsHeading': 'もんだいのやくそく',
+    'gui.rubyToolbar.previewRubyOfJapanese': 'ルビーになおしたものをかくにん',
+    'gui.rubyToolbar.saveJapaneseProgram': 'にほんごのプログラムをほぞん（.txt）',
+    'gui.rubyTab.dnclIndexSettingConfirm':
+        'はりつけたプログラムには、はいれつのそえじは 1 からはじまるとかいてあります。プログラムのはじめに「すべての配列の添字は 1 から始まる。」とかいて、そえじが 1 からはじまるせっていにしますか？',
+    'gui.rubyToolbar.settingsPatternExample': 'れいじのかたち（そえじは 0 から）',
+    'gui.rubyToolbar.settingsPatternIndexFromOne': 'そえじが 1 からはじまるもんだい',
+    'gui.rubyTab.dnclForbiddenPrefixError': 'にほんごタブでは、へんすうに「{name}」はつかえません',
     'gui.rubyTab.dnclPostTestLoopError':
-        'あとではんていするくりかえし（さきに 1 かいうごかしてからじょうけんをたしかめるくりかえし）は、にほんごではかけません。さいしょの 1 かいをループのまえにかいてから、「〜のあいだくりかえす」にしてください。Ruby モードではかけます。',
+        'あとではんていするくりかえし（さきに 1 かいうごかしてからじょうけんをたしかめるくりかえし）は、にほんごではかけません。さいしょの 1 かいをループのまえにかいてから、「〜のあいだくりかえす」にしてください。ルビータブではかけます。',
+    'gui.rubyTab.dnclStageVariableError':
+        'ステージのへんすう（{name}）は、にほんごタブではかけません。ルビータブではかけます。',
     'gui.rubyTab.dnclUndefinedFunctionError':
-        '「{name}」は、ていぎされていないかんすうです。「関数 {name}(…)」でていぎしてください。',
+        '「{name}」は、ていぎされていないかんすうです。「関数 {name}(…):」でていぎしてください。',
+    'gui.rubyTab.dnclStringPlusNumberError':
+        'もじれつとかずを「+」でつなぐときは、かずを「文字列({number})」のようにもじれつにしてください（れい: {fixed}）。かずを「{inline}」のようにもじれつのなかにかいてもかまいません。',
+    'gui.rubyTab.dnclMultipleAssignmentError':
+        '「,」でくぎって、いくつかのへんすうにまとめてだいにゅうすることはできません。1 つずつだいにゅうしてください（れい: {example}）。',
+    'gui.rubyTab.dnclMultipleAssignmentErrorNoExample':
+        '「,」でくぎって、いくつかのへんすうにまとめてだいにゅうすることはできません。1 つずつだいにゅうしてください。',
     'gui.rubyTab.dnclUnsupportedCommandError':
-        '「{name}」は、にほんごモードではかけないめいれいです。Ruby モードではかけます。',
+        '「{name}」は、にほんごタブではかけないめいれいです。ルビータブではかけます。',
+    'gui.rubyTab.dnclUnsupportedNotationError': '「{name}」は、にほんごタブではかけません。ルビータブではかけます。',
     'gui.rubyTab.dnclUnsupportedNumberError':
-        '「{name}」は、にほんごモードではかけないかずのかきかたです（16 しんすう、_ のくぎり、しすうひょうきなど）。「1000」「0.5」のようにかいてください。Ruby モードではかけます。',
+        '「{name}」は、にほんごタブではかけないかずのかきかたです（16 しんすう、_ のくぎり、しすうひょうきなど）。「1000」「0.5」のようにかいてください。ルビータブではかけます。',
     'gui.rubyTab.dnclValidationError':
-        'にほんごモードではたいおうしていないきじゅつです。\nたいおうしているめいれいのみにしてから、モードきりかえをおこなってください。',
+        'にほんごタブではたいおうしていないきじゅつです。\nたいおうしているめいれいのみにしてから、にほんごタブをひらいてください。',
     'gui.mobile.drawer.title': 'メニュー',
     'gui.mobile.sideRail.backpack': 'バックパック',
     'gui.mobile.drawer.section.file': 'ファイル',
@@ -2282,7 +2284,7 @@ export default {
     'gui.genaiConcierge.indexHintsTitle':
         'ちゅうい: そえじが 1 からはじまっているかもしれません。スモウルビーのにほんごでは、はいれつのそえじは 0 からはじまります。',
     'gui.genaiConcierge.indexHint':
-        '{access} ははいれつのはんいがいになります（さいごのようそは {array}[{last}]）。もんだいぶんでそえじが 1 からはじまるときは、{fixed} のようにそえじを 1 ずらしてかいてください。',
+        '{access} ははいれつのはんいがいになります（さいごのようそは {array}[{last}]）。もんだいぶんでそえじが 1 からはじまるときは、{fixed} のようにそえじを 1 ずらしてかくか、プログラムのはじめに「すべての配列の添字は 1 から始まる。」とかいてください（メニューの「そえじが 1 からはじまるもんだい」でかけます）。',
     'gui.genaiConcierge.lineOf': '{line} ぎょうめ',
     'gui.genaiConcierge.spriteLineOf': '「{sprite}」の {line} ぎょうめ',
     'gui.genaiConcierge.spriteOf': '「{sprite}」',
@@ -2418,6 +2420,17 @@ export default {
     'gui.meshStatus.practicingShort': 'れんしゅうちゅう',
     'gui.meshPractice.blocked': 'レッスンのれんしゅうあいてがうごいているので、このれんしゅうあいてはやすみます。',
     'gui.meshPractice.activeLabel': 'れんしゅうちゅう',
+    'gui.smalrubyConsole.title': 'コンソール',
+    'gui.smalrubyConsole.clear': 'けす',
+    'gui.smalrubyConsole.close': 'ステージにもどる',
+    'gui.smalrubyConsole.inputLabel': 'こたえをにゅうりょくして Enter キーをおす',
+    'gui.smalrubyConsole.empty': 'プログラムがひょうじしたものが、ここにでます。',
+    'gui.smalrubyConsole.showButton': 'コンソールをだす',
+    'gui.smalrubyConsole.hideButton': 'コンソールをかくす',
+    'gui.japaneseRightColumn.program': '{name} のプログラム',
+    'gui.japaneseRightColumn.stage': 'ステージ',
+    'gui.japaneseRightColumn.showTargets': 'スプライトとはいけいをみる',
+    'gui.japaneseRightColumn.hideTargets': 'スプライトとはいけいをかくす',
     'gui.meshStatus.button': 'メッシュのじょうたいとりれき',
     'gui.menuBar.meshV2Status': 'じょうたいとりれきをみる',
     'gui.connection.meshV2.openStatus': 'じょうたいとりれき',

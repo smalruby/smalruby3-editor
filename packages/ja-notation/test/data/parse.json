@@ -1,0 +1,1929 @@
+{
+    "about": "parse(ja): the JaAST of the Japanese (programs), two sources that read as the same JaAST without the positions (same), and the errors of a source that cannot be read (errors: program is null).",
+    "positionKeys": ["line", "column", "endLine", "closeLine", "closeAfter", "elseLine", "closeOwnLine"],
+    "programs": [
+        {
+            "title": "an assignment",
+            "ja": "x = 1",
+            "program": {
+                "type": "Program",
+                "settings": {
+                    "indexBase": 0,
+                    "commentMarker": "#",
+                    "logicNote": false
+                },
+                "body": [
+                    {
+                        "type": "Assign",
+                        "target": {
+                            "type": "Name",
+                            "name": "x",
+                            "line": 1,
+                            "column": 0
+                        },
+                        "value": {
+                            "type": "Number",
+                            "value": "1",
+                            "line": 1,
+                            "column": 4
+                        },
+                        "line": 1,
+                        "column": 0
+                    }
+                ],
+                "line": 1,
+                "column": 0
+            }
+        },
+        {
+            "title": "assignments on one line are two statements",
+            "ja": "a = 0, b = 1",
+            "program": {
+                "type": "Program",
+                "settings": {
+                    "indexBase": 0,
+                    "commentMarker": "#",
+                    "logicNote": false
+                },
+                "body": [
+                    {
+                        "type": "Assign",
+                        "target": {
+                            "type": "Name",
+                            "name": "a",
+                            "line": 1,
+                            "column": 0
+                        },
+                        "value": {
+                            "type": "Number",
+                            "value": "0",
+                            "line": 1,
+                            "column": 4
+                        },
+                        "line": 1,
+                        "column": 0
+                    },
+                    {
+                        "type": "Assign",
+                        "target": {
+                            "type": "Name",
+                            "name": "b",
+                            "line": 1,
+                            "column": 7
+                        },
+                        "value": {
+                            "type": "Number",
+                            "value": "1",
+                            "line": 1,
+                            "column": 11
+                        },
+                        "line": 1,
+                        "column": 7
+                    }
+                ],
+                "line": 1,
+                "column": 0
+            }
+        },
+        {
+            "title": "an assignment to an element of an array",
+            "ja": "Data[0] = 5",
+            "program": {
+                "type": "Program",
+                "settings": {
+                    "indexBase": 0,
+                    "commentMarker": "#",
+                    "logicNote": false
+                },
+                "body": [
+                    {
+                        "type": "Assign",
+                        "target": {
+                            "type": "Index",
+                            "target": {
+                                "type": "Name",
+                                "name": "Data",
+                                "line": 1,
+                                "column": 0
+                            },
+                            "index": {
+                                "type": "Number",
+                                "value": "0",
+                                "line": 1,
+                                "column": 5
+                            },
+                            "line": 1,
+                            "column": 0
+                        },
+                        "value": {
+                            "type": "Number",
+                            "value": "5",
+                            "line": 1,
+                            "column": 10
+                        },
+                        "line": 1,
+                        "column": 0
+                    }
+                ],
+                "line": 1,
+                "column": 0
+            }
+        },
+        {
+            "title": "an input",
+            "ja": "n = 【整数を入力】",
+            "program": {
+                "type": "Program",
+                "settings": {
+                    "indexBase": 0,
+                    "commentMarker": "#",
+                    "logicNote": false
+                },
+                "body": [
+                    {
+                        "type": "Input",
+                        "target": {
+                            "type": "Name",
+                            "name": "n",
+                            "line": 1,
+                            "column": 0
+                        },
+                        "kind": "integer",
+                        "line": 1,
+                        "column": 0
+                    }
+                ],
+                "line": 1,
+                "column": 0
+            }
+        },
+        {
+            "title": "an array declared empty",
+            "ja": "配列変数 Kago を初期化する",
+            "program": {
+                "type": "Program",
+                "settings": {
+                    "indexBase": 0,
+                    "commentMarker": "#",
+                    "logicNote": false
+                },
+                "body": [
+                    {
+                        "type": "Assign",
+                        "target": {
+                            "type": "Name",
+                            "name": "Kago",
+                            "line": 1,
+                            "column": 5
+                        },
+                        "value": {
+                            "type": "ArrayLiteral",
+                            "elements": [],
+                            "line": 1,
+                            "column": 5
+                        },
+                        "line": 1,
+                        "column": 0
+                    }
+                ],
+                "line": 1,
+                "column": 0
+            }
+        },
+        {
+            "title": "a number is read as a decimal number",
+            "ja": "a = 017",
+            "program": {
+                "type": "Program",
+                "settings": {
+                    "indexBase": 0,
+                    "commentMarker": "#",
+                    "logicNote": false
+                },
+                "body": [
+                    {
+                        "type": "Assign",
+                        "target": {
+                            "type": "Name",
+                            "name": "a",
+                            "line": 1,
+                            "column": 0
+                        },
+                        "value": {
+                            "type": "Number",
+                            "value": "17",
+                            "line": 1,
+                            "column": 4
+                        },
+                        "line": 1,
+                        "column": 0
+                    }
+                ],
+                "line": 1,
+                "column": 0
+            }
+        },
+        {
+            "title": "a comment line and a comment at the end of a line",
+            "ja": "# はじめ\nx = 1 # 一",
+            "program": {
+                "type": "Program",
+                "settings": {
+                    "indexBase": 0,
+                    "commentMarker": "#",
+                    "logicNote": false
+                },
+                "body": [
+                    {
+                        "type": "Comment",
+                        "text": "# はじめ",
+                        "line": 1,
+                        "column": 0
+                    },
+                    {
+                        "type": "Assign",
+                        "target": {
+                            "type": "Name",
+                            "name": "x",
+                            "line": 2,
+                            "column": 0
+                        },
+                        "value": {
+                            "type": "Number",
+                            "value": "1",
+                            "line": 2,
+                            "column": 4
+                        },
+                        "line": 2,
+                        "column": 0,
+                        "comment": "# 一"
+                    }
+                ],
+                "line": 1,
+                "column": 0
+            }
+        },
+        {
+            "title": "`not` is weaker than a comparison and stronger than `and`",
+            "ja": "x = not a > 1 and b",
+            "program": {
+                "type": "Program",
+                "settings": {
+                    "indexBase": 0,
+                    "commentMarker": "#",
+                    "logicNote": false
+                },
+                "body": [
+                    {
+                        "type": "Assign",
+                        "target": {
+                            "type": "Name",
+                            "name": "x",
+                            "line": 1,
+                            "column": 0
+                        },
+                        "value": {
+                            "type": "Binary",
+                            "operator": "and",
+                            "left": {
+                                "type": "Unary",
+                                "operator": "not",
+                                "operand": {
+                                    "type": "Binary",
+                                    "operator": ">",
+                                    "left": {
+                                        "type": "Name",
+                                        "name": "a",
+                                        "line": 1,
+                                        "column": 8
+                                    },
+                                    "right": {
+                                        "type": "Number",
+                                        "value": "1",
+                                        "line": 1,
+                                        "column": 12
+                                    },
+                                    "line": 1,
+                                    "column": 8
+                                },
+                                "line": 1,
+                                "column": 4
+                            },
+                            "right": {
+                                "type": "Name",
+                                "name": "b",
+                                "line": 1,
+                                "column": 18
+                            },
+                            "line": 1,
+                            "column": 4
+                        },
+                        "line": 1,
+                        "column": 0
+                    }
+                ],
+                "line": 1,
+                "column": 0
+            }
+        },
+        {
+            "title": "`÷` is the integer quotient, as strong as `*`",
+            "ja": "x = a + b ÷ 2",
+            "program": {
+                "type": "Program",
+                "settings": {
+                    "indexBase": 0,
+                    "commentMarker": "#",
+                    "logicNote": false
+                },
+                "body": [
+                    {
+                        "type": "Assign",
+                        "target": {
+                            "type": "Name",
+                            "name": "x",
+                            "line": 1,
+                            "column": 0
+                        },
+                        "value": {
+                            "type": "Binary",
+                            "operator": "+",
+                            "left": {
+                                "type": "Name",
+                                "name": "a",
+                                "line": 1,
+                                "column": 4
+                            },
+                            "right": {
+                                "type": "Binary",
+                                "operator": "÷",
+                                "left": {
+                                    "type": "Name",
+                                    "name": "b",
+                                    "line": 1,
+                                    "column": 8
+                                },
+                                "right": {
+                                    "type": "Number",
+                                    "value": "2",
+                                    "line": 1,
+                                    "column": 12
+                                },
+                                "line": 1,
+                                "column": 8
+                            },
+                            "line": 1,
+                            "column": 4
+                        },
+                        "line": 1,
+                        "column": 0
+                    }
+                ],
+                "line": 1,
+                "column": 0
+            }
+        },
+        {
+            "title": "a call with arguments and a range",
+            "ja": "x = 乱数(1..6)",
+            "program": {
+                "type": "Program",
+                "settings": {
+                    "indexBase": 0,
+                    "commentMarker": "#",
+                    "logicNote": false
+                },
+                "body": [
+                    {
+                        "type": "Assign",
+                        "target": {
+                            "type": "Name",
+                            "name": "x",
+                            "line": 1,
+                            "column": 0
+                        },
+                        "value": {
+                            "type": "Call",
+                            "name": "乱数",
+                            "args": [
+                                {
+                                    "type": "Binary",
+                                    "operator": "..",
+                                    "left": {
+                                        "type": "Number",
+                                        "value": "1",
+                                        "line": 1,
+                                        "column": 7
+                                    },
+                                    "right": {
+                                        "type": "Number",
+                                        "value": "6",
+                                        "line": 1,
+                                        "column": 10
+                                    },
+                                    "line": 1,
+                                    "column": 7
+                                }
+                            ],
+                            "line": 1,
+                            "column": 4
+                        },
+                        "line": 1,
+                        "column": 0
+                    }
+                ],
+                "line": 1,
+                "column": 0
+            }
+        },
+        {
+            "title": "真 and 偽",
+            "ja": "x = 真",
+            "program": {
+                "type": "Program",
+                "settings": {
+                    "indexBase": 0,
+                    "commentMarker": "#",
+                    "logicNote": false
+                },
+                "body": [
+                    {
+                        "type": "Assign",
+                        "target": {
+                            "type": "Name",
+                            "name": "x",
+                            "line": 1,
+                            "column": 0
+                        },
+                        "value": {
+                            "type": "Boolean",
+                            "value": true,
+                            "line": 1,
+                            "column": 4
+                        },
+                        "line": 1,
+                        "column": 0
+                    }
+                ],
+                "line": 1,
+                "column": 0
+            }
+        },
+        {
+            "title": "blocks written with the marks",
+            "ja": "(01) i を 1 から 3 まで 1 ずつ増やしながら繰り返す:\n(02) ｜ もし i > 1 ならば:\n(03) ⎿ ⎿ 表示する(i)\n(04) 表示する(0)",
+            "program": {
+                "type": "Program",
+                "settings": {
+                    "indexBase": 0,
+                    "commentMarker": "#",
+                    "logicNote": false
+                },
+                "body": [
+                    {
+                        "type": "For",
+                        "variable": {
+                            "type": "Name",
+                            "name": "i",
+                            "line": 1,
+                            "column": 5
+                        },
+                        "from": {
+                            "type": "Number",
+                            "value": "1",
+                            "line": 1,
+                            "column": 9
+                        },
+                        "to": {
+                            "type": "Number",
+                            "value": "3",
+                            "line": 1,
+                            "column": 14
+                        },
+                        "step": {
+                            "type": "Number",
+                            "value": "1",
+                            "line": 1,
+                            "column": 19
+                        },
+                        "direction": "up",
+                        "body": [
+                            {
+                                "type": "If",
+                                "branches": [
+                                    {
+                                        "condition": {
+                                            "type": "Binary",
+                                            "operator": ">",
+                                            "left": {
+                                                "type": "Name",
+                                                "name": "i",
+                                                "line": 2,
+                                                "column": 10
+                                            },
+                                            "right": {
+                                                "type": "Number",
+                                                "value": "1",
+                                                "line": 2,
+                                                "column": 14
+                                            },
+                                            "line": 2,
+                                            "column": 10
+                                        },
+                                        "body": [
+                                            {
+                                                "type": "ExpressionStatement",
+                                                "expression": {
+                                                    "type": "Call",
+                                                    "name": "表示する",
+                                                    "args": [
+                                                        {
+                                                            "type": "Name",
+                                                            "name": "i",
+                                                            "line": 3,
+                                                            "column": 14
+                                                        }
+                                                    ],
+                                                    "line": 3,
+                                                    "column": 9
+                                                },
+                                                "line": 3,
+                                                "column": 9
+                                            }
+                                        ],
+                                        "line": 2
+                                    }
+                                ],
+                                "elseBody": null,
+                                "elseLine": null,
+                                "line": 2,
+                                "column": 7,
+                                "closeLine": 3,
+                                "closeAfter": 3
+                            }
+                        ],
+                        "line": 1,
+                        "column": 5,
+                        "closeLine": 3,
+                        "closeAfter": 3
+                    },
+                    {
+                        "type": "ExpressionStatement",
+                        "expression": {
+                            "type": "Call",
+                            "name": "表示する",
+                            "args": [
+                                {
+                                    "type": "Number",
+                                    "value": "0",
+                                    "line": 4,
+                                    "column": 10
+                                }
+                            ],
+                            "line": 4,
+                            "column": 5
+                        },
+                        "line": 4,
+                        "column": 5
+                    }
+                ],
+                "line": 1,
+                "column": 0
+            }
+        },
+        {
+            "title": "else if and else",
+            "ja": "もし a > 0 ならば:\n    b = 1\nそうでなくもし a < 0 ならば:\n    b = 2\nそうでなければ:\n    b = 3",
+            "program": {
+                "type": "Program",
+                "settings": {
+                    "indexBase": 0,
+                    "commentMarker": "#",
+                    "logicNote": false
+                },
+                "body": [
+                    {
+                        "type": "If",
+                        "branches": [
+                            {
+                                "condition": {
+                                    "type": "Binary",
+                                    "operator": ">",
+                                    "left": {
+                                        "type": "Name",
+                                        "name": "a",
+                                        "line": 1,
+                                        "column": 3
+                                    },
+                                    "right": {
+                                        "type": "Number",
+                                        "value": "0",
+                                        "line": 1,
+                                        "column": 7
+                                    },
+                                    "line": 1,
+                                    "column": 3
+                                },
+                                "body": [
+                                    {
+                                        "type": "Assign",
+                                        "target": {
+                                            "type": "Name",
+                                            "name": "b",
+                                            "line": 2,
+                                            "column": 4
+                                        },
+                                        "value": {
+                                            "type": "Number",
+                                            "value": "1",
+                                            "line": 2,
+                                            "column": 8
+                                        },
+                                        "line": 2,
+                                        "column": 4
+                                    }
+                                ],
+                                "line": 1
+                            },
+                            {
+                                "condition": {
+                                    "type": "Binary",
+                                    "operator": "<",
+                                    "left": {
+                                        "type": "Name",
+                                        "name": "a",
+                                        "line": 3,
+                                        "column": 8
+                                    },
+                                    "right": {
+                                        "type": "Number",
+                                        "value": "0",
+                                        "line": 3,
+                                        "column": 12
+                                    },
+                                    "line": 3,
+                                    "column": 8
+                                },
+                                "body": [
+                                    {
+                                        "type": "Assign",
+                                        "target": {
+                                            "type": "Name",
+                                            "name": "b",
+                                            "line": 4,
+                                            "column": 4
+                                        },
+                                        "value": {
+                                            "type": "Number",
+                                            "value": "2",
+                                            "line": 4,
+                                            "column": 8
+                                        },
+                                        "line": 4,
+                                        "column": 4
+                                    }
+                                ],
+                                "line": 3
+                            }
+                        ],
+                        "elseBody": [
+                            {
+                                "type": "Assign",
+                                "target": {
+                                    "type": "Name",
+                                    "name": "b",
+                                    "line": 6,
+                                    "column": 4
+                                },
+                                "value": {
+                                    "type": "Number",
+                                    "value": "3",
+                                    "line": 6,
+                                    "column": 8
+                                },
+                                "line": 6,
+                                "column": 4
+                            }
+                        ],
+                        "elseLine": 5,
+                        "line": 1,
+                        "column": 0,
+                        "closeLine": 6,
+                        "closeAfter": 6
+                    }
+                ],
+                "line": 1,
+                "column": 0
+            }
+        },
+        {
+            "title": "a loop with a condition and a function",
+            "ja": "関数 たす(a, b):\n    返す a + b\nx > 1 の間繰り返す:\n    x = x // 2",
+            "program": {
+                "type": "Program",
+                "settings": {
+                    "indexBase": 0,
+                    "commentMarker": "#",
+                    "logicNote": false
+                },
+                "body": [
+                    {
+                        "type": "FunctionDef",
+                        "name": "たす",
+                        "params": ["a", "b"],
+                        "body": [
+                            {
+                                "type": "Return",
+                                "value": {
+                                    "type": "Binary",
+                                    "operator": "+",
+                                    "left": {
+                                        "type": "Name",
+                                        "name": "a",
+                                        "line": 2,
+                                        "column": 7
+                                    },
+                                    "right": {
+                                        "type": "Name",
+                                        "name": "b",
+                                        "line": 2,
+                                        "column": 11
+                                    },
+                                    "line": 2,
+                                    "column": 7
+                                },
+                                "line": 2,
+                                "column": 4
+                            }
+                        ],
+                        "line": 1,
+                        "column": 0,
+                        "closeLine": 2,
+                        "closeAfter": 2
+                    },
+                    {
+                        "type": "While",
+                        "condition": {
+                            "type": "Binary",
+                            "operator": ">",
+                            "left": {
+                                "type": "Name",
+                                "name": "x",
+                                "line": 3,
+                                "column": 0
+                            },
+                            "right": {
+                                "type": "Number",
+                                "value": "1",
+                                "line": 3,
+                                "column": 4
+                            },
+                            "line": 3,
+                            "column": 0
+                        },
+                        "body": [
+                            {
+                                "type": "Assign",
+                                "target": {
+                                    "type": "Name",
+                                    "name": "x",
+                                    "line": 4,
+                                    "column": 4
+                                },
+                                "value": {
+                                    "type": "Binary",
+                                    "operator": "÷",
+                                    "left": {
+                                        "type": "Name",
+                                        "name": "x",
+                                        "line": 4,
+                                        "column": 8
+                                    },
+                                    "right": {
+                                        "type": "Number",
+                                        "value": "2",
+                                        "line": 4,
+                                        "column": 13
+                                    },
+                                    "line": 4,
+                                    "column": 8
+                                },
+                                "line": 4,
+                                "column": 4
+                            }
+                        ],
+                        "line": 3,
+                        "column": 0,
+                        "closeLine": 4,
+                        "closeAfter": 4
+                    }
+                ],
+                "line": 1,
+                "column": 0
+            }
+        },
+        {
+            "title": "a numbered line with an open bracket goes on to the next line",
+            "ja": "(1) 表示する(a,\n        b)\n(2) c = 1",
+            "program": {
+                "type": "Program",
+                "settings": {
+                    "indexBase": 0,
+                    "commentMarker": "#",
+                    "logicNote": false
+                },
+                "body": [
+                    {
+                        "type": "ExpressionStatement",
+                        "expression": {
+                            "type": "Call",
+                            "name": "表示する",
+                            "args": [
+                                {
+                                    "type": "Name",
+                                    "name": "a",
+                                    "line": 1,
+                                    "column": 9
+                                },
+                                {
+                                    "type": "Name",
+                                    "name": "b",
+                                    "line": 2,
+                                    "column": 8
+                                }
+                            ],
+                            "line": 1,
+                            "column": 4
+                        },
+                        "line": 1,
+                        "column": 4,
+                        "endLine": 2
+                    },
+                    {
+                        "type": "Assign",
+                        "target": {
+                            "type": "Name",
+                            "name": "c",
+                            "line": 3,
+                            "column": 4
+                        },
+                        "value": {
+                            "type": "Number",
+                            "value": "1",
+                            "line": 3,
+                            "column": 8
+                        },
+                        "line": 3,
+                        "column": 4
+                    }
+                ],
+                "line": 1,
+                "column": 0
+            }
+        },
+        {
+            "title": "a block that ends by its indent ends at the last code line",
+            "ja": "もし a > 0 ならば:\n    a = 1\n\nb = 2",
+            "program": {
+                "type": "Program",
+                "settings": {
+                    "indexBase": 0,
+                    "commentMarker": "#",
+                    "logicNote": false
+                },
+                "body": [
+                    {
+                        "type": "If",
+                        "branches": [
+                            {
+                                "condition": {
+                                    "type": "Binary",
+                                    "operator": ">",
+                                    "left": {
+                                        "type": "Name",
+                                        "name": "a",
+                                        "line": 1,
+                                        "column": 3
+                                    },
+                                    "right": {
+                                        "type": "Number",
+                                        "value": "0",
+                                        "line": 1,
+                                        "column": 7
+                                    },
+                                    "line": 1,
+                                    "column": 3
+                                },
+                                "body": [
+                                    {
+                                        "type": "Assign",
+                                        "target": {
+                                            "type": "Name",
+                                            "name": "a",
+                                            "line": 2,
+                                            "column": 4
+                                        },
+                                        "value": {
+                                            "type": "Number",
+                                            "value": "1",
+                                            "line": 2,
+                                            "column": 8
+                                        },
+                                        "line": 2,
+                                        "column": 4
+                                    }
+                                ],
+                                "line": 1
+                            }
+                        ],
+                        "elseBody": null,
+                        "elseLine": null,
+                        "line": 1,
+                        "column": 0,
+                        "closeLine": 2,
+                        "closeAfter": 3
+                    },
+                    {
+                        "type": "Assign",
+                        "target": {
+                            "type": "Name",
+                            "name": "b",
+                            "line": 4,
+                            "column": 0
+                        },
+                        "value": {
+                            "type": "Number",
+                            "value": "2",
+                            "line": 4,
+                            "column": 4
+                        },
+                        "line": 4,
+                        "column": 0
+                    }
+                ],
+                "line": 1,
+                "column": 0
+            }
+        },
+        {
+            "title": "a `でない` before an operator is the left side of it, as Ruby reads `!a == b`",
+            "ja": "c = a でない == b",
+            "program": {
+                "type": "Program",
+                "settings": {
+                    "indexBase": 0,
+                    "commentMarker": "#",
+                    "logicNote": false
+                },
+                "body": [
+                    {
+                        "type": "Assign",
+                        "target": {
+                            "type": "Name",
+                            "name": "c",
+                            "line": 1,
+                            "column": 0
+                        },
+                        "value": {
+                            "type": "Binary",
+                            "operator": "==",
+                            "left": {
+                                "type": "Unary",
+                                "operator": "not",
+                                "operand": {
+                                    "type": "Name",
+                                    "name": "a",
+                                    "line": 1,
+                                    "column": 4
+                                },
+                                "line": 1,
+                                "column": 4
+                            },
+                            "right": {
+                                "type": "Name",
+                                "name": "b",
+                                "line": 1,
+                                "column": 13
+                            },
+                            "line": 1,
+                            "column": 4
+                        },
+                        "line": 1,
+                        "column": 0
+                    }
+                ],
+                "line": 1,
+                "column": 0
+            }
+        },
+        {
+            "title": "a block closed by a line of its own ends on that line, with its comment",
+            "ja": "もし a > 0 ならば\n  b = 1\n\nを実行する # おわり",
+            "program": {
+                "type": "Program",
+                "settings": {
+                    "indexBase": 0,
+                    "commentMarker": "#",
+                    "logicNote": false
+                },
+                "body": [
+                    {
+                        "type": "If",
+                        "branches": [
+                            {
+                                "condition": {
+                                    "type": "Binary",
+                                    "operator": ">",
+                                    "left": {
+                                        "type": "Name",
+                                        "name": "a",
+                                        "line": 1,
+                                        "column": 3
+                                    },
+                                    "right": {
+                                        "type": "Number",
+                                        "value": "0",
+                                        "line": 1,
+                                        "column": 7
+                                    },
+                                    "line": 1,
+                                    "column": 3
+                                },
+                                "body": [
+                                    {
+                                        "type": "Assign",
+                                        "target": {
+                                            "type": "Name",
+                                            "name": "b",
+                                            "line": 2,
+                                            "column": 2
+                                        },
+                                        "value": {
+                                            "type": "Number",
+                                            "value": "1",
+                                            "line": 2,
+                                            "column": 6
+                                        },
+                                        "line": 2,
+                                        "column": 2
+                                    }
+                                ],
+                                "line": 1
+                            }
+                        ],
+                        "elseBody": null,
+                        "elseLine": null,
+                        "line": 1,
+                        "column": 0,
+                        "closeLine": 4,
+                        "closeAfter": 4,
+                        "closeOwnLine": true,
+                        "closeComment": "# おわり"
+                    }
+                ],
+                "line": 1,
+                "column": 0
+            }
+        },
+        {
+            "title": "the settings are read from the sentences at the top",
+            "ja": "# すべての配列の添字は 1 から始まる。\nA[1] = 2",
+            "program": {
+                "type": "Program",
+                "settings": {
+                    "indexBase": 1,
+                    "commentMarker": "#",
+                    "logicNote": false
+                },
+                "body": [
+                    {
+                        "type": "Comment",
+                        "text": "# すべての配列の添字は 1 から始まる。",
+                        "line": 1,
+                        "column": 0
+                    },
+                    {
+                        "type": "Assign",
+                        "target": {
+                            "type": "Index",
+                            "target": {
+                                "type": "Name",
+                                "name": "A",
+                                "line": 2,
+                                "column": 0
+                            },
+                            "index": {
+                                "type": "Number",
+                                "value": "1",
+                                "line": 2,
+                                "column": 2
+                            },
+                            "line": 2,
+                            "column": 0
+                        },
+                        "value": {
+                            "type": "Number",
+                            "value": "2",
+                            "line": 2,
+                            "column": 7
+                        },
+                        "line": 2,
+                        "column": 0
+                    }
+                ],
+                "line": 1,
+                "column": 0
+            }
+        },
+        {
+            "title": "an element added at the end of an array (`A に 値 を追加する`)",
+            "ja": "A に x + 1 を追加する",
+            "program": {
+                "type": "Program",
+                "settings": {
+                    "indexBase": 0,
+                    "commentMarker": "#",
+                    "logicNote": false
+                },
+                "body": [
+                    {
+                        "type": "Append",
+                        "target": {
+                            "type": "Name",
+                            "name": "A",
+                            "line": 1,
+                            "column": 0
+                        },
+                        "value": {
+                            "type": "Binary",
+                            "operator": "+",
+                            "left": {
+                                "type": "Name",
+                                "name": "x",
+                                "line": 1,
+                                "column": 4
+                            },
+                            "right": {
+                                "type": "Number",
+                                "value": "1",
+                                "line": 1,
+                                "column": 8
+                            },
+                            "line": 1,
+                            "column": 4
+                        },
+                        "line": 1,
+                        "column": 0
+                    }
+                ],
+                "line": 1,
+                "column": 0
+            }
+        }
+    ],
+    "same": [
+        {
+            "title": "`//` and `÷` are the same",
+            "ja": "x = a + b // 2",
+            "as": "x = a + b ÷ 2"
+        },
+        {
+            "title": "full-width operators are read as the half-width ones",
+            "ja": "x = a ＋ 1 ≦ 3",
+            "as": "x = a + 1 <= 3"
+        },
+        {
+            "title": "the same blocks written with indentation",
+            "ja": "i を 1 から 3 まで 1 ずつ増やしながら繰り返す:\n    もし i > 1 ならば:\n        表示する(i)\n表示する(0)",
+            "as": "i を 1 から 3 まで 1 ずつ増やしながら繰り返す:\n｜ もし i > 1 ならば:\n⎿ ⎿ 表示する(i)\n表示する(0)"
+        },
+        {
+            "title": "the line numbers aligned on the code are taken off",
+            "ja": "(9)  もし x > 0 ならば:\n(10)  y = 1\n(11) z = 2",
+            "as": "もし x > 0 ならば:\n y = 1\nz = 2"
+        },
+        {
+            "title": "DNCL-like: もし ... を実行する",
+            "ja": "もし a > 0 ならば\n  b = 1\nを実行する",
+            "as": "もし a > 0 ならば:\n  b = 1"
+        },
+        {
+            "title": "DNCL-like: else if and else",
+            "ja": "もし a > 0 ならば\n  b = 1\nそうでなくもし a < 0 ならば\n  b = 2\nそうでなければ\n  b = 3\nを実行する",
+            "as": "もし a > 0 ならば:\n  b = 1\nそうでなくもし a < 0 ならば:\n  b = 2\nそうでなければ:\n  b = 3"
+        },
+        {
+            "title": "DNCL-like: の間 ... を繰り返す",
+            "ja": "x > 1 の間\n  x = x - 1\nを繰り返す",
+            "as": "x > 1 の間繰り返す:\n  x = x - 1"
+        },
+        {
+            "title": "DNCL-like: a counting loop",
+            "ja": "i を 1 から 3 まで 1 ずつ増やしながら\n  表示する(i)\nを繰り返す",
+            "as": "i を 1 から 3 まで 1 ずつ増やしながら繰り返す:\n  表示する(i)"
+        },
+        {
+            "title": "a reading comma between の間 and 繰り返す (，)",
+            "ja": "n < 5 の間，繰り返す:\n    n = n + 2",
+            "as": "n < 5 の間繰り返す:\n    n = n + 2"
+        },
+        {
+            "title": "a reading comma between の間 and 繰り返す (、 and spaces)",
+            "ja": "n < 5 の間 、 繰り返す:\n    n = n + 2",
+            "as": "n < 5 の間繰り返す:\n    n = n + 2"
+        },
+        {
+            "title": "a reading comma between の間 and 繰り返す (half-width , and a full-width space)",
+            "ja": "n < 5 の間,　繰り返す：\n    n = n + 2",
+            "as": "n < 5 の間繰り返す:\n    n = n + 2"
+        },
+        {
+            "title": "a reading comma after の間 before the colon",
+            "ja": "n < 5 の間，:\n    n = n + 2",
+            "as": "n < 5 の間繰り返す:\n    n = n + 2"
+        },
+        {
+            "title": "DNCL-like: a reading comma after の間",
+            "ja": "n < 5 の間，\n    n = n + 2\nを繰り返す",
+            "as": "n < 5 の間繰り返す:\n    n = n + 2"
+        },
+        {
+            "title": "a reading comma between ずつ増やしながら and 繰り返す",
+            "ja": "k を 2 から 8 まで 2 ずつ増やしながら，繰り返す:\n    表示する(k)",
+            "as": "k を 2 から 8 まで 2 ずつ増やしながら繰り返す:\n    表示する(k)"
+        },
+        {
+            "title": "a reading comma between ずつ 減らしながら and 繰り返す (、)",
+            "ja": "k を 8 から 2 まで 2 ずつ 減らしながら、繰り返す:\n    表示する(k)",
+            "as": "k を 8 から 2 まで 2 ずつ減らしながら繰り返す:\n    表示する(k)"
+        },
+        {
+            "title": "DNCL-like: a reading comma after ずつ増やしながら",
+            "ja": "k を 2 から 8 まで 2 ずつ増やしながら，\n    表示する(k)\nを繰り返す",
+            "as": "k を 2 から 8 まで 2 ずつ増やしながら繰り返す:\n    表示する(k)"
+        },
+        {
+            "title": "a reading comma after ならば, そうでなくもし ... ならば and そうでなければ",
+            "ja": "もし m > 0 ならば，:\n    s = 1\nそうでなくもし m < 0 ならば、:\n    s = 2\nそうでなければ,:\n    s = 3",
+            "as": "もし m > 0 ならば:\n    s = 1\nそうでなくもし m < 0 ならば:\n    s = 2\nそうでなければ:\n    s = 3"
+        },
+        {
+            "title": "DNCL-like: a reading comma after ならば, なら and そうでなければ",
+            "ja": "もし m > 0 ならば，\n    s = 1\nそうでなくもし m < 0 なら，\n    s = 2\nそうでなければ，\n    s = 3\nを実行する",
+            "as": "もし m > 0 ならば:\n    s = 1\nそうでなくもし m < 0 ならば:\n    s = 2\nそうでなければ:\n    s = 3"
+        },
+        {
+            "title": "DNCL-like: 関数 ... と定義する",
+            "ja": "関数 f(a)\n  a + 1 を返す\nと定義する",
+            "as": "関数 f(a):\n  返す a + 1"
+        },
+        {
+            "title": "DNCL-like: ... を定義する",
+            "ja": "f(a) を定義する:\n  返す a",
+            "as": "関数 f(a):\n  返す a"
+        },
+        {
+            "title": "DNCL-like: ←",
+            "ja": "a ← 1",
+            "as": "a = 1"
+        },
+        {
+            "title": "DNCL-like: two ←",
+            "ja": "a ← 1, b ← 2",
+            "as": "a = 1, b = 2"
+        },
+        {
+            "title": "DNCL-like: かつ / または",
+            "ja": "x = a かつ b または c",
+            "as": "x = a and b or c"
+        },
+        {
+            "title": "DNCL-like: でない",
+            "ja": "x = a > 1 でない かつ b",
+            "as": "x = not a > 1 and b"
+        },
+        {
+            "title": "DNCL-like: でない after parentheses",
+            "ja": "x = (a かつ b) でない",
+            "as": "x = not (a and b)"
+        },
+        {
+            "title": "DNCL-like: 「」",
+            "ja": "表示する(「こんにちは」)",
+            "as": "表示する(\"こんにちは\")"
+        },
+        {
+            "title": "DNCL-like: 「」 with a double quote",
+            "ja": "表示する(「a\"b」)",
+            "as": "表示する(\"a\\\"b\")"
+        },
+        {
+            "title": "DNCL-like: 「」 with a #",
+            "ja": "表示する(「#」)",
+            "as": "表示する(\"#\")"
+        },
+        {
+            "title": "the indentation inside a block closed by a line does not matter",
+            "ja": "a > 0 の間\na = a - 1\n    b = 1\nを繰り返す",
+            "as": "a > 0 の間繰り返す:\n    a = a - 1\n    b = 1"
+        },
+        {
+            "title": "the two forms mixed",
+            "ja": "もし a > 0 ならば\n  x > 1 の間繰り返す:\n      x = x - 1\n  b = 1\nを実行する",
+            "as": "もし a > 0 ならば:\n  x > 1 の間繰り返す:\n      x = x - 1\n  b = 1"
+        },
+        {
+            "title": "a block opened with `:` whose next line is not deeper ends at a closing line",
+            "ja": "もし a > 0 ならば:\nb = 1\nを実行する",
+            "as": "もし a > 0 ならば:\n  b = 1"
+        },
+        {
+            "title": "`end` closes a block opened without `:`",
+            "ja": "もし a > 0 ならば\n  b = 1\nend",
+            "as": "もし a > 0 ならば:\n  b = 1"
+        },
+        {
+            "title": "`end` closes any kind of block opened without `:` (as in Ruby; the closing words must be of their block)",
+            "ja": "x > 0 の間\n  x = x - 1\nend",
+            "as": "x > 0 の間繰り返す:\n  x = x - 1"
+        },
+        {
+            "title": "`を追加する` with no spaces around the value in brackets",
+            "ja": "A に (3) を追加する",
+            "as": "A に 3 を追加する"
+        },
+        {
+            "title": "a closing line indented like the body closes its block opened with `:` (Issue #2058)",
+            "ja": "もし a > 0 ならば:\n    b = 1\n    を実行する\nc = 2",
+            "as": "もし a > 0 ならば:\n    b = 1\nc = 2"
+        },
+        {
+            "title": "a closing line deeper than the body closes the innermost block (Issue #2058)",
+            "ja": "もし a > 0 ならば:\n    b = 1\n        を実行する\nc = 2",
+            "as": "もし a > 0 ならば:\n    b = 1\nc = 2"
+        },
+        {
+            "title": "an empty block opened with `:` closed by an indented closing line (Issue #2058)",
+            "ja": "もし a > 0 ならば:\n    を実行する\nc = 2",
+            "as": "もし a > 0 ならば\nを実行する\nc = 2"
+        },
+        {
+            "title": "a closing line right after the `⎿` that closed its block says the same end (Issue #2058)",
+            "ja": "もし a > 0 ならば:\n｜ b = 1\n⎿ c = 1\nを実行する",
+            "as": "もし a > 0 ならば:\n｜ b = 1\n⎿ c = 1"
+        },
+        {
+            "title": "a closing line on the `⎿` line says the same end (Issue #2058)",
+            "ja": "もし a > 0 ならば:\n｜ b = 1\n｜ c = 1\n⎿ を実行する\nd = 2",
+            "as": "もし a > 0 ならば:\n｜ b = 1\n⎿ c = 1\nd = 2"
+        },
+        {
+            "title": "the comment of a closing line after the `⎿` goes with the end, as when the line closes the block (Issue #2556)",
+            "ja": "もし a > 0 ならば:\n⎿ b = 1\nを実行する # おわり\nc = 2",
+            "as": "もし a > 0 ならば\n  b = 1\nを実行する # おわり\nc = 2"
+        },
+        {
+            "title": "the comment of a closing line on the `⎿` line goes with the end (Issue #2058)",
+            "ja": "もし a > 0 ならば:\n｜ b = 1\n⎿ を実行する # おわり\nc = 2",
+            "as": "もし a > 0 ならば\n｜ b = 1\nを実行する # おわり\nc = 2"
+        },
+        {
+            "title": "a comment not deeper than an if / else written with indentation is after it (Issue #2556)",
+            "ja": "もし a > 0 ならば:\n    b = 1\nそうでなければ:\n    b = 2\n# C\nc = 3",
+            "as": "もし a > 0 ならば\n  b = 1\nそうでなければ\n  b = 2\nを実行する\n# C\nc = 3"
+        },
+        {
+            "title": "a comment not deeper than the blocks at the end of the program is after them (Issue #2556)",
+            "ja": "もし a > 0 ならば:\n    もし b > 0 ならば:\n        c = 1\n    # D\n# C",
+            "as": "もし a > 0 ならば\n  もし b > 0 ならば\n    c = 1\n  を実行する\n  # D\nを実行する\n# C"
+        },
+        {
+            "title": "a comment in a block written with indentation stays in it when the block goes on (Issue #2556)",
+            "ja": "もし a > 0 ならば:\n    b = 1\n# C\n    c = 2",
+            "as": "もし a > 0 ならば\n  b = 1\n  # C\n  c = 2\nを実行する"
+        }
+    ],
+    "errors": [
+        {
+            "title": "a closing line with no block",
+            "ja": "を実行する",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「を実行する」で閉じるブロックがありません",
+                    "line": 1,
+                    "column": 0,
+                    "block": "stray-closer",
+                    "word": "を実行する"
+                }
+            ]
+        },
+        {
+            "title": "`end` after a block opened with `:`",
+            "ja": "もし a > 0 ならば:\n    b = 1\nend",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「end」で閉じるブロックがありません",
+                    "line": 3,
+                    "column": 0,
+                    "block": "stray-closer",
+                    "word": "end"
+                }
+            ]
+        },
+        {
+            "title": "a closing word of another kind of block is an error on the closing line (W3 of Issue #1731)",
+            "ja": "もし a > 0 ならば\n  b = 1\nを繰り返す",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「を繰り返す」ではなく「を実行する」で閉じてください",
+                    "line": 3,
+                    "column": 0,
+                    "opener": "If",
+                    "colon": false,
+                    "block": "closer-kind",
+                    "word": "を繰り返す",
+                    "expected": "を実行する"
+                }
+            ]
+        },
+        {
+            "title": "a loop closed by を実行する is an error",
+            "ja": "a > 0 の間\n  a = a - 1\nを実行する",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「を実行する」ではなく「を繰り返す」で閉じてください",
+                    "line": 3,
+                    "column": 0,
+                    "opener": "While",
+                    "colon": false,
+                    "block": "closer-kind",
+                    "word": "を実行する",
+                    "expected": "を繰り返す"
+                }
+            ]
+        },
+        {
+            "title": "a counting loop down closed by と定義する is an error",
+            "ja": "i を 3 から 1 まで 1 ずつ減らしながら\n  b = i\nと定義する",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「と定義する」ではなく「を繰り返す」で閉じてください",
+                    "line": 3,
+                    "column": 0,
+                    "opener": "For",
+                    "direction": "down",
+                    "colon": false,
+                    "block": "closer-kind",
+                    "word": "と定義する",
+                    "expected": "を繰り返す"
+                }
+            ]
+        },
+        {
+            "title": "a function closed by を繰り返す is an error",
+            "ja": "関数 f(a)\n  返す a\nを繰り返す",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「を繰り返す」ではなく「と定義する」で閉じてください",
+                    "line": 3,
+                    "column": 0,
+                    "opener": "FunctionDef",
+                    "colon": false,
+                    "block": "closer-kind",
+                    "word": "を繰り返す",
+                    "expected": "と定義する"
+                }
+            ]
+        },
+        {
+            "title": "a block opened with : closed by a line of another kind at its indent is an error",
+            "ja": "もし a > 0 ならば:\n    b = 1\nを繰り返す",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「を繰り返す」ではなく「を実行する」で閉じてください",
+                    "line": 3,
+                    "column": 0,
+                    "opener": "If",
+                    "colon": true,
+                    "block": "closer-kind",
+                    "word": "を繰り返す",
+                    "expected": "を実行する"
+                }
+            ]
+        },
+        {
+            "title": "a block forgotten to be closed inside the one the closing word closes is told as not closed",
+            "ja": "i を 1 から 3 まで 1 ずつ増やしながら\n  もし i > 1 ならば\n    x = 1\nを繰り返す",
+            "errors": [
+                {
+                    "code": "unclosed",
+                    "message": "「を実行する」で閉じていません",
+                    "line": 2,
+                    "column": 2,
+                    "opener": "If",
+                    "colon": false,
+                    "word": "を実行する"
+                }
+            ]
+        },
+        {
+            "title": "もし not closed",
+            "ja": "もし a > 0 ならば\n  b = 1",
+            "errors": [
+                {
+                    "code": "unclosed",
+                    "message": "「を実行する」で閉じていません",
+                    "line": 1,
+                    "column": 0,
+                    "opener": "If",
+                    "colon": false,
+                    "word": "を実行する"
+                }
+            ]
+        },
+        {
+            "title": "関数 not closed",
+            "ja": "関数 f(a)\n  返す a",
+            "errors": [
+                {
+                    "code": "unclosed",
+                    "message": "「と定義する」で閉じていません",
+                    "line": 1,
+                    "column": 0,
+                    "opener": "FunctionDef",
+                    "colon": false,
+                    "word": "と定義する"
+                }
+            ]
+        },
+        {
+            "title": "a block not closed is an error on its opening line",
+            "ja": "x = 1\nx > 0 の間\n  x = x - 1",
+            "errors": [
+                {
+                    "code": "unclosed",
+                    "message": "「を繰り返す」で閉じていません",
+                    "line": 2,
+                    "column": 0,
+                    "opener": "While",
+                    "colon": false,
+                    "word": "を繰り返す"
+                }
+            ]
+        },
+        {
+            "title": "a hexadecimal number",
+            "ja": "a = 0x5",
+            "errors": [
+                {
+                    "code": "bad-number",
+                    "message": "「0x5」は日本語モードでは書けない数の書き方です",
+                    "line": 1,
+                    "column": 4,
+                    "name": "0x5"
+                }
+            ]
+        },
+        {
+            "title": "an instance variable",
+            "ja": "a = @b",
+            "errors": [
+                {
+                    "code": "forbidden",
+                    "message": "日本語モードでは変数に「@」は使えません",
+                    "line": 1,
+                    "column": 4,
+                    "name": "@"
+                }
+            ]
+        },
+        {
+            "title": "a post-test loop",
+            "ja": "begin",
+            "errors": [
+                {
+                    "code": "post-test-loop",
+                    "message": "後判定の繰り返しは日本語では書けません。最初の 1 回をループの前に書いてから「〜の間繰り返す」にしてください",
+                    "line": 1,
+                    "column": 0
+                }
+            ]
+        },
+        {
+            "title": "an empty block",
+            "ja": "もし a > 0 ならば:",
+            "errors": [
+                {
+                    "code": "empty-block",
+                    "message": "ブロックの中に行がありません",
+                    "line": 1,
+                    "column": 0,
+                    "opener": "If",
+                    "colon": true
+                }
+            ]
+        },
+        {
+            "title": "an indented line that cannot be read is told alone, not its block as empty",
+            "ja": "もし 1 > 0 ならば:\n    表示する(1",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「)」が要ります",
+                    "line": 2,
+                    "column": 0
+                }
+            ]
+        },
+        {
+            "title": "a line that cannot be read after the lines of its block is told alone",
+            "ja": "a < 10 の間繰り返す:\n    a = a + 1\n    表示する(a\n表示する(a)",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「)」が要ります",
+                    "line": 3,
+                    "column": 0
+                }
+            ]
+        },
+        {
+            "title": "a line that cannot be read and is not indented leaves its block empty",
+            "ja": "もし 1 > 0 ならば:\n表示する(1",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「)」が要ります",
+                    "line": 2,
+                    "column": 0
+                },
+                {
+                    "code": "empty-block",
+                    "message": "ブロックの中に行がありません",
+                    "line": 1,
+                    "column": 0,
+                    "opener": "If",
+                    "colon": true
+                }
+            ]
+        },
+        {
+            "title": "a line that cannot be read is not indented when its longer line number makes it look so",
+            "ja": "(1) a = 0\n(2) a = 1\n(3) a = 2\n(4) a = 3\n(5) a = 4\n(6) a = 5\n(7) a = 6\n(8) a = 7\n(9) もし 1 > 0 ならば:\n(10) 表示する(1",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「)」が要ります",
+                    "line": 10,
+                    "column": 0
+                },
+                {
+                    "code": "empty-block",
+                    "message": "ブロックの中に行がありません",
+                    "line": 9,
+                    "column": 4,
+                    "opener": "If",
+                    "colon": true
+                }
+            ]
+        },
+        {
+            "title": "a line that cannot be read is indented when the code is aligned after the line numbers",
+            "ja": "(1)  a = 0\n(2)  a = 1\n(3)  a = 2\n(4)  a = 3\n(5)  a = 4\n(6)  a = 5\n(7)  a = 6\n(8)  a = 7\n(9)  もし 1 > 0 ならば:\n(10)     表示する(1",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「)」が要ります",
+                    "line": 10,
+                    "column": 0
+                }
+            ]
+        },
+        {
+            "title": "the lines of a block whose opening line cannot be read are not told as at another indent",
+            "ja": "もし 1 > 0 ならば:\n    もし (1 > 0 ならば:\n        表示する(1)\n    表示する(2)\n表示する(3)",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「)」が要ります",
+                    "line": 2,
+                    "column": 0
+                }
+            ]
+        },
+        {
+            "title": "the lines after a block whose opening line cannot be read at the top are not told as at another indent",
+            "ja": "もし (1 > 0 ならば:\n    表示する(1)\n表示する(2)",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「)」が要ります",
+                    "line": 1,
+                    "column": 0
+                }
+            ]
+        },
+        {
+            "title": "an open parenthesis",
+            "ja": "a = (1",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「)」が要ります",
+                    "line": 1,
+                    "column": 0
+                }
+            ]
+        },
+        {
+            "title": "the error is on the line it is on",
+            "ja": "a = 1\nb = 1_000",
+            "errors": [
+                {
+                    "code": "bad-number",
+                    "message": "「1_000」は日本語モードでは書けない数の書き方です",
+                    "line": 2,
+                    "column": 4,
+                    "name": "1_000"
+                }
+            ]
+        },
+        {
+            "title": "an element is added only to an array variable",
+            "ja": "A[0] に 3 を追加する",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "要素を追加できるのは配列の変数だけです",
+                    "line": 1,
+                    "column": 0
+                }
+            ]
+        },
+        {
+            "title": "`を追加する` with no value",
+            "ja": "A に を追加する",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「を追加する」の前に追加する値を書きます",
+                    "line": 1,
+                    "column": 0
+                }
+            ]
+        },
+        {
+            "title": "a comma after ならば is read only at the end of the line",
+            "ja": "もし m > 0 ならば，s = 1",
+            "errors": [{ "code": "syntax", "message": "「もし」の後に「ならば」が要ります", "line": 1, "column": 0 }]
+        },
+        {
+            "title": "a comma before の間 is not a reading comma of the loop",
+            "ja": "n < 5，の間繰り返す:\n    n = n + 2",
+            "errors": [{ "code": "syntax", "message": "「，」が読めません", "line": 1, "column": 5 }]
+        },
+        {
+            "title": "an else deeper than its if (Issue #2030)",
+            "ja": "もし a > 0 ならば:\n    b = 1\n  そうでなければ:\n    b = 2",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "対応する「もし」がありません",
+                    "line": 3,
+                    "column": 2,
+                    "block": "stray-branch",
+                    "branch": "else",
+                    "colon": true
+                }
+            ]
+        },
+        {
+            "title": "an else-if with one space more after `｜` than its if (Issue #2030)",
+            "ja": "i を 1 から 3 まで 1 ずつ増やしながら繰り返す:\n｜ もし i > 1 ならば:\n｜     b = i\n｜  そうでなくもし i > 0 ならば:\n｜     b = 0\n⎿ b = 9",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "対応する「もし」がありません",
+                    "line": 4,
+                    "column": 3,
+                    "block": "stray-branch",
+                    "branch": "elsif",
+                    "colon": true
+                }
+            ]
+        },
+        {
+            "title": "a second closing line after the `⎿` is extra (Issue #2058)",
+            "ja": "もし a > 0 ならば:\n｜ b = 1\n⎿ c = 1\nを実行する\nを実行する",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「を実行する」で閉じるブロックがありません",
+                    "line": 5,
+                    "column": 0,
+                    "block": "stray-closer",
+                    "word": "を実行する"
+                }
+            ]
+        },
+        {
+            "title": "a closing line too many for the blocks opened with `:` is extra (Issue #2058)",
+            "ja": "もし a > 0 ならば:\n    b = 1\nを実行する\nを実行する",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「を実行する」で閉じるブロックがありません",
+                    "line": 4,
+                    "column": 0,
+                    "block": "stray-closer",
+                    "word": "を実行する"
+                }
+            ]
+        },
+        {
+            "title": "a line of a block opened with `:` shallower than the lines before it is an error (Issue #2555)",
+            "ja": "もし a > 0 ならば:\n    b = 1\n  c = 2",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "字下げが合いません",
+                    "line": 3,
+                    "column": 2,
+                    "block": "indent"
+                }
+            ]
+        },
+        {
+            "title": "a line deeper than the line before it outside any block is an error (Issue #2555)",
+            "ja": "a = 1\n    b = 2",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "字下げが合いません",
+                    "line": 2,
+                    "column": 4,
+                    "block": "indent"
+                }
+            ]
+        },
+        {
+            "title": "a line after a block between its indent and the lines in it is an error (Issue #2555)",
+            "ja": "もし a > 0 ならば:\n        b = 1\n    c = 2",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "字下げが合いません",
+                    "line": 3,
+                    "column": 4,
+                    "block": "indent"
+                }
+            ]
+        },
+        {
+            "title": "a line of an inner block at no indent of the blocks around it is an error (Issue #2555)",
+            "ja": "もし a > 0 ならば:\n    もし b > 0 ならば:\n        c = 1\n      d = 2\n    e = 3",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "字下げが合いません",
+                    "line": 4,
+                    "column": 6,
+                    "block": "indent"
+                }
+            ]
+        },
+        {
+            "title": "only the opening line of a block opened with `:` at another indent is an error, not the lines in it (Issue #2555)",
+            "ja": "a = 1\n  もし a > 0 ならば:\n      b = 1\n      c = 2\nd = 3",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "字下げが合いません",
+                    "line": 2,
+                    "column": 2,
+                    "block": "indent"
+                }
+            ]
+        },
+        {
+            "title": "only the opening line of a block closed by a line of its own at another indent is an error, not its closing line (Issue #2555)",
+            "ja": "a = 1\n  もし a > 0 ならば\n      b = 1\n  を実行する\nd = 3",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "字下げが合いません",
+                    "line": 2,
+                    "column": 2,
+                    "block": "indent"
+                }
+            ]
+        }
+    ]
+}

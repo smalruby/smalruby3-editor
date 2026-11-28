@@ -1,0 +1,355 @@
+{
+    "about": "jaToRuby(ja, table): the Ruby and the Japanese line of each Ruby line, or the errors (on Japanese lines) when there is no Ruby. The tables are made by each implementation: \"none\" is no table (names are local variables, no function), \"plain\" has only 表示する → puts, \"gets\" has the inputs as gets alone (see README.md).",
+    "cases": [
+        {
+            "title": "an assignment",
+            "table": "none",
+            "ja": "x = 1",
+            "ruby": "x = 1",
+            "jaLines": [1]
+        },
+        {
+            "title": "an array and its element",
+            "table": "none",
+            "ja": "Data = [1, 2]\nx = Data[0]",
+            "ruby": "Data = [1, 2]\nx = Data[0]",
+            "jaLines": [1, 2]
+        },
+        {
+            "title": "a name in capitals is written as it is",
+            "table": "none",
+            "ja": "A = 3",
+            "ruby": "A = 3",
+            "jaLines": [1]
+        },
+        {
+            "title": "the integer quotient",
+            "table": "none",
+            "ja": "b = a ÷ 2 + 1",
+            "ruby": "b = (a / 2).to_i + 1",
+            "jaLines": [1]
+        },
+        {
+            "title": "a negative number before the integer quotient is its left side (-7 ÷ 2 is -4)",
+            "table": "none",
+            "ja": "b = -7 ÷ 2",
+            "ruby": "b = (-7 / 2).to_i",
+            "jaLines": [1]
+        },
+        {
+            "title": "a sign before the integer quotient binds tighter than ÷",
+            "table": "none",
+            "ja": "b = -a ÷ 2",
+            "ruby": "b = (-a / 2).to_i",
+            "jaLines": [1]
+        },
+        {
+            "title": "the parentheses around a sign before ÷ are kept in the Ruby",
+            "table": "none",
+            "ja": "b = (-a) ÷ 2",
+            "ruby": "b = (-a / 2).to_i",
+            "jaLines": [1]
+        },
+        {
+            "title": "a sign before a quotient in parentheses is the sign of the quotient",
+            "table": "none",
+            "ja": "b = -(a ÷ 2)",
+            "ruby": "b = -((a / 2).to_i)",
+            "jaLines": [1]
+        },
+        {
+            "title": "not and or",
+            "table": "none",
+            "ja": "x = not (a > 0 or b)",
+            "ruby": "x = !(a > 0 || b)",
+            "jaLines": [1]
+        },
+        {
+            "title": "a counting loop becomes a while loop that adds the step",
+            "table": "plain",
+            "ja": "i を 3 から 1 まで 1 ずつ減らしながら繰り返す:\n⎿ 表示する(i)",
+            "ruby": "i = 3\nwhile i >= 1\n  puts(i)\n  i += -1\nend",
+            "jaLines": [1, 1, 2, 2, 2]
+        },
+        {
+            "title": "reading commas in the block lines are read as without them",
+            "table": "plain",
+            "ja": "n = 0\nn < 6 の間，繰り返す:\n    もし n % 2 == 0 ならば、:\n        表示する(n)\n    そうでなければ,:\n        k を 1 から 2 まで 1 ずつ増やしながら，繰り返す:\n            表示する(k)\n    n = n + 1",
+            "ruby": "n = 0\nwhile n < 6\n  if n % 2 == 0\n    puts(n)\n  else\n    k = 1\n    while k <= 2\n      puts(k)\n      k += 1\n    end\n  end\n  n = n + 1\nend",
+            "jaLines": [1, 2, 3, 4, 5, 6, 6, 7, 7, 7, 7, 8, 8]
+        },
+        {
+            "title": "a loop on a `not` is an until loop",
+            "table": "none",
+            "ja": "not x の間繰り返す:\n  x = 真",
+            "ruby": "until x\n  x = true\nend",
+            "jaLines": [1, 2, 2]
+        },
+        {
+            "title": "a function and its parameters",
+            "table": "none",
+            "ja": "関数 たす(a, b):\n    返す a + b + c",
+            "ruby": "def たす(a, b)\n  return a + b + c\nend",
+            "jaLines": [1, 2, 2]
+        },
+        {
+            "title": "a block that ends by its indent puts the blank lines after its end",
+            "table": "none",
+            "ja": "もし a > 0 ならば:\n    a = 1\n\nb = 2",
+            "ruby": "if a > 0\n  a = 1\nend\n\nb = 2",
+            "jaLines": [1, 2, 2, 3, 4]
+        },
+        {
+            "title": "a block closed by a line of its own has its end on that line",
+            "table": "none",
+            "ja": "もし a > 0 ならば\n  a = 1\n\nを実行する # c\nb = 2",
+            "ruby": "if a > 0\n  a = 1\n\nend # c\nb = 2",
+            "jaLines": [1, 2, 3, 4, 5]
+        },
+        {
+            "title": "a counting loop closed by `を繰り返す` adds the step on that line",
+            "table": "plain",
+            "ja": "i を 3 から 1 まで -1 ずつ減らしながら\n  表示する(i)\nを繰り返す",
+            "ruby": "i = 3\nwhile i >= 1\n  puts(i)\n  i += -(-1)\nend",
+            "jaLines": [1, 1, 2, 3, 3]
+        },
+        {
+            "title": "a counting loop closed by another closing word is an error that says its closing word (W3 of Issue #1731)",
+            "table": "plain",
+            "ja": "i を 1 から 3 まで 1 ずつ増やしながら\n  表示する(i)\nを実行する",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「を実行する」ではなく「を繰り返す」で閉じてください",
+                    "line": 3,
+                    "column": 0,
+                    "opener": "For",
+                    "direction": "up",
+                    "colon": false,
+                    "block": "closer-kind",
+                    "word": "を実行する",
+                    "expected": "を繰り返す"
+                }
+            ]
+        },
+        {
+            "title": "the names and functions are what the table says",
+            "table": "plain",
+            "ja": "x = 1\n表示する(x, 2)",
+            "ruby": "x = 1\nputs(x, 2)",
+            "jaLines": [1, 2]
+        },
+        {
+            "title": "a function not in the table is an error",
+            "table": "plain",
+            "ja": "要素数(x)",
+            "errors": [
+                {
+                    "code": "unknown-command",
+                    "message": "「要素数」は定義されていない関数です",
+                    "line": 1,
+                    "column": 0,
+                    "name": "要素数"
+                }
+            ]
+        },
+        {
+            "title": "without a table of inputs, an input is an error",
+            "table": "plain",
+            "ja": "x = 【外部からの入力】",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "入力は使えません",
+                    "line": 1,
+                    "column": 0
+                }
+            ]
+        },
+        {
+            "title": "a command of a Ruby system is an error",
+            "table": "none",
+            "ja": "move(10)",
+            "errors": [
+                {
+                    "code": "unknown-command",
+                    "message": "「move」は日本語モードでは書けない命令です",
+                    "line": 1,
+                    "column": 0,
+                    "name": "move"
+                }
+            ]
+        },
+        {
+            "title": "the settings: indexes from 1",
+            "table": "none",
+            "ja": "# すべての配列の添字は 1 から始まる。\nA[i] = A[i + 1]",
+            "ruby": "# すべての配列の添字は 1 から始まる。\nA[i - 1] = A[i]",
+            "jaLines": [1, 2]
+        },
+        {
+            "title": "a name with 々, 〆, ヶ, a kanji of the CJK extensions or one out of the BMP is one name (Issue #1714)",
+            "table": "plain",
+            "ja": "佐々木 = 7\nx〆 = 佐々木 + 2\n㐀ヶ = 1\n𠮷田 = 1\n表示する(佐々木)",
+            "ruby": "佐々木 = 7\nx〆 = 佐々木 + 2\n㐀ヶ = 1\n𠮷田 = 1\nputs(佐々木)",
+            "jaLines": [1, 2, 3, 4, 5]
+        },
+        {
+            "title": "a Greek letter is a name, and a full-width letter or digit is read as the half-width one (ｘ１ is x1, as the Ruby mode makes it)",
+            "table": "none",
+            "ja": "α = 1\nｘ１ = α ÷ 2\nx = ｘ１",
+            "ruby": "α = 1\nx1 = (α / 2).to_i\nx = x1",
+            "jaLines": [1, 2, 3]
+        },
+        {
+            "title": "a combining mark is in a name (か and ゙)",
+            "table": "none",
+            "ja": "が = 1",
+            "ruby": "が = 1",
+            "jaLines": [1]
+        },
+        {
+            "title": "a character that is not a letter is not read, and one out of the BMP is told whole",
+            "table": "none",
+            "ja": "a = 😀\nb☆ = 1",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「😀」が読めません",
+                    "line": 1,
+                    "column": 4
+                },
+                {
+                    "code": "syntax",
+                    "message": "「☆」が読めません",
+                    "line": 2,
+                    "column": 1
+                }
+            ]
+        },
+        {
+            "title": "a multiple assignment to elements of an array (the swap) writes them as elements (Issue #2237)",
+            "table": "none",
+            "ja": "a = [1, 2]\na[0], a[1] = a[1], a[0]\nx, B[i + 1] = 1, 2",
+            "ruby": "a = [1, 2]\na[0], a[1] = a[1], a[0]\nx, B[i + 1] = 1, 2",
+            "jaLines": [1, 2, 3]
+        },
+        {
+            "title": "full-width digits are read as the digits (only how they look differs), in a number and in a name, and the Ruby has the half-width ones",
+            "table": "none",
+            "ja": "x = １２\ny = ３．５ + x１",
+            "ruby": "x = 12\ny = 3.5 + x1",
+            "jaLines": [1, 2]
+        },
+        {
+            "title": "the full-width letters and digits in a string are kept as they are written",
+            "table": "plain",
+            "ja": "表示する(\"ＡＢＣ１２３\")\n表示する(「ｘ＝１」)\nｓ = 'ａ１'",
+            "ruby": "puts(\"ＡＢＣ１２３\")\nputs(\"ｘ＝１\")\ns = 'ａ１'",
+            "jaLines": [1, 2, 3]
+        },
+        {
+            "title": "the full-width letters and digits in a comment are kept as they are written, and the code before it is made half-width",
+            "table": "none",
+            "ja": "# ｘ は １ から\nｘ = １ # ｘ は ２ まで",
+            "ruby": "# ｘ は １ から\nx = 1 # ｘ は ２ まで",
+            "jaLines": [1, 2]
+        },
+        {
+            "title": "a keyword in full-width letters is the keyword (ａｎｄ is and)",
+            "table": "none",
+            "ja": "ｆｌａｇ = ｘ > 0 ａｎｄ ｎｏｔ ｙ",
+            "ruby": "flag = x > 0 && !y",
+            "jaLines": [1]
+        },
+        {
+            "title": "with // as the comment mark, the full-width letters of the comment are kept",
+            "table": "none",
+            "ja": "// 「//」から行の終わりまでは，処理の対象とならない。\nｘ = １ // ｘ を １ に",
+            "ruby": "# 「//」から行の終わりまでは，処理の対象とならない。\nx = 1 # ｘ を １ に",
+            "jaLines": [1, 2]
+        },
+        {
+            "title": "a name right after a number is not read as a product: the error says to write an operator",
+            "table": "none",
+            "ja": "a = 2倍",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「2倍」は読めません。数と名前の間には、「2 * 倍」のように演算子を書いてください",
+                    "line": 1,
+                    "column": 5
+                }
+            ]
+        },
+        {
+            "title": "a name right after full-width digits is told the same way",
+            "table": "none",
+            "ja": "a = １０回",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「10回」は読めません。数と名前の間には、「10 * 回」のように演算子を書いてください",
+                    "line": 1,
+                    "column": 6
+                }
+            ]
+        },
+        {
+            "title": "the box-drawing marks │ and └ are read as ｜ and ⎿ (only how they look differs), with | too",
+            "table": "none",
+            "ja": "もし x > 0 ならば:\n│ もし y > 0 ならば:\n│ └ y = 1\n└ z = 2\nw = 3",
+            "ruby": "if x > 0\n  if y > 0\n    y = 1\n  end\n  z = 2\nend\nw = 3",
+            "jaLines": [1, 2, 3, 3, 4, 4, 5]
+        },
+        {
+            "title": "| and └ mixed",
+            "table": "none",
+            "ja": "(1) もし x > 0 ならば:\n(2) | y = 1\n(3) └ z = 2",
+            "ruby": "if x > 0\n  y = 1\n  z = 2\nend",
+            "jaLines": [1, 2, 3, 3]
+        },
+        {
+            "title": "a full-width # starts a comment, and “…” is a string",
+            "table": "plain",
+            "ja": "表示する(“やあ”)  ＃ あいさつ",
+            "ruby": "puts(\"やあ\") # あいさつ",
+            "jaLines": [1]
+        },
+        {
+            "title": "an element added at the end of an array is push",
+            "table": "none",
+            "ja": "A = []\nA に 3 を追加する\nA に x + 1 を追加する",
+            "ruby": "A = []\nA.push(3)\nA.push(x + 1)",
+            "jaLines": [1, 2, 3]
+        },
+        {
+            "title": "an input that is a value by itself makes no question line",
+            "table": "gets",
+            "ja": "x = 【外部からの入力】\ny = 【整数を入力】",
+            "ruby": "x = gets\ny = gets.to_i",
+            "jaLines": [1, 2]
+        },
+        {
+            "title": "a closing line after the `⎿` that closed its block is the line of the end: no blank line (Issue #2556)",
+            "table": "plain",
+            "ja": "もし x > 0 ならば:\n⎿ 表示する(2)\nを実行する\n表示する(3)",
+            "ruby": "if x > 0\n  puts(2)\nend\nputs(3)",
+            "jaLines": [1, 2, 3, 4]
+        },
+        {
+            "title": "a comment line between the `⎿` and the closing line keeps the end on the `⎿` line (Issue #2556)",
+            "table": "plain",
+            "ja": "もし x > 0 ならば:\n⎿ 表示する(2)\n# X\nを実行する\n表示する(3)",
+            "ruby": "if x > 0\n  puts(2)\nend\n# X\n\nputs(3)",
+            "jaLines": [1, 2, 2, 3, 4, 5]
+        },
+        {
+            "title": "a comment not deeper than an if / else is after its end (Issue #2556)",
+            "table": "none",
+            "ja": "もし x > 0 ならば:\n    y = 1\nそうでなければ:\n    y = 2\n# C",
+            "ruby": "if x > 0\n  y = 1\nelse\n  y = 2\nend\n# C",
+            "jaLines": [1, 2, 3, 4, 4, 5]
+        }
+    ]
+}

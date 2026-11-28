@@ -25,11 +25,6 @@ const uri = path.resolve(__dirname, '../../build/index.html');
 
 const clickByTestId = (d, testId) => d.executeScript(`document.querySelector('[data-testid="${testId}"]').click()`);
 
-const isActiveByTestId = (d, testId) =>
-    d.executeScript(
-        `return document.querySelector('[data-testid="${testId}"]')` + `?.className?.includes('Active') ?? false`,
-    );
-
 const waitForEditorValue = (d, expected) =>
     d.wait(
         async () => {
@@ -58,12 +53,24 @@ const waitForActiveState = (d, testId, expected) =>
 const clickCodeTab = (d) => d.executeScript(`document.querySelector('[role="tab"]').click()`);
 
 /**
- * Click the Ruby tab (last tab: Code / Costumes / Sounds / Ruby).
- * Uses index instead of text matching because the label is locale-dependent.
+ * Click the Ruby tab (the label is locale-dependent).
  * @param {import('selenium-webdriver').WebDriver} d - WebDriver instance.
  */
-const clickRubyTab = (d) =>
-    d.executeScript(`const tabs = document.querySelectorAll('[role="tab"]'); tabs[tabs.length - 1].click()`);
+const clickRubyTab = (d) => clickByTestId(d, 'gui-tab-ruby');
+
+/**
+ * Click the Japanese tab (docs/dncl/design.md 1 章).
+ * @param {import('selenium-webdriver').WebDriver} d - WebDriver instance.
+ */
+const clickJapaneseTab = (d) => clickByTestId(d, 'gui-tab-japanese');
+
+const isTabSelected = (d, testId) =>
+    d.executeScript(
+        `return document.querySelector('[data-testid="${testId}"]')?.getAttribute('aria-selected') === 'true'`,
+    );
+
+const waitForTabSelected = (d, testId) =>
+    d.wait(() => isTabSelected(d, testId), 10000, `Tab ${testId} was not selected`);
 
 const existsByTestId = (d, testId) =>
     d.executeScript(`return document.querySelector('[data-testid="${testId}"]') !== null`);
@@ -129,7 +136,7 @@ const loadInRubyMode = async () => {
 
 let driver;
 
-describe('DNCL mode validation on switch', () => {
+describe('the Japanese tab (DNCL) and the check on switching to it', () => {
     beforeAll(async () => {
         driver = await getDriver();
     });
@@ -143,8 +150,151 @@ describe('DNCL mode validation on switch', () => {
         await fillInRubyProgram('@x = 10\nsay("hello", 1)\n');
         await waitForEditorValue(driver, '@x = 10');
 
-        await clickByTestId(driver, 'ruby-toolbar-mode-dncl');
-        await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', true);
+        // The Ruby tab has no Japanese button any more: Japanese is the Japanese tab
+        expect(await existsByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(false);
+        await clickJapaneseTab(driver);
+        await waitForMonacoLanguage(driver, 'dncl');
+        await waitForTestIdPresence(driver, 'ruby-tab-language-band', true);
+        expect(await isTabSelected(driver, 'gui-tab-japanese')).toBe(true);
+        // The console is the stage of the Japanese tab
+        await waitForTestIdPresence(driver, 'smalruby-console', true);
+        // and back in the Ruby tab the program is Ruby again, on the stage
+        await clickRubyTab(driver);
+        await waitForMonacoLanguage(driver, 'smalruby');
+        await waitForEditorValue(driver, '@x = 10');
+        await waitForTestIdPresence(driver, 'ruby-tab-language-band', false);
+        await waitForTestIdPresence(driver, 'smalruby-console', false);
+    });
+
+    test('the console fills the right column in every tab, and the button keeps it hidden across the tabs', async () => {
+        const isInSlot = () =>
+            driver.executeScript(
+                'return document.querySelector(\'[data-testid="smalruby-console-slot"] [data-testid="smalruby-console"]\') !== null',
+            );
+        const isVisibleByTestId = (testId) =>
+            driver.executeScript(
+                `const e = document.querySelector('[data-testid="${testId}"]'); return e !== null && !e.hidden`,
+            );
+        await loadInRubyMode(driver);
+        await fillInRubyProgram('@x = 10\n');
+        await waitForEditorValue(driver, '@x = 10');
+
+        await clickJapaneseTab(driver);
+        await waitForMonacoLanguage(driver, 'dncl');
+        await waitForTestIdPresence(driver, 'smalruby-console', true);
+        expect(await isInSlot()).toBe(true);
+        // The sprites and backdrops wait behind the strip
+        expect(await isVisibleByTestId('japanese-right-column-strip')).toBe(true);
+        expect(await isVisibleByTestId('japanese-right-column-targets')).toBe(false);
+        // The sprites are used with the stage, never with the console: the strip hides the console
+        await clickByTestId(driver, 'japanese-right-column-show-targets');
+        await waitForTestIdPresence(driver, 'smalruby-console', false);
+        expect(await isVisibleByTestId('japanese-right-column-targets')).toBe(true);
+
+        // A program that prints nothing: the button is there, and shows and hides (B07)
+        await clickByTestId(driver, 'smalruby-console-button');
+        await waitForTestIdPresence(driver, 'smalruby-console', true);
+        // only the console again
+        expect(await isVisibleByTestId('japanese-right-column-targets')).toBe(false);
+        await clickByTestId(driver, 'smalruby-console-button');
+        await waitForTestIdPresence(driver, 'smalruby-console', false);
+        expect(await existsByTestId(driver, 'smalruby-console-button')).toBe(true);
+
+        // It stays hidden after the Code tab (B08)
+        await clickCodeTab(driver);
+        await clickJapaneseTab(driver);
+        await waitForMonacoLanguage(driver, 'dncl');
+        await driver.sleep(500);
+        expect(await existsByTestId(driver, 'smalruby-console')).toBe(false);
+
+        await clickByTestId(driver, 'smalruby-console-button');
+        await waitForTestIdPresence(driver, 'smalruby-console', true);
+
+        // The Code tab keeps the console shown, and only the console: it fills the column in place of
+        // the stage and the sprites, behind the strip
+        await clickCodeTab(driver);
+        await waitForTestIdPresence(driver, 'smalruby-console', true);
+        expect(await isInSlot()).toBe(true);
+        expect(await isVisibleByTestId('japanese-right-column-strip')).toBe(true);
+        expect(await isVisibleByTestId('japanese-right-column-targets')).toBe(false);
+        await clickJapaneseTab(driver);
+        await waitForMonacoLanguage(driver, 'dncl');
+
+        // The Ruby tab gives the stage and the sprites back
+        await clickRubyTab(driver);
+        await waitForTestIdPresence(driver, 'smalruby-console', false);
+        await waitForTestIdPresence(driver, 'japanese-right-column-strip', false);
+        expect(await isVisibleByTestId('japanese-right-column-targets')).toBe(true);
+    });
+
+    test('the console extension is added only when the program prints', async () => {
+        const isConsoleExtensionLoaded = () =>
+            driver.executeScript("return window.smalruby.vm.extensionManager.isExtensionLoaded('smalrubyConsole')");
+        await loadInRubyMode(driver);
+        await fillInRubyProgram('@x = 10\n');
+        await waitForEditorValue(driver, '@x = 10');
+
+        // Opening the Japanese tab shows only the screen of the console
+        await clickJapaneseTab(driver);
+        await waitForMonacoLanguage(driver, 'dncl');
+        await waitForTestIdPresence(driver, 'smalruby-console', true);
+        expect(await isConsoleExtensionLoaded()).toBe(false);
+
+        // A program that does not print or read keeps the project without the extension
+        await fillInRubyProgram('x = 3\n');
+        await waitForEditorValue(driver, 'x = 3');
+        await clickCodeTab(driver);
+        await driver.wait(
+            () =>
+                driver.executeScript(
+                    'return Object.values(window.smalruby.vm.editingTarget.blocks._blocks)' +
+                        ".some((b) => b.opcode === 'data_setvariableto')",
+                ),
+            10000,
+            'The program was not converted into blocks',
+        );
+        expect(await isConsoleExtensionLoaded()).toBe(false);
+
+        // A program that prints is converted into the blocks of the console extension
+        await clickJapaneseTab(driver);
+        await waitForMonacoLanguage(driver, 'dncl');
+        await fillInRubyProgram('表示する("こんにちは")\n');
+        await waitForEditorValue(driver, '表示する("こんにちは")');
+        await clickCodeTab(driver);
+        await driver.wait(isConsoleExtensionLoaded, 10000, 'The console extension was not added');
+    });
+
+    // The Japanese program has no hat, so the green flag runs it as the run button does (Issue #2552).
+    test('the green flag runs the Japanese program on the Japanese tab', async () => {
+        const consoleLines = () =>
+            driver.executeScript(
+                'return [...document.querySelectorAll(\'[data-testid="smalruby-console-line"]\')]' +
+                    '.map((e) => e.textContent)',
+            );
+        await loadInRubyMode(driver);
+        await fillInRubyProgram('@x = 10\n');
+        await waitForEditorValue(driver, '@x = 10');
+        await clickJapaneseTab(driver);
+        await waitForMonacoLanguage(driver, 'dncl');
+        await fillInRubyProgram('表示する("こんにちは")\n');
+        await waitForEditorValue(driver, '表示する("こんにちは")');
+
+        await driver.executeScript('window.smalruby.vm.greenFlag()');
+        await driver.wait(
+            async () => (await consoleLines()).some((line) => line.includes('こんにちは')),
+            10000,
+            'The green flag did not run the Japanese program',
+        );
+
+        // The green flag starts over: the lines of the last run are cleared.
+        await driver.executeScript('window.smalruby.vm.greenFlag()');
+        await driver.wait(
+            async () => (await consoleLines()).some((line) => line.includes('こんにちは')),
+            10000,
+            'The second green flag did not run the Japanese program',
+        );
+        await driver.sleep(500);
+        expect((await consoleLines()).filter((line) => line.includes('こんにちは'))).toHaveLength(1);
     });
 
     test('invalid code blocks DNCL switch and shows errors', async () => {
@@ -152,7 +302,7 @@ describe('DNCL mode validation on switch', () => {
         await fillInRubyProgram('move(10)\n');
         await waitForEditorValue(driver, 'move(10)');
 
-        await clickByTestId(driver, 'ruby-toolbar-mode-dncl');
+        await clickJapaneseTab(driver);
         // Validation is async; wait for it to complete and errors to appear
         await driver.wait(
             async () => {
@@ -163,13 +313,17 @@ describe('DNCL mode validation on switch', () => {
             'DNCL validation errors did not appear',
         );
 
-        expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(false);
+        // The program cannot be written in Japanese: back in the Ruby tab with the errors
+        await waitForTabSelected(driver, 'gui-tab-ruby');
+        // and the stage stays (the console is for the program in Japanese)
+        expect(await existsByTestId(driver, 'smalruby-console')).toBe(false);
+        expect(await driver.executeScript('return window.monacoEditor.getModel().getLanguageId()')).toBe('smalruby');
 
         const errors = await getErrors();
         // The command is named (issue #1679). Message is locale-dependent;
         // check for either Japanese or English.
         expect(
-            errors[0].message.includes('「move」は日本語モードでは書けない命令です') ||
+            errors[0].message.includes('「move」は日本語タブでは書けない命令です') ||
                 errors[0].message.includes('"move" is a command that cannot be written in Japanese mode'),
         ).toBe(true);
     });
@@ -179,7 +333,7 @@ describe('DNCL mode validation on switch', () => {
         await fillInRubyProgram('when_flag_clicked do\n  say("hello", 1)\nend\n');
         await waitForEditorValue(driver, 'when_flag_clicked');
 
-        await clickByTestId(driver, 'ruby-toolbar-mode-dncl');
+        await clickJapaneseTab(driver);
         await driver.wait(
             async () => {
                 const errors = await getErrors();
@@ -189,25 +343,42 @@ describe('DNCL mode validation on switch', () => {
             'DNCL validation errors did not appear',
         );
 
-        expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(false);
+        await waitForTabSelected(driver, 'gui-tab-ruby');
     });
 
-    test('DNCL to Ruby switch is not affected', async () => {
+    // `@` / `$` typed in the Japanese mode are told while typing, at the character (issue #1674).
+    test('an @ typed in DNCL mode is marked at the @', async () => {
         await loadUri(`${uri}?rubyMode=dncl&locale=ja&tab=ruby`);
-        await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', true);
+        await waitForMonacoLanguage(driver, 'dncl');
+        await fillInRubyProgram('x = 1\ny = @z\n');
+        await waitForEditorValue(driver, 'y = @z');
+        await driver.wait(
+            async () => (await getErrors()).some((error) => error.line === 2),
+            10000,
+            'The error of @ did not appear',
+        );
+        const error = (await getErrors()).find((e) => e.line === 2);
+        expect(error.column).toBe(5);
+        expect(error.message).toBe('日本語タブでは変数に「@」は使えません');
+    });
 
-        await clickByTestId(driver, 'ruby-toolbar-mode-ruby');
-        await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', false);
+    test('an old link ?rubyMode=dncl&tab=ruby opens the Japanese tab, and the Ruby tab shows Ruby', async () => {
+        await loadUri(`${uri}?rubyMode=dncl&locale=ja&tab=ruby`);
+        await waitForMonacoLanguage(driver, 'dncl');
+        expect(await isTabSelected(driver, 'gui-tab-japanese')).toBe(true);
+
+        await clickRubyTab(driver);
+        await waitForMonacoLanguage(driver, 'smalruby');
     });
 
     test('DNCL to Ruby switch restores block palette and extension button on Code tab', async () => {
         // Start in DNCL mode
         await loadUri(`${uri}?rubyMode=dncl&locale=ja&tab=ruby`);
-        await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', true);
+        await waitForMonacoLanguage(driver, 'dncl');
 
         // Switch back to Ruby mode
-        await clickByTestId(driver, 'ruby-toolbar-mode-ruby');
-        await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', false);
+        await clickRubyTab(driver);
+        await waitForMonacoLanguage(driver, 'smalruby');
 
         // Switch to Code tab
         await clickCodeTab(driver);
@@ -235,7 +406,7 @@ describe('DNCL mode validation on switch', () => {
 
     test('notice banner is shown on Code tab in DNCL mode', async () => {
         await loadUri(`${uri}?rubyMode=dncl&locale=ja&tab=ruby`);
-        await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', true);
+        await waitForMonacoLanguage(driver, 'dncl');
         await clickCodeTab(driver);
 
         await waitForTestIdPresence(driver, 'dncl-mode-notice', true);
@@ -245,7 +416,7 @@ describe('DNCL mode validation on switch', () => {
 
     test('banner exit button: cancel keeps DNCL mode', async () => {
         await loadUri(`${uri}?rubyMode=dncl&locale=ja&tab=ruby`);
-        await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', true);
+        await waitForMonacoLanguage(driver, 'dncl');
         await clickCodeTab(driver);
         await waitForTestIdPresence(driver, 'dncl-mode-notice', true);
 
@@ -260,7 +431,7 @@ describe('DNCL mode validation on switch', () => {
 
     test('banner exit button: OK exits DNCL mode and restores full toolbox', async () => {
         await loadUri(`${uri}?rubyMode=dncl&locale=ja&tab=ruby`);
-        await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', true);
+        await waitForMonacoLanguage(driver, 'dncl');
         await clickCodeTab(driver);
         await waitForTestIdPresence(driver, 'dncl-mode-notice', true);
 
@@ -279,7 +450,7 @@ describe('DNCL mode validation on switch', () => {
 
     test('extension button: cancel keeps DNCL mode and does not open library', async () => {
         await loadUri(`${uri}?rubyMode=dncl&locale=ja&tab=ruby`);
-        await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', true);
+        await waitForMonacoLanguage(driver, 'dncl');
         await clickCodeTab(driver);
         await waitForTestIdPresence(driver, 'dncl-mode-notice', true);
 
@@ -295,7 +466,7 @@ describe('DNCL mode validation on switch', () => {
 
     test('extension button: OK exits DNCL mode and opens extension library', async () => {
         await loadUri(`${uri}?rubyMode=dncl&locale=ja&tab=ruby`);
-        await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', true);
+        await waitForMonacoLanguage(driver, 'dncl');
         await clickCodeTab(driver);
         await waitForTestIdPresence(driver, 'dncl-mode-notice', true);
 
@@ -313,7 +484,6 @@ describe('DNCL mode validation on switch', () => {
 
     test('Ruby tab shows Ruby code after exiting DNCL mode via banner', async () => {
         await loadUri(`${uri}?rubyMode=dncl&locale=ja&tab=ruby`);
-        await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', true);
         await waitForMonacoLanguage(driver, 'dncl');
 
         await clickCodeTab(driver);
@@ -322,20 +492,43 @@ describe('DNCL mode validation on switch', () => {
         await clickByTestId(driver, 'dncl-mode-notice-exit-button');
         await waitForTestIdPresence(driver, 'dncl-mode-notice', false);
 
-        // Reopen the Ruby tab: the wasDncl restore path must be skipped
+        // The Ruby tab shows Ruby
         await clickRubyTab(driver);
         await waitForMonacoLanguage(driver, 'smalruby');
-        await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', false);
+    });
+
+    test('the Japanese tab narrows the blocks of the Code tab until the Ruby tab is opened', async () => {
+        await loadInRubyMode(driver);
+        await fillInRubyProgram('x = 1\n');
+        await waitForEditorValue(driver, 'x = 1');
+
+        await clickJapaneseTab(driver);
+        await waitForMonacoLanguage(driver, 'dncl');
+        // Leaving the Japanese tab for the Code tab keeps writing in Japanese
+        await clickCodeTab(driver);
+        await waitForTestIdPresence(driver, 'dncl-mode-notice', true);
+
+        // The Ruby tab writes in Ruby: the Code tab has all its blocks again
+        await clickRubyTab(driver);
+        await waitForMonacoLanguage(driver, 'smalruby');
+        await clickCodeTab(driver);
+        await waitForTestIdPresence(driver, 'dncl-mode-notice', false);
+        await driver.wait(
+            async () => (await getToolboxCategoryCount(driver)) > 3,
+            10000,
+            'Toolbox categories were not restored after the Ruby tab',
+        );
     });
 
     test('DNCL to furigana switch restores block palette on Code tab', async () => {
         // Start in DNCL mode
         await loadUri(`${uri}?rubyMode=dncl&locale=ja&tab=ruby`);
-        await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', true);
+        await waitForMonacoLanguage(driver, 'dncl');
 
         // Switch to furigana mode
+        await clickRubyTab(driver);
         await clickByTestId(driver, 'ruby-toolbar-mode-furigana');
-        await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', false);
+        await waitForActiveState(driver, 'ruby-toolbar-mode-furigana', true);
 
         // Switch to Code tab
         await clickCodeTab(driver);

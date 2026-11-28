@@ -1,5 +1,5 @@
-import { DNCL_BUILTIN_NAMES, convertBuiltinFunctions } from '../../../src/lib/dncl/dncl-builtins';
 import { dnclToRuby } from '../../../src/lib/dncl/dncl-to-ruby';
+import { DNCL_BUILTIN_NAMES } from '../../../src/lib/dncl/ja-notation-table';
 import {
     DNCL_COMMAND_EXAMPLES,
     DNCL_TAB_KINDS,
@@ -13,7 +13,7 @@ import RubyToBlocksConverter from '../../../src/lib/ruby-to-blocks-converter';
 const params = {
     kindLabel: 'エラーが出る',
     text: '動かすと止まる',
-    code: 'Data = [3, 1, 2]\ni を 0 から 2 まで 1 ずつ増やしながら\n  表示する(Data[i])\nを繰り返す\n',
+    code: 'Data = [3, 1, 2]\ni を 0 から 2 まで 1 ずつ増やしながら繰り返す:\n    表示する(Data[i])\n',
     errors: ['3 行目: undefined method'],
     assignmentName: null,
 };
@@ -37,34 +37,69 @@ describe('buildDnclTabPrompt', () => {
         expect(prompt).not.toMatch(/「を\s*〜\s*になるまで実行する」の行で閉じて/);
     });
 
-    test('passes the DNCL in the editor as it is', () => {
+    test('passes the program in the editor as it is', () => {
         expect(prompt).toContain(
-            `【直すプログラム（生徒がいま書いている DNCL）】\n\`\`\`\n${params.code.trim()}\n\`\`\``,
+            `【直すプログラム（生徒がいま書いている日本語のプログラム）】\n\`\`\`\n${params.code.trim()}\n\`\`\``,
         );
         expect(prompt).toContain('【エディタに出ているエラー】\n3 行目: undefined method');
     });
 
-    test('asks for DNCL with indexes from 0', () => {
-        expect(prompt).toContain('配列の添字は 0 から始まります');
+    test('asks for the standard form, not the DNCL of 情報関係基礎 (docs/dncl/design.md 6 章)', () => {
+        expect(prompt).toContain('大学入学共通テスト「情報I」の共通テスト用プログラム表記');
         expect(prompt).toContain('Python や Ruby ではなく');
-        expect(prompt).toContain('直したプログラムを DNCL でください');
+        expect(prompt).toContain('情報関係基礎の DNCL');
+        expect(prompt).toContain('行番号と ｜ ⎿ の罫線は書かずに、字下げで書いてください');
+        expect(prompt).toContain('直したプログラムを、共通テスト用プログラム表記の形でください');
+        expect(prompt).not.toContain('DNCLv2');
+    });
+
+    test('asks for indexes from 0 unless the sentence at the top says 1', () => {
+        expect(prompt).toContain('配列の添字は 0 から始まります');
+        expect(prompt).toContain('「# すべての配列の添字は 1 から始まる。」のような冒頭の説明文');
+        expect(prompt).toContain('説明文は消さないでください');
+    });
+
+    test('says the comment mark of the setting and the console', () => {
+        expect(prompt).toContain('// は整数の割り算なので、コメントには使えません');
+        expect(prompt).toContain('# 「//」から行の終わりまでは，処理の対象とならない。');
+        expect(prompt).toContain('「表示する(…)」はコンソールに 1 行出し');
     });
 
     test('says how assignments and the ends of blocks are written', () => {
-        expect(prompt).toContain('代入は「←」か「=」で書いてください');
-        expect(prompt).toContain('「もし〜ならば」は「を実行する」');
-        expect(prompt).toContain('「を繰り返す」');
-        expect(prompt).toContain('「関数」は「と定義する」');
+        expect(prompt).toContain('代入は「=」で書いてください');
+        // The standard form (Issue #1754): blocks by indent and a `:`, no closer lines.
+        expect(prompt).toContain('ブロックは字下げ（空白 4 つ）で表し');
+        expect(prompt).toContain('「もし 条件 ならば:」');
+        expect(prompt).toContain('「関数 名前(引数):」');
+        expect(prompt).toContain('「を実行する」「を繰り返す」「と定義する」の行は書かないでください');
+    });
+
+    test('shows the examples in the standard form (Issue #1754)', () => {
+        DNCL_COMMAND_EXAMPLES.forEach(({ code }) => {
+            expect(code).not.toMatch(/^\s*(?:を実行する|を繰り返す|と定義する)\s*$/m);
+            expect(code).not.toMatch(/\s(?:かつ|または|でない)\s/);
+            expect(code).not.toMatch(/^\s*返す\s/m);
+            expect(code).not.toContain('←');
+        });
+        const program = DNCL_COMMAND_EXAMPLES.map(({ code }) => code).join('\n');
+        expect(program).toContain('ならば:\n    ');
+        expect(program).toContain('繰り返す:\n    ');
+        expect(program).toContain(' を返す');
+        expect(program).toContain(' and ');
+        expect(program).toContain('【外部からの入力】');
+        expect(program).toContain('【整数を入力】');
+        expect(program).toContain(' に 3 を追加する');
+        expect(program).toContain('# すべての配列の添字は 1 から始まる。');
     });
 
     // Gemini read the error of an assignment to an argument as a matter of `=` and `←` (#1403).
     test('says an argument of a function cannot be assigned to, with the way out', () => {
         expect(prompt).toContain('関数の引数には代入できません');
-        expect(prompt).toContain('「x ← a」のようにほかの変数に写してから');
+        expect(prompt).toContain('「x = a」のようにほかの変数に写してから');
     });
 
-    test('asks for the explanation in the words of DNCL, and the code between the markers', () => {
-        expect(prompt).toContain('DNCL のことばで 1〜3 行で説明してください');
+    test('asks for the explanation in the words of the program, and the code between the markers', () => {
+        expect(prompt).toContain('プログラムのことばで 1〜3 行で説明してください');
         expect(prompt).toContain(COPY_START);
         expect(prompt).toContain(COPY_END);
     });
@@ -76,7 +111,7 @@ describe('buildDnclTabPrompt', () => {
         expect(prompt).not.toContain('```ruby');
     });
 
-    test('lists an example of every built-in function of dncl-builtins', () => {
+    test('lists an example of every built-in function of the ja-notation table', () => {
         DNCL_BUILTIN_NAMES.forEach((name) => expect(prompt).toContain(`${name}(`));
     });
 
@@ -86,8 +121,11 @@ describe('buildDnclTabPrompt', () => {
 });
 
 describe('DNCL_BUILTIN_NAMES', () => {
-    test.each(DNCL_BUILTIN_NAMES)('%s is converted by convertBuiltinFunctions', (name) => {
-        expect(convertBuiltinFunctions(`${name}(a, b)`)).not.toContain(name);
+    test.each(DNCL_BUILTIN_NAMES)('%s is not left as it is in the Ruby', (name) => {
+        const args = name === '含む' ? 'a, b' : 'a';
+        const { ruby } = dnclToRuby(`x = ${name}(${args})`);
+        expect(ruby).not.toBeNull();
+        expect(ruby).not.toContain(name);
     });
 });
 
@@ -121,6 +159,10 @@ describe('extractDncl', () => {
         expect(extractDncl(`${COPY_START}\nx ← 1\n${COPY_END}`)).toBe('x ← 1\n');
     });
 
+    test('takes the plain standard form without markers or fence', () => {
+        expect(extractDncl('もし x > 0 ならば:\n    表示する(x)')).toBe('もし x > 0 ならば:\n    表示する(x)\n');
+    });
+
     test('takes plain DNCL without markers or fence, and nothing from prose', () => {
         expect(extractDncl('もし x > 0 ならば\n  表示する(x)\nを実行する')).toBe(
             'もし x > 0 ならば\n  表示する(x)\nを実行する\n',
@@ -131,12 +173,12 @@ describe('extractDncl', () => {
 });
 
 describe('buildDnclRewritePrompt', () => {
-    test('asks again for DNCL with the problems and the code', () => {
+    test('asks again for the standard form with the problems and the code', () => {
         const prompt = buildDnclRewritePrompt({ code: 'x ← 1\n', problems: ['1 行目: まちがい'] });
         expect(prompt).toContain('・1 行目: まちがい');
         expect(prompt).toContain('```\nx ← 1\n```');
-        expect(prompt).toContain('DNCL の書き方で');
-        expect(prompt).toContain('添字は 0 から');
+        expect(prompt).toContain('共通テスト用プログラム表記の書き方で');
+        expect(prompt).toContain('冒頭の説明文が無ければ 0 から');
         expect(prompt).toContain(COPY_START);
     });
 });

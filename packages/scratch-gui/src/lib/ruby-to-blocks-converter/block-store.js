@@ -103,6 +103,15 @@ class BlockStore {
     }
 
     /**
+     * Remove a procedure: one declared for a call before its `def` that the call did not use
+     * (issue #2167).
+     * @param {string} name - The name of the method.
+     */
+    deleteProcedure(name) {
+        delete this.procedures[name];
+    }
+
+    /**
      * Set the last index of a kind of literal call (`true`, `false`, `_lit_`).
      * @param {string} key - The kind.
      * @param {number} index - The index.

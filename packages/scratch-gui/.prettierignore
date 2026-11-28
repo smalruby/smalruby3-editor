@@ -123,6 +123,10 @@ src/components/*
 !src/components/koshien-mock-panel/**
 !src/components/mesh-status-button/
 !src/components/mesh-status-button/**
+!src/components/smalruby-console/
+!src/components/smalruby-console/**
+!src/components/japanese-right-column/
+!src/components/japanese-right-column/**
 !src/components/mesh-status-popup/
 !src/components/mesh-status-popup/**
 !src/components/mesh-practice-partner/
@@ -163,7 +167,12 @@ src/components/*
 !src/components/genai-concierge/**
 # Mixed directories
 !src/components/connection-modal/
+!src/components/gui/
 !src/components/menu-bar/
+
+# Level 3: src/components/gui/*
+src/components/gui/*
+!src/components/gui/language-tabs.css
 
 # Level 3: src/components/connection-modal/*
 src/components/connection-modal/*
@@ -354,6 +363,7 @@ src/lib/*
 !src/lib/mesh-practice/
 !src/lib/mesh-practice/**
 !src/lib/use-mesh-v2-presence.js
+!src/lib/smalruby-console.js
 !src/lib/microsoft-auth.js
 !src/lib/microbit-more-update.js
 !src/lib/teacher-auth.js
@@ -417,6 +427,8 @@ src/lib/libraries/extensions/*
 !src/lib/libraries/extensions/microbitMore/**
 !src/lib/libraries/extensions/smalruby-ruby/
 !src/lib/libraries/extensions/smalruby-ruby/**
+!src/lib/libraries/extensions/smalruby-console/
+!src/lib/libraries/extensions/smalruby-console/**
 !src/lib/libraries/extensions/smalrubot-s1/
 !src/lib/libraries/extensions/smalrubot-s1/**
 !src/lib/libraries/extensions/tm2scratch/
@@ -450,6 +462,7 @@ src/reducers/*
 !src/reducers/palette-visibility.js
 !src/reducers/ruby-code.js
 !src/reducers/smalrubot-firmware.js
+!src/reducers/smalruby-console.js
 !src/reducers/smalruby-registry.ts
 !src/reducers/tutorial-onboarding.js
 
@@ -483,6 +496,12 @@ test/integration/*
 !test/integration/block-palette.test.js
 !test/integration/debug_defaults.test.js
 !test/integration/dncl-mode-validation.test.js
+!test/integration/dncl-keep-error-text.test.js
+!test/integration/dncl-empty-target.test.js
+!test/integration/dncl-problem-form.test.js
+!test/integration/dncl-settings-pattern.test.js
+!test/integration/dncl-typing-indent.test.js
+!test/integration/dncl-code-tab-script-order.test.js
 !test/integration/feedback-link.test.js
 !test/integration/ruby-editor-actions.test.js
 !test/integration/ruby-module.test.js
@@ -580,6 +599,9 @@ test/unit/components/*
 !test/unit/components/lesson-progress-confirm.test.jsx
 !test/unit/components/mesh-status-popup.test.jsx
 !test/unit/components/mesh-status-button.test.jsx
+!test/unit/components/smalruby-console.test.jsx
+!test/unit/components/ruby-script-preview.test.jsx
+!test/unit/components/japanese-right-column.test.jsx
 !test/unit/components/mesh-v2-help-row.test.jsx
 !test/unit/components/mesh-v2-scanning-step-seats.test.jsx
 !test/unit/components/mesh-v2-seat-connect.test.jsx
@@ -618,6 +640,7 @@ test/unit/components/*
 !test/unit/components/student-status-view.test.jsx
 !test/unit/components/student-joined-confirmation.test.jsx
 !test/unit/components/mobile-bottom-tabs.test.jsx
+!test/unit/components/mobile-console-play-view.test.jsx
 !test/unit/components/mobile-drawer.test.jsx
 !test/unit/components/mobile-mode-notice.test.jsx
 !test/unit/components/mobile-orientation-gate.test.jsx
@@ -631,7 +654,9 @@ test/unit/components/*
 !test/unit/components/ruby-toolbar-analytics.test.jsx
 !test/unit/components/ruby-toolbar-no-rubytee.test.jsx
 !test/unit/components/ruby-toolbar-keyboard.test.jsx
-!test/unit/components/ruby-toolbar-dncl-lock.test.jsx
+!test/unit/components/ruby-toolbar-japanese-tab.test.jsx
+!test/unit/components/ruby-toolbar-settings-pattern.test.jsx
+!test/unit/components/ruby-toolbar-rules-switch.test.jsx
 !test/unit/components/scanning-step-name-search.test.js
 !test/unit/components/student-join-form.test.js
 !test/unit/components/student-previous-comment.test.jsx
@@ -725,6 +750,7 @@ test/unit/lib/*
 !test/unit/lib/ruby-to-blocks-converter/**
 # Individual Smalruby files
 !test/unit/lib/analytics.test.js
+!test/unit/lib/smalruby-console.test.js
 !test/unit/lib/image-viewer-math.test.js
 !test/unit/lib/auto-correct.test.js
 !test/unit/lib/backpack-api.test.js
@@ -739,6 +765,7 @@ test/unit/lib/*
 !test/unit/lib/scratch-blocks-ime-patch.test.js
 !test/unit/lib/avatar-initials.test.js
 !test/unit/lib/classroom-api.test.js
+!test/unit/lib/ruby-to-blocks-converter-hoc.test.jsx
 !test/unit/lib/classroom-error-messages.test.js
 !test/unit/lib/classroom-student-steps.test.js
 !test/unit/lib/classroom-student-analytics.test.js
@@ -798,6 +825,7 @@ test/unit/lib/*
 !test/unit/lib/layout-constants.test.js
 !test/unit/lib/legacy-storage.test.js
 !test/unit/lib/make-toolbox-xml.test.js
+!test/unit/lib/make-toolbox-xml-dncl-extensions.test.js
 !test/unit/lib/lesson-dynamic-categories.test.js
 !test/unit/lib/mesh-v2-classroom-binding.test.js
 !test/unit/lib/mesh-v2-seat-connect.test.js
@@ -858,6 +886,7 @@ test/unit/lib/*
 test/unit/reducers/*
 !test/unit/reducers/bug-report-reducer.test.js
 !test/unit/reducers/koshien-mock-panel-reducer.test.js
+!test/unit/reducers/smalruby-console-reducer.test.js
 !test/unit/reducers/cards_reducer.test.js
 !test/unit/reducers/dncl-mode-reducer.test.js
 !test/unit/reducers/lesson-mode-reducer.test.js
