@@ -168,6 +168,18 @@ describe('multipleAssignmentExample', () => {
         expect(multipleAssignmentExample('a, b = c')).toEqual({ example: null });
     });
 
+    // One by one in the same order would use a variable already changed, so no example misleads.
+    test.each(['a, b = b, a + b', 'a, b = 1, a', 'i, A[i] = 1, 2', 'A[0], A[1] = 1, A[0]'])(
+        '%s has no example',
+        (line) => {
+            expect(multipleAssignmentExample(line)).toEqual({ example: null });
+        },
+    );
+
+    test('a value that uses a later variable or a name in a string still has the example', () => {
+        expect(multipleAssignmentExample('a, b = b + 1, "a"')).toEqual({ example: 'a = b + 1、b = "a"' });
+    });
+
     test.each(['a = 1', '表示する(a, b)', 'もし a == b ならば:', 'a, b == c'])('%s is not one', (line) => {
         expect(multipleAssignmentExample(line)).toBeNull();
     });

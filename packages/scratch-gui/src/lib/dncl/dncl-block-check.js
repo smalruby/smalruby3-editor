@@ -9,7 +9,7 @@
 import { jaCodeOfLine } from './dncl-source-map';
 import { dnclToRuby } from './dncl-to-ruby';
 import { codeOfLine, stringEndAt } from './dncl-trailing-comment';
-import { isNameChar, NAME_PATTERN } from './paren-utils';
+import { isNameChar, isWholeWordAt, NAME_PATTERN } from './paren-utils';
 
 /**
  * The id of the error for a string literal and a number literal joined with
@@ -153,13 +153,53 @@ const splitTopLevelCommas = (code) => {
     return parts;
 };
 
+const NAME_AT_START_RE = new RegExp(`^${NAME_PATTERN}`, 'u');
+
+/**
+ * Whether an expression uses a name (as a whole word, not in a string).
+ * @param {string} code - The expression.
+ * @param {string} name - The name.
+ * @returns {boolean} True when the expression uses the name.
+ */
+const usesName = (code, name) => {
+    let i = 0;
+    while (i < code.length) {
+        const end = stringEndAt(code, i);
+        if (end !== -1) {
+            i = end;
+            continue;
+        }
+        if (isWholeWordAt(code, i, name)) return true;
+        i++;
+    }
+    return false;
+};
+
+/**
+ * Whether assigning the values one by one does the same as assigning them at once: no value
+ * (and no index of a variable) uses a variable assigned before it (`a, b = b, a + b` does not).
+ * @param {Array<string>} names - The variables or elements of arrays.
+ * @param {Array<string>} values - The values, one for each.
+ * @returns {boolean} True when they can be assigned one by one in the same order.
+ */
+const assignsSameOneByOne = (names, values) => {
+    const bases = names.map((name) => name.match(NAME_AT_START_RE)[0]);
+    return names.every((name, i) => {
+        const before = bases.slice(0, i);
+        const index = name.substring(bases[i].length);
+        return before.every((base) => !usesName(values[i], base) && !usesName(index, base));
+    });
+};
+
 /**
  * How to write the assignment of several variables at once of a line one by one
  * (`a, b = 1, 2` → `a = 1、b = 2`; the swap `a, b = b, a` → `t = a、a = b、b = t`, also of the
  * elements of an array).
  * @param {string} line - A line of the Japanese.
  * @returns {?{example: ?string}} The example (null when the values do not match the
- *   variables one to one), or null when the line does not assign several variables at once.
+ *   variables one to one, or when assigning them one by one in the same order would use a
+ *   variable already changed, like `a, b = b, a + b`), or null when the line does not assign
+ *   several variables at once.
  */
 const multipleAssignmentExample = (line) => {
     const match = jaCodeOfLine(line).match(MULTIPLE_ASSIGNMENT_RE);
@@ -172,7 +212,7 @@ const multipleAssignmentExample = (line) => {
         const temp = ['t', 'tmp', '一時'].find((name) => !names.includes(name));
         return { example: `${temp} ${op} ${a}、${a} ${op} ${b}、${b} ${op} ${temp}` };
     }
-    if (values.length !== names.length) return { example: null };
+    if (values.length !== names.length || !assignsSameOneByOne(names, values)) return { example: null };
     return { example: names.map((name, i) => `${name} ${op} ${values[i]}`).join('、') };
 };
 

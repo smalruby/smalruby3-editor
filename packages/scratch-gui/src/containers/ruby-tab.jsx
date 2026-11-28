@@ -1625,7 +1625,7 @@ const RubyTab = (props) => {
                         {
                             id: 'gui.rubyTab.dnclArrayIndexHint',
                             defaultMessage:
-                                '{access} reads past the end of the array. In Smalruby Japanese mode, array indices start at 0 (the first element is {array}[0] and the last is {array}[{last}]). If the problem counts from 1, shift the index by 1, like {fixed}, or write "すべての配列の添字は 1 から始まる。" at the top of the program (the menu "A problem whose indices start at 1" writes it).',
+                                '{access} reads past the end of the array. In the Japanese tab of Smalruby, array indices start at 0 (the first element is {array}[0] and the last is {array}[{last}]). If the problem counts from 1, shift the index by 1, like {fixed}, or write "すべての配列の添字は 1 から始まる。" at the top of the program (the menu "A problem whose indices start at 1" writes it).',
                         },
                         hint,
                     ),
