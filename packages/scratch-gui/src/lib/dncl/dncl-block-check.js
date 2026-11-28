@@ -194,14 +194,16 @@ const assignsSameOneByOne = (names, values) => {
 /**
  * How to write the assignment of several variables at once of a line one by one
  * (`a, b = 1, 2` → `a = 1、b = 2`; the swap `a, b = b, a` → `t = a、a = b、b = t`, also of the
- * elements of an array).
+ * elements of an array). The variable of the swap is one the program does not use, so
+ * following the example does not change another variable.
  * @param {string} line - A line of the Japanese.
+ * @param {string} [program] - The whole Japanese, where the variable of the swap is looked for.
  * @returns {?{example: ?string}} The example (null when the values do not match the
  *   variables one to one, or when assigning them one by one in the same order would use a
- *   variable already changed, like `a, b = b, a + b`), or null when the line does not assign
- *   several variables at once.
+ *   variable already changed, like `a, b = b, a + b`, or when the program uses every variable
+ *   the swap could take), or null when the line does not assign several variables at once.
  */
-const multipleAssignmentExample = (line) => {
+const multipleAssignmentExample = (line, program = line) => {
     const match = jaCodeOfLine(line).match(MULTIPLE_ASSIGNMENT_RE);
     if (!match) return null;
     const names = splitTopLevelCommas(match[1]);
@@ -209,7 +211,8 @@ const multipleAssignmentExample = (line) => {
     const values = splitTopLevelCommas(match[3]);
     if (names.length === 2 && values.length === 2 && values[0] === names[1] && values[1] === names[0]) {
         const [a, b] = names;
-        const temp = ['t', 'tmp', '一時'].find((name) => !names.includes(name));
+        const temp = ['t', 'tmp', '一時'].find((name) => !names.includes(name) && !usesName(program, name));
+        if (!temp) return { example: null };
         return { example: `${temp} ${op} ${a}、${a} ${op} ${b}、${b} ${op} ${temp}` };
     }
     if (values.length !== names.length || !assignsSameOneByOne(names, values)) return { example: null };
@@ -244,7 +247,7 @@ const withStringPlusNumberIds = (errors, lines) =>
 const withJapaneseErrorIds = (errors, lines) =>
     withStringPlusNumberIds(errors, lines).map((err) => {
         if (err.id) return err;
-        const found = multipleAssignmentExample(lines[err.row] || '');
+        const found = multipleAssignmentExample(lines[err.row] || '', lines.join('\n'));
         return found ? { ...err, id: MULTIPLE_ASSIGNMENT_ERROR_ID, example: found.example } : err;
     });
 

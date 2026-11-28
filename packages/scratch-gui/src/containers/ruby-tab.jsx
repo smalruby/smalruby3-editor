@@ -371,10 +371,11 @@ const RubyTab = (props) => {
         onDismissAlert('rubyVersionChangeFailed');
     };
 
-    // The words of the errors on the Japanese lines. A `+` of a string and a number literal and
-    // several variables assigned at once say how to write them (Issue #2547) and a line with `//` tells to use `#` (Issue #1192); the
-    // others keep the words of the converter. The conversion of the Code tab and the check of the
-    // blocks while writing both use it, so they say the same words.
+    // The words of the errors on the Japanese lines. A `+` of a string and a number literal
+    // (Issue #2547) and several variables assigned at once (B21 of #1731) say how to write them,
+    // and a line with `//` tells to use `#` (Issue #1192); the others keep the words of the
+    // converter. The conversion of the Code tab and the check of the blocks while writing both
+    // use it, so they say the same words.
     const withJapaneseErrorWords = (errors) => {
         const lines = editorRef.current.getModel().getLinesContent();
         // The example is the expression the student wrote (B21 of #1731).
@@ -848,7 +849,7 @@ const RubyTab = (props) => {
     const dnclValidationErrorMessage = intl.formatMessage({
         id: 'gui.rubyTab.dnclValidationError',
         defaultMessage:
-            'This code contains constructs not supported in the Japanese tab.\nPlease use only supported instructions before switching modes.',
+            'This code contains constructs not supported in the Japanese tab.\nPlease use only supported instructions before opening the Japanese tab.',
     });
 
     const dnclPostTestLoopErrorMessage = intl.formatMessage({

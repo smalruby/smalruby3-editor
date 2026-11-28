@@ -164,6 +164,18 @@ describe('multipleAssignmentExample', () => {
         expect(multipleAssignmentExample(line)).toEqual({ example });
     });
 
+    test('the swap takes a variable the program does not use', () => {
+        expect(multipleAssignmentExample('a, b = b, a', 't = 1\na, b = b, a')).toEqual({
+            example: 'tmp = a、a = b、b = tmp',
+        });
+        expect(multipleAssignmentExample('a, b = b, a', '表示する("t")\na, b = b, a')).toEqual({
+            example: 't = a、a = b、b = t',
+        });
+        expect(multipleAssignmentExample('a, b = b, a', 't = 1\ntmp = 2\n一時 = 3\na, b = b, a')).toEqual({
+            example: null,
+        });
+    });
+
     test('values that do not match the variables have no example', () => {
         expect(multipleAssignmentExample('a, b = c')).toEqual({ example: null });
     });
