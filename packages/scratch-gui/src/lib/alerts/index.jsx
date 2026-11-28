@@ -35,6 +35,20 @@ const alerts = [
         maxDisplaySecs: 5
     },
     {
+        alertId: 'convertJapaneseError',
+        clearList: ['convertJapaneseError'],
+        closeButton: true,
+        content: (
+            <FormattedMessage
+                defaultMessage="The Japanese program has lines that cannot be read. Please fix the marked lines!"
+                description="Message shown when the Japanese tab or the sprite is left while the Japanese program has errors"
+                id="gui.smalruby3.alerts.convertJapaneseError"
+            />
+        ),
+        level: AlertLevels.WARN,
+        maxDisplaySecs: 5
+    },
+    {
         alertId: 'rubyVersionChangeFailed',
         clearList: ['rubyVersionChangeFailed'],
         closeButton: true,

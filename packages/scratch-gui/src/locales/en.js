@@ -1041,6 +1041,8 @@ export default {
     'gui.smalruby3.webglModal.description':
         'Unfortunately it looks like your browser or computer {webGlLink}. This technology is needed for Smalruby 3.0 to run.',
     'gui.smalruby3.alerts.convertRubyToBlocksError': 'Could not convert Ruby to Code. Please fix Ruby!',
+    'gui.smalruby3.alerts.convertJapaneseError':
+        'The Japanese program has lines that cannot be read. Please fix the marked lines!',
     'gui.alerts.cannotExecuteLine': 'This line cannot be executed.',
     'gui.smalruby3.telemetryOptIn.label': 'Report statistics to improve Smalruby',
     'gui.smalruby3.telemetryOptIn.body1':

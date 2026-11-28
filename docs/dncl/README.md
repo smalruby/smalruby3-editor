@@ -311,6 +311,11 @@ DNCL モードでは、DNCL を Ruby に変換してからブロックに変換�
   ブロックがすべて DNCL 風の形のときは、エディタも閉じのことばの種類を見て同じことを言う（`ja-notation-errors.js` の `closerFormBlockErrors`）。
 - `with_screen_refresh do` / `loop do` / `when_flag_clicked do` / `list.each do |x|` など、日本語に書きかえるものが無い `xxx do`（`|x|` 付きも）は Ruby → 日本語で書いてあるとおりの Ruby のまま（`end` も）残す（`N.times do` と `(a..b).step(s) do |i|` は `〜ずつ増やしながら` に、`while x do` / `until x do` は `〜の間` になる）。構文木で読むので、外側のブロックの閉じ方は変わらない。日本語の中にそうした行があるときの判定は `dncl-validator.js` の `isDoBlockLine`（行末のコメントを除いてから行末の `do` だけを見るので、文字列やコメントの中の `do` は数えない）。日本語モードにはこうした命令が無いので、ほかの対応していない命令と同じくその行に「「with_screen_refresh」は日本語モードでは書けない命令です。…」を出し、Ruby には変換しない（下の「日本語モードに無い命令」）。
 - `dnclToRuby` はこのエラーを `errors`（日本語の行）として返し、Ruby は作らない。エディタは Ruby を送らず、エラーの印（`ruby-tab.jsx` の日本語の誤りのマーカー。owner は `DNCL_UNSUPPORTED_OWNER`）をその行に出し、前の変換の印（`smalruby`）は消す。生成AI に相談の確かめ（`genai-dncl-answer.js`）も、この誤りを問題として返す。
+- 誤りのある日本語は Redux に送らないのでエディタの中にしか無い。そのため、誤りがあるあいだは**日本語タブを離れられず、スプライト（ステージ）も切りかわらない**。
+  ルビータブ・コードタブなどを押すと日本語タブに戻り、スプライトを選ぶと前のスプライトに戻って、警告「日本語のプログラムに読めない行があります。印のある行を直してください！」
+  （`convertJapaneseError`）を出す。ルビータブが変換できない Ruby で移らないのと同じ。黙って Ruby から書き直すと、生徒の書いた行が消えるため。
+  レッスンの設定や言語の切りかえなど、エディタの外から日本語タブを離れるときは止めない。作品を読みこんで元のスプライトが無くなったときも止めない
+  （`ruby-tab.jsx` の `dnclEditErrorRef`）。
 
 #### Monaco Editor 言語定義
 

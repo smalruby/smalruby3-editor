@@ -1281,6 +1281,8 @@ export default {
         '残念ながら、ブラウザーやコンピューターが{webGlLink}ようです。この技術はスモウルビー3.0の実行に必須です。',
     'gui.smalruby3.alerts.convertRubyToBlocksError':
         'ルビーからコードに変換できませんでした。ルビーを修正してください！',
+    'gui.smalruby3.alerts.convertJapaneseError':
+        '日本語のプログラムに読めない行があります。印のある行を直してください！',
     'gui.alerts.cannotExecuteLine': 'この行は実行できません。',
     'gui.smalruby3.telemetryOptIn.label': 'スモウルビーを改善するための利用状況の報告',
     'gui.smalruby3.telemetryOptIn.body1':
