@@ -26,6 +26,7 @@ const { nextReviewFindingsRound, sanitizeForSurface, selectRequestedReviews } = 
 const { countEpicDecisions } = require('./epic-summary');
 const {
     EPIC_PR_STATUS_MARKER, epicPrPlan, topicMergeTargets, topicSyncBranch, renderTopicSyncBody, topicSyncPlan,
+    epicConflictSyncTarget, isEpicBoardItem,
 } = require('./epic-pr');
 
 /**
@@ -394,7 +395,38 @@ async function runTopicSync(t, cfg, state, log, deps = {}) {
     }
 }
 
+/**
+ * モニターの解消ボタン（POST /resolve-conflict）を EPIC の行で押したとき、topic → develop の PR のコンフリクトを
+ * develop を topic に取り込む経路（{@link runTopicSync}）で解く（#2536・I/O）。相手かどうかは
+ * {@link epicConflictSyncTarget}。read は EPIC の OPEN の PR 1 件の `gh pr view` だけ（EPIC でなければ読まない）。
+ * 始めたら `state.topicSyncs` に載せ、取り込む PR のマージは tick の {@link applyEpicTopicSync} が続ける。
+ * @param {object} item board item（issue / kind / tracker / subIssues / prs）
+ * @param {object} deps { startSync(target), getFacts(repo, pr, token), readToken }
+ * @returns {Promise<object|null>} 始めた（もう走っていれば already: true）相手。相手でなければ null（呼び出し側が従来の resolve-conflict に回す）
+ */
+async function resolveEpicTopicConflict(item, cfg, state, log, deps = {}) {
+    if (!isEpicBoardItem(item)) return null;
+    const open = (item.prs || []).filter((p) => p && p.state === 'OPEN');
+    const pr = open.find((p) => p.mergeable === 'CONFLICTING') || open[0];
+    if (!pr) return null;
+    const getFacts = deps.getFacts || ((repo, n, tok) => project.getEpicMergeFacts(repo, n, tok, {}, { files: false }));
+    const facts = await getFacts(cfg.repo, pr.number, deps.readToken || await project.readToken());
+    const t = epicConflictSyncTarget(item, facts);
+    if (!t) return null;
+    if (!state.topicSyncs) state.topicSyncs = {};
+    // 走っている、または取り込む PR を作って CI 待ち（syncPr）なら始め直さない。topic → develop の PR は取り込む PR を
+    // topic にマージするまで CONFLICTING のままなので、行にはまたボタンが出る。始め直すと runTopicSync が「取り込み済み」で
+    // 追跡を消し、取り込む PR が topic にマージされないまま残る
+    const live = state.topicSyncs[t.epic];
+    if (live && (live.running || live.syncPr)) return { ...t, already: true };
+    state.topicSyncs[t.epic] = { topic: t.topic, base: t.base, topicPr: { number: t.topicPr, mergeable: facts.mergeable || null },
+        syncPr: null, running: true };
+    log(`EPIC #${t.epic}: 解消ボタン → ${t.base} を ${t.topic} に取り込む（topic → ${t.base} の PR #${t.topicPr}）`);
+    deps.startSync(t);
+    return t;
+}
+
 module.exports = {
     appendEpicDecisions, applyEpicRunSideEffects, applyEpicAutoMerge, applyEpicTopicPrs, bootEpicTopicPrs,
-    topicSyncTarget, applyEpicTopicSync, runTopicSync,
+    topicSyncTarget, applyEpicTopicSync, runTopicSync, resolveEpicTopicConflict,
 };

@@ -350,6 +350,7 @@ bin/autopilot-ask <issue> tmp/questions-<issue>.json   # --repo owner/name / --p
   新しい質問は round を続ける。Bot のトークンが取れなければ何も書かずに止まる（個人のトークンで書かない）。
 - 書いたあと、daemon の `POST /questions`（合言葉 `X-Autopilot-Token` が要る。`ask.js` が合言葉のファイルを読む）で置き場に載せる。
   同じ round の同じ質問は置き直さない（モニターで書いた「メモだけ保存」を消さない）。worker が動いている Issue は受けない（409）。
+  答えたがまだ worker に渡していない質問も置き換えない（409 `answers not yet delivered`）。worker が答えを受け取ったあとに流し直す。
   daemon に届かないときはコメントだけ書いて終了コード 2 で終わる。daemon を起こしてからもう一度流せば、コメントは書き直さずに載る。
 - 載った質問は、Status（Sprint Backlog・Backlog・Blocked など）・⏳ 待ちによらず「答える」になる（`humanAction`）。
   ゴーサインにはしない。EPIC の子でも隠さない: 子は「答えが要る」の欄に出て、EPIC の行は段階によらずそれを指す
@@ -618,6 +619,10 @@ close した leaf、(B) 統合 PR の `Closes #<epic>` で閉じた EPIC、(C) �
 
 - **拾う前に外す**: tick は closed 状態の確認を拾う判定より先に行い、閉じた Issue を stalled 復帰と
   `selectActionable` に渡さない（`excludeClosedItems`）。Close へそろえるのは同じ tick の reconcile。
+  確認する対象（`selectClosedCheckIssues`）は、非終端で `🤖 autopilot` ラベルの付いた item に加えて、
+  **ラベルが付く前の New Item（Status が空）で daemon が担当するもの**。Project に入れたときに Status 無しで
+  入った閉じた sub-issue を、triage に拾わせないため。担当の item に限るので、reconcile が担当でない item の
+  Status を書くことは無い。
 - **フェーズが閉じたら Close**: run が done で終わったとき、その Issue が GitHub で閉じていれば、
   結果の `nextStatus` を問わず Status=Close・AI Status 空にし、🙋 を付けない（`closedRunIntents` /
   `isIssueClosedAfterRun`。1 件のバッチ GraphQL）。プロンプトは `nextStatus` に Close を書かない
@@ -1077,6 +1082,7 @@ daemon の `GET /`（既定 `http://localhost:8787/`）は、人間と同意し�
 
   | 状態 | すること | ボタン | 押すと |
   |---|---|---|---|
+  | 🧭 EPIC の最後の確認（Release Check・子が全部済んだ）で topic → develop の PR が develop とコンフリクト | 確かめる | コンフリクトを解消してもらう | `POST /resolve-conflict`。EPIC の PR は直接 push せず、develop を topic に取り込む PR を作って解く（`resolveEpicTopicConflict` → `runTopicSync`。CI が通れば daemon が topic にマージする）。🙋 と Status はそのまま。済めば行は確認のボタンに戻る。自律で進んでいる途中の EPIC は AI の番なのでボタンにしない |
   | 🧭 EPIC で Release Check（最後の確認） | 確かめる | 確認ページを開く | プレビュー / topic → develop の PR と「確認の結果を書く」のダイアログを開く（確認ページの artifact ができるまでのあいだ）。子に答え待ちの質問があれば一文で示す（子は「答えが要る」の欄に出る） |
   | 🧭 EPIC で子が全部済んだ（Release Check の前） | 確かめる | プレビューで確かめる | プレビュー / topic → develop の PR を開く |
   | Review / DoD（ほか 🙋 付き）で OPEN の PR が base とコンフリクト（`mergeable=CONFLICTING`・worker なし） | 確かめる | コンフリクトを解消してもらう | `POST /resolve-conflict`。AI が base を取り込んで解消し push する。🙋 と Status はそのまま（済めば daemon が `mergeable` を直し、行はもとのボタン（Review / DoD なら「PR を見る」）に戻る）。分解済み EPIC の途中の相談の子がこの状態なら、EPIC の行も同じボタン |
@@ -1668,7 +1674,7 @@ HTTP API（curl からも操作可能。POST は上の合言葉のヘッダを�
 | `POST /scheduler` | body `{maxTotal, maxHeavy, ...}`（`null` で上書きを外す）。並列の上限を一時的に変える（再起動で消える）。`{overrides, limits}` を返す |
 | `POST /stop?issue=<n>` | その item の worker（herdr の workspace / tmux の session）を止めて force-stop |
 | `POST /inject?issue=<n>&phase=<p>` | 並行上限を超えて 1 フェーズを割り込み投入 |
-| `POST /resolve-conflict?issue=<n>` | PR の base とのコンフリクトを AI に解消させる（モニタの 🔀 解消）。Status と 🙋 は変えない。並行上限の外。実行中なら 409、OPEN の PR が無ければ 409 |
+| `POST /resolve-conflict?issue=<n>` | PR の base とのコンフリクトを AI に解消させる（モニタの 🔀 解消）。Status と 🙋 は変えない。並行上限の外。実行中なら 409、OPEN の PR が無ければ 409。EPIC の topic → develop の PR は、PR に直接 push せず develop を topic に取り込む PR を作って解く（取り込み中・取り込む PR の CI 待ちなら始め直さない） |
 | `POST /current-status` | 「🧭 現在地を作る」。現在地の artifact を作り直す worker を 1 つ起動する（202）。走っている間は 409 |
 | `POST /shutdown` | daemon プロセスを安全停止 |
 

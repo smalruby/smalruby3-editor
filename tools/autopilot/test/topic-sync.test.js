@@ -247,3 +247,48 @@ test('getEpicPrFacts: topic → develop の PR の mergeable と CI、取り込�
     assert.deepEqual(f.topicPrs, [{ number: 2479, body: 'b', mergeable: 'CONFLICTING', statusCheckRollup: [ok('lint')] }]);
     assert.equal(f.syncPr, 2484);
 });
+
+test('epicConflictSyncTarget: EPIC の topic → develop の PR だけを取り込みの相手にする（#2536）', () => {
+    const epic = { issue: 2438, kind: 'EPIC', tracker: true, subIssues: { total: 3, completed: 3 } };
+    const pr = { number: 2480, state: 'OPEN', headRefName: TOPIC, baseRefName: 'develop', mergeable: 'CONFLICTING' };
+    assert.deepEqual(ep.epicConflictSyncTarget(epic, pr), { epic: 2438, topic: TOPIC, base: 'develop', topicPr: 2480 });
+    // EPIC でない Issue（子の PR は head が topic/autopilot-<N>・base が topic）は従来の resolve-conflict
+    assert.equal(ep.epicConflictSyncTarget({ issue: 2481 }, { ...pr, headRefName: 'topic/autopilot-2481', baseRefName: TOPIC }), null);
+    // EPIC でも、base が topic（入れ子）・head が topic でない・閉じた PR は相手にしない
+    assert.equal(ep.epicConflictSyncTarget(epic, { ...pr, baseRefName: 'topic/other' }), null);
+    assert.equal(ep.epicConflictSyncTarget(epic, { ...pr, headRefName: 'feature/x' }), null);
+    assert.equal(ep.epicConflictSyncTarget(epic, { ...pr, state: 'MERGED' }), null);
+    assert.equal(ep.epicConflictSyncTarget(epic, null), null);
+    // 子の PR の head（topic/autopilot-<N>）は topic ブランチとして扱わない
+    assert.equal(ep.epicConflictSyncTarget(epic, { ...pr, headRefName: 'topic/autopilot-2438' }), null);
+});
+
+test('resolveEpicTopicConflict: モニターの解消ボタンを、develop を topic に取り込む経路へ回す（#2536）', async () => {
+    const epic = { issue: 2438, kind: 'EPIC', tracker: true, prs: [{ number: 2480, state: 'OPEN', mergeable: 'CONFLICTING' }] };
+    const reads = [];
+    const started = [];
+    const state = {};
+    const deps = {
+        readToken: 'r',
+        getFacts: async (repo, n) => { reads.push(n); return { number: n, state: 'OPEN', headRefName: TOPIC, baseRefName: 'develop', mergeable: 'CONFLICTING' }; },
+        startSync: (t) => { started.push(t); },
+    };
+    const t = await em.resolveEpicTopicConflict(epic, cfg, state, quiet, deps);
+    assert.deepEqual(t, { epic: 2438, topic: TOPIC, base: 'develop', topicPr: 2480 });
+    assert.deepEqual(reads, [2480]);
+    assert.deepEqual(started, [t]);
+    assert.equal(state.topicSyncs[2438].running, true);
+    // 走っているあいだにもう一度押しても二重に始めない
+    assert.deepEqual(await em.resolveEpicTopicConflict(epic, cfg, state, quiet, deps), { ...t, already: true });
+    assert.equal(started.length, 1);
+    // 取り込む PR を作って CI 待ちのあいだ（topic → develop の PR はまだ CONFLICTING）に押しても、始め直さない
+    state.topicSyncs[2438] = { topic: TOPIC, base: 'develop', topicPr: null, syncPr: 2490 };
+    assert.deepEqual(await em.resolveEpicTopicConflict(epic, cfg, state, quiet, deps), { ...t, already: true });
+    assert.equal(started.length, 1);
+    assert.equal(state.topicSyncs[2438].syncPr, 2490);
+    // EPIC でない・PR が無い ときは null（呼び出し側が従来の resolve-conflict に回す）。EPIC でなければ read もしない
+    reads.length = 0;
+    assert.equal(await em.resolveEpicTopicConflict({ issue: 9, prs: epic.prs }, cfg, {}, quiet, deps), null);
+    assert.equal(await em.resolveEpicTopicConflict({ ...epic, prs: [] }, cfg, {}, quiet, deps), null);
+    assert.deepEqual(reads, []);
+});

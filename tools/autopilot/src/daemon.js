@@ -129,7 +129,7 @@ const learnTasks = require('./learn-tasks');
 const { resolveRunOutcome, isEpicFlowBase, markAutoMergeContexts } = require('./epic-flow');
 const {
     applyEpicRunSideEffects, applyEpicAutoMerge, applyEpicTopicPrs, bootEpicTopicPrs,
-    topicSyncTarget, applyEpicTopicSync, runTopicSync,
+    topicSyncTarget, applyEpicTopicSync, runTopicSync, resolveEpicTopicConflict,
 } = require('./epic-merge');
 // EPIC ごとの進み具合と現在地（#2388）。判断は epic-summary.js / current-status.js、I/O は current-status-job.js
 const { buildStatusMaterial, groupItemsByEpic } = require('./epic-summary');
@@ -2475,7 +2475,7 @@ async function tick(cfg, state, log) {
     // autopilot-assignee ディレクティブ（#938）: itemOwner/ownsItem が使う前に解決しておく
     // （2人以上 assign の item のみ本文 fetch）。
     items = await populateAssigneeDirectives(items, cfg, state, log);
-    // closed 状態の確認は **対象限定のバッチ GraphQL**（非終端 + 🤖 ラベルの item だけ）。
+    // closed 状態の確認は **対象限定のバッチ GraphQL**（非終端 + 🤖 ラベルの item と、担当の New Item）。
     // 旧実装のリポジトリ全体 closed 一覧（最大 1000 件 × 毎 tick）は使わない。
     // 拾う判定より先に確かめる（#2540）: 閉じた Issue を stalled 復帰・selectActionable に渡すと、
     // reconcile より先に worker が起き、running に入った item を reconcile が飛ばしてしまう。
@@ -2485,7 +2485,7 @@ async function tick(cfg, state, log) {
     };
     try {
         mergeStates(await project.getIssueStates(
-            cfg.repo, selectClosedCheckIssues(items), await project.readToken(),
+            cfg.repo, selectClosedCheckIssues(items, { assignee: cfg.assignee }), await project.readToken(),
         ));
     } catch (e) {
         log(`closed state check failed: ${e.message}`);
@@ -3427,7 +3427,12 @@ function startHttp(cfg, state, log) {
             if (state.running.has(issue)) return send(409, { error: 'already running', issue });
             const it = state.board && Array.isArray(state.board.items) ? state.board.items.find((x) => x && x.issue === issue) : null;
             if (it && prConflictState(it.prs) === null) return send(409, { error: 'no open PR', issue });
-            dispatch({ issue, phase: 'resolve-conflict', itemId: it && it.itemId }, cfg, state, log);
+            // EPIC の topic → develop の PR は、develop を topic に取り込む PR を作って解く（#2536）。それ以外は従来どおり
+            resolveEpicTopicConflict(it, cfg, state, log, { startSync: topicSyncDeps(cfg, state, log, state.board && state.board.items).startSync })
+                .then((t) => {
+                    if (!t) dispatch({ issue, phase: 'resolve-conflict', itemId: it && it.itemId }, cfg, state, log);
+                })
+                .catch((e) => log(`#${issue}: resolve-conflict error: ${sanitizeForSurface(e.message || '')}`));
             log(`resolve-conflict requested #${issue}`);
             return send(202, { resolving: issue });
         }

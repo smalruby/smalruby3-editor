@@ -3517,14 +3517,22 @@ function usagePauseAction(current, plan) {
  * - **ステータス限定**: 終端（Close/Done）は除外（既に整合済み。定常問い合わせしない）
  * - **ラベル限定**: `🤖 autopilot` ラベル付き = autopilot 管理対象だけを見る
  *   （ラベルは label healing が非終端 item に毎 tick 担保するので、初回 tick 以降は全対象が持つ）
+ * - **例外: ラベルが付く前の New Item（Status が空）で、daemon が担当するもの**も見る（#2543）。
+ *   Project に入れたときに Status 無しで入った閉じた sub-issue は、ラベルが付く前に triage へ拾われるため。
+ *   担当（{@link ownsItem}）に限るので数は少なく、ここで拾った閉じた item は triage へ回る item と同じ集合。
+ *   assignee 未設定（単一 daemon の従来運用）は triage が New Item を全件拾うので、確認も全件にそろう。
+ *   reconcile（{@link selectClosedToReconcile}）は担当を見ないが、closedSet には担当の item しか増えないので、
+ *   daemon の担当でない item の Status を Close に書くことは無い。
  * 旧実装の「リポジトリ全体の closed 一覧（最大 1000 件）を毎 tick 取得」を置き換える。
  * @param {object[]} items Project items
+ * @param {{assignee?: string|null}} [opts] daemon の担当（--assignee）
  * @returns {number[]} state を確認すべき issue 番号
  */
-function selectClosedCheckIssues(items) {
+function selectClosedCheckIssues(items, opts = {}) {
+    const labeled = (it) => Array.isArray(it.labels) && it.labels.includes(AUTOPILOT_LABEL);
+    const ownedNewItem = (it) => (it.status || 'New Item') === 'New Item' && ownsItem(it, opts.assignee);
     return (items || [])
-        .filter((it) => it && !TERMINAL_STATUSES.has(it.status)
-            && Array.isArray(it.labels) && it.labels.includes(AUTOPILOT_LABEL))
+        .filter((it) => it && !TERMINAL_STATUSES.has(it.status) && (labeled(it) || ownedNewItem(it)))
         .map((it) => it.issue);
 }
 
@@ -4030,6 +4038,8 @@ function normalizeQuestionsRegistration(body) {
  * 質問を置き場に載せるかの計画（純粋関数・冪等・#2565）。同じ round の同じ質問がもう載っていれば、
  * 人間の「メモだけ保存」を消さないよう置き直さない（keep）。答えた（answered）同じ round も開き直さない。
  * worker が動いている Issue は受けない（worker の結果の質問と競うため）。
+ * 答えたがまだ worker に渡していない（answered で take 前の）質問も置き換えない。置き換えると答えが置き場から
+ * 消え、worker に答えのファイルが渡らない（#2568）。道具は 409 で止まり、worker が受け取ったあとに流し直す。
  * @param {object|null} entry 置き場の 1 件
  * @param {object} reg {@link normalizeQuestionsRegistration} の結果
  * @param {{running:boolean}} opts
@@ -4041,6 +4051,7 @@ function planQuestionsRegistration(entry, reg, opts = {}) {
         && JSON.stringify(entry.questions) === JSON.stringify(reg.questions)) {
         return { ok: true, status: 200, action: 'keep' };
     }
+    if (entry && entry.status === 'answered') return { ok: false, status: 409, error: 'answers not yet delivered' };
     return { ok: true, status: 200, action: 'set' };
 }
 

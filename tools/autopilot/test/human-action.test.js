@@ -309,6 +309,36 @@ test('EPIC: 途中の相談の子の PR がコンフリクトしていれば、E
     assert.notStrictEqual(r2.act, 'resolve');
 });
 
+test('EPIC: 最後の確認で topic → develop の PR がコンフリクトしていれば、確かめる前に解消してもらう（#2536）', () => {
+    const conflict = [{ number: 2206, state: 'OPEN', mergeable: 'CONFLICTING' }];
+    const epic = (extra) => Object.assign({ issue: 1731, kind: 'EPIC', tracker: true, status: 'In Progress', hitl: true,
+        subIssues: { total: 2, completed: 2 }, prs: conflict }, extra);
+    const rows = [
+        epic({ aiStatus: 'Release Check', releasePageUrl: 'https://claude.ai/artifact/x' }),
+        epic({ aiStatus: 'Release Check' }),
+        epic({ aiStatus: 'Release Check', releaseMerge: { pr: 2206, round: 1 } }),
+        epic({ aiStatus: 'EPIC Decomposed' }),
+    ];
+    for (const it of rows) {
+        const r = humanAction(it, { repoUrl: REPO });
+        assert.deepStrictEqual([r.epicPhase, r.kind, r.button, r.act, r.targets],
+            ['final-check', 'check', 'コンフリクトを解消してもらう', 'resolve', [1731]]);
+        assert.strictEqual(r.url, REPO + '/pull/2206');
+        assert.match(r.state, /PR #2206 が develop とコンフリクトしている/);
+        assert.match(r.happens, /develop を topic ブランチに取り込む PR を作り/);
+    }
+    // コンフリクトが無ければ、いままでどおり確認
+    const ok = [{ number: 2206, state: 'OPEN', mergeable: 'MERGEABLE' }];
+    assert.strictEqual(humanAction(epic({ aiStatus: 'Release Check', prs: ok, releasePageUrl: 'u' }), { repoUrl: REPO }).button, '確認ページを開く');
+    assert.strictEqual(humanAction(epic({ aiStatus: 'EPIC Decomposed', prs: ok }), { repoUrl: REPO }).button, 'プレビューで確かめる');
+    // 自律で進んでいる途中（子が残っている）は AI の番なので、人間のボタンにしない
+    const auto = humanAction(epic({ aiStatus: 'EPIC Decomposed', subIssues: { total: 3, completed: 2 } }),
+        { kids: [kid(9, 1731, { status: 'In Progress', aiStatus: 'Implementing' })], repoUrl: REPO });
+    assert.deepStrictEqual([auto.epicPhase, auto.kind], ['autonomous', 'idle']);
+    // 取り込みが走っていれば（EPIC の番号で running）AI が作業中
+    assert.strictEqual(humanAction(rows[0], { running: [1731], repoUrl: REPO }).kind, 'idle');
+});
+
 // ---- 質問を隠さない（#2565）: bin/autopilot-ask で書いた質問がある Issue は、ゴーサインではなく「答える」 ----
 const { inboxModel } = require('../src/monitor-inbox');
 
