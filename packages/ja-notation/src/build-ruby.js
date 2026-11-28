@@ -317,11 +317,6 @@ class RubyBuilder {
      * @returns {object} The node.
      */
     *binary(e) {
-        // A minus sign before a quotient is the sign of the quotient:
-        // `-a ÷ 2` is `-(a ÷ 2)`, not `(-a) ÷ 2` (they differ for an odd `a`).
-        if (e.operator === '÷' && e.left.type === 'Unary' && e.left.operator === '-') {
-            return call(yield this.binary({ ...e, left: e.left.operand }), '-@');
-        }
         const left = yield this.expression(e.left);
         const right = yield this.expression(e.right);
         if (e.operator === 'and') return { type: 'AndNode', left, right };

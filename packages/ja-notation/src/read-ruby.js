@@ -1227,17 +1227,14 @@ class RubyReader {
     }
 
     /**
-     * A sign or `not`. A minus before a quotient is written as the Japanese
-     * reads it (`-a ÷ 2` is `-(a ÷ 2)`): the sign on the left of `÷`.
+     * A sign or `not`. A minus before a quotient stays outside it
+     * (`-((a / 2).to_i)` is `-(a ÷ 2)`): `-a ÷ 2` is `(-a) ÷ 2`.
      * @param {string} operator - `-`, `+` or `not`.
      * @param {object} operand - The JaAST operand.
      * @param {object} where - The place.
      * @returns {object} The expression.
      */
     unary(operator, operand, where) {
-        if (operator === '-' && operand.type === 'Binary' && operand.operator === '÷') {
-            return { ...operand, left: { type: 'Unary', operator, operand: operand.left, ...where } };
-        }
         return { type: 'Unary', operator, operand, ...where };
     }
 
@@ -1271,17 +1268,13 @@ class RubyReader {
             return { ...(yield this.indexOf(receiver, args[0])), ...where };
         const quotient = name === 'to_i' && receiver && args.length === 0 ? callOf(unwrap(receiver)) : null;
         if (quotient && quotient.name === '/' && quotient.receiver && quotient.args && quotient.args.length === 1) {
-            const left = yield this.expression(quotient.receiver);
-            // `(-a / 2).to_i` is not `-a ÷ 2`, which the Japanese reads as `-(a ÷ 2)`.
-            if (!(left.type === 'Unary' && left.operator === '-')) {
-                return {
-                    type: 'Binary',
-                    operator: '÷',
-                    left,
-                    right: yield this.expression(quotient.args[0]),
-                    ...where,
-                };
-            }
+            return {
+                type: 'Binary',
+                operator: '÷',
+                left: yield this.expression(quotient.receiver),
+                right: yield this.expression(quotient.args[0]),
+                ...where,
+            };
         }
         const table = this.calls[name];
         const read = table ? table(call, this.helpers()) : null;

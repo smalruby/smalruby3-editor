@@ -47,11 +47,21 @@ describe('the Smalruby Ruby of the Japanese mode', () => {
         expect(dnclToRuby(dncl).ruby).toBe(lines('def greet()', '  console.puts("hi")', 'end', '', 'greet'));
     });
 
-    test('the quotient with a sign keeps its meaning both ways', () => {
-        expect(rubyToDncl('@b = -(@a / 2).to_i').dncl).toBe('b = -a ÷ 2');
-        expect(dnclToRuby('b = -a ÷ 2').ruby).toBe('@b = -((@a / 2).to_i)');
-        // `(-a / 2).to_i` is not `-a ÷ 2` (the Japanese reads it as `-(a ÷ 2)`).
-        expect(rubyToDncl('@b = (-@a / 2).to_i').dncl).toBe('b = 整数(-a / 2)');
+    // A sign binds tighter than `÷` (`-7 ÷ 2` is `-4`, docs/smalruby-dncl-spec.ja.md, #2548).
+    test.each([
+        ['b = 7 ÷ 2', '@b = (7 / 2).to_i', 'b = 7 ÷ 2'],
+        ['b = -7 ÷ 2', '@b = (-7 / 2).to_i', 'b = -7 ÷ 2'],
+        ['b = -a ÷ 2', '@b = (-@a / 2).to_i', 'b = (-a) ÷ 2'],
+        ['b = (-a) ÷ 2', '@b = (-@a / 2).to_i', 'b = (-a) ÷ 2'],
+        ['b = -(a ÷ 2)', '@b = -((@a / 2).to_i)', 'b = -(a ÷ 2)'],
+    ])('the quotient with a sign keeps its meaning both ways: %s', (ja, ruby, back) => {
+        expect(dnclToRuby(ja).ruby).toBe(ruby);
+        expect(rubyToDncl(ruby).dncl).toBe(back);
+        expect(dnclToRuby(back).ruby).toBe(ruby);
+    });
+
+    test('a sign before the quotient written in Ruby without parentheses is outside the quotient', () => {
+        expect(rubyToDncl('@b = -(@a / 2).to_i').dncl).toBe('b = -(a ÷ 2)');
     });
 
     test('rubyToDncl needs prism to be loaded', () => {
