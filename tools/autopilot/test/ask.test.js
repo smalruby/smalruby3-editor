@@ -139,6 +139,12 @@ test('registerQuestionsOnce: 置き場に載せる。同じ round の同じ質�
     assert.strictEqual(planQuestionsRegistration(null, { round: 1, questions: QUESTIONS }).action, 'set');
 });
 
+test('合言葉のファイルの置き場は daemon と同じ（二重定義がずれると daemon に届かない）', () => {
+    // eslint-disable-next-line global-require
+    const { httpTokenFilePath } = require('../src/daemon');
+    for (const port of [8787, 8788]) assert.strictEqual(tokenFile(port), httpTokenFilePath(port));
+});
+
 test('POST /questions: 道具の postToDaemon（合言葉のファイル）から daemon の置き場に載る', async () => {
     const store = createAnswerStore();
     const server = http.createServer((req, res) => {
