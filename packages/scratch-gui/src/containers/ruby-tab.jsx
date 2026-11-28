@@ -63,6 +63,7 @@ import { showAlertWithTimeout, closeAlertWithId } from '../reducers/alerts';
 import {
     setDnclMode as setDnclModeAction,
     clearExternalExitDnclModeRequest,
+    setJapaneseEditError,
     getInitialDnclMode,
 } from '../reducers/dncl-mode';
 import {
@@ -202,6 +203,7 @@ const RubyTab = (props) => {
         v1PromptDismissed,
         onDismissV1Prompt,
         onSetDnclMode,
+        onSetJapaneseEditError,
         exitDnclModeExternallyRequested,
         dnclModeLocked,
         onClearExitDnclModeRequest,
@@ -261,6 +263,15 @@ const RubyTab = (props) => {
     // Whether the Japanese text the student typed makes no Ruby. Such text is kept only in
     // the editor (dispatchCode does not send it), so it must not be left behind (Issue #2546).
     const dnclEditErrorRef = useRef(false);
+    // The HOC reads it from Redux to stop saving, submitting and running too (Issue #2560).
+    const onSetJapaneseEditErrorRef = useRef(onSetJapaneseEditError);
+    onSetJapaneseEditErrorRef.current = onSetJapaneseEditError;
+    const setDnclEditError = useCallback((error) => {
+        const value = Boolean(error);
+        if (dnclEditErrorRef.current === value) return;
+        dnclEditErrorRef.current = value;
+        if (onSetJapaneseEditErrorRef.current) onSetJapaneseEditErrorRef.current(value);
+    }, []);
     // Set when the Japanese tab gives way from outside the editor: that switch is not stopped.
     const externalDnclExitRef = useRef(false);
     const dnclModeRef = useRef(dnclMode);
@@ -562,7 +573,7 @@ const RubyTab = (props) => {
         if (dnclModeRef.current) {
             setDnclDisplayCode(code);
             const result = dnclToRuby(code);
-            dnclEditErrorRef.current = Boolean(result.errors && result.errors.length > 0);
+            setDnclEditError(Boolean(result.errors && result.errors.length > 0));
             if (dnclEditErrorRef.current) {
                 // Don't dispatch code that makes no Ruby: its errors are shown
                 // on their DNCL lines by the DNCL error markers, so the markers
@@ -1044,7 +1055,7 @@ const RubyTab = (props) => {
                     }
                     monacoRef.current.editor.setModelLanguage(model, 'dncl');
                     model.setValue(dncl);
-                    dnclEditErrorRef.current = false;
+                    setDnclEditError(false);
                     setDnclDisplayCode(dncl);
                 } else {
                     // Switching to Ruby: convert DNCL → Ruby
@@ -1053,7 +1064,7 @@ const RubyTab = (props) => {
                     dnclSourceMapRef.current = null;
                     monacoRef.current.editor.setModelLanguage(model, 'smalruby');
                     model.setValue(ruby);
-                    dnclEditErrorRef.current = false;
+                    setDnclEditError(false);
                     setDnclDisplayCode('');
                     onChangeRef.current(ruby);
                 }
@@ -1242,6 +1253,14 @@ const RubyTab = (props) => {
 
     const handleRubyVersionChange = async (oldVersion, newVersion) => {
         lastProcessedVersionRef.current = newVersion;
+        // The program is written again from the blocks after the switch, which lack the
+        // Japanese lines with an error: keep the version and show the lines (Issue #2560).
+        if (dnclEditErrorRef.current && dnclModeRef.current) {
+            lastProcessedVersionRef.current = oldVersion;
+            onRevertRubyVersion(oldVersion);
+            onShowAlert('convertJapaneseError');
+            return;
+        }
         if (rubyCode.modified) {
             const converter = await targetCodeToBlocksHOC(intl);
             if (converter.result) {
@@ -1302,6 +1321,11 @@ const RubyTab = (props) => {
             // In DNCL mode, execute all top-level scripts from top to bottom
             // instead of just the cursor line.
             const isDncl = dnclModeRef.current;
+            // The Ruby lacks the Japanese lines with an error: stop as the green flag does (Issue #2560).
+            if (isDncl && dnclEditErrorRef.current) {
+                onShowAlert('convertJapaneseError');
+                return;
+            }
             // Running shows the read mode, to follow the program by the line numbers (Issue #2380).
             if (isDncl && problemFormViewRef.current) problemFormViewRef.current.showReadMode();
             const targetLine = isDncl ? 1 : findExecutableLine(code, lineNumber);
@@ -1345,7 +1369,7 @@ const RubyTab = (props) => {
                         if (dnclModeRef.current) {
                             // Convert regenerated Ruby back to DNCL for display
                             const dnclResult = rubyToDncl(regenerated, rubyCodeTargetRef.current);
-                            dnclEditErrorRef.current = false;
+                            setDnclEditError(false);
                             setDnclDisplayCode(dnclResult.dncl);
                             editorRef.current.setValue(dnclResult.dncl);
                         } else {
@@ -1587,11 +1611,16 @@ const RubyTab = (props) => {
     const rubyCodeTargetId = rubyCode.target ? rubyCode.target.id : null;
     // The target the Japanese tab last showed, so that a target without a program empties it (Issue #2576).
     const dnclShownTargetIdRef = useRef(rubyCodeTargetId);
+    const dnclShownRubyRef = useRef(rubyCodeStr);
     useEffect(() => {
         if (!dnclMode || !prismReady) return;
         if (!editorRef.current || !monacoRef.current) return;
         const targetChanged = dnclShownTargetIdRef.current !== rubyCodeTargetId;
+        const rubyChanged = dnclShownRubyRef.current !== rubyCodeStr;
         dnclShownTargetIdRef.current = rubyCodeTargetId;
+        dnclShownRubyRef.current = rubyCodeStr;
+        // A switch of the Ruby version that was stopped changes nothing: keep the lines with an error (Issue #2560).
+        if (dnclEditErrorRef.current && !targetChanged && !rubyChanged) return;
         // Only sync when the Ruby code changed externally (e.g., from blocks)
         // not from our own editor change (which already sets dnclDisplayCode)
         const text = japaneseTextForRuby({
@@ -1603,7 +1632,7 @@ const RubyTab = (props) => {
                     .dncl,
         });
         if (text !== null) {
-            dnclEditErrorRef.current = false;
+            setDnclEditError(false);
             setDnclDisplayCode(text);
         }
     }, [rubyCodeStr, rubyCodeTargetId, dnclMode, prismReady, rubyVersion]);
@@ -1819,7 +1848,7 @@ const RubyTab = (props) => {
             const leavingTarget =
                 editingTarget !== prev.editingTarget && heldTarget && vm.editingTarget !== heldTarget;
             if (leavingTab && externalDnclExitRef.current) {
-                dnclEditErrorRef.current = false;
+                setDnclEditError(false);
             } else if (leavingTab || leavingTarget) {
                 if (leavingTarget) vm.setEditingTarget(heldTarget.id);
                 if (leavingTab) onActivateTab(JAPANESE_TAB_INDEX);
@@ -1827,7 +1856,7 @@ const RubyTab = (props) => {
                 return;
             }
             // The sprite the text was written for is gone (a project was loaded): nothing to keep.
-            if (editingTarget !== prev.editingTarget && !heldTarget) dnclEditErrorRef.current = false;
+            if (editingTarget !== prev.editingTarget && !heldTarget) setDnclEditError(false);
         }
         if (activeTabIndex !== JAPANESE_TAB_INDEX) externalDnclExitRef.current = false;
 
@@ -2219,6 +2248,7 @@ RubyTab.propTypes = {
     v1PromptDismissed: PropTypes.bool,
     onDismissV1Prompt: PropTypes.func,
     onSetDnclMode: PropTypes.func,
+    onSetJapaneseEditError: PropTypes.func,
     exitDnclModeExternallyRequested: PropTypes.bool,
     dnclModeLocked: PropTypes.bool,
     onClearExitDnclModeRequest: PropTypes.func,
@@ -2259,6 +2289,7 @@ const mapDispatchToProps = (dispatch) => ({
     onMarkRubyTabUsed: () => dispatch(markRubyTabUsed()),
     onDismissV1Prompt: () => dispatch(dismissV1Prompt()),
     onSetDnclMode: (dnclMode) => dispatch(setDnclModeAction(dnclMode)),
+    onSetJapaneseEditError: (error) => dispatch(setJapaneseEditError(error)),
     onClearExitDnclModeRequest: () => dispatch(clearExternalExitDnclModeRequest()),
     onActivateTab: (tab) => dispatch(activateTab(tab)),
     onShowSmalrubyConsole: () => showSmalrubyConsole(dispatch),

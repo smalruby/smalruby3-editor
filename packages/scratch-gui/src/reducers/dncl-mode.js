@@ -4,6 +4,7 @@ import { getUrlParams } from '../lib/url-params';
 const SET_DNCL_MODE = 'scratch-gui/dncl-mode/SET_DNCL_MODE';
 const REQUEST_EXTERNAL_EXIT_DNCL_MODE = 'scratch-gui/dncl-mode/REQUEST_EXTERNAL_EXIT_DNCL_MODE';
 const CLEAR_EXTERNAL_EXIT_DNCL_MODE_REQUEST = 'scratch-gui/dncl-mode/CLEAR_EXTERNAL_EXIT_DNCL_MODE_REQUEST';
+const SET_JAPANESE_EDIT_ERROR = 'scratch-gui/dncl-mode/SET_JAPANESE_EDIT_ERROR';
 
 const DNCL_MODE_KEY = 'smalruby:dnclMode';
 
@@ -44,6 +45,9 @@ const getInitialDnclMode = () => {
 const initialState = {
     dnclMode: getInitialDnclMode(),
     exitDnclModeExternallyRequested: false,
+    // Whether the Japanese tab holds lines that make no Ruby. Such text is kept only in the
+    // editor, so saving, submitting and running stop on it as they stop on a Ruby error (Issue #2560).
+    japaneseEditError: false,
 };
 
 const reducer = function (state, action) {
@@ -68,6 +72,10 @@ const reducer = function (state, action) {
             return Object.assign({}, state, {
                 exitDnclModeExternallyRequested: false,
             });
+        case SET_JAPANESE_EDIT_ERROR:
+            return Object.assign({}, state, {
+                japaneseEditError: action.japaneseEditError,
+            });
         default:
             return state;
     }
@@ -88,6 +96,10 @@ const clearExternalExitDnclModeRequest = function () {
     return { type: CLEAR_EXTERNAL_EXIT_DNCL_MODE_REQUEST };
 };
 
+const setJapaneseEditError = function (japaneseEditError) {
+    return { type: SET_JAPANESE_EDIT_ERROR, japaneseEditError: Boolean(japaneseEditError) };
+};
+
 export {
     reducer as default,
     initialState as dnclModeInitialState,
@@ -96,4 +108,5 @@ export {
     SET_DNCL_MODE,
     requestExternalExitDnclMode,
     clearExternalExitDnclModeRequest,
+    setJapaneseEditError,
 };
