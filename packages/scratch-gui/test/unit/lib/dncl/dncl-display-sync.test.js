@@ -1,4 +1,5 @@
 // Issue #2576: selecting a target without a program empties the Japanese tab, as the Ruby tab does.
+// Issue #2583: deleting all the blocks of the target empties it too.
 import { japaneseTextForRuby } from '../../../../src/lib/dncl/dncl-display-sync';
 
 describe('japaneseTextForRuby', () => {
@@ -10,8 +11,31 @@ describe('japaneseTextForRuby', () => {
         ).toBe('');
     });
 
-    test('the text is kept when the Ruby is empty but the target is the same', () => {
-        expect(japaneseTextForRuby({ editorRuby: 'x = 3\n', ruby: '', targetChanged: false, toJapanese })).toBeNull();
+    // Issue #2583: the blocks of the target were all deleted in the Code tab.
+    test('the editor is emptied when the blocks were deleted and the text makes statements', () => {
+        expect(
+            japaneseTextForRuby({
+                editorRuby: '@x = 3\nconsole.puts(@x)',
+                ruby: '',
+                targetChanged: false,
+                toJapanese,
+            }),
+        ).toBe('');
+    });
+
+    test('the text is kept when the Ruby is empty and the text makes comments only', () => {
+        expect(
+            japaneseTextForRuby({
+                editorRuby: '# メモ\n\n  # もう一つ\n',
+                ruby: '',
+                targetChanged: false,
+                toJapanese,
+            }),
+        ).toBeNull();
+    });
+
+    test('the text is kept when the Ruby is empty and the text makes no Ruby (it has errors)', () => {
+        expect(japaneseTextForRuby({ editorRuby: null, ruby: '', targetChanged: false, toJapanese })).toBeNull();
     });
 
     test('the program of another target is shown when the target changed', () => {
