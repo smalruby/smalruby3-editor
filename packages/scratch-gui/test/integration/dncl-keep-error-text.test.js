@@ -101,6 +101,7 @@ describe('Japanese text with an error is kept when leaving the tab or the sprite
 
         expect(await isTabSelected(driver, 'gui-tab-japanese')).toBe(true);
         expect(await getEditorValue(driver)).toBe(WITH_ERROR);
+        expect(await isJapaneseErrorAlertShown(driver)).toBe(true);
     });
 
     test('switching the sprite does not take the program away', async () => {
