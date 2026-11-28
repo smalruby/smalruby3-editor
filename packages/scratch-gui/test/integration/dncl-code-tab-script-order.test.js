@@ -109,6 +109,7 @@ describe('The Japanese tab after the Code tab (Issue #2577)', () => {
         expect(await getEditorValue(driver)).toBe(FUNCTIONS_BETWEEN_CALLS);
     });
 
+    // 30 round trips take about a minute, longer on a slow CI runner than the 95 s of the helper.
     test('coming back from the Code tab 30 times never falls back to the Ruby tab', async () => {
         await openJapaneseTabWith(driver, FUNCTION_AFTER_MAIN);
         for (let i = 0; i < 30; i++) {
@@ -120,5 +121,5 @@ describe('The Japanese tab after the Code tab (Issue #2577)', () => {
             expect(await getMonacoLanguage(driver)).toBe('dncl');
             expect(await getEditorValue(driver)).toBe(FUNCTION_AFTER_MAIN);
         }
-    });
+    }, 240000);
 });
