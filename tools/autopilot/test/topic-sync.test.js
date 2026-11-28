@@ -281,6 +281,11 @@ test('resolveEpicTopicConflict: モニターの解消ボタンを、develop を 
     // 走っているあいだにもう一度押しても二重に始めない
     assert.deepEqual(await em.resolveEpicTopicConflict(epic, cfg, state, quiet, deps), { ...t, already: true });
     assert.equal(started.length, 1);
+    // 取り込む PR を作って CI 待ちのあいだ（topic → develop の PR はまだ CONFLICTING）に押しても、始め直さない
+    state.topicSyncs[2438] = { topic: TOPIC, base: 'develop', topicPr: null, syncPr: 2490 };
+    assert.deepEqual(await em.resolveEpicTopicConflict(epic, cfg, state, quiet, deps), { ...t, already: true });
+    assert.equal(started.length, 1);
+    assert.equal(state.topicSyncs[2438].syncPr, 2490);
     // EPIC でない・PR が無い ときは null（呼び出し側が従来の resolve-conflict に回す）。EPIC でなければ read もしない
     reads.length = 0;
     assert.equal(await em.resolveEpicTopicConflict({ issue: 9, prs: epic.prs }, cfg, {}, quiet, deps), null);

@@ -414,7 +414,11 @@ async function resolveEpicTopicConflict(item, cfg, state, log, deps = {}) {
     const t = epicConflictSyncTarget(item, facts);
     if (!t) return null;
     if (!state.topicSyncs) state.topicSyncs = {};
-    if (state.topicSyncs[t.epic] && state.topicSyncs[t.epic].running) return { ...t, already: true };
+    // 走っている、または取り込む PR を作って CI 待ち（syncPr）なら始め直さない。topic → develop の PR は取り込む PR を
+    // topic にマージするまで CONFLICTING のままなので、行にはまたボタンが出る。始め直すと runTopicSync が「取り込み済み」で
+    // 追跡を消し、取り込む PR が topic にマージされないまま残る
+    const live = state.topicSyncs[t.epic];
+    if (live && (live.running || live.syncPr)) return { ...t, already: true };
     state.topicSyncs[t.epic] = { topic: t.topic, base: t.base, topicPr: { number: t.topicPr, mergeable: facts.mergeable || null },
         syncPr: null, running: true };
     log(`EPIC #${t.epic}: 解消ボタン → ${t.base} を ${t.topic} に取り込む（topic → ${t.base} の PR #${t.topicPr}）`);
