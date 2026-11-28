@@ -490,6 +490,7 @@ test/integration/*
 !test/integration/block-palette.test.js
 !test/integration/debug_defaults.test.js
 !test/integration/dncl-mode-validation.test.js
+!test/integration/dncl-keep-error-text.test.js
 !test/integration/dncl-problem-form.test.js
 !test/integration/dncl-settings-pattern.test.js
 !test/integration/dncl-typing-indent.test.js

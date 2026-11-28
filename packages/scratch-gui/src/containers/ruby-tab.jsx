@@ -237,6 +237,11 @@ const RubyTab = (props) => {
     // Room in the line number column for the labels `(01)` / `(100)` / `(1000)`.
     const [lineNumbersMinChars, setLineNumbersMinChars] = useState(5);
     const dnclSourceMapRef = useRef(null);
+    // Whether the Japanese text the student typed makes no Ruby. Such text is kept only in
+    // the editor (dispatchCode does not send it), so it must not be left behind (Issue #2546).
+    const dnclEditErrorRef = useRef(false);
+    // Set when the Japanese tab gives way from outside the editor: that switch is not stopped.
+    const externalDnclExitRef = useRef(false);
     const dnclModeRef = useRef(dnclMode);
     dnclModeRef.current = dnclMode;
     // The toggle reads it through a ref so that a stale callback (requestAnimationFrame) sees the latest lock
@@ -488,7 +493,8 @@ const RubyTab = (props) => {
         if (dnclModeRef.current) {
             setDnclDisplayCode(code);
             const result = dnclToRuby(code);
-            if (result.errors && result.errors.length > 0) {
+            dnclEditErrorRef.current = Boolean(result.errors && result.errors.length > 0);
+            if (dnclEditErrorRef.current) {
                 // Don't dispatch code that makes no Ruby: its errors are shown
                 // on their DNCL lines by the DNCL error markers, so the markers
                 // of the last conversion of the blocks are taken off.
@@ -951,6 +957,7 @@ const RubyTab = (props) => {
                     }
                     monacoRef.current.editor.setModelLanguage(model, 'dncl');
                     model.setValue(dncl);
+                    dnclEditErrorRef.current = false;
                     setDnclDisplayCode(dncl);
                 } else {
                     // Switching to Ruby: convert DNCL → Ruby
@@ -959,6 +966,7 @@ const RubyTab = (props) => {
                     dnclSourceMapRef.current = null;
                     monacoRef.current.editor.setModelLanguage(model, 'smalruby');
                     model.setValue(ruby);
+                    dnclEditErrorRef.current = false;
                     setDnclDisplayCode('');
                     onChangeRef.current(ruby);
                 }
@@ -1165,6 +1173,7 @@ const RubyTab = (props) => {
                         if (dnclModeRef.current) {
                             // Convert regenerated Ruby back to DNCL for display
                             const dnclResult = rubyToDncl(regenerated);
+                            dnclEditErrorRef.current = false;
                             setDnclDisplayCode(dnclResult.dncl);
                             editorRef.current.setValue(dnclResult.dncl);
                         } else {
@@ -1359,7 +1368,10 @@ const RubyTab = (props) => {
     useEffect(() => {
         const japaneseUnavailable = dnclModeLocked || !isJapaneseLocale(locale);
         if (!exitDnclModeExternallyRequested && !japaneseUnavailable) return;
-        if (activeTabIndex === JAPANESE_TAB_INDEX) onActivateTab(RUBY_TAB_INDEX);
+        if (activeTabIndex === JAPANESE_TAB_INDEX) {
+            externalDnclExitRef.current = true;
+            onActivateTab(RUBY_TAB_INDEX);
+        }
         if (exitDnclModeExternallyRequested) onClearExitDnclModeRequest?.();
     }, [exitDnclModeExternallyRequested, dnclModeLocked, locale, activeTabIndex]);
 
@@ -1397,6 +1409,7 @@ const RubyTab = (props) => {
         const currentRubyFromDncl = dnclToRuby(currentEditorValue).ruby;
         if (currentRubyFromDncl !== rubyCodeStr && rubyCodeStr) {
             const result = rubyToDncl(rubyCodeStr);
+            dnclEditErrorRef.current = false;
             setDnclDisplayCode(result.dncl);
         }
     }, [rubyCodeStr, dnclMode, prismReady]);
@@ -1575,6 +1588,29 @@ const RubyTab = (props) => {
             savePrev();
             return;
         }
+
+        // Japanese text that makes no Ruby is only in the editor: leaving the Japanese tab or
+        // the sprite would write the program again from the blocks, and the lines the student
+        // typed would be lost without a word (Issue #2546). Stay, as the Ruby tab stays when
+        // its Ruby cannot be converted, and keep prev so that coming back is no change at all.
+        // A switch asked from outside the editor (a lesson, the notice of the Code tab) is not stopped.
+        if (dnclEditErrorRef.current && dnclModeRef.current) {
+            const leavingTab = prev.activeTabIndex === JAPANESE_TAB_INDEX && activeTabIndex !== JAPANESE_TAB_INDEX;
+            const heldTarget = rubyCode.target ? vm.runtime.getTargetById(rubyCode.target.id) : null;
+            const leavingTarget =
+                editingTarget !== prev.editingTarget && heldTarget && vm.editingTarget !== heldTarget;
+            if (leavingTab && externalDnclExitRef.current) {
+                dnclEditErrorRef.current = false;
+            } else if (leavingTab || leavingTarget) {
+                if (leavingTarget) vm.setEditingTarget(heldTarget.id);
+                if (leavingTab) onActivateTab(JAPANESE_TAB_INDEX);
+                onShowAlert('convertJapaneseError');
+                return;
+            }
+            // The sprite the text was written for is gone (a project was loaded): nothing to keep.
+            if (editingTarget !== prev.editingTarget && !heldTarget) dnclEditErrorRef.current = false;
+        }
+        if (activeTabIndex !== JAPANESE_TAB_INDEX) externalDnclExitRef.current = false;
 
         // The label of the `ruby_tab/open` GA event: the language of the tab that was
         // opened (the Japanese tab is 'dncl'), not the transient state of the editor

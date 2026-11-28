@@ -1317,6 +1317,8 @@ export default {
         'ざんねんながら、ブラウザーやコンピューターが{webGlLink}ようです。このぎじゅつはスモウルビー3.0のじっこうにひっすです。',
     'gui.smalruby3.alerts.convertRubyToBlocksError':
         'ルビーからコードにへんかんできませんでした。ルビーをなおしてください！',
+    'gui.smalruby3.alerts.convertJapaneseError':
+        'にほんごのプログラムによめないぎょうがあります。しるしのあるぎょうをなおしてください！',
     'gui.alerts.cannotExecuteLine': 'このぎょうはじっこうできません。',
     'gui.smalruby3.telemetryOptIn.label': 'スモウルビーをかいぜんするためのりようじょうきょうのほうこく',
     'gui.smalruby3.telemetryOptIn.body1':
