@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import React, { useEffect, useState } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
 import { connect } from 'react-redux';
-import { JAPANESE_TAB_INDEX } from '../../reducers/editor-tab';
+import { JAPANESE_TAB_INDEX } from '../../reducers/editor-tab.js';
 import { toggleSmalrubyConsole } from '../../reducers/smalruby-console.js';
 import consoleIcon from './icon--console.svg';
 import styles from './smalruby-console-button.css';

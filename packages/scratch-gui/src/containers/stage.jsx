@@ -468,8 +468,9 @@ const mapStateToProps = state => ({
     // === Smalruby: Start of console ===
     consoleVisible: state.scratchGui.smalrubyConsole.visible,
     // the Japanese tab shows the console in the right column, in place of the stage
+    // (the player has no right column, so the console stays on the stage there)
     consoleInColumn: state.scratchGui.editorTab.activeTabIndex === JAPANESE_TAB_INDEX &&
-        !state.scratchGui.mode.isFullScreen,
+        !state.scratchGui.mode.isFullScreen && !state.scratchGui.mode.isPlayerOnly,
     // === Smalruby: End of console ===
     // Do not use editor drag style in fullscreen or player mode.
     useEditorDragStyle: !(state.scratchGui.mode.isFullScreen || state.scratchGui.mode.isPlayerOnly)

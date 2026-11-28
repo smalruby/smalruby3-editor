@@ -57,7 +57,12 @@ const JapaneseRightColumn = ({ active, isStage = false, stageSize, targetName = 
     const name = isStage ? intl.formatMessage(messages.stage) : targetName || '';
     return (
         <React.Fragment>
-            {active ? <SmalrubyConsoleSlot width={getStageDimensions(stageSize, false).width} /> : null}
+            {active ? (
+                <SmalrubyConsoleSlot
+                    shrinkWhenEmpty={targetsOpen}
+                    width={getStageDimensions(stageSize, false).width}
+                />
+            ) : null}
             <div
                 className={targetsShown ? styles.targets : null}
                 data-testid="japanese-right-column-targets"

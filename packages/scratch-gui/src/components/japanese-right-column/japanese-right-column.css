@@ -38,7 +38,8 @@
     padding: 0;
     border: none;
     background: none;
-    color: $motion-primary;
+    /* the blue of text links: $motion-primary is 2.9:1 on white, too light for small text */
+    color: $color-action;
     font-size: inherit;
     text-decoration: underline;
     cursor: pointer;
