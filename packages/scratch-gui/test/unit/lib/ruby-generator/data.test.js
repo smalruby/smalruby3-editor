@@ -144,14 +144,15 @@ describe('RubyGenerator/Data', () => {
             expect(RubyGenerator.data_itemoflist(block)).toEqual(['@my_list[0]', RubyGenerator.ORDER_FUNCTION_CALL]);
         });
 
-        test('data_itemnumoflist generates index', () => {
+        test('data_itemnumoflist generates index counted from 1', () => {
             const block = makeListBlock('data_itemnumoflist', {
                 ITEM: { block: 'item-block-id' },
             });
             RubyGenerator.valueToCode = jest.fn().mockReturnValue('"thing"');
+            // 1 for the first item and 0 when it is not there, as the block (issue #2125).
             expect(RubyGenerator.data_itemnumoflist(block)).toEqual([
-                '@my_list.index("thing")',
-                RubyGenerator.ORDER_FUNCTION_CALL,
+                '(@my_list.index("thing") || -1) + 1',
+                RubyGenerator.ORDER_ADDITIVE,
             ]);
         });
 

@@ -786,7 +786,7 @@ hide_variable("@score")
 @items.insert(0, "バナナ")     # インデックス指定で挿入（0起点）
 @items[0] = "みかん"           # インデックス指定で置換（0起点）
 @items[0]                      # インデックス指定で取得（0起点）
-@items.index("りんご")         # 検索（0起点のインデックスを返す、見つからない場合は0）
+@items.index("りんご")         # 検索（0起点のインデックスを返す、見つからない場合は nil）
 @items.length                  # 長さ
 @items.include?("りんご")      # 含むか
 @items.empty?                  # 空か

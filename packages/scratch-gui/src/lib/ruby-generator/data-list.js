@@ -429,9 +429,23 @@ export default function (Generator) {
             const symbolName = comment.slice('@ruby:symbol:'.length);
             return [`:${symbolName}`, Generator.ORDER_ATOMIC];
         }
+        const code = Generator.listIndexCode(block);
+        if (!isV2()) return [code, Generator.ORDER_FUNCTION_CALL];
+        // The block counts from 1 and gives 0 when the item is not there; Ruby's `index` counts
+        // from 0 and gives nil. `|| -1` and `+ 1` give the value of the block (issue #2125).
+        return [`(${code} || -1) + 1`, Generator.ORDER_ADDITIVE];
+    };
+
+    /**
+     * Ruby's `index` call of "item # of (x) in list", counting from 0 like Ruby. The blocks made
+     * from `@a.index(x)` ("(item # of x) - 1" with `@ruby:array:index`) are written with it.
+     * @param {object} block - The data_itemnumoflist block.
+     * @returns {string} The code, such as `@a.index("x")`.
+     */
+    Generator.listIndexCode = function (block) {
         const item = Generator.valueToCode(block, 'ITEM', Generator.ORDER_NONE) || '0';
         const list = getListName(block);
-        return [`${renderList(list)}.index(${Generator.nosToCode(item)})`, Generator.ORDER_FUNCTION_CALL];
+        return `${renderList(list)}.index(${Generator.nosToCode(item)})`;
     };
 
     Generator.data_lengthoflist = function (block) {
