@@ -22,6 +22,7 @@ import {
     STRING_PLUS_NUMBER_ERROR_ID,
     withStringPlusNumberIds,
 } from '../lib/dncl/dncl-block-check';
+import { japaneseTextForRuby } from '../lib/dncl/dncl-display-sync';
 import { dnclTextBlob, dnclTextFilename } from '../lib/dncl/dncl-download';
 import { slashCommentRows, tidyPastedDncl, withDoubleSlashHint } from '../lib/dncl/dncl-paste-tidy';
 import { problemFormText } from '../lib/dncl/dncl-problem-form';
@@ -1554,20 +1555,27 @@ const RubyTab = (props) => {
 
     // When code changes from blocks tab (Ruby → DNCL display), sync DNCL display
     const rubyCodeStr = rubyCode.code;
+    const rubyCodeTargetId = rubyCode.target ? rubyCode.target.id : null;
+    // The target the Japanese tab last showed, so that a target without a program empties it (Issue #2576).
+    const dnclShownTargetIdRef = useRef(rubyCodeTargetId);
     useEffect(() => {
         if (!dnclMode || !prismReady) return;
         if (!editorRef.current || !monacoRef.current) return;
+        const targetChanged = dnclShownTargetIdRef.current !== rubyCodeTargetId;
+        dnclShownTargetIdRef.current = rubyCodeTargetId;
         // Only sync when the Ruby code changed externally (e.g., from blocks)
         // not from our own editor change (which already sets dnclDisplayCode)
-        const currentEditorValue = editorRef.current.getValue();
-        const currentRubyFromDncl = dnclToRuby(currentEditorValue).ruby;
-        if (currentRubyFromDncl !== rubyCodeStr && rubyCodeStr) {
-            const ruby = rubyInScriptOrder(rubyCodeTargetRef.current, rubyCodeStr, rubyVersion);
-            const result = rubyToDncl(ruby);
+        const text = japaneseTextForRuby({
+            editorRuby: dnclToRuby(editorRef.current.getValue()).ruby,
+            ruby: rubyCodeStr,
+            targetChanged,
+            toJapanese: (code) => rubyToDncl(rubyInScriptOrder(rubyCodeTargetRef.current, code, rubyVersion)).dncl,
+        });
+        if (text !== null) {
             dnclEditErrorRef.current = false;
-            setDnclDisplayCode(result.dncl);
+            setDnclDisplayCode(text);
         }
-    }, [rubyCodeStr, dnclMode, prismReady, rubyVersion]);
+    }, [rubyCodeStr, rubyCodeTargetId, dnclMode, prismReady, rubyVersion]);
 
     // The read mode is drawn only in the Japanese mode.
     useEffect(() => {
