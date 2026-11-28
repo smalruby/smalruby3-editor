@@ -1444,6 +1444,9 @@ async function dispatch(item, cfg, state, log) {
     const session = `autopilot-${phase}-${item.issue}`;
     const startedAt = cfg.now();
     state.running.set(item.issue, { phase, session, since: startedAt });
+    // worker を起こしたら受け渡しの記録は役目を終える。stalled 復帰以外の経路（selectActionable 等）で
+    // 起動したあとに worker が消えても、古い記録で「受け渡し」と見誤らないよう消す（#2582）
+    if (state.handOffs) state.handOffs.delete(item.issue);
     const record = (outcome, note) => recordHistory(state, {
         issue: item.issue,
         phase,

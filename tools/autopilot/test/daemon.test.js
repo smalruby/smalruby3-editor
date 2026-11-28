@@ -6,7 +6,7 @@ const assert = require('node:assert');
 process.env.AUTOPILOT_STATE_DIR = require('fs').mkdtempSync(require('path').join(require('os').tmpdir(), 'ap-daemon-test-'));
 const {
     applyMergeProgression, applyClosedReconcile, isIssueClosedAfterRun, applyPrProjection, applyDodHandoffs, runTickOnce,
-    detectStuck, recoverOrphanedWorkers, recoverStalledInFlightWorkers, markBlocked, getDirectives, populateAssigneeDirectives,
+    detectStuck, recoverOrphanedWorkers, recoverStalledInFlightWorkers, rememberHandOff, markBlocked, getDirectives, populateAssigneeDirectives,
     applyLabelHealing, applyAfterWaitLabels, collectGateContexts,
     applyDecomposeSubIssueSetup,
     parseSsoDeviceOutput, startReauth,
@@ -638,6 +638,15 @@ test('#2582: daemon の再起動などで worker がいない In Progress（反�
     assert.deepEqual(recovered.map((r) => r.kind), ['stalled', 'stalled']);
     assert.ok(logs.some((m) => /#2555: stalled in-flight worker/.test(m)));
     assert.ok(logs.some((m) => /stalled recovery: 2 件を再ディスパッチ/.test(m)));
+});
+
+test('#2582: rememberHandOff は実作業系 AI Status になった結果だけを覚え、そうでない結果で古い記録を消す', () => {
+    const state = {};
+    rememberHandOff(state, 1, [{ field: 'Status', value: 'In Progress' }, { field: 'AI Status', value: 'Self-Reviewing' }]);
+    assert.equal(state.handOffs.get(1), 'Self-Reviewing');
+    // review の done → Status=Review（stalled 復帰の対象外）で記録は消える
+    rememberHandOff(state, 1, [{ field: 'Status', value: 'Review' }, { field: 'AI Status', value: null }]);
+    assert.equal(state.handOffs.has(1), false);
 });
 
 test('#972 回帰: In Progress + Addressing Comments + 🙋 HITL + worker 不在 → address-review へ再ディスパッチ', async () => {
