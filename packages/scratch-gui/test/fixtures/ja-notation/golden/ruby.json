@@ -1885,23 +1885,10 @@
     "ja": "i = 0\ni < 10 の間繰り返す:\n    redo if @i == 3\n    retry if @i == 4",
     "errors": [
       {
-        "line": 3,
-        "column": 3,
-        "id": "unsupportedCommand",
-        "name": "redo",
-        "message": "「redo」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
-      },
-      {
         "line": 4,
         "column": 3,
+        "id": "rubySyntax",
         "message": "Ruby のプログラムに誤りがあるので、日本語にできません（Invalid retry without rescue）"
-      },
-      {
-        "line": 4,
-        "column": 3,
-        "id": "unsupportedCommand",
-        "name": "retry",
-        "message": "「retry」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
       }
     ],
     "back": {
@@ -2084,6 +2071,7 @@
       {
         "line": 1,
         "column": 7,
+        "id": "rubySyntax",
         "message": "Ruby のプログラムに誤りがあるので、日本語にできません（unexpected integer, expecting end-of-input）"
       }
     ],

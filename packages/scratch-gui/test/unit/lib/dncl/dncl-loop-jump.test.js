@@ -50,13 +50,19 @@ describe('Ruby → DNCL: break / next in a loop is told on its Ruby line (issue 
         ]);
     });
 
-    test('redo and retry', () => {
-        expect(
-            rubyErrors(lines('@i = 0', 'while @i < 10', '  redo if @i == 3', '  retry if @i == 4', 'end')),
-        ).toEqual([
+    test('redo', () => {
+        expect(rubyErrors(lines('@i = 0', 'while @i < 10', '  redo if @i == 3', '  @i += 1', 'end'))).toEqual([
             { line: 3, column: 3, name: 'redo' },
-            { line: 4, column: 3, name: 'retry' },
         ]);
+    });
+
+    // `retry` outside `rescue` is not Ruby, so prism cannot read it: it is told by the syntax
+    // error on its line only, like Japanese typed in the Ruby tab (Issue #2547).
+    test('retry outside rescue is told by the syntax error on its line', () => {
+        const { errors } = rubyToDncl(
+            lines('@i = 0', 'while @i < 10', '  redo if @i == 3', '  retry if @i == 4', 'end'),
+        );
+        expect(errors.map(({ line, id }) => ({ line, id }))).toEqual([{ line: 4, id: 'rubySyntax' }]);
     });
 });
 

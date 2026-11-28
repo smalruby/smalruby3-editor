@@ -2095,13 +2095,15 @@ export default {
         'ステージの変数（{name}）は日本語モードでは書けません。Ruby モードでは書けます。',
     'gui.rubyTab.dnclUndefinedFunctionError':
         '「{name}」は定義されていない関数です。「関数 {name}(…):」で定義してください。',
+    'gui.rubyTab.dnclStringPlusNumberError':
+        '文字列と数を「+」でつなぐときは、数を「文字列(3)」のように文字列にしてください（例: "残り" + 文字列(3)）。数を「"残り3"」のように文字列の中に書いてもかまいません。',
     'gui.rubyTab.dnclUnsupportedCommandError':
         '「{name}」は日本語モードでは書けない命令です。Ruby モードでは書けます。',
     'gui.rubyTab.dnclUnsupportedNotationError': '「{name}」は日本語モードでは書けません。Ruby モードでは書けます。',
     'gui.rubyTab.dnclUnsupportedNumberError':
         '「{name}」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。',
     'gui.rubyTab.dnclValidationError':
-        '日本語モードでは対応していない記述です。\n対応している命令のみにしてから、モード切り替えを行ってください。',
+        '日本語モードでは対応していない記述です。\n対応している命令のみにしてから、日本語タブを開いてください。',
     'gui.mobile.drawer.title': 'メニュー',
     'gui.mobile.sideRail.backpack': 'バックパック',
     'gui.mobile.drawer.section.file': 'ファイル',
