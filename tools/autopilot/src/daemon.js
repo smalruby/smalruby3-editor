@@ -129,7 +129,7 @@ const learnTasks = require('./learn-tasks');
 const { resolveRunOutcome, isEpicFlowBase, markAutoMergeContexts } = require('./epic-flow');
 const {
     applyEpicRunSideEffects, applyEpicAutoMerge, applyEpicTopicPrs, bootEpicTopicPrs,
-    topicSyncTarget, applyEpicTopicSync, runTopicSync,
+    topicSyncTarget, applyEpicTopicSync, runTopicSync, resolveEpicTopicConflict,
 } = require('./epic-merge');
 // EPIC ごとの進み具合と現在地（#2388）。判断は epic-summary.js / current-status.js、I/O は current-status-job.js
 const { buildStatusMaterial, groupItemsByEpic } = require('./epic-summary');
@@ -3427,7 +3427,12 @@ function startHttp(cfg, state, log) {
             if (state.running.has(issue)) return send(409, { error: 'already running', issue });
             const it = state.board && Array.isArray(state.board.items) ? state.board.items.find((x) => x && x.issue === issue) : null;
             if (it && prConflictState(it.prs) === null) return send(409, { error: 'no open PR', issue });
-            dispatch({ issue, phase: 'resolve-conflict', itemId: it && it.itemId }, cfg, state, log);
+            // EPIC の topic → develop の PR は、develop を topic に取り込む PR を作って解く（#2536）。それ以外は従来どおり
+            resolveEpicTopicConflict(it, cfg, state, log, { startSync: topicSyncDeps(cfg, state, log, state.board && state.board.items).startSync })
+                .then((t) => {
+                    if (!t) dispatch({ issue, phase: 'resolve-conflict', itemId: it && it.itemId }, cfg, state, log);
+                })
+                .catch((e) => log(`#${issue}: resolve-conflict error: ${sanitizeForSurface(e.message || '')}`));
             log(`resolve-conflict requested #${issue}`);
             return send(202, { resolving: issue });
         }

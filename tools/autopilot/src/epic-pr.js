@@ -404,9 +404,39 @@ function topicSyncPlan({ topicPr, syncPr, nowMs = null, graceMs = 10 * 60 * 1000
     return { action: 'none', reason: '競合していません' };
 }
 
+/**
+ * board item が EPIC（Kind=EPIC・🧭・子がある）か（純粋関数・#2536）。
+ * @param {object} item board item
+ * @returns {boolean}
+ */
+function isEpicBoardItem(item) {
+    return Boolean(item) && (item.kind === 'EPIC' || Boolean(item.tracker) || Number((item.subIssues || {}).total) > 0);
+}
+
+/**
+ * モニターの「コンフリクトを解消してもらう」を EPIC の行で押したとき、develop を topic に取り込む経路
+ * （{@link topicSyncPlan} の resolve と同じ・epic-merge.js の runTopicSync）へ回す相手を決める（純粋関数・#2536）。
+ * 従来の resolve-conflict は PR ブランチに直接 merge して push するので、topic → develop の PR には使わない
+ * （取り込む PR を topic 宛てに作り、CI を通してから topic にマージする決まりにそろえる）。
+ * EPIC（Kind=EPIC・🧭・子がある）の、head が topic（子の `topic/autopilot-<N>` ではない）・base が topic でない OPEN の PR だけ。
+ * @param {object} item board item（issue / kind / tracker / subIssues）
+ * @param {object|null} pr `{number, state, headRefName, baseRefName}`
+ * @returns {{epic:number, topic:string, base:string, topicPr:number}|null}
+ */
+function epicConflictSyncTarget(item, pr) {
+    if (!isEpicBoardItem(item) || !pr || !pr.number) return null;
+    if (pr.state && pr.state !== 'OPEN') return null;
+    const head = String(pr.headRefName || '');
+    const base = String(pr.baseRefName || '');
+    if (!head.startsWith('topic/') || issueFromHeadBranch(head) != null) return null;
+    if (!base || base.startsWith('topic/')) return null;
+    return { epic: item.issue, topic: head, base, topicPr: pr.number };
+}
+
 module.exports = {
     EPIC_PR_MARKER, EPIC_PR_STATUS_MARKER, PREVIEW_BASE_URL, PREVIEW_SLUG_MAX_LENGTH, CHILD_STATE_LABELS, WORKING_STATUSES,
     epicPrMarker, epicPrStatusMarker, previewSlug, previewUrlForBranch, epicPrTitle, issueFromHeadBranch,
     childStates, renderEpicPrBody, renderEpicPrStatusComment, selectEpicPr, epicPrPlan, topicMergeTargets,
     previewStatus, previewStatusText, topicSyncBranch, topicSyncMarker, renderTopicSyncBody, topicSyncPlan,
+    isEpicBoardItem, epicConflictSyncTarget,
 };

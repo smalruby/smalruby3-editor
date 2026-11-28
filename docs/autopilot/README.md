@@ -1073,6 +1073,7 @@ daemon の `GET /`（既定 `http://localhost:8787/`）は、人間と同意し�
 
   | 状態 | すること | ボタン | 押すと |
   |---|---|---|---|
+  | 🧭 EPIC の最後の確認（Release Check・子が全部済んだ）で topic → develop の PR が develop とコンフリクト | 確かめる | コンフリクトを解消してもらう | `POST /resolve-conflict`。EPIC の PR は直接 push せず、develop を topic に取り込む PR を作って解く（`resolveEpicTopicConflict` → `runTopicSync`。CI が通れば daemon が topic にマージする）。🙋 と Status はそのまま。済めば行は確認のボタンに戻る。自律で進んでいる途中の EPIC は AI の番なのでボタンにしない |
   | 🧭 EPIC で Release Check（最後の確認） | 確かめる | 確認ページを開く | プレビュー / topic → develop の PR と「確認の結果を書く」のダイアログを開く（確認ページの artifact ができるまでのあいだ）。子に答え待ちの質問があれば一文で示す（子は「答えが要る」の欄に出る） |
   | 🧭 EPIC で子が全部済んだ（Release Check の前） | 確かめる | プレビューで確かめる | プレビュー / topic → develop の PR を開く |
   | Review / DoD（ほか 🙋 付き）で OPEN の PR が base とコンフリクト（`mergeable=CONFLICTING`・worker なし） | 確かめる | コンフリクトを解消してもらう | `POST /resolve-conflict`。AI が base を取り込んで解消し push する。🙋 と Status はそのまま（済めば daemon が `mergeable` を直し、行はもとのボタン（Review / DoD なら「PR を見る」）に戻る）。分解済み EPIC の途中の相談の子がこの状態なら、EPIC の行も同じボタン |
