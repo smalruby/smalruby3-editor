@@ -330,6 +330,30 @@ describe('attachGoalMonitor', () => {
         runtime.emit('BEFORE_STEP');
         expect(onSatisfied).toHaveBeenCalledTimes(1);
     });
+
+    // 「ことばを予想する AI」（#2108）: どの定義ブロックを呼んだかを、呼び出しの mutation の proccode で見る
+    test('the mutation of a procedure call is recorded as the procedure name (proccode)', () => {
+        const onSatisfied = jest.fn();
+        runtime._primitives.procedures_call = jest.fn();
+        const goal = [
+            {
+                type: 'uses',
+                trigger: { hat: 'event_whenthisspriteclicked' },
+                blocks: [{ opcode: 'procedures_call', args: { mutation: '文をつくる' } }],
+            },
+        ];
+        attachGoalMonitor(vm, goal, onSatisfied);
+        exec(runtime, hatThread(cat, 'clickHat'), 'procedures_call', {
+            mutation: { tagName: 'mutation', proccode: '学習する', warp: 'true' },
+        });
+        runtime.emit('BEFORE_STEP');
+        expect(onSatisfied).not.toHaveBeenCalled();
+        exec(runtime, hatThread(cat, 'clickHat'), 'procedures_call', {
+            mutation: { tagName: 'mutation', proccode: '文をつくる', warp: 'true' },
+        });
+        runtime.emit('BEFORE_STEP');
+        expect(onSatisfied).toHaveBeenCalledTimes(1);
+    });
 });
 
 // メッシュの拡張は、ほかのノードから届いた合図を「送る」の関数で流す。そのときのスレッドは「送る」を動かして

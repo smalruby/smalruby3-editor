@@ -3,7 +3,7 @@
  * 変換はいまの code と同じ ruby-to-blocks-converter（prism）を使う。
  */
 import { COURSES, localizeCode } from '../../../../src/lib/lessons/courses';
-import { rubyToBlocksXml } from '../../../../src/lib/lessons/hint-blocks';
+import { procedureNamesInCode, rubyToBlocksXml } from '../../../../src/lib/lessons/hint-blocks';
 
 // code / blocks は locale ごとに持てる（courses.js の localizeCode）ので、UI の 3 つの locale で確かめる
 const LOCALES = ['ja', 'ja-Hira', 'en'];
@@ -25,6 +25,51 @@ describe('rubyToBlocksXml', () => {
         expect(xml).toContain('type="looks_sayforsecs"');
         expect(xml).toContain('<field name="TEXT">こんにちは！</field>');
         expect(xml).toContain('<field name="NUM">2</field>');
+    });
+
+    // 「ことばを予想する AI」（#2108）: ヒントの Ruby は作品にある定義ブロックを名前だけで呼ぶ
+    test('draws a call of a procedure of the project without drawing its definition', async () => {
+        const code = 'when_clicked do\n  文をつくる\n  say(@文)\nend\n';
+        const failed = await rubyToBlocksXml(null, null, code);
+        expect(failed.xml).toBeNull();
+        const { xml, errors } = await rubyToBlocksXml(null, null, code, null, {
+            version: '2',
+            procedures: ['文をつくる', '学習する'],
+        });
+        expect(errors).toEqual([]);
+        expect(xml).toContain('type="procedures_call"');
+        expect(xml).toContain('proccode="文をつくる"');
+        expect(xml).not.toContain('procedures_definition');
+        expect(xml).not.toContain('学習する');
+        // 作品の target の定義ブロックからも名前を取る
+        const target = {
+            blocks: {
+                _blocks: {
+                    p: { opcode: 'procedures_prototype', mutation: { proccode: '文をつくる' } },
+                    q: { opcode: 'procedures_prototype', mutation: { proccode: 'with arg %s' } },
+                    // 空白のある名前（Ruby の名前にできない）は足さない（足すと変換ごと失敗する）
+                    r: { opcode: 'procedures_prototype', mutation: { proccode: 'my block' } },
+                },
+            },
+        };
+        const fromTarget = await rubyToBlocksXml(null, target, code);
+        expect(fromTarget.errors).toEqual([]);
+        expect(fromTarget.xml).toContain('proccode="文をつくる"');
+    });
+
+    // 3-3 の「Ruby で読む」（#2110）: 定義の中で作品にある別の定義ブロックを呼んでも、ヒントの定義そのものは描く
+    test('draws the definition of the hint even when it calls other procedures of the project', async () => {
+        const code = 'without_screen_refresh def 文をつくる\n  @文 = ""\n  こうほを集める\nend\n';
+        const { xml, errors } = await rubyToBlocksXml(null, null, code, null, {
+            version: '2',
+            procedures: ['こうほを集める', '文をつくる'],
+        });
+        expect(errors).toEqual([]);
+        expect(xml.match(/type="procedures_definition"/g)).toHaveLength(1);
+        expect(xml).toContain('proccode="文をつくる"');
+        expect(xml).toContain('type="procedures_call"');
+        expect(xml).toContain('proccode="こうほを集める"');
+        expect(xml).toContain('type="data_setvariableto"');
     });
 
     test('a single block without a hat is also a script', async () => {
@@ -118,7 +163,11 @@ describe('rubyToBlocksXml', () => {
         for (const { challenge, step } of steps) {
             for (const locale of LOCALES) {
                 const blocks = localizeCode(step.blocks, locale);
-                const { xml, errors } = await rubyToBlocksXml(null, null, blocks);
+                // 作品に最初からある定義ブロック（setup.code の def）は、ヒントの Ruby から呼べる
+                const procedures = procedureNamesInCode(
+                    localizeCode(challenge.setup && challenge.setup.code, locale),
+                );
+                const { xml, errors } = await rubyToBlocksXml(null, null, blocks, null, { version: '2', procedures });
                 expect({ id: challenge.id, locale, blocks, errors }).toEqual({
                     id: challenge.id,
                     locale,

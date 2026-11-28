@@ -115,7 +115,7 @@
 | `card` | `{category, main}` \| null | null | レッスン表のカード。`category` = 左の帯の色のなかま、`main` = そのチャレンジで覚えるメインのなかま（同じ数で並んだときの色）。どちらも `CATEGORIES` の値（`motion` / `looks` / `sound` / `events` / `control` / `sensing` / `operators` / `variables` / `lists` / `extensions`）。決め方は下の「カードの色」 |
 | `goal` | 条件[] \| null | null | できた の判定。条件の配列で、全部を満たしたら「できた」（下の「できた の判定」）。null なら判定しない |
 | `allowedBlocks` | object \| null | null | パレットに出すブロック（deck と同じ形）。項目は opcode か、初期値を持つ `{opcode, fields, inputs}`（下の「パレットのブロックの初期値」） |
-| `setup` | object \| null | null | 始めるときの準備。deck と同じ項目（`tab` / `rubyMode` / `extensions` / `rubyVersion`。`lib/lessons/apply-setup.js`）に、作品の準備（`sprites` / `code` / `spriteCodes` / `stageCode`。`lib/lessons/challenge-start.js`）を足せる。下の「レッスンモード」の **setup** |
+| `setup` | object \| null | null | 始めるときの準備。deck と同じ項目（`tab` / `rubyMode` / `extensions` / `rubyVersion`。`lib/lessons/apply-setup.js`）に、作品の準備（`sprites` / `code` / `spriteCodes` / `stageCode` / `lists` / `warpProcedures`。`lib/lessons/challenge-start.js`）を足せる。下の「レッスンモード」の **setup** |
 | `steps` | ヒント[] | [] | ヒント（下の表） |
 | `code` | string \| `{ja, 'ja-Hira', en}` \| null | null | ヒントの最後の手段「プログラムを入れる」（Ruby。deck の `code` と同じ）。作品の中の名前が locale で変わるときは locale ごとに書く（下の「英語の UI でも使う（locale ごとの `code`）」） |
 | `codeTarget` | `'stage'` \| null | null | `code` を入れる相手。null はいま編集中のスプライト。`'stage'` はステージのプログラムのチャレンジ（入れる前にステージをえらぶ） |
@@ -659,6 +659,116 @@ design.md の「中 2 のコース」。コースの ✓ もこれで数える�
 
 ![チャットをつくろう 5-5 のヒントの 1 ページ目（図と練習相手のパネル・1300×600）](screenshots/0725-chat-l5-stamp-hint1-1300x600.png)
 
+### コース「ことばを予想する AI をつくろう」のチャレンジ
+
+中学 3 年〜高校のコース（方針は [`design.md` の「ことばを予想する AI をつくろう」](design.md#ことばを予想する-ai-をつくろう)）。
+コース id は `kotoba-yosou-ai`、文言は `lm.locale.js`（ja / ja-Hira / en。`lessons.locale.js` に spread する）。
+いまはレッスン 1〜5 が入っている（全部）。
+
+- **始め方**: どのチャレンジも、ネコを **Retro Robot**（ライブラリ）に置きかえ、できあがりの AI（4 つの定義ブロック・
+  `without_screen_refresh def`）と旗のスクリプト（「学習する」）を `setup.code` で、教科書（`lm-textbook.js` の 30 文）と
+  空の「まえ」「つぎ」「こうほ」を `setup.lists` で入れる（`courses.js` の `lmSetup`）。`setup.warpProcedures` にも 3 locale の名前を並べる。
+  レッスン 2 の 2-2・2-3 は「学習する」の中身を途中まで入れて始める（`lmLearnDef` の段: 2-2 は 1 文めを 1 文字ずつ読むだけ、
+  2-3 は 1 文めの組を足すところまで）。レッスン 3 は作り直す定義ブロックだけ中身を変えて始める（`lmAiCode` の `stages`:
+  3-1 の「こうほを集める」は「まえ」の行を見るくり返しだけ、3-2 の「文字をえらぶ」は空、3-3 の「文をつくる」は「。」までの
+  くり返しだけ）。ほかの定義ブロックは中身があるので、外側はいつも動く。
+  レッスン 4 は 5 つめの定義ブロック「文脈を作る」を足した形で始める（`lmAiCode` の `stages.look`。下の「文脈を作る」）。
+  レッスン 5 はできあがりの AI（見る長さ 2）で始め、「文をつくる」は変数「書き出し」の続きを作る（`stages.from: 'opening'`）。
+  リスト「テスト」（`lm-textbook.js` の `LM_PROMPTS`・5-1 の決まった 10 の書き出し）も入れる（`stages.tests`）。
+- **名前**: 変数・リスト・定義ブロックは locale ごと（`courses.js` の `LM_WORDS`）。ja「教科書・まえ・つぎ・こうほ・文・文字・何文目・
+  何文字目・何行目・前の文字」と「学習する・こうほを集める・文字をえらぶ・文をつくる」、ja-Hira はそのひらがな（「おしえる ぶんを いれてね」）、
+  en は `textbook / before / after / candidates / sentence / letter / sentence_no / letter_no / row_no / prev_letter` と
+  `learn / collect_candidates / pick_letter / make_sentence`。レッスン 4 で足す名前は ja「文脈・何番目・見る長さ」と「文脈を作る」
+  （ja-Hira「ぶんみゃく・なんばんめ・みるながさ」「ぶんみゃくをつくる」、en `context / pos_no / look_length` と `make_context`）。
+  レッスン 5 で足す名前は ja「書き出し・テスト・何問目・続いた数・質問」（ja-Hira「かきだし・テスト・なんもんめ・つづいたかず・しつもん」、
+  en `opening / tests / test_no / finished / question`）。
+  判定はどの名前でも通す。
+- **学習の前の文字**: 「(何文字目 - 1) 番目の文字」ではなく変数「前の文字」を使う（文ごとに空にし、1 文字進むたびに入れかえる）。
+  0 番目の文字を使わないので、Ruby で読んでも同じ意味になる。
+- **文脈を作る**（レッスン 4 から）: 「何番目」を「何文字目 - 見る長さ」から 1 ずつ進めて「見る長さ」回くり返し、「何番目」が 0 より
+  大きいときだけ「文」の「何番目」の文字を「文脈」に足す（0 番目の文字を使わない・`lm-ngram.js` の `contextBefore` と同じ文脈）。
+  「学習する」はいまの文字の前で呼び、「こうほを集める」は「何文字目」を「文の長さ + 1」にしてから呼ぶ（文の最後の文脈になる）。
+  Ruby は呼ぶ前に def が要るので、「文脈を作る」をいちばん上に書く。
+- **ヒント**: 最後のページは試す操作、その手前が「Ruby で読む」のページ（`kind: 'ruby'`・ルビータブを指す・ブロックの下に Ruby を文で出す）。
+  ヒントの Ruby は、作品にある定義ブロックを名前だけで呼ぶ（上の「ヒントの吹き出し」）。ヒントの Ruby が自分で書いた定義
+  （3-3 の「文をつくる」）は、中でほかの定義ブロックを呼んでも描く（描かないのは、呼ぶために足した空の定義だけ）。
+- **モニター**: 1-2 は「教科書」、1-3 と 2-2 は「まえ」「つぎ」だけ出す（ステージが狭いため）。
+
+レッスン 1「AI と話してみよう」（`lm-l1`。ja-Hira「AI と はなしてみよう」、en "Talk with the AI"）:
+
+| # | id | 課題 | 答え（ja・できあがりの AI に足すもの） | できた の条件（`goal`） | クイズの正解 |
+|---|----|------|-----------|------------------------|-------------|
+| 1 | `lm-l1-make` | ロボットを押したら AI が文を 1 つ作って言う（入力は使わない） | `when_clicked` 〔`文をつくる` → `say(@文)`〕 | 押したスクリプトで「文をつくる」を呼んでから `looks_say` ＋ 「。」（en「.」）で終わり、学習した組だけでできた文を言った | — |
+| 2 | `lm-l1-teach` | a キーで聞いて、答えを教科書に足し、学習し直す | `when_key_pressed("a")` 〔`ask` → `@教科書.push(answer)` → `学習する`〕 | a キーのスクリプトで `sensing_askandwait`・`data_addtolist` のあとに「学習する」 ＋ 教科書が 31 文以上 ＋ `ngram` の `learned`（いまの教科書の全部の組） | — |
+| 3 | `lm-l1-look` | c キーで「こ」（en「v」）の次に来た文字を「こうほ」に集めて見せる | `when_key_pressed("c")` 〔`@文 = "こ"` → `こうほを集める` → `show_list("@こうほ")`〕 | c キーのスクリプトで「こうほを集める」と `data_showlist` ＋ 変数「文」が「こ」 ＋ `ngram` の `candidates` | ②「ん」3・「で」1（ja-Hira は「ん」3・「う」「で」「し」1、en は「e」2・「o」2） |
+| 4 | `lm-l1-random` | 1 回押すと、文を 5 回作って 2 秒ずつ言う | `when_clicked` 〔`5.times` 〔`文をつくる` → `say(@文, 2)`〕〕 | 押したスクリプトの中で `control_repeat`・「文をつくる」2 回以上・`looks_sayforsecs` 2 回以上 ＋ 学習した組だけの文を 2 種類以上言った | ③乱数で選ぶから |
+
+- 「通ってはいけない例」（headless の画面で確かめた）: 1-1 で「文をつくる」を呼ばずに「文」を言う（学習で最後に読んだ文になる）、
+  1-2 で足すだけで学習し直さない、1-3 で「ん」の次を集める、1-4 でくり返さずに 3 回押す。
+- 1-3 の形（モニターは最初から出し、生徒は「(文) を (こ) にする → こうほを集める → こうほを表示」）は、答え待ちの問い Q-L1-2 の
+  おすすめ（A）で**仮に**作ったもの。クイズの数は `courses.test.js` が本物の教科書から数え直して確かめる。
+
+![ことばを予想する AI 1-1 のヒント「Ruby で読む」のページ（1300×600）](screenshots/0901-lm-l1-make-ruby-page-1300x600.png)
+
+![ことばを予想する AI 1-3 の始め（旗のあとの「まえ」「つぎ」のモニター・1300×600）](screenshots/0902-lm-l1-look-monitors-1300x600.png)
+
+レッスン 2「ことばを文字に分けよう」（`lm-l2`。ja-Hira「ことばを もじに わけよう」、en "Split words into letters"）:
+
+| # | id | 課題 | 答え（ja） | できた の条件（`goal`） | クイズの正解 |
+|---|----|------|-----------|------------------------|-------------|
+| 1 | `lm-l2-letters` | ロボットを押したら、AI が作った文を 1 文字ずつ 0.5 秒言う | `when_clicked` 〔`文をつくる` → `@何文字目 = 1` → `until @何文字目 > @文.length` 〔`say(@文[@何文字目 - 1], 0.5)` → `@何文字目 += 1`〕〕 | 押したスクリプトで「文をつくる」・`control_repeat_until`・`operator_letter_of`・`operator_length`・`looks_sayforsecs` 2 回以上 ＋ 押したスクリプトでちがう 1 文字を 2 つ以上言った（作る文はいちばん短いと「よ。」の 2 文字） | ②「に」（「こんにちは。」の 3 番目。en は "Hello." の「l」） |
+| 2 | `lm-l2-pairs` | 「学習する」が 1 文めを 1 文字ずつ読みながら、（前の文字 → いまの文字）を「まえ」「つぎ」に足す | 1 文字ずつ読むくり返しに `@まえ.push(@前の文字)` → `@つぎ.push(@文[@何文字目 - 1])` → `@前の文字 = @文[@何文字目 - 1]` | `ngram` の `learned`（`scope: 'sentence'`・教科書のどれか 1 つの文の組） | ②5 組（「ねこです。」。en は "Good."） |
+| 3 | `lm-l2-learn` | 1 文の分を「何文目」のくり返しで包み、教科書の全部の文を学習する | `until @何文目 > @教科書.length` 〔1 文の分 → `@何文目 += 1`〕（できあがりの「学習する」と同じ） | `ngram` の `learned`（いまの教科書の全部の組） | ②全部の文の文字の数を合わせた数 |
+
+- 「通ってはいけない例」（headless の画面で ja / ja-Hira / en を確かめた）: 2-1 で始めのまま押す（文をそのまま言う）、2-2 で始めのまま旗を押す
+  （「まえ」「つぎ」が空）、2-3 で始めのまま旗を押す（1 文めの組だけ）。
+- 2-1 のヒントの Ruby は `@文` に代入しない（「文をつくる」の中で入る）。変換はスプライトにある変数「文」を見て「(i) 番目の文字」にする
+  （無いとリストの「(i) 番目」になる）。`test/helpers/dynamic-category-opcodes.js` も `setup.code` の変数をスプライトに持たせて変換する。
+
+![ことばを予想する AI 2-2 の「できた！」（1 文めの組の「まえ」「つぎ」のモニターとクイズ・1300×600）](screenshots/0903-lm-l2-pairs-monitors-1300x600.png)
+
+レッスン 3「次の文字を予想しよう」（`lm-l3`。ja-Hira「つぎの もじを よそうしよう」、en "Predict the next letter"）:
+
+| # | id | 課題 | 答え（ja） | できた の条件（`goal`） | クイズの正解 |
+|---|----|------|-----------|------------------------|-------------|
+| 1 | `lm-l3-collect` | 「こうほを集める」の、「まえ」の行を見るくり返しの中で、「まえ」が文の最後の文字と同じ行の「つぎ」を「こうほ」に足す（1-3 の c キーのスクリプトを入れて始める） | `if @まえ[@何行目 - 1] == @文[@文.length - 1]` 〔`@こうほ.push(@つぎ[@何行目 - 1])`〕 | c キーのスクリプトで「こうほを集める」 ＋ `ngram` の `candidates` | ③「は」（「こんにちは」の最後の文字。en は "Hello" の「o」） |
+| 2 | `lm-l3-pick` | 「文字をえらぶ」で、こうほから 1 つを乱数でえらぶ。入れてある c キーのスクリプトが「こ」（en「v」）の次を 10 回えらんで言う | `@文字 = @こうほ[rand(1..@こうほ.length) - 1]` | c キーのスクリプトの中で「文字をえらぶ」10 回・`operator_random` 10 回・`looks_sayforsecs` 10 回 ＋ c キーのスクリプトで変数「文字」と同じ 1 文字を言った | ②7〜8 回くらい（こうほ「ん・ん・ん・で」。en は "a, a, a, b"） |
+| 3 | `lm-l3-make` | 「文をつくる」の「。」までのくり返しの中で、文字をえらび、文に足し、次のこうほを集める | `文字をえらぶ` → `@文 = @文 + @文字` → `こうほを集める` | 押したスクリプトで「文をつくる」・「文字をえらぶ」・`operator_join` ＋ 押したスクリプトで「。」で終わり学習した組だけの文を言った | ①「。」を選んだときか、「こうほ」が空になったとき |
+
+- 3-2 の 10 回えらんで言う c キーのスクリプトは入れて始める（生徒が作るのは「文字をえらぶ」の中身の 4 ブロック）。多い文字がよく出ることは、
+  押してくらべるのとクイズで確かめる（乱数なので判定には入れない）。
+
+レッスン 4「前の文字をもっと見よう」（`lm-l4`。ja-Hira「まえの もじを もっと みよう」、en "Look at more letters before"）:
+
+| # | id | 課題 | 答え（ja） | できた の条件（`goal`） | クイズの正解 |
+|---|----|------|-----------|------------------------|-------------|
+| 1 | `lm-l4-two` | 「文脈を作る」の 2 回のくり返しの中で、0 番目より後の文字を「文脈」に足す（前の 2 文字の文脈） | `if @何番目 > 0` 〔`@文脈 = @文脈 + @文[@何番目 - 1]`〕 | 旗のスクリプトで「学習する」・「文脈を作る」 ＋ `ngram` の `learned`（`length: 2`） | ②「にち」（「こんにちは」の「は」の前の 2 文字。en は "Hello" の "o" の前の "ll"） |
+| 2 | `lm-l4-span` | 「文脈を作る」の 2 つの「2」を変数「見る長さ」にし、旗のスクリプトで「見る長さ」を 1 か 3 にする | `@何番目 = @何文字目 - @見る長さ` / `@見る長さ.times do` / `@見る長さ = 3` | 変数「見る長さ」が 1 か 3 ＋ `ngram` の `learned`（`length: {variable: 見る長さ}`） | ①教科書の文とそっくりな文が多くなる |
+| 3 | `lm-l4-continue` | ロボットを押したら書き出しを聞き、「文をつくる」を答えから始める | `ask("書き出しを入れてね")` → `文をつくる` / `@文 = answer` | 押したスクリプトで「聞いて待つ」のあと「文をつくる」（中で「答え」） ＋ `said` の `startsWithAnswer`・`learned`（見る長さの組）で文の終わりの文字で終わる | ③書き出しのまま（続きを作れない） |
+
+- どのチャレンジも、「学習する」と「こうほを集める」はもう「文脈を作る」を呼ぶ形で始める（学習と予想の文脈は同時に変えないと
+  文が作れないため）。生徒が作るのは「文脈を作る」の中身（4-1）・見る長さ（4-2）・書き出し（4-3）だけ。
+- 4-1 の始めの「文脈を作る」は「何番目」を進めるくり返しだけ（「文脈」はいつも空なので、学習した組の「まえ」はみな空になる。文は
+  教科書の文字を乱数で並べたものになるが、「。」で終わる）。4-2・4-3 は旗のスクリプトで「見る長さ」を 2 にして始める。
+
+レッスン 5「学習してかしこくしよう」（`lm-l5`。ja-Hira「がくしゅうして かしこく しよう」、en "Learn more to be smarter"）:
+
+| # | id | 課題 | 答え（ja） | できた の条件（`goal`） | クイズの正解 |
+|---|----|------|-----------|------------------------|-------------|
+| 1 | `lm-l5-measure` | t キーで「テスト」の 10 の書き出しから文を作るスクリプトに、文の終わりまで続いた数を数えるところを足し、続かなかった書き出しで始まる文を a キーで足して測り直す | `if @文字 == "。"` 〔`@続いた数 += 1`〕 | t キーのスクリプトで「文をつくる」を 10 回 ＋ 教科書が 31 文以上 ＋ 変数「続いた数」が 7 より大きく 10 以下 | ①増えるか、同じまま（減らない）（データの量） |
+| 2 | `lm-l5-reply` | b キーで聞いた質問と返事をつなげて教科書に足し、学習し直す。ロボットに同じ質問をすると返事を続ける | `@教科書.push(@質問 + answer)` / `学習する` | b キーで「追加する」のあと「学習する」（「と」も） ＋ 教科書が 31 文以上 ＋ `said` の `startsWithAnswer`・`learned`（見る長さの組）・`variable`（「質問」が答えと同じ） | ②「好きな色は？カレーです。」のような、それらしいまちがい |
+| 3 | `lm-l5-mine` | 自分の AI（作品）。パレットはしぼらない | — | 教科書が 31 文以上 ＋ 「学習する」が動いた ＋ ロボットを押して「文をつくる」→ 言う | ③重み |
+| 4 | `lm-l5-review` | ヒントで生成 AI とくらべ（データの量・それらしいまちがい・重みとトークン）、ロボットに書き出しの続きを作らせる | — | ロボットを押して、書き出しの続き（学習した組だけ）を文の終わりまで言った | ②トークン |
+
+- どのチャレンジも、レッスン 4 のできあがり（見る長さ 2）から始める。ロボットのスクリプトは書き出しを聞いて変数「書き出し」に入れ、
+  「文をつくる」はその続きを作る（5-1 で決まった書き出しから作るため、「答え」ではなく変数から始める）。
+- 5-1 の「続いた数」は、乱数を使っても毎回同じになる（足す文が文の終わりの文字で終わるとき。学習した文脈から始めると、いつか必ず文の終わりの文字まで行く・
+  続けられない書き出しはすぐ止まる）。最初の教科書ではどの locale も 7（`LM_PROMPTS_CONTINUED`）なので、判定は「7 より大きい」
+  （文を足さずに測っただけでは通さない。文を足しても組が増えるだけなので、数は減らない）。数えたかは「続いた数」の値で見て、
+  「もし」の数は見ない（「こうほを集める」の中の「もし」も同じスクリプトの実行で動くため、数えても意味がない）。
+- 5-4 は作るブロックが無いが、「できた」の判定が無いとレッスンの ✓ が付かないので、ロボットに文を作らせたことだけを見る。
+  ふりかえりの 4 つの話は、クイズを 5-1〜5-4 に 1 つずつ分けた（クイズは 1 チャレンジに 1 つのため）。
+
 ## 記録の形（端末）
 
 `packages/scratch-gui/src/lib/lessons/lesson-progress.js`。localStorage の **`smalruby:lessonProgress`** に、
@@ -719,6 +829,7 @@ design.md の「中 2 のコース」。コースの ✓ もこれで数える�
 | `sprites` | スプライトの数（クローンを除く） | `min` |
 | `costumes` | コスチューム（`target: 'stage'` なら背景）の数が、チャレンジを開いたときより増えた。後から足したスプライトは数えない | `added`（既定 1）, `target` |
 | `extension` | 拡張機能を読み込んだ | `id`（例: `text2speech`） |
+| `ngram` | 「ことばを予想する AI」のリスト（まえ・つぎ・こうほ）の中身 | `check`（`'learned'` / `'candidates'`）, `before`, `after`, `length`, `textbook`, `scope`, `candidates`, `text`（下の「`ngram` の項目」） |
 | `moved` | スプライトの位置が、チャレンジを開いたとき（見張りを始めたとき）から `min`（既定 1）以上動いた。後から足したスプライトは見ない | `min` |
 | `currentCostume` | いまのコスチューム（`target: 'stage'` なら背景）。`number` = 何番め（1 から）、`changed: true` = 開いたときと別のコスチュームになった。始めにいたものだけ見る | `number`, `changed`, `target`（どちらか 1 つは要る） |
 | `tab` | いま開いているタブ（エディタの画面の状態。`code` / `costumes` / `sounds`） | `tab` |
@@ -750,7 +861,8 @@ design.md の「中 2 のコース」。コースの ✓ もこれで数える�
   配列でもよい（例: `['event_broadcast', 'event_broadcastandwait', 'meshV2_broadcastWithValue']` = どの「送る」で送ってもよい。数は合計する）。
   - `count`: **1 回のスクリプトの実行（スレッド 1 本）の中で** その回数以上動いた（例: 背景を 6 回かえた）。
     「待つ」「繰り返す」のように待ちながら何度も呼ばれるブロックは、呼ばれた回数になる
-  - `args`: 引数の条件（引数名 → 値の条件。例: `{DY: {gt: 0}}`）。条件に合う実行を数える
+  - `args`: 引数の条件（引数名 → 値の条件。例: `{DY: {gt: 0}}`）。条件に合う実行を数える。定義ブロックの呼び出し
+    （`procedures_call`）は `mutation` が定義ブロックの名前（proccode）になる（例: `{mutation: /^(文をつくる|make_sentence)$/}`）
   - `distinct`: その引数の **ちがう値** が `count` 種類以上あった（例: `{opcode: 'looks_say', distinct: 'MESSAGE', count: 2}` =
     2 種類のセリフを言った）
   - 要素ごとに「きっかけに合うどれかのスクリプトの実行で満たした」を見るので、同じキーのスクリプトが 2 本に
@@ -786,6 +898,22 @@ RegExp で両方を許す（例: `/^(正解です|せいかいです|correct)$/i
 
 **`list` の項目**: `length`（matcher。例: `{gte: 3}`）、`itemsFromAnswers: true`（中身が全部「聞いて待つ」に
 入力した答え）。
+
+**`said` の項目（「ことばを予想する AI」用）**: `distinct`（matcher。条件に合う言った文の**ちがう文**の数。例: `{gte: 2}` =
+2 種類以上の文を言った。大文字小文字は区別しない）、`startsWithAnswer: true`（言った文が最後に入力した答えで始まり、
+その続きがある）、`learned: {before, after, length}`（言った文が、いまのリスト「まえ」「つぎ」の組だけでできている。
+`startsWithAnswer` もあれば、書き出しの答えの部分は学習していなくてよい）。
+
+**`ngram` の項目**（「ことばを予想する AI をつくろう」。決まりは `lib/lessons/lm-ngram.js` と design.md の「しくみ（モデル）」）:
+
+- `before` / `after`: リスト「まえ」「つぎ」の名前（名前の配列も書ける）。同じ行どうしで 1 組。
+- `length`: 見る長さ。1 以上の整数か `{variable: 名前}`（いまのその変数の値）。省くと 1。
+- `check: 'learned'`: 「まえ」「つぎ」の組が、`textbook`（教科書のリストの名前）の文から見る長さで作った組と、
+  **順番を問わず同じ**（同じ組の数も同じ）。`scope: 'all'`（既定）は全部の文、`'sentence'` はどれか 1 つの文。
+  教科書・リストが空なら合わない。
+- `check: 'candidates'`: `candidates`（リスト「こうほ」）が、`text`（いまの文の変数）の最後の文脈の次に来る文字と、
+  順番を問わず同じ（同じ文字の数も同じ）。「まえ」か「こうほ」が空なら合わない。
+- 文字は Scratch の `=` と同じく大文字小文字を区別しないで比べる。どちらも結果を見る条件で、作り方は問わない。
 
 **`boardCommand` / `sensorRead` の項目**（Studuino の命令とセンサーの値の記録。形は `docs/extension-smalrubot-s1/README.md` の「命令とセンサーの値の記録」）
 
@@ -1460,8 +1588,11 @@ partner: {
   | `code` | Ruby（locale ごとにも書ける） | 前の段の**答え**を、`sprites` の 1 つめ（無ければネコ）に入れておく。生徒の前の作品ではない |
   | `spriteCodes` | `{sprite, code}`[] | ほかのスプライトの前の段の答え。チャレンジの `spriteCodes` と同じ形（いなければライブラリから足す） |
   | `stageCode` | Ruby（locale ごとにも書ける） | ステージのプログラム（例: 旗でリスト「NGワード」を作り直す準備） |
+  | `lists` | `{name, items, stage, monitor}`[] | リストの中身（例: 「ことばを予想する AI」の教科書）。`name` / `items` は locale ごとの `{ja, 'ja-Hira', en}` でも書ける。`stage: true` ならステージ（すべてのスプライト用）、無ければ `code` を入れたスプライトのリスト。同じ名前のリストがあれば中身を置きかえ、無ければ作る。`monitor: true` ならステージにリストのモニターを出す（パレットにリストのブロックが無くても出る。2 つ以上は左上から横に 110 ずつ並べる） |
+  | `warpProcedures` | string[] | 定義ブロックの名前（locale ごとの名前を全部並べてよい）。入れたプログラムのその定義ブロックを「画面を再描画せずに実行する」にする。Ruby の `def` にはこの設定を書けないため、ここで付ける |
 
-  入れる順はステージ → `spriteCodes` → `code`。変換は「プログラムを入れる」の `spriteCodes` と同じ（`targetCodeToBlocks` → `apply`）。
+  入れる順はステージ → `spriteCodes` → `code` → `lists` → `warpProcedures`（リストはプログラムが作ったリストの中身を
+  置きかえるため、プログラムのあと）。変換は「プログラムを入れる」の `spriteCodes` と同じ（`targetCodeToBlocks` → `apply`）。
   Ruby のバージョンは `setup.rubyVersion` があればそれ、無ければいまの設定。
   - **失敗はとばして続ける**: ライブラリに無い・足すのに失敗したスプライト、変換できない・入れるのに失敗したプログラムは
     とばし（コンソールに警告）、残りのスプライト・プログラム、編集中の切りかえ、Ruby タブの出し直しは行う。
@@ -1620,6 +1751,8 @@ partner: {
   描いたあとにエディタのワークスペースを `setMainWorkspace` で戻す。変換した XML は Ruby ごとに覚える。
   XML の先頭にはブロックが使う変数・リスト・メッセージを `<variables>` で宣言する（「(変数)」のブロックは id で変数を
   探すだけで作らないので、「〜にする」の無い絵では名前が空になるため）。
+  作品にある引数の無い定義ブロック（「ことばを予想する AI」の「文をつくる」など）は、ヒントの Ruby に `def` を書かずに名前だけで
+  呼べる（変換の前に空の定義を足し、定義の分は描かない。名前は編集中の target の定義ブロックから取る）。
   変換できない Ruby は「（このブロックは描けませんでした）」を出す（文言は出る）。`blocks` が locale ごとの
   オブジェクトなら、いまの UI の locale のものを描く（`localizeCode`）。
   条件の穴に入った `false` は空の穴として描く（`if false` = 「もし <  > なら」）。これは Ruby → ブロック変換
@@ -2137,6 +2270,7 @@ partner: {
 | `lesson-hint-activity-diagram` | div | ヒントの 1 ページ目のアクティビティ図（文言の上。チャレンジの `activityDiagram` が true のときだけ） |
 | `lesson-hint-blocks` | div | 本物のブロックを描く読み取り専用ワークスペース（`.blocklyBlockCanvas g[data-id]` がブロック） |
 | `lesson-hint-blocks-error` | p | ブロックを描けなかったときの注意 |
+| `lesson-hint-ruby` | pre | 「Ruby で読む」のページ（`kind: 'ruby'`）で、ブロックの下に出す同じプログラムの Ruby |
 | `lesson-hint-debug-title` / `lesson-hint-debug` | div / ul | 「うまく動かないときは」と箇条書き（最後のページ） |
 | `lesson-hint-insert-code` | button | 正解のプログラムを確認する（最後のページ。`code` があるときだけ。押すと確認を出す） |
 | `lesson-hint-insert-code-confirm` | div | 「正解のプログラムで置き換えますか？…」の確認（押したあとだけある） |
@@ -2329,6 +2463,7 @@ GTM・GA4 の設定（トリガー・データレイヤー変数・カスタム�
 | `packages/scratch-gui/src/lib/lessons/courses.js` | コース・レッスン・チャレンジのデータと検索。locale ごとの Ruby を選ぶ `localizeCode` / `challengeCodeFor` / `challengeCodeCandidates`。ふりかえりのクイズを作る `challengeQuiz` と形を確かめる `validateQuiz` |
 | `packages/scratch-gui/src/lib/lessons/lessons.locale.js` | 文言（en / ja / ja-Hira。`src/locales/*.js` に spread） |
 | `packages/scratch-gui/src/lib/lessons/chat.locale.js` | コース「チャットをつくろう」の文言（en / ja / ja-Hira。`lessons.locale.js` に spread） |
+| `packages/scratch-gui/src/lib/lessons/lm.locale.js` | コース「ことばを予想する AI をつくろう」の文言（en / ja / ja-Hira。`lessons.locale.js` に spread） |
 | `packages/scratch-gui/src/lib/lessons/readiness.js` | じゅんびチェックの記録（`smalruby:lessonReadiness`）と、結果・「おすすめ」・「先にじゅんびチェックをする？」の決め方（純粋関数） |
 | `packages/scratch-gui/src/components/lesson-readiness-check/` | じゅんびチェックの問いのパネル（`lesson-readiness-check.jsx`）と「先にじゅんびチェックをする？」（`lesson-readiness-offer.jsx`） |
 | `packages/scratch-gui/src/containers/lesson-readiness-check.jsx` | 問いのパネルのコンテナ（問いのブロックを XML にし、選ぶ・進むを dispatch） |
@@ -2383,6 +2518,8 @@ GTM・GA4 の設定（トリガー・データレイヤー変数・カスタム�
 | `packages/scratch-gui/src/containers/lesson-practice-partner.jsx` | 練習相手のコンテナ（開閉・本物のメッシュのつながりを見る・置き場所を測る）。`lesson-mode.jsx` からマウント |
 | `packages/scratch-gui/test/unit/lib/lessons/practice-partner.test.js` / `test/unit/containers/lesson-practice-partner.test.jsx` | 練習相手の unit テスト |
 | `packages/scratch-gui/src/lib/lessons/goal.js` | できた の判定（`goal` の形・事実の記録・判定の純粋関数・`validateGoal`） |
+| `packages/scratch-gui/src/lib/lessons/lm-ngram.js` | 「ことばを予想する AI をつくろう」の文字単位の n-gram（文脈・学習の組・こうほ・学習した組だけの文。判定 `ngram` と教科書のテストが使う純粋関数） |
+| `packages/scratch-gui/src/lib/lessons/lm-textbook.js` | 「ことばを予想する AI をつくろう」の教科書の文（`LM_TEXTBOOK`）・文の終わりの文字（`LM_END_CHAR`）・5-1 の決まった書き出し（`LM_PROMPTS`）。locale ごと |
 | `packages/scratch-gui/src/lib/lessons/vm-execution-hook.js` | ブロックの実行をスレッドつきで取るフック（runtime の `getOpcodeFunction` を包む） |
 | `packages/scratch-gui/src/lib/lessons/goal-monitor.js` | VM を見張って goal を判定する（`attachGoalMonitor` / `takeSnapshot`） |
 | `packages/scratch-gui/src/containers/lesson-goal-watcher.jsx` | レッスンモードのあいだ見張りをつなぎ、できたら記録して「できた！」を出す（gui.jsx に常時マウント） |
