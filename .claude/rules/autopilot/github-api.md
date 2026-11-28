@@ -46,6 +46,7 @@ daemon は常駐で GitHub をポーリングするため、**API レート予�
 
 - リポジトリ横断の広い問い合わせは **`🤖 autopilot` ラベル付き限定**にする
   （label healing がラベルを毎 tick 担保しているので絞ってよい）。
+  例外は closed 確認の、ラベルが付く前の New Item で daemon が担当するもの（`selectClosedCheckIssues`・数が少ない）。
 - **終端 Status（Close / Done）は定常問い合わせから除外**（`selectClosedCheckIssues` /
   `TERMINAL_STATUSES`）。「リポジトリ全体の closed 一覧を毎 tick 取得」のような
   全量スキャンを復活させない（旧実装で予算を枯渇させた）。
