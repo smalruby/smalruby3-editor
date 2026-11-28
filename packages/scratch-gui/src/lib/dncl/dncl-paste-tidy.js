@@ -17,6 +17,7 @@
 //
 // See Issue #1192.
 import { lineNumberSeparator } from './dncl-line-number';
+import { BRANCH_PATTERN, CLOSER_PATTERN } from './dncl-problem-form';
 import { codeOfLine, commentIndex, stringEndAt } from './dncl-trailing-comment';
 import { NAME_PATTERN } from './paren-utils';
 
@@ -363,10 +364,62 @@ const markLShapes = (lines) => {
     });
 };
 
+/** The rules at the start of a line (and the spaces between them) and the code after them. */
+const LEADING_RULES_RE = /^([\s｜|│⎿└]*)(.*)$/;
+
+/** One level of the indent the rules are written back as (the standard form, as write-ja does). */
+const RULE_INDENT = '    ';
+
+/**
+ * Write the rules at the start of the lines (`｜ ⎿ 表示する(x)`, as the copy with line numbers
+ * and rules writes them) back as the indent (Issue #2549): each rule is one level of 4 spaces.
+ * The indent closes a block only when the line that opens it ends with `:`; a block of the
+ * DNCL-like form (`もし a ならば` with no `:`) is closed by its word (`を実行する`) or by a `⎿`.
+ * So the rules are written back only when every block they draw closes the same way with the
+ * indent: its opening line ends with `:`, or it ends at a `そうでなければ` / `を実行する` line
+ * of its level. Otherwise, and when a line without rules is indented (it would be read inside a
+ * block), the lines are kept as they are (the reader takes the rules too).
+ * @param {Array<string>} lines - The lines (line numbers removed).
+ * @returns {Array<string>} The lines.
+ */
+const rulesToIndent = (lines) => {
+    const parsed = lines.map((line) => {
+        const [, marks, code] = line.match(LEADING_RULES_RE);
+        return { depth: (marks.match(/[｜|│⎿└]/g) || []).length, ends: (marks.match(/[⎿└]/g) || []).length, code };
+    });
+    if (!parsed.some(({ depth }) => depth > 0)) return lines;
+    const opensWithColon = (code) => /[:：]$/.test(codeOfLine(code).trimEnd());
+    // The opening line of each open block, from the outside.
+    const stack = [];
+    let previous = '';
+    for (let i = 0; i < lines.length; i++) {
+        const { depth, ends, code } = parsed[i];
+        if (code === '' || code.startsWith('#')) continue;
+        if (depth === 0 && /^\s/.test(lines[i])) return lines;
+        if (depth > stack.length + 1) return lines;
+        if (depth < stack.length) {
+            // A block whose bar stops without an L goes on in a branch or ends at its word. The
+            // blocks inside it end where their bars stop, which the indent does only after a `:`.
+            if (!BRANCH_PATTERN.test(code) && !CLOSER_PATTERN.test(code)) return lines;
+            if (!stack.slice(depth + 1).every(opensWithColon)) return lines;
+            stack.length = depth;
+        }
+        if (depth > stack.length) stack.push(previous);
+        if (ends > depth) return lines;
+        for (let k = 0; k < ends; k++) {
+            if (!opensWithColon(stack.pop())) return lines;
+        }
+        previous = code;
+    }
+    if (stack.some((opener) => !opensWithColon(opener))) return lines;
+    return parsed.map(({ depth, code }) => (code === '' ? '' : `${RULE_INDENT.repeat(depth)}${code}`));
+};
+
 /**
  * Tidy DNCL code pasted into the Japanese (DNCL) mode editor. Only text
  * with line numbers (copied from a 共通テスト sample) is changed: the line
- * numbers are removed and `//` comments become `#` comments. Text without
+ * numbers are removed, the rules (`｜` / `⎿`) become the indent and `//`
+ * comments become `#` comments. Text without
  * line numbers comes back unchanged, `//` included.
  * @param {string} text - The pasted text.
  * @param {string} [context] - The rest of the program (the editor content),
@@ -380,7 +433,7 @@ const tidyPastedDncl = (text, context = '') => {
         const marked = markLShapes(lines);
         return marked.some((line, i) => line !== lines[i]) ? marked.join(eol) : text;
     }
-    const stripped = markLShapes(removeLineNumbers(joinContinuationLines(lines)));
+    const stripped = rulesToIndent(markLShapes(removeLineNumbers(joinContinuationLines(lines))));
     const names = collectNames(`${stripped.join('\n')}\n${context}`);
     return stripped.map((line) => convertSlashComment(line, names)).join(eol);
 };
