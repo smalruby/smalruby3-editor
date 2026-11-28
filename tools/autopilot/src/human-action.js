@@ -109,7 +109,16 @@ function humanAction(it, ctx) {
     // 子に開いている質問があれば、どの段階でも隠さない（#2565）。子の質問は「答えが要る」の欄に出るので、EPIC の行でもそこを指す
     const askedKids = kids.filter((k) => questions.indexOf(k.issue) >= 0).map((k) => '#' + k.issue).sort();
     const askedNote = askedKids.length ? '子 ' + askedKids.join('・') + ' に答え待ちの質問があります（「答えが要る」の欄で答えてください）。' : '';
+    // 最後の確認で topic → develop の PR が develop とコンフリクトしていると、確かめても develop にマージできない（#2536）。
+    // 確かめる前に AI に解消してもらう。押すと daemon が develop を topic に取り込む PR を作る（epic-merge.js の runTopicSync）
+    const conflictRow = () => (openPr && openPr.mergeable === 'CONFLICTING'
+        ? phase('final-check', r('check', 'コンフリクトを解消してもらう',
+            'AI が develop を topic ブランチに取り込む PR を作り、コンフリクトを解消する。CI が通れば topic にマージする。🙋 と Status はそのまま（済んだら最後の確認へ）',
+            askedNote + 'PR #' + openPr.number + ' が develop とコンフリクトしている。確かめる前に解消が要る', 'resolve', prUrl, [it.issue]))
+        : null);
     if (ai === 'Release Check' && it.hitl) {
+        const conflicted = conflictRow();
+        if (conflicted) return conflicted;
         const pr = prUrl ? 'PR #' + openPr.number : 'topic → develop の PR';
         // 全部 OK でマージを待っている（#2544）。board の releaseMerge は daemon が release-check の結果から載せる。
         // 押すと daemon がトラッカー・PR を読み直して確かめてからマージする（ここでは出すかだけを決める）
@@ -147,6 +156,8 @@ function humanAction(it, ctx) {
                 'delegate', null, go.map((k) => k.issue)));
         }
         if (sub.total > 0 && sub.completed >= sub.total) {
+            const conflicted = conflictRow();
+            if (conflicted) return conflicted;
             const pr = prUrl ? 'PR #' + openPr.number : 'topic → develop の PR';
             return phase('final-check', r('check', 'プレビューで確かめる', pr + ' とプレビューを開く。結果は PR のレビューで返す',
                 '子は ' + done + ' 済み。topic のプレビューで成果物を確かめる番', 'open', it.previewUrl || prUrl || issueUrl));

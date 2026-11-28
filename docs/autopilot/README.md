@@ -1078,6 +1078,7 @@ daemon の `GET /`（既定 `http://localhost:8787/`）は、人間と同意し�
 
   | 状態 | すること | ボタン | 押すと |
   |---|---|---|---|
+  | 🧭 EPIC の最後の確認（Release Check・子が全部済んだ）で topic → develop の PR が develop とコンフリクト | 確かめる | コンフリクトを解消してもらう | `POST /resolve-conflict`。EPIC の PR は直接 push せず、develop を topic に取り込む PR を作って解く（`resolveEpicTopicConflict` → `runTopicSync`。CI が通れば daemon が topic にマージする）。🙋 と Status はそのまま。済めば行は確認のボタンに戻る。自律で進んでいる途中の EPIC は AI の番なのでボタンにしない |
   | 🧭 EPIC で Release Check（最後の確認） | 確かめる | 確認ページを開く | プレビュー / topic → develop の PR と「確認の結果を書く」のダイアログを開く（確認ページの artifact ができるまでのあいだ）。子に答え待ちの質問があれば一文で示す（子は「答えが要る」の欄に出る） |
   | 🧭 EPIC で子が全部済んだ（Release Check の前） | 確かめる | プレビューで確かめる | プレビュー / topic → develop の PR を開く |
   | Review / DoD（ほか 🙋 付き）で OPEN の PR が base とコンフリクト（`mergeable=CONFLICTING`・worker なし） | 確かめる | コンフリクトを解消してもらう | `POST /resolve-conflict`。AI が base を取り込んで解消し push する。🙋 と Status はそのまま（済めば daemon が `mergeable` を直し、行はもとのボタン（Review / DoD なら「PR を見る」）に戻る）。分解済み EPIC の途中の相談の子がこの状態なら、EPIC の行も同じボタン |
@@ -1669,7 +1670,7 @@ HTTP API（curl からも操作可能。POST は上の合言葉のヘッダを�
 | `POST /scheduler` | body `{maxTotal, maxHeavy, ...}`（`null` で上書きを外す）。並列の上限を一時的に変える（再起動で消える）。`{overrides, limits}` を返す |
 | `POST /stop?issue=<n>` | その item の worker（herdr の workspace / tmux の session）を止めて force-stop |
 | `POST /inject?issue=<n>&phase=<p>` | 並行上限を超えて 1 フェーズを割り込み投入 |
-| `POST /resolve-conflict?issue=<n>` | PR の base とのコンフリクトを AI に解消させる（モニタの 🔀 解消）。Status と 🙋 は変えない。並行上限の外。実行中なら 409、OPEN の PR が無ければ 409 |
+| `POST /resolve-conflict?issue=<n>` | PR の base とのコンフリクトを AI に解消させる（モニタの 🔀 解消）。Status と 🙋 は変えない。並行上限の外。実行中なら 409、OPEN の PR が無ければ 409。EPIC の topic → develop の PR は、PR に直接 push せず develop を topic に取り込む PR を作って解く（取り込み中・取り込む PR の CI 待ちなら始め直さない） |
 | `POST /current-status` | 「🧭 現在地を作る」。現在地の artifact を作り直す worker を 1 つ起動する（202）。走っている間は 409 |
 | `POST /shutdown` | daemon プロセスを安全停止 |
 
