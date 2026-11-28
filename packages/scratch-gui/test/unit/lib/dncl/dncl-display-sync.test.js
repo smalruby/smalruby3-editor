@@ -34,6 +34,18 @@ describe('japaneseTextForRuby', () => {
         ).toBeNull();
     });
 
+    // The sentences of the settings at the top become Ruby comments (dnclToRuby).
+    test('the text is kept when the Ruby is empty and the text has the settings only', () => {
+        expect(
+            japaneseTextForRuby({
+                editorRuby: '# すべての配列の添字は 1 から始まる。\n',
+                ruby: '',
+                targetChanged: false,
+                toJapanese,
+            }),
+        ).toBeNull();
+    });
+
     test('the text is kept when the Ruby is empty and the text makes no Ruby (it has errors)', () => {
         expect(japaneseTextForRuby({ editorRuby: null, ruby: '', targetChanged: false, toJapanese })).toBeNull();
     });
