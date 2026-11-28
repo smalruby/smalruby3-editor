@@ -1178,6 +1178,9 @@ const parse = (source) => {
         // block it is in, so another indent is an error, not read as the
         // nearest (Issue #2555). In a block closed by a line of its own the
         // indent does not matter, and closing lines may be deeper (Issue #2058).
+        // The line is still read where it is, so the lines of a block opened at
+        // another indent are not told again, nor its closing line as closing
+        // nothing.
         if (strayWidth !== null && entry.width <= strayWidth) strayWidth = null;
         if (!closes && !continuesIf && strayWidth === null) {
             const top = stack[stack.length - 1];
@@ -1185,7 +1188,6 @@ const parse = (source) => {
             const expected = top ? (top.mode === 'indent' ? top.bodyWidth : entry.width) : topWidth;
             if (entry.width !== expected) {
                 errors.push(makeError('syntax', '字下げが合いません', entry.line, column, { block: 'indent' }));
-                return;
             }
         }
         if (closes) {
