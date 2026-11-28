@@ -117,6 +117,7 @@ import {
     findExecutableLine,
 } from './ruby-tab/execution-highlighter';
 import FuriganaRenderer from './ruby-tab/furigana-renderer';
+import { closeMarkerNavigation } from './ruby-tab/marker-navigation';
 import QuickFixProvider from './ruby-tab/quick-fix-provider';
 import styles from './ruby-tab/ruby-tab.css';
 import { showBubble, dismissBubble, removeBubble } from './ruby-tab/visual-report-bubble';
@@ -352,7 +353,8 @@ const RubyTab = (props) => {
     const clearErrors = () => {
         if (editorRef.current && monacoRef.current) {
             monacoRef.current.editor.setModelMarkers(editorRef.current.getModel(), 'smalruby', []);
-            editorRef.current.trigger('source', 'closeMarkersNavigation');
+            // The Japanese mode keeps the focus where it is, so the run button shows the read mode (Issue #2553).
+            closeMarkerNavigation(editorRef.current, { focusEditor: !dnclModeRef.current });
         }
         if (rubyCode.errors.length > 0) {
             updateRubyCodeErrorsState([]);
