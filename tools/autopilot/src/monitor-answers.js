@@ -187,7 +187,7 @@ async function writeQuestionsComment(repo, issue, questions, opts, io, token) {
  * GitHub には触らない（コメントは道具が先に書いてある）。同じ round の同じ質問は置き直さない
  * （人間のメモを消さない）。
  * @param {object} ctx { store, state, log }
- * @param {object} body `{issue, round, questions, phase?, reason?}`
+ * @param {object} body `{issue, round, questions, phase?, reason?, replace?}`
  * @returns {{status:number, body:object}}
  */
 function registerQuestionsOnce(ctx, body) {

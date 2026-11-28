@@ -20,7 +20,7 @@ const http = require('http');
 const { normalizeAskInput, sanitizeForSurface } = require('./phases');
 const { writeQuestionsComment } = require('./monitor-answers');
 
-const USAGE = 'usage: bin/autopilot-ask <issue> <questions.json> [--repo owner/name] [--port 8787]';
+const USAGE = 'usage: bin/autopilot-ask <issue> <questions.json> [--repo owner/name] [--port 8787] [--replace]';
 
 /** daemon の既定のポート（cli.js の既定と同じ） */
 const DEFAULT_PORT = 8787;
@@ -29,16 +29,20 @@ const DEFAULT_PORT = 8787;
  * 引数を読む（純粋関数）。
  * @param {string[]} argv
  * @param {object} env
- * @returns {{ok:boolean, error?:string, issue?:number, file?:string, repo?:string, port?:number}}
+ * `--replace` は、答え済みでまだ worker に渡していない質問を置き換えてよいと明示する（#2603）。
+ * その Issue に worker が来ない（セッションが進めている・人間の作業・閉じた）と分かっているときだけ使う。
+ * @returns {{ok:boolean, error?:string, issue?:number, file?:string, repo?:string, port?:number, replace?:boolean}}
  */
 function parseAskArgs(argv, env = {}) {
     const pos = [];
     let repo = env.AUTOPILOT_REPO || 'smalruby/smalruby3-editor';
     let port = Number(env.AUTOPILOT_PORT) || DEFAULT_PORT;
+    let replace = false;
     for (let i = 0; i < argv.length; i++) {
         const a = argv[i];
         if (a === '--repo') repo = argv[++i];
         else if (a === '--port') port = Number(argv[++i]);
+        else if (a === '--replace') replace = true;
         else if (a === '-h' || a === '--help') return { ok: false, error: USAGE };
         else pos.push(a);
     }
@@ -46,7 +50,7 @@ function parseAskArgs(argv, env = {}) {
     if (pos.length !== 2 || !Number.isInteger(issue) || issue <= 0) return { ok: false, error: USAGE };
     if (!/^[\w.-]+\/[\w.-]+$/.test(repo || '')) return { ok: false, error: `bad --repo: ${repo}` };
     if (!Number.isInteger(port) || port <= 0) return { ok: false, error: `bad --port: ${port}` };
-    return { ok: true, issue, file: pos[1], repo, port };
+    return { ok: true, issue, file: pos[1], repo, port, replace };
 }
 
 /**
@@ -98,7 +102,7 @@ function defaultIo() {
 
 /**
  * 質問を Issue に書き、daemon の置き場に載せる。
- * @param {{issue:number, file:string, repo:string, port:number}} args
+ * @param {{issue:number, file:string, repo:string, port:number, replace?:boolean}} args
  * @param {object} [deps] I/O の差し替え
  * @returns {Promise<{code:number, lines:string[]}>} 終了コード 0 = 書けて載った / 1 = 失敗（何も書いていないか、書けなかった） /
  *   2 = コメントは書けたが daemon に載らなかった（もう一度流せばよい）
@@ -130,7 +134,10 @@ async function ask(args, deps = {}) {
     const lines = [`#${args.issue}: questions comment ${plan.action === 'post' ? 'written' : 'already there (not written again)'} (round ${plan.round})`];
     let r;
     try {
-        r = await io.postToDaemon(args.port, { issue: args.issue, round: plan.round, questions: n.questions, phase: n.phase, reason: n.reason });
+        const body = { issue: args.issue, round: plan.round, questions: n.questions, phase: n.phase, reason: n.reason };
+        // 既定は送らない（答え済みの質問を置き換えないのが既定・#2568）
+        if (args.replace) body.replace = true;
+        r = await io.postToDaemon(args.port, body);
     } catch (e) {
         lines.push(`autopilot-ask: daemon (port ${args.port}) not reachable: ${e.message}. Run this again after the daemon starts`
             + ' (the comment is not written twice).');
@@ -138,6 +145,10 @@ async function ask(args, deps = {}) {
     }
     if (r.status !== 200) {
         lines.push(`autopilot-ask: daemon refused (${r.status}): ${(r.body && r.body.error) || '-'}`);
+        if (r.body && r.body.error === 'answers not yet delivered' && !args.replace) {
+            lines.push('autopilot-ask: if no worker will pick up this issue (a session works on it, human work, or closed),'
+                + ' run this again with --replace.');
+        }
         return { code: 2, lines };
     }
     lines.push(`#${args.issue}: on the monitor (${r.body.action === 'keep' ? 'already listed' : 'listed'}). Answer it with 「答える」.`);

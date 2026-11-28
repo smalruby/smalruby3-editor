@@ -4020,9 +4020,11 @@ function normalizeAskInput(input) {
 
 /**
  * `POST /questions`（`bin/autopilot-ask` が Issue に書いた質問を daemon の置き場に載せる・#2565）の body を
- * 検証する（純粋関数）。body: `{issue, round, questions, phase?, reason?}`。
+ * 検証する（純粋関数）。body: `{issue, round, questions, phase?, reason?, replace?}`。
+ * replace は `true` のときだけ立てる（`bin/autopilot-ask --replace`・#2603）。
  * @param {object} body
- * @returns {{ok:boolean, error?:string, issue?:number, round?:number, questions?:object[], phase?:string, reason?:string|null}}
+ * @returns {{ok:boolean, error?:string, issue?:number, round?:number, questions?:object[], phase?:string, reason?:string|null,
+ *   replace?:boolean}}
  */
 function normalizeQuestionsRegistration(body) {
     if (!body || typeof body !== 'object') return { ok: false, error: 'body must be an object' };
@@ -4031,7 +4033,10 @@ function normalizeQuestionsRegistration(body) {
     if (!Number.isInteger(body.round) || body.round <= 0) return { ok: false, error: 'round (positive integer) required' };
     const n = normalizeAskInput({ questions: body.questions, reason: body.reason, phase: body.phase });
     if (!n.ok) return { ok: false, error: n.errors.join('; ') };
-    return { ok: true, issue, round: body.round, questions: n.questions, phase: n.phase, reason: n.reason };
+    return {
+        ok: true, issue, round: body.round, questions: n.questions, phase: n.phase, reason: n.reason,
+        replace: body.replace === true,
+    };
 }
 
 /**
@@ -4040,6 +4045,8 @@ function normalizeQuestionsRegistration(body) {
  * worker が動いている Issue は受けない（worker の結果の質問と競うため）。
  * 答えたがまだ worker に渡していない（answered で take 前の）質問も置き換えない。置き換えると答えが置き場から
  * 消え、worker に答えのファイルが渡らない（#2568）。道具は 409 で止まり、worker が受け取ったあとに流し直す。
+ * ただし worker が来ない Issue（セッションが進めている・人間の作業・閉じた）ではずっと 409 になるので、
+ * 質問を出す側が `reg.replace`（`--replace`）で明示したときだけ置き換える（#2603）。
  * @param {object|null} entry 置き場の 1 件
  * @param {object} reg {@link normalizeQuestionsRegistration} の結果
  * @param {{running:boolean}} opts
@@ -4051,7 +4058,9 @@ function planQuestionsRegistration(entry, reg, opts = {}) {
         && JSON.stringify(entry.questions) === JSON.stringify(reg.questions)) {
         return { ok: true, status: 200, action: 'keep' };
     }
-    if (entry && entry.status === 'answered') return { ok: false, status: 409, error: 'answers not yet delivered' };
+    if (entry && entry.status === 'answered' && !reg.replace) {
+        return { ok: false, status: 409, error: 'answers not yet delivered' };
+    }
     return { ok: true, status: 200, action: 'set' };
 }
 
