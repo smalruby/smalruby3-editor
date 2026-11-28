@@ -1365,12 +1365,17 @@ const usedNames = (program, counterLoops) => {
  * Give the loops of `n.times` a counter the students can read (`i`), which the
  * program does not use and the loops around it do not count with: Ruby has no
  * counter there, and the Japanese has no loop without one (Issue #2557, B17-3).
+ * The reserved names are not taken either: a variable the program does not use
+ * but the system has (of the stage, for one) would be another variable of the
+ * same name when the Japanese is turned back into Ruby (Issue #2574).
  * @param {object} program - The JaAST.
  * @param {Set<object>} counterLoops - The loops of `n.times`.
+ * @param {Array<string>|Set<string>} [reservedNames] - The names the counters must not take.
  */
-const nameCounters = (program, counterLoops) => {
+const nameCounters = (program, counterLoops, reservedNames = []) => {
     if (counterLoops.size === 0) return;
     const used = usedNames(program, counterLoops);
+    for (const name of reservedNames) used.add(name);
     const candidate = (n) => {
         const base = COUNTER_NAMES[n % COUNTER_NAMES.length];
         const round = Math.floor(n / COUNTER_NAMES.length);
@@ -1412,6 +1417,8 @@ const nameCounters = (program, counterLoops) => {
  *   an assignment whose value is the input by itself (`x = gets`). The kinds are
  *   `external` / `integer` / `string`, or null when it is not one.
  * @param {Set<string>} [options.passthrough] - Names of the Ruby system the Japanese writes as they are.
+ * @param {Array<string>|Set<string>} [options.reservedNames] - Names the program does not
+ *   use but the counters of `n.times` must not take (the variables the system has).
  * @returns {{program: object, errors: Array<object>}} The JaAST (`lineCount` and
  *   `blankLines` say how the Ruby is laid out) and the errors
  *   (`{code, message, line, column, name?}`, the column 0-based).
@@ -1419,7 +1426,7 @@ const nameCounters = (program, counterLoops) => {
 const readRuby = (result, source, options = {}) => {
     const reader = new RubyReader(result, source, options);
     const program = reader.program(result);
-    nameCounters(program, reader.counterLoops);
+    nameCounters(program, reader.counterLoops, options.reservedNames);
     const errors = reader.errors.sort((a, b) => a.line - b.line || a.column - b.column);
     return { program, errors };
 };

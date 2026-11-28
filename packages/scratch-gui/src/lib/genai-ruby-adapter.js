@@ -267,7 +267,9 @@ export const makeRubyTabAdapterFactory =
         // its versions (DNCL ones go through Ruby).
         // The Japanese tab keeps the scripts in the written order (issue #2550), as the editor does.
         const blocksCode = (snap) =>
-            snap.dncl ? rubyToDncl(toCode(snap.target, { keepScriptOrder: true })).dncl : toCode(snap.target);
+            snap.dncl
+                ? rubyToDncl(toCode(snap.target, { keepScriptOrder: true }), snap.target).dncl
+                : toCode(snap.target);
         const toBlocksFrom = (snap, code) => {
             if (!snap.dncl) return toBlocks(snap.target, code);
             const { ruby } = dnclToRuby(code);
