@@ -5,8 +5,9 @@ import GUI from '../../containers/gui.jsx';
 import { saveBackpackObject } from '../../lib/backpack-api.js';
 import codePayload from '../../lib/backpack/code-payload.js';
 import ConnectedIntlProvider from '../../lib/connected-intl-provider.jsx';
-import { COSTUMES_TAB_INDEX } from '../../reducers/editor-tab.js';
+import { COSTUMES_TAB_INDEX, JAPANESE_TAB_INDEX } from '../../reducers/editor-tab.js';
 import { isLessonMode } from '../../reducers/lesson-mode.js';
+import { setFullScreen } from '../../reducers/mode.js';
 import MobileDrawer from '../mobile-drawer/mobile-drawer.jsx';
 import MobileModeNotice from '../mobile-mode-notice/mobile-mode-notice.jsx';
 import MobileOrientationGate from '../mobile-orientation-gate/mobile-orientation-gate.jsx';
@@ -17,6 +18,7 @@ import MobileSpritePanel from '../mobile-sprite-panel/mobile-sprite-panel.jsx';
 // `body.smalruby-mobile-mode` を起点にしたセレクタなので、MobileGui が
 // マウントされていない (= class が無い) 時はデスクトップに何も影響しない。
 import './mobile-gui.css';
+import { useConsolePlayView } from './use-console-play-view.js';
 
 /**
  * 狭幅 viewport 用の独立 GUI シェル。
@@ -33,7 +35,15 @@ const MOBILE_MODE_CLASS = 'smalruby-mobile-mode';
 const MOBILE_FULLSCREEN_CLASS = 'smalruby-mobile-fullscreen';
 const MOBILE_BACKPACK_OPEN_CLASS = 'smalruby-mobile-backpack-open';
 
-const MobileGui = ({ activeTabIndex, isFullScreen, lessonModeActive, vm, ...props }) => {
+const MobileGui = ({
+    activeTabIndex,
+    consoleVisible,
+    isFullScreen,
+    lessonModeActive,
+    onOpenPlayView,
+    vm,
+    ...props
+}) => {
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [spriteTabActive, setSpriteTabActive] = useState(false);
     const [paintToolbarCollapsed, setPaintToolbarCollapsed] = useState(false);
@@ -43,6 +53,15 @@ const MobileGui = ({ activeTabIndex, isFullScreen, lessonModeActive, vm, ...prop
     const handleSpriteTabActiveChange = useCallback((active) => setSpriteTabActive(active), []);
     const handleTogglePaintToolbar = useCallback(() => setPaintToolbarCollapsed((v) => !v), []);
     const handleToggleBackpack = useCallback(() => setBackpackOpen((v) => !v), []);
+
+    // 日本語タブのコンソールは、編集中はステージごと隠れて見えない。プログラムが表示したり
+    // 答えを待ったりしたら、再生の画面に移してコンソールと入力欄を見せる (#2551)。
+    useConsolePlayView({
+        vm,
+        active: activeTabIndex === JAPANESE_TAB_INDEX && consoleVisible,
+        isFullScreen,
+        onOpen: onOpenPlayView,
+    });
 
     // 上部ツールバー出し入れトグルは「コスチュームタブ + スプライトタブ非active」の
     // ときだけ意味があるので、その時だけ active にする。
@@ -326,16 +345,23 @@ const MobileGui = ({ activeTabIndex, isFullScreen, lessonModeActive, vm, ...prop
 
 MobileGui.propTypes = {
     activeTabIndex: PropTypes.number.isRequired,
+    consoleVisible: PropTypes.bool,
     isFullScreen: PropTypes.bool.isRequired,
     lessonModeActive: PropTypes.bool,
+    onOpenPlayView: PropTypes.func.isRequired,
     vm: PropTypes.object,
 };
 
 const mapStateToProps = (state) => ({
     activeTabIndex: state.scratchGui.editorTab.activeTabIndex,
+    consoleVisible: state.scratchGui.smalrubyConsole.visible,
     isFullScreen: state.scratchGui.mode.isFullScreen,
     lessonModeActive: isLessonMode(state),
     vm: state.scratchGui.vm,
 });
 
-export default connect(mapStateToProps)(MobileGui);
+const mapDispatchToProps = (dispatch) => ({
+    onOpenPlayView: () => dispatch(setFullScreen(true)),
+});
+
+export default connect(mapStateToProps, mapDispatchToProps)(MobileGui);

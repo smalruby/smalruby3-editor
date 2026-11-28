@@ -41,6 +41,9 @@ Scratch には「言う」「聞いて待つ」しかないが、日本語のプ
   出て、そのブロックを作るときに初めて足す（変換器がブロックの opcode から拡張機能を読み込む）。
   表示も入力もしないプログラムの作品には、拡張機能が入らない。拡張機能が無いあいだは、
   日本語モードのブロックパレットにコンソールのブロックは出ない。
+- スマホ（MobileGui）は編集中のステージを隠すので、日本語タブのプログラムが行を表示したり答えを待ったりしたら、
+  再生の画面（全画面のステージ）に移してコンソールを見せる（`src/components/mobile-gui/use-console-play-view.js`。
+  [`docs/mobile-ui/ui-ux.md`](../mobile-ui/ui-ux.md) の 2.8）。
 
 | data-testid                      | 要素                                             |
 | -------------------------------- | ------------------------------------------------ |
@@ -97,6 +100,7 @@ Scratch には「言う」「聞いて待つ」しかないが、日本語のプ
 - `packages/scratch-gui/src/components/smalruby-console/smalruby-console-button.jsx` — ステージの上のボタン
 - `packages/scratch-gui/src/reducers/smalruby-console.js` — 表示するか・行・隠しているあいだの行の数
 - `packages/scratch-gui/src/lib/smalruby-console.js` — ほかの画面（日本語タブ）から表示する口
+- `packages/scratch-gui/src/components/mobile-gui/use-console-play-view.js` — スマホで、表示・入力のときに再生の画面へ移す
 - upstream のファイル（マーカー付き）: `src/components/stage/stage.jsx`・`src/containers/stage.jsx`・
   `src/components/stage-header/stage-header.jsx`（`docs/maintenance/smalruby-markers-gui.md`）
 
