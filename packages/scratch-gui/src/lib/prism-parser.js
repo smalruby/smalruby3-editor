@@ -1,3 +1,5 @@
+import { withFixedIntegers } from './prism-integer-values';
+
 let prismInstance = null;
 let prismLoadingPromise = null;
 
@@ -32,7 +34,7 @@ const _doLoadPrism = async () => {
         const instance = await WebAssembly.instantiate(wasm, wasi.getImportObject());
         wasi.initialize(instance);
         return {
-            parse: (source, options = {}) => parsePrismFn(instance.exports, source, options),
+            parse: withFixedIntegers((source, options = {}) => parsePrismFn(instance.exports, source, options)),
         };
     }
 
@@ -66,7 +68,7 @@ const _doLoadPrism = async () => {
     wasi.initialize(instance);
 
     return {
-        parse: (source, options = {}) => parsePrism(instance.exports, source, options),
+        parse: withFixedIntegers((source, options = {}) => parsePrism(instance.exports, source, options)),
     };
 };
 
