@@ -47,7 +47,16 @@ const messages = defineMessages({
     },
 });
 
-const RubyScriptPreview = ({ code, onClose }) => {
+/**
+ * The panel that shows the Ruby of the program.
+ * @param {object} props - The props.
+ * @param {string} props.code - The Ruby.
+ * @param {Function} props.onClose - Closes the panel.
+ * @param {string} [props.title] - The title, the words of the menu that opened it
+ *     (the Japanese tab's own words). The Ruby tab's title when not given.
+ * @returns {React.ReactElement} The panel.
+ */
+const RubyScriptPreview = ({ code, onClose, title }) => {
     const intl = useIntl();
     const [expanded, setExpanded] = useState(true);
     const [copied, setCopied] = useState(false);
@@ -81,7 +90,7 @@ const RubyScriptPreview = ({ code, onClose }) => {
             <Draggable bounds="parent" defaultPosition={defaultPosition} handle={`.${styles.header}`}>
                 <div className={styles.panelContainer} style={{ height: expanded ? `${panelHeight}px` : 'auto' }}>
                     <div className={styles.header}>
-                        <div className={styles.headerTitle}>{intl.formatMessage(messages.title)}</div>
+                        <div className={styles.headerTitle}>{title || intl.formatMessage(messages.title)}</div>
                         <div className={styles.headerButtons}>
                             <button
                                 className={styles.headerButton}
@@ -121,6 +130,7 @@ const RubyScriptPreview = ({ code, onClose }) => {
 RubyScriptPreview.propTypes = {
     code: PropTypes.string.isRequired,
     onClose: PropTypes.func.isRequired,
+    title: PropTypes.string,
 };
 
 export default RubyScriptPreview;

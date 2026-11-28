@@ -7,7 +7,11 @@ import React from 'react';
 import { IntlProvider } from 'react-intl';
 import { SmalrubyConsoleButton } from '../../../src/components/smalruby-console/smalruby-console-button.jsx';
 import { SmalrubyConsoleSlot } from '../../../src/components/smalruby-console/smalruby-console-slot.jsx';
-import { PRINT_EVENT, SmalrubyConsole } from '../../../src/components/smalruby-console/smalruby-console.jsx';
+import {
+    CLEAR_EVENT,
+    PRINT_EVENT,
+    SmalrubyConsole,
+} from '../../../src/components/smalruby-console/smalruby-console.jsx';
 import en from '../../../src/locales/en';
 
 const makeVm = (loaded = true) => {
@@ -65,6 +69,12 @@ describe('SmalrubyConsole', () => {
         expect(onAddLine).toHaveBeenCalledWith('a', 'output');
         act(() => vm.runtime.emit('PROJECT_START'));
         expect(onClear).toHaveBeenCalled();
+    });
+
+    test('clears the lines when the run button of the Japanese tab starts the program (B17-4)', () => {
+        const { onClear, vm } = renderConsole();
+        act(() => vm.runtime.emit(CLEAR_EVENT));
+        expect(onClear).toHaveBeenCalledTimes(1);
     });
 
     test('keeps the lines while hidden', () => {

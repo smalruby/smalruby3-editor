@@ -115,7 +115,7 @@
 | 項目 | data-testid | 動き |
 |---|---|---|
 | 行番号と罫線つきでコピー | `ruby-toolbar-menu-copy-problem-form` | 上の「コピー」 |
-| ルビーに直したものを確認 | `ruby-toolbar-menu-preview` | ルビータブの「ルビースクリプトを確認」と同じ画面 |
+| ルビーに直したものを確認 | `ruby-toolbar-menu-preview` | ルビータブの「ルビースクリプトを確認」と同じ画面。画面の題はメニューと同じ「ルビーに直したものを確認」 |
 | 日本語のプログラムを保存（.txt） | `ruby-toolbar-menu-download-japanese` | エディタのテキスト（行番号と罫線を付けない形）を、**UTF-8** のテキストファイル `<作品の名前>_<スプライトの名前>_japanese.txt` に保存する。読み込みなおせるように、行番号と罫線は付けない |
 | 見出し「問題の約束」 | `ruby-toolbar-menu-settings-heading` | — |
 | 例示の形（添字は 0 から） | `ruby-toolbar-menu-settings-pattern-example` | 下の「設定（冒頭の説明文）」 |
@@ -221,6 +221,7 @@ DNCL 風の形の読み方（切りかえる前の変換に合わせたもの）
 - 2 文字目から: 上に加えて、数字（`\p{Nd}`）と結合文字（`\p{M}`。`か` + `゙`）
 - Ruby はこれらをどれも名前に使えて、Ruby → 日本語は名前をそのまま書く（`@佐々木` → `佐々木`）。日本語 → Ruby が同じ範囲を名前として読むので、書いた名前は読み戻せる。
 - 全角英字・全角数字は、文字列（`"…"` `'…'` `「…」`）とコメントの外では、読む前にすべて半角にする（`ｘ１` は `x1`、`ａｎｄ` は `and`）。見た目だけの揺れで（`policy.md`）、Ruby モードの自動置換も半角にするのと同じ考え。
+  ただし日本語タブの自動置換は `％` を半角にしない（書き出しが全角の `％` なので、半角にすると書き出すたびに戻って行ったり来たりする）。
   文字列とコメントの中は書いたとおりに残す（`表示する("ＡＢＣ")` は `"ＡＢＣ"` のまま）。全角と半角は 1 字ずつ同じ長さなので、誤りの列は変わらない。
   Ruby → 日本語は Ruby の名前をそのまま書く（`@ｘ` → `ｘ`）ので、日本語から Ruby に戻すと `@x` になる。
 - `☆` `①` `😀` のような記号は名前に使えず、「「☆」が読めません」の誤りになる（BMP の外の文字も 1 文字として示す）。
@@ -250,6 +251,8 @@ prism の解析の関数は外から受けとり（`rubyToJa(source, { parse, ..
   （`no-ja-form` や `push` の命令の誤りは足さない）。
   表を渡さないとき（ほかの処理系）は、大文字の名前（Ruby の定数 `A`）も名前として読む（`buildRuby` がそう書くため）。
   `N.times do` と `(a..b).step(s) do |i|` / `a.step(b, -s) do |i|` は `〜ずつ増やしながら繰り返す` にする。
+  `N.times do` には数える変数が無いので、プログラムで使っていない名前を `i` → `j` → `k` → `i2` … の順に選んで付ける
+  （生徒に見える名前にするため。外側の `N.times` の変数とも重ねない。日本語を書きかえて Ruby に戻すと、その名前のスプライトの変数になる）。
 - 書き方（`write-ja.js`）: 下の「書き出しの形」。演算子は日本語の読み方（`parse.js`）の強さで、要るところだけかっこを付ける（Ruby に書いてあったかっこは残さない。`not` の後ろは上のとおり）。
   空行は Ruby の空行の位置に残す（読み手が JaAST に `blankLines` を付ける）。行末のコメントは、その Ruby の行から作った日本語の行の末尾に付け直す。
 - 誤り: 日本語モードに無い命令（`unknown-command`。`(` の付いた名前、括弧の無いメソッド、受け手のあるメソッド、`xxx do` の `xxx`、`break` / `next` / `redo` / `retry`）、
@@ -348,6 +351,7 @@ ja-notation が読めて Ruby になっても、その Ruby がブロックに�
 - `packages/scratch-gui/src/containers/ruby-tab/dncl-mode.js` — Monaco の DNCL 言語定義（トークナイザ、シンタックスハイライト）
 - `packages/scratch-gui/src/containers/ruby-tab/dncl-snippets.js` — DNCL コード補完スニペット。ブロックは標準の形（`もし 条件 ならば:` / `〜の間繰り返す:` / `関数 名前(引数):` と字下げ 4 つ。閉じのことばの行は入れない）で入れる
 - `packages/scratch-gui/src/containers/ruby-tab/dncl-problem-form-view.js` — 読むモードを Monaco に描く（罫線のデコレーション、行番号 `(01)` の `lineNumbers`、読むモードと書くモードの切りかえ `createProblemFormView`: フォーカス・クリック・入力・5 秒の待ち・貼り付け・`showReadMode` / `toggle`）
+- `packages/scratch-gui/src/containers/ruby-tab/auto-correct-apply.js` — 自動置換した文を、書きかえがモデルのすべての受け手に届いてから入れる（`applyAutoCorrection`。受け手の中から入れると、エディタのワーカーが例外を出すため）。ルビータブも同じ
 - `packages/scratch-gui/src/containers/ruby-tab/dncl-index-setting.js` — 貼り付け時の添字の設定の確認ダイアログと、冒頭への説明文の書きこみ（1 回の Undo。違うところだけを書きかえる `replaceEditorText`。設定のパターンのメニューも使う）（`offerDnclIndexSetting`）
 - `packages/scratch-gui/src/components/ruby-toolbar/ruby-toolbar.jsx` — 日本語タブのツールバー（上の「日本語タブのツールバーとメニュー」）。その他メニューの設定のパターン（`ruby-toolbar-menu-settings-pattern-example` / `ruby-toolbar-menu-settings-pattern-index-from-one`。見出し「問題の約束」の下。いまのパターンに ✓）
 - `packages/scratch-gui/src/lib/dncl/dncl-download.js` — 「日本語のプログラムを保存（.txt）」のファイル名（`dnclTextFilename`）と中身（`dnclTextBlob`。UTF-8 のテキスト）

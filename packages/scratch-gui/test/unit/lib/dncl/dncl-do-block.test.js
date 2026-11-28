@@ -29,7 +29,7 @@ describe('Ruby → DNCL: the end of a do block (issue #1665)', () => {
     test('3.times do inside もし', () => {
         const ruby = lines('if @a < 1', '  3.times do', '    @b = @b + 1', '  end', 'end');
         expect(convert(ruby)).toBe(
-            lines('もし a < 1 ならば:', '    _ を 1 から 3 まで 1 ずつ増やしながら繰り返す:', '        b = b + 1'),
+            lines('もし a < 1 ならば:', '    i を 1 から 3 まで 1 ずつ増やしながら繰り返す:', '        b = b + 1'),
         );
     });
 

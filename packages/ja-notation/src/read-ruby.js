@@ -82,6 +82,9 @@ class RubyReader {
         this.hasSyntaxErrors = (result.errors || []).length > 0;
         this.rawDepth = 0;
         this.functions = new Set();
+        // The loops of `n.times`, which have no counter in Ruby: they are given one
+        // when the whole program is read (`nameCounters`).
+        this.counterLoops = new Set();
         this.collectFunctions(result.value);
         this.readComments(result.comments || []);
         this.settings = this.readSettings(result);
@@ -726,7 +729,7 @@ class RubyReader {
         let direction = 'up';
         const one = { type: 'Number', value: '1', line: 0, column: 0 };
         if (call.name === 'times' && call.args.length === 0 && !blockParams) {
-            variable = '_';
+            variable = null;
             from = one;
             to = yield this.expression(call.receiver);
             step = one;
@@ -770,6 +773,7 @@ class RubyReader {
         if (comment) statement.comment = comment;
         const closeComment = this.takeComments(closeLine);
         if (closeComment) statement.closeComment = closeComment;
+        if (variable === null) this.counterLoops.add(statement);
         return statement;
     }
 
@@ -1321,6 +1325,75 @@ class RubyReader {
     }
 }
 
+// The names of the counters of `n.times`, in the order they are tried; after
+// them, `i2`, `j2`, `k2`, `i3`, ...
+const COUNTER_NAMES = ['i', 'j', 'k'];
+
+/**
+ * The names a program uses: of the variables, the functions and their
+ * parameters, and any name in the Ruby left as it is.
+ * @param {object} program - The JaAST.
+ * @param {Set<object>} counterLoops - The loops of `n.times` (their counters are not names yet).
+ * @returns {Set<string>} The names.
+ */
+const usedNames = (program, counterLoops) => {
+    const names = new Set();
+    const visit = (node) => {
+        if (Array.isArray(node)) {
+            node.forEach(visit);
+            return;
+        }
+        if (!node || typeof node !== 'object') return;
+        if (node.type === 'Name' || node.type === 'Call') names.add(node.name);
+        if (node.type === 'FunctionDef') {
+            names.add(node.name);
+            node.params.forEach((param) => names.add(param));
+        }
+        if (node.type === 'RubyCode') {
+            for (const name of node.text.match(/[A-Za-z_][A-Za-z0-9_]*/g) || []) names.add(name);
+        }
+        Object.entries(node).forEach(([key, value]) => {
+            if (key === 'variable' && counterLoops.has(node)) return;
+            visit(value);
+        });
+    };
+    visit(program);
+    return names;
+};
+
+/**
+ * Give the loops of `n.times` a counter the students can read (`i`), which the
+ * program does not use and the loops around it do not count with: Ruby has no
+ * counter there, and the Japanese has no loop without one (Issue #2557, B17-3).
+ * @param {object} program - The JaAST.
+ * @param {Set<object>} counterLoops - The loops of `n.times`.
+ */
+const nameCounters = (program, counterLoops) => {
+    if (counterLoops.size === 0) return;
+    const used = usedNames(program, counterLoops);
+    const candidate = (n) => {
+        const base = COUNTER_NAMES[n % COUNTER_NAMES.length];
+        const round = Math.floor(n / COUNTER_NAMES.length);
+        return round === 0 ? base : `${base}${round + 1}`;
+    };
+    const visit = (node, around) => {
+        if (Array.isArray(node)) {
+            node.forEach((child) => visit(child, around));
+            return;
+        }
+        if (!node || typeof node !== 'object') return;
+        let inside = around;
+        if (counterLoops.has(node)) {
+            let n = 0;
+            while (used.has(candidate(n)) || around.has(candidate(n))) n++;
+            node.variable.name = candidate(n);
+            inside = new Set(around).add(node.variable.name);
+        }
+        Object.values(node).forEach((value) => visit(value, inside));
+    };
+    visit(program, new Set());
+};
+
 /**
  * Read a Ruby program into a JaAST.
  * @param {object} result - What the prism parse function gives (`value`, `comments`, `errors`).
@@ -1346,6 +1419,7 @@ class RubyReader {
 const readRuby = (result, source, options = {}) => {
     const reader = new RubyReader(result, source, options);
     const program = reader.program(result);
+    nameCounters(program, reader.counterLoops);
     const errors = reader.errors.sort((a, b) => a.line - b.line || a.column - b.column);
     return { program, errors };
 };

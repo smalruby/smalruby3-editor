@@ -257,6 +257,15 @@ describe('autoCorrect', () => {
             expect(autoCorrect('表示する（「#１」）', allOn, { japanese: true })).toBe('表示する(「#1」)');
         });
 
+        test('should keep ％ in the Japanese tab, as the Japanese tab writes it (B17-1)', () => {
+            expect(autoCorrect('a ← ｂ ％ ２', allOn, { japanese: true })).toBe('a ← b ％ 2');
+            expect(autoCorrect('a ← b % 2', allOn, { japanese: true })).toBe('a ← b % 2');
+        });
+
+        test('should make ％ half-width in Ruby', () => {
+            expect(autoCorrect('a = b ％ 2', allOn)).toBe('a = b % 2');
+        });
+
         test('should end a string of the Japanese tab at the end of its line', () => {
             expect(autoCorrect('表示する（「あ\n# 説明，', allOn, { japanese: true })).toBe(
                 '表示する(「あ\n# 説明，',

@@ -190,7 +190,7 @@ describe('rubyToDncl', () => {
     describe('control flow: N.times', () => {
         test('N.times converts to for loop', () => {
             expect(convert('10.times do\n  @a = @a + 1\nend')).toBe(
-                '_ を 1 から 10 まで 1 ずつ増やしながら繰り返す:\n    a = a + 1',
+                'i を 1 から 10 まで 1 ずつ増やしながら繰り返す:\n    a = a + 1',
             );
         });
     });
