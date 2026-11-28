@@ -1126,6 +1126,15 @@ const parse = (source) => {
             );
             if (index >= 0) {
                 markClosed = closed.filter((_done, i) => i !== index);
+                // A comment line between the `⎿` and this line is after the
+                // block: the `end` stays on the `⎿` line, before the comment.
+                const body = currentBody();
+                if (body[body.length - 1] !== closed[closed.length - 1].node) {
+                    if (entry.comment !== null) {
+                        body.push({ type: 'Comment', text: entry.comment, line: entry.line, column: 0 });
+                    }
+                    return;
+                }
                 // Its `end` is on this line, as when the block is closed by the
                 // line alone (Issue #2556): no blank line is left for it. The
                 // blocks the same marks closed around it end there too.

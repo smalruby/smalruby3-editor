@@ -338,6 +338,13 @@
             "jaLines": [1, 2, 3, 4]
         },
         {
+            "title": "a comment line between the `⎿` and the closing line keeps the end on the `⎿` line (Issue #2556)",
+            "table": "plain",
+            "ja": "もし x > 0 ならば:\n⎿ 表示する(2)\n# X\nを実行する\n表示する(3)",
+            "ruby": "if x > 0\n  puts(2)\nend\n# X\n\nputs(3)",
+            "jaLines": [1, 2, 2, 3, 4, 5]
+        },
+        {
             "title": "a comment not deeper than an if / else is after its end (Issue #2556)",
             "table": "none",
             "ja": "もし x > 0 ならば:\n    y = 1\nそうでなければ:\n    y = 2\n# C",
