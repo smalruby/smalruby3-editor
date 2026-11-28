@@ -30,6 +30,34 @@
             "jaLines": [1]
         },
         {
+            "title": "a negative number before the integer quotient is its left side (-7 ÷ 2 is -4)",
+            "table": "none",
+            "ja": "b = -7 ÷ 2",
+            "ruby": "b = (-7 / 2).to_i",
+            "jaLines": [1]
+        },
+        {
+            "title": "a sign before the integer quotient binds tighter than ÷",
+            "table": "none",
+            "ja": "b = -a ÷ 2",
+            "ruby": "b = (-a / 2).to_i",
+            "jaLines": [1]
+        },
+        {
+            "title": "the parentheses around a sign before ÷ are kept in the Ruby",
+            "table": "none",
+            "ja": "b = (-a) ÷ 2",
+            "ruby": "b = (-a / 2).to_i",
+            "jaLines": [1]
+        },
+        {
+            "title": "a sign before a quotient in parentheses is the sign of the quotient",
+            "table": "none",
+            "ja": "b = -(a ÷ 2)",
+            "ruby": "b = -((a / 2).to_i)",
+            "jaLines": [1]
+        },
+        {
             "title": "not and or",
             "table": "none",
             "ja": "x = not (a > 0 or b)",
