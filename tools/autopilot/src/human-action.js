@@ -48,37 +48,42 @@ function humanAction(it, ctx) {
     });
     const parent = it.parent && it.parent.number != null ? it.parent.number : null;
     const delegateOk = Boolean(it.delegate && it.delegate.ok);
-    // 子のうち、ゴーサインを待っているもの（Sprint Backlog + 🙋・待ちでもリリース後でもない・動いていない）
+    // 子のうち、ゴーサインを待っているもの（Sprint Backlog + 🙋・待ちでもリリース後でもない・動いていない・質問が無い）
     const goKid = (k) => k.status === 'Sprint Backlog' && (k.hitl || k.hitlLabel)
         && k.kind !== 'EPIC' && !k.waiting && (k.labels || []).indexOf('⏳ waiting') < 0
         && (k.labels || []).indexOf('🚀 after-release') < 0 && running.indexOf(k.issue) < 0
-        && !(k.delegate && k.delegate.ok === false);
+        && questions.indexOf(k.issue) < 0 && !(k.delegate && k.delegate.ok === false);
     // 宛て先: 🧱 infra の子は develop 宛て（infra-first）、ほかの EPIC の子は topic 宛て、EPIC に属さないものは develop 宛て
     const isInfra = (x) => (x.labels || []).indexOf('🧱 infra') >= 0;
     // 🧭 が付いていても、Backlog で子が 0 件なら未分解（分解を始めるか決める）
     const decomposed = ai === 'EPIC Decomposed' || sub.total > 0 || (Boolean(it.tracker) && s !== 'Backlog');
 
     if (running.indexOf(it.issue) >= 0) return r('idle', null, null, 'AI が作業中');
+    // 開いている質問（worker の質問・bin/autopilot-ask の質問・#2565）があれば、Status によらず「答える」。
+    // ゴーサインにすると、答えないまま 🙋 が外れて実装が始まってしまう
+    if (questions.indexOf(it.issue) >= 0) {
+        return r('answer', '答える', '質問の欄を開く。選んだ答えで AI が先へ進む', 'AI の質問への答え待ち', 'answer', null);
+    }
     if (labels.indexOf('🚀 after-release') >= 0) {
         return r('idle', null, null, '🚀 リリース後の作業。' + (parent != null ? '#' + parent + ' を develop に出したら' : 'リリースのあとで') + ' AI が始める');
     }
     if (it.waiting || labels.indexOf('⏳ waiting') >= 0) return r('idle', null, null, '⏳ 先に済ませる Issue（autopilot-after）を待っている');
-    if (questions.indexOf(it.issue) >= 0) {
-        return r('answer', '答える', '質問の欄を開く。選んだ答えで AI が先へ進む', 'AI の質問への答え待ち', 'answer', null);
-    }
     // EPIC の「いま」（#2475）: 最後の確認 / 途中の相談 / 任せる前 / 自律で進行中 のどれか 1 つ。行に epicPhase を付ける
     const phase = (p, row) => Object.assign(row, { epicPhase: p });
     // リリース確認（#2430）: topic → develop の PR とプレビューで確かめる。確認ページ（artifact）が無いあいだは確認の結果を書くダイアログ
+    // 子に開いている質問があれば、どの段階でも隠さない（#2565）。子の質問は「答えが要る」の欄に出るので、EPIC の行でもそこを指す
+    const askedKids = kids.filter((k) => questions.indexOf(k.issue) >= 0).map((k) => '#' + k.issue).sort();
+    const askedNote = askedKids.length ? '子 ' + askedKids.join('・') + ' に答え待ちの質問があります（「答えが要る」の欄で答えてください）。' : '';
     if (ai === 'Release Check' && it.hitl) {
         const pr = prUrl ? 'PR #' + openPr.number : 'topic → develop の PR';
         // 確認ページ（#2474）があれば、プレビュー・観点・決定待ちを 1 枚で見て答えを送る
         if (it.releasePageUrl) {
             return phase('final-check', r('check', '確認ページを開く', 'プレビューと確認の観点・決定待ちを 1 枚で見て、答えを送る（別タブ）',
-                '子は全部 topic に入りました（' + (sub.completed || 0) + '/' + (sub.total || 0) + ' 済み）。確認ページで ' + pr + ' のプレビューを確かめて答えてください',
+                askedNote + '子は全部 topic に入りました（' + (sub.completed || 0) + '/' + (sub.total || 0) + ' 済み）。確認ページで ' + pr + ' のプレビューを確かめて答えてください',
                 'open', it.releasePageUrl));
         }
         return phase('final-check', r('check', '確認ページを開く', 'プレビューと ' + pr + ' を開き、確認の結果を書く欄を出す。結果は「確認の結果を書く」か PR のレビューで AI に返す',
-            '子は全部 topic に入りました（' + (sub.completed || 0) + '/' + (sub.total || 0) + ' 済み）。確認ページで答えてください', 'release', it.previewUrl || prUrl));
+            askedNote + '子は全部 topic に入りました（' + (sub.completed || 0) + '/' + (sub.total || 0) + ' 済み）。確認ページで答えてください', 'release', it.previewUrl || prUrl));
     }
     if (decomposed) {
         const go = kids.filter(goKid).sort((a, b) => a.issue - b.issue);

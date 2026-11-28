@@ -3161,6 +3161,8 @@ function startHttp(cfg, state, log) {
         if (handleBlockedHttp(req, res, url, state.blockedHub)) return;
         // モニターで質問に答える（POST /answer）。書き込みの受け口はここ 1 か所
         if (monitorAnswers.handleAnswerHttp(req, res, url, answerHttpContext(cfg, state, log))) return;
+        // bin/autopilot-ask が Issue に書いた質問を置き場に載せる（POST /questions・#2565）
+        if (monitorAnswers.handleQuestionsHttp(req, res, url, state.answerStore ? { store: state.answerStore, state, log } : null)) return;
         // モニターの「AI に任せる」（POST /delegate・#2404）。🙋 を外す流れは /answer と同じ（releaseHumanGate）
         if (monitorAnswers.handleDelegateHttp(req, res, url, delegateHttpContext(cfg, state, log))) return;
         // リリース確認の観点を見せる・結果を受ける（GET /release-check・POST /release-check/review・#2430）

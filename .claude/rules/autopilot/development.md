@@ -29,6 +29,7 @@
 | `src/monitor.js` | Web モニタ（**自己完結 HTML**。外部 CDN / 外部リソース参照は devpod の egress allowlist で死ぬので不可） | — |
 | `src/epic-summary.js` / `src/current-status.js` | EPIC ごとのまとめ・見込み・現在地の材料とテンプレートの描画の**純粋関数**。`renderEpicGroupsHtml` はモニタへ `fn.toString()` で埋め込むので**モジュールの外を参照しない** | I/O・`Date.now()` を持ち込まない（`now` を引数で受ける） |
 | `src/release-page.js` | リリース確認の確認ページ（artifact）のデータの下書き・描画・答えの読み取り・URL の状態の**純粋関数** | I/O・`Date.now()` を持ち込まない（URL の状態ファイルと答えの書き込みは `release-check-http.js`） |
+| `src/ask.js` | `bin/autopilot-ask` の I/O（入力の JSON・Bot での質問のコメント・daemon の `POST /questions`） | 判断を書かない（形の検証は `phases.js` の `normalizeAskInput`、コメントは `monitor-answers.js` の `writeQuestionsComment`）。Bot のトークンが取れなければ書かない |
 | `src/current-status-job.js` | 現在地の job の I/O（worker の起動・状態ファイル・改善メモ）。daemon から呼ぶ割り込み型の job | 判断を書かない（`planCurrentStatusOutcome` を呼ぶ） |
 | `src/usage.js` / `src/version.js` / `src/pw-check.js` | usage ファイル読取 / 稼働バージョン・更新検知 / headless UI 確認ヘルパー | — |
 | `src/learnings.js` / `src/tasks.js` | 学び（M6/R1）・タスク（E1）の判断の**純粋関数** | phases.js と同じ（I/O・時計・乱数なし） |
@@ -110,7 +111,7 @@ tmpdir へスナップショット**する（`snapshotRunAssets`）。つまり 
 ## ライセンス
 
 `tools/autopilot/**` と `tools/autopilot/prompts/**`、autopilot が使う Smalruby 独自のコマンド
-（`bin/autopilot-worktree` / `bin/autopilot-push` / `bin/bot-token` / `bin/bot-git`）は、
+（`bin/autopilot-worktree` / `bin/autopilot-push` / `bin/autopilot-ask` / `bin/bot-token` / `bin/bot-git`）は、
 リポジトリ全体の AGPL-3.0 ではなく **MIT ライセンス**（`tools/autopilot/LICENSE`。コマンドの先頭にも
 `SPDX-License-Identifier: MIT` を書く）。これらに新規ファイル・コードを追加するときは
 MIT のまま置けるか確認する（AGPL なコードのコピー持ち込み不可）。プロンプト /

@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: MIT (see tools/autopilot/LICENSE)
+# bin/autopilot-ask — 人間に選んでほしいことを、worker と同じ形の質問のコメントとして Bot 名義で Issue に書き、
+# autopilot のモニターの「答える」に出す（#2565）。
+#
+# Usage:
+#   bin/autopilot-ask <issue> <questions.json> [--repo owner/name] [--port 8787]
+#
+# questions.json の形は worker の結果の questions と同じ（docs/autopilot/autonomous-contract.md §2.3）:
+#   {"questions":[{"id":"q1","text":"…","options":[{"key":"a","label":"…","desc":"…"}],"recommended":"a"}],
+#    "reason":"…"}
+#
+# 終了コード: 0 = 書けてモニターに載った / 1 = 失敗（Bot のトークンが取れないときは何も書かない） /
+#             2 = コメントは書けたが daemon に届かなかった（daemon を起こしてからもう一度流す。コメントは二重に書かない）
+set -euo pipefail
+REPO_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+exec node "$REPO_ROOT/tools/autopilot/src/ask.js" "$@"

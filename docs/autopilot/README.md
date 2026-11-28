@@ -336,6 +336,28 @@ worker が人間に選んでほしいことがあるとき、`signal=hitl` の�
 `renderMonitorAnswersForPrompt` ほか）、置き場と受け口と GitHub のつなぎは `monitor-answers.js`、書き込みは `project.js`
 （`applyCommentPlans`）。モニターでは「あなた宛て」の「答えが要る」に出る（下の「Web モニタ」）。
 
+**worker 以外が質問を出す — `bin/autopilot-ask`**: セッションの AI や人間が「人間の判断が要る Issue」を作るときは、
+本文に案を書くだけにしない（モニターは決まった形の質問のコメントしか読まないので、「答える」に出ず、ゴーサインの行に
+なってしまう。押すと答えないまま 🙋 が外れて実装が始まる）。代わりに質問を JSON に書いて道具で出す:
+
+```bash
+bin/autopilot-ask <issue> tmp/questions-<issue>.json   # --repo owner/name / --port 8787（env AUTOPILOT_PORT）
+```
+
+- 中身の形は worker の結果の `questions` と同じ（`autonomous-contract.md` §2.3 の「worker 以外が質問を出す」）。検証も同じ
+  （`contract.js` の `questionListErrors` → `phases.js` の `normalizeAskInput`）。
+- 質問のコメントは worker と同じ道（`monitor-answers.js` の `writeQuestionsComment`）で **Bot 名義**で書く。同じ中身は書かず、
+  新しい質問は round を続ける。Bot のトークンが取れなければ何も書かずに止まる（個人のトークンで書かない）。
+- 書いたあと、daemon の `POST /questions`（合言葉 `X-Autopilot-Token` が要る。`ask.js` が合言葉のファイルを読む）で置き場に載せる。
+  同じ round の同じ質問は置き直さない（モニターで書いた「メモだけ保存」を消さない）。worker が動いている Issue は受けない（409）。
+  daemon に届かないときはコメントだけ書いて終了コード 2 で終わる。daemon を起こしてからもう一度流せば、コメントは書き直さずに載る。
+- 載った質問は、Status（Sprint Backlog・Backlog・Blocked など）・⏳ 待ちによらず「答える」になる（`humanAction`）。
+  ゴーサインにはしない。EPIC の子でも隠さない: 子は「答えが要る」の欄に出て、EPIC の行は段階によらずそれを指す
+  （Release Check の行は「確認ページを開く」のまま、一文に「子 #N に答え待ちの質問があります」を足す。任せる前の
+  「この EPIC を AI に任せる」には質問のある子を入れない）。
+- 答えると、いまと同じく答えを記録して 🙋 を外す。Sprint Backlog の Issue は implement に進み、答えのファイル
+  （`tmp/autopilot-answers-<issue>.md`）を受け取る。
+
 ### モニターの「AI に任せる」（人間待ちを autopilot に渡す）
 
 モニターの「あなた宛て」には、🙋 HITL の付いた Issue（人間待ち）が並ぶ（`GET /board` の `humanWait`）。
@@ -1004,12 +1026,12 @@ daemon の `GET /`（既定 `http://localhost:8787/`）は、人間と同意し�
 
   | 状態 | すること | ボタン | 押すと |
   |---|---|---|---|
-  | 🧭 EPIC で Release Check（最後の確認） | 確かめる | 確認ページを開く | プレビュー / topic → develop の PR と「確認の結果を書く」のダイアログを開く（確認ページの artifact ができるまでのあいだ） |
+  | 🧭 EPIC で Release Check（最後の確認） | 確かめる | 確認ページを開く | プレビュー / topic → develop の PR と「確認の結果を書く」のダイアログを開く（確認ページの artifact ができるまでのあいだ）。子に答え待ちの質問があれば一文で示す（子は「答えが要る」の欄に出る） |
   | 🧭 EPIC で子が全部済んだ（Release Check の前） | 確かめる | プレビューで確かめる | プレビュー / topic → develop の PR を開く |
   | Review / DoD（ほか 🙋 付き）で OPEN の PR が base とコンフリクト（`mergeable=CONFLICTING`・worker なし） | 確かめる | コンフリクトを解消してもらう | `POST /resolve-conflict`。AI が base を取り込んで解消し push する。🙋 と Status はそのまま（済めば daemon が `mergeable` を直し、行はもとのボタン（Review / DoD なら「PR を見る」）に戻る）。分解済み EPIC の途中の相談の子がこの状態なら、EPIC の行も同じボタン |
   | Review / DoD（PR あり） | 確かめる | PR を見る | PR を開く。OK なら 🙋 を外すと AI が先へ進む |
   | Blocked | 確かめる | Issue を見る | Issue を開く |
-  | モニターの質問・相談中（Discussing / 🔬 spike） | 答える | 答える | 質問の欄を開く / Issue を開く |
+  | モニターの質問（worker・`bin/autopilot-ask`。Status・⏳ によらない）・相談中（Discussing / 🔬 spike） | 答える | 答える | 質問の欄を開く / Issue を開く |
   | Sprint Backlog + 🙋（Issue） | ゴーサイン | 実装を始めてもらう | 🙋 を外す（`POST /delegate`）。AI が実装して PR を作る |
   | 🧭 EPIC で、子に Sprint Backlog + 🙋 がある（任せる前） | ゴーサイン（EPIC にまとめる） | この EPIC を AI に任せる | 子 N 件の 🙋 を外す（子ごとに `POST /delegate`）。AI が順に実装して topic にマージし、最後の確認だけ返す。子の行は重ねない |
   | 🧭 EPIC で、子が答え・確認を待つ（途中の相談） | 答える / 確かめる | 子のボタン（答える・Issue を見る など） | 子の質問の欄・Issue を開く。子の行は重ねない |
@@ -1651,6 +1673,7 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 | `tools/autopilot/prompts/autopilot-*/` | 各フェーズのプロンプト |
 | `bin/autopilot-worktree` | 軽量 worktree スクリプト |
 | `bin/autopilot-push` | push 経路の自動判定（Bot / 個人トークン。権限外パス対応） |
+| `bin/autopilot-ask` | セッションの AI や人間が、worker と同じ形の質問を Bot 名義で Issue に書き、モニターの「答える」に出す（中身は `tools/autopilot/src/ask.js`） |
 | `bin/lint-changed`, `tools/autopilot/src/lint-changed.js` | 変えたファイルだけの lint（全体は CI） |
 | `tools/autopilot/src/contract.js` | 番兵/結果ファイルの検証（純粋） |
 | `tools/autopilot/src/phases.js` | フェーズ↔プロンプト、結果→フィールド意図、watchdog 判断、ゲート解除、merge-progression、PR 投影、enroll/並び順、ディレクティブ、サニタイズ（純粋） |
@@ -1666,7 +1689,7 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 | `tools/autopilot/src/blocked-hub.js` | 止まっている worker の置き場と `/blocked` の HTTP |
 | `tools/autopilot/src/http-guard.js` | HTTP の受け付けの守りの判断（Host / Origin の許可・合言葉の時間一定の照合。純粋関数） |
 | `tools/autopilot/src/blocked-panel.js` | モニターの「止まっている worker」の欄 |
-| `tools/autopilot/src/monitor-answers.js` | モニターで答える質問の置き場・`POST /answer`・`POST /delegate`（AI に任せる・指示つき）と `GET /delegate/findings` の受け口・Issue への記録と 🙋 の解除・worker への受け渡し |
+| `tools/autopilot/src/monitor-answers.js` | モニターで答える質問の置き場・`POST /answer`・`POST /questions`（`bin/autopilot-ask` の質問を載せる）・`POST /delegate`（AI に任せる・指示つき）と `GET /delegate/findings` の受け口・Issue への記録と 🙋 の解除・worker への受け渡し |
 | `tools/autopilot/src/release-check.js` | リリース確認の判断（入る条件・目印・どちらの段か・観点の解析・結果のコメント・sub-issue の計画。純粋） |
 | `tools/autopilot/src/release-check-http.js` | リリース確認の daemon 側（入る意図の適用・`GET /release-check`・`POST /release-check/review`・プレビューと確認ページの URL を覚える・確認ページの答えを結果のコメントにする） |
 | `tools/autopilot/src/release-page.js` | リリース確認の確認ページ（artifact）のデータの下書き・描画・答えの読み取り・URL の状態（純粋） |
@@ -1715,5 +1738,5 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 ## ライセンス
 
 autopilot のツール群（`tools/autopilot/**`）と autopilot プロンプト（`tools/autopilot/prompts/autopilot-*/**`）、
-autopilot が使うコマンド（`bin/autopilot-worktree` / `bin/autopilot-push` / `bin/bot-token` / `bin/bot-git`）は、
+autopilot が使うコマンド（`bin/autopilot-worktree` / `bin/autopilot-push` / `bin/autopilot-ask` / `bin/bot-token` / `bin/bot-git`）は、
 リポジトリ全体の AGPL-3.0 ではなく **MIT ライセンス**とする。詳細は `tools/autopilot/LICENSE` を参照。
