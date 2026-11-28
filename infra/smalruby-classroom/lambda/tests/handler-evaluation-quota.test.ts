@@ -162,6 +162,31 @@ describe('AI 評価の今日の使用量 (#2448)', () => {
       });
     });
 
+    test('作品が 0 件でもスターターがあれば説明の案を返す (#2515)', async () => {
+      mockSend.mockImplementation(sendWithCount(3));
+      mockCreate.mockResolvedValue({
+        content: [{ type: 'text', text: '{"description":"LED を順につけよう"}' }],
+        usage: { input_tokens: 1, output_tokens: 1 },
+      });
+      const starterOnly = { mode: 'describe', starterPseudocode: '◆ 旗が押されたとき', submissions: [] };
+      const res = await mod.handler(makeEvent('POST', '/classrooms/c1/evaluate', starterOnly, { classroomId: 'c1' }));
+      expect(res.statusCode).toBe(200);
+      expect(JSON.parse(res.body!)).toEqual({
+        mode: 'describe',
+        description: 'LED を順につけよう',
+        quota: { used: 3, limit: 200, resetsAt: '2026-11-26T15:00:00.000Z' },
+      });
+    });
+
+    test('作品もスターターも無い describe は 400 で、回数を数えない (#2515)', async () => {
+      mockSend.mockImplementation(sendWithCount(3));
+      const res = await mod.handler(makeEvent('POST', '/classrooms/c1/evaluate', { mode: 'describe' }, { classroomId: 'c1' }));
+      expect(res.statusCode).toBe(400);
+      expect(JSON.parse(res.body!).error).toContain('submissions');
+      expect(mockCreate).not.toHaveBeenCalled();
+      expect(mockSend.mock.calls.some(([c]) => c.constructor.name === 'UpdateCommand')).toBe(false);
+    });
+
     test('上限を超えたら 400 で、Claude を呼ばない', async () => {
       mockSend.mockImplementation(sendWithCount(201));
       const res = await mod.handler(makeEvent('POST', '/classrooms/c1/evaluate', body, { classroomId: 'c1' }));

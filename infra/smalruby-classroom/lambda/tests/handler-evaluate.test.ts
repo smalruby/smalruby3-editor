@@ -219,6 +219,32 @@ describe('evaluate: rubric-aware grade and the new modes (#2422)', () => {
     expect(user).toContain('スターター');
     expect(user).toContain('生徒の作品:');
     expect(() => validateEvaluateRequest({ mode: 'describe', submissions: [] })).toThrow('submissions');
+    // With works, the teacher checks the draft against the works (unchanged, #2515).
+    expect(system).toContain('合っていますか？');
+    expect(system).not.toContain('生徒に見せる');
+  });
+
+  test('describe drafts a student-facing description from the starter alone (#2515)', () => {
+    const request = validateEvaluateRequest({ mode: 'describe', assignmentName: 'LED', starterPseudocode: '◆ 旗' });
+    expect(request.submissions).toHaveLength(0);
+    const { system, user } = buildEvaluationPrompt(request);
+    expect(system).toContain('生徒に見せる');
+    expect(system).toContain('300文字以内');
+    expect(system).toContain('{"description":"…"}');
+    expect(system).not.toContain('合っていますか？');
+    expect(user).toContain('スターター（先生が配った最初のプロジェクト）の擬似コード:');
+    expect(user).not.toContain('生徒の作品:');
+  });
+
+  test('describe without starter and works is still rejected (#2515)', () => {
+    expect(() => validateEvaluateRequest({ mode: 'describe' })).toThrow('submissions');
+    expect(() => validateEvaluateRequest({ mode: 'describe', starterPseudocode: '', submissions: [] }))
+      .toThrow('submissions');
+    expect(() => validateEvaluateRequest({ mode: 'describe', starterPseudocode: ' \n ', submissions: [] }))
+      .toThrow('submissions');
+    const many = Array.from({ length: 11 }, (_, i) => ({ seatNumber: i + 1 }));
+    expect(() => validateEvaluateRequest({ mode: 'describe', starterPseudocode: '◆ 旗', submissions: many }))
+      .toThrow('submissions');
   });
 
   test('rubric needs examples, not submissions', () => {
