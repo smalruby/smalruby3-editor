@@ -11,15 +11,19 @@ const NAMED_VARIABLE_TYPES = ['', 'list'];
  * The names of the variables and the lists of a sprite and of the stage, which
  * the counter of `n.times` must not take though the scripts do not use them:
  * the Japanese turned back into Ruby would make a variable of the sprite with
- * the name of one of the stage, or overwrite one (Issue #2574).
+ * the name of one of the stage, or overwrite one (Issue #2574). On the stage the
+ * counter is a variable of the stage, so the names of the sprites are not taken
+ * either: a sprite would have two variables of the name.
  * @param {?object} target - The target of the editor (a sprite or the stage).
  * @returns {Set<string>} The names.
  */
 const reservedNamesOf = (target) => {
     const names = new Set();
     if (!target) return names;
-    const stage = target.runtime && target.runtime.getTargetForStage ? target.runtime.getTargetForStage() : null;
-    [target, stage].forEach((t) => {
+    const runtime = target.runtime;
+    const stage = runtime && runtime.getTargetForStage ? runtime.getTargetForStage() : null;
+    const sprites = target.isStage && runtime && runtime.targets ? runtime.targets.filter((t) => !t.isStage) : [];
+    [target, stage, ...sprites].forEach((t) => {
         if (!t || !t.variables) return;
         Object.values(t.variables).forEach((v) => {
             if (NAMED_VARIABLE_TYPES.includes(v.type || '')) names.add(v.name);

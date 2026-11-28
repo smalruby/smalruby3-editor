@@ -38,6 +38,15 @@ describe('the counter of n.times and the variables of the sprite and the stage (
         expect(rubyToDncl(ruby, stageWithRuntime).dncl).toBe(loop('j'));
     });
 
+    test('on the stage the counter does not take a name of a variable or a list of a sprite', () => {
+        const other = { isStage: false, variables: variables(['j'], ['k', 'list']) };
+        const stageRuntime = { getTargetForStage: () => stageWithSprites, targets: [] };
+        const stageWithSprites = { ...stage, runtime: stageRuntime };
+        stageRuntime.targets.push(stageWithSprites, other);
+        expect([...reservedNamesOf(stageWithSprites)].sort()).toEqual(['Data', 'i', 'j', 'k']);
+        expect(rubyToDncl(ruby, stageWithSprites).dncl).toBe(loop('i2'));
+    });
+
     test('a target with no runtime gives its own names', () => {
         expect([...reservedNamesOf({ variables: variables(['i']) })]).toEqual(['i']);
         expect([...reservedNamesOf(null)]).toEqual([]);
