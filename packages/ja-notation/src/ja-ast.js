@@ -49,8 +49,8 @@
 //   Binary   { operator, left, right }  operator: + - * / ÷ % == != < <= > >= and or .. ...
 //   RubyCode { text }             Ruby with no Japanese form (`$g`, `nil`), as written
 //
-// A minus before a quotient is on its left: `-a ÷ 2` is Binary(÷, Unary(-, a), 2)
-// and means `-(a ÷ 2)`, as `parse` reads it.
+// A sign binds tighter than `÷`: `-a ÷ 2` is Binary(÷, Unary(-, a), 2) and means
+// `(-a) ÷ 2` (`-7 ÷ 2` is `-4`), as `parse` reads it. `-(a ÷ 2)` is Unary(-, Binary(÷, a, 2)).
 
 /** The types of the statements. */
 const STATEMENT_TYPES = [

@@ -3741,16 +3741,16 @@
     }
   },
   "ja-d464c5a70b": {
-    "ruby": "@b = -((@a / 2).to_i)",
+    "ruby": "@b = (-@a / 2).to_i",
     "errors": [],
     "rubyLines": [
       1
     ],
     "converterErrors": [],
-    "blocks": "data_setvariableto(VARIABLE = @b, VALUE: operator_subtract(NUM1: 0, NUM2: operator_mathop(OPERATOR = \"floor\", NUM: operator_divide(NUM1: @a, NUM2: 2)) #\"@ruby:method:to_i\") #\"@ruby:unary_minus\")",
+    "blocks": "data_setvariableto(VARIABLE = @b, VALUE: operator_mathop(OPERATOR = \"floor\", NUM: operator_divide(NUM1: operator_subtract(NUM1: 0, NUM2: @a) #\"@ruby:unary_minus\", NUM2: 2)) #\"@ruby:method:to_i\")",
     "shown": {
-      "ruby": "@b = -(@a / 2).to_i",
-      "ja": "b = -a ÷ 2",
+      "ruby": "@b = (-@a / 2).to_i",
+      "ja": "b = (-a) ÷ 2",
       "errors": []
     }
   },

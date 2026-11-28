@@ -133,6 +133,13 @@ const unary = function* (e) {
 };
 
 /**
+ * Whether an expression is a minus before something other than a number.
+ * @param {object} e - The JaAST expression.
+ * @returns {boolean} Whether it is.
+ */
+const isNegated = (e) => e.type === 'Unary' && e.operator === '-' && e.operand.type !== 'Number';
+
+/**
  * A binary operator: the left side may be of the same precedence (the
  * operators are read from the left), the right side binds tighter.
  * @param {object} e - The Binary.
@@ -153,6 +160,12 @@ const binary = function* (e) {
         chain.push(current);
     }
     let text = yield operand(current.left, needsOf(current).left);
+    // A negated name or expression before `÷` is written in parentheses (`(-a) ÷ 2`,
+    // `(-a) * 3 ÷ 2`), so a student does not read it as `-(a ÷ 2)`. A negative number
+    // stays as it is (`-7 ÷ 2`).
+    const own = PRECEDENCE[current.operator];
+    const beforeQuotient = chain.some((b) => b.operator === '÷' && PRECEDENCE[b.operator] === own);
+    if (beforeQuotient && isNegated(current.left)) text = `(${text})`;
     for (let i = chain.length - 1; i >= 0; i--) {
         const b = chain[i];
         const right = yield operand(b.right, needsOf(b).own + 1);

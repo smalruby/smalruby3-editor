@@ -2,7 +2,7 @@
     "about": "writeJa(program): the Japanese in the standard form of a JaAST.",
     "cases": [
         {
-            "title": "a minus before a quotient is on its left, as the Japanese reads it",
+            "title": "a negated name before a quotient is written in parentheses, as the Japanese reads it",
             "program": {
                 "body": [
                     {
@@ -42,7 +42,7 @@
                     }
                 ]
             },
-            "ja": "x = -a ÷ 2"
+            "ja": "x = (-a) ÷ 2"
         },
         {
             "title": "a sum under a quotient keeps its parentheses",
