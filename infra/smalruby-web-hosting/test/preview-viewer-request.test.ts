@@ -55,6 +55,27 @@ describe('preview viewer-request function', () => {
         expect(request('///evil.example/x').headers.location.value).toBe('/evil.example/x/');
     });
 
+    describe('old language entry /ja.html', () => {
+        test('redirects /ja.html to / with 301', () => {
+            const res = request('/ja.html');
+            expect(res.statusCode).toBe(301);
+            expect(res.headers.location.value).toBe('/');
+        });
+
+        test('keeps the query string', () => {
+            const res = request('/ja.html', { mesh: { value: '1' } });
+            expect(res.statusCode).toBe(301);
+            expect(res.headers.location.value).toBe('/?mesh=1');
+        });
+
+        test('leaves other html files and nested ja.html alone', () => {
+            expect(request('/index.html').uri).toBe('/index.html');
+            expect(request('/about.html').uri).toBe('/about.html');
+            expect(request('/my-branch/ja.html').uri).toBe('/my-branch/ja.html');
+            expect(request('/en.html').uri).toBe('/en.html');
+        });
+    });
+
     describe('pre-compressed gui JS', () => {
         const GUI_URIS = [
             '/gui.6edcb0b762080afd68f0.js', // 本番

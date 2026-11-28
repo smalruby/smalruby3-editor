@@ -12,6 +12,8 @@
 //   受け取らないなら書きかえない（`Accept-Encoding` を落とすプロキシ経由でも無圧縮で返る）。
 //   対象は scripts/precompress-assets.mjs が圧縮するもの（出力のトップレベルの gui の JS）だけにする。
 //   圧縮版が無い URI へ書きかえると 404 になる。
+// - 前の配信の日本語の入口 `/ja.html` → `/` へ 301（クエリ文字列は保つ）。学校の端末のブックマークに
+//   残っていて 404 になっていた。前の配信で言語の入口はこれだけ（`en.html` などは無かった）
 // - それ以外（ルートの `/auth-redirect.html` など）はそのまま
 //
 // 301 の Location は先頭の `/` と `\` を 1 つの `/` にまとめる。`//evil.com/x` をそのまま
@@ -69,6 +71,16 @@ function handler(event) {
     if (uri.charAt(uri.length - 1) === '/') {
         request.uri = uri + 'index.html';
         return request;
+    }
+
+    if (uri === '/ja.html') {
+        return {
+            statusCode: 301,
+            statusDescription: 'Moved Permanently',
+            headers: {
+                location: { value: '/' + encodeQueryString(request.querystring || {}) },
+            },
+        };
     }
 
     var lastSegment = uri.substring(uri.lastIndexOf('/') + 1);

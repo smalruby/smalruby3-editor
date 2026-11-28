@@ -90,8 +90,11 @@ prod ステージのリソースは、`infra/smalruby-web-hosting/lib/web-hostin
 | `/`、`/admin/` のように末尾が `/` | `.../index.html` |
 | `/x.js`、`/about.html` のように最後の部分に拡張子がある | そのまま |
 | `/admin`、`/about`、`/assignments/LICENSE` のように最後の部分に拡張子が無い | `/<path>/` へ 301（クエリ文字列は保つ） |
+| `/ja.html`（前の配信の日本語の入口。ルートのものだけ） | `/` へ 301（クエリ文字列は保つ） |
 
 `/admin` → `/admin/` は管理 SPA のために要る（相対パスでアセットを読むので、`/` 無しのままだと 1 階層上を見てしまう）。一方、`/about` は `/about/` → `/about/index.html` を探して 404 ページになる。**拡張子の無いページの URL は使えない**ので、サイト内のリンクは `about.html` のように `.html` 付きで書く（GitHub Pages は `/about` に `about.html` を返していたが、CloudFront Functions からは S3 にファイルがあるかを問い合わせられず、そうするには `index.html` を持つディレクトリの一覧を関数に持つ必要があるため、持たないことにした）。`/assignments/LICENSE` のような拡張子の無いファイルも URL では開けない（サイトからはリンクしていない）。
+
+`/ja.html` は、前の配信のころの URL を学校の端末のブックマークなどで使い続けていて 404 になっていたので `/` へ転送する（前の配信で言語の入口はこれだけで、`en.html` などは無かった）。Location は同じホストの `/` にする。
 
 規則はプレビュー（`preview.smalruby.app/<slug>/`）と同じなので、関数のコードは同じファイル（`lib/functions/preview-viewer-request.js`）を使う。関数のリソースは本番とプレビューで別にする（定額プランの配信には、ほかの配信に付いている CloudFront Functions を付けられない）。
 
