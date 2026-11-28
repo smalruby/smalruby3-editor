@@ -28,9 +28,12 @@ Scratch には「言う」「聞いて待つ」しかないが、日本語のプ
   ツールチップは「コンソールを出す / コンソールを隠す」。
 - ボタンを押すと、ステージがコンソールに切りかわる（もう一度押すか、コンソールの［ステージにもどる］で戻る）。
   コンソールを隠しているあいだに表示した行の数を、ボタンに数字で出す。
-- **日本語タブでは**、コンソールはステージに重ねず、右の列の高さいっぱいに出す（スプライトと背景の一覧は札の後ろに隠す。
-  [`docs/dncl/README.md`](../dncl/README.md) の「右の列（コンソール）」）。［ステージにもどる］は出さない（ボタンがいつもあるため）。
-  隠していても、プログラムが入力を待つとコンソールを出す。
+- **エディタでは、どのタブでも**、コンソールはステージに重ねず、右の列の高さいっぱいに出す（ステージを隠し、スプライトと背景の一覧は
+  札の後ろに隠す。コンソールを使うならコンソールだけ、スプライトや背景を使うならコンソールは出さない。
+  [`docs/design-system/code-tab.md`](../design-system/code-tab.md) の「コンソールを出しているときの右の列」）。［ステージにもどる］は出さない
+  （`>_` と札があるため）。ステージに重ねるのは、全画面とプレーヤーだけ。
+- 日本語タブでは右の列をいつもコンソールにし、隠していても、プログラムが入力を待つとコンソールを出す。ほかのタブでは、隠していれば
+  ステージの質問の欄で答える。
 - コンソールは、表示した行を上から順に出す。プログラムが答えを待っているあいだ（`入力する` か「聞いて待つ」）は、
   いちばん下に入力の欄を出す。Enter キーで答えると、答えも `> 答え` の行として残る。
   「聞いて待つ」の質問の文字があれば、入力の欄の前に出す。
@@ -60,8 +63,8 @@ Scratch には「言う」「聞いて待つ」しかないが、日本語のプ
 | `smalruby-console-input`             | 答えの入力の欄                                   |
 | `smalruby-console-clear`             | ［消す］                                         |
 | `smalruby-console-close`             | ［ステージにもどる］（日本語タブでは出さない）   |
-| `smalruby-console-slot`              | 日本語タブの右の列のコンソールの置き場           |
-| `japanese-right-column-strip`        | 日本語タブの右の列の下の札                       |
+| `smalruby-console-slot`              | 右の列のコンソールの置き場                       |
+| `japanese-right-column-strip`        | 右の列の下の札                                   |
 | `japanese-right-column-show-targets` | 札の「スプライトと背景を見る / 隠す」            |
 | `japanese-right-column-targets`      | スプライトと背景の一覧の包み（隠すと `hidden`）  |
 
@@ -107,9 +110,9 @@ Scratch には「言う」「聞いて待つ」しかないが、日本語のプ
 - `packages/scratch-gui/src/components/smalruby-console/smalruby-console.jsx` — コンソール（ステージに重ねる。
   VM の `SMALRUBY_CONSOLE_PRINT` と `PROJECT_START` を聞いて行を足す・消す）
 - `packages/scratch-gui/src/components/smalruby-console/smalruby-console-button.jsx` — ステージの上のボタン
-- `packages/scratch-gui/src/components/smalruby-console/smalruby-console-slot.jsx` — 日本語タブの右の列のコンソールの
+- `packages/scratch-gui/src/components/smalruby-console/smalruby-console-slot.jsx` — 右の列のコンソールの
   置き場（コンソールはステージの子のまま、質問と答えをステージから受け、portal でここに描く）
-- `packages/scratch-gui/src/components/japanese-right-column/japanese-right-column.jsx` — 日本語タブの右の列
+- `packages/scratch-gui/src/components/japanese-right-column/japanese-right-column.jsx` — コンソールを出しているとき（と日本語タブ）の右の列
   （置き場・スプライトと背景の一覧の出し入れ・下の札）
 - `packages/scratch-gui/src/reducers/smalruby-console.js` — 表示するか・行・隠しているあいだの行の数
 - `packages/scratch-gui/src/lib/smalruby-console.js` — ほかの画面（日本語タブ）から表示する口
@@ -133,7 +136,7 @@ Scratch には「言う」「聞いて待つ」しかないが、日本語のプ
 - 画面: `packages/scratch-gui/test/unit/components/smalruby-console.test.jsx`、
   `packages/scratch-gui/test/unit/components/japanese-right-column.test.jsx`、
   `packages/scratch-gui/test/unit/reducers/smalruby-console-reducer.test.js`、
-  `packages/scratch-gui/test/integration/dncl-mode-validation.test.js`（日本語タブの右の列）
+  `packages/scratch-gui/test/integration/dncl-mode-validation.test.js`（右の列）
 
 ## 関連ドキュメント
 

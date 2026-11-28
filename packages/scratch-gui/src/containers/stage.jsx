@@ -17,7 +17,6 @@ import {
     deactivateColorPicker
 } from '../reducers/color-picker';
 // === Smalruby: Start of console ===
-import {JAPANESE_TAB_INDEX} from '../reducers/editor-tab';
 import {stageCanvasSize} from '../lib/smalruby-console.js';
 // === Smalruby: End of console ===
 
@@ -481,10 +480,9 @@ const mapStateToProps = state => ({
     micIndicator: state.scratchGui.micIndicator,
     // === Smalruby: Start of console ===
     consoleVisible: state.scratchGui.smalrubyConsole.visible,
-    // the Japanese tab shows the console in the right column, in place of the stage
-    // (the player has no right column, so the console stays on the stage there)
-    consoleInColumn: state.scratchGui.editorTab.activeTabIndex === JAPANESE_TAB_INDEX &&
-        !state.scratchGui.mode.isFullScreen && !state.scratchGui.mode.isPlayerOnly,
+    // the editor shows the console in the right column, in place of the stage and the sprites,
+    // in every tab (the player has no right column, so the console stays on the stage there)
+    consoleInColumn: !state.scratchGui.mode.isFullScreen && !state.scratchGui.mode.isPlayerOnly,
     // === Smalruby: End of console ===
     // Do not use editor drag style in fullscreen or player mode.
     useEditorDragStyle: !(state.scratchGui.mode.isFullScreen || state.scratchGui.mode.isPlayerOnly)
