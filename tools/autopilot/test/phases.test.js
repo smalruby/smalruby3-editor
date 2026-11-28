@@ -32,6 +32,8 @@ const {
     isStuckCandidate,
     liveWorkerIssuesFromSessions,
     selectStalledInFlightItems,
+    handOffAiStatusFromIntents,
+    classifyInFlightRecovery,
     IN_FLIGHT_WORK_PHASE_BY_AI_STATUS,
     PHASE_BY_AI_STATUS,
     itemOwner,
@@ -1103,6 +1105,40 @@ test('selectStalledInFlightItems: 生存 worker（liveIssues）に含まれる i
     // 両方 live なら空。片方だけ live なら残りのみ返す。
     assert.deepEqual(selectStalledInFlightItems(items, new Set([10, 11])), []);
     assert.deepEqual(selectStalledInFlightItems(items, new Set([10])), [{ issue: 11, phase: 'implement' }]);
+});
+
+// === ふつうの受け渡しと止まった worker の復帰を分ける（#2582） ===
+
+test('handOffAiStatusFromIntents: 結果で実作業系 AI Status になったら、その値を返す', () => {
+    // implement の done → In Progress + Self-Reviewing（次の tick の review は受け渡し）
+    assert.equal(handOffAiStatusFromIntents([
+        { field: 'Status', value: 'In Progress' }, { field: 'AI Status', value: 'Self-Reviewing' },
+    ]), 'Self-Reviewing');
+    // EPIC の流れの Must の直し → Addressing Comments
+    assert.equal(handOffAiStatusFromIntents([{ field: 'AI Status', value: 'Addressing Comments' }]), 'Addressing Comments');
+});
+
+test('handOffAiStatusFromIntents: 実作業系でない AI Status・クリア・In Progress 以外へ動くときは null', () => {
+    assert.equal(handOffAiStatusFromIntents([{ field: 'AI Status', value: null }]), null);
+    assert.equal(handOffAiStatusFromIntents([{ field: 'AI Status', value: 'Awaiting Continuation' }]), null);
+    assert.equal(handOffAiStatusFromIntents([
+        { field: 'Status', value: 'Review' }, { field: 'AI Status', value: 'Self-Reviewing' },
+    ]), null);
+    assert.equal(handOffAiStatusFromIntents([{ field: 'Status', value: 'Blocked' }]), null);
+    assert.equal(handOffAiStatusFromIntents(null), null);
+});
+
+test('classifyInFlightRecovery: この daemon が直前に反映した AI Status のままなら handoff', () => {
+    const item = { issue: 2552, status: 'In Progress', aiStatus: 'Self-Reviewing' };
+    assert.equal(classifyInFlightRecovery(item, new Map([[2552, 'Self-Reviewing']])), 'handoff');
+});
+
+test('classifyInFlightRecovery: 反映の記録が無い（daemon の再起動など）・AI Status が違うなら stalled', () => {
+    const item = { issue: 2552, status: 'In Progress', aiStatus: 'Self-Reviewing' };
+    assert.equal(classifyInFlightRecovery(item, new Map()), 'stalled');
+    assert.equal(classifyInFlightRecovery(item, null), 'stalled');
+    assert.equal(classifyInFlightRecovery(item, new Map([[2552, 'Addressing Comments']])), 'stalled');
+    assert.equal(classifyInFlightRecovery({ ...item, aiStatus: 'Implementing' }, new Map([[2552, 'Self-Reviewing']])), 'stalled');
 });
 
 test('selectStalledInFlightItems: 空入力は空配列', () => {

@@ -67,6 +67,12 @@ item の状態は次の 4 要素で決まる（Project が単一の真実）:
 > 対象に入るが、**空き容量（`cfg.concurrency - running`）の分だけ再開**し溢れは次 tick へ回すので
 > 並行上限を跨がない。人間の判断待ち HITL（Triaging / Decomposing / Discussing / Awaiting
 > Continuation / EPIC Decomposed）は実作業系 AI Status 集合に入らないため誤って再開されない。
+>
+> **ふつうの受け渡しと止まった worker を分ける（#2582）**。implement の done で In Progress +
+> Self-Reviewing になった直後の tick も、worker が居ないので上の復帰が拾う。動き（review の起動）は
+> 同じだが、daemon は結果を反映したときの実作業系 AI Status を覚えておき（`handOffAiStatusFromIntents`）、
+> いまの AI Status と同じなら**受け渡し**、記録が無い（daemon の再起動など）か違えば **stalled** として
+> ログを分ける（`classifyInFlightRecovery`）。遷移の判定（`selectStalledInFlightItems`）は変えない。
 
 ### EPIC の流れ（PR の base が `topic/...`）
 

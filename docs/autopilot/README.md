@@ -1591,6 +1591,10 @@ Addressing Comments / Running DoD）なのに worker が生存していない it
 - 毎 tick 走るため Self-Reviewing の happy-path も対象に入るが、**空き容量（`cfg.concurrency -
   running`）の分だけ再開**し溢れは次 tick へ回すので並行上限を跨がない。recovery が tick 冒頭で
   running を埋めるので selectActionable / stuck 検知と二重ディスパッチせず、Blocked より再開を優先する。
+- この daemon が直前に結果を反映して実作業系 AI Status になった item（例: implement の done →
+  Self-Reviewing）は、ふつうの受け渡しとして `#N: 受け渡し（AI Status=…）→ review を起動` とログに出し、
+  `stalled in-flight worker` / `stalled recovery: N 件` には数えない（#2582）。daemon の再起動で記録が
+  消えた item や、AI Status が記録と違う item は、これまでどおり stalled として復帰する。
 
 #### 監視（Web モニタ）
 

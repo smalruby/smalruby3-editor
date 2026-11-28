@@ -40,6 +40,8 @@ const {
     selectActionable,
     isStuckCandidate,
     selectStalledInFlightItems,
+    handOffAiStatusFromIntents,
+    classifyInFlightRecovery,
     liveWorkerIssuesFromSessions,
     applyResult,
     subIssueSetupIntents,
@@ -1102,12 +1104,32 @@ async function recoverStalledInFlightWorkers(items, cfg, state, log, deps = {}) 
         const item = byIssue.get(s.issue);
         if (!ownsItem(item, cfg.assignee)) continue; // 自分がオーナーの item だけ復帰させる
         if (state.running.has(s.issue)) continue; // 既にこの daemon が所有中なら触らない
-        log(`#${s.issue}: stalled in-flight worker（${s.phase} / worker 不在）→ 再ディスパッチ`);
+        // この daemon が直前に結果を反映した item は、worker が消えたのではなく次のフェーズへの
+        // ふつうの受け渡し（例 implement → review）。ログを分け、本当の復帰と見分けられるようにする（#2582）
+        const kind = classifyInFlightRecovery(item, state.handOffs);
+        if (kind === 'handoff') log(`#${s.issue}: 受け渡し（AI Status=${item.aiStatus}）→ ${s.phase} を起動`);
+        else log(`#${s.issue}: stalled in-flight worker（${s.phase} / worker 不在）→ 再ディスパッチ`);
+        if (state.handOffs) state.handOffs.delete(s.issue);
         dispatchFn({ ...item, phase: s.phase }, cfg, state, log);
-        recovered.push(s);
+        recovered.push({ ...s, kind });
     }
-    if (recovered.length) log(`stalled recovery: ${recovered.length} 件を再ディスパッチ`);
+    const stalledCount = recovered.filter((r) => r.kind === 'stalled').length;
+    if (stalledCount) log(`stalled recovery: ${stalledCount} 件を再ディスパッチ`);
     return recovered;
+}
+
+/**
+ * 結果の反映で実作業系 AI Status になった item を `state.handOffs` に覚える（#2582）。
+ * 判定は {@link handOffAiStatusFromIntents}。該当しなければ古い記録を消す。
+ * @param {object} state daemon の可変状態
+ * @param {number} issue
+ * @param {Array<{field:string, value:string|null}>} intents 反映した intents
+ */
+function rememberHandOff(state, issue, intents) {
+    if (!state.handOffs) state.handOffs = new Map();
+    const aiStatus = handOffAiStatusFromIntents(intents);
+    if (aiStatus) state.handOffs.set(issue, aiStatus);
+    else state.handOffs.delete(issue);
 }
 
 /**
@@ -1422,6 +1444,9 @@ async function dispatch(item, cfg, state, log) {
     const session = `autopilot-${phase}-${item.issue}`;
     const startedAt = cfg.now();
     state.running.set(item.issue, { phase, session, since: startedAt });
+    // worker を起こしたら受け渡しの記録は役目を終える。stalled 復帰以外の経路（selectActionable 等）で
+    // 起動したあとに worker が消えても、古い記録で「受け渡し」と見誤らないよう消す（#2582）
+    if (state.handOffs) state.handOffs.delete(item.issue);
     const record = (outcome, note) => recordHistory(state, {
         issue: item.issue,
         phase,
@@ -1586,6 +1611,8 @@ async function dispatch(item, cfg, state, log) {
         // ローカルで把握した状態変化を board キャッシュにも反映（#888）。GraphQL は増やさない。
         // implement 完了→ AI Status=Self-Reviewing 等が refreshBoard を待たず monitor に live 反映される。
         patchBoardCache(state, item.issue, intents);
+        // 次の tick の stalled 復帰が拾っても「止まった worker」と記録しないよう、受け渡しを覚える（#2582）
+        rememberHandOff(state, item.issue, intents);
         log(`#${item.issue}: ${parsed.result.signal} — applied: ${applied.join(', ')}`);
         record(parsed.result.signal, parsed.result.summary);
         // decompose 完了で作成された sub-issue に Status/Kind/Size を補完（単一ライター・#914）。
@@ -3518,6 +3545,8 @@ async function main(opts = {}) {
         // booting は最初の Project 情報の取得が終わるまで true（その間の /tick 等を断る・#1510）
         paused: false, pausedBy: null, pausedAt: null, authError: null, reauth: null, booting: true, bootWait: null,
         running: new Map(), ticking: false, claudeUsage: null,
+        // issue → この daemon が直前に反映した結果の実作業系 AI Status（受け渡しと stalled の区別・#2582）
+        handOffs: new Map(),
         usagePause: null, usageOverrides: {},
         version: null, autopilotUpdate: null,
     };
@@ -3612,7 +3641,7 @@ module.exports = {
     main, tick, runTickOnce, dispatch, applyMergeProgression, applyClosedReconcile, isIssueClosedAfterRun, applyPrProjection,
     cleanupIssueWorktree,
     listProcesses, stopWorktreeLeftovers, applyLeftoverSweep,
-    applyDodHandoffs, detectStuck, recoverOrphanedWorkers, recoverStalledInFlightWorkers,
+    applyDodHandoffs, detectStuck, recoverOrphanedWorkers, recoverStalledInFlightWorkers, rememberHandOff,
     markBlocked, getDirectives, populateAssigneeDirectives,
     applyLabelHealing, applyAfterWaitLabels,
     applyDecomposeSubIssueSetup,

@@ -6,7 +6,7 @@ const assert = require('node:assert');
 process.env.AUTOPILOT_STATE_DIR = require('fs').mkdtempSync(require('path').join(require('os').tmpdir(), 'ap-daemon-test-'));
 const {
     applyMergeProgression, applyClosedReconcile, isIssueClosedAfterRun, applyPrProjection, applyDodHandoffs, runTickOnce,
-    detectStuck, recoverOrphanedWorkers, recoverStalledInFlightWorkers, markBlocked, getDirectives, populateAssigneeDirectives,
+    detectStuck, recoverOrphanedWorkers, recoverStalledInFlightWorkers, rememberHandOff, markBlocked, getDirectives, populateAssigneeDirectives,
     applyLabelHealing, applyAfterWaitLabels, collectGateContexts,
     applyDecomposeSubIssueSetup,
     parseSsoDeviceOutput, startReauth,
@@ -593,13 +593,60 @@ test('recoverStalledInFlightWorkers: worker 不在の in-flight を再ディス�
         dispatch: (item) => dispatched.push({ issue: item.issue, phase: item.phase }),
     });
     assert.deepEqual(recovered, [
-        { issue: 10, phase: 'implement' },
-        { issue: 40, phase: 'review' },
+        { issue: 10, phase: 'implement', kind: 'stalled' },
+        { issue: 40, phase: 'review', kind: 'stalled' },
     ]);
     assert.deepEqual(dispatched, [
         { issue: 10, phase: 'implement' },
         { issue: 40, phase: 'review' },
     ]);
+});
+
+test('#2582: implement の結果で Self-Reviewing になった直後の review は「stalled」と記録せず、受け渡しとして起動する', async () => {
+    const items = [
+        { issue: 2552, itemId: 'i2552', status: 'In Progress', aiStatus: 'Self-Reviewing', hitlLabel: false },
+    ];
+    const logs = [];
+    const dispatched = [];
+    // この daemon が直前に implement の結果（AI Status=Self-Reviewing）を反映した
+    const state = { running: new Map(), handOffs: new Map([[2552, 'Self-Reviewing']]) };
+    const recovered = await recoverStalledInFlightWorkers(items, makeCfg(), state, (m) => logs.push(m), {
+        listSessions: () => [],
+        dispatch: (item) => dispatched.push({ issue: item.issue, phase: item.phase }),
+    });
+    assert.deepEqual(dispatched, [{ issue: 2552, phase: 'review' }]);
+    assert.deepEqual(recovered, [{ issue: 2552, phase: 'review', kind: 'handoff' }]);
+    assert.ok(logs.every((m) => !/stalled/.test(m)), `stalled と記録しない: ${logs.join(' / ')}`);
+    assert.ok(logs.some((m) => /#2552: .*受け渡し.*review/.test(m)), logs.join(' / '));
+    assert.equal(state.handOffs.has(2552), false, '起動したら受け渡しの記録を消す');
+});
+
+test('#2582: daemon の再起動などで worker がいない In Progress（反映の記録なし）は、これまでどおり stalled として復帰する', async () => {
+    const items = [
+        { issue: 2555, itemId: 'i2555', status: 'In Progress', aiStatus: 'Self-Reviewing', hitlLabel: false },
+        { issue: 2556, itemId: 'i2556', status: 'In Progress', aiStatus: 'Implementing', hitlLabel: false },
+    ];
+    const logs = [];
+    const dispatched = [];
+    // 再起動直後の state（handOffs が空）。Implementing は記録があっても AI Status が違えば stalled
+    const state = { running: new Map(), handOffs: new Map([[2556, 'Self-Reviewing']]) };
+    const recovered = await recoverStalledInFlightWorkers(items, makeCfg(), state, (m) => logs.push(m), {
+        listSessions: () => [],
+        dispatch: (item) => dispatched.push({ issue: item.issue, phase: item.phase }),
+    });
+    assert.deepEqual(dispatched, [{ issue: 2555, phase: 'review' }, { issue: 2556, phase: 'implement' }]);
+    assert.deepEqual(recovered.map((r) => r.kind), ['stalled', 'stalled']);
+    assert.ok(logs.some((m) => /#2555: stalled in-flight worker/.test(m)));
+    assert.ok(logs.some((m) => /stalled recovery: 2 件を再ディスパッチ/.test(m)));
+});
+
+test('#2582: rememberHandOff は実作業系 AI Status になった結果だけを覚え、そうでない結果で古い記録を消す', () => {
+    const state = {};
+    rememberHandOff(state, 1, [{ field: 'Status', value: 'In Progress' }, { field: 'AI Status', value: 'Self-Reviewing' }]);
+    assert.equal(state.handOffs.get(1), 'Self-Reviewing');
+    // review の done → Status=Review（stalled 復帰の対象外）で記録は消える
+    rememberHandOff(state, 1, [{ field: 'Status', value: 'Review' }, { field: 'AI Status', value: null }]);
+    assert.equal(state.handOffs.has(1), false);
 });
 
 test('#972 回帰: In Progress + Addressing Comments + 🙋 HITL + worker 不在 → address-review へ再ディスパッチ', async () => {
@@ -613,7 +660,7 @@ test('#972 回帰: In Progress + Addressing Comments + 🙋 HITL + worker 不在
         listSessions: () => [], // worker 不在
         dispatch: (item) => dispatched.push({ issue: item.issue, phase: item.phase }),
     });
-    assert.deepEqual(recovered, [{ issue: 973, phase: 'address-review' }]);
+    assert.deepEqual(recovered, [{ issue: 973, phase: 'address-review', kind: 'stalled' }]);
     assert.deepEqual(dispatched, [{ issue: 973, phase: 'address-review' }]);
 });
 
@@ -693,7 +740,7 @@ test('recoverOrphanedWorkers: 起動時ラッパは items を fetch して core 
         readToken: async () => 't',
         dispatch: (item) => dispatched.push({ issue: item.issue, phase: item.phase }),
     });
-    assert.deepEqual(recovered, [{ issue: 10, phase: 'implement' }]);
+    assert.deepEqual(recovered, [{ issue: 10, phase: 'implement', kind: 'stalled' }]);
     assert.deepEqual(dispatched, [{ issue: 10, phase: 'implement' }]);
 });
 

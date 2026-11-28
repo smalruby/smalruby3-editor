@@ -1243,6 +1243,46 @@ function selectStalledInFlightItems(items, liveIssues) {
 }
 
 /**
+ * 結果の反映（{@link applyResult} 等の intents）で item が「次の実作業系フェーズを待つ」形
+ * （In Progress のまま・AI Status が {@link IN_FLIGHT_WORK_PHASE_BY_AI_STATUS} に載る値）に
+ * なったなら、その AI Status を返す（純粋関数・#2582）。
+ *
+ * 例: implement の done → In Progress + Self-Reviewing。この直後の tick では worker が居ないので
+ * {@link selectStalledInFlightItems} が拾うが、それは worker が消えたのではなく、ふつうの受け渡し。
+ * daemon はこの値を覚えておき、{@link classifyInFlightRecovery} で両者を分けてログに出す。
+ * Status を In Progress 以外へ動かす intents は stalled 復帰の対象にならないので null。
+ * @param {Array<{field:string, value:string|null}>} intents 反映した intents
+ * @returns {string|null} 受け渡し先の AI Status、無ければ null
+ */
+function handOffAiStatusFromIntents(intents) {
+    let aiStatus = null;
+    for (const it of intents || []) {
+        if (!it) continue;
+        if (it.field === 'Status' && it.value !== 'In Progress') return null;
+        if (it.field === 'AI Status') aiStatus = it.value;
+    }
+    return aiStatus && IN_FLIGHT_WORK_PHASE_BY_AI_STATUS[aiStatus] ? aiStatus : null;
+}
+
+/**
+ * {@link selectStalledInFlightItems} が選んだ item が、ふつうの受け渡し（`'handoff'`）か、
+ * 止まった worker の復帰（`'stalled'`）かを決める（純粋関数・#2582）。
+ *
+ * この daemon が直前に反映した結果の AI Status（{@link handOffAiStatusFromIntents}）が、いまの
+ * AI Status と同じなら受け渡し。記録が無い（daemon の再起動で消えた・別の daemon が反映した）か、
+ * AI Status が違えば、worker が消えたものとして stalled にする（安全側: これまでどおりの扱い）。
+ * どちらでも再ディスパッチすること自体は変わらない（ログと記録の区別だけ）。
+ * @param {{issue:number, aiStatus:string}} item 対象 item
+ * @param {Map<number,string>|null} handOffs issue → 直前に反映した AI Status
+ * @returns {'handoff'|'stalled'}
+ */
+function classifyInFlightRecovery(item, handOffs) {
+    if (!item || !handOffs || typeof handOffs.get !== 'function') return 'stalled';
+    const expected = handOffs.get(item.issue);
+    return expected && expected === item.aiStatus ? 'handoff' : 'stalled';
+}
+
+/**
  * item の決定的な単一オーナーを返す（純粋関数・enroll モデル）。
  * 既定は assignee の**辞書順先頭**（複数 assignee の Issue を複数開発者の daemon が
  * 同時に拾わないための決定的なタイブレーク）。本文に `autopilot-assignee:` ディレクティブが
@@ -4300,6 +4340,8 @@ module.exports = {
     IN_FLIGHT_WORK_PHASE_BY_AI_STATUS,
     liveWorkerIssuesFromSessions,
     selectStalledInFlightItems,
+    handOffAiStatusFromIntents,
+    classifyInFlightRecovery,
     PROMPT_DIR,
     phasePromptCommand,
     DEFAULT_CLAUDE_COMMAND,
