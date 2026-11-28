@@ -470,8 +470,13 @@ Ruby の `puts` / `gets` は、いままでどおりコンソールのブロッ�
   ブロックは空の行を持たないので、日本語で書いた空の行は、ブロックを通ると消える（これまでと同じ）。
 - コードタブで足したスクリプトは、並びの最後に入る。
 - ルビティー（`genai-ruby-adapter.js`）が読む、エディタに出ていないスプライトの日本語も同じ並びで作る（エディタの日本語と比べるため）。
+- 日本語タブに入るとき（ルビータブから・コードタブから）も同じ並びで日本語にする（`ruby-tab.jsx` の `switchLanguage`）。
+  コードタブから戻るときは、エディタにまだ前の日本語が残っていることがあるので、エディタの中身を読まず、ブロックから作った Ruby を渡して日本語にする
+  （前の日本語を Ruby として読むと、正しいプログラムなのにうその誤りが出てルビータブに移っていた）。
+  日本語にできない書き方の誤りは、エディタに出ている Ruby の行に出す。
 
-テスト: `packages/scratch-gui/test/unit/lib/dncl/dncl-script-order.test.js`
+テスト: `packages/scratch-gui/test/unit/lib/dncl/dncl-script-order.test.js`、統合テスト `packages/scratch-gui/test/integration/dncl-code-tab-script-order.test.js`
+（コードタブを通っても書いた順に戻ること・関数 2 つを呼び出しと交互に置いた形・コード → 日本語を 30 回くり返してもルビータブに移らないこと）
 
 ### 変換マトリクスを lock-in するテスト
 
@@ -672,7 +677,7 @@ Smalruby は **共通テスト用プログラム表記の形のプログラム�
   - `packages/scratch-gui/test/unit/reducers/dncl-mode-reducer.test.js` — `exitDnclModeExternallyRequested` シグナル
   - `packages/scratch-gui/test/unit/components/extension-button-dncl.test.jsx` — 拡張機能ボタンの confirm フロー
   - `packages/scratch-gui/test/unit/components/dncl-mode-notice.test.jsx` — 通知バナー
-- 結合テスト: `packages/scratch-gui/test/integration/dncl-mode-validation.test.js`（DNCL バリデーション + 通知バナー/confirm フロー）
+- 結合テスト: `packages/scratch-gui/test/integration/dncl-mode-validation.test.js`（DNCL バリデーション + 通知バナー/confirm フロー）、`dncl-code-tab-script-order.test.js`（コードタブを通ったときの並びと、ルビータブに移らないこと）
 
 ## 関連ドキュメント
 

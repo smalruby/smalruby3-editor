@@ -906,8 +906,10 @@ const RubyTab = (props) => {
     // calls it with true, the Ruby tab with false (docs/dncl/design.md 1 章). Resolves to whether
     // the editor is now in the asked language: false when the Ruby cannot be written in
     // Japanese (the errors are shown on the Ruby lines) or the lesson does not allow Japanese.
+    // `ruby` is the Ruby to write in Japanese when the editor may not show it yet: coming back
+    // from the Code tab, the editor can still hold the Japanese of before (issue #2577).
     const switchLanguage = useCallback(
-        async (enabling) => {
+        async (enabling, { ruby: givenRuby = null } = {}) => {
             if (enabling === dnclModeRef.current) return true;
             // A lesson that does not allow the Japanese mode (#1741): never enter it (leaving it is always fine).
             if (enabling && dnclModeLockedRef.current) return false;
@@ -924,14 +926,19 @@ const RubyTab = (props) => {
             if (enabling && editorRef.current && monacoRef.current) {
                 setDnclValidating(true);
                 try {
-                    const currentRuby = editorRef.current.getModel().getValue();
-                    const dnclResult = rubyToDncl(currentRuby);
+                    const currentRuby = givenRuby === null ? editorRef.current.getModel().getValue() : givenRuby;
+                    // The Japanese keeps the scripts in the order they were written (issue #2550).
+                    const orderedRuby = rubyInScriptOrder(rubyCodeTargetRef.current, currentRuby, rubyVersion);
+                    const dnclResult = rubyToDncl(orderedRuby);
 
                     // Code that has no DNCL form, such as the post-test loop
-                    // `begin ... end while` (Issue #1626), on its Ruby lines.
+                    // `begin ... end while` (Issue #1626), on its Ruby lines. The lines are
+                    // those of the Ruby the editor shows, not of the Ruby in the script order.
                     if (dnclResult.errors.length > 0) {
+                        const lineErrors =
+                            orderedRuby === currentRuby ? dnclResult.errors : rubyToDncl(currentRuby).errors;
                         showErrors(
-                            dnclResult.errors.map((err) => ({
+                            lineErrors.map((err) => ({
                                 row: err.line - 1,
                                 column: err.column - 1,
                                 text: dnclErrorText(err),
@@ -991,7 +998,7 @@ const RubyTab = (props) => {
                 const model = editorRef.current.getModel();
                 if (enabling) {
                     // Switching to DNCL: convert Ruby → DNCL
-                    const currentRuby = model.getValue();
+                    const currentRuby = givenRuby === null ? model.getValue() : givenRuby;
                     // Reuse the dry-run conversions unless the code was edited
                     // while the blocks conversion was being checked.
                     let dncl;
@@ -999,7 +1006,9 @@ const RubyTab = (props) => {
                         dncl = dryRun.dncl;
                         dnclSourceMapRef.current = dryRun.sourceMap;
                     } else {
-                        dncl = rubyToDncl(currentRuby).dncl;
+                        dncl = rubyToDncl(
+                            rubyInScriptOrder(rubyCodeTargetRef.current, currentRuby, rubyVersion),
+                        ).dncl;
                         dnclSourceMapRef.current = dnclToRuby(dncl).sourceMap;
                     }
                     monacoRef.current.editor.setModelLanguage(model, 'dncl');
@@ -1038,11 +1047,14 @@ const RubyTab = (props) => {
 
     // The Japanese tab was chosen: write the program in Japanese. When it cannot be written in
     // Japanese, go to the Ruby tab, where the errors are shown on the Ruby lines.
-    const enterJapaneseTab = useCallback(async () => {
-        if (activeTabIndexRef.current !== JAPANESE_TAB_INDEX) return;
-        const switched = await switchLanguage(true);
-        if (!switched && activeTabIndexRef.current === JAPANESE_TAB_INDEX) onActivateTab(RUBY_TAB_INDEX);
-    }, [switchLanguage, onActivateTab]);
+    const enterJapaneseTab = useCallback(
+        async (options) => {
+            if (activeTabIndexRef.current !== JAPANESE_TAB_INDEX) return;
+            const switched = await switchLanguage(true, options);
+            if (!switched && activeTabIndexRef.current === JAPANESE_TAB_INDEX) onActivateTab(RUBY_TAB_INDEX);
+        },
+        [switchLanguage, onActivateTab],
+    );
 
     // The errors of the blocks of the Japanese on its lines (a dry run of the conversion, the
     // same check as going to the Code tab; Issue #2547), or null when it makes no Ruby.
@@ -1940,11 +1952,14 @@ const RubyTab = (props) => {
                 }
                 updateRubyCodeTargetState(vm.editingTarget, rubyVersion);
                 // Write the program in Japanese after React re-renders with the new
-                // Ruby code and the Monaco editor value prop is committed.
+                // Ruby code. The Ruby is given, not read from the editor: the editor
+                // may still hold the Japanese of before, which would be read as wrong
+                // Ruby and send the student to the Ruby tab (issue #2577).
                 if (wantJapanese) {
+                    const ruby = RubyGenerator.targetToCode(vm.editingTarget, { version: rubyVersion });
                     requestAnimationFrame(() => {
                         setTimeout(() => {
-                            enterJapaneseTab();
+                            enterJapaneseTab({ ruby });
                         }, 0);
                     });
                 }
