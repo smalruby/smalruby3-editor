@@ -182,4 +182,13 @@ const problemFormText = (code) => {
     return count < lines.length ? `${text}${eol}` : text;
 };
 
-export { BAR, END, layoutProblemForm, numberedLineCount, problemFormLabel, problemFormText };
+export {
+    BAR,
+    BRANCH_PATTERN,
+    CLOSER_PATTERN,
+    END,
+    layoutProblemForm,
+    numberedLineCount,
+    problemFormLabel,
+    problemFormText,
+};
