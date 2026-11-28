@@ -126,4 +126,28 @@ describe('Japanese text with an error is kept when leaving the tab or the sprite
         await waitForMonacoLanguage(driver, 'smalruby');
         await waitForEditorValue(driver, 'b = 3 + 2');
     });
+
+    // Issue #2560: the green flag (like saving and submitting) converts through the same HOC,
+    // which used to run the program without the line with an error.
+    test('the green flag stops on the Japanese tab', async () => {
+        await openJapaneseTabWithError(driver);
+        await driver.findElement({ css: '[class*="green-flag_green-flag_"]' }).click();
+        await pause(1000);
+
+        expect(await isTabSelected(driver, 'gui-tab-japanese')).toBe(true);
+        expect(await getEditorValue(driver)).toBe(WITH_ERROR);
+        expect(await isJapaneseErrorAlertShown(driver)).toBe(true);
+        expect(await driver.executeScript('return window.smalruby.vm.runtime.threads.length')).toBe(0);
+    });
+
+    // The run button of the toolbar ran the Ruby without the line with an error.
+    test('the run button stops on the Japanese tab', async () => {
+        await openJapaneseTabWithError(driver);
+        await clickByTestId(driver, 'ruby-toolbar-execute');
+        await pause(1000);
+
+        expect(await isTabSelected(driver, 'gui-tab-japanese')).toBe(true);
+        expect(await getEditorValue(driver)).toBe(WITH_ERROR);
+        expect(await isJapaneseErrorAlertShown(driver)).toBe(true);
+    });
 });

@@ -3,6 +3,7 @@ import reducer, {
     setDnclMode,
     requestExternalExitDnclMode,
     clearExternalExitDnclModeRequest,
+    setJapaneseEditError,
 } from '../../../src/reducers/dncl-mode';
 
 describe('dncl-mode reducer', () => {
@@ -57,6 +58,24 @@ describe('dncl-mode reducer', () => {
         test('should not affect dnclMode', () => {
             const active = { ...dnclModeInitialState, dnclMode: true, exitDnclModeExternallyRequested: true };
             const state = reducer(active, clearExternalExitDnclModeRequest());
+            expect(state.dnclMode).toBe(true);
+        });
+    });
+
+    // Issue #2560: the HOC must know that the editor holds Japanese lines that make no Ruby.
+    describe('setJapaneseEditError', () => {
+        test('should have japaneseEditError as false by default', () => {
+            expect(dnclModeInitialState.japaneseEditError).toBe(false);
+        });
+
+        test('should set and clear japaneseEditError', () => {
+            const state = reducer(dnclModeInitialState, setJapaneseEditError(true));
+            expect(state.japaneseEditError).toBe(true);
+            expect(reducer(state, setJapaneseEditError(false)).japaneseEditError).toBe(false);
+        });
+
+        test('should not affect dnclMode', () => {
+            const state = reducer({ ...dnclModeInitialState, dnclMode: true }, setJapaneseEditError(true));
             expect(state.dnclMode).toBe(true);
         });
     });
