@@ -139,6 +139,25 @@ test('registerQuestionsOnce: 置き場に載せる。同じ round の同じ質�
     assert.strictEqual(planQuestionsRegistration(null, { round: 1, questions: QUESTIONS }).action, 'set');
 });
 
+test('registerQuestionsOnce: 答え済みでまだ worker に渡していない質問は、新しい round で置き換えない（#2568）', () => {
+    const store = createAnswerStore({ now: () => 0 });
+    const state = { running: new Map() };
+    const body = { issue: 2552, round: 1, questions: QUESTIONS, phase: 'session' };
+    registerQuestionsOnce({ store, state }, body);
+    store.markAnswered(2552, {}, []);
+    assert.strictEqual(store.get(2552).status, 'answered');
+    const r = registerQuestionsOnce({ store, state }, { ...body, round: 2 });
+    assert.deepStrictEqual([r.status, r.body.error], [409, 'answers not yet delivered']);
+    assert.strictEqual(store.get(2552).round, 1);
+    // 同じ round の同じ質問は、答え済みでもそのまま（keep）
+    assert.strictEqual(registerQuestionsOnce({ store, state }, body).body.action, 'keep');
+    // worker が答えを受け取ったあとは、新しい round を載せられる
+    assert.ok(store.take(2552));
+    assert.strictEqual(registerQuestionsOnce({ store, state }, { ...body, round: 2 }).body.action, 'set');
+    assert.strictEqual(planQuestionsRegistration({ status: 'answered', round: 1, questions: QUESTIONS },
+        { round: 2, questions: QUESTIONS }).status, 409);
+});
+
 test('合言葉のファイルの置き場は daemon と同じ（二重定義がずれると daemon に届かない）', () => {
     // eslint-disable-next-line global-require
     const { httpTokenFilePath } = require('../src/daemon');
