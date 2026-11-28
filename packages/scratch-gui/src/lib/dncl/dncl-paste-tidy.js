@@ -398,8 +398,10 @@ const rulesToIndent = (lines) => {
         if (depth === 0 && /^\s/.test(lines[i])) return lines;
         if (depth > stack.length + 1) return lines;
         if (depth < stack.length) {
-            // A block whose bar stops without an L goes on in a branch or ends at its word.
+            // A block whose bar stops without an L goes on in a branch or ends at its word. The
+            // blocks inside it end where their bars stop, which the indent does only after a `:`.
             if (!BRANCH_PATTERN.test(code) && !CLOSER_PATTERN.test(code)) return lines;
+            if (!stack.slice(depth + 1).every(opensWithColon)) return lines;
             stack.length = depth;
         }
         if (depth > stack.length) stack.push(previous);

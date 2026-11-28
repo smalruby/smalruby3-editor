@@ -348,6 +348,14 @@ describe('tidyPastedDncl: the rules become the indent (Issue #2549)', () => {
         expect(dnclToRuby(tidyPastedDncl(pasted)).ruby).toBe('if @a\n  @x = 1\nend\n@y = 2');
     });
 
+    test('keeps the rules of a DNCL-like block inside a branch whose bar stops (no word closes it)', () => {
+        const pasted = '(1) もし a ならば:\n(2) ｜ もし b ならば\n(3) ｜ ｜ x = 1\n(4) そうでなければ:\n(5) ⎿ y = 1';
+        expect(tidyPastedDncl(pasted)).toBe(
+            'もし a ならば:\n｜ もし b ならば\n｜ ｜ x = 1\nそうでなければ:\n⎿ y = 1',
+        );
+        expect(dnclToRuby(tidyPastedDncl(pasted)).errors).toEqual([]);
+    });
+
     test('keeps the rules that do not draw blocks', () => {
         expect(tidyPastedDncl('(01) a = 1\n(02) ｜ b = 2')).toBe('a = 1\n｜ b = 2');
     });
