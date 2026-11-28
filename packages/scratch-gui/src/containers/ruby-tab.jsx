@@ -1318,6 +1318,11 @@ const RubyTab = (props) => {
             // In DNCL mode, execute all top-level scripts from top to bottom
             // instead of just the cursor line.
             const isDncl = dnclModeRef.current;
+            // The Ruby lacks the Japanese lines with an error: stop as the green flag does (Issue #2560).
+            if (isDncl && dnclEditErrorRef.current) {
+                onShowAlert('convertJapaneseError');
+                return;
+            }
             // Running shows the read mode, to follow the program by the line numbers (Issue #2380).
             if (isDncl && problemFormViewRef.current) problemFormViewRef.current.showReadMode();
             const targetLine = isDncl ? 1 : findExecutableLine(code, lineNumber);

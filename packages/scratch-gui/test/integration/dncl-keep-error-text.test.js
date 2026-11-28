@@ -139,4 +139,15 @@ describe('Japanese text with an error is kept when leaving the tab or the sprite
         expect(await isJapaneseErrorAlertShown(driver)).toBe(true);
         expect(await driver.executeScript('return window.smalruby.vm.runtime.threads.length')).toBe(0);
     });
+
+    // The run button of the toolbar ran the Ruby without the line with an error.
+    test('the run button stops on the Japanese tab', async () => {
+        await openJapaneseTabWithError(driver);
+        await clickByTestId(driver, 'ruby-toolbar-execute');
+        await pause(1000);
+
+        expect(await isTabSelected(driver, 'gui-tab-japanese')).toBe(true);
+        expect(await getEditorValue(driver)).toBe(WITH_ERROR);
+        expect(await isJapaneseErrorAlertShown(driver)).toBe(true);
+    });
 });
