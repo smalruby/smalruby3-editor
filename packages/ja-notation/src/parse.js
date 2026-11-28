@@ -98,7 +98,7 @@ const STOP_NAMES = new Set([
  * @param {object} [detail] - What a caller may need to say the error in its own
  *   words: `name` (the token), `opener` / `direction` / `colon` / `word` (the
  *   block of a block error), `block` (`stray-closer`, `closer-indent`,
- *   `closer-kind`, `stray-branch`), `expected` (the closing word of the block
+ *   `closer-kind`, `stray-branch`, `indent`), `expected` (the closing word of the block
  *   of a `closer-kind`) and `branch`.
  * @returns {object} The error.
  */
@@ -1021,6 +1021,11 @@ const parse = (source) => {
     const errors = [];
     const stack = [];
     let lastCodeLine = 1;
+    // The indent of the lines outside any block (the first of them).
+    let topWidth = null;
+    // The indent of a misplaced `そうでなければ:` / `そうでなくもし`: the lines
+    // deeper than it are its body, not told again as at another indent.
+    let strayWidth = null;
     const currentBody = () => (stack.length > 0 ? stack[stack.length - 1].body : program.body);
     const close = (entry, closeLine, closeAfter) => {
         entry.node.closeLine = closeLine;
@@ -1155,6 +1160,7 @@ const parse = (source) => {
                 if (entry.width > top.width && closes) break;
                 if (entry.width > top.width) {
                     top.hasBody = true;
+                    top.bodyWidth = entry.width;
                     break;
                 }
                 top.mode = 'closer';
@@ -1167,6 +1173,23 @@ const parse = (source) => {
             closeIndented(top, entry.line - 1);
         }
         const column = entry.tokens[0].column;
+        // A line is at the indent of the lines of its block (or of the lines
+        // outside any block) written with indentation: the indent says which
+        // block it is in, so another indent is an error, not read as the
+        // nearest (Issue #2555). In a block closed by a line of its own the
+        // indent does not matter, and closing lines may be deeper (Issue #2058).
+        // The line is still read where it is, so the lines of a block opened at
+        // another indent are not told again, nor its closing line as closing
+        // nothing.
+        if (strayWidth !== null && entry.width <= strayWidth) strayWidth = null;
+        if (!closes && !continuesIf && strayWidth === null) {
+            const top = stack[stack.length - 1];
+            if (!top && topWidth === null) topWidth = entry.width;
+            const expected = top ? (top.mode === 'indent' ? top.bodyWidth : entry.width) : topWidth;
+            if (entry.width !== expected) {
+                errors.push(makeError('syntax', '字下げが合いません', entry.line, column, { block: 'indent' }));
+            }
+        }
         if (closes) {
             const top = stack[stack.length - 1];
             if (!top) {
@@ -1235,6 +1258,7 @@ const parse = (source) => {
             // another program.
             const misplaced = top && top.mode === 'indent' && entry.width !== top.width;
             if (!top || top.node.type !== 'If' || top.node.elseBody || misplaced) {
+                strayWidth = entry.width;
                 errors.push(
                     makeError('syntax', '対応する「もし」がありません', entry.line, column, {
                         block: 'stray-branch',
