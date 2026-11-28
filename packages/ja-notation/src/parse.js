@@ -1026,6 +1026,28 @@ const parse = (source) => {
         entry.node.closeLine = closeLine;
         entry.node.closeAfter = closeAfter;
     };
+    // The indent of each comment line, so a comment that is not deeper than a
+    // block written with indentation goes after it when it ends (Issue #2556).
+    const commentWidths = new Map();
+    // Take the comments at the end of a block that are not deeper than the
+    // block: they are after it, not in its last branch.
+    const takeTrailingComments = (entry) => {
+        const moved = [];
+        if (entry.mode !== 'indent') return moved;
+        while (entry.body.length > 0) {
+            const last = entry.body[entry.body.length - 1];
+            if (last.type !== 'Comment' || commentWidths.get(last) > entry.width) break;
+            moved.unshift(entry.body.pop());
+        }
+        return moved;
+    };
+    // End a block written with indentation, the comments at its end after it.
+    const closeIndented = (top, closeAfter) => {
+        const moved = takeTrailingComments(top);
+        close(top, lastCodeLine, moved.length > 0 ? moved[0].line - 1 : closeAfter);
+        stack.pop();
+        currentBody().push(...moved);
+    };
     // What a block error says about its block: the kind of the opener (and the
     // direction of a counting loop) and whether it was opened with `:`.
     const openerOf = (entry) => ({
@@ -1070,7 +1092,9 @@ const parse = (source) => {
     lines.forEach((entry) => {
         if (entry.blank) return;
         if (entry.tokens.length === 0) {
-            currentBody().push({ type: 'Comment', text: entry.comment, line: entry.line, column: 0 });
+            const comment = { type: 'Comment', text: entry.comment, line: entry.line, column: 0 };
+            commentWidths.set(comment, entry.width);
+            currentBody().push(comment);
             return;
         }
         const tokens = withoutReadingCommas(entry.tokens);
@@ -1102,9 +1126,14 @@ const parse = (source) => {
             );
             if (index >= 0) {
                 markClosed = closed.filter((_done, i) => i !== index);
-                if (entry.comment !== null) {
-                    currentBody().push({ type: 'Comment', text: entry.comment, line: entry.line, column: 0 });
-                }
+                // Its `end` is on this line, as when the block is closed by the
+                // line alone (Issue #2556): no blank line is left for it. The
+                // blocks the same marks closed around it end there too.
+                closed.slice(index).forEach((done) => close(done, entry.line, entry.line));
+                const done = closed[index].node;
+                done.closeOwnLine = true;
+                if (entry.comment !== null) done.closeComment = entry.comment;
+                lastCodeLine = entry.line;
                 return;
             }
         }
@@ -1126,8 +1155,7 @@ const parse = (source) => {
             if (entry.width === top.width && continuesIf && top.node.type === 'If') break;
             // A closing line at the indent of a block opened with `:` closes it.
             if (entry.width === top.width && closes && block.word !== END_WORD) break;
-            close(top, lastCodeLine, entry.line - 1);
-            stack.pop();
+            closeIndented(top, entry.line - 1);
         }
         const column = entry.tokens[0].column;
         if (closes) {
@@ -1238,10 +1266,13 @@ const parse = (source) => {
         closeByMarks(entry, entry.closeCount);
     });
     while (stack.length > 0) {
-        const top = stack.pop();
+        const top = stack[stack.length - 1];
         if (top.mode === 'indent' && top.hasBody) {
-            close(top, lastCodeLine, lines.length);
-        } else if (top.mode === 'indent') {
+            closeIndented(top, lines.length);
+            continue;
+        }
+        stack.pop();
+        if (top.mode === 'indent') {
             emptyBlock(top);
         } else {
             unclosed(top);
