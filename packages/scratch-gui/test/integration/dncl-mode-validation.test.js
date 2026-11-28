@@ -166,7 +166,7 @@ describe('the Japanese tab (DNCL) and the check on switching to it', () => {
         await waitForTestIdPresence(driver, 'smalruby-console', false);
     });
 
-    test('the console fills the right column, and the button keeps it hidden across the tabs', async () => {
+    test('the console fills the right column in every tab, and the button keeps it hidden across the tabs', async () => {
         const isInSlot = () =>
             driver.executeScript(
                 'return document.querySelector(\'[data-testid="smalruby-console-slot"] [data-testid="smalruby-console"]\') !== null',
@@ -186,10 +186,16 @@ describe('the Japanese tab (DNCL) and the check on switching to it', () => {
         // The sprites and backdrops wait behind the strip
         expect(await isVisibleByTestId('japanese-right-column-strip')).toBe(true);
         expect(await isVisibleByTestId('japanese-right-column-targets')).toBe(false);
+        // The sprites are used with the stage, never with the console: the strip hides the console
         await clickByTestId(driver, 'japanese-right-column-show-targets');
+        await waitForTestIdPresence(driver, 'smalruby-console', false);
         expect(await isVisibleByTestId('japanese-right-column-targets')).toBe(true);
 
-        // A program that prints nothing: the button is there, and hides and shows (B07)
+        // A program that prints nothing: the button is there, and shows and hides (B07)
+        await clickByTestId(driver, 'smalruby-console-button');
+        await waitForTestIdPresence(driver, 'smalruby-console', true);
+        // only the console again
+        expect(await isVisibleByTestId('japanese-right-column-targets')).toBe(false);
         await clickByTestId(driver, 'smalruby-console-button');
         await waitForTestIdPresence(driver, 'smalruby-console', false);
         expect(await existsByTestId(driver, 'smalruby-console-button')).toBe(true);
@@ -203,6 +209,16 @@ describe('the Japanese tab (DNCL) and the check on switching to it', () => {
 
         await clickByTestId(driver, 'smalruby-console-button');
         await waitForTestIdPresence(driver, 'smalruby-console', true);
+
+        // The Code tab keeps the console shown, and only the console: it fills the column in place of
+        // the stage and the sprites, behind the strip
+        await clickCodeTab(driver);
+        await waitForTestIdPresence(driver, 'smalruby-console', true);
+        expect(await isInSlot()).toBe(true);
+        expect(await isVisibleByTestId('japanese-right-column-strip')).toBe(true);
+        expect(await isVisibleByTestId('japanese-right-column-targets')).toBe(false);
+        await clickJapaneseTab(driver);
+        await waitForMonacoLanguage(driver, 'dncl');
 
         // The Ruby tab gives the stage and the sprites back
         await clickRubyTab(driver);

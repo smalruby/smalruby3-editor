@@ -78,12 +78,14 @@ const useConsoleLines = (vm, onLine, onClear) => {
  * The console shown in place of the stage (docs/extension-smalruby-console/README.md):
  * the printed lines from the top, and a field for the answer while the program
  * waits for one (`入力する` or `聞いて待つ`). The stage's own question field is
- * hidden while the console is shown, so the answer is typed here. In the Japanese tab
- * the console fills the right column instead (a portal into its place), without the
- * button back to the stage (the `>_` button is always there), and comes out while the
- * program waits for an answer, so that the program does not stop unanswered.
+ * hidden while the console is shown, so the answer is typed here. In the editor the
+ * console fills the right column instead, in place of the stage and the sprites (a portal
+ * into its place), without the button back to the stage (the `>_` button is there). In the
+ * Japanese tab, whose column waits for the console even while it is hidden, it comes out
+ * while the program waits for an answer, so that the program does not stop unanswered; in
+ * the other tabs the stage asks as usual while the console is hidden.
  * @param {object} props - The props.
- * @param {boolean} props.inColumn - Whether to fill the right column of the Japanese tab.
+ * @param {boolean} props.inColumn - Whether to fill the right column of the editor.
  * @param {Array<{text: string, kind: string}>} props.lines - The lines.
  * @param {?string} props.question - The question the program waits on (null when none).
  * @param {boolean} props.visible - Whether the console is shown.

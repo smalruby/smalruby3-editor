@@ -1,6 +1,7 @@
 /* eslint-env jest */
-// The right column of the Japanese tab: the tall console, and the sprites and backdrops
-// behind a strip (docs/design-system/code-tab.md「日本語タブの右の列」).
+// The right column while the console is shown (in every tab) and in the Japanese tab: the tall
+// console, and the sprites and backdrops behind a strip
+// (docs/design-system/code-tab.md「コンソールを出しているときの右の列」).
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
@@ -43,6 +44,47 @@ describe('JapaneseRightColumn', () => {
         expect(link).toHaveTextContent('Hide the sprites and backdrops');
         fireEvent.click(link);
         expect(screen.getByTestId('targets')).not.toBeVisible();
+    });
+
+    test('shows only the console, in place of the sprites, in the other tabs while it is shown', () => {
+        renderColumn({ active: false, consoleVisible: true });
+        expect(screen.getByTestId('targets')).not.toBeVisible();
+        expect(screen.getByTestId('smalruby-console-slot')).toBeInTheDocument();
+        expect(screen.getByTestId('japanese-right-column-strip')).toHaveTextContent('Program of Sprite1');
+    });
+
+    test('hides the console to show the sprites with the stage, never the two together', () => {
+        const onHideConsole = jest.fn();
+        const { rerender } = renderColumn({ consoleVisible: true, onHideConsole });
+        const link = screen.getByTestId('japanese-right-column-show-targets');
+        expect(link).toHaveTextContent('See the sprites and backdrops');
+        fireEvent.click(link);
+        expect(onHideConsole).toHaveBeenCalledTimes(1);
+        // the console is hidden by the store: the sprites open with the stage
+        rerender(
+            <IntlProvider locale="en" messages={en}>
+                <JapaneseRightColumn active consoleVisible={false} stageSize="large" targetName="Sprite1">
+                    <div data-testid="targets">sprites</div>
+                </JapaneseRightColumn>
+            </IntlProvider>,
+        );
+        expect(screen.getByTestId('targets')).toBeVisible();
+        // the console comes back (the `>_` button, or the program waits for an answer): only the console
+        rerender(
+            <IntlProvider locale="en" messages={en}>
+                <JapaneseRightColumn active consoleVisible stageSize="large" targetName="Sprite1">
+                    <div data-testid="targets">sprites</div>
+                </JapaneseRightColumn>
+            </IntlProvider>,
+        );
+        expect(screen.getByTestId('targets')).not.toBeVisible();
+    });
+
+    test('gives the other tabs the sprites as they are when the console is hidden from there', () => {
+        const onHideConsole = jest.fn();
+        renderColumn({ active: false, consoleVisible: true, onHideConsole });
+        fireEvent.click(screen.getByTestId('japanese-right-column-show-targets'));
+        expect(onHideConsole).toHaveBeenCalledTimes(1);
     });
 
     test('names the stage when the stage is edited', () => {

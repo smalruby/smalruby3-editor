@@ -3,8 +3,8 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useState } from 'react';
 import styles from './smalruby-console.css';
 
-// Where the console goes in the right column of the Japanese tab
-// (docs/design-system/code-tab.md「日本語タブの右の列」). The console stays a child of the
+// Where the console goes in the right column of the editor
+// (docs/design-system/code-tab.md「コンソールを出しているときの右の列」). The console stays a child of the
 // stage, which gives it the question of the program and takes the answer, and is drawn
 // into this place with a portal. There is one right column, so one place at a time.
 let slotNode = null;
@@ -17,8 +17,9 @@ const setSlotNode = (node) => {
 };
 
 /**
- * The place of the console in the right column of the Japanese tab, kept up to date.
- * @returns {?HTMLElement} The place, or null outside the Japanese tab.
+ * The place of the console in the right column, kept up to date.
+ * @returns {?HTMLElement} The place, or null while the column has none (the console is
+ * hidden outside the Japanese tab).
  */
 const useSmalrubyConsoleSlot = () => {
     const [node, setNode] = useState(slotNode);

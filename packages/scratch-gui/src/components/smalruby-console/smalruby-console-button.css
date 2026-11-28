@@ -1,7 +1,7 @@
 @import '../../css/smalruby-tokens.css';
 
 /*
- * The same 2rem square as the green flag and stop (docs/design-system/code-tab.md「日本語タブの右の列」):
+ * The same 2rem square as the green flag and stop (docs/design-system/code-tab.md「コンソールを出しているときの右の列」):
  * the hover of the stage header, and the pressed ground of the stage size buttons while shown.
  */
 .button {

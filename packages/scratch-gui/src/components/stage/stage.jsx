@@ -49,7 +49,7 @@ const StageComponent = props => {
                     styles.stageWrapper,
                     {[styles.withColorPicker]: !isFullScreen && isColorPicking},
                     // === Smalruby: Start of console ===
-                    // the console fills the right column of the Japanese tab in place of the stage
+                    // the console fills the right column of the editor in place of the stage
                     {[styles.hiddenForConsole]: consoleInColumn && consoleVisible}
                     // === Smalruby: End of console ===
                 )}
