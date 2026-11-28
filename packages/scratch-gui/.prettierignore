@@ -121,6 +121,8 @@ src/components/*
 !src/components/mesh-status-button/**
 !src/components/smalruby-console/
 !src/components/smalruby-console/**
+!src/components/japanese-right-column/
+!src/components/japanese-right-column/**
 !src/components/mesh-status-popup/
 !src/components/mesh-status-popup/**
 !src/components/mesh-practice-partner/
@@ -590,6 +592,7 @@ test/unit/components/*
 !test/unit/components/mesh-status-popup.test.jsx
 !test/unit/components/mesh-status-button.test.jsx
 !test/unit/components/smalruby-console.test.jsx
+!test/unit/components/japanese-right-column.test.jsx
 !test/unit/components/mesh-v2-help-row.test.jsx
 !test/unit/components/mesh-v2-scanning-step-seats.test.jsx
 !test/unit/components/mesh-v2-seat-connect.test.jsx

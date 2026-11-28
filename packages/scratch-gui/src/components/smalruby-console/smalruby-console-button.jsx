@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React, { useEffect, useState } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
 import { connect } from 'react-redux';
+import { JAPANESE_TAB_INDEX } from '../../reducers/editor-tab';
 import { toggleSmalrubyConsole } from '../../reducers/smalruby-console.js';
 import consoleIcon from './icon--console.svg';
 import styles from './smalruby-console-button.css';
@@ -18,8 +19,8 @@ const messages = defineMessages({
     },
     hide: {
         id: 'gui.smalrubyConsole.hideButton',
-        defaultMessage: 'Show the stage',
-        description: 'Button on the stage header that shows the stage again in place of the console',
+        defaultMessage: 'Hide the console',
+        description: 'Button on the stage header that hides the console and shows the stage again',
     },
 });
 
@@ -55,19 +56,22 @@ const useConsoleExtensionLoaded = (vm) => {
 
 /**
  * The console button next to the green flag and stop: switches the stage and the
- * console. Shown when the project uses the console extension (or the console is shown).
+ * console. Shown when the project uses the console extension (or the console is shown),
+ * and always in the Japanese tab, where the console is the stage of the program (B07: a
+ * project that prints nothing could not show the console again once hidden).
  * The number is how many lines were printed while the console was hidden.
  * @param {object} props - The props.
+ * @param {boolean} props.alwaysShown - Whether to show it without the extension (the Japanese tab).
  * @param {boolean} props.isOpen - Whether the console is shown.
  * @param {number} props.unread - The lines printed while hidden.
  * @param {?object} props.vm - The VM.
  * @param {Function} props.onToggle - Shows or hides the console.
  * @returns {?React.ReactElement} The button, or null.
  */
-const SmalrubyConsoleButton = ({ isOpen, unread, vm, onToggle }) => {
+const SmalrubyConsoleButton = ({ alwaysShown = false, isOpen, unread, vm, onToggle }) => {
     const intl = useIntl();
     const loaded = useConsoleExtensionLoaded(vm);
-    if (!loaded && !isOpen) return null;
+    if (!loaded && !isOpen && !alwaysShown) return null;
     const title = intl.formatMessage(isOpen ? messages.hide : messages.show);
     return (
         <button
@@ -90,6 +94,7 @@ const SmalrubyConsoleButton = ({ isOpen, unread, vm, onToggle }) => {
 };
 
 SmalrubyConsoleButton.propTypes = {
+    alwaysShown: PropTypes.bool,
     isOpen: PropTypes.bool.isRequired,
     onToggle: PropTypes.func.isRequired,
     unread: PropTypes.number.isRequired,
@@ -97,6 +102,7 @@ SmalrubyConsoleButton.propTypes = {
 };
 
 const mapStateToProps = (state) => ({
+    alwaysShown: state.scratchGui.editorTab.activeTabIndex === JAPANESE_TAB_INDEX,
     isOpen: state.scratchGui.smalrubyConsole.visible,
     unread: state.scratchGui.smalrubyConsole.unread,
 });

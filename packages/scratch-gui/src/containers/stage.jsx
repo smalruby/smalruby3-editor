@@ -16,6 +16,9 @@ import {
     activateColorPicker,
     deactivateColorPicker
 } from '../reducers/color-picker';
+// === Smalruby: Start of console ===
+import {JAPANESE_TAB_INDEX} from '../reducers/editor-tab';
+// === Smalruby: End of console ===
 
 const colorPickerRadius = 20;
 const dragThreshold = 3; // Same as the block drag threshold
@@ -464,6 +467,9 @@ const mapStateToProps = state => ({
     micIndicator: state.scratchGui.micIndicator,
     // === Smalruby: Start of console ===
     consoleVisible: state.scratchGui.smalrubyConsole.visible,
+    // the Japanese tab shows the console in the right column, in place of the stage
+    consoleInColumn: state.scratchGui.editorTab.activeTabIndex === JAPANESE_TAB_INDEX &&
+        !state.scratchGui.mode.isFullScreen,
     // === Smalruby: End of console ===
     // Do not use editor drag style in fullscreen or player mode.
     useEditorDragStyle: !(state.scratchGui.mode.isFullScreen || state.scratchGui.mode.isPlayerOnly)

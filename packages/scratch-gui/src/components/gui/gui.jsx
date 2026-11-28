@@ -121,6 +121,10 @@ import {setTheme} from '../../reducers/settings.js';
 import {PLATFORM} from '../../lib/platform.js';
 import {ModalFocusProvider} from '../../contexts/modal-focus-context.jsx';
 
+// === Smalruby: Start of Japanese right column ===
+import JapaneseRightColumn from '../japanese-right-column/japanese-right-column.jsx';
+// === Smalruby: End of Japanese right column ===
+
 // === Smalruby: Start of Japanese tab ===
 const japaneseTabMessages = defineMessages({
     title: {
@@ -1030,19 +1034,25 @@ const GUIComponent = props => {
                                 username={username}
                                 onUpdateProjectThumbnail={onUpdateProjectThumbnail}
                             />
-                            <Box
-                                className={styles.targetWrapper}
-                                role="region"
-                                aria-label={intl.formatMessage(ariaMessages.targetPane)}
-                                element="section"
-                            >
-                                <TargetPane
-                                    stageSize={stageSize}
-                                    vm={vm}
-                                    onNewSpriteClick={onNewSpriteClick}
-                                    onNewBackdropClick={onNewLibraryBackdropClick}
-                                />
-                            </Box>
+                            {/* === Smalruby: Start of Japanese right column === */}
+                            <JapaneseRightColumn active={activeTabIndex === JAPANESE_TAB_INDEX}>
+                                {/* === Smalruby: End of Japanese right column === */}
+                                <Box
+                                    className={styles.targetWrapper}
+                                    role="region"
+                                    aria-label={intl.formatMessage(ariaMessages.targetPane)}
+                                    element="section"
+                                >
+                                    <TargetPane
+                                        stageSize={stageSize}
+                                        vm={vm}
+                                        onNewSpriteClick={onNewSpriteClick}
+                                        onNewBackdropClick={onNewLibraryBackdropClick}
+                                    />
+                                </Box>
+                                {/* === Smalruby: Start of Japanese right column === */}
+                            </JapaneseRightColumn>
+                            {/* === Smalruby: End of Japanese right column === */}
                         </Box>
                     </Box>
                     <DragLayer />

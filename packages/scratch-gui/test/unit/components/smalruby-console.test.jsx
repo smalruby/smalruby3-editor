@@ -6,6 +6,7 @@ import { EventEmitter } from 'events';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import { SmalrubyConsoleButton } from '../../../src/components/smalruby-console/smalruby-console-button.jsx';
+import { SmalrubyConsoleSlot } from '../../../src/components/smalruby-console/smalruby-console-slot.jsx';
 import { PRINT_EVENT, SmalrubyConsole } from '../../../src/components/smalruby-console/smalruby-console.jsx';
 import en from '../../../src/locales/en';
 
@@ -22,11 +23,24 @@ const renderConsole = (props) => {
         onClear: jest.fn(),
         onClose: jest.fn(),
         onQuestionAnswered: jest.fn(),
+        onShow: jest.fn(),
     };
     const vm = makeVm();
+    const { withSlot, ...rest } = props || {};
     const view = render(
         <IntlProvider locale="en" messages={en}>
-            <SmalrubyConsole lines={[]} question={null} visible vm={vm} {...handlers} {...props} />
+            <div data-testid="stage">
+                <SmalrubyConsole
+                    inColumn={Boolean(withSlot)}
+                    lines={[]}
+                    question={null}
+                    visible
+                    vm={vm}
+                    {...handlers}
+                    {...rest}
+                />
+            </div>
+            {withSlot ? <SmalrubyConsoleSlot /> : null}
         </IntlProvider>,
     );
     return { ...handlers, view, vm };
@@ -79,6 +93,30 @@ describe('SmalrubyConsole', () => {
         renderConsole();
         expect(screen.queryByTestId('smalruby-console-input')).toBeNull();
     });
+
+    test('covers the stage with a button back to it, outside the Japanese tab', () => {
+        renderConsole();
+        expect(screen.getByTestId('stage')).toContainElement(screen.getByTestId('smalruby-console'));
+        expect(screen.getByTestId('smalruby-console-close')).toBeInTheDocument();
+    });
+
+    test('fills the right column of the Japanese tab, without the button back to the stage', () => {
+        renderConsole({ withSlot: true });
+        const slot = screen.getByTestId('smalruby-console-slot');
+        expect(slot).toContainElement(screen.getByTestId('smalruby-console'));
+        expect(screen.getByTestId('stage')).not.toContainElement(screen.getByTestId('smalruby-console'));
+        expect(screen.queryByTestId('smalruby-console-close')).toBeNull();
+    });
+
+    test('comes out in the Japanese tab while the program waits for an answer, even if hidden', () => {
+        const { onShow } = renderConsole({ withSlot: true, visible: false, question: '' });
+        expect(onShow).toHaveBeenCalled();
+    });
+
+    test('stays hidden outside the Japanese tab while the program waits (the stage asks)', () => {
+        const { onShow } = renderConsole({ visible: false, question: '', withSlot: true, inColumn: false });
+        expect(onShow).not.toHaveBeenCalled();
+    });
 });
 
 describe('SmalrubyConsoleButton', () => {
@@ -94,17 +132,22 @@ describe('SmalrubyConsoleButton', () => {
         expect(screen.queryByTestId('smalruby-console-button')).toBeNull();
     });
 
+    test('is always shown in the Japanese tab, even without the console extension (B07)', () => {
+        renderButton({ vm: makeVm(false), alwaysShown: true });
+        expect(screen.getByTestId('smalruby-console-button')).toHaveAccessibleName('Show the console');
+    });
+
     test('shows the lines printed while the console is hidden', () => {
         renderButton({ unread: 3 });
         expect(screen.getByTestId('smalruby-console-button')).toHaveAccessibleName('Show the console');
         expect(screen.getByTestId('smalruby-console-button-unread')).toHaveTextContent('3');
     });
 
-    test('switches back to the stage while open', () => {
+    test('hides the console while open', () => {
         const onToggle = jest.fn();
         renderButton({ isOpen: true, unread: 3, onToggle });
         const button = screen.getByTestId('smalruby-console-button');
-        expect(button).toHaveAccessibleName('Show the stage');
+        expect(button).toHaveAccessibleName('Hide the console');
         expect(screen.queryByTestId('smalruby-console-button-unread')).toBeNull();
         fireEvent.click(button);
         expect(onToggle).toHaveBeenCalled();

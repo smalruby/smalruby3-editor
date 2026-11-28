@@ -1,6 +1,9 @@
 @import '../../css/smalruby-tokens.css';
 
-/* The same small icon button as the mesh button (docs/design-system/code-tab.md「小さいアイコンのボタン」). */
+/*
+ * The same 2rem square as the green flag and stop (docs/design-system/code-tab.md「日本語タブの右の列」):
+ * the hover of the stage header, and the pressed ground of the stage size buttons while shown.
+ */
 .button {
     position: relative;
     width: 2rem;
@@ -20,7 +23,7 @@
 
 .is-open,
 .is-open:hover {
-    background-color: $color-primary-transparent;
+    background-color: $looks-transparent;
 }
 
 .button:focus-visible {

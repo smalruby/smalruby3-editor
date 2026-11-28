@@ -17,6 +17,30 @@
     pointer-events: auto;
 }
 
+/* The right column of the Japanese tab: the place between the stage header and the strip. */
+.slot {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    flex-basis: 0;
+    min-height: 0;
+    padding-top: $space;
+}
+
+.slot:empty {
+    padding-top: 0;
+}
+
+/* The console fills the place, with the rounded corners of the stage. */
+.console.in-column {
+    position: static;
+    flex-grow: 1;
+    min-height: 0;
+    height: auto;
+    border-radius: $radius-medium;
+    overflow: hidden;
+}
+
 .header {
     display: flex;
     flex-shrink: 0;
