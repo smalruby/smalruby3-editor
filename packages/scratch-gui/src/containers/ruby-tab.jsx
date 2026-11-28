@@ -804,7 +804,7 @@ const RubyTab = (props) => {
         if (!editorRef.current || !getPrism()) return;
         replaceEditorText(
             editorRef.current,
-            dnclWithSettingsPattern(editorRef.current.getValue(), patternId),
+            dnclWithSettingsPattern(editorRef.current.getValue(), patternId, rubyCodeTargetRef.current),
             'smalruby.dnclSettingsPattern',
         );
     }, []);
@@ -957,14 +957,16 @@ const RubyTab = (props) => {
                     const currentRuby = givenRuby === null ? editorRef.current.getModel().getValue() : givenRuby;
                     // The Japanese keeps the scripts in the order they were written (issue #2550).
                     const orderedRuby = rubyInScriptOrder(rubyCodeTargetRef.current, currentRuby, rubyVersion);
-                    const dnclResult = rubyToDncl(orderedRuby);
+                    const dnclResult = rubyToDncl(orderedRuby, rubyCodeTargetRef.current);
 
                     // Code that has no DNCL form, such as the post-test loop
                     // `begin ... end while` (Issue #1626), on its Ruby lines. The lines are
                     // those of the Ruby the editor shows, not of the Ruby in the script order.
                     if (dnclResult.errors.length > 0) {
                         const lineErrors =
-                            orderedRuby === currentRuby ? dnclResult.errors : rubyToDncl(currentRuby).errors;
+                            orderedRuby === currentRuby
+                                ? dnclResult.errors
+                                : rubyToDncl(currentRuby, rubyCodeTargetRef.current).errors;
                         showErrors(
                             lineErrors.map((err) => ({
                                 row: err.line - 1,
@@ -1036,6 +1038,7 @@ const RubyTab = (props) => {
                     } else {
                         dncl = rubyToDncl(
                             rubyInScriptOrder(rubyCodeTargetRef.current, currentRuby, rubyVersion),
+                            rubyCodeTargetRef.current,
                         ).dncl;
                         dnclSourceMapRef.current = dnclToRuby(dncl).sourceMap;
                     }
@@ -1341,7 +1344,7 @@ const RubyTab = (props) => {
 
                         if (dnclModeRef.current) {
                             // Convert regenerated Ruby back to DNCL for display
-                            const dnclResult = rubyToDncl(regenerated);
+                            const dnclResult = rubyToDncl(regenerated, rubyCodeTargetRef.current);
                             dnclEditErrorRef.current = false;
                             setDnclDisplayCode(dnclResult.dncl);
                             editorRef.current.setValue(dnclResult.dncl);
@@ -1595,7 +1598,9 @@ const RubyTab = (props) => {
             editorRuby: dnclToRuby(editorRef.current.getValue()).ruby,
             ruby: rubyCodeStr,
             targetChanged,
-            toJapanese: (code) => rubyToDncl(rubyInScriptOrder(rubyCodeTargetRef.current, code, rubyVersion)).dncl,
+            toJapanese: (code) =>
+                rubyToDncl(rubyInScriptOrder(rubyCodeTargetRef.current, code, rubyVersion), rubyCodeTargetRef.current)
+                    .dncl,
         });
         if (text !== null) {
             dnclEditErrorRef.current = false;

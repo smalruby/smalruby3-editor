@@ -255,6 +255,8 @@ prism の解析の関数は外から受けとり（`rubyToJa(source, { parse, ..
   `N.times do` と `(a..b).step(s) do |i|` / `a.step(b, -s) do |i|` は `〜ずつ増やしながら繰り返す` にする。
   `N.times do` には数える変数が無いので、プログラムで使っていない名前を `i` → `j` → `k` → `i2` … の順に選んで付ける
   （生徒に見える名前にするため。外側の `N.times` の変数とも重ねない。日本語を書きかえて Ruby に戻すと、その名前のスプライトの変数になる）。
+  スクリプトで使っていなくても、編集中のスプライトとステージにある変数・リストの名前は選ばない（`readRuby` の `reservedNames`。
+  scratch-gui は `rubyToDncl(ruby, target)` が `reservedNamesOf(target)` で集めて渡す）。ステージの変数と同じ名前のスプライトの変数ができて、パレットに 2 つ並ぶのを防ぐため。
 - 書き方（`write-ja.js`）: 下の「書き出しの形」。演算子は日本語の読み方（`parse.js`）の強さで、要るところだけかっこを付ける（Ruby に書いてあったかっこは残さない。`not` の後ろは上のとおり）。
   空行は Ruby の空行の位置に残す（読み手が JaAST に `blankLines` を付ける）。行末のコメントは、その Ruby の行から作った日本語の行の末尾に付け直す。
 - 誤り: 日本語モードに無い命令（`unknown-command`。`(` の付いた名前、括弧の無いメソッド、受け手のあるメソッド、`xxx do` の `xxx`、`break` / `next` / `redo` / `retry`）、

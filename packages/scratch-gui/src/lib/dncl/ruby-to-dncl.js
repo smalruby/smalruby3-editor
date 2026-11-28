@@ -4,6 +4,30 @@ import { getPrism } from '../prism-parser';
 import { rubyErrorWords } from './ja-notation-errors';
 import { SMALRUBY_RUBY_TO_JA } from './ja-notation-table';
 
+// The types of the Scratch variables that are names in the program (not the messages).
+const NAMED_VARIABLE_TYPES = ['', 'list'];
+
+/**
+ * The names of the variables and the lists of a sprite and of the stage, which
+ * the counter of `n.times` must not take though the scripts do not use them:
+ * the Japanese turned back into Ruby would make a variable of the sprite with
+ * the name of one of the stage, or overwrite one (Issue #2574).
+ * @param {?object} target - The target of the editor (a sprite or the stage).
+ * @returns {Set<string>} The names.
+ */
+const reservedNamesOf = (target) => {
+    const names = new Set();
+    if (!target) return names;
+    const stage = target.runtime && target.runtime.getTargetForStage ? target.runtime.getTargetForStage() : null;
+    [target, stage].forEach((t) => {
+        if (!t || !t.variables) return;
+        Object.values(t.variables).forEach((v) => {
+            if (NAMED_VARIABLE_TYPES.includes(v.type || '')) names.add(v.name);
+        });
+    });
+    return names;
+};
+
 /**
  * Transpile Ruby (the Ruby the generator writes from the blocks, or the Ruby
  * of the editor) to the Japanese of the Japanese mode, in the standard form.
@@ -16,15 +40,21 @@ import { SMALRUBY_RUBY_TO_JA } from './ja-notation-table';
  *
  * prism must be loaded first (`loadPrism()` of src/lib/prism-parser.js).
  * @param {string} source - The Ruby source code.
+ * @param {?object} [target] - The target of the Ruby: the counters of `n.times`
+ *   do not take the names of its variables and of the stage (`reservedNamesOf`).
  * @returns {object} An object with `dncl` (the Japanese) and `errors` (code
  *   that cannot be written in the Japanese mode, with `line` / `column` of the
  *   Ruby source, `id`, `name` and `message`).
  */
-const rubyToDncl = (source) => {
+const rubyToDncl = (source, target = null) => {
     const prism = getPrism();
     if (!prism) throw new Error('rubyToDncl: prism is not loaded (call loadPrism() first)');
     try {
-        const result = rubyToJa(source, { ...SMALRUBY_RUBY_TO_JA, parse: (ruby) => prism.parse(ruby) });
+        const result = rubyToJa(source, {
+            ...SMALRUBY_RUBY_TO_JA,
+            parse: (ruby) => prism.parse(ruby),
+            reservedNames: reservedNamesOf(target),
+        });
         return { dncl: result.ja, errors: rubyErrorWords(result.errors) };
     } catch (e) {
         // prism reads its syntax tree into JavaScript by recursion, so an expression
@@ -35,4 +65,4 @@ const rubyToDncl = (source) => {
     }
 };
 
-export { rubyToDncl };
+export { reservedNamesOf, rubyToDncl };

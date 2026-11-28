@@ -31,14 +31,15 @@ const dnclSettingsPatternId = (dncl) => {
  * prism must be loaded first (`loadPrism()` of src/lib/prism-parser.js).
  * @param {string} dncl - The Japanese of the editor.
  * @param {string} patternId - The id of the pattern.
+ * @param {?object} [target] - The target of the editor (see `rubyToDncl`).
  * @returns {string} The Japanese.
  */
-const dnclWithSettingsPattern = (dncl, patternId) => {
+const dnclWithSettingsPattern = (dncl, patternId, target = null) => {
     const pattern = SETTINGS_PATTERNS.find((p) => p.id === patternId);
     if (!pattern) return dncl;
     const { ruby } = dnclToRuby(dncl);
     if (ruby === null) return withSettings(dncl, pattern.settings);
-    return rubyToDncl(withSettings(ruby, pattern.settings)).dncl;
+    return rubyToDncl(withSettings(ruby, pattern.settings), target).dncl;
 };
 
 /**
