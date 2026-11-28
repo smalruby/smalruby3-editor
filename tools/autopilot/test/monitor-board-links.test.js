@@ -101,3 +101,7 @@ test('markHit: 当たった文字に印を付け、ほかはエスケープす�
     assert.strictEqual(markHit('abc', ''), 'abc');
     assert.strictEqual(markHit('abc', 'zz'), 'abc');
 });
+
+test('行の ⋯ のリンクの項目（GitHub で開く）を押すと、メニューを閉じる', () => {
+    assert.match(script, /inMenu\.id === 'rowmenu' && t\.tagName === 'A'\) \{ setTimeout\(closeMenus, 0\); return; \}/);
+});

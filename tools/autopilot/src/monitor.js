@@ -2155,6 +2155,8 @@ document.addEventListener('click', (ev) => {
     document.getElementById('globalmenubtn').focus({ preventScroll: true });
     return;
   }
+  // 行の ⋯ のリンクの項目（GitHub で開く）も、押したら閉じる。開く動作を止めないよう、クリックの処理が済んでから閉じる
+  if (inMenu && inMenu.id === 'rowmenu' && t.tagName === 'A') { setTimeout(closeMenus, 0); return; }
   if (!inMenu) closeMenus();
   if (t.id === 'inboxtoggle') { setInboxOpen(false); document.getElementById('inbox-rail').focus(); return; }
   if (t.id === 'inbox-rail') { setInboxOpen(true); document.getElementById('inboxtoggle').focus(); return; }
