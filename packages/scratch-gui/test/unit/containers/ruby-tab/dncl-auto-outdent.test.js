@@ -40,6 +40,11 @@ describe('outdentIndent', () => {
             ['もし x > 1 ならば:', '    表示する(x)', '', '# メモ', '    そうでなければ:'],
             '',
         ],
+        [
+            'past comments with `//` and `＃`',
+            ['もし x > 1 ならば:', '    表示する(x)', '// メモ', '＃ メモ', '    そうでなければ:'],
+            '',
+        ],
         ['a tab', ['\tもし x > 1 ならば:', '\t\t表示する(x)', '\t\tそうでなければ:'], '\t'],
     ])('takes %s back', (_name, lines, indent) => {
         expect(at(lines.join('\n'))).toBe(indent);

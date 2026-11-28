@@ -24,51 +24,9 @@ describe('Japanese tab: typing the indent', () => {
         await driver.quit();
     });
 
-    test('indents by 4 spaces after `:` and goes back with Backspace', async () => {
-        await loadUri(`${uri}?rubyMode=dncl&locale=ja&tab=ruby`);
-        await driver.wait(
-            () =>
-                driver.executeScript(
-                    'return !!window.monacoEditor && window.monacoEditor.getModel().getLanguageId() === "dncl"',
-                ),
-            10000,
-            'The Japanese tab did not start',
-        );
-        await driver.executeScript('window.monacoEditor.setValue(""); window.monacoEditor.focus();');
-        const textarea = await driver.switchTo().activeElement();
-        // Each key goes alone: Enter sent in one string with the text is typed as a
-        // line break, which Monaco does not indent.
-        const type = async (...keys) => {
-            for (const key of keys) {
-                await textarea.sendKeys(key);
-                await driver.sleep(100);
-            }
-        };
-        await type(
-            'x = 3',
-            Key.ENTER,
-            'もし x > 1 ならば:',
-            Key.ENTER,
-            '表示する(x)',
-            Key.ENTER,
-            Key.BACK_SPACE,
-            '表示する(0)',
-        );
-        await driver.wait(
-            async () => (await editorValue(driver)).endsWith('表示する(0)'),
-            10000,
-            'The lines were not typed',
-        );
-        expect(await editorValue(driver)).toBe(
-            ['x = 3', 'もし x > 1 ならば:', '    表示する(x)', '表示する(0)'].join('\n'),
-        );
-
-        expect(await getLogs()).toEqual([]);
-    });
-
-    // Issue #2554: `そうでなくもし … ならば:` indents the next line, the else
-    // lines and the closing lines go back to the depth of their block. A word
-    // typed with the IME comes in at once (`ime`), not key by key.
+    // Each key goes alone: Enter sent in one string with the text is typed as a
+    // line break, which Monaco does not indent. A word typed with the IME comes
+    // in at once (`ime`), not key by key (Issue #2554).
     const startTyping = async () => {
         await loadUri(`${uri}?rubyMode=dncl&locale=ja&tab=ruby`);
         await driver.wait(
@@ -100,6 +58,32 @@ describe('Japanese tab: typing the indent', () => {
         };
     };
 
+    test('indents by 4 spaces after `:` and goes back with Backspace', async () => {
+        const type = await startTyping();
+        await type(
+            'x = 3',
+            Key.ENTER,
+            'もし x > 1 ならば:',
+            Key.ENTER,
+            '表示する(x)',
+            Key.ENTER,
+            Key.BACK_SPACE,
+            '表示する(0)',
+        );
+        await driver.wait(
+            async () => (await editorValue(driver)).endsWith('表示する(0)'),
+            10000,
+            'The lines were not typed',
+        );
+        expect(await editorValue(driver)).toBe(
+            ['x = 3', 'もし x > 1 ならば:', '    表示する(x)', '表示する(0)'].join('\n'),
+        );
+
+        expect(await getLogs()).toEqual([]);
+    });
+
+    // Issue #2554: `そうでなくもし … ならば:` indents the next line, the else
+    // lines and the closing lines go back to the depth of their block.
     test('indents after else-if and else, and takes them back to the depth of `もし`', async () => {
         const type = await startTyping();
         await type(

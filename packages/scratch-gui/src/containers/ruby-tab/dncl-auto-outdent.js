@@ -20,10 +20,11 @@ const IF_RE = /^[ \t\u3000]*(?:もし|そうでなくもし)[ \t\u3000]/;
 
 /**
  * Whether a line neither opens nor closes a block (the reader skips it too).
+ * A comment starts with `#`, `\uff03` or `//` (the comment mark of the settings).
  * @param {string} line - The line.
  * @returns {boolean} Whether it is blank or a comment.
  */
-const isSkipped = (line) => /^[ \t\u3000]*(?:#.*)?$/.test(line);
+const isSkipped = (line) => /^[ \t\u3000]*(?:(?:#|\uff03|\/\/).*)?$/.test(line);
 
 /**
  * The word at the start of a line that goes back to the depth of its block.
