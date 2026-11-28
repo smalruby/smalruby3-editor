@@ -880,7 +880,74 @@ async function getPrMergeStatus(repo, prNumber, token, deps = {}) {
 }
 
 
+/** `gh api --paginate ... --jq '.[] | @json'` を 1 行 1 つの JSON として読む（内部用） */
+async function paginateJson(ghFn, path, token) {
+    const out = await ghFn(['api', '--paginate', path, '--jq', '.[] | @json'], { token });
+    return String(out || '').split('\n').filter(Boolean).map((line) => JSON.parse(line));
+}
+
+/**
+ * topic → develop の PR をモニターからマージする前に確かめる事実（#2544・`gh pr view` 1 回 + ファイルの一覧）。
+ * 判断は release-merge.js の planReleaseMerge。ファイルは REST でページを送って全部取る
+ * （`gh pr view --json files` は 100 件で切れ、大きな topic の PR でメッシュ・Bot の権限外のファイルを見落とすため）。
+ * REST も 3000 件までなので、`changedFiles` と比べて足りなければ planReleaseMerge が断る。
+ * @param {object} [opts] `{files: false}` でファイルの一覧を読まない（マージ済みかを見るだけのとき）
+ * @returns {Promise<object>} `{number, state, isDraft, baseRefName, headRefName, headRefOid, mergeable, statusCheckRollup,
+ *   changedFiles, files:[{path}]}`
+ */
+async function getEpicMergeFacts(repo, prNumber, token, deps = {}, opts = {}) {
+    const ghFn = deps.gh || gh;
+    const out = await ghFn(['pr', 'view', String(prNumber), '--repo', repo, '--json',
+        'number,state,isDraft,baseRefName,headRefName,headRefOid,mergeable,statusCheckRollup,changedFiles'], { token });
+    const facts = JSON.parse(out);
+    if (opts.files === false) return facts;
+    const files = await paginateJson(ghFn, `repos/${repo}/pulls/${prNumber}/files?per_page=100`, token);
+    return { ...facts, files: files.map((f) => ({ path: String((f && f.filename) || '') })).filter((f) => f.path) };
+}
+
+/**
+ * PR の人間のレビュー・行コメント・PR のコメント（REST・user つき）。release-check.js の selectPrFeedback に渡す（#2544）。
+ * @returns {Promise<{reviews:object[], reviewComments:object[], issueComments:object[]}>}
+ */
+async function listPrFeedbackSources(repo, prNumber, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    return {
+        reviews: await paginateJson(ghFn, `repos/${repo}/pulls/${prNumber}/reviews`, token),
+        reviewComments: await paginateJson(ghFn, `repos/${repo}/pulls/${prNumber}/comments`, token),
+        issueComments: await paginateJson(ghFn, `repos/${repo}/issues/${prNumber}/comments`, token),
+    };
+}
+
+/**
+ * EPIC の sub-issue の本文（REST）。受けた PR のレビュー・コメントの目印（release-check.js の handledPrFeedbackRefs）を読む（#2544）。
+ * @returns {Promise<string[]>}
+ */
+async function listSubIssueBodies(repo, issueNumber, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    return (await paginateJson(ghFn, `repos/${repo}/issues/${issueNumber}/sub_issues`, token)).map((x) => String((x && x.body) || ''));
+}
+
+/** draft の PR を Ready にする（Bot 名義・#2544）。deps で差し替えられる setPrDraft */
+async function markPrReady(repo, prNumber, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    await ghFn(['pr', 'ready', String(prNumber), '--repo', repo], { token });
+}
+
+/**
+ * head が topic で base が develop の merged な PR の番号（#2544）。無ければ null。
+ * 人間が GitHub で topic → develop の PR をマージしたのを見つけるのに使う（Release Check の EPIC だけ）。
+ * @returns {Promise<number|null>}
+ */
+async function findMergedTopicPr(repo, topic, base, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    const out = await ghFn(['pr', 'list', '--repo', repo, '--head', topic, '--base', base, '--state', 'merged',
+        '--json', 'number', '--limit', '1'], { token });
+    const arr = JSON.parse(out || '[]');
+    return Array.isArray(arr) && arr[0] && arr[0].number ? arr[0].number : null;
+}
+
 module.exports = {
+    getEpicMergeFacts, listPrFeedbackSources, listSubIssueBodies, markPrReady, findMergedTopicPr,
     botToken, readToken, boardToken, gh, getProject, getFields, listItems, normalizeProjectItem, findItemId, addIssue, setField, applyIntents,
     setPriority, PRIORITY_FIELD_FALLBACK, parentIssueNumber,
     botLogin, findPrForIssue, selectClosingPr, selectHeadPr, hasMergedHeadPr,

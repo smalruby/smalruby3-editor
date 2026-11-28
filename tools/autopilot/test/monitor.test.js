@@ -571,7 +571,7 @@ test('MONITOR_HTML: 「あなた宛て」の開け閉め — 印のボタン・�
     // 数字キー 1 は閉じていれば開く
     assert.match(MONITOR_HTML, /if \(target === 'inbox' && !inboxOpen && wideLayout\(\)\) setInboxOpen\(true\);/);
     // 人間待ちは することごとの欄（forYouModel・#2466）。「EPIC に属さない」を行ごとに書かない
-    assert.match(MONITOR_HTML, /forYouModel\(Object\.assign\(\{\}, d, \{ items \}\), \{ repoUrl \}\)/);
+    assert.match(MONITOR_HTML, /forYouModel\(Object\.assign\(\{\}, d, \{ items \}\), \{ repoUrl, now: Date\.now\(\) \}\)/);
     assert.ok(!MONITOR_HTML.includes("w.from || 'EPIC に属さない'"));
 });
 
