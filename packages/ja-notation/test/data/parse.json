@@ -1631,6 +1631,82 @@
             ]
         },
         {
+            "title": "an indented line that cannot be read is told alone, not its block as empty",
+            "ja": "もし 1 > 0 ならば:\n    表示する(1",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「)」が要ります",
+                    "line": 2,
+                    "column": 0
+                }
+            ]
+        },
+        {
+            "title": "a line that cannot be read after the lines of its block is told alone",
+            "ja": "a < 10 の間繰り返す:\n    a = a + 1\n    表示する(a\n表示する(a)",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「)」が要ります",
+                    "line": 3,
+                    "column": 0
+                }
+            ]
+        },
+        {
+            "title": "a line that cannot be read and is not indented leaves its block empty",
+            "ja": "もし 1 > 0 ならば:\n表示する(1",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「)」が要ります",
+                    "line": 2,
+                    "column": 0
+                },
+                {
+                    "code": "empty-block",
+                    "message": "ブロックの中に行がありません",
+                    "line": 1,
+                    "column": 0,
+                    "opener": "If",
+                    "colon": true
+                }
+            ]
+        },
+        {
+            "title": "a line that cannot be read is not indented when its longer line number makes it look so",
+            "ja": "(1) a = 0\n(2) a = 1\n(3) a = 2\n(4) a = 3\n(5) a = 4\n(6) a = 5\n(7) a = 6\n(8) a = 7\n(9) もし 1 > 0 ならば:\n(10) 表示する(1",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「)」が要ります",
+                    "line": 10,
+                    "column": 0
+                },
+                {
+                    "code": "empty-block",
+                    "message": "ブロックの中に行がありません",
+                    "line": 9,
+                    "column": 4,
+                    "opener": "If",
+                    "colon": true
+                }
+            ]
+        },
+        {
+            "title": "a line that cannot be read is indented when the code is aligned after the line numbers",
+            "ja": "(1)  a = 0\n(2)  a = 1\n(3)  a = 2\n(4)  a = 3\n(5)  a = 4\n(6)  a = 5\n(7)  a = 6\n(8)  a = 7\n(9)  もし 1 > 0 ならば:\n(10)     表示する(1",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「)」が要ります",
+                    "line": 10,
+                    "column": 0
+                }
+            ]
+        },
+        {
             "title": "an open parenthesis",
             "ja": "a = (1",
             "errors": [

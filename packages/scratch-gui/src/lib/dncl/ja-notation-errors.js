@@ -247,45 +247,6 @@ const closerFormBlockErrors = (lines) => {
 };
 
 /**
- * The width of the indent of a line (line numbers and marks blanked out).
- * @param {string} line - The line.
- * @returns {number} The number of spaces at its start.
- */
-const indentOf = (line) => line.length - line.trimStart().length;
-
-/**
- * The errors without the ones that tell a block opened with `:` to indent its lines when its
- * lines are indented but one of them cannot be read (`表示する(1` without its `)`): ja-notation
- * does not build the line, so the block looks empty, but the student indented it and only the
- * line is wrong (B20 of #1731).
- * @param {string} source - The Japanese source.
- * @param {Array<object>} errors - The errors of `jaToRuby`.
- * @returns {Array<object>} The errors.
- */
-const withoutEmptyBlocksOfUnreadLines = (source, errors) => {
-    const lines = plainLines(source);
-    const unread = new Set(errors.filter((error) => error.code === 'syntax').map((error) => error.line));
-    if (unread.size === 0) return errors;
-    const hasUnreadInnerLine = (opener) => {
-        const indent = indentOf(lines[opener - 1] || '');
-        for (let line = opener + 1; line <= lines.length; line++) {
-            const code = codeOfLine(lines[line - 1]).trim();
-            if (code === '') continue;
-            if (indentOf(lines[line - 1]) <= indent) return false;
-            if (unread.has(line)) return true;
-        }
-        return false;
-    };
-    return errors.filter(
-        (error) =>
-            !(
-                (error.code === 'empty-block' || (error.code === 'unclosed' && error.colon)) &&
-                hasUnreadInnerLine(error.line)
-            ),
-    );
-};
-
-/**
  * Turn the errors of ja-notation into the errors the Japanese mode shows.
  *
  * As before the switch to ja-notation, the errors in the words of the
@@ -293,12 +254,11 @@ const withoutEmptyBlocksOfUnreadLines = (source, errors) => {
  * told alone when there are any; otherwise the block errors and the lines
  * that cannot be read are told, a block error on column 1.
  * @param {string} source - The Japanese source.
- * @param {Array<object>} jaErrors - The errors of `jaToRuby`.
+ * @param {Array<object>} errors - The errors of `jaToRuby`.
  * @returns {Array<object>} `{line, column, message}` (and `id` / `name`),
  *   sorted by line and column.
  */
-const jaNotationErrors = (source, jaErrors) => {
-    const errors = withoutEmptyBlocksOfUnreadLines(source, jaErrors);
+const jaNotationErrors = (source, errors) => {
     const words = errors.map(wordError).filter(Boolean);
     const syntax = errors.filter((error) => error.code === 'syntax');
     if (syntax.length > 0) words.push(...unreadLineWords(source, syntax));

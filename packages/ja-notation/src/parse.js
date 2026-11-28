@@ -1081,6 +1081,19 @@ const parse = (source) => {
             ),
         );
 
+    // A line that cannot be read, deeper than a block opened with `:` that has
+    // no line yet, is a line of the block: the block is not told to be empty,
+    // only the line is told (B20 of #1731). Its indent is read as every line's
+    // is, so it is the same at a change of the width of the line numbers
+    // (Issue #2587).
+    const takeUnreadLine = (entry) => {
+        const top = stack[stack.length - 1];
+        if (top && top.mode === 'indent' && !top.hasBody && entry.width > top.width) {
+            top.hasBody = true;
+            top.bodyWidth = entry.width;
+        }
+    };
+
     // A closing line ends the block `⎿` marks closed just before it said again
     // (Issue #2058): the blocks closed by the `⎿` of the last code line.
     let markClosed = [];
@@ -1106,6 +1119,7 @@ const parse = (source) => {
         const bad = tokenError(tokens);
         if (bad) {
             errors.push(bad);
+            takeUnreadLine(entry);
             return;
         }
         let block;
@@ -1116,6 +1130,7 @@ const parse = (source) => {
         } catch (e) {
             if (!(e instanceof LineError)) throw e;
             errors.push(e.error);
+            takeUnreadLine(entry);
             return;
         }
         const continuesIf = block && (block.kind === 'elsif' || block.kind === 'else');
