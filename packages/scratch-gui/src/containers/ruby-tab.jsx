@@ -1236,10 +1236,15 @@ const RubyTab = (props) => {
         }
     };
 
+    // Counts the green flags: a run of the Japanese program that a newer green flag has started
+    // over gives way, or the two runs would replace the blocks under each other (Issue #2552).
+    const greenFlagRunRef = useRef(0);
     const handleExecuteLine = useCallback(
         // The green flag runs the Japanese program too (Issue #2552): it has stopped everything and
         // started the hat scripts already, so the scripts are started, not toggled.
         async (lineNumber, { greenFlag = false } = {}) => {
+            const greenFlagRun = greenFlagRunRef.current;
+            const isStartedOver = () => greenFlag && greenFlagRunRef.current !== greenFlagRun;
             if (!greenFlag && runningBlockIdRef.current) {
                 vm.runtime.toggleScript(runningBlockIdRef.current, {
                     target: vm.editingTarget,
@@ -1267,6 +1272,7 @@ const RubyTab = (props) => {
             }
 
             const converter = await targetCodeToBlocks(vm, rubyCode.target, code, intl, { version: rubyVersion });
+            if (isStartedOver()) return;
 
             if (!converter.result) {
                 onShowAlert('convertRubyToBlocksError');
@@ -1278,6 +1284,7 @@ const RubyTab = (props) => {
             converter
                 .apply()
                 .then(() => {
+                    if (isStartedOver()) return;
                     // Regenerate Ruby code from blocks so that auto-imported
                     // modules are reflected in the editor immediately.
                     // Using direct editor setValue because Redux prop-driven
@@ -1559,6 +1566,7 @@ const RubyTab = (props) => {
     // On the Japanese tab it runs the Japanese program as well (Issue #2552).
     useEffect(() => {
         const handleProjectStart = () => {
+            greenFlagRunRef.current += 1;
             const state = { dnclMode: dnclModeRef.current, activeTabIndex: activeTabIndexRef.current };
             if (shouldRunJapaneseOnGreenFlag(state)) {
                 handleExecuteLineRef.current(1, { greenFlag: true });

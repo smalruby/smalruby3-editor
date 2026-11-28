@@ -272,7 +272,12 @@ describe('the Japanese tab (DNCL) and the check on switching to it', () => {
 
         // The green flag starts over: the lines of the last run are cleared.
         await driver.executeScript('window.smalruby.vm.greenFlag()');
-        await driver.sleep(1000);
+        await driver.wait(
+            async () => (await consoleLines()).some((line) => line.includes('こんにちは')),
+            10000,
+            'The second green flag did not run the Japanese program',
+        );
+        await driver.sleep(500);
         expect((await consoleLines()).filter((line) => line.includes('こんにちは'))).toHaveLength(1);
     });
 

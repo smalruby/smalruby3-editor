@@ -3,9 +3,7 @@ import {
     japaneseScriptsToStart,
     shouldRunJapaneseOnGreenFlag,
 } from '../../../../src/containers/ruby-tab/dncl-green-flag';
-
-const JAPANESE_TAB_INDEX = 4;
-const RUBY_TAB_INDEX = 3;
+import { JAPANESE_TAB_INDEX, RUBY_TAB_INDEX } from '../../../../src/reducers/editor-tab';
 
 describe('shouldRunJapaneseOnGreenFlag', () => {
     test('runs on the Japanese tab in the Japanese mode', () => {
