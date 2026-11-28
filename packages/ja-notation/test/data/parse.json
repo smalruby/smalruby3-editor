@@ -1707,6 +1707,30 @@
             ]
         },
         {
+            "title": "the lines of a block whose opening line cannot be read are not told as at another indent",
+            "ja": "もし 1 > 0 ならば:\n    もし (1 > 0 ならば:\n        表示する(1)\n    表示する(2)\n表示する(3)",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「)」が要ります",
+                    "line": 2,
+                    "column": 0
+                }
+            ]
+        },
+        {
+            "title": "the lines after a block whose opening line cannot be read at the top are not told as at another indent",
+            "ja": "もし (1 > 0 ならば:\n    表示する(1)\n表示する(2)",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「)」が要ります",
+                    "line": 1,
+                    "column": 0
+                }
+            ]
+        },
+        {
             "title": "an open parenthesis",
             "ja": "a = (1",
             "errors": [
