@@ -131,7 +131,9 @@ Runner はこの短語を pane で検出してから `AUTOPILOT_RESULT_FILE` を
 ```
 
 道具は worker の結果と同じ質問のコメントを Bot 名義で書き（同じ中身は書かない・round は続ける）、daemon の
-`POST /questions`（body `{issue, round, questions, phase, reason}`）で置き場に載せる。答えたあとの流れは worker の質問と同じ。
+`POST /questions`（body `{issue, round, questions, phase, reason, replace?}`）で置き場に載せる。答えたあとの流れは worker の質問と同じ。
+`replace: true`（`bin/autopilot-ask --replace`）は、答え済みでまだ worker に渡していない質問も置き換えてよいと明示する
+（既定は 409 `answers not yet delivered`。worker が来ない Issue でだけ使う。README の「モニターで答える」）。
 
 `signal=error` のとき追加で:
 
