@@ -16,6 +16,9 @@ import styles from './smalruby-console.css';
 // The runtime event the console extension emits for each printed line
 // (SmalrubyConsoleBlocks.PRINT_EVENT in scratch-vm).
 const PRINT_EVENT = 'SMALRUBY_CONSOLE_PRINT';
+// The event the Japanese tab emits when its run button starts the program, so
+// that the lines are cleared as by the green flag (Issue #2557, B17-4).
+const CLEAR_EVENT = 'SMALRUBY_CONSOLE_CLEAR';
 
 const stopPropagation = (e) => e.stopPropagation();
 
@@ -49,7 +52,8 @@ const messages = defineMessages({
 
 /**
  * Keeps the lines of the console from the VM: the printed lines, cleared when
- * the green flag starts the project. Mounted with the stage, shown or not.
+ * the green flag or the run button of the Japanese tab starts the project.
+ * Mounted with the stage, shown or not.
  * @param {?object} vm - The VM.
  * @param {Function} onLine - Adds a printed line.
  * @param {Function} onClear - Clears the lines.
@@ -61,9 +65,11 @@ const useConsoleLines = (vm, onLine, onClear) => {
         const handlePrint = (text) => onLine(text);
         runtime.on(PRINT_EVENT, handlePrint);
         runtime.on('PROJECT_START', onClear);
+        runtime.on(CLEAR_EVENT, onClear);
         return () => {
             runtime.removeListener(PRINT_EVENT, handlePrint);
             runtime.removeListener('PROJECT_START', onClear);
+            runtime.removeListener(CLEAR_EVENT, onClear);
         };
     }, [vm, onLine, onClear]);
 };
@@ -241,5 +247,5 @@ const mapDispatchToProps = (dispatch) => ({
     onShow: () => dispatch(setSmalrubyConsoleVisible(true)),
 });
 
-export { PRINT_EVENT, SmalrubyConsole };
+export { CLEAR_EVENT, PRINT_EVENT, SmalrubyConsole };
 export default connect(mapStateToProps, mapDispatchToProps)(SmalrubyConsole);

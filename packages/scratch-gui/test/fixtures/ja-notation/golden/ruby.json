@@ -976,10 +976,10 @@
     }
   },
   "ruby-c96ce9ba3f": {
-    "ja": "もし a < 1 ならば:\n    _ を 1 から 3 まで 1 ずつ増やしながら繰り返す:\n        b = b + 1",
+    "ja": "もし a < 1 ならば:\n    i を 1 から 3 まで 1 ずつ増やしながら繰り返す:\n        b = b + 1",
     "errors": [],
     "back": {
-      "ruby": "if @a < 1\n  @_ = 1\n  while @_ <= 3\n    @b = @b + 1\n    @_ += 1\n  end\nend",
+      "ruby": "if @a < 1\n  @i = 1\n  while @i <= 3\n    @b = @b + 1\n    @i += 1\n  end\nend",
       "errors": []
     }
   },
@@ -3681,10 +3681,10 @@
     }
   },
   "ruby-09e7915b9b": {
-    "ja": "_ を 1 から 10 まで 1 ずつ増やしながら繰り返す:\n    a = a + 1",
+    "ja": "i を 1 から 10 まで 1 ずつ増やしながら繰り返す:\n    a = a + 1",
     "errors": [],
     "back": {
-      "ruby": "@_ = 1\nwhile @_ <= 10\n  @a = @a + 1\n  @_ += 1\nend",
+      "ruby": "@i = 1\nwhile @i <= 10\n  @a = @a + 1\n  @i += 1\nend",
       "errors": []
     }
   },

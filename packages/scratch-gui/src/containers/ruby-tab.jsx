@@ -10,7 +10,9 @@ import { connect } from 'react-redux';
 import AutoCorrectModal from '../components/auto-correct-modal/auto-correct-modal.jsx';
 import cameraIcon from '../components/blocks-screenshot-button/icon--camera.svg';
 import RubyScriptPreview from '../components/ruby-script-preview/ruby-script-preview.jsx';
+import rubyToolbarMessages from '../components/ruby-toolbar/messages.js';
 import RubyToolbar from '../components/ruby-toolbar/ruby-toolbar.jsx';
+import { CLEAR_EVENT as CLEAR_CONSOLE_EVENT } from '../components/smalruby-console/smalruby-console.jsx';
 import analytics from '../lib/analytics';
 import { autoCorrect, defaultSettings as defaultAutoCorrectSettings } from '../lib/auto-correct';
 import collectMetadata from '../lib/collect-metadata.js';
@@ -83,6 +85,7 @@ import { setRubyVersion, dismissV1Prompt } from '../reducers/settings';
 import { markRubyTabUsed } from '../reducers/tutorial-onboarding';
 import GenaiConcierge from './genai-concierge.jsx';
 import RubyDownloader from './ruby-downloader.jsx';
+import { applyAutoCorrection } from './ruby-tab/auto-correct-apply';
 import {
     FONT_SIZES,
     DEFAULT_FONT_SIZE,
@@ -565,16 +568,15 @@ const RubyTab = (props) => {
                 const options = autoCorrectOptionsOf(value, dnclModeRef.current);
                 const corrected = autoCorrect(value, autoCorrectSettingsRef.current, options);
                 if (corrected !== value) {
-                    isAutoCorrectUpdateRef.current = true;
-                    const position = editorRef.current.getPosition();
-                    const model = editorRef.current.getModel();
-                    const beforeCursor = value.substring(0, model.getOffsetAt(position));
-                    const correctedBeforeCursor = autoCorrect(beforeCursor, autoCorrectSettingsRef.current, options);
-                    const offsetDiff = beforeCursor.length - correctedBeforeCursor.length;
-                    model.setValue(corrected);
-                    const newOffset = model.getOffsetAt(position) - offsetDiff;
-                    const newPosition = model.getPositionAt(Math.max(0, newOffset));
-                    editorRef.current.setPosition(newPosition);
+                    applyAutoCorrection(
+                        editorRef.current,
+                        value,
+                        corrected,
+                        (text) => autoCorrect(text, autoCorrectSettingsRef.current, options),
+                        () => {
+                            isAutoCorrectUpdateRef.current = true;
+                        },
+                    );
                     return;
                 }
             }
@@ -1328,6 +1330,10 @@ const RubyTab = (props) => {
                         // Highlight all lines
                         const totalLines = code.split('\n').length;
                         doHighlightLineRange(1, totalLines);
+
+                        // Running the whole program starts it over, as the green flag
+                        // does: the lines of the last run are cleared (Issue #2557, B17-4).
+                        vm.runtime.emit(CLEAR_CONSOLE_EVENT);
 
                         // Execute each top-level script
                         for (const topBlockId of allTopBlocks) {
@@ -2100,7 +2106,13 @@ const RubyTab = (props) => {
                     onRequestClose={handleCloseAutoCorrectSettings}
                 />
             )}
-            {showScriptPreview && <RubyScriptPreview code={previewCode} onClose={handleCloseScriptPreview} />}
+            {showScriptPreview && (
+                <RubyScriptPreview
+                    code={previewCode}
+                    title={dnclMode ? intl.formatMessage(rubyToolbarMessages.previewRubyOfJapanese) : null}
+                    onClose={handleCloseScriptPreview}
+                />
+            )}
         </>
     );
 };

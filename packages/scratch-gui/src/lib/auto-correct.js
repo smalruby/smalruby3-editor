@@ -36,6 +36,9 @@ const EXTRA_SYMBOL_MAP = {
     '\u2212': '-', // − minus sign
 };
 
+// The remainder operator as the Japanese tab writes it.
+const JAPANESE_REMAINDER = '\uFF05';
+
 /**
  * Build a regex that matches fullwidth characters according to the given settings.
  * @param {object} settings - The auto-correct settings.
@@ -229,7 +232,8 @@ const isEscaped = (code, index) => {
 
 /**
  * Apply fullwidth-to-halfwidth auto-correction to Ruby source code (or the
- * Japanese tab's code). What is written in a comment stays as it is.
+ * Japanese tab's code). What is written in a comment stays as it is, and so
+ * does the `％` of the Japanese tab.
  * @param {string} code - The Ruby source code.
  * @param {object} settings - The auto-correct settings.
  * @param {object} [options] - How the source is read (see `findRegions`).
@@ -245,6 +249,12 @@ const autoCorrect = (code, settings, options = {}) => {
 
     const result = code.replace(pattern, (match, offset) => {
         if (isInComment(offset, regions.comments)) {
+            return match;
+        }
+
+        // The Japanese tab writes the remainder as `％` (docs/smalruby-dncl-spec.ja.md),
+        // so it stays as it is, not to go back and forth (Issue #2557, B17-1).
+        if (options.japanese && match === JAPANESE_REMAINDER) {
             return match;
         }
 

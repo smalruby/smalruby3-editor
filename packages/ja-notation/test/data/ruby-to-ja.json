@@ -312,6 +312,34 @@
                     "name": "$a"
                 }
             ]
+        },
+        {
+            "title": "the counting loop of n.times is counted with i, a name the students can read",
+            "table": "none",
+            "ruby": "10.times do\n  a = 1\nend",
+            "ja": "i を 1 から 10 まで 1 ずつ増やしながら繰り返す:\n    a = 1",
+            "errors": []
+        },
+        {
+            "title": "the counter of n.times is a name the program does not use",
+            "table": "none",
+            "ruby": "i = 0\nj = 0\n3.times do\n  i = i + 1\nend",
+            "ja": "i = 0\nj = 0\nk を 1 から 3 まで 1 ずつ増やしながら繰り返す:\n    i = i + 1",
+            "errors": []
+        },
+        {
+            "title": "the counter of n.times in another n.times is not the counter of the outer one",
+            "table": "none",
+            "ruby": "2.times do\n  3.times do\n    a = 1\n  end\nend\n4.times do\n  a = 2\nend",
+            "ja": "i を 1 から 2 まで 1 ずつ増やしながら繰り返す:\n    j を 1 から 3 まで 1 ずつ増やしながら繰り返す:\n        a = 1\ni を 1 から 4 まで 1 ずつ増やしながら繰り返す:\n    a = 2",
+            "errors": []
+        },
+        {
+            "title": "the counter of n.times is not a name of a later line or a parameter",
+            "table": "none",
+            "ruby": "def f(i)\n  2.times do\n    a = i\n  end\nend\nj = 1\nk = 2",
+            "ja": "関数 f(i):\n    i2 を 1 から 2 まで 1 ずつ増やしながら繰り返す:\n        a = i\nj = 1\nk = 2",
+            "errors": []
         }
     ]
 }
