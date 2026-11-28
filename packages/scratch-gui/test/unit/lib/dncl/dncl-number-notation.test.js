@@ -42,7 +42,7 @@ describe('DNCL → Ruby: number notations the Japanese mode does not have (issue
     test('the error message tells how to write the number', () => {
         const [err] = dnclToRuby('a = 0x5').errors;
         expect(err.message).toContain('「0x5」');
-        expect(err.message).toContain('Ruby モード');
+        expect(err.message).toContain('ルビータブ');
     });
 
     test('the line number is the line of the DNCL source (line numbers and rules)', () => {

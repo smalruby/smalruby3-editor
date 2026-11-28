@@ -46,10 +46,10 @@ describe('Ruby → DNCL: a method without parentheses in an expression (issue #1
         ]);
     });
 
-    test('the error message points to the Ruby mode', () => {
+    test('the error message points to the Ruby tab', () => {
         const [err] = rubyToDncl('@a = x_position').errors;
         expect(err.message).toContain('x_position');
-        expect(err.message).toContain('Ruby モード');
+        expect(err.message).toContain('ルビータブ');
     });
 
     test('a name alone on a line is told once', () => {
