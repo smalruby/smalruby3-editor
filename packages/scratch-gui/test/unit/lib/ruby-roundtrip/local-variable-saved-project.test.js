@@ -46,6 +46,27 @@ describe('a local variable read stays a local after saving the project (#2592)',
         expect(ruby).not.toContain('_b_');
     });
 
+    test('an array', async () => {
+        const source = ['a = [3, 1]', 'say(a)', 'say(a.sort)', 'a.each do |x|', '  move(x)', 'end'].join('\n');
+        const ruby = await saveAndOpenRuby(source);
+        expect(ruby).toContain('say(a)');
+        expect(ruby).toContain('say(a.sort)');
+        expect(ruby).toContain('a.each do |x|');
+        expect(ruby).not.toContain('_a_');
+    });
+
+    test('a hash', async () => {
+        const ruby = await saveAndOpenRuby(['h = {a: 1}', 'say(h.keys)', 'say(h.values)'].join('\n'));
+        expect(ruby).toContain('say(h.keys)');
+        expect(ruby).toContain('say(h.values)');
+        expect(ruby).not.toContain('_hash_');
+    });
+
+    test('a list made in the blocks named like a local stays an instance variable', async () => {
+        const ruby = await saveAndOpenRuby(['@_e_1_ = [3, 1]', 'say(@_e_1_.sort)'].join('\n'));
+        expect(ruby).toContain('say(@_e_1_.sort)');
+    });
+
     test('a variable made in the blocks named like a local stays an instance variable', async () => {
         const ruby = await saveAndOpenRuby(['@_e_1_ = 1', 'move(@_e_1_)'].join('\n'));
         expect(ruby).toContain('move(@_e_1_)');

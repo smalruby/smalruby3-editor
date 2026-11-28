@@ -120,7 +120,7 @@ Scratch の変数・リストの名前で、Ruby の情報を持たせている�
 - **メソッドの引数**: 番号を付けない。値は引数のブロック（`argument_reporter_string_number`）で読む。
 - **変換のたびに作り直す**: スプライトにある `_x_1_` の形の変数は、変換の前に消してから作り直す（`target-applier.js`）。
 - **生成器が名前だけで判断しない理由**: `_x_1_` は利用者が作った `@_x_1_` かもしれない。フィールドに名前しか残らないブロック（`reverse!` の受け手など）では、ほかのブロックに同じ `@ruby:lvar:x:1` があるときだけローカル変数とみなす（`variables.js` の `hasLocalVariableComment`）。
-- **保存すると値の場所の注釈は外れる**: sb3 は入力の中の変数ブロック（`data_variable`）を値（primitive）として保存し、読み込むときに別の ID のブロックを作り直すので、`move(a)` の `a` に付けた `@ruby:lvar:a:1` は読み込み直すと無くなる（代入 `a = 1` は文のブロックなので注釈が残る）。生成器は、注釈の無い変数ブロックでも、名前が `_a_1_` で、ほかのブロックに `@ruby:lvar:a:1` があれば `a` を書く（`variables.js` の `localVariableNameOf`。フィールドに名前しか残らないブロックと同じ見方）。
+- **保存すると値の場所の注釈は外れる**: sb3 は入力の中の変数ブロック（`data_variable`）を値（primitive）として保存し、読み込むときに別の ID のブロックを作り直すので、`move(a)` の `a` に付けた `@ruby:lvar:a:1` は読み込み直すと無くなる（代入 `a = 1` は文のブロックなので注釈が残る）。生成器は、注釈の無い変数ブロックでも、名前が `_a_1_` で、ほかのブロックに `@ruby:lvar:a:1` があれば `a` を書く（`variables.js` の `localVariableNameOf`。フィールドに名前しか残らないブロックと同じ見方）。リストのブロック（`data_listcontents`。`say(a)` / `a.sort` / `a.each` の受け手）も値として保存されるので同じ見方をし、ローカルのハッシュ `h` のリスト `__hash_h_keys__1_` / `__hash_h_values__1_` は、`@ruby:lvar:h:1` があれば `h` を書く（`data-list.js` の `hashVariableOfListBlock`）。
 
 **名前と注釈**: `LOCAL_VARIABLE_PATTERN = /^_(?![A-Z])[\p{L}_][\p{L}\p{N}_]*_\d+_$/u`（変換器 `constants.js` と生成器 `variables.js` の 2 か所）、`@ruby:lvar:<名前>:<番号>`、`+=` などは `@ruby:lvar:a:1,@ruby:syntax:+=`。
 

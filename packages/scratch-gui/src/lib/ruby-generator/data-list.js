@@ -143,6 +143,16 @@ export default function (Generator) {
             // A local hash: its lists have the local's transformed name, not the `_hash_` one.
             return /_hash_.+_(?:keys|values)_/.test(listName) ? lvarMatch[1] : null;
         }
+        if (!comment) {
+            // A saved project keeps the list read of `h.keys` as a primitive, which loses its
+            // `@ruby:lvar`: the lists of a local hash `h` are `__hash_h_keys__<N>_` (issue #2592).
+            const localMatch = String(Generator.getFieldValue(block, 'LIST')).match(
+                /^__hash_(.+)_(?:keys|values)__(\d+)_$/,
+            );
+            if (localMatch && Generator.hasLocalVariableComment(localMatch[1], localMatch[2])) {
+                return localMatch[1];
+            }
+        }
         return hash;
     };
 
