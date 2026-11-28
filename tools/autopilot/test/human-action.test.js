@@ -365,6 +365,8 @@ test('自律で進行中・任せる前の EPIC でも、質問のある子は�
     ];
     const a = humanAction(epic, { kids, questions: [12] });
     assert.deepStrictEqual([a.epicPhase, a.kind, a.targets], ['before-delegate', 'go', [11]]);
+    // 任せる前の行でも、質問のある子を一文で指す（子の質問は「答えが要る」の欄に出る）
+    assert.match(a.state, /^子 #12 に答え待ちの質問があります（「答えが要る」の欄で答えてください）。/);
     const b = humanAction(epic, { kids: [kids[1]], questions: [12] });
     assert.deepStrictEqual([b.epicPhase, b.kind, b.act, b.targets], ['consult', 'answer', 'answer', [12]]);
 });

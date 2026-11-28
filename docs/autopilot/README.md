@@ -354,7 +354,7 @@ bin/autopilot-ask <issue> tmp/questions-<issue>.json   # --repo owner/name / --p
 - 載った質問は、Status（Sprint Backlog・Backlog・Blocked など）・⏳ 待ちによらず「答える」になる（`humanAction`）。
   ゴーサインにはしない。EPIC の子でも隠さない: 子は「答えが要る」の欄に出て、EPIC の行は段階によらずそれを指す
   （Release Check の行は「確認ページを開く」のまま、一文に「子 #N に答え待ちの質問があります」を足す。任せる前の
-  「この EPIC を AI に任せる」には質問のある子を入れない）。
+  「この EPIC を AI に任せる」には質問のある子を入れず、同じ一文で子を指す）。
 - 答えると、いまと同じく答えを記録して 🙋 を外す。Sprint Backlog の Issue は implement に進み、答えのファイル
   （`tmp/autopilot-answers-<issue>.md`）を受け取る。
 

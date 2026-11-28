@@ -97,7 +97,7 @@ function humanAction(it, ctx) {
             const to = infra.length === 0 ? '' : infra.length === go.length ? '（🧱 infra なので develop 宛ての PR）' : '（🧱 infra の ' + infra.join('・') + ' は develop 宛ての PR）';
             return phase('before-delegate', r('go', 'この EPIC を AI に任せる',
                 '子 ' + go.length + ' 件（' + nums + '）の 🙋 を外す。AI が順に実装して topic にマージし' + to + '、最後の確認だけあなたに返します',
-                '子 ' + go.length + ' 件があなたのゴーサイン待ち（' + done + ' 済み）。任せると最後の確認まで AI が進めます。' + decisions,
+                askedNote + '子 ' + go.length + ' 件があなたのゴーサイン待ち（' + done + ' 済み）。任せると最後の確認まで AI が進めます。' + decisions,
                 'delegate', null, go.map((k) => k.issue)));
         }
         if (sub.total > 0 && sub.completed >= sub.total) {
