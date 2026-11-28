@@ -84,6 +84,21 @@ test('MONITOR_HTML: 上の 1 行 — 更新・tick・現在地を作るは ⋯ �
     assert.match(MONITOR_HTML, /\[hidden\] \{ display: none !important; \}/);
 });
 
+test('MONITOR_HTML: 上の ⋯ の項目を選ぶとすぐ閉じ、⋯ へフォーカスを戻して「頼みました」を出す（#2525）', () => {
+    // まとめてクリックを受ける所で、#globalmenu の中の button / a（更新・tick・現在地を作る・現在地を開く）なら閉じる
+    assert.match(MONITOR_HTML, /if \(inMenu && inMenu\.id === 'globalmenu'\) \{\s*if \(t\.disabled\) return;\s*closeMenus\(\);\s*document\.getElementById\('globalmenubtn'\)\.focus\(\{ preventScroll: true \}\);\s*return;/);
+    // 行の ⋯（data-mi）は従来どおり先に処理する（上の ⋯ の分岐より前）
+    const iMi = MONITOR_HTML.indexOf('if (t.dataset.mi != null)');
+    const iGlobal = MONITOR_HTML.indexOf("if (inMenu && inMenu.id === 'globalmenu')");
+    assert.ok(iMi > -1 && iMi < iGlobal);
+    // ⋯ のボタン自身の開け閉めは、閉じる分岐より前
+    assert.ok(MONITOR_HTML.indexOf("if (t.id === 'globalmenubtn')") < iGlobal);
+    // 押した直後に toast を出してから fetch する
+    assert.match(MONITOR_HTML, /toast\('tick を頼みました'\);\s*try \{ await fetch\('\/tick'/);
+    assert.match(MONITOR_HTML, /toast\('GitHub からの読み直しを頼みました'\);\s*try \{\s*const r = await fetch\('\/refresh'/);
+    assert.match(MONITOR_HTML, /toast\('現在地を作るよう頼みました'\);\s*try \{ await fetch\('\/current-status'/);
+});
+
 test('MONITOR_HTML: usage に更新からの経過（age）を併記し、据え置き中が分かる（#883）', () => {
     // claudeUsage.updatedAt から経過秒を出す関数がある
     assert.match(MONITOR_HTML, /function usageAge/);
@@ -206,10 +221,28 @@ test('MONITOR_HTML: 上の行に Claude の使用量（名前・アイコン・�
 });
 
 test('MONITOR_HTML: 状況板の表は列の中で横にスクロールし、ページを横にはみ出さない（#936 / #2404）', () => {
-    assert.match(MONITOR_HTML, /\.tbl-wrap \{ overflow-x: auto; \}/);
+    assert.match(MONITOR_HTML, /\.tbl-wrap \{ overflow-x: auto;[^}]*\}/);
     assert.match(MONITOR_HTML, /#board \{ border-collapse: collapse; width: 100%; min-width: \d+px;/);
     // ▲▼ は行に乗せたときだけ見せる（場所は取っておき、列を動かさない・#2471）
     assert.match(MONITOR_HTML, /#board tr:hover \.prio button, #board tr:focus-within \.prio button \{ visibility: visible; \}/);
+});
+
+test('MONITOR_HTML: 横にスクロールしても左の 3 列（開閉・Issue · PR・題名）は残る（#2527）', () => {
+    assert.match(MONITOR_HTML, /#board th:nth-child\(-n\+3\), #board td:nth-child\(-n\+3\) \{ position: sticky; z-index: 1; background-color: var\(--ap-surface\); \}/);
+    // 左上の見出しは縦・横どちらにスクロールしても上に出る
+    assert.match(MONITOR_HTML, /#board th:nth-child\(-n\+3\) \{ z-index: 3;/);
+    assert.match(MONITOR_HTML, /#board th:nth-child\(2\), #board td:nth-child\(2\) \{ left: var\(--stk-l2/);
+    assert.match(MONITOR_HTML, /#board th:nth-child\(3\), #board td:nth-child\(3\) \{ left: var\(--stk-l3[^}]*box-shadow: inset -1px 0 0 var\(--ap-line\)/);
+    // 乗せたとき・子の行でも、固定した列は不透明（透けない）
+    assert.match(MONITOR_HTML, /#board tr:hover > td:nth-child\(-n\+3\) \{ background: linear-gradient\(var\(--ap-tint-1\), var\(--ap-tint-1\)\) var\(--ap-surface\); \}/);
+    assert.match(MONITOR_HTML, /#board tr\.kid > td:nth-child\(-n\+3\) \{ background: var\(--ap-surface-2\); \}/);
+    // 右の列まで広がるセルには境目の線を引かない
+    assert.match(MONITOR_HTML, /#board td\[colspan\] \{ box-shadow: none; \}/);
+    // 表の中の z-index を表の中に閉じ、縦にスクロールしても欄の見出し（.panel-h）の上に出さない
+    assert.match(MONITOR_HTML, /\.tbl-wrap \{ overflow-x: auto; isolation: isolate; \}/);
+    // left は見出しの実際の幅から決め、見出しの大きさが変わるたびに測り直す（横の欄の開け閉めも含む）
+    assert.match(MONITOR_HTML, /function placeStickyCols\(\)/);
+    assert.match(MONITOR_HTML, /new ResizeObserver\(\(\) => placeStickyCols\(\)\); \[\.\.\.document\.querySelectorAll\('#board thead th'\)\]\.slice\(0, 2\)/);
 });
 
 test('MONITOR_HTML: Sub-issues セルは件数 (.sub-count) と %（.sub-pct）を別 span に分割する（#936）', () => {
@@ -538,7 +571,7 @@ test('MONITOR_HTML: 「あなた宛て」の開け閉め — 印のボタン・�
     // 数字キー 1 は閉じていれば開く
     assert.match(MONITOR_HTML, /if \(target === 'inbox' && !inboxOpen && wideLayout\(\)\) setInboxOpen\(true\);/);
     // 人間待ちは することごとの欄（forYouModel・#2466）。「EPIC に属さない」を行ごとに書かない
-    assert.match(MONITOR_HTML, /forYouModel\(Object\.assign\(\{\}, d, \{ items \}\), \{ repoUrl \}\)/);
+    assert.match(MONITOR_HTML, /forYouModel\(Object\.assign\(\{\}, d, \{ items \}\), \{ repoUrl, now: Date\.now\(\) \}\)/);
     assert.ok(!MONITOR_HTML.includes("w.from || 'EPIC に属さない'"));
 });
 
@@ -551,11 +584,43 @@ test('MONITOR_HTML: あなた宛ては動詞のボタン → 行の中の確か�
     assert.match(MONITOR_HTML, /for \(const n of w\.targets\) await delegateIssue\(n, btn\)/);
     // 「押すと」はいつも出し、状態の一文と「押すと」の #N は別タブのリンクにする
     assert.ok(MONITOR_HTML.includes("'<div class=\"fy-happens\"><b>押すと:</b> ' + lr(w.happens)"));
-    assert.ok(MONITOR_HTML.includes("'<div class=\"fy-state\">' + ep + lr(w.state)"));
+    assert.ok(MONITOR_HTML.includes("'<div class=\"fy-state\">' + lr(w.state)"));
     // 人間の番ではないものは最後にたたむ
     assert.ok(MONITOR_HTML.includes('data-testid="inbox-idle"'));
     const ha = require('../src/human-action');
     for (const fn of ha.HUMAN_ACTION_CLIENT_FNS) assert.ok(MONITOR_HTML.includes(String(fn)), fn.name);
+});
+
+test('MONITOR_HTML: あなた宛ての主ボタンが resolve なら POST /resolve-conflict を呼び、送っている間は押せない（#2524）', async () => {
+    const vm = require('node:vm');
+    const cut = (from, to) => {
+        const i = MONITOR_HTML.indexOf(from);
+        const j = MONITOR_HTML.indexOf(to, i);
+        assert.ok(i > -1 && j > i, from);
+        return MONITOR_HTML.slice(i, j);
+    };
+    const src = cut('async function doForYou(', '\n// 「この EPIC を AI に任せる」')
+        + cut('let resolveRequested = {};', '\n// 楽観的更新');
+    const calls = [];
+    const toasts = [];
+    let refreshed = 0;
+    const ctx = vm.createContext({
+        fyConfirm: 1,
+        findForYou: (n) => (n === 2450 ? { issue: 2450, act: 'resolve', targets: [2457] } : null),
+        rerender: () => {}, toast: (m) => toasts.push(m), refresh: async () => { refreshed++; },
+        window: { open: () => {} },
+        fetch: async (url, opt) => { calls.push([url, opt && opt.method]); return { ok: true, json: async () => ({ ok: true }) }; },
+    });
+    vm.runInContext(src + '\nthis.go = (n, b) => doForYou(n, b);', ctx);
+    const btn = { disabled: false };
+    await ctx.go(2450, btn);
+    // EPIC の行（途中の相談）でも、解消するのは targets[0] の子の PR
+    assert.deepStrictEqual(calls, [['/resolve-conflict?issue=2457', 'POST']]);
+    assert.strictEqual(btn.disabled, true);
+    assert.match(toasts[0], /#2457 のコンフリクト解消を頼みました/);
+    assert.strictEqual(refreshed, 1);
+    // 行の ⋯ の「🔀 コンフリクトを解消」は残す
+    assert.ok(MONITOR_HTML.includes("label: '🔀 コンフリクトを解消'"));
 });
 
 test('MONITOR_HTML: monitor-inbox.js の純粋関数を verbatim で埋め込む（二重定義しない）', () => {
@@ -563,4 +628,23 @@ test('MONITOR_HTML: monitor-inbox.js の純粋関数を verbatim で埋め込む
     for (const fn of inbox.INBOX_CLIENT_FNS) {
         assert.ok(MONITOR_HTML.includes(String(fn)), `${fn.name} should be embedded verbatim`);
     }
+});
+
+test('MONITOR_HTML: あなた宛ての行は 2 行。1 行目は種類の札と題名だけ（#2483）', () => {
+    // 1 行目: 種類の札と題名だけ（番号のリンク・ボタンを置かない）
+    const title = MONITOR_HTML.match(/'<div class="fy-title" data-testid="inbox-wait-title">' \+ ([^\n]*?) \+ '<\/div>'/);
+    assert.ok(title, 'fy-title の 1 行目がある');
+    assert.doesNotMatch(title[1], /ilink|acts-r|moreBtn|btn/);
+    assert.match(title[1], /^kindChip \+ tipTitle\('span', 'i:' \+ w\.issue/);
+    // 2 行目: 番号のリンク・優先度・親 EPIC・ボタン・「⋯」
+    const meta = MONITOR_HTML.indexOf('\'<div class="fy-meta" data-testid="inbox-wait-meta">\' + ilink(w.issue, w.url)');
+    assert.ok(meta > 0, 'fy-meta の 2 行目は番号のリンクから始まる');
+    const metaEnd = MONITOR_HTML.indexOf("'</span></div>'", meta);
+    const metaSrc = MONITOR_HTML.slice(meta, metaEnd);
+    for (const part of ['gprio', 'parentChip', "'<span class=\"acts-r\">' + btn + moreBtn(w.issue)"]) {
+        assert.ok(metaSrc.includes(part), part);
+    }
+    // 題名は 1 行目の幅いっぱい（行を 3 列の grid にしない）
+    assert.match(MONITOR_HTML, /\.fy-row \{ display: flex; flex-direction: column;/);
+    assert.doesNotMatch(MONITOR_HTML, /\.fy-row \{ display: grid/);
 });

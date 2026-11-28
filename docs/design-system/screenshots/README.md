@@ -32,6 +32,8 @@
 | `0507-alerts.png` | アラート（注意・成功・お知らせ。[`../components/alerts.md`](../components/alerts.md)） |
 | `0508-pager-debug.png` | デバッグのモーダルの「次へ」（モーダルの右の端から外へはみ出す。[`../components/pager.md`](../components/pager.md)） |
 | `0509-pager-tutorial.png` | チュートリアルのカードの「次へ」と、後ろののぞき札（上の緑の帯から写る。[`../components/pager.md`](../components/pager.md)） |
+| `0510-inner-stepper.png` | 縦のステッパー（独自。2-1 が済み・2-2 がいまここで開いている。[`../components/inner-stepper.md`](../components/inner-stepper.md)） |
+| `0511-ask-ai.png` | 「AI に相談」（独自。押せる・一度実行した・動いている。[`../components/ask-ai.md`](../components/ask-ai.md)） |
 | `0601-blocks-default.png` | ブロック: オリジナルの色のモード（カテゴリの欄とブロックパレットの切り抜き。[`../blocks.md`](../blocks.md)） |
 | `0602-blocks-high-contrast.png` | ブロック: 高コントラスト |
 | `0603-blocks-dark.png` | ブロック: ダーク（画面からは選べない。Redux で切りかえて撮った） |

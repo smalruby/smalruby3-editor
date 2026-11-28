@@ -42,7 +42,7 @@ Size / Kind を決め、`Sprint Backlog` へ進める（迷いは `decisions` �
 ### 1. Issue を取得して理解する
 
 ```bash
-GH_TOKEN="$(bin/bot-token)" gh issue view "$AUTOPILOT_ISSUE" --repo "${AUTOPILOT_REPO:-smalruby/smalruby3-editor}" \
+bin/bot-gh issue view "$AUTOPILOT_ISSUE" --repo "${AUTOPILOT_REPO:-smalruby/smalruby3-editor}" \
   --json number,title,body,labels,comments
 ```
 
@@ -73,7 +73,7 @@ GH_TOKEN="$(bin/bot-token)" gh issue view "$AUTOPILOT_ISSUE" --repo "${AUTOPILOT
 
 ```bash
 # 既存コメントに "🤖 autopilot triage" が無いことを確認してから:
-GH_TOKEN="$(bin/bot-token)" gh issue comment "$AUTOPILOT_ISSUE" \
+bin/bot-gh issue comment "$AUTOPILOT_ISSUE" \
   --repo "${AUTOPILOT_REPO:-smalruby/smalruby3-editor}" --body-file <(cat <<'EOF'
 🤖 autopilot triage
 - Kind: <EPIC|Issue>
@@ -167,7 +167,7 @@ echo AUTOPILOT_ERROR
 ## 注意
 
 - **Project フィールドは書き換えない**（Status/AI Status/Size 等の反映は daemon/CLI が結果ファイルを見て行う）。
-- `gh` には必ず `GH_TOKEN="$(bin/bot-token)"` を付ける。コミットが要る場面では `bin/bot-git`。
+- `gh` は必ず `bin/bot-gh` で呼ぶ（Bot のトークンが取れないときは gh を動かさない）。コミットが要る場面では `bin/bot-git`。
 - `AskUserQuestion` を使わない。判断は番兵 + コメントで返す。
 
 ---

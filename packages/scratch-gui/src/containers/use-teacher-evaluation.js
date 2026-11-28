@@ -39,7 +39,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { defineMessages } from 'react-intl';
 import classroomAPI from '../lib/classroom-api.js';
 import {
-    DEFAULT_RUBRIC_AXES,
     aiQuotaView,
     buildAuditCsv,
     buildEvaluationCsv,
@@ -56,6 +55,7 @@ import {
     sameGrades,
     withSavedGrade,
 } from '../lib/classroom-evaluation/gradebook.js';
+import { gradingCriteriaFor } from '../lib/classroom-evaluation/grading-ai.js';
 import { assignmentCsvRows, gradingCsvText } from '../lib/classroom-evaluation/grading-csv.js';
 import { groupSubmissions } from '../lib/classroom-evaluation/grouping.js';
 import { analyzeProject } from '../lib/classroom-evaluation/sb3-analyzer.js';
@@ -176,8 +176,6 @@ const useTeacherEvaluation = ({
     // classroomId → seats of the loaded assignment (members, submissions, lesson records)
     const [seatsById, setSeatsById] = useState({});
     const [matrix, setMatrix] = useState({});
-    const [rubricAxes, setRubricAxes] = useState(DEFAULT_RUBRIC_AXES);
-    const [strictness, setStrictness] = useState('standard');
     // The running step while loading submissions / calling the AI / returning:
     // {kind, assignmentName, done, total, from, to} (lib/classroom-evaluation/eval-status.js, #2419)
     const [evalProgress, setEvalProgress] = useState(null);
@@ -713,8 +711,6 @@ const useTeacherEvaluation = ({
         setMatrix,
         setEvalLessons,
         gradesChanged,
-        rubricAxes,
-        strictness,
         classrooms,
         groups: classGroups,
         handleTeacher401,
@@ -771,8 +767,8 @@ const useTeacherEvaluation = ({
                         assignmentText: lesson.assignmentText || '',
                         // The AI looks at what was added to the starter (EPIC #2421).
                         ...(lesson.starterPseudocode ? { starterPseudocode: lesson.starterPseudocode } : {}),
-                        rubricAxes,
-                        strictness,
+                        // No criteria on the screen: fixed ones only without a rubric (#2455 F2).
+                        ...gradingCriteriaFor(rubric),
                         samples,
                         ...(rubric && (rubric.levels || []).length > 0 ? { rubricLevels: rubric.levels } : {}),
                         ...(examples.length > 0 ? { examples } : {}),
@@ -887,8 +883,6 @@ const useTeacherEvaluation = ({
             currentId,
             seats,
             matrix,
-            rubricAxes,
-            strictness,
             clearError,
             showError,
             intl,
@@ -1140,10 +1134,6 @@ const useTeacherEvaluation = ({
         setComments((prev) => ({ ...prev, [cellKey(seatNumber, classroomId)]: comment }));
     }, []);
 
-    const handleChangeRubricAxis = useCallback((index, field, value) => {
-        setRubricAxes((prev) => prev.map((axis, i) => (i === index ? { ...axis, [field]: value } : axis)));
-    }, []);
-
     const getCell = useCallback(
         (seatNumber, classroomId) => matrix[cellKey(seatNumber, classroomId)] || null,
         [matrix],
@@ -1334,12 +1324,9 @@ const useTeacherEvaluation = ({
         lessonScores,
         scoringChecked,
         scoringSavingId,
-        rubricAxes,
-        strictness,
         evalProgress,
         evalResult,
         getCell,
-        handleSetStrictness: setStrictness,
         handleShowEvaluation,
         handleBackFromEvaluation,
         handleOpenAssignment,
@@ -1354,7 +1341,6 @@ const useTeacherEvaluation = ({
         handleSetSeatsGrade,
         handleSetCellReason,
         handleSetComment,
-        handleChangeRubricAxis,
         handleCheckScoring,
         handleChangeLessonScoring,
         handleOpenWork: openSubmission ? handleOpenWork : null,

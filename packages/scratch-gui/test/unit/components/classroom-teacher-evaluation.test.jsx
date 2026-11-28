@@ -9,7 +9,7 @@
  * - V2: 冒頭の説明は 1 行にし、残りは「詳しく」で開く。
  */
 import '@testing-library/jest-dom';
-import { fireEvent, render } from '@testing-library/react';
+import { act, fireEvent, render } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import TeacherClassTabs from '../../../src/components/classroom-modal/teacher-class-tabs.jsx';
@@ -23,7 +23,6 @@ const LESSONS = [{ classroomId: 'c1', assignmentName: '迷路' }];
 
 const baseHandlers = () => ({
     onBack: jest.fn(),
-    onChangeRubricAxis: jest.fn(),
     onExportAuditCsv: jest.fn(),
     onExportEvaluationCsv: jest.fn(),
     onLoadSubmissions: jest.fn(),
@@ -32,7 +31,6 @@ const baseHandlers = () => ({
     onSetCellGrade: jest.fn(),
     onSetCellReason: jest.fn(),
     onSetComment: jest.fn(),
-    onSetStrictness: jest.fn(),
 });
 
 const evaluationElement = (props = {}, handlers = baseHandlers()) => (
@@ -42,9 +40,7 @@ const evaluationElement = (props = {}, handlers = baseHandlers()) => (
             currentId="c1"
             evalLessons={LESSONS}
             getCell={() => null}
-            rubricAxes={[]}
             seats={[]}
-            strictness="standard"
             view="assignment"
             {...handlers}
             {...props}
@@ -296,34 +292,14 @@ describe('TeacherEvaluation hint (V2)', () => {
     });
 });
 
-describe('TeacherEvaluation grading settings (R3 / R6)', () => {
-    const AXES = [
-        { name: '動くこと', description: 'a' },
-        { name: '工夫', description: 'b' },
-    ];
-
-    test('shows the current criteria and strictness on one line, closed by default', () => {
-        const { getByTestId, queryByTestId } = renderEvaluation({ rubricAxes: AXES, strictness: 'strict' });
-        const summary = getByTestId('classroom-eval-settings-summary');
-        expect(summary).toHaveTextContent('動くこと・工夫');
-        expect(summary).toHaveTextContent('Strict');
-        expect(queryByTestId('classroom-eval-settings')).toBeNull();
-        expect(queryByTestId('classroom-eval-axis-name-0')).toBeNull();
-    });
-
-    test('"Change" opens the fields with visible headers; editing calls the handlers', () => {
-        const { getByTestId, handlers } = renderEvaluation({ rubricAxes: AXES });
-        const toggle = getByTestId('classroom-eval-settings-toggle');
-        expect(toggle).toHaveAttribute('aria-expanded', 'false');
-        fireEvent.click(toggle);
-        expect(toggle).toHaveAttribute('aria-expanded', 'true');
-        expect(getByTestId('classroom-eval-settings')).toHaveTextContent('Criterion');
-        expect(getByTestId('classroom-eval-settings')).toHaveTextContent('What it looks for');
-
-        fireEvent.change(getByTestId('classroom-eval-axis-name-1'), { target: { value: 'アイデア' } });
-        expect(handlers.onChangeRubricAxis).toHaveBeenCalledWith(1, 'name', 'アイデア');
-        fireEvent.change(getByTestId('classroom-eval-strictness'), { target: { value: 'lenient' } });
-        expect(handlers.onSetStrictness).toHaveBeenCalledWith('lenient');
+describe('TeacherEvaluation without the grading criteria (#2455 F2)', () => {
+    test('the criteria and the strictness are not on the screen any more', () => {
+        const { queryByTestId, getByTestId } = renderEvaluation({ seats: [1] });
+        expect(queryByTestId('classroom-eval-settings-summary')).toBeNull();
+        expect(queryByTestId('classroom-eval-settings-toggle')).toBeNull();
+        expect(queryByTestId('classroom-eval-strictness')).toBeNull();
+        // Without a rubric, it says which fixed criteria the AI grades on.
+        expect(getByTestId('classroom-eval-no-rubric')).toHaveTextContent('whether it runs');
     });
 });
 
@@ -377,7 +353,7 @@ describe('レッスンの課題の採点の流れ (#1778)', () => {
         lessonSetting: lessonSettingOf(true),
     };
 
-    test('作品を出さないレッスンの課題だけ: AI の観点・厳しさを出さず、①読み込む → ②点を確かめる → ③書き出す', () => {
+    test('作品を出さないレッスンの課題だけ: AI の採点ボタンを出さず、①読み込む → ②点を確かめる → ③書き出す', () => {
         const onCheckScoring = jest.fn();
         const { getByTestId, queryByTestId } = renderEvaluation({
             evalLessons: [lessonOnly],
@@ -386,7 +362,6 @@ describe('レッスンの課題の採点の流れ (#1778)', () => {
             onChangeLessonScoring: jest.fn(),
             onCheckScoring,
         });
-        expect(queryByTestId('classroom-eval-settings-summary')).toBeNull();
         expect(queryByTestId('classroom-eval-run-grade')).toBeNull();
         expect(queryByTestId('classroom-eval-return-comments')).toBeNull();
         expect(queryByTestId('classroom-eval-export-menu')).toBeNull();
@@ -411,13 +386,12 @@ describe('レッスンの課題の採点の流れ (#1778)', () => {
     });
 
     test('作品も提出するレッスンの課題: いつもの 6 つの手順のまま・レッスンの点の欄も出す', () => {
-        const { getByTestId, queryByTestId } = renderEvaluation({
+        const { getByTestId } = renderEvaluation({
             evalLessons: [withWork],
             currentId: 'lw',
             onChangeLessonScoring: jest.fn(),
         });
         expect(getByTestId('classroom-eval-run-grade')).toBeInTheDocument();
-        expect(getByTestId('classroom-eval-settings-summary')).toBeInTheDocument();
         expect(getByTestId('classroom-eval-lesson-scoring-lw')).toBeInTheDocument();
     });
 
@@ -898,6 +872,62 @@ describe('採点簿 (#2424)', () => {
         expect(getByTestId('classroom-eval-save-state')).toHaveAttribute('data-state', 'failed');
         expect(getByTestId('classroom-eval-unconfirmed')).toBeInTheDocument();
     });
+
+    test('評価の分布 (#2457): S/A/B/C、S+A と S の %（分母は評価のついた人）。目安を外れたら注意', () => {
+        const cells = {
+            '1:c1': { submitted: true, grade: 'A' },
+            '2:c1': { submitted: true, grade: 'B' },
+        };
+        const getCell = (seat, id) => cells[`${seat}:${id}`] || null;
+        const { getByTestId, rerender } = renderEvaluation({ seats: [1, 2, 3], loaded: true, getCell });
+        expect(getByTestId('classroom-eval-dist-grade-A')).toHaveTextContent('1');
+        expect(getByTestId('classroom-eval-dist-grade-B')).toHaveTextContent('1');
+        expect(getByTestId('classroom-eval-dist-sa')).toHaveTextContent('S+A 1 (50%)');
+        expect(getByTestId('classroom-eval-dist-sa')).toHaveAttribute('data-ok', 'false');
+        expect(getByTestId('classroom-eval-dist-s')).toHaveTextContent('S 0 (0%)');
+        expect(getByTestId('classroom-eval-dist-s')).toHaveAttribute('data-ok', 'false');
+        expect(getByTestId('classroom-eval-dist-base')).toHaveTextContent('Of 2 graded (1 not submitted');
+        // 評価が変わると更新される
+        cells['1:c1'] = { submitted: true, grade: 'S' };
+        cells['2:c1'] = { submitted: true, grade: 'A' };
+        cells['3:c1'] = { submitted: true, grade: 'A' };
+        cells['4:c1'] = { submitted: true, grade: 'A' };
+        rerender(
+            evaluationElement({ seats: [1, 2, 3, 4], loaded: true, getCell: (seat, id) => cells[`${seat}:${id}`] }),
+        );
+        expect(getByTestId('classroom-eval-dist-sa')).toHaveTextContent('S+A 4 (100%)');
+        expect(getByTestId('classroom-eval-dist-sa')).toHaveAttribute('data-ok', 'true');
+        expect(getByTestId('classroom-eval-dist-s')).toHaveTextContent('S 1 (25%)');
+        expect(getByTestId('classroom-eval-dist-s')).toHaveAttribute('data-ok', 'true');
+        expect(getByTestId('classroom-eval-dist-base')).toHaveTextContent('Of 4 graded');
+    });
+
+    test('評価の分布のグラフ (#2523): S/A/B/C の横棒の長さは評価のついた人の割合で、評価を変えるとすぐ変わる', () => {
+        const cells = {
+            '1:c1': { submitted: true, grade: 'A' },
+            '2:c1': { submitted: true, grade: 'B' },
+        };
+        const { getByTestId, rerender } = renderEvaluation({
+            seats: [1, 2, 3],
+            loaded: true,
+            getCell: (seat, id) => cells[`${seat}:${id}`] || null,
+        });
+        expect(getByTestId('classroom-eval-dist-bars')).toBeInTheDocument();
+        expect(getByTestId('classroom-eval-dist-bar-A')).toHaveStyle({ width: '50%' });
+        expect(getByTestId('classroom-eval-dist-bar-A')).toHaveAttribute('data-count', '1');
+        expect(getByTestId('classroom-eval-dist-bar-B')).toHaveStyle({ width: '50%' });
+        expect(getByTestId('classroom-eval-dist-bar-S')).toHaveStyle({ width: '0%' });
+        expect(getByTestId('classroom-eval-dist-bar-C')).toHaveAttribute('data-count', '0');
+        cells['2:c1'] = { submitted: true, grade: 'A' };
+        cells['3:c1'] = { submitted: true, grade: 'A' };
+        cells['4:c1'] = { submitted: true, grade: 'S' };
+        rerender(
+            evaluationElement({ seats: [1, 2, 3, 4], loaded: true, getCell: (seat, id) => cells[`${seat}:${id}`] }),
+        );
+        expect(getByTestId('classroom-eval-dist-bar-A')).toHaveStyle({ width: '75%' });
+        expect(getByTestId('classroom-eval-dist-bar-S')).toHaveStyle({ width: '25%' });
+        expect(getByTestId('classroom-eval-dist-bar-B')).toHaveStyle({ width: '0%' });
+    });
 });
 
 describe('［生徒］のスターターから足した台本 (#2424)', () => {
@@ -1008,5 +1038,111 @@ describe('今日の AI の残り (#2448)', () => {
         expect(getByTestId('classroom-eval-ai-quota')).toHaveTextContent(
             "Today's AI left: 0 / 200 You can use it again when the date changes (midnight).",
         );
+    });
+});
+
+describe('［形］のタブを基準づくりの流れに組み込む (#2522)', () => {
+    const shapedCell = { submitted: true, grade: 'A', shape: { key: 'k1', tags: ['サーボ'] } };
+    const rubricTools = {
+        answers: {},
+        copyClasses: [],
+        description: null,
+        examples: [],
+        fairness: null,
+        groups: [],
+        levels: [{ grade: 'B', text: 'サーボを動かす' }],
+        loaded: true,
+        proposals: {},
+        representatives: [],
+        running: null,
+        savedAt: null,
+        savedRubric: null,
+        starter: { status: 'ready' },
+        works: [],
+        loadStarter: jest.fn(),
+        handleSaveRubric: jest.fn(() => Promise.resolve(true)),
+        handleSetLevel: jest.fn(),
+    };
+    const LESSON = [{ classroomId: 'c1', assignmentName: '迷路', assignmentText: 'サーボを動かす' }];
+    const saveRubric = async (getByTestId) => {
+        fireEvent.click(getByTestId('grading-rubric-steps-head-sentences'));
+        await act(async () => {
+            fireEvent.click(getByTestId('grading-rubric-save'));
+        });
+    };
+
+    test('［形］のタブの冒頭に、できることと先生がやるとよいことの説明がある', () => {
+        const { getByTestId } = renderEvaluation({
+            seats: [1],
+            loaded: true,
+            getCell: () => shapedCell,
+            onSetSeatsGrade: jest.fn(),
+        });
+        fireEvent.click(getByTestId('classroom-eval-tab-shape'));
+        expect(getByTestId('classroom-eval-shapes-lead')).toHaveTextContent('grouped by their shape');
+        expect(getByTestId('classroom-eval-shapes-todo')).toHaveTextContent('check');
+    });
+
+    test('基準を保存したら［形］のタブへ移り、移った理由の一言を出す', async () => {
+        const { getByTestId, queryByTestId } = renderEvaluation({
+            evalLessons: LESSON,
+            seats: [1],
+            loaded: true,
+            getCell: () => shapedCell,
+            rubricTools,
+            onSetSeatsGrade: jest.fn(),
+        });
+        await saveRubric(getByTestId);
+        expect(getByTestId('classroom-eval-tab-shape')).toHaveAttribute('aria-selected', 'true');
+        expect(getByTestId('classroom-eval-shapes-arrived')).toHaveTextContent('rubric is ready');
+        // ほかのタブへ移ると一言は消える（戻っても出ない）
+        fireEvent.click(getByTestId('classroom-eval-tab-student'));
+        fireEvent.click(getByTestId('classroom-eval-tab-shape'));
+        expect(queryByTestId('classroom-eval-shapes-arrived')).toBeNull();
+    });
+
+    test('まだ採点していないときの一言は、［全員を採点］のあとに確かめるよう伝える', async () => {
+        const { getByTestId } = renderEvaluation({
+            evalLessons: LESSON,
+            seats: [1],
+            loaded: true,
+            getCell: () => ({ ...shapedCell, grade: null }),
+            rubricTools,
+            onSetSeatsGrade: jest.fn(),
+        });
+        await saveRubric(getByTestId);
+        expect(getByTestId('classroom-eval-shapes-arrived')).toHaveTextContent('After [Grade Everyone]');
+    });
+
+    test('ほかの課題へ移って戻ると、一言は出ない', async () => {
+        const lessons = [...LESSON, { classroomId: 'c2', assignmentName: '信号', assignmentText: 'LED を光らせる' }];
+        const props = {
+            evalLessons: lessons,
+            seats: [1],
+            loaded: true,
+            getCell: () => shapedCell,
+            rubricTools,
+            onSetSeatsGrade: jest.fn(),
+        };
+        const { getByTestId, queryByTestId, rerender } = renderEvaluation(props);
+        await saveRubric(getByTestId);
+        expect(getByTestId('classroom-eval-shapes-arrived')).toBeInTheDocument();
+        rerender(evaluationElement({ ...props, currentId: 'c2' }));
+        expect(queryByTestId('classroom-eval-shapes-arrived')).toBeNull();
+        rerender(evaluationElement({ ...props, currentId: 'c1' }));
+        expect(queryByTestId('classroom-eval-shapes-arrived')).toBeNull();
+    });
+
+    test('形の札のある作品が無いときは［基準］のまま', async () => {
+        const { getByTestId } = renderEvaluation({
+            evalLessons: LESSON,
+            seats: [1],
+            loaded: true,
+            getCell: () => ({ submitted: true, grade: 'A' }),
+            rubricTools,
+            onSetSeatsGrade: jest.fn(),
+        });
+        await saveRubric(getByTestId);
+        expect(getByTestId('classroom-eval-tab-rubric')).toHaveAttribute('aria-selected', 'true');
     });
 });

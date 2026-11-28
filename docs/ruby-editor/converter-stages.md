@@ -263,8 +263,9 @@ registerSendTable(converter, MOTION_SENDS);
 | g2s            | 55     | `akadako`（Ruby の式のレシーバーを作る）                                                                                                                                                                                                                                                       |
 | microbit_more  | 64     | `microbit` / 旧名 `microbit_more`（Ruby の式のレシーバーを作る。旧名の行は同じ行のレシーバーを変えたもの）、`when_pin_connected`（数）、`display_pattern` / `display`（模様）、`when_catch_at_pin` / `value_of`、`data` / `data[...]`、`send_data_to_microbit`（引数とブロックの入力の順が逆） |
 | mesh / mesh_v2 | 3      | `mesh` / 旧名 `mesh_v1`（Ruby の式のレシーバーを作る）、`mesh.broadcast(メッセージ, 値)`（プロジェクトのメッセージを引く・数を文字列にする）                                                                                                                                                   |
+| studuino       | 18     | `studuino` / 旧名 `smalrubot_s1`（Ruby の式のレシーバーを作る。旧名の行は同じ行のレシーバーを変えたもの）、`led`（`true` / `false` で opcode を選ぶ）                                                                                                                                          |
 
-拡張機能は pen・music・text2speech・translate・video・boost・wedo2・face_sensing・makeymakey・microbit・ev3・gdx_for・tm2scratch・koshien・g2s・micro:bit More・mesh / mesh_v2 を移した。残り（smalrubot_s1 など）は、同じ形（`changesReceiver` と `menus`）で 1 つずつ移す。
+拡張機能は pen・music・text2speech・translate・video・boost・wedo2・face_sensing・makeymakey・microbit・ev3・gdx_for・tm2scratch・koshien・g2s・micro:bit More・mesh / mesh_v2・studuino（smalrubot_s1）を移し、拡張機能の呼び出しはすべて表の行か、表で書けない形の handler になった。新しい拡張機能も、同じ形（`changesReceiver` と `menus`）で表に書く。
 
 ### 表の列
 

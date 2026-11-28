@@ -8,12 +8,14 @@
  *   works are compared with what the teacher handed out;
  * - the groups and representatives (grading-ai.js / grouping.js: a fixed
  *   calculation from the works, so they are the same every time);
- * - the AI calls of the tab: `describe` (when the description is empty), `grade`
+ * - the AI calls of the tab: `describe` (also over a written description, when the teacher
+ *   asks: it is only a draft until the teacher saves it, #2456), `grade`
  *   on the representatives (the AI's proposal next to the teacher's answer),
  *   `fairness` and `rubric`;
- * - saving the rubric (`PUT /grading` with `rubric` only), copying one from another
- *   assignment, and saving the description into the assignment (`PUT /assignment`
- *   with the pages read just before, images kept by key);
+ * - saving the rubric (`PUT /grading` with `rubric` only), copying the description and the
+ *   rubric from another assignment (the rubric is saved; the description is a draft the
+ *   teacher decides on in 2-1, #2456), and saving the description into the assignment
+ *   (`PUT /assignment` with the pages read just before, images kept by key);
  * - after everyone is graded, changing one grade asks whether to change the rest of
  *   the same group (`groupPrompt`).
  *
@@ -24,17 +26,20 @@ import JSZip from 'jszip';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { defineMessages } from 'react-intl';
 import classroomAPI from '../lib/classroom-api.js';
+import { assignmentTextOf } from '../lib/classroom-evaluation/gradebook.js';
 import {
     applyFairnessAnswers,
     buildDescribeRequest,
     buildFairnessRequest,
     buildGradeRequest,
     buildRubricRequest,
+    copiedDescriptionDraft,
     descriptionSaveRequest,
     editableLevels,
     examplesFromAnswers,
     fullGradeExtras,
     groupChangePlan,
+    hasRubricLevels,
     representativesOf,
     rubricToSave,
     worksOf,
@@ -57,13 +62,17 @@ const rubricHookMessages = defineMessages({
 
 const EMPTY_STATE = Object.freeze({
     starter: null, // null = not read | {status: 'loading'|'ready'|'none'|'failed', pseudocode, assignment}
-    description: null, // {status: 'running'|'proposed'|'failed', text}
+    // {status: 'running'|'proposed'|'copied'|'failed'|'used'|'saving'|'saved', text}
+    // 'proposed' (by the AI) and 'copied' (from another assignment) are drafts the teacher decides on.
+    description: null,
+    described: false, // the AI wrote a description once (its button cannot be pressed again)
     answers: null, // "<seat>" → {grade, reason}; null = not started (taken from the saved rubric)
     proposals: {}, // "<seat>" → {grade, reason}
     fairness: null, // {checks, answers: {index: option}}
     levels: null, // edited levels; null = from the saved rubric
     extraExamples: null, // examples added by the fairness answers
     notes: [],
+    drafted: false, // the AI wrote the sentences once (its button cannot be pressed again, #2455)
     running: null, // 'starter' | 'describe' | 'propose' | 'fairness' | 'rubric' | 'save' | 'copy' | 'saveDescription'
     savedAt: null,
 });
@@ -82,8 +91,6 @@ const cellKey = (seatNumber, classroomId) => `${seatNumber}:${classroomId}`;
  * @param {Function} params.setMatrix - setter of the table
  * @param {Function} params.setEvalLessons - setter of the assignments (to keep a description)
  * @param {Function} params.gradesChanged - (classroomId) → schedule the grade save
- * @param {Array<object>} params.rubricAxes - the AI's criteria when there is no rubric
- * @param {string} params.strictness - lenient | standard | strict
  * @param {Array<object>} [params.classrooms] - every assignment of the teacher (copy source)
  * @param {Array<object>} [params.groups] - the teacher's classes (labels of the copy source)
  * @param {Function} params.handleTeacher401 - 401 handler
@@ -103,8 +110,6 @@ const useGradingRubric = ({
     setMatrix,
     setEvalLessons,
     gradesChanged,
-    rubricAxes,
-    strictness,
     classrooms = [],
     groups: classGroups = [],
     handleTeacher401,
@@ -208,7 +213,10 @@ const useGradingRubric = ({
         [idTokenRef, id, noteQuota],
     );
 
-    /** 1. The description is empty: the AI guesses it from the starter and a few works. */
+    /**
+     * 1. The AI guesses the description from the starter and a few works. Also over a written
+     * description when the teacher asks (#2456): it stays a draft until the teacher saves it.
+     */
     const handleDescribe = useCallback(async () => {
         if (!lesson) return;
         const classroomId = lesson.classroomId;
@@ -224,6 +232,7 @@ const useGradingRubric = ({
             const data = await evaluate(payload);
             update(classroomId, {
                 running: null,
+                described: true,
                 description: { status: 'proposed', text: (data && data.description) || '' },
             });
         } catch (err) {
@@ -325,8 +334,6 @@ const useGradingRubric = ({
                     assignmentText: lesson.assignmentText || '',
                     starterPseudocode,
                     rubric: savedRubric,
-                    rubricAxes,
-                    strictness,
                     works: representatives.map((r) => r.work).filter(Boolean),
                 }),
             );
@@ -339,7 +346,7 @@ const useGradingRubric = ({
             update(classroomId, { running: null });
             fail(err);
         }
-    }, [lesson, representatives, starterPseudocode, savedRubric, rubricAxes, strictness, update, evaluate, fail]);
+    }, [lesson, representatives, starterPseudocode, savedRubric, update, evaluate, fail]);
 
     /** 3. Fairness: the AI compares the answers with the other works of each group. */
     const handleCheckFairness = useCallback(async () => {
@@ -355,7 +362,8 @@ const useGradingRubric = ({
             works,
         });
         if (!payload) {
-            update(classroomId, { fairness: { checks: [], answers: {} } });
+            // Nothing to compare (no group has another work): 2-3 says so and waits for［次へ］(#2521).
+            update(classroomId, { fairness: { checks: [], answers: {}, noWorks: true } });
             return;
         }
         update(classroomId, { running: 'fairness' });
@@ -367,6 +375,14 @@ const useGradingRubric = ({
             fail(err);
         }
     }, [lesson, starterPseudocode, levels, representatives, answers, groups, works, update, evaluate, fail]);
+
+    /** 3. With no fairness question, the teacher moves on to 2-4 by［次へ］(#2521). */
+    const handleConfirmFairness = useCallback(() => {
+        if (!id) return;
+        update(id, (before) => ({
+            fairness: { ...(before.fairness || { checks: [], answers: {} }), confirmed: true },
+        }));
+    }, [id, update]);
 
     /**
      * 3. The teacher answers a fairness question.
@@ -413,7 +429,11 @@ const useGradingRubric = ({
         update(classroomId, { running: 'rubric' });
         try {
             const data = await evaluate(payload);
-            update(classroomId, { running: null, levels: editableLevels((data && data.levels) || []) });
+            update(classroomId, {
+                running: null,
+                drafted: true,
+                levels: editableLevels((data && data.levels) || []),
+            });
         } catch (err) {
             update(classroomId, { running: null });
             fail(err);
@@ -480,18 +500,23 @@ const useGradingRubric = ({
     }, [classrooms, classGroups, id]);
 
     /**
-     * 5. Read the rubric of another assignment (shown before copying).
+     * 5. Read the description and the rubric of another assignment (shown before copying).
+     * The description is copied too, or the classes would be graded with different ones (#2456).
      * @param {string} sourceId - the other assignment
-     * @returns {Promise<?object>} its rubric, or null when it has none
+     * @returns {Promise<?{rubric: ?object, description: string}>} null when it has neither
      */
     const handleReadCopySource = useCallback(
         async (sourceId) => {
             try {
-                const data = await classroomAPI.getGrading(idTokenRef.current, sourceId);
-                const rubric = data && data.grading && data.grading.rubric;
-                return rubric && ((rubric.levels || []).length > 0 || (rubric.examples || []).length > 0)
-                    ? rubric
-                    : null;
+                const [gradingData, assignmentData] = await Promise.all([
+                    classroomAPI.getGrading(idTokenRef.current, sourceId),
+                    classroomAPI.getAssignment(idTokenRef.current, sourceId),
+                ]);
+                const found = gradingData && gradingData.grading && gradingData.grading.rubric;
+                const rubric =
+                    found && ((found.levels || []).length > 0 || (found.examples || []).length > 0) ? found : null;
+                const description = assignmentTextOf(assignmentData);
+                return rubric || description ? { rubric, description } : null;
             } catch (err) {
                 fail(err);
                 return null;
@@ -501,25 +526,35 @@ const useGradingRubric = ({
     );
 
     /**
-     * 5. Copy the rubric (it replaces this assignment's rubric).
-     * @param {object} rubric - the rubric read with handleReadCopySource
+     * 5. Copy what was read: the rubric replaces this assignment's rubric (saved), and the
+     * description becomes a draft in 2-1. It is not saved into the assignment the students see
+     * until the teacher decides there, the same way as a description the AI proposed (#2456).
+     * @param {object} source - what handleReadCopySource returned
      * @returns {Promise<boolean>} true when copied
      */
-    const handleCopyRubric = useCallback(
-        async (rubric) => {
-            if (!lesson || !rubric) return false;
+    const handleCopyFromAssignment = useCallback(
+        async (source) => {
+            if (!lesson || !source || (!source.rubric && !source.description)) return false;
             const classroomId = lesson.classroomId;
-            update(classroomId, { running: 'copy' });
-            try {
-                await putRubric(classroomId, rubricToSave(rubric.levels || [], rubric.examples || []));
-                update(classroomId, { running: null, levels: null, answers: null, extraExamples: null });
-                return true;
-            } catch (err) {
-                update(classroomId, { running: null });
-                if (err && err.status === 401) handleTeacher401();
-                else showError(intl.formatMessage(rubricHookMessages.rubricSaveFailed));
-                return false;
+            const { rubric } = source;
+            const description = copiedDescriptionDraft(source.description, lesson.assignmentText);
+            if (rubric) {
+                update(classroomId, { running: 'copy' });
+                try {
+                    await putRubric(classroomId, rubricToSave(rubric.levels || [], rubric.examples || []));
+                } catch (err) {
+                    update(classroomId, { running: null });
+                    if (err && err.status === 401) handleTeacher401();
+                    else showError(intl.formatMessage(rubricHookMessages.rubricSaveFailed));
+                    return false;
+                }
             }
+            update(classroomId, {
+                running: null,
+                ...(rubric ? { levels: null, answers: null, extraExamples: null } : {}),
+                ...(description ? { description: { status: 'copied', text: description } } : {}),
+            });
+            return true;
         },
         [lesson, update, putRubric, handleTeacher401, showError, intl],
     );
@@ -582,6 +617,7 @@ const useGradingRubric = ({
         starter: state.starter,
         starterPseudocode,
         description: state.description,
+        described: !!state.described,
         works,
         groups,
         representatives,
@@ -595,6 +631,10 @@ const useGradingRubric = ({
         savedRubric,
         running: state.running,
         savedAt: state.savedAt,
+        // The sentences are saved (saved in this tab, or a saved rubric) and not being edited:
+        // an edit after saving is not saved yet, so 2-4 is not done again until it is saved.
+        sentencesSaved: !state.levels && (!!state.savedAt || hasRubricLevels(savedRubric)),
+        drafted: !!state.drafted,
         copyClasses,
         groupPrompt: groupPrompt && groupPrompt.classroomId === id ? groupPrompt : null,
         loadStarter,
@@ -604,11 +644,12 @@ const useGradingRubric = ({
         handlePropose,
         handleCheckFairness,
         handleAnswerFairness,
+        handleConfirmFairness,
         handleDraftRubric,
         handleSetLevel,
         handleSaveRubric,
         handleReadCopySource,
-        handleCopyRubric,
+        handleCopyFromAssignment,
         noteGradeChange,
         handleApplyGroupChange,
         handleDismissGroupChange,

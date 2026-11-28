@@ -1,0 +1,183 @@
+/* 縦のステッパー（中の手順・#2454）。色はデザインシステムのトークン（docs/design-system/components/inner-stepper.md）。 */
+@import '../../css/smalruby-tokens.css';
+
+/* 外の手順の中のもう一段の手順。外の帯（横）と向きを変え、太い枠で囲んで段の違いを見せる。
+   題は枠の上の線に重ねる（fieldset の legend のような形）。 */
+.frame {
+    position: relative;
+    margin-top: 0.75rem;
+    padding: 0.875rem 0.875rem 0.25rem;
+    border: $size-stepper-line solid $color-step-now;
+    border-radius: $radius-medium;
+    background-color: $color-surface;
+}
+
+.title {
+    position: absolute;
+    top: -0.75rem;
+    left: 0.75rem;
+    margin: 0;
+    padding: 0 0.375rem;
+    background-color: $color-surface;
+    color: $color-action-dark;
+    font-size: $font-size-medium;
+    font-weight: $font-weight-bold;
+}
+
+.list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.step {
+    display: grid;
+    grid-template-columns: $size-stepper-marker 1fr;
+    gap: 0 0.625rem;
+}
+
+/* 左の列: 番号の丸と、次の小手順へつなぐ縦の線 */
+.rail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.marker {
+    display: grid;
+    flex: none;
+    place-items: center;
+    box-sizing: border-box;
+    width: $size-stepper-marker;
+    height: $size-stepper-marker;
+    border: $size-stepper-line solid $color-step-todo;
+    border-radius: $radius-round;
+    background-color: $color-surface;
+    color: $color-text-muted;
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+}
+
+.step[data-state='done'] .marker {
+    border-color: $color-step-done;
+    background-color: $color-step-done;
+    color: $color-surface;
+}
+
+.step[data-state='now'] .marker {
+    border-color: $color-step-now;
+    background-color: $color-step-now;
+    color: $color-surface;
+}
+
+.line {
+    flex: 1;
+    width: $size-stepper-line;
+    min-height: 0.75rem;
+    background-color: $color-step-todo;
+}
+
+.step:last-child .line {
+    visibility: hidden;
+}
+
+.body {
+    min-width: 0;
+    padding-bottom: 0.875rem;
+}
+
+.head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: $space-medium;
+    width: 100%;
+    min-height: $size-stepper-marker;
+    padding: 0;
+    border: none;
+    background: none;
+    color: $color-text;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.head:focus-visible {
+    outline: 2px solid $color-action;
+    outline-offset: 2px;
+}
+
+.head-title {
+    font-size: $font-size-medium;
+    font-weight: $font-weight-bold;
+}
+
+/* 状態の札（済み・いまここ・まだ）: 色だけで伝えないよう文字で書く */
+.state {
+    padding: 0 $space-medium;
+    border-radius: 99px;
+    background-color: $color-disabled;
+    color: $color-text;
+    font-size: $font-size-small;
+}
+
+.step[data-state='done'] .state {
+    background-color: $color-success-background;
+    color: $color-step-done;
+}
+
+.step[data-state='now'] .state {
+    background-color: $color-seat-joined;
+    color: $color-seat-joined-text;
+}
+
+.summary {
+    margin: 0;
+    color: $color-text-muted;
+    font-size: $font-size-small;
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
+    gap: $space-medium;
+    margin-top: $space-small;
+    animation: inner-stepper-open 400ms ease-out;
+}
+
+/* 済んだ小手順を閉じるとき（#2521）: 少し見せてから、ゆっくり薄くして閉じる。
+   長さは inner-stepper.jsx の STEP_CLOSE_MS と同じ。 */
+.step[data-closing='true'] .content {
+    animation: inner-stepper-close 300ms ease-in forwards;
+}
+
+@keyframes inner-stepper-open {
+    from {
+        opacity: 0;
+        transform: translateY(-0.25rem);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes inner-stepper-close {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+        transform: translateY(-0.25rem);
+    }
+}
+
+/* 動きを減らす設定では動きを省く（間は残す。何が起きたかを見せるため）。 */
+@media (prefers-reduced-motion: reduce) {
+    .content,
+    .step[data-closing='true'] .content {
+        animation: none;
+    }
+}

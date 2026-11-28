@@ -1,0 +1,45 @@
+#!/usr/bin/env node
+// SPDX-License-Identifier: MIT
+'use strict';
+// topic → develop の PR のプレビューができているかを確かめる（#2485）。リリース確認の観点を書く前に使う。
+// 競合している PR では CI が動かず、プレビューが作られない。人間に開けない URL を「確かめる場所」として渡さない。
+//   GH_TOKEN="$(bin/bot-token)" tools/autopilot/bin/preview-status --pr <topic → develop の PR> [--repo owner/name]
+// 出力（1 行の JSON）: {"ready":true|false,"state":"...","text":"<人間に見せる一文>",
+//   "line":"<観点のコメントの **プレビュー**: の行>","url":"<プレビューの URL>"}
+const { execFileSync } = require('child_process');
+const { previewStatus, previewStatusText, previewUrlForBranch } = require('../src/epic-pr');
+const { releasePreviewLine } = require('../src/release-check');
+
+function arg(name) {
+    const i = process.argv.indexOf(name);
+    return i >= 0 ? process.argv[i + 1] : null;
+}
+
+async function httpStatus(url) {
+    try {
+        const res = await fetch(url, { method: 'HEAD', redirect: 'follow', signal: AbortSignal.timeout(10000) });
+        return res.status;
+    } catch {
+        return null; // 開けない（コンテナの firewall など）ときは CI の結果だけで決める
+    }
+}
+
+async function main() {
+    const pr = arg('--pr');
+    const repo = arg('--repo') || process.env.AUTOPILOT_REPO || 'smalruby/smalruby3-editor';
+    let facts = null;
+    if (pr) {
+        facts = JSON.parse(execFileSync('gh', ['pr', 'view', String(pr), '--repo', repo, '--json',
+            'headRefName,baseRefName,mergeable,statusCheckRollup'], { encoding: 'utf8' }));
+    }
+    const url = facts ? previewUrlForBranch(facts.headRefName) : null;
+    const status = previewStatus(facts, { httpStatus: url ? await httpStatus(url) : null });
+    const base = (facts && facts.baseRefName) || 'develop';
+    const out = { ...status, text: previewStatusText(status, base), line: releasePreviewLine(status, url, base), url };
+    process.stdout.write(`${JSON.stringify(out)}\n`);
+}
+
+main().catch((e) => {
+    process.stderr.write(`preview-status: ${e.message}\n`);
+    process.exit(1);
+});

@@ -40,6 +40,8 @@ const {
     selectActionable,
     isStuckCandidate,
     selectStalledInFlightItems,
+    handOffAiStatusFromIntents,
+    classifyInFlightRecovery,
     liveWorkerIssuesFromSessions,
     applyResult,
     subIssueSetupIntents,
@@ -47,6 +49,8 @@ const {
     selectMergeCandidates,
     mergeProgressionIntents,
     selectClosedToReconcile,
+    excludeClosedItems,
+    closedRunIntents,
     selectPrSyncCandidates,
     ownsItem,
     itemOwner,
@@ -123,13 +127,17 @@ const project = require('./project');
 const learnTasks = require('./learn-tasks');
 // EPIC 単位の確認（#2385）: 判断は epic-flow.js、実行のつなぎは epic-merge.js
 const { resolveRunOutcome, isEpicFlowBase, markAutoMergeContexts } = require('./epic-flow');
-const { applyEpicRunSideEffects, applyEpicAutoMerge, applyEpicTopicPrs, bootEpicTopicPrs } = require('./epic-merge');
+const {
+    applyEpicRunSideEffects, applyEpicAutoMerge, applyEpicTopicPrs, bootEpicTopicPrs,
+    topicSyncTarget, applyEpicTopicSync, runTopicSync,
+} = require('./epic-merge');
 // EPIC ごとの進み具合と現在地（#2388）。判断は epic-summary.js / current-status.js、I/O は current-status-job.js
 const { buildStatusMaterial, groupItemsByEpic } = require('./epic-summary');
 const currentStatusJob = require('./current-status-job');
 // モニターで答える（ui-policy §8 の U1・U2）。判断は phases.js、置き場・HTTP・GitHub のつなぎは monitor-answers.js
 const monitorAnswers = require('./monitor-answers');
 const releaseCheckHttp = require('./release-check-http');
+const { releasePageUrl } = require('./release-page');
 const { pruneMonitorReleases, withMonitorReleases, humanWaitRows } = require('./phases');
 
 const execFileP = promisify(execFile);
@@ -1096,12 +1104,32 @@ async function recoverStalledInFlightWorkers(items, cfg, state, log, deps = {}) 
         const item = byIssue.get(s.issue);
         if (!ownsItem(item, cfg.assignee)) continue; // 自分がオーナーの item だけ復帰させる
         if (state.running.has(s.issue)) continue; // 既にこの daemon が所有中なら触らない
-        log(`#${s.issue}: stalled in-flight worker（${s.phase} / worker 不在）→ 再ディスパッチ`);
+        // この daemon が直前に結果を反映した item は、worker が消えたのではなく次のフェーズへの
+        // ふつうの受け渡し（例 implement → review）。ログを分け、本当の復帰と見分けられるようにする（#2582）
+        const kind = classifyInFlightRecovery(item, state.handOffs);
+        if (kind === 'handoff') log(`#${s.issue}: 受け渡し（AI Status=${item.aiStatus}）→ ${s.phase} を起動`);
+        else log(`#${s.issue}: stalled in-flight worker（${s.phase} / worker 不在）→ 再ディスパッチ`);
+        if (state.handOffs) state.handOffs.delete(s.issue);
         dispatchFn({ ...item, phase: s.phase }, cfg, state, log);
-        recovered.push(s);
+        recovered.push({ ...s, kind });
     }
-    if (recovered.length) log(`stalled recovery: ${recovered.length} 件を再ディスパッチ`);
+    const stalledCount = recovered.filter((r) => r.kind === 'stalled').length;
+    if (stalledCount) log(`stalled recovery: ${stalledCount} 件を再ディスパッチ`);
     return recovered;
+}
+
+/**
+ * 結果の反映で実作業系 AI Status になった item を `state.handOffs` に覚える（#2582）。
+ * 判定は {@link handOffAiStatusFromIntents}。該当しなければ古い記録を消す。
+ * @param {object} state daemon の可変状態
+ * @param {number} issue
+ * @param {Array<{field:string, value:string|null}>} intents 反映した intents
+ */
+function rememberHandOff(state, issue, intents) {
+    if (!state.handOffs) state.handOffs = new Map();
+    const aiStatus = handOffAiStatusFromIntents(intents);
+    if (aiStatus) state.handOffs.set(issue, aiStatus);
+    else state.handOffs.delete(issue);
 }
 
 /**
@@ -1416,6 +1444,9 @@ async function dispatch(item, cfg, state, log) {
     const session = `autopilot-${phase}-${item.issue}`;
     const startedAt = cfg.now();
     state.running.set(item.issue, { phase, session, since: startedAt });
+    // worker を起こしたら受け渡しの記録は役目を終える。stalled 復帰以外の経路（selectActionable 等）で
+    // 起動したあとに worker が消えても、古い記録で「受け渡し」と見誤らないよう消す（#2582）
+    if (state.handOffs) state.handOffs.delete(item.issue);
     const record = (outcome, note) => recordHistory(state, {
         issue: item.issue,
         phase,
@@ -1442,6 +1473,8 @@ async function dispatch(item, cfg, state, log) {
             log(`#${item.issue}: blockToHuman failed: ${e.message}`);
         }
     };
+    // フェーズが Issue を閉じたか（#2540）。finally で worktree を片付けるのに使う
+    let closedByRun = false;
     try {
         // base / after の宣言を着手前に確定させる。本文を一度も取れていない（ネット断など）なら
         // 既定 base で作業を始めず、Status にも触らずに見送る（fail-closed・#1309）。次 tick で再試行。
@@ -1525,6 +1558,8 @@ async function dispatch(item, cfg, state, log) {
             AUTOPILOT_AI_STATUS: item.aiStatus || '',
             AUTOPILOT_EPIC_FLOW: isEpicFlowBase(baseBranch, DEFAULT_BASE_BRANCH) ? '1' : '',
         };
+        // リリース確認の確認ページ（#2474）: 同じ URL を更新させる（空なら初回）
+        if (phase === 'release-check') Object.assign(env, releaseCheckHttp.releasePageEnv(state, item.issue, cfg));
         // モニターで人間が答えた質問があれば、答えのファイルを置いてプロンプトで読ませる（U2）
         const answersFile = monitorAnswers.deliverMonitorAnswers(item.issue, cwd, state);
         env.AUTOPILOT_ANSWERS_FILE = answersFile || '';
@@ -1534,6 +1569,8 @@ async function dispatch(item, cfg, state, log) {
         const res = await runPhase({
             session, cwd, env, command, promptDir, skill: meta.skill, issue: item.issue, resultFile, log, answersFile,
             watchdog: cfg.watchdog,
+            // 重いときは指示の受理を長めに待つ（scheduler と同じ負荷の値・#2504）
+            readLoad: () => readResources(),
             // blocked で人間を待つときの口（モニターの「止まっている worker」・#2387）
             blocked: state.blockedHub ? state.blockedHub.channel(item.issue, phase, session) : undefined,
         });
@@ -1565,11 +1602,17 @@ async function dispatch(item, cfg, state, log) {
         const outcome = resolveRunOutcome(parsed.result, {
             epicFlow: isEpicFlowBase(baseBranch, DEFAULT_BASE_BRANCH), priorStatus: item.status, priorAiStatus: item.aiStatus,
         });
-        const intents = outcome.intents;
+        // フェーズが Issue を閉じていたら Close にそろえる（#2540。Status が空に戻ると New Item として
+        // また triage が走る）。プロンプトの nextStatus に頼らず、GitHub の状態を見て決める
+        closedByRun = await isIssueClosedAfterRun(item, parsed.result, cfg, log);
+        const intents = closedRunIntents(outcome.intents, { signal: parsed.result.signal, closed: closedByRun });
+        if (closedByRun) log(`#${item.issue}: ${phase} が Issue を閉じた → Status=Close`);
         const applied = await project.applyIntents(ctx, itemId, intents, await project.botToken());
         // ローカルで把握した状態変化を board キャッシュにも反映（#888）。GraphQL は増やさない。
         // implement 完了→ AI Status=Self-Reviewing 等が refreshBoard を待たず monitor に live 反映される。
         patchBoardCache(state, item.issue, intents);
+        // 次の tick の stalled 復帰が拾っても「止まった worker」と記録しないよう、受け渡しを覚える（#2582）
+        rememberHandOff(state, item.issue, intents);
         log(`#${item.issue}: ${parsed.result.signal} — applied: ${applied.join(', ')}`);
         record(parsed.result.signal, parsed.result.summary);
         // decompose 完了で作成された sub-issue に Status/Kind/Size を補完（単一ライター・#914）。
@@ -1578,7 +1621,13 @@ async function dispatch(item, cfg, state, log) {
             await applyDecomposeSubIssueSetup(parsed.result, cfg, log);
         }
         // リリース確認（#2430）のプレビューの URL をモニターの行に出す
-        if (phase === 'release-check') releaseCheckHttp.rememberPreview(state, item.issue, parsed.result.previewUrl);
+        if (phase === 'release-check') {
+            releaseCheckHttp.rememberPreview(state, item.issue, parsed.result.previewUrl);
+            // 確認ページ（#2474）の URL を覚え、次の round と「あなた宛て」のボタンに使う
+            releaseCheckHttp.rememberReleasePage(state, item.issue, parsed.result, cfg.now(), log);
+            // 全部 OK（#2544）なら「develop へマージする」を出す材料を覚える（ほかの結果なら消す）
+            releaseCheckHttp.rememberReleaseMerge(state, item.issue, parsed.result, log);
+        }
         // signal=error は Blocked で surface する（churn を止める）。理由はサニタイズ済みの
         // 要約だけを GitHub に出し、生ログ（機密を含みうる）はローカル参照に誘導する。
         if (parsed.result.signal === 'error') {
@@ -1588,7 +1637,8 @@ async function dispatch(item, cfg, state, log) {
         }
         // 権威的な面同期（contract §7）: 🙋/🤖 ラベル・Draft・sticky を Project 状態 + HITL 希望へ合わせる。
         // HITL は Project フィールドではなくラベルなので、結果から導いた希望を hitlLabel として渡す（#813）。
-        const wantHitl = outcome.hitl;
+        // 閉じた Issue は終端なので、人間の番にしない（🙋 を付けない）
+        const wantHitl = closedByRun ? false : outcome.hitl;
         await syncFacesAfterIntents({ ...item, hitlLabel: wantHitl }, intents, cfg, log);
         // hitl の質問（questions）をモニターに出し、Issue にもマーカー付きで書く（U2）
         if (state.answerStore) {
@@ -1612,6 +1662,9 @@ async function dispatch(item, cfg, state, log) {
         state.running.delete(item.issue);
         // worker が UI 確認で起動したまま残した dev server・ブラウザを止める（#1381・#2463）
         stopWorktreeLeftovers({ issues: [item.issue], runningIssues: [...state.running.keys()] }, log);
+        // ここで Close にした Issue は終端になり、reconcile（worktree を片付ける・#1362）の対象から外れる。
+        // 代わりにここで片付ける。running から外したあとなので「実行中」で残されない
+        if (closedByRun) await safeCleanup((it) => cleanupIssueWorktree(it, cfg, state, log), item, log);
     }
 }
 
@@ -1634,6 +1687,31 @@ async function resolveInline(item, p) {
     } finally {
         if (running && prevPhase) running.phase = prevPhase;
     }
+}
+
+/**
+ * develop を topic に取り込む（#2485）ときの I/O のつなぎ。判断は epic-pr.js の topicSyncPlan、
+ * 実行は epic-merge.js の applyEpicTopicSync / runTopicSync。
+ * @param {object[]} items tick の item（本文を直すときの Status）
+ */
+function topicSyncDeps(cfg, state, log, items) {
+    const statuses = Object.fromEntries((items || []).map((it) => [it.issue, it.status]));
+    return {
+        hasCapacity: () => state.running.size < cfg.concurrency,
+        isRunning: (epic) => state.running.has(epic),
+        startSync: (t) => runTopicSync(t, cfg, state, log, {
+            execFileP, followBaseBranch, runConflictResolver, worktreeBin: WORKTREE_BIN, botGitBin: BOT_GIT_BIN,
+            stopLeftovers: () => stopWorktreeLeftovers({ issues: [t.epic], runningIssues: [...state.running.keys()] }, log),
+        }).catch((e) => {
+            // running のまま残すと二度と見直さないので、追跡をやめる（次に子を topic に入れたときに見つけ直す）
+            if (state.topicSyncs) delete state.topicSyncs[t.epic];
+            log(`EPIC #${t.epic}: topic sync error: ${e.message}`);
+        }),
+        // 取り込んだら、topic → develop の PR の本文（プレビューの状態）を直す
+        refreshTopicPr: (epic, topic) => applyEpicTopicPrs([{ epic, base: topic }], cfg, log, {
+            defaultBase: DEFAULT_BASE_BRANCH, statuses,
+        }),
+    };
 }
 
 /**
@@ -2009,6 +2087,30 @@ async function applyMergeProgression(items, cfg, state, log, deps = {}) {
 }
 
 /**
+ * run が done で終わったとき、その Issue が GitHub で閉じているかを確かめる（#2540）。
+ * done 以外は確かめない（hitl / error は人間に渡す意図のまま。閉じていれば次の tick の reconcile が
+ * Close にする）。1 件だけのバッチ GraphQL なので軽い。確かめられなければ false（従来どおり反映する）。
+ * @param {object} item 対象 item
+ * @param {object} result 検証済みの結果
+ * @param {object} cfg daemon 設定
+ * @param {function} log ログ関数
+ * @param {object} [deps] { getIssueStates, readToken }（テスト用）
+ * @returns {Promise<boolean>} 閉じていれば true
+ */
+async function isIssueClosedAfterRun(item, result, cfg, log, deps = {}) {
+    if (!result || result.signal !== 'done') return false;
+    const getStates = deps.getIssueStates || project.getIssueStates;
+    const readToken = deps.readToken || project.readToken;
+    try {
+        const states = await getStates(cfg.repo, [item.issue], await readToken());
+        return (states || {})[item.issue] === 'CLOSED';
+    } catch (e) {
+        log(`#${item.issue}: closed state check after run failed: ${e.message}`);
+        return false;
+    }
+}
+
+/**
  * Fix B（#843）: 「GitHub issue が closed ⇄ Project Status=Close」の整合パス。
  * merge-progression は leaf の連携 PR merge しか見ないため、(A) 非デフォルト base 宛て PR で手動 close
  * した leaf、(B) 統合 PR の `Closes #<epic>` で閉じた EPIC、(C) 人手で閉じた issue が取り残される。
@@ -2373,11 +2475,28 @@ async function tick(cfg, state, log) {
     // autopilot-assignee ディレクティブ（#938）: itemOwner/ownsItem が使う前に解決しておく
     // （2人以上 assign の item のみ本文 fetch）。
     items = await populateAssigneeDirectives(items, cfg, state, log);
+    // closed 状態の確認は **対象限定のバッチ GraphQL**（非終端 + 🤖 ラベルの item だけ）。
+    // 旧実装のリポジトリ全体 closed 一覧（最大 1000 件 × 毎 tick）は使わない。
+    // 拾う判定より先に確かめる（#2540）: 閉じた Issue を stalled 復帰・selectActionable に渡すと、
+    // reconcile より先に worker が起き、running に入った item を reconcile が飛ばしてしまう。
+    const closedSet = new Set();
+    const mergeStates = (states) => {
+        for (const [n, s] of Object.entries(states)) if (s === 'CLOSED') closedSet.add(Number(n));
+    };
+    try {
+        mergeStates(await project.getIssueStates(
+            cfg.repo, selectClosedCheckIssues(items), await project.readToken(),
+        ));
+    } catch (e) {
+        log(`closed state check failed: ${e.message}`);
+    }
+    // 拾う判定に使う item（閉じた Issue を除く）。Close へそろえるのは下の applyClosedReconcile
+    const openItems = excludeClosedItems(items, closedSet);
     // ストール復帰（#995）: In Progress + 実作業系 AI Status のまま worker が不在の item を
     // 対応フェーズへ再ディスパッチする（#972 のデッドエンド解消）。dispatch は running を
     // 同期的に set するので、直後の running スナップショットに含まれ selectActionable /
     // detectStuck と二重ディスパッチせず、Blocked より再開を優先できる。
-    await recoverStalledInFlightWorkers(items, cfg, state, log)
+    await recoverStalledInFlightWorkers(openItems, cfg, state, log)
         .catch((e) => log(`stalled recovery error: ${e.message}`));
     const running = new Set(state.running.keys());
     // モニターの「答えて先へ進める」で daemon が外した 🙋 は、一覧の読み直しが遅れても外れた扱いにする（U1）
@@ -2393,7 +2512,7 @@ async function tick(cfg, state, log) {
     Object.assign(contexts, await collectContinuationContexts(items, running, log));
     // 候補は上限なしで Board 順に列挙し、autopilot-after の未完了依存を持つ item を
     // スキップしながら空き容量まで拾う（依存でブロックされた分は次点候補が繰り上がる）
-    const candidates = selectActionable(items, {
+    const candidates = selectActionable(openItems, {
         paused: state.paused,
         running,
         limit: Infinity,
@@ -2401,19 +2520,6 @@ async function tick(cfg, state, log) {
         assignee: cfg.assignee,
         statusOrder: cfg.statusOrder,
     });
-    // closed 状態の確認は **対象限定のバッチ GraphQL**（非終端 + 🤖 ラベルの item だけ）。
-    // 旧実装のリポジトリ全体 closed 一覧（最大 1000 件 × 毎 tick）は使わない。
-    const closedSet = new Set();
-    const mergeStates = (states) => {
-        for (const [n, s] of Object.entries(states)) if (s === 'CLOSED') closedSet.add(Number(n));
-    };
-    try {
-        mergeStates(await project.getIssueStates(
-            cfg.repo, selectClosedCheckIssues(items), await project.readToken(),
-        ));
-    } catch (e) {
-        log(`closed state check failed: ${e.message}`);
-    }
     const statusByIssue = Object.fromEntries(items.map((it) => [it.issue, it.status]));
     // 🧱 infra の依存は GitHub で closed のときだけ完了（prod デプロイ成功で workflow が閉じる）。
     // merge で Project は Close（終端）になるので selectClosedCheckIssues の定常確認からは外れる →
@@ -2481,10 +2587,15 @@ async function tick(cfg, state, log) {
         onDecisions: (epic, count) => recordEpicDecisionCount(state, epic, count),
     }).catch((e) => { log(`epic auto-merge error: ${e.message}`); return []; });
     // 子を topic に入れたら、topic → develop の draft PR を作る・本文を直す（#2473）
+    const syncTargets = [];
     await applyEpicTopicPrs((autoMerged || []).filter((d) => d.action === 'merge'), cfg, log, {
         defaultBase: DEFAULT_BASE_BRANCH,
         statuses: Object.fromEntries(items.map((it) => [it.issue, it.status])),
+        onFacts: (f) => syncTargets.push(topicSyncTarget(f)),
     }).catch((e) => log(`epic topic PR error: ${e.message}`));
+    // topic → develop の PR が develop と競合していたら、develop を topic に取り込む（#2485）
+    await applyEpicTopicSync(syncTargets, cfg, state, log, topicSyncDeps(cfg, state, log, items))
+        .catch((e) => log(`epic topic sync error: ${e.message}`));
     // 時刻が来たタスク（1 回・定期）を worker で実行する（fire-and-forget）。Issue の worker を先に計画し、
     // 残りの枠（全体・重い・空きメモリ）でタスクを始める（planExtraSlots）
     learnTasks.applyDueTasks(cfg, state, log, { workerCommand, planSlots: (cands) => planExtraSlots(cands, cfg, state) })
@@ -2808,6 +2919,12 @@ async function refreshBoard(cfg, state, log, deps = {}) {
                 parent: extra.parent || null,
                 // リリース確認（#2430）のプレビュー。段の結果か「確認の結果を書く」で知ったものだけ（定期では取らない）
                 previewUrl: (state.releasePreviews && state.releasePreviews[it.issue]) || null,
+                // リリース確認の確認ページ（#2474）。worker が作った artifact の URL（状態ファイルに残す）
+                releasePageUrl: releasePageUrl(state.releasePages, it.issue),
+                // 全部 OK でマージを待っている EPIC（#2544）。「あなた宛て」の主ボタンを「develop へマージする」にする
+                releaseMerge: releaseCheckHttp.releaseMergeOf(state, it),
+                // topic → develop の PR は merged なのに開いたままの EPIC（#2544 の予備の口）。主ボタンを「EPIC を閉じる」にする
+                epicCloseOffer: releaseCheckHttp.epicCloseOfferOf(state, it),
             });
         }
         state.board = { updatedAt: cfg.now(), items: enriched };
@@ -2870,6 +2987,10 @@ async function refreshBoardAndProjectTrackers(cfg, state, log, deps = {}) {
     if (entered.length && !state.paused && !deps.noTickAfterEntry) {
         runTickOnce(cfg, state, log).catch((e) => log(`tick after release check entry error: ${e.message}`));
     }
+    // 人間が GitHub で topic → develop の PR をマージした Release Check の EPIC を閉じる（ほかの EPIC は「EPIC を閉じる」を出す・#2544）
+    await releaseCheckHttp.applyReleaseMergedEpics(
+        state.board ? state.board.items : [], cfg, state, log, { patchBoardCache, ...(deps.releaseMerged || {}) },
+    ).catch((e) => log(`release merged epics failed: ${e.message}`));
 }
 
 /**
@@ -3117,6 +3238,8 @@ function startHttp(cfg, state, log) {
         if (handleBlockedHttp(req, res, url, state.blockedHub)) return;
         // モニターで質問に答える（POST /answer）。書き込みの受け口はここ 1 か所
         if (monitorAnswers.handleAnswerHttp(req, res, url, answerHttpContext(cfg, state, log))) return;
+        // bin/autopilot-ask が Issue に書いた質問を置き場に載せる（POST /questions・#2565）
+        if (monitorAnswers.handleQuestionsHttp(req, res, url, state.answerStore ? { store: state.answerStore, state, log } : null)) return;
         // モニターの「AI に任せる」（POST /delegate・#2404）。🙋 を外す流れは /answer と同じ（releaseHumanGate）
         if (monitorAnswers.handleDelegateHttp(req, res, url, delegateHttpContext(cfg, state, log))) return;
         // リリース確認の観点を見せる・結果を受ける（GET /release-check・POST /release-check/review・#2430）
@@ -3422,6 +3545,8 @@ async function main(opts = {}) {
         // booting は最初の Project 情報の取得が終わるまで true（その間の /tick 等を断る・#1510）
         paused: false, pausedBy: null, pausedAt: null, authError: null, reauth: null, booting: true, bootWait: null,
         running: new Map(), ticking: false, claudeUsage: null,
+        // issue → この daemon が直前に反映した結果の実作業系 AI Status（受け渡しと stalled の区別・#2582）
+        handOffs: new Map(),
         usagePause: null, usageOverrides: {},
         version: null, autopilotUpdate: null,
     };
@@ -3437,6 +3562,8 @@ async function main(opts = {}) {
     process.on('exit', () => { try { shutdownTerminal(); } catch { /* noop */ } });
     // 現在地の artifact の URL・最終更新（#2388）は再起動をまたいで残す
     state.currentStatusState = currentStatusJob.loadCurrentStatusState(cfg);
+    state.releasePages = releaseCheckHttp.loadReleasePages();
+    state.releaseMerges = releaseCheckHttp.loadReleaseMerges();
     currentStatusJob.refreshCurrentStatusView(state);
     // プロセスレベルの安全網（#949/#953）: fire-and-forget な非同期経路のエラーを捕捉し、
     // 認証系は auto-pause で耐え、未知の非認証エラーは Node 準拠で exit（supervisor が再起動）。
@@ -3484,7 +3611,10 @@ async function main(opts = {}) {
     // 既に子が topic に入っている EPIC の topic → develop の PR をそろえる（#2473・起動時に 1 回・fire-and-forget）。
     // 人間の一時停止中は GitHub に書かない（次の topic へのマージか、再開後の起動でそろう）
     if (!state.paused) {
-        bootEpicTopicPrs(cfg, log, { defaultBase: DEFAULT_BASE_BRANCH })
+        const bootSync = [];
+        bootEpicTopicPrs(cfg, log, { defaultBase: DEFAULT_BASE_BRANCH, onFacts: (f) => bootSync.push(topicSyncTarget(f)) })
+            // 起動時に競合を見つけたものは、取り込みの追跡に載せる（次の tick で取り込む・#2485）
+            .then(() => applyEpicTopicSync(bootSync, cfg, state, log, topicSyncDeps(cfg, state, log, [])))
             .catch((e) => log(`epic topic PR (boot) error: ${e.message}`));
     }
     /* eslint-disable no-constant-condition */
@@ -3508,10 +3638,10 @@ async function main(opts = {}) {
 
 module.exports = {
     currentSchedulerLimits, readResources, planDispatch, setItemPriority, setSchedulerOverrides,
-    main, tick, runTickOnce, dispatch, applyMergeProgression, applyClosedReconcile, applyPrProjection,
+    main, tick, runTickOnce, dispatch, applyMergeProgression, applyClosedReconcile, isIssueClosedAfterRun, applyPrProjection,
     cleanupIssueWorktree,
     listProcesses, stopWorktreeLeftovers, applyLeftoverSweep,
-    applyDodHandoffs, detectStuck, recoverOrphanedWorkers, recoverStalledInFlightWorkers,
+    applyDodHandoffs, detectStuck, recoverOrphanedWorkers, recoverStalledInFlightWorkers, rememberHandOff,
     markBlocked, getDirectives, populateAssigneeDirectives,
     applyLabelHealing, applyAfterWaitLabels,
     applyDecomposeSubIssueSetup,

@@ -81,10 +81,20 @@ const MAX_OPTIONS = 10;
 function validateQuestions(obj, errors) {
     if (obj.questions == null) return;
     if (obj.signal !== 'hitl') { errors.push('questions is allowed only when signal=hitl'); return; }
-    const qs = obj.questions;
+    errors.push(...questionListErrors(obj.questions));
+}
+
+/**
+ * 質問の一覧（`questions`）そのものの検証。worker の結果と `bin/autopilot-ask`（#2565）が同じ形を通るように、
+ * 形の検証はここ 1 か所に置く。
+ * @param {*} qs
+ * @returns {string[]} エラー（空なら正しい）
+ */
+function questionListErrors(qs) {
+    const errors = [];
     if (!Array.isArray(qs) || qs.length === 0 || qs.length > MAX_QUESTIONS) {
         errors.push(`questions must be an array of 1..${MAX_QUESTIONS} items`);
-        return;
+        return errors;
     }
     const ids = new Set();
     qs.forEach((q, i) => {
@@ -110,6 +120,7 @@ function validateQuestions(obj, errors) {
         });
         if (q.recommended != null && !keys.has(q.recommended)) errors.push(`${at}.recommended must be one of the option keys`);
     });
+    return errors;
 }
 
 /**
@@ -204,5 +215,5 @@ function detectToken(paneText) {
 }
 
 module.exports = {
-    TOKENS, SIGNALS, QUESTION_ID_RE, OPTION_KEY_RE, MAX_QUESTIONS, MAX_OPTIONS, VALID_SIZES, VALID_KINDS, VALID_HITL_KINDS, VALID_DECISION_KINDS, validateResult, readResultFile, detectToken,
+    TOKENS, SIGNALS, QUESTION_ID_RE, OPTION_KEY_RE, MAX_QUESTIONS, MAX_OPTIONS, VALID_SIZES, VALID_KINDS, VALID_HITL_KINDS, VALID_DECISION_KINDS, validateResult, questionListErrors, readResultFile, detectToken,
 };

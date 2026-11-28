@@ -122,8 +122,24 @@ jobs:
         uses: ./.github/actions/install-dependencies
       - name: Build dependency packages
         run: npm run build:dev --workspace=packages/scratch-svg-renderer --workspace=packages/scratch-render --workspace=packages/scratch-vm
+      # The github-actions reporter shows each failed test (with the expected / received diff) as a
+      # check-run annotation, which can be read from the container via api.github.com
+      # (.claude/rules/ci-failure-logs.md). The CLI --reporters replaces the reporters of package.json
+      # and drops their options, so default / jest-junit are listed again and the jest-junit output
+      # directory is given by JEST_JUNIT_OUTPUT_DIR.
       - name: Run scratch-gui Unit Tests
-        run: npm run test:unit --workspace=packages/scratch-gui
+        id: unit-tests
+        env:
+          JEST_JUNIT_OUTPUT_DIR: test-results
+        run: >-
+          npm run test:unit --workspace=packages/scratch-gui --
+          --reporters=default --reporters=github-actions --reporters=jest-junit
+          --json --outputFile=jest-results.json
+      # GitHub keeps 10 error annotations per step and none for a test file that fails to run,
+      # so list every failure in one annotation as well.
+      - name: List failed scratch-gui Unit Tests
+        if: failure() && steps.unit-tests.outcome == 'failure'
+        run: node scripts/jest-failures-annotation.mjs packages/scratch-gui/jest-results.json
 
   integration-test-vm:
     runs-on: ubuntu-26.04
@@ -232,10 +248,18 @@ jobs:
         run: npm run build:dev
       - name: Create test-results directories
         run: mkdir -p packages/scratch-gui/test-results
+      # Failed tests as check-run annotations: see the scratch-gui unit tests.
       - name: Run scratch-gui Integration Tests
+        id: integration-tests
         env:
           JEST_JUNIT_OUTPUT_DIR: packages/scratch-gui/test-results
-        run: npm run test:integration --workspace=packages/scratch-gui -- --shard=${{ matrix.shard }}/2
+        run: >-
+          npm run test:integration --workspace=packages/scratch-gui -- --shard=${{ matrix.shard }}/2
+          --reporters=default --reporters=github-actions --reporters=jest-junit
+          --json --outputFile=jest-results.json
+      - name: List failed scratch-gui Integration Tests
+        if: failure() && steps.integration-tests.outcome == 'failure'
+        run: node scripts/jest-failures-annotation.mjs packages/scratch-gui/jest-results.json
       - name: Store Test Results
         if: always() # Even if tests fail
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -384,7 +408,8 @@ jobs:
         if: steps.site.outputs.enabled == 'true'
         run: |
           set -euo pipefail
-          node --test scripts/precompress-assets.test.mjs
+          node --test scripts/precompress-assets.test.mjs scripts/cache-policy.test.mjs \
+            scripts/prune-old-assets.test.mjs
           node scripts/precompress-assets.mjs packages/scratch-gui/dist
       - name: Upload to the S3 site bucket
         if: steps.site.outputs.enabled == 'true'
@@ -392,11 +417,35 @@ jobs:
           BUCKET: ${{ vars.SITE_BUCKET_NAME }}
         run: |
           set -euo pipefail
-          # upload <src dir> <s3 prefix> <extra sync options...>
-          # Same cache rules as the preview (docs/infra/smalruby-web-hosting.md): file names with a
-          # hash are immutable, the rest (index.html, service-worker.js, version.json, .well-known,
-          # auth-redirect.*) are re-checked on every load. Types aws s3 may guess wrong (.wasm /
-          # .mjs / .hex) are uploaded with an explicit Content-Type.
+          # prune <src dir> <key prefix> <prune-old-assets options...>
+          # Remove what the new build no longer has, but keep the files of older builds whose
+          # names change with each build (hash / Monaco version) for 14 days, since tabs opened
+          # before the deploy still load them (#2514, docs/hosting/README.md).
+          prune() {
+            local src="$1" prefix="$2" listing batches f errors
+            shift 2
+            listing="$(mktemp)"
+            batches="$(mktemp -d)"
+            aws s3api list-objects-v2 --bucket "${BUCKET}" --prefix "${prefix}" --output json \
+              --query '{Contents: Contents[].{Key: Key, LastModified: LastModified}}' > "${listing}"
+            node scripts/prune-old-assets.mjs --src "${src}" --listing "${listing}" \
+              --batch-dir "${batches}" --prefix "${prefix}" "$@"
+            for f in "${batches}"/delete-*.json; do
+              [ -e "${f}" ] || continue
+              errors="$(aws s3api delete-objects --bucket "${BUCKET}" --delete "file://${f}" \
+                --query 'Errors[].Key' --output text)"
+              if [ -n "${errors}" ] && [ "${errors}" != "None" ]; then
+                echo "::warning::could not remove: ${errors}"
+              fi
+            done
+          }
+          # upload <src dir> <key prefix> <prune-old-assets options...>
+          # Same cache rules as the preview, decided by scripts/cache-policy.mjs (docs/hosting/README.md
+          # "キャッシュ"): paths that change with the content (a hash in the name, the monaco version
+          # directory, md5-named smalruby-assets) are immutable, blocks-media is kept for a day, the
+          # rest (index.html, service-worker.js, version.json, .well-known, auth-redirect.*) are
+          # re-checked on every load. Types aws s3 may guess wrong (.wasm / .mjs / .hex) are uploaded
+          # with an explicit Content-Type.
           # The pre-compressed gui JS (gui.<hash>.js.br / .gz) go up with cp, before index.html,
           # with the Cache-Control of the original, Content-Type text/javascript and
           # Content-Encoding br / gzip (aws s3 sync would guess the headers from the extension).
@@ -409,63 +458,50 @@ jobs:
                 *.br) enc=br ;;
                 *) enc=gzip ;;
               esac
-              if printf '%s' "${name}" | grep -qE '\.[0-9a-f]{8,}\.'; then
-                cache='public, max-age=31536000, immutable'
-              else
-                cache='max-age=0, s-maxage=60'
-              fi
+              # An assignment, so set -e stops here if the script fails (not an empty header).
+              cache="$(node scripts/cache-policy.mjs header "${name}")"
               aws s3 cp "${f}" "${dest}${name}" --only-show-errors \
                 --content-type 'text/javascript' --content-encoding "${enc}" --cache-control "${cache}"
             done
           }
           upload() {
-            local src="$1" dest="$2"
+            local src="$1" prefix="$2" dest="s3://${BUCKET}/$2"
             shift 2
-            local hashed plain
-            hashed="$(mktemp -d)"
-            plain="$(mktemp -d)"
-            (cd "${src}" && find . -type f ! -name '.DS_Store' ! -name '.nojekyll' ! -name 'CNAME' \
-              ! -path './gui*.js.br' ! -path './gui*.js.gz' -print0) |
-              while IFS= read -r -d '' f; do
-                if printf '%s' "${f}" | grep -qE '\.[0-9a-f]{8,}\.'; then
-                  to="${hashed}"
-                else
-                  to="${plain}"
-                fi
-                mkdir -p "${to}/$(dirname "${f}")"
-                cp -p "${src}/${f}" "${to}/${f}"
-              done
+            local split listing cls cache
+            split="$(mktemp -d)"
+            # Not a process substitution: set -e must stop the deploy when the split fails.
+            listing="$(node scripts/cache-policy.mjs split "${src}" "${split}")"
+            local classes=()
+            mapfile -t classes <<< "${listing}"
             local typed=(--exclude '*.wasm' --exclude '*.mjs' --exclude '*.hex')
-            aws s3 sync "${hashed}" "${dest}" --only-show-errors "${typed[@]}" \
-              --cache-control 'public, max-age=31536000, immutable'
-            upload_precompressed "${src}" "${dest}"
-            aws s3 sync "${plain}" "${dest}" --only-show-errors "${typed[@]}" \
-              --cache-control 'max-age=0, s-maxage=60'
-            local ext type dir cache
+            # Long-lived files first, so index.html never points at something not uploaded yet.
+            for spec in "${classes[@]}"; do
+              cls="${spec%%$'\t'*}"
+              cache="${spec#*$'\t'}"
+              if [ "${cls}" = revalidate ]; then
+                upload_precompressed "${src}" "${dest}"
+              fi
+              aws s3 sync "${split}/${cls}" "${dest}" --only-show-errors "${typed[@]}" \
+                --cache-control "${cache}"
+            done
+            local ext type
             for spec in 'wasm:application/wasm' 'mjs:text/javascript' 'hex:application/octet-stream'; do
               ext="${spec%%:*}"
               type="${spec#*:}"
-              for dir in "${hashed}" "${plain}"; do
-                if [ "${dir}" = "${hashed}" ]; then
-                  cache='public, max-age=31536000, immutable'
-                else
-                  cache='max-age=0, s-maxage=60'
-                fi
-                aws s3 sync "${dir}" "${dest}" --only-show-errors \
+              for c in "${classes[@]}"; do
+                aws s3 sync "${split}/${c%%$'\t'*}" "${dest}" --only-show-errors \
                   --exclude '*' --include "*.${ext}" \
-                  --content-type "${type}" --cache-control "${cache}"
+                  --content-type "${type}" --cache-control "${c#*$'\t'}"
               done
             done
-            # Remove what the new build no longer has. Everything left was just uploaded, so
-            # --size-only keeps sync from re-uploading it (which would drop the Cache-Control).
-            # The .br / .gz are in src too, so they stay; the ones of an old gui are removed.
-            aws s3 sync "${src}" "${dest}" --delete --size-only --only-show-errors \
-              --exclude '.DS_Store' --exclude '.nojekyll' --exclude 'CNAME' "$@"
+            # The .br / .gz are in src too, so they stay; the ones of an old gui are hashed and
+            # stay for the retention like the old gui.<hash>.js.
+            prune "${src}" "${prefix}" "$@"
           }
-          # The editor at the root. admin/ is its own deploy below, so --delete must not touch it.
-          upload packages/scratch-gui/dist "s3://${BUCKET}/" --exclude 'admin/*'
-          # Admin SPA at /admin/ (--delete stays inside admin/).
-          upload packages/admin/build "s3://${BUCKET}/admin/"
+          # The editor at the root. admin/ is its own deploy below, so the prune must not touch it.
+          upload packages/scratch-gui/dist '' --exclude-prefix 'admin/'
+          # Admin SPA at /admin/ (the prune stays inside admin/).
+          upload packages/admin/build 'admin/'
       - name: Invalidate the S3 site
         if: steps.site.outputs.enabled == 'true'
         env:
@@ -618,7 +654,8 @@ jobs:
         if: steps.check.outputs.enabled == 'true'
         run: |
           set -euo pipefail
-          node --test scripts/precompress-assets.test.mjs
+          node --test scripts/precompress-assets.test.mjs scripts/cache-policy.test.mjs \
+            scripts/prune-old-assets.test.mjs
           node scripts/precompress-assets.mjs packages/scratch-gui/build
       - name: Upload to s3://<bucket>/<slug>/
         if: steps.check.outputs.enabled == 'true'
@@ -629,48 +666,46 @@ jobs:
           set -euo pipefail
           build=packages/scratch-gui/build
           dest="s3://${BUCKET}/${SLUG}/"
-          # Split the build by cache lifetime (docs/infra/smalruby-web-hosting.md): file names with
-          # a hash (same rule as Workbox's dontCacheBustURLsMatching) are immutable, the rest
-          # (index.html, gui.js, sw.js, ...) are re-checked on every load.
-          hashed="$(mktemp -d)"
-          plain="$(mktemp -d)"
-          (cd "${build}" && find . -type f ! -name '.DS_Store' \
-            ! -path './gui*.js.br' ! -path './gui*.js.gz' -print0) |
-            while IFS= read -r -d '' f; do
-              if printf '%s' "${f}" | grep -qE '\.[0-9a-f]{8,}\.'; then
-                to="${hashed}"
-              else
-                to="${plain}"
-              fi
-              mkdir -p "${to}/$(dirname "${f}")"
-              cp -p "${build}/${f}" "${to}/${f}"
-            done
-          aws s3 sync "${hashed}" "${dest}" --only-show-errors \
-            --cache-control 'public, max-age=31536000, immutable'
-          # The pre-compressed gui.js.br / .gz, before index.html (same as production: explicit
-          # Content-Type / Content-Encoding, the Cache-Control of gui.js).
-          for f in "${build}"/gui*.js.br "${build}"/gui*.js.gz; do
-            [ -e "${f}" ] || continue
-            name="$(basename "${f}")"
-            case "${name}" in
-              *.br) enc=br ;;
-              *) enc=gzip ;;
-            esac
-            if printf '%s' "${name}" | grep -qE '\.[0-9a-f]{8,}\.'; then
-              cache='public, max-age=31536000, immutable'
-            else
-              cache='max-age=0, s-maxage=60'
+          # Split the build by cache lifetime with the same rules as production
+          # (scripts/cache-policy.mjs, docs/hosting/README.md "キャッシュ"). Long-lived files go up
+          # first, then the pre-compressed gui.js.br / .gz (explicit Content-Type /
+          # Content-Encoding, the Cache-Control of gui.js), then index.html and the other entries.
+          split="$(mktemp -d)"
+          # Not a process substitution: set -e must stop the deploy when the split fails.
+          listing="$(node scripts/cache-policy.mjs split "${build}" "${split}")"
+          while IFS=$'\t' read -r cls cache; do
+            if [ "${cls}" = revalidate ]; then
+              for f in "${build}"/gui*.js.br "${build}"/gui*.js.gz; do
+                [ -e "${f}" ] || continue
+                name="$(basename "${f}")"
+                case "${name}" in
+                  *.br) enc=br ;;
+                  *) enc=gzip ;;
+                esac
+                # An assignment, so set -e stops here if the script fails (not an empty header).
+                gui_cache="$(node scripts/cache-policy.mjs header "${name}")"
+                aws s3 cp "${f}" "${dest}${name}" --only-show-errors \
+                  --content-type 'text/javascript' --content-encoding "${enc}" --cache-control "${gui_cache}"
+              done
             fi
-            aws s3 cp "${f}" "${dest}${name}" --only-show-errors \
-              --content-type 'text/javascript' --content-encoding "${enc}" --cache-control "${cache}"
+            aws s3 sync "${split}/${cls}" "${dest}" --only-show-errors --cache-control "${cache}"
+          done <<< "${listing}"
+          # Remove what the new build no longer has, with the same rule as production: files of
+          # older builds whose names change with each build stay for 14 days (#2514).
+          prune_listing="$(mktemp)"
+          batches="$(mktemp -d)"
+          aws s3api list-objects-v2 --bucket "${BUCKET}" --prefix "${SLUG}/" --output json \
+            --query '{Contents: Contents[].{Key: Key, LastModified: LastModified}}' > "${prune_listing}"
+          node scripts/prune-old-assets.mjs --src "${build}" --listing "${prune_listing}" \
+            --batch-dir "${batches}" --prefix "${SLUG}/"
+          for f in "${batches}"/delete-*.json; do
+            [ -e "${f}" ] || continue
+            errors="$(aws s3api delete-objects --bucket "${BUCKET}" --delete "file://${f}" \
+              --query 'Errors[].Key' --output text)"
+            if [ -n "${errors}" ] && [ "${errors}" != "None" ]; then
+              echo "::warning::could not remove: ${errors}"
+            fi
           done
-          aws s3 sync "${plain}" "${dest}" --only-show-errors \
-            --cache-control 'max-age=0, s-maxage=60'
-          # Remove what the new build no longer has. Everything left was just uploaded, so
-          # --size-only keeps sync from re-uploading it (which would drop the Cache-Control).
-          # The .br / .gz are in build too, so they stay.
-          aws s3 sync "${build}" "${dest}" --delete --size-only --only-show-errors \
-            --exclude '.DS_Store'
       # Microsoft login returns to window.location.origin + '/auth-redirect.html', i.e. the
       # bucket root, which every preview shares. Only develop writes it, so a branch cannot
       # break the login of the other previews.

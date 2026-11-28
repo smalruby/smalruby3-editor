@@ -22,7 +22,7 @@ Claude Code が行うコミット・push・PR 作成/マージ・Issue 操作を
 | 実行者 | コマンド | identity / 認証 |
 |---|---|---|
 | **人間（Claude 外）** | 通常の `git` / `gh` | global の `Kouji Takao` + 環境の `GH_TOKEN`（takaokouji） |
-| **Claude（自律操作）** | `bin/bot-git` / `GH_TOKEN="$(bin/bot-token)" gh` | `smalruby3-editor-bot[bot]` + installation token |
+| **Claude（自律操作）** | `bin/bot-git` / `bin/bot-gh` | `smalruby3-editor-bot[bot]` + installation token |
 
 > ⚠️ **共有 `.git/config` を Bot に書き換えてはいけない**（`git config user.email` 等を直接
 > Bot にすると、人間の手動コミットまで Bot 名義になる）。Bot 名義は必ず `bin/bot-git` の
@@ -110,23 +110,45 @@ Organization permissions（GitHub Projects v2 を操作する場合のみ）:
 
 ## 使い方（Claude の日常操作）
 
-Claude が Bot 名義で操作するときは、必ず `bin/bot-git` か `GH_TOKEN="$(bin/bot-token)" gh` を使う。
+Claude が Bot 名義で操作するときは、必ず `bin/bot-git` か `bin/bot-gh` を使う。
 **plain `git` / plain `gh` は人間名義になる**ので Bot 操作には使わない。
 
 - **コミット**: `bin/bot-git commit -m "..."`（author/committer が Bot になる）
 - **push**: `bin/bot-git push -u origin <branch>`（Bot トークンで認証）
-- **gh コマンド**: トークンを都度注入する（Claude の Bash は env を保持しないため）:
+- **gh コマンド**: `bin/bot-gh` で呼ぶ（Bot のトークンを毎回渡す。Claude の Bash は env を保持しないため）:
   ```bash
-  GH_TOKEN="$(bin/bot-token)" gh pr create ...
-  GH_TOKEN="$(bin/bot-token)" gh pr merge <n> --merge --delete-branch
-  GH_TOKEN="$(bin/bot-token)" gh pr checks <n>
+  bin/bot-gh pr create ...
+  bin/bot-gh pr merge <n> --merge --delete-branch
+  bin/bot-gh pr checks <n>
   ```
 - **GraphQL / Projects v2**:
   ```bash
-  GH_TOKEN="$(bin/bot-token)" gh api graphql -f query='...'
+  bin/bot-gh api graphql -f query='...'
   ```
 
 トークンは 1 時間で失効するが、`bin/bot-token` が 50 分でキャッシュを自動更新するので運用負担はない。
+
+### トークンが取れないときは止まる
+
+AWS SSO のログインが切れるなどで `bin/bot-token` が失敗したとき、Bot の操作は**個人の名義で続けずに失敗する**。
+
+| コマンド | トークンが取れないとき |
+|---|---|
+| `bin/bot-gh ...` | gh を呼ばずに非 0 で終わり、直し方を出す |
+| `bin/bot-git push` / `fetch` | credential helper が `quit=1` を返し、git が止まる（空のパスワードや別の認証で続けない） |
+| `bin/bot-token`（既定のモード） | stderr に理由を出し、stdout に `BOT_TOKEN_UNAVAILABLE` を出して非 0 で終わる |
+| daemon（`project.botToken()`） | 例外にして auto-pause（`pausedBy: "auth"`）。空の出力も同じ扱い |
+
+`GH_TOKEN="$(bin/bot-token)" gh ...` の形は使わない。`GH_TOKEN` が空だと、gh は黙ってコンテナの個人のトークン
+（`gh auth` の設定）を使い、人間の名義で書き込む。`bin/bot-token` が失敗時に空ではなく `BOT_TOKEN_UNAVAILABLE` を
+出すのは、この形が残っていても gh を 401 で失敗させるための保険。
+
+直し方:
+
+```bash
+aws sso login --sso-session smalruby --use-device-code   # 出た URL をホストのブラウザで承認
+bin/bot-token --whoami                                   # app=... / installation token ok になれば回復
+```
 
 ### `bin/bot-git` の仕組み
 

@@ -39,7 +39,7 @@ for (const h of d.history.slice(0,10)) console.log(new Date(h.endedAt).toISOStri
 
 **Blocked の item（`check autopilot #<issue>` で特定 Issue を指されたときは必ず）**
 1. Issue の bot コメント（Blocked 理由）を読む:
-   `GH_TOKEN="$(bin/bot-token)" gh issue view <N> --repo smalruby/smalruby3-editor --json title,body,comments`
+   `bin/bot-gh issue view <N> --repo smalruby/smalruby3-editor --json title,body,comments`
 2. 実行履歴（/board の history）と、あれば worktree
    （`bin/autopilot-worktree path <N>`）の状態（`git -C <path> status` / `tmp/autopilot-result-<N>.json`）を確認。
 3. 原因を特定して要約し、次の選択肢を提示する（勝手に実行しない。ユーザーの指示を待つ）:

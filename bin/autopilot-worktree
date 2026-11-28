@@ -22,6 +22,9 @@
 #     同じときだけ main へ symlink し、違えば lock でキーにした共有の置き場
 #     （`<WT_ROOT>/.infra-node-modules/`）で 1 回だけ `npm ci` してそこへ symlink する
 #     （Issue #1454 / #1456）。
+#   - Bot 名義のコマンドのうちブランチにまだ無いもの（`bin/bot-gh`）を main へ symlink。
+#     プロンプトは daemon の checkout（main）のものを使うので、develop を取り込んでいない
+#     topic ブランチの worktree でも同じコマンドが動くようにする（Issue #2534）。
 #
 # 制約（lightweight モードの前提）:
 #   - **単一パッケージのソース編集**を想定。`@smalruby/<pkg>` は main checkout に
@@ -234,6 +237,17 @@ exclude_node_modules() {
         } >> "${exclude}"
         echo "excluded: infra node_modules symlinks via ${exclude}"
     fi
+
+    # Bot 名義のコマンドの symlink も同様（Issue #2534）。追跡されていないファイルなので無視させる。
+    # 無視しているので、develop を取り込んで追跡されたファイルが来たときは merge が上書きする。
+    local bot_marker="# autopilot: ignore bot helper symlinks missing on the branch (Issue #2534)"
+    if ! grep -qxF "${bot_marker}" "${exclude}" 2>/dev/null; then
+        {
+            echo "${bot_marker}"
+            echo "bin/bot-gh"
+        } >> "${exclude}"
+        echo "excluded: bot helper symlinks via ${exclude}"
+    fi
 }
 
 # 各 packages/*/node_modules を main へ symlink（無い場合のみ）
@@ -308,6 +322,28 @@ link_husky_helpers() {
     mkdir -p "$(dirname "${dst}")"
     ln -s "${src}" "${dst}"
     echo "linked: .husky/_ -> main"
+}
+
+# Bot 名義のコマンドのうち、ブランチにまだ無いものを main へ symlink する（Issue #2534）。
+# daemon の起動時のプロンプト（main の checkout のもの）は `bin/bot-gh` を使うが、develop を
+# 取り込んでいない topic ブランチ（EPIC の sub-issue の base）の worktree には無く、worker の
+# gh がすべて `No such file` で失敗する。ブランチが追跡しているときは触らない。
+# symlink の bin/bot-gh は自分の置き場（worktree の bin/）の bot-token を呼ぶ。
+BOT_HELPERS=(bot-gh)
+link_bot_helpers() {
+    local wt="$1" name src dst
+    for name in "${BOT_HELPERS[@]}"; do
+        src="${MAIN_CHECKOUT}/bin/${name}"
+        dst="${wt}/bin/${name}"
+        [[ -e "${src}" && "${src}" != "${dst}" ]] || continue
+        if [[ -L "${dst}" && ! -e "${dst}" ]]; then
+            rm -f "${dst}"
+        fi
+        if [[ -e "${dst}" || -L "${dst}" ]]; then continue; fi
+        mkdir -p "$(dirname "${dst}")"
+        ln -s "${src}" "${dst}"
+        echo "linked: bin/${name} -> main"
+    done
 }
 
 # infra の依存を worktree 間で共有する置き場（Issue #1456）。
@@ -596,6 +632,9 @@ cmd_create() {
         # infra の依存は worktree の lock に合わせる（一致すれば symlink・違えば npm ci。#1454）
         link_infra_node_modules "${wt}"
     fi
+
+    # ブランチにまだ無い Bot 名義のコマンドを main へ symlink（--full でも同じ。#2534）
+    link_bot_helpers "${wt}"
 
     # symlink した node_modules / prepare 生成物を確実に無視させる保険（base が古くても効く）
     exclude_node_modules "${wt}"

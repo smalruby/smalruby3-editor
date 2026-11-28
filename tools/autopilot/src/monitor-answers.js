@@ -21,6 +21,7 @@ const {
     planMonitorAnswerComments, renderMonitorAnswersForPrompt, sanitizeForSurface, HITL_LABEL,
     normalizeDelegateBody, planDelegate, normalizeDelegateInstruction, planMonitorInstructionPost,
     renderMonitorInstructionComment, openPrNumber, reviewFindingsView,
+    normalizeQuestionsRegistration, planQuestionsRegistration,
 } = require('./phases');
 
 /** 既定の GitHub の I/O（テストは deps で差し替える。実 GitHub に触るテストを書かない） */
@@ -161,6 +162,66 @@ async function answerOnce(ctx, body) {
 }
 
 /**
+ * 質問のまとめコメントを Issue に書く（同じ質問なら書かない・round は前の質問のコメントから続ける）。
+ * worker の結果（{@link recordHitlQuestions}）と `bin/autopilot-ask`（ask.js・#2565）が同じ道を通る。
+ * 失敗は throw（呼ぶ側が扱いを決める）。
+ * @param {string} repo
+ * @param {number} issue
+ * @param {object[]} questions 検証済みの questions
+ * @param {object} opts { phase, reason }
+ * @param {object} io { applyCommentPlans, readToken }
+ * @param {string} token Bot のトークン（書き込み）
+ * @returns {Promise<{action:'post'|'skip', round:number, body:string}>}
+ */
+async function writeQuestionsComment(repo, issue, questions, opts, io, token) {
+    let plan = null;
+    await io.applyCommentPlans(repo, issue, (comments) => {
+        plan = planMonitorQuestionsComment(comments, issue, questions, opts);
+        return plan.action === 'post' ? [{ ...plan, keepId: null, deleteIds: [] }] : [];
+    }, token, { readToken: await io.readToken() });
+    return plan;
+}
+
+/**
+ * `bin/autopilot-ask` が Issue に書いた質問を置き場に載せる（`POST /questions` の中身・#2565）。
+ * GitHub には触らない（コメントは道具が先に書いてある）。同じ round の同じ質問は置き直さない
+ * （人間のメモを消さない）。
+ * @param {object} ctx { store, state, log }
+ * @param {object} body `{issue, round, questions, phase?, reason?}`
+ * @returns {{status:number, body:object}}
+ */
+function registerQuestionsOnce(ctx, body) {
+    const reg = normalizeQuestionsRegistration(body);
+    if (!reg.ok) return { status: 400, body: { error: reg.error } };
+    const { store, state, log } = ctx;
+    const plan = planQuestionsRegistration(store.get(reg.issue), reg, {
+        running: Boolean(state && state.running && state.running.has(reg.issue)),
+    });
+    if (!plan.ok) return { status: plan.status, body: { error: plan.error, issue: reg.issue } };
+    if (plan.action === 'set') {
+        store.setQuestions(reg.issue, {
+            phase: reg.phase, round: reg.round, reason: sanitizeForSurface(reg.reason || ''), questions: reg.questions,
+        });
+        if (log) log(`#${reg.issue}: monitor questions registered (round ${reg.round}, ${reg.questions.length} questions)`);
+    }
+    return { status: 200, body: { issue: reg.issue, round: reg.round, action: plan.action } };
+}
+
+/**
+ * daemon の HTTP に `POST /questions` を足す（#2565）。扱ったら true を返す。
+ * 合言葉と Host / Origin の確かめは、ここを呼ぶ前の startHttp の守りが行う。
+ * @param {object} req
+ * @param {object} res
+ * @param {URL} url
+ * @param {object} ctx { store, state, log }
+ * @returns {boolean}
+ */
+function handleQuestionsHttp(req, res, url, ctx) {
+    if (!ctx || !ctx.store || url.pathname !== '/questions') return false;
+    return readJsonPost(req, res, async (body) => registerQuestionsOnce(ctx, body));
+}
+
+/**
  * worker の hitl の結果に questions があれば、置き場に置き、Issue にマーカー付きで書く（冪等）。
  * Issue に書けなくても置き場には置く（モニターでは答えられる。答えのコメントは別に書く）。
  * @param {number} issue
@@ -177,10 +238,7 @@ async function recordHitlQuestions(issue, result, ctx, deps = {}) {
     const opts = { phase: result.phase, reason: result.reason };
     let plan = null;
     try {
-        await io.applyCommentPlans(ctx.cfg.repo, issue, (comments) => {
-            plan = planMonitorQuestionsComment(comments, issue, result.questions, opts);
-            return plan.action === 'post' ? [{ ...plan, keepId: null, deleteIds: [] }] : [];
-        }, await io.botToken(), { readToken: await io.readToken() });
+        plan = await writeQuestionsComment(ctx.cfg.repo, issue, result.questions, opts, io, await io.botToken());
     } catch (e) {
         ctx.log(`#${issue}: monitor questions comment failed: ${sanitizeForSurface(e.message)}`);
     }
@@ -429,5 +487,6 @@ function deliverMonitorAnswers(issue, cwd, state, deps = {}) {
 }
 
 module.exports = {
+    writeQuestionsComment, registerQuestionsOnce, handleQuestionsHttp,
     releaseHumanGate, delegateOnce, findingsOnce, handleDelegateHttp,
     recordHitlQuestions, proceedMonitorAnswer, deliverMonitorAnswers, createAnswerStore, handleAnswerHttp, answerOnce, MAX_BODY_BYTES };

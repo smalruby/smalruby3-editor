@@ -334,7 +334,9 @@ ${TOKEN_META_EMPTY}
   .chip[aria-pressed="true"] { border-color: var(--ap-ink); font-weight: 600; }
   #schedule { font-size: var(--ap-font-xs); color: var(--ap-muted); padding: 4px 12px; border-bottom: 1px solid var(--ap-line-soft); }
   #schedule button { font-size: var(--ap-font-xs); padding: 0 .3rem; }
-  .tbl-wrap { overflow-x: auto; }
+  /* isolation: 表の中の重なり（固定する列・見出しの z-index）を表の中に閉じる。閉じないと、欄を縦にスクロール
+     したとき表の見出しが欄の見出し（.panel-h・z-index: 2）の上に出る（#2527） */
+  .tbl-wrap { overflow-x: auto; isolation: isolate; }
   #board { border-collapse: collapse; width: 100%; min-width: 720px; font-size: var(--ap-font-sm); }
   #board th { font-size: var(--ap-font-xs); font-weight: 600; color: var(--ap-muted); text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--ap-line);
               white-space: nowrap; background: var(--ap-surface-2); position: sticky; top: 0; z-index: 1; }
@@ -349,6 +351,21 @@ ${TOKEN_META_EMPTY}
   #board td.links .lk svg.ext { opacity: .75; }
   #board tr.kid td { background: var(--ap-surface-2); }
   #board tr.kid td.title { padding-left: 30px; }
+  /* 左の 3 列（開閉・Issue · PR・題名）は横にスクロールしても残す。優先から右だけが動く（#2527）。
+     left は列の実際の幅から JS（placeStickyCols）が --stk-l2 / --stk-l3 に入れる。固定する列には行と同じ
+     不透明な背景を付け（透けると下を通る列の文字が見える）、右端に境目の線を引く */
+  #board th:nth-child(-n+3), #board td:nth-child(-n+3) { position: sticky; z-index: 1; background-color: var(--ap-surface); }
+  #board th { z-index: 2; }
+  #board th:nth-child(-n+3) { z-index: 3; background-color: var(--ap-surface-2); }
+  #board th:nth-child(1), #board td:nth-child(1) { left: 0; }
+  #board th:nth-child(2), #board td:nth-child(2) { left: var(--stk-l2, 28px); }
+  #board th:nth-child(3), #board td:nth-child(3) { left: var(--stk-l3, 140px); box-shadow: inset -1px 0 0 var(--ap-line); }
+  #board tr:hover > td:nth-child(-n+3) { background: linear-gradient(var(--ap-tint-1), var(--ap-tint-1)) var(--ap-surface); }
+  #board tr.kid > td:nth-child(-n+3) { background: var(--ap-surface-2); }
+  /* 右の列まで広がるセル（読み込み中・sub-issue なし）には境目の線を引かない（線が表の右端に出る） */
+  #board td[colspan] { box-shadow: none; }
+  /* 狭い画面では固定する題名を短く切り、右の列が見える幅を残す */
+  @media (max-width: 599px) { #board td.title { min-width: 110px; max-width: 130px; } }
   /* 人間待ちの理由は表では印だけ（言葉は title とあなた宛てに出ている） */
   #board .hw-cell { text-decoration: none; }
   #board .hw-cell .subtext { display: none; }
@@ -432,27 +449,26 @@ ${TOKEN_META_EMPTY}
   .fy-sec-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; padding: 8px 16px 4px; }
   .fy-sec-h .verb { font-weight: 700; color: var(--c); }
   .fy-sec-h .why { flex-basis: 100%; font-size: var(--ap-font-xs); color: var(--ap-muted); }
-  .fy-row { display: grid; grid-template-columns: 2.2em minmax(0, 1fr) auto; gap: 2px 10px; align-items: start; padding: 8px 16px;
+  /* 行は 2 行（#2483）: 1 行目は種類の札と題名だけ（題名を読ませる）、2 行目に番号・優先度・ボタン */
+  .fy-row { display: flex; flex-direction: column; gap: 2px; padding: 8px 16px; min-width: 0;
             border-top: 1px solid var(--ap-line-soft); }
   .fy-sec-h + .fy-row { border-top: 0; }
-  .fy-body { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
   .fy-title { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
   .fy-title .tt { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .fy-title .ilink, .fy-title .small { flex: none; }
+  .fy-title .epicchip { flex: none; margin-right: 0; }
+  .fy-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-width: 0; }
+  .fy-meta .ilink, .fy-meta .small, .fy-meta .gprio { flex: none; white-space: nowrap; }
+  .fy-meta .epicchip { margin-right: 0; }
   .fy-state { font-size: var(--ap-font-sm); color: var(--ap-ink-2); overflow-wrap: anywhere; }
   .fy-happens { font-size: var(--ap-font-xs); color: var(--ap-muted); overflow-wrap: anywhere; }
   .fy-state .ilink, .fy-happens .ilink, .fy-confirm .ilink { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
   .epicchip { font-size: 11px; color: var(--ap-muted); border: 1px solid var(--ap-line); border-radius: var(--ap-radius-sm); padding: 0 4px; margin-right: 4px; }
   .vbtn { font-size: var(--ap-font-xs); font-weight: 700; border-radius: var(--ap-radius-md); padding: 3px 10px; white-space: nowrap;
           background: var(--w); color: var(--c); border: 1px solid var(--c); }
-  .fy-confirm { grid-column: 2 / -1; background: var(--ap-surface-2); border: 1px solid var(--ap-line); border-radius: var(--ap-radius-md);
+  .fy-confirm { margin-top: 4px; background: var(--ap-surface-2); border: 1px solid var(--ap-line); border-radius: var(--ap-radius-md);
                 padding: 8px 10px; font-size: var(--ap-font-sm); display: flex; flex-direction: column; gap: 6px; }
   .fy-confirm .cbtns { display: flex; flex-wrap: wrap; gap: 6px; }
   .fy-fold > summary { cursor: pointer; padding: 8px 16px; font-size: var(--ap-font-sm); color: var(--ap-muted); }
-  @media (max-width: 560px) {
-    .fy-row { grid-template-columns: 2.2em minmax(0, 1fr); }
-    .fy-row > .acts-r { grid-column: 2; margin-left: 0; }
-  }
   /* ---- 「あなた宛て」の開け閉め（幅の広い画面だけ） ---- */
   .paneltoggle { display: none; padding: 2px 5px; margin-left: -4px; color: var(--ap-muted); }
   .paneltoggle svg.i { width: 16px; height: 16px; }
@@ -1304,13 +1320,15 @@ function renderInbox(d) {
       + '<button type="button" class="ibtn" data-drawer="tasks">中身を見る</button></span></div>').join('')
     : '';
   // 人間待ち: することごとの欄（確かめる → 答える → ゴーサイン → 分解 → 人間の作業）。中は P1 → P3（#2466・forYouModel）
-  const fy = forYouModel(Object.assign({}, d, { items }), { repoUrl });
+  const fy = forYouModel(Object.assign({}, d, { items }), { repoUrl, now: Date.now() });
   lastForYou = fy;
   const fyAll = fy.sections.reduce((a, sec) => a.concat(sec.rows), []).concat(fy.idle);
   if (fyConfirm != null && !fyAll.some((w) => w.issue === fyConfirm && w.button)) fyConfirm = null;
   const lr = (t) => linkIssueRefs(t, repoUrl);
   const fyRow = (w) => {
-    const ep = w.parent != null ? '<span class="epicchip">EPIC ' + ilink(w.parent) + '</span>' : (w.isEpic ? '<span class="epicchip">EPIC</span>' : '');
+    // EPIC そのものの札は題名の前（種類の札）、子の行の親 EPIC はリンクなので 2 行目に置く
+    const kindChip = w.isEpic && w.parent == null ? '<span class="epicchip">EPIC</span>' : '';
+    const parentChip = w.parent != null ? '<span class="epicchip">EPIC ' + ilink(w.parent) + '</span>' : '';
     const btn = w.button ? '<button type="button" class="vbtn a-' + w.kind + '" data-act="fy-ask" data-issue="' + w.issue + '" data-testid="inbox-action"'
       + ' title="押すと: ' + esc(w.happens) + '">' + esc(w.button) + '</button>' : '';
     // 押すとすぐ行わず、行の中で「これを行います」と確かめる
@@ -1318,13 +1336,16 @@ function renderInbox(d) {
       ? '<div class="fy-confirm" role="status" data-testid="inbox-confirm"><span>これを行います: ' + lr(w.happens) + '</span><span class="cbtns">'
         + '<button type="button" class="vbtn a-' + w.kind + '" data-act="fy-do" data-issue="' + w.issue + '" data-testid="inbox-confirm-do">行う</button>'
         + '<button type="button" class="ibtn" data-act="fy-cancel" data-testid="inbox-confirm-cancel">やめる</button></span></div>' : '';
-    return '<div class="fy-row" data-testid="inbox-wait" data-issue="' + w.issue + '" data-kind="' + w.kind + '">'
-      + (w.priority ? '<span class="gprio ' + esc(w.priority.toLowerCase()) + '">' + esc(w.priority) + '</span>' : '<span></span>')
-      + '<div class="fy-body"><div class="fy-title">' + tipTitle('span', 'i:' + w.issue, w, shortTitle(w.title)) + ilink(w.issue, w.url)
-      + (w.later ? '<span class="small">💤 あとで</span>' : '') + '</div>'
-      + (w.state ? '<div class="fy-state">' + ep + lr(w.state) + '</div>' : '')
-      + (w.happens ? '<div class="fy-happens"><b>押すと:</b> ' + lr(w.happens) + '</div>' : '') + '</div>'
-      + '<span class="acts-r">' + btn + moreBtn(w.issue) + '</span>' + confirm + '</div>';
+    // 1 行目は種類の札と題名だけにして、題名にペインの幅を使わせる（#2483）。番号・優先度・ボタンは 2 行目
+    return '<div class="fy-row" data-testid="inbox-wait" data-issue="' + w.issue + '" data-kind="' + w.kind + '"'
+      + (w.epicPhase ? ' data-epic-phase="' + esc(w.epicPhase) + '"' : '') + '>'
+      + '<div class="fy-title" data-testid="inbox-wait-title">' + kindChip + tipTitle('span', 'i:' + w.issue, w, shortTitle(w.title)) + '</div>'
+      + '<div class="fy-meta" data-testid="inbox-wait-meta">' + ilink(w.issue, w.url)
+      + (w.priority ? '<span class="gprio ' + esc(w.priority.toLowerCase()) + '">' + esc(w.priority) + '</span>' : '')
+      + parentChip + (w.later ? '<span class="small">💤 あとで</span>' : '')
+      + '<span class="acts-r">' + btn + moreBtn(w.issue) + '</span></div>'
+      + (w.state ? '<div class="fy-state">' + lr(w.state) + '</div>' : '')
+      + (w.happens ? '<div class="fy-happens"><b>押すと:</b> ' + lr(w.happens) + '</div>' : '') + confirm + '</div>';
   };
   const c = fy.counts;
   const sum = [['確かめる', c.check], ['答える', c.answer], ['ゴーサイン', c.go], ['人間の作業', c.hand]]
@@ -1469,6 +1490,16 @@ function renderBoard(d) {
     + (solos.length ? ' · EPIC に属さない ' + soloN + ' 件' : '');
   restorePrMenu();
 }
+// 固定する左の列の left を、見出しの実際の幅から決める（Issue · PR の列は PR の数で幅が変わる・#2527）。
+// 幅は描き直し・タブの切りかえ・画面の幅・横の欄の開け閉めで変わるので、見出しの大きさを見て測り直す
+// （下の ResizeObserver）。隠れている欄（900px 未満のタブ）では幅が 0 なので測らない
+function placeStickyCols() {
+  const ths = document.querySelectorAll('#board thead th');
+  if (ths.length < 3 || !ths[0].offsetWidth) return;
+  const b = document.getElementById('board');
+  b.style.setProperty('--stk-l2', ths[0].offsetWidth + 'px');
+  b.style.setProperty('--stk-l3', (ths[0].offsetWidth + ths[1].offsetWidth) + 'px');
+}
 
 // ---- 実行履歴（横の欄） ----
 function renderHistory(d) {
@@ -1585,8 +1616,15 @@ function openRowMenu(anchor, issue) {
     entries.push({ label: PR_KIND_ICON[p.kind] + ' PR#' + p.number, note: p.kind, href: repoUrl + '/pull/' + p.number });
   }
   if (running.indexOf(issue) >= 0) entries.push({ label: 'worker の log を見る', act: () => openLog(issue) });
+  // 全部 OK で「develop へマージする」が主ボタンになった EPIC でも、確認ページへ戻れるようにする（#2544）
+  if (it.releaseMerge && it.releasePageUrl) entries.push({ label: '📄 確認ページを開く', href: it.releasePageUrl });
   // 前の「AI に任せる」は、いつも使うものではないので ⋯ に残す（#2466）
   const wait = (lastInbox.waits || []).find((w) => w.issue === issue);
+  // 確認ページ（#2474）で答えを送ったあと、🙋 を外して AI に読ませる。ダイアログは確認ページが開けないときの予備
+  if (wait && wait.release && it.releasePageUrl) {
+    entries.push({ label: '📄 確認ページを開く', href: it.releasePageUrl });
+    entries.push({ label: '✨ 確認ページの答えを AI に渡す', note: '🙋 を外す', act: () => delegateIssue(issue) });
+  }
   if (wait && wait.goLabel) {
     entries.push({ label: '✨ ' + wait.goLabel, act: () => (wait.release ? openRelease(issue) : wait.fix ? openFix(issue) : delegateIssue(issue)) });
   }
@@ -1619,9 +1657,57 @@ async function doForYou(issue, btn) {
   if (!w) { rerender(); return; }
   if (w.act === 'open' && w.url) window.open(w.url, '_blank', 'noopener');
   else if (w.act === 'release') { if (w.url) window.open(w.url, '_blank', 'noopener'); openRelease(issue); }
-  else if (w.act === 'answer') { openQuestion = issue; lastQuestionsHtml = ''; }
+  else if (w.act === 'answer') { openQuestion = (w.targets && w.targets[0]) || issue; lastQuestionsHtml = ''; }
+  else if (w.act === 'resolve') {
+    // コンフリクトの解消（#2524）。行の ⋯ の「🔀 コンフリクトを解消」と同じ POST /resolve-conflict。送っている間は押せない
+    if (btn) btn.disabled = true;
+    await resolveConflict((w.targets && w.targets[0]) || issue);
+    return;
+  }
+  else if (w.act === 'merge-epic') { await mergeEpic(w, btn); return; }
+  else if (w.act === 'close-epic') { await closeEpic(w, btn); return; }
+  else if (w.act === 'delegate' && w.targets.length > 1) { await delegateMany(w, btn); return; }
   else if (w.act === 'delegate') { for (const n of w.targets) await delegateIssue(n, btn); return; }
   rerender();
+}
+// 「develop へマージする」（#2544）: daemon がトラッカー・PR を読み直して確かめてからマージし、EPIC を閉じる。
+// 時間の外は「これを行います」に出してあるので、押した人はもう確かめている（confirmOffHours）
+let mergeRequested = {};
+async function mergeEpic(w, btn) {
+  if (mergeRequested[w.issue]) return;
+  mergeRequested[w.issue] = true;
+  if (btn) btn.disabled = true;
+  try {
+    const j = await postJson('/release-check/merge?issue=' + w.issue, { confirmOffHours: true });
+    if (j.closed) toast('EPIC #' + w.issue + ': PR #' + j.pr + ' を develop へマージし、EPIC を閉じました');
+    else toast('EPIC #' + w.issue + ': PR #' + j.pr + ' はマージしましたが、EPIC を閉じきれませんでした（「EPIC を閉じる」でやり直せます）: ' + (j.failed || []).join(' / '), true);
+  } catch (e) {
+    toast('EPIC #' + w.issue + ' をマージできませんでした: ' + e.message, true);
+  }
+  delete mergeRequested[w.issue];
+  await refresh();
+}
+// 「EPIC を閉じる」（#2544 の予備の口）: topic → develop の PR はマージ済みなのに開いたままの EPIC。daemon が PR を読み直してから閉じる
+async function closeEpic(w, btn) {
+  if (mergeRequested[w.issue]) return;
+  mergeRequested[w.issue] = true;
+  if (btn) btn.disabled = true;
+  try {
+    await postJson('/release-check/close?issue=' + w.issue, {});
+    toast('EPIC #' + w.issue + ' を閉じました');
+  } catch (e) {
+    toast('EPIC #' + w.issue + ' を閉じられませんでした: ' + e.message, true);
+  }
+  delete mergeRequested[w.issue];
+  await refresh();
+}
+// 「この EPIC を AI に任せる」（#2475）: 子の 🙋 を 1 件ずつ外し、結果を 1 回だけ知らせる
+async function delegateMany(w, btn) {
+  if (btn) btn.disabled = true;
+  const res = await delegateTargets(w.targets, (n) => postJson('/delegate', { issue: n }));
+  if (res.failed.length) toast('#' + w.issue + ': ' + res.ok.length + ' 件を任せ、' + res.failed.map((f) => '#' + f.issue).join('・') + ' は任せられませんでした: ' + res.failed[0].error, true);
+  else toast('#' + w.issue + ' を AI に任せました（子 ' + res.ok.length + ' 件の 🙋 を外した）');
+  refresh();
 }
 // 「AI に任せる」（人間待ちの行）: daemon が 🙋 を外し、autopilot が次のフェーズを拾う（POST /delegate）
 async function delegateIssue(issue, btn) {
@@ -2009,6 +2095,7 @@ document.addEventListener('pointerout', (e) => {
 document.addEventListener('focusin', (e) => { const t = e.target.closest && e.target.closest('[data-tip]'); if (t) titleTipEvent({ type: 'focus', key: t.dataset.tip }); });
 document.addEventListener('focusout', (e) => { const t = e.target.closest && e.target.closest('[data-tip]'); if (t) titleTipEvent({ type: 'blur', key: t.dataset.tip }); });
 window.addEventListener('resize', () => { if (tipState.open) showTitleTip(); });
+{ const ro = new ResizeObserver(() => placeStickyCols()); [...document.querySelectorAll('#board thead th')].slice(0, 2).forEach((th) => ro.observe(th)); }
 document.addEventListener('scroll', () => { if (tipState.open) showTitleTip(); }, true);
 // まとめてクリックを受ける（行は 5 秒ごとに作り直すので、要素ごとに付けない）
 document.addEventListener('click', (ev) => {
@@ -2026,6 +2113,14 @@ document.addEventListener('click', (ev) => {
     const willOpen = m.hidden;
     closeMenus();
     if (willOpen) { m.hidden = false; t.setAttribute('aria-expanded', 'true'); placeMenu(m, t); }
+    return;
+  }
+  // 上の ⋯ の項目（更新・tick・現在地）は data-mi を持たないので、ここで閉じて ⋯ へフォーカスを戻す（#2525）。
+  // 押せない（disabled）項目は開いたまま（中の .note の click が届くブラウザでも閉じない）。処理はそれぞれの onclick が先に始めている
+  if (inMenu && inMenu.id === 'globalmenu') {
+    if (t.disabled) return;
+    closeMenus();
+    document.getElementById('globalmenubtn').focus({ preventScroll: true });
     return;
   }
   if (!inMenu) closeMenus();
@@ -2091,11 +2186,14 @@ document.getElementById('resume').onclick = async () => {
   } catch (e) { /* refresh 側で表示 */ }
   refresh();
 };
+// 上の ⋯ の項目は押すとすぐメニューが閉じるので、押した直後に「頼みました」を出し、済んだら結果を出す（#2525）
 document.getElementById('ticknow').onclick = async () => {
+  toast('tick を頼みました');
   try { await fetch('/tick', { method: 'POST' }); toast('tick を 1 回走らせました'); } catch (e) { /* refresh 側で表示 */ }
   refresh();
 };
 document.getElementById('refreshboard').onclick = async () => {
+  toast('GitHub からの読み直しを頼みました');
   try {
     const r = await fetch('/refresh', { method: 'POST' }).then((x) => x.json());
     toast(r && r.skipped ? 'API レート残量が僅少のためスキップしました（残 ' + r.minRemaining + '）' : 'GitHub から読み直しました');
@@ -2103,6 +2201,7 @@ document.getElementById('refreshboard').onclick = async () => {
   refresh();
 };
 document.getElementById('csmake').onclick = async () => {
+  toast('現在地を作るよう頼みました');
   try { await fetch('/current-status', { method: 'POST' }); toast('現在地を作り始めました'); } catch (e) { toast('現在地を作れませんでした: ' + e.message, true); }
   refresh();
 };

@@ -67,6 +67,12 @@ item の状態は次の 4 要素で決まる（Project が単一の真実）:
 > 対象に入るが、**空き容量（`cfg.concurrency - running`）の分だけ再開**し溢れは次 tick へ回すので
 > 並行上限を跨がない。人間の判断待ち HITL（Triaging / Decomposing / Discussing / Awaiting
 > Continuation / EPIC Decomposed）は実作業系 AI Status 集合に入らないため誤って再開されない。
+>
+> **ふつうの受け渡しと止まった worker を分ける（#2582）**。implement の done で In Progress +
+> Self-Reviewing になった直後の tick も、worker が居ないので上の復帰が拾う。動き（review の起動）は
+> 同じだが、daemon は結果を反映したときの実作業系 AI Status を覚えておき（`handOffAiStatusFromIntents`）、
+> いまの AI Status と同じなら**受け渡し**、記録が無い（daemon の再起動など）か違えば **stalled** として
+> ログを分ける（`classifyInFlightRecovery`）。遷移の判定（`selectStalledInFlightItems`）は変えない。
 
 ### EPIC の流れ（PR の base が `topic/...`）
 
@@ -153,11 +159,11 @@ Issue / PR の 🙋 を外す。人間が 🙋 を外したのと同じ意味な
 | 13 | Review・DoD / 任意 / なし(解除済み) | 差し戻し済み | **A: address-review** | 未対応の Request changes で指定された分に対応後 Review + HITL（#12）/ 未対応の Request changes が無ければ何もせず #12 |
 | 14 | Blocked / 任意 / **あり** | run 失敗・stall・実作業系フェーズの判断待ち（hitl）の人間対処待ち | H: 解除 → **A: address-review（PR あり）/ triage（PR なし）** / H: Status 移動 / H: merge → **D: merge-progression**（#17） | 再開・再ルート / Close |
 | 15 | Blocked / 任意 / なし | ラベルだけ外された Blocked | **A: address-review / triage**（#14 と同じ） | 再開・再ルート |
-| 16 | In Progress / EPIC Decomposed / —（トラッカー） | 子の実装を追跡 | **D: リリース確認に入れる**（子が全部済んだ、または残りがリリース後の作業（`🚀 after-release` か、親を `autopilot-after:` で待つ子）だけ。`releaseCheckReady` → AI Status=Release Check。🙋 の有無は問わない: 🙋 なしは #16b、分解済み EPIC の決まりどおり 🙋 を付けたままなら #16c）→ #16b / #16c / H: 子完了後に close（統合 PR の `Closes #epic` 等）→ **D: closed-reconcile** / H: Done へ移動（HITL 運用） （🙋 を外しても動かない。topic → develop の PR に書かれたレビューは #16b で受ける）| #16b / #16c / Close / Done |
+| 16 | In Progress / EPIC Decomposed / —（トラッカー） | 子の実装を追跡 | **D: リリース確認に入れる**（子が全部済んだ、または残りがリリース後の作業（`🚀 after-release` か、親を `autopilot-after:` で待つ子）だけ。`releaseCheckReady` → AI Status=Release Check。🙋 の有無は問わない: 🙋 なしは #16b、分解済み EPIC の決まりどおり 🙋 を付けたままなら #16c）→ #16b / #16c / H: 子完了後に close（統合 PR の `Closes #epic` 等）→ **D: closed-reconcile** / H: topic → develop の PR を GitHub でマージ → D: 「EPIC を閉じる」を出す → H: 押す（`POST /release-check/close`・#2544）→ Close / H: Done へ移動（HITL 運用） （🙋 を外しても動かない。topic → develop の PR に書かれたレビューは #16b で受ける）| #16b / #16c / Close / Done |
 | 16b | In Progress / **Release Check** / なし（🧭 トラッカー） | リリース確認の段（#2430） | **A: release-check**（観点をまとめるか結果を受けるかは、トラッカーの目印付きコメントと、topic → develop の PR の人間のまだ受けていないレビュー・コメントから決める・`releaseCheckMode` / `selectPrFeedback`） | 観点をまとめた → #16c / 全部 OK → #16c（develop へのマージは人間）/ NG・PR のレビューから sub-issue を作った → In Progress + EPIC Decomposed（#16。作った子が全部済むと次の round の #16b） |
-| 16c | In Progress / **Release Check** / **あり**（🧭 トラッカー） | 人間がプレビューで確かめる | H: 🙋 を外す（トラッカーの 🙋 だけ。topic → develop の PR にレビューを書いてから外してもよい。モニターの「確認の結果を書く」は結果のコメントを書いてから外す。観点のコメントがまだ無ければ、ダイアログの「AI に観点をまとめてもらう」で外す）→ **A: release-check** / H: topic → develop の PR をマージして close → **D: closed-reconcile** | #16b / Close |
+| 16c | In Progress / **Release Check** / **あり**（🧭 トラッカー） | 人間がプレビューで確かめる | H: 🙋 を外す（トラッカーの 🙋 だけ。topic → develop の PR にレビューを書いてから外してもよい。モニターの「確認の結果を書く」は結果のコメントを書いてから外す。観点のコメントがまだ無ければ、ダイアログの「AI に観点をまとめてもらう」で外す）→ **A: release-check** / H: 全部 OK のあと、モニターの「develop へマージする」（`POST /release-check/merge`。daemon が確かめてからマージし、Status=Close・AI Status 空・🙋 を外して Issue を閉じる・#2544）→ Close / H: GitHub で topic → develop の PR をマージ → **D: 同じ終わり方にする**（`applyReleaseMergedEpics`）/ H: close → **D: closed-reconcile** | #16b / Close |
 | 17 | PR 後の非終端（leaf・Status が In Progress / Blocked / Review / DoD）/ 任意 / 任意 | — | H: PR merge → **D: merge-progression**（🙋 の有無を問わない。🙋 は face sync が両面から外す） | Close（GitHub issue も close。**`🧱 infra` の Issue は閉じない**: prod デプロイ成功で `Deploy Infra` workflow が閉じる・`shouldCloseIssueOnMerge`） |
-| 18 | 任意の非終端 | — | H: Issue close → **D: closed-reconcile** | Close |
+| 18 | 任意の非終端 | — | H: Issue close → **D: closed-reconcile**。GitHub で閉じた Issue は、拾う判定（`selectActionable`・stalled 復帰）の前に外す（`excludeClosedItems`）。フェーズが Issue を閉じて done で終えたときは、daemon が GitHub の状態を見て Status=Close・AI Status 空にする（`closedRunIntents`。`nextStatus` が空でも New Item に戻らない） | Close |
 | 19 | In Progress / —（AI Status 空） / 任意 | 人間が手動で置いた作業中 | H: Status 移動（autopilot は所有しない） | 人間の決定 |
 | 20 | Icebox / Close / Done | 終端・保留 | H: Status 移動（再開は人間のみ） | — |
 | 21 | 🧭 tracking ラベル付き（全状態） | トラッカー | #16〜#18 のみ（フェーズは #16b の release-check だけ） | — |

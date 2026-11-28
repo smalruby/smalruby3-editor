@@ -1,13 +1,24 @@
 /**
  * The ［基準］ tab of an assignment's grading (teacher side, EPIC #2421 / #2425).
  *
- * From the top: the assignment's description (when it is empty, the AI guesses it
- * and asks 「合っていますか？」), the representative works (one per group, at most 8,
- * as a list — pressing a row opens only that one), the fairness questions, and the
- * S/A/B/C sentences, saved with the teacher's examples. An assignment that already
- * has a rubric shows it and can go straight to grading everyone. A rubric can also
- * be copied from another assignment (choose the class and the assignment, look at
- * it, then copy).
+ * Making the rubric is step 2 of the grading, and it has four inner steps of its own, drawn
+ * as the inner vertical stepper (#2455 F1): 2-1 the assignment's description (the AI guesses
+ * it and asks 「合っていますか？」; over a written one too when the teacher asks, #2456), 2-2 the right grade of the
+ * representative works (one per group, at most 8, as a list — pressing a row opens only
+ * that one), 2-3 the fairness questions, and 2-4 the S/A/B/C sentences, saved with the
+ * teacher's examples. Only the current inner step is open; a finished one is one line.
+ *
+ * Each inner step has its AI at the top, in the ask-AI block (#2455 F3): one sentence says
+ * what the AI does there, it runs only when pressed, and once it has run it cannot be pressed
+ * again (it costs money). 2-2 has one button for every representative at once (F4).
+ * There are no criteria or strictness on the screen (F2): the sentences and the examples
+ * grade; without a rubric the fixed criteria are sent (`gradingCriteriaFor`).
+ *
+ * An assignment that already has a rubric shows it and can go straight to grading everyone.
+ * The description and the rubric can also be copied from another assignment (choose the class
+ * and the assignment, look at them, then copy, #2456). The copied description is a draft in
+ * 2-1: whether it goes into the description the students see is decided there, with the same
+ * buttons as the AI's proposal.
  *
  * The state and the calls are in `containers/use-grading-rubric.js`; this file only
  * draws them. `TeacherGradingGroupPrompt` is the question shown in the［生徒］tab
@@ -15,10 +26,16 @@
  */
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
 import { GRADES } from '../../lib/classroom-evaluation/gradebook.js';
-import { gradesWithoutExamples, hasRubricLevels } from '../../lib/classroom-evaluation/grading-ai.js';
+import {
+    gradesWithoutExamples,
+    hasRubricLevels,
+    rubricStepStates,
+} from '../../lib/classroom-evaluation/grading-ai.js';
+import AskAi from '../ask-ai/ask-ai.jsx';
+import InnerStepper from '../inner-stepper/inner-stepper.jsx';
 import Spinner from '../spinner/spinner.jsx';
 import ClassroomButton from './classroom-button.jsx';
 import modalStyles from './classroom-modal.css';
@@ -36,9 +53,20 @@ const messages = defineMessages({
         id: 'gui.classroom.gradingRubric.descriptionEmpty',
     },
     describe: {
-        defaultMessage: 'Ask the AI to Guess It',
+        defaultMessage: 'Ask the AI to Write a Description',
         description: 'Rubric tab: button to let the AI guess the description from the starter and works (#2425)',
         id: 'gui.classroom.gradingRubric.describe',
+    },
+    describeRewrite: {
+        defaultMessage: 'Ask the AI to Rewrite the Description',
+        description: 'Rubric tab: button to let the AI write the description again over a written one (#2456)',
+        id: 'gui.classroom.gradingRubric.describeRewrite',
+    },
+    describeCopied: {
+        defaultMessage:
+            'This description was copied from another assignment (a draft). Choose whether to put it into the description the students see.',
+        description: 'Rubric tab: the copied description is a draft the teacher decides on (#2456)',
+        id: 'gui.classroom.gradingRubric.describeCopied',
     },
     describeQuestion: {
         defaultMessage: 'From the starter and a few works, I think this assignment is the following. Is that right?',
@@ -111,8 +139,8 @@ const messages = defineMessages({
         id: 'gui.classroom.gradingRubric.repsHint',
     },
     propose: {
-        defaultMessage: 'Show the AI’s Proposals',
-        description: 'Rubric tab: let the AI propose a grade for each representative (#2425)',
+        defaultMessage: 'Ask the AI to Propose Grades for the {count} Works',
+        description: 'Rubric tab: let the AI propose a grade for every representative at once (#2425, #2455)',
         id: 'gui.classroom.gradingRubric.propose',
     },
     repMeta: {
@@ -155,8 +183,28 @@ const messages = defineMessages({
         description: 'Rubric tab: heading of the fairness questions (#2425)',
         id: 'gui.classroom.gradingRubric.fairness',
     },
+    fairnessNoWorks: {
+        defaultMessage: 'There are no works to check for fairness.',
+        description: 'Rubric tab: no group has another work to compare, so 2-3 has nothing to check (#2521)',
+        id: 'gui.classroom.gradingRubric.fairnessNoWorks',
+    },
+    fairnessNext: {
+        defaultMessage: 'Next',
+        description: 'Rubric tab: move from 2-3 to 2-4 when there is no fairness question (#2521)',
+        id: 'gui.classroom.gradingRubric.fairnessNext',
+    },
+    proposedNotice: {
+        defaultMessage: 'The AI has proposed grades. Choose the right grade for each work.',
+        description: 'Rubric tab: the AI proposals of 2-2 are ready; the teacher gives the right grades next (#2521)',
+        id: 'gui.classroom.gradingRubric.proposedNotice',
+    },
+    chooseHint: {
+        defaultMessage: 'Choose the right grade',
+        description: 'Rubric tab: a short tip next to the grade buttons of the first representative (#2521)',
+        id: 'gui.classroom.gradingRubric.chooseHint',
+    },
     fairnessRun: {
-        defaultMessage: 'Check Fairness',
+        defaultMessage: 'Ask the AI to Check Fairness',
         description: 'Rubric tab: let the AI compare the answers with the other works of each group (#2425)',
         id: 'gui.classroom.gradingRubric.fairnessRun',
     },
@@ -181,7 +229,7 @@ const messages = defineMessages({
         id: 'gui.classroom.gradingRubric.sentences',
     },
     draft: {
-        defaultMessage: 'Let the AI Write the Rubric',
+        defaultMessage: 'Ask the AI to Draft the Sentences',
         description: 'Rubric tab: let the AI write the S/A/B/C sentences from the answers (#2425)',
         id: 'gui.classroom.gradingRubric.draft',
     },
@@ -201,13 +249,13 @@ const messages = defineMessages({
         id: 'gui.classroom.gradingRubric.saved',
     },
     copy: {
-        defaultMessage: 'Copy from Another Assignment…',
-        description: 'Rubric tab: open the dialog to copy a rubric from another assignment (#2425)',
+        defaultMessage: 'Copy the Description and Rubric…',
+        description: 'Rubric tab: open the dialog to copy the description and rubric of another assignment (#2456)',
         id: 'gui.classroom.gradingRubric.copy',
     },
     copyTitle: {
-        defaultMessage: 'Copy a rubric from another assignment',
-        description: 'Rubric tab: title of the copy dialog (#2425)',
+        defaultMessage: 'Copy the description and rubric from another assignment',
+        description: 'Rubric tab: title of the copy dialog (#2456)',
         id: 'gui.classroom.gradingRubric.copyTitle',
     },
     copyClass: {
@@ -226,9 +274,29 @@ const messages = defineMessages({
         id: 'gui.classroom.gradingRubric.copyChoose',
     },
     copyNone: {
-        defaultMessage: 'This assignment has no rubric.',
-        description: 'Rubric tab: the chosen assignment has no rubric to copy (#2425)',
+        defaultMessage: 'This assignment has no description and no rubric.',
+        description: 'Rubric tab: the chosen assignment has nothing to copy (#2456)',
         id: 'gui.classroom.gradingRubric.copyNone',
+    },
+    copyDescription: {
+        defaultMessage: 'Description',
+        description: 'Rubric tab: label of the description shown in the copy dialog (#2456)',
+        id: 'gui.classroom.gradingRubric.copyDescription',
+    },
+    copyNoDescription: {
+        defaultMessage: 'This assignment has no description: only the rubric is copied.',
+        description: 'Rubric tab: the chosen assignment has a rubric but no description (#2456)',
+        id: 'gui.classroom.gradingRubric.copyNoDescription',
+    },
+    copyNoRubric: {
+        defaultMessage: 'This assignment has no rubric: only the description is copied.',
+        description: 'Rubric tab: the chosen assignment has a description but no rubric (#2456)',
+        id: 'gui.classroom.gradingRubric.copyNoRubric',
+    },
+    copyDescriptionDraft: {
+        defaultMessage: 'The description goes into 2-1 as a draft. You choose there whether the students see it.',
+        description: 'Rubric tab: the copied description is a draft, not saved into the assignment yet (#2456)',
+        id: 'gui.classroom.gradingRubric.copyDescriptionDraft',
     },
     copyExamples: {
         defaultMessage: '{count} examples are copied with it.',
@@ -249,6 +317,77 @@ const messages = defineMessages({
         defaultMessage: 'Cancel',
         description: 'Rubric tab: close the copy dialog (#2425)',
         id: 'gui.classroom.gradingRubric.cancel',
+    },
+    stepsTitle: {
+        defaultMessage: 'Step 2  Make the rubric (2-1 → 2-4 in order)',
+        description: 'Rubric tab: title of the frame of the inner steps of step 2 (#2455)',
+        id: 'gui.classroom.gradingRubric.stepsTitle',
+    },
+    stepDescribe: {
+        defaultMessage: 'Assignment description',
+        description: 'Rubric tab: title of inner step 2-1 (#2455)',
+        id: 'gui.classroom.gradingRubric.stepDescribe',
+    },
+    stepExamples: {
+        defaultMessage: 'Give the representative works the right grade',
+        description: 'Rubric tab: title of inner step 2-2 (#2455)',
+        id: 'gui.classroom.gradingRubric.stepExamples',
+    },
+    stepFairness: {
+        defaultMessage: 'Fairness check',
+        description: 'Rubric tab: title of inner step 2-3 (#2455)',
+        id: 'gui.classroom.gradingRubric.stepFairness',
+    },
+    stepSentences: {
+        defaultMessage: 'Rubric sentences',
+        description: 'Rubric tab: title of inner step 2-4 (#2455)',
+        id: 'gui.classroom.gradingRubric.stepSentences',
+    },
+    aiDescribe: {
+        defaultMessage: 'From the starter and a few works, it writes a draft of the assignment’s description.',
+        description: 'Rubric tab: what the AI does in inner step 2-1 (#2455)',
+        id: 'gui.classroom.gradingRubric.aiDescribe',
+    },
+    aiDescribeRewrite: {
+        defaultMessage:
+            'From the starter and a few works, it writes the description again. Saving it overwrites the current one.',
+        description: 'Rubric tab: what the AI does in inner step 2-1 when there is a description (#2456)',
+        id: 'gui.classroom.gradingRubric.aiDescribeRewrite',
+    },
+    aiPropose: {
+        defaultMessage: 'It proposes S/A/B/C and a reason for every representative work. You give the right grade.',
+        description: 'Rubric tab: what the AI does in inner step 2-2 (#2455)',
+        id: 'gui.classroom.gradingRubric.aiPropose',
+    },
+    aiFairness: {
+        defaultMessage: 'It compares your grades with the other works of each group and asks where they may differ.',
+        description: 'Rubric tab: what the AI does in inner step 2-3 (#2455)',
+        id: 'gui.classroom.gradingRubric.aiFairness',
+    },
+    aiDraft: {
+        defaultMessage: 'From your right grades, it drafts the S/A/B/C sentences. You fix them and save.',
+        description: 'Rubric tab: what the AI does in inner step 2-4 (#2455)',
+        id: 'gui.classroom.gradingRubric.aiDraft',
+    },
+    summaryDescribe: {
+        defaultMessage: 'Description: {text}',
+        description: 'Rubric tab: one line of the finished inner step 2-1 (#2455)',
+        id: 'gui.classroom.gradingRubric.summaryDescribe',
+    },
+    summaryExamples: {
+        defaultMessage: 'Right grades given: {done}/{total}',
+        description: 'Rubric tab: one line of the finished inner step 2-2 (#2455)',
+        id: 'gui.classroom.gradingRubric.summaryExamples',
+    },
+    summaryFairness: {
+        defaultMessage: 'Answered {count} questions',
+        description: 'Rubric tab: one line of the finished inner step 2-3 (#2455)',
+        id: 'gui.classroom.gradingRubric.summaryFairness',
+    },
+    summarySentences: {
+        defaultMessage: 'The sentences are saved.',
+        description: 'Rubric tab: one line of the finished inner step 2-4 (#2455)',
+        id: 'gui.classroom.gradingRubric.summarySentences',
     },
     groupAsk: {
         defaultMessage: 'Change the other {count} works of the group “{group}” to {grade} too?',
@@ -279,8 +418,9 @@ const messages = defineMessages({
         id: 'gui.classroom.gradingRubric.noSExample',
     },
     working: {
-        defaultMessage: 'The AI is working…',
-        description: 'Rubric tab: an AI call is running (#2425)',
+        defaultMessage: 'Working…',
+        description:
+            'Rubric tab: saving, copying or reading the starter is running (the AI shows it on its button, #2455)',
         id: 'gui.classroom.gradingRubric.working',
     },
 });
@@ -296,21 +436,113 @@ Pill.propTypes = {
     grade: PropTypes.string,
 };
 
-/* 課題の説明。空なら AI の案を出して「合っていますか？」と聞く。 */
-const DescriptionSection = ({ busy, description, lesson, loaded, onDescribe, onUseDescription }) => {
+/* 説明の下書き（AI の案・ほかの課題からのコピー）。課題に保存するか、この採点だけで使うかを先生が決める。 */
+const DescriptionDraft = ({ busy, intro, testId, text: draft, onUseDescription }) => {
     const intl = useIntl();
-    const proposed = description && description.status === 'proposed' ? description.text : '';
-    const [text, setText] = useState(proposed);
-    useEffect(() => setText(proposed), [proposed]);
+    const [text, setText] = useState(draft);
+    useEffect(() => setText(draft), [draft]);
     const handleChange = useCallback((e) => setText(e.target.value), []);
-    const handleOk = useCallback(() => onUseDescription(proposed, true), [onUseDescription, proposed]);
+    const handleOk = useCallback(() => onUseDescription(draft, true), [onUseDescription, draft]);
     const handleFix = useCallback(() => onUseDescription(text, true), [onUseDescription, text]);
     const handleOnlyHere = useCallback(() => onUseDescription(text, false), [onUseDescription, text]);
+    return (
+        <div className={styles.ai} data-testid={testId}>
+            <p className={styles.text}>{intro}</p>
+            <textarea
+                className={styles.textarea}
+                data-testid="grading-rubric-describe-text"
+                maxLength={500}
+                rows={3}
+                value={text}
+                onChange={handleChange}
+            />
+            <div className={styles.buttons}>
+                <ClassroomButton
+                    dataTestId="grading-rubric-describe-ok"
+                    disabled={busy || !draft}
+                    variant="primary"
+                    onClick={handleOk}
+                >
+                    {intl.formatMessage(messages.describeOk)}
+                </ClassroomButton>
+                <ClassroomButton
+                    dataTestId="grading-rubric-describe-fix"
+                    disabled={busy || !text.trim() || text === draft}
+                    onClick={handleFix}
+                >
+                    {intl.formatMessage(messages.describeFix)}
+                </ClassroomButton>
+                <ClassroomButton
+                    dataTestId="grading-rubric-describe-only-here"
+                    disabled={busy || !text.trim()}
+                    onClick={handleOnlyHere}
+                >
+                    {intl.formatMessage(messages.describeOnlyHere)}
+                </ClassroomButton>
+            </div>
+        </div>
+    );
+};
+
+DescriptionDraft.propTypes = {
+    busy: PropTypes.bool,
+    intro: PropTypes.string.isRequired,
+    testId: PropTypes.string.isRequired,
+    text: PropTypes.string.isRequired,
+    onUseDescription: PropTypes.func.isRequired,
+};
+
+/*
+ * 2-1 課題の説明。上の「AI に相談」で AI に案を書いてもらい「合っていますか？」と聞く。
+ * 説明が書いてあっても、先生が望めば AI に作り直してもらえる（保存したときだけ上書き・#2456）。
+ * ほかの課題からコピーした説明も、同じ形の下書きとして出す。
+ */
+const DescriptionSection = ({
+    busy,
+    described,
+    description,
+    lesson,
+    loaded,
+    running,
+    onDescribe,
+    onUseDescription,
+}) => {
+    const intl = useIntl();
     const status = description ? description.status : null;
+    const hasText = !!lesson.assignmentText;
     return (
         <div className={styles.section} data-testid="grading-rubric-description">
+            <AskAi
+                buttonLabel={intl.formatMessage(hasText ? messages.describeRewrite : messages.describe)}
+                description={intl.formatMessage(hasText ? messages.aiDescribeRewrite : messages.aiDescribe)}
+                disabled={busy || !loaded}
+                running={running}
+                testId="grading-rubric-describe-ai"
+                // The AI has run once (its button cannot be pressed again). A failed call can be tried again.
+                used={!!described && !running}
+                onClick={onDescribe}
+            >
+                {status === 'proposed' && (
+                    <DescriptionDraft
+                        busy={busy}
+                        intro={intl.formatMessage(messages.describeQuestion)}
+                        testId="grading-rubric-describe-proposal"
+                        text={description.text}
+                        onUseDescription={onUseDescription}
+                    />
+                )}
+            </AskAi>
+            {status === 'copied' && (
+                <DescriptionDraft
+                    busy={busy}
+                    intro={intl.formatMessage(messages.describeCopied)}
+                    testId="grading-rubric-describe-copied"
+                    text={description.text}
+                    onUseDescription={onUseDescription}
+                />
+            )}
             <div className={modalStyles.evalPaneLabel}>{intl.formatMessage(messages.description)}</div>
-            {lesson.assignmentText ? (
+            {hasText ? (
                 <p className={styles.text} data-testid="grading-rubric-description-text">
                     {lesson.assignmentText}
                 </p>
@@ -319,69 +551,34 @@ const DescriptionSection = ({ busy, description, lesson, loaded, onDescribe, onU
             )}
             {status === 'saved' && <p className={styles.done}>{intl.formatMessage(messages.describeSaved)}</p>}
             {status === 'used' && <p className={styles.done}>{intl.formatMessage(messages.describeUsed)}</p>}
-            {!lesson.assignmentText && status !== 'proposed' && (
-                <div className={styles.buttons}>
-                    <ClassroomButton
-                        dataTestId="grading-rubric-describe"
-                        disabled={busy || !loaded}
-                        onClick={onDescribe}
-                    >
-                        {intl.formatMessage(messages.describe)}
-                    </ClassroomButton>
-                </div>
-            )}
-            {status === 'proposed' && (
-                <div className={styles.ai} data-testid="grading-rubric-describe-proposal">
-                    <p className={styles.text}>{intl.formatMessage(messages.describeQuestion)}</p>
-                    <textarea
-                        className={styles.textarea}
-                        data-testid="grading-rubric-describe-text"
-                        maxLength={500}
-                        rows={3}
-                        value={text}
-                        onChange={handleChange}
-                    />
-                    <div className={styles.buttons}>
-                        <ClassroomButton
-                            dataTestId="grading-rubric-describe-ok"
-                            disabled={busy || !proposed}
-                            variant="primary"
-                            onClick={handleOk}
-                        >
-                            {intl.formatMessage(messages.describeOk)}
-                        </ClassroomButton>
-                        <ClassroomButton
-                            dataTestId="grading-rubric-describe-fix"
-                            disabled={busy || !text.trim() || text === proposed}
-                            onClick={handleFix}
-                        >
-                            {intl.formatMessage(messages.describeFix)}
-                        </ClassroomButton>
-                        <ClassroomButton
-                            dataTestId="grading-rubric-describe-only-here"
-                            disabled={busy || !text.trim()}
-                            onClick={handleOnlyHere}
-                        >
-                            {intl.formatMessage(messages.describeOnlyHere)}
-                        </ClassroomButton>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };
 
 DescriptionSection.propTypes = {
     busy: PropTypes.bool,
+    described: PropTypes.bool,
     description: PropTypes.object,
     lesson: PropTypes.object.isRequired,
     loaded: PropTypes.bool,
+    running: PropTypes.bool,
     onDescribe: PropTypes.func.isRequired,
     onUseDescription: PropTypes.func.isRequired,
 };
 
 /* 代表の作品の 1 行（押すとこの行だけ開く）。 */
-const RepresentativeRow = ({ answer, busy, classroomId, open, proposal, rep, onOpenWork, onSetAnswer, onToggle }) => {
+const RepresentativeRow = ({
+    answer,
+    busy,
+    classroomId,
+    hint,
+    open,
+    proposal,
+    rep,
+    onOpenWork,
+    onSetAnswer,
+    onToggle,
+}) => {
     const intl = useIntl();
     const seat = rep.seatNumber;
     const handleToggle = useCallback(() => onToggle(seat), [onToggle, seat]);
@@ -442,6 +639,15 @@ const RepresentativeRow = ({ answer, busy, classroomId, open, proposal, rep, onO
                                 {g}
                             </button>
                         ))}
+                        {hint && (
+                            <span
+                                className={styles.hint}
+                                data-testid={`grading-rubric-rep-hint-${seat}`}
+                                role="tooltip"
+                            >
+                                {intl.formatMessage(messages.chooseHint)}
+                            </span>
+                        )}
                     </div>
                     <input
                         className={styles.input}
@@ -469,6 +675,7 @@ RepresentativeRow.propTypes = {
     answer: PropTypes.object,
     busy: PropTypes.bool,
     classroomId: PropTypes.string.isRequired,
+    hint: PropTypes.bool,
     open: PropTypes.bool,
     proposal: PropTypes.object,
     rep: PropTypes.object.isRequired,
@@ -594,12 +801,12 @@ NoSExampleWarning.propTypes = {
 
 const lacksS = (examples) => gradesWithoutExamples(examples).includes('S');
 
-/* ほかの課題から基準をコピー（クラスと課題を選び、中身を見てからコピー）。 */
+/* ほかの課題から説明と基準をコピー（クラスと課題を選び、中身を見てからコピー・#2456）。 */
 const CopyDialog = ({ busy, classes, onClose, onCopy, onRead }) => {
     const intl = useIntl();
     const [classKey, setClassKey] = useState('');
     const [sourceId, setSourceId] = useState('');
-    const [preview, setPreview] = useState(null); // null | 'loading' | {rubric}
+    const [preview, setPreview] = useState(null); // null | 'loading' | {sourceId, source}
     const chosenClass = classes.find((c) => c.key === classKey) || null;
     const handleClass = useCallback((e) => {
         setClassKey(e.target.value);
@@ -616,15 +823,17 @@ const CopyDialog = ({ busy, classes, onClose, onCopy, onRead }) => {
                 return;
             }
             setPreview('loading');
-            const rubric = await onRead(value);
-            setPreview({ sourceId: value, rubric });
+            const source = await onRead(value);
+            setPreview({ sourceId: value, source });
         },
         [onRead],
     );
-    const rubric = preview && preview !== 'loading' && preview.sourceId === sourceId ? preview.rubric : null;
+    const source = preview && preview !== 'loading' && preview.sourceId === sourceId ? preview.source : null;
+    const rubric = source && source.rubric;
+    const sourceText = (source && source.description) || '';
     const handleCopy = useCallback(async () => {
-        if (rubric && (await onCopy(rubric))) onClose();
-    }, [rubric, onCopy, onClose]);
+        if (source && (await onCopy(source))) onClose();
+    }, [source, onCopy, onClose]);
     return (
         <div className={styles.dialog} data-testid="grading-rubric-copy-dialog" role="group">
             <div className={modalStyles.evalPaneLabel}>{intl.formatMessage(messages.copyTitle)}</div>
@@ -664,29 +873,49 @@ const CopyDialog = ({ busy, classes, onClose, onCopy, onRead }) => {
                 </label>
             </div>
             {preview === 'loading' && <Spinner small />}
-            {preview && preview !== 'loading' && !rubric && (
+            {preview && preview !== 'loading' && !source && (
                 <p className={styles.note} data-testid="grading-rubric-copy-none">
                     {intl.formatMessage(messages.copyNone)}
                 </p>
             )}
-            {rubric && (
+            {source && (
                 <div className={styles.ai} data-testid="grading-rubric-copy-preview">
-                    {lacksS(rubric.examples) && <NoSExampleWarning dataTestId="grading-rubric-copy-no-s-example" />}
-                    <LevelsTable
-                        dataTestId="grading-rubric-copy-levels"
-                        examples={rubric.examples || []}
-                        levels={rubric.levels || []}
-                    />
-                    <p className={styles.note}>
-                        {intl.formatMessage(messages.copyExamples, { count: (rubric.examples || []).length })}
-                    </p>
-                    <p className={styles.warn}>{intl.formatMessage(messages.copyWarn)}</p>
+                    <div className={modalStyles.evalPaneLabel}>{intl.formatMessage(messages.copyDescription)}</div>
+                    {sourceText ? (
+                        <>
+                            <p className={styles.text} data-testid="grading-rubric-copy-description">
+                                {sourceText}
+                            </p>
+                            <p className={styles.note}>{intl.formatMessage(messages.copyDescriptionDraft)}</p>
+                        </>
+                    ) : (
+                        <p className={styles.note}>{intl.formatMessage(messages.copyNoDescription)}</p>
+                    )}
+                    <div className={modalStyles.evalPaneLabel}>{intl.formatMessage(messages.sentences)}</div>
+                    {rubric ? (
+                        <>
+                            {lacksS(rubric.examples) && (
+                                <NoSExampleWarning dataTestId="grading-rubric-copy-no-s-example" />
+                            )}
+                            <LevelsTable
+                                dataTestId="grading-rubric-copy-levels"
+                                examples={rubric.examples || []}
+                                levels={rubric.levels || []}
+                            />
+                            <p className={styles.note}>
+                                {intl.formatMessage(messages.copyExamples, { count: (rubric.examples || []).length })}
+                            </p>
+                            <p className={styles.warn}>{intl.formatMessage(messages.copyWarn)}</p>
+                        </>
+                    ) : (
+                        <p className={styles.note}>{intl.formatMessage(messages.copyNoRubric)}</p>
+                    )}
                 </div>
             )}
             <div className={styles.buttons}>
                 <ClassroomButton
                     dataTestId="grading-rubric-copy-do"
-                    disabled={busy || !rubric}
+                    disabled={busy || !source}
                     variant="primary"
                     onClick={handleCopy}
                 >
@@ -708,12 +937,20 @@ CopyDialog.propTypes = {
     onRead: PropTypes.func.isRequired,
 };
 
-const TeacherGradingRubric = ({ busy: parentBusy = false, lesson, tools, onOpenWork = null }) => {
+// The AI calls of the inner steps: their running name in useGradingRubric.
+const AI_RUNS = ['describe', 'propose', 'fairness', 'rubric'];
+const SUMMARY_LENGTH = 40;
+/** How long the「正解を選ぶ」tip stays by the grade buttons after the AI proposals (ms, #2521). */
+const CHOOSE_HINT_MS = 4000;
+
+const TeacherGradingRubric = ({ busy: parentBusy = false, lesson, tools, onOpenWork = null, onSaved = null }) => {
     const intl = useIntl();
     const {
         answers,
         copyClasses,
+        described,
         description,
+        drafted,
         examples,
         fairness,
         levels,
@@ -723,6 +960,7 @@ const TeacherGradingRubric = ({ busy: parentBusy = false, lesson, tools, onOpenW
         running,
         savedAt,
         savedRubric,
+        sentencesSaved,
         starter,
         works,
         groups,
@@ -733,6 +971,10 @@ const TeacherGradingRubric = ({ busy: parentBusy = false, lesson, tools, onOpenW
     const [building, setBuilding] = useState(false);
     const [openSeat, setOpenSeat] = useState(null);
     const [copying, setCopying] = useState(false);
+    // After the AI proposals of 2-2: a notice and a short tip on the first representative (#2521).
+    const [proposedNotice, setProposedNotice] = useState(false);
+    const [hintSeat, setHintSeat] = useState(null);
+    const lastRunning = useRef(running);
     useEffect(() => {
         if (loaded) loadStarter();
     }, [loaded, loadStarter, lesson.classroomId]);
@@ -740,7 +982,29 @@ const TeacherGradingRubric = ({ busy: parentBusy = false, lesson, tools, onOpenW
         setBuilding(false);
         setOpenSeat(null);
         setCopying(false);
+        setProposedNotice(false);
+        setHintSeat(null);
+        // An AI run of the lesson left behind is not the end of this lesson's run.
+        lastRunning.current = null;
     }, [lesson.classroomId]);
+    useEffect(() => {
+        const finished = lastRunning.current === 'propose' && !running;
+        lastRunning.current = running;
+        if (!finished || Object.keys(proposals).length === 0) return;
+        // Open the first representative still without the right grade: that is the teacher's next move.
+        const next =
+            representatives.find((r) => !(answers[String(r.seatNumber)] && answers[String(r.seatNumber)].grade)) ||
+            representatives[0];
+        if (!next) return;
+        setProposedNotice(true);
+        setOpenSeat(next.seatNumber);
+        setHintSeat(next.seatNumber);
+    }, [running, proposals, representatives, answers]);
+    useEffect(() => {
+        if (hintSeat === null) return;
+        const timer = setTimeout(() => setHintSeat(null), CHOOSE_HINT_MS);
+        return () => clearTimeout(timer);
+    }, [hintSeat]);
     const handleToggle = useCallback((seat) => setOpenSeat((prev) => (prev === seat ? null : seat)), []);
     const handleBuild = useCallback(() => setBuilding(true), []);
     const handleCopyOpen = useCallback(() => setCopying((prev) => !prev), []);
@@ -750,8 +1014,10 @@ const TeacherGradingRubric = ({ busy: parentBusy = false, lesson, tools, onOpenW
         [tools],
     );
     const handleSave = useCallback(async () => {
-        if (await tools.handleSaveRubric()) setBuilding(false);
-    }, [tools]);
+        if (!(await tools.handleSaveRubric())) return;
+        setBuilding(false);
+        if (onSaved) onSaved();
+    }, [tools, onSaved]);
 
     const hasRubric = hasRubricLevels(savedRubric);
     const showBuilder = !hasRubric || building;
@@ -759,28 +1025,221 @@ const TeacherGradingRubric = ({ busy: parentBusy = false, lesson, tools, onOpenW
         (r) => answers[String(r.seatNumber)] && answers[String(r.seatNumber)].grade,
     ).length;
     const canSave = levels.some((l) => l.text.trim());
+    const hasReps = loaded && representatives.length > 0;
+    const checks = (fairness && fairness.checks) || [];
+    const descriptionStatus = description ? description.status : null;
+    // A draft (the AI's proposal, or one copied from another assignment) waits for the teacher (#2456).
+    const descriptionDraft = descriptionStatus === 'proposed' || descriptionStatus === 'copied';
+    const states = rubricStepStates({
+        hasDescription: !!lesson.assignmentText,
+        descriptionDraft,
+        repsTotal: representatives.length,
+        repsDone: done,
+        fairness,
+        saved: !!sentencesSaved,
+    });
+    const text = lesson.assignmentText || '';
+    const summaries = {
+        describe: intl.formatMessage(messages.summaryDescribe, {
+            text: text.length > SUMMARY_LENGTH ? `${text.slice(0, SUMMARY_LENGTH)}…` : text,
+        }),
+        examples: intl.formatMessage(messages.summaryExamples, { done, total: representatives.length }),
+        fairness:
+            checks.length === 0
+                ? intl.formatMessage(fairness && fairness.noWorks ? messages.fairnessNoWorks : messages.fairnessNone)
+                : intl.formatMessage(messages.summaryFairness, { count: checks.length }),
+        sentences: intl.formatMessage(messages.summarySentences),
+    };
+
+    const describeStep = (
+        <DescriptionSection
+            busy={busy}
+            described={!!described}
+            description={description}
+            lesson={lesson}
+            loaded={loaded}
+            running={running === 'describe'}
+            onDescribe={tools.handleDescribe}
+            onUseDescription={tools.handleUseDescription}
+        />
+    );
+    // F4: one button above the list proposes for every representative at once.
+    const examplesStep = (
+        <div className={styles.section} data-testid="grading-rubric-reps">
+            <AskAi
+                buttonLabel={intl.formatMessage(messages.propose, { count: representatives.length })}
+                description={intl.formatMessage(messages.aiPropose)}
+                disabled={busy || !hasReps}
+                running={running === 'propose'}
+                testId="grading-rubric-propose-ai"
+                used={Object.keys(proposals).length > 0}
+                onClick={tools.handlePropose}
+            />
+            {!loaded && <p className={styles.note}>{intl.formatMessage(messages.notLoaded)}</p>}
+            {loaded && representatives.length === 0 && (
+                <p className={styles.note}>{intl.formatMessage(messages.noWorks)}</p>
+            )}
+            {hasReps && (
+                <>
+                    <div className={modalStyles.evalPaneLabel}>
+                        {intl.formatMessage(messages.reps, {
+                            done,
+                            total: representatives.length,
+                            works: works.length,
+                            groups: groups.length,
+                        })}
+                    </div>
+                    {proposedNotice && done < representatives.length ? (
+                        <p className={styles.notice} data-testid="grading-rubric-proposed-notice" role="status">
+                            {intl.formatMessage(messages.proposedNotice)}
+                        </p>
+                    ) : (
+                        <p className={styles.note}>{intl.formatMessage(messages.repsHint)}</p>
+                    )}
+                    <ul className={styles.reps}>
+                        {representatives.map((rep) => (
+                            <RepresentativeRow
+                                answer={answers[String(rep.seatNumber)]}
+                                busy={busy}
+                                classroomId={lesson.classroomId}
+                                hint={hintSeat === rep.seatNumber}
+                                key={rep.key}
+                                open={openSeat === rep.seatNumber}
+                                proposal={proposals[String(rep.seatNumber)]}
+                                rep={rep}
+                                onOpenWork={onOpenWork}
+                                onSetAnswer={tools.handleSetAnswer}
+                                onToggle={handleToggle}
+                            />
+                        ))}
+                    </ul>
+                </>
+            )}
+        </div>
+    );
+    const fairnessStep = (
+        <div className={styles.section} data-testid="grading-rubric-fairness">
+            <AskAi
+                buttonLabel={intl.formatMessage(messages.fairnessRun)}
+                description={intl.formatMessage(messages.aiFairness)}
+                disabled={busy || done === 0}
+                running={running === 'fairness'}
+                testId="grading-rubric-fairness-ai"
+                used={!!fairness}
+                onClick={tools.handleCheckFairness}
+            >
+                {fairness && checks.length === 0 && (
+                    <p className={styles.done} role="status">
+                        {intl.formatMessage(fairness.noWorks ? messages.fairnessNoWorks : messages.fairnessNone)}
+                    </p>
+                )}
+            </AskAi>
+            {/* Nothing to check: say so and let the teacher move on, instead of skipping 2-3 unseen (#2521). */}
+            {fairness && checks.length === 0 && !fairness.confirmed && (
+                <div className={styles.buttons}>
+                    <ClassroomButton
+                        dataTestId="grading-rubric-fairness-next"
+                        disabled={busy}
+                        variant="primary"
+                        onClick={tools.handleConfirmFairness}
+                    >
+                        {intl.formatMessage(messages.fairnessNext)}
+                    </ClassroomButton>
+                </div>
+            )}
+            {checks.length > 0 && (
+                <ul className={styles.checks}>
+                    {checks.map((check, i) => (
+                        <FairnessCheck
+                            answer={fairness.answers[i]}
+                            busy={busy}
+                            check={check}
+                            index={i}
+                            key={i}
+                            works={works}
+                            onAnswer={tools.handleAnswerFairness}
+                        />
+                    ))}
+                </ul>
+            )}
+        </div>
+    );
+    const sentencesStep = (
+        <div className={styles.section} data-testid="grading-rubric-sentences">
+            <AskAi
+                buttonLabel={intl.formatMessage(messages.draft)}
+                description={intl.formatMessage(messages.aiDraft)}
+                disabled={busy || examples.length === 0}
+                running={running === 'rubric'}
+                testId="grading-rubric-draft-ai"
+                used={!!drafted}
+                onClick={tools.handleDraftRubric}
+            />
+            <div className={modalStyles.evalPaneLabel}>{intl.formatMessage(messages.sentences)}</div>
+            {examples.length > 0 && lacksS(examples) && (
+                <NoSExampleWarning dataTestId="grading-rubric-draft-no-s-example" />
+            )}
+            <table className={modalStyles.evalRubricTable}>
+                <tbody>
+                    {levels.map((level) => (
+                        <tr key={level.grade}>
+                            <th scope="row">
+                                <Pill grade={level.grade} />
+                            </th>
+                            <td className={styles.levelCell}>
+                                <input
+                                    aria-label={level.grade}
+                                    className={styles.input}
+                                    data-grade={level.grade}
+                                    data-testid={`grading-rubric-level-${level.grade}`}
+                                    maxLength={500}
+                                    type="text"
+                                    value={level.text}
+                                    onChange={handleLevel}
+                                />
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+            <p className={styles.note}>{intl.formatMessage(messages.examplesNote, { count: examples.length })}</p>
+            <div className={styles.buttons}>
+                <ClassroomButton
+                    dataTestId="grading-rubric-save"
+                    disabled={busy || !canSave}
+                    variant="primary"
+                    onClick={handleSave}
+                >
+                    {intl.formatMessage(messages.save)}
+                </ClassroomButton>
+            </div>
+        </div>
+    );
+    const step = (id, number, title, content) => ({
+        id,
+        number,
+        title: intl.formatMessage(title),
+        state: states[id],
+        summary: states[id] === 'done' ? summaries[id] : null,
+        content,
+    });
 
     return (
         <div className={styles.root} data-testid="grading-rubric">
-            <DescriptionSection
-                busy={busy}
-                description={description}
-                lesson={lesson}
-                loaded={loaded}
-                onDescribe={tools.handleDescribe}
-                onUseDescription={tools.handleUseDescription}
-            />
             {starter && starter.status === 'none' && (
                 <p className={styles.note}>{intl.formatMessage(messages.starterNone)}</p>
             )}
             {starter && starter.status === 'failed' && (
                 <p className={styles.note}>{intl.formatMessage(messages.starterFailed)}</p>
             )}
-            {running && (
+            {/* The AI calls show it on their own button; this is for saving, copying and the starter. */}
+            {running && !AI_RUNS.includes(running) && (
                 <p className={styles.note} data-testid="grading-rubric-running" role="status">
                     <Spinner small /> {intl.formatMessage(messages.working)}
                 </p>
             )}
+            {/* After copying, the rubric is saved but the copied description still waits for the teacher. */}
+            {hasRubric && !building && descriptionDraft && describeStep}
             {hasRubric && !building && (
                 <div className={styles.section} data-testid="grading-rubric-saved">
                     <div className={modalStyles.evalPaneLabel}>{intl.formatMessage(messages.sentences)}</div>
@@ -797,134 +1256,18 @@ const TeacherGradingRubric = ({ busy: parentBusy = false, lesson, tools, onOpenW
                 </div>
             )}
             {showBuilder && (
-                <>
-                    <div className={styles.section} data-testid="grading-rubric-reps">
-                        {!loaded && <p className={styles.note}>{intl.formatMessage(messages.notLoaded)}</p>}
-                        {loaded && representatives.length === 0 && (
-                            <p className={styles.note}>{intl.formatMessage(messages.noWorks)}</p>
-                        )}
-                        {loaded && representatives.length > 0 && (
-                            <>
-                                <div className={modalStyles.evalPaneLabel}>
-                                    {intl.formatMessage(messages.reps, {
-                                        done,
-                                        total: representatives.length,
-                                        works: works.length,
-                                        groups: groups.length,
-                                    })}
-                                </div>
-                                <p className={styles.note}>{intl.formatMessage(messages.repsHint)}</p>
-                                <div className={styles.buttons}>
-                                    <ClassroomButton
-                                        dataTestId="grading-rubric-propose"
-                                        disabled={busy}
-                                        onClick={tools.handlePropose}
-                                    >
-                                        {intl.formatMessage(messages.propose)}
-                                    </ClassroomButton>
-                                </div>
-                                <ul className={styles.reps}>
-                                    {representatives.map((rep) => (
-                                        <RepresentativeRow
-                                            answer={answers[String(rep.seatNumber)]}
-                                            busy={busy}
-                                            classroomId={lesson.classroomId}
-                                            key={rep.key}
-                                            open={openSeat === rep.seatNumber}
-                                            proposal={proposals[String(rep.seatNumber)]}
-                                            rep={rep}
-                                            onOpenWork={onOpenWork}
-                                            onSetAnswer={tools.handleSetAnswer}
-                                            onToggle={handleToggle}
-                                        />
-                                    ))}
-                                </ul>
-                            </>
-                        )}
-                    </div>
-                    {loaded && representatives.length > 0 && (
-                        <div className={styles.section} data-testid="grading-rubric-fairness">
-                            <div className={modalStyles.evalPaneLabel}>{intl.formatMessage(messages.fairness)}</div>
-                            <div className={styles.buttons}>
-                                <ClassroomButton
-                                    dataTestId="grading-rubric-fairness-run"
-                                    disabled={busy || done === 0}
-                                    onClick={tools.handleCheckFairness}
-                                >
-                                    {intl.formatMessage(messages.fairnessRun)}
-                                </ClassroomButton>
-                            </div>
-                            {fairness && fairness.checks.length === 0 && (
-                                <p className={styles.done}>{intl.formatMessage(messages.fairnessNone)}</p>
-                            )}
-                            {fairness && fairness.checks.length > 0 && (
-                                <ul className={styles.checks}>
-                                    {fairness.checks.map((check, i) => (
-                                        <FairnessCheck
-                                            answer={fairness.answers[i]}
-                                            busy={busy}
-                                            check={check}
-                                            index={i}
-                                            key={i}
-                                            works={works}
-                                            onAnswer={tools.handleAnswerFairness}
-                                        />
-                                    ))}
-                                </ul>
-                            )}
-                        </div>
-                    )}
-                    <div className={styles.section} data-testid="grading-rubric-sentences">
-                        <div className={modalStyles.evalPaneLabel}>{intl.formatMessage(messages.sentences)}</div>
-                        {examples.length > 0 && lacksS(examples) && (
-                            <NoSExampleWarning dataTestId="grading-rubric-draft-no-s-example" />
-                        )}
-                        <div className={styles.buttons}>
-                            <ClassroomButton
-                                dataTestId="grading-rubric-draft"
-                                disabled={busy || examples.length === 0}
-                                onClick={tools.handleDraftRubric}
-                            >
-                                {intl.formatMessage(messages.draft)}
-                            </ClassroomButton>
-                        </div>
-                        <table className={modalStyles.evalRubricTable}>
-                            <tbody>
-                                {levels.map((level) => (
-                                    <tr key={level.grade}>
-                                        <th scope="row">
-                                            <Pill grade={level.grade} />
-                                        </th>
-                                        <td className={styles.levelCell}>
-                                            <input
-                                                className={styles.input}
-                                                data-grade={level.grade}
-                                                data-testid={`grading-rubric-level-${level.grade}`}
-                                                maxLength={500}
-                                                type="text"
-                                                value={level.text}
-                                                onChange={handleLevel}
-                                            />
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                        <p className={styles.note}>
-                            {intl.formatMessage(messages.examplesNote, { count: examples.length })}
-                        </p>
-                        <div className={styles.buttons}>
-                            <ClassroomButton
-                                dataTestId="grading-rubric-save"
-                                disabled={busy || !canSave}
-                                variant="primary"
-                                onClick={handleSave}
-                            >
-                                {intl.formatMessage(messages.save)}
-                            </ClassroomButton>
-                        </div>
-                    </div>
-                </>
+                <InnerStepper
+                    // Another lesson starts its own steps (no wait carried over from the lesson left behind).
+                    key={lesson.classroomId}
+                    steps={[
+                        step('describe', '2-1', messages.stepDescribe, describeStep),
+                        step('examples', '2-2', messages.stepExamples, examplesStep),
+                        step('fairness', '2-3', messages.stepFairness, fairnessStep),
+                        step('sentences', '2-4', messages.stepSentences, sentencesStep),
+                    ]}
+                    testId="grading-rubric-steps"
+                    title={intl.formatMessage(messages.stepsTitle)}
+                />
             )}
             <div className={styles.buttons}>
                 <ClassroomButton
@@ -941,7 +1284,7 @@ const TeacherGradingRubric = ({ busy: parentBusy = false, lesson, tools, onOpenW
                     busy={busy}
                     classes={copyClasses}
                     onClose={handleCopyClose}
-                    onCopy={tools.handleCopyRubric}
+                    onCopy={tools.handleCopyFromAssignment}
                     onRead={tools.handleReadCopySource}
                 />
             )}
@@ -958,6 +1301,8 @@ TeacherGradingRubric.propTypes = {
     tools: PropTypes.object.isRequired,
     /** (seat, classroomId) → open the work in the editor. */
     onOpenWork: PropTypes.func,
+    /** () → the rubric (2-4) was saved: the grading moves on to the［形］tab (#2522). */
+    onSaved: PropTypes.func,
 };
 
 /* 全員の採点のあとに 1 件を直したとき、同じまとまりも直すかを聞く（［生徒］のタブ）。 */
@@ -995,5 +1340,5 @@ TeacherGradingGroupPrompt.propTypes = {
     onDismiss: PropTypes.func.isRequired,
 };
 
-export { TeacherGradingGroupPrompt, messages as gradingRubricMessages };
+export { CHOOSE_HINT_MS, TeacherGradingGroupPrompt, messages as gradingRubricMessages };
 export default TeacherGradingRubric;

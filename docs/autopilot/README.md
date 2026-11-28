@@ -336,6 +336,28 @@ worker が人間に選んでほしいことがあるとき、`signal=hitl` の�
 `renderMonitorAnswersForPrompt` ほか）、置き場と受け口と GitHub のつなぎは `monitor-answers.js`、書き込みは `project.js`
 （`applyCommentPlans`）。モニターでは「あなた宛て」の「答えが要る」に出る（下の「Web モニタ」）。
 
+**worker 以外が質問を出す — `bin/autopilot-ask`**: セッションの AI や人間が「人間の判断が要る Issue」を作るときは、
+本文に案を書くだけにしない（モニターは決まった形の質問のコメントしか読まないので、「答える」に出ず、ゴーサインの行に
+なってしまう。押すと答えないまま 🙋 が外れて実装が始まる）。代わりに質問を JSON に書いて道具で出す:
+
+```bash
+bin/autopilot-ask <issue> tmp/questions-<issue>.json   # --repo owner/name / --port 8787（env AUTOPILOT_PORT）
+```
+
+- 中身の形は worker の結果の `questions` と同じ（`autonomous-contract.md` §2.3 の「worker 以外が質問を出す」）。検証も同じ
+  （`contract.js` の `questionListErrors` → `phases.js` の `normalizeAskInput`）。
+- 質問のコメントは worker と同じ道（`monitor-answers.js` の `writeQuestionsComment`）で **Bot 名義**で書く。同じ中身は書かず、
+  新しい質問は round を続ける。Bot のトークンが取れなければ何も書かずに止まる（個人のトークンで書かない）。
+- 書いたあと、daemon の `POST /questions`（合言葉 `X-Autopilot-Token` が要る。`ask.js` が合言葉のファイルを読む）で置き場に載せる。
+  同じ round の同じ質問は置き直さない（モニターで書いた「メモだけ保存」を消さない）。worker が動いている Issue は受けない（409）。
+  daemon に届かないときはコメントだけ書いて終了コード 2 で終わる。daemon を起こしてからもう一度流せば、コメントは書き直さずに載る。
+- 載った質問は、Status（Sprint Backlog・Backlog・Blocked など）・⏳ 待ちによらず「答える」になる（`humanAction`）。
+  ゴーサインにはしない。EPIC の子でも隠さない: 子は「答えが要る」の欄に出て、EPIC の行は段階によらずそれを指す
+  （Release Check の行は「確認ページを開く」のまま、一文に「子 #N に答え待ちの質問があります」を足す。任せる前の
+  「この EPIC を AI に任せる」には質問のある子を入れず、同じ一文で子を指す）。
+- 答えると、いまと同じく答えを記録して 🙋 を外す。Sprint Backlog の Issue は implement に進み、答えのファイル
+  （`tmp/autopilot-answers-<issue>.md`）を受け取る。
+
 ### モニターの「AI に任せる」（人間待ちを autopilot に渡す）
 
 モニターの「あなた宛て」には、🙋 HITL の付いた Issue（人間待ち）が並ぶ（`GET /board` の `humanWait`）。
@@ -404,6 +426,29 @@ EPIC の子の PR は topic ブランチ宛てで、daemon が CI 通過後に t
   既に子が topic に入っている EPIC の PR もそろえる（`bootEpicTopicPrs`）。人間が手で topic にマージしたときは、
   次の自動マージか daemon の起動でそろう。
 - daemon は develop へのマージをしない（下のリリース確認の 5.）。
+- 本文のプレビューの節に、**develop と競合していてプレビューが作られないときはそう**書く（`previewStatus` / `previewStatusText`。
+  「⚠️ develop と競合しています。プレビューはまだありません」）。CI を待つあいだの状態は、本文を次に直すまで
+  古い文として残るので書かない（リリース確認の前の確かめは下の `preview-status`）。`getEpicPrFacts` が同じ GraphQL 1 回で
+  topic → develop の PR の `mergeable` と CI（`preview-deploy` のジョブ）を読む。
+
+### topic を develop に追従させる（競合したら develop を取り込む）
+
+GitHub は base と競合している PR では `pull_request` の workflow を動かさない。topic → develop の PR が develop と
+競合すると CI が 1 つも付かず、**プレビューが一度も作られない**（人間が開くと S3 の AccessDenied になる）。
+そこで daemon は、子を topic にマージしたあと（と起動時）に topic → develop の PR の `mergeable` を見て、
+競合していたら develop を topic に取り込む（判断は `epic-pr.js` の `topicSyncPlan`、I/O は `epic-merge.js` の
+`applyEpicTopicSync` / `runTopicSync`）。
+
+1. 取り込むブランチ `<topic>-sync-develop`（`topicSyncBranch`。子の `topic/autopilot-<N>` と取り違えない形）を
+   topic の先頭から作り、専用の worktree（`.autopilot-worktrees/issue-sync-<EPIC>`）で develop を **merge** する
+   （rebase しない）。競合したら `autopilot-resolve-conflict` の worker に解かせる（子の PR の解消と同じ確かめ方）。
+2. push して、topic 宛ての PR（draft にしない・本文は `Refs #<EPIC>`）を作る。
+3. 次の tick から、その PR の CI を見る。通ったら daemon が topic にマージし、topic → develop の PR の本文を直す。
+4. 解けない・取り込む PR の CI が落ちた・また競合したときは、EPIC の Issue に 🙋 のコメントを 1 回書いて人間に任せる。
+
+read は、子を topic にマージしたときに読む `getEpicPrFacts`（もとからある 1 回）に相乗りし、追加は取り込み中の
+PR の数だけ（`getPrMergeFacts`）。取り込みの追跡は daemon のメモリ（`state.topicSyncs`）に持ち、再起動したら
+起動時の `bootEpicTopicPrs` で見つけ直す。
 
 ### リリース確認（分解済み EPIC の最後の確認）
 
@@ -421,13 +466,25 @@ daemon とのつなぎ・HTTP は `src/release-check-http.js`、段のプロン�
 2. **観点をまとめる**: release-check フェーズが topic → develop の PR とプレビューの URL を探し、EPIC の本文・
    決めたこと・sub-issue の DoD・見送った指摘・関係する docs の方針から、番号付きの確認の観点（`### R1. <題>` …
    「どこを開いて何をすると、どうなれば OK か」）を、トラッカーに目印付きのコメント
-   `<!-- autopilot-release-check round=N -->` で書く（同じ round があれば PATCH）。終わったら 🙋 で人間に渡す。
-3. **人間が確かめる**: モニターの「あなた宛て」の行（札「🚀 リリース確認」）に、プレビューへのリンクと
-   **「確認の結果を書く」** ボタンが出る。ダイアログは観点のコメントを整形して見せ、観点ごとに **OK / NG** と
+   `<!-- autopilot-release-check round=N -->` で書く（同じ round があれば PATCH）。続けて **確認ページ**（claude.ai の
+   artifact）を 1 枚作り（下の「確認ページ」）、観点のコメントにリンクを入れる。終わったら 🙋 で人間に渡す。
+   観点を書く前に **`tools/autopilot/bin/preview-status --pr <topic → develop の PR>`** でプレビューができているか
+   （PR が競合していないか・`preview-deploy` が成功したか・URL が開けるか）を確かめる。まだなら
+   `**プレビュー**: まだありません — <理由>` と書き（`releasePreviewLine`）、**開けない URL を「確かめる場所」として
+   人間に渡さない**（観点だけを先に出す）。
+3. **人間が確かめる**: モニターの「あなた宛て」の行（札「🚀 リリース確認」）のボタンが **「確認ページを開く」**（別タブ）になる
+   （確認ページがまだ無いときは、プレビューへのリンクと、確認の結果を書くダイアログを出す）。確認ページで観点ごとの OK / NG・
+   決定待ちごとの答え・全体のコメントを書いて「答えを送る」を押し、モニターの行の ⋯ にある
+   **「確認ページの答えを AI に渡す」**（またはトラッカーの 🙋 を外す）で AI に渡す。worker が答えを読み、
+   `<!-- autopilot-release-review round=N -->` のコメントを Bot で書いてから 4. に進む。
+   **モニターのダイアログ「確認の結果を書く」も残す**（確認ページが開けないときの予備。⋯ の「✨ 確認の結果を書く」）。
+   ダイアログは観点のコメントを整形して見せ、観点ごとに **OK / NG** と
    メモ、全体のコメントを書ける（`GET /release-check?issue=N` で押したときだけトラッカーのコメントを 1 回読む）。
    「送る」で `POST /release-check/review`。daemon は結果を `<!-- autopilot-release-review round=N -->` のコメントとして
-   Bot で書いてから 🙋 を外す（同じ round の結果は二重に書かない・`planReleaseReviewPost`）。
-4. **結果を受ける**: release-check が結果を読み、NG とコメントの指摘ごとに EPIC の sub-issue を作る（本文の行頭に
+   Bot で書いてから 🙋 を外す（同じ round の結果は二重に書かない・`planReleaseReviewPost`。確認ページとモニターの両方から
+   送っても、先に書いたほうだけが残る）。
+4. **結果を受ける**: release-check が結果を読み、NG とコメントの指摘、確認ページの決定待ちで「推奨でよい」以外を選んで
+   直しが要るものごとに EPIC の sub-issue を作る（決定待ちの目印は `point=D1` など。本文の行頭に
    `autopilot-base: <topic ブランチ>`、目印 `<!-- autopilot-release-ng epic=E round=N point=R1 -->` で二重に作らない・
    `planReleaseResult`）。daemon が sub-issue を Sprint Backlog / Kind=Issue にし、トラッカーは EPIC Decomposed に戻る。
    作った子が全部済むと、1. から次の round になる。全部 OK なら topic → develop の PR の本文を更新して 🙋 で人間に返す。
@@ -443,12 +500,75 @@ daemon とのつなぎ・HTTP は `src/release-check-http.js`、段のプロン�
    未対応のものとして受ける。モニターのまだ受けていない結果が無いとき（PR のレビューだけを受けるとき）は
    `autopilot-release-result` の目印を書かず（あとで書かれたモニターの結果を取りこぼさないため）、作るものが無ければ
    続けて観点をまとめる。
-5. **develop へのマージは人間**。autopilot はマージせず、EPIC も閉じない。マージして EPIC を閉じると closed-reconcile が
-   Project を Close にそろえる。
+5. **develop へのマージは人間が決める**（#2544）。全部 OK のとき、release-check は結果の目印を
+   `<!-- autopilot-release-result round=N allOk=1 pr=<PR> head=<SHA> -->` にし（`releaseResultMarker`。SHA は人間が確かめたときの
+   topic の head）、結果ファイルに `allOk` / `pr` / `headSha` を書く。daemon がそれを覚え（`~/.config/autopilot/release-check-merges.json`）、
+   「あなた宛て」の行の主ボタンを **「develop へマージする」** にする（確認ページは ⋯ の「📄 確認ページを開く」に残す）。
+   - 押すと「これを行います: topic → develop の PR #N の draft を外して develop へマージし、EPIC #M を Close にする」と確かめる。
+     平日の 12:50〜13:15 の外（16:15 以降の予備も含む）なら、ここに「⚠️ いまは平日のマージの時間の外です」と出す
+     （`developMergeWindow`。日本時間・祝日は見ない）。
+   - 「行う」で `POST /release-check/merge?issue=N`。daemon は押したときだけトラッカーのコメント・PR のレビューとコメント・
+     sub-issue の本文・PR を読み直し、`releaseMergeReadiness` / `planReleaseMerge`（`src/release-merge.js`）で確かめる:
+     いちばん新しい round の結果が全部 OK で、そのあとに新しい観点・結果・PR のまだ受けていないレビューやコメントが無い、
+     PR が open・develop 宛て・コンフリクト無し・CI が全部通っている、PR の head が目印の SHA と同じ、
+     `.github/workflows` などの Bot の権限外のファイルを含まない。どれかに当たれば 409 で理由を返して何もしない。
+   - **時間の決まり**（`.claude/rules/merge-and-release.md`）: 時間の外は、確かめに出したうえで人間が押せば通す
+     （押すのは人間の判断。モニターは確かめを出したので `confirmOffHours: true` を送る。ほかから叩いて付けなければ
+     409 `off-hours`）。メッシュに関わる変更（`MESH_PATH_PATTERNS`）は、平日の 8:00〜19:00 は確かめても断る。
+   - 通れば Bot で draft を外し、`--merge` でマージし（squash は使えない）、EPIC を Status=Close・AI Status 空にし、
+     🙋 を外して Issue を閉じる（`finishEpicMerge`）。Bot の権限で通らないときは理由を返し、GitHub でのマージを頼む。
+   - 二重押し・その EPIC で worker が走っているときは 409（`in-flight` / `busy`）。
+   - **人間が GitHub でマージしたとき**も同じ終わり方にする: ボードを更新したあと、Release Check の EPIC ごとに
+     topic（子の `autopilot-base:` のキャッシュ）→ develop の merged な PR を 1 回探し、あれば `finishEpicMerge` する
+     （`applyReleaseMergedEpics` / `selectMergedReleaseEpics`）。覚えた PR（全部 OK の材料・下の「EPIC を閉じる」の材料）が
+     あればその PR の状態を見る（1 件につき 1 回の read）。
+   - `finishEpicMerge` は Issue を閉じてから Project を Close にする。閉じられなかったときは Project を動かさず、
+     次のボードの更新で取り直す（閉じたあとに Project だけ失敗したら closed-reconcile がそろえる）。
+   - **予備の口「EPIC を閉じる」**: topic → develop の PR は merged なのに、Release Check でない EPIC が開いたまま
+     （古い EPIC・途中で人間がマージした・閉じるのに失敗した）のとき、終端でない 🧭 トラッカーについて同じ read で見つけ、
+     「あなた宛て」の主ボタンを **「EPIC を閉じる」** にする（`selectEpicCloseOffers`。材料は daemon のメモリだけ）。
+     確かめに開いたままの子の一覧を出す。押すと `POST /release-check/close?issue=N` で PR を読み直し（`planEpicClose`）、
+     同じ `finishEpicMerge` で閉じる。**開いたままの子は閉じない**（リリース後の作業は EPIC が閉じるのを待って始まるもの。
+     閉じるかは人間が決める）。Release Check でない EPIC は開いた子があり得るので、自動では閉じない。
+   - マージの前のファイルの確かめ（メッシュ・Bot の権限外）は、REST でページを送って全部のファイルを読む
+     （`gh pr view --json files` は 100 件で切れる）。`changedFiles` より少なければ `files-incomplete` で断る。
+
+![全部 OK の EPIC の「develop へマージする」](screenshots/monitor-release-merge-row-light.png)
+
+![時間の外の確かめ](screenshots/monitor-release-merge-offhours-light.png)
 
 どちらの段（まとめる / 受ける）かは、トラッカーの目印付きコメントと、PR のまだ受けていないレビュー・コメントの数だけで
 決める（`releaseCheckMode`）。
 プレビューの URL は段の結果（`previewUrl`）か、ダイアログを開いたときに覚えたものだけを行に出す（定期では取らない）。
+
+#### 確認ページ（artifact）
+
+EPIC の最後の確認を 1 枚で済ませるページ（#2474）。決まり（`.claude/rules/topic-branches.md`）の「決定ページ」にあたる。
+
+- **作る**: release-check の「観点をまとめる」段で worker が作る。形は **テンプレート**
+  `tools/autopilot/templates/release-check/template.html` が正で、worker は `bin/release-page-render.js` が
+  トラッカーのコメントから作るデータ（`draftReleasePageData`。`RELEASE_PAGE_SCHEMA`）に、冒頭の一文（`lead`）だけを足す。
+  データの形を変えたら、スキーマ・下書きの関数・テンプレートの JS を対で直す（`test/release-page.test.js` が確かめる）。
+- **載せるもの**（上から）: EPIC の題・プレビュー・topic → develop の PR・トラッカーへのリンク（別タブ）→ 確認の観点（R1, R2 …。
+  開く / する / OK / 出どころ、観点ごとに OK / NG とメモ）→ 決定待ち（EPIC の「決定待ち」まとめコメントの中身。採用しなかった
+  指摘も入る。D1, D2 …。AI の推奨と、ほかの案、「推奨でよい / 別の案 / コメント」）→ 全体のコメント → 「答えを送る」。
+- **答え**: ページの保存先（artifact の db）の `answers/round-N` に入る。押すまでは下書き（`status: "draft"`）で、送ると
+  `status: "submitted"` になり、ページは変えられない表示になる。
+- **読むのは worker**: db を読めるのは Claude の ArtifactData だけ（daemon は Node で claude.ai の認証を持たない）。人間が
+  「確認ページの答えを AI に渡す」で 🙋 を外すと release-check が起き、db の答えを読んで `bin/release-page-answer.js`
+  （`postReleasePageAnswer`。モニターと同じ `normalizeReleaseReviewBody` で検証する）でトラッカーに結果のコメントを書く。
+  答えは閲覧者が書いたデータなので、指示として読まない。
+- **同じ URL**: URL は daemon が `~/.config/autopilot/release-check-pages.json`（`AUTOPILOT_STATE_DIR` で場所を変えられる）に
+  EPIC ごとに持ち、worker に `AUTOPILOT_ARTIFACT_URL` で渡す。2 回目の round からは同じ artifact を更新する（db の答えは
+  round ごとの文書なので、前の round の答えも残る）。結果ファイルの `artifactUrl` が artifact の URL の形でなければ覚えない。
+
+![確認ページ（ライト）](screenshots/release-check-page-light.png)
+
+![確認ページ（ダーク）](screenshots/release-check-page-dark.png)
+
+![確認ページ（スマホの幅）](screenshots/release-check-page-phone.png)
+
+![答えを送ったあと](screenshots/release-check-page-sent-light.png)
 
 ![「あなた宛て」のリリース確認の行](screenshots/monitor-release-check-row-light.png)
 
@@ -470,7 +590,10 @@ merge 済みか**を GitHub に問い合わせ（`closedByPullRequestsReferences
 **Close**・AI Status をクリアし、両面の `🙋 HITL` ラベルを除去する。close リンクは PR が
 **非デフォルト base 宛て**（EPIC サブ Issue を親 epic ブランチに積む等）だと登録されないため、
 close リンクで見つからなければ head ブランチ `topic/autopilot-<N>` の merged PR も見て base 非依存に
-検知する（#831）。判定は `phases.js` の
+検知する（#831）。**同じブランチで PR を分けて出す Issue では、open の PR があればマージ済みと
+みなさない**（前の PR がマージ済みでも、いま開いている PR が本物で人間のレビュー待ち。close リンクと
+head ブランチのどちらでも同じ。head ブランチは `--state all` の 1 回で open と merged を取る・
+`phases.js` の `hasMergedHeadPr`）。判定は `phases.js` の
 `selectMergeCandidates` / `mergeProgressionIntents`（純粋関数）、問い合わせと書き込みは
 `project.hasMergedPullRequest` と daemon の `applyMergeProgression`（ラベル除去は force 同期）。
 実行中（run が所有する）item は触らない。
@@ -488,6 +611,19 @@ close した leaf、(B) 統合 PR の `Closes #<epic>` で閉じた EPIC、(C) �
 **Status=Close + AI Status クリア**へ整合する。closed という事実だけを根拠にするので **EPIC も対象**。
 判定は `phases.js` の `selectClosedToReconcile`（純粋関数・終端は `TERMINAL_STATUSES`）。実行中
 （run が所有する）item は触らない。冪等。
+
+閉じた Issue の Status が空（New Item）や In Progress のままだと、拾う判定が reconcile より先に worker を
+起こし、running に入った item を reconcile が飛ばしてしまう（triage が閉じた Issue を、また triage する
+くり返し）。そのため daemon は次の 2 つを行う。
+
+- **拾う前に外す**: tick は closed 状態の確認を拾う判定より先に行い、閉じた Issue を stalled 復帰と
+  `selectActionable` に渡さない（`excludeClosedItems`）。Close へそろえるのは同じ tick の reconcile。
+- **フェーズが閉じたら Close**: run が done で終わったとき、その Issue が GitHub で閉じていれば、
+  結果の `nextStatus` を問わず Status=Close・AI Status 空にし、🙋 を付けない（`closedRunIntents` /
+  `isIssueClosedAfterRun`。1 件のバッチ GraphQL）。プロンプトは `nextStatus` に Close を書かない
+  （I4 の静的検査が `"nextStatus":"Close"` を禁じている）。Close にした Issue は reconcile の対象から
+  外れるので、worktree の片付け（#1362 と同じ判定）も run の終わりに daemon が行う。hitl / error で
+  終えたときは書きかえず、次の tick の reconcile が Close にする。
 
 ---
 
@@ -937,12 +1073,16 @@ daemon の `GET /`（既定 `http://localhost:8787/`）は、人間と同意し�
 
   | 状態 | すること | ボタン | 押すと |
   |---|---|---|---|
-  | 🧭 EPIC で子が全部済んだ・Release Check | 確かめる | プレビューで確かめる | プレビュー / topic → develop の PR を開く（Release Check は「確認の結果を書く」のダイアログも開く） |
+  | 🧭 EPIC で Release Check（最後の確認） | 確かめる | 確認ページを開く | プレビュー / topic → develop の PR と「確認の結果を書く」のダイアログを開く（確認ページの artifact ができるまでのあいだ）。子に答え待ちの質問があれば一文で示す（子は「答えが要る」の欄に出る） |
+  | 🧭 EPIC で子が全部済んだ（Release Check の前） | 確かめる | プレビューで確かめる | プレビュー / topic → develop の PR を開く |
+  | Review / DoD（ほか 🙋 付き）で OPEN の PR が base とコンフリクト（`mergeable=CONFLICTING`・worker なし） | 確かめる | コンフリクトを解消してもらう | `POST /resolve-conflict`。AI が base を取り込んで解消し push する。🙋 と Status はそのまま（済めば daemon が `mergeable` を直し、行はもとのボタン（Review / DoD なら「PR を見る」）に戻る）。分解済み EPIC の途中の相談の子がこの状態なら、EPIC の行も同じボタン |
   | Review / DoD（PR あり） | 確かめる | PR を見る | PR を開く。OK なら 🙋 を外すと AI が先へ進む |
   | Blocked | 確かめる | Issue を見る | Issue を開く |
-  | モニターの質問・相談中（Discussing / 🔬 spike） | 答える | 答える | 質問の欄を開く / Issue を開く |
+  | モニターの質問（worker・`bin/autopilot-ask`。Status・⏳ によらない）・相談中（Discussing / 🔬 spike） | 答える | 答える | 質問の欄を開く / Issue を開く |
   | Sprint Backlog + 🙋（Issue） | ゴーサイン | 実装を始めてもらう | 🙋 を外す（`POST /delegate`）。AI が実装して PR を作る |
-  | 🧭 EPIC で、子に Sprint Backlog + 🙋 がある | ゴーサイン（EPIC にまとめる） | N 件の実装を始めてもらう | 子 N 件の 🙋 を外す（子ごとに `POST /delegate`）。子の行は重ねない |
+  | 🧭 EPIC で、子に Sprint Backlog + 🙋 がある（任せる前） | ゴーサイン（EPIC にまとめる） | この EPIC を AI に任せる | 子 N 件の 🙋 を外す（子ごとに `POST /delegate`）。AI が順に実装して topic にマージし、最後の確認だけ返す。子の行は重ねない |
+  | 🧭 EPIC で、子が答え・確認を待つ（途中の相談） | 答える / 確かめる | 子のボタン（答える・Issue を見る など） | 子の質問の欄・Issue を開く。子の行は重ねない |
+  | 🧭 EPIC で、子を AI が進めている（自律で進行中） | 人間の番ではない | なし | — 進み具合と「決定待ち n 件（最後にまとめて確認）」を一文に出す |
   | Awaiting Continuation | ゴーサイン | 続きを始めてもらう | 🙋 を外す |
   | Backlog + 🙋（EPIC・未分解） | 分解を始めるか決める | 分解を始めてもらう | Sprint Backlog へ動かす（`POST /delegate`） |
   | Backlog + 🙋（Issue） | 人間の作業 | Issue を開く | Issue を開く（閉じない）。済んだら GitHub で閉じる |
@@ -951,6 +1091,22 @@ daemon の `GET /`（既定 `http://localhost:8787/`）は、人間と同意し�
   ボタンを押すと行の中で「これを行います: …」と確かめ、「行う」で初めて行う。前の「AI に任せる」「AI に直してもらう」
   「確認の結果を書く」は「⋯」のメニューに残す。一文・「押すと」の `#N` は別タブで開くリンク。
   `GET /board` の `waitReason`（`humanWaitReason`）も同じ分け方（`continue` / `epic` / `go` / `decompose` / `hand`）にそろえた。
+
+- **EPIC を AI に任せる流れ**（`humanAction` の `epicPhase`・#2475）: 分解済みの EPIC は、ボードの値（子の Status・AI Status・🙋・
+  Release Check・決定待ちの件数 = `epicGroups` の `pendingDecisions`）だけで「いま」を 1 つに決め、「あなた宛て」の EPIC の行に出す。
+
+  1. **任せる前**（`before-delegate`）: 🙋 の付いた子（Sprint Backlog）が残る。人間は「この EPIC を AI に任せる」を 1 回押す
+     （確かめてから、子ごとに `POST /delegate` で 🙋 を外す）。
+  2. **自律で進行中**（`autonomous`）: AI が子を順に実装し、topic 宛ての PR を自分でマージする。人間の番ではないので数えない。
+     途中で AI が決めたことは「決定待ち」にためて、最後にまとめて確かめる。
+  3. **途中の相談**（`consult`）: 途中で人間に返すのは 2 種類だけ — 方針が 3 案以上に分かれた（`diverge`。子の質問に答える）と、
+     環境の問題で止まった（`environment`。Blocked の理由を確かめる）。EPIC の行に子の番号とボタンを出す。
+  4. **最後の確認**（`final-check`）: 子が全部 topic に入ると Release Check になる。「確認ページを開く」で確かめて答える
+     （確認ページの artifact ができるまでは「確認の結果を書く」のダイアログ）。develop へのマージは人間。
+
+  ![EPIC の「いま」（ライト・人間の番ではない欄の自律で進行中の EPIC）](./screenshots/monitor-for-you-epic-light.png)
+  ![EPIC の「いま」（ダーク）](./screenshots/monitor-for-you-epic-dark.png)
+  ![EPIC の「いま」（スマホの幅）](./screenshots/monitor-for-you-epic-phone.png)
 
   ![あなた宛て（ライト・確かめの表示）](./screenshots/monitor-for-you-light.png)
   ![あなた宛て（ダーク）](./screenshots/monitor-for-you-dark.png)
@@ -993,6 +1149,7 @@ daemon の `GET /`（既定 `http://localhost:8787/`）は、人間と同意し�
   切りかえは行の ⋯ で、**楽観的更新**（先に画面で動かし、失敗したら元に戻してトースト）。daemon も Issue ごとに
   直列化して最後の目標に畳み込む。あとでやる の中の人間待ちも「あなた宛て」に出る（💤 の印つき）。
 - **コンフリクト**（#1348）: GitHub が判定した `mergeable` で、コンフリクトしている OPEN の PR の「PR」のリンクに枠（title に理由）。
+  「あなた宛て」では、レビューより先に「コンフリクトを解消してもらう」を主ボタンにする（行の ⋯ の 🔀 も残す）。
 - **除外**: Close / Done / Icebox はボードに出さない。`--assignee` 起動時は自分が Assignees のいずれかの item に限る
   （共同担当も観察のため出る。観察中の item は `refreshBoard` の周期か「更新」でだけ最新になる）。
 - **判断の置き場**: 意味の色・あなた宛ての組み立て・状況板の行の絞り込み・答えの組み立て・数字キーは
@@ -1143,10 +1300,26 @@ pane の中の Claude Code の状態（`idle` / `working` / `blocked` / `done`�
 - 起こし方: `workspace create --cwd <worktree> --label <name> --env K=V ...` → `pane run <pane> "exec claude ..."`。
   `exec` なので claude が終わると pane と workspace も閉じる（tmux の session が消えるのと同じに扱える）。
 - 指示は `pane send-text` → `pane send-keys Enter` で送る（`agent prompt` は Enter が効かないことがある）。
-  届いたかどうかは従来の再送の仕組み（`shouldResend`）が見る。
+  届いたかどうかは下の「送り直しの決まり」で見る。
 - **autopilot が止まるときは全部一緒に止める**: daemon の `exit` で `herdr session stop autopilot`
   （中の worker ごと止まる・ゾンビを残さない）。tmux のときは、その daemon が起こした worker だけを止める。
 - 端末の I/O は `terminal.js` にまとめ、runner と daemon は tmux / herdr のコマンドを直接書かない。
+
+### 送り直しの決まり
+
+指示を送ったあと、受理（busy・結果ファイル・blocked）が見えないときの扱い（`phases.js` の
+`planResend` / `promptStillInInput` / `acceptWindowFor`・純粋関数）:
+
+- **受理を待つ時間**は `watchdog.acceptWindowMs`（既定 8 秒）。マシンが重いときは、1 CPU あたりの
+  loadavg（1 分）の倍率で延ばす（上限 4 倍。値は scheduler と同じ daemon の `readResources`）。
+- 待っても受理が見えなければ、送り直す前に画面を読む。**入力欄（最後の `❯` / `>` の行から下）に
+  指示の文がまだ残っていれば、文を送らずに Enter だけを送る**。重いときに Enter だけが捨てられると
+  文が入力欄に残るので、文と Enter を送り直すと文がつながるだけで送信されないため。残っていなければ、
+  今までどおり文と Enter を送る。
+- 送り直しを `watchdog.maxSendAttempts`（既定 4 回）まで使い切ってさらに待っても受理が見えず、画面も
+  そのあいだ変わっていなければ、黙って `tIdleMs`（10 分）まで待たずに **worker を起こし直す**（`maxRestarts` を
+  使い切っていれば失敗として Blocked）。画面が動いているときは、busy の見落としで実は動いているかもしれないので
+  殺さずに待つ（そのあとは `tIdleMs` が見る）。人間を待っているあいだ（blocked で一時停止中）は、送り直しも時計も進めない。
 
 ### blocked のとき（止めずに続ける）
 
@@ -1418,6 +1591,10 @@ Addressing Comments / Running DoD）なのに worker が生存していない it
 - 毎 tick 走るため Self-Reviewing の happy-path も対象に入るが、**空き容量（`cfg.concurrency -
   running`）の分だけ再開**し溢れは次 tick へ回すので並行上限を跨がない。recovery が tick 冒頭で
   running を埋めるので selectActionable / stuck 検知と二重ディスパッチせず、Blocked より再開を優先する。
+- この daemon が直前に結果を反映して実作業系 AI Status になった item（例: implement の done →
+  Self-Reviewing）は、ふつうの受け渡しとして `#N: 受け渡し（AI Status=…）→ review を起動` とログに出し、
+  `stalled in-flight worker` / `stalled recovery: N 件` には数えない（#2582）。daemon の再起動で記録が
+  消えた item や、AI Status が記録と違う item は、これまでどおり stalled として復帰する。
 
 #### 監視（Web モニタ）
 
@@ -1473,6 +1650,8 @@ HTTP API（curl からも操作可能。POST は上の合言葉のヘッダを�
 | `GET /delegate/findings` | `?issue=N`。「AI に直してもらう」のダイアログで見せる、PR のいちばん新しい round の bot の指摘（`{issue, pr, findings:{round, id, body, counts}\|null, pendingInstructions:[]}`）。押したときだけ REST を 1 回。Project に無いと 404 |
 | `POST /delegate` | body `{issue, instruction?}`。`instruction` があれば、目印付きのコメントとして Bot で PR に残してから 🙋 を外す（address-review の段だけ。空は 400・ほかの段は 409 `no-instruction-phase`・PR が無いと 409 `no-pr`）。モニターの「AI に任せる」（「モニターの『AI に任せる』」の節）。🙋 を外して（まだ分解していない EPIC は Sprint Backlog へ動かしてから）autopilot に渡し、pause 中でなければ 1 tick 回す。`{ok:true, issue, action:'release'\|'decompose', nextPhase}`。入力が違うと 400、Project に無いと 404、🙋 が無い・worker が実行中・答え待ちの質問がある・トラッカー・人間がする作業などは 409 `{error, code, issue}`、GitHub に書けないと 502 |
 | `GET /release-check` | `?issue=N`。「確認の結果を書く」のダイアログで見せる、トラッカーのいちばん新しい round の観点（`{issue, check:{round, id, body, points:[{id,title,body}], previewUrl}\|null, reviewed}`）。押したときだけ REST を 1 回。Project に無いと 404 |
+| `POST /release-check/merge` | `?issue=N`・body `{confirmOffHours?: boolean}`。全部 OK の EPIC の topic → develop の PR を確かめてから draft を外して develop へマージし、EPIC を Close にして閉じる（#2544）。確かめで断ると 409（`code` は `src/release-merge.js` の `REFUSE_TEXT` のキー。時間の外は `off-hours` + `confirm: true`）、マージの失敗は 502。Project に無いと 404 |
+| `POST /release-check/close` | `?issue=N`。topic → develop の PR は merged なのに開いたままの EPIC を、PR を読み直して確かめてから Close にして閉じる（「EPIC を閉じる」・#2544）。材料が無いと 409 `no-offer`、PR がまだ merged でないと 409 `pr-not-merged`、worker の実行中・二重押しは 409、閉じきれないと 502 |
 | `POST /release-check/review` | body `{issue, round, results:[{id:"R1", verdict:"ok"\|"ng", note?}], comment?}`。結果を目印付きのコメントとして Bot でトラッカーに書いてから 🙋 を外す（リリース確認の節）。Release Check の 🙋 待ちでないと 409 `not-release-check`、round が最新の観点と違うと 409 `stale-round`、入力が違うと 400 |
 | `POST /tick` | interval を待たず 1 サイクル即実行。`{ran, paused, picked:[...], running:[...]}` を返す。実行中は `409 {busy:true}`、pause 中は `{ran:true, paused:true, picked:[]}` の no-op |
 | `POST /pause` | 新規ディスパッチを止める（実行中はそのまま）。再起動をまたいで残す（`~/.config/autopilot/human-pause-<port>.json`） |
@@ -1547,6 +1726,7 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 | `tools/autopilot/prompts/autopilot-*/` | 各フェーズのプロンプト |
 | `bin/autopilot-worktree` | 軽量 worktree スクリプト |
 | `bin/autopilot-push` | push 経路の自動判定（Bot / 個人トークン。権限外パス対応） |
+| `bin/autopilot-ask` | セッションの AI や人間が、worker と同じ形の質問を Bot 名義で Issue に書き、モニターの「答える」に出す（中身は `tools/autopilot/src/ask.js`） |
 | `bin/lint-changed`, `tools/autopilot/src/lint-changed.js` | 変えたファイルだけの lint（全体は CI） |
 | `tools/autopilot/src/contract.js` | 番兵/結果ファイルの検証（純粋） |
 | `tools/autopilot/src/phases.js` | フェーズ↔プロンプト、結果→フィールド意図、watchdog 判断、ゲート解除、merge-progression、PR 投影、enroll/並び順、ディレクティブ、サニタイズ（純粋） |
@@ -1562,9 +1742,13 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 | `tools/autopilot/src/blocked-hub.js` | 止まっている worker の置き場と `/blocked` の HTTP |
 | `tools/autopilot/src/http-guard.js` | HTTP の受け付けの守りの判断（Host / Origin の許可・合言葉の時間一定の照合。純粋関数） |
 | `tools/autopilot/src/blocked-panel.js` | モニターの「止まっている worker」の欄 |
-| `tools/autopilot/src/monitor-answers.js` | モニターで答える質問の置き場・`POST /answer`・`POST /delegate`（AI に任せる・指示つき）と `GET /delegate/findings` の受け口・Issue への記録と 🙋 の解除・worker への受け渡し |
+| `tools/autopilot/src/monitor-answers.js` | モニターで答える質問の置き場・`POST /answer`・`POST /questions`（`bin/autopilot-ask` の質問を載せる）・`POST /delegate`（AI に任せる・指示つき）と `GET /delegate/findings` の受け口・Issue への記録と 🙋 の解除・worker への受け渡し |
 | `tools/autopilot/src/release-check.js` | リリース確認の判断（入る条件・目印・どちらの段か・観点の解析・結果のコメント・sub-issue の計画。純粋） |
-| `tools/autopilot/src/release-check-http.js` | リリース確認の daemon 側（入る意図の適用・`GET /release-check`・`POST /release-check/review`・プレビューの URL を覚える） |
+| `tools/autopilot/src/release-check-http.js` | リリース確認の daemon 側（入る意図の適用・`GET /release-check`・`POST /release-check/review`・プレビューと確認ページの URL を覚える・確認ページの答えを結果のコメントにする） |
+| `tools/autopilot/src/release-page.js` | リリース確認の確認ページ（artifact）のデータの下書き・描画・答えの読み取り・URL の状態（純粋） |
+| `tools/autopilot/templates/release-check/` | 確認ページのテンプレート（`template.html`。形の正） |
+| `tools/autopilot/bin/release-page-render.js` | トラッカーのコメント → 確認ページのデータの下書き、下書き → HTML |
+| `tools/autopilot/bin/release-page-answer.js` | 確認ページで送られた答え（db の文書）→ トラッカーの結果のコメント（Bot） |
 | `tools/autopilot/src/daemon.js` | 常駐 daemon（ポーリング・ディスパッチ・HTTP 制御・認証ヘルスチェック・俯瞰ボード） |
 | `tools/autopilot/src/monitor.js` | Web モニタ（あなた宛て＋表・自己完結 HTML） |
 | `tools/autopilot/src/icon-data.js` | モニターのアイコン（favicon・見出し）の data URI。`tools/autopilot/assets/make-icon.py` が作る |
@@ -1580,6 +1764,7 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 | `tools/autopilot/src/usage.js` | usage ファイルから Claude 使用率（session/weekly）を読む純粋関数 |
 | `tools/autopilot/bin/usage-statusline.sh` | worker の status line。stdin JSON の `rate_limits` を usage ファイルへ書き出す |
 | `tools/autopilot/bin/cleanup-leftovers` | worker が終わる前に、自分の worktree に残した dev server・ブラウザを止める（判定は `phases.js` の `selectLeftoversToStop`） |
+| `tools/autopilot/bin/preview-status` | topic → develop の PR のプレビューができているかを 1 行の JSON で出す（リリース確認の観点を書く前に使う。判断は `epic-pr.js` の `previewStatus`） |
 | `tools/autopilot/src/cli.js`, `bin/autopilot` | CLI（単発フェーズ + `daemon` サブコマンド） |
 | `tools/autopilot/test/` | unit テスト（状態遷移網羅 `state-machine.test.js` を含む） |
 | `.claude/skills/autopilot/` | 総合サポートスキル（初期化インタビュー→`tmp/autopilot_up.sh` 生成・enroll ショートカット・運用支援。`init autopilot` / `autopilot開始` / `go autopilot` 等で起動） |
@@ -1590,7 +1775,7 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 ## 認証
 
 コミット/PR/Project 操作は GitHub App bot **`smalruby3-editor-bot`** 名義で行う
-（`bin/bot-git` / `GH_TOKEN="$(bin/bot-token)" gh ...`）。詳細は
+（`bin/bot-git` / `bin/bot-gh ...`）。詳細は
 [`docs/github-app-bot/README.md`](../github-app-bot/README.md)。
 
 ---
@@ -1606,5 +1791,5 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 ## ライセンス
 
 autopilot のツール群（`tools/autopilot/**`）と autopilot プロンプト（`tools/autopilot/prompts/autopilot-*/**`）、
-autopilot が使うコマンド（`bin/autopilot-worktree` / `bin/autopilot-push` / `bin/bot-token` / `bin/bot-git`）は、
+autopilot が使うコマンド（`bin/autopilot-worktree` / `bin/autopilot-push` / `bin/autopilot-ask` / `bin/bot-token` / `bin/bot-git`）は、
 リポジトリ全体の AGPL-3.0 ではなく **MIT ライセンス**とする。詳細は `tools/autopilot/LICENSE` を参照。

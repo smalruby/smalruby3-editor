@@ -112,7 +112,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/menu-bar/menu-bar.jsx` | lessons button | upstream の「チュートリアル」ボタンがあった場所（区切り線の間）に「レッスン」ボタン（`menu-bar-lessons`。`lessonsIcon` = `icon--tutorials.svg`）を置く（吹き出しは出さない）。`ariaMessages.lessons`、`onOpenLessonsLibrary` / `lessonModeActive` の propTypes |
 | `src/containers/menu-bar-hoc.jsx` | lessons button | `lessonModeActive`（`isLessonMode`。レッスンモード中はウェルカムバルーンを出さない）と `onOpenLessonsLibrary`（`markTutorialSeen` + `openLessonsLibrary`）を供給 |
 | `src/components/menu-bar/settings-menu.jsx` | classroom management menu | クラス管理メニューアイテムの import、レンダリング、Redux 接続 |
-| `src/components/menu-bar/settings-menu.jsx` | v1 switch prevention | module / class（`@ruby:module_source` / `@ruby:class`）を使っているとき Ruby v1 へ切りかえさせない。注釈は `src/lib/ruby-markers.js` の `isRubyV2Comment` で読む（import とハンドラの 2 箇所） |
+| `src/components/menu-bar/settings-menu.jsx` | v1 switch prevention | module / class（`@ruby:module_source` / `@ruby:class`）を使っているとき Ruby v1 へ切りかえさせない。注釈は `src/lib/ruby-markers.js` の `isRubyV2Comment` で読む（import・ハンドラ・それが使う `vm` と `intl`（分割代入・propTypes・`mapStateToProps`）） |
 | `src/components/menu-bar/settings-menu.jsx` | display mode menu | 表示モード (自動/PC/スマホ) 切替。テーマ/Ruby と同じ `PreferenceMenu` サブメニュー形式 + 専用アイコン。`useDisplayMode` hook + `persistDisplayMode` の import、ハンドラ、Redux (open/close) 接続、レンダリング (Issue #865) |
 | `src/reducers/menus.js` | display mode menu | `PreferenceMenu` サブメニューの開閉用 Redux state (`displayModeMenu`)。定数/rootMenu への登録/initialState/open・close・selector の追加 (Issue #865) |
 | `webpack.config.js` | classroom API | CLASSROOM_API_ENDPOINT 環境変数注入 |
@@ -123,6 +123,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `webpack.config.js` | copy-webpack-plugin 14 (#1320) | dist の `libraries/*.json` コピーで、copy-webpack-plugin 7 で廃止された `flatten: true` の代わりに `to: 'libraries/[name][ext]'` を使う |
 | `webpack.config.js` | standard assignments | リポジトリの `assignments/`（標準課題・CC0）を `assignments/` へコピーする CopyWebpackPlugin パターン |
 | `webpack.config.js` | PWA install (#2182) | PWA としてインストールできるように Web App Manifest だけを出す `pwaManifestPlugin()`（`webpack-pwa-manifest`。name / icons 192・512 / `start_url` / `display` と iOS の apple-touch-icon）と、開発用ビルド・`dist-html` の 2 箇所の `.addPlugin(pwaManifestPlugin())`。service worker（Workbox）は出さない。以前に登録された service worker は `pages/service-worker.js`（Smalruby 固有ファイル・自分を登録解除してキャッシュを消すだけ）で外す |
+| `webpack.config.js` | standard icon paths (#2514) | ブラウザ・iPadOS が HTML と関係なく取りに来る決まった場所（`/favicon.ico`・`/apple-touch-icon.png`・`-precomposed`・`-152x152`・`-152x152-precomposed`）へ、既存の `static/favicon.ico` と `static/pwa-icon.png` をコピーする（404 を減らす）。HTML の `apple-touch-icon` の link は PWA install の `pwaManifestPlugin()` が入れる |
 | `eslint.config.mjs` | react lifecycle typo detection | `react/no-typos` を error にして getDerivedStateFromProps/Error の static 抜け等を lint で検出 |
 | `eslint.config.mjs` | prettier integration | eslintConfigPrettier を最後に置いて prettier と競合する整形ルールを無効化 |
 | `src/lib/blocks.js` | gesture recovery import | ジェスチャー復旧モジュールの import |
@@ -262,6 +263,23 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/containers/gui.jsx` | tab activation handler / onSetPlatform prop rename / set theme | タブ切りかえのハンドラー、`setPlatform` を `onSetPlatform` にした名前、テーマの設定 |
 | `src/containers/gui.jsx` | ruby tab / koshien / url loader / tips library close / welcome modal | 上の機能の import・アクション・state |
 | `src/containers/gui.jsx` | smalruby gui props / smalruby gui state / smalruby modal close actions | 上の機能が使う propTypes・`mapStateToProps`・モーダルを閉じるアクションのまとまり |
+| `src/lib/make-toolbox-xml.js` | only_blocks filtering | `only_blocks`（URL パラメーター・ステージのコメント）でツールボックスのブロックを絞る（`parseOnlyBlocks`・`filterBlocks` などの関数・引数・中身の無いカテゴリを出さない組み立て・`filterBlocks` の export）。upstream の `everything` の組み立てと拡張のカテゴリの追加を書きかえたところに注記 |
+| `src/lib/make-toolbox-xml.js` | category name message reference | 各カテゴリの名前を `%{BKY_CATEGORY_*}` で書く（upstream は `ScratchMsgs.translate`）。テンプレート文字列の中には書けないので、`return` の前に注記だけのペアを置く（`postMergeReverts` の意図的な乖離） |
+| `src/components/menu-bar/settings-menu.jsx` | ruby version menu | 設定のメニューの「Ruby のバージョン」（import・ハンドラ・`PreferenceMenu`・propTypes・Redux） |
+| `src/components/menu-bar/settings-menu.jsx` | block display menu | 設定のメニューの「ブロックの表示...」の項目と、それを開く dispatch |
+| `src/components/menu-bar/settings-menu.jsx` | smalruby settings menu items | 上の機能のアイコンの import と、分割代入・propTypes のまとまり |
+| `src/components/menu-bar/settings-menu.jsx` | settings menu test id | 設定のメニューの `data-testid="settings-menu"` |
+| `src/reducers/menus.js` | ruby version menu | 「Ruby のバージョン」のサブメニューの開閉（定数・rootMenu・initialState・open / close / selector・export） |
+| `src/reducers/menus.js` | menu toggle | メニューを押すたびに開閉する `TOGGLE_MENU`（reducer・`toggleMenu`・`toggleEditMenu` / `toggleFileMenu` / `toggleSettingsMenu`） |
+| `src/reducers/menus.js` | extension menus | 甲子園・メッシュ・スモウルボットのメニューの開閉（定数・rootMenu・initialState・open / close / selector・export） |
+| `src/reducers/modals.js` | url loader and koshien modals | URL ローダー・甲子園のテスト・甲子園の設定のモーダル（定数・初期状態・open / close・export）。upstream の `closeConnectionModal` と export の順を変えたところに注記 |
+| `src/reducers/modals.js` | welcome modal | 初めての人向けのウェルカムモーダル `welcomeModal`（定数・初期状態・open / close・export） |
+| `src/containers/extension-library.jsx` | show all extensions | 拡張機能を選ぶ画面の「すべての拡張機能を表示」（`defaultHidden` の拡張を隠す・`?showAllExtensions=`・チェックボックス・`connect` の import と Redux への接続）。upstream は `connect` しないことの注記 |
+| `src/containers/extension-library.jsx` | extension translations | 拡張機能の `setFormatMessage` と `translationMap` を constructor で読む |
+| `src/lib/libraries/extensions/index.jsx` | smalruby extensions | スモウルボット・メッシュ・micro:bit More・甲子園のアイコンの import とエントリ（Mesh v1 は終わったので載せない） |
+| `src/lib/libraries/extensions/index.jsx` | hidden by default | upstream の拡張のうち、はじめは隠すもの（`defaultHidden: true`・6 か所） |
+| `src/lib/alerts/index.jsx` | ruby alerts | Ruby からブロックに変換できない・Ruby のバージョンを変えられない・この行は実行できない、の知らせ |
+| `src/containers/controls.jsx` | ruby to blocks before green flag | 緑の旗を押したら、先に Ruby をブロックに変換してから動かす（`async` の handler・`targetCodeToBlocks`・`intl`・`RubyToBlocksConverterHOC` と `injectIntl` で包む export）。upstream の形を注記 |
 
 > 注: `src/lib/url-params.js` は Smalruby 固有ファイル（`.prettierignore` ホワイトリスト対象）の
 > ため本表の対象外（旧エントリは削除済み。固有ファイル内のマーカーは取り外し可能拡張の

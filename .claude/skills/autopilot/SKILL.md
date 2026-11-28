@@ -39,7 +39,7 @@ description: autopilot の総合サポート。初期設定（必要情報のイ
 ```bash
 command -v herdr && command -v gh && command -v claude && node --version   # 実行環境
 bin/bot-token --whoami                                                    # bot 認証（最重要）
-GH_TOKEN="$(bin/bot-token)" gh project view 4 --owner smalruby --format json | head -c 200  # Project アクセス
+bin/bot-gh project view 4 --owner smalruby --format json | head -c 200  # Project アクセス
 ls ~/.config/autopilot/settings.json 2>/dev/null                          # worker settings（任意）
 ```
 
@@ -131,13 +131,13 @@ booting を確認する:
    Conventional Commits 風（`feat(scope): ...` / `fix(scope): ...`）に整える。必要に応じて
    受け入れ条件（`## DoD` チェックリスト）を補い、ベースブランチ指定があれば行頭に
    `autopilot-base: <branch>`、依存があれば `autopilot-after: #N` を入れる。
-2. **作成 + enroll**（すべて bot 名義 `GH_TOKEN="$(bin/bot-token)"`）:
+2. **作成 + enroll**（すべて bot 名義 `bin/bot-gh`）:
    ```bash
    # 1) Issue 作成（body は Write ツールで tmp/issue-body.md に書いてから）
-   GH_TOKEN="$(bin/bot-token)" gh issue create --repo smalruby/smalruby3-editor \
+   bin/bot-gh issue create --repo smalruby/smalruby3-editor \
      --title "<title>" --body-file tmp/issue-body.md --assignee <LOGIN>
    # 2) Project #4 に追加
-   GH_TOKEN="$(bin/bot-token)" gh project item-add 4 --owner smalruby --url <issue-url>
+   bin/bot-gh project item-add 4 --owner smalruby --url <issue-url>
    # 3) フィールド設定（item-edit）: Status / Kind / Size
    #    フィールド/オプション ID は gh project field-list 4 --owner smalruby --format json で都度取得
    ```
@@ -149,7 +149,16 @@ booting を確認する:
    - **Status** = 既定 `Sprint Backlog`（即着手）。設計相談から始めたい内容なら
      `New Item`（triage → 必要ならディスカッション）を提案して確認する
    - ラベルは付けない（`🤖 autopilot` は daemon が付与する）
-4. 作成した Issue 番号・URL・設定値（Status/Kind/Size/担当）を報告する。
+4. **人間の判断が要る Issue なら、質問として出す**（#2565）: 案と AI のおすすめを本文に書くだけにしない。
+   本文だけだとモニターの「答える」に出ず、「実装を始めてもらう」（ゴーサイン）の行になり、押すと答えないまま
+   🙋 が外れて実装が始まる。🙋 を付けたうえで、案を質問の JSON（形は `docs/autopilot/autonomous-contract.md`
+   §2.3 の「worker 以外が質問を出す」）に書き、道具で出す:
+   ```bash
+   # tmp/questions-<N>.json は Write ツールで書く（選択肢・一行の説明・recommended を必ず入れる）
+   bin/autopilot-ask <N> tmp/questions-<N>.json
+   ```
+   終了コード 2 は「コメントは書けたが daemon に届かなかった」。daemon を起こしてからもう一度流す（二重には書かない）。
+5. 作成した Issue 番号・URL・設定値（Status/Kind/Size/担当）と、質問を出したかを報告する。
 
 `enroll autopilot` が**複数案件**を含むときは、1 案件 = 1 Issue に分けてから同じ手順を繰り返す。
 
@@ -197,7 +206,7 @@ EPIC は topic をマージする直前まで AI のおすすめで進み、人�
    `<!-- autopilot-epic-decisions-data:<base64> -->` にある（`epic-flow.js` の `parseEpicDecisionsData` で読む）:
 
    ```bash
-   GH_TOKEN="$(bin/bot-token)" gh api "repos/smalruby/smalruby3-editor/issues/<EPIC>/comments" --paginate \
+   bin/bot-gh api "repos/smalruby/smalruby3-editor/issues/<EPIC>/comments" --paginate \
      --jq '.[] | select(.body | test("autopilot-epic-decisions")) | .body' | node -e '
    const { parseEpicDecisionsData } = require("./tools/autopilot/src/epic-flow.js");
    console.log(JSON.stringify(parseEpicDecisionsData(require("fs").readFileSync(0, "utf8")), null, 2));'

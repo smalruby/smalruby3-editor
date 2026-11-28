@@ -35,7 +35,12 @@
  * NOTE: This script never mutates shared git config. To act AS the bot for a
  * single git command, use `bin/bot-git` (injects bot identity + credential via
  * `-c` for that invocation only). Plain `git` stays human-owned. For gh, use
- * `GH_TOKEN="$(bin/bot-token)" gh ...`.
+ * `bin/bot-gh ...` (refuses to run gh when no bot token is available).
+ *
+ * On failure the default mode prints UNAVAILABLE_SENTINEL to stdout (and exits 1).
+ * `GH_TOKEN="$(bin/bot-token)" gh ...` with an EMPTY token makes gh silently fall
+ * back to the personal credential and write as the human (#2534); a non-empty
+ * bogus token makes gh fail with 401 instead.
  */
 
 'use strict';
@@ -52,8 +57,14 @@ const PEM_PATH = path.join(DIR, 'private-key.pem');
 const CONFIG_PATH = path.join(DIR, 'config');
 const TOKEN_CACHE = path.join(CACHE_DIR, 'token.json');
 
+// 失敗時に stdout へ出す番兵（bin/bot-gh も同じ値で判定する）。#2534
+const UNAVAILABLE_SENTINEL = 'BOT_TOKEN_UNAVAILABLE';
+// 既定モード（トークンを出力する）のときだけ番兵を出す。--bot-email などの出力は変えない。
+let printSentinelOnFailure = false;
+
 function die(msg) {
     process.stderr.write(`bot-token: ${msg}\n`);
+    if (printSentinelOnFailure) process.stdout.write(UNAVAILABLE_SENTINEL);
     process.exit(1);
 }
 
@@ -228,7 +239,10 @@ async function main() {
     }
 
     // default: print a valid installation token
-    process.stdout.write(await getToken());
+    printSentinelOnFailure = true;
+    const token = await getToken();
+    if (!token) die('installation token is empty');
+    process.stdout.write(token);
 }
 
 main().catch((e) => die(e && e.message ? e.message : String(e)));

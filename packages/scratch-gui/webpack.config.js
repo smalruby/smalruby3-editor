@@ -349,6 +349,23 @@ const buildConfig = baseConfig.clone()
                 from: 'static',
                 to: 'static'
             },
+            // === Smalruby: Start of standard icon paths (#2514) ===
+            // Browsers and iPadOS ask for these fixed paths whatever the HTML says. Serve the
+            // existing Smalruby icons there instead of 404.
+            {
+                from: 'static/favicon.ico',
+                to: 'favicon.ico'
+            },
+            ...[
+                'apple-touch-icon.png',
+                'apple-touch-icon-precomposed.png',
+                'apple-touch-icon-152x152.png',
+                'apple-touch-icon-152x152-precomposed.png'
+            ].map(name => ({
+                from: 'static/pwa-icon.png',
+                to: name
+            })),
+            // === Smalruby: End of standard icon paths (#2514) ===
             {
                 from: 'legal',
                 to: '.',

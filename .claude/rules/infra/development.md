@@ -178,11 +178,11 @@ stg は**共有資源**で、`deploy-stg` ラベルを付けた PR の変更で*
 
 ```bash
 # 直近の Deploy Infra の run（push = develop、pull_request = deploy-stg ラベルの PR）
-GH_TOKEN="$(bin/bot-token)" gh run list --repo smalruby/smalruby3-editor \
+bin/bot-gh run list --repo smalruby/smalruby3-editor \
   --workflow deploy-infra-stg.yml --limit 10 \
   --json databaseId,event,headBranch,headSha,conclusion,createdAt
 # どのプロジェクトを stg に出したか（ジョブ名が "[<project>] deploy stg"）
-GH_TOKEN="$(bin/bot-token)" gh run view <databaseId> --repo smalruby/smalruby3-editor \
+bin/bot-gh run view <databaseId> --repo smalruby/smalruby3-editor \
   --json jobs --jq '.jobs[] | select(.name | test("deploy stg")) | [.name, .conclusion] | @tsv'
 ```
 

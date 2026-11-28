@@ -66,7 +66,7 @@ PR の base が `topic/...`（Issue 本文の `autopilot-base:`）のとき、da
 新規ブランチではなく **既存 PR のブランチ**で作業する（daemon が `--pr` で worktree を用意する）:
 
 ```bash
-PR=$(GH_TOKEN="$(bin/bot-token)" gh pr list --repo "$AUTOPILOT_REPO" --search "Closes #$AUTOPILOT_ISSUE in:body" --state open --json number -q '.[0].number')
+PR=$(bin/bot-gh pr list --repo "$AUTOPILOT_REPO" --search "Closes #$AUTOPILOT_ISSUE in:body" --state open --json number -q '.[0].number')
 bin/autopilot-worktree create "$AUTOPILOT_ISSUE" --pr "$PR"
 ```
 
@@ -79,18 +79,18 @@ bin/autopilot-worktree create "$AUTOPILOT_ISSUE" --pr "$PR"
 
 ```bash
 # diff（何が変わったか）
-GH_TOKEN="$(bin/bot-token)" gh pr diff "$PR" --repo "$AUTOPILOT_REPO"
+bin/bot-gh pr diff "$PR" --repo "$AUTOPILOT_REPO"
 # 会話コメント・レビュー本文・レビュースレッド
-GH_TOKEN="$(bin/bot-token)" gh pr view "$PR" --repo "$AUTOPILOT_REPO" --json title,body,comments,reviews,reviewThreads
+bin/bot-gh pr view "$PR" --repo "$AUTOPILOT_REPO" --json title,body,comments,reviews,reviewThreads
 # inline（行コメント）
-GH_TOKEN="$(bin/bot-token)" gh api repos/$AUTOPILOT_REPO/pulls/$PR/comments
+bin/bot-gh api repos/$AUTOPILOT_REPO/pulls/$PR/comments
 ```
 
 修正が必要になった場合に備え、`autopilot-review.md` と同じ方法で、差分が touch する領域の
 `.claude/rules/<area>/`（`touchedRuleAreas`。`tools/autopilot/src/phases.js`）を読んでおく:
 
 ```bash
-FILES=$(GH_TOKEN="$(bin/bot-token)" gh pr diff "$PR" --repo "$AUTOPILOT_REPO" --name-only)
+FILES=$(bin/bot-gh pr diff "$PR" --repo "$AUTOPILOT_REPO" --name-only)
 for area in $(node -e '
 const { touchedRuleAreas } = require("./tools/autopilot/src/phases.js");
 const files = require("fs").readFileSync(0, "utf8").split("\n").filter(Boolean);
@@ -113,9 +113,9 @@ done
 （`addressReviewMarker(reviewIds, instructionIds)`。時刻や daemon の状態では判定しない）:
 
 ```bash
-GH_TOKEN="$(bin/bot-token)" gh api "repos/$AUTOPILOT_REPO/pulls/$PR/reviews" --paginate \
+bin/bot-gh api "repos/$AUTOPILOT_REPO/pulls/$PR/reviews" --paginate \
   | jq -s 'add' > tmp/pr-reviews-$AUTOPILOT_ISSUE.json
-GH_TOKEN="$(bin/bot-token)" gh api "repos/$AUTOPILOT_REPO/issues/$PR/comments" --paginate \
+bin/bot-gh api "repos/$AUTOPILOT_REPO/issues/$PR/comments" --paginate \
   | jq -s 'add' > tmp/pr-comments-$AUTOPILOT_ISSUE.json
 node -e '
 const fs = require("fs");

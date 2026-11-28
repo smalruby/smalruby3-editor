@@ -24,12 +24,16 @@ const {
     mergeProgressionIntents,
     selectMergeCandidates,
     selectClosedToReconcile,
+    excludeClosedItems,
+    closedRunIntents,
     TERMINAL_STATUSES,
     phaseForItem,
     isActionable,
     isStuckCandidate,
     liveWorkerIssuesFromSessions,
     selectStalledInFlightItems,
+    handOffAiStatusFromIntents,
+    classifyInFlightRecovery,
     IN_FLIGHT_WORK_PHASE_BY_AI_STATUS,
     PHASE_BY_AI_STATUS,
     itemOwner,
@@ -38,10 +42,11 @@ const {
     statusRank,
     orderItemsLikeBoard,
     selectActionable,
-    shouldResend,
     evaluate,
     sanitizeForSurface,
     isAuthError,
+    botTokenFromOutput,
+    BOT_TOKEN_UNAVAILABLE,
     DEFAULT_WATCHDOG,
     HITL_LABEL,
     AUTOPILOT_LABEL,
@@ -109,16 +114,6 @@ const {
     addressReviewPolicyFor,
 } = require('../src/phases');
 const { PROMPT_RE } = require('../src/runner');
-
-test('shouldResend: resend after accept window if attempts remain', () => {
-    const cfg = { maxAttempts: 4, acceptWindowMs: 8000 };
-    // まだ猶予内 -> 再送しない
-    assert.equal(shouldResend({ sinceSendMs: 5000, attempts: 1, ...cfg }), false);
-    // 猶予超過 & 上限内 -> 再送
-    assert.equal(shouldResend({ sinceSendMs: 9000, attempts: 1, ...cfg }), true);
-    // 上限到達 -> 再送しない
-    assert.equal(shouldResend({ sinceSendMs: 9000, attempts: 4, ...cfg }), false);
-});
 
 test('phaseForItem: New Item -> triage', () => {
     assert.equal(phaseForItem({ status: 'New Item' }), 'triage');
@@ -505,6 +500,14 @@ test('isAuthError: SSO 失効・bot-token 取得不能を認証系と判定す�
     assert.equal(isAuthError(new Error('token has expired')), true);
 });
 
+test('botTokenFromOutput: 空・番兵の出力は認証エラーとして throw する（#2534）', () => {
+    assert.equal(botTokenFromOutput('ghs_abc\n'), 'ghs_abc');
+    for (const out of ['', '  \n', BOT_TOKEN_UNAVAILABLE, `${BOT_TOKEN_UNAVAILABLE}\n`, null, undefined]) {
+        assert.throws(() => botTokenFromOutput(out), (e) => isAuthError(e));
+    }
+    assert.equal(BOT_TOKEN_UNAVAILABLE, 'BOT_TOKEN_UNAVAILABLE');
+});
+
 test('isAuthError: 非認証エラー・空入力は false（#949）', () => {
     assert.equal(isAuthError(null), false);
     assert.equal(isAuthError(undefined), false);
@@ -834,6 +837,46 @@ test('selectClosedToReconcile: empty/missing inputs -> empty array', () => {
     assert.deepEqual(selectClosedToReconcile([{ issue: 1, status: 'Review' }], new Set()), []);
 });
 
+test('excludeClosedItems: a closed issue with empty Status is not dispatched but is reconciled (#2540)', () => {
+    // #1916: triage が閉じて Status が空に戻った Issue が、毎 tick triage に拾われていた
+    const items = [
+        { issue: 1916, status: null, aiStatus: null, kind: 'Issue', assignees: ['me'], labels: [] },
+        { issue: 2, status: null, aiStatus: null, kind: 'Issue', assignees: ['me'], labels: [] },
+    ];
+    const closedSet = new Set([1916]);
+    const picked = selectActionable(excludeClosedItems(items, closedSet), { limit: Infinity, assignee: 'me' });
+    assert.deepEqual(picked.map((i) => i.issue), [2]);
+    // 外した Issue は reconcile の対象に残る（running に入らないので飛ばされない）
+    assert.deepEqual(selectClosedToReconcile(items, closedSet).map((i) => i.issue), [1916]);
+});
+
+test('excludeClosedItems: accepts an array and tolerates missing inputs', () => {
+    assert.deepEqual(excludeClosedItems([{ issue: 1 }, { issue: 2 }], [2]).map((i) => i.issue), [1]);
+    assert.deepEqual(excludeClosedItems(null, null), []);
+    assert.deepEqual(excludeClosedItems([{ issue: 3 }], undefined).map((i) => i.issue), [3]);
+});
+
+test('closedRunIntents: triage closed the issue and returned done + nextStatus null -> Close (#2540)', () => {
+    const result = {
+        issue: 1916, phase: 'triage', signal: 'done', summary: '重複として閉じた',
+        nextStatus: null, nextAiStatus: null, hitl: false, kind: 'Issue',
+    };
+    const intents = closedRunIntents(applyResult(result), { signal: result.signal, closed: true });
+    assert.deepEqual(intents, [
+        { field: 'Status', value: 'Close' },
+        { field: 'AI Status', value: null },
+        { field: 'Kind', value: 'Issue' },
+    ]);
+});
+
+test('closedRunIntents: open issue or non-done signal keeps the intents as they are', () => {
+    const intents = [{ field: 'Status', value: 'Backlog' }, { field: 'AI Status', value: null }];
+    assert.deepEqual(closedRunIntents(intents, { signal: 'done', closed: false }), intents);
+    const hitl = [{ field: 'Status', value: 'Blocked' }];
+    assert.deepEqual(closedRunIntents(hitl, { signal: 'hitl', closed: true }), hitl);
+    assert.deepEqual(closedRunIntents(null, {}), []);
+});
+
 test('TERMINAL_STATUSES: Close and Done are terminal', () => {
     assert.ok(TERMINAL_STATUSES.has('Close'));
     assert.ok(TERMINAL_STATUSES.has('Done'));
@@ -1062,6 +1105,40 @@ test('selectStalledInFlightItems: 生存 worker（liveIssues）に含まれる i
     // 両方 live なら空。片方だけ live なら残りのみ返す。
     assert.deepEqual(selectStalledInFlightItems(items, new Set([10, 11])), []);
     assert.deepEqual(selectStalledInFlightItems(items, new Set([10])), [{ issue: 11, phase: 'implement' }]);
+});
+
+// === ふつうの受け渡しと止まった worker の復帰を分ける（#2582） ===
+
+test('handOffAiStatusFromIntents: 結果で実作業系 AI Status になったら、その値を返す', () => {
+    // implement の done → In Progress + Self-Reviewing（次の tick の review は受け渡し）
+    assert.equal(handOffAiStatusFromIntents([
+        { field: 'Status', value: 'In Progress' }, { field: 'AI Status', value: 'Self-Reviewing' },
+    ]), 'Self-Reviewing');
+    // EPIC の流れの Must の直し → Addressing Comments
+    assert.equal(handOffAiStatusFromIntents([{ field: 'AI Status', value: 'Addressing Comments' }]), 'Addressing Comments');
+});
+
+test('handOffAiStatusFromIntents: 実作業系でない AI Status・クリア・In Progress 以外へ動くときは null', () => {
+    assert.equal(handOffAiStatusFromIntents([{ field: 'AI Status', value: null }]), null);
+    assert.equal(handOffAiStatusFromIntents([{ field: 'AI Status', value: 'Awaiting Continuation' }]), null);
+    assert.equal(handOffAiStatusFromIntents([
+        { field: 'Status', value: 'Review' }, { field: 'AI Status', value: 'Self-Reviewing' },
+    ]), null);
+    assert.equal(handOffAiStatusFromIntents([{ field: 'Status', value: 'Blocked' }]), null);
+    assert.equal(handOffAiStatusFromIntents(null), null);
+});
+
+test('classifyInFlightRecovery: この daemon が直前に反映した AI Status のままなら handoff', () => {
+    const item = { issue: 2552, status: 'In Progress', aiStatus: 'Self-Reviewing' };
+    assert.equal(classifyInFlightRecovery(item, new Map([[2552, 'Self-Reviewing']])), 'handoff');
+});
+
+test('classifyInFlightRecovery: 反映の記録が無い（daemon の再起動など）・AI Status が違うなら stalled', () => {
+    const item = { issue: 2552, status: 'In Progress', aiStatus: 'Self-Reviewing' };
+    assert.equal(classifyInFlightRecovery(item, new Map()), 'stalled');
+    assert.equal(classifyInFlightRecovery(item, null), 'stalled');
+    assert.equal(classifyInFlightRecovery(item, new Map([[2552, 'Addressing Comments']])), 'stalled');
+    assert.equal(classifyInFlightRecovery({ ...item, aiStatus: 'Implementing' }, new Map([[2552, 'Self-Reviewing']])), 'stalled');
 });
 
 test('selectStalledInFlightItems: 空入力は空配列', () => {

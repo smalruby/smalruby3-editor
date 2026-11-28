@@ -4,6 +4,9 @@
  * watchdog の判断ロジック。すべて純粋関数（I/O なし）でテスト可能にする。
  */
 
+// 質問の形の検証は worker の結果と同じ 1 か所（contract.js）を使う（#2565・bin/autopilot-ask）
+const { questionListErrors } = require('./contract');
+
 /**
  * 子 claude を起動する既定コマンド。
  * **非対話**で動かすため `--allowedTools` を広げ、`gh`/`git` 等の Bash 実行で
@@ -30,6 +33,23 @@ const AUTOPILOT_BRANCH_PREFIX = 'topic/autopilot-';
  */
 function autopilotHeadBranch(issueNumber, prefix = AUTOPILOT_BRANCH_PREFIX) {
     return `${prefix}${issueNumber}`;
+}
+
+/**
+ * Issue にひも付く PR の一覧から「マージ済み」とみなすか（純粋関数・#831 / #2498）。
+ *
+ * マージ済みの PR が 1 つでもあれば true。ただし **open の PR が 1 つでもあれば false**。
+ * 同じ head ブランチ（`topic/autopilot-<N>`）で PR を分けて出す Issue では、前の PR がマージ済みでも
+ * いま開いている PR が本物で、人間のレビュー待ち。前の PR を見て Close へ進めると Issue を
+ * 早く閉じてしまう（#1934 で起きた）。CLOSED（マージせずに閉じた）PR は判断に使わない。
+ * 入力は `gh pr list --json state` の `{state}` でも、GraphQL の `{merged, state}` でもよい。
+ * @param {Array<{state?:string, merged?:boolean}>} prs
+ * @returns {boolean}
+ */
+function hasMergedHeadPr(prs) {
+    const list = (Array.isArray(prs) ? prs : []).filter(Boolean);
+    if (list.some((p) => p.state === 'OPEN')) return false;
+    return list.some((p) => p.state === 'MERGED' || p.merged === true);
 }
 
 /**
@@ -974,6 +994,41 @@ function selectClosedToReconcile(items, closedSet) {
 }
 
 /**
+ * dispatch の判断に使う item から、GitHub で閉じている Issue を除く（純粋関数・#2540）。
+ *
+ * 閉じた Issue の Status が空（New Item）や In Progress のままだと、拾う判定（triage・stalled 復帰）が
+ * reconcile より先に worker を起こし、running に入った item を reconcile が飛ばす。その結果
+ * 「triage が閉じる → Status が空に戻る → また triage」が続いた（#1916 で 4 回）。閉じた Issue は
+ * 作業の対象ではないので、拾う前に外し、Close へそろえるのは {@link selectClosedToReconcile} に任せる。
+ * @param {object[]} items Project items
+ * @param {Set<number>|number[]} closedSet GitHub で閉じている Issue 番号
+ * @returns {object[]} 閉じていない item（新しい配列）
+ */
+function excludeClosedItems(items, closedSet) {
+    const closed = closedSet instanceof Set ? closedSet : new Set(closedSet || []);
+    return (items || []).filter((it) => it && !closed.has(it.issue));
+}
+
+/**
+ * フェーズの run が終わった時点で Issue が GitHub で閉じていたら、反映する意図を Close にそろえる
+ * （純粋関数・#2540）。triage などが Issue を閉じて `nextStatus: null` を返すと、{@link applyResult} は
+ * Status を消す（= New Item に戻り、また triage が走る）。閉じたという事実を見て Status=Close・
+ * AI Status=空にする。Size / Kind などほかの意図はそのまま残す。
+ *
+ * done のときだけ書きかえる。hitl / error の結果は人間に渡す意図なので触らず、閉じた Issue は
+ * 次の tick の reconcile（{@link selectClosedToReconcile}）が Close にする。
+ * @param {Array<{field: string, value: string|null}>} intents applyResult などが返した意図
+ * @param {{signal?: string, closed?: boolean}} opts run の signal と、Issue が閉じているか
+ * @returns {Array<{field: string, value: string|null}>} 新しい配列
+ */
+function closedRunIntents(intents, opts = {}) {
+    const list = intents || [];
+    if (!opts.closed || opts.signal !== 'done') return [...list];
+    const rest = list.filter((i) => i.field !== 'Status' && i.field !== 'AI Status');
+    return [{ field: 'Status', value: 'Close' }, { field: 'AI Status', value: null }, ...rest];
+}
+
+/**
  * 人間がレビュー/検証して 🙋 を外すと autopilot が再開する「人間ゲート」状態。
  * Review（コードレビュー）と DoD（headful 検証）が該当し、いずれも 🙋 解除 = NG 差し戻しで
  * address-review へ渡す（OR セマンティクスも同じ・#821）。OK のときは人間が merge して
@@ -1185,6 +1240,46 @@ function selectStalledInFlightItems(items, liveIssues) {
         out.push({ issue: item.issue, phase });
     }
     return out;
+}
+
+/**
+ * 結果の反映（{@link applyResult} 等の intents）で item が「次の実作業系フェーズを待つ」形
+ * （In Progress のまま・AI Status が {@link IN_FLIGHT_WORK_PHASE_BY_AI_STATUS} に載る値）に
+ * なったなら、その AI Status を返す（純粋関数・#2582）。
+ *
+ * 例: implement の done → In Progress + Self-Reviewing。この直後の tick では worker が居ないので
+ * {@link selectStalledInFlightItems} が拾うが、それは worker が消えたのではなく、ふつうの受け渡し。
+ * daemon はこの値を覚えておき、{@link classifyInFlightRecovery} で両者を分けてログに出す。
+ * Status を In Progress 以外へ動かす intents は stalled 復帰の対象にならないので null。
+ * @param {Array<{field:string, value:string|null}>} intents 反映した intents
+ * @returns {string|null} 受け渡し先の AI Status、無ければ null
+ */
+function handOffAiStatusFromIntents(intents) {
+    let aiStatus = null;
+    for (const it of intents || []) {
+        if (!it) continue;
+        if (it.field === 'Status' && it.value !== 'In Progress') return null;
+        if (it.field === 'AI Status') aiStatus = it.value;
+    }
+    return aiStatus && IN_FLIGHT_WORK_PHASE_BY_AI_STATUS[aiStatus] ? aiStatus : null;
+}
+
+/**
+ * {@link selectStalledInFlightItems} が選んだ item が、ふつうの受け渡し（`'handoff'`）か、
+ * 止まった worker の復帰（`'stalled'`）かを決める（純粋関数・#2582）。
+ *
+ * この daemon が直前に反映した結果の AI Status（{@link handOffAiStatusFromIntents}）が、いまの
+ * AI Status と同じなら受け渡し。記録が無い（daemon の再起動で消えた・別の daemon が反映した）か、
+ * AI Status が違えば、worker が消えたものとして stalled にする（安全側: これまでどおりの扱い）。
+ * どちらでも再ディスパッチすること自体は変わらない（ログと記録の区別だけ）。
+ * @param {{issue:number, aiStatus:string}} item 対象 item
+ * @param {Map<number,string>|null} handOffs issue → 直前に反映した AI Status
+ * @returns {'handoff'|'stalled'}
+ */
+function classifyInFlightRecovery(item, handOffs) {
+    if (!item || !handOffs || typeof handOffs.get !== 'function') return 'stalled';
+    const expected = handOffs.get(item.issue);
+    return expected && expected === item.aiStatus ? 'handoff' : 'stalled';
 }
 
 /**
@@ -3133,6 +3228,28 @@ function authNoticeKind(state) {
 }
 
 /**
+ * `bin/bot-token` が失敗したときに stdout へ出す番兵（#2534）。`bin/bot-token` /
+ * `bin/bot-gh` / `bin/bot-git` も同じ値を持つ（変えるときは 4 か所をそろえる）。
+ * 空の `GH_TOKEN` だと gh が個人の認証へ黙って戻るので、空ではなく必ず 401 になる値を出す。
+ */
+const BOT_TOKEN_UNAVAILABLE = 'BOT_TOKEN_UNAVAILABLE';
+
+/**
+ * `bin/bot-token` の stdout から Bot のトークンを取り出す純粋関数（#2534）。
+ * 空や番兵は「トークンが取れない」なので、`isAuthError` が拾う文言で throw する
+ * （空のトークンをキャッシュして書き込みに使うと、gh が個人の名義で動くため）。
+ * @param {string|null|undefined} stdout `bin/bot-token` の出力
+ * @returns {string} トークン
+ */
+function botTokenFromOutput(stdout) {
+    const token = String(stdout || '').trim();
+    if (!token || token === BOT_TOKEN_UNAVAILABLE) {
+        throw new Error('bot-token: Bot のトークンが取れません（aws sso login --sso-session smalruby --use-device-code）');
+    }
+    return token;
+}
+
+/**
  * 認証系エラー（AWS SSO 失効・bot-token 取得不能等）かを判定する純粋関数。
  *
  * `bin/bot-token` は SSO 失効時に「AWS 認証が失効/未設定…」を stderr に出して die する。
@@ -3465,19 +3582,85 @@ function evaluate(state, cfg) {
     return { action: 'wait', reason: 'in progress' };
 }
 
+// 入力欄の行の印（Claude Code の入力は `❯ ` で始まる。古い版は `│ > `）
+const INPUT_MARKER_RE = /^[\s│]*[❯>](\s|$)/;
+// 比べるときに落とす文字（空白・折り返し・枠線）
+const COMPACT_RE = /[\s│╭╮╰╯─━┃]/g;
+// 入力欄に残っているかを見る、送った文の頭の長さ（折り返しで切れても一致する長さ）
+const INPUT_PROBE_LEN = 24;
+
 /**
- * スラッシュコマンド送信後に「受理されたか」を判定し、未達なら再送すべきかを返す（純粋関数）。
- * claude TUI は起動直後に入力受付前のことがあり、最初の send-keys が捨てられる（課題1）。
- * 受理確認（busy 表示 or 結果ファイル）が取れないまま acceptWindow を超えたら、上限まで再送する。
- * @param {object} s
- * @param {number} s.sinceSendMs 直近送信からの経過
- * @param {number} s.attempts これまでの送信回数
- * @param {number} s.maxAttempts 送信上限
- * @param {number} s.acceptWindowMs 受理待ちの猶予
+ * 送った指示の文が、まだ入力欄に残っているか（純粋関数・#2504）。
+ * 重いときに Enter だけが捨てられると、文が入力欄に残る。そこへ文と Enter を送り直すと
+ * 文がつながるだけで送信されないので、残っていれば Enter だけを送る。
+ * 入力欄 = 画面の最後の `❯` / `>` の行から下（無ければ下の 12 行）。空白と枠線を落として比べる。
+ * @param {string} screen いま見えている画面の文字
+ * @param {string} text 送った文
  * @returns {boolean}
  */
-function shouldResend(s) {
-    return s.sinceSendMs > s.acceptWindowMs && s.attempts < s.maxAttempts;
+function promptStillInInput(screen, text) {
+    const probe = String(text || '').replace(COMPACT_RE, '').slice(0, INPUT_PROBE_LEN);
+    if (!probe) return false;
+    const lines = String(screen || '').split('\n');
+    let start = -1;
+    for (let i = lines.length - 1; i >= 0; i--) {
+        if (INPUT_MARKER_RE.test(lines[i])) { start = i; break; }
+    }
+    const region = lines.slice(start >= 0 ? start : Math.max(0, lines.length - 12)).join('');
+    return region.replace(COMPACT_RE, '').includes(probe);
+}
+
+/** 受理を待つ時間を延ばす上限の倍率 */
+const ACCEPT_WINDOW_MAX_FACTOR = 4;
+
+/**
+ * 受理を待つ時間を、マシンの重さに合わせて延ばす（純粋関数・#2504）。
+ * 1 CPU あたりの loadavg が 1 を超えたら、その倍率で延ばす（上限 4 倍）。値が取れなければそのまま。
+ * 負荷の値は daemon が読んで渡す（scheduler と同じ `readResources` の値）。
+ * @param {number} baseMs 既定の待ち時間（`acceptWindowMs`）
+ * @param {{load1:(number|null), cpus:(number|null)}} [resources]
+ * @returns {number}
+ */
+function acceptWindowFor(baseMs, resources = {}) {
+    const { load1, cpus } = resources || {};
+    if (typeof load1 !== 'number' || !cpus) return baseMs;
+    const factor = Math.min(ACCEPT_WINDOW_MAX_FACTOR, Math.max(1, load1 / cpus));
+    return Math.round(baseMs * factor);
+}
+
+/**
+ * 送った指示が受理されないときに、次に何をするかを決める（純粋関数・#2504）。
+ * - 猶予（acceptWindowMs）のうち → `wait`
+ * - 送り直しの回数が残っている → 入力欄に文が残っていれば `enter`（Enter だけ）、無ければ `line`（文と Enter）
+ * - 使い切ってさらに猶予を過ぎ、画面も猶予のあいだ変わっていない → 黙って待たず `restart`
+ *   （再起動の上限なら `fail`）。画面が動いているなら、busy の見落としで実は動いている
+ *   かもしれないので殺さずに待つ（そのあとは `evaluate` の `tIdleMs` が見る）
+ * 人間を待っているあいだは呼ばない（runner が paused のときは見ない）。
+ * @param {object} s
+ * @param {number} s.sinceSendMs 直近の送信からの経過
+ * @param {number} s.attempts これまでの送信回数
+ * @param {number} s.maxAttempts 送信の上限
+ * @param {number} s.acceptWindowMs 受理を待つ猶予
+ * @param {number} [s.idleMs] 画面が最後に変わってからの経過（無ければ sinceSendMs とみなす）
+ * @param {string} s.screen いまの画面
+ * @param {string} s.text 送った文
+ * @param {number} [s.restarts] これまでの再起動の回数
+ * @param {number} [s.maxRestarts] 再起動の上限
+ * @returns {{action:('wait'|'enter'|'line'|'restart'|'fail'), reason:string}}
+ */
+function planResend(s) {
+    if (s.sinceSendMs <= s.acceptWindowMs) return { action: 'wait', reason: 'within accept window' };
+    if (s.attempts < s.maxAttempts) {
+        return promptStillInInput(s.screen, s.text)
+            ? { action: 'enter', reason: 'prompt is still in the input' }
+            : { action: 'line', reason: 'input is empty' };
+    }
+    const idleMs = typeof s.idleMs === 'number' ? s.idleMs : s.sinceSendMs;
+    if (idleMs <= s.acceptWindowMs) return { action: 'wait', reason: 'screen is still changing' };
+    const reason = `command not accepted after ${s.attempts} sends`;
+    return (s.restarts || 0) < (s.maxRestarts || 0)
+        ? { action: 'restart', reason }
+        : { action: 'fail', reason: `${reason}; restart limit reached` };
 }
 
 const DEFAULT_WATCHDOG = {
@@ -3802,6 +3985,65 @@ function planMonitorQuestionsComment(comments, issue, questions, opts = {}) {
     return { action: 'post', round, body: renderMonitorQuestionsComment(issue, round, questions, opts) };
 }
 
+/** 質問の理由の上限（GitHub のコメントに出すときは sanitizeForSurface がさらに切る） */
+const MAX_ASK_REASON = 2000;
+
+/**
+ * `bin/autopilot-ask` の入力（JSON ファイルの中身）を検証して形をそろえる（純粋関数・#2565）。
+ * 形は worker の結果と同じ: `{questions:[{id, text, options:[{key, label, desc?}], recommended?}], reason?, phase?}`
+ * （配列だけを渡したら questions とみなす）。質問の形の検証は contract.js の questionListErrors（worker と同じ 1 か所）。
+ * phase は質問のまとめコメントの見出しに出る名前（既定 `session` = セッションの AI か人間が書いた質問）。
+ * @param {*} input
+ * @returns {{ok:boolean, errors:string[], questions?:object[], reason?:string|null, phase?:string}}
+ */
+function normalizeAskInput(input) {
+    const obj = Array.isArray(input) ? { questions: input } : input;
+    if (!obj || typeof obj !== 'object') return { ok: false, errors: ['input must be an object with questions'] };
+    const errors = questionListErrors(obj.questions);
+    if (obj.reason != null && (typeof obj.reason !== 'string' || obj.reason.length > MAX_ASK_REASON)) {
+        errors.push(`reason must be a string (max ${MAX_ASK_REASON})`);
+    }
+    if (obj.phase != null && (typeof obj.phase !== 'string' || !/^[A-Za-z0-9_-]{1,32}$/.test(obj.phase))) {
+        errors.push('phase must match /^[A-Za-z0-9_-]{1,32}$/');
+    }
+    if (errors.length) return { ok: false, errors };
+    return { ok: true, errors: [], questions: obj.questions, reason: obj.reason || null, phase: obj.phase || 'session' };
+}
+
+/**
+ * `POST /questions`（`bin/autopilot-ask` が Issue に書いた質問を daemon の置き場に載せる・#2565）の body を
+ * 検証する（純粋関数）。body: `{issue, round, questions, phase?, reason?}`。
+ * @param {object} body
+ * @returns {{ok:boolean, error?:string, issue?:number, round?:number, questions?:object[], phase?:string, reason?:string|null}}
+ */
+function normalizeQuestionsRegistration(body) {
+    if (!body || typeof body !== 'object') return { ok: false, error: 'body must be an object' };
+    const issue = Number(body.issue);
+    if (!Number.isInteger(issue) || issue <= 0) return { ok: false, error: 'issue (positive integer) required' };
+    if (!Number.isInteger(body.round) || body.round <= 0) return { ok: false, error: 'round (positive integer) required' };
+    const n = normalizeAskInput({ questions: body.questions, reason: body.reason, phase: body.phase });
+    if (!n.ok) return { ok: false, error: n.errors.join('; ') };
+    return { ok: true, issue, round: body.round, questions: n.questions, phase: n.phase, reason: n.reason };
+}
+
+/**
+ * 質問を置き場に載せるかの計画（純粋関数・冪等・#2565）。同じ round の同じ質問がもう載っていれば、
+ * 人間の「メモだけ保存」を消さないよう置き直さない（keep）。答えた（answered）同じ round も開き直さない。
+ * worker が動いている Issue は受けない（worker の結果の質問と競うため）。
+ * @param {object|null} entry 置き場の 1 件
+ * @param {object} reg {@link normalizeQuestionsRegistration} の結果
+ * @param {{running:boolean}} opts
+ * @returns {{ok:boolean, status:number, action?:'set'|'keep', error?:string}}
+ */
+function planQuestionsRegistration(entry, reg, opts = {}) {
+    if (opts.running) return { ok: false, status: 409, error: 'worker is running' };
+    if (entry && entry.round === reg.round
+        && JSON.stringify(entry.questions) === JSON.stringify(reg.questions)) {
+        return { ok: true, status: 200, action: 'keep' };
+    }
+    return { ok: true, status: 200, action: 'set' };
+}
+
 /**
  * `POST /answer` の body を検証して形をそろえる（純粋関数）。
  * body: `{issue, answers:[{q, key, note?}], proceed}`。key は選択肢の key。選択肢で答えず
@@ -4078,6 +4320,9 @@ module.exports = {
     findMonitorQuestionsComments,
     renderMonitorQuestionsComment,
     planMonitorQuestionsComment,
+    normalizeAskInput,
+    normalizeQuestionsRegistration,
+    planQuestionsRegistration,
     normalizeMonitorAnswerBody,
     planMonitorAnswer,
     renderMonitorAnswerComment,
@@ -4095,6 +4340,8 @@ module.exports = {
     IN_FLIGHT_WORK_PHASE_BY_AI_STATUS,
     liveWorkerIssuesFromSessions,
     selectStalledInFlightItems,
+    handOffAiStatusFromIntents,
+    classifyInFlightRecovery,
     PROMPT_DIR,
     phasePromptCommand,
     DEFAULT_CLAUDE_COMMAND,
@@ -4111,6 +4358,7 @@ module.exports = {
     resolveOwner,
     AUTOPILOT_BRANCH_PREFIX,
     autopilotHeadBranch,
+    hasMergedHeadPr,
     resolveBaseRef,
     shouldCleanupWorktree,
     isDevServerCommand,
@@ -4150,6 +4398,8 @@ module.exports = {
     mergeProgressionIntents,
     TERMINAL_STATUSES,
     selectClosedToReconcile,
+    excludeClosedItems,
+    closedRunIntents,
     phaseForItem,
     isActionable,
     isStuckCandidate,
@@ -4159,10 +4409,14 @@ module.exports = {
     statusRank,
     orderItemsLikeBoard,
     selectActionable,
-    shouldResend,
+    promptStillInInput,
+    acceptWindowFor,
+    planResend,
     evaluate,
     sanitizeForSurface,
     isAuthError,
+    BOT_TOKEN_UNAVAILABLE,
+    botTokenFromOutput,
     authRecoveryPatch,
     authNoticeKind,
     DEFAULT_WATCHDOG,

@@ -7,7 +7,8 @@
  * 🙋 で人間に渡す → 人間がプレビューで確かめ、モニターの「確認の結果を書く」で送る（daemon が
  * `<!-- autopilot-release-review round=N -->` を Bot で書き、🙋 を外す）→ release-check が結果を受け、
  * NG ごとに sub-issue を作る（`<!-- autopilot-release-result round=N -->`）。NG から作った sub-issue が
- * 全部済むと、次の round のリリース確認になる。develop へのマージは人間のまま。
+ * 全部済むと、次の round のリリース確認になる。全部 OK のあとの develop へのマージは人間が決める（モニターの
+ * 「develop へマージする」か GitHub。判断は release-merge.js・#2544）。
  *
  * どちらの段（観点をまとめる / 結果を受ける）かは、トラッカーの目印付きコメントだけで決める
  * （{@link releaseCheckMode}。時刻や daemon の状態ファイルを使わない・I5）。
@@ -24,15 +25,17 @@
 const {
     TRACKING_LABEL, TERMINAL_STATUSES, RELEASE_CHECK_AI_STATUS, AFTER_RELEASE_LABEL, extractPreviewUrl,
 } = require('./phases');
+const { previewStatusText } = require('./epic-pr');
 
 /** 目印の正規表現（round を捕捉する） */
 const CHECK_RE = /<!--\s*autopilot-release-check\s+round=(\d+)\s*-->/;
 const REVIEW_RE = /<!--\s*autopilot-release-review\s+round=(\d+)\s*-->/;
-const RESULT_RE = /<!--\s*autopilot-release-result\s+round=(\d+)\s*-->/;
+// 全部 OK の結果は `allOk=1 pr=P head=SHA` を足す（#2544・{@link releaseResultMarker}）。属性があっても round を読む
+const RESULT_RE = /<!--\s*autopilot-release-result\s+round=(\d+)(?:\s+[^>]*?)?\s*-->/;
 /** 結果のコメントに埋める機械向けのデータ（人間向けの本文は別に書く） */
 const REVIEW_DATA_RE = /<!--\s*autopilot-release-review-data\s+([\s\S]*?)\s*-->/;
 /** NG から作った sub-issue の本文に入れる目印（同じ round の同じ観点から二重に作らない） */
-const NG_RE = /<!--\s*autopilot-release-ng\s+epic=(\d+)\s+round=(\d+)\s+point=(R\d+|C)\s*-->/g;
+const NG_RE = /<!--\s*autopilot-release-ng\s+epic=(\d+)\s+round=(\d+)\s+point=(R\d+|D\d+|C)\s*-->/g;
 
 /** topic → develop の PR のレビュー・コメントから作った sub-issue の本文に入れる目印（ref ごとに 1 つ） */
 const PR_RE = /<!--\s*autopilot-release-pr\s+epic=(\d+)\s+ref=((?:review|review-comment|comment)-\d+)\s*-->/g;
@@ -42,13 +45,54 @@ const PR_SEEN_RE = /<!--\s*autopilot-release-pr-seen\s+refs=([a-z0-9,-]*)\s*-->/
 /** 観点 1 つのメモと全体のコメントの上限（GitHub のコメントの上限より十分小さく） */
 const MAX_RELEASE_NOTE = 2000;
 const MAX_RELEASE_COMMENT = 4000;
+/** 決定待ちの題・選んだ別の案の上限（#2474） */
+const MAX_DECISION_TITLE = 300;
+const MAX_DECISION_ALT = 500;
+
+/**
+ * 決定待ちの答え（確認ページ・#2474）。recommended = 推奨でよい / alternative = 別の案 / comment = コメント。
+ * 推奨でよい以外は、直しが要るかをプロンプトが読んで決める（{@link planReleaseResult} の `decisions`）。
+ */
+const DECISION_CHOICES = ['recommended', 'alternative', 'comment'];
+/** 結果を送ったところ。monitor = モニターのダイアログ、page = 確認ページ（artifact） */
+const REVIEW_SOURCES = ['monitor', 'page'];
 
 /** @param {number} round @returns {string} */
 function releaseCheckMarker(round) { return `<!-- autopilot-release-check round=${round} -->`; }
 /** @param {number} round @returns {string} */
 function releaseReviewMarker(round) { return `<!-- autopilot-release-review round=${round} -->`; }
-/** @param {number} round @returns {string} */
-function releaseResultMarker(round) { return `<!-- autopilot-release-result round=${round} -->`; }
+/**
+ * 結果を受けたことの目印。全部 OK のときは、モニターから develop へマージするための印（#2544）を足す:
+ * `allOk=1`・topic → develop の PR の番号・そのときの topic の head の SHA（確かめた中身と同じものだけをマージする）。
+ * @param {number} round
+ * @param {{allOk?:boolean, pr?:number, head?:string}} [opts]
+ * @returns {string}
+ */
+function releaseResultMarker(round, opts = {}) {
+    if (!opts.allOk) return `<!-- autopilot-release-result round=${round} -->`;
+    const attrs = [`round=${round}`, 'allOk=1'];
+    if (Number.isInteger(opts.pr) && opts.pr > 0) attrs.push(`pr=${opts.pr}`);
+    if (typeof opts.head === 'string' && /^[0-9a-f]{7,40}$/i.test(opts.head)) attrs.push(`head=${opts.head.toLowerCase()}`);
+    return `<!-- autopilot-release-result ${attrs.join(' ')} -->`;
+}
+
+/**
+ * 結果の目印を読む（純粋関数・{@link releaseResultMarker} の逆）。目印が無ければ null。
+ * @param {string} body
+ * @returns {{round:number, allOk:boolean, pr:(number|null), head:(string|null)}|null}
+ */
+function parseReleaseResultMarker(body) {
+    const m = String(body || '').match(/<!--\s*autopilot-release-result\s+round=(\d+)((?:\s+[^>]*?)?)\s*-->/);
+    if (!m) return null;
+    const attr = (k) => { const x = m[2].match(new RegExp(`(?:^|\\s)${k}=([^\\s]+)`)); return x ? x[1] : null; };
+    const pr = attr('pr');
+    const head = attr('head');
+    return {
+        round: Number(m[1]), allOk: attr('allOk') === '1',
+        pr: pr && /^\d+$/.test(pr) ? Number(pr) : null,
+        head: head && /^[0-9a-f]{7,40}$/i.test(head) ? head.toLowerCase() : null,
+    };
+}
 
 /**
  * NG から作る sub-issue の本文に入れる目印。
@@ -94,6 +138,22 @@ function roundsOf(comments, re) {
 }
 
 function maxRound(list) { return list.reduce((a, x) => Math.max(a, x.round), 0); }
+
+/**
+ * トラッカーの観点・確認の結果・結果を受けたことの、いちばん新しい round（純粋関数・#2544）。
+ * resultComment は、いちばん新しい round の結果を受けたことのコメント（同じ round が複数あれば後のもの）。
+ * @param {Array<{body?:string, user?:object}>} comments
+ * @returns {{check:number, review:number, result:number, resultComment:(object|null)}}
+ */
+function releaseCheckRounds(comments) {
+    const results = roundsOf(comments, RESULT_RE);
+    const result = maxRound(results);
+    const last = results.filter((x) => x.round === result).pop();
+    return {
+        check: maxRound(roundsOf(comments, CHECK_RE)), review: maxRound(roundsOf(comments, REVIEW_RE)),
+        result, resultComment: last ? last.comment : null,
+    };
+}
 
 /**
  * item が「リリース後の作業」か（純粋関数）。🚀 after-release ラベルか、自分の親 EPIC を
@@ -210,9 +270,25 @@ function parseReleaseCheckPoints(body) {
  * @returns {string|null}
  */
 function releasePreviewUrl(body) {
-    const m = String(body || '').match(/\*\*プレビュー\*\*\s*[:：]\s*<?(https?:\/\/[^\s<>)]+)/);
+    const text = String(body || '');
+    const m = text.match(/\*\*プレビュー\*\*\s*[:：]\s*<?(https?:\/\/[^\s<>)]+)/);
     if (m) return m[1];
-    return extractPreviewUrl([{ body: String(body || '') }]);
+    // 「**プレビュー**: まだありません / 無し」と書いた観点（#2485）では、本文のほかの URL を拾わない
+    if (/\*\*プレビュー\*\*\s*[:：]\s*(?:まだ|無し|なし)/.test(text)) return null;
+    return extractPreviewUrl([{ body: text }]);
+}
+
+/**
+ * 観点のコメントの `**プレビュー**:` の行（純粋関数・#2485）。プレビューができていなければ URL を書かず、
+ * 理由を書く（人間に開けない URL を「確かめる場所」として渡さない）。
+ * @param {{ready:boolean, state:string}|null} status epic-pr.js の previewStatus の結果
+ * @param {string|null} url
+ * @param {string} [base]
+ * @returns {string}
+ */
+function releasePreviewLine(status, url, base = 'develop') {
+    if (status && status.ready && url) return `**プレビュー**: ${url}`;
+    return `**プレビュー**: まだありません — ${previewStatusText(status || { state: 'no-pr' }, base)}`;
 }
 
 /**
@@ -236,12 +312,15 @@ function releaseCheckView(comments) {
 }
 
 /**
- * `POST /release-check/review` の body を検証する（純粋関数）。
- * body: `{issue, round, results:[{id:'R1', verdict:'ok'|'ng', note?}], comment?}`。
- * 観点の結果か全体のコメントのどちらかは要る。
+ * `POST /release-check/review` の body（と確認ページの答え・#2474）を検証する（純粋関数）。
+ * body: `{issue, round, results:[{id:'R1', verdict:'ok'|'ng', note?}], comment?,
+ *   decisions?:[{id:'D1', title?, choice:'recommended'|'alternative'|'comment', alternative?, note?}], source?}`。
+ * 観点の結果・決定待ちの答え・全体のコメントのどれかは要る。別の案は案かメモ、コメントはメモが要る。
+ * 確認ページの答えは閲覧者が書いた信用できない値なので、モニターと同じここで形を確かめてから使う。
  * @param {object} body
  * @returns {{ok:boolean, error?:string, issue?:number, round?:number,
- *   results?:Array<{id:string, verdict:'ok'|'ng', note:string}>, comment?:string}}
+ *   results?:Array<{id:string, verdict:'ok'|'ng', note:string}>, comment?:string,
+ *   decisions?:Array<{id:string, title:string, choice:string, alternative:string, note:string}>, source?:string}}
  */
 function normalizeReleaseReviewBody(body) {
     if (!body || typeof body !== 'object') return { ok: false, error: 'body must be an object' };
@@ -266,8 +345,46 @@ function normalizeReleaseReviewBody(body) {
     if (body.comment != null && typeof body.comment !== 'string') return { ok: false, error: 'comment must be a string' };
     const comment = String(body.comment || '').replace(/\r\n?/g, '\n').trim();
     if (comment.length > MAX_RELEASE_COMMENT) return { ok: false, error: `comment is too long (max ${MAX_RELEASE_COMMENT})` };
-    if (!results.length && !comment) return { ok: false, error: 'results or comment required' };
-    return { ok: true, issue, round, results, comment };
+    const d = normalizeDecisionAnswers(body.decisions);
+    if (d.error) return { ok: false, error: d.error };
+    const source = body.source == null ? 'monitor' : body.source;
+    if (!REVIEW_SOURCES.includes(source)) return { ok: false, error: `source must be one of ${REVIEW_SOURCES.join('|')}` };
+    if (!results.length && !comment && !d.list.length) return { ok: false, error: 'results, decisions or comment required' };
+    return { ok: true, issue, round, results, comment, decisions: d.list, source };
+}
+
+/** 文字列の項目を整える（内部用）。型が違えば null */
+function cleanText(v, max) {
+    if (v == null) return '';
+    if (typeof v !== 'string') return null;
+    const t = v.replace(/\r\n?/g, '\n').trim();
+    return t.length > max ? null : t;
+}
+
+/**
+ * 決定待ちの答えを検証する（内部用・{@link normalizeReleaseReviewBody}）。
+ * @param {*} list
+ * @returns {{list:object[], error?:string}}
+ */
+function normalizeDecisionAnswers(list) {
+    if (list == null) return { list: [] };
+    if (!Array.isArray(list)) return { list: [], error: 'decisions must be an array' };
+    const seen = new Set();
+    const out = [];
+    for (const a of list) {
+        if (!a || typeof a.id !== 'string' || !/^D\d+$/.test(a.id)) return { list: [], error: 'decisions[].id must be like D1' };
+        if (seen.has(a.id)) return { list: [], error: `decisions[].id ${a.id} is duplicated` };
+        seen.add(a.id);
+        if (!DECISION_CHOICES.includes(a.choice)) return { list: [], error: `decisions[].choice must be one of ${DECISION_CHOICES.join('|')}` };
+        const title = cleanText(a.title, MAX_DECISION_TITLE);
+        const alternative = cleanText(a.alternative, MAX_DECISION_ALT);
+        const note = cleanText(a.note, MAX_RELEASE_NOTE);
+        if (title === null || alternative === null || note === null) return { list: [], error: `decisions[] ${a.id} has a bad or too long text` };
+        if (a.choice === 'alternative' && !alternative && !note) return { list: [], error: `decisions[] ${a.id}: alternative or note required` };
+        if (a.choice === 'comment' && !note) return { list: [], error: `decisions[] ${a.id}: note required` };
+        out.push({ id: a.id, title, choice: a.choice, alternative: a.choice === 'alternative' ? alternative : '', note });
+    }
+    return { list: out };
 }
 
 /** HTML コメントの中に JSON を埋めても閉じないように `--` を崩す（JSON としては同じ値に戻る） */
@@ -277,24 +394,39 @@ function encodeData(obj) {
 
 /**
  * 確認の結果のコメント（daemon が Bot で書く・純粋関数）。人間向けの本文と、機械向けのデータを両方持つ。
- * @param {{round:number, results:object[], comment:string, login?:(string|null)}} p
+ * 決定待ちの答え（#2474）はデータに入れ、無いときは今までと同じ形にする（古いコメントと同じに読める）。
+ * @param {{round:number, results:object[], comment:string, login?:(string|null), decisions?:object[], source?:string}} p
  * @returns {string}
  */
-function renderReleaseReviewComment({ round, results, comment, login }) {
+function renderReleaseReviewComment({ round, results, comment, login, decisions, source }) {
     const who = login ? '`@' + String(login).replace(/^@/, '') + '`' : '人間';
     const ng = (results || []).filter((r) => r.verdict === 'ng').length;
     const ok = (results || []).length - ng;
+    const ds = decisions || [];
+    const data = { round, results: results || [], comment: comment || '' };
+    if (ds.length) data.decisions = ds;
+    if (source === 'page') data.source = 'page';
+    const from = source === 'page' ? '📄 確認ページから' : '🖥️ モニターから';
     const lines = [
         releaseReviewMarker(round),
-        `<!-- autopilot-release-review-data ${encodeData({ round, results: results || [], comment: comment || '' })} -->`,
-        `🖥️ モニターから ${who} のリリース確認の結果（round ${round}・autopilot が代わりに投稿しています）`,
+        `<!-- autopilot-release-review-data ${encodeData(data)} -->`,
+        `${from} ${who} のリリース確認の結果（round ${round}・autopilot が代わりに投稿しています）`,
         '',
-        `OK **${ok}** / NG **${ng}**`,
+        `OK **${ok}** / NG **${ng}**` + (ds.length ? ` ・決定待ち **${ds.length}**（推奨でよい ${ds.filter((x) => x.choice === 'recommended').length}）` : ''),
         '',
     ];
     for (const r of results || []) {
         lines.push(`- **${r.id}**: ${r.verdict === 'ng' ? '❌ NG' : '✅ OK'}`);
         if (r.note) for (const l of r.note.split('\n')) lines.push(`  > ${l}`);
+    }
+    if (ds.length) {
+        const label = { recommended: '👍 推奨でよい', alternative: '🔀 別の案', comment: '💬 コメント' };
+        lines.push('', '**決定待ち**', '');
+        for (const x of ds) {
+            lines.push(`- **${x.id}**${x.title ? ` ${x.title.replace(/\s+/g, ' ')}` : ''}: ${label[x.choice] || x.choice}`);
+            if (x.alternative) for (const l of x.alternative.split('\n')) lines.push(`  > 案: ${l}`);
+            if (x.note) for (const l of x.note.split('\n')) lines.push(`  > ${l}`);
+        }
     }
     if (comment) {
         lines.push('', '**全体のコメント**', '');
@@ -306,7 +438,7 @@ function renderReleaseReviewComment({ round, results, comment, login }) {
 /**
  * 確認の結果のコメントを読み戻す（純粋関数）。{@link renderReleaseReviewComment} の逆。
  * @param {string} body
- * @returns {{round:number, results:object[], comment:string}|null}
+ * @returns {{round:number, results:object[], comment:string, decisions?:object[]}|null} decisions は答えがあったときだけ
  */
 function parseReleaseReview(body) {
     const s = String(body || '');
@@ -315,7 +447,9 @@ function parseReleaseReview(body) {
     if (!rm || !dm) return null;
     try {
         const d = JSON.parse(dm[1]);
-        return { round: Number(rm[1]), results: Array.isArray(d.results) ? d.results : [], comment: String(d.comment || '') };
+        const out = { round: Number(rm[1]), results: Array.isArray(d.results) ? d.results : [], comment: String(d.comment || '') };
+        if (Array.isArray(d.decisions) && d.decisions.length) out.decisions = d.decisions;
+        return out;
     } catch (e) {
         return null;
     }
@@ -340,10 +474,14 @@ function planReleaseReviewPost(comments, round) {
  *
  * PR のレビュー・コメント（`prFeedback`・{@link selectPrFeedback} が選んだまだ受けていないもの）は、直してほしい
  * ことか、どうまとめて sub-issue にするかをプロンプトが読んで決める。ここでは目印を添えて返すだけ。
- * @param {{epic:number, round:number, review:({results:object[], comment:string}|null), points?:object[],
+ *
+ * 決定待ちの答え（確認ページ・#2474）で「推奨でよい」以外のものも、直しが要るかをプロンプトが読んで決める
+ * （`decisions`。point は `D1` など。`made` はもうその目印の sub-issue があるか）。
+ * @param {{epic:number, round:number, review:({results:object[], comment:string, decisions?:object[]}|null), points?:object[],
  *   existingBodies?:string[], prFeedback?:object[]}} p existingBodies は EPIC の sub-issue の本文
  * @returns {{allOk:boolean, create:Array<{point:string, title:string, note:string, marker:string}>,
- *   existing:string[], comment:string, commentDone:boolean, prFeedback:object[]}}
+ *   existing:string[], comment:string, commentDone:boolean, prFeedback:object[],
+ *   decisions:Array<{point:string, title:string, choice:string, alternative:string, note:string, marker:string, made:boolean}>}}
  *   commentDone は全体のコメントから作った sub-issue（point=C）があるか
  */
 function planReleaseResult({ epic, round, review, points, existingBodies, prFeedback }) {
@@ -365,7 +503,14 @@ function planReleaseResult({ epic, round, review, points, existingBodies, prFeed
     const comment = String((review && review.comment) || '');
     const ngCount = create.length + existing.length;
     const pr = (prFeedback || []).map((f) => ({ ...f, marker: releasePrMarker({ epic, ref: f.ref }) }));
-    return { allOk: ngCount === 0 && !comment && !pr.length, create, existing, comment, commentDone: made.has('C'), prFeedback: pr };
+    const decisions = ((review && review.decisions) || []).filter((d) => d && d.choice !== 'recommended').map((d) => ({
+        point: d.id, title: d.title || d.id, choice: d.choice, alternative: d.alternative || '', note: d.note || '',
+        marker: releaseNgMarker({ epic, round, point: d.id }), made: made.has(d.id),
+    }));
+    return {
+        allOk: ngCount === 0 && !comment && !pr.length && !decisions.length,
+        create, existing, comment, commentDone: made.has('C'), prFeedback: pr, decisions,
+    };
 }
 
 /** 人間のもの（bot でない・user がある）か。PR の REST はいつも user を返す */
@@ -427,12 +572,16 @@ function selectPrFeedback({ reviews, reviewComments, issueComments, handled }) {
 }
 
 module.exports = {
+    releasePreviewLine,
     AFTER_RELEASE_LABEL,
     MAX_RELEASE_NOTE,
     MAX_RELEASE_COMMENT,
+    DECISION_CHOICES,
     releaseCheckMarker,
     releaseReviewMarker,
     releaseResultMarker,
+    parseReleaseResultMarker,
+    releaseCheckRounds,
     releaseNgMarker,
     releasePrMarker,
     releasePrSeenMarker,

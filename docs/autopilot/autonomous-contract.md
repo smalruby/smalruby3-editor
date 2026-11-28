@@ -32,7 +32,7 @@ autopilot のプロンプトは、**人間が enter を押すのと同じ形で 
 
 判断・確認・追加情報が必要になったら、**人間に聞くのではなく**:
 
-1. 対象 Issue / PR に **bot 名義でコメント**を投稿し（`GH_TOKEN="$(bin/bot-token)" gh ...`）、
+1. 対象 Issue / PR に **bot 名義でコメント**を投稿し（`bin/bot-gh ...`）、
    何を判断してほしいかを具体的に書く。
 2. **HITL シグナル**（`AUTOPILOT_HITL`）を出して**終了**する。
 
@@ -87,6 +87,8 @@ Runner はこの短語を pane で検出してから `AUTOPILOT_RESULT_FILE` を
 | `subIssueSizes` | object \| null | decompose で作成した leaf ごとの size（`{"<issue番号>":"small"\|"middle"\|"large"}`）。daemon が `createdSubIssues` と合わせて各 sub-issue の Status=`Sprint Backlog`/Kind=`Issue`/Size を設定する（#914） |
 | `prUrl` | string \| null | implement で作成/更新した PR |
 | `previewUrl` | string \| null | 任意。release-check が見つけた topic → develop の PR のプレビューの URL。daemon が覚えてモニターの「あなた宛て」の行に出す（#2430） |
+| `artifactUrl` | string \| null | 任意。release-check が作った・更新した確認ページ（`https://claude.ai/artifact/…`）。daemon が EPIC ごとに状態ファイルに覚え、次の round の `AUTOPILOT_ARTIFACT_URL` と「あなた宛て」の「確認ページを開く」に使う（#2474）。current-status の job も同じ名前で使う |
+| `allOk` / `pr` / `headSha` | boolean / number / string | 任意。release-check が結果を受けて全部 OK だったとき（`hitl: true`）。topic → develop の PR の番号と、そのときの head の SHA（結果のコメントの目印 `allOk=1 pr=… head=…` と同じ値）。daemon が覚えて、モニターの「あなた宛て」の主ボタンを「develop へマージする」にする（#2544）。ほかの結果では覚えたものを消す |
 
 `signal=hitl` のとき追加で:
 
@@ -110,6 +112,26 @@ Runner はこの短語を pane で検出してから `AUTOPILOT_RESULT_FILE` を
 人間がモニターの「答えて先へ進める」で答えると、daemon が答えを Issue に書き、🙋 を外し、次に worker を起こすとき
 答えのファイル（`AUTOPILOT_ANSWERS_FILE`・§6）を渡す。起動の指示にもそのパスが入る。worker はそれを最初に読み、
 同じことを質問し直さない。「メモだけ保存」では何も起きない（daemon のローカルに置くだけ）。
+
+**worker 以外が質問を出す（`bin/autopilot-ask`）**: セッションの AI や人間も、同じ形の質問を出せる
+（`bin/autopilot-ask <issue> <questions.json>`）。入力の JSON は次の形で、`questions` は上の表と同じ（検証も同じ
+`contract.js` の `questionListErrors`）。`questions` の配列だけを書いたファイルも受ける:
+
+| key | 型 | 説明 |
+|---|---|---|
+| `questions` | object[]（必須） | 上の表の形。1 回に 10 問・1 問に 10 択まで |
+| `reason` | string \| 省略 | 何を判断してほしいか（質問のコメントの「理由」に出る。2000 字まで） |
+| `phase` | string \| 省略 | 質問のコメントの見出しに出る名前（英数字・`_`・`-`。既定 `session`） |
+
+```json
+{"reason":"緑の旗の扱いを決めたい",
+ "questions":[{"id":"q1","text":"緑の旗をどう扱いますか",
+   "options":[{"key":"a","label":"旗を残す","desc":"いまの見た目のまま"},{"key":"b","label":"旗を消す"}],
+   "recommended":"a"}]}
+```
+
+道具は worker の結果と同じ質問のコメントを Bot 名義で書き（同じ中身は書かない・round は続ける）、daemon の
+`POST /questions`（body `{issue, round, questions, phase, reason}`）で置き場に載せる。答えたあとの流れは worker の質問と同じ。
 
 `signal=error` のとき追加で:
 
@@ -266,7 +288,7 @@ PR の base が `topic/...` の Issue（EPIC の sub-issue）では、daemon が
   含まれると個人クレデンシャルの push に自動で切り替わる（`route=personal`）。その場合
   PR 作成も plain `gh`（個人トークン）で行い、`👥 human-review-required` ラベルを付けて
   本人以外のレビューを必須にする。
-- gh / GraphQL は **`GH_TOKEN="$(bin/bot-token)" gh ...`**（`bin/bot-token` は5分前自動リフレッシュ）。
+- gh / GraphQL は **`bin/bot-gh ...`**（`bin/bot-token` は5分前自動リフレッシュ）。
 - 作業は**割り当てられた worktree（cwd）の中だけ**で行う。
 - 対象は**割り当てられた 1 つの Issue / PR のみ**。他の Issue を勝手に触らない。
 

@@ -3217,44 +3217,6 @@ $seat-tile-min: 36px;
     background-color: white;
 }
 
-.eval-rubric-row {
-    display: flex;
-    gap: 0.5rem;
-    width: 100%;
-}
-
-.eval-rubric-name {
-    width: 12rem;
-    padding: 0.35rem 0.5rem;
-    border: 1px solid #c9cdd3;
-    border-radius: 0.4rem;
-    font-size: 0.85rem;
-}
-
-.eval-rubric-description {
-    flex: 1 1 auto;
-    padding: 0.35rem 0.5rem;
-    border: 1px solid #c9cdd3;
-    border-radius: 0.4rem;
-    font-size: 0.85rem;
-}
-
-/* 観点の欄の見出し（R1）。欄と同じ幅で、枠は付けない。 */
-.eval-rubric-header > span {
-    padding-top: 0;
-    padding-bottom: 0;
-    border-color: transparent;
-    color: #8a8fa3;
-    font-size: 0.8rem;
-}
-
-/* 閉じた設定の 1 行に出す、いまの値。 */
-.eval-settings-value {
-    color: #3d4157;
-    font-size: 0.9rem;
-    margin-right: 0.75rem;
-}
-
 /* 採点の画面の「レッスンの点」の欄（#1778）: 課題名と欄を 1 行に並べる。 */
 .eval-scoring-row {
     display: flex;
@@ -3274,14 +3236,6 @@ $seat-tile-min: 36px;
 .eval-settings-note {
     color: #575e75;
     font-size: 0.8rem;
-}
-
-.eval-strictness-row {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.9rem;
-    color: #575e75;
 }
 
 .eval-progress {
@@ -6710,6 +6664,108 @@ $seat-tile-min: 36px;
 .eval-count-label {
     color: $color-text-muted;
     font-size: $font-size-small;
+}
+
+/* 課題ごとの評価の分布（#2457）: 人数の下。左に S/A/B/C の横棒、右に S+A・S の %。
+   目安を外れた % は注意の色（赤は使わない・R4）。 */
+.eval-dist {
+    display: grid;
+    grid-template-columns: minmax(0, 18rem) minmax(0, 1fr);
+    align-items: center;
+    gap: 0.25rem 1rem;
+    margin-bottom: 0.4rem;
+    color: $color-text;
+    font-size: $font-size-small;
+}
+
+/* S/A/B/C の横棒（#2523）。色は総合評価のグラフと同じ評価のトークン。 */
+.eval-dist-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.eval-dist-bar-row {
+    display: grid;
+    grid-template-columns: 1rem minmax(0, 1fr) 2rem;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.eval-dist-bar-grade {
+    font-weight: $font-weight-bold;
+    text-align: center;
+}
+
+.eval-dist-bar-track {
+    display: block;
+    height: 0.8rem;
+    overflow: hidden;
+    border: 1px solid $color-border;
+    border-radius: $radius-small;
+    background-color: $color-surface;
+}
+
+/* C の色（$color-grade-c）は淡い青なので、地は白にし、棒にも枠線の色の縁を付けて見分けられるようにする */
+.eval-dist-bar {
+    display: block;
+    height: 100%;
+    box-shadow: inset 0 0 0 1px $color-border;
+    transition: $transition-standard;
+}
+
+.eval-dist-bar-s {
+    background-color: $color-grade-s;
+}
+
+.eval-dist-bar-a {
+    background-color: $color-grade-a;
+}
+
+.eval-dist-bar-b {
+    background-color: $color-grade-b;
+}
+
+.eval-dist-bar-c {
+    background-color: $color-grade-c;
+}
+
+.eval-dist-bar-count {
+    text-align: right;
+}
+
+.eval-dist-shares {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+}
+
+.eval-dist-share {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.3rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: $radius-small;
+}
+
+.eval-dist-share-off {
+    background-color: $color-confirm-background;
+    color: $color-confirm-text;
+}
+
+.eval-dist-mark {
+    font-weight: bold;
+}
+
+.eval-dist-target,
+.eval-dist-base {
+    color: $color-text-muted;
+    font-size: $font-size-xsmall;
+}
+
+.eval-dist-share-off .eval-dist-target {
+    color: $color-confirm-text;
 }
 
 .eval-inner-tabs {
