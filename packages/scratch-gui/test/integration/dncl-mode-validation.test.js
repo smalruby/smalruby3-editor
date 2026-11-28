@@ -248,6 +248,34 @@ describe('the Japanese tab (DNCL) and the check on switching to it', () => {
         await driver.wait(isConsoleExtensionLoaded, 10000, 'The console extension was not added');
     });
 
+    // The Japanese program has no hat, so the green flag runs it as the run button does (Issue #2552).
+    test('the green flag runs the Japanese program on the Japanese tab', async () => {
+        const consoleLines = () =>
+            driver.executeScript(
+                'return [...document.querySelectorAll(\'[data-testid="smalruby-console-line"]\')]' +
+                    '.map((e) => e.textContent)',
+            );
+        await loadInRubyMode(driver);
+        await fillInRubyProgram('@x = 10\n');
+        await waitForEditorValue(driver, '@x = 10');
+        await clickJapaneseTab(driver);
+        await waitForMonacoLanguage(driver, 'dncl');
+        await fillInRubyProgram('表示する("こんにちは")\n');
+        await waitForEditorValue(driver, '表示する("こんにちは")');
+
+        await driver.executeScript('window.smalruby.vm.greenFlag()');
+        await driver.wait(
+            async () => (await consoleLines()).some((line) => line.includes('こんにちは')),
+            10000,
+            'The green flag did not run the Japanese program',
+        );
+
+        // The green flag starts over: the lines of the last run are cleared.
+        await driver.executeScript('window.smalruby.vm.greenFlag()');
+        await driver.sleep(1000);
+        expect((await consoleLines()).filter((line) => line.includes('こんにちは'))).toHaveLength(1);
+    });
+
     test('invalid code blocks DNCL switch and shows errors', async () => {
         await loadInRubyMode(driver);
         await fillInRubyProgram('move(10)\n');
