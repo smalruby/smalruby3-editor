@@ -16,6 +16,20 @@
             "errors": []
         },
         {
+            "title": "a negated name before a product and a quotient is written with parentheses",
+            "table": "none",
+            "ruby": "a = 7\nb = (-a * 3 / 2).to_i",
+            "ja": "a = 7\nb = (-a) * 3 ÷ 2",
+            "errors": []
+        },
+        {
+            "title": "a negated name before a product without a quotient keeps no parentheses",
+            "table": "none",
+            "ruby": "a = 7\nb = -a * 3 + (a / 2).to_i",
+            "ja": "a = 7\nb = -a * 3 + a ÷ 2",
+            "errors": []
+        },
+        {
             "title": "a sign before the quotient keeps the quotient in parentheses",
             "table": "none",
             "ruby": "a = 7\nb = -(a / 2).to_i",
