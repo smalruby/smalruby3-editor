@@ -4030,6 +4030,8 @@ function normalizeQuestionsRegistration(body) {
  * 質問を置き場に載せるかの計画（純粋関数・冪等・#2565）。同じ round の同じ質問がもう載っていれば、
  * 人間の「メモだけ保存」を消さないよう置き直さない（keep）。答えた（answered）同じ round も開き直さない。
  * worker が動いている Issue は受けない（worker の結果の質問と競うため）。
+ * 答えたがまだ worker に渡していない（answered で take 前の）質問も置き換えない。置き換えると答えが置き場から
+ * 消え、worker に答えのファイルが渡らない（#2568）。道具は 409 で止まり、worker が受け取ったあとに流し直す。
  * @param {object|null} entry 置き場の 1 件
  * @param {object} reg {@link normalizeQuestionsRegistration} の結果
  * @param {{running:boolean}} opts
@@ -4041,6 +4043,7 @@ function planQuestionsRegistration(entry, reg, opts = {}) {
         && JSON.stringify(entry.questions) === JSON.stringify(reg.questions)) {
         return { ok: true, status: 200, action: 'keep' };
     }
+    if (entry && entry.status === 'answered') return { ok: false, status: 409, error: 'answers not yet delivered' };
     return { ok: true, status: 200, action: 'set' };
 }
 

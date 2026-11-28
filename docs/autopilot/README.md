@@ -350,6 +350,7 @@ bin/autopilot-ask <issue> tmp/questions-<issue>.json   # --repo owner/name / --p
   新しい質問は round を続ける。Bot のトークンが取れなければ何も書かずに止まる（個人のトークンで書かない）。
 - 書いたあと、daemon の `POST /questions`（合言葉 `X-Autopilot-Token` が要る。`ask.js` が合言葉のファイルを読む）で置き場に載せる。
   同じ round の同じ質問は置き直さない（モニターで書いた「メモだけ保存」を消さない）。worker が動いている Issue は受けない（409）。
+  答えたがまだ worker に渡していない質問も置き換えない（409 `answers not yet delivered`）。worker が答えを受け取ったあとに流し直す。
   daemon に届かないときはコメントだけ書いて終了コード 2 で終わる。daemon を起こしてからもう一度流せば、コメントは書き直さずに載る。
 - 載った質問は、Status（Sprint Backlog・Backlog・Blocked など）・⏳ 待ちによらず「答える」になる（`humanAction`）。
   ゴーサインにはしない。EPIC の子でも隠さない: 子は「答えが要る」の欄に出て、EPIC の行は段階によらずそれを指す
