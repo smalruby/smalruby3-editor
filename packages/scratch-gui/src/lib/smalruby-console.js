@@ -1,6 +1,7 @@
 // The entry the other parts of the GUI (the Japanese tab) use to show the
 // console of the console extension (docs/extension-smalruby-console/README.md).
 import { resetSmalrubyConsole, showSmalrubyConsoleByDefault } from '../reducers/smalruby-console.js';
+import { getStageDimensions } from './screen-utils.js';
 
 /** The id of the console extension (scratch-vm `smalrubyConsole`). */
 const SMALRUBY_CONSOLE_EXTENSION_ID = 'smalrubyConsole';
@@ -26,4 +27,18 @@ const hideSmalrubyConsole = (dispatch) => {
     dispatch(resetSmalrubyConsole());
 };
 
-export { SMALRUBY_CONSOLE_EXTENSION_ID, hideSmalrubyConsole, showSmalrubyConsole };
+/**
+ * The size to give the canvas of the stage. While the console fills the right column of
+ * the Japanese tab, the stage is hidden and measures 0×0: the canvas keeps the size of the
+ * stage then, since a 0×0 canvas gives an empty thumbnail to a submission or a save.
+ * @param {{width: number, height: number}} rect - The measured rectangle of the canvas.
+ * @param {string} stageSize - The size of the stage (STAGE_DISPLAY_SIZES).
+ * @returns {{width: number, height: number}} The size of the canvas.
+ */
+const stageCanvasSize = (rect, stageSize) => {
+    if (rect.width > 0 && rect.height > 0) return { width: rect.width, height: rect.height };
+    const { width, height } = getStageDimensions(stageSize, false);
+    return { width, height };
+};
+
+export { SMALRUBY_CONSOLE_EXTENSION_ID, hideSmalrubyConsole, showSmalrubyConsole, stageCanvasSize };

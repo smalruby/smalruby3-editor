@@ -18,6 +18,7 @@ import {
 } from '../reducers/color-picker';
 // === Smalruby: Start of console ===
 import {JAPANESE_TAB_INDEX} from '../reducers/editor-tab';
+import {stageCanvasSize} from '../lib/smalruby-console.js';
 // === Smalruby: End of console ===
 
 const colorPickerRadius = 20;
@@ -100,7 +101,11 @@ class Stage extends React.Component {
             this.stopColorPickingLoop();
         }
         this.updateRect();
-        this.renderer.resize(this.rect.width, this.rect.height);
+        // === Smalruby: Start of console ===
+        // the stage hidden behind the console of the Japanese tab measures 0×0: keep the size of the stage
+        const canvasSize = stageCanvasSize(this.rect, this.props.stageSize);
+        this.renderer.resize(canvasSize.width, canvasSize.height);
+        // === Smalruby: End of console ===
     }
     componentWillUnmount () {
         this.detachMouseEvents(this.canvas);
