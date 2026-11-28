@@ -50,6 +50,9 @@ const useConsolePlayView = ({ vm, active, isFullScreen, onOpen }) => {
             // 動いているスレッドの数がまだ 0 なら、新しい実行の最初の tick とみなす。
             if (!runtime._nonMonitorThreadCount) openedThisRunRef.current = false;
             const state = stateRef.current;
+            // ▶ で再生の画面から始めた実行も、この実行で再生の画面に出したことにする。
+            // そうしないと、全画面解除で編集に戻ったあとの行で 1 度引き戻してしまう。
+            if (state.active && state.isFullScreen) openedThisRunRef.current = true;
             if (!shouldOpenConsolePlayView({ ...state, event, openedThisRun: openedThisRunRef.current })) return;
             openedThisRunRef.current = true;
             state.onOpen();

@@ -81,6 +81,25 @@ describe('useConsolePlayView', () => {
         expect(onOpen).toHaveBeenCalledTimes(2);
     });
 
+    test('keeps the editor after the child left a run started in the play view', () => {
+        const vm = makeVm();
+        const onOpen = jest.fn();
+        const { rerender } = renderHook((props) => useConsolePlayView(props), {
+            initialProps: { vm, active: true, isFullScreen: true, onOpen },
+        });
+
+        // started with ▶: the first lines are printed in the play view
+        act(() => vm.runtime.emit(PRINT_EVENT, '1'));
+        vm.runtime._nonMonitorThreadCount = 1;
+        act(() => vm.runtime.emit('PROJECT_RUN_START'));
+        expect(onOpen).not.toHaveBeenCalled();
+
+        // the child left the full screen without stopping: the next lines keep the editor
+        rerender({ vm, active: true, isFullScreen: false, onOpen });
+        act(() => vm.runtime.emit(PRINT_EVENT, '2'));
+        expect(onOpen).not.toHaveBeenCalled();
+    });
+
     test('opens the play view again for a run that ended in its first tick', () => {
         const vm = makeVm();
         const onOpen = jest.fn();
