@@ -29,8 +29,9 @@ describe('JapaneseRightColumn', () => {
         renderColumn();
         expect(screen.getByTestId('targets')).not.toBeVisible();
         expect(screen.getByTestId('japanese-right-column-strip')).toHaveTextContent('Program of Sprite1');
-        // The column keeps the width of the stage while the console is shown in its place
-        expect(screen.getByTestId('smalruby-console-slot')).toHaveStyle({ width: '480px' });
+        // The column keeps the width of the stage with its borders while the console is shown in its
+        // place, so the green flag and the strip do not move when it is shown or hidden (B22 of #1731)
+        expect(screen.getByTestId('smalruby-console-slot').style.width).toBe('calc(480px + 0.125rem)');
     });
 
     test('opens the sprites and backdrops in place, and closes them again', () => {

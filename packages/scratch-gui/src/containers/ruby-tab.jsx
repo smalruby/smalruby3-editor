@@ -19,8 +19,9 @@ import collectMetadata from '../lib/collect-metadata.js';
 import { findArrayIndexHints } from '../lib/dncl/dncl-array-index-hint';
 import {
     japaneseBlockErrors,
+    MULTIPLE_ASSIGNMENT_ERROR_ID,
     STRING_PLUS_NUMBER_ERROR_ID,
-    withStringPlusNumberIds,
+    withJapaneseErrorIds,
 } from '../lib/dncl/dncl-block-check';
 import { dnclTextBlob, dnclTextFilename } from '../lib/dncl/dncl-download';
 import { slashCommentRows, tidyPastedDncl, withDoubleSlashHint } from '../lib/dncl/dncl-paste-tidy';
@@ -369,24 +370,47 @@ const RubyTab = (props) => {
         onDismissAlert('rubyVersionChangeFailed');
     };
 
-    // The words of the errors on the Japanese lines. A `+` of a string and a number literal says
-    // how to write it (Issue #2547) and a line with `//` tells to use `#` (Issue #1192); the
+    // The words of the errors on the Japanese lines. A `+` of a string and a number literal and
+    // several variables assigned at once say how to write them (Issue #2547) and a line with `//` tells to use `#` (Issue #1192); the
     // others keep the words of the converter. The conversion of the Code tab and the check of the
     // blocks while writing both use it, so they say the same words.
     const withJapaneseErrorWords = (errors) => {
         const lines = editorRef.current.getModel().getLinesContent();
-        const stringPlusNumber = intlRef.current.formatMessage({
-            id: 'gui.rubyTab.dnclStringPlusNumberError',
-            defaultMessage:
-                'To join a string and a number with "+", make the number a string like "文字列(3)" (e.g. "残り" + 文字列(3)). You may also write the number in the string, like "残り3".',
-        });
+        // The example is the expression the student wrote (B21 of #1731).
+        const stringPlusNumber = (example) =>
+            intlRef.current.formatMessage(
+                {
+                    id: 'gui.rubyTab.dnclStringPlusNumberError',
+                    defaultMessage:
+                        'To join a string and a number with "+", make the number a string like "文字列({number})" (e.g. {fixed}). You may also write the number in the string, like {inline}.',
+                },
+                example,
+            );
+        // `a, b = b, a` is told to assign one by one, not in the words of the blocks.
+        const multipleAssignment = (example) =>
+            example
+                ? intlRef.current.formatMessage(
+                      {
+                          id: 'gui.rubyTab.dnclMultipleAssignmentError',
+                          defaultMessage:
+                              'Several variables cannot be assigned at once with ",". Assign them one by one (e.g. {example}).',
+                      },
+                      { example },
+                  )
+                : intlRef.current.formatMessage({
+                      id: 'gui.rubyTab.dnclMultipleAssignmentErrorNoExample',
+                      defaultMessage:
+                          'Several variables cannot be assigned at once with ",". Assign them one by one.',
+                  });
         const hint = intlRef.current.formatMessage({
             id: 'gui.rubyTab.dnclDoubleSlashHint',
             defaultMessage: 'In Smalruby, // is not a comment (it is integer division). Use # for comments.',
         });
-        const worded = withStringPlusNumberIds(errors, lines).map((err) =>
-            err.id === STRING_PLUS_NUMBER_ERROR_ID ? { ...err, text: stringPlusNumber } : err,
-        );
+        const worded = withJapaneseErrorIds(errors, lines).map((err) => {
+            if (err.id === STRING_PLUS_NUMBER_ERROR_ID) return { ...err, text: stringPlusNumber(err.example) };
+            if (err.id === MULTIPLE_ASSIGNMENT_ERROR_ID) return { ...err, text: multipleAssignment(err.example) };
+            return err;
+        });
         return withDoubleSlashHint(worded, lines, hint);
     };
 
@@ -823,13 +847,13 @@ const RubyTab = (props) => {
     const dnclValidationErrorMessage = intl.formatMessage({
         id: 'gui.rubyTab.dnclValidationError',
         defaultMessage:
-            'This code contains constructs not supported in Japanese mode.\nPlease use only supported instructions before switching modes.',
+            'This code contains constructs not supported in the Japanese tab.\nPlease use only supported instructions before switching modes.',
     });
 
     const dnclPostTestLoopErrorMessage = intl.formatMessage({
         id: 'gui.rubyTab.dnclPostTestLoopError',
         defaultMessage:
-            'A post-test loop (a loop that runs once before it checks the condition) cannot be written in Japanese. Write the first run before the loop, then make it a "〜の間繰り返す" loop. You can write it in Ruby mode.',
+            'A post-test loop (a loop that runs once before it checks the condition) cannot be written in Japanese. Write the first run before the loop, then make it a "〜の間繰り返す" loop. You can write it in the Ruby tab.',
     });
 
     // The message of a DNCL conversion error, by its id.
@@ -855,7 +879,7 @@ const RubyTab = (props) => {
                     {
                         id: 'gui.rubyTab.dnclUnsupportedNumberError',
                         defaultMessage:
-                            '"{name}" is a way of writing a number that cannot be used in Japanese mode (a hex number, _ between digits, an exponent and so on). Write it like "1000" or "0.5". You can write it in Ruby mode.',
+                            '"{name}" is a way of writing a number that cannot be used in the Japanese tab (a hex number, _ between digits, an exponent and so on). Write it like "1000" or "0.5". You can write it in the Ruby tab.',
                     },
                     { name: err.name },
                 );
@@ -864,7 +888,7 @@ const RubyTab = (props) => {
                 return intl.formatMessage(
                     {
                         id: 'gui.rubyTab.dnclForbiddenPrefixError',
-                        defaultMessage: '"{name}" cannot be used in a variable in Japanese mode.',
+                        defaultMessage: '"{name}" cannot be used in a variable in the Japanese tab.',
                     },
                     { name: err.name },
                 );
@@ -874,7 +898,7 @@ const RubyTab = (props) => {
                     {
                         id: 'gui.rubyTab.dnclStageVariableError',
                         defaultMessage:
-                            'A variable of the stage ({name}) cannot be written in Japanese mode. You can write it in Ruby mode.',
+                            'A variable of the stage ({name}) cannot be written in the Japanese tab. You can write it in the Ruby tab.',
                     },
                     { name: err.name },
                 );
@@ -883,7 +907,8 @@ const RubyTab = (props) => {
                 return intl.formatMessage(
                     {
                         id: 'gui.rubyTab.dnclUnsupportedNotationError',
-                        defaultMessage: '"{name}" cannot be written in Japanese mode. You can write it in Ruby mode.',
+                        defaultMessage:
+                            '"{name}" cannot be written in the Japanese tab. You can write it in the Ruby tab.',
                     },
                     { name: err.name },
                 );
@@ -893,7 +918,7 @@ const RubyTab = (props) => {
                     {
                         id: 'gui.rubyTab.dnclUnsupportedCommandError',
                         defaultMessage:
-                            '"{name}" is a command that cannot be written in Japanese mode. You can write it in Ruby mode.',
+                            '"{name}" is a command that cannot be written in the Japanese tab. You can write it in the Ruby tab.',
                     },
                     { name: err.name },
                 );

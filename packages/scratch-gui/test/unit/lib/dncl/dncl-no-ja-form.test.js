@@ -23,7 +23,7 @@ const told = (line, column, name) => ({
     line,
     column,
     name,
-    message: `「${name}」は日本語モードでは書けません。Ruby モードでは書けます。`,
+    message: `「${name}」は日本語タブでは書けません。ルビータブでは書けます。`,
 });
 
 describe('Ruby → DNCL: Ruby with no Japanese form (issue #1740)', () => {

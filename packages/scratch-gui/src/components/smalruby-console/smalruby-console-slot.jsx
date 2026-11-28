@@ -33,12 +33,19 @@ const useSmalrubyConsoleSlot = () => {
 };
 
 /**
+ * The borders of the stage on its left and right (2 × `$stage-standard-border-width` of
+ * `css/units.css`): the stage is wider than its width by them, so the place of the console
+ * takes them too, and the column keeps its width when the console is shown or hidden (B22 of #1731).
+ */
+const STAGE_BORDERS = '0.125rem';
+
+/**
  * The place of the console: the height of the right column between the stage header
  * and the strip of the sprites. Empty while the console is hidden.
  * @param {object} props - The props.
  * @param {boolean} props.shrinkWhenEmpty - Whether to take no height while empty (the sprites
  * and backdrops are open and take the height the console leaves).
- * @param {number} props.width - The width of the stage, which the column keeps.
+ * @param {number} props.width - The width of the stage, which the column keeps (with the borders of the stage).
  * @returns {React.ReactElement} The place.
  */
 const SmalrubyConsoleSlot = ({ shrinkWhenEmpty = false, width }) => {
@@ -48,7 +55,7 @@ const SmalrubyConsoleSlot = ({ shrinkWhenEmpty = false, width }) => {
             className={classNames(styles.slot, { [styles.shrinkWhenEmpty]: shrinkWhenEmpty })}
             data-testid="smalruby-console-slot"
             ref={ref}
-            style={{ width }}
+            style={{ width: `calc(${width}px + ${STAGE_BORDERS})` }}
         />
     );
 };

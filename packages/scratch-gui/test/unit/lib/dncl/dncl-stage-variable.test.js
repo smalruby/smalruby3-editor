@@ -17,7 +17,7 @@ const told = (line, column, name) => ({
     column,
     id: STAGE_VARIABLE_ERROR_ID,
     name,
-    message: `ステージの変数（${name}）は日本語モードでは書けません。Ruby モードでは書けます。`,
+    message: `ステージの変数（${name}）は日本語タブでは書けません。ルビータブでは書けます。`,
 });
 
 describe('Ruby → DNCL: the variables of the stage (issue #1706)', () => {

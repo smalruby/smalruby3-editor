@@ -1758,23 +1758,27 @@ export default {
         'The pasted program says that its array indices start at 1. Write "すべての配列の添字は 1 から始まる。" at the top of the program, so that the indices start at 1?',
     'gui.rubyToolbar.settingsPatternExample': 'The form of the examples (indices from 0)',
     'gui.rubyToolbar.settingsPatternIndexFromOne': 'A problem whose indices start at 1',
-    'gui.rubyTab.dnclForbiddenPrefixError': '"{name}" cannot be used in a variable in Japanese mode.',
+    'gui.rubyTab.dnclForbiddenPrefixError': '"{name}" cannot be used in a variable in the Japanese tab.',
     'gui.rubyTab.dnclPostTestLoopError':
-        'A post-test loop (a loop that runs once before it checks the condition) cannot be written in Japanese. Write the first run before the loop, then make it a "〜の間繰り返す" loop. You can write it in Ruby mode.',
+        'A post-test loop (a loop that runs once before it checks the condition) cannot be written in Japanese. Write the first run before the loop, then make it a "〜の間繰り返す" loop. You can write it in the Ruby tab.',
     'gui.rubyTab.dnclStageVariableError':
-        'A variable of the stage ({name}) cannot be written in Japanese mode. You can write it in Ruby mode.',
+        'A variable of the stage ({name}) cannot be written in the Japanese tab. You can write it in the Ruby tab.',
     'gui.rubyTab.dnclUndefinedFunctionError':
         '"{name}" is a function that is not defined. Define it with "関数 {name}(…):".',
     'gui.rubyTab.dnclStringPlusNumberError':
-        'To join a string and a number with "+", make the number a string like "文字列(3)" (e.g. "残り" + 文字列(3)). You may also write the number in the string, like "残り3".',
+        'To join a string and a number with "+", make the number a string like "文字列({number})" (e.g. {fixed}). You may also write the number in the string, like {inline}.',
+    'gui.rubyTab.dnclMultipleAssignmentError':
+        'Several variables cannot be assigned at once with ",". Assign them one by one (e.g. {example}).',
+    'gui.rubyTab.dnclMultipleAssignmentErrorNoExample':
+        'Several variables cannot be assigned at once with ",". Assign them one by one.',
     'gui.rubyTab.dnclUnsupportedCommandError':
-        '"{name}" is a command that cannot be written in Japanese mode. You can write it in Ruby mode.',
+        '"{name}" is a command that cannot be written in the Japanese tab. You can write it in the Ruby tab.',
     'gui.rubyTab.dnclUnsupportedNotationError':
-        '"{name}" cannot be written in Japanese mode. You can write it in Ruby mode.',
+        '"{name}" cannot be written in the Japanese tab. You can write it in the Ruby tab.',
     'gui.rubyTab.dnclUnsupportedNumberError':
-        '"{name}" is a way of writing a number that cannot be used in Japanese mode (a hex number, _ between digits, an exponent and so on). Write it like "1000" or "0.5". You can write it in Ruby mode.',
+        '"{name}" is a way of writing a number that cannot be used in the Japanese tab (a hex number, _ between digits, an exponent and so on). Write it like "1000" or "0.5". You can write it in the Ruby tab.',
     'gui.rubyTab.dnclValidationError':
-        'This code contains constructs not supported in Japanese mode.\nPlease use only supported instructions before opening the Japanese tab.',
+        'This code contains constructs not supported in the Japanese tab.\nPlease use only supported instructions before opening the Japanese tab.',
     'gui.mobile.drawer.title': 'Menu',
     'gui.mobile.drawer.section.file': 'File',
     'gui.mobile.drawer.section.language': 'Language',
