@@ -3520,6 +3520,7 @@ function usagePauseAction(current, plan) {
  * - **例外: ラベルが付く前の New Item（Status が空）で、daemon が担当するもの**も見る（#2543）。
  *   Project に入れたときに Status 無しで入った閉じた sub-issue は、ラベルが付く前に triage へ拾われるため。
  *   担当（{@link ownsItem}）に限るので数は少なく、ここで拾った閉じた item は triage へ回る item と同じ集合。
+ *   assignee 未設定（単一 daemon の従来運用）は triage が New Item を全件拾うので、確認も全件にそろう。
  *   reconcile（{@link selectClosedToReconcile}）は担当を見ないが、closedSet には担当の item しか増えないので、
  *   daemon の担当でない item の Status を Close に書くことは無い。
  * 旧実装の「リポジトリ全体の closed 一覧（最大 1000 件）を毎 tick 取得」を置き換える。

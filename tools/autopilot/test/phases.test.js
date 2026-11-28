@@ -638,10 +638,10 @@ test('selectClosedCheckIssues: ラベルの無い New Item でも daemon が担�
         { issue: 14, status: 'Backlog', assignees: ['me'], labels: [] }, // New Item でない → 除外
         { issue: 15, status: 'Review', assignees: ['other'], labels: [AUTOPILOT_LABEL] }, // ラベル付き → 従来どおり対象
     ];
-    assert.deepEqual(selectClosedCheckIssues(items, { assignee: 'me' }), [10, 11, 15]);
     // 拾われない item は closedSet に入らないので、reconcile が他人の item の Status を書くことも無い
-    const closedSet = new Set(selectClosedCheckIssues(items, { assignee: 'me' }));
-    assert.equal(closedSet.has(12), false);
+    assert.deepEqual(selectClosedCheckIssues(items, { assignee: 'me' }), [10, 11, 15]);
+    // assignee 未設定（単一 daemon の従来運用）は triage も全件拾うので、New Item を全件確認する
+    assert.deepEqual(selectClosedCheckIssues(items), [10, 11, 12, 13, 15]);
 });
 
 test('selectBoardItems: assignee 指定でボード表示は「自分が Assignees のいずれか」に限定（#938）', () => {
