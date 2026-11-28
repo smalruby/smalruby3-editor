@@ -219,6 +219,27 @@
 | 見出し（`.backpack-header`） | 上に 0.5rem・枠 `1px solid $ui-black-transparent`・地 `$ui-white`・余白 0.25rem・文字 0.85rem `$text-primary`・中央・右上だけ角丸 `$space`・動き 0.2s | `$color-border`・`$color-surface`・`$font-size-dialog`・`$color-text` |
 | 一覧（`.backpack-list`） | 右に `1px solid $ui-black-transparent`・高さ 5.5rem 以上・横にスクロール | |
 
+## 日本語タブの右の列（`japanese-right-column/`・`smalruby-console/`）
+
+見本: [`../dncl/screenshots/0107-right-column-console-1366x768.png`](../dncl/screenshots/0107-right-column-console-1366x768.png)（同意したモックアップの案 C）
+
+**決まり**: 日本語タブのあいだは、右の列をコンソールにする。コンソールは右の列の高さいっぱいに出し、スプライトと背景の一覧は下の 1 行の札の後ろに隠す。`>_` のボタンはいつも出し、隠すとステージを見せる。
+
+**理由**: 日本語モードは、キャラクターを動かさないターミナルのようなプログラムを書く場所（[`../dncl/design.md`](../dncl/design.md)）。出力と入力を縦に長く読めるようにし、スプライトの一覧から編集の対象が黙って変わる事故（ステージを選ぶ・削除する・ドラッグする）を防ぐ。札は「何が隠れているか」と「いつでも戻れる」ことを見せる。
+
+| 部分・状態 | 値 | トークン | 理由 |
+|---|---|---|---|
+| 右の列の幅 | ステージの幅（小 240・中 360・大 480・狭い画面の大 408）。大きさのボタンの見た目はそのまま、意味を「右の列の幅」に読みかえる | `getStageDimensions` | 新しい部品を足さない。エディタの列の決め方を変えない |
+| コンソール（`.console.in-column`） | 右の列の高さいっぱい（上の段と札を除く）・上に `$space` あける・角丸 `$radius-medium`。地は暗い色のまま（ステージに重ねるときと同じ） | `$space`・`$radius-medium` | 端末らしさ。ライト・ダークのどちらでも同じに見える。日本語タブの緑はエディタの帯だけに使う（色の意味を増やさない） |
+| ［ステージにもどる］ | 日本語タブでは出さない | | `>_` がいつもあるので重ねない |
+| `>_` のボタン | 止めるの右。緑の旗・止めると同じ 2rem の四角・角丸 0.25rem・ホバーの地 `$looks-light-transparent`。出しているあいだは「押した」の地 `$looks-transparent`。ツールチップは「コンソールを隠す / コンソールを出す」。隠しているあいだに出た行の数を札で出す | `$radius-small`・`$looks-light-transparent`・`$looks-transparent` | 旗・止めると並ぶ操作として同じ形にする。日本語タブのあいだいつも出すので、閉じて開き直せなくなることが無い |
+| `>_` で隠したとき | 右の列の幅のステージを見せる | | キャラクターを動かすプログラムを日本語で試したい人の逃げ道 |
+| 入力を待つとき | 隠していてもコンソールを出す | | 答えられないまま止まるのを防ぐ |
+| 下の札（`.strip`） | 地 `$ui-white`・枠 `1px solid $ui-black-transparent`・角丸 `$radius-medium`・余白 0.375rem 0.625rem・上下に `$space`・文字 `$font-size-small`。名前は太字、「スプライトと背景を見る」はリンクの青（`$motion-primary`）と下線 | `$color-surface`・`$color-border`・`$radius-medium`・`$font-size-small` | 白い欄の形（下の「独自の画面で使う形」）。新しい色は足さない |
+| 札を押したとき | その場で一覧を開く（コンソールと高さを分ける）。もう一度押すと閉じる（「スプライトと背景を隠す」） | | 選んだスプライトの日本語に切りかわり、札の名前も変わる |
+| タブを移ったとき | コード・コスチューム・音のタブへ移って戻っても、出し入れの状態はそのまま。ルビータブを開くと、いつものステージと一覧に戻る | | 人が隠したものを勝手に出さない |
+| スマホ（MobileGui） | ここでは扱わない（別に決める） | | |
+
 ## スモウルビーの追加
 
 上流の値とは分けて記録する。マーカーは `=== Smalruby: ... ===`（一覧は [`../maintenance/smalruby-markers-gui.md`](../maintenance/smalruby-markers-gui.md)）。
@@ -235,6 +256,7 @@
 | 低い画面での圧縮 | 高さ 800px 以下で、タブの並びを 2.25rem（36px）に縮める | `gui.css` | `narrow-height vertical chrome compression` |
 | iPad の縦向き | 幅 744〜1023px でエディターの列を縮められるようにし、ステージを「小」にする | `gui.css`・`gui.jsx` | `iPad portrait narrow desktop layout` ほか |
 | レッスンの課題バー | メニューバーの下に 2.5rem の帯を出し、本体をその分縮める | `gui.css` | `lesson mode` |
+| 日本語タブの右の列 | コンソールを右の列の高さいっぱいに出し、スプライトと背景の一覧を札の後ろに隠す（上の「日本語タブの右の列」）。コンソールを出しているあいだはステージを `display: none` にする | `gui.jsx`・`stage.jsx`・`stage.css`・`containers/stage.jsx` | `Japanese right column`（`gui.jsx`）・`console` |
 | アラートの重なり順 | `$z-index-alerts` を 490 → 520 にして、アラート（`.alerts-container`）をモーダル（510）より上に出す（クラスのセッション切れを見せるため。[`tokens.md`](tokens.md) の「スモウルビーとの差」） | `css/z-index.css` | `alerts above modals so session-expired is visible` |
 
 ## 独自の画面で使う形

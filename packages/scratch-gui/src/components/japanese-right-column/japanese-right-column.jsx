@@ -2,6 +2,8 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useState } from 'react';
 import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
 import { connect } from 'react-redux';
+import { STAGE_DISPLAY_SIZES } from '../../lib/layout-constants.js';
+import { getStageDimensions } from '../../lib/screen-utils.js';
 import { SmalrubyConsoleSlot } from '../smalruby-console/smalruby-console-slot.jsx';
 import styles from './japanese-right-column.css';
 
@@ -38,11 +40,13 @@ const messages = defineMessages({
  * @param {object} props - The props.
  * @param {boolean} props.active - Whether the Japanese tab is open.
  * @param {boolean} props.isStage - Whether the stage is edited.
+ * @param {string} props.stageSize - The size of the stage: the console takes its width (the
+ * column has no width of its own; the stage gives it).
  * @param {?string} props.targetName - The name of the edited sprite.
  * @param {React.ReactNode} props.children - The sprites and backdrops.
  * @returns {React.ReactElement} The column.
  */
-const JapaneseRightColumn = ({ active, isStage = false, targetName = null, children }) => {
+const JapaneseRightColumn = ({ active, isStage = false, stageSize, targetName = null, children }) => {
     const intl = useIntl();
     const [targetsOpen, setTargetsOpen] = useState(false);
     useEffect(() => {
@@ -53,7 +57,7 @@ const JapaneseRightColumn = ({ active, isStage = false, targetName = null, child
     const name = isStage ? intl.formatMessage(messages.stage) : targetName || '';
     return (
         <React.Fragment>
-            {active ? <SmalrubyConsoleSlot /> : null}
+            {active ? <SmalrubyConsoleSlot width={getStageDimensions(stageSize, false).width} /> : null}
             <div
                 className={targetsShown ? styles.targets : null}
                 data-testid="japanese-right-column-targets"
@@ -88,6 +92,7 @@ JapaneseRightColumn.propTypes = {
     active: PropTypes.bool.isRequired,
     children: PropTypes.node,
     isStage: PropTypes.bool,
+    stageSize: PropTypes.oneOf(Object.keys(STAGE_DISPLAY_SIZES)).isRequired,
     targetName: PropTypes.string,
 };
 

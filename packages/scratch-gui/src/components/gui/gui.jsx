@@ -1035,7 +1035,10 @@ const GUIComponent = props => {
                                 onUpdateProjectThumbnail={onUpdateProjectThumbnail}
                             />
                             {/* === Smalruby: Start of Japanese right column === */}
-                            <JapaneseRightColumn active={activeTabIndex === JAPANESE_TAB_INDEX}>
+                            <JapaneseRightColumn
+                                active={activeTabIndex === JAPANESE_TAB_INDEX}
+                                stageSize={stageSize}
+                            >
                                 {/* === Smalruby: End of Japanese right column === */}
                                 <Box
                                     className={styles.targetWrapper}

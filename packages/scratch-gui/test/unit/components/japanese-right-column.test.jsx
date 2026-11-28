@@ -11,7 +11,7 @@ import en from '../../../src/locales/en';
 const renderColumn = (props) =>
     render(
         <IntlProvider locale="en" messages={en}>
-            <JapaneseRightColumn active isStage={false} targetName="Sprite1" {...props}>
+            <JapaneseRightColumn active isStage={false} stageSize="large" targetName="Sprite1" {...props}>
                 <div data-testid="targets">sprites</div>
             </JapaneseRightColumn>
         </IntlProvider>,
@@ -29,7 +29,8 @@ describe('JapaneseRightColumn', () => {
         renderColumn();
         expect(screen.getByTestId('targets')).not.toBeVisible();
         expect(screen.getByTestId('japanese-right-column-strip')).toHaveTextContent('Program of Sprite1');
-        expect(screen.getByTestId('smalruby-console-slot')).toBeInTheDocument();
+        // The column keeps the width of the stage while the console is shown in its place
+        expect(screen.getByTestId('smalruby-console-slot')).toHaveStyle({ width: '480px' });
     });
 
     test('opens the sprites and backdrops in place, and closes them again', () => {

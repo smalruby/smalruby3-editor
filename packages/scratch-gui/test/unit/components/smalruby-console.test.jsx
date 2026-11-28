@@ -40,7 +40,7 @@ const renderConsole = (props) => {
                     {...rest}
                 />
             </div>
-            {withSlot ? <SmalrubyConsoleSlot /> : null}
+            {withSlot ? <SmalrubyConsoleSlot width={480} /> : null}
         </IntlProvider>,
     );
     return { ...handlers, view, vm };

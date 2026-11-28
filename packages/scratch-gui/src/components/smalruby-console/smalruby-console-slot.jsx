@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useState } from 'react';
 import styles from './smalruby-console.css';
 
@@ -33,11 +34,17 @@ const useSmalrubyConsoleSlot = () => {
 /**
  * The place of the console: the height of the right column between the stage header
  * and the strip of the sprites. Empty while the console is hidden.
+ * @param {object} props - The props.
+ * @param {number} props.width - The width of the stage, which the column keeps.
  * @returns {React.ReactElement} The place.
  */
-const SmalrubyConsoleSlot = () => {
+const SmalrubyConsoleSlot = ({ width }) => {
     const ref = useCallback((node) => setSlotNode(node), []);
-    return <div className={styles.slot} data-testid="smalruby-console-slot" ref={ref} />;
+    return <div className={styles.slot} data-testid="smalruby-console-slot" ref={ref} style={{ width }} />;
+};
+
+SmalrubyConsoleSlot.propTypes = {
+    width: PropTypes.number.isRequired,
 };
 
 export { SmalrubyConsoleSlot, useSmalrubyConsoleSlot };
