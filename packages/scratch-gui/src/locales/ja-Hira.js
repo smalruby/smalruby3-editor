@@ -2133,6 +2133,8 @@ export default {
     'gui.dnclModeNotice.exitButton': 'Rubyふりがなモードにもどす',
     'gui.rubyTab.dnclDoubleSlashHint':
         'スモウルビーでは // はコメントではありません（せいすうのわりざんです）。コメントには # をつかってください。',
+    'gui.rubyTab.dnclIndentMismatchHint':
+        'このぎょうのじさげのふかさは、どのブロックともあいません。すぐうえのブロックのなかのぎょうとしてよみます。いれたいブロックのぎょうとおなじふかさにじさげしてください（タブははんかくのくうはく 4 つ、ぜんかくのくうはくははんかくのくうはく 2 つとしてかぞえます）。',
     'gui.rubyTab.dnclArrayIndexHint':
         '{access} ははいれつのはんいがいになります。スモウルビーのにほんごでは、はいれつのそえじは 0 からはじまります（さいしょのようそは {array}[0]、さいごのようそは {array}[{last}]）。もんだいぶんでそえじが 1 からはじまるときは、{fixed} のようにそえじを 1 ずらしてかいてください。',
     'gui.rubyTab.dnclIndexShiftConfirm':

@@ -1748,6 +1748,8 @@ export default {
     'gui.dnclModeNotice.exitButton': 'Return to Ruby furigana mode',
     'gui.rubyTab.dnclDoubleSlashHint':
         'In Smalruby, // is not a comment (it is integer division). Use # for comments.',
+    'gui.rubyTab.dnclIndentMismatchHint':
+        'The indent of this line matches no block, so it is read as a line of the block above it. Indent it as deep as the lines of the block it belongs to (a tab counts as 4 spaces and a full-width space as 2).',
     'gui.rubyTab.dnclArrayIndexHint':
         '{access} reads past the end of the array. In Smalruby Japanese mode, array indices start at 0 (the first element is {array}[0] and the last is {array}[{last}]). If the problem counts from 1, shift the index by 1, like {fixed}.',
     'gui.rubyTab.dnclIndexShiftConfirm':

@@ -2082,6 +2082,8 @@ export default {
     'gui.dnclModeNotice.exitButton': 'Rubyふりがなモードに戻す',
     'gui.rubyTab.dnclDoubleSlashHint':
         'スモウルビーでは // はコメントではありません（整数の割り算です）。コメントには # をつかってください。',
+    'gui.rubyTab.dnclIndentMismatchHint':
+        'この行の字下げの深さは、どのブロックとも合いません。すぐ上のブロックの中の行として読みます。入れたいブロックの行と同じ深さに字下げしてください（タブは半角の空白 4 つ、全角の空白は半角の空白 2 つとして数えます）。',
     'gui.rubyTab.dnclArrayIndexHint':
         '{access} は配列の範囲外になります。スモウルビーの日本語では、配列の添字は 0 から始まります（最初の要素は {array}[0]、最後の要素は {array}[{last}]）。問題文で添字が 1 から始まるときは、{fixed} のように添字を 1 ずらして書いてください。',
     'gui.rubyTab.dnclIndexShiftConfirm':
