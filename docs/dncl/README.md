@@ -353,7 +353,9 @@ ja-notation が読めて Ruby になっても、その Ruby がブロックに�
   エディタの誤りの有無は Redux の `dnclMode.japaneseEditError`（`setJapaneseEditError`）に出し、保存・提出・旗が通る `ruby-to-blocks-converter-hoc.jsx` の
   `targetCodeToBlocks` がそれを見て止める。ツールバーの［実行］は `ruby-tab.jsx` の `handleExecuteLine` が止め、バージョンの切りかえは `handleRubyVersionChange` が前のバージョンに戻す。
 - ほかのスプライト・ステージを選ぶと、日本語タブはそのターゲットのプログラムを出す。プログラムの無いターゲットなら、ルビータブと同じく**エディタを空にする**
-  （`dncl-display-sync.js` の `japaneseTextForRuby`）。ターゲットが変わらないときは、空の Ruby で日本語を消さない（設定の行だけの日本語は空の Ruby になるため）。
+  （`dncl-display-sync.js` の `japaneseTextForRuby`）。コードタブでブロックを全部消したときも、ルビータブと同じくエディタを空にする
+  （エディタの日本語から作った Ruby に、空行・コメント以外の行があるとき）。設定の行・コメントだけの日本語と、誤りがあって Ruby に
+  できない日本語は、空の Ruby になっても消さない（生徒が書いた行が黙って消えないように）。
   ステージもルビータブと同じく選べる（ステージの変数は書けないが、表示するなどは書ける）。
 
 #### Monaco Editor 言語定義
@@ -681,7 +683,7 @@ Smalruby は **共通テスト用プログラム表記の形のプログラム�
   - `dncl-do-block.test.js` — 日本語にしない `xxx do ... end` が `を実行する` で閉じ、外側の `〜の間` / `もし` / `関数` の閉じのことばがずれないこと（入れ子・`until x do`・後判定の中・文字列やコメントの中の `do`）
   - `dncl-roundtrip.test.js` — DNCL ↔ Ruby round-trip 安定性
   - `dncl-script-order.test.js` — ブロックを通っても書いた順に戻ること（関数をプログラムの後ろに定義した形・先に定義した形）と、ルビータブの Ruby は関数の定義を先に出すこと
-  - `dncl-display-sync.test.js` — ターゲットが変わって Ruby が空ならエディタを空にし、ターゲットが同じなら空の Ruby で日本語を消さないこと
+  - `dncl-display-sync.test.js` — ターゲットが変わって Ruby が空ならエディタを空にすること、ブロックを全部消したら空にすること、設定・コメントだけの日本語と誤りのある日本語は空の Ruby で消さないこと
 - エディタ側の単体テスト: `packages/scratch-gui/test/unit/containers/ruby-tab/dncl-index-setting.test.js`（注釈なし・設定済みでは聞かない・「いいえ」で何も変えない・「はい」で冒頭に 1 回の編集、違うところだけの書きかえ）、`test/unit/components/ruby-toolbar-settings-pattern.test.jsx`（メニューのパターン・✓・選んだときの呼び出し）、`dncl-problem-form-view.test.js`（罫線のデコレーションの位置・タブの字下げ・空の行の縦線・行番号の桁と欄の幅・読むモードと書くモードの切りかえ: フォーカス・クリック・入力・5 秒の待ち・貼り付け・ボタン・日本語モードの出入り）、`test/unit/components/ruby-toolbar-rules-switch.test.jsx`（日本語タブにスプライトを選ぶ部品が無い・スイッチは日本語タブだけ・`role="switch"` と `aria-checked`・フォーカスを動かさない・その他メニューの項目と並び・.txt の保存）、`test/unit/lib/dncl/dncl-download.test.js`（.txt のファイル名と UTF-8）。`marker-navigation.test.js`（誤りの表示を閉じるときにフォーカスを動かさない）。統合テスト `test/integration/dncl-problem-form.test.js`（スイッチ・入力・5 秒の待ち・クリック・貼り付け・緑の旗での切りかえ、読み込み直した直後の 1 回目の実行ボタン、Ruby に戻すと行番号と空白の点が戻ること）
 - 補完と色分けの単体テスト: `packages/scratch-gui/test/unit/containers/ruby-tab/dncl-snippets.test.js`（スニペットが標準の形（`:` と字下げ 4 つ・閉じのことばの行なし・`繰り返す:`）で、場所を埋めて入れたものがそのまま Ruby とブロックになり、Ruby から同じ日本語に戻ること）、`dncl-mode.test.js`（開始の行の後の字下げ・`and` / `or` / `not`・`繰り返す` の付いたことば・`を返す`・全角の `％` の色分け）
 - Round-trip テスト (左結合演算子の括弧除去): `packages/scratch-gui/test/unit/lib/ruby-roundtrip-puts-concat.test.js`
