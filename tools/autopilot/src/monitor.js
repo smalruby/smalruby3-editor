@@ -224,6 +224,13 @@ ${TOKEN_META_EMPTY}
   .topline h1 .logo { display: block; flex: none; }
   .topline .k { color: var(--ap-muted); }
   .topline .sep { color: var(--ap-line); }
+  /* 探す欄（Issue・PR を番号・PR の番号・ブランチ・題名で絞りこむ・#2601） */
+  .find { position: relative; flex: 0 1 168px; min-width: 96px; display: inline-flex; }
+  .find input { width: 100%; min-width: 0; border: 1px solid var(--ap-line-strong); background: var(--ap-bg); color: var(--ap-ink);
+                border-radius: var(--ap-radius-md); padding: 2px 28px 2px 10px; font: inherit; font-size: var(--ap-font-sm); }
+  .find kbd { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); pointer-events: none; }
+  .find input:not(:placeholder-shown) + kbd { display: none; }
+  mark.hit { background: var(--ap-notice-wash); color: inherit; border-radius: 2px; }
   .tl-right { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-left: auto; }
   .st { display: inline-flex; gap: 6px; align-items: center; }
   .svc { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
@@ -346,9 +353,10 @@ ${TOKEN_META_EMPTY}
   #board td.title .tx { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
   /* いちばんよく押す Issue・PR のリンクは左端の自分の列に置く。題名が長くても切れない（#2471） */
   #board td.links { width: 8.5em; }
-  #board td.links .lk { display: inline-flex; align-items: center; gap: 2px; margin-right: 6px; font-size: var(--ap-font-xs); color: var(--ap-link); text-decoration: none; }
-  #board td.links .lk:hover { text-decoration: underline; }
-  #board td.links .lk svg.ext { opacity: .75; }
+  /* Issue・PR は番号で見せる（等幅・薄い文字、乗せると本文の色と下線・design-system §5） */
+  #board td.links .lk { display: inline-flex; align-items: center; margin-right: 6px; font-size: var(--ap-font-xs); white-space: nowrap;
+                        font-family: var(--ap-font-mono); font-variant-numeric: tabular-nums; color: var(--ap-faint); text-decoration: none; }
+  #board td.links .lk:hover, #board td.links .lk:focus-visible { color: var(--ap-ink); text-decoration: underline; }
   #board tr.kid td { background: var(--ap-surface-2); }
   #board tr.kid td.title { padding-left: 30px; }
   /* 左の 3 列（開閉・Issue · PR・題名）は横にスクロールしても残す。優先から右だけが動く（#2527）。
@@ -457,7 +465,8 @@ ${TOKEN_META_EMPTY}
   .fy-title .tt { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .fy-title .epicchip { flex: none; margin-right: 0; }
   .fy-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-width: 0; }
-  .fy-meta .ilink, .fy-meta .small, .fy-meta .gprio { flex: none; white-space: nowrap; }
+  .fy-meta .ilink, .fy-meta .small, .fy-meta .gprio, .fy-meta .fy-pr { flex: none; white-space: nowrap; }
+  .fy-meta .fy-pr { color: var(--ap-faint); }
   .fy-meta .epicchip { margin-right: 0; }
   .fy-state { font-size: var(--ap-font-sm); color: var(--ap-ink-2); overflow-wrap: anywhere; }
   .fy-happens { font-size: var(--ap-font-xs); color: var(--ap-muted); overflow-wrap: anywhere; }
@@ -599,6 +608,8 @@ ${LEARN_TASKS_CSS}</style></head><body>
   <span class="sep">·</span>
   <span class="k" id="meta"></span>
   <span class="tl-right">
+  <span class="find" data-testid="monitor-find-wrap"><input id="q" type="search" autocomplete="off" placeholder="#番号・PR・題名で探す"
+    aria-label="Issue・PR を探す（番号・PR の番号・ブランチ・題名）" title="Issue・PR を探す ( / )" data-testid="monitor-find"><kbd>/</kbd></span>
   <button type="button" class="badge" data-drawer="hist" data-testid="badge-history">実行履歴 <span class="cnt" id="cnt-hist">0</span></button>
   <button type="button" class="badge" data-drawer="tasks" id="badge-tasks" data-testid="badge-tasks">タスク <span class="cnt" id="cnt-tasks">0</span></button>
   <button type="button" class="ibtn" id="pause" title="新しい dispatch を止める（動いている worker は続ける）"><svg class="i" viewBox="0 0 16 16" aria-hidden="true"><g fill="currentColor"><rect x="3.5" y="2.5" width="3" height="11" rx="1"/><rect x="9.5" y="2.5" width="3" height="11" rx="1"/></g></svg>一時停止</button>
@@ -634,7 +645,6 @@ ${LEARN_TASKS_CSS}</style></head><body>
   <section class="panel" id="sec-board" data-sec="board" tabindex="-1" data-testid="board-panel">
     <div class="panel-h"><h2>状況板</h2><span class="small" id="boardcount"></span><span class="sp"></span><kbd>2</kbd></div>
     <div class="filter">
-      <input id="q" placeholder="絞り込み（題名・番号）" aria-label="絞り込み" data-testid="board-filter">
       <span id="chips"></span>
     </div>
     <div id="schedule" data-testid="schedule-plan"></div>
@@ -647,7 +657,7 @@ ${LEARN_TASKS_CSS}</style></head><body>
   <span id="version" class="ver" title="稼働中コード（起動時のブランチ @ コミット）"></span>
   <button type="button" id="updbadge" class="upd-badge" style="display:none" title="tools/autopilot に更新があります">⬆️ 更新あり</button>
   <span class="sp"></span>
-  <span class="keyhint">数字キー <kbd>1</kbd> あなた宛て <kbd>2</kbd> 状況板 <kbd>3</kbd> 実行履歴 <kbd>4</kbd> 学び・タスク</span>
+  <span class="keyhint"><kbd>/</kbd> 探す · 数字キー <kbd>1</kbd> あなた宛て <kbd>2</kbd> 状況板 <kbd>3</kbd> 実行履歴 <kbd>4</kbd> 学び・タスク</span>
 </footer>
 </div>
 <div id="scrim" class="scrim" hidden></div>
@@ -1320,7 +1330,7 @@ function renderInbox(d) {
       + '<button type="button" class="ibtn" data-drawer="tasks">中身を見る</button></span></div>').join('')
     : '';
   // 人間待ち: することごとの欄（確かめる → 答える → ゴーサイン → 分解 → 人間の作業）。中は P1 → P3（#2466・forYouModel）
-  const fy = forYouModel(Object.assign({}, d, { items }), { repoUrl, now: Date.now() });
+  const fy = filterForYou(forYouModel(Object.assign({}, d, { items }), { repoUrl, now: Date.now() }), findQuery());
   lastForYou = fy;
   const fyAll = fy.sections.reduce((a, sec) => a.concat(sec.rows), []).concat(fy.idle);
   if (fyConfirm != null && !fyAll.some((w) => w.issue === fyConfirm && w.button)) fyConfirm = null;
@@ -1341,6 +1351,7 @@ function renderInbox(d) {
       + (w.epicPhase ? ' data-epic-phase="' + esc(w.epicPhase) + '"' : '') + '>'
       + '<div class="fy-title" data-testid="inbox-wait-title">' + kindChip + tipTitle('span', 'i:' + w.issue, w, shortTitle(w.title)) + '</div>'
       + '<div class="fy-meta" data-testid="inbox-wait-meta">' + ilink(w.issue, w.url)
+      + (w.prs || []).map((p) => '<span class="fy-pr">PR ' + ilink(p.number, repoUrl + '/pull/' + p.number) + '</span>').join('')
       + (w.priority ? '<span class="gprio ' + esc(w.priority.toLowerCase()) + '">' + esc(w.priority) + '</span>' : '')
       + parentChip + (w.later ? '<span class="small">💤 あとで</span>' : '')
       + '<span class="acts-r">' + btn + moreBtn(w.issue) + '</span></div>'
@@ -1366,6 +1377,27 @@ function renderInbox(d) {
   showTitleTip();
 }
 
+// ---- 探す欄（#2601）: 状況板と「あなた宛て」を同じ文字で絞りこむ ----
+const findQuery = () => document.getElementById('q').value;
+// 当たらない行を外す（件数も絞った後の数にする）。欄が空になったまとまりは出さない
+function filterForYou(fy, q) {
+  if (!String(q || '').trim()) return fy;
+  const sections = fy.sections.map((sec) => Object.assign({}, sec, { rows: sec.rows.filter((w) => matchesQuery(w, q)) })).filter((sec) => sec.rows.length);
+  const idle = fy.idle.filter((w) => matchesQuery(w, q));
+  const n = (k) => sections.filter((sec) => sec.kind === k).reduce((a, sec) => a + sec.rows.length, 0);
+  const counts = { check: n('check'), answer: n('answer'), go: n('go') + n('decompose'), hand: n('hand') };
+  counts.total = counts.check + counts.answer + counts.go + counts.hand;
+  return { sections, idle, counts };
+}
+// 題名の中の当たった文字に薄い地の印を付ける（エスケープした上で 1 か所だけ）
+function markHit(text, q) {
+  const t = String(text == null ? '' : text);
+  const k = String(q || '').trim().toLowerCase().replace(/^#/, '');
+  const i = k ? t.toLowerCase().indexOf(k) : -1;
+  if (i < 0) return esc(t);
+  return esc(t.slice(0, i)) + '<mark class="hit">' + esc(t.slice(i, i + k.length)) + '</mark>' + esc(t.slice(i + k.length));
+}
+
 // ---- 状況板 ----
 const FILTERS = [['all', 'すべて'], ['human', '人間の番'], ['ai', 'AI が作業中'], ['stop', '止まった'], ['later', '💤 あとで']];
 function renderChips(laterCount) {
@@ -1383,12 +1415,12 @@ function prioCtl(it) {
     + '<button data-testid="board-priority-up" title="優先度を上げる' + epic + '" onclick="movePriority(' + it.issue + ', -1)">▲</button>'
     + '<button data-testid="board-priority-down" title="優先度を下げる' + epic + '" onclick="movePriority(' + it.issue + ', 1)">▼</button></span>';
 }
-// 左端の「Issue」「PR」のリンク（#2471）。文字は短くし、番号はホバー（title）と読み上げ（aria-label）で渡す。
+// 左端の Issue・PR のリンク（#2471）。人間も AI も番号で話すので、番号そのものを「#2512」「PR #2513」で見せる（#2601）。
 // PR は open のものだけを並べ、merged / closed があれば ▼ のメニューに全部をまとめる（#1212 と同じ振り分け）。
 function boardLinks(it) {
   if (!it || !it.issue) return '';
   const a = (href, label, num, extra, cls) => '<a class="lk' + (cls || '') + '" href="' + esc(href) + '" target="_blank" rel="noopener"'
-    + ' aria-label="' + label + ' #' + num + ' を GitHub で開く"' + extra + '>' + label + ICON_EXT + '</a>';
+    + ' aria-label="' + label + ' #' + num + ' を GitHub で開く"' + extra + '>' + (label === 'PR' ? 'PR ' : '') + '#' + num + '</a>';
   const prSplit = splitPrsForTitle(it.prs);
   const prs = prSplit.inline.map((p) => {
     const conflict = p.state === 'OPEN' && p.mergeable === 'CONFLICTING';
@@ -1451,7 +1483,7 @@ function kidRow(it, sem, runningBy, myAssignee, now) {
     + (effectiveLater(it, laterPending) ? ' <span class="subtext" title="あとでやる">💤</span>' : '');
   return '<tr class="kid' + copyFlashAttrs(it) + '" data-issue="' + it.issue + '" data-testid="board-item">'
     + '<td></td><td class="links">' + boardLinks(it) + '</td>'
-    + '<td class="title"' + (who ? ' title="担当: ' + esc(who) + '"' : '') + '><span class="tx">' + esc(shortTitle(it.title))
+    + '<td class="title"' + (who ? ' title="担当: ' + esc(who) + '"' : '') + '><span class="tx">' + markHit(shortTitle(it.title), findQuery())
     + sizeBadge(it.size) + marks + observing + '</span></td>'
     + '<td>' + prioCtl(it) + '</td>'
     + '<td>' + pill(sem) + '</td>'
@@ -1472,7 +1504,7 @@ function renderBoard(d) {
   const later = items.filter((it) => effectiveLater(it, laterPending)).map((it) => it.issue);
   renderChips(later.length);
   const rows = boardRows(d.epicGroups || [], items, {
-    filter: boardFilter, query: document.getElementById('q').value, open: Array.from(openGroups), running, later,
+    filter: boardFilter, query: findQuery(), open: Array.from(openGroups), running, later,
   });
   lastBoardRows = rows;
   prMenuItems = {};
@@ -2123,6 +2155,8 @@ document.addEventListener('click', (ev) => {
     document.getElementById('globalmenubtn').focus({ preventScroll: true });
     return;
   }
+  // 行の ⋯ のリンクの項目（GitHub で開く）も、押したら閉じる。開く動作を止めないよう、クリックの処理が済んでから閉じる
+  if (inMenu && inMenu.id === 'rowmenu' && t.tagName === 'A') { setTimeout(closeMenus, 0); return; }
   if (!inMenu) closeMenus();
   if (t.id === 'inboxtoggle') { setInboxOpen(false); document.getElementById('inbox-rail').focus(); return; }
   if (t.id === 'inbox-rail') { setInboxOpen(true); document.getElementById('inboxtoggle').focus(); return; }
@@ -2164,12 +2198,31 @@ document.addEventListener('input', (ev) => {
     (qNote[issue] || (qNote[issue] = {}))[t.dataset.q] = t.value;
   }
 });
-document.getElementById('q').addEventListener('input', () => { if (lastBoard) renderBoard(lastBoard); });
+document.getElementById('q').addEventListener('input', () => { if (lastBoard) { renderBoard(lastBoard); renderInbox(lastBoard); } });
+// Esc で探す文字を消して欄から出る（ほかの Esc の後片付けより先に、欄の中だけで受ける）
+document.getElementById('q').addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  e.stopPropagation();
+  e.target.value = '';
+  e.target.blur();
+  if (lastBoard) { renderBoard(lastBoard); renderInbox(lastBoard); }
+});
+// URL の #2513 で開くと、探した状態で開く（AI が人間に頼むときにモニターのリンクを付けられる）
+function findFromHash() {
+  const m = /^#([0-9]+)$/.exec(location.hash || '');
+  if (!m) return;
+  document.getElementById('q').value = '#' + m[1];
+  if (lastBoard) { renderBoard(lastBoard); renderInbox(lastBoard); }
+}
+findFromHash();
+window.addEventListener('hashchange', findFromHash);
 // 数字キー 1〜4: 欄へ移る（入力欄の中・⌘/Ctrl/Alt との組み合わせでは効かない）
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') { titleTipEvent({ type: 'escape' }); closeFix(); closeRelease(); closeModal(); closeUpdateModal(); closeUsagePop(); closePrMenu(); closeMenus(); closeDrawer(); return; }
   const tag = (e.target.tagName || '').toLowerCase();
   const inInput = tag === 'input' || tag === 'textarea' || tag === 'select' || Boolean(e.target.isContentEditable);
+  // 「/」で探す欄へ（入力欄の外・⌘ / Ctrl / Alt なし。⌘K はブラウザと重なるので使わない）
+  if (e.key === '/' && !inInput && !e.metaKey && !e.ctrlKey && !e.altKey) { e.preventDefault(); document.getElementById('q').focus(); return; }
   const target = digitTarget({ code: e.code, metaKey: e.metaKey, ctrlKey: e.ctrlKey, altKey: e.altKey, inInput });
   if (target) { e.preventDefault(); goTo(target); return; }
   if (wideLayout() && isInboxToggleKey({ key: e.key, metaKey: e.metaKey, ctrlKey: e.ctrlKey, altKey: e.altKey, inInput })) {

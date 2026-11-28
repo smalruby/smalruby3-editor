@@ -161,6 +161,25 @@ function isInboxToggleKey(ev) {
  * @param {object} opts { filter, query, open: string[]（開いているまとまりの key）, running: number[], later: number[] }
  * @returns {object[]} { type:'epic', group, epicItem, sem, humanN, index, open } / { type:'kid', item, sem, key } / { type:'empty', key }
  */
+/**
+ * 探す欄の文字が、Issue・PR に当たるか（純粋関数）。人間も AI も番号で話すので、Issue の番号だけでなく
+ * PR の番号とブランチ名でも引ける（「PR #2513 をレビューして」と頼まれて、状況板の行が Issue の番号でも見つかるように）。
+ * 先頭の `#` は外し、大文字・小文字は区別しない。空の文字はどれにも当たる。
+ * @param {object} it `{issue, title, prs: [{number, branch}]}`（board の item・forYou の行・状況板のまとまり）
+ * @param {string} query 探す欄の文字
+ * @returns {boolean}
+ */
+function matchesQuery(it, query) {
+    const q = String(query == null ? '' : query).trim().toLowerCase().replace(/^#/, '');
+    if (!q) return true;
+    const o = it || {};
+    const title = String(o.title || '').replace(/^(EPIC:\s*|epic\([^)]*\):\s*|feat\([^)]*\):\s*)/i, '').toLowerCase();
+    if (o.issue != null && String(o.issue).indexOf(q) >= 0) return true;
+    if (title.indexOf(q) >= 0) return true;
+    return (o.prs || []).some((p) => p && ((p.number != null && String(p.number).indexOf(q) >= 0)
+        || String(p.branch || p.headRefName || '').toLowerCase().indexOf(q) >= 0));
+}
+
 function boardRows(groups, items, opts) {
     const o = opts || {};
     const byIssue = {};
@@ -170,8 +189,6 @@ function boardRows(groups, items, opts) {
     const open = o.open || [];
     const filter = o.filter || 'all';
     const q = String(o.query || '').trim().toLowerCase();
-    const short = (t) => String(t || '').replace(/^(EPIC:\s*|epic\([^)]*\):\s*|feat\([^)]*\):\s*)/i, '');
-    const hit = (num, title) => !q || String(num).indexOf(q.replace(/^#/, '')) >= 0 || short(title).toLowerCase().indexOf(q) >= 0;
     const semOf = (it) => {
         const s = it.status;
         if (s === 'Close' || s === 'Done') return { key: 'done', label: '終わった' };
@@ -200,8 +217,8 @@ function boardRows(groups, items, opts) {
         if (filter === 'human' && !humanN && sem.key !== 'human') continue;
         if (filter === 'ai' && sem.key !== 'ai') continue;
         if (filter === 'stop' && sem.key !== 'stop') continue;
-        const groupHit = hit(g.epic == null ? '' : g.epic, g.title);
-        const kidHits = q ? kids.filter((k) => hit(k.issue, k.title)) : kids;
+        const groupHit = Boolean(q) && matchesQuery({ issue: g.epic, title: g.title, prs: epicItem ? epicItem.prs : [] }, q);
+        const kidHits = q ? kids.filter((k) => matchesQuery(k, q)) : kids;
         if (q && !groupHit && !kidHits.length) continue;
         index += 1;
         const isOpen = (q && !groupHit) || open.indexOf(String(g.key)) >= 0;
@@ -422,12 +439,12 @@ function renderMiniMarkdown(src) {
 
 /** ブラウザへ埋め込む関数（順序は問わない。どれも自己完結） */
 const INBOX_CLIENT_FNS = [
-    itemSem, epicSem, inboxModel, isInboxToggleKey, boardRows, recommendedAnswers, chosenAnswers, digitTarget,
+    itemSem, epicSem, inboxModel, isInboxToggleKey, matchesQuery, boardRows, recommendedAnswers, chosenAnswers, digitTarget,
     agoLabel, shortTitle, titleTipNext, titleTipPlace, titleTipInfo, renderMiniMarkdown,
 ];
 
 module.exports = {
-    itemSem, epicSem, inboxModel, isInboxToggleKey, boardRows, recommendedAnswers, chosenAnswers, digitTarget,
+    itemSem, epicSem, inboxModel, isInboxToggleKey, matchesQuery, boardRows, recommendedAnswers, chosenAnswers, digitTarget,
     agoLabel, shortTitle, titleTipNext, titleTipPlace, titleTipInfo, renderMiniMarkdown,
     INBOX_CLIENT_FNS,
 };

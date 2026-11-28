@@ -400,3 +400,11 @@ test('自律で進行中・任せる前の EPIC でも、質問のある子は�
     const b = humanAction(epic, { kids: [kids[1]], questions: [12] });
     assert.deepStrictEqual([b.epicPhase, b.kind, b.act, b.targets], ['consult', 'answer', 'answer', [12]]);
 });
+
+test('forYouModel: 行に開いている PR の番号を持たせる（探す欄で PR の番号から引ける・#2601）', () => {
+    const m = forYouModel({ items: [
+        { issue: 2512, title: 'redirect', status: 'Review', hitl: true, prs: [{ number: 2513, state: 'OPEN', branch: 'topic/autopilot-2512' }, { number: 2500, state: 'CLOSED' }] },
+    ] }, { repoUrl: 'https://github.com/smalruby/smalruby3-editor' });
+    const row = m.sections.reduce((a, s) => a.concat(s.rows), []).concat(m.idle).find((w) => w.issue === 2512);
+    assert.deepStrictEqual(row.prs, [{ number: 2513, state: 'OPEN', branch: 'topic/autopilot-2512' }]);
+});
