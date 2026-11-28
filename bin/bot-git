@@ -13,6 +13,10 @@
 # `credential.helper=` (empty) first RESETS any helper inherited from config files
 # (e.g. the human's `gh auth git-credential`), then the bot helper is added, so the
 # bot token always wins for this invocation only.
+#
+# If bin/bot-token fails (e.g. AWS SSO expired), the helper answers `quit=1` so git
+# stops instead of continuing with an empty password or prompting for another
+# credential (#2534).
 set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -25,5 +29,5 @@ exec git \
   -c "user.name=${botname}" \
   -c "user.email=${botmail}" \
   -c "credential.helper=" \
-  -c "credential.https://github.com.helper=!f(){ echo username=x-access-token; echo \"password=\$(${here}/bot-token)\"; };f" \
+  -c "credential.https://github.com.helper=!f(){ [ \"\$1\" = get ] || return 0; t=\"\$(${here}/bot-token)\" && [ -n \"\$t\" ] && [ \"\$t\" != BOT_TOKEN_UNAVAILABLE ] || { echo 'bot-git: no bot token; refusing to push/fetch with another credential. Fix: aws sso login --sso-session smalruby --use-device-code' >&2; echo quit=1; return 0; }; echo username=x-access-token; echo \"password=\$t\"; };f" \
   "$@"

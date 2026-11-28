@@ -26,12 +26,12 @@ devpod コンテナ内で作業しているので、コマンドは `docker comp
    ```
    コミットメッセージ末尾の `Co-Authored-By: Claude ...` フッターは従来どおり残す。
    `git log` / `git diff` / `git status` 等の読み取りは plain `git` で構わない。
-2. **gh コマンドは必ずトークンを注入する**（Claude の Bash は env を保持しないため、毎回付ける）:
+2. **gh コマンドは必ず `bin/bot-gh` で呼ぶ**（Bot のトークンを毎回渡す。Claude の Bash は env を保持しない）:
    ```bash
-   GH_TOKEN="$(bin/bot-token)" gh pr create --repo smalruby/smalruby3-editor --base develop ...
-   GH_TOKEN="$(bin/bot-token)" gh pr merge <n> --repo smalruby/smalruby3-editor --merge --delete-branch
-   GH_TOKEN="$(bin/bot-token)" gh pr checks <n> --repo smalruby/smalruby3-editor
-   GH_TOKEN="$(bin/bot-token)" gh api graphql -f query='...'   # Projects v2 等
+   bin/bot-gh pr create --repo smalruby/smalruby3-editor --base develop ...
+   bin/bot-gh pr merge <n> --repo smalruby/smalruby3-editor --merge --delete-branch
+   bin/bot-gh pr checks <n> --repo smalruby/smalruby3-editor
+   bin/bot-gh api graphql -f query='...'   # Projects v2 等
    ```
    > 読み取り専用の確認（`gh pr view` 等）も Bot トークンで行ってよい。
 3. **確認**: コミット後に `git log -1 --format='%an <%ae>'` が `smalruby3-editor-bot[bot]` か見る。
@@ -40,7 +40,7 @@ devpod コンテナ内で作業しているので、コマンドは `docker comp
 
 | 用途 | トークン | 使い方 |
 |---|---|---|
-| **名義が見える書き込み** (commit / PR / コメント / ラベル / Projects) | Bot (GitHub App) | `bin/bot-git` / `GH_TOKEN="$(bin/bot-token)" gh ...` |
+| **名義が見える書き込み** (commit / PR / コメント / ラベル / Projects) | Bot (GitHub App) | `bin/bot-git` / `bin/bot-gh ...` |
 | **読み取り** (一覧・PR/Issue 情報。レート予算の分散) | 個人 (read) | autopilot が `AUTOPILOT_READ_TOKEN` → `GH_TOKEN` → `gh auth token` の順で解決 |
 | **repo 設定の変更** (Actions の Variables / Secrets / Environments) | 個人 (admin) | **`bin/gh-admin` 経由のみ** |
 
@@ -69,6 +69,13 @@ bin/gh-admin api --method PUT repos/{owner}/{repo}/environments/stg
   付けず、**ブラウザで一度だけ作る**。困ったら `X-Accepted-Github-Permissions` ヘッダを見ると
   「どの権限があれば通るか」が分かる (`gh api -i <path>`)。
 
+## トークンが取れないときは止まる
+
+AWS SSO が切れるなどで `bin/bot-token` が失敗したら、`bin/bot-gh` は gh を呼ばずに、`bin/bot-git push` は
+credential helper の `quit=1` で失敗する。**個人の名義で代わりに書き込まない**。直し方は
+`aws sso login --sso-session smalruby --use-device-code`（確認は `bin/bot-token --whoami`）。
+回復するまで、plain `gh` / plain `git push` で代わりに済ませない。詳細は `docs/github-app-bot/README.md`。
+
 ## やってはいけないこと
 
 - **共有 `.git/config` を Bot に書き換えない**（`git config user.email '...bot...'` 等）。人間の
@@ -78,6 +85,8 @@ bin/gh-admin api --method PUT repos/{owner}/{repo}/environments/stg
   **必ず repo 内から削除**する。
 - Bot で **自分の PR を承認しない**（レビュー・承認・コメントは人間の役割）。
 - Bot 操作に plain `git` / plain `gh` を使わない（人間名義になる）。
+- `GH_TOKEN="$(bin/bot-token)" gh ...` を使わない。`bin/bot-token` が失敗して `GH_TOKEN` が空になると、
+  gh は黙って個人のトークンを使い、人間の名義で書き込む（#2534）。`bin/bot-gh` を使う。
 
 ## 確認コマンド
 

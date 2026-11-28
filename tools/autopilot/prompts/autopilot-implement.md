@@ -52,7 +52,7 @@ PR の base が `topic/...`（Issue 本文の `autopilot-base:`）のとき、da
 ### 1. Issue を把握し、TDD で実装
 
 ```bash
-GH_TOKEN="$(bin/bot-token)" gh issue view "$AUTOPILOT_ISSUE" --repo "${AUTOPILOT_REPO:-smalruby/smalruby3-editor}" --json title,body,comments
+bin/bot-gh issue view "$AUTOPILOT_ISSUE" --repo "${AUTOPILOT_REPO:-smalruby/smalruby3-editor}" --json title,body,comments
 ```
 
 - 変える分野の「人間から学んだこと」（`docs/autopilot/learned/<area>.md`。`learnedRuleFilesFor`・
@@ -120,7 +120,7 @@ bin/bot-git commit -m "<type>(<scope>): <subject>" -m "<body 各行 ≤100 字>"
 ### 3. Draft PR を作成
 
 ```bash
-GH_TOKEN="$(bin/bot-token)" gh pr create --repo "$AUTOPILOT_REPO" --draft --base "${AUTOPILOT_BASE_BRANCH:-develop}" \
+bin/bot-gh pr create --repo "$AUTOPILOT_REPO" --draft --base "${AUTOPILOT_BASE_BRANCH:-develop}" \
   --head "<branch>" --title "<type>(<scope>): <title> (#$AUTOPILOT_ISSUE)" --body-file <(...)
 ```
 

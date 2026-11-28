@@ -15,7 +15,7 @@ const { promisify } = require('util');
 const path = require('path');
 const {
     HITL_LABEL, AUTOPILOT_LABEL, selectMarkedComments, stickyUpsertPlan, STICKY_MARKERS,
-    autopilotHeadBranch, normalizeBoardEnrichment, hasMergedHeadPr,
+    autopilotHeadBranch, normalizeBoardEnrichment, hasMergedHeadPr, botTokenFromOutput,
 } = require('./phases');
 const { topicSyncBranch } = require('./epic-pr');
 
@@ -33,7 +33,8 @@ async function botToken() {
     const now = Date.now();
     if (tokenCache.token && now - tokenCache.at < TOKEN_CACHE_MS) return tokenCache.token;
     const { stdout } = await execFileP(BOT_TOKEN_BIN, [], { encoding: 'utf8' });
-    tokenCache = { token: stdout.trim(), at: now };
+    // 空のトークンを使うと gh が個人の認証へ黙って戻るので、取れなければ throw する（#2534）
+    tokenCache = { token: botTokenFromOutput(stdout), at: now };
     return tokenCache.token;
 }
 

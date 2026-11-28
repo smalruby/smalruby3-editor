@@ -43,6 +43,8 @@ const {
     evaluate,
     sanitizeForSurface,
     isAuthError,
+    botTokenFromOutput,
+    BOT_TOKEN_UNAVAILABLE,
     DEFAULT_WATCHDOG,
     HITL_LABEL,
     AUTOPILOT_LABEL,
@@ -494,6 +496,14 @@ test('isAuthError: SSO 失効・bot-token 取得不能を認証系と判定す�
     assert.equal(isAuthError('Unable to locate credentials'), true);
     // 文字列でも Error でも受ける
     assert.equal(isAuthError(new Error('token has expired')), true);
+});
+
+test('botTokenFromOutput: 空・番兵の出力は認証エラーとして throw する（#2534）', () => {
+    assert.equal(botTokenFromOutput('ghs_abc\n'), 'ghs_abc');
+    for (const out of ['', '  \n', BOT_TOKEN_UNAVAILABLE, `${BOT_TOKEN_UNAVAILABLE}\n`, null, undefined]) {
+        assert.throws(() => botTokenFromOutput(out), (e) => isAuthError(e));
+    }
+    assert.equal(BOT_TOKEN_UNAVAILABLE, 'BOT_TOKEN_UNAVAILABLE');
 });
 
 test('isAuthError: 非認証エラー・空入力は false（#949）', () => {

@@ -3188,6 +3188,28 @@ function authNoticeKind(state) {
 }
 
 /**
+ * `bin/bot-token` が失敗したときに stdout へ出す番兵（#2534）。`bin/bot-token` /
+ * `bin/bot-gh` / `bin/bot-git` も同じ値を持つ（変えるときは 4 か所をそろえる）。
+ * 空の `GH_TOKEN` だと gh が個人の認証へ黙って戻るので、空ではなく必ず 401 になる値を出す。
+ */
+const BOT_TOKEN_UNAVAILABLE = 'BOT_TOKEN_UNAVAILABLE';
+
+/**
+ * `bin/bot-token` の stdout から Bot のトークンを取り出す純粋関数（#2534）。
+ * 空や番兵は「トークンが取れない」なので、`isAuthError` が拾う文言で throw する
+ * （空のトークンをキャッシュして書き込みに使うと、gh が個人の名義で動くため）。
+ * @param {string|null|undefined} stdout `bin/bot-token` の出力
+ * @returns {string} トークン
+ */
+function botTokenFromOutput(stdout) {
+    const token = String(stdout || '').trim();
+    if (!token || token === BOT_TOKEN_UNAVAILABLE) {
+        throw new Error('bot-token: Bot のトークンが取れません（aws sso login --sso-session smalruby --use-device-code）');
+    }
+    return token;
+}
+
+/**
  * 認証系エラー（AWS SSO 失効・bot-token 取得不能等）かを判定する純粋関数。
  *
  * `bin/bot-token` は SSO 失効時に「AWS 認証が失効/未設定…」を stderr に出して die する。
@@ -4351,6 +4373,8 @@ module.exports = {
     evaluate,
     sanitizeForSurface,
     isAuthError,
+    BOT_TOKEN_UNAVAILABLE,
+    botTokenFromOutput,
     authRecoveryPatch,
     authNoticeKind,
     DEFAULT_WATCHDOG,

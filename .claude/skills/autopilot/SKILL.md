@@ -39,7 +39,7 @@ description: autopilot の総合サポート。初期設定（必要情報のイ
 ```bash
 command -v herdr && command -v gh && command -v claude && node --version   # 実行環境
 bin/bot-token --whoami                                                    # bot 認証（最重要）
-GH_TOKEN="$(bin/bot-token)" gh project view 4 --owner smalruby --format json | head -c 200  # Project アクセス
+bin/bot-gh project view 4 --owner smalruby --format json | head -c 200  # Project アクセス
 ls ~/.config/autopilot/settings.json 2>/dev/null                          # worker settings（任意）
 ```
 
@@ -131,13 +131,13 @@ booting を確認する:
    Conventional Commits 風（`feat(scope): ...` / `fix(scope): ...`）に整える。必要に応じて
    受け入れ条件（`## DoD` チェックリスト）を補い、ベースブランチ指定があれば行頭に
    `autopilot-base: <branch>`、依存があれば `autopilot-after: #N` を入れる。
-2. **作成 + enroll**（すべて bot 名義 `GH_TOKEN="$(bin/bot-token)"`）:
+2. **作成 + enroll**（すべて bot 名義 `bin/bot-gh`）:
    ```bash
    # 1) Issue 作成（body は Write ツールで tmp/issue-body.md に書いてから）
-   GH_TOKEN="$(bin/bot-token)" gh issue create --repo smalruby/smalruby3-editor \
+   bin/bot-gh issue create --repo smalruby/smalruby3-editor \
      --title "<title>" --body-file tmp/issue-body.md --assignee <LOGIN>
    # 2) Project #4 に追加
-   GH_TOKEN="$(bin/bot-token)" gh project item-add 4 --owner smalruby --url <issue-url>
+   bin/bot-gh project item-add 4 --owner smalruby --url <issue-url>
    # 3) フィールド設定（item-edit）: Status / Kind / Size
    #    フィールド/オプション ID は gh project field-list 4 --owner smalruby --format json で都度取得
    ```
@@ -206,7 +206,7 @@ EPIC は topic をマージする直前まで AI のおすすめで進み、人�
    `<!-- autopilot-epic-decisions-data:<base64> -->` にある（`epic-flow.js` の `parseEpicDecisionsData` で読む）:
 
    ```bash
-   GH_TOKEN="$(bin/bot-token)" gh api "repos/smalruby/smalruby3-editor/issues/<EPIC>/comments" --paginate \
+   bin/bot-gh api "repos/smalruby/smalruby3-editor/issues/<EPIC>/comments" --paginate \
      --jq '.[] | select(.body | test("autopilot-epic-decisions")) | .body' | node -e '
    const { parseEpicDecisionsData } = require("./tools/autopilot/src/epic-flow.js");
    console.log(JSON.stringify(parseEpicDecisionsData(require("fs").readFileSync(0, "utf8")), null, 2));'

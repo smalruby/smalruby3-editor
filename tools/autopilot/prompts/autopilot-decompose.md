@@ -43,7 +43,7 @@ EPIC の子をさらに分解するとき（`AUTOPILOT_EPIC_FLOW=1`）は分解�
 ### 0. 既存状態を確認（propose / create の判定）
 
 ```bash
-GH_TOKEN="$(bin/bot-token)" gh issue view "$AUTOPILOT_ISSUE" --repo "${AUTOPILOT_REPO:-smalruby/smalruby3-editor}" \
+bin/bot-gh issue view "$AUTOPILOT_ISSUE" --repo "${AUTOPILOT_REPO:-smalruby/smalruby3-editor}" \
   --json title,body,comments,labels
 ```
 
@@ -146,7 +146,7 @@ Sprint Backlog にそのまま入れると autopilot が**並列着手**し、**
 0. **assignee を確定する**（未 assign 対策・#914）。EPIC 自身の assignee を引き継ぐ:
 
    ```bash
-   assignee=$(GH_TOKEN="$(bin/bot-token)" gh issue view "$AUTOPILOT_ISSUE" --repo "$AUTOPILOT_REPO" \
+   assignee=$(bin/bot-gh issue view "$AUTOPILOT_ISSUE" --repo "$AUTOPILOT_REPO" \
      --json assignees --jq '.assignees[0].login // empty')
    ```
 
@@ -162,18 +162,18 @@ Sprint Backlog にそのまま入れると autopilot が**並列着手**し、**
    assign_args=(); [ -n "$assignee" ] && assign_args=(--assignee "$assignee")
 
    # 依存の無い基盤 leaf
-   url=$(GH_TOKEN="$(bin/bot-token)" gh issue create --repo "$AUTOPILOT_REPO" --title "<title>" \
+   url=$(bin/bot-gh issue create --repo "$AUTOPILOT_REPO" --title "<title>" \
      --body "<scope>"$'\n\nPart of #'"$AUTOPILOT_ISSUE" "${assign_args[@]}")
 
    # 依存のある後続 leaf は本文の "行頭" にディレクティブを置く（$prev は先行 leaf の番号）
    # ↓ 実際の本文では "autopilot-after"（ハイフンのみ・スペース無し）で書くこと
-   url=$(GH_TOKEN="$(bin/bot-token)" gh issue create --repo "$AUTOPILOT_REPO" --title "<title>" \
+   url=$(bin/bot-gh issue create --repo "$AUTOPILOT_REPO" --title "<title>" \
      --body "<!-- autopilot-after: #$prev -->"$'\n\n'"<scope>"$'\n\nPart of #'"$AUTOPILOT_ISSUE" "${assign_args[@]}")
 
    num=$(basename "$url")
-   dbid=$(GH_TOKEN="$(bin/bot-token)" gh api repos/$AUTOPILOT_REPO/issues/$num --jq .id)
-   GH_TOKEN="$(bin/bot-token)" gh api --method POST repos/$AUTOPILOT_REPO/issues/$AUTOPILOT_ISSUE/sub_issues -F sub_issue_id="$dbid"
-   GH_TOKEN="$(bin/bot-token)" gh issue edit "$num" --repo "$AUTOPILOT_REPO" --add-label "🤖 autopilot"
+   dbid=$(bin/bot-gh api repos/$AUTOPILOT_REPO/issues/$num --jq .id)
+   bin/bot-gh api --method POST repos/$AUTOPILOT_REPO/issues/$AUTOPILOT_ISSUE/sub_issues -F sub_issue_id="$dbid"
+   bin/bot-gh issue edit "$num" --repo "$AUTOPILOT_REPO" --add-label "🤖 autopilot"
    ```
 
    - **EPIC の `autopilot-base:`**（統合ブランチ）は、infra 以外の leaf の本文の行頭に**同じ値で
@@ -266,7 +266,7 @@ Sprint Backlog にそのまま入れると autopilot が**並列着手**し、**
 - **EPIC は完了させない**（子が全部 done になるまで In Progress）。本スキルは分解までで、EPIC を Close しない。
 - size は **leaf にのみ**付ける（EPIC は付けない）。
 - `AskUserQuestion` を使わない。承認は HITL（番兵 + コメント）で待つ。
-- `gh` には `GH_TOKEN="$(bin/bot-token)"`、コミットは `bin/bot-git`。
+- `gh` は `bin/bot-gh` で呼ぶ、コミットは `bin/bot-git`。
 
 ---
 

@@ -68,7 +68,7 @@ daemon は常駐で GitHub をポーリングするため、**API レート予�
 
 ## 認証まわりの規約
 
-- worker（プロンプト）の gh 操作は `GH_TOKEN="$(bin/bot-token)" gh ...`、コミットは
+- worker（プロンプト）の gh 操作は `bin/bot-gh ...`、コミットは
   `bin/bot-git`、push は `bin/autopilot-push`（`.claude/rules/github-app-bot.md` と
   `.claude/rules/autopilot/prompts.md` を参照）。**共有 `.git/config` を書き換えない**。
 - Bot 秘密鍵は `~/.config/smalruby-bot/config` の `PRIVATE_KEY_SECRET_ID` 経由で

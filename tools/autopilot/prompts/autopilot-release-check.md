@@ -30,17 +30,17 @@ topic → develop の PR に人間が直接書いたレビュー・コメント�
 ```bash
 REPO="${AUTOPILOT_REPO:-smalruby/smalruby3-editor}"
 N="$AUTOPILOT_ISSUE"
-GH_TOKEN="$(bin/bot-token)" gh issue view "$N" --repo "$REPO" --json title,body,labels
-GH_TOKEN="$(bin/bot-token)" gh api "repos/$REPO/issues/$N/comments" --paginate | jq -s 'add // []' > tmp/release-check-comments-$N.json
+bin/bot-gh issue view "$N" --repo "$REPO" --json title,body,labels
+bin/bot-gh api "repos/$REPO/issues/$N/comments" --paginate | jq -s 'add // []' > tmp/release-check-comments-$N.json
 # EPIC の sub-issue の本文（目印で、受けたものを二重に受けない）。topic ブランチは本文の行頭の autopilot-base: の値
-GH_TOKEN="$(bin/bot-token)" gh api "repos/$REPO/issues/$N/sub_issues" --paginate | jq -s 'add // []' > tmp/release-check-subs-$N.json
+bin/bot-gh api "repos/$REPO/issues/$N/sub_issues" --paginate | jq -s 'add // []' > tmp/release-check-subs-$N.json
 # --paginate は 30 件ごとに別の配列を続けて出す（`[..][..]`。JSON として読めない）ので、jq -s 'add' で 1 つにする
 # topic → develop の open な PR（無ければ PR の 3 ファイルは [] にする）
-GH_TOKEN="$(bin/bot-token)" gh pr list --repo "$REPO" --base develop --head <topic> --state open --json number,url
+bin/bot-gh pr list --repo "$REPO" --base develop --head <topic> --state open --json number,url
 PR=<PR の番号>
-GH_TOKEN="$(bin/bot-token)" gh api "repos/$REPO/pulls/$PR/reviews" --paginate | jq -s 'add // []' > tmp/release-check-pr-reviews-$N.json
-GH_TOKEN="$(bin/bot-token)" gh api "repos/$REPO/pulls/$PR/comments" --paginate | jq -s 'add // []' > tmp/release-check-pr-review-comments-$N.json
-GH_TOKEN="$(bin/bot-token)" gh api "repos/$REPO/issues/$PR/comments" --paginate | jq -s 'add // []' > tmp/release-check-pr-comments-$N.json
+bin/bot-gh api "repos/$REPO/pulls/$PR/reviews" --paginate | jq -s 'add // []' > tmp/release-check-pr-reviews-$N.json
+bin/bot-gh api "repos/$REPO/pulls/$PR/comments" --paginate | jq -s 'add // []' > tmp/release-check-pr-review-comments-$N.json
+bin/bot-gh api "repos/$REPO/issues/$PR/comments" --paginate | jq -s 'add // []' > tmp/release-check-pr-comments-$N.json
 node -e '
 const fs = require("fs");
 const rc = require("./tools/autopilot/src/release-check");
@@ -138,7 +138,7 @@ console.log(JSON.stringify({ ...rc.releaseCheckMode(comments, { pendingPrFeedbac
 5. **確認ページ**を作る（2 回目からは同じ URL を更新する）。ページの形はテンプレートが正で、足すのはデータだけ:
 
    ```bash
-   GH_TOKEN="$(bin/bot-token)" gh api "repos/$REPO/issues/$N/comments" --paginate | jq -s 'add // []' > tmp/release-check-comments-$N.json
+   bin/bot-gh api "repos/$REPO/issues/$N/comments" --paginate | jq -s 'add // []' > tmp/release-check-comments-$N.json
    node "$AUTOPILOT_RELEASE_PAGE_RENDER" --comments tmp/release-check-comments-$N.json --epic "$N" --title "<EPIC の題>" \
      --repo "$REPO" --pr <topic → develop の PR の番号（無ければ省く）> --draft tmp/release-page-data-$N.json
    ```

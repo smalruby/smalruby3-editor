@@ -45,7 +45,7 @@ PR の base が `topic/...`（Issue 本文の `autopilot-base:`）のとき、da
 ### 1. Issue とスレッド全体を読む
 
 ```bash
-GH_TOKEN="$(bin/bot-token)" gh issue view "$AUTOPILOT_ISSUE" --repo "${AUTOPILOT_REPO:-smalruby/smalruby3-editor}" \
+bin/bot-gh issue view "$AUTOPILOT_ISSUE" --repo "${AUTOPILOT_REPO:-smalruby/smalruby3-editor}" \
   --json number,title,body,labels,comments
 ```
 
@@ -116,7 +116,7 @@ echo AUTOPILOT_ERROR
 ## 注意
 
 - **Project フィールドは書き換えない**（反映は daemon/CLI が結果ファイルを見て行う）。
-- `gh` には必ず `GH_TOKEN="$(bin/bot-token)"` を付ける。
+- `gh` は必ず `bin/bot-gh` で呼ぶ（Bot のトークンが取れないときは gh を動かさない）。
 - `AskUserQuestion` を使わない。判断は番兵 + コメントで返す。
 - コードは書かない（実装は implement フェーズの仕事）。設計方針・影響範囲・代替案の議論に徹する。
 

@@ -156,7 +156,7 @@ daemon も run の終了時にこの worktree に残ったものを止める（�
 - rebase しない・force push しない（merge で追従する。PR の履歴を書き換えない）
 - 冪等: 同じ内容のコメントを二重に書かない
 - `AskUserQuestion` を使わない。動的 Workflow / Skill を起動しない
-- コミットは `bin/bot-git`、push は `bin/autopilot-push`、gh は `GH_TOKEN="$(bin/bot-token)" gh ...`
+- コミットは `bin/bot-git`、push は `bin/autopilot-push`、gh は `bin/bot-gh ...`
 
 ---
 

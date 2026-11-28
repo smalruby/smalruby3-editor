@@ -47,8 +47,8 @@ DoD を満たせないときは `nextStatus:"In Progress"`・`nextAiStatus:"Addr
 ### 1. 対象 PR と DoD を特定
 
 ```bash
-PR=$(GH_TOKEN="$(bin/bot-token)" gh pr list --repo "$AUTOPILOT_REPO" --search "Closes #$AUTOPILOT_ISSUE in:body" --state open --json number -q '.[0].number')
-GH_TOKEN="$(bin/bot-token)" gh pr view "$PR" --repo "$AUTOPILOT_REPO" --json body,statusCheckRollup
+PR=$(bin/bot-gh pr list --repo "$AUTOPILOT_REPO" --search "Closes #$AUTOPILOT_ISSUE in:body" --state open --json number -q '.[0].number')
+bin/bot-gh pr view "$PR" --repo "$AUTOPILOT_REPO" --json body,statusCheckRollup
 ```
 
 PR 本文/Issue の **Definition of Done** の各項目を読む。
@@ -56,7 +56,7 @@ PR 本文/Issue の **Definition of Done** の各項目を読む。
 ### 2. CI を確認
 
 ```bash
-GH_TOKEN="$(bin/bot-token)" gh pr checks "$PR" --repo "$AUTOPILOT_REPO"
+bin/bot-gh pr checks "$PR" --repo "$AUTOPILOT_REPO"
 ```
 
 すべて green でなければ HITL（または address-review へ戻す）。

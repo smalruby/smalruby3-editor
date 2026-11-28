@@ -24,7 +24,7 @@
 4. 変えるのは `docs/autopilot/learned/` だけ。ほかのファイル（プロンプト・コード・`.claude/`）は変えない。
 5. コミット（`bin/bot-git commit`、`docs(autopilot): ...` の Conventional Commits・小文字始まり）→
    `bin/bot-git push -u origin HEAD` → develop 宛ての PR を作る:
-   `GH_TOKEN="$(bin/bot-token)" gh pr create --repo "$AUTOPILOT_REPO" --base develop --title "docs(autopilot): ..." --body-file <file>`。
+   `bin/bot-gh pr create --repo "$AUTOPILOT_REPO" --base develop --title "docs(autopilot): ..." --body-file <file>`。
    本文は日本語で、分野ごとに足した・まとめた項目を短く並べる。**マージはしない**（CI のあと、人間がモニターのボタンでマージする）。
 6. 同じブランチの PR がもうあれば、新しく作らずその番号を使う（冪等）。
 
