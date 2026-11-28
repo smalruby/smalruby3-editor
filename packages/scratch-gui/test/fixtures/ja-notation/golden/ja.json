@@ -6963,15 +6963,13 @@
     "rubyLines": [
       1
     ],
-    "converterErrors": [
-      {
-        "row": 0,
-        "column": 0,
-        "type": "error",
-        "text": "\"puts(rand(rand(1..10)))\" is the wrong instruction.\nCheck the spelling or use a supported block.",
-        "source": null
-      }
-    ]
+    "converterErrors": [],
+    "blocks": "looks_sayforsecs(MESSAGE: operator_random(FROM: 0, TO: operator_subtract(NUM1: operator_random(FROM: 1, TO: 10), NUM2: 1)) #\"@ruby:rand:n\", SECS: 1) #\"@ruby:method:puts\"",
+    "shown": {
+      "ruby": "puts(rand(rand(1..10)))",
+      "ja": "表示する(乱数(乱数(1..10)))",
+      "errors": []
+    }
   },
   "ja-51b3580448": {
     "ruby": "含む(@s, @a, @b)",
