@@ -130,6 +130,21 @@ export default function (Generator) {
         return Object.values(comments).some((comment) => rubyMarkersOf(comment.text).includes(marker));
     };
 
+    /**
+     * The Ruby name of a local variable kept as a target variable named `_<name>_<scope index>_`.
+     * The name alone can't tell a local from `@_x_1_` / `$_x_1_` (or a variable made in the blocks
+     * named `_x_1_`), so it is a local only if a block keeps its `@ruby:lvar`.
+     * @param {?string} variableName - The target variable's own name (`_x_1_`).
+     * @returns {?string} The local variable's name in Ruby (`x`), or null when it is not a local.
+     */
+    Generator.localVariableNameOf = function (variableName) {
+        const localMatch = typeof variableName === 'string' && variableName.match(LOCAL_VARIABLE_PATTERN);
+        if (localMatch && this.hasLocalVariableComment(localMatch[1], localMatch[2])) {
+            return localMatch[1];
+        }
+        return null;
+    };
+
     Generator.variableNameByName = function (name, type = SCALAR_TYPE) {
         let currVar;
         let isStage;
@@ -149,11 +164,9 @@ export default function (Generator) {
         if (currVar && currVar.type === type) {
             // A field (e.g. koshien `map_from`'s MAP, a `reverse!` receiver) only keeps the
             // variable's name, so a local variable has no `@ruby:lvar` comment to restore it.
-            // The name alone can't tell a local from `@_x_1_` / `$_x_1_` (or a variable made in the
-            // blocks named `_x_1_`), so it is a local only if another block keeps its `@ruby:lvar`.
-            const localMatch = currVar.name.match(LOCAL_VARIABLE_PATTERN);
-            if (localMatch && this.hasLocalVariableComment(localMatch[1], localMatch[2])) {
-                return localMatch[1];
+            const localName = this.localVariableNameOf(currVar.name);
+            if (localName !== null) {
+                return localName;
             }
             return this.rubyNameOfVariable(owner, isStage, currVar);
         }

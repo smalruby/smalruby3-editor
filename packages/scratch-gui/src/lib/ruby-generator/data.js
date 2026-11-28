@@ -42,6 +42,19 @@ export default function (Generator) {
             }
         }
 
+        // === Smalruby: Start of local variable read without its marker ===
+        // A saved project keeps a variable read inside an input as a primitive, so the read loses
+        // its `@ruby:lvar:<name>:<N>` comment when the project is opened again. The assignment is a
+        // statement and keeps its comment: take the local by the variable's name `_<name>_<N>_`
+        // when a block of the target keeps `@ruby:lvar:<name>:<N>` (issue #2592).
+        if (!comment) {
+            const localName = Generator.localVariableNameOf(Generator.getFieldValue(block, 'VARIABLE'));
+            if (localName !== null) {
+                return [localName, Generator.ORDER_ATOMIC];
+            }
+        }
+        // === Smalruby: End of local variable read without its marker ===
+
         // === Smalruby: Start of return variable read without its marker ===
         // A saved project keeps a variable read inside an input as a primitive, so the read loses
         // its `@ruby:return:<name>` comment when the project is opened again. The call before the
@@ -261,6 +274,16 @@ export default function (Generator) {
                 return [lvarMatch[1], Generator.ORDER_ATOMIC];
             }
         }
+        // === Smalruby: Start of local list read without its marker ===
+        // A saved project keeps a list read inside an input as a primitive too (`say(a)`, `a.sort`),
+        // so the read loses its `@ruby:lvar` comment like a variable read (issue #2592).
+        if (!comment) {
+            const localName = Generator.localVariableNameOf(Generator.getFieldValue(block, 'LIST'));
+            if (localName !== null) {
+                return [localName, Generator.ORDER_ATOMIC];
+            }
+        }
+        // === Smalruby: End of local list read without its marker ===
         const list = Generator.listName(Generator.getFieldId(block, 'LIST'));
         // v1 uses the `list("$name")` wrapper (Smalruby3::List); v2 uses the
         // plain global/instance array variable `$name`, which is atomic like a
