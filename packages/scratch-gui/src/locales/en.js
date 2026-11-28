@@ -1765,6 +1765,8 @@ export default {
         'A variable of the stage ({name}) cannot be written in Japanese mode. You can write it in Ruby mode.',
     'gui.rubyTab.dnclUndefinedFunctionError':
         '"{name}" is a function that is not defined. Define it with "関数 {name}(…):".',
+    'gui.rubyTab.dnclStringPlusNumberError':
+        'To join a string and a number with "+", make the number a string like "文字列(3)" (e.g. "残り" + 文字列(3)). You may also write the number in the string, like "残り3".',
     'gui.rubyTab.dnclUnsupportedCommandError':
         '"{name}" is a command that cannot be written in Japanese mode. You can write it in Ruby mode.',
     'gui.rubyTab.dnclUnsupportedNotationError':
@@ -1772,7 +1774,7 @@ export default {
     'gui.rubyTab.dnclUnsupportedNumberError':
         '"{name}" is a way of writing a number that cannot be used in Japanese mode (a hex number, _ between digits, an exponent and so on). Write it like "1000" or "0.5". You can write it in Ruby mode.',
     'gui.rubyTab.dnclValidationError':
-        'This code contains constructs not supported in Japanese mode.\nPlease use only supported instructions before switching modes.',
+        'This code contains constructs not supported in Japanese mode.\nPlease use only supported instructions before opening the Japanese tab.',
     'gui.mobile.drawer.title': 'Menu',
     'gui.mobile.drawer.section.file': 'File',
     'gui.mobile.drawer.section.language': 'Language',
