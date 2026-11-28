@@ -46,14 +46,17 @@ const targetJson = (isStage, name) => ({
 });
 
 const spriteOf = (vm) => vm.runtime.targets.find((t) => t.isOriginal && !t.isStage);
+const stageOf = (vm) => vm.runtime.getTargetForStage();
 
 /**
- * The Japanese made into blocks, the project saved and opened again, and the blocks written back
- * as Ruby and as Japanese.
- * @param {string} dncl - The Japanese.
- * @returns {Promise<{ruby: string, dncl: string}>} The Ruby and the Japanese of the project opened again.
+ * The Ruby made into blocks, the project saved and opened again, and the blocks written back as Ruby.
+ * @param {string} source - The Ruby.
+ * @param {object} [options] - Options.
+ * @param {boolean} [options.onStage] - Whether the code is the stage's (its variables are `$`).
+ * @returns {Promise<string>} The Ruby of the project opened again.
  */
-const saveAndOpen = async (dncl) => {
+const saveAndOpenRuby = async (source, { onStage = false } = {}) => {
+    const targetOf = onStage ? stageOf : spriteOf;
     const vm = new VM();
     await vm.loadProject({
         targets: [targetJson(true, 'Stage'), targetJson(false, 'Sprite1')],
@@ -61,10 +64,8 @@ const saveAndOpen = async (dncl) => {
         extensions: [],
         meta: { semver: '3.0.0' },
     });
-    vm.setEditingTarget(spriteOf(vm).id);
-    const { ruby: source, errors } = dnclToRuby(dncl);
-    expect(errors).toEqual([]);
-    const converter = await targetCodeToBlocks(vm, spriteOf(vm), source, null, { version: '2' });
+    vm.setEditingTarget(targetOf(vm).id);
+    const converter = await targetCodeToBlocks(vm, targetOf(vm), source, null, { version: '2' });
     expect(converter.errors).toEqual([]);
     await converter.apply();
     const saved = JSON.parse(JSON.stringify(vm.toJSON()));
@@ -73,9 +74,23 @@ const saveAndOpen = async (dncl) => {
     const opened = new VM();
     await opened.loadProject(saved);
     setupRubyGenerator();
-    RubyGenerator.currentTarget = spriteOf(opened);
-    const ruby = RubyGenerator.targetToCode(spriteOf(opened), { version: '2' }).trim();
+    RubyGenerator.currentTarget = targetOf(opened);
+    const ruby = RubyGenerator.targetToCode(targetOf(opened), { version: '2' }).trim();
     opened.runtime.quit();
+    return ruby;
+};
+
+/**
+ * The Japanese made into blocks, the project saved and opened again, and the blocks written back
+ * as Ruby and as Japanese.
+ * @param {string} dncl - The Japanese.
+ * @param {object} [options] - Options of `saveAndOpenRuby`.
+ * @returns {Promise<{ruby: string, dncl: string}>} The Ruby and the Japanese of the project opened again.
+ */
+const saveAndOpen = async (dncl, options) => {
+    const { ruby: source, errors } = dnclToRuby(dncl);
+    expect(errors).toEqual([]);
+    const ruby = await saveAndOpenRuby(source, options);
     return { ruby, dncl: rubyToDncl(ruby).dncl };
 };
 
@@ -118,5 +133,29 @@ describe('a call inside an expression stays with the project (#2588)', () => {
         expect(back.ruby).toContain('a = 二倍(1) + 二倍(2)');
         expect(back.ruby).toContain('console.puts(二倍(二倍(@a)))');
         expect(back.dncl).toContain('表示する(二倍(二倍(a)))');
+    });
+
+    test('the code of the stage, whose return variable is `$_return_<name>_`', async () => {
+        const dncl = [...TWICE, 'もし 二倍(2) > 3 ならば:', '    表示する(二倍(1) + 二倍(2))'].join('\n');
+        const back = await saveAndOpen(dncl, { onStage: true });
+        expect(back.ruby).toContain('if 二倍(2) > 3');
+        expect(back.ruby).toContain('console.puts(二倍(1) + 二倍(2))');
+        expect(back.dncl).toContain('もし 二倍(2) > 3 ならば:');
+    });
+
+    test('a method whose name ends in ? or !, whose Ruby variable name has `_` for it', async () => {
+        const source = [
+            'def even?(n)',
+            '  return n % 2 == 0',
+            'end',
+            'def half!(n)',
+            '  return n / 2',
+            'end',
+            '@a = even?(2)',
+            '@b = half!(4) + half!(6)',
+        ].join('\n');
+        const ruby = await saveAndOpenRuby(source);
+        expect(ruby).toContain('@a = even?(2)');
+        expect(ruby).toContain('@b = half!(4) + half!(6)');
     });
 });

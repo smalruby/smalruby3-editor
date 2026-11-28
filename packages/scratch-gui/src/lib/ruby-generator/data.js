@@ -1,18 +1,20 @@
 import DataListBlocks from './data-list.js';
 
 // === Smalruby: Start of return variable read without its marker ===
-const RETURN_VARIABLE_PATTERN = /^@?_return_(.+)_$/;
+const RETURN_VARIABLE_PATTERN = /^_return_(.+)_$/;
 
 /**
  * The key of the cached call (`returnCallCache_`) that a read of a return variable stands for:
  * `_return_<name>_` is the call `<name>`, and `_return_<name>_<N>_` is the call `<name>:<N>` kept
  * aside before the method is called again. A method whose name ends in `_<N>` is the whole name.
+ * The name is the variable's own name, not its Ruby name: the Ruby name has `$` on the stage and
+ * `_` for the `?` / `!` of the method's name (`@_return_even__`).
  * @param {?object} cache - The cached calls (`returnCallCache_`).
- * @param {string} variable - The variable's name in Ruby (`@_return_twice_`).
+ * @param {?string} name - The variable's own name (`_return_twice_`).
  * @returns {?string} The key of a cached call, or null when none is waiting.
  */
-const returnCallKeyOfVariable = (cache, variable) => {
-    const match = cache && variable && variable.match(RETURN_VARIABLE_PATTERN);
+const returnCallKeyOfVariable = (cache, name) => {
+    const match = cache && typeof name === 'string' && name.match(RETURN_VARIABLE_PATTERN);
     if (!match) {
         return null;
     }
@@ -47,7 +49,10 @@ export default function (Generator) {
         // (`_return_<name>_`, or `_return_<name>_<N>_` for a call kept aside), so the call comes back
         // inside the expression (issue #2588).
         if (!comment || !comment.includes('@ruby:return:')) {
-            const cachedKey = returnCallKeyOfVariable(Generator.returnCallCache_, variable);
+            const cachedKey = returnCallKeyOfVariable(
+                Generator.returnCallCache_,
+                Generator.getFieldValue(block, 'VARIABLE'),
+            );
             if (cachedKey !== null) {
                 const methodCall = Generator.returnCallCache_[cachedKey];
                 delete Generator.returnCallCache_[cachedKey];
