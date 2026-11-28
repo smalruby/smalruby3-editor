@@ -349,7 +349,8 @@ const messages = defineMessages({
         id: 'gui.genaiConcierge.fixesTitle',
     },
     indexHintsTitle: {
-        defaultMessage: 'Note: the indexes may start at 1. In Smalruby Japanese mode, array indices start at 0.',
+        defaultMessage:
+            'Note: the indexes may start at 1. In the Japanese tab of Smalruby, array indices start at 0.',
         description: 'Shown under the ✔ of a DNCL answer when it reads past the end of an array (counting from 1)',
         id: 'gui.genaiConcierge.indexHintsTitle',
     },

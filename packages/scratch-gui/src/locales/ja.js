@@ -2088,22 +2088,25 @@ export default {
         '貼り付けたプログラムには、配列の添字は 1 から始まると書いてあります。プログラムの冒頭に「すべての配列の添字は 1 から始まる。」と書いて、添字が 1 から始まる設定にしますか？',
     'gui.rubyToolbar.settingsPatternExample': '例示の形（添字は 0 から）',
     'gui.rubyToolbar.settingsPatternIndexFromOne': '添字が 1 から始まる問題',
-    'gui.rubyTab.dnclForbiddenPrefixError': '日本語モードでは変数に「{name}」は使えません',
+    'gui.rubyTab.dnclForbiddenPrefixError': '日本語タブでは変数に「{name}」は使えません',
     'gui.rubyTab.dnclPostTestLoopError':
-        '後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。',
+        '後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。ルビータブでは書けます。',
     'gui.rubyTab.dnclStageVariableError':
-        'ステージの変数（{name}）は日本語モードでは書けません。Ruby モードでは書けます。',
+        'ステージの変数（{name}）は日本語タブでは書けません。ルビータブでは書けます。',
     'gui.rubyTab.dnclUndefinedFunctionError':
         '「{name}」は定義されていない関数です。「関数 {name}(…):」で定義してください。',
     'gui.rubyTab.dnclStringPlusNumberError':
-        '文字列と数を「+」でつなぐときは、数を「文字列(3)」のように文字列にしてください（例: "残り" + 文字列(3)）。数を「"残り3"」のように文字列の中に書いてもかまいません。',
-    'gui.rubyTab.dnclUnsupportedCommandError':
-        '「{name}」は日本語モードでは書けない命令です。Ruby モードでは書けます。',
-    'gui.rubyTab.dnclUnsupportedNotationError': '「{name}」は日本語モードでは書けません。Ruby モードでは書けます。',
+        '文字列と数を「+」でつなぐときは、数を「文字列({number})」のように文字列にしてください（例: {fixed}）。数を「{inline}」のように文字列の中に書いてもかまいません。',
+    'gui.rubyTab.dnclMultipleAssignmentError':
+        '「,」で区切って、いくつかの変数にまとめて代入することはできません。1 つずつ代入してください（例: {example}）。',
+    'gui.rubyTab.dnclMultipleAssignmentErrorNoExample':
+        '「,」で区切って、いくつかの変数にまとめて代入することはできません。1 つずつ代入してください。',
+    'gui.rubyTab.dnclUnsupportedCommandError': '「{name}」は日本語タブでは書けない命令です。ルビータブでは書けます。',
+    'gui.rubyTab.dnclUnsupportedNotationError': '「{name}」は日本語タブでは書けません。ルビータブでは書けます。',
     'gui.rubyTab.dnclUnsupportedNumberError':
-        '「{name}」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。',
+        '「{name}」は日本語タブでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。ルビータブでは書けます。',
     'gui.rubyTab.dnclValidationError':
-        '日本語モードでは対応していない記述です。\n対応している命令のみにしてから、日本語タブを開いてください。',
+        '日本語タブでは対応していない記述です。\n対応している命令のみにしてから、日本語タブを開いてください。',
     'gui.mobile.drawer.title': 'メニュー',
     'gui.mobile.sideRail.backpack': 'バックパック',
     'gui.mobile.drawer.section.file': 'ファイル',

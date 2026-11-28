@@ -307,7 +307,7 @@ describe('the Japanese tab (DNCL) and the check on switching to it', () => {
         // The command is named (issue #1679). Message is locale-dependent;
         // check for either Japanese or English.
         expect(
-            errors[0].message.includes('「move」は日本語モードでは書けない命令です') ||
+            errors[0].message.includes('「move」は日本語タブでは書けない命令です') ||
                 errors[0].message.includes('"move" is a command that cannot be written in Japanese mode'),
         ).toBe(true);
     });
@@ -343,7 +343,7 @@ describe('the Japanese tab (DNCL) and the check on switching to it', () => {
         );
         const error = (await getErrors()).find((e) => e.line === 2);
         expect(error.column).toBe(5);
-        expect(error.message).toBe('日本語モードでは変数に「@」は使えません');
+        expect(error.message).toBe('日本語タブでは変数に「@」は使えません');
     });
 
     test('an old link ?rubyMode=dncl&tab=ruby opens the Japanese tab, and the Ruby tab shows Ruby', async () => {

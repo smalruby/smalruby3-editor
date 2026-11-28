@@ -126,7 +126,7 @@ describe('DNCL → Ruby: a command the Japanese mode does not have stops with an
 
     test('a Ruby name points to the Ruby mode', () => {
         expect(dnclToRuby('move(2)').errors[0].message).toBe(
-            '「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。',
+            '「move」は日本語タブでは書けない命令です。ルビータブでは書けます。',
         );
     });
 

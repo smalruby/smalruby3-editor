@@ -7,6 +7,9 @@ import { createIntl } from 'react-intl';
 import {
     japaneseBlockErrors,
     joinsStringAndNumber,
+    MULTIPLE_ASSIGNMENT_ERROR_ID,
+    multipleAssignmentExample,
+    stringPlusNumberExample,
     STRING_PLUS_NUMBER_ERROR_ID,
     withStringPlusNumberIds,
 } from '../../../../src/lib/dncl/dncl-block-check';
@@ -58,9 +61,13 @@ describe('japaneseBlockErrors', () => {
         const errors = await errorsOf('a = 1\nb = 2\na, b = b, a');
         expect(errors).toHaveLength(1);
         expect(errors[0].row).toBe(2);
-        expect(errors[0].id).toBeUndefined();
-        expect(errors[0].text).toBe(
-            '「a, b = b, a」は命令がまちがっています。\nつづりを確認するか、対応しているブロックを使ってください。',
+        // The editor tells it by the id in the words of the Japanese tab, not of the blocks (B21 of #1731).
+        expect(errors[0].id).toBe(MULTIPLE_ASSIGNMENT_ERROR_ID);
+        expect(errors[0].example).toBe('t = a、a = b、b = t');
+        expect(
+            intl.formatMessage({ id: 'gui.rubyTab.dnclMultipleAssignmentError' }, { example: errors[0].example }),
+        ).toBe(
+            '「,」で区切って、いくつかの変数にまとめて代入することはできません。1 つずつ代入してください（例: t = a、a = b、b = t）。',
         );
     });
 
@@ -75,6 +82,9 @@ describe('japaneseBlockErrors', () => {
         const errors = await errorsOf('(01) a = 1\n(02) b = 2\n(03) a, b = b, a');
         expect(errors.map((err) => err.row)).toEqual([2]);
         expect(errors[0].text).toMatch(/^「a, b = b, a」は命令がまちがっています。/);
+        // The Japanese tab tells it in its own words by the id (B21 of #1731).
+        expect(errors[0].id).toBe(MULTIPLE_ASSIGNMENT_ERROR_ID);
+        expect(errors[0].example).toBe('t = a、a = b、b = t');
     });
 });
 
@@ -114,7 +124,75 @@ describe('withStringPlusNumberIds', () => {
         ];
         expect(withStringPlusNumberIds(errors, lines)).toEqual([
             { row: 0, column: 0, text: 'x' },
-            { row: 1, column: 0, text: 'y', id: STRING_PLUS_NUMBER_ERROR_ID },
+            {
+                row: 1,
+                column: 0,
+                text: 'y',
+                id: STRING_PLUS_NUMBER_ERROR_ID,
+                example: { number: '3', fixed: '"残り" + 文字列(3)', inline: '"残り3"' },
+            },
         ]);
+    });
+});
+
+// The example of the error is the expression the student wrote (B21 of #1731).
+describe('stringPlusNumberExample', () => {
+    test.each([
+        ['s = "a" + 1', { number: '1', fixed: '"a" + 文字列(1)', inline: '"a1"' }],
+        ["表示する('a' + 1.5)", { number: '1.5', fixed: "'a' + 文字列(1.5)", inline: "'a1.5'" }],
+        ['表示する(「残り」 ＋ ３)', { number: '３', fixed: '「残り」 + 文字列(３)', inline: '「残り３」' }],
+        ['表示する(1 + "個")', { number: '1', fixed: '文字列(1) + "個"', inline: '"1個"' }],
+    ])('%s', (line, example) => {
+        expect(stringPlusNumberExample(line)).toEqual(example);
+    });
+
+    test('a line without such a + has none', () => {
+        expect(stringPlusNumberExample('表示する("残り" + a)')).toBeNull();
+    });
+});
+
+// Several variables assigned at once are told to be assigned one by one (B21 of #1731).
+describe('multipleAssignmentExample', () => {
+    test.each([
+        ['a, b = b, a', 't = a、a = b、b = t'],
+        ['a, b ← b, a', 't ← a、a ← b、b ← t'],
+        ['t, u = u, t', 'tmp = t、t = u、u = tmp'],
+        ['(03) a, b = 1, 2', 'a = 1、b = 2'],
+        ['A[0], A[1] = A[1], A[0]', 't = A[0]、A[0] = A[1]、A[1] = t'],
+        ['a, b, c = 1, f(2, 3), "x,y"', 'a = 1、b = f(2, 3)、c = "x,y"'],
+    ])('%s', (line, example) => {
+        expect(multipleAssignmentExample(line)).toEqual({ example });
+    });
+
+    test('the swap takes a variable the program does not use', () => {
+        expect(multipleAssignmentExample('a, b = b, a', 't = 1\na, b = b, a')).toEqual({
+            example: 'tmp = a、a = b、b = tmp',
+        });
+        expect(multipleAssignmentExample('a, b = b, a', '表示する("t")\na, b = b, a')).toEqual({
+            example: 't = a、a = b、b = t',
+        });
+        expect(multipleAssignmentExample('a, b = b, a', 't = 1\ntmp = 2\n一時 = 3\na, b = b, a')).toEqual({
+            example: null,
+        });
+    });
+
+    test('values that do not match the variables have no example', () => {
+        expect(multipleAssignmentExample('a, b = c')).toEqual({ example: null });
+    });
+
+    // One by one in the same order would use a variable already changed, so no example misleads.
+    test.each(['a, b = b, a + b', 'a, b = 1, a', 'i, A[i] = 1, 2', 'A[0], A[1] = 1, A[0]'])(
+        '%s has no example',
+        (line) => {
+            expect(multipleAssignmentExample(line)).toEqual({ example: null });
+        },
+    );
+
+    test('a value that uses a later variable or a name in a string still has the example', () => {
+        expect(multipleAssignmentExample('a, b = b + 1, "a"')).toEqual({ example: 'a = b + 1、b = "a"' });
+    });
+
+    test.each(['a = 1', '表示する(a, b)', 'もし a == b ならば:', 'a, b == c'])('%s is not one', (line) => {
+        expect(multipleAssignmentExample(line)).toBeNull();
     });
 });

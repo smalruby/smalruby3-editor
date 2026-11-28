@@ -7,14 +7,14 @@
         "column": 4,
         "id": "unsupportedCommand",
         "name": "direction",
-        "message": "「direction」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「direction」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       },
       {
         "line": 2,
         "column": 8,
         "id": "unsupportedCommand",
         "name": "y_position",
-        "message": "「y_position」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「y_position」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -30,7 +30,7 @@
         "column": 6,
         "id": "unsupportedCommand",
         "name": "costume_number",
-        "message": "「costume_number」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「costume_number」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -46,7 +46,7 @@
         "column": 10,
         "id": "unsupportedCommand",
         "name": "x_position",
-        "message": "「x_position」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「x_position」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -62,14 +62,14 @@
         "column": 13,
         "id": "unsupportedCommand",
         "name": "x_position",
-        "message": "「x_position」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「x_position」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       },
       {
         "line": 4,
         "column": 9,
         "id": "unsupportedCommand",
         "name": "costume_number",
-        "message": "「costume_number」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「costume_number」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -85,7 +85,7 @@
         "column": 1,
         "id": "unsupportedCommand",
         "name": "bounce_if_on_edge",
-        "message": "「bounce_if_on_edge」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「bounce_if_on_edge」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -96,7 +96,7 @@
           "column": 1,
           "id": "unsupportedCommand",
           "name": "bounce_if_on_edge",
-          "message": "「bounce_if_on_edge」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「bounce_if_on_edge」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         }
       ]
     }
@@ -117,7 +117,7 @@
         "column": 6,
         "id": "unsupportedCommand",
         "name": "x_position",
-        "message": "「x_position」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「x_position」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -173,14 +173,14 @@
         "column": 6,
         "id": "stageVariable",
         "name": "$b",
-        "message": "ステージの変数（$b）は日本語モードでは書けません。Ruby モードでは書けます。"
+        "message": "ステージの変数（$b）は日本語タブでは書けません。ルビータブでは書けます。"
       },
       {
         "line": 3,
         "column": 8,
         "id": "unsupportedNotation",
         "name": "nil",
-        "message": "「nil」は日本語モードでは書けません。Ruby モードでは書けます。"
+        "message": "「nil」は日本語タブでは書けません。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -191,7 +191,7 @@
           "column": 5,
           "id": "forbiddenPrefix",
           "name": "$",
-          "message": "日本語モードでは変数に「$」は使えません"
+          "message": "日本語タブでは変数に「$」は使えません"
         }
       ]
     }
@@ -900,14 +900,14 @@
         "column": 10,
         "id": "unsupportedCommand",
         "name": "each",
-        "message": "「each」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「each」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       },
       {
         "line": 3,
         "column": 5,
         "id": "unsupportedCommand",
         "name": "move",
-        "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「move」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -918,14 +918,14 @@
           "column": 12,
           "id": "unsupportedCommand",
           "name": "each",
-          "message": "「each」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「each」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         },
         {
           "line": 3,
           "column": 7,
           "id": "unsupportedCommand",
           "name": "move",
-          "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「move」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         }
       ]
     }
@@ -938,14 +938,14 @@
         "column": 9,
         "id": "unsupportedCommand",
         "name": "each",
-        "message": "「each」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「each」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       },
       {
         "line": 3,
         "column": 5,
         "id": "unsupportedCommand",
         "name": "move",
-        "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「move」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -956,21 +956,21 @@
           "column": 5,
           "id": "forbiddenPrefix",
           "name": "@",
-          "message": "日本語モードでは変数に「@」は使えません"
+          "message": "日本語タブでは変数に「@」は使えません"
         },
         {
           "line": 2,
           "column": 11,
           "id": "unsupportedCommand",
           "name": "each",
-          "message": "「each」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「each」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         },
         {
           "line": 3,
           "column": 7,
           "id": "unsupportedCommand",
           "name": "move",
-          "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「move」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         }
       ]
     }
@@ -991,14 +991,14 @@
         "column": 3,
         "id": "unsupportedCommand",
         "name": "loop",
-        "message": "「loop」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「loop」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       },
       {
         "line": 3,
         "column": 5,
         "id": "unsupportedCommand",
         "name": "move",
-        "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「move」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -1009,14 +1009,14 @@
           "column": 5,
           "id": "unsupportedCommand",
           "name": "loop",
-          "message": "「loop」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「loop」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         },
         {
           "line": 3,
           "column": 7,
           "id": "unsupportedCommand",
           "name": "move",
-          "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「move」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         }
       ]
     }
@@ -1029,14 +1029,14 @@
         "column": 1,
         "id": "unsupportedCommand",
         "name": "when_flag_clicked",
-        "message": "「when_flag_clicked」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「when_flag_clicked」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       },
       {
         "line": 2,
         "column": 3,
         "id": "unsupportedCommand",
         "name": "move",
-        "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「move」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -1047,14 +1047,14 @@
           "column": 1,
           "id": "unsupportedCommand",
           "name": "when_flag_clicked",
-          "message": "「when_flag_clicked」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「when_flag_clicked」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         },
         {
           "line": 2,
           "column": 3,
           "id": "unsupportedCommand",
           "name": "move",
-          "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「move」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         }
       ]
     }
@@ -1066,27 +1066,27 @@
         "line": 1,
         "column": 1,
         "id": "postTestLoop",
-        "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+        "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。ルビータブでは書けます。"
       },
       {
         "line": 2,
         "column": 3,
         "id": "unsupportedCommand",
         "name": "with_screen_refresh",
-        "message": "「with_screen_refresh」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「with_screen_refresh」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       },
       {
         "line": 3,
         "column": 5,
         "id": "unsupportedCommand",
         "name": "move",
-        "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「move」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       },
       {
         "line": 5,
         "column": 1,
         "id": "postTestLoop",
-        "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+        "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -1096,27 +1096,27 @@
           "line": 1,
           "column": 1,
           "id": "postTestLoop",
-          "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+          "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。ルビータブでは書けます。"
         },
         {
           "line": 2,
           "column": 3,
           "id": "unsupportedCommand",
           "name": "with_screen_refresh",
-          "message": "「with_screen_refresh」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「with_screen_refresh」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         },
         {
           "line": 3,
           "column": 5,
           "id": "unsupportedCommand",
           "name": "move",
-          "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「move」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         },
         {
           "line": 5,
           "column": 1,
           "id": "postTestLoop",
-          "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+          "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。ルビータブでは書けます。"
         }
       ]
     }
@@ -1129,7 +1129,7 @@
         "column": 3,
         "id": "unsupportedCommand",
         "name": "move",
-        "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「move」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -1140,7 +1140,7 @@
           "column": 5,
           "id": "unsupportedCommand",
           "name": "move",
-          "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「move」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         }
       ]
     }
@@ -1161,21 +1161,21 @@
         "column": 5,
         "id": "unsupportedCommand",
         "name": "loop",
-        "message": "「loop」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「loop」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       },
       {
         "line": 4,
         "column": 14,
         "id": "unsupportedCommand",
         "name": "each",
-        "message": "「each」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「each」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       },
       {
         "line": 6,
         "column": 11,
         "id": "unsupportedCommand",
         "name": "move",
-        "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「move」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -1186,28 +1186,28 @@
           "column": 9,
           "id": "unsupportedCommand",
           "name": "loop",
-          "message": "「loop」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「loop」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         },
         {
           "line": 4,
           "column": 18,
           "id": "unsupportedCommand",
           "name": "each",
-          "message": "「each」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「each」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         },
         {
           "line": 5,
           "column": 16,
           "id": "forbiddenPrefix",
           "name": "@",
-          "message": "日本語モードでは変数に「@」は使えません"
+          "message": "日本語タブでは変数に「@」は使えません"
         },
         {
           "line": 6,
           "column": 15,
           "id": "unsupportedCommand",
           "name": "move",
-          "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「move」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         }
       ]
     }
@@ -1220,14 +1220,14 @@
         "column": 8,
         "id": "unsupportedCommand",
         "name": "when",
-        "message": "「when」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「when」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       },
       {
         "line": 3,
         "column": 5,
         "id": "unsupportedCommand",
         "name": "move",
-        "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「move」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -1238,14 +1238,14 @@
           "column": 10,
           "id": "unsupportedCommand",
           "name": "when",
-          "message": "「when」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「when」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         },
         {
           "line": 3,
           "column": 7,
           "id": "unsupportedCommand",
           "name": "move",
-          "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「move」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         }
       ]
     }
@@ -1258,7 +1258,7 @@
         "column": 3,
         "id": "unsupportedCommand",
         "name": "with_screen_refresh",
-        "message": "「with_screen_refresh」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「with_screen_refresh」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -1269,14 +1269,14 @@
           "column": 5,
           "id": "unsupportedCommand",
           "name": "with_screen_refresh",
-          "message": "「with_screen_refresh」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「with_screen_refresh」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         },
         {
           "line": 3,
           "column": 7,
           "id": "forbiddenPrefix",
           "name": "@",
-          "message": "日本語モードでは変数に「@」は使えません"
+          "message": "日本語タブでは変数に「@」は使えません"
         }
       ]
     }
@@ -1297,14 +1297,14 @@
         "column": 3,
         "id": "unsupportedCommand",
         "name": "when_flag_clicked",
-        "message": "「when_flag_clicked」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「when_flag_clicked」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       },
       {
         "line": 3,
         "column": 5,
         "id": "unsupportedCommand",
         "name": "move",
-        "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「move」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -1315,14 +1315,14 @@
           "column": 5,
           "id": "unsupportedCommand",
           "name": "when_flag_clicked",
-          "message": "「when_flag_clicked」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「when_flag_clicked」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         },
         {
           "line": 3,
           "column": 7,
           "id": "unsupportedCommand",
           "name": "move",
-          "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「move」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         }
       ]
     }
@@ -1335,14 +1335,14 @@
         "column": 3,
         "id": "unsupportedCommand",
         "name": "when_key_pressed",
-        "message": "「when_key_pressed」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「when_key_pressed」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       },
       {
         "line": 3,
         "column": 5,
         "id": "unsupportedCommand",
         "name": "move",
-        "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「move」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -1353,14 +1353,14 @@
           "column": 5,
           "id": "unsupportedCommand",
           "name": "when_key_pressed",
-          "message": "「when_key_pressed」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「when_key_pressed」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         },
         {
           "line": 3,
           "column": 7,
           "id": "unsupportedCommand",
           "name": "move",
-          "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「move」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         }
       ]
     }
@@ -1789,14 +1789,14 @@
         "column": 5,
         "id": "unsupportedCommand",
         "name": "next",
-        "message": "「next」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「next」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       },
       {
         "line": 7,
         "column": 3,
         "id": "unsupportedCommand",
         "name": "break",
-        "message": "「break」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「break」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -1807,14 +1807,14 @@
           "column": 9,
           "id": "unsupportedCommand",
           "name": "next",
-          "message": "「next」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「next」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         },
         {
           "line": 6,
           "column": 5,
           "id": "unsupportedCommand",
           "name": "break",
-          "message": "「break」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「break」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         }
       ]
     }
@@ -1827,14 +1827,14 @@
         "column": 3,
         "id": "unsupportedCommand",
         "name": "break",
-        "message": "「break」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「break」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       },
       {
         "line": 3,
         "column": 9,
         "id": "unsupportedNotation",
         "name": "if",
-        "message": "「if」は日本語モードでは書けません。Ruby モードでは書けます。"
+        "message": "「if」は日本語タブでは書けません。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -1845,7 +1845,7 @@
           "column": 14,
           "id": "forbiddenPrefix",
           "name": "@",
-          "message": "日本語モードでは変数に「@」は使えません"
+          "message": "日本語タブでは変数に「@」は使えません"
         }
       ]
     }
@@ -1858,14 +1858,14 @@
         "column": 3,
         "id": "unsupportedCommand",
         "name": "next",
-        "message": "「next」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「next」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       },
       {
         "line": 4,
         "column": 8,
         "id": "unsupportedNotation",
         "name": "unless",
-        "message": "「unless」は日本語モードでは書けません。Ruby モードでは書けます。"
+        "message": "「unless」は日本語タブでは書けません。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -1876,7 +1876,7 @@
           "column": 17,
           "id": "forbiddenPrefix",
           "name": "@",
-          "message": "日本語モードでは変数に「@」は使えません"
+          "message": "日本語タブでは変数に「@」は使えません"
         }
       ]
     }
@@ -1899,14 +1899,14 @@
           "column": 13,
           "id": "forbiddenPrefix",
           "name": "@",
-          "message": "日本語モードでは変数に「@」は使えません"
+          "message": "日本語タブでは変数に「@」は使えません"
         },
         {
           "line": 4,
           "column": 14,
           "id": "forbiddenPrefix",
           "name": "@",
-          "message": "日本語モードでは変数に「@」は使えません"
+          "message": "日本語タブでは変数に「@」は使えません"
         }
       ]
     }
@@ -1919,14 +1919,14 @@
         "column": 6,
         "id": "unsupportedNotation",
         "name": "{}",
-        "message": "「{}」は日本語モードでは書けません。Ruby モードでは書けます。"
+        "message": "「{}」は日本語タブでは書けません。ルビータブでは書けます。"
       },
       {
         "line": 2,
         "column": 9,
         "id": "unsupportedNotation",
         "name": ":a",
-        "message": "「:a」は日本語モードでは書けません。Ruby モードでは書けます。"
+        "message": "「:a」は日本語タブでは書けません。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -1953,7 +1953,7 @@
         "column": 9,
         "id": "unsupportedNotation",
         "name": "unless",
-        "message": "「unless」は日本語モードでは書けません。Ruby モードでは書けます。"
+        "message": "「unless」は日本語タブでは書けません。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -1964,7 +1964,7 @@
           "column": 16,
           "id": "forbiddenPrefix",
           "name": "@",
-          "message": "日本語モードでは変数に「@」は使えません"
+          "message": "日本語タブでは変数に「@」は使えません"
         }
       ]
     }
@@ -1977,7 +1977,7 @@
         "column": 1,
         "id": "unsupportedNotation",
         "name": "case",
-        "message": "「case」は日本語モードでは書けません。Ruby モードでは書けます。"
+        "message": "「case」は日本語タブでは書けません。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -1988,7 +1988,7 @@
           "column": 6,
           "id": "forbiddenPrefix",
           "name": "@",
-          "message": "日本語モードでは変数に「@」は使えません"
+          "message": "日本語タブでは変数に「@」は使えません"
         }
       ]
     }
@@ -2001,7 +2001,7 @@
         "column": 6,
         "id": "unsupportedNotation",
         "name": "@x ? 1 : 2",
-        "message": "「@x ? 1 : 2」は日本語モードでは書けません。Ruby モードでは書けます。"
+        "message": "「@x ? 1 : 2」は日本語タブでは書けません。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -2012,7 +2012,7 @@
           "column": 5,
           "id": "forbiddenPrefix",
           "name": "@",
-          "message": "日本語モードでは変数に「@」は使えません"
+          "message": "日本語タブでは変数に「@」は使えません"
         }
       ]
     }
@@ -2041,7 +2041,7 @@
         "column": 6,
         "id": "unsupportedNumber",
         "name": "017",
-        "message": "「017」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
+        "message": "「017」は日本語タブでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -2057,7 +2057,7 @@
         "column": 6,
         "id": "unsupportedNumber",
         "name": "017",
-        "message": "「017」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
+        "message": "「017」は日本語タブでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -2120,7 +2120,7 @@
         "column": 6,
         "id": "unsupportedNumber",
         "name": "0x5",
-        "message": "「0x5」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
+        "message": "「0x5」は日本語タブでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -2131,7 +2131,7 @@
           "column": 5,
           "id": "unsupportedNumber",
           "name": "0x5",
-          "message": "「0x5」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
+          "message": "「0x5」は日本語タブでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。ルビータブでは書けます。"
         }
       ]
     }
@@ -2144,7 +2144,7 @@
         "column": 6,
         "id": "unsupportedNumber",
         "name": "1_000",
-        "message": "「1_000」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
+        "message": "「1_000」は日本語タブでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -2155,7 +2155,7 @@
           "column": 5,
           "id": "unsupportedNumber",
           "name": "1_000",
-          "message": "「1_000」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
+          "message": "「1_000」は日本語タブでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。ルビータブでは書けます。"
         }
       ]
     }
@@ -2168,7 +2168,7 @@
         "column": 6,
         "id": "unsupportedNumber",
         "name": "1e3",
-        "message": "「1e3」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
+        "message": "「1e3」は日本語タブでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -2179,7 +2179,7 @@
           "column": 5,
           "id": "unsupportedNumber",
           "name": "1e3",
-          "message": "「1e3」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
+          "message": "「1e3」は日本語タブでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。ルビータブでは書けます。"
         }
       ]
     }
@@ -2200,7 +2200,7 @@
         "column": 6,
         "id": "unsupportedNumber",
         "name": "0b101",
-        "message": "「0b101」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
+        "message": "「0b101」は日本語タブでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -2211,7 +2211,7 @@
           "column": 6,
           "id": "unsupportedNumber",
           "name": "0b101",
-          "message": "「0b101」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
+          "message": "「0b101」は日本語タブでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。ルビータブでは書けます。"
         }
       ]
     }
@@ -2224,7 +2224,7 @@
         "column": 6,
         "id": "unsupportedNumber",
         "name": "1e3",
-        "message": "「1e3」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
+        "message": "「1e3」は日本語タブでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -2235,7 +2235,7 @@
           "column": 5,
           "id": "unsupportedNumber",
           "name": "1e3",
-          "message": "「1e3」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。"
+          "message": "「1e3」は日本語タブでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。ルビータブでは書けます。"
         }
       ]
     }
@@ -2247,13 +2247,13 @@
         "line": 1,
         "column": 1,
         "id": "postTestLoop",
-        "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+        "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。ルビータブでは書けます。"
       },
       {
         "line": 3,
         "column": 1,
         "id": "postTestLoop",
-        "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+        "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -2263,20 +2263,20 @@
           "line": 1,
           "column": 1,
           "id": "postTestLoop",
-          "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+          "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。ルビータブでは書けます。"
         },
         {
           "line": 2,
           "column": 3,
           "id": "forbiddenPrefix",
           "name": "@",
-          "message": "日本語モードでは変数に「@」は使えません"
+          "message": "日本語タブでは変数に「@」は使えません"
         },
         {
           "line": 3,
           "column": 1,
           "id": "postTestLoop",
-          "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+          "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。ルビータブでは書けます。"
         }
       ]
     }
@@ -2288,13 +2288,13 @@
         "line": 2,
         "column": 1,
         "id": "postTestLoop",
-        "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+        "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。ルビータブでは書けます。"
       },
       {
         "line": 4,
         "column": 1,
         "id": "postTestLoop",
-        "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+        "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -2304,20 +2304,20 @@
           "line": 2,
           "column": 1,
           "id": "postTestLoop",
-          "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+          "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。ルビータブでは書けます。"
         },
         {
           "line": 3,
           "column": 3,
           "id": "forbiddenPrefix",
           "name": "@",
-          "message": "日本語モードでは変数に「@」は使えません"
+          "message": "日本語タブでは変数に「@」は使えません"
         },
         {
           "line": 4,
           "column": 1,
           "id": "postTestLoop",
-          "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+          "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。ルビータブでは書けます。"
         }
       ]
     }
@@ -2329,13 +2329,13 @@
         "line": 2,
         "column": 1,
         "id": "postTestLoop",
-        "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+        "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。ルビータブでは書けます。"
       },
       {
         "line": 4,
         "column": 1,
         "id": "postTestLoop",
-        "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+        "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -2345,20 +2345,20 @@
           "line": 2,
           "column": 1,
           "id": "postTestLoop",
-          "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+          "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。ルビータブでは書けます。"
         },
         {
           "line": 3,
           "column": 7,
           "id": "forbiddenPrefix",
           "name": "@",
-          "message": "日本語モードでは変数に「@」は使えません"
+          "message": "日本語タブでは変数に「@」は使えません"
         },
         {
           "line": 4,
           "column": 1,
           "id": "postTestLoop",
-          "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+          "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。ルビータブでは書けます。"
         }
       ]
     }
@@ -2370,13 +2370,13 @@
         "line": 1,
         "column": 1,
         "id": "postTestLoop",
-        "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+        "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。ルビータブでは書けます。"
       },
       {
         "line": 3,
         "column": 1,
         "id": "postTestLoop",
-        "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+        "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -2386,20 +2386,20 @@
           "line": 1,
           "column": 1,
           "id": "postTestLoop",
-          "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+          "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。ルビータブでは書けます。"
         },
         {
           "line": 2,
           "column": 3,
           "id": "forbiddenPrefix",
           "name": "@",
-          "message": "日本語モードでは変数に「@」は使えません"
+          "message": "日本語タブでは変数に「@」は使えません"
         },
         {
           "line": 3,
           "column": 1,
           "id": "postTestLoop",
-          "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+          "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。ルビータブでは書けます。"
         }
       ]
     }
@@ -2411,13 +2411,13 @@
         "line": 3,
         "column": 1,
         "id": "postTestLoop",
-        "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+        "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。ルビータブでは書けます。"
       },
       {
         "line": 5,
         "column": 1,
         "id": "postTestLoop",
-        "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+        "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -2427,20 +2427,20 @@
           "line": 3,
           "column": 1,
           "id": "postTestLoop",
-          "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+          "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。ルビータブでは書けます。"
         },
         {
           "line": 4,
           "column": 3,
           "id": "forbiddenPrefix",
           "name": "@",
-          "message": "日本語モードでは変数に「@」は使えません"
+          "message": "日本語タブでは変数に「@」は使えません"
         },
         {
           "line": 5,
           "column": 1,
           "id": "postTestLoop",
-          "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。"
+          "message": "後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。ルビータブでは書けます。"
         }
       ]
     }
@@ -2805,7 +2805,7 @@
         "column": 1,
         "id": "unsupportedCommand",
         "name": "move",
-        "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「move」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -2816,7 +2816,7 @@
           "column": 1,
           "id": "unsupportedCommand",
           "name": "move",
-          "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「move」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         }
       ]
     }
@@ -2909,14 +2909,14 @@
         "column": 1,
         "id": "unsupportedCommand",
         "name": "move",
-        "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「move」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       },
       {
         "line": 3,
         "column": 1,
         "id": "unsupportedCommand",
         "name": "bounce_if_on_edge",
-        "message": "「bounce_if_on_edge」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「bounce_if_on_edge」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -2927,14 +2927,14 @@
           "column": 1,
           "id": "unsupportedCommand",
           "name": "move",
-          "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「move」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         },
         {
           "line": 3,
           "column": 1,
           "id": "unsupportedCommand",
           "name": "bounce_if_on_edge",
-          "message": "「bounce_if_on_edge」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「bounce_if_on_edge」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         }
       ]
     }
@@ -2947,14 +2947,14 @@
         "column": 3,
         "id": "unsupportedCommand",
         "name": "with_screen_refresh",
-        "message": "「with_screen_refresh」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「with_screen_refresh」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       },
       {
         "line": 3,
         "column": 5,
         "id": "unsupportedCommand",
         "name": "move",
-        "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「move」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -2965,14 +2965,14 @@
           "column": 5,
           "id": "unsupportedCommand",
           "name": "with_screen_refresh",
-          "message": "「with_screen_refresh」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「with_screen_refresh」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         },
         {
           "line": 3,
           "column": 7,
           "id": "unsupportedCommand",
           "name": "move",
-          "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「move」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         }
       ]
     }
@@ -2985,7 +2985,7 @@
         "column": 4,
         "id": "unsupportedCommand",
         "name": "key_pressed?",
-        "message": "「key_pressed?」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「key_pressed?」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -2996,7 +2996,7 @@
           "column": 4,
           "id": "unsupportedCommand",
           "name": "key_pressed?",
-          "message": "「key_pressed?」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「key_pressed?」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         }
       ]
     }
@@ -3017,7 +3017,7 @@
         "column": 3,
         "id": "unsupportedCommand",
         "name": "turn_right",
-        "message": "「turn_right」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「turn_right」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -3028,7 +3028,7 @@
           "column": 5,
           "id": "unsupportedCommand",
           "name": "turn_right",
-          "message": "「turn_right」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「turn_right」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         }
       ]
     }
@@ -3137,7 +3137,7 @@
         "column": 7,
         "id": "unsupportedCommand",
         "name": "f",
-        "message": "「f」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「f」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -3148,7 +3148,7 @@
           "column": 9,
           "id": "unsupportedCommand",
           "name": "f",
-          "message": "「f」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「f」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         }
       ]
     }
@@ -3201,7 +3201,7 @@
         "column": 3,
         "id": "unsupportedCommand",
         "name": "with_screen_refresh",
-        "message": "「with_screen_refresh」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「with_screen_refresh」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -3212,14 +3212,14 @@
           "column": 5,
           "id": "unsupportedCommand",
           "name": "with_screen_refresh",
-          "message": "「with_screen_refresh」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「with_screen_refresh」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         },
         {
           "line": 4,
           "column": 7,
           "id": "forbiddenPrefix",
           "name": "@",
-          "message": "日本語モードでは変数に「@」は使えません"
+          "message": "日本語タブでは変数に「@」は使えません"
         }
       ]
     }
@@ -3232,7 +3232,7 @@
         "column": 1,
         "id": "unsupportedCommand",
         "name": "broadcast",
-        "message": "「broadcast」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「broadcast」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -3243,7 +3243,7 @@
           "column": 1,
           "id": "unsupportedCommand",
           "name": "broadcast",
-          "message": "「broadcast」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「broadcast」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         }
       ]
     }
@@ -3256,7 +3256,7 @@
         "column": 1,
         "id": "unsupportedCommand",
         "name": "move",
-        "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「move」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -3267,7 +3267,7 @@
           "column": 1,
           "id": "unsupportedCommand",
           "name": "move",
-          "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「move」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         }
       ]
     }
@@ -3280,7 +3280,7 @@
         "column": 1,
         "id": "unsupportedCommand",
         "name": "turn_right",
-        "message": "「turn_right」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「turn_right」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -3291,7 +3291,7 @@
           "column": 1,
           "id": "unsupportedCommand",
           "name": "turn_right",
-          "message": "「turn_right」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「turn_right」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         }
       ]
     }
@@ -3304,7 +3304,7 @@
         "column": 1,
         "id": "unsupportedCommand",
         "name": "when_clicked",
-        "message": "「when_clicked」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「when_clicked」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -3315,7 +3315,7 @@
           "column": 1,
           "id": "unsupportedCommand",
           "name": "when_clicked",
-          "message": "「when_clicked」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「when_clicked」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         }
       ]
     }
@@ -3328,7 +3328,7 @@
         "column": 1,
         "id": "unsupportedCommand",
         "name": "when_flag_clicked",
-        "message": "「when_flag_clicked」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「when_flag_clicked」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -3339,7 +3339,7 @@
           "column": 1,
           "id": "unsupportedCommand",
           "name": "when_flag_clicked",
-          "message": "「when_flag_clicked」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「when_flag_clicked」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         }
       ]
     }
@@ -3352,7 +3352,7 @@
         "column": 1,
         "id": "unsupportedCommand",
         "name": "when_key_pressed",
-        "message": "「when_key_pressed」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「when_key_pressed」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -3363,7 +3363,7 @@
           "column": 1,
           "id": "unsupportedCommand",
           "name": "when_key_pressed",
-          "message": "「when_key_pressed」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「when_key_pressed」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         }
       ]
     }
@@ -3816,7 +3816,7 @@
         "column": 11,
         "id": "unsupportedCommand",
         "name": "map",
-        "message": "「map」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「map」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -3827,7 +3827,7 @@
           "column": 5,
           "id": "forbiddenPrefix",
           "name": "@",
-          "message": "日本語モードでは変数に「@」は使えません"
+          "message": "日本語タブでは変数に「@」は使えません"
         }
       ]
     }
@@ -3944,7 +3944,7 @@
         "column": 1,
         "id": "unsupportedCommand",
         "name": "move",
-        "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+        "message": "「move」は日本語タブでは書けない命令です。ルビータブでは書けます。"
       }
     ],
     "back": {
@@ -3955,7 +3955,7 @@
           "column": 1,
           "id": "unsupportedCommand",
           "name": "move",
-          "message": "「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
+          "message": "「move」は日本語タブでは書けない命令です。ルビータブでは書けます。"
         }
       ]
     }

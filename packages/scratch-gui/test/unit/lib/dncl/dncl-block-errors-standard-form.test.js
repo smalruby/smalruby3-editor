@@ -118,3 +118,24 @@ describe('a line at an indent that does not line up (Issue #2555)', () => {
         );
     });
 });
+
+describe('a block whose indented line cannot be read is not told to indent it (B20 of #1731)', () => {
+    test('only the missing ")" is told', () => {
+        expect(blockErrorsOf(lines('もし 1 > 0 ならば:', '    表示する(1'))).toEqual([
+            { line: 2, message: '「)」が要ります' },
+        ]);
+    });
+
+    test('a later indented line that cannot be read is told alone', () => {
+        expect(blockErrorsOf(lines('a < 10 の間繰り返す:', '    a = a + 1', '    表示する(a'))).toEqual([
+            { line: 3, message: '「)」が要ります' },
+        ]);
+    });
+
+    test('a block whose lines are not indented is still told to indent them', () => {
+        expect(blockErrorsOf(lines('もし 1 > 0 ならば:', '表示する(1'))).toContainEqual({
+            line: 1,
+            message: '「もし〜ならば:」の中の行を字下げしてください',
+        });
+    });
+});

@@ -73,7 +73,7 @@ describe('checkDnclAnswer', () => {
         const result = await check('a = 1\n@b = 2');
         expect(result.ok).toBe(false);
         expect(result.problems).toEqual([
-            { type: 'error', sprite: null, row: 1, text: '日本語モードでは変数に「@」は使えません' },
+            { type: 'error', sprite: null, row: 1, text: '日本語タブでは変数に「@」は使えません' },
         ]);
     });
 

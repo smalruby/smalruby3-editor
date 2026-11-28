@@ -14,7 +14,7 @@ beforeAll(() => loadPrism());
 
 // The localized message used in the actual component (ja locale).
 const DNCL_VALIDATION_MESSAGE =
-    '日本語モードでは対応していない記述です。\n対応している命令のみにしてから、日本語タブを開いてください。';
+    '日本語タブでは対応していない記述です。\n対応している命令のみにしてから、日本語タブを開いてください。';
 
 /**
  * Simulate the DNCL mode switch validation pipeline:

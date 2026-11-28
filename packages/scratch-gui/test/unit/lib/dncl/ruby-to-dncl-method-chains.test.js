@@ -35,8 +35,8 @@ describe('Ruby → Japanese: a built-in on any receiver (Issue #1699)', () => {
 
 describe('Ruby → Japanese: a method with no Japanese form is an error (Issue #1699)', () => {
     test.each([
-        ['@b = @x.round(2)', '「round」は日本語モードでは書けない命令です。Ruby モードでは書けます。'],
-        ['@b = @s.upcase.length', '「upcase」は日本語モードでは書けない命令です。Ruby モードでは書けます。'],
+        ['@b = @x.round(2)', '「round」は日本語タブでは書けない命令です。ルビータブでは書けます。'],
+        ['@b = @s.upcase.length', '「upcase」は日本語タブでは書けない命令です。ルビータブでは書けます。'],
     ])('%s', (ruby, message) => {
         const result = rubyToDncl(ruby);
         expect(messages(result.errors)).toEqual([{ line: 1, message }]);

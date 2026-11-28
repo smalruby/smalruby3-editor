@@ -209,7 +209,7 @@ describe('the errors of dnclToRuby and a # in a string', () => {
         column,
         id: FORBIDDEN_PREFIX_ERROR_ID,
         name: '@',
-        message: '日本語モードでは変数に「@」は使えません',
+        message: '日本語タブでは変数に「@」は使えません',
     });
 
     test.each([
@@ -222,7 +222,7 @@ describe('the errors of dnclToRuby and a # in a string', () => {
         expect(errors).toHaveLength(1);
         expect(errors[0].line).toBe(1);
         expect(errors[0].column).toBe(column);
-        expect(errors[0].message).toMatch(/日本語モードでは変数に「[@$]」は使えません/);
+        expect(errors[0].message).toMatch(/日本語タブでは変数に「[@$]」は使えません/);
     });
 
     test('the error stops the conversion of the line from the issue', () => {

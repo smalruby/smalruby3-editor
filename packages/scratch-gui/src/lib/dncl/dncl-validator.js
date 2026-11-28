@@ -14,7 +14,7 @@ const POST_TEST_LOOP_ERROR_ID = 'postTestLoop';
 
 const POST_TEST_LOOP_MESSAGE =
     '後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。' +
-    '最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。';
+    '最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。ルビータブでは書けます。';
 
 // `begin` / `end while 〜` / `end until 〜` (the Ruby of the post-test loop,
 // shown as it is by rubyToDncl), and `繰り返し、… を、〜になるまで実行する`
@@ -81,7 +81,7 @@ const isRubyCommandName = (name) => /^[A-Za-z_]/.test(name);
  */
 const unsupportedCommandMessage = (name) =>
     isRubyCommandName(name)
-        ? `「${name}」は日本語モードでは書けない命令です。Ruby モードでは書けます。`
+        ? `「${name}」は日本語タブでは書けない命令です。ルビータブでは書けます。`
         : `「${name}」は定義されていない関数です。「関数 ${name}(…):」で定義してください。`;
 
 /**
@@ -145,8 +145,8 @@ const UNSUPPORTED_NUMBER_ERROR_ID = 'unsupportedNumber';
  * @returns {string} The message.
  */
 const unsupportedNumberMessage = (name) =>
-    `「${name}」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。` +
-    '「1000」「0.5」のように書いてください。Ruby モードでは書けます。';
+    `「${name}」は日本語タブでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。` +
+    '「1000」「0.5」のように書いてください。ルビータブでは書けます。';
 
 /**
  * The id of the error for `@` / `$` written in the Japanese (issue #1674): the names of the
@@ -155,6 +155,13 @@ const unsupportedNumberMessage = (name) =>
  * character), at the character.
  */
 const FORBIDDEN_PREFIX_ERROR_ID = 'forbiddenPrefix';
+
+/**
+ * The message of the error for `@` / `$` written in the Japanese.
+ * @param {string} name - The character (`@` / `$`).
+ * @returns {string} The message.
+ */
+const forbiddenPrefixMessage = (name) => `日本語タブでは変数に「${name}」は使えません`;
 
 /**
  * The id of the error for Ruby that has no form in the Japanese mode and is
@@ -170,7 +177,7 @@ const UNSUPPORTED_NOTATION_ERROR_ID = 'unsupportedNotation';
  * @param {string} name - The keyword or the text of the Ruby.
  * @returns {string} The message.
  */
-const unsupportedNotationMessage = (name) => `「${name}」は日本語モードでは書けません。Ruby モードでは書けます。`;
+const unsupportedNotationMessage = (name) => `「${name}」は日本語タブでは書けません。ルビータブでは書けます。`;
 
 /**
  * The id of the error for a variable or a list of the stage (`$a`) in the Ruby
@@ -186,7 +193,7 @@ const STAGE_VARIABLE_ERROR_ID = 'stageVariable';
  * @returns {string} The message.
  */
 const stageVariableMessage = (name) =>
-    `ステージの変数（${name}）は日本語モードでは書けません。Ruby モードでは書けます。`;
+    `ステージの変数（${name}）は日本語タブでは書けません。ルビータブでは書けます。`;
 
 /**
  * The command of a `do` block line: the name just before `do` and the
@@ -331,6 +338,7 @@ export {
     codeWithoutStrings,
     findUnsupportedCommands,
     FORBIDDEN_PREFIX_ERROR_ID,
+    forbiddenPrefixMessage,
     isDoBlockLine,
     isPostTestLoopLine,
     isRubyCommandName,

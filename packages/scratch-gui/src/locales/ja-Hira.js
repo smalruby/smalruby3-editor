@@ -2139,23 +2139,26 @@ export default {
         'はりつけたプログラムには、はいれつのそえじは 1 からはじまるとかいてあります。プログラムのはじめに「すべての配列の添字は 1 から始まる。」とかいて、そえじが 1 からはじまるせっていにしますか？',
     'gui.rubyToolbar.settingsPatternExample': 'れいじのかたち（そえじは 0 から）',
     'gui.rubyToolbar.settingsPatternIndexFromOne': 'そえじが 1 からはじまるもんだい',
-    'gui.rubyTab.dnclForbiddenPrefixError': 'にほんごモードでは、へんすうに「{name}」はつかえません',
+    'gui.rubyTab.dnclForbiddenPrefixError': 'にほんごタブでは、へんすうに「{name}」はつかえません',
     'gui.rubyTab.dnclPostTestLoopError':
-        'あとではんていするくりかえし（さきに 1 かいうごかしてからじょうけんをたしかめるくりかえし）は、にほんごではかけません。さいしょの 1 かいをループのまえにかいてから、「〜のあいだくりかえす」にしてください。Ruby モードではかけます。',
+        'あとではんていするくりかえし（さきに 1 かいうごかしてからじょうけんをたしかめるくりかえし）は、にほんごではかけません。さいしょの 1 かいをループのまえにかいてから、「〜のあいだくりかえす」にしてください。ルビータブではかけます。',
     'gui.rubyTab.dnclStageVariableError':
-        'ステージのへんすう（{name}）は、にほんごモードではかけません。Ruby モードではかけます。',
+        'ステージのへんすう（{name}）は、にほんごタブではかけません。ルビータブではかけます。',
     'gui.rubyTab.dnclUndefinedFunctionError':
         '「{name}」は、ていぎされていないかんすうです。「関数 {name}(…):」でていぎしてください。',
     'gui.rubyTab.dnclStringPlusNumberError':
-        'もじれつとかずを「+」でつなぐときは、かずを「文字列(3)」のようにもじれつにしてください（れい: "残り" + 文字列(3)）。かずを「"残り3"」のようにもじれつのなかにかいてもかまいません。',
+        'もじれつとかずを「+」でつなぐときは、かずを「文字列({number})」のようにもじれつにしてください（れい: {fixed}）。かずを「{inline}」のようにもじれつのなかにかいてもかまいません。',
+    'gui.rubyTab.dnclMultipleAssignmentError':
+        '「,」でくぎって、いくつかのへんすうにまとめてだいにゅうすることはできません。1 つずつだいにゅうしてください（れい: {example}）。',
+    'gui.rubyTab.dnclMultipleAssignmentErrorNoExample':
+        '「,」でくぎって、いくつかのへんすうにまとめてだいにゅうすることはできません。1 つずつだいにゅうしてください。',
     'gui.rubyTab.dnclUnsupportedCommandError':
-        '「{name}」は、にほんごモードではかけないめいれいです。Ruby モードではかけます。',
-    'gui.rubyTab.dnclUnsupportedNotationError':
-        '「{name}」は、にほんごモードではかけません。Ruby モードではかけます。',
+        '「{name}」は、にほんごタブではかけないめいれいです。ルビータブではかけます。',
+    'gui.rubyTab.dnclUnsupportedNotationError': '「{name}」は、にほんごタブではかけません。ルビータブではかけます。',
     'gui.rubyTab.dnclUnsupportedNumberError':
-        '「{name}」は、にほんごモードではかけないかずのかきかたです（16 しんすう、_ のくぎり、しすうひょうきなど）。「1000」「0.5」のようにかいてください。Ruby モードではかけます。',
+        '「{name}」は、にほんごタブではかけないかずのかきかたです（16 しんすう、_ のくぎり、しすうひょうきなど）。「1000」「0.5」のようにかいてください。ルビータブではかけます。',
     'gui.rubyTab.dnclValidationError':
-        'にほんごモードではたいおうしていないきじゅつです。\nたいおうしているめいれいのみにしてから、にほんごタブをひらいてください。',
+        'にほんごタブではたいおうしていないきじゅつです。\nたいおうしているめいれいのみにしてから、にほんごタブをひらいてください。',
     'gui.mobile.drawer.title': 'メニュー',
     'gui.mobile.sideRail.backpack': 'バックパック',
     'gui.mobile.drawer.section.file': 'ファイル',
