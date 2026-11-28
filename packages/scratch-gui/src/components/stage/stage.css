@@ -50,6 +50,13 @@
     position: relative;
 }
 
+/* === Smalruby: Start of console === */
+/* The console fills the right column of the Japanese tab in place of the stage (it keeps running). */
+.stage-wrapper.hidden-for-console {
+    display: none;
+}
+/* === Smalruby: End of console === */
+
 /* we want stage overlays to all be positioned in the same spot as the stage, but can't put them inside the border
 because we want their overflow to be visible, and the bordered element must have overflow: hidden set so that the
 stage doesn't "spill" out from under its rounded corners. instead, shift these over by the border width. */

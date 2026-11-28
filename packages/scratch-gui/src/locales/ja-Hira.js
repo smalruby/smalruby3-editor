@@ -2146,6 +2146,8 @@ export default {
         'ステージのへんすう（{name}）は、にほんごモードではかけません。Ruby モードではかけます。',
     'gui.rubyTab.dnclUndefinedFunctionError':
         '「{name}」は、ていぎされていないかんすうです。「関数 {name}(…):」でていぎしてください。',
+    'gui.rubyTab.dnclStringPlusNumberError':
+        'もじれつとかずを「+」でつなぐときは、かずを「文字列(3)」のようにもじれつにしてください（れい: "残り" + 文字列(3)）。かずを「"残り3"」のようにもじれつのなかにかいてもかまいません。',
     'gui.rubyTab.dnclUnsupportedCommandError':
         '「{name}」は、にほんごモードではかけないめいれいです。Ruby モードではかけます。',
     'gui.rubyTab.dnclUnsupportedNotationError':
@@ -2153,7 +2155,7 @@ export default {
     'gui.rubyTab.dnclUnsupportedNumberError':
         '「{name}」は、にほんごモードではかけないかずのかきかたです（16 しんすう、_ のくぎり、しすうひょうきなど）。「1000」「0.5」のようにかいてください。Ruby モードではかけます。',
     'gui.rubyTab.dnclValidationError':
-        'にほんごモードではたいおうしていないきじゅつです。\nたいおうしているめいれいのみにしてから、モードきりかえをおこなってください。',
+        'にほんごモードではたいおうしていないきじゅつです。\nたいおうしているめいれいのみにしてから、にほんごタブをひらいてください。',
     'gui.mobile.drawer.title': 'メニュー',
     'gui.mobile.sideRail.backpack': 'バックパック',
     'gui.mobile.drawer.section.file': 'ファイル',
@@ -2409,8 +2411,12 @@ export default {
     'gui.smalrubyConsole.close': 'ステージにもどる',
     'gui.smalrubyConsole.inputLabel': 'こたえをにゅうりょくして Enter キーをおす',
     'gui.smalrubyConsole.empty': 'プログラムがひょうじしたものが、ここにでます。',
-    'gui.smalrubyConsole.showButton': 'コンソールをひょうじする',
-    'gui.smalrubyConsole.hideButton': 'ステージをひょうじする',
+    'gui.smalrubyConsole.showButton': 'コンソールをだす',
+    'gui.smalrubyConsole.hideButton': 'コンソールをかくす',
+    'gui.japaneseRightColumn.program': '{name} のプログラム',
+    'gui.japaneseRightColumn.stage': 'ステージ',
+    'gui.japaneseRightColumn.showTargets': 'スプライトとはいけいをみる',
+    'gui.japaneseRightColumn.hideTargets': 'スプライトとはいけいをかくす',
     'gui.meshStatus.button': 'メッシュのじょうたいとりれき',
     'gui.menuBar.meshV2Status': 'じょうたいとりれきをみる',
     'gui.connection.meshV2.openStatus': 'じょうたいとりれき',

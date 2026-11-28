@@ -44,7 +44,20 @@
 
 - 2 つのタブは**同じエディタ**を使う（日本語タブは自分のパネルを持たず、ルビータブのパネルを出す）。プログラムの正はいつもブロック（とその Ruby）で、日本語のテキストは保存しない。
 - **日本語タブを開くと**: いまの Ruby を日本語にしてから見せる。日本語にできない Ruby（`move(10)` のような日本語に無い命令、後判定の繰り返しなど）のときは日本語にせず、**ルビータブに移って** Ruby の行にエラーを出す（日本語にして Ruby に戻し、ブロックにできるかまで試してから切りかえる）。調べているあいだは帯が出て、ルビータブのふりがな・Ruby のボタンは押せない。
-- **コンソール**: 日本語タブで日本語を見せているあいだは、ステージの代わりにコンソールを出す（出すのは画面だけ。コンソール拡張機能は、日本語 → Ruby の変換で `表示する` / `【外部からの入力】` が出たときに初めて作品に足す。`src/lib/smalruby-console.js` の `showSmalrubyConsole`。[`docs/extension-smalruby-console/`](../extension-smalruby-console/)）。日本語にできずルビータブへ戻ったときは出さない。ルビータブを開くとステージに戻す（`hideSmalrubyConsole`）。日本語タブからコード・コスチューム・音のタブへ移ったときはそのまま。スマホ（MobileGui）では編集中のステージが隠れているので、プログラムが表示したり答えを待ったりしたら再生の画面（全画面のステージ）に移してコンソールを見せる（[`docs/mobile-ui/ui-ux.md`](../mobile-ui/ui-ux.md) の 2.8）。
+- **右の列（コンソール）**: 日本語タブのあいだは、右の列をコンソールにする（決まりの文・値・理由は [`docs/design-system/code-tab.md`](../design-system/code-tab.md) の「日本語タブの右の列」）。
+  - コンソールは右の列の高さいっぱい（ステージの上の段と、下の札を除いた高さ）。幅はステージの大きさのボタン（小 240・中 360・大 480・狭い画面の大 408）に従う。
+  - スプライトと背景の一覧は隠し、右の列の下に 1 行の札「**スプライト1** のプログラム」と「スプライトと背景を見る」を置く。押すとその場で一覧を開き、選べる（選んだスプライトの日本語に切りかわり、札の名前も変わる）。
+  - ステージの上の **`>_` のボタンを、日本語タブのあいだいつも出す**（止めるの右）。押すとコンソールを隠してステージを見せ、もう一度押すと出す。隠しているあいだに出た行の数を札で出す。
+  - 隠していても、**プログラムが入力を待つとコンソールを出す**（答えられないまま止まらないように）。
+  - 出し入れの状態は、**コード・コスチューム・音のタブへ移って戻ってもそのまま**（隠したものは隠したまま。Redux の `hiddenByUser`）。
+  - 日本語タブを開くとコンソールを出す（`src/lib/smalruby-console.js` の `showSmalrubyConsole`。隠していればそのまま）。出すのは画面だけで、コンソール拡張機能は、日本語 → Ruby の変換で `表示する` / `【外部からの入力】` が出たときに初めて作品に足す（[`docs/extension-smalruby-console/`](../extension-smalruby-console/)）。日本語にできずルビータブへ戻ったときは出さない。
+  - **ルビータブを開くと**、いつものステージとスプライト・背景の一覧に戻す（`hideSmalrubyConsole`。次に日本語タブを開くと、またコンソールを出す）。
+  - スマホ（MobileGui）では編集中のステージが隠れているので、プログラムが表示したり答えを待ったりしたら再生の画面（全画面のステージ）に移してコンソールを見せる（[`docs/mobile-ui/ui-ux.md`](../mobile-ui/ui-ux.md) の 2.8）。
+
+![日本語タブの右の列（コンソール）](screenshots/0107-right-column-console-1366x768.png)
+
+![スプライトと背景を見る](screenshots/0109-right-column-targets-1024x768.png)
+
 - **ルビータブを開くと**: いつも Ruby で見える（日本語タブで書いたプログラムは Ruby になる）。ふりがなは、ルビータブの設定（`smalruby:furiganaEnabled`）のまま。
 - **日本語タブからコード・コスチューム・音のタブに移っても**、日本語で書いている続きとして扱い、コードタブのブロックは日本語で書けるものだけに絞る（下の「ブロック制限の通知」）。ルビータブを開くか、コードタブの通知の「すべてのブロックを使う」を押すと戻る。日本語タブを開くと、また絞る。
 - 日本語タブは**日本語の表示（`ja` / `ja-Hira`）のときだけ**出す。ほかの言葉の表示では隠し、日本語タブにいたらルビータブに移る。
@@ -159,6 +172,7 @@
 | `dncl-problem-form.js` | **読むモードの配置**（`layoutProblemForm`: 行ごとの行番号 `(01)` と罫線の位置・種類、`problemFormText`: 行番号と罫線を文字で付けた形）。エディタの描画（`dncl-problem-form-view.js`）と「行番号と罫線つきでコピー」が使う |
 | `dncl-line-number.js` | **行番号と本文の間の区切り**（`lineNumberSeparator`）。行番号の後ろの空白のうち、どこまでが区切りでどこからが字下げかを決める。`dncl-paste-tidy.js` が使う |
 | `dncl-paste-tidy.js` | **貼り付け時の整形**（日本語モードのエディタに貼り付けた行番号付きのテキストの行番号を消し、行頭の罫線を字下げに、`//` コメントを `#` に直す。下の「貼り付け時の整形」）と、`//` のある行の変換エラーに「`//` はコメントではない」と添える `withDoubleSlashHint` |
+| `dncl-block-check.js` | **ブロックにできない日本語の確かめ**（`japaneseBlockErrors`）。日本語 → Ruby → ブロックを試しに変換し（ブロックは作品に入れない）、変換器のエラーを日本語の行に移す。文字列と数のリテラルの `+`（`joinsStringAndNumber`）には id `stringPlusNumber` を付ける（`withStringPlusNumberIds`。コードタブへ行くときの変換のエラーにも使う）。下の「ブロックにできない日本語」 |
 | `dncl-string-arithmetic-hint.js` | **文字列と `-` `*` `/` の警告**（`stringArithmeticRows`）。文字列を `+` でつないだ後の `-` や、文字列に `-` `*` `/` を使う行を見つける。`ruby-tab.jsx` が警告マーカー（`gui.rubyTab.dnclStringArithmeticHint`）にして、数の計算をかっこで囲むよう表示する。下の「文字列と数の計算」 |
 | `dncl-array-index-hint.js` | **範囲外の添字の警告**（`findArrayIndexHints`）。1 から始まる添字で書いたときのように配列の範囲外を読む `X[i]` / `X[3]` を見つける。ja-notation の `parse` で読んだ構文木を見る（読めないプログラムには出さない）。`ruby-tab.jsx` が警告マーカー（`gui.rubyTab.dnclArrayIndexHint`）にして、添字が 0 から始まることと直し方を表示する。下の「配列の添字は 0 から」 |
 | `dncl-index-note.js` | **貼り付けたテキストの「添字は 1 から始まる」の注釈を見つける**（`hasOneBasedIndexNote`）。コメントだけを見る。下の「貼り付け時の添字の設定」 |
@@ -280,6 +294,17 @@ DNCL モードでは、DNCL を Ruby に変換してからブロックに変換�
 
 変換器のエラーの文は、Ruby の文を `"…"` / `「…」` で引用する（`"@a, @b = @b, @a" is the wrong instruction.`）。日本語モードの生徒は書いていない `@` や Ruby の名前を探して見つけられないので、`rubyErrorsToDncl` は、引用がその行の Ruby（文、行、変換器と同じく 40 字で切ったもの）のときだけ、日本語の行に置きかえる（`「a, b = b, a」は命令がまちがっています。`）。置きかえる日本語の行は、行番号・左の罫線（`｜` `⎿`）・行末のコメントを除いたもの。ほかの引用（ヒントの例など）はそのまま残す。
 
+#### ブロックにできない日本語
+
+ja-notation が読めて Ruby になっても、その Ruby がブロックにならないことがある（値が数・文字列だけでない多重代入 `a, b = b, a`、関数の引数への代入、文字列と数のリテラルの `+` の `"残り" + 3`）。コードタブへ行くときの変換で初めて分かるので、日本語タブでは次の 2 か所で同じ確かめ（`dncl-block-check.js` の `japaneseBlockErrors`。ブロックは作品に入れない）をする。
+
+- **書いているあいだ**: 最後のキーから 500 ms 後（`ruby-tab.jsx` の `JAPANESE_BLOCKS_CHECK_DELAY_MS`）に確かめ、エラーを日本語の行全体に出す。マーカーの owner は `smalruby-dncl-blocks`（`ruby-tab/constants.js` の `DNCL_BLOCKS_OWNER`）。コードタブへ行くときの変換のエラー（`smalruby`）を出したときは、同じエラーが 2 つ並ばないようにこちらを消し、そのあと書きかえても `smalruby` のエラーが残る行には出さない。文言の付け方（文字列と数の `+`・`//` の添え書き）は、コードタブへ行くときの変換のエラーと同じ（`ruby-tab.jsx` の `withJapaneseErrorWords`）。
+- **ルビータブへ移るとき**（`leaveJapaneseTab`）: エラーがあれば日本語タブに戻し、最初のエラーの行へ移る。ルビータブで Ruby にすると、日本語タブへ戻るときの確かめ（Ruby → 日本語 → Ruby → ブロック）で止まり、日本語タブに戻れなくなるため。コードタブへ行くときに止まるのと同じ扱いにする。
+
+文言は変換器のもの（日本語の行を引用する。上の段落）。引数への代入は spec の 7 章の「「a」は引数なので、値を変えられません」。文字列と数のリテラルの `+` は、Ruby でも文字列と数を足せない誤りなので、読めるようにはせず、直し方を言う文言（`gui.rubyTab.dnclStringPlusNumberError`。`"残り" + 文字列(3)` か `"残り3"`）にする。変数とつなぐ `"残り" + a` はこれまでどおりつなぐ。
+
+ルビータブで日本語を書いたとき（prism が Ruby として読めないとき）、Ruby → 日本語の誤りは Ruby の書き方の誤り（id `rubySyntax`。`ja-notation-errors.js` の `rubyErrorWords`）だけを出す。ことばごとに「「もし」は定義されていない関数です」のような日本語モードの誤りを並べない。
+
 行数が変わる変換と、対応させる DNCL の行:
 
 | 変換 | 行数の変化 | 対応させる DNCL の行 |
@@ -333,7 +358,7 @@ DNCL モードでは、DNCL を Ruby に変換してからブロックに変換�
 - `packages/scratch-gui/src/components/gui/language-tabs.css` / `icon--japanese.svg` — タブの言葉の色（ルビーは赤・日本語は緑）と日本語タブのアイコン
 - `packages/scratch-gui/src/reducers/editor-tab.js` — `JAPANESE_TAB_INDEX`（4）と `isTextTabIndex`（ルビータブか日本語タブか）
 - `packages/scratch-gui/src/components/ruby-toolbar/ruby-toolbar.jsx` — ルビータブのふりがな・Ruby の切替（日本語タブでは出さない）
-- `packages/scratch-gui/src/containers/ruby-tab.jsx` — タブに合わせてエディタの言葉を切りかえる（`switchLanguage` / `enterJapaneseTab`。日本語にできなければルビータブへ）、緑の帯（`ruby-tab-language-band`）、外部からの終了要求
+- `packages/scratch-gui/src/containers/ruby-tab.jsx` — タブに合わせてエディタの言葉を切りかえる（`switchLanguage` / `enterJapaneseTab` / `leaveJapaneseTab`。日本語にできなければルビータブへ。ブロックにできない日本語はルビータブへ移さない）、緑の帯（`ruby-tab-language-band`）、外部からの終了要求
 - `packages/scratch-gui/src/containers/ruby-tab/editor-themes.js` — 日本語タブの紙の色の Monaco テーマ（色は `constants.js` の `JAPANESE_PAPER_COLOR` = トークン `$color-japanese-paper`）
 - `packages/scratch-gui/src/components/mobile-side-rail/mobile-side-rail.jsx` — スマホのサイドレールの「日本語」
 - `packages/scratch-gui/src/reducers/dncl-mode.js` — 日本語で書いているかの Redux state（`dnclMode` + `exitDnclModeExternallyRequested` シグナル）と、始めの値（`getInitialDnclMode`）
@@ -526,7 +551,7 @@ Smalruby は **共通テスト用プログラム表記の形のプログラム�
 
 ### 文字列と数の計算
 
-`+` は文字列をつなぎ、`-` `*` `/` は数を計算する。どちらも左から順に計算するので、`表示する("残り" + a - 1 + "日")` は、文字列 `"残り" + a` から 1 を引くことになり、数だけが表示される（Ruby でも同じ順に読む。本物の Ruby では文字列に `-` が無いのでエラーになる）。計算の順番は変えない。代わりに日本語モードのエディタは、次の行に「数の計算はかっこで囲む」警告マーカー（`gui.rubyTab.dnclStringArithmeticHint`）を出す（`dncl-string-arithmetic-hint.js` の `stringArithmeticRows`）。警告は変換を止めない。マーカーの owner は `smalruby-dncl-string-arithmetic`（`ruby-tab/constants.js` の `DNCL_STRING_ARITHMETIC_OWNER`）。
+`+` は文字列をつなぎ、`-` `*` `/` は数を計算する。文字列と数のリテラルをそのまま `+` でつなぐ（`"残り" + 3`）とブロックにできないので誤りになる（上の「ブロックにできない日本語」）。どちらも左から順に計算するので、`表示する("残り" + a - 1 + "日")` は、文字列 `"残り" + a` から 1 を引くことになり、数だけが表示される（Ruby でも同じ順に読む。本物の Ruby では文字列に `-` が無いのでエラーになる）。計算の順番は変えない。代わりに日本語モードのエディタは、次の行に「数の計算はかっこで囲む」警告マーカー（`gui.rubyTab.dnclStringArithmeticHint`）を出す（`dncl-string-arithmetic-hint.js` の `stringArithmeticRows`）。警告は変換を止めない。マーカーの owner は `smalruby-dncl-string-arithmetic`（`ruby-tab/constants.js` の `DNCL_STRING_ARITHMETIC_OWNER`）。
 
 - 文字列（`"..."`・`'...'`・`「...」`・`文字列(...)`・`... .to_s`）を `+` でつないだ後の `-`（`"a" + x - 1`）
 - 文字列のすぐ隣の `-` `*` `/` `%` `÷`（`"a" * 2`、`x - 文字列(1)`）

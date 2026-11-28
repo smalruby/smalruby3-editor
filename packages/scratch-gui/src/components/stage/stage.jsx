@@ -26,6 +26,7 @@ const StageComponent = props => {
         isStarted,
         colorInfo,
         // === Smalruby: Start of console ===
+        consoleInColumn,
         consoleVisible,
         vm,
         // === Smalruby: End of console ===
@@ -46,7 +47,12 @@ const StageComponent = props => {
             <Box
                 className={classNames(
                     styles.stageWrapper,
-                    {[styles.withColorPicker]: !isFullScreen && isColorPicking})}
+                    {[styles.withColorPicker]: !isFullScreen && isColorPicking},
+                    // === Smalruby: Start of console ===
+                    // the console fills the right column of the Japanese tab in place of the stage
+                    {[styles.hiddenForConsole]: consoleInColumn && consoleVisible}
+                    // === Smalruby: End of console ===
+                )}
                 onDoubleClick={onDoubleClick}
             >
                 <Box
@@ -86,6 +92,7 @@ const StageComponent = props => {
                     {/* === Smalruby: Start of console === */}
                     {/* the console covers the stage and takes the answers while it is shown */}
                     <SmalrubyConsole
+                        inColumn={consoleInColumn}
                         question={question}
                         vm={vm}
                         onQuestionAnswered={onQuestionAnswered}
@@ -154,6 +161,7 @@ StageComponent.propTypes = {
     canvas: PropTypes.instanceOf(Element).isRequired,
     colorInfo: Loupe.propTypes.colorInfo,
     // === Smalruby: Start of console ===
+    consoleInColumn: PropTypes.bool,
     consoleVisible: PropTypes.bool,
     vm: PropTypes.object,
     // === Smalruby: End of console ===

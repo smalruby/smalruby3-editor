@@ -1,6 +1,7 @@
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import ReactDOM from 'react-dom';
 import { defineMessages, useIntl } from 'react-intl';
 import { connect } from 'react-redux';
 import {
@@ -9,11 +10,14 @@ import {
     clearSmalrubyConsole,
     setSmalrubyConsoleVisible,
 } from '../../reducers/smalruby-console.js';
+import { useSmalrubyConsoleSlot } from './smalruby-console-slot.jsx';
 import styles from './smalruby-console.css';
 
 // The runtime event the console extension emits for each printed line
 // (SmalrubyConsoleBlocks.PRINT_EVENT in scratch-vm).
 const PRINT_EVENT = 'SMALRUBY_CONSOLE_PRINT';
+
+const stopPropagation = (e) => e.stopPropagation();
 
 const messages = defineMessages({
     title: {
@@ -68,8 +72,12 @@ const useConsoleLines = (vm, onLine, onClear) => {
  * The console shown in place of the stage (docs/extension-smalruby-console/README.md):
  * the printed lines from the top, and a field for the answer while the program
  * waits for one (`入力する` or `聞いて待つ`). The stage's own question field is
- * hidden while the console is shown, so the answer is typed here.
+ * hidden while the console is shown, so the answer is typed here. In the Japanese tab
+ * the console fills the right column instead (a portal into its place), without the
+ * button back to the stage (the `>_` button is always there), and comes out while the
+ * program waits for an answer, so that the program does not stop unanswered.
  * @param {object} props - The props.
+ * @param {boolean} props.inColumn - Whether to fill the right column of the Japanese tab.
  * @param {Array<{text: string, kind: string}>} props.lines - The lines.
  * @param {?string} props.question - The question the program waits on (null when none).
  * @param {boolean} props.visible - Whether the console is shown.
@@ -78,10 +86,24 @@ const useConsoleLines = (vm, onLine, onClear) => {
  * @param {Function} props.onClear - Clears the lines.
  * @param {Function} props.onClose - Hides the console.
  * @param {Function} props.onQuestionAnswered - Answers the question.
+ * @param {Function} props.onShow - Shows the console.
  * @returns {?React.ReactElement} The console, or null while hidden.
  */
-const SmalrubyConsole = ({ lines, question, visible, vm, onAddLine, onClear, onClose, onQuestionAnswered }) => {
+const SmalrubyConsole = ({
+    inColumn,
+    lines,
+    question,
+    visible,
+    vm,
+    onAddLine,
+    onClear,
+    onClose,
+    onQuestionAnswered,
+    onShow,
+}) => {
     const intl = useIntl();
+    const columnSlot = useSmalrubyConsoleSlot();
+    const slot = inColumn ? columnSlot : null;
     const [answer, setAnswer] = useState('');
     const linesRef = useRef(null);
     const inputRef = useRef(null);
@@ -98,6 +120,10 @@ const SmalrubyConsole = ({ lines, question, visible, vm, onAddLine, onClear, onC
         if (visible && asking && inputRef.current) inputRef.current.focus();
     }, [visible, asking]);
 
+    useEffect(() => {
+        if (slot && asking && !visible) onShow();
+    }, [slot, asking, visible]);
+
     const handleChange = useCallback((e) => setAnswer(e.target.value), []);
     const handleKeyDown = useCallback(
         (e) => {
@@ -111,8 +137,13 @@ const SmalrubyConsole = ({ lines, question, visible, vm, onAddLine, onClear, onC
     );
 
     if (!visible) return null;
-    return (
-        <div className={styles.console} data-testid="smalruby-console">
+    const content = (
+        <div
+            className={classNames(styles.console, { [styles.inColumn]: slot })}
+            data-testid="smalruby-console"
+            // The stage around it in the React tree takes a double click for itself.
+            onDoubleClick={stopPropagation}
+        >
             <div className={styles.header}>
                 <span className={styles.title}>{intl.formatMessage(messages.title)}</span>
                 <button
@@ -123,14 +154,16 @@ const SmalrubyConsole = ({ lines, question, visible, vm, onAddLine, onClear, onC
                 >
                     {intl.formatMessage(messages.clear)}
                 </button>
-                <button
-                    className={styles.headerButton}
-                    data-testid="smalruby-console-close"
-                    onClick={onClose}
-                    type="button"
-                >
-                    {intl.formatMessage(messages.close)}
-                </button>
+                {slot ? null : (
+                    <button
+                        className={styles.headerButton}
+                        data-testid="smalruby-console-close"
+                        onClick={onClose}
+                        type="button"
+                    >
+                        {intl.formatMessage(messages.close)}
+                    </button>
+                )}
             </div>
             <div className={styles.lines} data-testid="smalruby-console-lines" ref={linesRef}>
                 {lines.length === 0 && !asking ? (
@@ -168,9 +201,11 @@ const SmalrubyConsole = ({ lines, question, visible, vm, onAddLine, onClear, onC
             </div>
         </div>
     );
+    return slot ? ReactDOM.createPortal(content, slot) : content;
 };
 
 SmalrubyConsole.propTypes = {
+    inColumn: PropTypes.bool,
     lines: PropTypes.arrayOf(
         PropTypes.shape({
             kind: PropTypes.string,
@@ -181,13 +216,16 @@ SmalrubyConsole.propTypes = {
     onClear: PropTypes.func.isRequired,
     onClose: PropTypes.func.isRequired,
     onQuestionAnswered: PropTypes.func,
+    onShow: PropTypes.func,
     question: PropTypes.string,
     visible: PropTypes.bool.isRequired,
     vm: PropTypes.object,
 };
 
 SmalrubyConsole.defaultProps = {
+    inColumn: false,
     onQuestionAnswered: () => {},
+    onShow: () => {},
     question: null,
 };
 
@@ -200,6 +238,7 @@ const mapDispatchToProps = (dispatch) => ({
     onAddLine: (text, kind) => dispatch(addSmalrubyConsoleLine(text, kind)),
     onClear: () => dispatch(clearSmalrubyConsole()),
     onClose: () => dispatch(setSmalrubyConsoleVisible(false)),
+    onShow: () => dispatch(setSmalrubyConsoleVisible(true)),
 });
 
 export { PRINT_EVENT, SmalrubyConsole };

@@ -2095,13 +2095,15 @@ export default {
         'ステージの変数（{name}）は日本語モードでは書けません。Ruby モードでは書けます。',
     'gui.rubyTab.dnclUndefinedFunctionError':
         '「{name}」は定義されていない関数です。「関数 {name}(…):」で定義してください。',
+    'gui.rubyTab.dnclStringPlusNumberError':
+        '文字列と数を「+」でつなぐときは、数を「文字列(3)」のように文字列にしてください（例: "残り" + 文字列(3)）。数を「"残り3"」のように文字列の中に書いてもかまいません。',
     'gui.rubyTab.dnclUnsupportedCommandError':
         '「{name}」は日本語モードでは書けない命令です。Ruby モードでは書けます。',
     'gui.rubyTab.dnclUnsupportedNotationError': '「{name}」は日本語モードでは書けません。Ruby モードでは書けます。',
     'gui.rubyTab.dnclUnsupportedNumberError':
         '「{name}」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。',
     'gui.rubyTab.dnclValidationError':
-        '日本語モードでは対応していない記述です。\n対応している命令のみにしてから、モード切り替えを行ってください。',
+        '日本語モードでは対応していない記述です。\n対応している命令のみにしてから、日本語タブを開いてください。',
     'gui.mobile.drawer.title': 'メニュー',
     'gui.mobile.sideRail.backpack': 'バックパック',
     'gui.mobile.drawer.section.file': 'ファイル',
@@ -2355,8 +2357,12 @@ export default {
     'gui.smalrubyConsole.close': 'ステージにもどる',
     'gui.smalrubyConsole.inputLabel': '答えを入力して Enter キーを押す',
     'gui.smalrubyConsole.empty': 'プログラムが表示したものが、ここに出ます。',
-    'gui.smalrubyConsole.showButton': 'コンソールを表示する',
-    'gui.smalrubyConsole.hideButton': 'ステージを表示する',
+    'gui.smalrubyConsole.showButton': 'コンソールを出す',
+    'gui.smalrubyConsole.hideButton': 'コンソールを隠す',
+    'gui.japaneseRightColumn.program': '{name} のプログラム',
+    'gui.japaneseRightColumn.stage': 'ステージ',
+    'gui.japaneseRightColumn.showTargets': 'スプライトと背景を見る',
+    'gui.japaneseRightColumn.hideTargets': 'スプライトと背景を隠す',
     'gui.meshStatus.button': 'メッシュの状態と履歴',
     'gui.menuBar.meshV2Status': '状態と履歴を見る',
     'gui.connection.meshV2.openStatus': '状態と履歴',

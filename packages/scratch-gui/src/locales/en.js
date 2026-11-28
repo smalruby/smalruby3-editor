@@ -1765,6 +1765,8 @@ export default {
         'A variable of the stage ({name}) cannot be written in Japanese mode. You can write it in Ruby mode.',
     'gui.rubyTab.dnclUndefinedFunctionError':
         '"{name}" is a function that is not defined. Define it with "関数 {name}(…):".',
+    'gui.rubyTab.dnclStringPlusNumberError':
+        'To join a string and a number with "+", make the number a string like "文字列(3)" (e.g. "残り" + 文字列(3)). You may also write the number in the string, like "残り3".',
     'gui.rubyTab.dnclUnsupportedCommandError':
         '"{name}" is a command that cannot be written in Japanese mode. You can write it in Ruby mode.',
     'gui.rubyTab.dnclUnsupportedNotationError':
@@ -1772,7 +1774,7 @@ export default {
     'gui.rubyTab.dnclUnsupportedNumberError':
         '"{name}" is a way of writing a number that cannot be used in Japanese mode (a hex number, _ between digits, an exponent and so on). Write it like "1000" or "0.5". You can write it in Ruby mode.',
     'gui.rubyTab.dnclValidationError':
-        'This code contains constructs not supported in Japanese mode.\nPlease use only supported instructions before switching modes.',
+        'This code contains constructs not supported in Japanese mode.\nPlease use only supported instructions before opening the Japanese tab.',
     'gui.mobile.drawer.title': 'Menu',
     'gui.mobile.drawer.section.file': 'File',
     'gui.mobile.drawer.section.language': 'Language',
@@ -1985,7 +1987,11 @@ export default {
     'gui.smalrubyConsole.inputLabel': 'Type the answer and press Enter',
     'gui.smalrubyConsole.empty': 'What the program prints appears here.',
     'gui.smalrubyConsole.showButton': 'Show the console',
-    'gui.smalrubyConsole.hideButton': 'Show the stage',
+    'gui.smalrubyConsole.hideButton': 'Hide the console',
+    'gui.japaneseRightColumn.program': 'Program of {name}',
+    'gui.japaneseRightColumn.stage': 'the stage',
+    'gui.japaneseRightColumn.showTargets': 'See the sprites and backdrops',
+    'gui.japaneseRightColumn.hideTargets': 'Hide the sprites and backdrops',
     'gui.meshStatus.button': 'Mesh status and history',
     'gui.menuBar.meshV2Status': 'Show status and history',
     'gui.connection.meshV2.openStatus': 'Status and history',
