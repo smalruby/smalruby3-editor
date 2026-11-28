@@ -24,6 +24,8 @@ const {
     mergeProgressionIntents,
     selectMergeCandidates,
     selectClosedToReconcile,
+    excludeClosedItems,
+    closedRunIntents,
     TERMINAL_STATUSES,
     phaseForItem,
     isActionable,
@@ -821,6 +823,46 @@ test('selectClosedToReconcile: empty/missing inputs -> empty array', () => {
     assert.deepEqual(selectClosedToReconcile([], new Set([1])), []);
     assert.deepEqual(selectClosedToReconcile(null, null), []);
     assert.deepEqual(selectClosedToReconcile([{ issue: 1, status: 'Review' }], new Set()), []);
+});
+
+test('excludeClosedItems: a closed issue with empty Status is not dispatched but is reconciled (#2540)', () => {
+    // #1916: triage が閉じて Status が空に戻った Issue が、毎 tick triage に拾われていた
+    const items = [
+        { issue: 1916, status: null, aiStatus: null, kind: 'Issue', assignees: ['me'], labels: [] },
+        { issue: 2, status: null, aiStatus: null, kind: 'Issue', assignees: ['me'], labels: [] },
+    ];
+    const closedSet = new Set([1916]);
+    const picked = selectActionable(excludeClosedItems(items, closedSet), { limit: Infinity, assignee: 'me' });
+    assert.deepEqual(picked.map((i) => i.issue), [2]);
+    // 外した Issue は reconcile の対象に残る（running に入らないので飛ばされない）
+    assert.deepEqual(selectClosedToReconcile(items, closedSet).map((i) => i.issue), [1916]);
+});
+
+test('excludeClosedItems: accepts an array and tolerates missing inputs', () => {
+    assert.deepEqual(excludeClosedItems([{ issue: 1 }, { issue: 2 }], [2]).map((i) => i.issue), [1]);
+    assert.deepEqual(excludeClosedItems(null, null), []);
+    assert.deepEqual(excludeClosedItems([{ issue: 3 }], undefined).map((i) => i.issue), [3]);
+});
+
+test('closedRunIntents: triage closed the issue and returned done + nextStatus null -> Close (#2540)', () => {
+    const result = {
+        issue: 1916, phase: 'triage', signal: 'done', summary: '重複として閉じた',
+        nextStatus: null, nextAiStatus: null, hitl: false, kind: 'Issue',
+    };
+    const intents = closedRunIntents(applyResult(result), { signal: result.signal, closed: true });
+    assert.deepEqual(intents, [
+        { field: 'Status', value: 'Close' },
+        { field: 'AI Status', value: null },
+        { field: 'Kind', value: 'Issue' },
+    ]);
+});
+
+test('closedRunIntents: open issue or non-done signal keeps the intents as they are', () => {
+    const intents = [{ field: 'Status', value: 'Backlog' }, { field: 'AI Status', value: null }];
+    assert.deepEqual(closedRunIntents(intents, { signal: 'done', closed: false }), intents);
+    const hitl = [{ field: 'Status', value: 'Blocked' }];
+    assert.deepEqual(closedRunIntents(hitl, { signal: 'hitl', closed: true }), hitl);
+    assert.deepEqual(closedRunIntents(null, {}), []);
 });
 
 test('TERMINAL_STATUSES: Close and Done are terminal', () => {

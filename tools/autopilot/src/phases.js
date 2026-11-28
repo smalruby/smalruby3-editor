@@ -991,6 +991,41 @@ function selectClosedToReconcile(items, closedSet) {
 }
 
 /**
+ * dispatch の判断に使う item から、GitHub で閉じている Issue を除く（純粋関数・#2540）。
+ *
+ * 閉じた Issue の Status が空（New Item）や In Progress のままだと、拾う判定（triage・stalled 復帰）が
+ * reconcile より先に worker を起こし、running に入った item を reconcile が飛ばす。その結果
+ * 「triage が閉じる → Status が空に戻る → また triage」が続いた（#1916 で 4 回）。閉じた Issue は
+ * 作業の対象ではないので、拾う前に外し、Close へそろえるのは {@link selectClosedToReconcile} に任せる。
+ * @param {object[]} items Project items
+ * @param {Set<number>|number[]} closedSet GitHub で閉じている Issue 番号
+ * @returns {object[]} 閉じていない item（新しい配列）
+ */
+function excludeClosedItems(items, closedSet) {
+    const closed = closedSet instanceof Set ? closedSet : new Set(closedSet || []);
+    return (items || []).filter((it) => it && !closed.has(it.issue));
+}
+
+/**
+ * フェーズの run が終わった時点で Issue が GitHub で閉じていたら、反映する意図を Close にそろえる
+ * （純粋関数・#2540）。triage などが Issue を閉じて `nextStatus: null` を返すと、{@link applyResult} は
+ * Status を消す（= New Item に戻り、また triage が走る）。閉じたという事実を見て Status=Close・
+ * AI Status=空にする。Size / Kind などほかの意図はそのまま残す。
+ *
+ * done のときだけ書きかえる。hitl / error の結果は人間に渡す意図なので触らず、閉じた Issue は
+ * 次の tick の reconcile（{@link selectClosedToReconcile}）が Close にする。
+ * @param {Array<{field: string, value: string|null}>} intents applyResult などが返した意図
+ * @param {{signal?: string, closed?: boolean}} opts run の signal と、Issue が閉じているか
+ * @returns {Array<{field: string, value: string|null}>} 新しい配列
+ */
+function closedRunIntents(intents, opts = {}) {
+    const list = intents || [];
+    if (!opts.closed || opts.signal !== 'done') return [...list];
+    const rest = list.filter((i) => i.field !== 'Status' && i.field !== 'AI Status');
+    return [{ field: 'Status', value: 'Close' }, { field: 'AI Status', value: null }, ...rest];
+}
+
+/**
  * 人間がレビュー/検証して 🙋 を外すと autopilot が再開する「人間ゲート」状態。
  * Review（コードレビュー）と DoD（headful 検証）が該当し、いずれも 🙋 解除 = NG 差し戻しで
  * address-review へ渡す（OR セマンティクスも同じ・#821）。OK のときは人間が merge して
@@ -4234,6 +4269,8 @@ module.exports = {
     mergeProgressionIntents,
     TERMINAL_STATUSES,
     selectClosedToReconcile,
+    excludeClosedItems,
+    closedRunIntents,
     phaseForItem,
     isActionable,
     isStuckCandidate,
