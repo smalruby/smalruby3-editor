@@ -89,6 +89,7 @@ import {
     DNCL_STRING_ARITHMETIC_OWNER,
 } from './ruby-tab/constants';
 import updateDebugGlobals from './ruby-tab/debug-globals';
+import { createDnclAutoOutdent } from './ruby-tab/dncl-auto-outdent';
 import { offerDnclIndexSetting, replaceEditorText } from './ruby-tab/dncl-index-setting';
 import {
     createProblemFormView,
@@ -234,6 +235,7 @@ const RubyTab = (props) => {
     // questions) of the Japanese mode (Issue #1755, #2380).
     const [problemFormShown, setProblemFormShown] = useState(false);
     const problemFormViewRef = useRef(null);
+    const dnclAutoOutdentRef = useRef(null);
     // Room in the line number column for the labels `(01)` / `(100)` / `(1000)`.
     const [lineNumbersMinChars, setLineNumbersMinChars] = useState(5);
     const dnclSourceMapRef = useRef(null);
@@ -602,6 +604,9 @@ const RubyTab = (props) => {
             setProblemFormShown,
         );
         setLineNumbersMinChars(problemFormLineNumbersMinChars(editor.getValue()));
+        // An else or a closing line typed in the Japanese mode goes back to the
+        // depth of its block (Issue #2554).
+        dnclAutoOutdentRef.current = createDnclAutoOutdent(editor, () => dnclModeRef.current);
 
         contentChangeListenerRef.current = editor.onDidChangeModelContent(() => {
             updateUndoRedoState();
@@ -1302,6 +1307,10 @@ const RubyTab = (props) => {
             if (problemFormViewRef.current) {
                 problemFormViewRef.current.dispose();
                 problemFormViewRef.current = null;
+            }
+            if (dnclAutoOutdentRef.current) {
+                dnclAutoOutdentRef.current.dispose();
+                dnclAutoOutdentRef.current = null;
             }
             if (configChangeListenerRef.current) {
                 configChangeListenerRef.current.dispose();
