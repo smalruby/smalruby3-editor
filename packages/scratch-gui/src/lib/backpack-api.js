@@ -1,4 +1,5 @@
 import xhr from 'xhr';
+// === Smalruby: Start of localStorage backpack ===
 import costumePayload from './backpack/costume-payload';
 import soundPayload from './backpack/sound-payload';
 import spritePayload from './backpack/sprite-payload';
@@ -120,6 +121,7 @@ const deleteBackpackObject = ({
         return resolve(response.body);
     });
 });
+// === Smalruby: End of localStorage backpack ===
 
 // Two types of backpack items are not retreivable through storage
 // code, as json and sprite3 as arraybuffer zips.
@@ -138,6 +140,7 @@ const fetchCode = fetchAs.bind(null, 'json');
 const fetchSprite = fetchAs.bind(null, 'arraybuffer');
 
 export {
+    // === Smalruby: Start of localStorage backpack ===
     getLocalStorageBackpackAssetURL,
     getBackpackContents,
     saveBackpackObject,
@@ -146,6 +149,7 @@ export {
     soundPayload,
     spritePayload,
     codePayload,
+    // === Smalruby: End of localStorage backpack ===
     fetchCode,
     fetchSprite
 };

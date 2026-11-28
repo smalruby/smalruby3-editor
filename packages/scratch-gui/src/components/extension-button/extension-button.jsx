@@ -27,9 +27,13 @@ const messages = defineMessages({
 const ExtensionButton = props => {
     const {
         intl,
+        // === Smalruby: Start of DNCL extension confirm ===
         dnclMode,
+        // === Smalruby: End of DNCL extension confirm ===
         onExtensionButtonClick,
+        // === Smalruby: Start of DNCL extension confirm ===
         onRequestExitDnclMode
+        // === Smalruby: End of DNCL extension confirm ===
     } = props;
     const {captureFocus} = useContext(ModalFocusContext);
 
@@ -46,19 +50,27 @@ const ExtensionButton = props => {
         // === Smalruby: End of DNCL extension confirm ===
         captureFocus();
         onExtensionButtonClick?.();
+    // === Smalruby: Start of DNCL extension confirm ===
+    // Upstream: }, [captureFocus, onExtensionButtonClick]);
     }, [captureFocus, onExtensionButtonClick, onRequestExitDnclMode, dnclMode, intl]);
+    // === Smalruby: End of DNCL extension confirm ===
 
     return (
         <Box className={styles.extensionButtonContainer}>
             <button
+                // === Smalruby: Start of DNCL extension confirm ===
+                // Upstream: className={classNames(styles.extensionButton)}
                 className={classNames(
                     styles.extensionButton,
                     {[styles.extensionButtonDisabled]: dnclMode}
                 )}
+                // === Smalruby: End of DNCL extension confirm ===
                 title={intl.formatMessage(messages.addExtension)}
                 onClick={handleExtensionButtonClick}
                 aria-label={intl.formatMessage(messages.addExtension)}
+                // === Smalruby: Start of extension button test id ===
                 data-testid="extension-button"
+                // === Smalruby: End of extension button test id ===
             >
                 <img
                     className={styles.extensionButtonIcon}
@@ -71,10 +83,14 @@ const ExtensionButton = props => {
 };
 
 ExtensionButton.propTypes = {
+    // === Smalruby: Start of DNCL extension confirm ===
     dnclMode: PropTypes.bool,
+    // === Smalruby: End of DNCL extension confirm ===
     intl: intlShape.isRequired,
     onExtensionButtonClick: PropTypes.func,
+    // === Smalruby: Start of DNCL extension confirm ===
     onRequestExitDnclMode: PropTypes.func
+    // === Smalruby: End of DNCL extension confirm ===
 };
 
 const ExtensionButtonIntl = injectIntl(ExtensionButton);

@@ -6,7 +6,9 @@ import intlShape from './intlShape';
 import {connect} from 'react-redux';
 import log from '../lib/log';
 import sharedMessages from './shared-messages';
+// === Smalruby: Start of load project with checks ===
 import {loadProjectWithChecks} from './project-loader-utils';
+// === Smalruby: End of load project with checks ===
 
 import {
     LoadingStates,
@@ -87,9 +89,12 @@ const SBFileUploaderHOC = function (WrappedComponent) {
             this.inputElement.onchange = this.handleChange; // connects to step 3
             document.body.appendChild(this.inputElement);
             // simulate a click to open file chooser dialog
+            // === Smalruby: Start of skip file dialog in test mode ===
+            // Upstream: this.inputElement.click();
             if (!this.props.isTest) {
                 this.inputElement.click();
             }
+            // === Smalruby: End of skip file dialog in test mode ===
         }
         // step 3: user has picked a file using the file chooser dialog.
         // We don't actually load the file here, we only decide whether to do so.
@@ -151,11 +156,14 @@ const SBFileUploaderHOC = function (WrappedComponent) {
                 const filename = this.fileToUpload && this.fileToUpload.name;
                 let loadingSuccess = false;
 
+                // === Smalruby: Start of load project with checks ===
+                // Upstream: this.props.vm.loadProject(this.fileReader.result)
                 loadProjectWithChecks(
                     this.props.vm,
                     this.props.intl,
                     this.fileReader.result
                 )
+                // === Smalruby: End of load project with checks ===
                     .then(() => {
                         if (filename) {
                             const uploadedProjectTitle = getProjectTitleFromFilename(filename);
@@ -190,7 +198,9 @@ const SBFileUploaderHOC = function (WrappedComponent) {
             const {
 
                 cancelFileUpload,
+                // === Smalruby: Start of clear Google Drive state on file upload ===
                 clearGoogleDriveFile: clearGoogleDriveFileProp,
+                // === Smalruby: End of clear Google Drive state on file upload ===
                 closeFileMenu: closeFileMenuProp,
                 isLoadingUpload,
                 isShowingWithoutId,
@@ -221,12 +231,16 @@ const SBFileUploaderHOC = function (WrappedComponent) {
     SBFileUploaderComponent.propTypes = {
         canSave: PropTypes.bool,
         cancelFileUpload: PropTypes.func,
+        // === Smalruby: Start of clear Google Drive state on file upload ===
         clearGoogleDriveFile: PropTypes.func,
+        // === Smalruby: End of clear Google Drive state on file upload ===
         closeFileMenu: PropTypes.func,
         intl: intlShape.isRequired,
         isLoadingUpload: PropTypes.bool,
         isShowingWithoutId: PropTypes.bool,
+        // === Smalruby: Start of skip file dialog in test mode ===
         isTest: PropTypes.bool,
+        // === Smalruby: End of skip file dialog in test mode ===
         loadingState: PropTypes.oneOf(LoadingStates),
         onLoadingFinished: PropTypes.func,
         onLoadingStarted: PropTypes.func,
@@ -236,7 +250,9 @@ const SBFileUploaderHOC = function (WrappedComponent) {
         userOwnsProject: PropTypes.bool,
         vm: PropTypes.shape({
             loadProject: PropTypes.func,
+            // === Smalruby: Start of load project with checks ===
             hasMeshV1Project: PropTypes.func
+            // === Smalruby: End of load project with checks ===
         })
     };
     const mapStateToProps = (state, ownProps) => {
@@ -245,7 +261,9 @@ const SBFileUploaderHOC = function (WrappedComponent) {
         return {
             isLoadingUpload: getIsLoadingUpload(loadingState),
             isShowingWithoutId: getIsShowingWithoutId(loadingState),
+            // === Smalruby: Start of skip file dialog in test mode ===
             isTest: state.scratchGui.test.isTest,
+            // === Smalruby: End of skip file dialog in test mode ===
             loadingState: loadingState,
             projectChanged: state.scratchGui.projectChanged,
             userOwnsProject: ownProps.userOwnsProject ?? (

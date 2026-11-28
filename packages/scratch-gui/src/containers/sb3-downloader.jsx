@@ -1,13 +1,17 @@
 import bindAll from 'lodash.bindall';
 import PropTypes from 'prop-types';
 import React from 'react';
+// === Smalruby: Start of ruby to blocks before download ===
 import {injectIntl} from 'react-intl';
 import intlShape from '../lib/intlShape.js';
+// === Smalruby: End of ruby to blocks before download ===
 import {connect} from 'react-redux';
 import {projectTitleInitialState} from '../reducers/project-title';
 import downloadBlob from '../lib/download-blob';
 
+// === Smalruby: Start of ruby to blocks before download ===
 import RubyToBlocksConverterHOC from '../lib/ruby-to-blocks-converter-hoc.jsx';
+// === Smalruby: End of ruby to blocks before download ===
 
 /**
  * Project saver component passes a downloadProject function to its child.
@@ -30,6 +34,8 @@ class SB3Downloader extends React.Component {
             'downloadProject'
         ]);
     }
+    // === Smalruby: Start of ruby to blocks before download ===
+    // Upstream: downloadProject () saves the sb3 and downloads it without converting Ruby.
     async downloadProject () {
         const converter = await this.props.targetCodeToBlocks(this.props.intl);
         if (!converter.result) {
@@ -50,6 +56,7 @@ class SB3Downloader extends React.Component {
                 console.error('[SB3Downloader] Ruby to blocks apply error:', error);
             });
     }
+    // === Smalruby: End of ruby to blocks before download ===
     render () {
         const {
             children
@@ -72,11 +79,15 @@ const getProjectFilename = (curTitle, defaultTitle) => {
 SB3Downloader.propTypes = {
     children: PropTypes.func,
     className: PropTypes.string,
+    // === Smalruby: Start of ruby to blocks before download ===
     intl: intlShape.isRequired,
+    // === Smalruby: End of ruby to blocks before download ===
     onSaveFinished: PropTypes.func,
     projectFilename: PropTypes.string,
     saveProjectSb3: PropTypes.func,
+    // === Smalruby: Start of ruby to blocks before download ===
     targetCodeToBlocks: PropTypes.func
+    // === Smalruby: End of ruby to blocks before download ===
 };
 SB3Downloader.defaultProps = {
     className: ''
@@ -87,7 +98,10 @@ const mapStateToProps = state => ({
     projectFilename: getProjectFilename(state.scratchGui.projectTitle, projectTitleInitialState)
 });
 
+// === Smalruby: Start of ruby to blocks before download ===
+// Upstream: export default connect(mapStateToProps, () => ({}))(SB3Downloader);
 export default RubyToBlocksConverterHOC(injectIntl(connect(
     mapStateToProps,
     () => ({}) // omit dispatch prop
 )(SB3Downloader)));
+// === Smalruby: End of ruby to blocks before download ===

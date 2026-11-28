@@ -7,7 +7,9 @@ import Box from '../box/box.jsx';
 import Dots from './dots.jsx';
 import helpIcon from './icons/help.svg';
 import backIcon from './icons/back.svg';
+// === Smalruby: Start of update peripheral button ===
 import enterUpdateIcon from './icons/enter-update.svg';
+// === Smalruby: End of update peripheral button ===
 
 import styles from './connection-modal.css';
 
@@ -31,6 +33,7 @@ const ErrorStep = props => (
                     id="gui.connection.error.errorMessage"
                 />
             </div>
+            {/* === Smalruby: Start of update peripheral button === */}
             {props.onUpdatePeripheral && (
                 <div className={classNames(styles.bottomAreaItem, styles.instructions)}>
                     <FormattedMessage
@@ -40,6 +43,7 @@ const ErrorStep = props => (
                     />
                 </div>
             )}
+            {/* === Smalruby: End of update peripheral button === */}
             <Dots
                 error
                 className={styles.bottomAreaItem}
@@ -74,6 +78,7 @@ const ErrorStep = props => (
                         id="gui.connection.error.helpbutton"
                     />
                 </button>
+                {/* === Smalruby: Start of update peripheral button === */}
                 {props.onUpdatePeripheral && (
                     <button
                         className={styles.connectionButton}
@@ -90,6 +95,7 @@ const ErrorStep = props => (
                         />
                     </button>
                 )}
+                {/* === Smalruby: End of update peripheral button === */}
                 {/* === Smalruby: Start of smalrubot firmware flash === */}
                 {props.onFlashFirmware && (
                     <button
@@ -116,10 +122,14 @@ const ErrorStep = props => (
 
 ErrorStep.propTypes = {
     connectionIconURL: PropTypes.string.isRequired,
-    onFlashFirmware: PropTypes.func, // === Smalruby: smalrubot firmware flash ===
+    // === Smalruby: Start of smalrubot firmware flash ===
+    onFlashFirmware: PropTypes.func,
+    // === Smalruby: End of smalrubot firmware flash ===
     onHelp: PropTypes.func,
     onScanning: PropTypes.func,
+    // === Smalruby: Start of update peripheral button ===
     onUpdatePeripheral: PropTypes.func
+    // === Smalruby: End of update peripheral button ===
 };
 
 export default ErrorStep;

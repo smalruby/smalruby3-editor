@@ -9,10 +9,12 @@ import {connect} from 'react-redux';
 
 import {closeConnectionModal} from '../reducers/modals';
 import {isMicroBitUpdateSupported, selectAndUpdateMicroBit} from '../lib/microbit-update';
+// === Smalruby: Start of microbitMore update ===
 import {
     isMicroBitUpdateSupported as isMicroBitMoreUpdateSupported,
     selectAndUpdateMicroBit as selectAndUpdateMicroBitMore
 } from '../lib/microbit-more-update';
+// === Smalruby: End of microbitMore update ===
 // === Smalruby: Start of meshV2 initial step feature ===
 import {setDomain as setMeshV2Domain} from '../reducers/mesh-v2';
 import {applySeatToExtension, computeBoundSeat} from '../lib/mesh-v2-classroom-binding.jsx';
@@ -62,6 +64,8 @@ class ConnectionModal extends React.Component {
             'handleSmalrubotS1Close'
             // === Smalruby: End of smalrubotS1 dedicated flow ===
         ]);
+        // === Smalruby: Start of connection modal initial phase ===
+        // Upstream: phase: props.vm.getPeripheralIsConnected(props.extensionId) ? PHASES.connected : PHASES.scanning
         // Determine the initial phase based on extension and connection state
         const initialPhase = (() => {
             const alreadyConnected = props.vm.getPeripheralIsConnected(props.extensionId);
@@ -77,13 +81,18 @@ class ConnectionModal extends React.Component {
             // === Smalruby: End of meshV2 initial step feature ===
             return PHASES.scanning;
         })();
+        // === Smalruby: End of connection modal initial phase ===
+        // === Smalruby: Start of meshV2 initial step feature ===
         // Track whether the user explicitly changed the domain input.
         // When false and the user clicks Create/Join, we clear the cached
         // domain so createDomain() auto-detects from source IP.
         this.userChangedDomain = false;
+        // === Smalruby: End of meshV2 initial step feature ===
         this.state = {
             extension: extensionData.find(ext => ext.extensionId === props.extensionId),
+            // === Smalruby: Start of connection modal initial phase ===
             phase: initialPhase,
+            // === Smalruby: End of connection modal initial phase ===
             // === Smalruby: Start of meshV2 connected message feature ===
             connectedMessage: props.vm.getPeripheralConnectedMessage(props.extensionId)
             // === Smalruby: End of meshV2 connected message feature ===
@@ -148,12 +157,16 @@ class ConnectionModal extends React.Component {
             this.props.onCancel();
         }
     }
+    // === Smalruby: Start of network filter detection feature ===
+    // Upstream: handleError ()
     handleError (event) {
+    // === Smalruby: End of network filter detection feature ===
         // === Smalruby: Start of meshV2 seat connect feature ===
         // The seat connect screen shows its own errors and keeps retrying.
         if (this.state.phase === PHASES.meshV2Seat &&
             !(event && event.errorType === 'networkFilter')) return;
         // === Smalruby: End of meshV2 seat connect feature ===
+        // === Smalruby: Start of network filter detection feature ===
         // Check if this is a network filter error (HTTP 503 from proxy like i-Filter)
         if (event && event.errorType === 'networkFilter' &&
             this.props.extensionId === 'meshV2') {
@@ -167,6 +180,7 @@ class ConnectionModal extends React.Component {
             });
             return;
         }
+        // === Smalruby: End of network filter detection feature ===
 
         // === Smalruby: Start of smalrubotS1 dedicated flow ===
         // smalrubotS1 uses dedicated phases for error display
@@ -274,9 +288,11 @@ class ConnectionModal extends React.Component {
         });
 
         // TODO: get this functionality from the extension
+        // === Smalruby: Start of microbitMore update ===
         if (this.props.extensionId === 'microbitMore') {
             return selectAndUpdateMicroBitMore(progressCallback);
         }
+        // === Smalruby: End of microbitMore update ===
         return selectAndUpdateMicroBit(progressCallback);
     }
     // === Smalruby: Start of smalrubot firmware flash ===
@@ -437,8 +453,11 @@ class ConnectionModal extends React.Component {
     }
     // === Smalruby: End of smalrubotS1 dedicated flow ===
     render () {
+        // === Smalruby: Start of microbitMore update ===
+        // Upstream: const canUpdatePeripheral = (this.props.extensionId === 'microbit') && isMicroBitUpdateSupported();
         const canUpdatePeripheral = ((this.props.extensionId === 'microbit') && isMicroBitUpdateSupported()) ||
             ((this.props.extensionId === 'microbitMore') && isMicroBitMoreUpdateSupported());
+        // === Smalruby: End of microbitMore update ===
         // === Smalruby: Start of smalrubot firmware flash ===
         const canFlashFirmware = (this.props.extensionId === 'smalrubotS1') && isFirmwareFlashSupported();
         // === Smalruby: End of smalrubot firmware flash ===
@@ -525,27 +544,26 @@ ConnectionModal.propTypes = {
     vm: PropTypes.instanceOf(VM).isRequired
 };
 
+// === Smalruby: Start of meshV2 initial step feature ===
+// Upstream: const mapStateToProps = state => ({extensionId: state.scratchGui.connectionModal.extensionId});
 const mapStateToProps = state => {
-    // === Smalruby: Start of meshV2 initial step feature ===
     const classroom = state.scratchGui.classroom;
     const meshV2DomainReadOnly = !!(
         (classroom && classroom.role === 'student' && classroom.joinCode) ||
         (classroom && classroom.teacherSelection && classroom.teacherSelection.joinCode)
     );
-    // === Smalruby: End of meshV2 initial step feature ===
     return {
         extensionId: state.scratchGui.connectionModal.extensionId,
-        // === Smalruby: Start of meshV2 initial step feature ===
         meshV2Domain: state.scratchGui.meshV2.domain,
         meshV2DomainReadOnly,
         meshV2Seat: computeBoundSeat(classroom),
-        // === Smalruby: End of meshV2 initial step feature ===
         // === Smalruby: Start of meshV2 seat connect feature ===
         classroomJoinCode: classroom && classroom.role === 'student' ? classroom.joinCode : null,
         classroomName: classroom && classroom.role === 'student' ? classroom.className : null
         // === Smalruby: End of meshV2 seat connect feature ===
     };
 };
+// === Smalruby: End of meshV2 initial step feature ===
 
 const mapDispatchToProps = dispatch => ({
     onCancel: () => {

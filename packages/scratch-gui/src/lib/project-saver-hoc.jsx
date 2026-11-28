@@ -55,7 +55,10 @@ const ProjectSaverHOC = function (WrappedComponent) {
                 'tryToAutoSave'
             ]);
         }
+        // === Smalruby: Start of react 18 lifecycle rename ===
+        // Upstream: componentWillMount ()
         UNSAFE_componentWillMount () {
+        // === Smalruby: End of react 18 lifecycle rename ===
             // === Smalruby: Start of no_beforeunload URL param ===
             if (!this.props.noBeforeUnloadHandler && typeof window === 'object' &&
                 !getUrlParams().noBeforeUnload) {
@@ -269,7 +272,10 @@ const ProjectSaverHOC = function (WrappedComponent) {
                         // Asset servers respond with {status: ok} for successful POSTs
                         if (response.status !== 'ok') {
                             // Errors include a `code` property, e.g. "Forbidden"
+                            // === Smalruby: Start of reject with error ===
+                            // Upstream: return Promise.reject(response.code);
                             return Promise.reject(new Error(response.code));
+                            // === Smalruby: End of reject with error ===
                         }
                         asset.clean = true;
                     })
