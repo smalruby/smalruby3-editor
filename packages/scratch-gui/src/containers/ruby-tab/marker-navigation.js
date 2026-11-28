@@ -11,7 +11,9 @@ const MARKER_CONTROLLER_ID = 'editor.contrib.markerController';
  * then takes the focus back from the button: in the Japanese mode the editor
  * is in the write mode again while it runs, and the program written back
  * after the run keeps it there (Issue #2553). The controller itself can close
- * the widget and leave the focus where it is.
+ * the widget and leave the focus where it is. Without the controller (an
+ * editor of another Monaco), it falls back to the command, which moves the
+ * focus even when `focusEditor` is false.
  * @param {object} editor - The Monaco editor.
  * @param {object} [options] - Options.
  * @param {boolean} [options.focusEditor] - Whether to move the focus to the
