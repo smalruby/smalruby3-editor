@@ -53,6 +53,7 @@
   - 日本語タブを開くとコンソールを出す（`src/lib/smalruby-console.js` の `showSmalrubyConsole`。隠していればそのまま）。出すのは画面だけで、コンソール拡張機能は、日本語 → Ruby の変換で `表示する` / `【外部からの入力】` が出たときに初めて作品に足す（[`docs/extension-smalruby-console/`](../extension-smalruby-console/)）。日本語にできずルビータブへ戻ったときは出さない。
   - **ルビータブを開くと**、いつものステージとスプライト・背景の一覧に戻す（`hideSmalrubyConsole`。次に日本語タブを開くと、またコンソールを出す）。
   - スマホ（MobileGui）では編集中のステージが隠れているので、プログラムが表示したり答えを待ったりしたら再生の画面（全画面のステージ）に移してコンソールを見せる（[`docs/mobile-ui/ui-ux.md`](../mobile-ui/ui-ux.md) の 2.8）。
+- **動かし方**: ルビーツールバーの実行ボタンか、**緑の旗**で、日本語のプログラムを上から順に動かす。日本語のプログラムはハットの無いスクリプトになるので、日本語タブを開いているあいだは、緑の旗でもツールバーの実行と同じく動かす（`src/containers/ruby-tab/dncl-green-flag.js`。ブロックの形は変えない）。緑の旗は、ほかのスプライトの「緑の旗が押されたとき」もいつもどおり動かし、動いているスクリプトは止めずに残す。ほかのタブでは、緑の旗はいつもどおりハットのスクリプトだけを動かす。
 
 ![日本語タブの右の列（コンソール）](screenshots/0107-right-column-console-1366x768.png)
 
@@ -354,6 +355,7 @@ ja-notation が読めて Ruby になっても、その Ruby がブロックに�
 - `packages/scratch-gui/src/containers/ruby-tab/dncl-mode.js` — Monaco の DNCL 言語定義（トークナイザ、シンタックスハイライト）
 - `packages/scratch-gui/src/containers/ruby-tab/dncl-snippets.js` — DNCL コード補完スニペット。ブロックは標準の形（`もし 条件 ならば:` / `〜の間繰り返す:` / `関数 名前(引数):` と字下げ 4 つ。閉じのことばの行は入れない）で入れる
 - `packages/scratch-gui/src/containers/ruby-tab/dncl-auto-outdent.js` — 書くときの字下げの戻し（`そうでなければ` / `そうでなくもし` を対応する `もし` の深さへ、終わりの行を閉じるブロックの深さへ。`outdentIndent` / `createDnclAutoOutdent`）
+- `packages/scratch-gui/src/containers/ruby-tab/dncl-green-flag.js` — 日本語タブのあいだ、緑の旗でも日本語のプログラムを動かす判断と、動かすスクリプトの選び方（ハットのスクリプトと動いているものを除く。`shouldRunJapaneseOnGreenFlag` / `japaneseScriptsToStart`）
 - `packages/scratch-gui/src/containers/ruby-tab/dncl-problem-form-view.js` — 読むモードを Monaco に描く（罫線のデコレーション、行番号 `(01)` の `lineNumbers`、読むモードと書くモードの切りかえ `createProblemFormView`: フォーカス・クリック・入力・5 秒の待ち・貼り付け・`showReadMode` / `toggle`）
 - `packages/scratch-gui/src/containers/ruby-tab/auto-correct-apply.js` — 自動置換した文を、書きかえがモデルのすべての受け手に届いてから入れる（`applyAutoCorrection`。受け手の中から入れると、エディタのワーカーが例外を出すため）。ルビータブも同じ
 - `packages/scratch-gui/src/containers/ruby-tab/dncl-index-setting.js` — 貼り付け時の添字の設定の確認ダイアログと、冒頭への説明文の書きこみ（1 回の Undo。違うところだけを書きかえる `replaceEditorText`。設定のパターンのメニューも使う）（`offerDnclIndexSetting`）
