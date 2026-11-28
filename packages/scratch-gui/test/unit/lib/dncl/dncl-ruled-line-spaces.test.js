@@ -4,7 +4,9 @@
 // differs, even by one space, is another depth. So a `そうでなければ:` whose
 // spaces after `｜` do not line up with its `もし` is an error on its line,
 // not an `else` of another block (the answer D2 of #1731: an error that
-// says the line is safer than another program made without a word).
+// says the line is safer than another program made without a word). The
+// other lines of each program line up, as a line at another indent is an
+// error of its own (Issue #2555).
 // The programs are made up for the tests.
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
 
@@ -38,7 +40,7 @@ describe('spaces after `｜` that do not line up (Issue #2030)', () => {
                 '｜     表示する(i)',
                 '｜ そうでなければ:',
                 '｜     表示する(0)',
-                '⎿ 表示する(9)',
+                '⎿  表示する(9)',
             ]),
         ).toEqual({ ruby: null, errors: [{ line: 4, message: ELSE_ERROR }] });
     });
@@ -64,7 +66,7 @@ describe('spaces after `｜` that do not line up (Issue #2030)', () => {
                 '｜     表示する(i)',
                 '｜ そうでなくもし i > 1 ならば:',
                 '｜     表示する(0)',
-                '⎿ 表示する(9)',
+                '⎿  表示する(9)',
             ]).errors,
         ).toEqual([{ line: 4, message: ELSE_IF_ERROR }]);
     });
@@ -77,7 +79,7 @@ describe('spaces after `｜` that do not line up (Issue #2030)', () => {
                 '(03) ｜     表示する(i)',
                 '(04) ｜ そうでなければ:',
                 '(05) ｜     表示する(0)',
-                '(06) ⎿ 表示する(9)',
+                '(06) ⎿  表示する(9)',
             ]).errors,
         ).toEqual([{ line: 4, message: ELSE_ERROR }]);
     });

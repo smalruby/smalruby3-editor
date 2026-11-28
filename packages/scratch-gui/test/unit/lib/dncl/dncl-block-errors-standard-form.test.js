@@ -92,3 +92,29 @@ describe('block errors of the DNCL 風の形 keep the closer (Issue #2035)', () 
         );
     });
 });
+
+// A line at no indent of the blocks around it is an error, not read as in the
+// nearest block (Issue #2555): the indent says which block a line is in.
+describe('a line at an indent that does not line up (Issue #2555)', () => {
+    const INDENT_ERROR = '字下げが合いません';
+
+    test('a line shallower than the lines of its block is told', () => {
+        expect(blockErrorsOf(lines('もし 1 > 0 ならば:', '    表示する(1)', '  表示する(2)'))).toEqual([
+            { line: 3, message: INDENT_ERROR },
+        ]);
+    });
+
+    test('a line deeper than the line before it outside any block is told', () => {
+        expect(blockErrorsOf(lines('a = 1', '    b = 2'))).toEqual([{ line: 2, message: INDENT_ERROR }]);
+    });
+
+    test('a line after a block at the indent before it has no error', () => {
+        expect(blockErrorsOf(lines('もし 1 > 0 ならば:', '    表示する(1)', '表示する(2)'))).toEqual([]);
+    });
+
+    test('the lines of a block closed by a line of its own may be at any indent', () => {
+        expect(blockErrorsOf(lines('もし 1 > 0 ならば', '    表示する(1)', '  表示する(2)', 'を実行する'))).toEqual(
+            [],
+        );
+    });
+});

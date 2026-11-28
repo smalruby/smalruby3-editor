@@ -1746,6 +1746,84 @@
                     "word": "を実行する"
                 }
             ]
+        },
+        {
+            "title": "a line of a block opened with `:` shallower than the lines before it is an error (Issue #2555)",
+            "ja": "もし a > 0 ならば:\n    b = 1\n  c = 2",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "字下げが合いません",
+                    "line": 3,
+                    "column": 2,
+                    "block": "indent"
+                }
+            ]
+        },
+        {
+            "title": "a line deeper than the line before it outside any block is an error (Issue #2555)",
+            "ja": "a = 1\n    b = 2",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "字下げが合いません",
+                    "line": 2,
+                    "column": 4,
+                    "block": "indent"
+                }
+            ]
+        },
+        {
+            "title": "a line after a block between its indent and the lines in it is an error (Issue #2555)",
+            "ja": "もし a > 0 ならば:\n        b = 1\n    c = 2",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "字下げが合いません",
+                    "line": 3,
+                    "column": 4,
+                    "block": "indent"
+                }
+            ]
+        },
+        {
+            "title": "a line of an inner block at no indent of the blocks around it is an error (Issue #2555)",
+            "ja": "もし a > 0 ならば:\n    もし b > 0 ならば:\n        c = 1\n      d = 2\n    e = 3",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "字下げが合いません",
+                    "line": 4,
+                    "column": 6,
+                    "block": "indent"
+                }
+            ]
+        },
+        {
+            "title": "only the opening line of a block opened with `:` at another indent is an error, not the lines in it (Issue #2555)",
+            "ja": "a = 1\n  もし a > 0 ならば:\n      b = 1\n      c = 2\nd = 3",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "字下げが合いません",
+                    "line": 2,
+                    "column": 2,
+                    "block": "indent"
+                }
+            ]
+        },
+        {
+            "title": "only the opening line of a block closed by a line of its own at another indent is an error, not its closing line (Issue #2555)",
+            "ja": "a = 1\n  もし a > 0 ならば\n      b = 1\n  を実行する\nd = 3",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "字下げが合いません",
+                    "line": 2,
+                    "column": 2,
+                    "block": "indent"
+                }
+            ]
         }
     ]
 }
