@@ -23,6 +23,7 @@ import {
 import { dnclTextBlob, dnclTextFilename } from '../lib/dncl/dncl-download';
 import { slashCommentRows, tidyPastedDncl, withDoubleSlashHint } from '../lib/dncl/dncl-paste-tidy';
 import { problemFormText } from '../lib/dncl/dncl-problem-form';
+import { rubyInScriptOrder } from '../lib/dncl/dncl-script-order';
 import { dnclWithSettingsPattern } from '../lib/dncl/dncl-settings';
 import { stringArithmeticRows } from '../lib/dncl/dncl-string-arithmetic-hint';
 import { dnclToRuby, rubyForLeavingDncl } from '../lib/dncl/dncl-to-ruby';
@@ -1270,7 +1271,11 @@ const RubyTab = (props) => {
                     // Using direct editor setValue because Redux prop-driven
                     // updates via @monaco-editor/react may not take effect
                     // reliably within the same callback.
-                    const regenerated = RubyGenerator.targetToCode(vm.editingTarget, { version: rubyVersion });
+                    // The Japanese tab keeps the scripts in the written order (issue #2550).
+                    const regenerated = RubyGenerator.targetToCode(vm.editingTarget, {
+                        version: rubyVersion,
+                        keepScriptOrder: dnclModeRef.current,
+                    });
                     if (editorRef.current && regenerated !== code) {
                         // Remember cursor content to restore position after setValue
                         const cursorLine = editorRef.current.getPosition().lineNumber;
@@ -1514,11 +1519,12 @@ const RubyTab = (props) => {
         const currentEditorValue = editorRef.current.getValue();
         const currentRubyFromDncl = dnclToRuby(currentEditorValue).ruby;
         if (currentRubyFromDncl !== rubyCodeStr && rubyCodeStr) {
-            const result = rubyToDncl(rubyCodeStr);
+            const ruby = rubyInScriptOrder(rubyCodeTargetRef.current, rubyCodeStr, rubyVersion);
+            const result = rubyToDncl(ruby);
             dnclEditErrorRef.current = false;
             setDnclDisplayCode(result.dncl);
         }
-    }, [rubyCodeStr, dnclMode, prismReady]);
+    }, [rubyCodeStr, dnclMode, prismReady, rubyVersion]);
 
     // The read mode is drawn only in the Japanese mode.
     useEffect(() => {

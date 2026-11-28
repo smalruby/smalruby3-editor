@@ -176,6 +176,7 @@
 | `dncl-string-arithmetic-hint.js` | **文字列と `-` `*` `/` の警告**（`stringArithmeticRows`）。文字列を `+` でつないだ後の `-` や、文字列に `-` `*` `/` を使う行を見つける。`ruby-tab.jsx` が警告マーカー（`gui.rubyTab.dnclStringArithmeticHint`）にして、数の計算をかっこで囲むよう表示する。下の「文字列と数の計算」 |
 | `dncl-array-index-hint.js` | **範囲外の添字の警告**（`findArrayIndexHints`）。1 から始まる添字で書いたときのように配列の範囲外を読む `X[i]` / `X[3]` を見つける。ja-notation の `parse` で読んだ構文木を見る（読めないプログラムには出さない）。`ruby-tab.jsx` が警告マーカー（`gui.rubyTab.dnclArrayIndexHint`）にして、添字が 0 から始まることと直し方を表示する。下の「配列の添字は 0 から」 |
 | `dncl-index-note.js` | **貼り付けたテキストの「添字は 1 から始まる」の注釈を見つける**（`hasOneBasedIndexNote`）。コメントだけを見る。下の「貼り付け時の添字の設定」 |
+| `dncl-script-order.js` | ブロックから日本語にするときの**スクリプトの並び**（`rubyInScriptOrder`）。ルビータブの Ruby は関数の定義を先に出すが、日本語タブには書いた順（スクリプトの並び）のまま、スクリプトの間に空の行を入れない Ruby（`RubyGenerator.targetToCode` の `keepScriptOrder`）を作って日本語にする。下の「ブロックを通ったときの並び」 |
 | `dncl-settings.js` | **設定のパターン**（`dnclSettingsPatternId` / `dnclWithSettingsPattern` / `dnclWithIndexFromOne`）。冒頭の説明文からいまのパターンを読み、パターンの説明文を書いてプログラムをその設定で表し直す（Ruby を通るので意味は変わらない）。下の「設定（冒頭の説明文）」 |
 | `dncl-keywords.js` | DNCL キーワード定義（`もし`, `ならば`, `を繰り返す` など）|
 | `dncl-validator.js` | 日本語モードに無いことばの判定（`findUnsupportedCommands` / `isPostTestLoopLine`）と、その文言・id。ja-notation が読めない行の言いかえ（`ja-notation-errors.js`）が使う。文言と id は Ruby → 日本語の誤りにも使う |
@@ -454,6 +455,19 @@ Smalruby のルビータブ（Ruby / ふりがな）と日本語タブ（DNCL）
 **結果**: 「言う」のブロック（Ruby の `say` / `puts`）や「聞いて待つ」と「答え」で作ったプログラムを日本語タブで編集すると、**コンソールのブロックに変わったまま戻らない**。秒数情報も失われます。
 Ruby の `puts` / `gets` は、いままでどおりコンソールのブロックにはしません（ルビータブは Scratch の部分集合。`design.md` の 5 章）。
 
+### ブロックを通ったときの並び
+
+日本語タブのプログラムは、コードタブ（ブロック）を通っても**書いた順**に戻る。関数をプログラムの後ろに定義しても、後ろのまま。
+
+- ルビータブの Ruby は、関数の定義（`def`）を先に出す（Ruby はメソッドを定義してから呼ぶため）。日本語タブは、ブロックから作った Ruby をそのまま日本語にせず、
+  スクリプトの並び（日本語から作ったときの順）を保った Ruby を作り直してから日本語にする（`dncl-script-order.js`。ルビータブの Ruby は変えない）。
+- ブロックはプログラムを関数の定義のところでしかスクリプトに分けないので、日本語タブではスクリプトの間に空の行を入れない。
+  ブロックは空の行を持たないので、日本語で書いた空の行は、ブロックを通ると消える（これまでと同じ）。
+- コードタブで足したスクリプトは、並びの最後に入る。
+- ルビティー（`genai-ruby-adapter.js`）が読む、エディタに出ていないスプライトの日本語も同じ並びで作る（エディタの日本語と比べるため）。
+
+テスト: `packages/scratch-gui/test/unit/lib/dncl/dncl-script-order.test.js`
+
 ### 変換マトリクスを lock-in するテスト
 
 このマトリクスを保証する単体テスト: `packages/scratch-gui/test/unit/lib/dncl/dncl-say-block-roundtrip.test.js`
@@ -645,6 +659,7 @@ Smalruby は **共通テスト用プログラム表記の形のプログラム�
   - `dncl-unsupported-command.test.js` — 日本語モードに無い命令（引数あり・なし・変数と同じ名前・式や条件の中・`xxx do` と `|x|`）がその行のエラーで止まり、定義した関数の呼び出しや組み込み関数は往復できること（DNCL → Ruby と Ruby → DNCL の両方）
   - `dncl-do-block.test.js` — 日本語にしない `xxx do ... end` が `を実行する` で閉じ、外側の `〜の間` / `もし` / `関数` の閉じのことばがずれないこと（入れ子・`until x do`・後判定の中・文字列やコメントの中の `do`）
   - `dncl-roundtrip.test.js` — DNCL ↔ Ruby round-trip 安定性
+  - `dncl-script-order.test.js` — ブロックを通っても書いた順に戻ること（関数をプログラムの後ろに定義した形・先に定義した形）と、ルビータブの Ruby は関数の定義を先に出すこと
 - エディタ側の単体テスト: `packages/scratch-gui/test/unit/containers/ruby-tab/dncl-index-setting.test.js`（注釈なし・設定済みでは聞かない・「いいえ」で何も変えない・「はい」で冒頭に 1 回の編集、違うところだけの書きかえ）、`test/unit/components/ruby-toolbar-settings-pattern.test.jsx`（メニューのパターン・✓・選んだときの呼び出し）、`dncl-problem-form-view.test.js`（罫線のデコレーションの位置・タブの字下げ・空の行の縦線・行番号の桁と欄の幅・読むモードと書くモードの切りかえ: フォーカス・クリック・入力・5 秒の待ち・貼り付け・ボタン・日本語モードの出入り）、`test/unit/components/ruby-toolbar-rules-switch.test.jsx`（日本語タブにスプライトを選ぶ部品が無い・スイッチは日本語タブだけ・`role="switch"` と `aria-checked`・フォーカスを動かさない・その他メニューの項目と並び・.txt の保存）、`test/unit/lib/dncl/dncl-download.test.js`（.txt のファイル名と UTF-8）。統合テスト `test/integration/dncl-problem-form.test.js`（スイッチ・入力・5 秒の待ち・クリック・貼り付け・緑の旗での切りかえ、Ruby に戻すと行番号と空白の点が戻ること）
 - 補完と色分けの単体テスト: `packages/scratch-gui/test/unit/containers/ruby-tab/dncl-snippets.test.js`（スニペットが標準の形（`:` と字下げ 4 つ・閉じのことばの行なし・`繰り返す:`）で、場所を埋めて入れたものがそのまま Ruby とブロックになり、Ruby から同じ日本語に戻ること）、`dncl-mode.test.js`（開始の行の後の字下げ・`and` / `or` / `not`・`繰り返す` の付いたことば・`を返す`・全角の `％` の色分け）
 - Round-trip テスト (左結合演算子の括弧除去): `packages/scratch-gui/test/unit/lib/ruby-roundtrip-puts-concat.test.js`
