@@ -308,3 +308,65 @@ test('EPIC: 途中の相談の子の PR がコンフリクトしていれば、E
     });
     assert.notStrictEqual(r2.act, 'resolve');
 });
+
+// ---- 質問を隠さない（#2565）: bin/autopilot-ask で書いた質問がある Issue は、ゴーサインではなく「答える」 ----
+const { inboxModel } = require('../src/monitor-inbox');
+
+// 2026-11-28 の #1731（リリース確認）と、その子 #2552・#2555（Sprint Backlog + 🙋・本文に案があるだけだった）
+const ASK_ITEMS = [
+    { issue: 1731, title: 'EPIC: 日本語モード', kind: 'EPIC', tracker: true, status: 'In Progress', aiStatus: 'Release Check', hitl: true,
+        priority: 'P1', subIssues: { total: 48, completed: 46 }, prs: [{ number: 2206, state: 'OPEN' }] },
+    kid(2552, 1731, { status: 'Sprint Backlog', hitl: true, priority: 'P2' }),
+    kid(2555, 1731, { status: 'Sprint Backlog', hitl: true, priority: 'P2' }),
+    { issue: 2600, title: 'single', status: 'Sprint Backlog', hitl: true },
+];
+const askBoard = (asked) => ({
+    items: ASK_ITEMS,
+    humanWait: ASK_ITEMS.filter((it) => it.hitl).map((it) => ({
+        issue: it.issue, waitReason: it.kind === 'EPIC' ? 'release' : 'go',
+        delegate: it.tracker ? { ok: true, action: 'release-check', nextPhase: 'release-check' } : { ok: true, action: 'release', nextPhase: 'implement' },
+    })),
+    running: [],
+    monitorQuestions: asked.map((n) => ({ issue: n, status: 'open', round: 1, questions: [{ id: 'q1', text: 'どちら', options: [{ key: 'a', label: 'A' }] }] })),
+});
+
+test('質問のある Sprint Backlog + 🙋 の Issue は、ゴーサインではなく「答える」', () => {
+    const it = { issue: 2600, status: 'Sprint Backlog', hitl: true, delegate: { ok: true } };
+    assert.strictEqual(humanAction(it, {}).kind, 'go');
+    const a = humanAction(it, { questions: [2600] });
+    assert.deepStrictEqual([a.kind, a.button, a.act], ['answer', '答える', 'answer']);
+    // 待ち（⏳）・リリース後（🚀）でも、開いている質問があれば答える番
+    assert.strictEqual(humanAction(Object.assign({}, it, { labels: ['⏳ waiting'] }), { questions: [2600] }).kind, 'answer');
+    assert.strictEqual(humanAction(Object.assign({}, it, { status: 'Blocked' }), { questions: [2600] }).kind, 'answer');
+    // ボードでも: ゴーサインの欄に出ず、「答えが要る」の欄に出る
+    const m = forYouModel(askBoard([2600]), { repoUrl: REPO });
+    assert.ok(!allRows(m).some((w) => w.issue === 2600));
+    assert.deepStrictEqual(inboxModel(askBoard([2600]), null).questions.map((q) => q.issue), [2600]);
+});
+
+test('リリース確認の段階の EPIC の子に質問があると、「あなた宛て」に出る（リリース確認のボタンも残る）', () => {
+    const board = askBoard([2552, 2555]);
+    const inbox = inboxModel(board, null);
+    assert.deepStrictEqual(inbox.questions.map((q) => q.issue), [2552, 2555]);
+    assert.ok(!inbox.waits.some((w) => w.issue === 2552 || w.issue === 2555), '人間待ち（ゴーサイン）に重ねない');
+    const m = forYouModel(board, { repoUrl: REPO });
+    const e = allRows(m).find((w) => w.issue === 1731);
+    assert.deepStrictEqual([e.epicPhase, e.kind, e.button], ['final-check', 'check', '確認ページを開く']);
+    assert.match(e.state, /子 #2552・#2555 に答え待ちの質問があります（「答えが要る」の欄で答えてください）/);
+    assert.ok(!allRows(m).some((w) => w.issue === 2552 || w.issue === 2555));
+});
+
+test('自律で進行中・任せる前の EPIC でも、質問のある子はゴーサインにまとめず、相談として出す', () => {
+    const epic = { issue: 10, kind: 'EPIC', tracker: true, status: 'In Progress', aiStatus: 'EPIC Decomposed', hitl: true,
+        subIssues: { total: 3, completed: 1 } };
+    const kids = [
+        { issue: 11, status: 'Sprint Backlog', hitl: true, parent: { number: 10 } },
+        { issue: 12, status: 'Sprint Backlog', hitl: true, parent: { number: 10 } },
+    ];
+    const a = humanAction(epic, { kids, questions: [12] });
+    assert.deepStrictEqual([a.epicPhase, a.kind, a.targets], ['before-delegate', 'go', [11]]);
+    // 任せる前の行でも、質問のある子を一文で指す（子の質問は「答えが要る」の欄に出る）
+    assert.match(a.state, /^子 #12 に答え待ちの質問があります（「答えが要る」の欄で答えてください）。/);
+    const b = humanAction(epic, { kids: [kids[1]], questions: [12] });
+    assert.deepStrictEqual([b.epicPhase, b.kind, b.act, b.targets], ['consult', 'answer', 'answer', [12]]);
+});

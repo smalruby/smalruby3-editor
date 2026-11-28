@@ -112,6 +112,26 @@ Runner はこの短語を pane で検出してから `AUTOPILOT_RESULT_FILE` を
 答えのファイル（`AUTOPILOT_ANSWERS_FILE`・§6）を渡す。起動の指示にもそのパスが入る。worker はそれを最初に読み、
 同じことを質問し直さない。「メモだけ保存」では何も起きない（daemon のローカルに置くだけ）。
 
+**worker 以外が質問を出す（`bin/autopilot-ask`）**: セッションの AI や人間も、同じ形の質問を出せる
+（`bin/autopilot-ask <issue> <questions.json>`）。入力の JSON は次の形で、`questions` は上の表と同じ（検証も同じ
+`contract.js` の `questionListErrors`）。`questions` の配列だけを書いたファイルも受ける:
+
+| key | 型 | 説明 |
+|---|---|---|
+| `questions` | object[]（必須） | 上の表の形。1 回に 10 問・1 問に 10 択まで |
+| `reason` | string \| 省略 | 何を判断してほしいか（質問のコメントの「理由」に出る。2000 字まで） |
+| `phase` | string \| 省略 | 質問のコメントの見出しに出る名前（英数字・`_`・`-`。既定 `session`） |
+
+```json
+{"reason":"緑の旗の扱いを決めたい",
+ "questions":[{"id":"q1","text":"緑の旗をどう扱いますか",
+   "options":[{"key":"a","label":"旗を残す","desc":"いまの見た目のまま"},{"key":"b","label":"旗を消す"}],
+   "recommended":"a"}]}
+```
+
+道具は worker の結果と同じ質問のコメントを Bot 名義で書き（同じ中身は書かない・round は続ける）、daemon の
+`POST /questions`（body `{issue, round, questions, phase, reason}`）で置き場に載せる。答えたあとの流れは worker の質問と同じ。
+
 `signal=error` のとき追加で:
 
 | key | 型 | 説明 |

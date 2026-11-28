@@ -4,6 +4,9 @@
  * watchdog の判断ロジック。すべて純粋関数（I/O なし）でテスト可能にする。
  */
 
+// 質問の形の検証は worker の結果と同じ 1 か所（contract.js）を使う（#2565・bin/autopilot-ask）
+const { questionListErrors } = require('./contract');
+
 /**
  * 子 claude を起動する既定コマンド。
  * **非対話**で動かすため `--allowedTools` を広げ、`gh`/`git` 等の Bash 実行で
@@ -3920,6 +3923,65 @@ function planMonitorQuestionsComment(comments, issue, questions, opts = {}) {
     return { action: 'post', round, body: renderMonitorQuestionsComment(issue, round, questions, opts) };
 }
 
+/** 質問の理由の上限（GitHub のコメントに出すときは sanitizeForSurface がさらに切る） */
+const MAX_ASK_REASON = 2000;
+
+/**
+ * `bin/autopilot-ask` の入力（JSON ファイルの中身）を検証して形をそろえる（純粋関数・#2565）。
+ * 形は worker の結果と同じ: `{questions:[{id, text, options:[{key, label, desc?}], recommended?}], reason?, phase?}`
+ * （配列だけを渡したら questions とみなす）。質問の形の検証は contract.js の questionListErrors（worker と同じ 1 か所）。
+ * phase は質問のまとめコメントの見出しに出る名前（既定 `session` = セッションの AI か人間が書いた質問）。
+ * @param {*} input
+ * @returns {{ok:boolean, errors:string[], questions?:object[], reason?:string|null, phase?:string}}
+ */
+function normalizeAskInput(input) {
+    const obj = Array.isArray(input) ? { questions: input } : input;
+    if (!obj || typeof obj !== 'object') return { ok: false, errors: ['input must be an object with questions'] };
+    const errors = questionListErrors(obj.questions);
+    if (obj.reason != null && (typeof obj.reason !== 'string' || obj.reason.length > MAX_ASK_REASON)) {
+        errors.push(`reason must be a string (max ${MAX_ASK_REASON})`);
+    }
+    if (obj.phase != null && (typeof obj.phase !== 'string' || !/^[A-Za-z0-9_-]{1,32}$/.test(obj.phase))) {
+        errors.push('phase must match /^[A-Za-z0-9_-]{1,32}$/');
+    }
+    if (errors.length) return { ok: false, errors };
+    return { ok: true, errors: [], questions: obj.questions, reason: obj.reason || null, phase: obj.phase || 'session' };
+}
+
+/**
+ * `POST /questions`（`bin/autopilot-ask` が Issue に書いた質問を daemon の置き場に載せる・#2565）の body を
+ * 検証する（純粋関数）。body: `{issue, round, questions, phase?, reason?}`。
+ * @param {object} body
+ * @returns {{ok:boolean, error?:string, issue?:number, round?:number, questions?:object[], phase?:string, reason?:string|null}}
+ */
+function normalizeQuestionsRegistration(body) {
+    if (!body || typeof body !== 'object') return { ok: false, error: 'body must be an object' };
+    const issue = Number(body.issue);
+    if (!Number.isInteger(issue) || issue <= 0) return { ok: false, error: 'issue (positive integer) required' };
+    if (!Number.isInteger(body.round) || body.round <= 0) return { ok: false, error: 'round (positive integer) required' };
+    const n = normalizeAskInput({ questions: body.questions, reason: body.reason, phase: body.phase });
+    if (!n.ok) return { ok: false, error: n.errors.join('; ') };
+    return { ok: true, issue, round: body.round, questions: n.questions, phase: n.phase, reason: n.reason };
+}
+
+/**
+ * 質問を置き場に載せるかの計画（純粋関数・冪等・#2565）。同じ round の同じ質問がもう載っていれば、
+ * 人間の「メモだけ保存」を消さないよう置き直さない（keep）。答えた（answered）同じ round も開き直さない。
+ * worker が動いている Issue は受けない（worker の結果の質問と競うため）。
+ * @param {object|null} entry 置き場の 1 件
+ * @param {object} reg {@link normalizeQuestionsRegistration} の結果
+ * @param {{running:boolean}} opts
+ * @returns {{ok:boolean, status:number, action?:'set'|'keep', error?:string}}
+ */
+function planQuestionsRegistration(entry, reg, opts = {}) {
+    if (opts.running) return { ok: false, status: 409, error: 'worker is running' };
+    if (entry && entry.round === reg.round
+        && JSON.stringify(entry.questions) === JSON.stringify(reg.questions)) {
+        return { ok: true, status: 200, action: 'keep' };
+    }
+    return { ok: true, status: 200, action: 'set' };
+}
+
 /**
  * `POST /answer` の body を検証して形をそろえる（純粋関数）。
  * body: `{issue, answers:[{q, key, note?}], proceed}`。key は選択肢の key。選択肢で答えず
@@ -4196,6 +4258,9 @@ module.exports = {
     findMonitorQuestionsComments,
     renderMonitorQuestionsComment,
     planMonitorQuestionsComment,
+    normalizeAskInput,
+    normalizeQuestionsRegistration,
+    planQuestionsRegistration,
     normalizeMonitorAnswerBody,
     planMonitorAnswer,
     renderMonitorAnswerComment,

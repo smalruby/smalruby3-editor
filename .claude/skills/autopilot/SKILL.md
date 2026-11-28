@@ -149,7 +149,16 @@ booting を確認する:
    - **Status** = 既定 `Sprint Backlog`（即着手）。設計相談から始めたい内容なら
      `New Item`（triage → 必要ならディスカッション）を提案して確認する
    - ラベルは付けない（`🤖 autopilot` は daemon が付与する）
-4. 作成した Issue 番号・URL・設定値（Status/Kind/Size/担当）を報告する。
+4. **人間の判断が要る Issue なら、質問として出す**（#2565）: 案と AI のおすすめを本文に書くだけにしない。
+   本文だけだとモニターの「答える」に出ず、「実装を始めてもらう」（ゴーサイン）の行になり、押すと答えないまま
+   🙋 が外れて実装が始まる。🙋 を付けたうえで、案を質問の JSON（形は `docs/autopilot/autonomous-contract.md`
+   §2.3 の「worker 以外が質問を出す」）に書き、道具で出す:
+   ```bash
+   # tmp/questions-<N>.json は Write ツールで書く（選択肢・一行の説明・recommended を必ず入れる）
+   bin/autopilot-ask <N> tmp/questions-<N>.json
+   ```
+   終了コード 2 は「コメントは書けたが daemon に届かなかった」。daemon を起こしてからもう一度流す（二重には書かない）。
+5. 作成した Issue 番号・URL・設定値（Status/Kind/Size/担当）と、質問を出したかを報告する。
 
 `enroll autopilot` が**複数案件**を含むときは、1 案件 = 1 Issue に分けてから同じ手順を繰り返す。
 
