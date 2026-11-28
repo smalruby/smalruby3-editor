@@ -73,7 +73,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/stage-header/stage-header.jsx` | console button | コンソールのボタン（`SmalrubyConsoleButton`）をメッシュのボタンの後ろに置く。通常表示と全画面の 2 か所 + import |
 | `src/components/stage/stage.jsx` | console | ステージの上にコンソール（`SmalrubyConsole`）を重ね、質問と答えの口を渡す。コンソールの表示中はステージの質問の欄を出さない（`consoleVisible`）。日本語タブでは、コンソールを右の列に描き（`inColumn`）、その表示中はステージを隠す（`consoleInColumn` → `.hidden-for-console`）。import・分割代入・propTypes |
 | `src/components/stage/stage.css` | console | 日本語タブでコンソールを出しているあいだ、ステージを隠す（`.stage-wrapper.hidden-for-console`） |
-| `src/containers/stage.jsx` | console | `vm` をステージのコンポーネントへ渡す・`consoleVisible` を `state.scratchGui.smalrubyConsole.visible` にマップ・`consoleInColumn`（日本語タブで全画面でないとき）をマップ・`JAPANESE_TAB_INDEX` の import |
+| `src/containers/stage.jsx` | console | `vm` をステージのコンポーネントへ渡す・`consoleVisible` を `state.scratchGui.smalrubyConsole.visible` にマップ・`consoleInColumn`（日本語タブで全画面でもプレイヤーだけでもないとき）をマップ・`shouldComponentUpdate` で `consoleInColumn` / `consoleVisible` の変化を描き直しに入れる（propTypes も）・`JAPANESE_TAB_INDEX` の import |
 | `src/components/gui/gui.jsx` | Japanese right column | スプライトと背景の一覧（`.target-wrapper`）を `JapaneseRightColumn` で包む（日本語タブのあいだは、コンソールの置き場・札を足し、一覧を隠す）。import |
 | `src/components/menu-bar/menu-bar.jsx` | mesh status popup | メッシュのメニューの「状態と履歴を見る」（`menu-bar-mesh-status`）と、`openMeshV2StatusPopup` の import・`onOpenMeshV2StatusPopup` の dispatch と propType |
 | `src/components/connection-modal/connected-step.jsx` | mesh status popup | メッシュの接続済み画面の［状態と履歴］ボタン（`mesh-v2-open-status`）の import と配置 |

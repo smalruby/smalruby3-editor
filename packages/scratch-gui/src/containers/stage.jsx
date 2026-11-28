@@ -86,6 +86,11 @@ class Stage extends React.Component {
             this.props.isFullScreen !== nextProps.isFullScreen ||
             this.state.question !== nextState.question ||
             this.props.micIndicator !== nextProps.micIndicator ||
+            // === Smalruby: Start of console ===
+            // the console moves into the right column and hides the stage on the Japanese tab
+            this.props.consoleInColumn !== nextProps.consoleInColumn ||
+            this.props.consoleVisible !== nextProps.consoleVisible ||
+            // === Smalruby: End of console ===
             this.props.isStarted !== nextProps.isStarted;
     }
     componentDidUpdate (prevProps) {
@@ -445,6 +450,10 @@ class Stage extends React.Component {
 }
 
 Stage.propTypes = {
+    // === Smalruby: Start of console ===
+    consoleInColumn: PropTypes.bool,
+    consoleVisible: PropTypes.bool,
+    // === Smalruby: End of console ===
     isColorPicking: PropTypes.bool,
     isFullScreen: PropTypes.bool.isRequired,
     isStarted: PropTypes.bool,
